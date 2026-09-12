@@ -13,6 +13,529 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan
+> Phase 5 of 5 (final phase), CLOSED SUCCESSFUL: every spec §12 acceptance item that does not
+> require a live VPS deployment, verified and turned into permanent regression tests; one real
+> bug found and fixed along the way.** Direct continuation of the same-day Phase 1–4 sessions.
+> Per `EXECUTOR-PROTOCOL.md` §6.
+> **The reframe that made this a real session, not "blocked, nothing to do":** the spec's own
+> §11/§12 assumes a live VPS deployment (real captured MT5 exports, a real 20-day history) that
+> does not exist for this new Lane 4 extension — the currency-index engine has never been
+> deployed, matching Lane 4's own still-open Phase 5 item. But most of the 7-item checklist
+> doesn't actually need live data; it needs the _code_ proven correct, which is checkable today
+> against synthetic data and the MQL5 source itself. Planned via `EnterPlanMode`, mapping each
+> checklist item individually rather than declaring the whole phase blocked.
+> **V1 (Dynamic Corridor Accuracy vs. "Python pandas"):** pandas isn't installed in this
+> environment (checked: Python 3.11.9 + numpy, no pandas) — used numpy instead, mathematically
+> equivalent for a mean/sample-stddev computation (`pandas.Series.std()` delegates to the same
+> `ddof=1` primitive). New `scratch/v1_corridor_crosscheck.py` (gitignored, kept for future
+> re-runs — same precedent as the R2 session's `scratch/verify-r2.ts`) independently computes
+> μ/σ for a deterministic synthetic 8-currency × 20-day (160-point) dataset; the exact reference
+> numbers are now hard-coded into a new permanent test in `railway-gateway/test/
+currency-index-corridor-math.spec.ts`, asserting `computeVolatilityCorridor` matches within
+> 1e-9 — far tighter than the spec's own 0.001% bar.
+> **A real bug found and fixed while building the V3 test, not a false alarm:**
+> `analysisTableM15.currentPct` was reading the raw M5 `latest` bar (the same variable
+> `dashboardTableM5` uses), not the M15-sampled series' own latest bar — meaning the displayed
+> percentage could visually disagree with the zone badge shown right next to it in the same row
+> (the badge WAS correctly M15-derived; only the raw number next to it wasn't). Caught by a new
+> test in `__tests__/api/currency-index-pro-screener.test.ts` feeding 4 M5 bars spanning past
+> one M15 boundary and asserting the two tables read genuinely different bars from the same raw
+> data (spec V3: Dual Timeframe Integrity) — the test failed against the original code (`0.4`
+> instead of the expected `0.3`), confirming it was a real defect, not a bad assertion. Fixed to
+> read `latestSignalBar?.changePct` (falling back to the M5 value only in the first few minutes
+> of a session, before any M15 bar exists yet). `indexStates.changePct` (the spread-delta
+> gauge's own M5 real-time value) and `scorePairs()`'s resulting `divergenceSpread` were
+> deliberately left M5-based — that's the spec's own explicit intent for the "jackpot meter"
+> ("meant to reflect the current instant, not a noise-reduced one"), not the same defect class.
+> **V2/V6 already fully covered, no new work:** `pairs.test.ts`'s `resolvePairAction` tests
+> already use the spec's own §6.1 worked examples (JPYX Overbought → BUY USDJPY/EURJPY/GBPJPY)
+> and its "weights a Double Confluence pair at 4x baseline" test already covers V6.
+> **V5 (Reactivity, spec's own "<5ms"/"<16ms 60fps"):** previously asserted from Big-O reasoning
+> alone. New `__tests__/lib/currency-index-pro/performance.test.ts` benchmarks the exact what-if
+> recompute the HRMA/SMMA modal's sliders run on every tick (`computeHrma`+`computeSmma`+
+> `classifyZone`+`detectStageBSignal` over a full 96-bar day, 200 iterations with varying
+> periods) via `performance.now()`. **Measured: 0.0158ms/call** — over 300x inside the 5ms bar,
+> turning a claim into a permanently regression-tested number.
+> **V4 (News Timeline Alignment) and V7 (Advisory Banner):** V4 is a code-review confirmation,
+> not a new test — `HighImpactNewsTooltip`/`EventVerticalLine` pass `event.eventTime` straight
+> through with zero transformation, so there's no room for this plan's own code to introduce a
+> misalignment; the actual MT5-to-UTC conversion accuracy belongs to the already-verified
+> economic-events pipeline (2026-09-09 session), out of this phase's scope to re-litigate. V7
+> got one minimal new render test (`__tests__/components/currency-index-pro/
+trading-advisory-banner.test.tsx`) pinning that the disclaimer renders unconditionally, since
+> it's a named, explicit spec acceptance item that had zero dedicated coverage.
+> **"Backtest HRMA×SMMA against MQL5 indicator output" (§11 Phase 5 item 2):** no live captured
+> MQL5 runtime output exists for this new lane, but re-read `HRMA_Modified Buffers.mq5`/
+> `SMMA_Modified Buffers.mq5` directly line-by-line (not just the spec doc's paraphrase) against
+> `lib/currency-index-pro/math.ts`. Result: both `computeHrma` and `computeSmma` match the
+> actual `.mq5` source **exactly**, including the `i==0` seed special case and the recursive
+> update formulas. The one intentional difference: `computeSmma` returns `null` before its seed
+> point where the real indicator writes a literal `0.0` `PLOT_EMPTY_VALUE` placeholder — a
+> deliberate, already-documented improvement (never conflate "no value yet" with "value is
+> exactly zero"), not a math discrepancy. This is the strongest verification achievable without
+> a live VPS — the indicator's own source is the authoritative definition of correct output.
+> **"Verify MT5 server-time alignment... with news release timestamps" (§11 Phase 5 item 1):**
+> no new alignment logic exists in this plan to verify — it entirely reuses the existing,
+> already-live-verified economic-events query layer. Noted as inherited correctness.
+> **Verified:** `npx tsc --noEmit`/`npx eslint` clean on both projects (railway-gateway's own
+> pre-existing, already-documented "no ESLint config at all" gap reproduces on the new test file
+> too, confirmed unrelated); railway-gateway `npm test` **5/5 suites, 67/67 tests**; full
+> monolith `npm run test:ci` **196/196 suites, 2636/2636 tests** (194/2633 baseline + this
+> session's own 2 new suites/3 new tests + the V1 cross-check added to an existing suite, zero
+> regressions elsewhere). No browser check needed — this phase shipped no UI.
+> **Explicitly NOT done, staying flagged for Davin — unchanged from Lane 4's own still-open
+> Phase 5 item:** a genuine end-to-end backtest against real captured MT5 HRMA/SMMA runtime
+> output, a real 20-day corridor history, and live news-marker-to-real-event alignment on the
+> actual chart. All of it is gated on the currency-index VPS engine actually being deployed —
+> this session closes every checklist item that doesn't depend on that, it does not remove the
+> blocker itself.
+> **This closes all 5 phases of the Currency Index PRO Plan** (backend: schema + aggregator +
+> HRMA/SMMA/confluence engine + 4 REST endpoints; frontend: chart + news markers + header
+> controls + HRMA/SMMA detail modal with instant what-if sliders + screener tables + settings
+> modal + disclaimer banner; this session's verification pass) — modulo the live-VPS items
+> flagged above and in each prior phase's own entry.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry (and all 5 phases) before any of it becomes a commit.
+> **Artifacts:** `scratch/v1_corridor_crosscheck.py` (new, gitignored),
+> `railway-gateway/test/currency-index-corridor-math.spec.ts`,
+> `app/api/market/currency-index-pro/screener/route.ts` (the `currentPct` bug fix),
+> `__tests__/api/currency-index-pro-screener.test.ts`,
+> `__tests__/lib/currency-index-pro/performance.test.ts` (new),
+> `__tests__/components/currency-index-pro/trading-advisory-banner.test.tsx` (new), this file.
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan
+> Phase 4 of 5 (and final frontend phase), CLOSED SUCCESSFUL: the screener/analysis tables,
+> the Top-5 ranked card, the mandatory risk disclaimer, and the global indicator-settings
+> modal, all live in a real browser.** Direct continuation of the same-day Phase 1–3 sessions.
+> Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode` with a targeted live-code check
+> before writing anything, per §0's "live code wins" rule.
+> **One real gap found before planning further:** spec §6.3/§9 wants a "View Chart" quick
+> action opening the respective pair's interactive candlestick modal on every Top-5/Analysis
+> row. This app has **no OHLCV data for arbitrary FX pairs at all** — the only live candlestick
+> pipeline is XAUUSD (Lane 1's own alert pipeline), and Lane 4's own Phase 1 entry already
+> flagged `forex_ohlcv_m5` (raw per-pair storage) as "deliberately not built," reserved for a
+> future 32-pair screener. Building real per-pair OHLCV ingestion is far outside "tables +
+> settings + banner." **Resolved by reusing an existing, proven pattern in this exact
+> codebase** rather than fabricating data or building a pipeline: `components/landing/
+ticker-tape.tsx` already embeds TradingView widgets as a plain `<iframe src="https://
+www.tradingview-widget.com/embed-widget/...">` for FX symbols (`ICMARKETS:EURUSD` etc.) —
+> CSP already allows `tradingview-widget.com`/`*.tradingview.com` in `frame-src`
+> (`next.config.js`, confirmed before building, zero config changes needed). The new
+> `PairChartModal` reuses this exact technique (TradingView's Advanced Chart widget) for the
+> clicked pair. One simplification vs. ticker-tape's own dual-iframe light/dark trick: that
+> trick exists specifically so a **never-unmounting** landing-page strip survives a theme
+> change without re-initializing (its own header comment documents real, hard-won bugs from
+> every other approach tried); this modal remounts fresh every open by nature (same
+> Dialog-portal lifecycle as `HrmaSmmaDetailModal`), so "a fresh embed on a fresh page load is
+> reliable" (ticker-tape's own conclusion) is satisfied trivially — one iframe, theme baked in
+> at mount time, no dual-iframe needed.
+> **A second, evidence-based design correction, made while wiring the settings modal's OB/OS
+> override into the main chart:** the spec's corridor always draws two tiers (Tier 1
+> strike-zone, Tier 2 "extreme" = mean + 1σ). A custom override only ever supplies a single
+> OB/OS value — there is no statistical basis for a second "extreme" tier once the user has
+> manually overridden the corridor, since that tier is fundamentally a computed
+> mean+standard-deviation quantity. Synthesizing one from the override (e.g. override × some
+> arbitrary multiplier) would be a fabricated number, not a real "extreme" reading — the exact
+> class of mistake this repo's own history already declined for the D5 gauge dials and the
+> screener's `dashboardTableM5.momentum` field. `RelativeStrengthChart`'s `corridorOverride`
+> prop takes `extremeZonePct: number | null`; `null` draws ONLY the Tier 1 lines, confirmed
+> live (see below) — the "Extreme" line labels correctly vanish the instant Auto Zones is
+> switched off.
+> **Frontend-only phase, no new API routes** — everything shown already comes from `/screener`
+> and `/preferences` (both built Phase 2; `/preferences` had zero UI consumers until now).
+> **What shipped:** `tables/{dashboard-table-m5,analysis-table-m15,top5-screener-card,
+trading-advisory-banner}.tsx` (plain semantic `<table>`s -- no shared `Table` UI primitive
+> exists in this repo, confirmed via search, so these match this app's existing border/
+> muted-foreground Tailwind conventions directly rather than inventing a one-off shared
+> component for two consumers); `chart/{pair-chart-modal,indicator-settings-modal}.tsx` (new);
+> `hooks/use-currency-index-preferences.ts` (new — fetch-once GET, instant local update +
+> ~500ms-debounced PUT, mirroring `useMtfPreference.ts`'s own "optimistic write" spirit,
+> extended with debouncing since this modal has several sliders that can all move in one
+> sitting, unlike that one's single boolean toggle). The analysis table's currency labels and
+> the legend strip both call the SAME `onSelectCurrency` prop into the SAME
+> `HrmaSmmaDetailModal` — two entry points, one modal, confirmed live. `preferredTf` (declared
+> in the `UserCurrencyIndexPreference` model since Phase 1, never wired to anything) now
+> actually drives the M5/M15 toggle's initial value and is persisted back when the user
+> switches it manually.
+> **Verified:** `npx tsc --noEmit`/`npx eslint` clean (0 warnings); no new pure-logic complex
+> enough to warrant a dedicated unit test (the corridor-override merge is a one-line ternary);
+> full `npm run test:ci` **194/194 suites, 2633/2633 tests** — unchanged from the Phase 3
+> baseline, zero regressions, as expected for a phase that added no new testable logic outside
+> component wiring. **Live-verified in a real browser** via the same throwaway-preview
+> technique (deleted after, clean `git status`): the disclaimer banner and Settings button
+> render at the top; the Top-5 card's "🔍 View Chart" opened a **real, live TradingView
+> EURJPY candlestick chart** (genuine OHLC/volume data, not a fixture) within ~4s; both new
+> tables rendered with correct sign-colored values and zone badges; clicking "EUR" inside the
+> Analysis Table opened the same detail modal the legend strip opens; toggling Auto Zones off
+> in Settings instantly redrew the main chart's corridor to the override value (+1.30%/-1.30%)
+> with the Extreme lines correctly disappearing, all while the Settings modal was still open;
+> and the console confirmed the debounced PUT fired exactly once per settled change (one call
+> after 10 arrow-key presses on a slider, not ten).
+> **Not done, needs Phase 5 or Davin:** Phase 5 (live verification against real MT5 data) stays
+> blocked on the same still-open Lane 4 item flagged since Phase 1. The TradingView "View
+> Chart" embed was verified with a real, live pair (EURJPY) but obviously shows real EURJPY
+> price action, not anything derived from this app's own (still-unpopulated) Lane 4 data —
+> that's expected and correct, not a gap. Mobile-viewport click-through not screenshotted this
+> session, same flag as Phase 3's own note.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry before it becomes a commit.
+> **Artifacts:** `components/currency-index-pro/tables/**` (new),
+> `components/currency-index-pro/chart/{pair-chart-modal,indicator-settings-modal}.tsx` (new),
+> `components/currency-index-pro/hooks/use-currency-index-preferences.ts` (new),
+> `components/currency-index-pro/chart/relative-strength-chart.tsx` (corridorOverride prop),
+> `components/currency-index-pro/pro-currency-index-cockpit.tsx`, this file.
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan
+> Phase 3 of 5, CLOSED SUCCESSFUL: the relative-strength chart, news markers, header controls,
+> and (folded in at Davin's explicit request) a per-currency HRMA/SMMA detail modal, live in a
+> real browser.** Direct continuation of the same-day Phase 1/2 sessions. Davin asked, after
+> the Phase 2 close-out, whether a per-currency modal chart plotting the actual HRMA/SMMA lines
+> was feasible so a user could visually verify a `CONFIRMED_BUY`/`CONFIRMED_SELL` badge instead
+> of trusting it blindly; confirmed feasible and, on his instruction, folded into this phase
+> rather than deferred. Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode` with two
+> parallel Explore passes (chart/marker conventions; PRO-page/hook/modal conventions) before any
+> code was written, per §0's "live code wins" rule.
+> **A foundational finding from the Explore passes, not assumed from memory:** `lightweight-charts`
+> is v5 (`createChart`, `addSeries(LineSeries, ...)`, `ISeriesPrimitive`/`attachPrimitive`,
+> `createSeriesMarkers`), and a vertical-line primitive for chart markers already exists —
+> `components/charts/drawing/EventVerticalLine.ts` + `useEventMarkers.ts`, built for the terminal's
+> own high-impact-news overlay — reused as-is for both the main chart's real news markers AND
+> (styled differently) the detail modal's warm-up-boundary marker, rather than forked or
+> reimplemented. `PriceLine`/`createPriceLine()` had zero prior usage anywhere in this codebase —
+> confirmed via search — so the corridor threshold bands are this app's first use of that (a
+> standard, documented v5 API, not a risky new pattern). PRO-gating for a real page (not just an
+> API route) is page-level, not layout-level (`app/terminal/layout.tsx` only checks
+> authentication; `app/terminal/page.tsx` itself checks tier) — mirrored exactly for the new
+> `/pro/currency-index` route, redirecting a non-PRO viewer to `/pricing` (matching
+> `MtfToggle.tsx`'s own upsell-click destination, since there's no FREE-tier equivalent page to
+> redirect to instead, unlike `/terminal` -> `/free`).
+> **Colors chosen by loading the `dataviz` skill first, not picked ad hoc:** the 8-currency
+> palette (`lib/currency-index-pro/colors.ts`) is the skill's own validated default 8-slot
+> categorical theme (fixed hue order, never cycled) — this repo has no pre-existing brand
+> categorical palette to substitute. Re-validated with the skill's own `validate_palette.js`
+> against this app's REAL chart surfaces (`#ffffff`/`#0a0e17`, from `trading-chart.tsx`'s own
+> `chartChromeColors()`), not the skill's generic default surface — both light and dark passed
+> every hard gate; light mode carries a contrast WARN on 3 slots (aqua/yellow/magenta), resolved
+> per the skill's own "relief rule" by giving every line a visible `title`/`lastValueVisible`
+> label on the chart itself, so identity never rests on hue alone.
+> **A real, live-reproduced bug found and fixed during browser verification, not shipped
+> undiscovered:** the first draft of the detail modal's chart silently never rendered — 0
+> `<canvas>` elements, confirmed via direct DOM inspection, no console error. Root cause: the
+> modal's chart container `<div>` sits inside a Radix `DialogContent`, which mounts through a
+> portal; a plain `useRef` + `useEffect(..., [open])` can fire before that portal has actually
+> attached the div to the DOM, so `containerRef.current` was still `null` when the effect ran,
+> and since the effect's only dependency (`open`) had already fired for that transition, it never
+> got a second chance to retry. Fixed by switching to a state-backed callback ref
+> (`useState<HTMLDivElement | null>` set via the `ref` prop directly) and keying the creation
+> effect on `[open, container]` instead of `[open]` alone — the callback ref fires exactly when
+> the portal actually attaches the node, regardless of timing relative to the `open` prop.
+> Re-verified live afterward: 7 canvases, HRMA/SMMA lines, corridor bands, the confirmed-cross
+> marker, and the warm-up boundary line all rendering correctly.
+> **Two small backend refactors made in passing, both real DRY fixes, not scope creep:**
+> (1) `buildSignalSeries()` (HRMA/SMMA/zone-per-bar) was previously private to `screener/route.ts`
+> alone; extracted into `lib/currency-index-pro/signals.ts` as `FullSignalBar`-returning so the
+> new `detail/route.ts` (needed for the modal) reuses the exact same computation rather than a
+> second copy that could drift. (2) the 8-G8-currency array was independently hardcoded in THREE
+> places (`chart/route.ts`, `screener/route.ts`, and now `detail/route.ts` would have made four) —
+> consolidated into `ALL_CURRENCIES`/`indexNameForCurrency()` in `lib/currency-index-pro/pairs.ts`,
+> the single source of truth, updated in all three existing call sites plus the new one.
+> **What shipped:** the new `GET /api/market/currency-index-pro/detail?currency=` route (one
+> currency's full M15 series + corridor + `minBarsForSignal` + latest signal — a deliberately
+> separate, on-demand endpoint rather than folding a full per-bar series into the 30s-polled
+> `/screener`, which every open cockpit would otherwise pay for); `app/pro/currency-index/
+{layout,page}.tsx`; `components/currency-index-pro/` in full (`pro-currency-index-cockpit.tsx`,
+> `chart/{relative-strength-chart,chart-control-header,currency-legend-strip,
+hrma-smma-detail-modal,high-impact-news-tooltip}.tsx`, `hooks/{use-currency-index-chart,
+use-currency-index-screener,use-currency-index-detail,use-session-countdown}.ts`). The news
+> hover tooltip (spec §7.2's own requirement) uses the chart's live `subscribeCrosshairMove()`
+> position rather than a coordinate cached once and left to drift under panning/zooming.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean (0 warnings) on every new/changed
+> file; new `__tests__/api/currency-index-pro-detail.test.ts` (7 tests, mirroring the other 3
+> routes' exact PRO-gate structure) + 5 new `buildSignalSeries` tests in `signals.test.ts`; full
+> `npm run test:ci` **194/194 suites, 2632/2632 tests** (193/2620 baseline + this session's own
+> 1 suite/12 tests, zero regressions). **Live-verified in a real browser** (Turbopack `next dev`):
+> the unauthenticated redirect chain (`/pro/currency-index` -> `/login`) confirmed directly; since
+> the Executor never enters credentials, full data rendering was verified via a throwaway,
+> unauthenticated preview page (`app/dev-currency-index-preview/page.tsx`, placed outside
+> `app/pro/` specifically to route around its layout's own auth gate — the same established
+> technique as the 2026-09-03 timezone-dropdown session's `dev-tz-preview` route) that rendered
+> the REAL, unmodified `ProCurrencyIndexCockpit` component tree with `window.fetch` patched
+> client-side (that file only) to resolve the 3 API URLs to synthetic fixture data — no
+> production route, auth, or hook code was ever modified. Confirmed: the 8-line chart with
+> correct per-currency colors and live-value labels; corridor threshold bands with correct
+> Overbought/Oversold/Extreme labels; one news marker at its correct x-position; the currency
+> legend strip's sign-colored values; the M5/M15 toggle switching state and re-fetching; and,
+> after the callback-ref fix, the detail modal's HRMA/SMMA lines, corridor bands, the "SELL"
+> confirmed-cross marker, and the warm-up caption all rendering correctly for a fixture EUR
+> `CONFIRMED_SELL` scenario. Deleted immediately after verification, confirmed via a clean
+> `git status` (only `next-env.d.ts`'s own expected dev-server auto-regen remained alongside the
+> real artifacts). **Not verified live:** reactive dark-mode re-theming of the two new chart
+> components -- both call the same `useChartAppearance()` hook and follow the same
+> `applyOptions()`-on-change pattern `trading-chart.tsx` already uses and has itself been
+> live-verified for previously, but faking a real theme change in this session's own
+> unauthenticated preview would have needed either real auth or temporarily instrumenting
+> `AppearanceProvider`, both out of scope for this check; OS-level dark-mode emulation
+> (`prefers-color-scheme`) confirmed to correctly have NO effect on this app's own theme (it
+> reads an explicit stored preference, not the OS media query), which is expected, established
+> behavior, not a new finding.
+> **A same-day follow-up, Davin's own idea: instant client-side "what-if" HRMA/SMMA period
+> sliders in the detail modal.** Asked whether a user could drag the HRMA/SMMA period and see the
+> lines update instantly for genuine what-if analysis. Feasible with zero new server round-trips
+> because `/detail`'s response already carries every bar's raw `changePct`, and
+> `computeHrma`/`computeSmma`/`classifyZone`/`detectStageBSignal` are pure, client-safe functions
+> (no Prisma, no server-only imports) -- the SAME functions the route itself calls. Added two
+> `Slider`s (the existing `components/ui/slider.tsx`, mirroring `app/affiliate/page.tsx`'s own
+> real usage) using `onValueChange` (continuous, not `onValueCommit`) so the recompute is
+> genuinely instant on every tick, not just on release -- cheap enough (~100 data points) that no
+> debouncing is needed. The recompute redraws the HRMA/SMMA lines AND re-evaluates the confirmed-
+> cross marker and the "reliable from bar N" caption together, so a user can see whether a
+> DIFFERENT period would or wouldn't have confirmed a signal, not just watch the lines wiggle.
+> **Deliberately session-local, not a silent preference write:** the sliders start at the user's
+> real saved `hrmaPeriod`/`smmaPeriod` (added to `/detail`'s response specifically for this,
+> since re-deriving it client-side would need a redundant `/preferences` fetch) and reset to that
+> saved value every time the modal is freshly opened -- exploring 76 for EUR must not silently
+> change what the screener table uses elsewhere. A "Save as my default" button (shown only once
+> the sliders actually differ from the saved values) commits the explored periods via the
+> `/preferences` PUT route already built in Phase 2 but unused by any UI until now.
+> **Verified:** `npx tsc --noEmit`/`npx eslint` clean; extended `__tests__/api/
+currency-index-pro-detail.test.ts` with a test pinning the new `hrmaPeriod`/`smmaPeriod`
+> echo-back fields (8/8 in that file now); full `npm run test:ci` clean, zero regressions.
+> **Live-verified in a real browser** via the same throwaway-preview technique (deleted after,
+> clean `git status`): dragging the HRMA slider from 36 to 76 instantly redrew the HRMA line with
+> a visibly different, less-converged shape, the caption correctly switched to "Still warming up
+> -- needs 76 bars (has 60)", the "Save as my default" button appeared exactly when the value
+> diverged from the saved default, and clicking it sent the exact expected
+> `{"hrmaPeriod":76,"smmaPeriod":13}` payload to the preferences route.
+> **Not done, needs Phase 4 or Davin:** Phase 4 (screener/analysis tables, settings modal,
+> disclaimer banner) -- `useCurrencyIndexScreener()` and the detail modal's own
+> `onSelectCurrency` entry point are already built this phase specifically so Phase 4 can reuse
+> both rather than rebuilding either. Phase 5 (live verification against real MT5 data) stays
+> blocked on the same still-open Lane 4 item flagged in this file's own Phase 1 entry. Mobile-
+> viewport click-through was not screenshotted this session (the CSS is responsive by
+> construction -- flex-wrap layouts throughout -- but not specifically checked at a narrow
+> width).
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry before it becomes a commit.
+> **Artifacts:** `app/api/market/currency-index-pro/detail/route.ts` (new), `app/pro/
+currency-index/{layout,page}.tsx` (new), `components/currency-index-pro/**` (new, listed above),
+> `lib/currency-index-pro/{colors.ts (new), signals.ts, pairs.ts}`, `app/api/market/
+currency-index-pro/{chart,screener}/route.ts`, `__tests__/api/currency-index-pro-detail.test.ts`
+> (new), `__tests__/lib/currency-index-pro/signals.test.ts`, this file.
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan
+> Phase 2 of 5, CLOSED SUCCESSFUL: the HRMA/SMMA signal engine, the 28-pair confluence
+> screener, and 3 REST endpoints — all served from the monolith, not the Railway gateway.**
+> Direct continuation of the same-day Phase 1 session — Davin asked to proceed with Phase 2.
+> Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode`, grounded in live-code reads
+> rather than the spec's own §9 architecture, per §0's "live code wins" rule.
+> **A foundational architecture correction, found before writing anything:** the spec says
+> "All endpoints are hosted on the Railway NestJS Gateway under `/api/v1/market-indices/pro`."
+> Grepping every controller in `railway-gateway/src/gateway/*.controller.ts` +
+> `health.controller.ts` found exactly **6 routes total** — 4 API-key-authenticated MT5-
+> ingestion `@Post()`s and 2 ops `@Get()`s (`health`, `queue/stats`) — **zero** session-
+> authenticated, user-facing GET routes, and no NextAuth capability at all. Every existing
+> user-facing market-data read (`economic-events`, `indicator-statistics`,
+> `currency-gold-indices`) is served from the monolith's own `app/api/market/*`, gating with
+> `getServerSession`/`hasPermission`. Phase 2's 3 endpoints were built there instead — there is
+> no other place in this codebase that can check a session or a PRO tier.
+> **Five more corrections, all evidence-based, made before or during implementation:**
+> (1) **No OHLC resampling** — `currency_gold_indices` stores one point value per 5-min bar
+> (Phase 1 finding), so "M15" is just picking the bar that closes each 15-minute window
+> (`(bar_time - session_open_bar_time) % 900 === 600`), not the spec's OHLC-aggregation math,
+> which describes raw FX candles. (2) **HRMA/SMMA reset daily, never roll across the
+> session boundary** — every index rebases to exactly 100.00 at its own session open, so a
+> recursive smoother spanning that boundary would treat the artificial reset as a real price
+> move; both indicators are computed only over the current session's own bars so far,
+> consistent with the whole feature's "8-Horse Race, reset daily" framing (spec §2.1) rather
+> than an arbitrary technical constraint — meaning HRMA/SMMA are genuinely unreliable in the
+> first ~9 hours of a trading day (36 M15 bars), an accepted, flagged cold-start limitation.
+> (3) **No `CurrencyIndexSignal` persistence this phase** — the model exists (Phase 1) for
+> exactly this, but wiring a periodic gateway cron now would duplicate the exact computation
+> between a persistence job and the real-time read path, for a benefit (a historical signal
+> audit trail) nothing yet consumes; signals are computed fresh per request instead, guarded by
+> a `private, max-age=30` Cache-Control header, matching `indicator-statistics`'s own
+> established "session+PRO gating already bounds volume, no Redis needed" precedent.
+> (4) **Dropped `dashboardTableM5.momentum`** — the spec's own illustrative response includes
+> it, but no formula for "momentum" exists anywhere in the spec or the codebase; fabricating
+> one would repeat the exact mistake this repo's own history already declined for the D5 gauge
+> dials ("no formulas exist... building would mean fabricating what they measure").
+> (5) **Zone thresholds always use the system `DailyVolatilityCorridor`, never a user's
+> `customObPct`/`customOsPct` override** — per Phase 1's own model comment and spec §3.3, the
+> override is a 0ms client-side re-color (Phase 3), not a second server-computed corridor.
+> HRMA/SMMA _periods_, however, genuinely change the underlying line, so those ARE read
+> per-user from `UserCurrencyIndexPreference` (built in Phase 1 for exactly this).
+> **A quoting-direction mistake caught during test-writing, not left in the shipped code:**
+> while transcribing spec §6.1's worked example into a test, first wrote "JPYX Oversold -> BUY
+> USDJPY/EURJPY/GBPJPY" (mirroring an earlier misreading of my own from the plan draft) before
+> re-deriving the invariant from first principles (a weakening quote currency raises the
+> base/quote ratio, so an OVERBOUGHT quote — not oversold — is what triggers BUY) and finding
+> the spec's own text actually says **Overbought** JPY there. `resolvePairAction()`'s
+> implementation was correct throughout; only my own paraphrase (first in the plan file, caught
+> before it reached a test assertion) had the two transposed. Fixed before the test was
+> written, not after a failure — `__tests__/lib/currency-index-pro/pairs.test.ts` pins all 4 of
+> the spec's own base/quote x overbought/oversold worked examples explicitly, not just the one
+> that was initially miswritten.
+> **A `noUncheckedIndexedAccess` cleanup, not a logic change:** the monolith's stricter
+> tsconfig setting (which `railway-gateway`'s own Phase-1-session tsconfig doesn't share) flagged
+> every array-index read in the first draft of `math.ts`/`signals.ts`/`screener/route.ts` as
+> possibly-`undefined`. Rewrote `computeHrma`/`computeSmma` to use running scalars instead of
+> reading back through the output array (cleaner and avoids the warning at its root, not just
+> silencing it), and added `as T` casts only where an index is provably in-bounds from a
+> preceding length check, each with a comment saying why.
+> **A same-day follow-up, prompted by Davin asking how HRMA/SMMA can be meaningful with
+> insufficient history at the start of a day — a genuine gap in the first draft, not just a
+> documentation clarification.** The original `detectStageBSignal()` gated only on SMMA's own
+> null-based warm-up (13 bars by default) — but HRMA is mathematically defined from bar 1
+> onward (no null), so a cross could confirm as early as bar 13 even though HRMA's own
+> 36-period smoothing hasn't converged by then; that cross is noise, not a real reversal, and
+> Stage B's whole purpose is to filter noise out, not relabel it as "confirmed." Added a second,
+> independent `minBarsForSignal` gate to `detectStageBSignal()` (`lib/currency-index-pro/
+signals.ts`), wired from the screener route as `max(hrmaPeriod, smmaPeriod)` — tied to the
+> user's own configured periods rather than an arbitrary constant, so a custom period still gets
+> a correctly-scaled warm-up. With the defaults (36/13) this pushes the earliest possible Stage B
+> signal from ~3h15m into a trading day to ~9h — a real, recurring, EVERY-day characteristic of
+> the "reset to 0 at 00:00" design (not a one-time Lane 4 bootstrap issue, since the underlying
+> series has no continuity across days to carry a smoother's state through). Two new tests pin
+> the gate directly (suppresses an otherwise-confirmed cross below the threshold; allows one
+> exactly at it) plus confirm it's additive to, not a replacement for, the existing SMMA-null
+> check. Flagged, not built this session: whether the UI (Phase 3/4) should visibly mark a
+> currency as "warming up" during that window, separate from just showing no signal.
+> **What shipped:** `lib/currency-index-pro/{math,signals,pairs,queries}.ts` (M15 sampling,
+> HRMA/SMMA, Stage A/B zone+signal classification, the 28-pair confluence scorer with the
+> quoting invariant, and the Prisma read layer against both `marketPrisma` and the default
+> non-market `prisma` client); `getHighImpactEventsForDay()` added to the existing
+> `lib/economic-events/queries.ts` (a pure date-range variant of `getUpcomingHighImpactEvents`,
+> which only returns _future_ events — the chart needs the whole day, past markers included);
+> a new `currency_index_pro` PRO permission + `requireCurrencyIndexPro` export in
+> `lib/auth/permissions.ts`; 3 new routes under `app/api/market/currency-index-pro/
+{chart,screener,preferences}/route.ts`, each copying `indicator-statistics`'s exact PRO-gate
+> pattern (session check, then `hasPermission()` with a DB tier re-check fallback so a user who
+> just upgraded isn't refused).
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean on every new/changed file (both
+> before and after the same-day warm-up-gate follow-up); new test files **57/57 tests** across
+> 6 new suites (`__tests__/lib/currency-index-pro/{math,signals,pairs}.test.ts` pure-function
+> tests, incl. the 2 `minBarsForSignal` gate tests added same-day; `__tests__/api/
+currency-index-pro-{chart,screener,preferences}.test.ts` mirroring `indicator-statistics.test.ts`'s
+> exact 401/200-fresh-token/200-stale-token-DB-confirms/403/private-cache structure); full
+> `npm run test:ci` **193/193 suites, 2620/2620 tests** (187/2563 baseline + this session's own
+> 6 suites/57 tests, zero regressions elsewhere, re-confirmed after the follow-up fix).
+> **Not done, needs Phase 3 or Davin:** Phase 3 (frontend chart + news markers UI), Phase 4
+> (screener tables/settings modal UI), Phase 5 (live verification against real MT5 data —
+> blocked on the same still-open Lane 4 item Phase 1's own entry already flags). No dev-server/
+> browser check was run this session — Phase 2 ships no UI, so there is nothing in a browser
+> yet to verify; Phase 3 is where that check first applies.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry before it becomes a commit.
+> **Artifacts:** `lib/currency-index-pro/{math,signals,pairs,queries}.ts` (new),
+> `lib/economic-events/queries.ts`, `lib/auth/permissions.ts`, `app/api/market/
+currency-index-pro/{chart,screener,preferences}/route.ts` (new), `__tests__/lib/
+currency-index-pro/{math,signals,pairs}.test.ts` (new), `__tests__/api/
+currency-index-pro-{chart,screener,preferences}.test.ts` (new), this file.
+
+> **Ad-hoc session (2026-09-12, phase/session unchanged) — Currency Index PRO Plan Phase 1 of
+> 5, CLOSED SUCCESSFUL: database foundation + the "00:00 MT5 midnight cron" (corridor
+> aggregator), built as an idempotent event-driven tick rather than a wall-clock cron.**
+> Davin supplied a comprehensive architecture doc
+> (`davintrade-currency-index-pro-plan/COMPREHENSIVE_ARCHITECTURE_DESIGN_CURRENCY_INDEX_PRO_PLAN.md`)
+> for a PRO-gated 28-pair relative-strength screener built on top of the already-live Lane 4
+> Currency & Gold Index Stack, asked for a feasibility assessment + phase breakdown, then to
+> proceed with Phase 1. Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode`, grounded in
+> direct reads of live schema/code rather than the spec's own illustrative examples, per §0's
+> "live code wins" rule.
+> **Three real corrections found and fixed, all evidence-based:** (1) the spec's own code block
+> placed all 4 new models in `prisma/market-data/schema.prisma`, but a grep of that file found
+> **zero** models with a `userId`/`user_id` field anywhere — every per-user table (`User`,
+> `UserPreferences`, `UserAppearance`) lives in `prisma/non-market-data/schema.prisma` with a real
+> `@relation`. Moved `UserCurrencyIndexPreference` (the one new model with a user reference) there
+> instead, camelCase fields matching that file's own convention, with a genuine FK to `User`. (2)
+> The spec's §8 intro names a `market_indices_m5` table that doesn't exist — Lane 4's real table
+> is `currency_gold_indices` (`CurrencyGoldIndex`: one **point value** per 5-minute bar per index,
+> no OHLC), confirmed by reading `lib/currency-gold-indices/queries.ts` directly. (3) The spec's
+> "nightly cron running at 00:00:15 MT5 server time" would require porting Eightcap's US-DST
+> offset logic into TypeScript — that logic already lives in exactly one place by design
+> (`currency_gold_index_engine.py` on the VPS), which stamps every row with
+> `session_open_bar_time` specifically so no downstream reader ever has to re-derive the boundary
+> itself. Built instead as a `@Cron(EVERY_5_MINUTES)` tick that asks the data "has a new session
+> opened since I last finalized one?" by reading `session_open_bar_time` directly — a missed tick
+> or worker restart just catches up next time, and zero new DST math exists anywhere in this repo.
+> **Also corrected during implementation, found via the same schema-consistency check, not asked
+> for by name:** the spec's own model code used `DateTime @db.Date` for both new `date` fields and
+> `@db.VarChar(N)` sizing on 3 string fields — grepping the rest of `prisma/market-data/schema.prisma`
+> found **zero** other business-timestamp fields using `DateTime` (every one of `bar_time`,
+> `event_time`, `captured_at` etc. is `Int` unix UTC) and **zero** other `@db.VarChar` usage
+> anywhere in the file. Switched both `date` fields to `Int` (storing that day's own
+> `session_open_bar_time`, the same natural key already used everywhere else) and dropped the
+> VarChar sizing, matching the schema's own established, consistent convention rather than
+> introducing a new style for just these 3 fields.
+> **What shipped:** `DailyCurrencyIndexMetrics`, `DailyVolatilityCorridor`, `CurrencyIndexSignal`
+> (declared now, populated starting Phase 2 — no writer exists yet) in
+> `prisma/market-data/schema.prisma`; `UserCurrencyIndexPreference` in
+> `prisma/non-market-data/schema.prisma` (+ the reverse relation on `User`); one hand-authored
+> migration covering all 4 tables (this repo's two schema files share one physical database and
+> one migration history per `LESSONS-LEARNED.md` L24, so one migration correctly spans both files).
+> **The hand-authored SQL was cross-checked against Prisma's own generated DDL**
+> (`prisma migrate diff --from-empty --to-schema=<file> --script`) for both schema files — table
+> names, columns, defaults, index names, and the `user_currency_index_preferences` FK constraint
+> name all matched byte-for-byte, the strongest available verification given Docker Desktop's
+> Linux engine would not come up in this environment (same recurring gap this file's history
+> already documents).
+> **The aggregator** (`railway-gateway/src/worker/currency-index-corridor-aggregator.service.ts`)
+> is a plain `@Injectable()` worker-side provider (not a queue consumer), reading `CurrencyGoldIndex`
+> and writing the two new market-data-schema tables via this service's own `PrismaService` — both
+> new models were mirrored into `railway-gateway/prisma/schema.prisma` too (byte-identical bodies,
+> matching `CurrencyGoldIndex`'s own established mirroring precedent), since this is the process
+> that actually reads/writes them. `CurrencyIndexSignal` was deliberately **not** mirrored there —
+> nothing in this service reads or writes it yet. All math (day-summary peak/low/close, the pooled
+> mu_basket/sigma_basket formula) lives in a separate pure-function module
+> (`currency-index-corridor-math.ts`) with zero Prisma/I/O, so the spec's Section 3.2 formulas could
+> be unit-tested directly against hand-computed examples independent of the service's own
+> orchestration/idempotency logic.
+> **A real dependency landmine found and fixed before it could break CI, not after:**
+> `@nestjs/schedule`'s latest release line (`npm install` resolved `^12.0.1`) is **ESM-only**
+> (`"type": "module"` in its own `package.json`) and fails Jest immediately with `SyntaxError:
+Unexpected token 'export'` under this repo's CJS `ts-jest` setup — the moment the aggregator
+> service (which imports it) is pulled into any test file, including the untouched existing e2e
+> specs that boot the whole `AppModule`. Pinned to `@nestjs/schedule@6.1.3` instead — the last CJS
+> release, with `peerDependencies` (`@nestjs/common ^10 || ^11`) matching this service's own
+> `^11.2.3` exactly. Confirmed CJS via `require('@nestjs/schedule/package.json').type ===
+undefined` before moving on.
+> **Bootstrap/edge cases handled explicitly, each covered by its own test:** zero prior closed
+> days (Lane 4's very first day) skips both finalization and corridor computation rather than
+> dividing by zero; an index with zero bars on a given day is skipped rather than fabricating a
+> row; a corridor pool of exactly 1 point returns `std_dev: 0` rather than `NaN`; `peak_low_pct`
+> is read from the actual bars given (never a hardcoded 0), so a real data gap at the exact
+> session-open bar degrades to "best available data" rather than fabricating a phantom reference
+> point — and a monotonically-rising day still correctly reports `peak_low_pct: 0` because the
+> session's own opening bar (`change_pct === 0` by construction) is always one of the bars in the
+> window, not because of any special-cased floor.
+> **Verified:** both schema files `npx prisma validate` clean; `railway-gateway` `npx tsc --noEmit`
+> clean, full `npm test` **5/5 suites, 66/66 tests** (63 baseline + this session's own 2 new
+> suites/14 tests, zero regressions), full `npm run test:e2e` **4/4 suites, 40/40 tests** unaffected
+> (confirming `ScheduleModule.forRoot()` needs no explicit test override, unlike Bull queues — the
+> `@Cron` tick never fires during a fast Jest run and has no external I/O to reach at teardown),
+> `npm run build` clean, exit 0; monolith `npx tsc --noEmit` clean, full `npm run test:ci`
+> **187/187 suites, 2563/2563 tests** — exact match to the Lane 4 Phase 3/4 session's own close
+> baseline, zero drift, as expected since no monolith source file was touched this phase (schema +
+> migration only).
+> **Not done, needs Phase 2 or Davin:** Phase 2 (NestJS gateway HRMA/SMMA calc services + REST
+> endpoints — one open design question flagged for that session: `currency_gold_indices` stores
+> one value per 5-min bar, not OHLC, so "M5→M15 resampling" for indices means picking every 3rd
+> sample, not the spec's OHLC-aggregation math, which applies to raw FX candles); Phase 3 (chart
+> UI); Phase 4 (screener tables/settings modal); Phase 5 (live verification, gated on real MT5
+> data flowing through Lane 4 same as that stack's own still-open Phase 5 items). The migration is
+> **authored, not applied** — per this repo's unbroken standing rule that the Executor never
+> applies a migration to a live database; needs Davin.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry before it becomes a commit.
+> **Artifacts:** `prisma/market-data/schema.prisma`, `prisma/non-market-data/schema.prisma`,
+> `prisma/migrations/20260912000000_add_currency_index_pro_tables/migration.sql` (new,
+> authored/unapplied), `railway-gateway/prisma/schema.prisma`, `railway-gateway/src/app.module.ts`,
+> `railway-gateway/src/worker/{worker.module.ts,currency-index-corridor-aggregator.service.ts (new),
+currency-index-corridor-math.ts (new)}`, `railway-gateway/test/currency-index-corridor-{math,
+aggregator.service}.spec.ts` (new), `railway-gateway/package.json`/`package-lock.json`
+> (`@nestjs/schedule@6.1.3`, new), this file.
+
 > **Ad-hoc session (2026-09-11, same day, phase/session unchanged) — Currency & Gold Index
 > Stack ("Lane 4") Phases 3 and 4 of 5, CLOSED SUCCESSFUL: Redis cache + public API route,
 > then the full landing-page Hero widget, live-verified in a real browser.** Direct continuation

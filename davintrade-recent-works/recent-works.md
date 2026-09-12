@@ -30,6 +30,8 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-ui-design-stack\frontend-u
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-currency-index-stack\currency-index-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\davintrade-currency-index-pro-plan\currency-index-pro-stack-manifest-work-completion.md
+
 ==================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder
