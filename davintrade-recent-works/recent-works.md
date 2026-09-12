@@ -12,7 +12,7 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-ui-design-stack\ad-hoc-loc
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-ui-design-stack\cookie-fix-manifest-work-completion.md
 
-==============================================
+============================================== update frontend UI below ========================================================================
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-fr-sk-chinese-support-stack\fr-sk-ch-language-manifest-work-completion.md
 
@@ -26,13 +26,25 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-tradingview-ticker-tape-wi
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-economic-calendar-widget-integration\economic-calendar-widget-integration-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_multi-timeframe-visualisation\MTF-RENDER-MANIFEST-WORK-COMPLETION.md
+
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_multi-timeframe-visualisation\MTF-RENDER-DELIVERY-MANIFEST-WORK-COMPLETION.md
+
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_multi-timeframe-visualisation\MTF-TOGGLE-PERSISTENCE-MANIFEST-WORK-COMPLETION.md
+
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_multi-timeframe-visualisation\MTF-DUAL-STACKED-LAYOUT-MANIFEST-WORK-COMPLETION.md
+
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_multi-timeframe-visualisation\r2-chart-storage-manifest-work-completion.md
+
 D:\SaaS Project\trading-alerts-saas-public\davintrade-ui-design-stack\frontend-ui-enhancement-manifest-work-completion.md
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-currency-index-stack\currency-index-manifest-work-completion.md
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-currency-index-pro-plan\currency-index-pro-stack-manifest-work-completion.md
 
-==================================================================
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_data_pipeline_architecture\active-stanby-terminal-manifest-work-completion.md
+
+=================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder
 
