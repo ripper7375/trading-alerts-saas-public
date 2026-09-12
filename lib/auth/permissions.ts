@@ -35,6 +35,7 @@ export const TIER_PERMISSIONS = {
     'drawing_line_alerts',
     'export_data',
     'priority_support',
+    'currency_index_pro',
   ],
 } as const;
 
@@ -500,3 +501,5 @@ export const requireMultiTimeframe = createPermissionMiddleware(
   'multi_timeframe_visualization'
 );
 export const requireExportData = createPermissionMiddleware('export_data');
+export const requireCurrencyIndexPro =
+  createPermissionMiddleware('currency_index_pro');

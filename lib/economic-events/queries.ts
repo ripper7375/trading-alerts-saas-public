@@ -148,3 +148,63 @@ export async function getUpcomingHighImpactEvents(
     return [];
   }
 }
+
+/**
+ * Every HIGH-impact event inside an explicit [dayStartSec, dayEndSec) window,
+ * regardless of whether it's already happened relative to "now" -- unlike
+ * `getUpcomingHighImpactEvents` above (which only returns future events for a
+ * countdown), the Currency Index PRO chart's timeline overlay needs the
+ * WHOLE trading day, past markers included, so a visitor loading the chart
+ * mid-afternoon still sees this morning's releases plotted.
+ */
+export async function getHighImpactEventsForDay(
+  dayStartSec: number,
+  dayEndSec: number,
+  currencies: readonly string[]
+): Promise<UpcomingEconomicEvent[]> {
+  try {
+    const rows = await marketPrisma.economicEvent.findMany({
+      where: {
+        importance: 'HIGH',
+        event_time: { gte: dayStartSec, lt: dayEndSec },
+        currency: { in: [...currencies] },
+      },
+      orderBy: [{ value_id: 'asc' }, { captured_at: 'desc' }],
+      distinct: ['value_id'],
+      select: {
+        value_id: true,
+        event_id: true,
+        event_name: true,
+        event_time: true,
+        currency: true,
+        country_code: true,
+        importance: true,
+        forecast_value: true,
+        prev_value: true,
+        digits: true,
+        time_mode: true,
+        source_url: true,
+      },
+    });
+
+    return rows
+      .sort((a, b) => a.event_time - b.event_time)
+      .map((r) => ({
+        valueId: r.value_id,
+        eventId: r.event_id,
+        eventName: r.event_name,
+        eventTime: r.event_time,
+        currency: r.currency,
+        countryCode: r.country_code,
+        importance: r.importance,
+        forecastValue: r.forecast_value,
+        previousValue: r.prev_value,
+        digits: r.digits,
+        timeMode: r.time_mode,
+        sourceUrl: r.source_url,
+      }));
+  } catch (error) {
+    console.error('[economic-events] day-window query failed:', error);
+    return [];
+  }
+}
