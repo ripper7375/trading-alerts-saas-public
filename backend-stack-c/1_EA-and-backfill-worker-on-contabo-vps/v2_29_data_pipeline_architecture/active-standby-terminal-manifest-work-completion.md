@@ -135,22 +135,22 @@ work).
 
 ## 2. Files changed
 
-| File                                                  | Change                                                                                         |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `export_collector_validator_v2.py`                    | `MAX_BAR_LAG_MULTIPLIER` constant; absolute freshness check; `cycle_time` now a required param |
-| `test_stale_export_guard.py`                          | **Added.** 9 standalone tests (no pytest infra in this stack)                                  |
-| `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`             | **Added.** The design document, incl. §9 written for the executive-deck translation            |
-| `docs/runbooks/mt5-terminal-promote.md`               | **Added.** The promote procedure                                                               |
-| `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`         | §0.5, §8.1, §8.3, §12 item 10, §13 item 6                                                      |
-| `active-standby-terminal-manifest-work-completion.md` | **Added.** This document                                                                       |
-| `CLAUDE.md`                                           | One ad-hoc session entry, dated 2026-09-12                                                     |
+| File                                                                    | Change                                                                                         |
+| ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `export_collector_validator_v2.py`                                      | `MAX_BAR_LAG_MULTIPLIER` constant; absolute freshness check; `cycle_time` now a required param |
+| `test_stale_export_guard.py`                                            | **Added.** 9 standalone tests (no pytest infra in this stack)                                  |
+| `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`                               | **Added.** The design document, incl. §9 written for the executive-deck translation            |
+| `docs/runbooks/mt5-terminal-promote.md`                                 | **Added.** The promote procedure                                                               |
+| `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`                           | §0.5, §8.1, §8.3, §12 item 10, §13 item 6 (stale calc ref in §8.1 cleaned 2026-09-13)          |
+| `active-standby-terminal-manifest-work-completion.md`                   | **Added.** This document (updated with latest progress)                                        |
+| `active-standby-terminal-operation-for-admin/promote_terminal.bat`      | **Added.** Automated 1-click promotion script with pre-flight freshness check & tail logs      |
+| `active-standby-terminal-operation-for-admin/OPERATIONAL_RUNBOOK_TH.md` | **Added.** Comprehensive Thai operational runbook for VPS administrators                       |
+| `active-standby-terminal-operation-for-admin/OPERATIONAL_RUNBOOK_EN.md` | **Added.** Comprehensive English operational runbook for VPS administrators                    |
+| `ACTIVE-STANDBY-TERMINAL-Executive-Summary.pptx`                        | **Tracked.** Committed in `0540eeaa`                                                           |
+| `CLAUDE.md`                                                             | One ad-hoc session entry, dated 2026-09-12                                                     |
 
-**6 files touched** (4 added, 2 modified), plus `CLAUDE.md`. The collector diff is **+46/−2** —
+**10 files touched** (7 added, 2 modified, 1 tracked binary deck), plus `CLAUDE.md`. The collector diff remains **+46/−2** —
 the entire behavioural change is one comparison and one required parameter.
-
-Not committed and not this session's artifact:
-`ACTIVE-STANDBY-TERMINAL-Executive-Summary.pptx`, which appeared in this folder during the
-session — Davin's own Claude Cowork output generated from the design document.
 
 ---
 
@@ -233,10 +233,7 @@ directory" while the terminal is demonstrably healthy, the threshold is too tigh
 
 ### 5.4 Smaller, non-blocking follow-ups
 
-- **Blueprint §8.1 carries a stale line** — the directory listing still says
-  `collector/ ... + the 4 calc .py`, obsolete since the calc stack was parked 2026-09-09. It
-  sits inside a block this session edited and was deliberately left alone to keep the diff
-  honest to scope. Worth a line from whoever next edits §8.
+- **Blueprint §8.1 carries a stale line** — **RESOLVED (2026-09-13).** Cleaned up `+ the 4 calc .py` from §8.1 directory layout.
 - **The Decision Layer's BLOCKED banner may over-block §3.1.** It blocks drift re-scoring on
   the grounds that it needs parameters other than those compiled into the `.mq5` — but §3.1 as
   written re-scores **the currently active config**, which _is_ the compiled one, and its
@@ -244,10 +241,8 @@ directory" while the terminal is demonstrably healthy, the threshold is too tigh
   _detection_ is unblocked today, and only §3.2's `top_alternative_preview` genuinely is not.
   Raised as a reading to confirm, **not** a settled correction, since it narrows a blocker that
   file states categorically. Davin or the Advisor's call.
-- **The executive-summary deck is untracked.** `ACTIVE-STANDBY-TERMINAL-Executive-Summary.pptx`
-  sits in this folder but was not committed — it is Davin's own Claude Cowork output, and he did
-  not ask for it to be versioned. There is precedent for tracking decks here
-  (`V2.29-Data-Pipeline-Architecture-Summary.pptx` is tracked), so add it if that is wanted.
+- **The executive-summary deck is untracked.** — **RESOLVED (2026-09-13).** `ACTIVE-STANDBY-TERMINAL-Executive-Summary.pptx` is tracked and committed in `0540eeaa`.
+- **Administrator Tooling & Dual-Language Runbooks** — **DELIVERED (2026-09-13).** Added `promote_terminal.bat` (1-click switcher with automated pre-flight freshness checks and live tail verification) alongside `OPERATIONAL_RUNBOOK_TH.md` and `OPERATIONAL_RUNBOOK_EN.md` in `active-standby-terminal-operation-for-admin/`.
 
 ---
 
@@ -258,7 +253,8 @@ directory" while the terminal is demonstrably healthy, the threshold is too tigh
 | `08df516a` | `fix(stack-c)`: the stale-export guard + 9 tests                                    |
 | `98a84e89` | `docs(stack-c)`: architecture design, promote runbook, blueprint §0.5/8.1/8.3/12/13 |
 | `f6df4685` | `docs(ad-hoc)`: this manifest + the `CLAUDE.md` session entry                       |
-| _(this)_   | `docs(ad-hoc)`: rename this file `active-stanby` → `active-standby`                 |
+| `c6a084eb` | `docs(ad-hoc)`: rename this file `active-stanby` → `active-standby`                 |
+| `0540eeaa` | `docs(stack-c)`: track `ACTIVE-STANDBY-TERMINAL-Executive-Summary.pptx`             |
 
 All pushed to `origin/main`. The pre-push hook ran the full monolith suite on `f6df4685`:
 **196/196 suites, 2636/2636 tests**, matching the existing baseline exactly — zero regressions,

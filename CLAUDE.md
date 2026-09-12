@@ -13,6 +13,20 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-13, phase/session unchanged) — Active / Hot-Standby MT5 Terminal:
+> Admin Promotion Tooling, Dual-Language Runbooks & Blueprint §8.1 Cleanup.** Per Davin's request
+> in chat, packaged the active/hot-standby promotion workflow into a dedicated operational directory
+> `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/active-standby-terminal-operation-for-admin/`.
+> Built `promote_terminal.bat` (automated 1-click promotion switcher with administrative elevation
+> check, pre-flight target directory existence check, PowerShell-based freshness check of newest `.txt`
+> export (<15m), complete parameter replacement via `nssm set`, service restart, and live tail log
+> rendering). Authored detailed dual-language runbooks (`OPERATIONAL_RUNBOOK_TH.md` and
+> `OPERATIONAL_RUNBOOK_EN.md`) covering the 3-terminal topology (A/B/S), 4 preconditions, progressive
+> repaint timeline, standby discipline rule, and rollback procedures. Resolved §8.1's stale
+> `+ the 4 calc .py` reference in `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`. Updated
+> `active-standby-terminal-manifest-work-completion.md` reflecting completed tooling, cleaned blueprint,
+> and tracked executive summary deck (`0540eeaa`). All 9 stale-export guard tests passing.
+
 > **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Active / Hot-Standby MT5
 > Terminal architecture: design document written, then Parts 1 and 2 built and verified. Part 3
 > (the physical terminals) is Davin's and is not done.** Davin opened by proposing a Blue-Green

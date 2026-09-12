@@ -664,7 +664,7 @@ reject a cycle if one ever lags.
 
 ```
 C:/Scripts/
-├── collector/   export_collector_validator_v2.py + the 4 calc .py + sqlite_schema_v6_xauusd.sql
+├── collector/   export_collector_validator_v2.py + sqlite_schema_v6_xauusd.sql
 ├── backfill/    backfill_worker_api_gateway_v5.py + replay_quarantine.py
 ├── relay/       mt5_api_relay_for_v2_29.py            (legacy, optional)
 ├── database/    xauusd.db, rejected_rows.jsonl
