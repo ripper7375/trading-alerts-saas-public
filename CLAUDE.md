@@ -123,8 +123,12 @@
 > **Artifacts:** `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
 v2_29_data_pipeline_architecture/{ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md (new),
 test_stale_export_guard.py (new), export_collector_validator_v2.py,
-DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md}`, `docs/runbooks/mt5-terminal-promote.md` (new),
-> this file.
+DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md,
+active-standby-terminal-manifest-work-completion.md (new)}`,
+> `docs/runbooks/mt5-terminal-promote.md` (new), this file. Committed and pushed as
+> `08df516a` (guard + tests), `98a84e89` (design doc, runbook, blueprint), `f6df4685`
+> (manifest + this entry) and one follow-up rename commit; the pre-push hook's own full
+> monolith run on `f6df4685` was **196/196 suites, 2636/2636 tests**, zero regressions.
 
 > **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan:
 > production database migration applied, and the full test-suite claim re-verified fresh by the
