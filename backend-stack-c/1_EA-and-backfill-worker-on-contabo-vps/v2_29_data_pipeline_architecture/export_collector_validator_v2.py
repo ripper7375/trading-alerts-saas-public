@@ -55,6 +55,23 @@ MAX_ATTEMPTS_PER_CYCLE = 3
 RETRY_WAIT_SEC = 65
 CYCLE_INTERVAL_SEC = 300
 
+# Reject a cycle whose newest exported bar is older than N x the bar period.
+# Guards against reading a STALE export directory — e.g. after promoting the
+# collector to a standby MT5 terminal that was not actually running. Such a
+# directory passes every other check, because all 13 sources are stale by the
+# SAME amount and therefore agree with each other perfectly (validate_cycle's
+# completeness check is relative, not absolute). The pipeline would report
+# healthy while the newest bar silently stopped advancing.
+#
+# Why 2: a legitimate cycle already lags for two compounding reasons — the
+# collector runs every CYCLE_INTERVAL_SEC (300s) while an M15 bar only advances
+# every 900s, and a cycle may retry MAX_ATTEMPTS_PER_CYCLE x RETRY_WAIT_SEC
+# (195s). Worst legitimate lag is therefore ~495s on M5 and ~1095s on M15,
+# against limits of 600s / 1800s. The M5 margin (105s) is deliberately tight:
+# a false rejection is self-healing (the next cycle retries) whereas a missed
+# detection is silent, so erring tight is the correct direction.
+MAX_BAR_LAG_MULTIPLIER = 2
+
 DEFAULT_DB_PATH = 'C:/Scripts/database/xauusd.db'
 DEFAULT_EXPORT_DIR = 'C:/MT5/MQL5/Files'
 SCHEMA_FILE = Path(__file__).with_name('sqlite_schema_v6_xauusd.sql')
@@ -661,7 +678,13 @@ def load_keys(conn, cycle_id, source) -> Dict[int, dict]:
     return {r[0]: {'symbol': r[1], 'timeframe': r[2], 'close': r[3]} for r in cur}
 
 
-def validate_cycle(conn, cycle_id, timeframe, check_completeness=True) -> Tuple[bool, List[str]]:
+def validate_cycle(conn, cycle_id, timeframe, cycle_time,
+                   check_completeness=True) -> Tuple[bool, List[str]]:
+    """Validate one staged cycle. `cycle_time` is the scheduled 5-min slot (unix
+    UTC) and is REQUIRED — it is the reference the freshness check measures the
+    newest exported bar against. Deliberately not defaulted to None: a silent
+    'skip the check' path is exactly how this guard would stop running without
+    anyone noticing."""
     reasons: List[str] = []
     keys = {s: load_keys(conn, cycle_id, s) for s in SOURCES}
 
@@ -711,12 +734,32 @@ def validate_cycle(conn, cycle_id, timeframe, check_completeness=True) -> Tuple[
             reasons.append(f"no staged rows from: {', '.join(missing)}")
         elif ohlcv:
             latest = max(ohlcv.keys())
+
+            # (a) RELATIVE — do the sources agree with each other on the newest bar?
             stale = [s for s in PER_BAR_SOURCES if latest not in keys[s]]
             if stale:
                 log_failure(conn, cycle_id, 'timestamp',
                             {'latest_bar': latest, 'missing_in': stale,
                              'error': 'sources exported different latest bars (stale export)'})
                 reasons.append(f"latest bar {latest} missing in: {', '.join(stale)}")
+
+            # (b) ABSOLUTE — is the newest bar actually current? Checked
+            # independently of (a), not nested under it: a directory frozen by a
+            # shut-down terminal is stale in this sense while passing (a)
+            # perfectly, since every source froze at the same bar. Both reasons
+            # are reported when both apply.
+            max_lag = MAX_BAR_LAG_MULTIPLIER * TF_SECONDS[timeframe]
+            lag = cycle_time - latest
+            if lag > max_lag:
+                log_failure(conn, cycle_id, 'timestamp',
+                            {'latest_bar': latest, 'cycle_time': cycle_time,
+                             'lag_sec': lag, 'max_lag_sec': max_lag,
+                             'error': 'newest exported bar is too old — export '
+                                      'directory is stale (is the MT5 terminal '
+                                      'running with charts attached?)'})
+                reasons.append(
+                    f"newest bar {latest} is {lag}s behind cycle slot {cycle_time} "
+                    f"(max {max_lag}s) — stale export directory")
 
     conn.commit()
     return (len(reasons) == 0), reasons
@@ -836,7 +879,8 @@ def run_cycle(conn, export_dir: Path, timeframe: str, cycle_time: int,
         return False
 
     conn.execute("UPDATE collection_cycles SET status = 'validating' WHERE cycle_id = ?", (cycle_id,))
-    passed, reasons = validate_cycle(conn, cycle_id, timeframe, check_completeness)
+    passed, reasons = validate_cycle(conn, cycle_id, timeframe, cycle_time,
+                                     check_completeness=check_completeness)
     if not passed:
         reason = '; '.join(reasons[:5]) + (f" (+{len(reasons) - 5} more)" if len(reasons) > 5 else '')
         logger.error(f"❌ Cycle {cycle_id} rejected — {reason}")
