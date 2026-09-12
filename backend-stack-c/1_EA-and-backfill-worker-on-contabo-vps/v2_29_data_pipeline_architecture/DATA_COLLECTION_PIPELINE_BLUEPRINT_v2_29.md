@@ -124,6 +124,9 @@ collector's file-prefix map both depend on these exactly.
 | `data-split-between-mql5-and-python/Python stacks calculation.txt`        | The authoritative list of values Python calculates (§3.2)                   |
 | `sqlite_schema_v6_xauusd_preview.txt`                                     | Excel-openable preview of every v6 table with mock rows                     |
 | `mock-data-from-indicators/golden_certification/` (repo root)             | The certified 3000-bar export batch (24 timeseries + 18 stat files, M5+M15) |
+| `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`                                 | Active / hot-standby terminal topology and the promote design (§8.1)        |
+| `docs/runbooks/mt5-terminal-promote.md` (repo root)                       | The promote procedure itself — preconditions, switch, verify, rollback      |
+| `test_stale_export_guard.py`                                              | Guards the stale-export-directory rejection (§12 item 10); 9 tests          |
 
 ---
 
@@ -666,9 +669,31 @@ C:/Scripts/
 ├── relay/       mt5_api_relay_for_v2_29.py            (legacy, optional)
 ├── database/    xauusd.db, rejected_rows.jsonl
 └── logs/        collector.log, push_worker.log, relay.log (rotating)
-MT5 terminal:    13 indicators on the XAUUSD M5 chart + 13 on the M15 chart;
-                 exports land in <terminal>/MQL5/Files/
+MT5 terminals:   see below — the export directory is a SHARED BUS, not the
+                 price lane's private input.
 ```
+
+**Terminals (active / hot-standby topology).** Four independent lanes read from an
+MT5 terminal's `MQL5/Files/`: price (13 indicators × M5/M15), fit statistics (10
+`_Statistic.txt`), the economic calendar, and — via its own separate service and
+its own `CGI_EXPORT_DIR` variable — the currency & gold index engine. Only the
+first three are read by `MT5Collector` from its single `--export-dir`.
+
+| Terminal       | Carries                                            | Alternates? |
+| -------------- | -------------------------------------------------- | ----------- |
+| **A** (EDT)    | 13 indicators on XAUUSD M5 + 13 on M15, + calendar | Yes         |
+| **B** (EDT)    | identical to A                                     | Yes         |
+| **S** (static) | 8 × `OHLCV_{SYMBOL}_M5.txt` exporters (Lane 4)     | **Never**   |
+
+A and B alternate: one is **active** (its directory is what `--export-dir` points
+at) and the other is a **hot standby** — running and exporting, but read by
+nobody — where the administrator retunes EDT configurations. Promotion is a change
+to that one argument. Each terminal needs its own installation/data folder so the
+three `MQL5/Files/` paths are genuinely distinct; a shared folder defeats the
+design. `CGI_EXPORT_DIR` points at S permanently and is never touched by a
+promote. Full design:
+`ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`. Procedure:
+`docs/runbooks/mt5-terminal-promote.md`.
 
 ### 8.2 Service install — `install_services.bat`
 
@@ -685,8 +710,20 @@ requests`. Verify with `nssm status MT5Collector` / `MT5PushWorker`.
    legacy EA/relay is used).
 3. Attach all 13 indicators to the XAUUSD **M5** chart and all 13 to the **M15**
    chart; set each windowed indicator's anchors (§5.1) and confirm lines draw.
+   **Repeat identically on the standby terminal** (§8.1) — A and B must be
+   interchangeable, or a promote changes more than the tuning that was intended.
+   Attach `EconomicCalendarExport_v2_29.mq5` to **both**; it is parameterless, so
+   both produce identical output and it rides along with a promote harmlessly.
+   Omitting it from one terminal stops calendar capture with no error after a
+   promote to that terminal.
 4. Confirm `MQL5/Files/` fills with `{Prefix}_XAUUSD_{TF}.txt` (+ the 9
-   `_Statistic.txt`) each minute.
+   `_Statistic.txt`) each minute — **on both A and B.** A standby whose terminal is
+   not actually running exports nothing, and its files freeze; since 2026-09-12 the
+   collector rejects such a directory (§12 item 10) rather than accepting it
+   silently, but the cycle still fails until the terminal is fixed.
+5. On terminal **S**, attach `ohlcvexportlightweight_v2_29.mq5` to 8 M5 charts —
+   EURUSD, USDJPY, GBPUSD, AUDUSD, NZDUSD, USDCAD, USDCHF, XAUUSD. The XAUUSD chart
+   here is deliberately separate from A/B's, to avoid any cross-lane file dependency.
 
 ### 8.4 Boot order
 
@@ -852,6 +889,29 @@ fully cleared.
    unaffected. The frozen 87-field contract is untouched. Design and rationale:
    `STATISTIC-CAPTURE-SCOPE.md`. **The Postgres migration is authored but NOT
    applied** — see §13 item 5.
+10. ✅ **Stale-export-directory detection — BUILT** (2026-09-12). `validate_cycle`'s
+    completeness check was **relative only**: it verified that all per-bar sources
+    agreed with each other on the newest bar, never that the bar was current. A
+    directory frozen by a shut-down MT5 terminal is stale in every source by the
+    _same_ amount, so the sources agree perfectly and the cycle **validated clean** —
+    collector logs success, push worker drains, nothing rejected, while the newest
+    bar silently stops advancing and the alert engine's `ORDER BY timestamp DESC
+LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
+    Now an absolute freshness assertion rejects the cycle when the newest bar lags
+    the scheduled slot by more than `MAX_BAR_LAG_MULTIPLIER × TF_SECONDS[tf]`
+    (2× → 600s M5 / 1800s M15), logged through the existing `log_failure()` path so
+    it reaches `validation_failures` and `rejected_rows.jsonl` like any other
+    rejection. `cycle_time` is now a **required** `validate_cycle` parameter —
+    deliberately not defaulted, since a silent "skip the check" path is how this
+    guard would stop running unnoticed. Threshold rationale (the M5 margin is a
+    deliberate 105s, erring tight because a false rejection self-heals while a
+    missed detection is silent) is in the constant's own comment and in
+    `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md` §4.3. Covered by
+    `test_stale_export_guard.py` (9 tests), mutation-checked: disabling the
+    comparison fails 4 of them, including the uniformly-stale case.
+    **This matters most under the active/hot-standby topology** (§8.1), where a
+    promote points the collector at the standby — precisely the terminal most
+    likely to have been left closed.
 
 ---
 
@@ -913,6 +973,16 @@ fully cleared.
    showing `completed 0` for days, the `.ex5` never redeployed, the timestamp bug
    unresolved until 2026-09-09. The remaining work in this section is what stands
    between the pipeline and its first real row.
+
+6. **Build the standby and static terminals (§8.1), then rehearse one promote.**
+   Not pipeline-blocking — the current single-terminal setup keeps working
+   unchanged — but it is what makes indicator retuning safe, and it is the only
+   part of that design a development session cannot do (attaching charts, setting
+   anchors and compiling all need the VPS console). The code guard (§12 item 10)
+   and the procedure (`docs/runbooks/mt5-terminal-promote.md`) both shipped
+   2026-09-12 and are inert until the terminals exist. **Rehearse the first
+   promote during a market close**, and confirm the rollback path before it is
+   needed in anger.
 
 Deferred product features (separate workstreams, not pipeline-blocking):
 trendline image rendering + statistical scoring/advice; parameter-revision
