@@ -13,6 +13,160 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Active / Hot-Standby MT5
+> Terminal architecture: design document written, then Parts 1 and 2 built and verified. Part 3
+> (the physical terminals) is Davin's and is not done.** Davin opened by proposing a Blue-Green
+> Deployment strategy for Stack C (with the standard load-balancer diagram), motivated by the
+> real need to retune EDT indicator configurations continuously as markets form new centroids.
+> Per `EXECUTOR-PROTOCOL.md` §6. Grounded in live-code reads throughout, not the diagram.
+> **The first assessment was half wrong and Davin corrected it, which is worth recording
+> because the correction is the design.** Blue-green as drawn does not map — Stack C is a
+> _producer_ with no inbound traffic, so there is no load balancer to flip; and the real problem
+> is not downtime (there is none today) but **mutation without provenance**: because the
+> centroid/SSA window re-anchors to the live bar each pass, retuning on the production terminal
+> silently rewrites ~3000 bars of history in place with no record. That part held. But the
+> initial answer then assumed both terminals would push simultaneously and built an elaborate
+> symbol-namespacing design around the `(symbol, timeframe, timestamp)` upsert key to keep two
+> live writers apart. **Davin's own framing was simpler and correct: only one terminal ever
+> feeds the collector; the other is a standby that pushes nothing.** Since the collector takes a
+> single `--export-dir`, the standby's files simply sit on disk ignored, the comparison happens
+> visually in MetaTrader, and the database is never involved — so none of the namespacing was
+> needed. **In that alternating form it genuinely is blue-green**, with `--export-dir` as the
+> load balancer; the earlier rejection of the pattern was wrong and is retracted. Davin also
+> settled the vocabulary (**"standby", not "working silently"**) and it was refined to **hot
+> standby**, since a cold one is precisely the failure mode below — the word states the
+> requirement.
+> **The finding that actually changed the design, found while writing the doc rather than
+> after:** the export directory is a **shared bus with four consumers**, not the price lane's
+> private input — price (13 indicators × M5/M15), fit statistics (10 `_Statistic.txt`), the
+> economic calendar, and the currency & gold index engine. That last one runs as a separate
+> service with its own SQLite file and its own `CGI_EXPORT_DIR`, which **defaults to the same
+> path** (`currency_gold_index_engine.py:83`). So a standby carrying only the 13 EDT indicators
+> would **silently stop economic-calendar capture** — `stage_economic_events()` returns `(0, 0)`
+> when the file is absent, best-effort by design so a calendar failure can never reject a price
+> row. Correct for its purpose; it also means no error anywhere. Resolved by recommending a
+> **three-terminal topology** (A/B alternate with 26 EDT attachments + the parameterless
+> calendar exporter; a static terminal S carries the 8 currency-index OHLCV exporters and never
+> alternates) — which decouples Lane 4 for **zero code change**, since `CGI_EXPORT_DIR` is
+> already an independent variable on an independent service. Only the genuinely tunable surface
+> alternates.
+> **Part 1 — the stale-export guard, a real gap in live code, not a hypothetical.**
+> `validate_cycle`'s completeness check was **relative only** (`export_collector_validator_v2.py`
+> :708-719): it verified all per-bar sources agreed with _each other_ on the newest bar, never
+> that the bar was current. A directory frozen by a shut-down terminal is stale in every source
+> by the _same_ amount, so the sources agree perfectly and **the cycle validated clean** —
+> collector logs success, push worker drains, nothing rejected, while the newest bar stops
+> advancing and the alert engine's `findFirst({ orderBy: { timestamp: 'desc' } })` keeps
+> evaluating a frozen bar. It looks like a quiet market. Added an absolute freshness assertion
+> rejecting the cycle when the newest bar lags the scheduled slot by more than
+> `MAX_BAR_LAG_MULTIPLIER × TF_SECONDS[tf]` (2× → 600s M5 / 1800s M15), through the existing
+> `log_failure()` path so it reaches `validation_failures`/`rejected_rows.jsonl` like any other
+> rejection. Placed as a sibling of the relative check rather than nested under it, so a
+> directory that is both stale and internally inconsistent reports both reasons. **`cycle_time`
+> is now a REQUIRED `validate_cycle` parameter** — deliberately not defaulted to `None`, since a
+> silent "skip the check" path is exactly how this guard would stop running unnoticed after some
+> future refactor; the one existing call site was updated in the same change. **Threshold chosen
+> with the arithmetic written down, not picked:** a legitimate cycle already lags (the collector
+> runs every 300s against a 900s M15 bar, plus up to 195s of retries), giving worst honest cases
+> of ~495s M5 / ~1095s M15 against limits of 600/1800. The M5 margin is a deliberate 105s —
+> erring tight because a false rejection self-heals on the next cycle whereas a missed detection
+> is silent. The looser `TF_SECONDS + 600` alternative was tabled in the design doc for Davin to
+> overrule; he did not.
+> **Mutation-checked, and the harness could not leave the file modified.** New
+> `test_stale_export_guard.py` (9 tests, matching this stack's established no-pytest-infra
+> standalone pattern). Disabling the comparison fails **4 of 9**, including the load-bearing
+> `test_uniformly_stale_directory_is_rejected` with the exact expected message — proving the
+> tests exercise the guard rather than passing incidentally. The 5 that still pass are correct to
+> (fresh/boundary/worst-legitimate/flag-skip/required-param). Restore was verified **byte-exact
+> via sha256 before and after**, and the restore ran unconditionally rather than only on success
+> — per this file's own recorded lesson that a crashed mutation harness leaving the target
+> modified is a genuinely dangerous failure mode. Staged rows are built by introspecting
+> `PRAGMA table_info` rather than hard-coding columns, since these staging tables have already
+> gained columns twice (the best*fit_a/b split, the MQL5-only refactor).
+> **Part 2 — the promote runbook** (`docs/runbooks/mt5-terminal-promote.md`, following the
+> existing `rotate-postgres-credentials.md` convention): four preconditions, the two `nssm`
+> commands, how to verify the collector is reading the terminal you intended, what users see,
+> rollback, the standby-discipline rule, and a ranked gotchas section. Two things stated plainly
+> rather than glossed: the promote is **not instantaneous** (~6000 rows re-push at 500/30s ≈ 5–6
+> minutes, and because selection is oldest-first the chart repaints left-to-right with the
+> newest bars changing **last**), and **rollback is another forward switch, not a restore** —
+> the intermediate values are overwritten and unrecoverable. Blueprint updated: §0.5 (3 new
+> reference rows), §8.1 (three-terminal topology replacing the single-terminal line), §8.3
+> (standby parity + the calendar-on-both requirement + terminal S), §12 item 10 (the staleness
+> gap, recorded as BUILT), §13 item 6 (the physical build as remaining work).
+> **Verified:** `python -m py_compile` clean; module imports clean; new suite **9/9**; both
+> existing suites green (`test_economic_events.py`, `test_push_economic_events.py`); schema
+> unchanged at **87 `market_data` columns**; the only other `validate_cycle` in the repo is
+> `v2_28_data_pipeline_architecture/export_collector_validator_v1.py` — the legacy v2.28
+> collector, not in the v6 flow, correctly untouched. Collector diff is **+46/−2**.
+> **Not done, and not a development task: Part 3.** Terminals A/B/S do not exist — attaching
+> charts, setting anchors and compiling all need the VPS console, the same boundary as every
+> MT5-side item in this stack's history. **Nothing shipped this session has been exercised
+> against a real promote**; the guard is unit-tested against synthetic stale directories only.
+> The first promote should be rehearsed during a market close with the rollback path confirmed
+> before it is needed. Flagged in the runbook's own header, not left implicit.
+> **Flagged, not fixed (pre-existing, inside a block that was edited):** §8.1's directory listing
+> still says `collector/ ... + the 4 calc .py`, stale since the calc stack was parked 2026-09-09.
+> Left alone to keep the diff honest to scope; worth a line on whoever next edits §8.
+> **One observation raised for Davin/the Advisor to judge, deliberately not acted on:** the
+> BLOCKED banner on `DAVINTRADE_DECISION_LAYER_BLUEPRINT.md` blocks §3.1 on the grounds that
+> drift re-scoring needs parameters other than those compiled into the `.mq5` — but §3.1 as
+> written re-scores **the currently active config**, which \_is* the compiled one, and its
+> substrate (`indicator_statistics`) has existed and been live since 2026-09-09. On that reading
+> drift _detection_ is unblocked today while only §3.2's `top_alternative_preview` genuinely is
+> not. Stated as a reading to confirm, not a settled correction, since it narrows a blocker that
+> file states categorically.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry first. Note an untracked
+> `ACTIVE-STANDBY-TERMINAL-Executive-Summary.pptx` also appeared in the pipeline folder during
+> the session — Davin's own Cowork output from the design doc, not this session's artifact.
+> **Artifacts:** `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/{ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md (new),
+test_stale_export_guard.py (new), export_collector_validator_v2.py,
+DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md}`, `docs/runbooks/mt5-terminal-promote.md` (new),
+> this file.
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan:
+> production database migration applied, and the full test-suite claim re-verified fresh by the
+> Executor, not taken on trust.** Davin reported directly in chat that he (1) applied
+> `prisma/migrations/20260912000000_add_currency_index_pro_tables/migration.sql` to Railway
+> Production Postgres, and (2) ran the full test suite with 100% passing — "Monolith: 73 tests +
+> Gateway: 67 tests" — and asked for both to be verified before this file is updated.
+> **The test claim was independently re-run, not copied from the report:** `railway-gateway`'s
+> `npm test` reproduced **5/5 suites, 67/67 tests**, exact match. The monolith's currency-index-pro
+> -scoped files (`__tests__/lib/currency-index-pro/**`, all 4
+> `__tests__/api/currency-index-pro-*.test.ts`, `__tests__/components/currency-index-pro/**`) were
+> run directly and reproduced **9/9 suites, 73/73 tests**, exact match to Davin's own count — so
+> "73" and "67" are the feature-scoped counts, not the repo-wide ones. A full `npm run test:ci` was
+> also run fresh: **196/196 suites, 2636/2636 tests**, identical to Phase 5's own close baseline —
+> zero regressions anywhere in the repo from either the migration or any prior phase's code.
+> **The migration claim is recorded on Davin's report, not independently verified by the
+> Executor** — this environment holds no Railway Production Postgres credentials, and per this
+> file's own standing rule the Executor never applies (or queries) a live production migration
+> itself; every prior "Davin applied it" entry in this file's history (2026-09-01, 2026-09-09,
+> 2026-09-11) is written the same way. **One thing worth Davin confirming, since it has bitten this
+> exact repo four separate times before (see `Waiting on`):** `prisma migrate deploy` applies
+> _every_ pending migration in history order, not just the one intended — if any other migration
+> was sitting unapplied ahead of this one, it went in too. Worth a quick `prisma migrate status`
+> check to confirm only the expected migration(s) landed, the same way several 2026-09-09 entries
+> in this file caught unrelated pending migrations riding along.
+> **What this closes:** §5.2 ("Apply the database migration") of
+> `davintrade-currency-index-pro-plan/currency-index-pro-stack-manifest-work-completion.md` — the
+> 4 new tables (`daily_currency_index_metrics`, `daily_volatility_corridors`,
+> `currency_index_signals`, `user_currency_index_preferences`) now exist in production, so Phase 2's
+> endpoints (`screener`/`chart`/`detail`/`preferences`) can serve real signals data instead of 500ing
+> against a missing table.
+> **What this does NOT close:** §5.3's Lane 4 VPS blocker is untouched — `currency_gold_indices`
+> (this feature's sole upstream data source) still has zero real rows in production until the 2
+> remaining physical VPS steps happen (attaching the exporter to 8 MT5 charts, registering the
+> currency-index engine as a Windows service, per Lane 4's own manifest §5.1). Every endpoint in
+> this feature will correctly return empty/neutral data until then, by the same "absent row is the
+> honest rendering" design Lane 4 itself follows — this is expected, not a regression from applying
+> the migration.
+> **Not committed** — Davin asked to verify and update this file, not to commit; left for his
+> review, per this file's own established log-first-defer-commit pattern.
+> **Artifacts:** this file. (No source files changed this entry — verification only.)
+
 > **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan
 > Phase 5 of 5 (final phase), CLOSED SUCCESSFUL: every spec §12 acceptance item that does not
 > require a live VPS deployment, verified and turned into permanent regression tests; one real
