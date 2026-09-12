@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { GatewayModule } from './gateway/gateway.module';
 import { WorkerModule } from './worker/worker.module';
@@ -11,6 +12,12 @@ import { PrismaModule } from './prisma/prisma.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+
+    // Currency Index PRO plan (Phase 1): backs
+    // CurrencyIndexCorridorAggregatorService's @Cron tick. Registered once
+    // here, root-level, per @nestjs/schedule's own convention -- no other
+    // module needs it yet.
+    ScheduleModule.forRoot(),
 
     PrismaModule,
 

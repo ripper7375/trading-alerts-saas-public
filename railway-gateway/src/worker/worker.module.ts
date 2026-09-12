@@ -4,6 +4,7 @@ import { MarketDataProcessor } from './market-data.processor';
 import { IndicatorStatisticsProcessor } from './indicator-statistics.processor';
 import { EconomicEventsProcessor } from './economic-events.processor';
 import { CurrencyGoldIndicesProcessor } from './currency-gold-indices.processor';
+import { CurrencyIndexCorridorAggregatorService } from './currency-index-corridor-aggregator.service';
 
 @Module({
   imports: [
@@ -30,6 +31,10 @@ import { CurrencyGoldIndicesProcessor } from './currency-gold-indices.processor'
     IndicatorStatisticsProcessor,
     EconomicEventsProcessor,
     CurrencyGoldIndicesProcessor,
+    // Currency Index PRO plan (Phase 1): reads CurrencyGoldIndex, writes
+    // DailyCurrencyIndexMetrics/DailyVolatilityCorridor. Not a queue
+    // consumer -- ticks on its own @Cron schedule instead.
+    CurrencyIndexCorridorAggregatorService,
   ],
 })
 export class WorkerModule {}

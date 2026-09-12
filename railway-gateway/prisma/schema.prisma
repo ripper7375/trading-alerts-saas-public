@@ -365,3 +365,68 @@ model CurrencyGoldIndex {
   @@index([index_name, bar_time(sort: Desc)])
   @@map("currency_gold_indices")
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CURRENCY INDEX PRO PLAN (Lane 4 extension) — Phase 1
+//
+// Mirrored here (not just declared in the monolith's own
+// prisma/market-data/schema.prisma) because this service's own
+// currency-index-corridor-aggregator.service.ts (worker-side cron) reads
+// CurrencyGoldIndex and writes both models below directly via this
+// service's own PrismaService — unlike CurrencyIndexSignal, which no code
+// in this service reads or writes yet (Phase 2), so it is not mirrored
+// here until something here actually needs it.
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// Pre-aggregated daily peak-excursion metrics per FX currency index (the 8
+/// G8 currencies only — never XAUX, which has its own unrelated 01:01
+/// rollover and isn't part of the PRO screener). One row per calendar day
+/// per index, finalized once that day's session has closed (i.e. once the
+/// NEXT day's session_open_bar_time appears in CurrencyGoldIndex), so
+/// `close_pct` is a genuine closing value, never a still-forming one.
+/// Exists so the 5-60 day lookback corridor calculation
+/// (DailyVolatilityCorridor) never has to rescan raw intraday bars.
+model DailyCurrencyIndexMetrics {
+  id String @id @default(cuid())
+
+  // unix UTC — deliberately Int, not DateTime, matching every other
+  // business timestamp in this schema (bar_time, event_time, captured_at):
+  // stores the exact session_open_bar_time of the day being summarized, so
+  // "which day" is the same natural key the rest of the stack already uses
+  // rather than a separately-derived calendar date.
+  date       Int
+  index_name String // USDX | EURX | GBPX | JPYX | AUDX | CADX | CHFX | NZDX
+
+  open_value    Float // the actual value read at that day's session_open_bar_time (expected ~100.00 by construction, but read rather than assumed)
+  peak_high_pct Float // max(change_pct) across the day's bars
+  peak_low_pct  Float // abs(min(change_pct)) across the day's bars
+  close_pct     Float // change_pct of the last bar before the next day's rollover
+
+  created_at DateTime @default(now())
+
+  @@unique([date, index_name])
+  @@index([date])
+  @@map("daily_currency_index_metrics")
+}
+
+/// The daily system-calculated Dynamic Volatility Corridor (spec §3.2's
+/// mu_basket/sigma_basket), computed once per day from the trailing
+/// min(lookback_days, available) DailyCurrencyIndexMetrics rows. One row
+/// per calendar day — this is the shared, system-wide default; a PRO user's
+/// own slider override (UserCurrencyIndexPreference, in the monolith's
+/// non-market-data schema) is applied client-side and never rewrites this
+/// table.
+model DailyVolatilityCorridor {
+  id String @id @default(cuid())
+
+  date             Int   @unique // unix UTC — same session_open_bar_time convention as DailyCurrencyIndexMetrics.date above
+  lookback_days    Int   @default(20) // how many prior days actually went into this calculation (may be < the requested default if Lane 4 data is still young)
+  strike_zone_pct  Float // Tier 1: +/- mu_basket
+  extreme_zone_pct Float // Tier 2: +/- (mu_basket + sigma_basket)
+  mean_excursion   Float // raw mu_basket
+  std_dev          Float // raw sigma_basket
+
+  calculated_at DateTime @default(now())
+
+  @@map("daily_volatility_corridors")
+}

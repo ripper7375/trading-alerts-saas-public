@@ -149,12 +149,13 @@ model User {
   // AI Token Metering & Preferences (Session 11-3, Core Areas 4/5)
   profile Json? // User-level AI preferences, e.g. { preferredLlm, riskTolerance }
 
-  accounts    Account[]
-  alerts      Alert[]
-  drawings    Drawing[]
-  preferences UserPreferences? // User preferences (settings)
-  appearance  UserAppearance? // Terminal appearance (theme/accent/chart colors)
-  tokenLogs   TokenUsageLog[] // Per-call AI token usage audit log
+  accounts           Account[]
+  alerts             Alert[]
+  drawings           Drawing[]
+  preferences        UserPreferences? // User preferences (settings)
+  appearance         UserAppearance? // Terminal appearance (theme/accent/chart colors)
+  currencyIndexPrefs UserCurrencyIndexPreference? // Currency Index PRO plan slider/period overrides
+  tokenLogs          TokenUsageLog[] // Per-call AI token usage audit log
 
   sessions Session[]
 
@@ -360,6 +361,34 @@ model UserAppearance {
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+/// Currency Index PRO plan (davintrade-currency-index-pro-plan/
+/// COMPREHENSIVE_ARCHITECTURE_DESIGN_CURRENCY_INDEX_PRO_PLAN.md) per-user
+/// slider/period overrides. Lives here (not prisma/market-data/schema.prisma,
+/// where the spec's own illustrative code placed it) because it is the only
+/// one of the plan's 4 new models with a user reference — every other
+/// per-user table (UserPreferences, UserAppearance above) lives in this
+/// schema alongside User, and market-data's schema has no user FK anywhere.
+/// customObPct/customOsPct/lookbackDays overrides are applied client-side
+/// against DailyVolatilityCorridor's system-wide default (0ms round trip,
+/// per spec §3.3) — this table is read on load and written on Save, never
+/// consulted by the corridor aggregator itself.
+model UserCurrencyIndexPreference {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lookbackDays Int      @default(20)
+  useAutoZones Boolean  @default(true)
+  customObPct  Float?
+  customOsPct  Float?
+  hrmaPeriod   Int      @default(36)
+  smmaPeriod   Int      @default(13)
+  preferredTf  String   @default("M15") // M5 | M15
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@map("user_currency_index_preferences")
 }
 
 /// Per-call AI token usage audit log (Session 11-3, Core Area 5) — one row per
