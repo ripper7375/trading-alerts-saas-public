@@ -4020,12 +4020,25 @@ FIELD-CONSISTENCY-AUDIT-v2_29.md` §5. Not something this Executor can resolve u
   the 5 BI dashboards, billing/invoice history, and affiliate commissions/admin pages render
   correctly with a non-English locale selected (`ar`/`th`); the checkout page's country/payment
   selectors and price display localize as expected.
-- **`20260214000000_rag_dual_memory` migration still pending** — confirmed still sitting
-  unapplied in `prisma/migrations/` as of the 2026-08-31 Academy ad-hoc session (found via `prisma
-migrate status`, left untouched, see that session's entry above for detail). This is concrete,
-  on-disk evidence for the "Phase 12 handover prompt" item directly below — the Stack D RAG
-  architecture material's actual migration SQL exists and is ready to apply, still awaiting the
-  Advisor's resolution of whether it supersedes the handover prompt's canonical documents.
+- **`20260214000000_rag_dual_memory` — recorded as APPLIED in production's ledger, but its 6
+  tables DO NOT EXIST** (corrected 2026-09-13; the earlier "still pending" wording here was wrong
+  for production). Production's `_prisma_migrations` row is `applied_steps_count = 0`: it was
+  baselined with `prisma migrate resolve --applied` during Session 2-3's history baselining
+  (`DECISION-LOG` F20, now in `history/decisions-archive.md`), never executed. Davin confirmed
+  against the live production database that none of `mt5_accounts`, `upload_history`,
+  `jsonl_sessions`, `behavioral_drift`, `advice_outcomes`, `compliance_audit` exist.
+  **Consequence for Stack D:** `prisma migrate deploy` / `migrate status` will treat it as done and
+  **never create these tables**. When Stack D RAG work starts, create them with
+  `prisma db execute --file prisma/migrations/20260214000000_rag_dual_memory/migration.sql`
+  (against production via `prisma.production.config.ts`'s target; the SQL uses
+  `CREATE TABLE IF NOT EXISTS`), and **do not** run `migrate resolve` on it again, since the ledger
+  row already exists. It is one of 5 zero-step baselined rows (with `20251227000000_init`,
+  `20260224000000_update_kc_ha_body_columns`, `20260705000000_add_market_data_v6`,
+  `20260705010000_drop_market_data`); `add_market_data_v6` was the same trap
+  (`market_data_v6` absent until created by hand 2026-09-09), so check each one's physical objects
+  rather than trusting its ledger row. Still also awaiting the Advisor's call on whether the
+  2026-08-30 Stack D material supersedes the handover prompt's canonical documents (the "Phase 12
+  handover prompt" item above).
 
 ## Key documents
 
