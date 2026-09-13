@@ -28,7 +28,7 @@ input double XAUUSD_Inception = 4348.18;  // Inception Rate: XAUUSD
 input double XAUEUR_Inception = 3696.91;  // Inception Rate: XAUEUR
 input double XAUJPY_Inception = 681037.0; // Inception Rate: XAUJPY
 input double XAUGBP_Inception = 3223.65;  // Inception Rate: XAUGBP
-input double XAUAUD_Inception = 4238.37;  // Inception Rate: XAUAUD
+input double XAUAUD_Inception = 6496.04;  // Inception Rate: XAUAUD
 
 // Buffer
 double XAUXClose[];
