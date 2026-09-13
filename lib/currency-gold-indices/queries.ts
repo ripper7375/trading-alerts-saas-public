@@ -15,6 +15,13 @@
 
 import { marketPrisma } from '@/lib/db/market-prisma';
 
+import {
+  isM15CloseBar,
+  MAX_COMPARISON_HISTORY_BARS,
+  COMPARISON_CHART_INDEX_NAMES,
+  type ComparisonTimeframe,
+} from './history';
+
 export interface CurrencyGoldIndexSnapshot {
   symbol: string;
   price: number;
@@ -109,3 +116,79 @@ export async function getCurrencyGoldIndexSnapshots(): Promise<
 }
 
 export { ALL_INDEX_NAMES };
+
+export interface CurrencyGoldIndexHistoryBar {
+  barTime: number;
+  value: number;
+}
+
+export interface CurrencyGoldIndexHistorySeries {
+  symbol: string;
+  bars: CurrencyGoldIndexHistoryBar[];
+}
+
+// M15 points are derived by filtering M5 rows down to their own 15-minute
+// close (see isM15CloseBar's doc comment) -- there is no OHLC to aggregate --
+// so an M15 request must read roughly 3x as many raw M5 rows to end up with
+// up to MAX_COMPARISON_HISTORY_BARS M15 points after filtering.
+const M5_ROWS_FOR_M15_REQUEST = MAX_COMPARISON_HISTORY_BARS * 3;
+
+/**
+ * Up to MAX_COMPARISON_HISTORY_BARS bars each for XAUX and USDX, for the
+ * public XAUX vs USDX comparison chart. Unlike getCurrencyGoldIndexSnapshots
+ * (today's session only), this spans as many days as needed to reach the bar
+ * cap -- each index is queried independently so one index's data gap can
+ * never suppress the other's.
+ */
+export async function getCurrencyGoldIndexHistory(
+  timeframe: ComparisonTimeframe
+): Promise<CurrencyGoldIndexHistorySeries[]> {
+  const rowLimit =
+    timeframe === 'M15' ? M5_ROWS_FOR_M15_REQUEST : MAX_COMPARISON_HISTORY_BARS;
+
+  return Promise.all(
+    COMPARISON_CHART_INDEX_NAMES.map(async (indexName) => {
+      try {
+        const rows = await marketPrisma.currencyGoldIndex.findMany({
+          where: { index_name: indexName },
+          orderBy: { bar_time: 'desc' },
+          take: rowLimit,
+          select: {
+            bar_time: true,
+            value: true,
+            session_open_bar_time: true,
+          },
+        });
+        // Query returns newest-first (for `take` to bound the right end);
+        // every chart consumer wants ascending time.
+        rows.reverse();
+
+        const timeframeBars =
+          timeframe === 'M15'
+            ? rows.filter((row) =>
+                isM15CloseBar(row.bar_time, row.session_open_bar_time)
+              )
+            : rows;
+
+        return {
+          symbol: indexName,
+          bars: timeframeBars
+            .slice(-MAX_COMPARISON_HISTORY_BARS)
+            .map((row) => ({
+              barTime: row.bar_time,
+              value: row.value,
+            })),
+        };
+      } catch (error) {
+        // Same "an absent row is the honest rendering" degrade as
+        // getCurrencyGoldIndexSnapshots() -- one index's query failing must
+        // never take the other index down with it.
+        console.error(
+          `[currency-gold-indices] history query failed for ${indexName}:`,
+          error
+        );
+        return { symbol: indexName, bars: [] };
+      }
+    })
+  );
+}

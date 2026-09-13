@@ -366,3 +366,28 @@ export async function cacheCurrencyGoldIndices<T>(snapshots: T): Promise<void> {
 export async function getCachedCurrencyGoldIndices<T>(): Promise<T | null> {
   return getCache<T>(CURRENCY_GOLD_INDICES_KEY);
 }
+
+// XAUX vs USDX comparison chart -- keyed by timeframe (M5/M15 are genuinely
+// different queries/payloads, unlike the single always-"today" snapshot
+// above), same SHORT TTL for the same "one route reachable by anonymous
+// public traffic" reason.
+function currencyGoldIndexHistoryKey(timeframe: string): string {
+  return `${CACHE_PREFIX.MARKET_INDICES}:currency_gold:history:${timeframe}`;
+}
+
+export async function cacheCurrencyGoldIndexHistory<T>(
+  timeframe: string,
+  series: T
+): Promise<void> {
+  await setCache(
+    currencyGoldIndexHistoryKey(timeframe),
+    series,
+    CACHE_TTL.SHORT
+  );
+}
+
+export async function getCachedCurrencyGoldIndexHistory<T>(
+  timeframe: string
+): Promise<T | null> {
+  return getCache<T>(currencyGoldIndexHistoryKey(timeframe));
+}

@@ -76,6 +76,19 @@ export function LandingHero() {
                 shows a broken or empty-looking card before Lane 4 is live. */}
             <CurrencyIndexHeroWidget />
 
+            {/* XAUX vs USDX Comparison chart -- links to a public, unauthenticated
+                page (both FREE and PRO visitors can reach it, same as the
+                widget above) showing the two indices as line plots, up to
+                3000 bars, with an M5/M15 toggle. Shown unconditionally
+                (unlike the widget, which renders nothing with no data yet):
+                the destination page owns its own loading/empty state. */}
+            <Link href="/xaux-vs-usdx" className="block w-full max-w-md">
+              <button className="inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-lg border-2 border-amber-500/60 bg-amber-500/10 px-4 text-sm font-bold text-amber-600 transition-colors hover:bg-amber-500/20 dark:text-amber-400">
+                {t('XAUX vs USDX Comparison chart')}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            </Link>
+
             {/* Metric Trust Indicators */}
             <div className="grid grid-cols-3 gap-4 pt-2">
               <div className="rounded-xl border border-slate-200 bg-white/70 p-3 text-center dark:border-slate-800/80 dark:bg-[#0c101a]/70">

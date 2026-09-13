@@ -135,6 +135,23 @@ describe('Landing and Auth Navigation (Items 1 & 2)', () => {
     });
   });
 
+  describe('LandingHero XAUX vs USDX Comparison chart button', () => {
+    it('links to the public /xaux-vs-usdx comparison page', () => {
+      mockUseSession.mockReturnValue({
+        data: null,
+        status: 'unauthenticated',
+      });
+
+      renderWithLocale(<LandingHero />);
+
+      const comparisonBtn = screen.getByRole('button', {
+        name: /XAUX vs USDX Comparison chart/i,
+      });
+      const link = comparisonBtn.closest('a');
+      expect(link).toHaveAttribute('href', '/xaux-vs-usdx');
+    });
+  });
+
   describe('MarketingNavbar Auth Navigation (Once clicked, navigate to 2 /login)', () => {
     it('points both Log In and Get Started to /login on desktop and mobile', () => {
       mockUseSession.mockReturnValue({
