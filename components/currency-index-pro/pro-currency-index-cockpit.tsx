@@ -12,10 +12,12 @@
  * @module components/currency-index-pro/pro-currency-index-cockpit
  */
 
+import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { Settings } from 'lucide-react';
+import { LineChart, Settings } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { CURRENCY_INDEX_COMPARE_PATH } from '@/lib/currency-index-comparison/series';
 import type { CurrencyCode } from '@/lib/currency-index-pro/pairs';
 
 import { RelativeStrengthChart } from './chart/relative-strength-chart';
@@ -84,15 +86,23 @@ export function ProCurrencyIndexCockpit(): React.JSX.Element {
     <div className="w-full space-y-3 p-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Currency Index PRO</h1>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setSettingsOpen(true)}
-        >
-          <Settings className="h-3.5 w-3.5" />
-          Settings
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm">
+            <Link href={CURRENCY_INDEX_COMPARE_PATH}>
+              <LineChart className="h-3.5 w-3.5" />
+              Compare indices
+            </Link>
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setSettingsOpen(true)}
+          >
+            <Settings className="h-3.5 w-3.5" />
+            Settings
+          </Button>
+        </div>
       </div>
 
       <TradingAdvisoryBanner />

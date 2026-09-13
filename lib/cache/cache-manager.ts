@@ -391,3 +391,34 @@ export async function getCachedCurrencyGoldIndexHistory<T>(
 ): Promise<T | null> {
   return getCache<T>(currencyGoldIndexHistoryKey(timeframe));
 }
+
+// Currency Index Comparison (PRO) -- chained candles for ONE index, keyed by
+// (index, timeframe). The route is session+PRO gated, but the payload is not
+// per-user (every PRO viewer of EURX M15 gets the same candles) and is the
+// largest read in this lane (up to ~9000 rows per index for M15), so a shared
+// cache is worth having even behind the gate.
+function currencyIndexComparisonKey(
+  indexName: string,
+  timeframe: string
+): string {
+  return `${CACHE_PREFIX.MARKET_INDICES}:currency_gold:comparison:${indexName}:${timeframe}`;
+}
+
+export async function cacheCurrencyIndexComparison<T>(
+  indexName: string,
+  timeframe: string,
+  candles: T
+): Promise<void> {
+  await setCache(
+    currencyIndexComparisonKey(indexName, timeframe),
+    candles,
+    CACHE_TTL.SHORT
+  );
+}
+
+export async function getCachedCurrencyIndexComparison<T>(
+  indexName: string,
+  timeframe: string
+): Promise<T | null> {
+  return getCache<T>(currencyIndexComparisonKey(indexName, timeframe));
+}
