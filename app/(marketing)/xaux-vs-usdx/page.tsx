@@ -6,6 +6,7 @@ import { LineChart } from 'lucide-react';
 import { useLocale } from '@/lib/context/locale-context';
 import { CURRENCY_GOLD_INDEX_METADATA } from '@/lib/currency-gold-indices/metadata';
 import { useCurrencyGoldIndexHistory } from '@/components/market/useCurrencyIndexHistory';
+import { CurrencyIndexProUpgradeCard } from '@/components/market/currency-index-pro-upgrade-card';
 import {
   REBASE_DEFAULT,
   REBASE_MAX,
@@ -69,22 +70,27 @@ export default function XauxVsUsdxComparisonPage(): React.JSX.Element {
           </p>
         </div>
 
-        {/* M5/M15 Toggle */}
-        <div className="bg-muted/40 flex items-center rounded-lg border border-border p-1 text-xs">
-          {TIMEFRAMES.map((tf) => (
-            <button
-              key={tf}
-              type="button"
-              onClick={() => setTimeframe(tf)}
-              className={`rounded-md px-4 py-1.5 font-semibold transition-colors ${
-                timeframe === tf
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tf}
-            </button>
-          ))}
+        <div className="flex flex-col items-stretch gap-4 md:items-end">
+          {/* Entry point to the PRO comparison page. */}
+          <CurrencyIndexProUpgradeCard />
+
+          {/* M5/M15 Toggle */}
+          <div className="bg-muted/40 flex items-center self-end rounded-lg border border-border p-1 text-xs">
+            {TIMEFRAMES.map((tf) => (
+              <button
+                key={tf}
+                type="button"
+                onClick={() => setTimeframe(tf)}
+                className={`rounded-md px-4 py-1.5 font-semibold transition-colors ${
+                  timeframe === tf
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {tf}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
