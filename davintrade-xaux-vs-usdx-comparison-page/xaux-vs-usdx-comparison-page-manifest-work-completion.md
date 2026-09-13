@@ -1,11 +1,13 @@
 # XAUX vs USDX Comparison Page Manifest — Work Completion Report
 
 **Date:** 2026-09-13
-**Status:** Code complete, verified, and live-browser-checked, across two rounds. Round 1 (the page
-itself: chart, route, button) is committed and pushed to `origin/main`. Round 2 (chart drawing
-tools, the rebase-for-display controls, and the DavinTrade watermark) is being committed and pushed
-in this same update (§6). No database migration is needed for anything in this document, in either
-round — see §1.1 and §5.2.
+**Status:** Code complete, verified, and live-browser-checked, across three rounds, all committed
+and pushed to `origin/main`. Round 1 is the page itself (chart, route, button). Round 2 added chart
+drawing tools, the rebase-for-display controls, and the DavinTrade watermark. Round 3 is a bugfix:
+Davin caught, from the real production page, that the drawing tools he'd just gotten in Round 2 had
+already disappeared — see §1.8 for the root cause and §4's account of two further bugs found while
+fixing it. No database migration is needed for anything in this document, in any round — see §1.1
+and §5.2.
 **Type:** Ad-hoc feature session (Davin-requested directly in chat, across several follow-up
 messages, each with its own annotated screenshot or diagram as the spec) — outside the
 phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6.
@@ -105,7 +107,9 @@ relative-strength-chart.tsx`'s exact lifecycle split (one mount-only effect crea
   (`CURRENCY_GOLD_INDEX_METADATA`) reused as a legend, rather than writing new copy. Renders
   "No data available yet" when both series are empty (Lane 4's own "an absent row is the honest
   rendering" rule, not a placeholder or broken-looking chart) — the honest state today, since the
-  Lane 4 VPS engine has not been deployed yet (§5.1).
+  Lane 4 VPS engine has not been deployed yet (§5.1). **As originally built, this REPLACED the
+  chart entirely; §1.8 (Round 3) changed this to an overlay once drawing tools made that a real
+  problem — the honest-rendering intent is unchanged, only the mechanism.**
 - **`components/landing/landing-hero.tsx`** — the "XAUX vs USDX Comparison chart" button added
   directly below `<CurrencyIndexHeroWidget />`, per Davin's own annotated screenshot. Shown
   **unconditionally**, unlike the widget above it (which renders nothing with no live data yet) —
@@ -214,6 +218,41 @@ theme toggle correctly.
   directions with a live theme toggle (§4), and detached in the chart's own unmount cleanup
   alongside `chart.remove()`.
 
+### 1.8 Round 3 — bugfix: drawing tools were unreachable in production
+
+Davin reported, from a screenshot of the real `davintrade.app` page, that the drawing toolbar he'd
+seen "float on chart" had disappeared.
+
+**Root cause: not a regression in the drawing feature itself — a pre-existing conditional that
+predates it.** Confirmed directly against production first, not assumed:
+`GET https://www.davintrade.app/api/market/currency-gold-indices/history?timeframe=M15` returns
+`{"series":[{"symbol":"XAUX","bars":[]},{"symbol":"USDX","bars":[]}]}` — genuinely empty, because
+Lane 4's VPS engine still isn't deployed (§5.1, unchanged since Round 1). The page's own
+`{!isLoading && !hasData ? <p>No data...</p> : <XauxUsdxComparisonChart .../>}` ternary — written in
+Round 1, before drawing tools existed — swaps the ENTIRE chart out for a plain text message whenever
+there are no bars. Since Round 2's toolbar/watermark only exist once `XauxUsdxComparisonChart`
+mounts, they were never reachable in production at all, on any page load, regardless of the drawing
+feature's own code being correct. Davin most likely saw the toolbar during the Round 2 verification
+session itself (live-browser-checked with a temporarily-injected, since-reverted mock series), not
+against the real, always-empty production data.
+
+**Fix:** the chart now mounts unconditionally; the "No data available yet." message floats on top as
+a small, non-blocking hint (`pointer-events-none`) instead of replacing the chart, mirroring
+`trading-chart.tsx`'s own established pattern of overlaying a status message over an
+already-mounted chart. The toolbar, the watermark, and all 6 drawing tools are now usable
+immediately, independent of whether Lane 4 has ever pushed a single row — drawing was never a
+consumer of price data in the first place. Once Lane 4's VPS goes live, the hint disappears and
+lines appear, with zero further code change.
+
+**Two more real bugs found and fixed while building this fix — see §4 for the full investigation
+of both:**
+
+- `bg-background/80` (the hint's first backdrop) silently rendered fully transparent in this app's
+  Tailwind setup.
+- Even after fixing the color, the hint still didn't render at all until given an **explicit
+  `z-10`** — a plain `z-index: auto` sibling does not reliably paint above the chart's own
+  `<canvas>` layers here, the same reason the drawing toolbar itself already carries `z-10`.
+
 ---
 
 ## 2. Files changed
@@ -226,7 +265,7 @@ theme toggle correctly.
 | `app/api/market/currency-gold-indices/history/route.ts`                                            | **Added.** `GET .../history?timeframe=M5\|M15` — public, unauthenticated                                                                                                                                                                                                     |
 | `components/market/useCurrencyIndexHistory.ts`                                                     | **Added.** SWR hook, keyed by timeframe                                                                                                                                                                                                                                      |
 | `components/market/xaux-usdx-comparison-chart.tsx`                                                 | **Added** (Round 1), **further modified** (Round 2): exposes `chartApi`/the XAUX series so `ComparisonDrawingLayer` can attach (§1.5); new `rebase` prop + additive display-shift transform (§1.6); "DavinTrade" `createTextWatermark` pane primitive, theme-reactive (§1.7) |
-| `app/(marketing)/xaux-vs-usdx/page.tsx`                                                            | **Added** (Round 1), **further modified** (Round 2): "Rebase for display" panel — two `Slider`s + Reset (§1.6)                                                                                                                                                               |
+| `app/(marketing)/xaux-vs-usdx/page.tsx`                                                            | **Added** (Round 1), **further modified** (Round 2 rebase panel; Round 3 bugfix): chart now mounts unconditionally with a floating, `z-10`, `pointer-events-none` "no data" hint instead of replacing the chart (§1.8)                                                       |
 | `components/landing/landing-hero.tsx`                                                              | "XAUX vs USDX Comparison chart" button wired in                                                                                                                                                                                                                              |
 | `lib/i18n/dictionaries/{en-US,en-GB}.json`                                                         | 5 keys Round 1 (button, heading, badge, subtitle, empty state) + 4 keys Round 2 (rebase panel title/caption/Reset/two slider labels) — 9 new identity-mapped keys total                                                                                                      |
 | `components/market/comparison-chart-toolbar.tsx`                                                   | **Added** (Round 2). Scoped-down drawing toolbar — no alert buttons (§1.5)                                                                                                                                                                                                   |
@@ -239,7 +278,8 @@ theme toggle correctly.
 **Round 1: 13 files touched** (7 added, 5 modified, the manifest the 13th). **Round 2 adds 2 new
 files** (`comparison-chart-toolbar.tsx`, `comparison-drawing-layer.tsx`) **and further modifies 3
 already-listed files** (`xaux-usdx-comparison-chart.tsx`, the page, both dictionaries) — no new
-automated test files this round; see §3 for why.
+automated test files this round; see §3 for why. **Round 3 touches only the page** — a
+same-file bugfix, no new files.
 
 ---
 
@@ -255,6 +295,8 @@ automated test files this round; see §3 for why.
 | Full monolith `npm run test:ci` (Round 1)                     | **198/198 suites, 2657/2657 tests** — up from the prior 196/2636 baseline by exactly this session's own 2 new suites/21 new tests, zero regressions elsewhere                                                                                                                                                                                                            |
 | `npx tsc --noEmit` / ESLint (Round 2, all 3 sub-features)     | Clean throughout — checked after drawing tools, again after rebase, again after the watermark                                                                                                                                                                                                                                                                            |
 | Full monolith `npm run test:ci` (Round 2, all 3 sub-features) | **198/198 suites, 2657/2657 tests** — identical count after each of the 3 sub-features, confirming zero regressions from any of them                                                                                                                                                                                                                                     |
+| `npx tsc --noEmit` / ESLint (Round 3 bugfix)                  | Clean, re-checked after each of the 3 iterations (the ternary fix, the `bg-background/80`→`amber-500` fix, the `z-10` fix)                                                                                                                                                                                                                                               |
+| Full monolith `npm run test:ci` (Round 3 bugfix)              | **198/198 suites, 2657/2657 tests** — unchanged, zero regressions                                                                                                                                                                                                                                                                                                        |
 
 **Round 2 deliberately added no new automated test files.** Drawing tools, the rebase transform,
 and the watermark are all chart-canvas rendering/interaction concerns — this codebase's own
@@ -265,6 +307,10 @@ via a real browser rather than jsdom, which is what §4 below is. The one genuin
 testable piece Round 2 added — the rebase additive-offset arithmetic — is a one-line expression
 (`bar.value + (base - 100)`) with no branching to exercise; live-verifying the actual rendered
 separation (§4) is stronger evidence for it than a unit test asserting `115 - 100 === 15` would be.
+**Round 3 is the same story again, more so** — a conditional-rendering and CSS-stacking bug that
+only a real browser paint could have caught at all; a jsdom test asserting the JSX tree would never
+have seen either the transparent-background bug or the missing-`z-10` bug, since jsdom performs no
+actual layout, paint, or canvas compositing.
 
 ---
 
@@ -285,7 +331,9 @@ that UI changes are checked in a browser before being reported complete.
   Phase 5 blocker), the chart card correctly shows "No data available yet" rather than a broken or
   placeholder chart — the network tab confirmed a real `200 OK` to
   `/api/market/currency-gold-indices/history?timeframe=M15` returning empty series, not an error
-  being swallowed.
+  being swallowed. **(As originally built here in Round 1, this replaced the chart entirely — the
+  correct behavior at the time, since drawing tools didn't exist yet. Round 3's own §4 account
+  covers the Round 3 fix that turned this into a non-blocking overlay instead.)**
 - **The M5/M15 toggle:** clicking `M5` fires a new, independent request
   (`...history?timeframe=M5`) rather than re-using the M15 response; both requests returned `200`.
 - **With data (temporarily injected synthetic sine-wave series directly into
@@ -359,6 +407,45 @@ that UI changes are checked in a browser before being reported complete.
 - Confirmed the watermark does not block or interfere with the drawing toolbar/tools — armed the
   Trendline tool with the watermark visible on screen, no errors, toolbar responded normally.
 
+### Round 3 — bugfix verification
+
+- **Confirmed the actual production symptom first, not assumed.** Hit
+  `GET https://www.davintrade.app/api/market/currency-gold-indices/history?timeframe=M15` directly
+  and read back a genuinely empty `{"XAUX":[],"USDX":[]}` — the report was real, and its cause was
+  data availability, not a code regression in Round 2's drawing feature.
+- **⚠ Bug #1, found and fixed: `bg-background/80` renders fully transparent.** After making the
+  chart mount unconditionally, the "No data available yet." hint still didn't visually appear.
+  Isolated this precisely rather than guessing: injected a test element with `bg-black/50` via
+  `javascript_tool` and confirmed it computed to a real `rgba(0,0,0,0.5)`, then checked the hint's
+  own element and found `background-color: rgba(0, 0, 0, 0)` — fully transparent — despite an
+  identical opacity-modifier syntax. Confirmed the difference is CSS-variable-based tokens
+  specifically: `bg-background` (no modifier) works correctly elsewhere in this exact app (checked
+  the M5/M15 toggle's own active-state background), so the failure is isolated to applying a `/NN`
+  opacity modifier on top of a custom-property-based color, not opacity modifiers in general.
+  Switched to the same `amber-500/15` + `amber-500/40` literal-palette-color pattern this page's
+  own header badge already uses successfully.
+- **⚠ Bug #2, found and fixed: still invisible even with a working color.** With the transparency
+  bug fixed, the hint STILL didn't render. Forced a `3px solid red` outline directly onto the live
+  element via `javascript_tool` and re-screenshotted — nothing changed, definitively ruling out a
+  subtle-contrast explanation. Cross-checked against a deliberately unmistakable diagnostic (a
+  `position: fixed`, bright-red, `z-index: 99999` test div), which DID render correctly, proving the
+  Browser pane's screenshot mechanism itself was not at fault. The one concrete difference between
+  what worked and what didn't: the drawing toolbar (visible in every screenshot throughout this
+  entire manifest) carries an explicit `z-10`; the hint's container did not (`z-index: auto`).
+  Setting `zIndex = '10'` on the live element via `javascript_tool` made it appear immediately,
+  confirming the diagnosis before touching source code. Applied `z-10` in
+  `app/(marketing)/xaux-vs-usdx/page.tsx` and confirmed in three separate fresh browser tabs
+  (avoiding this environment's own documented dev-HMR staleness artifact) that the hint, the
+  watermark, and the toolbar all now render correctly together, with no source changes left
+  uncommitted (`javascript_tool` edits never touch the file on disk).
+- **Confirmed in both themes, per Davin's own explicit ask this round.** Toggled the app's real
+  theme switch with the chart in its genuine, always-empty production state: the toolbar, the
+  "DavinTrade" watermark, and the amber "No data available yet." hint all render correctly and with
+  good contrast in both light and dark mode, together, in the same screenshot.
+- Confirmed the drawing overlay's own pointer-capture element (`pointer-events: auto`) is
+  unaffected by the new `z-10` hint (`pointer-events: none`) sitting visually above it — armed the
+  Trendline tool and confirmed the toolbar still responds normally with the hint on screen.
+
 ---
 
 ## 5. What you still need to do
@@ -373,9 +460,10 @@ This page reads `currency_gold_indices` directly, and that table has zero real r
 today — Lane 4's own manifest (§5.1 of `currency-index-manifest-work-completion.md`) already tracks
 the 2 remaining physical VPS steps: attaching the OHLCV exporter to 8 MT5 charts, and registering
 the currency-index engine as a Windows service. **This page does not duplicate tracking that gap**
-— until those 2 steps happen, this page will correctly keep showing "No data available yet," by
-design, the same way the Hero widget above it renders nothing today. Once Lane 4's own VPS items
-land, this page starts showing real data with zero further code changes.
+— until those 2 steps happen, this page will correctly keep showing a "No data available yet." hint
+floating over an otherwise-empty, but fully drawable, chart (§1.8's Round 3 fix), the same honest-
+rendering intent the Hero widget above it follows by rendering nothing at all. Once Lane 4's own
+VPS items land, this page starts showing real data with zero further code changes.
 
 ### 5.2 No database migration needed, and none was authored
 
@@ -432,7 +520,9 @@ Committed and pushed to `origin/main`:
 | `ecc44268` | `docs(ad-hoc): record XAUX vs USDX comparison page work-completion manifest`                    |
 | `fc56a4e7` | `docs(ad-hoc): fix heading mangled by pre-commit prettier wrap`                                 |
 | `a45c9d76` | `feat(currency-index): add drawing tools, rebase controls, and watermark to XAUX vs USDX chart` |
-| _pending_  | `docs(ad-hoc): record Round 2 (drawing tools, rebase, watermark) in this manifest`              |
+| `63c809b9` | `docs(ad-hoc): record Round 2 (drawing tools, rebase, watermark) in this manifest`              |
+| `ab9f0533` | `fix(currency-index): make chart always mount so drawing tools work with no data`               |
+| _pending_  | `docs(ad-hoc): record Round 3 bugfix (drawing tools unreachable) in this manifest`              |
 
 ---
 
