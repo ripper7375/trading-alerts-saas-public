@@ -166,6 +166,72 @@ describe('LoginForm', () => {
     );
   });
 
+  describe('callbackUrl (return address after sign-in)', () => {
+    afterEach(() => {
+      window.history.replaceState({}, '', '/');
+    });
+
+    it('lands on a safe callbackUrl instead of /dashboard', async () => {
+      window.history.replaceState(
+        {},
+        '',
+        '/login?callbackUrl=%2Fpro%2Fcurrency-index%2Fcompare'
+      );
+      mockIsAuthBridgeEnabled.mockReturnValue(false);
+      mockSignIn.mockResolvedValue({ ok: true, error: null });
+
+      render(withLocale(<LoginForm />));
+      await fillAndSubmit();
+
+      await waitFor(
+        () =>
+          expect(mockPush).toHaveBeenCalledWith('/pro/currency-index/compare'),
+        { timeout: 3000 }
+      );
+    });
+
+    it('ignores an off-site callbackUrl (open redirect) and lands on /dashboard', async () => {
+      window.history.replaceState(
+        {},
+        '',
+        '/login?callbackUrl=https%3A%2F%2Fevil.example%2F'
+      );
+      mockIsAuthBridgeEnabled.mockReturnValue(true);
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ user: { id: '1', email: 'alice@example.com' } }),
+      });
+
+      render(withLocale(<LoginForm />));
+      await fillAndSubmit();
+
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/dashboard'), {
+        timeout: 3000,
+      });
+      expect(mockPush).not.toHaveBeenCalledWith(
+        expect.stringContaining('evil.example')
+      );
+    });
+
+    it('carries a safe callbackUrl through the 2FA step', async () => {
+      window.history.replaceState({}, '', '/login?callbackUrl=%2Falerts');
+      mockIsAuthBridgeEnabled.mockReturnValue(true);
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ twoFactorRequired: true, token: 'tok-123' }),
+      });
+
+      render(withLocale(<LoginForm />));
+      await fillAndSubmit();
+
+      await waitFor(() =>
+        expect(mockPush).toHaveBeenCalledWith(
+          '/verify-2fa?token=tok-123&callbackUrl=%2Falerts'
+        )
+      );
+    });
+  });
+
   it('shows the unverified error state on an EMAIL_NOT_VERIFIED bridge response', async () => {
     mockIsAuthBridgeEnabled.mockReturnValue(true);
     (global.fetch as jest.Mock).mockResolvedValue({

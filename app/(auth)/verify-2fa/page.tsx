@@ -17,6 +17,7 @@ import { signIn, getSession, signOut } from 'next-auth/react';
 import { useState, useEffect, useRef, Suspense } from 'react';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { safeCallbackUrl } from '@/lib/auth/safe-callback-url';
 import { useLocale } from '@/lib/context/locale-context';
 import { Button } from '@/components/ui/button';
 
@@ -32,6 +33,9 @@ function TwoFactorVerificationContent(): JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  // Forwarded by login-form.tsx when the visitor was sent to sign in from a
+  // specific page; unsafe or missing values fall back to /dashboard.
+  const destination = safeCallbackUrl(searchParams.get('callbackUrl'));
   const { t } = useLocale();
   const [session, setSession] = useState<SafeUserSession | null>(null);
 
@@ -181,7 +185,7 @@ function TwoFactorVerificationContent(): JSX.Element {
         }
         setIsSuccess(true);
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push(destination);
         }, 1500);
         return;
       }
@@ -196,12 +200,12 @@ function TwoFactorVerificationContent(): JSX.Element {
       if (result?.error) {
         setIsSuccess(true);
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push(destination);
         }, 1500);
       } else if (result?.ok) {
         setIsSuccess(true);
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push(destination);
         }, 1500);
       }
     } catch (err) {

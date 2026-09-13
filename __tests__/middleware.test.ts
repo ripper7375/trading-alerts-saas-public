@@ -48,6 +48,30 @@ describe('middleware', () => {
     expect(response.headers.get('location')).toBeNull();
   });
 
+  it.each(['/pro/currency-index', '/pro/currency-index/compare'])(
+    'sends a signed-out visitor from PRO page %s to /login with a return address',
+    async (path) => {
+      (getToken as jest.Mock).mockResolvedValueOnce(null);
+
+      const response = await middleware(makeRequest(path));
+
+      expect(response.status).toBe(307);
+      const location = response.headers.get('location');
+      expect(location).toContain('/login');
+      expect(location).toContain(`callbackUrl=${encodeURIComponent(path)}`);
+    }
+  );
+
+  it.each(['/pricing', '/products', '/promo'])(
+    'does not gate %s just because it starts with the letters "pro"',
+    async (path) => {
+      const response = await middleware(makeRequest(path));
+
+      expect(getToken).not.toHaveBeenCalled();
+      expect(response.headers.get('location')).toBeNull();
+    }
+  );
+
   it('fails open (passes the request through) if getToken throws', async () => {
     (getToken as jest.Mock).mockRejectedValueOnce(new Error('decode blew up'));
 

@@ -132,4 +132,34 @@ describe('verify-2fa page', () => {
     await waitFor(() => expect(mockGetSession).toHaveBeenCalled());
     expect(mockSignIn).not.toHaveBeenCalled();
   });
+
+  it.each([
+    ['a safe callbackUrl forwarded by the login form', '/alerts', '/alerts'],
+    ['an off-site callbackUrl', 'https://evil.example/', '/dashboard'],
+    ['no callbackUrl', null, '/dashboard'],
+  ])(
+    'lands on the right page for %s',
+    async (_label, callbackUrl, expected) => {
+      mockGet.mockImplementation((key: string) =>
+        key === 'token'
+          ? 'login-token-abc'
+          : key === 'callbackUrl'
+            ? callbackUrl
+            : null
+      );
+      mockIsAuthBridgeEnabled.mockReturnValue(false);
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, verified: true, method: 'totp' }),
+      });
+      mockSignIn.mockResolvedValue({ ok: true, error: null });
+
+      render(withLocale(<TwoFactorVerificationPage />));
+      typeCode();
+
+      await waitFor(() => expect(mockPush).toHaveBeenCalledWith(expected), {
+        timeout: 3000,
+      });
+    }
+  );
 });

@@ -47,6 +47,13 @@ const PROTECTED_PREFIXES = [
   '/admin',
   '/notifications',
   '/affiliate',
+  // The PRO pages (/pro/currency-index and /pro/currency-index/compare).
+  // Their layout already requires a session, but a layout cannot see the
+  // requested path, so it redirected to a bare /login and the visitor lost
+  // their place. Gating here first adds the callbackUrl. The trailing slash
+  // is deliberate: a plain '/pro' prefix would also catch '/pricing'-style
+  // siblings such as a future '/promo' or '/products'.
+  '/pro/',
 ];
 
 function isProtectedPath(pathname: string): boolean {

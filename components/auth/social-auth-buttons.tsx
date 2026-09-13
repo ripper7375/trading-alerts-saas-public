@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { signIn, getProviders } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
+import { callbackUrlFromLocation } from '@/lib/auth/safe-callback-url';
 import { useLocale } from '@/lib/context/locale-context';
 
 type LoadingProvider = 'google' | 'twitter' | null;
@@ -46,7 +47,7 @@ export default function SocialAuthButtons(): JSX.Element {
   const handleGoogleSignIn = async (): Promise<void> => {
     try {
       setLoadingProvider('google');
-      await signIn('google', { callbackUrl: '/dashboard' });
+      await signIn('google', { callbackUrl: callbackUrlFromLocation() });
     } catch (error) {
       console.error('Error signing in with Google:', error);
     } finally {
@@ -57,7 +58,7 @@ export default function SocialAuthButtons(): JSX.Element {
   const handleTwitterSignIn = async (): Promise<void> => {
     try {
       setLoadingProvider('twitter');
-      await signIn('twitter', { callbackUrl: '/dashboard' });
+      await signIn('twitter', { callbackUrl: callbackUrlFromLocation() });
     } catch (error) {
       console.error('Error signing in with X:', error);
     } finally {

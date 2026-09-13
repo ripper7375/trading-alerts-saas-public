@@ -17,6 +17,10 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import {
+  callbackUrlFromLocation,
+  DEFAULT_POST_LOGIN_PATH,
+} from '@/lib/auth/safe-callback-url';
 import { useLocale } from '@/lib/context/locale-context';
 
 import SocialAuthButtons from './social-auth-buttons';
@@ -74,6 +78,17 @@ export default function LoginForm(): JSX.Element {
     setError(null);
     setCurrentEmail(data.email);
 
+    // Where to land after sign-in: the page's ?callbackUrl= when it is a safe
+    // same-site path (lib/auth/safe-callback-url.ts rejects everything else),
+    // otherwise /dashboard as before. Carried through the 2FA step too, but
+    // only when present, so the plain /verify-2fa?token= URL is unchanged.
+    const destination = callbackUrlFromLocation();
+    const twoFactorUrl = (token: string): string =>
+      `/verify-2fa?token=${encodeURIComponent(token)}` +
+      (destination === DEFAULT_POST_LOGIN_PATH
+        ? ''
+        : `&callbackUrl=${encodeURIComponent(destination)}`);
+
     try {
       if (isAuthBridgeEnabled()) {
         const response = await fetch('/api/auth/token-login', {
@@ -85,13 +100,13 @@ export default function LoginForm(): JSX.Element {
 
         if (response.ok) {
           if ('twoFactorRequired' in body && body.twoFactorRequired) {
-            router.push(`/verify-2fa?token=${encodeURIComponent(body.token)}`);
+            router.push(twoFactorUrl(body.token));
             return;
           }
           await getSession();
           setIsSuccess(true);
           setTimeout(() => {
-            router.push('/dashboard');
+            router.push(destination);
           }, 1500);
           return;
         }
@@ -114,7 +129,7 @@ export default function LoginForm(): JSX.Element {
       if (result?.ok) {
         setIsSuccess(true);
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push(destination);
         }, 1500);
         return;
       }
@@ -122,7 +137,7 @@ export default function LoginForm(): JSX.Element {
       if (result?.error) {
         if (result.error.includes('TWO_FACTOR_REQUIRED:')) {
           const token = result.error.replace('TWO_FACTOR_REQUIRED:', '');
-          router.push(`/verify-2fa?token=${encodeURIComponent(token)}`);
+          router.push(twoFactorUrl(token));
           return;
         } else if (result.error.includes('EMAIL_NOT_VERIFIED')) {
           setError('unverified');
