@@ -1,12 +1,14 @@
 # XAUX vs USDX Comparison Page Manifest — Work Completion Report
 
 **Date:** 2026-09-13
-**Status:** Code complete, verified, and live-browser-checked. Not yet applied to a live database
-(no migration needed — this feature adds zero new tables/columns, see §1.1) and not yet deployed;
-committed and pushed to `origin/main` this session (§6).
-**Type:** Ad-hoc feature session (Davin-requested directly in chat, with an annotated screenshot of
-the live landing page as the spec) — outside the phase/session numbering, per
-`docs/migration-orders/EXECUTOR-PROTOCOL.md` §6.
+**Status:** Code complete, verified, and live-browser-checked, across two rounds. Round 1 (the page
+itself: chart, route, button) is committed and pushed to `origin/main`. Round 2 (chart drawing
+tools, the rebase-for-display controls, and the DavinTrade watermark) is being committed and pushed
+in this same update (§6). No database migration is needed for anything in this document, in either
+round — see §1.1 and §5.2.
+**Type:** Ad-hoc feature session (Davin-requested directly in chat, across several follow-up
+messages, each with its own annotated screenshot or diagram as the spec) — outside the
+phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6.
 
 > **Scope note:** this document covers the **XAUX vs USDX Comparison Page** — a small, single-page
 > extension of the already-live **Lane 4 Currency & Gold Index Stack**
@@ -130,28 +132,114 @@ relative-strength-chart.tsx`'s exact lifecycle split (one mount-only effect crea
   second time, and the test failed with the two M15-close bars swapped. Fixed by building the mock
   in descending order, matching what a real `findMany` call actually returns.
 
+### 1.5 Round 2 — chart drawing tools (all 6 terminal drawing tools, reused)
+
+Davin asked, with a screenshot of the target toolbar overlaid on this exact page, to add chart
+drawing functionality, naming the existing terminal drawing-engine codebase
+(`docs/../DRAWING-ENGINE-AND-LINE-ALERTS-ARCHITECTURE.md`, `components/charts/drawing/*`) as the
+reference to study, and explicitly scoping it down: "Just drawing functions that I need. No need to
+do any alert creation on lines drawn."
+
+- **Read the terminal's own drawing-engine architecture doc and every file under
+  `components/charts/drawing/` before writing anything**, confirming the engine layer
+  (`DrawingEngine`, `PointerController`, `coords.ts`, all 6 `Mark` classes, `tools/index.ts`,
+  `StyleEditor.tsx`) is already fully series-type- and auth-agnostic — no `useSession()`/tier check,
+  no DB call, anywhere below the existing `DrawingLayer.tsx` wiring layer itself. This meant the
+  entire engine, all 6 tools, and the style editor could be reused byte-for-byte; only a new, much
+  thinner wiring layer was needed for this page.
+- **New** `components/market/comparison-drawing-layer.tsx` — a scoped-down sibling of
+  `components/charts/drawing/DrawingLayer.tsx`, not a modification of it: no `useSession()`/PRO-tier
+  gating, no DB-backed persistence via `/api/drawings` (this page has no signed-in user to own a
+  row), and no `AlertDialog`/`AlertsPanel`/"Add alert" wiring at all, per Davin's own explicit
+  instruction. Drawings live only in the `DrawingEngine`'s in-memory state for as long as the chart
+  stays mounted — they survive the M5/M15 toggle (which only swaps data, not the chart/series
+  instances) and are lost on a page reload, by design, not by oversight.
+- **New** `components/market/comparison-chart-toolbar.tsx` — a separate, smaller toolbar (Select,
+  the 6 tools, Style, Delete) rather than adding a "hide the alert buttons" branch to the terminal's
+  own `Toolbar.tsx`; keeps a well-tested, shared component untouched for a page that has nothing to
+  do with alerts.
+- `components/market/xaux-usdx-comparison-chart.tsx` now exposes `chartApi` and the XAUX line
+  series via state (mirroring `relative-strength-chart.tsx`'s own reason for doing the same) so
+  `ComparisonDrawingLayer` can attach once both exist.
+- **A real investigation during verification, not a shrug** — see §4 for the full account of a
+  canvas-click automation false alarm and a single dev-only "Object is disposed" console error,
+  both traced to their actual root cause rather than assumed harmless.
+
+### 1.6 Round 2 — "Rebase for display" (visual separation controls)
+
+Davin flagged, with an annotated before/after diagram, that both indices share the same 100.00
+inception value, so their overlaid lines can sit very close together, and asked for a way to spread
+them apart visually by letting a visitor set each index's own display "base" between 50 and 150
+(his own worked example: XAUX based at 115, USDX based at 85).
+
+- **A pure display transform, applied at the last possible moment — deliberately not a change to
+  any upstream value.** `XauxUsdxComparisonChart` takes an optional
+  `rebase: Partial<Record<string, number>>` prop; each bar's plotted value becomes
+  `bar.value + (base - 100)` right before `setData()` — a constant, shape-preserving vertical shift,
+  not a rescale, so a rebased curve's shape and amplitude stay pixel-identical to the real one, just
+  translated. The `series` prop itself, the API route, the cache, and the database all still carry
+  the real, un-rebased value at all times — confirmed live (§4) by checking the last-value label
+  reverts to the real number (103.67) the instant Reset is pressed.
+- **New "Rebase for display" panel** on the page: two `Slider`s (the existing shared
+  `components/ui/slider.tsx` — the same component the Currency Index PRO Plan's own HRMA/SMMA
+  what-if sliders already use, reused rather than building a new range control), range 50-150 per
+  Davin's own spec, defaulting to 100/100, plus a Reset button (disabled once both are already at
+  default) and an explanatory caption stating plainly that this is display-only and does not change
+  the real XAUX/USDX values.
+- Changing a rebase value re-runs the chart's data-push effect (now depending on `rebase` too) but
+  never re-triggers `fitContent()` — the existing `isFirstLoadRef` guard (built for the 60s
+  data-refresh case) already covers this, so dragging a slider can never reset a visitor's own
+  zoom/pan.
+
+### 1.7 Round 2 — "DavinTrade" background watermark, theme-reactive
+
+Davin asked for a "DavinTrade" watermark on the chart background, since this page is open to any
+visitor as a marketing surface, with an explicit requirement that it must follow the light/dark
+theme toggle correctly.
+
+- Uses Lightweight Charts v5's own official plugin API, `createTextWatermark(pane, options)`
+  (confirmed present in the installed `lightweight-charts@^5.2.0` by reading its own type
+  definitions before using it, not assumed from a v4-era memory of the library) attached to
+  `chart.panes()[0]` — a real pane primitive, not a CSS overlay or a 3rd series, so it can never
+  intercept pointer events meant for the drawing layer or the chart's own pan/zoom, and it repaints
+  correctly on resize/theme change like any other primitive.
+- Deliberately faint: `rgba(148, 163, 184, 0.12)` in dark mode, `rgba(51, 65, 85, 0.08)` in light —
+  the SAME muted tone `chartChromeColors()` already uses for axis-label text in each theme, just at
+  much lower opacity, so the mark ties into the chart's existing palette rather than introducing a
+  third color, and never competes with the two data lines.
+- Created once at chart-mount time with the initial theme's color, then re-applied wholesale (the
+  full `lines` array, not just `color`, since a pane primitive's `applyOptions` array fields are not
+  guaranteed to deep-merge element-by-element) inside the SAME reactive effect that already pushes
+  background/grid/line-color changes on every `resolvedTheme` change — confirmed correct in both
+  directions with a live theme toggle (§4), and detached in the chart's own unmount cleanup
+  alongside `chart.remove()`.
+
 ---
 
 ## 2. Files changed
 
-| File                                                                                               | Change                                                                                                             |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `lib/currency-gold-indices/history.ts`                                                             | **Added.** `isM15CloseBar()`, `MAX_COMPARISON_HISTORY_BARS`, `COMPARISON_CHART_INDEX_NAMES`, `ComparisonTimeframe` |
-| `lib/currency-gold-indices/queries.ts`                                                             | New `getCurrencyGoldIndexHistory()` + its result types                                                             |
-| `lib/cache/cache-manager.ts`                                                                       | New timeframe-keyed cache helpers for the history route                                                            |
-| `app/api/market/currency-gold-indices/history/route.ts`                                            | **Added.** `GET .../history?timeframe=M5\|M15` — public, unauthenticated                                           |
-| `components/market/useCurrencyIndexHistory.ts`                                                     | **Added.** SWR hook, keyed by timeframe                                                                            |
-| `components/market/xaux-usdx-comparison-chart.tsx`                                                 | **Added.** 2-line `lightweight-charts` component                                                                   |
-| `app/(marketing)/xaux-vs-usdx/page.tsx`                                                            | **Added.** Public comparison page + M5/M15 toggle                                                                  |
-| `components/landing/landing-hero.tsx`                                                              | "XAUX vs USDX Comparison chart" button wired in                                                                    |
-| `lib/i18n/dictionaries/{en-US,en-GB}.json`                                                         | 5 new identity-mapped keys (button, heading, badge, subtitle, empty state)                                         |
-| `__tests__/lib/currency-gold-indices/history.test.ts`                                              | **Added.** 6 tests, pure `isM15CloseBar()` unit tests                                                              |
-| `__tests__/api/currency-gold-indices-history.test.ts`                                              | **Added.** 14 tests, mirroring `currency-gold-indices.test.ts`'s own structure                                     |
-| `__tests__/components/landing/landing-and-auth-navigation.test.tsx`                                | 1 new test — the button's `href` resolves to `/xaux-vs-usdx`                                                       |
-| `davintrade-xaux-vs-usdx-comparison-page/xaux-vs-usdx-comparison-page-manifest-work-completion.md` | **Added.** This document                                                                                           |
+| File                                                                                               | Change                                                                                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/currency-gold-indices/history.ts`                                                             | **Added.** `isM15CloseBar()`, `MAX_COMPARISON_HISTORY_BARS`, `COMPARISON_CHART_INDEX_NAMES`, `ComparisonTimeframe`                                                                                                                                                           |
+| `lib/currency-gold-indices/queries.ts`                                                             | New `getCurrencyGoldIndexHistory()` + its result types                                                                                                                                                                                                                       |
+| `lib/cache/cache-manager.ts`                                                                       | New timeframe-keyed cache helpers for the history route                                                                                                                                                                                                                      |
+| `app/api/market/currency-gold-indices/history/route.ts`                                            | **Added.** `GET .../history?timeframe=M5\|M15` — public, unauthenticated                                                                                                                                                                                                     |
+| `components/market/useCurrencyIndexHistory.ts`                                                     | **Added.** SWR hook, keyed by timeframe                                                                                                                                                                                                                                      |
+| `components/market/xaux-usdx-comparison-chart.tsx`                                                 | **Added** (Round 1), **further modified** (Round 2): exposes `chartApi`/the XAUX series so `ComparisonDrawingLayer` can attach (§1.5); new `rebase` prop + additive display-shift transform (§1.6); "DavinTrade" `createTextWatermark` pane primitive, theme-reactive (§1.7) |
+| `app/(marketing)/xaux-vs-usdx/page.tsx`                                                            | **Added** (Round 1), **further modified** (Round 2): "Rebase for display" panel — two `Slider`s + Reset (§1.6)                                                                                                                                                               |
+| `components/landing/landing-hero.tsx`                                                              | "XAUX vs USDX Comparison chart" button wired in                                                                                                                                                                                                                              |
+| `lib/i18n/dictionaries/{en-US,en-GB}.json`                                                         | 5 keys Round 1 (button, heading, badge, subtitle, empty state) + 4 keys Round 2 (rebase panel title/caption/Reset/two slider labels) — 9 new identity-mapped keys total                                                                                                      |
+| `components/market/comparison-chart-toolbar.tsx`                                                   | **Added** (Round 2). Scoped-down drawing toolbar — no alert buttons (§1.5)                                                                                                                                                                                                   |
+| `components/market/comparison-drawing-layer.tsx`                                                   | **Added** (Round 2). Wires the terminal's own `DrawingEngine` with no auth/persistence/alerts (§1.5)                                                                                                                                                                         |
+| `__tests__/lib/currency-gold-indices/history.test.ts`                                              | **Added.** 6 tests, pure `isM15CloseBar()` unit tests                                                                                                                                                                                                                        |
+| `__tests__/api/currency-gold-indices-history.test.ts`                                              | **Added.** 14 tests, mirroring `currency-gold-indices.test.ts`'s own structure                                                                                                                                                                                               |
+| `__tests__/components/landing/landing-and-auth-navigation.test.tsx`                                | 1 new test — the button's `href` resolves to `/xaux-vs-usdx`                                                                                                                                                                                                                 |
+| `davintrade-xaux-vs-usdx-comparison-page/xaux-vs-usdx-comparison-page-manifest-work-completion.md` | **Added** (Round 1), **updated** (Round 2, this update)                                                                                                                                                                                                                      |
 
-**13 files touched** (7 added, 5 modified, this manifest is the 13th) across 1 feature commit plus
-this documentation commit.
+**Round 1: 13 files touched** (7 added, 5 modified, the manifest the 13th). **Round 2 adds 2 new
+files** (`comparison-chart-toolbar.tsx`, `comparison-drawing-layer.tsx`) **and further modifies 3
+already-listed files** (`xaux-usdx-comparison-chart.tsx`, the page, both dictionaries) — no new
+automated test files this round; see §3 for why.
 
 ---
 
@@ -164,7 +252,19 @@ this documentation commit.
 | `isM15CloseBar` unit tests                                    | **6/6** — FX-index triplet pattern, XAUX's own non-15-min-aligned anchor, a data-gap bar, a before-session-open bar, cross-day correctness, and the FX-vs-XAUX wrong-anchor discriminating case (§1.4)                                                                                                                                                                   |
 | `getCurrencyGoldIndexHistory` + `GET .../history` route tests | **14/14** — both indices queried independently; ascending output order; M15 filtering; the 3x row-limit for M15 vs. the 3000 cap for M5; one index degrading to empty on a query failure without affecting the other; no-auth; default/invalid-timeframe handling; cache hit/miss/outage (read and write) parity with the sibling snapshot route; public `Cache-Control` |
 | `landing-and-auth-navigation.test.tsx`                        | **1 new test** — the button links to `/xaux-vs-usdx`; all pre-existing tests in this file unaffected                                                                                                                                                                                                                                                                     |
-| Full monolith `npm run test:ci`                               | **198/198 suites, 2657/2657 tests** — up from the prior 196/2636 baseline by exactly this session's own 2 new suites/21 new tests, zero regressions elsewhere                                                                                                                                                                                                            |
+| Full monolith `npm run test:ci` (Round 1)                     | **198/198 suites, 2657/2657 tests** — up from the prior 196/2636 baseline by exactly this session's own 2 new suites/21 new tests, zero regressions elsewhere                                                                                                                                                                                                            |
+| `npx tsc --noEmit` / ESLint (Round 2, all 3 sub-features)     | Clean throughout — checked after drawing tools, again after rebase, again after the watermark                                                                                                                                                                                                                                                                            |
+| Full monolith `npm run test:ci` (Round 2, all 3 sub-features) | **198/198 suites, 2657/2657 tests** — identical count after each of the 3 sub-features, confirming zero regressions from any of them                                                                                                                                                                                                                                     |
+
+**Round 2 deliberately added no new automated test files.** Drawing tools, the rebase transform,
+and the watermark are all chart-canvas rendering/interaction concerns — this codebase's own
+established precedent (`components/currency-index-pro/chart/relative-strength-chart.tsx` has zero
+dedicated test file either, and `CLAUDE.md`'s own history notes jsdom's `ResizeObserver` stub gives
+canvas-sizing logic "no meaningful coverage" even where a test file does exist) is to verify these
+via a real browser rather than jsdom, which is what §4 below is. The one genuinely pure, easily unit-
+testable piece Round 2 added — the rebase additive-offset arithmetic — is a one-line expression
+(`bar.value + (base - 100)`) with no branching to exercise; live-verifying the actual rendered
+separation (§4) is stronger evidence for it than a unit test asserting `115 - 100 === 15` would be.
 
 ---
 
@@ -200,6 +300,64 @@ that UI changes are checked in a browser before being reported complete.
 - **Console:** zero new errors. The one console warning present throughout (`allowTransparency`) is
   the same pre-existing, already-documented, unrelated warning from `ticker-tape.tsx`'s TradingView
   embed that Lane 4's own Phase 4 manifest already traced and ruled out.
+
+### Round 2 — drawing tools
+
+- **Toolbar:** renders exactly matching Davin's own screenshot — Select highlighted, the 6 tool
+  icons in the same order, then Style and Delete, with no Bell/Alerts-panel buttons (correctly
+  absent, per the scope in §1.5).
+- **⚠ A real investigation, not a shrug — canvas-click automation initially appeared to make
+  drawing fail entirely.** Two clicks on the chart canvas (via the standard `computer` click tool)
+  produced nothing but the chart's own default crosshair, with the Trendline button staying
+  "armed." Rather than assume a code defect, isolated the cause by calling `DrawingEngine`'s own
+  public methods directly through a temporary `window.__debugEngine` hook (removed before commit,
+  confirmed via a clean `git diff` afterward): the exact same two-anchor sequence succeeded
+  immediately and rendered a correctly-positioned, correctly-selected trendline with handles —
+  proving the engine itself was never the problem. Further probing found the real cause: the
+  temporary verification mock's own `Date.now()` anchor was reshuffling every bar's absolute time
+  on each 60-second SWR poll (an artifact of the throwaway mock, since real production data is
+  append-only and never reshuffles existing bar times), which had left the chart's fitted visible
+  range briefly out of sync with what was plotted. Confirmed the fix by reloading fresh and testing
+  coordinates across the full chart width immediately after load — every one resolved correctly
+  except the price-axis gutter itself, which correctly rejects a click (there's no time/price to
+  anchor to there). Also live-verified: the Style editor (color swatch, line-width, line-style,
+  matching the exact terminal `StyleEditor.tsx` component), Delete, and drawing 5 horizontal lines
+  at once, all via real UI clicks once the above was understood.
+- **⚠ One dev-only console error, investigated and ruled unrelated, not silently ignored.** A
+  single "Object is disposed" error surfaced from the charting library's internal
+  `DevicePixelContentBoxObserver`. Located its exact position in the console log: sandwiched
+  between a burst of unusually slow "[Fast Refresh] done in 7546ms" lines and a brand-new HMR
+  websocket id — i.e. it coincided precisely with a Next.js Fast-Refresh rebuild triggered by the
+  Executor's own file edit while the tab stayed open mid-session, not with any user interaction. It
+  occurred exactly once across the entire verification session and never recurred across any
+  subsequent fresh page load, theme toggle, slider drag, or draw/delete/style-edit action — the
+  same class of dev-mode-only React/Fast-Refresh teardown race this codebase's own history already
+  documents elsewhere (the EconNews TradingView-widget Strict-Mode race). A real visitor's page
+  loads once and never Fast-Refreshes mid-session, so this cannot reach production.
+
+### Round 2 — rebase for display
+
+- Dragged XAUX to 115 and USDX to 85 (Davin's own worked example) via keyboard (arrow-key
+  increments on the focused `Slider` thumb, chosen deliberately over pixel-drag given the
+  canvas-coordinate caveat above): the two curves visually separated exactly as intended (XAUX
+  ~112-118, USDX ~84-88), and the last-value labels updated to show the REBASED numbers (e.g. real
+  103.67 → displayed 118.67).
+- Reset correctly snapped both back to 100.00, the curves rejoined, the Reset button itself
+  correctly disabled once both were back at default, and the last-value label reverted to the real,
+  un-rebased 103.67 — direct visual proof that the underlying value was never touched.
+- Confirmed a rebase change never resets the chart's own zoom/pan (the `isFirstLoadRef` guard, per
+  §1.6), and that the M5/M15 toggle and drawing tools both keep working correctly with a rebase
+  active.
+
+### Round 2 — DavinTrade watermark
+
+- Confirmed rendering centered behind both data lines in dark mode (faint light-slate text), then
+  toggled the app's REAL theme switch (not a simulated `prefers-color-scheme` media query) and
+  confirmed the SAME watermark re-rendered correctly in light mode (faint dark-slate text) with zero
+  flicker or teardown — the existing reactive-appearance effect, already proven for chart chrome,
+  now also correctly covers the watermark.
+- Confirmed the watermark does not block or interfere with the drawing toolbar/tools — armed the
+  Trendline tool with the watermark visible on screen, no errors, toolbar responded normally.
 
 ---
 
@@ -243,24 +401,38 @@ production on 2026-09-11. There is nothing for Davin to apply here.
 
 ### 5.4 Smaller, non-blocking follow-ups
 
-- **Translation:** the 5 new strings this page adds are English-only (identity-mapped in
-  `en-US`/`en-GB` only), matching the rest of Lane 4's own established precedent for newly-shipped
-  marketing copy — a future locale pass, not an oversight.
+- **Translation:** all 9 strings this page adds (5 Round 1 + 4 Round 2) are English-only
+  (identity-mapped in `en-US`/`en-GB` only), matching the rest of Lane 4's own established
+  precedent for newly-shipped marketing copy — a future locale pass, not an oversight.
 - **No navbar link:** this page is reachable only via the landing-hero button, per the feature's own
   scope (Davin's annotation named the button specifically, not a navigation entry) — a deliberate
   choice, not a gap, consistent with `/econ-news`/`/academy` both having navbar links added
   separately and explicitly when that was actually asked for.
+- **No automated test coverage for the drawing tools, the rebase transform, or the watermark** —
+  deliberate, not an oversight; see §3's own note on why this matches established precedent for
+  chart-canvas features in this codebase. If this page's drawing/rebase/watermark behavior ever
+  needs to be pinned by CI (e.g. before a larger refactor of the shared `components/charts/
+drawing/` engine), a Playwright spec would be the right tool, not a jsdom unit test.
+- **Drawn lines are not saved.** By Davin's own explicit scope ("just drawing functions," no alert
+  creation), drawings live only in memory for the page's current visit and vanish on reload. If a
+  future ask wants them to persist for a returning anonymous visitor, the natural mechanism is
+  `localStorage` keyed by symbol/timeframe (a per-viewer convenience, matching this codebase's own
+  established use of `localStorage` for exactly that class of preference) — not the terminal's
+  authenticated `/api/drawings` route, which has no anonymous-visitor concept at all.
 
 ---
 
 ## 6. Git history
 
-Committed and pushed to `origin/main` this session:
+Committed and pushed to `origin/main`:
 
-| Commit     | Summary                                                                        |
-| ---------- | ------------------------------------------------------------------------------ |
-| `e793071e` | `feat(currency-index): XAUX vs USDX comparison chart + public comparison page` |
-| _pending_  | `docs(ad-hoc): record XAUX vs USDX comparison page work-completion manifest`   |
+| Commit     | Summary                                                                                         |
+| ---------- | ----------------------------------------------------------------------------------------------- |
+| `e793071e` | `feat(currency-index): XAUX vs USDX comparison chart + public comparison page`                  |
+| `ecc44268` | `docs(ad-hoc): record XAUX vs USDX comparison page work-completion manifest`                    |
+| `fc56a4e7` | `docs(ad-hoc): fix heading mangled by pre-commit prettier wrap`                                 |
+| `a45c9d76` | `feat(currency-index): add drawing tools, rebase controls, and watermark to XAUX vs USDX chart` |
+| _pending_  | `docs(ad-hoc): record Round 2 (drawing tools, rebase, watermark) in this manifest`              |
 
 ---
 
@@ -280,3 +452,16 @@ Committed and pushed to `origin/main` this session:
   `indices=` query-param endpoint nothing yet needs.
 - **Full dictionary translation** of this page's new strings — see §5.4.
 - **A navbar entry for this page** — see §5.4.
+- **Line-touch alerts on drawn lines** — Davin's own explicit instruction ("No need to do any alert
+  creation on lines drawn"); the terminal's `AlertDialog`/`AlertsPanel`/`/api/alerts/line` were
+  never wired into this page's drawing layer at all, not merely hidden behind a flag.
+- **Any change to `components/charts/drawing/*` itself** — this page's drawing feature is a pure
+  consumer of that existing engine/marks/geometry/tools/style-editor code; not one file under that
+  path was modified, matching Lane 4's own "pure downstream consumer" discipline applied to a
+  second shared subsystem.
+- **Server-side or database persistence of drawings** — see §5.4; ephemeral/in-memory only, by
+  Davin's own scope.
+- **A generic, index-agnostic rebase configuration API** — the rebase sliders are wired directly to
+  this one chart's own two named series (XAUX/USDX); no new endpoint or schema was added for it,
+  matching this page's own single-purpose design (§7's "generic multi-index history API" entry
+  above, applied to the same reasoning).
