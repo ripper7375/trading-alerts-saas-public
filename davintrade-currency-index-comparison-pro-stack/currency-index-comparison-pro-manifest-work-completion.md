@@ -3,8 +3,9 @@
 **Date:** 2026-09-13
 **Status:** Code complete and verified (Python, gateway unit + e2e, full monolith suite, live browser),
 across two rounds; Round 2 (§7) covers Davin's follow-ups. Committed and pushed to `origin/main`
-(§8). One migration authored but **not applied**. VPS engine **not redeployed**. See §5 for the
-rollout order, which matters.
+(§8). **`railway-gateway` is already deployed, but its migration is NOT applied**: harmless until the
+VPS engine pushes, then every Lane 4 write fails. Apply it first; see §5.0. VPS engine **not
+redeployed**.
 **Type:** Ad-hoc feature session, requested directly in chat with an annotated screenshot — outside
 the phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6.
 
@@ -180,18 +181,39 @@ the VPS engine isn't deployed.
 
 ## 5. What Davin needs to do — ORDER MATTERS
 
-1. **Apply the migration first:** `20260913120000_add_currency_gold_index_ohlc`. Run
-   `prisma migrate status` beforehand: `migrate deploy` applies every pending migration.
-2. **Only then deploy `railway-gateway`.** Its processor's `upsert` returns the full row, so on a
-   database without the new columns **every Lane 4 write would fail**. `railway-gateway`
-   **auto-deploys on pushes to `main`**, so pushing this code before step 1 triggers that. Impact today
-   is nil (Lane 4 has no production rows), but it won't stay nil once the VPS engine runs. Every
-   monolith reader selects columns explicitly and is unaffected either way; the new PRO route degrades
-   to "No data" until the migration lands.
+### 5.0 Current state (after the 2026-09-13 push)
+
+> **⚠ `railway-gateway` is DEPLOYED with the OHLC-aware processor, but migration
+> `20260913120000_add_currency_gold_index_ohlc` is NOT APPLIED.**
+>
+> The code went to `origin/main` in `466fad67`..`a073a5dd`, and `railway-gateway` auto-deploys on
+> every push to `main`, so the gateway was deployed before the migration. The intended order was
+> migration first.
+>
+> - **Harmless right now:** Lane 4 has no production writes. The VPS engine isn't deployed, so nothing
+>   calls the gateway's `POST /api/v1/currency-gold-indices`.
+> - **Breaks the moment the engine starts pushing:** the processor's `upsert` returns the full row,
+>   including `open`/`high`/`low`, so against a table without those columns **every Lane 4 write
+>   fails** until the migration is applied. That applies to rows with or without OHLC, and to an older
+>   engine build too.
+> - **Until then the PRO comparison page shows "No data available yet."** Its query selects
+>   `open`/`high`/`low`, fails, and degrades to an empty series. There's no data to show anyway.
+> - **Unaffected either way:** every other Lane 4 reader (landing-page widget, `/xaux-vs-usdx`, the
+>   28-pair screener, the gateway's corridor aggregator) selects columns explicitly and never asks for
+>   the new ones.
+>
+> **So: apply the migration before the VPS engine is started or redeployed.** Nothing else is waiting
+> on it.
+
+1. **Apply the migration:** `20260913120000_add_currency_gold_index_ohlc`. Run
+   `prisma migrate status` beforehand, because `migrate deploy` applies every pending migration, and
+   confirm this is the only one pending.
+2. ~~Only then deploy `railway-gateway`~~ **Already deployed** (see §5.0). There's nothing to do here,
+   but that deploy is why step 1 must come before step 3.
 3. **Redeploy the VPS engine** (`currency_gold_index_engine.py`). Its outbox migrates itself on start.
-   This rides along with Lane 4's still-open VPS deployment items.
-4. **Authenticated click-through:** the FREE click (modal), the PRO click (page), and a PRO user with
-   real data once Lane 4 is live.
+   This rides along with Lane 4's still-open VPS deployment items. **Only after step 1.**
+4. **Authenticated click-through:** the FREE click (modal), the PRO click (page), a real sign-in
+   landing on its `callbackUrl` (§7), and a PRO user with real data once Lane 4 is live.
 
 ---
 
@@ -249,23 +271,26 @@ judgment calls, he chose to **keep both**.
 - **Not verified live:** an actual sign-in round trip landing on the `callbackUrl` (the Executor never
   enters credentials; unit-tested only).
 
-**Rollout note unchanged from §5:** apply the migration before the gateway takes Lane 4 writes.
-Pushing this deploys `railway-gateway`; with no Lane 4 writes in production yet, the gap is harmless
-until the VPS engine starts pushing. Apply the migration before then.
+**Rollout:** see §5.0. The push deployed `railway-gateway` before the migration. That's harmless
+while Lane 4 has no production writes; apply the migration before the VPS engine starts pushing.
 
 ---
 
 ## 8. Git history
 
-Committed per logical step and pushed to `origin/main` (hashes in `git log`):
+Committed per logical step and pushed to `origin/main`. The pre-push hook's type check and full
+`test:ci` passed.
 
-1. `feat(lane4): index OHLC in engine, gateway contract, schema and migration`
-2. `fix(currency-index): M15 XAUX bars on the 5-minute grid; validated dark gold on the free chart`
-3. `feat(currency-index): Currency Index Comparison PRO page`
-4. `feat(currency-index): Upgrade to PRO card on /xaux-vs-usdx`
-5. `fix(auth): return to a safe callbackUrl after sign-in; gate /pro/ in middleware`
-6. `feat(workbench): 28-Pair Screener and Currency Index Comparison PRO sidebar buttons`
-7. `docs(ad-hoc): currency index comparison PRO manifest, MQL5 references and cross-links`
+| Commit     | Summary                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------ |
+| `466fad67` | `feat(lane4): index OHLC in engine, gateway contract, schema and migration`                      |
+| `03a8be40` | `fix(currency-index): M15 XAUX bars on the 5-minute grid; validated dark gold on the free chart` |
+| `741a7b68` | `feat(currency-index): Currency Index Comparison PRO page`                                       |
+| `8a70ed8a` | `feat(currency-index): Upgrade to PRO card on /xaux-vs-usdx`                                     |
+| `7c71d2ae` | `fix(auth): return to a safe callbackUrl after sign-in; gate /pro/ in middleware`                |
+| `b87ade2f` | `feat(workbench): 28-Pair Screener and Currency Index Comparison PRO sidebar buttons`            |
+| `a073a5dd` | `docs(ad-hoc): currency index comparison PRO manifest, MQL5 references and cross-links`          |
+| _this_     | `docs(ad-hoc): record deployed-before-migration state; bring free page manifest up to date`      |
 
 The MQL5 reference files in this folder are committed, since code comments cite them as ground truth.
 Davin's screenshot `currency-index-pro-page.png` is left untracked, matching the Free page folder's

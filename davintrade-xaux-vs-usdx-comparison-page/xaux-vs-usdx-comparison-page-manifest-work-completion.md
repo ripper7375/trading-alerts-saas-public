@@ -1,13 +1,15 @@
 # XAUX vs USDX Comparison Page Manifest — Work Completion Report
 
 **Date:** 2026-09-13
-**Status:** Code complete, verified, and live-browser-checked, across three rounds, all committed
+**Status:** Code complete, verified, and live-browser-checked, across four rounds, all committed
 and pushed to `origin/main`. Round 1 is the page itself (chart, route, button). Round 2 added chart
 drawing tools, the rebase-for-display controls, and the DavinTrade watermark. Round 3 is a bugfix:
 Davin caught, from the real production page, that the drawing tools he'd just gotten in Round 2 had
 already disappeared — see §1.8 for the root cause and §4's account of two further bugs found while
-fixing it. No database migration is needed for anything in this document, in any round — see §1.1
-and §5.2.
+fixing it. **Round 4** (§1.9) came with the PRO comparison page: the "Upgrade to PRO" card, a fix for
+an M15 XAUX bug that §1.1's original reasoning had missed, and a validated dark-mode chart color. No
+database migration is needed for this page in any round. Round 4's Lane 4 OHLC migration belongs to
+the PRO work, and this page's queries never read the new columns — see §5.2.
 **Type:** Ad-hoc feature session (Davin-requested directly in chat, across several follow-up
 messages, each with its own annotated screenshot or diagram as the spec) — outside the
 phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6.
@@ -61,6 +63,16 @@ indices' 00:00 reopen is.** `01:01` is 3660 seconds past midnight; `3660 mod 900
 single global "every bar where `bar_time mod 900 === 600`" shortcut — which would have worked
 correctly for USDX — silently gives the wrong answer for XAUX specifically. Per-row anchoring
 sidesteps this correctly for both indices without needing to special-case XAUX at all.
+
+> **⚠ Correction (Round 4, 2026-09-13): the paragraph above was incomplete, and as shipped the M15
+> XAUX line would always have been empty.** Per-row anchoring was the right idea, but the offset was
+> measured from the RAW 01:01 anchor. Every real M5 `bar_time` is a multiple of 300s (MT5 stamps a
+> bar with its open time), so real XAUX bars sit at 01:05, 01:10, … — offsets of 240/540/840 mod
+> 900, **never 600**. `isM15CloseBar()` therefore rejected every real XAUX bar. The Round 1 test
+> passed because its XAUX fixture bars sat at anchor + 600 = 01:11, a time no M5 bar can have. Fixed
+> by flooring the anchor to its containing 5-minute bar (01:00) before measuring, which is a no-op for
+> the FX indices' on-grid 00:00 anchor. The corrected tests fail 2 of 6 against the old code. No user
+> saw it, since production has no Lane 4 data yet. See §1.9.
 
 ### 1.2 Read layer + public API route
 
@@ -257,7 +269,7 @@ of both:**
 
 Built as part of the PRO layer. Full account in
 [`davintrade-currency-index-comparison-pro-stack/currency-index-comparison-pro-manifest-work-completion.md`](../davintrade-currency-index-comparison-pro-stack/currency-index-comparison-pro-manifest-work-completion.md).
-Two changes landed on this page:
+Four changes affect this page:
 
 - **New `CurrencyIndexProUpgradeCard`**, top-right of the header above the M5/M15 toggle. Signed out →
   `/login`; FREE → the `ProUpgradeModal` gate (→ `/pricing`); PRO → `/pro/currency-index/compare`,
@@ -280,46 +292,53 @@ Two changes landed on this page:
 
 ## 2. Files changed
 
-| File                                                                                               | Change                                                                                                                                                                                                                                                                       |
-| -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/currency-gold-indices/history.ts`                                                             | **Added.** `isM15CloseBar()`, `MAX_COMPARISON_HISTORY_BARS`, `COMPARISON_CHART_INDEX_NAMES`, `ComparisonTimeframe`                                                                                                                                                           |
-| `lib/currency-gold-indices/queries.ts`                                                             | New `getCurrencyGoldIndexHistory()` + its result types                                                                                                                                                                                                                       |
-| `lib/cache/cache-manager.ts`                                                                       | New timeframe-keyed cache helpers for the history route                                                                                                                                                                                                                      |
-| `app/api/market/currency-gold-indices/history/route.ts`                                            | **Added.** `GET .../history?timeframe=M5\|M15` — public, unauthenticated                                                                                                                                                                                                     |
-| `components/market/useCurrencyIndexHistory.ts`                                                     | **Added.** SWR hook, keyed by timeframe                                                                                                                                                                                                                                      |
-| `components/market/xaux-usdx-comparison-chart.tsx`                                                 | **Added** (Round 1), **further modified** (Round 2): exposes `chartApi`/the XAUX series so `ComparisonDrawingLayer` can attach (§1.5); new `rebase` prop + additive display-shift transform (§1.6); "DavinTrade" `createTextWatermark` pane primitive, theme-reactive (§1.7) |
-| `app/(marketing)/xaux-vs-usdx/page.tsx`                                                            | **Added** (Round 1), **further modified** (Round 2 rebase panel; Round 3 bugfix): chart now mounts unconditionally with a floating, `z-10`, `pointer-events-none` "no data" hint instead of replacing the chart (§1.8)                                                       |
-| `components/landing/landing-hero.tsx`                                                              | "XAUX vs USDX Comparison chart" button wired in                                                                                                                                                                                                                              |
-| `lib/i18n/dictionaries/{en-US,en-GB}.json`                                                         | 5 keys Round 1 (button, heading, badge, subtitle, empty state) + 4 keys Round 2 (rebase panel title/caption/Reset/two slider labels) — 9 new identity-mapped keys total                                                                                                      |
-| `components/market/comparison-chart-toolbar.tsx`                                                   | **Added** (Round 2). Scoped-down drawing toolbar — no alert buttons (§1.5)                                                                                                                                                                                                   |
-| `components/market/comparison-drawing-layer.tsx`                                                   | **Added** (Round 2). Wires the terminal's own `DrawingEngine` with no auth/persistence/alerts (§1.5)                                                                                                                                                                         |
-| `__tests__/lib/currency-gold-indices/history.test.ts`                                              | **Added.** 6 tests, pure `isM15CloseBar()` unit tests                                                                                                                                                                                                                        |
-| `__tests__/api/currency-gold-indices-history.test.ts`                                              | **Added.** 14 tests, mirroring `currency-gold-indices.test.ts`'s own structure                                                                                                                                                                                               |
-| `__tests__/components/landing/landing-and-auth-navigation.test.tsx`                                | 1 new test — the button's `href` resolves to `/xaux-vs-usdx`                                                                                                                                                                                                                 |
-| `davintrade-xaux-vs-usdx-comparison-page/xaux-vs-usdx-comparison-page-manifest-work-completion.md` | **Added** (Round 1), **updated** (Round 2, this update)                                                                                                                                                                                                                      |
+| File                                                                                               | Change                                                                                                                                                                                                                                                                                                                                            |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/currency-gold-indices/history.ts`                                                             | **Added** (Round 1). `isM15CloseBar()`, `MAX_COMPARISON_HISTORY_BARS`, `COMPARISON_CHART_INDEX_NAMES`, `ComparisonTimeframe`. **Round 4 fix:** anchor floored to its containing 5-minute bar, so real XAUX bars are accepted (§1.1 correction, §1.9)                                                                                              |
+| `lib/currency-gold-indices/queries.ts`                                                             | New `getCurrencyGoldIndexHistory()` + its result types                                                                                                                                                                                                                                                                                            |
+| `lib/cache/cache-manager.ts`                                                                       | New timeframe-keyed cache helpers for the history route                                                                                                                                                                                                                                                                                           |
+| `app/api/market/currency-gold-indices/history/route.ts`                                            | **Added.** `GET .../history?timeframe=M5\|M15` — public, unauthenticated                                                                                                                                                                                                                                                                          |
+| `components/market/useCurrencyIndexHistory.ts`                                                     | **Added.** SWR hook, keyed by timeframe                                                                                                                                                                                                                                                                                                           |
+| `components/market/xaux-usdx-comparison-chart.tsx`                                                 | **Added** (Round 1), **further modified** (Round 2): exposes `chartApi`/the XAUX series so `ComparisonDrawingLayer` can attach (§1.5); new `rebase` prop + additive display-shift transform (§1.6); "DavinTrade" `createTextWatermark` pane primitive, theme-reactive (§1.7). **Round 4:** XAUX dark color `#eda100` → validated `#c98500` (§1.9) |
+| `app/(marketing)/xaux-vs-usdx/page.tsx`                                                            | **Added** (Round 1), **further modified** (Round 2 rebase panel; Round 3 bugfix: chart now mounts unconditionally with a floating, `z-10`, `pointer-events-none` "no data" hint instead of replacing the chart, §1.8; **Round 4:** header now holds the "Upgrade to PRO" card above the M5/M15 toggle, §1.9)                                      |
+| `components/landing/landing-hero.tsx`                                                              | "XAUX vs USDX Comparison chart" button wired in                                                                                                                                                                                                                                                                                                   |
+| `lib/i18n/dictionaries/{en-US,en-GB}.json`                                                         | 5 keys Round 1 (button, heading, badge, subtitle, empty state) + 4 keys Round 2 (rebase panel title/caption/Reset/two slider labels) — 9 new identity-mapped keys total                                                                                                                                                                           |
+| `components/market/comparison-chart-toolbar.tsx`                                                   | **Added** (Round 2). Scoped-down drawing toolbar — no alert buttons (§1.5)                                                                                                                                                                                                                                                                        |
+| `components/market/comparison-drawing-layer.tsx`                                                   | **Added** (Round 2). Wires the terminal's own `DrawingEngine` with no auth/persistence/alerts (§1.5)                                                                                                                                                                                                                                              |
+| `__tests__/lib/currency-gold-indices/history.test.ts`                                              | **Added** (Round 1). 6 pure `isM15CloseBar()` unit tests. **Round 4:** the XAUX cases now use real on-grid bar times; the wrong-anchor case was rewritten around the session start, since grid-floored anchors share a 900s phase                                                                                                                 |
+| `__tests__/api/currency-gold-indices-history.test.ts`                                              | **Added.** 14 tests, mirroring `currency-gold-indices.test.ts`'s own structure                                                                                                                                                                                                                                                                    |
+| `__tests__/components/landing/landing-and-auth-navigation.test.tsx`                                | 1 new test — the button's `href` resolves to `/xaux-vs-usdx`                                                                                                                                                                                                                                                                                      |
+| `components/market/currency-index-pro-upgrade-card.tsx`                                            | **Added** (Round 4). The "Upgrade to PRO" card: signed out → `/login?callbackUrl=/pro/currency-index/compare`; FREE → `ProUpgradeModal` (→ `/pricing`); PRO → the comparison page, labelled "Open PRO Chart" (§1.9)                                                                                                                               |
+| `__tests__/components/market/currency-index-pro-upgrade-card.test.tsx`                             | **Added** (Round 4). 5 tests: pitch copy, signed-out / FREE / PRO outcomes, disabled while the session loads                                                                                                                                                                                                                                      |
+| `davintrade-xaux-vs-usdx-comparison-page/xaux-vs-usdx-comparison-page-manifest-work-completion.md` | **Added** (Round 1), **updated** (Rounds 2, 3 and 4)                                                                                                                                                                                                                                                                                              |
 
 **Round 1: 13 files touched** (7 added, 5 modified, the manifest the 13th). **Round 2 adds 2 new
 files** (`comparison-chart-toolbar.tsx`, `comparison-drawing-layer.tsx`) **and further modifies 3
 already-listed files** (`xaux-usdx-comparison-chart.tsx`, the page, both dictionaries) — no new
 automated test files this round; see §3 for why. **Round 3 touches only the page** — a
-same-file bugfix, no new files.
+same-file bugfix, no new files. **Round 4 adds 2 files** (the upgrade card and its test) **and
+further modifies 4 already-listed files** (`history.ts` and its test, the chart's color, the page's
+header). The dictionary keys for the card's copy were added with the PRO work (see that manifest).
 
 ---
 
 ## 3. Test verification
 
-| Suite                                                         | Result                                                                                                                                                                                                                                                                                                                                                                   |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `npx tsc --noEmit` (monolith)                                 | Clean, before and after the test-bug fixes in §1.4                                                                                                                                                                                                                                                                                                                       |
-| ESLint (monolith)                                             | Clean, 0 warnings, every new/changed file                                                                                                                                                                                                                                                                                                                                |
-| `isM15CloseBar` unit tests                                    | **6/6** — FX-index triplet pattern, XAUX's own non-15-min-aligned anchor, a data-gap bar, a before-session-open bar, cross-day correctness, and the FX-vs-XAUX wrong-anchor discriminating case (§1.4)                                                                                                                                                                   |
-| `getCurrencyGoldIndexHistory` + `GET .../history` route tests | **14/14** — both indices queried independently; ascending output order; M15 filtering; the 3x row-limit for M15 vs. the 3000 cap for M5; one index degrading to empty on a query failure without affecting the other; no-auth; default/invalid-timeframe handling; cache hit/miss/outage (read and write) parity with the sibling snapshot route; public `Cache-Control` |
-| `landing-and-auth-navigation.test.tsx`                        | **1 new test** — the button links to `/xaux-vs-usdx`; all pre-existing tests in this file unaffected                                                                                                                                                                                                                                                                     |
-| Full monolith `npm run test:ci` (Round 1)                     | **198/198 suites, 2657/2657 tests** — up from the prior 196/2636 baseline by exactly this session's own 2 new suites/21 new tests, zero regressions elsewhere                                                                                                                                                                                                            |
-| `npx tsc --noEmit` / ESLint (Round 2, all 3 sub-features)     | Clean throughout — checked after drawing tools, again after rebase, again after the watermark                                                                                                                                                                                                                                                                            |
-| Full monolith `npm run test:ci` (Round 2, all 3 sub-features) | **198/198 suites, 2657/2657 tests** — identical count after each of the 3 sub-features, confirming zero regressions from any of them                                                                                                                                                                                                                                     |
-| `npx tsc --noEmit` / ESLint (Round 3 bugfix)                  | Clean, re-checked after each of the 3 iterations (the ternary fix, the `bg-background/80`→`amber-500` fix, the `z-10` fix)                                                                                                                                                                                                                                               |
-| Full monolith `npm run test:ci` (Round 3 bugfix)              | **198/198 suites, 2657/2657 tests** — unchanged, zero regressions                                                                                                                                                                                                                                                                                                        |
+| Suite                                                                 | Result                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `npx tsc --noEmit` (monolith)                                         | Clean, before and after the test-bug fixes in §1.4                                                                                                                                                                                                                                                                                                                       |
+| ESLint (monolith)                                                     | Clean, 0 warnings, every new/changed file                                                                                                                                                                                                                                                                                                                                |
+| `isM15CloseBar` unit tests                                            | **6/6** — FX-index triplet pattern, real XAUX bar times on the 5-minute grid under a 01:01 anchor, a data-gap bar, a before-session-open bar, cross-day correctness, and a same-bar/different-anchor discriminating case. **Round 4: the corrected tests fail 2 of 6 against the pre-fix code** — proof the bug was real, not a rewritten expectation                    |
+| `getCurrencyGoldIndexHistory` + `GET .../history` route tests         | **14/14** — both indices queried independently; ascending output order; M15 filtering; the 3x row-limit for M15 vs. the 3000 cap for M5; one index degrading to empty on a query failure without affecting the other; no-auth; default/invalid-timeframe handling; cache hit/miss/outage (read and write) parity with the sibling snapshot route; public `Cache-Control` |
+| `landing-and-auth-navigation.test.tsx`                                | **1 new test** — the button links to `/xaux-vs-usdx`; all pre-existing tests in this file unaffected                                                                                                                                                                                                                                                                     |
+| Full monolith `npm run test:ci` (Round 1)                             | **198/198 suites, 2657/2657 tests** — up from the prior 196/2636 baseline by exactly this session's own 2 new suites/21 new tests, zero regressions elsewhere                                                                                                                                                                                                            |
+| `npx tsc --noEmit` / ESLint (Round 2, all 3 sub-features)             | Clean throughout — checked after drawing tools, again after rebase, again after the watermark                                                                                                                                                                                                                                                                            |
+| Full monolith `npm run test:ci` (Round 2, all 3 sub-features)         | **198/198 suites, 2657/2657 tests** — identical count after each of the 3 sub-features, confirming zero regressions from any of them                                                                                                                                                                                                                                     |
+| `npx tsc --noEmit` / ESLint (Round 3 bugfix)                          | Clean, re-checked after each of the 3 iterations (the ternary fix, the `bg-background/80`→`amber-500` fix, the `z-10` fix)                                                                                                                                                                                                                                               |
+| Full monolith `npm run test:ci` (Round 3 bugfix)                      | **198/198 suites, 2657/2657 tests** — unchanged, zero regressions                                                                                                                                                                                                                                                                                                        |
+| `currency-index-pro-upgrade-card.test.tsx` (Round 4)                  | **5/5**                                                                                                                                                                                                                                                                                                                                                                  |
+| `npx tsc --noEmit` / ESLint (Round 4)                                 | Clean                                                                                                                                                                                                                                                                                                                                                                    |
+| Full monolith `npm run test:ci` (Round 4, together with the PRO work) | **205/205 suites, 2744/2744 tests**; the pre-push hook re-ran it before the push                                                                                                                                                                                                                                                                                         |
 
 **Round 2 deliberately added no new automated test files.** Drawing tools, the rebase transform,
 and the watermark are all chart-canvas rendering/interaction concerns — this codebase's own
@@ -469,6 +488,20 @@ that UI changes are checked in a browser before being reported complete.
   unaffected by the new `z-10` hint (`pointer-events: none`) sitting visually above it — armed the
   Trendline tool and confirmed the toolbar still responds normally with the hint on screen.
 
+### Round 4 — upgrade card, M15 fix, chart color
+
+- **Card placement** on a real `next dev`: top-right of the header, above the M5/M15 toggle, with the
+  requested copy, matching Davin's annotated screenshot.
+- **Signed-out click** navigated to `/login?callbackUrl=%2Fpro%2Fcurrency-index%2Fcompare`. Since the
+  same round's auth fix, the login form returns there after sign-in (safe same-site paths only).
+- **FREE and PRO clicks** were not exercised live: the Executor never signs in. Both are unit-tested
+  (modal opens; navigation to the comparison page).
+- **M15 XAUX fix:** unit-level only. Production has no Lane 4 data, so there are no real XAUX M15 bars
+  to render yet (§5.3).
+- **Chart color:** a constant change, validated with the dataviz skill's `validate_palette.js`
+  (all-pairs, light on `#ffffff` and dark on `#0a0e17`: every check passes). There are no lines on
+  screen to eyeball until data exists.
+
 ---
 
 ## 5. What you still need to do
@@ -495,6 +528,14 @@ Prisma models, columns, or migrations — it only adds a new read pattern (a bar
 history query) against the `CurrencyGoldIndex` table Lane 4 already created and migrated to
 production on 2026-09-11. There is nothing for Davin to apply here.
 
+**Round 4 note:** the PRO comparison work adds nullable `open`/`high`/`low` columns to this same table
+(migration `20260913120000_add_currency_gold_index_ohlc`, **not yet applied**; see the PRO manifest
+§5.0). **This page is unaffected either way:** `getCurrencyGoldIndexHistory()` selects only
+`bar_time`, `value` and `session_open_bar_time`, so it never asks for the new columns and works
+before and after the migration. The one Lane 4 consequence of the unapplied migration is on the
+write side (gateway writes fail once the VPS engine starts pushing), which blocks this page's data
+arriving, not the page itself.
+
 ### 5.3 Authenticated/real-data verification once Lane 4's VPS items land
 
 - [ ] **A real multi-day chart render** — every check in §4 with real data used a temporarily
@@ -509,10 +550,14 @@ production on 2026-09-11. There is nothing for Davin to apply here.
 - [ ] **Mobile-viewport click-through with real data** — the empty-state and layout were confirmed
       responsive by construction and checked at both viewports in §4, but a real multi-line chart's
       legibility at 375px width with genuine data has not been screenshotted.
+- [ ] **The M15 XAUX line with real data** — the Round 4 fix is unit-tested against real bar-time
+      arithmetic, but an actual M15 XAUX series has never been rendered.
+- [ ] **The upgrade card, signed in** — a FREE click (modal) and a PRO click (navigation), plus a
+      signed-out click that completes sign-in and lands on the comparison page.
 
 ### 5.4 Smaller, non-blocking follow-ups
 
-- **Translation:** all 9 strings this page adds (5 Round 1 + 4 Round 2) are English-only
+- **Translation:** all 9 strings this page adds (5 Round 1 + 4 Round 2), and Round 4's card copy, are English-only
   (identity-mapped in `en-US`/`en-GB` only), matching the rest of Lane 4's own established
   precedent for newly-shipped marketing copy — a future locale pass, not an oversight.
 - **No navbar link:** this page is reachable only via the landing-hero button, per the feature's own
@@ -537,15 +582,20 @@ drawing/` engine), a Playwright spec would be the right tool, not a jsdom unit t
 
 Committed and pushed to `origin/main`:
 
-| Commit     | Summary                                                                                         |
-| ---------- | ----------------------------------------------------------------------------------------------- |
-| `e793071e` | `feat(currency-index): XAUX vs USDX comparison chart + public comparison page`                  |
-| `ecc44268` | `docs(ad-hoc): record XAUX vs USDX comparison page work-completion manifest`                    |
-| `fc56a4e7` | `docs(ad-hoc): fix heading mangled by pre-commit prettier wrap`                                 |
-| `a45c9d76` | `feat(currency-index): add drawing tools, rebase controls, and watermark to XAUX vs USDX chart` |
-| `63c809b9` | `docs(ad-hoc): record Round 2 (drawing tools, rebase, watermark) in this manifest`              |
-| `ab9f0533` | `fix(currency-index): make chart always mount so drawing tools work with no data`               |
-| _pending_  | `docs(ad-hoc): record Round 3 bugfix (drawing tools unreachable) in this manifest`              |
+| Commit     | Summary                                                                                                        |
+| ---------- | -------------------------------------------------------------------------------------------------------------- |
+| `e793071e` | `feat(currency-index): XAUX vs USDX comparison chart + public comparison page`                                 |
+| `ecc44268` | `docs(ad-hoc): record XAUX vs USDX comparison page work-completion manifest`                                   |
+| `fc56a4e7` | `docs(ad-hoc): fix heading mangled by pre-commit prettier wrap`                                                |
+| `a45c9d76` | `feat(currency-index): add drawing tools, rebase controls, and watermark to XAUX vs USDX chart`                |
+| `63c809b9` | `docs(ad-hoc): record Round 2 (drawing tools, rebase, watermark) in this manifest`                             |
+| `ab9f0533` | `fix(currency-index): make chart always mount so drawing tools work with no data`                              |
+| `8f0273e0` | `docs(ad-hoc): record Round 3 bugfix (drawing tools unreachable) in this manifest`                             |
+| `03a8be40` | Round 4 — `fix(currency-index): M15 XAUX bars on the 5-minute grid; validated dark gold on the free chart`     |
+| `8a70ed8a` | Round 4 — `feat(currency-index): Upgrade to PRO card on /xaux-vs-usdx`                                         |
+| `7c71d2ae` | Round 4 (related) — `fix(auth): return to a safe callbackUrl after sign-in; gate /pro/ in middleware`          |
+| `a073a5dd` | Round 4 — `docs(ad-hoc): currency index comparison PRO manifest, MQL5 references and cross-links` (added §1.9) |
+| _this_     | `docs(ad-hoc): record deployed-before-migration state; bring free page manifest up to date`                    |
 
 ---
 
@@ -553,11 +603,15 @@ Committed and pushed to `origin/main`:
 
 - **Any live VPS action** — see §5.1; entirely inherited from and tracked by Lane 4's own manifest,
   not duplicated here.
-- **Any change to Lane 4 itself** — this page is a pure downstream consumer of
+- **Any change to Lane 4 itself** (Rounds 1–3) — this page is a pure downstream consumer of
   `currency_gold_indices`; nothing in Lane 4's own engine, gateway endpoint, snapshot cache, snapshot
-  route, or landing-page Hero widget was modified.
+  route, or landing-page Hero widget was modified by this page's work. Round 4's Lane 4 change
+  (index OHLC columns) was made for the PRO comparison page, and this page doesn't read those
+  columns (§5.2).
 - **Any change to the Currency Index PRO Plan** — a separate, PRO-gated, session-authenticated
-  feature with its own manifest; this page shares no route, component, or query function with it.
+  feature with its own manifest; this page shares no route or query function with it. Since Round 4
+  this page **links** to the PRO comparison page through the upgrade card, but still shares no data
+  path with it.
 - **`frontend/` (SEPARATE_STACK)** — per `EXECUTOR-PROTOCOL.md` §5 this tree is out of scope for this
   migration entirely and was not touched; it has no equivalent comparison page to mirror.
 - **A generic multi-index history API** — the new route is deliberately hardcoded to XAUX + USDX
