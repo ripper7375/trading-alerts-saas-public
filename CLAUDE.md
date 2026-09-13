@@ -13,6 +13,77 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-13, same day, phase/session unchanged) — Currency & Gold Index Stack
+> ("Lane 4"): XAUX (Gold Index) formula corrected from a misleading single-asset rebase to the
+> genuine 5-currency geometric basket.** Davin caught this directly in chat: "current XAUX (Gold
+> Index) that was used in calculation in this stack is misleading. It is literally just rebased
+> calculation of XAUUSD, not genuine calculation of XAUX" — and supplied the authoritative ground
+> truth, `mql5-indicators/interesting-indicators/currency-and-gold-index/XAUX.mq5`, which defines
+> XAUX as an equal-weighted (0.20 each) geometric basket of **gold priced in 5 currencies** (XAUUSD,
+> XAUEUR, XAUJPY, XAUGBP, XAUAUD via `CalculateXAUX()`/`TranslateToGoldPairs()`) — not the single-
+> asset `XAUUSD(t)/XAUUSD(inception)*100` ratio the 2026-09-11 Phase 1 session had shipped, which is
+> mathematically incapable of ever diverging from USD-denominated gold.
+> **Root cause: the original architecture spec doc contradicted itself, and the wrong half got
+> implemented.** §5.2 (the formula section actually read while building Phase 1) specified the
+> simple rebase; §8 (the tooltip-copy dictionary) separately described XAUX as measuring gold
+> "against an equally weighted basket of the world's 8 major currencies (G8)" — itself also wrong
+> (8 currencies, not 5; and currencies rather than gold-priced-in-currencies), but at least
+> gesturing at a real basket. Phase 1's engine implemented §5.2's formula; Phase 4's tooltip copy
+> (`lib/currency-gold-indices/metadata.ts`) copied §8's basket-description text verbatim — creating
+> a real, user-visible mismatch between marketing copy and math that neither `tsc` nor any test
+> could catch, since both were internally self-consistent with the wrong formula they each
+> individually described. `XAUX.mq5` had not yet been supplied to this stack when Phase 1 shipped.
+> **Fix, three files, math/copy only, zero schema or API shape changes:**
+> `currency_gold_index_engine.py` — replaced the single-symbol rebase with new `gold_leg_rate()`/
+> `xaux_value()` functions, a line-for-line port of `TranslateToGoldPairs()`/`CalculateXAUX()`:
+> XAUEUR/XAUGBP/XAUAUD = XAUUSD divided by the respective USD-quoted FX pair; XAUJPY = XAUUSD
+> multiplied by USDJPY (JPY's inverted quoting convention means multiplication does the same job
+> division does for the other three). Rebased to 100.00 at gold's own 01:01 session open using the
+> exact same ratio-based construction `index_value()` already used for the 8 currency indices (no
+> persisted normalization constant — see that function's own docstring). **No new input file
+> needed** — the 4 FX legs (EURUSD/USDJPY/GBPUSD/AUDUSD) were already read as part of `FX_PAIRS` for
+> the currency indices, confirmed before writing any code. `gateway_contract_currency_gold_indices
+.schema.json`'s `index_name`/`value` field descriptions corrected to describe the 5-currency
+> basket instead of "simple ratio, no basket." `lib/currency-gold-indices/metadata.ts`'s XAUX
+> `definition` corrected to name the actual 5 currencies (USD/EUR/JPY/GBP/AUD); its `tradingEdge`
+> copy was left essentially as-is since it was already describing what a _correct_ basket should
+> do — false under the old formula (XAUX could never diverge from XAUUSD by construction), now
+> actually true.
+> **Blast radius confirmed zero outside these 3 files, checked not assumed:** the downstream
+> "Currency Index PRO Plan" feature (a separate later feature built on this lane's
+> `CurrencyGoldIndex` table) has its own `lib/currency-index-pro/pairs.ts` and
+> `DailyCurrencyIndexMetrics` Prisma model docstrings both explicitly stating "never XAUX, which
+> has its own unrelated 01:01 rollover and isn't part of the PRO screener" — confirmed via direct
+> read of both files, not assumed from the docstring alone. No PRO Plan code, schema, or test
+> touches XAUX in any way. `prisma/market-data/schema.prisma`'s `CurrencyGoldIndex` model docstring
+> ("...+ rebased gold index XAUX") was read and correctly left as-is — "rebased" there describes
+> the shared 100.00-at-session-open normalization every index gets (true for all 9, unchanged by
+> this fix), not the specific single-asset formula that was the actual bug.
+> **Verified:** new throwaway verification script (this stack's established no-pytest-infra
+> pattern) — **9/9 checks passed**, including `gold_leg_rate()` matching `TranslateToGoldPairs()`
+> for all 5 legs against fixture rates; `xaux_value()` self-consistency (exactly 100.00 at its own
+> inception); a hand-computed multi-currency move cross-checked independently; **a regression guard
+> proving the new basket value genuinely diverges from the old buggy value for the same inputs**
+> (101.755319 vs. 102.000000); and a collapse-case check confirming that when only XAUUSD moves and
+> every FX leg is unchanged, the basket correctly reduces to the same answer the old formula gave —
+> proving the fix generalizes the old formula rather than replacing it with something incompatible.
+> `python -m py_compile` clean; gateway contract JSON re-validated well-formed; monolith
+> `npx tsc --noEmit` clean; `npx eslint lib/currency-gold-indices/metadata.ts` clean; full
+> `npm run test:ci` **196/196 suites, 2636/2636 tests** — exact match to this stack's most recent
+> known baseline, zero regressions (no test in the repo pinned the old, now-corrected tooltip copy).
+> **Not done, deliberately:** no live browser check — this is a copy/math-only change with no UI
+> structural change, and the widget currently renders nothing regardless (no live VPS data yet, per
+> Lane 4's own still-open Phase 5 physical VPS items). No formula re-verification against real MT5
+> data either — same boundary as every prior Lane 4 session; Phase 1's own 38-check verification and
+> this session's 9-check verification are both against synthetic fixtures.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for Davin's
+> review of this entry before it becomes a commit.
+> **Artifacts:** `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/{currency_gold_index_engine.py,
+gateway_contract_currency_gold_indices.schema.json}`, `lib/currency-gold-indices/metadata.ts`,
+> `davintrade-currency-index-stack/currency-index-manifest-work-completion.md` (§1.5 added), this
+> file.
+
 > **Ad-hoc session (2026-09-13, phase/session unchanged) — Active / Hot-Standby MT5 Terminal:
 > Admin Promotion Tooling, Dual-Language Runbooks & Blueprint §8.1 Cleanup.** Per Davin's request
 > in chat, packaged the active/hot-standby promotion workflow into a dedicated operational directory

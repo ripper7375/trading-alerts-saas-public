@@ -3,7 +3,7 @@
 DavinTrade Currency & Gold Index Engine (Lane 4)
 
 Computes 8 equal-weighted G8 currency indices (USDX, EURX, JPYX, GBPX, AUDX, NZDX,
-CADX, CHFX) and 1 rebased gold index (XAUX) from raw M5 OHLCV exports, and pushes
+CADX, CHFX) and 1 gold basket index (XAUX) from raw M5 OHLCV exports, and pushes
 them to the Railway API Gateway every 5 minutes.
 
 ISOLATION (Lane 4 per DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md's isolation
@@ -21,11 +21,23 @@ consumer must never be pointed at a writer's database path, even to read."
 MATH GROUND TRUTH: all 8 currency-index formulas (exponent signs, weights) were read
 directly from and verified byte-exact against the authoritative MQL5 indicator files
 in mql5-indicators/interesting-indicators/currency-and-gold-index/{USDX,EURX,GBPX,
-JPYX,CADX,AUDX,NZDX,CHFX}.mq5 -- see CURRENCY_INDEX_TERMS below. XAUX's rebasing
-formula is adapted from Rebased Gold Price H4.mq5 (Factor = BaseIndexValue /
-InceptionPrice) to a dynamic daily M5 session, per
-davintrade-currency-index-stack/COMPREHENSIVE_ARCHITECTURE_DESIGN_CURRENCY_AND_GOLD_INDEX_STACK.md
-section 5.2.
+JPYX,CADX,AUDX,NZDX,CHFX}.mq5 -- see CURRENCY_INDEX_TERMS below.
+
+XAUX is NOT a simple rebase of XAUUSD -- an earlier version of this engine computed
+it that way (a plain XAUUSD(t)/XAUUSD(inception) ratio), which is mathematically
+incapable of ever diverging from USD-denominated gold and is misleading marketing
+copy for a "genuine gold strength" index. The correct formula, read directly from
+the authoritative mql5-indicators/interesting-indicators/currency-and-gold-index/
+XAUX.mq5 (CalculateXAUX()/TranslateToGoldPairs()), is an equal-weighted (0.20 each)
+geometric basket of gold priced in 5 currencies -- XAUUSD, XAUEUR, XAUJPY, XAUGBP,
+XAUAUD -- NOT a basket of currency pairs. XAUEUR/XAUGBP/XAUAUD are XAUUSD divided by
+the respective USD-quoted pair (more EUR/GBP/AUD needed to buy the same gold as the
+quote currency weakens against USD raises the ratio); XAUJPY is XAUUSD multiplied by
+USDJPY (JPY is quoted USD-per-JPY-flipped, so more JPY per USD directly scales up
+gold's JPY price). See gold_leg_rate()/xaux_value() below -- this engine rebases the
+raw 5-currency product to 100.00 at gold's own daily session open using the exact
+same ratio-based construction as index_value() (no basket "0.2*4" collapsing to a
+1-currency answer; every leg's own inception-to-now ratio contributes independently).
 
 INPUT: 8 independent OHLCV_{SYMBOL}_M5.txt files (EURUSD, USDJPY, GBPUSD, AUDUSD,
 NZDUSD, USDCAD, USDCHF, XAUUSD), all written by the SAME generic, already-compiled
@@ -96,6 +108,15 @@ GOLD_SYMBOL = 'XAUUSD'
 ALL_SYMBOLS = FX_PAIRS + (GOLD_SYMBOL,)
 
 W = 1.0 / 7.0  # equal weight, 0.142857... (spec section 5.1)
+
+# XAUX ground truth: mql5-indicators/interesting-indicators/currency-and-gold-index/
+# XAUX.mq5. All 5 legs equal-weighted at 0.20 (CalculateXAUX()'s Weights array).
+# Only 4 of the 5 legs need their own FX rate (XAUUSD is the gold price itself,
+# already read as GOLD_SYMBOL) -- and all 4 are already read as part of FX_PAIRS
+# above, so XAUX needs no new input file.
+GOLD_INDEX_WEIGHT = 0.20
+GOLD_INDEX_LEGS = ('XAUUSD', 'XAUEUR', 'XAUJPY', 'XAUGBP', 'XAUAUD')
+XAUX_FX_LEGS = ('EURUSD', 'USDJPY', 'GBPUSD', 'AUDUSD')
 
 # Each entry: index_name -> [(pair, exponent_sign), ...], one pair per weight term.
 # Verified byte-exact against MathPow() calls read directly from the 8 authoritative
@@ -289,6 +310,45 @@ def index_value(index_name: str, rates_now: Dict[str, float],
     return 100.0 * product
 
 
+def gold_leg_rate(leg: str, xauusd: float, fx_rates: Dict[str, float]) -> float:
+    """One of the 5 gold-in-currency prices from TranslateToGoldPairs() in the
+    authoritative XAUX.mq5. xauusd is the gold leg itself (passthrough); the other
+    4 are XAUUSD triangulated through the matching USD-quoted FX pair -- EUR/GBP/AUD
+    are quoted base-against-USD (dividing raises the ratio as the quote currency
+    weakens against USD, correctly making gold "more expensive" in that currency);
+    JPY is quoted USD-against-JPY, so multiplying (not dividing) does the same job.
+    """
+    if leg == 'XAUUSD':
+        return xauusd
+    if leg == 'XAUEUR':
+        return xauusd / fx_rates['EURUSD']
+    if leg == 'XAUJPY':
+        return xauusd * fx_rates['USDJPY']
+    if leg == 'XAUGBP':
+        return xauusd / fx_rates['GBPUSD']
+    if leg == 'XAUAUD':
+        return xauusd / fx_rates['AUDUSD']
+    raise ValueError(f'Unknown gold leg: {leg}')
+
+
+def xaux_value(xauusd_now: float, fx_now: Dict[str, float],
+                xauusd_inception: float, fx_inception: Dict[str, float]) -> float:
+    """XAUX(t) = 100 * PRODUCT_leg (gold_leg(t) / gold_leg(inception)) ^ 0.20
+
+    Same ratio-based construction as index_value() (no persisted normalization
+    constant), applied to the 5 gold-priced-in-currency legs from
+    CalculateXAUX()/TranslateToGoldPairs() in XAUX.mq5 instead of the 7 FX pairs.
+    All 5 exponents are +0.20 (CalculateXAUX() takes no sign parameter -- it is a
+    plain equal-weighted product, unlike the currency indices' +/- exponent terms).
+    """
+    product = 1.0
+    for leg in GOLD_INDEX_LEGS:
+        r_now = gold_leg_rate(leg, xauusd_now, fx_now)
+        r_inc = gold_leg_rate(leg, xauusd_inception, fx_inception)
+        product *= (r_now / r_inc) ** GOLD_INDEX_WEIGHT
+    return 100.0 * product
+
+
 # ============================================================
 # OHLCV FILE PARSING
 # ============================================================
@@ -396,14 +456,22 @@ def compute_cycle(export_dir: Path, now_utc: datetime) -> List[dict]:
     else:
         logger.debug('FX session has not opened yet today -- skipping currency indices')
 
-    # --- Gold: independent inception (01:01 server time), single symbol ---
+    # --- Gold: independent inception (01:01 server time), 5-currency basket ---
+    # XAUX is NOT a simple XAUUSD rebase -- see GOLD_INDEX_LEGS/xaux_value() and the
+    # module docstring's MATH GROUND TRUTH section. Needs its own gold close plus the
+    # 4 FX legs (EURUSD/USDJPY/GBPUSD/AUDUSD -- already read as part of FX_PAIRS) at
+    # both gold's own latest bar and gold's own session-open bar.
     gold_latest_ts, gold_latest_close = series[GOLD_SYMBOL][-1]
     gold_session_open_ts = todays_session_open_utc(now_utc, server_hour=1, server_minute=1)
 
     if gold_latest_ts >= gold_session_open_ts:
         gold_inception_close = close_at_or_before(series[GOLD_SYMBOL], gold_session_open_ts)
-        if gold_inception_close is not None and gold_inception_close > 0:
-            value = (gold_latest_close / gold_inception_close) * 100.0
+        fx_now = {p: close_at_or_before(series[p], gold_latest_ts) for p in XAUX_FX_LEGS}
+        fx_inception = {p: close_at_or_before(series[p], gold_session_open_ts) for p in XAUX_FX_LEGS}
+        if (gold_inception_close is not None and gold_inception_close > 0
+                and all(v is not None for v in fx_now.values())
+                and all(v is not None for v in fx_inception.values())):
+            value = xaux_value(gold_latest_close, fx_now, gold_inception_close, fx_inception)
             rows.append({
                 'index_name': 'XAUX',
                 'bar_time': gold_latest_ts,
@@ -412,7 +480,8 @@ def compute_cycle(export_dir: Path, now_utc: datetime) -> List[dict]:
                 'session_open_bar_time': gold_session_open_ts,
             })
         else:
-            logger.warning('Gold cycle: no inception close found -- skipping XAUX this cycle')
+            logger.warning('Gold cycle: missing inception/current gold or FX-leg rate(s) '
+                            'after ffill lookup -- skipping XAUX this cycle')
     else:
         logger.debug('Gold session has not opened yet today (rollover window) -- skipping XAUX')
 

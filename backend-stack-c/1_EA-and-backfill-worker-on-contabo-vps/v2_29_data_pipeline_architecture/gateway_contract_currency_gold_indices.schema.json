@@ -31,7 +31,7 @@
         "CADX",
         "CHFX"
       ],
-      "description": "Which index this row is. The 8 currency indices are an equal-weighted (W=1/7) geometric basket of the G8 currencies against each other, verified byte-exact against the authoritative MQL5 indicator files in mql5-indicators/interesting-indicators/currency-and-gold-index/. XAUX is XAUUSD rebased to 100.00 at its own daily session open -- a different formula (simple ratio, no basket)."
+      "description": "Which index this row is. The 8 currency indices are an equal-weighted (W=1/7) geometric basket of the G8 currencies against each other, verified byte-exact against the authoritative MQL5 indicator files in mql5-indicators/interesting-indicators/currency-and-gold-index/. XAUX is a different basket: an equal-weighted (0.20 each) geometric basket of gold priced in 5 currencies -- XAUUSD, XAUEUR, XAUJPY, XAUGBP, XAUAUD -- per XAUX.mq5, rebased to 100.00 at its own daily session open using the same ratio construction as the currency indices."
     },
     "bar_time": {
       "type": "integer",
@@ -39,7 +39,7 @@
     },
     "value": {
       "type": "number",
-      "description": "The index level. Every index is rebased to exactly 100.00 at its own session-open bar by construction (the C_i normalization constant for currency indices; direct division for XAUX), so 100.00 is always the day's reference point -- there is no separate 'previousClose' to track."
+      "description": "The index level. Every index is rebased to exactly 100.00 at its own session-open bar by construction (the C_i normalization constant, expressed as a ratio to the session-open bar rather than persisted separately -- see currency_gold_index_engine.py's index_value()/xaux_value()), so 100.00 is always the day's reference point -- there is no separate 'previousClose' to track."
     },
     "change_pct": {
       "type": "number",

@@ -1,15 +1,17 @@
 # Currency & Gold Index Stack ("Lane 4") Manifest — Work Completion Report
 
-**Date:** 2026-09-11
+**Date:** 2026-09-11 (Phases 1–4), corrected 2026-09-13 (XAUX formula fix — see §1.5)
 **Status:** Phases 1–4 code complete, verified, committed, and pushed to `origin/main`. Both
 `railway-gateway` and the monolith auto-deployed from that push and are confirmed live in
 production (§5.1). The PostgreSQL database migration `20260911120000_add_currency_gold_indices`
 has been successfully applied to the live production database (`maglev.proxy.rlwy.net:58290`) and
 verified up to date. Only the 2 physical MT5/VPS items remain: attaching the exporter to 8 charts
-and registering the engine as a VPS service. See §5.
+and registering the engine as a VPS service. See §5. **2026-09-13: the XAUX (Gold Index) formula
+Phase 1 originally shipped was corrected — see §1.5. Not yet committed; pending Davin's review.**
 **Type:** Ad-hoc feature session (Davin-requested directly in chat, one phase at a time) — outside
 the phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6. Recorded across
-three `CLAUDE.md` ad-hoc entries (Phase 1; Phase 2; Phases 3+4 combined), all dated 2026-09-11.
+three `CLAUDE.md` ad-hoc entries (Phase 1; Phase 2; Phases 3+4 combined), all dated 2026-09-11, plus
+a fourth dated 2026-09-13 for the XAUX correction.
 
 > **Scope note:** this document covers the G8 Currency & Gold Index Suite ("Lane 4") only — a
 > fully isolated, display-only marketing lane per
@@ -126,6 +128,83 @@ place the implementation deliberately departed from the spec's own illustrative 
   failure class `LESSONS-LEARNED.md` already documents from a prior `LocaleProvider` geo-IP
   incident. Mocked `useCurrencyGoldIndices` directly in that test file before it could reproduce.
 
+### 1.5 XAUX (Gold Index) formula correction — 2026-09-13
+
+**Davin caught this directly:** Phase 1's original XAUX implementation was a simple single-asset
+rebase — `XAUUSD(t) / XAUUSD(session_open) * 100` — which is mathematically incapable of ever
+diverging from USD-denominated gold. It is not a "genuine" gold-strength index; it is XAUUSD
+wearing a different scale. Davin supplied the authoritative ground truth,
+`mql5-indicators/interesting-indicators/currency-and-gold-index/XAUX.mq5`
+(`CalculateXAUX()`/`TranslateToGoldPairs()`), which defines XAUX as an equal-weighted (0.20 each)
+geometric basket of **gold priced in 5 currencies** — XAUUSD, XAUEUR, XAUJPY, XAUGBP, XAUAUD — not
+a basket of currency pairs, and not a single-asset rebase.
+
+**Root cause: the original architecture spec doc contradicted itself, and the wrong half was
+implemented.** §5.2 (the formula section actually read while building Phase 1) specified the
+simple single-asset rebase; §8 (the tooltip-copy dictionary) separately described XAUX as measuring
+gold "against an equally weighted basket of the world's 8 major currencies (G8)" — itself also
+wrong (8 currencies, and currencies rather than gold-priced-in-currencies), but at least gesturing
+at a real basket. The Phase 1 engine implemented §5.2's simple formula; Phase 4's tooltip copy
+(`lib/currency-gold-indices/metadata.ts`) copied §8's basket-description text verbatim. Neither
+document was checked against the one file that actually defines XAUX correctly — `XAUX.mq5` had
+not yet been supplied to this stack when Phase 1 shipped.
+
+**Fix — three files, all math/copy only, zero schema or API shape changes:**
+
+- `backend-stack-c/.../currency_gold_index_engine.py` — replaced the single-symbol rebase with
+  `gold_leg_rate()`/`xaux_value()`, a direct line-for-line port of
+  `TranslateToGoldPairs()`/`CalculateXAUX()`: XAUEUR/XAUGBP/XAUAUD = XAUUSD divided by the
+  respective USD-quoted FX pair; XAUJPY = XAUUSD multiplied by USDJPY (JPY's quoting convention is
+  inverted, so multiplication does the same job division does for the other three). The basket is
+  rebased to 100.00 at gold's own 01:01 session open using the exact same ratio-based construction
+  `index_value()` already used for the 8 currency indices (no persisted normalization constant).
+  **No new input file needed** — the 4 FX legs (EURUSD, USDJPY, GBPUSD, AUDUSD) were already being
+  read as part of `FX_PAIRS` for the currency indices.
+- `gateway_contract_currency_gold_indices.schema.json` — `index_name` and `value` field
+  descriptions corrected to describe the 5-currency gold basket instead of "simple ratio, no
+  basket."
+- `lib/currency-gold-indices/metadata.ts` — XAUX's tooltip `definition` corrected to name the
+  actual 5 currencies (USD, EUR, JPY, GBP, AUD), not "8 major currencies (G8)." The `tradingEdge`
+  copy was left essentially as-is — it was already describing what a _correct_ XAUX basket should
+  do (diverge from XAUUSD on genuine multi-currency gold demand), which was simply false under the
+  old simple-rebase formula (XAUX could never diverge from XAUUSD by construction) and is now
+  actually true.
+
+**Blast radius confirmed zero outside these 3 files.** Checked the downstream "Currency Index PRO
+Plan" feature (a separate, later 5-phase feature built on top of this lane's `CurrencyGoldIndex`
+table, documented in `CLAUDE.md`'s 2026-09-12 entries) — its own `lib/currency-index-pro/pairs.ts`
+and `DailyCurrencyIndexMetrics` Prisma model docstrings both explicitly state "never XAUX, which
+has its own unrelated 01:01 rollover and isn't part of the PRO screener." Confirmed via direct
+read of both files. No PRO Plan code, schema, or test touches XAUX in any way.
+`prisma/market-data/schema.prisma`'s `CurrencyGoldIndex` model docstring ("...+ rebased gold index
+XAUX") was checked and left as-is — "rebased" there refers to the shared 100.00-at-session-open
+normalization every index gets (true for all 9, unchanged by this fix), not to the specific
+single-asset formula that was the actual bug.
+
+**Verified:**
+
+- New throwaway verification script (`scratch`-equivalent, this stack's established
+  no-pytest-infra pattern) — **9/9 checks passed**, including: `gold_leg_rate()` matches
+  `TranslateToGoldPairs()` for all 5 legs against hand-picked fixture rates; `xaux_value()`
+  self-consistency (exactly 100.00 at its own inception, to machine precision); a hand-computed
+  multi-currency move cross-checked against the function's own output; **a regression guard
+  proving the new basket value genuinely diverges from the old (buggy) simple-rebase value for the
+  same inputs** (101.755319 vs. 102.000000); and a collapse-case check confirming that when
+  _only_ XAUUSD moves and every FX leg is unchanged, the basket correctly reduces to the same
+  answer the old simple-rebase formula gave (proving the fix generalizes the old formula rather
+  than replacing it with something incompatible).
+- `python -m py_compile` clean on the modified engine file.
+- Gateway contract JSON re-validated as well-formed.
+- Monolith `npx tsc --noEmit` clean; `npx eslint lib/currency-gold-indices/metadata.ts` clean;
+  full `npm run test:ci` **196/196 suites, 2636/2636 tests** — exact match to this stack's most
+  recent known baseline, zero regressions (no test in the repo pins the old, now-corrected XAUX
+  tooltip copy).
+- No live browser check — this is a copy/math-only change with no UI structural change, and the
+  widget currently renders nothing (no live VPS data yet, per §5.1's still-open physical items).
+
+**Not committed** — per this file's established log-first-defer-commit pattern; left for Davin's
+review of this entry before it becomes a commit.
+
 ---
 
 ## 2. Files changed
@@ -161,10 +240,14 @@ place the implementation deliberately departed from the spec's own illustrative 
 | `__tests__/components/market/{floating-sparkline,currency-index-hero-widget}.test.tsx`                       | **Added.** 20 tests total                                                                                                                                                   |
 | `__tests__/components/landing/landing-and-auth-navigation.test.tsx`                                          | New hook mock (prevents an unmocked-`fetch` leak into an unrelated suite)                                                                                                   |
 | `lib/i18n/dictionaries/{en-US,en-GB}.json`                                                                   | 27 new identity-mapped keys (9 names + 9 definitions + 9 trading-edge copy)                                                                                                 |
-| `CLAUDE.md`                                                                                                  | 3 ad-hoc session entries (Phase 1; Phase 2; Phases 3+4)                                                                                                                     |
+| `CLAUDE.md`                                                                                                  | 3 ad-hoc session entries (Phase 1; Phase 2; Phases 3+4), + a 4th for the 2026-09-13 XAUX correction                                                                         |
+| `backend-stack-c/.../currency_gold_index_engine.py`                                                          | **2026-09-13.** XAUX formula corrected: single-asset rebase → `gold_leg_rate()`/`xaux_value()` 5-currency basket, per `XAUX.mq5`                                            |
+| `backend-stack-c/.../gateway_contract_currency_gold_indices.schema.json`                                     | **2026-09-13.** `index_name`/`value` descriptions corrected to describe the 5-currency basket                                                                               |
+| `lib/currency-gold-indices/metadata.ts`                                                                      | **2026-09-13.** XAUX tooltip `definition` corrected (5 currencies, not "8 major currencies (G8)")                                                                           |
 
 **46 files touched** (37 added, 9 modified/renamed) across 4 feature commits, plus this manifest
-and `CLAUDE.md` in a 5th documentation commit.
+and `CLAUDE.md` in a 5th documentation commit. The 2026-09-13 XAUX correction touches 3 additional
+files (§1.5), not yet committed.
 
 ---
 
@@ -183,6 +266,8 @@ and `CLAUDE.md` in a 5th documentation commit.
 | ESLint — monolith                                                                            | Clean on every changed/new file                                                                                                                                                                          |
 | ESLint — `railway-gateway`                                                                   | Reproduces the pre-existing `LESSONS-LEARNED.md` L38 break (the package has no ESLint config file of its own at all) — confirmed unrelated to this session; `tsc --noEmit` is the real static gate there |
 | `npx prisma validate` (monolith schema)                                                      | Clean                                                                                                                                                                                                    |
+| **2026-09-13 XAUX correction** — throwaway formula-correctness script                        | **9/9 checks passed**, incl. a regression guard proving the new value diverges from the old bug                                                                                                          |
+| **2026-09-13 XAUX correction** — monolith full suite, post-fix                               | **196/196 suites · 2636/2636 tests** — zero regressions                                                                                                                                                  |
 
 Zero regressions at every checkpoint — each phase's full-suite run matched the prior baseline plus
 exactly that phase's own new suites/tests, nothing else moved.

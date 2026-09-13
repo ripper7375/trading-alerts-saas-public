@@ -26,9 +26,9 @@ export const CURRENCY_GOLD_INDEX_METADATA: Record<
   XAUX: {
     name: 'Gold Index',
     definition:
-      "Measures pure intrinsic gold purchasing power against an equally weighted basket of the world's 8 major currencies (G8).",
+      'Measures pure intrinsic gold purchasing power against an equally weighted basket of gold priced in 5 major currencies (USD, EUR, JPY, GBP, AUD).',
     tradingEdge:
-      'Identifies true institutional gold demand. If XAUUSD is rising while XAUX is flat, gold is merely benefiting from a depreciating US Dollar. If XAUX is aggressively breaking above its baseline, gold is experiencing genuine global capital inflow across all fiat currencies.',
+      'Identifies true institutional gold demand. If XAUUSD is rising while XAUX is flat, gold is merely benefiting from a depreciating US Dollar. If XAUX is aggressively breaking above its baseline, gold is experiencing genuine global capital inflow across multiple fiat currencies at once.',
   },
   USDX: {
     name: 'USD Index',
