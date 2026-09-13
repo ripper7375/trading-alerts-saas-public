@@ -1,11 +1,13 @@
 # Currency Index Comparison PRO — Work Completion Report
 
 **Date:** 2026-09-13
-**Status:** Code complete and verified (Python, gateway unit + e2e, full monolith suite, live browser),
-across two rounds; Round 2 (§7) covers Davin's follow-ups. Committed and pushed to `origin/main`
-(§8). **`railway-gateway` is deployed and migration `20260913120000_add_currency_gold_index_ohlc` is APPLIED and VERIFIED**
-on production Postgres (`maglev.proxy.rlwy.net:58290`). Gate and DB schema are fully in sync; safe for VPS engine deployment. VPS engine **not
-redeployed**.
+**Status:** Code complete, verified, and database migration applied live to production
+(Python, gateway unit + e2e, full monolith suite, live browser, live production DB).
+Spans three rounds: Round 1 (base feature), Round 2 (§7, Davin's follow-ups), and Round 3 (§9,
+production migration application and live endpoint verification). Committed and pushed to
+`origin/main` (§8). **`railway-gateway` is deployed and migration `20260913120000_add_currency_gold_index_ohlc`
+is APPLIED and VERIFIED** on production Postgres (`maglev.proxy.rlwy.net:58290`). Gateway processor and DB schema
+are 100% in sync. VPS engine **ready to deploy/restart**.
 **Type:** Ad-hoc feature session, requested directly in chat with an annotated screenshot — outside
 the phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6.
 
@@ -172,10 +174,15 @@ the screenshot, with the requested copy.
 | Monolith `npm run test:ci`                                                                                                  | **203/203 suites, 2705/2705 tests** — the Free page's 198/2657 baseline plus exactly this session's 5 suites / 48 tests, zero regressions                                                                                                                                               |
 | Live, real `next dev`                                                                                                       | Upgrade card placement matches the screenshot; signed-out click → `/login?callbackUrl=…`; direct signed-out visit to the PRO page → `/login`; the real API → **401** for an anonymous caller                                                                                            |
 | Live, PRO workspace (throwaway unauthenticated preview route, synthetic candles via a page-local `fetch` stub; **deleted**) | Line / OHLC / Heiken Ashi each render correctly; HRMA/SMMA values identical across plot types; per-line hide works; rebase separates both indices; Index B swap and None both work; the drawn horizontal line survives plot-type and index switches; light and dark themes both correct |
+| Production DB migration: `20260913120000_add_currency_gold_index_ohlc`                                                      | **Applied cleanly** via `prisma.production.config.ts` to `maglev.proxy.rlwy.net:58290`. Status: `"Database schema is up to date!"`. `.env.production.local` wiped.                                                                                                                      |
+| Production Railway Gateway (`POST /api/v1/currency-gold-indices`)                                                           | **Live & healthy**, returns `401 {"message":"Missing authorization header"}` (ApiKeyGuard verified active). Schema in sync.                                                                                                                                                             |
+| Production Monolith (`GET /pro/currency-index/compare`)                                                                     | **Live & healthy**, unauthenticated returns `307` redirecting to `/login?callbackUrl=%2Fpro%2Fcurrency-index%2Fcompare`.                                                                                                                                                                |
+| Production Monolith (`GET /api/market/currency-index-pro/comparison`)                                                       | **Live & healthy**, unauthenticated returns `401 {"error":"Unauthorized"}`.                                                                                                                                                                                                             |
+| Production Monolith (`GET /api/market/currency-gold-indices`)                                                               | **Live & healthy**, returns `200 {"indices":[]}` (expected empty state before VPS engine starts).                                                                                                                                                                                       |
 
 **Not verified live:** a genuinely authenticated FREE click (modal) or PRO click (navigation). Both are
 unit-tested, but the Executor never enters credentials. Also unverified: any real Lane 4 data, since
-the VPS engine isn't deployed.
+the VPS engine isn't redeployed yet.
 
 ---
 
@@ -192,11 +199,24 @@ the VPS engine isn't deployed.
 > - The gateway processor's upsert queries will now safely execute once the VPS engine begins pushing.
 
 1. ~~**Apply the migration:** `20260913120000_add_currency_gold_index_ohlc`~~ **APPLIED AND CONFIRMED LIVE (2026-09-13).**
-2. ~~Only then deploy `railway-gateway`~~ **Already deployed** (see §5.0).
-3. **Redeploy the VPS engine** (`currency_gold_index_engine.py`). Its outbox migrates itself on start.
-   This rides along with Lane 4's still-open VPS deployment items.
-4. **Authenticated click-through:** the FREE click (modal), the PRO click (page), a real sign-in
-   landing on its `callbackUrl` (§7), and a PRO user with real data once Lane 4 is live.
+   - Applied via `npx prisma migrate deploy --config prisma.production.config.ts` to `maglev.proxy.rlwy.net:58290`.
+   - Verified up to date via `prisma migrate status`.
+   - Production PostgreSQL `currency_gold_indices` table now has `open`, `high`, and `low` columns.
+   - Temporary `.env.production.local` deleted immediately.
+2. ~~**Deploy `railway-gateway`**~~ **ALREADY DEPLOYED & VERIFIED.**
+   - Live endpoint `POST /api/v1/currency-gold-indices` active and protected with `ApiKeyGuard`.
+   - Processor queries will not fail since columns exist on production DB.
+3. **Redeploy / Restart the VPS engine** (`currency_gold_index_engine.py`):
+   - Copy `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/currency_gold_index_engine.py` to the VPS directory (e.g. `C:\Scripts\currency_gold_index_engine\`).
+   - If service exists: run `nssm restart DavinTradeCurrencyIndexEngine` from an Administrator cmd.
+   - If installing fresh: configure credentials and run `install_currency_gold_index_engine_service.bat`.
+   - Ensure 8 MT5 charts (EURUSD, USDJPY, GBPUSD, AUDUSD, NZDUSD, USDCAD, USDCHF, XAUUSD on M5) are running `ohlcvexportlightweight_v2_29.mq5`.
+   - Engine outbox SQLite (`currency_gold_indices.db`) automatically migrates columns on startup via `migrate_outbox_columns()`.
+4. **Authenticated click-through:**
+   - Sign in with real FREE account: verify clicking "Upgrade to PRO" opens `ProUpgradeModal`.
+   - Sign in with real PRO account: verify card button reads "Open PRO Chart" and navigates to `/pro/currency-index/compare`.
+   - Verify unauthenticated visit to `/pro/currency-index/compare` redirects to `/login` and returns upon sign-in.
+   - Verify live candle plots once the VPS engine begins pushing M5 bars.
 
 ---
 
@@ -254,8 +274,7 @@ judgment calls, he chose to **keep both**.
 - **Not verified live:** an actual sign-in round trip landing on the `callbackUrl` (the Executor never
   enters credentials; unit-tested only).
 
-**Rollout:** see §5.0. The push deployed `railway-gateway` before the migration. That's harmless
-while Lane 4 has no production writes; apply the migration before the VPS engine starts pushing.
+**Rollout:** Completed safely (§5.0, §9). Migration `20260913120000_add_currency_gold_index_ohlc` was applied to the production database via `prisma.production.config.ts` before the VPS engine was started, resolving the deployment-order race condition. Gateway and DB schema are fully synchronized.
 
 ---
 
@@ -264,17 +283,52 @@ while Lane 4 has no production writes; apply the migration before the VPS engine
 Committed per logical step and pushed to `origin/main`. The pre-push hook's type check and full
 `test:ci` passed.
 
-| Commit     | Summary                                                                                          |
-| ---------- | ------------------------------------------------------------------------------------------------ |
-| `466fad67` | `feat(lane4): index OHLC in engine, gateway contract, schema and migration`                      |
-| `03a8be40` | `fix(currency-index): M15 XAUX bars on the 5-minute grid; validated dark gold on the free chart` |
-| `741a7b68` | `feat(currency-index): Currency Index Comparison PRO page`                                       |
-| `8a70ed8a` | `feat(currency-index): Upgrade to PRO card on /xaux-vs-usdx`                                     |
-| `7c71d2ae` | `fix(auth): return to a safe callbackUrl after sign-in; gate /pro/ in middleware`                |
-| `b87ade2f` | `feat(workbench): 28-Pair Screener and Currency Index Comparison PRO sidebar buttons`            |
-| `a073a5dd` | `docs(ad-hoc): currency index comparison PRO manifest, MQL5 references and cross-links`          |
-| _this_     | `docs(ad-hoc): record deployed-before-migration state; bring free page manifest up to date`      |
+| Commit     | Summary                                                                                                     |
+| ---------- | ----------------------------------------------------------------------------------------------------------- |
+| `466fad67` | `feat(lane4): index OHLC in engine, gateway contract, schema and migration`                                 |
+| `03a8be40` | `fix(currency-index): M15 XAUX bars on the 5-minute grid; validated dark gold on the free chart`            |
+| `741a7b68` | `feat(currency-index): Currency Index Comparison PRO page`                                                  |
+| `8a70ed8a` | `feat(currency-index): Upgrade to PRO card on /xaux-vs-usdx`                                                |
+| `7c71d2ae` | `fix(auth): return to a safe callbackUrl after sign-in; gate /pro/ in middleware`                           |
+| `b87ade2f` | `feat(workbench): 28-Pair Screener and Currency Index Comparison PRO sidebar buttons`                       |
+| `a073a5dd` | `docs(ad-hoc): currency index comparison PRO manifest, MQL5 references and cross-links`                     |
+| `06e98dd2` | `docs(ad-hoc): record deployed-before-migration state; bring free page manifest up to date`                 |
+| `60d017fc` | `docs(ad-hoc): record migration 20260913120000_add_currency_gold_index_ohlc applied to production`          |
+| _this_     | `docs(ad-hoc): document Round 3 production migration apply, live endpoint verification, and VPS next steps` |
 
 The MQL5 reference files in this folder are committed, since code comments cite them as ground truth.
 Davin's screenshot `currency-index-pro-page.png` is left untracked, matching the Free page folder's
 precedent.
+
+---
+
+## 9. Round 3 — Production Migration & Live Verification (2026-09-13)
+
+Davin requested execution of Section 5 ("ช่วยจัดการตามข้อ 5 ให้ผมหน่อยนครับ").
+
+### 9.1 Database Migration Execution
+
+1. **Pre-flight status check:**
+   - Ran `npx prisma migrate status --config prisma.production.config.ts` targeting production Railway PostgreSQL (`maglev.proxy.rlwy.net:58290`).
+   - Confirmed that exactly one migration was unapplied: `20260913120000_add_currency_gold_index_ohlc`.
+2. **Migration application:**
+   - Ran `npx prisma migrate deploy --config prisma.production.config.ts`.
+   - Migration `20260913120000_add_currency_gold_index_ohlc` applied cleanly, adding columns `open`, `high`, and `low` to `currency_gold_indices`.
+3. **Post-apply verification:**
+   - Re-ran `prisma migrate status`, returning `"Database schema is up to date!"`.
+   - Production PostgreSQL `currency_gold_indices` table schema now matches the Prisma models and Gateway DTO.
+   - The temporary credentials file `.env.production.local` was safely deleted immediately.
+
+### 9.2 Production Service & Route Probing
+
+- **Railway Gateway:** `POST https://railway-gateway-production-3796.up.railway.app/api/v1/currency-gold-indices` returned `401 Unauthorized` (`ApiKeyGuard` actively protecting route; processor upsert path ready for OHLC fields).
+- **Monolith Compare Page:** `GET https://www.davintrade.app/pro/currency-index/compare` returned `307 Temporary Redirect` to `/login?callbackUrl=%2Fpro%2Fcurrency-index%2Fcompare` (middleware and layout auth gate verified).
+- **Monolith Public Indices API:** `GET https://www.davintrade.app/api/market/currency-gold-indices` returned `200 OK` with `{"indices":[]}` (expected empty state before VPS engine deployment).
+- **Monolith Compare PRO API:** `GET https://www.davintrade.app/api/market/currency-index-pro/comparison?indices=EURX,JPYX&timeframe=M5` returned `401 Unauthorized` (properly gated for PRO sessions).
+- **XAUX vs USDX Card:** Verified Upgrade card is present and live on `https://www.davintrade.app/xaux-vs-usdx`.
+
+### 9.3 Next Steps for Davin
+
+- **VPS Engine:** Safe to redeploy/restart `currency_gold_index_engine.py` on the Contabo VPS. The outbox auto-migrates its SQLite columns on startup.
+- **Physical Charts:** Attach `ohlcvexportlightweight_v2_29.mq5` to the 8 M5 charts in MT5.
+- **Authenticated verification:** Verify the UI in browser using real FREE and PRO user accounts.
