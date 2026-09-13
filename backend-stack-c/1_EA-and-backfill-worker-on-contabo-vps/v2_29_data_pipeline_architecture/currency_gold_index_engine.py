@@ -53,6 +53,21 @@ fix (2026-09-09, the same timestamp_adj fix applied to the 13 alert indicators),
 this module does no further timezone adjustment on bar_time itself -- only on
 determining WHICH bar is today's session-open bar (see eightcap_utc_offset_hours).
 
+INDEX OHLC (added 2026-09-13 for the Currency Index Comparison PRO page's OHLC and
+Heiken Ashi candles): `value` is, and always was, the index CLOSE. Each row now also
+carries the index OPEN/HIGH/LOW of the same M5 bar, following the rule in the
+authoritative per-series MQL5 references
+(davintrade-currency-index-comparison-pro-stack/{usdx,eurx,...,xaux}/*_H1_{Open,High,
+Low,Close}.mq5): Open/Close use the pairs' own opens/closes; High takes, for every
+input, whichever extreme RAISES the index -- the pair's High where the index carries
+that pair with a positive exponent ("direct"), its Low where the exponent is negative
+("inverse") -- and Low takes the opposite. This engine only reads the 7 USD-quoted
+primary pairs (+ XAUUSD) and triangulates the 21 crosses, so the rule is applied to
+each index's NET exponent per primary symbol (see symbol_exponents()) -- the same
+bound the MQL5 per-term rule produces, since every G8 index reduces to
+u_X / PRODUCT(u_Y ^ W) with each primary pair mapping to exactly one currency (no
+symbol ever needs its High in one term and its Low in another).
+
 OUTPUT: a dedicated SQLite outbox (currency_gold_indices.db -- never xauusd.db)
 drained to POST {API_GATEWAY_URL}/api/v1/currency-gold-indices, batched as a plain
 JSON array (up to 9 rows/cycle, ~1.5KB -- see
@@ -141,6 +156,29 @@ CURRENCY_INDEX_TERMS: Dict[str, List[Tuple[str, float]]] = {
              ('NZDCHF', -1), ('CADCHF', -1), ('CHFJPY', +1)],
 }
 
+# Primary-symbol form of usd_per_unit(): usd_per_unit(ccy) == symbol ** power.
+# Used only to derive each index's net per-symbol exponents (symbol_exponents()),
+# which the OHLC High/Low rule needs -- the value itself still goes through
+# index_value()/xaux_value(), unchanged.
+USD_PER_UNIT_SYMBOL: Dict[str, Tuple[str, int]] = {
+    'EUR': ('EURUSD', +1),
+    'GBP': ('GBPUSD', +1),
+    'AUD': ('AUDUSD', +1),
+    'NZD': ('NZDUSD', +1),
+    'JPY': ('USDJPY', -1),
+    'CAD': ('USDCAD', -1),
+    'CHF': ('USDCHF', -1),
+}
+
+# gold_leg_rate() in symbol form: each gold leg as {symbol: power}.
+GOLD_LEG_SYMBOL_POWERS: Dict[str, Dict[str, int]] = {
+    'XAUUSD': {'XAUUSD': +1},
+    'XAUEUR': {'XAUUSD': +1, 'EURUSD': -1},
+    'XAUJPY': {'XAUUSD': +1, 'USDJPY': +1},
+    'XAUGBP': {'XAUUSD': +1, 'GBPUSD': -1},
+    'XAUAUD': {'XAUUSD': +1, 'AUDUSD': -1},
+}
+
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS currency_gold_indices (
     index_name             TEXT    NOT NULL,
@@ -148,6 +186,9 @@ CREATE TABLE IF NOT EXISTS currency_gold_indices (
     value                    REAL    NOT NULL,
     change_pct               REAL    NOT NULL,
     session_open_bar_time    INTEGER NOT NULL,
+    open                     REAL,
+    high                     REAL,
+    low                      REAL,
     synced_at                INTEGER,
     created_at               INTEGER NOT NULL DEFAULT (strftime('%s','now')),
     PRIMARY KEY (index_name, bar_time)
@@ -155,6 +196,12 @@ CREATE TABLE IF NOT EXISTS currency_gold_indices (
 CREATE INDEX IF NOT EXISTS idx_currency_gold_indices_unsynced
     ON currency_gold_indices (bar_time) WHERE synced_at IS NULL;
 """
+
+# Columns added after the table first shipped. CREATE TABLE IF NOT EXISTS is a
+# no-op against an existing outbox file, so these are added by
+# migrate_outbox_columns() instead -- the same reason
+# export_collector_validator_v2.py has migrate_raw_tables().
+OHLC_COLUMNS = ('open', 'high', 'low')
 
 
 # ============================================================
@@ -350,6 +397,82 @@ def xaux_value(xauusd_now: float, fx_now: Dict[str, float],
 
 
 # ============================================================
+# INDEX OHLC (open/high/low of the same M5 bar -- see module docstring)
+# ============================================================
+def _add_power(acc: Dict[str, float], symbol: str, power: float) -> None:
+    acc[symbol] = acc.get(symbol, 0.0) + power
+
+
+def symbol_exponents(index_name: str) -> Dict[str, float]:
+    """The index as PRODUCT(symbol ** exponent) over the raw input symbols.
+
+    Derived mechanically from the SAME tables index_value()/xaux_value() use
+    (CURRENCY_INDEX_TERMS + get_rate()'s triangulation, GOLD_INDEX_LEGS +
+    gold_leg_rate()), not hand-transcribed -- test_currency_gold_index_ohlc.py
+    pins that evaluating it on closes reproduces index_value()/xaux_value().
+    Symbols whose exponents cancel to zero are dropped.
+    """
+    acc: Dict[str, float] = {}
+    if index_name == 'XAUX':
+        for leg in GOLD_INDEX_LEGS:
+            for symbol, power in GOLD_LEG_SYMBOL_POWERS[leg].items():
+                _add_power(acc, symbol, power * GOLD_INDEX_WEIGHT)
+    else:
+        for pair, sign in CURRENCY_INDEX_TERMS[index_name]:
+            if pair in FX_PAIRS:
+                # Primary pairs pass straight through get_rate().
+                _add_power(acc, pair, sign * W)
+                continue
+            # Cross = usd_per_unit(base) / usd_per_unit(quote).
+            base, quote = pair[:3], pair[3:]
+            base_symbol, base_power = USD_PER_UNIT_SYMBOL[base]
+            quote_symbol, quote_power = USD_PER_UNIT_SYMBOL[quote]
+            _add_power(acc, base_symbol, sign * W * base_power)
+            _add_power(acc, quote_symbol, -sign * W * quote_power)
+    return {s: e for s, e in acc.items() if abs(e) > 1e-12}
+
+
+def _index_from_symbol_prices(exponents: Dict[str, float], prices_now: Dict[str, float],
+                              prices_inception: Dict[str, float]) -> float:
+    product = 1.0
+    for symbol, exponent in exponents.items():
+        product *= (prices_now[symbol] / prices_inception[symbol]) ** exponent
+    return 100.0 * product
+
+
+def index_ohlc(index_name: str, bars_now: Dict[str, Tuple[float, float, float, float]],
+               closes_inception: Dict[str, float], close_value: float
+               ) -> Tuple[float, float, float]:
+    """(open, high, low) of the index for one M5 bar.
+
+    bars_now maps each input symbol to its (open, high, low, close) for that bar;
+    closes_inception is the same session inception every index already uses.
+    close_value is the row's `value` (the index close, from index_value()/
+    xaux_value()) -- passed in rather than recomputed so close is byte-identical
+    to `value`, and used to keep the candle well-formed.
+
+    High uses each symbol's High where its exponent is positive and its Low where
+    negative (MQL5 *_H1_High.mq5: "Direct pairs: use High price, Inverse pairs: use
+    Low price"); Low is the mirror image. Because every symbol's High >= its open
+    and close (and Low <= them), this is guaranteed to bracket open and close for
+    well-formed input bars; the final max/min only guards a malformed export row
+    (e.g. a High below its own Close) from ever producing an inverted candle.
+    """
+    exponents = symbol_exponents(index_name)
+    opens = {s: bars_now[s][0] for s in exponents}
+    highs_for_high = {s: bars_now[s][1] if e > 0 else bars_now[s][2] for s, e in exponents.items()}
+    lows_for_low = {s: bars_now[s][2] if e > 0 else bars_now[s][1] for s, e in exponents.items()}
+
+    open_value = _index_from_symbol_prices(exponents, opens, closes_inception)
+    high_value = _index_from_symbol_prices(exponents, highs_for_high, closes_inception)
+    low_value = _index_from_symbol_prices(exponents, lows_for_low, closes_inception)
+
+    high_value = max(high_value, open_value, close_value)
+    low_value = min(low_value, open_value, close_value)
+    return open_value, high_value, low_value
+
+
+# ============================================================
 # OHLCV FILE PARSING
 # ============================================================
 class ExportNotReadyError(Exception):
@@ -357,14 +480,19 @@ class ExportNotReadyError(Exception):
     since it usually means the exporter's own :59 write hasn't landed yet."""
 
 
-def parse_ohlcv_file(path: Path) -> List[Tuple[int, float]]:
-    """Parse one OHLCV_{SYMBOL}_M5.txt export. Returns [(timestamp_utc, close), ...]
-    sorted ascending by timestamp. Header/column order verified against the live
-    ohlcvexportlightweight_v2_29.mq5 source and export_collector_validator_v2.py's
-    own parser (module docstring) -- NOT the architecture doc's stale section 3.3
-    contract, which claims a different column order.
+# (timestamp_utc, open, high, low, close)
+Bar = Tuple[int, float, float, float, float]
+
+
+def parse_ohlcv_file(path: Path) -> List[Bar]:
+    """Parse one OHLCV_{SYMBOL}_M5.txt export. Returns [(timestamp_utc, open, high,
+    low, close), ...] sorted ascending by timestamp. Header/column order verified
+    against the live ohlcvexportlightweight_v2_29.mq5 source and
+    export_collector_validator_v2.py's own parser (module docstring) -- NOT the
+    architecture doc's stale section 3.3 contract, which claims a different column
+    order. Columns are located by header name, never by position.
     """
-    rows: List[Tuple[int, float]] = []
+    rows: List[Bar] = []
     with open(path, encoding='utf-8') as f:
         header_line = f.readline().rstrip('\n').rstrip('\r')
         if not header_line.strip():
@@ -372,6 +500,9 @@ def parse_ohlcv_file(path: Path) -> List[Tuple[int, float]]:
         headers = header_line.split('\t')
         try:
             ts_idx = headers.index('ohlcv_timestamp')
+            open_idx = headers.index('ohlcv_open')
+            high_idx = headers.index('ohlcv_high')
+            low_idx = headers.index('ohlcv_low')
             close_idx = headers.index('ohlcv_close')
         except ValueError as e:
             raise ValueError(f'{path.name}: unexpected header {headers!r}') from e
@@ -383,11 +514,14 @@ def parse_ohlcv_file(path: Path) -> List[Tuple[int, float]]:
             parts = line.split('\t')
             try:
                 ts = int(parts[ts_idx])
-                close = float(parts[close_idx])
+                o = float(parts[open_idx])
+                h = float(parts[high_idx])
+                lo = float(parts[low_idx])
+                c = float(parts[close_idx])
             except (ValueError, IndexError):
                 logger.warning(f'{path.name}:{lineno}: unparseable row, skipped')
                 continue
-            rows.append((ts, close))
+            rows.append((ts, o, h, lo, c))
 
     if not rows:
         raise ExportNotReadyError(f'{path.name}: header present but zero data rows')
@@ -395,22 +529,44 @@ def parse_ohlcv_file(path: Path) -> List[Tuple[int, float]]:
     return rows
 
 
-def close_at_or_before(series: List[Tuple[int, float]], ts: int) -> Optional[float]:
+def close_at_or_before(series: List[Bar], ts: int) -> Optional[float]:
     """Forward-fill lookup: the most recent close at or before `ts` (spec section
     4.2's forward-fill rule, applied here as a point lookup rather than a
     materialized fill pass -- equivalent result, no need to build a synthetic
     5-minute grid). None if the series has no data that old.
     """
     result: Optional[float] = None
-    for t, c in series:
-        if t > ts:
+    for bar in series:
+        if bar[0] > ts:
             break
-        result = c
+        result = bar[4]
     return result
 
 
-def _load_all_series(export_dir: Path) -> Dict[str, List[Tuple[int, float]]]:
-    series: Dict[str, List[Tuple[int, float]]] = {}
+def ohlc_at(series: List[Bar], ts: int) -> Optional[Tuple[float, float, float, float]]:
+    """(open, high, low, close) of the bar AT `ts`, for index_ohlc().
+
+    Same forward-fill rule as close_at_or_before(): if this symbol has no bar at
+    exactly `ts` (it did not trade in that 5 minutes), the bar is flat at the
+    forward-filled close -- consistent with the close `value` already uses for that
+    symbol, and the honest reading of "no price movement observed". None if the
+    series has no data that old.
+    """
+    found: Optional[Bar] = None
+    for bar in series:
+        if bar[0] > ts:
+            break
+        found = bar
+    if found is None:
+        return None
+    if found[0] == ts:
+        return found[1], found[2], found[3], found[4]
+    c = found[4]
+    return c, c, c, c
+
+
+def _load_all_series(export_dir: Path) -> Dict[str, List[Bar]]:
+    series: Dict[str, List[Bar]] = {}
     for symbol in ALL_SYMBOLS:
         path = export_dir / f'OHLCV_{symbol}_M5.txt'
         if not path.exists():
@@ -439,16 +595,21 @@ def compute_cycle(export_dir: Path, now_utc: datetime) -> List[dict]:
     if fx_latest_ts >= fx_session_open_ts:
         rates_now = {p: close_at_or_before(series[p], fx_latest_ts) for p in FX_PAIRS}
         rates_inception = {p: close_at_or_before(series[p], fx_session_open_ts) for p in FX_PAIRS}
+        bars_now = {p: ohlc_at(series[p], fx_latest_ts) for p in FX_PAIRS}
         if all(v is not None for v in rates_now.values()) and \
            all(v is not None for v in rates_inception.values()):
             for idx_name in CURRENCY_INDEX_TERMS:
                 value = index_value(idx_name, rates_now, rates_inception)
+                o, h, lo = index_ohlc(idx_name, bars_now, rates_inception, value)
                 rows.append({
                     'index_name': idx_name,
                     'bar_time': fx_latest_ts,
                     'value': value,
                     'change_pct': value - 100.0,
                     'session_open_bar_time': fx_session_open_ts,
+                    'open': o,
+                    'high': h,
+                    'low': lo,
                 })
         else:
             logger.warning('FX cycle: missing inception or current rate(s) after '
@@ -461,7 +622,8 @@ def compute_cycle(export_dir: Path, now_utc: datetime) -> List[dict]:
     # module docstring's MATH GROUND TRUTH section. Needs its own gold close plus the
     # 4 FX legs (EURUSD/USDJPY/GBPUSD/AUDUSD -- already read as part of FX_PAIRS) at
     # both gold's own latest bar and gold's own session-open bar.
-    gold_latest_ts, gold_latest_close = series[GOLD_SYMBOL][-1]
+    gold_latest_ts = series[GOLD_SYMBOL][-1][0]
+    gold_latest_close = series[GOLD_SYMBOL][-1][4]
     gold_session_open_ts = todays_session_open_utc(now_utc, server_hour=1, server_minute=1)
 
     if gold_latest_ts >= gold_session_open_ts:
@@ -472,12 +634,20 @@ def compute_cycle(export_dir: Path, now_utc: datetime) -> List[dict]:
                 and all(v is not None for v in fx_now.values())
                 and all(v is not None for v in fx_inception.values())):
             value = xaux_value(gold_latest_close, fx_now, gold_inception_close, fx_inception)
+            gold_bars_now = {p: ohlc_at(series[p], gold_latest_ts) for p in XAUX_FX_LEGS}
+            gold_bars_now[GOLD_SYMBOL] = ohlc_at(series[GOLD_SYMBOL], gold_latest_ts)
+            gold_closes_inception = dict(fx_inception)
+            gold_closes_inception[GOLD_SYMBOL] = gold_inception_close
+            o, h, lo = index_ohlc('XAUX', gold_bars_now, gold_closes_inception, value)
             rows.append({
                 'index_name': 'XAUX',
                 'bar_time': gold_latest_ts,
                 'value': value,
                 'change_pct': value - 100.0,
                 'session_open_bar_time': gold_session_open_ts,
+                'open': o,
+                'high': h,
+                'low': lo,
             })
         else:
             logger.warning('Gold cycle: missing inception/current gold or FX-leg rate(s) '
@@ -498,7 +668,26 @@ def open_db() -> sqlite3.Connection:
     conn.execute("PRAGMA busy_timeout=5000")
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA_SQL)
+    migrate_outbox_columns(conn)
     return conn
+
+
+def migrate_outbox_columns(conn: sqlite3.Connection) -> List[str]:
+    """Idempotently add OHLC_COLUMNS to an outbox created before they existed.
+
+    Returns the columns actually added (empty on an up-to-date file). Nullable,
+    no default: a row written before this change genuinely has no open/high/low,
+    and is pushed without those keys (the gateway contract makes them optional).
+    """
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(currency_gold_indices)")}
+    added = []
+    for column in OHLC_COLUMNS:
+        if column not in existing:
+            conn.execute(f"ALTER TABLE currency_gold_indices ADD COLUMN {column} REAL")
+            added.append(column)
+    if added:
+        conn.commit()
+    return added
 
 
 def store_rows(conn: sqlite3.Connection, rows: List[dict]) -> int:
@@ -509,11 +698,33 @@ def store_rows(conn: sqlite3.Connection, rows: List[dict]) -> int:
     before = conn.total_changes
     conn.executemany(
         """INSERT OR IGNORE INTO currency_gold_indices
-           (index_name, bar_time, value, change_pct, session_open_bar_time)
-           VALUES (:index_name, :bar_time, :value, :change_pct, :session_open_bar_time)""",
-        rows)
+           (index_name, bar_time, value, change_pct, session_open_bar_time, open, high, low)
+           VALUES (:index_name, :bar_time, :value, :change_pct, :session_open_bar_time,
+                   :open, :high, :low)""",
+        [{'open': None, 'high': None, 'low': None, **row} for row in rows])
     conn.commit()
     return conn.total_changes - before
+
+
+def build_push_payload(rows: List[sqlite3.Row]) -> List[dict]:
+    """One contract object per outbox row. open/high/low are OPTIONAL in the
+    contract and omitted (never sent as null) for a row that has none -- i.e. a
+    row stored before the OHLC columns existed."""
+    payload = []
+    for r in rows:
+        item = {
+            'terminal_id': TERMINAL_ID,
+            'index_name': r['index_name'],
+            'bar_time': r['bar_time'],
+            'value': r['value'],
+            'change_pct': r['change_pct'],
+            'session_open_bar_time': r['session_open_bar_time'],
+        }
+        for column in OHLC_COLUMNS:
+            if r[column] is not None:
+                item[column] = r[column]
+        payload.append(item)
+    return payload
 
 
 # ============================================================
@@ -541,7 +752,8 @@ def push_indices(session: requests.Session, conn: sqlite3.Connection) -> int:
     """
     try:
         cur = conn.execute(
-            """SELECT index_name, bar_time, value, change_pct, session_open_bar_time
+            """SELECT index_name, bar_time, value, change_pct, session_open_bar_time,
+                      open, high, low
                FROM currency_gold_indices WHERE synced_at IS NULL
                ORDER BY bar_time ASC LIMIT ?""",
             (MAX_ROWS_PER_PUSH,))
@@ -549,17 +761,7 @@ def push_indices(session: requests.Session, conn: sqlite3.Connection) -> int:
         if not rows:
             return 0
 
-        payload = [
-            {
-                'terminal_id': TERMINAL_ID,
-                'index_name': r['index_name'],
-                'bar_time': r['bar_time'],
-                'value': r['value'],
-                'change_pct': r['change_pct'],
-                'session_open_bar_time': r['session_open_bar_time'],
-            }
-            for r in rows
-        ]
+        payload = build_push_payload(rows)
 
         resp = session.post(f'{API_GATEWAY_URL}/api/v1/currency-gold-indices',
                              json=payload, timeout=HTTP_TIMEOUT_SEC)

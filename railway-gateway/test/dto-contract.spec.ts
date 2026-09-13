@@ -177,9 +177,30 @@ describe('CurrencyGoldIndexDto contract', () => {
     'currency-gold-index.dto.ts'
   );
 
-  it('has exactly 6 fields in the schema', () => {
-    expect(schemaFields.size).toBe(6);
+  it('has exactly 9 fields in the schema (6 required + optional open/high/low)', () => {
+    expect(schemaFields.size).toBe(9);
+    expect([...(schema.required as string[])].sort()).toEqual(
+      [
+        'bar_time',
+        'change_pct',
+        'index_name',
+        'session_open_bar_time',
+        'terminal_id',
+        'value',
+      ].sort()
+    );
   });
+
+  it(
+    'open/high/low are OPTIONAL in the DTO -- an engine build that predates ' +
+      'index OHLC must keep validating during the rollout',
+    () => {
+      const dtoSource = fs.readFileSync(dtoSourcePath, 'utf-8');
+      for (const field of ['open', 'high', 'low']) {
+        expect(dtoSource).toMatch(new RegExp(`\\b${field}\\?: number;`));
+      }
+    }
+  );
 
   it('DTO field set matches the schema field set exactly', () => {
     const dtoFields = new Set(CURRENCY_GOLD_INDEX_DTO_FIELDS);

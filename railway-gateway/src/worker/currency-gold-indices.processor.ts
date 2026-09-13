@@ -27,7 +27,19 @@ export class CurrencyGoldIndicesProcessor {
       value,
       change_pct,
       session_open_bar_time,
+      open,
+      high,
+      low,
     } = job.data;
+
+    // open/high/low are OPTIONAL in the contract (an engine build that predates
+    // index OHLC omits them) -- stored as NULL, never defaulted to `value`, so a
+    // reader can tell "no OHLC for this bar" from a genuinely flat bar.
+    const ohlc = {
+      open: open ?? null,
+      high: high ?? null,
+      low: low ?? null,
+    };
 
     // Upsert on the natural key. Unlike indicator_statistics/economic_events,
     // this is NOT a revision stream: (index_name, bar_time) has exactly one
@@ -45,8 +57,15 @@ export class CurrencyGoldIndicesProcessor {
         value,
         change_pct,
         session_open_bar_time,
+        ...ohlc,
       },
-      update: { terminal_id, value, change_pct, session_open_bar_time },
+      update: {
+        terminal_id,
+        value,
+        change_pct,
+        session_open_bar_time,
+        ...ohlc,
+      },
     });
 
     return { success: true };

@@ -48,6 +48,18 @@
     "session_open_bar_time": {
       "type": "integer",
       "description": "UTC unix seconds of TODAY's session-inception bar for this index (00:00 Eightcap server time for the 8 currency indices, 01:01 for XAUX -- the gold market's daily rollover-halt reopen). Stamped by the engine, which has ground truth of the documented Eightcap UTC-offset rule, so no downstream consumer (the Phase 3 read layer) ever has to re-derive today's session boundary via its own DST-offset logic. Repeats across every bar within one session; changes once daily at rollover."
+    },
+    "open": {
+      "type": "number",
+      "description": "Index OPEN of this M5 bar, on the same session-inception base as value (value is the index CLOSE). Computed from the input symbols' own bar opens. OPTIONAL: omitted (never null) by an engine build that predates index OHLC, or for an outbox row stored before it; consumers must fall back to value. Added 2026-09-13 for the Currency Index Comparison PRO page's OHLC / Heiken Ashi candles."
+    },
+    "high": {
+      "type": "number",
+      "description": "Index HIGH of this M5 bar, per the authoritative *_H1_High.mq5 rule: every input symbol contributes its bar High where the index carries it with a positive net exponent ('direct') and its bar Low where negative ('inverse'). Always >= max(open, value). OPTIONAL, same omission rule as open."
+    },
+    "low": {
+      "type": "number",
+      "description": "Index LOW of this M5 bar -- the mirror of high (positive-exponent symbols contribute their Low, negative ones their High). Always <= min(open, value). OPTIONAL, same omission rule as open."
     }
   },
   "x-gateway-requirements": {

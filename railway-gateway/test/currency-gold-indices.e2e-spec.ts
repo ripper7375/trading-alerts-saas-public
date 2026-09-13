@@ -239,6 +239,39 @@ describe('CurrencyGoldIndicesController (e2e)', () => {
       .expect(400);
   });
 
+  it('accepts index OHLC (open/high/low) and passes it through to the job', async () => {
+    const withOhlc = validIndex({ open: 100.05, high: 100.21, low: 99.98 });
+    await auth(
+      request(app.getHttpServer()).post('/api/v1/currency-gold-indices')
+    )
+      .send([withOhlc])
+      .expect(200);
+
+    expect(queueMock['add']).toHaveBeenCalledWith(
+      'process',
+      expect.objectContaining({ open: 100.05, high: 100.21, low: 99.98 }),
+      { jobId: `USDX_${BAR_TIME}` }
+    );
+  });
+
+  it('still accepts a row WITHOUT open/high/low (engine build predating index OHLC)', async () => {
+    const res = await auth(
+      request(app.getHttpServer()).post('/api/v1/currency-gold-indices')
+    )
+      .send([validIndex()])
+      .expect(200);
+
+    expect(res.body.queued).toBe(1);
+  });
+
+  it('rejects a non-numeric high', async () => {
+    await auth(
+      request(app.getHttpServer()).post('/api/v1/currency-gold-indices')
+    )
+      .send([validIndex({ open: 100, high: 'lots', low: 99 })])
+      .expect(400);
+  });
+
   it('XAUX and the currency indices in the same batch can carry different session_open_bar_time (independent daily inceptions)', async () => {
     const res = await auth(
       request(app.getHttpServer()).post('/api/v1/currency-gold-indices')

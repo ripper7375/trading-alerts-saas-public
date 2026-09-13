@@ -356,6 +356,18 @@ model CurrencyGoldIndex {
   // to re-derive today's session boundary via its own DST-offset logic.
   session_open_bar_time Int
 
+  // Index OPEN/HIGH/LOW of the same M5 bar (`value` is the index CLOSE), on the
+  // same session-inception base. High/Low follow the authoritative
+  // *_H1_High.mq5 / *_H1_Low.mq5 rule: each input symbol contributes its bar
+  // High where the index carries it with a positive net exponent, its Low where
+  // negative (mirror image for Low). NULL for a row pushed by an engine build
+  // that predates index OHLC -- never defaulted to `value`, so a reader can tell
+  // "no OHLC" from a genuinely flat bar. Added for the Currency Index Comparison
+  // PRO page's OHLC / Heiken Ashi candles.
+  open Float?
+  high Float?
+  low  Float?
+
   createdAt DateTime @default(now())
 
   // One row per (index_name, bar_time). Postgres backs this with a btree
