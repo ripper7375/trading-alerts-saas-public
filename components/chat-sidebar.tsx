@@ -41,6 +41,8 @@ import type { Tier } from '@/lib/tier-config';
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { useLocale } from '@/lib/context/locale-context';
 
+import { ProFeatureLinks } from './sidebar/pro-feature-links';
+
 interface ChatSidebarProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -385,6 +387,13 @@ export function ChatSidebar({
             </Button>
           </Link>
         )}
+
+        {/* The two PRO feature pages. Locked (frosted glass + padlock) on the
+            FREE workbench; see components/sidebar/pro-feature-links.tsx. */}
+        <ProFeatureLinks
+          locked={currentTier === 'FREE'}
+          isCollapsed={isCollapsed}
+        />
 
         {/*
           PRO gets a plain anchor so the browser drives the download -- same
