@@ -44,6 +44,10 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-currency-index-pro-plan\cu
 
 D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_data_pipeline_architecture\active-stanby-terminal-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\davintrade-xaux-vs-usdx-comparison-page\xaux-vs-usdx-comparison-page-manifest-work-completion.md
+
+D:\SaaS Project\trading-alerts-saas-public\davintrade-currency-index-comparison-pro-stack\currency-index-comparison-pro-manifest-work-completion.md
+
 =================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder
