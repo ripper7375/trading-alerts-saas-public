@@ -59,8 +59,17 @@ export const REBASE_DEFAULT = 100;
 // Gold for XAUX (matches this app's own amber brand accent), blue for USDX
 // (the same USD slot currency-index-pro/colors.ts already uses) -- two
 // high-contrast hues, correct in both themes.
+//
+// XAUX's dark step was '#eda100' until 2026-09-13: the dataviz skill's
+// validate_palette.js FAILS it on this chart's dark surface (#0a0e17) for the
+// lightness band (OKLCH L 0.764, band 0.48-0.67 -- too bright, it glares next
+// to the in-band blue). '#c98500' passes every check in both modes, all-pairs
+// with the blue:
+//   node validate_palette.js "#c98500,#2a78d6" --mode light --surface "#ffffff" --pairs all
+//   node validate_palette.js "#c98500,#3987e5" --mode dark  --surface "#0a0e17" --pairs all
+// -- the same values the PRO comparison chart uses.
 const LINE_COLORS: Record<string, { light: string; dark: string }> = {
-  XAUX: { light: '#c98500', dark: '#eda100' },
+  XAUX: { light: '#c98500', dark: '#c98500' },
   USDX: { light: '#2a78d6', dark: '#3987e5' },
 };
 

@@ -19,6 +19,16 @@
  * 15-minute offset from midnight the way the 8 FX-based indices' 00:00
  * reopen is -- a single global modulo constant would be wrong for it.
  *
+ * FIX (2026-09-13): XAUX's anchor (01:01) is not on the 5-minute grid either,
+ * but every real M5 bar_time is (MT5 stamps a bar with its open time, always a
+ * multiple of 300s). Measuring the offset from the raw 01:01 anchor put every
+ * real XAUX bar at an offset of 240/540/840 mod 900 -- never 600 -- so the M15
+ * XAUX line was silently empty. The original test only passed because its
+ * XAUX fixture bars sat at anchor + 600 (01:11), a time no M5 bar can have.
+ * The anchor is now floored to the 5-minute bar that CONTAINS it (01:00 for a
+ * 01:01 reopen) before measuring -- a no-op for the 8 FX indices, whose 00:00
+ * anchor is already on the grid.
+ *
  * @module lib/currency-gold-indices/history
  */
 
@@ -26,7 +36,8 @@ export function isM15CloseBar(
   barTime: number,
   sessionOpenBarTime: number
 ): boolean {
-  const offset = barTime - sessionOpenBarTime;
+  const anchor = sessionOpenBarTime - (sessionOpenBarTime % 300);
+  const offset = barTime - anchor;
   return offset >= 0 && offset % 900 === 600;
 }
 
