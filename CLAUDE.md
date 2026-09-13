@@ -13,6 +13,65 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-13, same day, phase/session unchanged) — Currency Index Comparison
+> PRO: `/pro/currency-index/compare` + "Upgrade to PRO" on `/xaux-vs-usdx`, with genuine index
+> OHLC added to Lane 4. Code complete and verified. Migration NOT applied, VPS
+> engine NOT redeployed.** Davin supplied an annotated screenshot plus
+> `davintrade-currency-index-comparison-pro-stack/` (per-index `*_H1_{Open,High,Low,Close,OHLC,HA}.mq5`
+> and the HRMA/SMMA `.mq5` files). **Full account:** that folder's
+> `currency-index-comparison-pro-manifest-work-completion.md`; this entry is the index.
+> **Three decisions escalated via `AskUserQuestion`, all answered with the recommendation:** (1)
+> Lane 4 stores one value per M5 bar (the close), so candles needed **genuine OHLC through the
+> pipeline** rather than fake wickless candles; (2) the daily reset-to-100 sawtooth breaks HA and
+> HRMA/SMMA across 3000 bars, so sessions are **chained into one continuous series, anchored on the
+> latest session** (today's values equal the widget/screener; display-only); (3) a **new page**,
+> not a section of the existing 28-pair screener.
+> **Built:** engine computes index O/H/L with the `*_H1_High/Low.mq5` direct/inverse rule applied to
+> each index's net per-symbol exponent (derived from the value formula's own tables; outbox
+> self-migrates); contract fields `open/high/low` **optional**; DTO regenerated; processor stores
+> NULL when absent; both Prisma models + migration `20260913120000_add_currency_gold_index_ohlc`
+> (byte-identical to `prisma migrate diff`); `lib/currency-index-comparison/{series,indicators,queries}.ts`
+> (chaining, clock-aligned M15, HA port, HRMA on typical / SMMA on close per the `.mq5` defaults);
+> PRO-gated `GET /api/market/currency-index-pro/comparison` (DB tier re-check, Redis per
+> index+tf); the page (9 indices, any 2, Line/OHLC/HA, M5/M15, period sliders, per-line hide chips,
+> rebase, drawing tools on a hidden host series so drawings survive plot-type switches, no
+> watermark; slot palette validated with the dataviz validator in both modes); upgrade card
+> (signed out → `/login?callbackUrl=`, FREE → `ProUpgradeModal`, PRO → page, labelled "Open PRO
+> Chart").
+> **Real bugs found:** the Free page's `isM15CloseBar()` rejected every real XAUX bar (01:01 anchor
+> vs 5-minute grid; its test used an impossible 01:11 fixture). Fixed, and the corrected tests fail
+> 2/6 on the old code. A candle's price label went colorless on rising (hollow) bars. And a
+> mutation showed the engine's invariant tests passed with the High/Low rule flipped (the clamp
+> masked it); they're now strict, and the flipped rule fails 3.
+> **Verified:** Python 13/13; gateway 5/5·68/68 unit, 4/4·43/43 e2e; monolith tsc/ESLint clean,
+> `test:ci` **203/203·2705/2705** (198/2657 + exactly this session's 5 suites/48 tests). Live
+> `next dev`: card placement, signed-out routing, PRO URL → `/login`, API → 401; the PRO workspace was
+> exercised through a throwaway unauthenticated preview route with synthetic candles (deleted,
+> clean tree), covering all three plot types, toggles, rebase, index swap/None, drawing persistence,
+> and both themes.
+> **⚠ ROLLOUT ORDER:** apply the migration **before** `railway-gateway` deploys. The processor's
+> upsert returns the full row and fails without the columns, and railway-gateway **auto-deploys on
+> push to `main`**. Then redeploy the VPS engine. Authenticated FREE/PRO click-through still needs
+> Davin.
+> **Round 2, same day (Davin's follow-ups): committed + pushed.** He kept both judgment calls
+> ("Open PRO Chart" label for PRO users; the screener's "Compare indices" link) and asked for the
+> three flagged items plus a new feature. All four are done:
+> (3) Free chart dark gold `#eda100` → validated `#c98500`.
+> (4) `callbackUrl` is honoured after sign-in through new `lib/auth/safe-callback-url.ts`, which
+> accepts same-site relative paths only (absolute, `//`, backslash, scheme, control-character and
+> auth-page-loop values all rejected). Wired into the login form, carried through 2FA (appended
+> only when present), and into Google/X sign-in.
+> (5) `'/pro/'` added to middleware `PROTECTED_PREFIXES`, so signed-out PRO visits keep their
+> return address; the trailing slash stops `/pricing`-style paths being gated.
+> (6) New `components/sidebar/pro-feature-links.tsx` in `chat-sidebar.tsx` above PNG Download:
+> "28-Pair Screener" and "Currency Index Comparison PRO". On `/free` they're frosted glass with a
+> padlock and "Upgrade to PRO" (→ `/pricing`).
+> Verified: `test:ci` **205/205·2744/2744** (+2 suites/39 tests); live middleware redirect; real
+> sidebar in PRO/FREE/collapsed and both themes via a throwaway route (deleted).
+> Pre-existing, not changed: the collapsed FREE sidebar's old "Upgrade to PRO" CTA overflows its
+> 64px rail. **The migration is still unapplied**: pushing deploys railway-gateway, which is harmless
+> only while no Lane 4 writes exist, so apply it before the VPS engine runs.
+
 > **Ad-hoc session (2026-09-13, same day, phase/session unchanged) — Currency & Gold Index Stack
 > ("Lane 4"): XAUX (Gold Index) formula corrected from a misleading single-asset rebase to the
 > genuine 5-currency geometric basket.** Davin caught this directly in chat: "current XAUX (Gold

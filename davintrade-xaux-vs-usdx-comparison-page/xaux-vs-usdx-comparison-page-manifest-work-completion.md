@@ -253,6 +253,29 @@ of both:**
   `z-10`** — a plain `z-index: auto` sibling does not reliably paint above the chart's own
   `<canvas>` layers here, the same reason the drawing toolbar itself already carries `z-10`.
 
+### 1.9 Round 4 — "Upgrade to PRO" entry point, and the M15 XAUX line bug (2026-09-13)
+
+Built as part of the PRO layer. Full account in
+[`davintrade-currency-index-comparison-pro-stack/currency-index-comparison-pro-manifest-work-completion.md`](../davintrade-currency-index-comparison-pro-stack/currency-index-comparison-pro-manifest-work-completion.md).
+Two changes landed on this page:
+
+- **New `CurrencyIndexProUpgradeCard`**, top-right of the header above the M5/M15 toggle. Signed out →
+  `/login`; FREE → the `ProUpgradeModal` gate (→ `/pricing`); PRO → `/pro/currency-index/compare`,
+  with the label "Open PRO Chart".
+- **Bugfix — this page's M15 XAUX line would always have been empty.** `isM15CloseBar()` measured
+  from XAUX's raw 01:01 anchor, while real M5 bars sit on the 5-minute grid, so XAUX offsets were
+  never ≡ 600 mod 900. §1.1's own reasoning was right, but its test fixture placed XAUX bars at 01:11,
+  a time no M5 bar can have, so the defect passed. The anchor is now floored to its containing
+  5-minute bar. The corrected tests fail 2 of 6 against the old code. No user saw it: production has
+  no data yet.
+- **Chart color fix (same day, Round 2 of the PRO work):** this chart's dark-mode XAUX amber
+  `#eda100` failed the dataviz lightness band for a dark surface (L 0.764 > 0.67). It is now
+  `#c98500`, which passes every check in both modes, all-pairs with the blue (the same value the PRO
+  chart uses).
+- **Sign-in now returns here:** the card sends a signed-out visitor to
+  `/login?callbackUrl=/pro/currency-index/compare`, and since Round 2 the login form honours it (safe
+  same-site paths only).
+
 ---
 
 ## 2. Files changed

@@ -205,6 +205,23 @@ single-asset formula that was the actual bug.
 **Not committed** — per this file's established log-first-defer-commit pattern; left for Davin's
 review of this entry before it becomes a commit.
 
+### 1.6 Index OHLC (open/high/low per bar) — 2026-09-13
+
+Added for the Currency Index Comparison PRO page's OHLC and Heiken Ashi candles. Full account in
+[`davintrade-currency-index-comparison-pro-stack/currency-index-comparison-pro-manifest-work-completion.md`](../davintrade-currency-index-comparison-pro-stack/currency-index-comparison-pro-manifest-work-completion.md)
+§2.1. Lane 4 impact in brief:
+
+- **Engine:** each row also carries index `open`/`high`/`low` (`value` is unchanged and remains the
+  close). High/Low follow the `*_H1_{High,Low}.mq5` direct/inverse rule, applied to each index's
+  net per-symbol exponent. The outbox gains 3 nullable columns and migrates itself on start. New
+  standalone `test_currency_gold_index_ohlc.py`, 13/13, mutation-checked.
+- **Contract / DTO / processor / both Prisma schemas:** `open`/`high`/`low` are **optional** (an older
+  engine build still validates); absent values are stored as NULL.
+- **Migration `20260913120000_add_currency_gold_index_ohlc` — authored, not applied.** It must be
+  applied **before** `railway-gateway` deploys: the processor's `upsert` returns the full row and
+  fails against a table without the columns. Every monolith reader selects columns explicitly and is
+  unaffected.
+
 ---
 
 ## 2. Files changed
