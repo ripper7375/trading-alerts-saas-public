@@ -1,14 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { LineChart } from 'lucide-react';
 
 import { useLocale } from '@/lib/context/locale-context';
 import { CURRENCY_GOLD_INDEX_METADATA } from '@/lib/currency-gold-indices/metadata';
 import { useCurrencyGoldIndexHistory } from '@/components/market/useCurrencyIndexHistory';
-import { XauxUsdxComparisonChart } from '@/components/market/xaux-usdx-comparison-chart';
+import {
+  REBASE_DEFAULT,
+  REBASE_MAX,
+  REBASE_MIN,
+  XauxUsdxComparisonChart,
+} from '@/components/market/xaux-usdx-comparison-chart';
 import type { ComparisonTimeframe } from '@/lib/currency-gold-indices/history';
 import { Badge } from '@/components/ui/badge';
+import { Slider } from '@/components/ui/slider';
 
 const TIMEFRAMES: ComparisonTimeframe[] = ['M5', 'M15'];
 
@@ -23,6 +29,20 @@ export default function XauxVsUsdxComparisonPage(): React.JSX.Element {
   const { t } = useLocale();
   const [timeframe, setTimeframe] = useState<ComparisonTimeframe>('M15');
   const { series, isLoading } = useCurrencyGoldIndexHistory(timeframe);
+
+  // Both indices are rebased to exactly 100.00 at their own inception by
+  // construction (Lane 4's own schema) -- overlaid, their lines start from
+  // the same point and can sit close together. These sliders shift each
+  // series' DISPLAYED values by a constant amount so the two visually
+  // separate; nothing here reaches the API or the database (see
+  // XauxUsdxComparisonChart's own `rebase` prop doc comment).
+  const [xauxBase, setXauxBase] = useState(REBASE_DEFAULT);
+  const [usdxBase, setUsdxBase] = useState(REBASE_DEFAULT);
+  const isRebased = xauxBase !== REBASE_DEFAULT || usdxBase !== REBASE_DEFAULT;
+  const rebase = useMemo(
+    () => ({ XAUX: xauxBase, USDX: usdxBase }),
+    [xauxBase, usdxBase]
+  );
 
   const hasData = series.some((s) => s.bars.length > 0);
   const xauxMeta = CURRENCY_GOLD_INDEX_METADATA['XAUX'];
@@ -68,6 +88,69 @@ export default function XauxVsUsdxComparisonPage(): React.JSX.Element {
         </div>
       </div>
 
+      {/* Rebase controls */}
+      <div className="rounded-2xl border border-border bg-card p-4 shadow-xl shadow-black/5 md:p-6">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-foreground">
+            {t('Rebase for display')}
+          </p>
+          <button
+            type="button"
+            disabled={!isRebased}
+            onClick={() => {
+              setXauxBase(REBASE_DEFAULT);
+              setUsdxBase(REBASE_DEFAULT);
+            }}
+            className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {t('Reset')}
+          </button>
+        </div>
+        <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
+          {t(
+            'Both indices start from the same value (100), so their lines can sit close together. Rebasing spreads them apart visually for easier reading -- it does not change the real XAUX/USDX values.'
+          )}
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-amber-500" />
+                {t('XAUX base')}
+              </span>
+              <span className="font-mono tabular-nums text-foreground">
+                {xauxBase}
+              </span>
+            </div>
+            <Slider
+              value={[xauxBase]}
+              min={REBASE_MIN}
+              max={REBASE_MAX}
+              step={1}
+              onValueChange={(v) => setXauxBase(v[0] ?? xauxBase)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="flex items-center gap-1.5 font-medium text-muted-foreground">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-blue-500" />
+                {t('USDX base')}
+              </span>
+              <span className="font-mono tabular-nums text-foreground">
+                {usdxBase}
+              </span>
+            </div>
+            <Slider
+              value={[usdxBase]}
+              min={REBASE_MIN}
+              max={REBASE_MAX}
+              step={1}
+              onValueChange={(v) => setUsdxBase(v[0] ?? usdxBase)}
+            />
+          </div>
+        </div>
+      </div>
+
       {/* Chart */}
       <div className="rounded-2xl border border-border bg-card p-4 shadow-xl shadow-black/5 md:p-6">
         {!isLoading && !hasData ? (
@@ -75,7 +158,7 @@ export default function XauxVsUsdxComparisonPage(): React.JSX.Element {
             {t('No data available yet.')}
           </div>
         ) : (
-          <XauxUsdxComparisonChart series={series} />
+          <XauxUsdxComparisonChart series={series} rebase={rebase} />
         )}
       </div>
 
