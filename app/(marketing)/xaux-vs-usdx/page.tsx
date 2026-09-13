@@ -151,14 +151,24 @@ export default function XauxVsUsdxComparisonPage(): React.JSX.Element {
         </div>
       </div>
 
-      {/* Chart */}
-      <div className="rounded-2xl border border-border bg-card p-4 shadow-xl shadow-black/5 md:p-6">
-        {!isLoading && !hasData ? (
-          <div className="flex h-[480px] items-center justify-center text-sm text-muted-foreground">
-            {t('No data available yet.')}
+      {/* Chart -- always mounted, even with no price data yet, so the
+          drawing tools stay usable regardless of Lane 4's VPS deployment
+          status (drawing doesn't need price data at all). The "no data"
+          message floats ON TOP as a non-blocking hint instead of replacing
+          the chart entirely, matching trading-chart.tsx's own established
+          "overlay a status message over an already-mounted chart" pattern.
+          Needs an EXPLICIT z-index (matching the drawing toolbar's own
+          z-10): confirmed live that a plain z-index:auto sibling does not
+          reliably paint above the chart's <canvas> layers in this stacking
+          setup, the same reason the toolbar itself already carries z-10. */}
+      <div className="relative rounded-2xl border border-border bg-card p-4 shadow-xl shadow-black/5 md:p-6">
+        <XauxUsdxComparisonChart series={series} rebase={rebase} />
+        {!isLoading && !hasData && (
+          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/15 px-3 py-1.5 text-sm font-semibold text-amber-600 shadow-md dark:text-amber-400">
+              {t('No data available yet.')}
+            </p>
           </div>
-        ) : (
-          <XauxUsdxComparisonChart series={series} rebase={rebase} />
         )}
       </div>
 
