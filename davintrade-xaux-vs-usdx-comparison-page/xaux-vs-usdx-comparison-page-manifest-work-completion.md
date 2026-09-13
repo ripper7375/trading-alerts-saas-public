@@ -32,9 +32,7 @@ plots; both FREE and PRO users can reach it; both indices are capped at 3000 bar
 timeframes are available via a toggle. Planned and implemented in one session — this is a single
 verifiable unit of work, not a multi-phase build like the PRO Plan.
 
-### 1.1 A foundational finding, established before writing any code: `currency_gold_indices` has no
-
-timeframe column, and XAUX's own daily reopen isn't 15-minute-aligned
+### 1.1 A foundational finding: no timeframe column, and XAUX's reopen isn't 15-minute-aligned
 
 `CurrencyGoldIndex` (Lane 4's Phase 1 schema) stores exactly **one point value per 5-minute bar**
 per index — there is no OHLC to resample and no `timeframe` column at all, the identical
