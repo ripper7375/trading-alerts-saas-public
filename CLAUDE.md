@@ -13,6 +13,44 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — `/terminal` + `/free` workbench: sidebar
+> and panel collapse fixed. Code complete, verified, committed and pushed** (`fac6ffa8`, plus this
+> docs commit).
+> Davin's 6 annotated screenshots: sidebar collapse didn't narrow it; after a manual drag-narrow,
+> expand didn't widen it; collapsing the AI Analyst left "no button" to reopen it.
+> **Root cause (reproduced live before any edit, 1600px):** the collapse buttons only flipped what a
+> panel _rendered_, never its size. Sidebar: icon column inside a panel still **251px**; its
+> `isCollapsed` state and the dragged width were two unsynced sources of truth. AI Analyst / Market
+> Comments were **conditionally unmounted**, and react-resizable-panels 2.1.9 then rebuilds the layout
+> from the remaining `defaultSize`s (16/38/22 → 100): sidebar **251→333px**, comments 345→457, manual
+> sizes lost; the reopen button moved to an easy-to-miss bar above the workspace. Seed prototype has
+> the identical bug (ported faithfully).
+> **Fix:** both pages now render one shared `components/workspace/trading-workspace.tsx` (the two were
+> line-for-line copies). All 4 panels stay mounted; the 3 side panels are `collapsible` with
+> **pixel-exact** rails (sidebar 64px, others 44px, converted from the measured group width, since the
+> library only speaks %); the group layout is the single source of truth (buttons call `setLayout`,
+> a drag past min collapses, `onCollapse`/`onExpand` drive the content). Freed space goes to the
+> chart only; reopen restores the pre-collapse width, **including the width before a drag** (captured
+> via the handle's `onDragging`, else the drag's pass through minSize would be restored). Collapsed
+> AI Analyst / Comments show an in-place full-height rail button (`collapsed-panel-rail.tsx`, reusing
+> the `Show AI Analyst`/`Show Comments` keys); the top bar is gone. Pure maths in `panel-layout.ts`.
+> Also in `chat-sidebar.tsx`, now visible because the rail is really 64px: the collapsed FREE "Upgrade
+> to PRO" CTA is icon-only (the overflow flagged in the 2026-09-13 entry below), management icons
+> centred (stray `mr-2`), icon-only items get `title`/`aria-label`.
+> **Verified:** tsc/ESLint/Prettier clean; 2 new suites/24 tests (panel maths + workspace wiring with
+> stubbed children); **mutation 3/3 killed** (old state-only toggle fails 4, no collapse sync fails 4,
+> space-to-neighbour fails 3), restored byte-exact by sha256; full `test:ci` **216/216·2833/2833**
+> (214/2809 + exactly these 2/24). Live `next dev` on a throwaway unauthenticated route (deleted):
+> all 6 screenshot steps (64/44px rails, chart-only redistribution, exact restore), real mouse drag
+> → rail + icon content, expand after drag → 251px, window resize 1600→1100 keeps rails at 64/44px,
+> FREE rail has no overflow, FREE upgrade modal opens, no panel-library warnings.
+> **Not verified:** dark mode visually (a hand-set guest cookie didn't flip the chrome; rail reuses the
+> panel headers' own token + `dark:` classes); authenticated click-through on `davintrade.app`.
+> **Artifacts:** `components/workspace/{trading-workspace.tsx, collapsed-panel-rail.tsx,
+panel-layout.ts}` (new), `app/terminal/terminal-workspace.tsx`, `app/free/free-workspace.tsx`,
+> `components/chat-sidebar.tsx`, `__tests__/components/workspace/{panel-layout.test.ts,
+trading-workspace.test.tsx}` (new), this file.
+
 > **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index Comparison PRO: the same
 > index may now be chosen in both Index A and Index B. Code complete, verified, committed and pushed**
 > (`05684359`, plus this docs commit; full suite 214/214·2809/2809).
