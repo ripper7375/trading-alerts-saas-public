@@ -33,6 +33,7 @@ import { AnalysisTableM15 } from './tables/analysis-table-m15';
 import { useCurrencyIndexChart } from './hooks/use-currency-index-chart';
 import { useCurrencyIndexScreener } from './hooks/use-currency-index-screener';
 import { useCurrencyIndexPreferences } from './hooks/use-currency-index-preferences';
+import { useHiddenCurrencyLines } from './hooks/use-hidden-currency-lines';
 
 export function ProCurrencyIndexCockpit(): React.JSX.Element {
   const [timeframe, setTimeframeState] = useState<'M5' | 'M15'>('M15');
@@ -47,6 +48,7 @@ export function ProCurrencyIndexCockpit(): React.JSX.Element {
   const chartData = useCurrencyIndexChart(timeframe);
   const screenerData = useCurrencyIndexScreener();
   const { preferences, setPreferences } = useCurrencyIndexPreferences();
+  const hiddenLines = useHiddenCurrencyLines();
 
   // Sync the timeframe toggle to the user's saved `preferredTf` exactly
   // once, when preferences first load -- afterward the toggle is the
@@ -117,11 +119,16 @@ export function ProCurrencyIndexCockpit(): React.JSX.Element {
       <RelativeStrengthChart
         data={chartData}
         corridorOverride={corridorOverride}
+        hiddenCurrencies={hiddenLines.hidden}
       />
 
       <CurrencyLegendStrip
         data={chartData}
         onSelectCurrency={handleSelectCurrency}
+        hiddenCurrencies={hiddenLines.hidden}
+        onToggleCurrency={hiddenLines.toggle}
+        onShowAll={hiddenLines.showAll}
+        onHideAll={hiddenLines.hideAll}
       />
 
       <Top5ScreenerCard
