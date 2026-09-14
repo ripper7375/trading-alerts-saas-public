@@ -13,6 +13,18 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — PRO currency index page headers: "AI
+> Workbench" + "28-Pair Screener" buttons. Done, verified, committed and pushed.** Davin's two
+> annotated screenshots. New shared `components/currency-index-pro/pro-page-nav.tsx` (amber buttons;
+> `/terminal` = the marketing footer's existing "AI Workbench", `/pro/currency-index` = the sidebar's
+> existing "28-Pair Screener"; `aria-current="page"` on the page you're on). `/pro/currency-index/
+compare`: the "← 28-pair relative-strength screener" text link removed, buttons top-right above
+> M5/M15. `/pro/currency-index`: buttons before Compare indices / Settings. Dictionaries: the removed
+> link's key swapped for the nav's `PRO pages` label (en-US/en-GB, the only two holding it). Verified:
+> tsc/ESLint/Prettier clean; +1 suite/+3 tests; full `test:ci` **218/218·2850/2850**; live `next dev`
+> via a throwaway route (deleted): both headers match the mockups at 1600px, correct hrefs, no
+> overflow at 390px. Not verified: authenticated PRO click-through on `davintrade.app`.
+
 > **Ad-hoc session (2026-09-14, phase/session unchanged) — `/terminal` + `/free` workbench: sidebar
 > and panel collapse fixed. Code complete, verified, committed and pushed** (`fac6ffa8`, plus this
 > docs commit).
