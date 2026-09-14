@@ -15,8 +15,8 @@
 
 > **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index Comparison PRO Round 4:
 > ZigZag and Z-score candles ("MC") on `/pro/currency-index/compare`, plus a No Plot plot type.
-> Code complete, verified, committed and pushed (`e78bd83a` ports + tests, `faee6e1e` UI, plus a docs
-> commit).** Davin supplied an annotated screenshot and pointed at the
+> Code complete, verified, committed and pushed (`e78bd83a` ports + tests, `faee6e1e` UI, `57710520`
+> per-index chip fix, plus docs commits).** Davin supplied an annotated screenshot and pointed at the
 > two golden-certified Python ports (`zigzag_metrics.py`, `zscore_candle.py`). **Full account:**
 > `davintrade-currency-index-comparison-pro-stack/currency-index-comparison-pro-manifest-work-completion.md`
 > §10; this entry is the index.
@@ -26,7 +26,8 @@
 > (`xInpDeviation` is read only by the uncalled `ValidateZigZagPoint()`, `xInpBackstep` only in
 > `OnInit`). Four decisions went to Davin via `AskUserQuestion`, and he took each recommendation:
 > port v43 exactly (Depth slider, Deviation 5 / Back Step 3 shown fixed with the reason); both
-> indices with one chip each; show the segment class; and, after the validator showed **no passing
+> indices with one chip each (**reversed same day** after Davin reviewed the live page: ZigZag and MC
+> chips are now per index, beside each index's HRMA/SMMA, manifest §10.6); show the segment class; and, after the validator showed **no passing
 > hue pair** for the originally approved Large/Extreme highlight colors, class by **line weight**
 > (1/2/4px) in the slot hue. MC: green up / magenta down by hue, Large = 60% surface tint + full
 > outline, Extreme = full body, all validated with the dataviz script (one WARN, green vs gold CVD 6.9,
