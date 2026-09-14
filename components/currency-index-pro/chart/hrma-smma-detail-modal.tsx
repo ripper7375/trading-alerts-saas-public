@@ -34,6 +34,29 @@
  * (the container div itself leaves the DOM), so the chart must be
  * recreated on every open, not created once and reused.
  *
+ * HIDEABLE LINES: HRMA and SMMA each have a show/hide chip. The corridor
+ * bands, the BUY/SELL marker and the warm-up line therefore hang off a HOST
+ * line series that is never hidden, not off HRMA: lightweight-charts 5.2 skips
+ * a hidden series' price lines, so hiding HRMA would otherwise take the bands
+ * with it. The host carries the HRMA values with no stroke, label or crosshair
+ * marker, which keeps the marker at the HRMA value and keeps the host in
+ * autoscale (a range-less autoscale entry would also drop the marker's edge
+ * margins), so the price scale also holds still when a line is toggled.
+ *
+ * COLOR FOLLOWS THE INSPECTED CURRENCY: HRMA and SMMA are that currency's own
+ * indicators, so both take its slot hue from `colors.ts` and are told apart by
+ * line style (solid / dashed), their on-chart titles and the labelled chips.
+ * They previously used fixed blue/orange, which are exactly USD's and EUR's
+ * slot hues, so EUR's detail showed an orange line that was not EUR. All 8
+ * categorical slots belong to currencies, so no unused documented hue exists
+ * for a separate indicator color; sharing the entity's hue is the same
+ * composite encoding the comparison PRO page validated for its HRMA/SMMA.
+ * Checked with the dataviz validator against this modal's other marks: some
+ * currency hues sit close to the amber bands (JPY) or the green/red BUY/SELL
+ * marker (GBP, EUR, NZD, AUD) -- each of those marks carries its own text
+ * label (axis title, arrow + BUY/SELL), which is the required relief, and the
+ * main chart already relies on the same labels for JPY and NZD.
+ *
  * @module components/currency-index-pro/chart/hrma-smma-detail-modal
  */
 
@@ -63,6 +86,7 @@ import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { useChartAppearance } from '@/components/providers/appearance-provider';
 import { EventVerticalLine } from '@/components/charts/drawing/EventVerticalLine';
+import { useLocale } from '@/lib/context/locale-context';
 import { computeHrma, computeSmma } from '@/lib/currency-index-pro/math';
 import {
   classifyZone,
@@ -71,6 +95,7 @@ import {
   type SignalType,
 } from '@/lib/currency-index-pro/signals';
 import type { CurrencyCode } from '@/lib/currency-index-pro/pairs';
+import { currencyColor } from '@/lib/currency-index-pro/colors';
 
 import { useCurrencyIndexDetail } from '../hooks/use-currency-index-detail';
 
@@ -109,11 +134,6 @@ function chartChromeColors(
       };
 }
 
-// Deliberately NOT reused from the currency palette (colors.ts) -- HRMA/SMMA
-// are indicator lines, not currency identities, and reusing e.g. USD's blue
-// here would visually suggest a (nonexistent) link to that currency.
-const HRMA_COLOR = { light: '#2a78d6', dark: '#3987e5' };
-const SMMA_COLOR = { light: '#eb6834', dark: '#d95926' };
 const CORRIDOR_LINE_COLOR = 'rgba(234, 179, 8, 0.6)';
 const WARMUP_LINE_OPTIONS = { color: 'rgba(148, 163, 184, 0.6)', width: 1 };
 
@@ -136,12 +156,21 @@ export function HrmaSmmaDetailModal({
   const chartRef = useRef<IChartApi | null>(null);
   const hrmaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const smmaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
+  // Carries the bands, marker and warm-up line -- see the module doc.
+  const hostSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const markersPluginRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
   const priceLinesRef = useRef<IPriceLine[]>([]);
   const warmupLineRef = useRef<EventVerticalLine | null>(null);
 
   const { resolvedTheme, gridOpacityDecimal } = useChartAppearance();
+  const { t } = useLocale();
   const { data, isLoading } = useCurrencyIndexDetail(open, currency);
+
+  // Kept for the page visit (this component stays mounted between opens), so
+  // a line hidden for one currency stays hidden when inspecting the next.
+  const [showHrma, setShowHrma] = useState(true);
+  const [showSmma, setShowSmma] = useState(true);
+  const lineColor = currency ? currencyColor(currency, resolvedTheme) : null;
 
   // Defaults match UserCurrencyIndexPreference's own Prisma-schema defaults
   // -- overwritten as soon as `data` arrives with the user's real saved
@@ -216,24 +245,33 @@ export function HrmaSmmaDetailModal({
       },
     });
 
+    // Added first so it sits beneath the two lines. `lineVisible: false` hides
+    // only its stroke; the series stays visible so its price lines, marker
+    // and primitive keep painting whichever lines are hidden.
+    const hostSeries = chart.addSeries(LineSeries, {
+      lineVisible: false,
+      lastValueVisible: false,
+      priceLineVisible: false,
+      crosshairMarkerVisible: false,
+      pointMarkersVisible: false,
+    });
     const hrmaSeries = chart.addSeries(LineSeries, {
-      color: HRMA_COLOR[resolvedTheme],
       lineWidth: 2,
       title: 'HRMA',
       lastValueVisible: true,
       priceLineVisible: false,
     });
     const smmaSeries = chart.addSeries(LineSeries, {
-      color: SMMA_COLOR[resolvedTheme],
       lineWidth: 2,
       lineStyle: LineStyle.Dashed,
       title: 'SMMA',
       lastValueVisible: true,
       priceLineVisible: false,
     });
-    const markersPlugin = createSeriesMarkers(hrmaSeries, []);
+    const markersPlugin = createSeriesMarkers(hostSeries, []);
 
     chartRef.current = chart;
+    hostSeriesRef.current = hostSeries;
     hrmaSeriesRef.current = hrmaSeries;
     smmaSeriesRef.current = smmaSeries;
     markersPluginRef.current = markersPlugin;
@@ -242,6 +280,7 @@ export function HrmaSmmaDetailModal({
       markersPlugin.detach();
       chart.remove();
       chartRef.current = null;
+      hostSeriesRef.current = null;
       hrmaSeriesRef.current = null;
       smmaSeriesRef.current = null;
       markersPluginRef.current = null;
@@ -254,20 +293,35 @@ export function HrmaSmmaDetailModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, container]);
 
+  // Both lines take the inspected currency's hue (module doc). Keyed on the
+  // container too, so it runs once the chart exists on each open.
+  useEffect(() => {
+    if (!lineColor) return;
+    hrmaSeriesRef.current?.applyOptions({ color: lineColor });
+    smmaSeriesRef.current?.applyOptions({ color: lineColor });
+  }, [lineColor, open, container]);
+
+  useEffect(() => {
+    hrmaSeriesRef.current?.applyOptions({ visible: showHrma });
+    smmaSeriesRef.current?.applyOptions({ visible: showSmma });
+  }, [showHrma, showSmma, open, container]);
+
   // Repaint the chart whenever the recomputed (what-if) series changes --
   // on every slider tick, not just when new data arrives from the server.
   useEffect(() => {
     const chart = chartRef.current;
+    const hostSeries = hostSeriesRef.current;
     const hrmaSeries = hrmaSeriesRef.current;
     const smmaSeries = smmaSeriesRef.current;
-    if (!chart || !hrmaSeries || !smmaSeries || !recomputed) return;
+    if (!chart || !hostSeries || !hrmaSeries || !smmaSeries || !recomputed)
+      return;
 
-    hrmaSeries.setData(
-      recomputed.bars.map((bar) => ({
-        time: bar.barTime as UTCTimestamp,
-        value: bar.hrma,
-      }))
-    );
+    const hrmaData = recomputed.bars.map((bar) => ({
+      time: bar.barTime as UTCTimestamp,
+      value: bar.hrma,
+    }));
+    hrmaSeries.setData(hrmaData);
+    hostSeries.setData(hrmaData);
     smmaSeries.setData(
       recomputed.bars
         .filter((bar) => bar.smma !== null)
@@ -277,10 +331,10 @@ export function HrmaSmmaDetailModal({
         }))
     );
 
-    for (const line of priceLinesRef.current) hrmaSeries.removePriceLine(line);
+    for (const line of priceLinesRef.current) hostSeries.removePriceLine(line);
     priceLinesRef.current = data?.corridor
       ? [
-          hrmaSeries.createPriceLine({
+          hostSeries.createPriceLine({
             price: data.corridor.strikeZonePct,
             color: CORRIDOR_LINE_COLOR,
             lineWidth: 1,
@@ -288,7 +342,7 @@ export function HrmaSmmaDetailModal({
             title: 'Overbought',
             axisLabelVisible: true,
           }),
-          hrmaSeries.createPriceLine({
+          hostSeries.createPriceLine({
             price: -data.corridor.strikeZonePct,
             color: CORRIDOR_LINE_COLOR,
             lineWidth: 1,
@@ -318,29 +372,33 @@ export function HrmaSmmaDetailModal({
     }
 
     if (warmupLineRef.current) {
-      hrmaSeries.detachPrimitive(warmupLineRef.current);
+      hostSeries.detachPrimitive(warmupLineRef.current);
       warmupLineRef.current = null;
     }
     const warmupBar = recomputed.bars[recomputed.minBarsForSignal - 1];
     if (warmupBar) {
       const line = new EventVerticalLine(
         chart,
-        hrmaSeries,
+        hostSeries,
         warmupBar.barTime as UTCTimestamp,
         WARMUP_LINE_OPTIONS
       );
-      hrmaSeries.attachPrimitive(line);
+      hostSeries.attachPrimitive(line);
       warmupLineRef.current = line;
     }
 
     // Only fit content once per fresh data load (a new bar range), not on
     // every slider tick -- otherwise dragging a slider would keep resetting
     // any zoom/pan the user just did to inspect the cross more closely.
-  }, [recomputed, data?.corridor]);
+    //
+    // `container` is a dependency because the chart is created a render
+    // after the portal attaches it: data already present by then would
+    // otherwise never be painted into the new chart.
+  }, [recomputed, data?.corridor, container]);
 
   useEffect(() => {
     chartRef.current?.timeScale().fitContent();
-  }, [data]);
+  }, [data, container]);
 
   const handleSaveDefault = async (): Promise<void> => {
     setSavingDefault(true);
@@ -409,6 +467,56 @@ export function HrmaSmmaDetailModal({
                 onValueChange={(val) => setSmmaPeriod(val[0] ?? smmaPeriod)}
               />
             </div>
+          </div>
+        )}
+
+        {hasData && (
+          <div
+            role="group"
+            aria-label={t('Indicator lines')}
+            className="flex flex-wrap items-center gap-2 text-xs"
+          >
+            {(
+              [
+                {
+                  key: 'hrma',
+                  label: `HRMA (${hrmaPeriod})`,
+                  dash: 'solid',
+                  on: showHrma,
+                  toggle: () => setShowHrma((v) => !v),
+                },
+                {
+                  key: 'smma',
+                  label: `SMMA (${smmaPeriod})`,
+                  dash: 'dashed',
+                  on: showSmma,
+                  toggle: () => setShowSmma((v) => !v),
+                },
+              ] as const
+            ).map(({ key, label, dash, on, toggle }) => (
+              <button
+                key={key}
+                type="button"
+                aria-pressed={on}
+                title={on ? t('Click to hide') : t('Click to show')}
+                onClick={toggle}
+                // Same hidden styling as the comparison PRO page's chips.
+                className={`flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono transition-colors hover:bg-accent ${
+                  on
+                    ? 'border-border text-foreground'
+                    : 'border-dashed border-border text-muted-foreground line-through opacity-60'
+                }`}
+              >
+                <span
+                  aria-hidden="true"
+                  className="inline-block w-4"
+                  style={{
+                    borderTop: `2px ${dash} ${lineColor ?? 'currentColor'}`,
+                  }}
+                />
+                {label}
+              </button>
+            ))}
           </div>
         )}
 
