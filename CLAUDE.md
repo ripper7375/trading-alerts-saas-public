@@ -50,6 +50,21 @@
 panel-layout.ts}` (new), `app/terminal/terminal-workspace.tsx`, `app/free/free-workspace.tsx`,
 > `components/chat-sidebar.tsx`, `__tests__/components/workspace/{panel-layout.test.ts,
 trading-workspace.test.tsx}` (new), this file.
+> **Same-day follow-up (Davin's production screenshot after deploy): the chart inside didn't follow.**
+> (1) `TradingChart` resized only on window `resize`, so a panel collapse/drag (window unchanged) left
+> the canvas at its mount width; it now uses a `ResizeObserver` on its own block container (width
+> comes from the parent, never the canvas, so no loop). Pre-existing for handle drags; collapse made
+> it obvious. (2) The drawing toolbar is a fixed ~460px column; a stacked M5/M15 pane is ~375px on a
+> 1024px-tall screen, so it ran onto the M15 label (visible in Davin's very first screenshot too).
+> `Toolbar` now takes the chart height (`toolbarLayout()`): one column when it fits, tools|actions
+> side by side (286px) when that fits, else an N-row grid. Verified: 2000×1024 all-collapsed canvas
+> 1752/1753px, toolbar split fits; tall window stacked, measured **459px = the formula**; 680px window
+> grid 6×2, all 11 buttons inside, 10px clear. Tests +1 suite/+14 (toolbar layout; chart container
+> resize); mutation 3/3 (window-only resize fails 4, always-stacked fails 8, separator miscount fails
+> 1), restored byte-exact; full `test:ci` **217/217·2847/2847**. Files: `components/charts/
+{trading-chart.tsx, drawing/Toolbar.tsx, drawing/DrawingLayer.tsx}`, `__tests__/drawing/toolbar.test.tsx`
+> (new), `__tests__/components/charts/trading-chart.test.tsx`. The production chart's
+> "websocket error" is the live feed connection, unrelated.
 
 > **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index Comparison PRO: the same
 > index may now be chosen in both Index A and Index B. Code complete, verified, committed and pushed**
