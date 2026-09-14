@@ -15,10 +15,10 @@
  * @module components/currency-index-comparison/currency-index-comparison-workspace
  */
 
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { ArrowLeft, LineChart } from 'lucide-react';
+import { LineChart } from 'lucide-react';
 
+import { ProPageNav } from '@/components/currency-index-pro/pro-page-nav';
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -318,20 +318,16 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
               'Compare any 2 of the 8 currency indices and the Gold Index (XAUX) over up to 3,000 bars, as a line, OHLC candles or Heiken Ashi candles, with HRMA, SMMA, ZigZag and Z-score candles.'
             )}
           </p>
-          <Link
-            href="/pro/currency-index"
-            className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-3 w-3" />
-            {t('28-pair relative-strength screener')}
-          </Link>
         </div>
-        <SegmentedButtons
-          label={t('Timeframe')}
-          options={TIMEFRAMES.map((tf) => ({ value: tf, label: tf }))}
-          value={timeframe}
-          onChange={setTimeframe}
-        />
+        <div className="flex flex-col gap-4 md:items-end md:justify-between md:self-stretch">
+          <ProPageNav />
+          <SegmentedButtons
+            label={t('Timeframe')}
+            options={TIMEFRAMES.map((tf) => ({ value: tf, label: tf }))}
+            value={timeframe}
+            onChange={setTimeframe}
+          />
+        </div>
       </div>
 
       {/* Chart settings */}

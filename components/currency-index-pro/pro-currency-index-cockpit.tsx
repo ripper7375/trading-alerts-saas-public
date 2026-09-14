@@ -26,6 +26,7 @@ import { CurrencyLegendStrip } from './chart/currency-legend-strip';
 import { HrmaSmmaDetailModal } from './chart/hrma-smma-detail-modal';
 import { PairChartModal } from './chart/pair-chart-modal';
 import { IndicatorSettingsModal } from './chart/indicator-settings-modal';
+import { ProPageNav } from './pro-page-nav';
 import { TradingAdvisoryBanner } from './tables/trading-advisory-banner';
 import { Top5ScreenerCard } from './tables/top5-screener-card';
 import { DashboardTableM5 } from './tables/dashboard-table-m5';
@@ -86,9 +87,10 @@ export function ProCurrencyIndexCockpit(): React.JSX.Element {
 
   return (
     <div className="w-full space-y-3 p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl font-semibold">Currency Index PRO</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <ProPageNav className="mr-6" />
           <Button asChild variant="outline" size="sm">
             <Link href={CURRENCY_INDEX_COMPARE_PATH}>
               <LineChart className="h-3.5 w-3.5" />

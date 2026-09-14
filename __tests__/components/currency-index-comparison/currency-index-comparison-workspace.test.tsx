@@ -86,6 +86,19 @@ describe('CurrencyIndexComparisonWorkspace', () => {
     );
   });
 
+  it('heads the page with the AI Workbench and 28-Pair Screener buttons instead of the old back link', () => {
+    render();
+    const nav = screen.getByRole('navigation', { name: 'PRO pages' });
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((l) => l.getAttribute('href'))
+    ).toEqual(['/terminal', '/pro/currency-index']);
+    expect(
+      screen.queryByText('28-pair relative-strength screener')
+    ).not.toBeInTheDocument();
+  });
+
   it('offers four plot types in order, including No Plot', () => {
     render();
     const group = screen.getByRole('group', { name: 'Plot type' });
