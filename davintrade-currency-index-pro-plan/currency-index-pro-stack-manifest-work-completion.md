@@ -4,9 +4,13 @@
 `20260912000000_add_currency_index_pro_tables` applied and confirmed live on Railway PostgreSQL
 (`maglev.proxy.rlwy.net:58290`). Full test suites passing (73 monolith tests + 67 gateway tests).
 Committed and pushed to `origin/main`.
+**Updated 2026-09-14 (chart tidiness follow-ups, committed and pushed):** per-currency line
+show/hide on the main chart (§8) and HRMA/SMMA show/hide plus currency-hue lines in the detail
+window (§9). Monolith `test:ci` at close: **214/214 suites, 2807/2807 tests**.
 **Type:** Ad-hoc feature session (Davin-requested directly in chat, one phase at a time, same day)
 — outside the phase/session numbering, per `docs/migration-orders/EXECUTOR-PROTOCOL.md` §6.
-Recorded across five `CLAUDE.md` ad-hoc entries (Phases 1–5), all dated 2026-09-12.
+Recorded across five `CLAUDE.md` ad-hoc entries (Phases 1–5), all dated 2026-09-12, plus one
+2026-09-14 ad-hoc entry covering §8 and §9.
 
 > **Scope note:** this document covers the **Currency Index PRO Plan** — a PRO-gated 28-pair
 > relative-strength screener (HRMA/SMMA signal engine, Stage A/B confluence detection, dashboard
@@ -29,6 +33,13 @@ the next began, per `EXECUTOR-PROTOCOL.md`'s one-session-one-verifiable-unit dis
 phase's plan was grounded in direct reads of live schema/code rather than the spec doc's own
 illustrative examples, per §0's "live code wins" rule — a running list of evidence-based
 corrections to the spec is threaded through the sections below.
+
+Two later follow-ups (2026-09-14) change parts of what §1.3 describes, and are written up in their
+own sections rather than edited into the phase history: **§8** makes each of the 8 currency lines
+hideable and moves the corridor bands and news markers off the USD series onto a host series;
+**§9** adds HRMA/SMMA show/hide to the detail modal, moves its bands, BUY/SELL marker and warm-up
+line onto a host series, and recolors both lines in the inspected currency's hue (previously fixed
+blue/orange).
 
 ### 1.1 Phase 1 — database foundation + the "00:00 MT5 midnight" corridor aggregator
 
@@ -213,31 +224,51 @@ ticker-tape.tsx` already embeds TradingView widgets as a plain iframe for FX sym
 | `scratch/v1_corridor_crosscheck.py`                                                                                                                                                                      | **Added, gitignored.** Independent numpy corridor cross-check, kept for future re-runs                   |
 | `CLAUDE.md`                                                                                                                                                                                              | 5 ad-hoc session entries (Phases 1–5), all dated 2026-09-12                                              |
 
-**~50 files touched** (~45 added, ~8 modified) across what will become 5 feature commits (one per
-phase) plus this manifest, once Davin confirms the commit.
+**~50 files touched** (~45 added, ~8 modified) across 5 feature commits (one per phase) plus this
+manifest, all committed and pushed on 2026-09-12.
+
+**2026-09-14 follow-ups** (full per-section tables in §8.4 and §9.3):
+
+| File                                                                                                                                                  | Change                                                                                           |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `components/currency-index-pro/hooks/use-hidden-currency-lines.ts`                                                                                    | **Added.** Hidden-line set with toggle / show all / hide all, remembered in `localStorage` (§8)  |
+| `components/currency-index-pro/chart/currency-legend-strip.tsx`                                                                                       | Eye toggle per chip, Show all / Hide all, hidden styling, `t()` strings (§8)                     |
+| `components/currency-index-pro/chart/relative-strength-chart.tsx`                                                                                     | `hiddenCurrencies` prop; corridor bands and news markers moved to a host series (§8)             |
+| `components/currency-index-pro/pro-currency-index-cockpit.tsx`                                                                                        | Wires the hidden-line hook into the chart and legend strip (§8)                                  |
+| `components/currency-index-pro/chart/hrma-smma-detail-modal.tsx`                                                                                      | HRMA/SMMA chips, host series for bands/marker/warm-up line, currency-hue lines, effect deps (§9) |
+| `lib/i18n/dictionaries/{en-US,en-GB}.json`                                                                                                            | 8 identity keys (7 in §8, 1 in §9)                                                               |
+| `__tests__/components/currency-index-pro/{use-hidden-currency-lines,currency-legend-strip,relative-strength-chart,hrma-smma-detail-modal}.test.ts(x)` | **Added.** 4 suites, 24 tests                                                                    |
+| `CLAUDE.md`                                                                                                                                           | One 2026-09-14 ad-hoc entry covering §8 and §9                                                   |
 
 ---
 
 ## 3. Test verification
 
-| Phase | Suite                                                  | Result                                                                                                                                                                                 |
-| ----- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | `railway-gateway` unit (`npm test`)                    | **5/5 suites, 66/66 tests** (+2 suites/+14 tests over baseline)                                                                                                                        |
-| 1     | `railway-gateway` e2e (`npm run test:e2e`)             | **4/4 suites, 40/40 tests**, unaffected                                                                                                                                                |
-| 1     | `railway-gateway` `npx tsc --noEmit` / `npm run build` | Clean, exit 0                                                                                                                                                                          |
-| 1     | Monolith `npm run test:ci`                             | **187/187 suites, 2563/2563 tests** — unchanged (schema + migration only, no monolith code)                                                                                            |
-| 2     | Monolith `npm run test:ci`                             | **193/193 suites, 2620/2620 tests** (+6 suites/+57 tests)                                                                                                                              |
-| 3     | Monolith `npm run test:ci`                             | **194/194 suites, 2632/2632 tests** (+1 suite/+12 tests), then 2633 after the what-if-slider follow-up                                                                                 |
-| 4     | Monolith `npm run test:ci`                             | **194/194 suites, 2633/2633 tests** — unchanged (component wiring only, no new pure logic)                                                                                             |
-| 5     | `railway-gateway` unit (`npm test`)                    | **5/5 suites, 67/67 tests** (+1 test — the V1 corridor cross-check)                                                                                                                    |
-| 5     | Monolith `npm run test:ci`                             | **196/196 suites, 2636/2636 tests** (+2 suites/+3 tests)                                                                                                                               |
-| All   | `npx tsc --noEmit` (monolith + `railway-gateway`)      | Clean throughout every phase                                                                                                                                                           |
-| All   | ESLint (monolith)                                      | Clean, 0 warnings, every new/changed file, every phase                                                                                                                                 |
-| All   | ESLint (`railway-gateway`)                             | Reproduces the pre-existing, already-documented `LESSONS-LEARNED.md` L38 gap (no ESLint config file exists there at all) — confirmed unrelated; `tsc --noEmit` is the real static gate |
+| Phase | Suite                                                   | Result                                                                                                                                                                                 |
+| ----- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `railway-gateway` unit (`npm test`)                     | **5/5 suites, 66/66 tests** (+2 suites/+14 tests over baseline)                                                                                                                        |
+| 1     | `railway-gateway` e2e (`npm run test:e2e`)              | **4/4 suites, 40/40 tests**, unaffected                                                                                                                                                |
+| 1     | `railway-gateway` `npx tsc --noEmit` / `npm run build`  | Clean, exit 0                                                                                                                                                                          |
+| 1     | Monolith `npm run test:ci`                              | **187/187 suites, 2563/2563 tests** — unchanged (schema + migration only, no monolith code)                                                                                            |
+| 2     | Monolith `npm run test:ci`                              | **193/193 suites, 2620/2620 tests** (+6 suites/+57 tests)                                                                                                                              |
+| 3     | Monolith `npm run test:ci`                              | **194/194 suites, 2632/2632 tests** (+1 suite/+12 tests), then 2633 after the what-if-slider follow-up                                                                                 |
+| 4     | Monolith `npm run test:ci`                              | **194/194 suites, 2633/2633 tests** — unchanged (component wiring only, no new pure logic)                                                                                             |
+| 5     | `railway-gateway` unit (`npm test`)                     | **5/5 suites, 67/67 tests** (+1 test — the V1 corridor cross-check)                                                                                                                    |
+| 5     | Monolith `npm run test:ci`                              | **196/196 suites, 2636/2636 tests** (+2 suites/+3 tests)                                                                                                                               |
+| All   | `npx tsc --noEmit` (monolith + `railway-gateway`)       | Clean throughout every phase                                                                                                                                                           |
+| All   | ESLint (monolith)                                       | Clean, 0 warnings, every new/changed file, every phase                                                                                                                                 |
+| All   | ESLint (`railway-gateway`)                              | Reproduces the pre-existing, already-documented `LESSONS-LEARNED.md` L38 gap (no ESLint config file exists there at all) — confirmed unrelated; `tsc --noEmit` is the real static gate |
+| §8    | Monolith `npm run test:ci` (fresh baseline, 2026-09-14) | **210/210 suites, 2783/2783 tests** before any §8 change                                                                                                                               |
+| §8    | Monolith `npm run test:ci`                              | **213/213 suites, 2802/2802 tests** (+3 suites/+19 tests)                                                                                                                              |
+| §9    | Monolith `npm run test:ci`                              | **214/214 suites, 2807/2807 tests** (+1 suite/+5 tests)                                                                                                                                |
+| §8–§9 | Mutation checks (sha256-verified restore)               | **7/7 caught**: §8 2/2 (corridor back on USD, no visibility effect), §9 5/5 (bands or marker back on HRMA, no visibility effect, fixed color, `container` dependency removed)          |
 
 Zero regressions at every checkpoint — each phase's full-suite run matched the prior baseline plus
-exactly that phase's own new suites/tests, nothing else moved. Final state, confirmed by the most
-recent run: **196 test suites, 2636 tests, all passing, exit code 0.**
+exactly that phase's own new suites/tests, nothing else moved. The 2026-09-12 close was **196
+suites, 2636 tests**; the rise to the 2026-09-14 baseline of 210/2783 came from other features
+committed in between (the Currency Index Comparison PRO page and related work), not this plan.
+Final state, confirmed by the most recent run: **214 test suites, 2807 tests, all passing, exit
+code 0.**
 
 ---
 
@@ -274,13 +305,23 @@ own expected dev-server auto-regen remained alongside the real artifacts).
   override value with the Extreme lines correctly disappearing, while the Settings modal stayed
   open; the debounced preferences PUT fired exactly once per settled change (one call after 10
   arrow-key presses on a slider, not ten).
-- **Not verified live:** reactive dark-mode re-theming of the two new chart components — both call
+- **Not verified live (2026-09-12):** reactive dark-mode re-theming of the two new chart components — both call
   the same `useChartAppearance()` hook and follow the same pattern `trading-chart.tsx` already uses
   and has itself been live-verified for, but faking a real theme change in an unauthenticated
   preview would have needed real auth or temporarily instrumenting `AppearanceProvider`, both out
   of scope. Mobile-viewport click-through was not screenshotted in any phase (the CSS is
   responsive by construction — flex-wrap/scroll layouts throughout — but not specifically checked
   at a narrow width).
+- **2026-09-14 (§8, §9), same preview technique:** the dark-mode gap above was partly closed. Dark
+  mode was switched with the public landing page's guest theme toggle (a cookie, no login) and the
+  preview route then rendered the **main chart and legend strip correctly in dark mode**; the
+  legend strip was also checked at **375px** (two chips per row, 16px gutter, no horizontal
+  overflow). Also live: hiding currency lines with the corridor and news marker intact, the hidden
+  set surviving a reload, Show all / Hide all, and in the detail modal the HRMA/SMMA chips, bands
+  and warm-up line surviving a hidden HRMA, and currency-hue lines for EUR and JPY. The detail
+  modal was **not** checked in dark mode or at a narrow width. The Browser pane was hidden during
+  these checks and throttled `requestAnimationFrame` to ~2 frames/s, so canvases repainted seconds
+  after each click; screenshots were taken after waiting.
 
 ---
 
@@ -320,11 +361,16 @@ has ever flowed through this feature:
 - [ ] **A full authenticated click-through as a real PRO user** on `/pro/currency-index` — the
       chart, the legend strip, the detail modal (including the what-if sliders), the screener
       tables, the Top-5 card, the settings modal, and the disclaimer banner, all against real
-      signals rather than fixture data.
+      signals rather than fixture data. Since 2026-09-14 this includes the per-currency eye
+      toggles, Show all / Hide all and the remembered hidden set (§8), and the detail modal's
+      HRMA/SMMA chips and currency-colored lines (§9).
 - [ ] **Dark-mode re-theming of the two new chart components**, confirmed live (not just by code
-      inspection) — see §4's own note.
+      inspection) — see §4's own note. _Partly done 2026-09-14:_ the main chart and legend strip
+      were seen in dark mode in the unauthenticated preview; the detail modal has not been.
 - [ ] **Mobile-viewport click-through** — every layout in this feature is responsive by
       construction (flex-wrap/scroll), but none of it has been screenshotted at a narrow width.
+      _Partly done 2026-09-14:_ the legend strip was measured at 375px in the preview; the tables,
+      header and modals have not been.
 - [ ] **A genuine backtest against real, captured MT5 HRMA/SMMA runtime output** — Phase 5's own
       line-by-line source comparison is the strongest verification achievable without live data,
       but it is still a code-level proof, not an observed real-world match.
@@ -351,6 +397,14 @@ has ever flowed through this feature:
 - **The 28-pair PRO screener / `forex_ohlcv_m5`** (spec §9) — explicitly out of scope for this
   plan, same as it was for Lane 4; a distinct, larger future feature needing real per-pair OHLCV
   storage this codebase does not have yet.
+- **Hidden-line choices are per browser / per visit (2026-09-14, deliberate):** the main chart's
+  hidden set lives in `localStorage` and the detail modal's HRMA/SMMA choice lasts only for the page
+  visit. Neither follows a user across devices; doing that means a new `UserCurrencyIndexPreference`
+  field and a migration, so it was not done without a request.
+- **The 8 new toggle strings** (§8, §9) go through `t()` but have identity entries in en-US and
+  en-GB only, the same partial coverage as the rest of this feature (first bullet above).
+- **Pre-existing, noticed 2026-09-14:** Radix logs a "Missing `Description`" warning for the detail
+  modal's `DialogContent`. Harmless; an `aria-describedby` or a `DialogDescription` would silence it.
 
 ---
 
@@ -366,6 +420,16 @@ has ever flowed through this feature:
 | `feat(currency-index-pro): screener tables + settings modal + disclaimer banner`  | Phase 4       |
 | `test(currency-index-pro): Phase 5 verification pass + fix analysisTableM15 bug`  | Phase 5       |
 | `docs(ad-hoc): record Currency Index PRO Plan work-completion manifest`           | this document |
+
+**2026-09-14 follow-ups**, committed and pushed to `origin/main`:
+
+| Commit     | Message                                                                            | Covers |
+| ---------- | ---------------------------------------------------------------------------------- | ------ |
+| `48b18e71` | `feat(currency-index-pro): hideable currency lines on the relative-strength chart` | §8     |
+| `6e176dd9` | `feat(currency-index-pro): per-currency show/hide toggles in the legend strip`     | §8     |
+| `6fd37e9b` | `docs(ad-hoc): record currency line show/hide toggles in manifest and CLAUDE.md`   | §8     |
+| `4bea36bc` | `feat(currency-index-pro): HRMA/SMMA show/hide chips in the detail window`         | §9     |
+| (this one) | `docs(ad-hoc): record HRMA/SMMA detail window follow-up in manifest and CLAUDE.md` | §9     |
 
 ---
 
@@ -455,3 +519,72 @@ has. The corridor and news markers now live on the host.
 | `components/currency-index-pro/pro-currency-index-cockpit.tsx`                                                                 | Wires the hook into chart and strip                       |
 | `lib/i18n/dictionaries/{en-US,en-GB}.json`                                                                                     | 7 identity keys (comparison PRO precedent)                |
 | `__tests__/components/currency-index-pro/{use-hidden-currency-lines,currency-legend-strip,relative-strength-chart}.test.ts(x)` | **Added.**                                                |
+
+---
+
+## 9. Follow-up (2026-09-14, same day) — HRMA/SMMA toggles and line color in the detail window
+
+**Request (Davin):** after §8, asked whether HRMA/SMMA had been tidied too. They are not on the
+main chart; they appear only in the per-currency HRMA × SMMA detail window, where neither line
+could be hidden. Davin approved all three recommendations: toggles, keeping the bands and markers
+safe while a line is hidden, and fixing the line colors.
+
+**Committed and pushed:** `4bea36bc` (code, test, locale key), plus the docs commit recording this
+section.
+
+### 9.1 What shipped
+
+- **HRMA and SMMA show/hide chips** above the detail chart (`aria-pressed`, labelled with the live
+  period, e.g. `HRMA (36)`), styled like the comparison PRO page's chips. The choice lasts for the
+  page visit: the window stays mounted between opens, so a line hidden for EUR stays hidden for JPY.
+- **Host series.** The Overbought/Oversold bands, the BUY/SELL marker and the grey warm-up line hung
+  off the HRMA series, so hiding HRMA would have removed all three. They now sit on a never-hidden,
+  stroke-less host carrying the HRMA values. Unlike the main chart's host, this one **stays in
+  autoscale**: lightweight-charts 5.2 applies a source's margins only alongside a price range, so a
+  range-less host would also drop the marker's edge padding. Side effect, kept deliberately: the
+  price scale holds still when a line is toggled.
+- **Line color follows the inspected currency.** HRMA (solid) and SMMA (dashed) both take the
+  currency's slot hue. They were fixed blue/orange, which are exactly USD's and EUR's slot hues,
+  contrary to the file's own comment, so EUR's window showed an orange line that was not EUR.
+- **Deviation from the wording I gave Davin:** I had suggested "two colors not used by any
+  currency". The dataviz skill's palette has exactly 8 categorical slots and all 8 are currencies,
+  and its "documented palette only" check rules out inventing new hexes. Sharing the entity's hue,
+  told apart by line style, on-chart titles and the labelled chips, is the skill's composite encoding
+  and the same scheme the comparison PRO page already validated for its HRMA/SMMA.
+- **Validator results, per currency vs this window's other marks** (both modes): the amber bands
+  clash with JPY (light CVD 3.0), the green BUY marker with GBP (light 2.7) and AUD, the red SELL
+  marker with EUR (3.8 light) and NZD (0.8 light). Each of those marks carries its own text (axis
+  title; arrow + BUY/SELL), which is the skill's required relief; the old orange SMMA already had the
+  EUR-vs-SELL clash, and the main chart already relies on the same labels for JPY and NZD.
+- **Latent ordering gap fixed in passing:** the chart div attaches through a Radix portal a render
+  after opening, and the repaint effect depended only on the data, so data already present when the
+  chart was created was never painted. It never showed live (data always arrives after opening) but
+  broke the new test; `container` is now a dependency of the repaint and fit-content effects.
+
+### 9.2 Verification
+
+- tsc, ESLint `--max-warnings 0`, Prettier clean. Full monolith `npm run test:ci`: **214/214
+  suites, 2807/2807 tests** (213/2802 after §8, plus exactly this suite and its 5 tests).
+- New `hrma-smma-detail-modal.test.tsx`, **5 tests**: host shape and HRMA data; bands, marker and
+  warm-up line only on the host; both lines in the currency's hue (EUR, then JPY on rerender), SMMA
+  dashed; default pressed chips with periods; independent hide/show that never hides the host or
+  rebuilds the bands. My first version of the host-data assertion passed vacuously (both sides
+  `undefined`, since nothing had painted); it now checks the data length first.
+- **Mutation 5/5 caught:** bands back on HRMA (2 fail), marker back on HRMA (1), no visibility effect
+  (2), fixed blue color (1), `container` dependency removed (3). File restored byte-exact (sha256).
+- **Live, real browser** through a throwaway unauthenticated route with synthetic chart + detail
+  data (deleted, clean tree): EUR's window drew both lines in EUR orange; hiding HRMA left SMMA plus
+  the Oversold band and warm-up line on a steady scale; hiding both left the band and warm-up line;
+  JPY opened with HRMA still hidden and SMMA in JPY yellow. Console: only the pre-existing
+  ticker-tape `allowTransparency` warning.
+- **Not verified:** dark-mode repaint of the window live (the color effect reads the resolved theme
+  and is covered by the dark-theme test), and an authenticated PRO click-through on real data.
+- Pre-existing, not changed: Radix warns that this `DialogContent` has no `Description`.
+
+### 9.3 Files
+
+| File                                                                      | Change                                              |
+| ------------------------------------------------------------------------- | --------------------------------------------------- |
+| `components/currency-index-pro/chart/hrma-smma-detail-modal.tsx`          | Chips, host series, currency-hue lines, effect deps |
+| `lib/i18n/dictionaries/{en-US,en-GB}.json`                                | `Indicator lines` identity key                      |
+| `__tests__/components/currency-index-pro/hrma-smma-detail-modal.test.tsx` | **Added.**                                          |

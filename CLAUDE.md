@@ -38,6 +38,20 @@ currency-index-pro-stack-manifest-work-completion.md` §8.
 chart/currency-legend-strip.tsx, chart/relative-strength-chart.tsx, pro-currency-index-cockpit.tsx}`,
 > `lib/i18n/dictionaries/{en-US,en-GB}.json` (7 identity keys), 3 new test files under
 > `__tests__/components/currency-index-pro/`, the manifest above, this file.
+> **Same-day follow-up (manifest §9): HRMA/SMMA in the detail window.** They are not on the main
+> chart; the per-currency HRMA × SMMA window now has show/hide chips (kept for the page visit). Its
+> bands, BUY/SELL marker and warm-up line moved off HRMA onto a never-hidden host carrying the HRMA
+> values, kept IN autoscale (a range-less source also loses the marker's margins in LWC 5.2). Lines
+> were fixed blue/orange, i.e. USD's and EUR's slot hues; both now take the inspected currency's hue,
+> solid vs dashed. **Deviation from what I told Davin** ("two colors not used by any currency"): all 8
+> documented categorical slots are currencies and the dataviz skill forbids undocumented hexes, so
+> sharing the entity hue (the comparison page's validated scheme) is the compliant form. Validator:
+> JPY vs amber bands, GBP/AUD vs BUY green, EUR/NZD vs SELL red clash; those marks are all labelled.
+> Also fixed a latent portal-ordering gap (repaint effect now keyed on `container`). Verified: tsc/
+> ESLint/Prettier clean, new suite 5 tests, mutation 5/5, full `test:ci` **214/214·2807/2807** (213/2802 + exactly 1/5), live EUR/JPY
+> windows via a throwaway route (deleted). Committed and pushed as `4bea36bc` plus a docs commit;
+> the manifest's status, files, tests, live-verification, open-checklist and git-history sections
+> were brought up to date with §8–§9 in the same docs commit.
 
 > **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index Comparison PRO Round 4:
 > ZigZag and Z-score candles ("MC") on `/pro/currency-index/compare`, plus a No Plot plot type.
