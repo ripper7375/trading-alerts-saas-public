@@ -244,8 +244,11 @@ the VPS engine isn't redeployed yet.
 - **ZigZag window start (Round 4):** pivots are detected over the loaded window (up to 3000 bars), as
   MT5 does on a fresh chart, not over a chart's full history. The first pivot or two can differ from a
   long-running MT5 chart; the golden test shows everything after that matches (§10.3).
-- **Shared `Slider` accessibility (Round 4, raised as a separate task):** `components/ui/slider.tsx`
-  labels the Radix Root rather than the `role="slider"` thumb, for all ~21 sliders in the app (§10.4).
+- ~~**Shared `Slider` accessibility (Round 4, raised as a separate task):** `components/ui/slider.tsx`
+  labels the Radix Root rather than the `role="slider"` thumb, for all ~21 sliders in the app (§10.4).~~
+  **RESOLVED:** `aria-label` / `aria-labelledby` now pass to `SliderPrimitive.Thumb`, leaving Root unlabelled.
+  Covered by `__tests__/components/ui/slider.test.tsx`, with `currency-index-comparison-workspace.test.tsx`
+  updated to query `getByRole('slider', { name })`. Suite: **210/210·2783/2783**.
 - **Pre-existing, found during Round 2's sidebar check, not changed:** in a **collapsed** FREE sidebar
   the existing "Upgrade to PRO" CTA (`chat-sidebar.tsx`) isn't collapse-aware; its label overflows
   the 64px rail. Unrelated to the new buttons, which render as padlock icons when collapsed.
@@ -432,11 +435,15 @@ firing), so the canvas repaint after switching back to light mode and after movi
 sliders was not seen. The state changes themselves were confirmed (chip labels updated). The logic is
 unit- and golden-tested. As in every round: no authenticated PRO click-through, and no real Lane 4 data.
 
-### 10.4 Flagged, not changed
+### 10.4 Flagged, not changed (RESOLVED in follow-up)
 
-- `components/ui/slider.tsx` puts `aria-label` on the Radix Root, not on the `role="slider"` thumb, so
+- ~~`components/ui/slider.tsx` puts `aria-label` on the Radix Root, not on the `role="slider"` thumb, so
   all ~21 sliders in the app announce an unnamed thumb. Pre-existing and shared, so it's raised as a
-  separate task. The new workspace test queries the labelled root and says why.
+  separate task. The new workspace test queries the labelled root and says why.~~
+  **RESOLVED:** Destructured `aria-label` and `aria-labelledby` out of props in `components/ui/slider.tsx`
+  and passed them to each `SliderPrimitive.Thumb`. Added `__tests__/components/ui/slider.test.tsx` (8 tests)
+  and updated `currency-index-comparison-workspace.test.tsx` to use `getByRole('slider', { name })`.
+  Monolith `test:ci` updated to **210/210 suites, 2783/2783 tests**.
 
 ### 10.5 Suite result
 

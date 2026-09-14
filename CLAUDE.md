@@ -39,8 +39,10 @@
 > clean; `test:ci` **209/209·2775/2775** (205/2744 + exactly this round's 4 suites/31 tests). Live `next dev` on a throwaway route with synthetic candles (deleted): No Plot, OHLC + MC,
 > ZigZag weights, chips, dark-mode colors via canvas pixels. The window stopped painting partway
 > through, so the light-mode repaint and slider repaint were not seen live.
-> **Flagged, not changed:** `components/ui/slider.tsx` labels the Radix Root rather than the
-> `role="slider"` thumb (all ~21 sliders; raised as a separate task).
+> **Resolved (follow-up ad-hoc):** `components/ui/slider.tsx` now passes `aria-label` / `aria-labelledby`
+> to `SliderPrimitive.Thumb` (accessible name on `role="slider"`, Root free of duplicate labels).
+> Unit test added (`__tests__/components/ui/slider.test.tsx`), workspace test updated to query
+> `getByRole('slider', { name })`. All clean: `tsc --noEmit`, ESLint, `test:ci` **210/210·2783/2783**.
 
 > **Ad-hoc session (2026-09-13, same day, phase/session unchanged) — Currency Index Comparison
 > PRO: `/pro/currency-index/compare` + "Upgrade to PRO" on `/xaux-vs-usdx`, with genuine index
