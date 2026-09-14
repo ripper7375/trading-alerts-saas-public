@@ -262,7 +262,11 @@ export function ChatSidebar({
                     : 'text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground'
                 )}
               >
-                <Link href={item.href}>
+                <Link
+                  href={item.href}
+                  title={isCollapsed ? item.label : undefined}
+                  aria-label={isCollapsed ? item.label : undefined}
+                >
                   <Icon
                     className={cn(
                       'h-4 w-4 shrink-0',
@@ -320,8 +324,17 @@ export function ChatSidebar({
                       : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
                   )}
                 >
-                  <Link href={item.href}>
-                    <Icon className="mr-2 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <Link
+                    href={item.href}
+                    title={isCollapsed ? item.label : undefined}
+                    aria-label={isCollapsed ? item.label : undefined}
+                  >
+                    <Icon
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0 text-muted-foreground',
+                        !isCollapsed && 'mr-2'
+                      )}
+                    />
                     {!isCollapsed && (
                       <span className="truncate text-[11px]">{item.label}</span>
                     )}
@@ -347,6 +360,8 @@ export function ChatSidebar({
                   key={index}
                   variant="ghost"
                   onClick={() => setActiveSession(session)}
+                  title={isCollapsed ? session : undefined}
+                  aria-label={isCollapsed ? session : undefined}
                   className={cn(
                     'h-8 justify-start rounded-lg text-xs font-medium transition-all',
                     isCollapsed && 'justify-center px-0',
@@ -377,13 +392,26 @@ export function ChatSidebar({
       {/* Action Section: PNG Download + Upgrade CTA */}
       <div className="shrink-0 space-y-2 border-t border-sidebar-border bg-sidebar p-2.5">
         {currentTier === 'FREE' && (
-          <Link href="/pricing">
+          <Link
+            href="/pricing"
+            title={isCollapsed ? t('Upgrade to PRO') : undefined}
+            aria-label={isCollapsed ? t('Upgrade to PRO') : undefined}
+          >
+            {/* Icon-only on the collapsed rail: the label overflowed 64px. */}
             <Button
               size="sm"
-              className="h-8 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
+              className={cn(
+                'h-8 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500',
+                isCollapsed && 'px-0'
+              )}
             >
-              <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
-              {t('Upgrade to PRO')}
+              <Sparkles
+                className={cn(
+                  'h-3.5 w-3.5 fill-black',
+                  !isCollapsed && 'mr-1.5'
+                )}
+              />
+              {!isCollapsed && t('Upgrade to PRO')}
             </Button>
           </Link>
         )}
