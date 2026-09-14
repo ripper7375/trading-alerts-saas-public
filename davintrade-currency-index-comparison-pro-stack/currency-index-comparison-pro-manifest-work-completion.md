@@ -1,15 +1,19 @@
 # Currency Index Comparison PRO — Work Completion Report
 
-**Date:** 2026-09-13 (Rounds 1–3) · 2026-09-14 (Round 4 and its follow-up)
-**Status:** Code complete, verified, committed and pushed to `origin/main` (§8), across four rounds:
+**Date:** 2026-09-13 (Rounds 1–3) · 2026-09-14 (Round 4, follow-up, and Slider accessibility resolution)
+**Status:** Code complete, verified, committed and pushed to `origin/main` (§8), across five rounds:
 
 - **Round 1** (§1–§4): the base feature, including genuine index OHLC through Lane 4.
 - **Round 2** (§7): Davin's follow-ups.
 - **Round 3** (§9): the production migration and live endpoint checks.
 - **Round 4** (§10): No Plot, ZigZag and Z-score candles ("MC"), then per-index ZigZag/MC chips after
   Davin reviewed the live page (§10.6).
+- **Follow-up: Shared Slider Accessibility** (§11): `components/ui/slider.tsx` now passes `aria-label`
+  and `aria-labelledby` directly to `SliderPrimitive.Thumb` (`role="slider"`), leaving Root unlabelled.
+  New unit test suite (`__tests__/components/ui/slider.test.tsx`), workspace test updated. Total suite:
+  **210/210 suites, 2783/2783 tests**.
 
-Round 4 is browser-side only (no schema, API or VPS change), so it ships with the monolith deploy.
+Round 4 and the Slider follow-up are browser-side only (no schema, API or VPS change), so they ship with the monolith deploy.
 **Migration `20260913120000_add_currency_gold_index_ohlc` is APPLIED and VERIFIED** on production
 Postgres (`maglev.proxy.rlwy.net:58290`), and `railway-gateway` is deployed and in sync. **The one
 remaining blocker is the VPS engine** (§5 step 3): until it pushes bars, the page shows "No data
@@ -322,7 +326,10 @@ Committed per logical step and pushed to `origin/main`. The pre-push hook's type
 | `faee6e1e` | `feat(currency-index): No Plot, ZigZag and Z-score candles on the comparison PRO chart` (Round 4)           |
 | `0c30b485` | `docs(ad-hoc): Round 4 ZigZag and Z-score candles manifest and CLAUDE.md entry`                             |
 | `57710520` | `fix(currency-index): per-index ZigZag and MC chips on the comparison PRO chart` (Round 4 follow-up)        |
-| _this_     | `docs(ad-hoc): bring the comparison PRO manifest up to date after the Round 4 follow-up`                    |
+| `d59c7938` | `docs(ad-hoc): bring the comparison PRO manifest up to date after the Round 4 follow-up`                    |
+| `60251ccb` | `feat(ui): propagate aria-label and aria-labelledby to Slider thumbs` (Slider a11y follow-up)               |
+| `aaed87d1` | `docs(ad-hoc): record Slider accessibility resolution in manifest and CLAUDE.md`                            |
+| _this_     | `docs(ad-hoc): update manifest with full Slider accessibility resolution and current state`                 |
 
 The MQL5 reference files in this folder are committed, since code comments cite them as ground truth.
 Davin's screenshot `currency-index-pro-page.png` is left untracked, matching the Free page folder's
@@ -474,7 +481,7 @@ DOM. The Browser pane was hidden, so the canvas stopped repainting and the per-i
 chart itself wasn't seen live. That code path is a one-line per-slot visibility flag, and it's covered
 by the workspace test through the props it passes. Committed as `57710520` and pushed.
 
-### 10.7 Where things stand after Round 4
+### 10.7 Where things stand after Round 4 & Follow-ups
 
 **Live on `origin/main`:**
 
@@ -484,6 +491,7 @@ by the workspace test through the props it passes. Committed as `57710520` and p
 - Z-score candles: an MQL5 port with Large/Extreme only, green up / magenta down, and length and
   threshold sliders.
 - HRMA, SMMA, ZigZag and MC chips per index.
+- **Shared Slider accessibility (§11):** accessible name reaches `role="slider"` thumb across all ~21 sliders in the app, with duplicate root labels removed.
 
 Both indicator ports are pinned by a permanent test against real MT5 exports.
 
@@ -493,6 +501,65 @@ Both indicator ports are pinned by a permanent test against real MT5 exports.
    no data.
 2. **Authenticated PRO click-through** of everything above (§5 step 4), including the two repaint
    checks not seen live in this session.
-3. **Shared `Slider` accessibility** (§10.4), raised as its own task, not part of this feature.
-4. Out-of-scope items in §6 (no persistence, identity-only translations, chaining gaps, ZigZag window
+3. Out-of-scope items in §6 (no persistence, identity-only translations, chaining gaps, ZigZag window
    start).
+
+---
+
+## 11. Follow-up: Shared Slider Accessibility Resolution (2026-09-14)
+
+Following the completion of Round 4, the accessibility gap flagged in §10.4 was addressed as a focused ad-hoc follow-up.
+
+### 11.1 Problem & Root Cause
+
+`components/ui/slider.tsx` wraps `@radix-ui/react-slider`. Previously:
+
+- Callers passed `aria-label` (e.g. "HRMA period", "Depth", "SMMA period") or `aria-labelledby`.
+- The component spread `...props` directly onto `<SliderPrimitive.Root>` (which renders a plain container `<span>` with `data-slot="slider"`).
+- In Radix UI Slider, the interactive draggable element with `role="slider"` is `<SliderPrimitive.Thumb>` (`data-slot="slider-thumb"`).
+- Because `SliderPrimitive.Thumb` received no label, screen readers announced every slider thumb without an accessible name, and standard testing queries such as `screen.getByRole('slider', { name: 'HRMA period' })` failed in jsdom.
+- Callers and tests had to work around this (e.g., `currency-index-comparison-workspace.test.tsx` queried `getByLabelText(name)` + `data-slot="slider"` on the container).
+
+### 11.2 Implementation
+
+1. **`components/ui/slider.tsx`:**
+   - Destructured `'aria-label': ariaLabel` and `'aria-labelledby': ariaLabelledBy` out of `props`.
+   - Passed `aria-label={ariaLabel}` and `aria-labelledby={ariaLabelledBy}` directly to each `<SliderPrimitive.Thumb>`.
+   - Preserved `...props` spreading on `<SliderPrimitive.Root>` without duplicate `aria-label` / `aria-labelledby`.
+   - Visuals, CSS classes, DOM slot structure (`data-slot="slider"`, `slider-track`, `slider-range`, `slider-thumb`), and caller API remain 100% unchanged.
+
+2. **New unit test suite (`__tests__/components/ui/slider.test.tsx`):**
+   - 8 unit tests covering:
+     - `aria-label` correctly applied to the thumb (`role="slider"`).
+     - Absence of `aria-label` on the root container.
+     - `aria-labelledby` correctly applied to the thumb (`role="slider"`).
+     - Absence of `aria-labelledby` on the root container.
+     - Multi-thumb slider propagation (both thumbs labelled).
+     - Standard slot structure verification.
+     - Custom `className` merging.
+     - Disabled state (`data-disabled`).
+
+3. **Workspace test update (`__tests__/components/currency-index-comparison/currency-index-comparison-workspace.test.tsx`):**
+   - Replaced container label workaround (`getByLabelText(name)` + `toHaveAttribute('data-slot', 'slider')`) with standard accessible query:
+     ```tsx
+     for (const name of [
+       'HRMA period',
+       'SMMA period',
+       'Depth',
+       'Z-Score MA Length',
+       'First Threshold',
+       'Second Threshold',
+     ]) {
+       expect(screen.getByRole('slider', { name })).toBeInTheDocument();
+     }
+     ```
+   - Maintained verification that Deviation and Back Step do not possess sliders via `screen.getAllByRole('slider')`.
+
+### 11.3 Verification Results
+
+| Check                           | Result                                                                              |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| `npx tsc --noEmit`              | Clean (0 errors).                                                                   |
+| `npx eslint` on changed files   | Clean (0 warnings).                                                                 |
+| Full monolith `npm run test:ci` | **210/210 suites, 2783/2783 tests** (clean pass; +1 suite / +8 tests over Round 4). |
+| Pre-push verification           | Complete & passed; pushed to `origin/main` (`60251ccb`, `aaed87d1`).                |
