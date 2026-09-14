@@ -146,16 +146,11 @@ describe('CurrencyIndexComparisonWorkspace', () => {
       'First Threshold',
       'Second Threshold',
     ]) {
-      // components/ui/slider.tsx puts aria-label on the Radix Root, not on
-      // the role="slider" thumb, so query the labelled root.
-      expect(screen.getByLabelText(name)).toHaveAttribute(
-        'data-slot',
-        'slider'
-      );
+      expect(screen.getByRole('slider', { name })).toBeInTheDocument();
     }
-    const sliderLabels = Array.from(
-      document.querySelectorAll('[data-slot="slider"]')
-    ).map((el) => el.getAttribute('aria-label'));
+    const sliderLabels = screen
+      .getAllByRole('slider')
+      .map((el) => el.getAttribute('aria-label'));
     expect(sliderLabels.some((l) => /Deviation|Back Step/.test(l ?? ''))).toBe(
       false
     );
