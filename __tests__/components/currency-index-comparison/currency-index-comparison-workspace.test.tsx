@@ -10,7 +10,7 @@ import {
   screen,
   within,
 } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
 
 import { LocaleProvider } from '@/lib/context/locale-context';
 import {
@@ -28,10 +28,14 @@ jest.mock('@/components/providers/appearance-provider', () => ({
     gridOpacityDecimal: 0.1,
   }),
 }));
+const mockHookCalls: string[][] = [];
 jest.mock(
   '@/components/currency-index-comparison/use-currency-index-comparison',
   () => ({
-    useCurrencyIndexComparison: () => ({ series: [], isLoading: false }),
+    useCurrencyIndexComparison: (indices: string[]) => {
+      mockHookCalls.push([...indices]);
+      return { series: [], isLoading: false };
+    },
   })
 );
 
@@ -65,8 +69,16 @@ function render() {
 const lastChartProps = () => chartProps[chartProps.length - 1] ?? {};
 
 describe('CurrencyIndexComparisonWorkspace', () => {
+  beforeAll(() => {
+    // Radix Select calls these, which jsdom does not implement.
+    Element.prototype.hasPointerCapture ??= () => false;
+    Element.prototype.releasePointerCapture ??= () => {};
+    Element.prototype.scrollIntoView ??= () => {};
+  });
+
   beforeEach(() => {
     chartProps.length = 0;
+    mockHookCalls.length = 0;
     // Seeding skips LocaleProvider's real geo-IP fetch() (L40).
     localStorage.setItem(
       LOCALE_STORAGE_KEY,
@@ -85,6 +97,63 @@ describe('CurrencyIndexComparisonWorkspace', () => {
 
     fireEvent.click(within(group).getByRole('button', { name: 'No Plot' }));
     expect(lastChartProps().plotType).toBe('none');
+  });
+
+  it('lets both pickers hold the same index, each slot with its own indicators', () => {
+    render();
+
+    // Index A holds XAUX; it is still offered, enabled, in Index B's picker.
+    fireEvent.keyDown(screen.getByRole('combobox', { name: 'Index B' }), {
+      key: 'Enter',
+    });
+    const xaux = screen.getByRole('option', { name: /^XAUX -- Gold Index$/ });
+    expect(xaux).not.toHaveAttribute('aria-disabled', 'true');
+    expect(xaux).not.toHaveAttribute('data-disabled');
+    for (const option of screen.getAllByRole('option')) {
+      expect(option).not.toHaveAttribute('data-disabled');
+    }
+    fireEvent.click(xaux);
+
+    const slots = lastChartProps().slots as Record<
+      'A' | 'B',
+      { symbol: string; label: string }
+    >;
+    expect([slots.A.symbol, slots.B.symbol]).toEqual(['XAUX', 'XAUX']);
+    expect([slots.A.label, slots.B.label]).toEqual(['XAUX (A)', 'XAUX (B)']);
+
+    // Fetched once, not twice.
+    expect(mockHookCalls[mockHookCalls.length - 1]).toEqual(['XAUX']);
+
+    // Each slot keeps its own chips: hide HRMA on A, ZigZag on B.
+    const a = within(screen.getByRole('group', { name: 'XAUX (A)' }));
+    const b = within(screen.getByRole('group', { name: 'XAUX (B)' }));
+    fireEvent.click(a.getByRole('button', { name: /^HRMA/ }));
+    fireEvent.click(b.getByRole('button', { name: /^ZigZag/ }));
+    const flags = lastChartProps().slots as Record<
+      'A' | 'B',
+      { showHrma: boolean; showZigzag: boolean }
+    >;
+    expect([flags.A.showHrma, flags.A.showZigzag]).toEqual([false, true]);
+    expect([flags.B.showHrma, flags.B.showZigzag]).toEqual([true, false]);
+
+    // Rebase sliders stay distinguishable; the definition appears once.
+    expect(
+      screen.getByRole('slider', { name: 'XAUX (A) base' })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('slider', { name: 'XAUX (B) base' })
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('Gold Index (XAUX)')).toHaveLength(1);
+  });
+
+  it('keeps plain labels and fetches both indices when they differ', () => {
+    render();
+    const slots = lastChartProps().slots as Record<
+      'A' | 'B',
+      { label: string }
+    >;
+    expect([slots.A.label, slots.B.label]).toEqual(['XAUX', 'USDX']);
+    expect(mockHookCalls[mockHookCalls.length - 1]).toEqual(['XAUX', 'USDX']);
   });
 
   it('starts ZigZag and MC at the requested defaults, shown on both indices', () => {

@@ -222,8 +222,12 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
     B: ALL_SHOWN,
   });
 
+  // Both slots may hold the SAME index (Davin, 2026-09-14), e.g. XAUX with
+  // HRMA on A and XAUX with ZigZag on B. It is fetched once and both slots
+  // read that one series.
+  const sameIndex = symbolB === symbolA;
   const selected = useMemo(
-    () => (symbolB ? [symbolA, symbolB] : [symbolA]),
+    () => (symbolB && symbolB !== symbolA ? [symbolA, symbolB] : [symbolA]),
     [symbolA, symbolB]
   );
   const { series, isLoading } = useCurrencyIndexComparison(selected, timeframe);
@@ -233,11 +237,18 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
     B: symbolB,
   };
 
+  /** The index name, plus the slot letter when both slots hold it. */
+  const slotLabel = (slot: SlotId): string => {
+    const symbol = symbols[slot] ?? '';
+    return sameIndex ? `${symbol} (${slot})` : symbol;
+  };
+
   const slots = useMemo<Record<SlotId, ChartSlot | null>>(() => {
     const build = (slot: SlotId, symbol: ComparisonIndexName | null) => {
       if (!symbol) return null;
       return {
         symbol,
+        label: sameIndex ? `${symbol} (${slot})` : symbol,
         candles: series.find((s) => s.symbol === symbol)?.candles ?? [],
         base: bases[slot],
         showHrma: toggles[slot].hrma,
@@ -247,7 +258,7 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
       };
     };
     return { A: build('A', symbolA), B: build('B', symbolB) };
-  }, [series, symbolA, symbolB, bases, toggles]);
+  }, [series, symbolA, symbolB, sameIndex, bases, toggles]);
 
   const hasData = SLOT_IDS.some((id) => (slots[id]?.candles.length ?? 0) > 0);
   // The legend keys explain a mark while any index still draws it.
@@ -342,15 +353,12 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
                 {p.allowNone && (
                   <SelectItem value={NONE}>{t('None')}</SelectItem>
                 )}
+                {/* Every index is selectable in both pickers, including the
+                    one the other picker holds. */}
                 {COMPARISON_INDEX_NAMES.map((name) => {
-                  const other = symbols[p.slot === 'A' ? 'B' : 'A'];
                   const meta = CURRENCY_GOLD_INDEX_METADATA[name];
                   return (
-                    <SelectItem
-                      key={name}
-                      value={name}
-                      disabled={name === other}
-                    >
+                    <SelectItem key={name} value={name}>
                       {name}
                       {meta ? ` -- ${t(meta.name)}` : ''}
                     </SelectItem>
@@ -499,14 +507,14 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
                         backgroundColor: slotColor(slot, resolvedTheme),
                       }}
                     />
-                    {symbol} {t('base')}
+                    {slotLabel(slot)} {t('base')}
                   </span>
                   <span className="font-mono tabular-nums text-foreground">
                     {bases[slot]}
                   </span>
                 </div>
                 <Slider
-                  aria-label={`${symbol} ${t('base')}`}
+                  aria-label={`${slotLabel(slot)} ${t('base')}`}
                   value={[bases[slot]]}
                   min={REBASE_MIN}
                   max={REBASE_MAX}
@@ -536,7 +544,7 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
               <div
                 key={slot}
                 role="group"
-                aria-label={symbol}
+                aria-label={slotLabel(slot)}
                 className="flex flex-wrap items-center gap-2"
               >
                 <span className="flex items-center gap-1.5 font-semibold text-foreground">
@@ -544,7 +552,7 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: color }}
                   />
-                  {symbol}
+                  {slotLabel(slot)}
                 </span>
                 {(
                   [
@@ -724,7 +732,8 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
         {SLOT_IDS.map((slot) => {
           const symbol = symbols[slot];
           const meta = symbol ? CURRENCY_GOLD_INDEX_METADATA[symbol] : null;
-          if (!symbol || !meta) return null;
+          // One definition per index: both slots holding it would repeat it.
+          if (!symbol || !meta || (slot === 'B' && sameIndex)) return null;
           return (
             <div
               key={slot}

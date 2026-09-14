@@ -9,7 +9,9 @@
  * applyOptions()/setData(), never tearing the chart down). Differences from the
  * Free chart, each a PRO requirement:
  *
- * - Any 1-2 of the 9 Lane 4 indices, in two fixed SLOTS (A, B).
+ * - Any 1-2 of the 9 Lane 4 indices, in two fixed SLOTS (A, B). Both slots may
+ *   hold the same index, each with its own indicators; slot hue and the
+ *   "(A)"/"(B)" title keep the two apart.
  * - Four plot types: no plot, line, OHLC candles, Heiken Ashi candles.
  * - HRMA and SMMA per slot, each independently hideable.
  * - ZigZag and Z-score candles ("MC") per slot, each independently hideable.
@@ -105,6 +107,11 @@ export const SLOT_IDS: readonly SlotId[] = ['A', 'B'];
 
 export interface ChartSlot {
   symbol: ComparisonIndexName;
+  /**
+   * Price-scale title: the symbol, or e.g. "XAUX (A)" when both slots hold
+   * the same index, so their labels stay distinguishable.
+   */
+  label: string;
   candles: IndexCandle[];
   /** Display-only rebase base, 50-150 (100 = real values). */
   base: number;
@@ -614,7 +621,7 @@ export function CurrencyIndexComparisonChart({
         });
       }
 
-      const symbol = slot?.symbol ?? '';
+      const symbol = slot?.label ?? '';
       s.candle.applyOptions({
         visible: present && (plotType === 'ohlc' || plotType === 'heikin-ashi'),
       });
