@@ -383,3 +383,75 @@ has ever flowed through this feature:
 - **Any change to Lane 4 itself** — this plan is a pure downstream consumer of
   `currency_gold_indices`; nothing in Lane 4's own engine, gateway endpoint, cache, or landing
   widget was modified.
+
+---
+
+## 8. Follow-up (2026-09-14) — hide/show each currency line independently
+
+**Request (Davin, annotated screenshot of `davintrade.app/pro/currency-index`):** 8 lines on one
+chart look messy; let the user hide each line independently with buttons/toggles.
+
+**Committed and pushed:** `48b18e71` (chart visibility + host series), `6e176dd9` (legend toggles,
+hook, wiring, dictionary keys), plus the docs commit recording this section.
+
+### 8.1 What shipped
+
+- **Legend strip toggles.** Each of the 8 chips under the chart now has an eye button
+  (`aria-pressed`) that hides or shows that currency's line. The rest of the chip still opens the
+  HRMA/SMMA detail modal, so the Phase 3 entry point is unchanged. A hidden chip stays in place,
+  dashed, dimmed, code struck through, hollow color dot, and keeps showing its latest value (the
+  same hidden styling as the comparison PRO page's toggles). **Show all** and **Hide all** sit at
+  the end of the strip, each disabled when it would do nothing.
+- **Chart.** A hidden line gets `visible: false`, which in lightweight-charts also removes its
+  title/last-value label and crosshair marker and drops it from autoscale, so the remaining lines
+  fill the pane.
+- **Remembered per browser** in `localStorage` (`davintrade:currency-index-pro:hidden-lines`),
+  read after mount so server and first client render agree. Not stored in
+  `UserCurrencyIndexPreference`: it is a viewing convenience nothing else reads, and a server-side
+  field would need a schema change and a migration. Unavailable/throwing storage is guarded; the
+  chart then starts with all 8 shown and toggles still work for the visit.
+
+### 8.2 A real bug the feature would have introduced, found before building
+
+The corridor bands (Overbought/Oversold/Extreme price lines) and the news markers were attached
+to the **USD** series. Read in the lightweight-charts **5.2.0** source, not assumed: a price line's
+pane view returns early on `!series.visible()`, so **hiding USD would have silently removed the
+corridor bands** with no error. Fixed with the comparison chart's own technique: a dedicated host
+line series, added first, never hidden, no stroke/label/crosshair marker, excluded from autoscale
+(`autoscaleInfoProvider: () => null`), carrying one zero-valued point per bar time any currency
+has. The corridor and news markers now live on the host.
+
+### 8.3 Verification
+
+- `npx tsc --noEmit` clean; ESLint `--max-warnings 0` and Prettier clean on every changed file.
+- Full monolith `npm run test:ci`: **213/213 suites, 2802/2802 tests**, against a fresh same-day
+  baseline of 210/2783, so exactly this change's 3 suites and 19 tests and no other movement.
+- **3 new suites, 19 tests**: `use-hidden-currency-lines.test.ts` (parsing of bad/unknown/duplicate
+  stored values, restore, toggle/show-all/hide-all persistence, storage throwing),
+  `currency-legend-strip.test.tsx` (toggle state and titles, toggle never opens the detail modal,
+  the chip body still does, Show/Hide all enabled states), `relative-strength-chart.test.tsx`
+  (host shape and autoscale exclusion, host spans all bar times, exact lines hidden/shown, corridor
+  and news on the host and never on a currency line, visibility changes never rebuild the corridor).
+- **Mutation-checked:** moving the corridor back to USD fails 1 chart test; removing the visibility
+  effect fails 2. File restored byte-exact (sha256).
+- **Live, real browser** (Turbopack `next dev`), through a throwaway unauthenticated route rendering
+  the real, unmodified `ProCurrencyIndexCockpit` with `fetch` patched to synthetic chart data
+  (deleted after, clean tree): hiding USD/EUR/GBP/CAD/NZD left only CHF/AUD/JPY drawn with the price
+  scale refit **and the corridor bands plus news marker still on screen**; the choice survived a
+  reload; clicking a hidden chip's body opened the detail modal without toggling; Hide all / Show
+  all; dark mode; 375px width (two chips per row, no horizontal overflow). Console: only the
+  pre-existing ticker-tape `allowTransparency` warning. The hidden Browser pane throttled
+  `requestAnimationFrame` to ~2 frames/s, so the canvas repainted seconds after each click; this is
+  the pane, not the app.
+- **Not verified:** an authenticated PRO click-through against real Lane 4 data (still §5.3/§5.4).
+
+### 8.4 Files
+
+| File                                                                                                                           | Change                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| `components/currency-index-pro/hooks/use-hidden-currency-lines.ts`                                                             | **Added.** Hidden set, toggle/show-all/hide-all, storage  |
+| `components/currency-index-pro/chart/currency-legend-strip.tsx`                                                                | Eye toggles, Show/Hide all, hidden styling, `t()` strings |
+| `components/currency-index-pro/chart/relative-strength-chart.tsx`                                                              | `hiddenCurrencies` prop, host series for corridor + news  |
+| `components/currency-index-pro/pro-currency-index-cockpit.tsx`                                                                 | Wires the hook into chart and strip                       |
+| `lib/i18n/dictionaries/{en-US,en-GB}.json`                                                                                     | 7 identity keys (comparison PRO precedent)                |
+| `__tests__/components/currency-index-pro/{use-hidden-currency-lines,currency-legend-strip,relative-strength-chart}.test.ts(x)` | **Added.**                                                |

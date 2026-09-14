@@ -13,6 +13,32 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index PRO
+> (`/pro/currency-index`): hide/show each of the 8 currency lines independently. Code complete,
+> verified, committed and pushed** (`48b18e71` chart + host series, `6e176dd9` legend toggles,
+> plus this docs commit). Davin's annotated screenshot:
+> 8 lines make the chart messy. **Full account:** `davintrade-currency-index-pro-plan/
+currency-index-pro-stack-manifest-work-completion.md` §8.
+> **Built:** an eye toggle (`aria-pressed`) on each legend chip; the chip body still opens the
+> HRMA/SMMA detail modal (existing entry point kept); Show all / Hide all; hidden chips dashed,
+> dimmed, struck through, value still shown. Hidden set in `localStorage`
+> (`davintrade:currency-index-pro:hidden-lines`), not the DB, so no schema change or migration.
+> **Real bug prevented, found in the lightweight-charts 5.2.0 source before building:** the corridor
+> price lines and news markers hung off the USD series, and a price line is skipped when its series
+> is `visible: false`, so hiding USD would have silently removed the Overbought/Oversold bands. They
+> now live on a never-hidden, stroke-less host series excluded from autoscale (the comparison
+> chart's technique).
+> **Verified:** tsc/ESLint/Prettier clean; 3 new suites/19 tests; mutation 2/2 caught (corridor back
+> on USD fails 1, no visibility effect fails 2), restored byte-exact; full `test:ci` **213/213·2802/2802** (210/2783 + exactly these 3/19). Live
+> `next dev` via a throwaway unauthenticated route with synthetic data (deleted): lines hide with the
+> scale refit and corridor + news marker intact with USD hidden, reload persistence, detail modal
+> from a hidden chip, Hide/Show all, dark mode, 375px. **Not verified:** authenticated PRO
+> click-through on real data.
+> **Artifacts:** `components/currency-index-pro/{hooks/use-hidden-currency-lines.ts (new),
+chart/currency-legend-strip.tsx, chart/relative-strength-chart.tsx, pro-currency-index-cockpit.tsx}`,
+> `lib/i18n/dictionaries/{en-US,en-GB}.json` (7 identity keys), 3 new test files under
+> `__tests__/components/currency-index-pro/`, the manifest above, this file.
+
 > **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index Comparison PRO Round 4:
 > ZigZag and Z-score candles ("MC") on `/pro/currency-index/compare`, plus a No Plot plot type.
 > Code complete, verified, committed and pushed (`e78bd83a` ports + tests, `faee6e1e` UI, `57710520`
