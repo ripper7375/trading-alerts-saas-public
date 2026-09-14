@@ -48,6 +48,8 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-xaux-vs-usdx-comparison-pa
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-currency-index-comparison-pro-stack\currency-index-comparison-pro-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\davintrade-frontend-ui-fix\frontend-ui-fix-1-manifest-work-completion.md
+
 =================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder
