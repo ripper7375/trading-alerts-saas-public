@@ -43,6 +43,8 @@ interface DrawingLayerProps {
   series: ISeriesApi<'Candlestick'>;
   symbol: string;
   timeframe: string;
+  /** Canvas height in px, so the toolbar can lay itself out to fit. */
+  chartHeight?: number;
   /** Optional: receive snapshots when marks change (in addition to autosave). */
   onMarksChange?: (snapshots: MarkSnapshot[]) => void;
 }
@@ -52,6 +54,7 @@ export function DrawingLayer({
   series,
   symbol,
   timeframe,
+  chartHeight,
   onMarksChange,
 }: DrawingLayerProps): JSX.Element {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -213,6 +216,7 @@ export function DrawingLayer({
   return (
     <>
       <Toolbar
+        chartHeight={chartHeight}
         activeTool={activeTool}
         hasSelection={hasSelection}
         canAddAlert={canAddAlert}

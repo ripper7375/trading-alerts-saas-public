@@ -121,12 +121,23 @@ jest.mock('@/components/charts/mtf/MtfToggle', () => ({
 }));
 
 // ─────────────────────────────────────────────────────────────
-// Mock ResizeObserver (not in jsdom)
+// Mock ResizeObserver (not in jsdom). Instances are kept so a test can fire
+// a resize at an observed element.
 // ─────────────────────────────────────────────────────────────
+const resizeObservers: MockResizeObserver[] = [];
 class MockResizeObserver {
   observe = jest.fn();
   disconnect = jest.fn();
   unobserve = jest.fn();
+  constructor(public callback: ResizeObserverCallback) {
+    resizeObservers.push(this);
+  }
+  fire(width: number): void {
+    this.callback(
+      [{ contentRect: { width } } as ResizeObserverEntry],
+      this as unknown as ResizeObserver
+    );
+  }
 }
 global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver;
 
@@ -441,6 +452,62 @@ describe('TradingChart Component', () => {
       );
 
       expect(() => unmount()).not.toThrow();
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // Width follows the container, not the window: collapsing a workspace
+  // panel resizes the container while the window stays the same size.
+  // ──────────────────────────────────────────────────────────
+  describe('container resizing', () => {
+    function renderAndFindObserver(): MockResizeObserver {
+      resizeObservers.length = 0;
+      render(<TradingChart symbol="XAUUSD" timeframe="M5" />);
+      const observer = resizeObservers.find(
+        (o) => o.observe.mock.calls.length > 0
+      );
+      expect(observer).toBeDefined();
+      return observer as MockResizeObserver;
+    }
+
+    it('observes the chart container', () => {
+      const observer = renderAndFindObserver();
+      const target = observer.observe.mock.calls[0]?.[0] as HTMLElement;
+      expect(target.querySelector('canvas')).toBeNull();
+      expect(target.className).toBe('w-full');
+    });
+
+    it('resizes the chart to the new container width', () => {
+      const observer = renderAndFindObserver();
+      mockApplyOptions.mockClear();
+
+      observer.fire(1752.6);
+      expect(mockApplyOptions).toHaveBeenCalledWith({ width: 1752 });
+
+      observer.fire(683.2);
+      expect(mockApplyOptions).toHaveBeenLastCalledWith({ width: 683 });
+    });
+
+    it('ignores zero widths and repeats of the current width', () => {
+      const observer = renderAndFindObserver();
+      observer.fire(900);
+      mockApplyOptions.mockClear();
+
+      observer.fire(0);
+      observer.fire(900.4);
+      expect(mockApplyOptions).not.toHaveBeenCalled();
+    });
+
+    it('stops observing on unmount', () => {
+      resizeObservers.length = 0;
+      const { unmount } = render(
+        <TradingChart symbol="XAUUSD" timeframe="M5" />
+      );
+      const observer = resizeObservers.find(
+        (o) => o.observe.mock.calls.length > 0
+      );
+      unmount();
+      expect(observer?.disconnect).toHaveBeenCalled();
     });
   });
 });

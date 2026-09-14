@@ -209,20 +209,22 @@ export function TradingChart({
     setChartApi(chart);
     setSeriesApi(candleSeries);
 
-    const handleResize = (): void => {
-      if (chartContainerRef.current && chartRef.current) {
-        const newWidth =
-          chartContainerRef.current.clientWidth ||
-          chartContainerRef.current.parentElement?.clientWidth ||
-          800;
-        chartRef.current.applyOptions({ width: newWidth });
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
+    // Follow the container, not the window: collapsing or dragging a
+    // workspace panel resizes the container while the window stays the same
+    // size, and a window `resize` listener left the canvas at its old width.
+    // The container is a block box, so its width comes from its parent and
+    // never from the canvas inside it -- resizing the chart cannot loop.
+    let lastWidth = containerWidth;
+    const observer = new ResizeObserver((entries) => {
+      const width = Math.floor(entries[0]?.contentRect.width ?? 0);
+      if (width <= 0 || width === lastWidth || !chartRef.current) return;
+      lastWidth = width;
+      chartRef.current.applyOptions({ width });
+    });
+    observer.observe(chartContainerRef.current);
 
     return (): void => {
-      window.removeEventListener('resize', handleResize);
+      observer.disconnect();
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
@@ -412,6 +414,7 @@ export function TradingChart({
               series={seriesApi}
               symbol={symbol}
               timeframe={timeframe}
+              chartHeight={height}
             />
           )}
         </div>
