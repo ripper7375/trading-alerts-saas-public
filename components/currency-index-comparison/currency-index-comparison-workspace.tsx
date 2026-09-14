@@ -8,8 +8,9 @@
  * HRMA/SMMA detail modal's what-if sliders). Every control except the index
  * pickers and the timeframe toggle is applied in the browser with no request.
  *
- * ZigZag and the Z-score candles ("MC") apply to both indices, each with one
- * chip that hides or shows it on both (Davin's call, 2026-09-14).
+ * ZigZag and the Z-score candles ("MC") are drawn for each index and hidden or
+ * shown per index, with their chips beside that index's HRMA/SMMA chips --
+ * the same as HRMA/SMMA (Davin, 2026-09-14, replacing one shared chip each).
  *
  * @module components/currency-index-comparison/currency-index-comparison-workspace
  */
@@ -105,10 +106,20 @@ const ZSCORE_CLASS_LABELS: Record<HighlightedZScoreClass, string> = {
 /** Z-score thresholds move in steps of 0.1 and display with one decimal. */
 const formatThreshold = (v: number): string => v.toFixed(1);
 
+/** Per-index hide/show state for every indicator chip. */
 interface LineToggles {
   hrma: boolean;
   smma: boolean;
+  zigzag: boolean;
+  zscore: boolean;
 }
+
+const ALL_SHOWN: LineToggles = {
+  hrma: true,
+  smma: true,
+  zigzag: true,
+  zscore: true,
+};
 
 function SliderRow({
   label,
@@ -202,15 +213,13 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
   const [zscoreThreshold2, setZscoreThreshold2] = useState(
     DEFAULT_ZSCORE_THRESHOLD_2
   );
-  const [showZigzag, setShowZigzag] = useState(true);
-  const [showZscore, setShowZscore] = useState(true);
   const [bases, setBases] = useState<Record<SlotId, number>>({
     A: REBASE_DEFAULT,
     B: REBASE_DEFAULT,
   });
   const [toggles, setToggles] = useState<Record<SlotId, LineToggles>>({
-    A: { hrma: true, smma: true },
-    B: { hrma: true, smma: true },
+    A: ALL_SHOWN,
+    B: ALL_SHOWN,
   });
 
   const selected = useMemo(
@@ -233,16 +242,17 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
         base: bases[slot],
         showHrma: toggles[slot].hrma,
         showSmma: toggles[slot].smma,
+        showZigzag: toggles[slot].zigzag,
+        showZscore: toggles[slot].zscore,
       };
     };
     return { A: build('A', symbolA), B: build('B', symbolB) };
   }, [series, symbolA, symbolB, bases, toggles]);
 
   const hasData = SLOT_IDS.some((id) => (slots[id]?.candles.length ?? 0) > 0);
-  const maxBars = Math.max(
-    0,
-    ...SLOT_IDS.map((id) => slots[id]?.candles.length ?? 0)
-  );
+  // The legend keys explain a mark while any index still draws it.
+  const anyShown = (line: keyof LineToggles): boolean =>
+    SLOT_IDS.some((id) => symbols[id] !== null && toggles[id][line]);
   const isRebased = SLOT_IDS.some((id) => bases[id] !== REBASE_DEFAULT);
 
   const toggleLine = (slot: SlotId, line: keyof LineToggles): void =>
@@ -523,7 +533,12 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
             if (!symbol) return null;
             const color = slotColor(slot, resolvedTheme);
             return (
-              <div key={slot} className="flex flex-wrap items-center gap-2">
+              <div
+                key={slot}
+                role="group"
+                aria-label={symbol}
+                className="flex flex-wrap items-center gap-2"
+              >
                 <span className="flex items-center gap-1.5 font-semibold text-foreground">
                   <span
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -533,17 +548,36 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
                 </span>
                 {(
                   [
-                    ['hrma', `HRMA(${hrmaPeriod})`, 'dashed', hrmaPeriod],
-                    ['smma', `SMMA(${smmaPeriod})`, 'dotted', smmaPeriod],
+                    {
+                      line: 'hrma',
+                      label: `HRMA(${hrmaPeriod})`,
+                      needed: hrmaPeriod,
+                    },
+                    {
+                      line: 'smma',
+                      label: `SMMA(${smmaPeriod})`,
+                      needed: smmaPeriod,
+                    },
+                    {
+                      line: 'zigzag',
+                      label: `ZigZag (${zigzagDepth},${ZIGZAG_DEVIATION},${ZIGZAG_BACKSTEP})`,
+                      needed: zigzagDepth,
+                    },
+                    {
+                      line: 'zscore',
+                      label: `MC (${zscoreLength},${formatThreshold(zscoreThreshold1)},${formatThreshold(zscoreThreshold2)})`,
+                      needed: zscoreBarsNeeded(zscoreLength),
+                    },
                   ] as const
-                ).map(([line, label, style, period]) => {
+                ).map(({ line, label, needed }) => {
                   const on = toggles[slot][line];
                   const barCount = slots[slot]?.candles.length ?? 0;
-                  // Both indicators draw nothing until there are `period`
+                  // Every indicator draws nothing until there are enough
                   // bars (HRMA per its MQL5 `rates_total < len_hrma` guard,
-                  // SMMA by its seed). Say so, rather than leave an "on"
-                  // chip with no line and no explanation.
-                  const tooFewBars = on && barCount > 0 && barCount < period;
+                  // SMMA by its seed, ZigZag below depth, MC before its first
+                  // full window). Say so, rather than leave an "on" chip with
+                  // no mark and no explanation.
+                  const tooFewBars = on && barCount > 0 && barCount < needed;
                   return (
                     <button
                       key={line}
@@ -557,16 +591,54 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
                           : 'border-dashed border-border text-muted-foreground line-through opacity-60'
                       }`}
                     >
-                      <span
-                        className="inline-block w-4"
-                        style={{ borderTop: `2px ${style} ${color}` }}
-                      />
+                      {line === 'hrma' || line === 'smma' ? (
+                        <span
+                          aria-hidden="true"
+                          className="inline-block w-4"
+                          style={{
+                            borderTop: `2px ${line === 'hrma' ? 'dashed' : 'dotted'} ${color}`,
+                          }}
+                        />
+                      ) : line === 'zigzag' ? (
+                        <svg
+                          aria-hidden="true"
+                          viewBox="0 0 16 10"
+                          className="h-2.5 w-4"
+                          fill="none"
+                          stroke={color}
+                          strokeWidth="1.5"
+                        >
+                          <polyline points="1,8 5,2 9,7 15,1" />
+                        </svg>
+                      ) : (
+                        // MC candles are green/magenta on both indices; the
+                        // chip sits in its index's group, which says whose.
+                        <span
+                          aria-hidden="true"
+                          className="flex items-end gap-0.5"
+                        >
+                          {(['up-extreme', 'down-extreme'] as const).map(
+                            (cls) => (
+                              <span
+                                key={cls}
+                                className="inline-block h-2.5 w-1.5 rounded-[1px]"
+                                style={{
+                                  backgroundColor: zscoreClassColors(
+                                    cls,
+                                    resolvedTheme
+                                  ).body,
+                                }}
+                              />
+                            )
+                          )}
+                        </span>
+                      )}
                       {label}
                       {tooFewBars && (
                         <span className="font-sans text-muted-foreground">
                           {t('needs {count} bars').replace(
                             '{count}',
-                            String(period)
+                            String(needed)
                           )}
                         </span>
                       )}
@@ -574,85 +646,6 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
                   );
                 })}
               </div>
-            );
-          })}
-          {(
-            [
-              {
-                key: 'zigzag',
-                label: `ZigZag (${zigzagDepth},${ZIGZAG_DEVIATION},${ZIGZAG_BACKSTEP})`,
-                title: t('ZigZag'),
-                on: showZigzag,
-                toggle: () => setShowZigzag((v) => !v),
-                needed: zigzagDepth,
-              },
-              {
-                key: 'zscore',
-                label: `MC (${zscoreLength},${formatThreshold(zscoreThreshold1)},${formatThreshold(zscoreThreshold2)})`,
-                title: t('Z-score candles (MC)'),
-                on: showZscore,
-                toggle: () => setShowZscore((v) => !v),
-                needed: zscoreBarsNeeded(zscoreLength),
-              },
-            ] as const
-          ).map((chip) => {
-            const tooFewBars = chip.on && maxBars > 0 && maxBars < chip.needed;
-            return (
-              <button
-                key={chip.key}
-                type="button"
-                aria-pressed={chip.on}
-                title={`${chip.title}: ${chip.on ? t('Click to hide') : t('Click to show')}`}
-                onClick={chip.toggle}
-                className={`flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono transition-colors ${
-                  chip.on
-                    ? 'border-border text-foreground'
-                    : 'border-dashed border-border text-muted-foreground line-through opacity-60'
-                }`}
-              >
-                {chip.key === 'zigzag' ? (
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 16 10"
-                    className="h-2.5 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                  >
-                    <polyline points="1,8 5,2 9,7 15,1" />
-                  </svg>
-                ) : (
-                  <span aria-hidden="true" className="flex items-end gap-0.5">
-                    <span
-                      className="inline-block h-2.5 w-1.5 rounded-[1px]"
-                      style={{
-                        backgroundColor: zscoreClassColors(
-                          'up-extreme',
-                          resolvedTheme
-                        ).body,
-                      }}
-                    />
-                    <span
-                      className="inline-block h-2.5 w-1.5 rounded-[1px]"
-                      style={{
-                        backgroundColor: zscoreClassColors(
-                          'down-extreme',
-                          resolvedTheme
-                        ).body,
-                      }}
-                    />
-                  </span>
-                )}
-                {chip.label}
-                {tooFewBars && (
-                  <span className="font-sans text-muted-foreground">
-                    {t('needs {count} bars').replace(
-                      '{count}',
-                      String(chip.needed)
-                    )}
-                  </span>
-                )}
-              </button>
             );
           })}
         </div>
@@ -663,7 +656,7 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
           {(plotType === 'ohlc' || plotType === 'heikin-ashi') && (
             <span>{t('Hollow candle = rising, filled = falling')}</span>
           )}
-          {showZigzag && (
+          {anyShown('zigzag') && (
             <span className="flex flex-wrap items-center gap-2">
               <span className="font-medium text-foreground">
                 {t('ZigZag move')}:
@@ -680,7 +673,7 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
               ))}
             </span>
           )}
-          {showZscore && (
+          {anyShown('zscore') && (
             <span className="flex flex-wrap items-center gap-2">
               <span className="font-medium text-foreground">MC:</span>
               {ZSCORE_HIGHLIGHT_CLASSES.map((cls) => {
@@ -709,8 +702,6 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
           zscoreLength={zscoreLength}
           zscoreThreshold1={zscoreThreshold1}
           zscoreThreshold2={zscoreThreshold2}
-          showZigzag={showZigzag}
-          showZscore={showZscore}
           fitKey={timeframe}
         />
         {!isLoading && !hasData && (

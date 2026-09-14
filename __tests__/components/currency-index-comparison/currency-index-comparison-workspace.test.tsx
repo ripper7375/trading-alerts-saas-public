@@ -87,47 +87,53 @@ describe('CurrencyIndexComparisonWorkspace', () => {
     expect(lastChartProps().plotType).toBe('none');
   });
 
-  it('starts ZigZag and MC at the requested defaults, both shown', () => {
+  it('starts ZigZag and MC at the requested defaults, shown on both indices', () => {
     render();
     expect(lastChartProps()).toMatchObject({
       zigzagDepth: 12,
       zscoreLength: 54,
       zscoreThreshold1: 1.5,
       zscoreThreshold2: 2.5,
-      showZigzag: true,
-      showZscore: true,
     });
-    expect(
-      screen.getByRole('button', { name: /ZigZag \(12,5,3\)/ })
-    ).toHaveAttribute('aria-pressed', 'true');
-    expect(
-      screen.getByRole('button', { name: /MC \(54,1\.5,2\.5\)/ })
-    ).toHaveAttribute('aria-pressed', 'true');
+    for (const symbol of ['XAUX', 'USDX']) {
+      const group = screen.getByRole('group', { name: symbol });
+      expect(
+        within(group)
+          .getAllByRole('button')
+          .map((b) => [b.textContent, b.getAttribute('aria-pressed')])
+      ).toEqual([
+        ['HRMA(36)', 'true'],
+        ['SMMA(13)', 'true'],
+        ['ZigZag (12,5,3)', 'true'],
+        ['MC (54,1.5,2.5)', 'true'],
+      ]);
+    }
   });
 
-  it('hides and shows ZigZag and MC independently with one chip each', () => {
+  it("hides ZigZag and MC per index, leaving the other index's untouched", () => {
     render();
-    const zigzag = screen.getByRole('button', { name: /ZigZag \(12,5,3\)/ });
-    const mc = screen.getByRole('button', { name: /MC \(54,1\.5,2\.5\)/ });
+    const slotFlags = () => {
+      const slots = lastChartProps().slots as Record<
+        'A' | 'B',
+        { showZigzag: boolean; showZscore: boolean }
+      >;
+      return {
+        A: [slots.A.showZigzag, slots.A.showZscore],
+        B: [slots.B.showZigzag, slots.B.showZscore],
+      };
+    };
+    const xaux = within(screen.getByRole('group', { name: 'XAUX' }));
+    const usdx = within(screen.getByRole('group', { name: 'USDX' }));
+    expect(slotFlags()).toEqual({ A: [true, true], B: [true, true] });
 
-    fireEvent.click(zigzag);
-    expect(lastChartProps()).toMatchObject({
-      showZigzag: false,
-      showZscore: true,
-    });
-    expect(zigzag).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(xaux.getByRole('button', { name: /ZigZag \(12,5,3\)/ }));
+    expect(slotFlags()).toEqual({ A: [false, true], B: [true, true] });
 
-    fireEvent.click(mc);
-    expect(lastChartProps()).toMatchObject({
-      showZigzag: false,
-      showZscore: false,
-    });
-
-    fireEvent.click(zigzag);
-    expect(lastChartProps()).toMatchObject({
-      showZigzag: true,
-      showZscore: false,
-    });
+    fireEvent.click(usdx.getByRole('button', { name: /MC \(54,1\.5,2\.5\)/ }));
+    expect(slotFlags()).toEqual({ A: [false, true], B: [true, false] });
+    expect(
+      usdx.getByRole('button', { name: /ZigZag \(12,5,3\)/ })
+    ).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('has sliders for Depth and all three MC inputs, and no slider for Deviation or Back Step', () => {
@@ -162,7 +168,7 @@ describe('CurrencyIndexComparisonWorkspace', () => {
     ).toBeInTheDocument();
   });
 
-  it('keys the ZigZag weights and the four MC classes while each is shown', () => {
+  it('keys the ZigZag weights and the four MC classes while any index shows them', () => {
     render();
     for (const label of [
       'Normal',
@@ -175,9 +181,15 @@ describe('CurrencyIndexComparisonWorkspace', () => {
     ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
-    fireEvent.click(
-      screen.getByRole('button', { name: /MC \(54,1\.5,2\.5\)/ })
-    );
+    const mcChip = (symbol: string) =>
+      within(screen.getByRole('group', { name: symbol })).getByRole('button', {
+        name: /MC \(54,1\.5,2\.5\)/,
+      });
+
+    fireEvent.click(mcChip('XAUX'));
+    expect(screen.getByText('Up Extreme')).toBeInTheDocument();
+
+    fireEvent.click(mcChip('USDX'));
     expect(screen.queryByText('Up Extreme')).toBeNull();
     expect(screen.getByText('Extreme')).toBeInTheDocument();
   });

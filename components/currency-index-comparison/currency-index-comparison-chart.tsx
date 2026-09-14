@@ -12,7 +12,7 @@
  * - Any 1-2 of the 9 Lane 4 indices, in two fixed SLOTS (A, B).
  * - Four plot types: no plot, line, OHLC candles, Heiken Ashi candles.
  * - HRMA and SMMA per slot, each independently hideable.
- * - ZigZag and Z-score candles ("MC") on both slots, each hideable as a pair.
+ * - ZigZag and Z-score candles ("MC") per slot, each independently hideable.
  * - No watermark.
  *
  * WHY EVERY SERIES EXISTS UP FRONT: each slot owns a line, a candlestick, an
@@ -110,6 +110,8 @@ export interface ChartSlot {
   base: number;
   showHrma: boolean;
   showSmma: boolean;
+  showZigzag: boolean;
+  showZscore: boolean;
 }
 
 interface CurrencyIndexComparisonChartProps {
@@ -122,9 +124,6 @@ interface CurrencyIndexComparisonChartProps {
   zscoreLength: number;
   zscoreThreshold1: number;
   zscoreThreshold2: number;
-  /** ZigZag and Z-score candles are shown or hidden on both slots at once. */
-  showZigzag: boolean;
-  showZscore: boolean;
   /** Changing this re-fits the visible range (e.g. on an M5/M15 switch). */
   fitKey: string;
   height?: number;
@@ -368,8 +367,6 @@ export function CurrencyIndexComparisonChart({
   zscoreLength,
   zscoreThreshold1,
   zscoreThreshold2,
-  showZigzag,
-  showZscore,
   fitKey,
   height = 520,
 }: CurrencyIndexComparisonChartProps): React.JSX.Element {
@@ -606,14 +603,14 @@ export function CurrencyIndexComparisonChart({
       // Per-bar colors are baked into the Z-score and ZigZag data, so both are
       // re-pushed on a theme change too.
       s.zscore.setData(present ? toZscoreData(c, resolvedTheme, offset) : []);
-      s.zscore.applyOptions({ visible: present && showZscore });
+      s.zscore.applyOptions({ visible: present && !!slot?.showZscore });
       const color = slotColor(slotId, resolvedTheme);
       for (const cls of ZIGZAG_CLASSES) {
         s.zigzag[cls].setData(
           present ? toZigzagData(c, cls, color, offset) : []
         );
         s.zigzag[cls].applyOptions({
-          visible: present && showZigzag && c.pivots.length >= 2,
+          visible: present && !!slot?.showZigzag && c.pivots.length >= 2,
         });
       }
 
@@ -666,8 +663,6 @@ export function CurrencyIndexComparisonChart({
     computedB,
     hrmaPeriod,
     smmaPeriod,
-    showZigzag,
-    showZscore,
     resolvedTheme,
     fitKey,
   ]);
