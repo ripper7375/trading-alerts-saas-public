@@ -10,8 +10,9 @@
  * Free chart, each a PRO requirement:
  *
  * - Any 1-2 of the 9 Lane 4 indices, in two fixed SLOTS (A, B).
- * - Three plot types: line, OHLC candles, Heiken Ashi candles.
+ * - Four plot types: no plot, line, OHLC candles, Heiken Ashi candles.
  * - HRMA and SMMA per slot, each independently hideable.
+ * - ZigZag and Z-score candles ("MC") on both slots, each hideable as a pair.
  * - No watermark.
  *
  * WHY EVERY SERIES EXISTS UP FRONT: each slot owns a line, a candlestick, an
@@ -33,6 +34,27 @@
  * every check passes in both modes. HRMA/SMMA share their slot's hue and are
  * told apart by line style (dashed / dotted) plus an on-chart title, so
  * identity never rests on hue alone.
+ *
+ * ZIGZAG shows its segment class (lib/currency-index-comparison/zigzag.ts) by
+ * LINE WEIGHT in the slot's hue -- Normal 1px, Large 2px, Extreme 4px -- not by
+ * extra hues. Validated 2026-09-14: every palette hue left for two class
+ * colors fails the CVD or normal-vision floor against one of the slot hues
+ * (orange vs gold, violet vs dark-mode blue, red vs gold) or is taken by the
+ * Z-score candles. Weight is ordinal, needs no new hue, and was Davin's call.
+ * Each class is its own line series holding every pivot, with only that
+ * class's segments painted (see zigzagSegmentStarts()).
+ *
+ * Z-SCORE CANDLES are a polarity x magnitude encoding: direction by hue, green
+ * up / magenta down (the palette's green and magenta steps, CVD pair PASS in
+ * both modes: dE 17.6 light / 13.0 dark), class by body strength -- Extreme
+ * candles fully filled, Large candles with a tint of the same hue blended into
+ * the chart surface (60%) and a full-hue outline. Each tint + full pair passes
+ * validate_palette.js --ordinal against its surface. Against the slot hues
+ * (--pairs all) the only non-PASS is green vs gold at CVD dE 6.9, a WARN whose
+ * relief is the labelled legend key and the different mark (candle bodies vs
+ * the gold line / hollow candles). Light magenta uses the palette's darker
+ * magenta step, since the light step is 2.69:1 on white and its tint cannot
+ * clear 2:1. Normal candles are not drawn at all.
  *
  * @module components/currency-index-comparison/currency-index-comparison-chart
  */
@@ -62,8 +84,21 @@ import type {
   ComparisonIndexName,
   IndexCandle,
 } from '@/lib/currency-index-comparison/series';
+import {
+  classifyZigZagSegments,
+  detectZigZagPivots,
+  zigzagSegmentStarts,
+  type ZigZagClass,
+  type ZigZagPivot,
+} from '@/lib/currency-index-comparison/zigzag';
+import {
+  isHighlightedZScoreClass,
+  zscoreCandleClasses,
+  type HighlightedZScoreClass,
+  type ZScoreCandleClass,
+} from '@/lib/currency-index-comparison/zscore-candle';
 
-export type PlotType = 'line' | 'ohlc' | 'heikin-ashi';
+export type PlotType = 'none' | 'line' | 'ohlc' | 'heikin-ashi';
 export type SlotId = 'A' | 'B';
 
 export const SLOT_IDS: readonly SlotId[] = ['A', 'B'];
@@ -83,6 +118,13 @@ interface CurrencyIndexComparisonChartProps {
   plotType: PlotType;
   hrmaPeriod: number;
   smmaPeriod: number;
+  zigzagDepth: number;
+  zscoreLength: number;
+  zscoreThreshold1: number;
+  zscoreThreshold2: number;
+  /** ZigZag and Z-score candles are shown or hidden on both slots at once. */
+  showZigzag: boolean;
+  showZscore: boolean;
   /** Changing this re-fits the visible range (e.g. on an M5/M15 switch). */
   fitKey: string;
   height?: number;
@@ -100,6 +142,51 @@ export function slotColor(slot: SlotId, theme: 'light' | 'dark'): string {
 }
 
 const HOLLOW = 'rgba(0, 0, 0, 0)';
+
+export const ZIGZAG_CLASSES: readonly ZigZagClass[] = [
+  'normal',
+  'large',
+  'extreme',
+];
+
+export const ZIGZAG_LINE_WIDTH: Record<ZigZagClass, 1 | 2 | 4> = {
+  normal: 1,
+  large: 2,
+  extreme: 4,
+};
+
+export const ZSCORE_HIGHLIGHT_CLASSES: readonly HighlightedZScoreClass[] = [
+  'up-large',
+  'up-extreme',
+  'down-large',
+  'down-extreme',
+];
+
+const ZSCORE_COLORS: Record<
+  'light' | 'dark',
+  Record<HighlightedZScoreClass, { body: string; outline: string }>
+> = {
+  // Tints: 60% of the hue over the chart surface (#ffffff / #0a0e17).
+  light: {
+    'up-large': { body: '#66b566', outline: '#008300' },
+    'up-extreme': { body: '#008300', outline: '#008300' },
+    'down-large': { body: '#e697b3', outline: '#d55181' },
+    'down-extreme': { body: '#d55181', outline: '#d55181' },
+  },
+  dark: {
+    'up-large': { body: '#045409', outline: '#008300' },
+    'up-extreme': { body: '#008300', outline: '#008300' },
+    'down-large': { body: '#843657', outline: '#d55181' },
+    'down-extreme': { body: '#d55181', outline: '#d55181' },
+  },
+};
+
+export function zscoreClassColors(
+  cls: HighlightedZScoreClass,
+  theme: 'light' | 'dark'
+): { body: string; outline: string } {
+  return ZSCORE_COLORS[theme][cls];
+}
 
 /** Mirrors xaux-usdx-comparison-chart.tsx's chartChromeColors(). */
 function chartChromeColors(
@@ -143,6 +230,8 @@ interface SlotSeries {
   candle: ISeriesApi<'Candlestick'>;
   hrma: ISeriesApi<'Line'>;
   smma: ISeriesApi<'Line'>;
+  zscore: ISeriesApi<'Candlestick'>;
+  zigzag: Record<ZigZagClass, ISeriesApi<'Line'>>;
 }
 
 interface SlotComputed {
@@ -150,27 +239,63 @@ interface SlotComputed {
   heikinAshi: IndexCandle[];
   hrma: IndicatorPoint[];
   smma: IndicatorPoint[];
+  pivots: ZigZagPivot[];
+  segmentClasses: (ZigZagClass | null)[];
+  zscore: (ZScoreCandleClass | null)[];
 }
 
-const EMPTY_COMPUTED: SlotComputed = {
-  candles: [],
-  heikinAshi: [],
-  hrma: [],
-  smma: [],
-};
+const EMPTY_CANDLES: IndexCandle[] = [];
 
-function computeSlot(
-  slot: ChartSlot | null,
+/**
+ * Each indicator is memoized on only its own inputs, so a slider recomputes
+ * one indicator, and a rebase drag, a toggle or a plot-type switch recomputes
+ * none. Keyed on the candles array, not the slot object, which is rebuilt on
+ * every base/toggle change.
+ */
+function useSlotComputed(
+  candles: IndexCandle[] | undefined,
   hrmaPeriod: number,
-  smmaPeriod: number
+  smmaPeriod: number,
+  zigzagDepth: number,
+  zscoreLength: number,
+  zscoreThreshold1: number,
+  zscoreThreshold2: number
 ): SlotComputed {
-  if (!slot) return EMPTY_COMPUTED;
-  return {
-    candles: slot.candles,
-    heikinAshi: heikinAshi(slot.candles),
-    hrma: hrmaSeries(slot.candles, hrmaPeriod),
-    smma: smmaSeries(slot.candles, smmaPeriod),
-  };
+  const source = candles ?? EMPTY_CANDLES;
+  const ha = useMemo(() => heikinAshi(source), [source]);
+  const hrma = useMemo(
+    () => hrmaSeries(source, hrmaPeriod),
+    [source, hrmaPeriod]
+  );
+  const smma = useMemo(
+    () => smmaSeries(source, smmaPeriod),
+    [source, smmaPeriod]
+  );
+  const zigzag = useMemo(() => {
+    const pivots = detectZigZagPivots(source, zigzagDepth);
+    return { pivots, segmentClasses: classifyZigZagSegments(pivots) };
+  }, [source, zigzagDepth]);
+  const zscore = useMemo(
+    () =>
+      zscoreCandleClasses(source, {
+        length: zscoreLength,
+        thresholdZ1: zscoreThreshold1,
+        thresholdZ2: zscoreThreshold2,
+      }),
+    [source, zscoreLength, zscoreThreshold1, zscoreThreshold2]
+  );
+  return useMemo(
+    () => ({
+      candles: source,
+      heikinAshi: ha,
+      hrma,
+      smma,
+      pivots: zigzag.pivots,
+      segmentClasses: zigzag.segmentClasses,
+      zscore,
+    }),
+    [source, ha, hrma, smma, zigzag, zscore]
+  );
 }
 
 function toCandleData(candles: IndexCandle[], offset: number) {
@@ -193,11 +318,58 @@ function toLineData(points: { time: number; value: number }[], offset: number) {
   }));
 }
 
+/** Every pivot, painted only where it starts a segment of class `cls`. */
+function toZigzagData(
+  c: SlotComputed,
+  cls: ZigZagClass,
+  color: string,
+  offset: number
+) {
+  const starts = zigzagSegmentStarts(c.segmentClasses, cls);
+  return c.pivots.map((p, k) => ({
+    time: p.time as UTCTimestamp,
+    value: p.price + offset,
+    color: starts[k] ? color : HOLLOW,
+  }));
+}
+
+/** Only Large and Extreme candles; every other bar is simply absent. */
+function toZscoreData(
+  c: SlotComputed,
+  theme: 'light' | 'dark',
+  offset: number
+) {
+  const data = [];
+  for (let i = 0; i < c.candles.length; i++) {
+    const cls = c.zscore[i] ?? null;
+    if (!isHighlightedZScoreClass(cls)) continue;
+    const { body, outline } = zscoreClassColors(cls, theme);
+    const s = shiftCandle(c.candles[i] as IndexCandle, offset);
+    data.push({
+      time: s.time as UTCTimestamp,
+      open: s.open,
+      high: s.high,
+      low: s.low,
+      close: s.close,
+      color: body,
+      borderColor: outline,
+      wickColor: outline,
+    });
+  }
+  return data;
+}
+
 export function CurrencyIndexComparisonChart({
   slots,
   plotType,
   hrmaPeriod,
   smmaPeriod,
+  zigzagDepth,
+  zscoreLength,
+  zscoreThreshold1,
+  zscoreThreshold2,
+  showZigzag,
+  showZscore,
   fitKey,
   height = 520,
 }: CurrencyIndexComparisonChartProps): React.JSX.Element {
@@ -247,20 +419,39 @@ export function CurrencyIndexComparisonChart({
       pointMarkersVisible: false,
     });
 
+    // Created in layers so z-order is the same for both slots: candles, then
+    // Z-score candles over them, then the close lines and averages, then the
+    // ZigZag on top.
+    const candles = {} as Record<SlotId, ISeriesApi<'Candlestick'>>;
+    const zscores = {} as Record<SlotId, ISeriesApi<'Candlestick'>>;
+    for (const slot of SLOT_IDS) {
+      candles[slot] = chart.addSeries(CandlestickSeries, {
+        ...candleStyle(slotColor(slot, resolvedTheme)),
+        priceLineVisible: false,
+        // The close LINE series carries the price-scale label in every plot
+        // type: a candlestick's label takes the last bar's body color, which
+        // is transparent for a rising (hollow) candle, so the label would
+        // lose the slot's hue exactly when the index is going up. Found in
+        // live verification, not in theory.
+        lastValueVisible: false,
+        visible: false,
+      });
+    }
+    for (const slot of SLOT_IDS) {
+      // Colors come per bar with the data (toZscoreData).
+      zscores[slot] = chart.addSeries(CandlestickSeries, {
+        borderVisible: true,
+        wickVisible: true,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        visible: false,
+      });
+    }
     for (const slot of SLOT_IDS) {
       const color = slotColor(slot, resolvedTheme);
       seriesRef.current[slot] = {
-        candle: chart.addSeries(CandlestickSeries, {
-          ...candleStyle(color),
-          priceLineVisible: false,
-          // The close LINE series carries the price-scale label in every plot
-          // type: a candlestick's label takes the last bar's body color, which
-          // is transparent for a rising (hollow) candle, so the label would
-          // lose the slot's hue exactly when the index is going up. Found in
-          // live verification, not in theory.
-          lastValueVisible: false,
-          visible: false,
-        }),
+        candle: candles[slot],
+        zscore: zscores[slot],
         line: chart.addSeries(LineSeries, {
           color,
           lineWidth: 2,
@@ -286,7 +477,24 @@ export function CurrencyIndexComparisonChart({
           crosshairMarkerVisible: false,
           visible: false,
         }),
+        zigzag: {} as Record<ZigZagClass, ISeriesApi<'Line'>>,
       };
+    }
+    for (const slot of SLOT_IDS) {
+      const s = seriesRef.current[slot];
+      if (!s) continue;
+      for (const cls of ZIGZAG_CLASSES) {
+        // Colors come per pivot with the data (toZigzagData).
+        s.zigzag[cls] = chart.addSeries(LineSeries, {
+          color: slotColor(slot, resolvedTheme),
+          lineWidth: ZIGZAG_LINE_WIDTH[cls],
+          priceLineVisible: false,
+          lastValueVisible: false,
+          crosshairMarkerVisible: false,
+          pointMarkersVisible: false,
+          visible: false,
+        });
+      }
     }
 
     chartRef.current = chart;
@@ -348,21 +556,23 @@ export function CurrencyIndexComparisonChart({
     chartRef.current?.applyOptions({ height });
   }, [height]);
 
-  // Indicator math runs only when candles or periods change -- never for a
-  // rebase drag, a visibility toggle or a plot-type switch.
-  const slotA = slots.A;
-  const slotB = slots.B;
-  const computedA = useMemo(
-    () => computeSlot(slotA, hrmaPeriod, smmaPeriod),
-    // Keyed on the candles array, not the slot object, which is rebuilt on
-    // every base/toggle change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [slotA?.candles, hrmaPeriod, smmaPeriod]
+  const computedA = useSlotComputed(
+    slots.A?.candles,
+    hrmaPeriod,
+    smmaPeriod,
+    zigzagDepth,
+    zscoreLength,
+    zscoreThreshold1,
+    zscoreThreshold2
   );
-  const computedB = useMemo(
-    () => computeSlot(slotB, hrmaPeriod, smmaPeriod),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [slotB?.candles, hrmaPeriod, smmaPeriod]
+  const computedB = useSlotComputed(
+    slots.B?.candles,
+    hrmaPeriod,
+    smmaPeriod,
+    zigzagDepth,
+    zscoreLength,
+    zscoreThreshold1,
+    zscoreThreshold2
   );
 
   // Push data, visibility and titles.
@@ -393,15 +603,31 @@ export function CurrencyIndexComparisonChart({
       );
       s.hrma.setData(present ? toLineData(c.hrma, offset) : []);
       s.smma.setData(present ? toLineData(c.smma, offset) : []);
+      // Per-bar colors are baked into the Z-score and ZigZag data, so both are
+      // re-pushed on a theme change too.
+      s.zscore.setData(present ? toZscoreData(c, resolvedTheme, offset) : []);
+      s.zscore.applyOptions({ visible: present && showZscore });
+      const color = slotColor(slotId, resolvedTheme);
+      for (const cls of ZIGZAG_CLASSES) {
+        s.zigzag[cls].setData(
+          present ? toZigzagData(c, cls, color, offset) : []
+        );
+        s.zigzag[cls].applyOptions({
+          visible: present && showZigzag && c.pivots.length >= 2,
+        });
+      }
 
       const symbol = slot?.symbol ?? '';
-      s.candle.applyOptions({ visible: present && plotType !== 'line' });
-      // Always visible when present so its colored label shows in every plot
-      // type (see the candle series' creation comment); only its STROKE is
-      // hidden in candle modes. The label is the REAL close, also in Heiken
-      // Ashi mode, where the HA close is a synthetic average.
+      s.candle.applyOptions({
+        visible: present && (plotType === 'ohlc' || plotType === 'heikin-ashi'),
+      });
+      // Visible in every plot type but 'none', so its colored label shows in
+      // both candle modes too (see the candle series' creation comment); only
+      // its STROKE is hidden there. The label is the REAL close, also in
+      // Heiken Ashi mode, where the HA close is a synthetic average. No Plot
+      // hides the index itself, label included, leaving only its indicators.
       s.line.applyOptions({
-        visible: present,
+        visible: present && plotType !== 'none',
         lineVisible: plotType === 'line',
         crosshairMarkerVisible: plotType === 'line',
         title: symbol,
@@ -433,7 +659,18 @@ export function CurrencyIndexComparisonChart({
       chartRef.current?.timeScale().fitContent();
       fittedKeyRef.current = fitKey;
     }
-  }, [slots, plotType, computedA, computedB, hrmaPeriod, smmaPeriod, fitKey]);
+  }, [
+    slots,
+    plotType,
+    computedA,
+    computedB,
+    hrmaPeriod,
+    smmaPeriod,
+    showZigzag,
+    showZscore,
+    resolvedTheme,
+    fitKey,
+  ]);
 
   return (
     <div className="relative w-full rounded-lg border border-border bg-card p-4">

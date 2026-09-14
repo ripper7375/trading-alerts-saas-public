@@ -10,7 +10,7 @@ import { CurrencyIndexComparisonWorkspace } from '@/components/currency-index-co
 export const metadata: Metadata = {
   title: 'Currency Index Comparison PRO | DavinTrade',
   description:
-    'Compare any 2 of the 9 DavinTrade currency and gold indices with OHLC, Heiken Ashi, HRMA and SMMA.',
+    'Compare any 2 of the 9 DavinTrade currency and gold indices with OHLC, Heiken Ashi, HRMA, SMMA, ZigZag and Z-score candles.',
 };
 
 /**

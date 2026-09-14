@@ -8,6 +8,9 @@
  * HRMA/SMMA detail modal's what-if sliders). Every control except the index
  * pickers and the timeframe toggle is applied in the browser with no request.
  *
+ * ZigZag and the Z-score candles ("MC") apply to both indices, each with one
+ * chip that hides or shows it on both (Davin's call, 2026-09-14).
+ *
  * @module components/currency-index-comparison/currency-index-comparison-workspace
  */
 
@@ -40,12 +43,34 @@ import {
   type ComparisonIndexName,
   type ComparisonTimeframe,
 } from '@/lib/currency-index-comparison/series';
+import {
+  DEFAULT_ZIGZAG_DEPTH,
+  ZIGZAG_BACKSTEP,
+  ZIGZAG_DEPTH_MAX,
+  ZIGZAG_DEPTH_MIN,
+  ZIGZAG_DEVIATION,
+} from '@/lib/currency-index-comparison/zigzag';
+import {
+  DEFAULT_ZSCORE_LENGTH,
+  DEFAULT_ZSCORE_THRESHOLD_1,
+  DEFAULT_ZSCORE_THRESHOLD_2,
+  ZSCORE_LENGTH_MAX,
+  ZSCORE_LENGTH_MIN,
+  ZSCORE_THRESHOLD_MAX,
+  ZSCORE_THRESHOLD_MIN,
+  zscoreBarsNeeded,
+  type HighlightedZScoreClass,
+} from '@/lib/currency-index-comparison/zscore-candle';
 
 import {
   CurrencyIndexComparisonChart,
   REBASE_DEFAULT,
   SLOT_IDS,
+  ZIGZAG_CLASSES,
+  ZIGZAG_LINE_WIDTH,
+  ZSCORE_HIGHLIGHT_CLASSES,
   slotColor,
+  zscoreClassColors,
   type ChartSlot,
   type PlotType,
   type SlotId,
@@ -58,14 +83,68 @@ const REBASE_MIN = 50;
 const REBASE_MAX = 150;
 
 const PLOT_TYPES: { value: PlotType; label: string }[] = [
+  { value: 'none', label: 'No Plot' },
   { value: 'line', label: 'Line' },
   { value: 'ohlc', label: 'OHLC Candles' },
   { value: 'heikin-ashi', label: 'Heiken Ashi' },
 ];
 
+const ZIGZAG_CLASS_LABELS = {
+  normal: 'Normal',
+  large: 'Large',
+  extreme: 'Extreme',
+} as const;
+
+const ZSCORE_CLASS_LABELS: Record<HighlightedZScoreClass, string> = {
+  'up-large': 'Up Large',
+  'up-extreme': 'Up Extreme',
+  'down-large': 'Down Large',
+  'down-extreme': 'Down Extreme',
+};
+
+/** Z-score thresholds move in steps of 0.1 and display with one decimal. */
+const formatThreshold = (v: number): string => v.toFixed(1);
+
 interface LineToggles {
   hrma: boolean;
   smma: boolean;
+}
+
+function SliderRow({
+  label,
+  value,
+  display,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  display?: string;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (v: number) => void;
+}): React.JSX.Element {
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="font-medium text-muted-foreground">{label}</span>
+        <span className="font-mono tabular-nums text-foreground">
+          {display ?? value}
+        </span>
+      </div>
+      <Slider
+        aria-label={label}
+        value={[value]}
+        min={min}
+        max={max}
+        step={step}
+        onValueChange={(v) => onChange(v[0] ?? value)}
+      />
+    </div>
+  );
 }
 
 function SegmentedButtons<T extends string>({
@@ -115,6 +194,16 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
   const [plotType, setPlotType] = useState<PlotType>('line');
   const [hrmaPeriod, setHrmaPeriod] = useState(DEFAULT_HRMA_PERIOD);
   const [smmaPeriod, setSmmaPeriod] = useState(DEFAULT_SMMA_PERIOD);
+  const [zigzagDepth, setZigzagDepth] = useState(DEFAULT_ZIGZAG_DEPTH);
+  const [zscoreLength, setZscoreLength] = useState(DEFAULT_ZSCORE_LENGTH);
+  const [zscoreThreshold1, setZscoreThreshold1] = useState(
+    DEFAULT_ZSCORE_THRESHOLD_1
+  );
+  const [zscoreThreshold2, setZscoreThreshold2] = useState(
+    DEFAULT_ZSCORE_THRESHOLD_2
+  );
+  const [showZigzag, setShowZigzag] = useState(true);
+  const [showZscore, setShowZscore] = useState(true);
   const [bases, setBases] = useState<Record<SlotId, number>>({
     A: REBASE_DEFAULT,
     B: REBASE_DEFAULT,
@@ -150,6 +239,10 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
   }, [series, symbolA, symbolB, bases, toggles]);
 
   const hasData = SLOT_IDS.some((id) => (slots[id]?.candles.length ?? 0) > 0);
+  const maxBars = Math.max(
+    0,
+    ...SLOT_IDS.map((id) => slots[id]?.candles.length ?? 0)
+  );
   const isRebased = SLOT_IDS.some((id) => bases[id] !== REBASE_DEFAULT);
 
   const toggleLine = (slot: SlotId, line: keyof LineToggles): void =>
@@ -201,7 +294,7 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {t(
-              'Compare any 2 of the 8 currency indices and the Gold Index (XAUX) over up to 3,000 bars, as a line, OHLC candles or Heiken Ashi candles, with HRMA and SMMA.'
+              'Compare any 2 of the 8 currency indices and the Gold Index (XAUX) over up to 3,000 bars, as a line, OHLC candles or Heiken Ashi candles, with HRMA, SMMA, ZigZag and Z-score candles.'
             )}
           </p>
           <Link
@@ -221,7 +314,7 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
       </div>
 
       {/* Chart settings */}
-      <div className="grid gap-4 rounded-2xl border border-border bg-card p-4 shadow-xl shadow-black/5 md:grid-cols-2 md:p-6 xl:grid-cols-4">
+      <div className="grid gap-x-6 gap-y-5 rounded-2xl border border-border bg-card p-4 shadow-xl shadow-black/5 md:grid-cols-2 md:p-6 xl:grid-cols-3">
         {pickers.map((p) => (
           <div key={p.slot} className="space-y-1.5">
             <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
@@ -271,42 +364,94 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
         </div>
 
         <div className="space-y-3">
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-muted-foreground">
-                {t('HRMA period')}
-              </span>
-              <span className="font-mono tabular-nums text-foreground">
-                {hrmaPeriod}
-              </span>
-            </div>
-            <Slider
-              aria-label={t('HRMA period')}
-              value={[hrmaPeriod]}
-              min={HRMA_PERIOD_MIN}
-              max={HRMA_PERIOD_MAX}
-              step={1}
-              onValueChange={(v) => setHrmaPeriod(v[0] ?? hrmaPeriod)}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-xs">
-              <span className="font-medium text-muted-foreground">
-                {t('SMMA period')}
-              </span>
-              <span className="font-mono tabular-nums text-foreground">
-                {smmaPeriod}
-              </span>
-            </div>
-            <Slider
-              aria-label={t('SMMA period')}
-              value={[smmaPeriod]}
-              min={SMMA_PERIOD_MIN}
-              max={SMMA_PERIOD_MAX}
-              step={1}
-              onValueChange={(v) => setSmmaPeriod(v[0] ?? smmaPeriod)}
-            />
-          </div>
+          <SliderRow
+            label={t('HRMA period')}
+            value={hrmaPeriod}
+            min={HRMA_PERIOD_MIN}
+            max={HRMA_PERIOD_MAX}
+            step={1}
+            onChange={setHrmaPeriod}
+          />
+          <SliderRow
+            label={t('SMMA period')}
+            value={smmaPeriod}
+            min={SMMA_PERIOD_MIN}
+            max={SMMA_PERIOD_MAX}
+            step={1}
+            onChange={setSmmaPeriod}
+          />
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-foreground">{t('ZigZag')}</p>
+          <SliderRow
+            label={t('Depth')}
+            value={zigzagDepth}
+            min={ZIGZAG_DEPTH_MIN}
+            max={ZIGZAG_DEPTH_MAX}
+            step={1}
+            onChange={setZigzagDepth}
+          />
+          {/* Fixed on purpose: ZigZagExportv43 never uses either value in its
+              calculation (see lib/currency-index-comparison/zigzag.ts), so a
+              slider would move without changing anything. */}
+          <dl className="grid grid-cols-2 gap-2 text-xs">
+            {(
+              [
+                ['Deviation', ZIGZAG_DEVIATION],
+                ['Back Step', ZIGZAG_BACKSTEP],
+              ] as const
+            ).map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between rounded-md border border-dashed border-border px-2 py-1"
+              >
+                <dt className="font-medium text-muted-foreground">
+                  {t(label)}
+                </dt>
+                <dd className="font-mono tabular-nums text-foreground">
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            {t(
+              'Deviation and Back Step are fixed: MT5 ZigZag v43 does not use them, so only Depth changes the pivots.'
+            )}
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-foreground">
+            {t('Z-score candles (MC)')}
+          </p>
+          <SliderRow
+            label={t('Z-Score MA Length')}
+            value={zscoreLength}
+            min={ZSCORE_LENGTH_MIN}
+            max={ZSCORE_LENGTH_MAX}
+            step={1}
+            onChange={setZscoreLength}
+          />
+          <SliderRow
+            label={t('First Threshold')}
+            value={zscoreThreshold1}
+            display={formatThreshold(zscoreThreshold1)}
+            min={ZSCORE_THRESHOLD_MIN}
+            max={ZSCORE_THRESHOLD_MAX}
+            step={0.1}
+            onChange={(v) => setZscoreThreshold1(Math.round(v * 10) / 10)}
+          />
+          <SliderRow
+            label={t('Second Threshold')}
+            value={zscoreThreshold2}
+            display={formatThreshold(zscoreThreshold2)}
+            min={ZSCORE_THRESHOLD_MIN}
+            max={ZSCORE_THRESHOLD_MAX}
+            step={0.1}
+            onChange={(v) => setZscoreThreshold2(Math.round(v * 10) / 10)}
+          />
         </div>
       </div>
 
@@ -431,9 +576,126 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
               </div>
             );
           })}
-          {plotType !== 'line' && (
-            <span className="text-muted-foreground">
-              {t('Hollow candle = rising, filled = falling')}
+          {(
+            [
+              {
+                key: 'zigzag',
+                label: `ZigZag (${zigzagDepth},${ZIGZAG_DEVIATION},${ZIGZAG_BACKSTEP})`,
+                title: t('ZigZag'),
+                on: showZigzag,
+                toggle: () => setShowZigzag((v) => !v),
+                needed: zigzagDepth,
+              },
+              {
+                key: 'zscore',
+                label: `MC (${zscoreLength},${formatThreshold(zscoreThreshold1)},${formatThreshold(zscoreThreshold2)})`,
+                title: t('Z-score candles (MC)'),
+                on: showZscore,
+                toggle: () => setShowZscore((v) => !v),
+                needed: zscoreBarsNeeded(zscoreLength),
+              },
+            ] as const
+          ).map((chip) => {
+            const tooFewBars = chip.on && maxBars > 0 && maxBars < chip.needed;
+            return (
+              <button
+                key={chip.key}
+                type="button"
+                aria-pressed={chip.on}
+                title={`${chip.title}: ${chip.on ? t('Click to hide') : t('Click to show')}`}
+                onClick={chip.toggle}
+                className={`flex items-center gap-1.5 rounded-md border px-2 py-1 font-mono transition-colors ${
+                  chip.on
+                    ? 'border-border text-foreground'
+                    : 'border-dashed border-border text-muted-foreground line-through opacity-60'
+                }`}
+              >
+                {chip.key === 'zigzag' ? (
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 16 10"
+                    className="h-2.5 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                  >
+                    <polyline points="1,8 5,2 9,7 15,1" />
+                  </svg>
+                ) : (
+                  <span aria-hidden="true" className="flex items-end gap-0.5">
+                    <span
+                      className="inline-block h-2.5 w-1.5 rounded-[1px]"
+                      style={{
+                        backgroundColor: zscoreClassColors(
+                          'up-extreme',
+                          resolvedTheme
+                        ).body,
+                      }}
+                    />
+                    <span
+                      className="inline-block h-2.5 w-1.5 rounded-[1px]"
+                      style={{
+                        backgroundColor: zscoreClassColors(
+                          'down-extreme',
+                          resolvedTheme
+                        ).body,
+                      }}
+                    />
+                  </span>
+                )}
+                {chip.label}
+                {tooFewBars && (
+                  <span className="font-sans text-muted-foreground">
+                    {t('needs {count} bars').replace(
+                      '{count}',
+                      String(chip.needed)
+                    )}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* How to read the marks. Text stays in ink colors; the sample next
+            to each label carries the encoding. */}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
+          {(plotType === 'ohlc' || plotType === 'heikin-ashi') && (
+            <span>{t('Hollow candle = rising, filled = falling')}</span>
+          )}
+          {showZigzag && (
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="font-medium text-foreground">
+                {t('ZigZag move')}:
+              </span>
+              {ZIGZAG_CLASSES.map((cls) => (
+                <span key={cls} className="flex items-center gap-1">
+                  <span
+                    aria-hidden="true"
+                    className="inline-block w-4 bg-foreground"
+                    style={{ height: ZIGZAG_LINE_WIDTH[cls] }}
+                  />
+                  {t(ZIGZAG_CLASS_LABELS[cls])}
+                </span>
+              ))}
+            </span>
+          )}
+          {showZscore && (
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="font-medium text-foreground">MC:</span>
+              {ZSCORE_HIGHLIGHT_CLASSES.map((cls) => {
+                const { body, outline } = zscoreClassColors(cls, resolvedTheme);
+                return (
+                  <span key={cls} className="flex items-center gap-1">
+                    <span
+                      aria-hidden="true"
+                      className="inline-block h-3 w-2 rounded-[1px] border"
+                      style={{ backgroundColor: body, borderColor: outline }}
+                    />
+                    {t(ZSCORE_CLASS_LABELS[cls])}
+                  </span>
+                );
+              })}
             </span>
           )}
         </div>
@@ -443,6 +705,12 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
           plotType={plotType}
           hrmaPeriod={hrmaPeriod}
           smmaPeriod={smmaPeriod}
+          zigzagDepth={zigzagDepth}
+          zscoreLength={zscoreLength}
+          zscoreThreshold1={zscoreThreshold1}
+          zscoreThreshold2={zscoreThreshold2}
+          showZigzag={showZigzag}
+          showZscore={showZscore}
           fitKey={timeframe}
         />
         {!isLoading && !hasData && (
@@ -456,7 +724,7 @@ export function CurrencyIndexComparisonWorkspace(): React.JSX.Element {
 
       <p className="text-xs leading-relaxed text-muted-foreground">
         {t(
-          'Each index resets to 100 at its own daily session open. This chart links those days into one continuous series so candles, Heiken Ashi, HRMA and SMMA run unbroken across days: the latest session shows its real values, and earlier sessions are scaled to join it. Gaps between sessions (such as the gold rollover halt or a weekend) are treated as no movement.'
+          'Each index resets to 100 at its own daily session open. This chart links those days into one continuous series so candles, Heiken Ashi and every indicator run unbroken across days: the latest session shows its real values, and earlier sessions are scaled to join it. Gaps between sessions (such as the gold rollover halt or a weekend) are treated as no movement.'
         )}
       </p>
 
