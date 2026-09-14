@@ -1,10 +1,11 @@
 # Currency Index Comparison PRO — Work Completion Report
 
-**Date:** 2026-09-13
+**Date:** 2026-09-13 (Round 4: 2026-09-14)
 **Status:** Code complete, verified, and database migration applied live to production
 (Python, gateway unit + e2e, full monolith suite, live browser, live production DB).
-Spans three rounds: Round 1 (base feature), Round 2 (§7, Davin's follow-ups), and Round 3 (§9,
-production migration application and live endpoint verification). Committed and pushed to
+Spans four rounds: Round 1 (base feature), Round 2 (§7, Davin's follow-ups), Round 3 (§9,
+production migration application and live endpoint verification), and Round 4 (§10, ZigZag,
+Z-score candles and No Plot). Committed and pushed to
 `origin/main` (§8). **`railway-gateway` is deployed and migration `20260913120000_add_currency_gold_index_ohlc`
 is APPLIED and VERIFIED** on production Postgres (`maglev.proxy.rlwy.net:58290`). Gateway processor and DB schema
 are 100% in sync. VPS engine **ready to deploy/restart**.
@@ -294,7 +295,10 @@ Committed per logical step and pushed to `origin/main`. The pre-push hook's type
 | `a073a5dd` | `docs(ad-hoc): currency index comparison PRO manifest, MQL5 references and cross-links`                     |
 | `06e98dd2` | `docs(ad-hoc): record deployed-before-migration state; bring free page manifest up to date`                 |
 | `60d017fc` | `docs(ad-hoc): record migration 20260913120000_add_currency_gold_index_ohlc applied to production`          |
-| _this_     | `docs(ad-hoc): document Round 3 production migration apply, live endpoint verification, and VPS next steps` |
+| `e977a80f` | `docs(ad-hoc): document Round 3 production migration apply, live endpoint verification, and VPS next steps` |
+| `e78bd83a` | `feat(currency-index): ZigZag v43 and Z-score candle ports, verified against golden MT5 exports` (Round 4)  |
+| `faee6e1e` | `feat(currency-index): No Plot, ZigZag and Z-score candles on the comparison PRO chart` (Round 4)           |
+| _this_     | `docs(ad-hoc): Round 4 ZigZag and Z-score candles manifest and CLAUDE.md entry`                             |
 
 The MQL5 reference files in this folder are committed, since code comments cite them as ground truth.
 Davin's screenshot `currency-index-pro-page.png` is left untracked, matching the Free page folder's
@@ -332,3 +336,88 @@ Davin requested execution of Section 5 ("ช่วยจัดการตาม
 - **VPS Engine:** Safe to redeploy/restart `currency_gold_index_engine.py` on the Contabo VPS. The outbox auto-migrates its SQLite columns on startup.
 - **Physical Charts:** Attach `ohlcvexportlightweight_v2_29.mq5` to the 8 M5 charts in MT5.
 - **Authenticated verification:** Verify the UI in browser using real FREE and PRO user accounts.
+
+---
+
+## 10. Round 4 — ZigZag and Z-score candles (2026-09-14)
+
+**Asked** (annotated screenshot of the live page): four Plot type buttons (**No Plot**, Line, OHLC
+Candles, Heiken Ashi); a **ZigZag** with Depth (12), Deviation (5), Back Step (3); **Z-score
+candles** ("MC") with Z-Score MA Length (54), First Threshold (1.5), Second Threshold (2.5); a
+hide/show chip for each; and MC showing only Up/Down Large and Extreme candles, in colors that differ
+from the normal candles. Source: the two calculations that PASS golden certification,
+`zigzag_metrics.py` and `zscore_candle.py` (`calculation-split-between-mt5-and-python-PENDING-PROJECT/`).
+Committed and pushed at Davin's request (§8). No schema, API or pipeline change: everything is
+computed in the browser from the candles the page already loads.
+
+### 10.1 What reading the sources changed
+
+| #   | Finding                                                                                                                                                                                                                                                                                                                                                                               | Decision (Davin)                                                                                                                      |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `zigzag_metrics.py` is only the **derived-metrics layer**: pivot detection stayed in MQL5 and was never ported or certified. The pivots had to be ported from `ZigZagExportv43_v2_29.mq5` itself.                                                                                                                                                                                     | Port it (and verify it, §10.3)                                                                                                        |
+| 2   | In v43, **Deviation and Back Step never affect the pivots.** `xInpDeviation` is read only by `ValidateZigZagPoint()`, which nothing calls; `xInpBackstep` is only range-checked in `OnInit()`. Both appear in the name `ZigZagColor(12,5,3)`, so on the VPS chart changing either does nothing.                                                                                       | **Port v43 exactly.** Depth is a slider; Deviation 5 and Back Step 3 show as fixed values with the reason, and stay in the chip label |
+| 3   | The screenshot shows one ZigZag chip and one MC chip for two indices.                                                                                                                                                                                                                                                                                                                 | **Both indices, one chip each** (each chip hides/shows both)                                                                          |
+| 4   | v43 colors each segment by its %-change class (Normal/Large/Extreme), which is the certified `GetPercentChangeClassification()`.                                                                                                                                                                                                                                                      | **Show the class**                                                                                                                    |
+| 5   | The approved "two highlight colors" for Large/Extreme **cannot pass the dataviz validator**: every remaining palette hue fails a CVD or normal-vision floor against a slot hue (orange vs gold dE 1.6/9.4, violet vs dark blue 1.9/9.8, red vs gold 13.0 normal in dark) or is already MC's up/down green/magenta. Asked again with the evidence rather than shipping a failing pair. | **Line thickness in the slot hue:** Normal 1px, Large 2px, Extreme 4px                                                                |
+
+### 10.2 What was built
+
+- `lib/currency-index-comparison/zigzag.ts`: `detectZigZagPivots()` ports v43's full-recalculation
+  path (`CalculateHighLowMaps()` + `FindExtremes()` + `CollectValidPoints()`) line for line, quirks
+  included (a peak is accepted on any high-map bar; the high branch wins when both maps fire).
+  `zigzagPctChangeClass()` ports `GetPercentChangeClassification()` (50 segments, 1.41/1.88, the
+  segment itself in its own population). `zigzagSegmentStarts()` handles a lightweight-charts detail
+  found in its renderer (`walkLine`): a line segment takes its **start** point's color, and whitespace
+  does not break a line.
+- `lib/currency-index-comparison/zscore-candle.ts` ports `zscoreohlccandleexport_v2_29.mq5`. It follows
+  the MQL5 where the Python port differs: the first classified bar is index `length` (MQL5
+  `start = InpZScoreLength`), not `length - 1`. The certification only compared the last 500 bars, so it
+  never reached that edge. Page default length is **54** (the `.mq5` input default is 432).
+- Chart (`currency-index-comparison-chart.tsx`): `PlotType` gains `'none'`, which hides each index's
+  line/candles and its price label, leaving its indicators. Per slot there's one Z-score candlestick
+  series (Large/Extreme bars only, per-bar colors) and three ZigZag line series (one per weight, every
+  pivot in each, only that class's segments painted). Series are created in layers so both slots
+  share one z-order (candles → MC → lines/averages → ZigZag). Each indicator is memoized on only its
+  own inputs (`useSlotComputed`), and per-bar colors are re-pushed on a theme change. Both indicators
+  run on the real candles, never Heiken Ashi, like HRMA/SMMA.
+- Workspace: the settings card is now 3 columns (A · B · Plot type / HRMA+SMMA · ZigZag · MC). The two
+  chips are labelled from live values, e.g. `ZigZag (12,5,3)` and `MC (54,1.5,2.5)`, with "needs N bars".
+  A legend key shows the three ZigZag weights and the four MC classes. The description, footnote and
+  page metadata now mention the new indicators. 18 new strings identity-mapped in `en-US`/`en-GB`, and
+  two changed strings renamed in place.
+
+**Colors** (dataviz `validate_palette.js`, against this chart's real surfaces `#ffffff` / `#0a0e17`):
+MC direction = hue, green `#008300` up / magenta `#d55181` down (CVD PASS both modes, dE 17.6 / 13.0).
+Class = body strength: Extreme full body, Large a 60% surface tint of the same hue (light
+`#66b566`/`#e697b3`, dark `#045409`/`#843657`) with a full-hue outline; each tint+full pair PASSES
+`--ordinal`. Magenta uses the palette's darker step in light mode too (the light step is 2.69:1 on
+white and its tint can't clear 2:1). Against both slot hues, `--pairs all` gives one WARN, green vs gold
+CVD 6.9, relieved by the labelled legend key and the different mark shape.
+
+### 10.3 Verification
+
+| Check                                                                                                                                                 | Result                                                                                                                                                                                                                                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Golden MT5 test (new, permanent):** the shipped TypeScript vs the real 3000-bar XAUUSD exports in `mock-data-from-indicators/golden_certification/` | Z-score class **500/500 on M5 and on M15** (length 432). ZigZag pivots **identical, zero extra**, on both timeframes (bar, type, price), excluding one exported pivot per timeframe that sits before bar `depth − 1` of the window. Segment class **all match** (125 M5 / 128 M15 compared)             |
+| Unit tests (new): `zigzag.test.ts`, `zscore-candle.test.ts`, `currency-index-comparison-workspace.test.tsx`                                           | Pass. Hand-walked pivot fixture, population-includes-itself, cap, start-point coloring, the `length` start, sample variance, inclusive thresholds; workspace: 4 plot buttons, defaults, chips, no Deviation/Back Step slider, legend keys                                                               |
+| Mutation (8 mutants on the two lib files; restore verified byte-exact by sha256)                                                                      | **8/8 killed.** Only the golden test catches the Highest-window off-by-one and `>` → `>=` on the higher high; it also catches population-excludes-itself, alongside the unit tests                                                                                                                      |
+| `tsc --noEmit`, ESLint (0 warnings) on every touched file                                                                                             | Clean                                                                                                                                                                                                                                                                                                   |
+| Monolith `npm run test:ci`                                                                                                                            | **209/209 suites, 2775/2775 tests** (§10.5)                                                                                                                                                                                                                                                             |
+| Live `next dev` (throwaway unauthenticated route, page-local fetch stub serving synthetic candles; **deleted**)                                       | 3-column settings layout; No Plot hides both indices and their labels while HRMA/SMMA/ZigZag/MC remain; OHLC with MC overlays; ZigZag weights visible; both chips hide/show and their keys follow; dark mode verified from canvas pixels (dark MC tints and dark-mode blue present, light tints absent) |
+
+**Not verified live:** the app window stopped painting mid-session (`requestAnimationFrame` stopped
+firing), so the canvas repaint after switching back to light mode and after moving the Depth/threshold
+sliders was not seen. The state changes themselves were confirmed (chip labels updated). The logic is
+unit- and golden-tested. As in every round: no authenticated PRO click-through, and no real Lane 4 data.
+
+### 10.4 Flagged, not changed
+
+- `components/ui/slider.tsx` puts `aria-label` on the Radix Root, not on the `role="slider"` thumb, so
+  all ~21 sliders in the app announce an unnamed thumb. Pre-existing and shared, so it's raised as a
+  separate task. The new workspace test queries the labelled root and says why.
+
+### 10.5 Suite result
+
+Full monolith `npm run test:ci`: **209/209 suites, 2775/2775 tests**. That's Round 2's 205/2744 plus
+exactly this round's 4 suites / 31 tests (zigzag 10, zscore-candle 8, golden-mt5 8, workspace 5), with
+zero regressions.

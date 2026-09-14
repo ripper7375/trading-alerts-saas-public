@@ -13,6 +13,34 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index Comparison PRO Round 4:
+> ZigZag and Z-score candles ("MC") on `/pro/currency-index/compare`, plus a No Plot plot type.
+> Code complete, verified, committed and pushed (`e78bd83a` ports + tests, `faee6e1e` UI, plus a docs
+> commit).** Davin supplied an annotated screenshot and pointed at the
+> two golden-certified Python ports (`zigzag_metrics.py`, `zscore_candle.py`). **Full account:**
+> `davintrade-currency-index-comparison-pro-stack/currency-index-comparison-pro-manifest-work-completion.md`
+> §10; this entry is the index.
+> **Reading the sources first changed the job.** `zigzag_metrics.py` is only the derived-metrics
+> layer: pivot detection was never ported, so `lib/currency-index-comparison/zigzag.ts` ports it from
+> `ZigZagExportv43_v2_29.mq5`. **In v43, Deviation and Back Step never affect the pivots**
+> (`xInpDeviation` is read only by the uncalled `ValidateZigZagPoint()`, `xInpBackstep` only in
+> `OnInit`). Four decisions went to Davin via `AskUserQuestion`, and he took each recommendation:
+> port v43 exactly (Depth slider, Deviation 5 / Back Step 3 shown fixed with the reason); both
+> indices with one chip each; show the segment class; and, after the validator showed **no passing
+> hue pair** for the originally approved Large/Extreme highlight colors, class by **line weight**
+> (1/2/4px) in the slot hue. MC: green up / magenta down by hue, Large = 60% surface tint + full
+> outline, Extreme = full body, all validated with the dataviz script (one WARN, green vs gold CVD 6.9,
+> relieved by labels and mark shape). `zscore-candle.ts` follows the MQL5 start index `length`, not
+> the Python port's `length − 1`.
+> **Verified:** a new permanent `golden-mt5.test.ts` runs the shipped TypeScript against the real
+> 3000-bar MT5 exports: Z-score class **500/500 on M5 and M15**, ZigZag pivots **identical, none
+> extra**, segment class all match. Mutation **8/8 killed** (restore byte-exact by sha256). tsc/ESLint
+> clean; `test:ci` **209/209·2775/2775** (205/2744 + exactly this round's 4 suites/31 tests). Live `next dev` on a throwaway route with synthetic candles (deleted): No Plot, OHLC + MC,
+> ZigZag weights, chips, dark-mode colors via canvas pixels. The window stopped painting partway
+> through, so the light-mode repaint and slider repaint were not seen live.
+> **Flagged, not changed:** `components/ui/slider.tsx` labels the Radix Root rather than the
+> `role="slider"` thumb (all ~21 sliders; raised as a separate task).
+
 > **Ad-hoc session (2026-09-13, same day, phase/session unchanged) — Currency Index Comparison
 > PRO: `/pro/currency-index/compare` + "Upgrade to PRO" on `/xaux-vs-usdx`, with genuine index
 > OHLC added to Lane 4. Code complete and verified. Migration NOT applied, VPS
