@@ -13,6 +13,10 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Full account of this session's three rounds (workbench collapse, chart resize + toolbar fit, PRO
+> page header buttons):** `davintrade-frontend-ui-fix/frontend-ui-fix-1-manifest-work-completion.md`.
+> The three entries below are the index.
+
 > **Ad-hoc session (2026-09-14, phase/session unchanged) — PRO currency index page headers: "AI
 > Workbench" + "28-Pair Screener" buttons. Done, verified, committed and pushed.** Davin's two
 > annotated screenshots. New shared `components/currency-index-pro/pro-page-nav.tsx` (amber buttons;
