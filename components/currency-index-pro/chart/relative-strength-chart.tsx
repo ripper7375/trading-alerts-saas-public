@@ -15,6 +15,18 @@
  * `EventVerticalLine`/`attachPrimitive` exactly as `useEventMarkers.ts`
  * already does for the main terminal chart.
  *
+ * WHY THE CORRIDOR AND NEWS LIVE ON A HOST SERIES: each currency line can be
+ * hidden by the viewer (`hiddenCurrencies`), which sets that series'
+ * `visible: false`. lightweight-charts 5.2 skips a series' price lines when
+ * the series is hidden (`CustomPriceLinePaneView` returns early on
+ * `!series.visible()`), so hanging the corridor on a currency series -- USD,
+ * as it originally was -- would make hiding USD silently remove the
+ * Overbought/Oversold bands. They are attached instead to a dedicated host
+ * line series that is never hidden, draws no stroke, label or crosshair
+ * marker, and is excluded from autoscale, so the price scale fits only the
+ * lines the viewer chose to see. Same technique as
+ * `currency-index-comparison-chart.tsx`'s drawing host.
+ *
  * @module components/currency-index-pro/chart/relative-strength-chart
  */
 
@@ -64,7 +76,11 @@ interface RelativeStrengthChartProps {
     strikeZonePct: number;
     extremeZonePct: number | null;
   } | null;
+  /** Currency lines the viewer has hidden. Omitted means all 8 are shown. */
+  hiddenCurrencies?: ReadonlySet<CurrencyCode>;
 }
+
+const NONE_HIDDEN: ReadonlySet<CurrencyCode> = new Set();
 
 /** Mirrors `trading-chart.tsx`'s own private `chartChromeColors()` (not
  * exported there) -- duplicated here rather than modifying an unrelated,
@@ -95,10 +111,13 @@ export function RelativeStrengthChart({
   data,
   height = 480,
   corridorOverride,
+  hiddenCurrencies = NONE_HIDDEN,
 }: RelativeStrengthChartProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<Map<CurrencyCode, ISeriesApi<'Line'>>>(new Map());
+  // Carries the corridor price lines and news markers -- see the module doc.
+  const hostRef = useRef<ISeriesApi<'Line'> | null>(null);
   const priceLinesRef = useRef<IPriceLine[]>([]);
   const newsLinesRef = useRef<EventVerticalLine[]>([]);
   const isFirstLoadRef = useRef(true);
@@ -144,6 +163,19 @@ export function RelativeStrengthChart({
     // "capture the ref's current value now" note.
     const seriesMap = seriesRef.current;
 
+    // Added first so it sits beneath the currency lines. `lineVisible: false`
+    // hides only the stroke; the series stays visible so its price lines and
+    // primitives keep painting. Excluded from autoscale so it never stretches
+    // the price scale.
+    hostRef.current = chart.addSeries(LineSeries, {
+      lineVisible: false,
+      lastValueVisible: false,
+      priceLineVisible: false,
+      crosshairMarkerVisible: false,
+      pointMarkersVisible: false,
+      autoscaleInfoProvider: () => null,
+    });
+
     for (const currency of ALL_CURRENCIES) {
       const series = chart.addSeries(LineSeries, {
         color: currencyColor(currency, resolvedTheme),
@@ -175,6 +207,7 @@ export function RelativeStrengthChart({
       window.removeEventListener('resize', handleResize);
       chart.remove();
       chartRef.current = null;
+      hostRef.current = null;
       setChartApi(null);
       seriesMap.clear();
       priceLinesRef.current = [];
@@ -209,12 +242,23 @@ export function RelativeStrengthChart({
     chartRef.current?.applyOptions({ height });
   }, [height]);
 
+  // Show/hide each currency line. `visible: false` also removes the line's
+  // title/last-value label and crosshair marker, and drops it from autoscale,
+  // so the remaining lines fill the pane.
+  useEffect(() => {
+    for (const [currency, series] of seriesRef.current) {
+      series.applyOptions({ visible: !hiddenCurrencies.has(currency) });
+    }
+  }, [hiddenCurrencies]);
+
   // Push new bar data into each of the 8 series.
   useEffect(() => {
     if (!data) return;
+    const barTimes = new Set<number>();
     for (const currency of ALL_CURRENCIES) {
       const series = seriesRef.current.get(currency);
       const points = data.series[indexNameForCurrency(currency)] ?? [];
+      for (const p of points) barTimes.add(p.barTime);
       series?.setData(
         points.map((p) => ({
           time: p.barTime as UTCTimestamp,
@@ -222,6 +266,15 @@ export function RelativeStrengthChart({
         }))
       );
     }
+    // The host spans every bar any currency has, so its price lines resolve a
+    // coordinate whichever lines are hidden. The value is irrelevant to the
+    // corridor (the host is excluded from autoscale and draws nothing); 0 is
+    // simply each index's own session-open level.
+    hostRef.current?.setData(
+      [...barTimes]
+        .sort((a, b) => a - b)
+        .map((time) => ({ time: time as UTCTimestamp, value: 0 }))
+    );
     // Only fit the visible range on the first real data load -- every 30s
     // refresh after that must not reset a user's own zoom/pan.
     if (
@@ -234,12 +287,12 @@ export function RelativeStrengthChart({
     }
   }, [data]);
 
-  // Corridor threshold bands -- rebuilt on the reference (USD) series
-  // whenever the corridor changes. Skipped entirely when null (Lane 4
-  // hasn't finalized a day yet), matching this app's "absent is the honest
-  // rendering" rule rather than a placeholder pair of lines at 0.
+  // Corridor threshold bands -- rebuilt on the host series whenever the
+  // corridor changes. Skipped entirely when null (Lane 4 hasn't finalized a
+  // day yet), matching this app's "absent is the honest rendering" rule
+  // rather than a placeholder pair of lines at 0.
   useEffect(() => {
-    const referenceSeries = seriesRef.current.get('USD');
+    const referenceSeries = hostRef.current;
     if (!referenceSeries) return;
 
     for (const line of priceLinesRef.current) {
@@ -301,7 +354,7 @@ export function RelativeStrengthChart({
   // 30s refresh never has a zero-marker frame.
   useEffect(() => {
     const chart = chartRef.current;
-    const referenceSeries = seriesRef.current.get('USD');
+    const referenceSeries = hostRef.current;
     if (!chart || !referenceSeries || !data) return;
 
     const lines = data.highImpactNews.map((event) => {
