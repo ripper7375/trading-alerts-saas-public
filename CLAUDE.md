@@ -13,6 +13,18 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index Comparison PRO: the same
+> index may now be chosen in both Index A and Index B. Code complete, verified, committed and pushed**
+> (`05684359`, plus this docs commit; full suite 214/214·2809/2809).
+> Davin's screenshot (`mutually-exclusive-rule-removal.png`) asked to drop the rule that greyed out
+> the other picker's index, e.g. to put HRMA on XAUX (A) and ZigZag on XAUX (B). **Full account:**
+> manifest §12. The API already de-duplicated `?indices=XAUX,XAUX` (existing test), so it's
+> client-only: pickers fully enabled; the request de-duplicates so the index is fetched once; the
+> labels that would collide gain the slot letter ("XAUX (A)"/"XAUX (B)") in legend groups, rebase
+> sliders and price-scale titles (`ChartSlot.label`); one definition card. Workspace test +2 (opens the
+> real Radix Select in jsdom), both mutations killed, tsc/ESLint clean; live `next dev` confirmed the
+> enabled options, the labels, a single `indices=XAUX` request and the chart titles by screenshot.
+
 > **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index PRO
 > (`/pro/currency-index`): hide/show each of the 8 currency lines independently. Code complete,
 > verified, committed and pushed** (`48b18e71` chart + host series, `6e176dd9` legend toggles,

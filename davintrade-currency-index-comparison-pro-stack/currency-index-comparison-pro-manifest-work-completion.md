@@ -1,7 +1,9 @@
 # Currency Index Comparison PRO — Work Completion Report
 
-**Date:** 2026-09-13 (Rounds 1–3) · 2026-09-14 (Round 4, follow-up, and Slider accessibility resolution)
-**Status:** Code complete, verified, committed and pushed to `origin/main` (§8), across five rounds:
+**Date:** 2026-09-13 (Rounds 1–3) · 2026-09-14 (Round 4 and its follow-ups: per-index chips, Slider
+accessibility, same index in both pickers)
+**Status:** Code complete, verified, committed and pushed to `origin/main` (§8), across four rounds and
+their follow-ups:
 
 - **Round 1** (§1–§4): the base feature, including genuine index OHLC through Lane 4.
 - **Round 2** (§7): Davin's follow-ups.
@@ -12,8 +14,11 @@
   and `aria-labelledby` directly to `SliderPrimitive.Thumb` (`role="slider"`), leaving Root unlabelled.
   New unit test suite (`__tests__/components/ui/slider.test.tsx`), workspace test updated. Total suite:
   **210/210 suites, 2783/2783 tests**.
+- **Follow-up: same index in both pickers** (§12): the Index A / Index B mutual-exclusion rule is
+  removed, so both slots can hold the same index (e.g. XAUX with HRMA on A, XAUX with ZigZag on B).
+  Committed as `05684359` and pushed. Full suite at that point: **214/214 suites, 2809/2809 tests**.
 
-Round 4 and the Slider follow-up are browser-side only (no schema, API or VPS change), so they ship with the monolith deploy.
+Round 4 and the follow-ups are browser-side only (no schema, API or VPS change), so they ship with the monolith deploy.
 **Migration `20260913120000_add_currency_gold_index_ohlc` is APPLIED and VERIFIED** on production
 Postgres (`maglev.proxy.rlwy.net:58290`), and `railway-gateway` is deployed and in sync. **The one
 remaining blocker is the VPS engine** (§5 step 3): until it pushes bars, the page shows "No data
@@ -235,6 +240,8 @@ the VPS engine isn't redeployed yet.
      - Each index's ZigZag and MC chips hide only that index's marks.
      - The chart redraws after switching light/dark and after moving the Depth / Z-Score sliders. Not seen
        live this session, since the browser pane stopped painting (§10.3, §10.6).
+   - **Same index in both pickers (§12):** choose the same index for A and B; each slot's chips and rebase
+     slider act on that slot alone, and the price-scale labels read "XAUX (A)" / "XAUX (B)".
 
 ---
 
@@ -329,7 +336,9 @@ Committed per logical step and pushed to `origin/main`. The pre-push hook's type
 | `d59c7938` | `docs(ad-hoc): bring the comparison PRO manifest up to date after the Round 4 follow-up`                    |
 | `60251ccb` | `feat(ui): propagate aria-label and aria-labelledby to Slider thumbs` (Slider a11y follow-up)               |
 | `aaed87d1` | `docs(ad-hoc): record Slider accessibility resolution in manifest and CLAUDE.md`                            |
-| _this_     | `docs(ad-hoc): update manifest with full Slider accessibility resolution and current state`                 |
+| `dab0e3c2` | `docs(ad-hoc): update manifest with full Slider accessibility resolution and current state`                 |
+| `05684359` | `feat(currency-index): allow the same index in both comparison pickers` (§12)                               |
+| _this_     | `docs(ad-hoc): record same-index pickers (§12) in the comparison PRO manifest and CLAUDE.md`                |
 
 The MQL5 reference files in this folder are committed, since code comments cite them as ground truth.
 Davin's screenshot `currency-index-pro-page.png` is left untracked, matching the Free page folder's
@@ -491,6 +500,8 @@ by the workspace test through the props it passes. Committed as `57710520` and p
 - Z-score candles: an MQL5 port with Large/Extreme only, green up / magenta down, and length and
   threshold sliders.
 - HRMA, SMMA, ZigZag and MC chips per index.
+- **Same index in both pickers (§12):** any of the 9 indices in Index A and Index B, including the
+  same one, each slot with its own indicators; labelled "XAUX (A)" / "XAUX (B)" when shared.
 - **Shared Slider accessibility (§11):** accessible name reaches `role="slider"` thumb across all ~21 sliders in the app, with duplicate root labels removed.
 
 Both indicator ports are pinned by a permanent test against real MT5 exports.
@@ -563,3 +574,58 @@ Following the completion of Round 4, the accessibility gap flagged in §10.4 was
 | `npx eslint` on changed files   | Clean (0 warnings).                                                                 |
 | Full monolith `npm run test:ci` | **210/210 suites, 2783/2783 tests** (clean pass; +1 suite / +8 tests over Round 4). |
 | Pre-push verification           | Complete & passed; pushed to `origin/main` (`60251ccb`, `aaed87d1`).                |
+
+---
+
+## 12. Follow-up: the same index in both pickers (2026-09-14)
+
+**Asked** (annotated screenshot `mutually-exclusive-rule-removal.png`): with XAUX in Index A, XAUX was
+greyed out in Index B's list. Davin wants every index, gold included, selectable in both pickers, so
+a user can apply e.g. HRMA to XAUX on Index A and ZigZag to XAUX on Index B.
+
+### 12.1 What the rule touched, checked before changing it
+
+- **The pickers** disabled the other picker's index (`disabled={name === other}`). That was the whole
+  restriction.
+- **The API already handled duplicates.** `parseIndices()` in
+  `app/api/market/currency-index-pro/comparison/route.ts` de-duplicates, and an existing test
+  (`collapses a duplicated index to one series`) pins it. No server change was needed.
+- **Everything labelled by symbol would have become ambiguous** with two slots holding one index:
+  - the legend chip groups (`role="group"` named by symbol, and their visible names)
+  - the rebase slider labels and accessible names
+  - the chart's price-scale titles (`XAUX`, `XAUX HRMA(36)`, …)
+  - the definition cards, which would have repeated
+
+### 12.2 What changed
+
+- `currency-index-comparison-workspace.tsx`
+  - Every `SelectItem` is enabled in both pickers.
+  - The data request de-duplicates (`[symbolA]` when both slots match), so the index is fetched once
+    and both slots read the same series. The SWR key and cache are shared with a single-index view.
+  - `slotLabel()` adds the slot letter only when both slots hold the same index: "XAUX (A)" /
+    "XAUX (B)". It's used for the legend group names and text, and for the rebase slider labels.
+  - Only one definition card is shown for a shared index.
+- `currency-index-comparison-chart.tsx`: `ChartSlot` gains `label`, which the close line, HRMA and SMMA
+  price-scale titles use. Slot hue (gold / blue) still separates the two, as before.
+- Nothing else changes: per-slot HRMA/SMMA/ZigZag/MC toggles, rebase and indicator settings already
+  worked per slot. With identical data the two slots' lines sit on top of each other until a rebase
+  slider moves one apart. That's the intended use: different indicators on the same index.
+
+### 12.3 Verification
+
+| Check                                                                                        | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Workspace test (+2): opens Index B's real Radix Select in jsdom                              | XAUX (held by A) is offered and enabled, and no option is disabled. After picking it: both slots are XAUX, labelled "XAUX (A)"/"XAUX (B)"; the data hook is called with `['XAUX']` once; hiding HRMA on A and ZigZag on B changes only that slot; both rebase sliders are named apart; one definition card. Plus a test that distinct indices keep plain labels and fetch both                                                                                                           |
+| Mutation (restore verified byte-exact by sha256)                                             | Re-adding the lock: **killed**. Fetching the duplicate twice: **killed**                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `tsc --noEmit`, ESLint (0 warnings)                                                          | Clean                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Full monolith `npm run test:ci`                                                              | **214/214 suites, 2809/2809 tests**, all passing, including this change's +2 workspace tests. The baseline moved past §11's 210/2783 because other sessions committed Currency Index PRO work since then (`48b18e71`, `6e176dd9`, `4bea36bc`)                                                                                                                                                                                                                                            |
+| Live `next dev` (throwaway route, page-local fetch stub with synthetic candles; **deleted**) | Opened Index B with Index A on XAUX: all 9 indices plus None listed and enabled. Picked XAUX: both triggers read "XAUX -- Gold Index", legend groups "XAUX (A)" and "XAUX (B)", rebase sliders "XAUX (A) base" and "XAUX (B) base", one definition card, and a single request `indices=XAUX`. Screenshot with HRMA hidden on A and ZigZag hidden on B: gold ZigZag and blue HRMA drawn, and the price-scale titles read "XAUX (A) SMMA(13)", "XAUX (B) HRMA(36)", "XAUX (A)", "XAUX (B)" |
+
+**Not verified:** a signed-in PRO click-through on real data, as in every round.
+
+### 12.4 Status
+
+**Committed and pushed** at Davin's request: `05684359` (code and test), plus the docs commit that
+records it (§8). Browser-side only, so it ships with the monolith deploy; no API, schema or VPS change.
+The untracked `additional-modification.png` in this folder isn't part of this request and was left
+untouched.
