@@ -13,6 +13,71 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-16, same day, phase/session unchanged) — workbench chart panel:
+> the M5/M15 divider is now drag-resizable. Code complete, verified, committed and pushed**
+> (`89cdd10a`, plus this docs commit). Davin supplied two annotated screenshots — the seed at
+> `trading-conversational-ai-ui-pages.vercel.app/terminal` where the band between the two charts
+> drags, and `davintrade.app/terminal` where it does not — and asked for the feature in the real
+> codebase.
+> **Root cause (read before editing, per `EXECUTOR-PROTOCOL.md` §0):** the seed's
+> `components/trading-chart.tsx` wraps its two canvases in a vertical `ResizablePanelGroup`
+> (50/50, `minSize` 20) with a `withHandle` divider; the real
+> `components/charts/mtf-stacked-charts.tsx` was a `flex-col gap-2` computing
+> `perChart = available/2 − CHROME` — so the gap was inert by construction. `components/ui/
+resizable.tsx` already supports `direction="vertical"` with `cursor-row-resize`, so no new
+> primitive was needed.
+> **Built:** the flex column replaced by a vertical group with a labelled divider; `onLayout`
+> feeds the divider position back into both canvas heights, so the charts follow the drag
+> instead of staying at their mount-time height — the same failure class the 2026-09-14 entry
+> records for the horizontal panels' collapse-without-resize. Pure maths in the new
+> `components/charts/mtf-split-layout.ts` (divider position → two canvas heights; minimum pane
+> capped at 50%, since **both** panes carry it and a larger value could never be satisfied by
+> both at once). `/terminal` and `/free` both get it via `TradingWorkspace`.
+> **Two pre-existing bugs found by measuring the live layout rather than trusting the constant,
+> both fixed:** (1) the M15 label strip carries `MtfToggle` and the M5 strip does not, so the two
+> charts had genuinely different chrome (**65.6px vs 83.2px**) while the code subtracted a single
+> `CHROME_PER_CHART`; the strip is now fixed-height (`h-9`) in `trading-chart.tsx`, which makes
+> the chrome one number rather than one per timeframe — the robust fix, since a per-timeframe
+> constant would break the moment the toggle moved. (2) That constant was **44px against an
+> actual ~66px**, so the lower chart's root overflowed its pane by ~18px and was **clipped** —
+> visible in Davin's own production screenshot, where the M15 toolbar runs off the bottom of the
+> viewport. Re-measured and pinned at **86px** (strip 36 + `space-y-4` 16 + card `p-4`/border 34),
+> rounded **up** deliberately: the box is clipped, so an underestimate does not overflow visibly,
+> it silently cuts the lower chart. Both roots now sit 1–3px **inside** their panes at every
+> split tried. Also dropped the handle's `my-1`, so the divider's footprint is the 10px the
+> maths reserves rather than 18px.
+> **Verified live** (throwaway unauthenticated preview route mirroring the chart panel's own box,
+> deleted after — clean `git status`): drag down 50/50 → 64.6/35.4 with canvases 376→360/376→160;
+> drag up the mirror; **both stops clamp at the 246px minimum pane with no overflow** (−0.1 to
+> −2.7px); a 1400×1000 → 1024×620 window resize recomputes both canvases 376 → 186 and preserves
+> the split; the M5 Overlay toggle stays on M15 only; the drawing toolbar's own
+> `toolbarLayout()` re-flows correctly at the new heights; zero panel-library warnings and zero
+> chart/panel console errors (the `ws://localhost:5001` CSP block and the unauthenticated 401s
+> are pre-existing local-dev gaps, confirmed unrelated).
+> **A harness quirk worth recording, because it looked exactly like a bug for a while:**
+> `ResizeObserver` and `requestAnimationFrame` **do not fire while the Browser pane is hidden**
+> (`document.hidden === true`), so the charts appeared frozen at a stale measurement and a
+> freshly-attached observer never even received its mandatory initial callback. Fronting the pane
+> and forcing a paint with a screenshot resolved it. A measurement taken through that pane is
+> only trustworthy once `document.hidden` is `false` — checking it is cheaper than re-deriving
+> the bug.
+> **Verified:** `tsc`/ESLint/Prettier clean; new `mtf-split-layout.test.ts` (15 tests) + 6
+> divider tests on the existing suite; **mutation 5/5 killed** (ignore `onLayout` → 1 fail;
+> remove the divider → 6; underestimate the chrome → 2; drop the 50% cap → 2; don't reserve the
+> divider's own footprint → 7), restores verified **byte-exact by sha256** and run
+> unconditionally. The chrome constant is pinned by a deliberate literal rather than re-derived
+> from itself — the first draft's assertions subtracted the constant from both sides, so a wrong
+> value cancelled out and the mutant **survived**; worth remembering, since a self-consistent
+> test of a measured constant proves nothing about the measurement. Full `test:ci` **219/219 ·
+> 2871/2871** (218/2850 + exactly this session's 1 suite/21 tests, zero regressions).
+> **Not verified:** authenticated click-through on `davintrade.app` — the usual boundary. The
+> split is deliberately **session-local**, matching the horizontal panels, which are not
+> persisted either; `autoSaveId` would add it in one prop if Davin wants it.
+> **Artifacts:** `components/charts/{mtf-stacked-charts.tsx, mtf-split-layout.ts (new),
+trading-chart.tsx}`, `__tests__/components/charts/{mtf-split-layout.test.ts (new),
+mtf-stacked-charts.test.tsx}`, `lib/i18n/dictionaries/{en-US,en-GB}.json` (1 identity key each),
+> this file.
+
 > **Ad-hoc session (2026-09-16, phase/session unchanged) — Stack C 14th indicator:
 > `SupportAndResistantAutoCalibration_v2_29` onboarded end to end, `market_data` 87 → 95
 > columns (`sr_1`..`sr_8`). Code complete and verified; migration authored, NOT applied.**
