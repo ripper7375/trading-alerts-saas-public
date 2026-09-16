@@ -932,6 +932,14 @@ declare module '@prisma/client' {
     fractal_loedt: number | null;
     best_resistance: number | null;
     best_support: number | null;
+    sr_1: number | null;
+    sr_2: number | null;
+    sr_3: number | null;
+    sr_4: number | null;
+    sr_5: number | null;
+    sr_6: number | null;
+    sr_7: number | null;
+    sr_8: number | null;
     body_direction: number | null;
     body_size: number | null;
     body_classification: number | null;

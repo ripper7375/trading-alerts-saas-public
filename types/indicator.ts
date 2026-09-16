@@ -2,7 +2,7 @@
 // MARKET DATA V6 — UNIFIED SCHEMA (V8 ARCHITECTURE)
 //
 // Both tiers have identical access to ALL columns of the
-// market_data_v6 table (87 fields). Mirrors prisma MarketDataV6,
+// market_data_v6 table (95 fields). Mirrors prisma MarketDataV6,
 // which itself mirrors gateway_contract_market_data.schema.json.
 // The old per-tier column interfaces (FreeMarketData /
 // CompleteMarketData, 63-column schema) were removed with the
@@ -41,7 +41,7 @@ export const CENTROID_VARIANTS = [
 export type CentroidVariant = (typeof CENTROID_VARIANTS)[number];
 
 /**
- * Complete market_data_v6 row — all 87 fields, available to BOTH tiers.
+ * Complete market_data_v6 row — all 95 fields, available to BOTH tiers.
  * Field names/types are a 1:1 mirror of prisma's MarketDataV6 model.
  */
 export interface MarketDataV6 {
@@ -132,6 +132,19 @@ export interface MarketDataV6 {
   fractal_loedt: number | null;
   best_resistance: number | null;
   best_support: number | null;
+
+  // Support & Resistance auto-calibrated levels (calculated) — the 14th
+  // indicator, SupportAndResistantAutoCalibration_v2_29. Resolved per bar
+  // against that bar's own close: sr_1..sr_4 nearest supports BELOW it
+  // (sr_1 closest), sr_5..sr_8 nearest resistances ABOVE it (sr_5 closest).
+  sr_1: number | null;
+  sr_2: number | null;
+  sr_3: number | null;
+  sr_4: number | null;
+  sr_5: number | null;
+  sr_6: number | null;
+  sr_7: number | null;
+  sr_8: number | null;
 
   // Z-Score candle (calculated)
   body_direction: number | null; // -1, 0, 1

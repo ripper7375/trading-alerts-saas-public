@@ -276,6 +276,38 @@ export class MarketDataDto {
   @IsOptional()
   best_support?: number | null;
 
+  @IsNumber()
+  @IsOptional()
+  sr_1?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_2?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_3?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_4?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_5?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_6?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_7?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_8?: number | null;
+
   @IsIn([-1, 0, 1])
   @IsOptional()
   body_direction?: number | null;
@@ -417,6 +449,14 @@ export const MARKET_DATA_DTO_FIELDS = [
   'fractal_loedt',
   'best_resistance',
   'best_support',
+  'sr_1',
+  'sr_2',
+  'sr_3',
+  'sr_4',
+  'sr_5',
+  'sr_6',
+  'sr_7',
+  'sr_8',
   'body_direction',
   'body_size',
   'body_classification',

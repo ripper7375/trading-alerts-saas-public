@@ -360,7 +360,8 @@ model DrawingAlert {
 }
 
 // Session 4B-2: NARROW subset mirror of prisma/market-data/schema.prisma's
-// MarketDataV6 (87 fields total) — same convention as User/SecurityAlert
+// MarketDataV6 (95 fields total since the 2026-09-16 14th indicator) — same
+// convention as User/SecurityAlert
 // above. Only the fields `lib/jobs/alert-checker.ts`'s
 // fetchXauusdPriceFromGatewayPipeline actually reads
 // (`findFirst({ where: { symbol, timeframe }, orderBy: { timestamp: 'desc'

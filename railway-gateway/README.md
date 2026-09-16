@@ -23,7 +23,7 @@ npm run start:dev
 
 ## Regenerating the DTO
 
-The 87-field `MarketDataDto` (`src/gateway/dto/market-data.dto.ts`) is
+The 95-field `MarketDataDto` (`src/gateway/dto/market-data.dto.ts`) is
 generated, not hand-maintained:
 
 ```bash

@@ -120,6 +120,39 @@
     },
     "best_support": { "type": ["number", "null"], "description": "calculated" },
 
+    "sr_1": {
+      "type": ["number", "null"],
+      "description": "Support 1: closest auto-calibrated support level BELOW this bar's close. From SupportAndResistantAutoCalibration_v2_29 (Freedman-Diaconis IQR clustering), the 14th indicator. null = no level resolved in this slot for this bar; never 0."
+    },
+    "sr_2": {
+      "type": ["number", "null"],
+      "description": "Support 2: 2nd closest support level below close. null = unresolved."
+    },
+    "sr_3": {
+      "type": ["number", "null"],
+      "description": "Support 3: 3rd closest support level below close. null = unresolved."
+    },
+    "sr_4": {
+      "type": ["number", "null"],
+      "description": "Support 4: 4th closest (furthest tracked) support level below close. null = unresolved."
+    },
+    "sr_5": {
+      "type": ["number", "null"],
+      "description": "Resistance 1: closest auto-calibrated resistance level ABOVE this bar's close. null = unresolved."
+    },
+    "sr_6": {
+      "type": ["number", "null"],
+      "description": "Resistance 2: 2nd closest resistance level above close. null = unresolved."
+    },
+    "sr_7": {
+      "type": ["number", "null"],
+      "description": "Resistance 3: 3rd closest resistance level above close. null = unresolved."
+    },
+    "sr_8": {
+      "type": ["number", "null"],
+      "description": "Resistance 4: 4th closest (furthest tracked) resistance level above close. null = unresolved."
+    },
+
     "body_direction": {
       "type": ["integer", "null"],
       "enum": [-1, 0, 1, null],

@@ -22,7 +22,7 @@ datasource db {
 
 /// Downstream store for the backend-stack-c v6 XAUUSD pipeline (Push Worker ->
 /// Railway Gateway -> here). Field names/types are a direct 1:1 mirror of
-/// gateway_contract_market_data.schema.json (87 fields) — a different indicator
+/// gateway_contract_market_data.schema.json (95 fields) — a different indicator
 /// methodology (centroid-regression variants, EDT channels, ZigZag
 /// categorization, cycle provenance) than the now-decommissioned MarketData
 /// model this replaces (see the section comment above). Written by
@@ -121,6 +121,20 @@ model MarketDataV6 {
   fractal_loedt   Float?
   best_resistance Float?
   best_support    Float?
+
+  // Support & Resistance auto-calibrated levels (calculated) — the 14th
+  // indicator, SupportAndResistantAutoCalibration_v2_29 (2026-09-16).
+  // Resolved per bar against that bar's own close: sr_1..sr_4 are the nearest
+  // supports BELOW it (sr_1 closest), sr_5..sr_8 the nearest resistances ABOVE
+  // it (sr_5 closest). NULL = that slot resolved no level; never 0.
+  sr_1 Float?
+  sr_2 Float?
+  sr_3 Float?
+  sr_4 Float?
+  sr_5 Float?
+  sr_6 Float?
+  sr_7 Float?
+  sr_8 Float?
 
   // Z-Score candle (calculated)
   body_direction      Int? // -1, 0, 1
