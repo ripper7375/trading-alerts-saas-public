@@ -12,6 +12,7 @@ import React from 'react';
 import {
   render as rtlRender,
   screen,
+  fireEvent,
   type RenderOptions,
 } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from '@jest/globals';
@@ -50,20 +51,37 @@ const mockUseOhlcvSocket = useOhlcvSocket as jest.MockedFunction<
   typeof useOhlcvSocket
 >;
 
-jest.mock('lightweight-charts', () => ({
-  createChart: jest.fn(() => ({
-    addSeries: () => ({
-      setData: jest.fn(),
-      setMarkers: jest.fn(),
-      applyOptions: jest.fn(),
-    }),
-    remove: jest.fn(),
-    timeScale: () => ({ fitContent: jest.fn() }),
-    applyOptions: jest.fn(),
-  })),
-  ColorType: { Solid: 'Solid' },
-  CandlestickSeries: 'Candlestick',
-}));
+// `appliedHeights` records every height pushed to a live chart, which is how
+// the divider tests tell a real resize from a decorative one. It is built
+// inside the factory rather than closed over: babel-jest only hoists a factory
+// with no out-of-scope references, and an unhoisted one registers after the
+// imports, letting the real module load first.
+jest.mock('lightweight-charts', () => {
+  const appliedHeights: number[] = [];
+  return {
+    __appliedHeights: appliedHeights,
+    createChart: jest.fn(() => ({
+      addSeries: () => ({
+        setData: jest.fn(),
+        setMarkers: jest.fn(),
+        applyOptions: jest.fn(),
+      }),
+      remove: jest.fn(),
+      timeScale: () => ({ fitContent: jest.fn() }),
+      applyOptions: (options: { height?: number }) => {
+        if (typeof options?.height === 'number') {
+          appliedHeights.push(options.height);
+        }
+      },
+    })),
+    ColorType: { Solid: 'Solid' },
+    CandlestickSeries: 'Candlestick',
+  };
+});
+
+const appliedChartHeights = (
+  jest.requireMock('lightweight-charts') as { __appliedHeights: number[] }
+).__appliedHeights;
 
 jest.mock('@/components/charts/drawing/DrawingLayer', () => ({
   DrawingLayer: () => null,
@@ -87,10 +105,16 @@ jest.mock('next-auth/react', () => ({
 }));
 
 import { MtfStackedCharts } from '@/components/charts/mtf-stacked-charts';
+import {
+  DEFAULT_SPLIT,
+  FALLBACK_TOTAL_HEIGHT_PX,
+  paneCanvasHeights,
+} from '@/components/charts/mtf-split-layout';
 
 describe('MtfStackedCharts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    appliedChartHeights.length = 0;
     // Seeding skips LocaleProvider's real geo-IP fetch(), which otherwise
     // resolves after jsdom tears the window down and throws
     // "Cannot read properties of null (reading '_location')" — an error that
@@ -182,5 +206,102 @@ describe('MtfStackedCharts', () => {
     const timeframes = mockUseOhlcvSocket.mock.calls.map((c) => c[1]);
     expect(timeframes).toContain('M1');
     expect(timeframes).toContain('M5');
+  });
+});
+
+/**
+ * The divider. Before this the two charts sat in a fixed 50/50 flex column
+ * and the band between them was inert, unlike the seed prototype's own
+ * drag-resizable one — so these tests are about it being genuinely live:
+ * present, between the right two charts, moving when driven, and — the one
+ * that matters — carrying both canvases with it. A divider that moves while
+ * the charts keep their mount-time height is the failure this guards, the
+ * same class as the workspace panels' own collapse-without-resize bug.
+ */
+describe('MtfStackedCharts divider', () => {
+  const dividerOf = (container: HTMLElement): HTMLElement => {
+    const divider = container.querySelector<HTMLElement>('[role="separator"]');
+    if (!divider) throw new Error('no divider rendered');
+    return divider;
+  };
+
+  const growthOf = (container: HTMLElement, panelId: string): number =>
+    Number(
+      container.querySelector<HTMLElement>(`[data-panel-id="${panelId}"]`)
+        ?.style.flexGrow
+    );
+
+  it('stacks the two charts in a vertical group', () => {
+    const { container } = render(<MtfStackedCharts symbol="XAUUSD" />);
+
+    expect(
+      container
+        .querySelector('[data-panel-group]')
+        ?.getAttribute('data-panel-group-direction')
+    ).toBe('vertical');
+  });
+
+  it('puts a labelled divider between the upper and lower charts', () => {
+    const { container } = render(<MtfStackedCharts symbol="XAUUSD" />);
+
+    const divider = dividerOf(container);
+    expect(divider).toHaveAccessibleName(
+      'Drag to resize the upper and lower charts'
+    );
+
+    const order = Array.from(
+      container.querySelectorAll('[data-panel-id], [role="separator"]')
+    );
+    expect(order.map((el) => el.getAttribute('data-panel-id'))).toEqual([
+      'mtf-upper',
+      null,
+      'mtf-lower',
+    ]);
+  });
+
+  it('starts at an even split', () => {
+    const { container } = render(<MtfStackedCharts symbol="XAUUSD" />);
+
+    expect(growthOf(container, 'mtf-upper')).toBe(50);
+    expect(growthOf(container, 'mtf-lower')).toBe(50);
+  });
+
+  it('moves the split when the divider is driven', () => {
+    const { container } = render(<MtfStackedCharts symbol="XAUUSD" />);
+
+    fireEvent.keyDown(dividerOf(container), { key: 'ArrowDown' });
+
+    expect(growthOf(container, 'mtf-upper')).toBeGreaterThan(50);
+    expect(growthOf(container, 'mtf-lower')).toBeLessThan(50);
+    expect(
+      growthOf(container, 'mtf-upper') + growthOf(container, 'mtf-lower')
+    ).toBeCloseTo(100);
+  });
+
+  it('resizes both canvases to follow the divider', () => {
+    const { container } = render(<MtfStackedCharts symbol="XAUUSD" />);
+    const before = paneCanvasHeights(FALLBACK_TOTAL_HEIGHT_PX, DEFAULT_SPLIT);
+    appliedChartHeights.length = 0;
+
+    fireEvent.keyDown(dividerOf(container), { key: 'ArrowDown' });
+
+    const expected = paneCanvasHeights(FALLBACK_TOTAL_HEIGHT_PX, [
+      growthOf(container, 'mtf-upper'),
+      growthOf(container, 'mtf-lower'),
+    ]);
+    expect(expected[0]).toBeGreaterThan(before[0]);
+    expect(expected[1]).toBeLessThan(before[1]);
+    expect(appliedChartHeights).toEqual(expect.arrayContaining(expected));
+  });
+
+  it('keeps both charts mounted and subscribed across a resize', () => {
+    const { container } = render(<MtfStackedCharts symbol="XAUUSD" />);
+
+    fireEvent.keyDown(dividerOf(container), { key: 'ArrowDown' });
+
+    const text = container.textContent ?? '';
+    expect(text).toContain('XAUUSD · M5');
+    expect(text).toContain('XAUUSD · M15');
+    expect(screen.getAllByTestId('mtf-toggle')).toHaveLength(1);
   });
 });

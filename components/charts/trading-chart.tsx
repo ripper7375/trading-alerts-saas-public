@@ -353,7 +353,12 @@ export function TradingChart({
         the M15 chart and nowhere else.
       */}
       {!showHeader && (
-        <div className="flex items-center justify-between px-1">
+        // Fixed height on purpose: the M15 strip carries MtfToggle and the M5
+        // strip does not, so an auto height made the two stacked charts differ
+        // by ~18px of chrome. mtf-split-layout.ts subtracts one CHROME_PER_CHART
+        // for both, so the taller strip pushed the lower chart past the bottom
+        // of its pane, where it was clipped.
+        <div className="flex h-9 items-center justify-between px-1">
           <span className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <span
               className={`inline-block h-1.5 w-1.5 rounded-full ${

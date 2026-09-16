@@ -4,7 +4,10 @@
  * MtfStackedCharts — the two-panel multi-timeframe layout.
  *
  * M5 above, M15 below, matching the rendered PNG a PRO user downloads and the
- * arrangement in the product's own terminal design.
+ * arrangement in the product's own terminal design. The divider between them
+ * is draggable, so a trader can give either timeframe more of the panel —
+ * before this the split was a fixed 50/50 and the gap between the two charts
+ * was inert, unlike the seed prototype it was ported from.
  *
  * This is deliberately a *composition* of two `TradingChart` instances rather
  * than a chart component that owns two canvases. `TradingChart` is already
@@ -24,9 +27,22 @@
  * @module components/charts/mtf-stacked-charts
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '@/components/ui/resizable';
+import { useLocale } from '@/lib/context/locale-context';
 
 import { TradingChart } from './trading-chart';
+import {
+  DEFAULT_SPLIT,
+  FALLBACK_TOTAL_HEIGHT_PX,
+  minPanePercent,
+  paneCanvasHeights,
+} from './mtf-split-layout';
 
 interface MtfStackedChartsProps {
   symbol: string;
@@ -41,10 +57,8 @@ interface MtfStackedChartsProps {
   totalHeight?: number;
 }
 
-/** Chrome around each canvas (label strip, padding, gap) — subtracted so the
- *  two charts fit the measured box instead of overflowing it. */
-const CHROME_PER_CHART = 44;
-const MIN_CHART_HEIGHT = 160;
+/** Percentages closer than this are the same divider position. */
+const SPLIT_EPSILON = 0.05;
 
 export function MtfStackedCharts({
   symbol,
@@ -52,8 +66,10 @@ export function MtfStackedCharts({
   lowerTimeframe = 'M15',
   totalHeight,
 }: MtfStackedChartsProps): React.JSX.Element {
+  const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
+  const [split, setSplit] = useState<readonly number[]>(DEFAULT_SPLIT);
 
   /**
    * lightweight-charts needs an explicit pixel height, but both workspaces put
@@ -73,30 +89,75 @@ export function MtfStackedCharts({
     return () => observer.disconnect();
   }, [totalHeight]);
 
-  const available = totalHeight ?? measuredHeight ?? 640;
-  const perChart = Math.max(
-    MIN_CHART_HEIGHT,
-    Math.floor(available / 2) - CHROME_PER_CHART
-  );
+  /**
+   * Fires on every frame of a drag, which is what makes both canvases follow
+   * the divider live. Ignoring no-op reports keeps a drag along a panel's
+   * minimum from re-rendering two charts for nothing.
+   */
+  const onLayout = useCallback((next: number[]): void => {
+    setSplit((prev) =>
+      next.every(
+        (size, i) => Math.abs(size - (prev[i] ?? Number.NaN)) < SPLIT_EPSILON
+      )
+        ? prev
+        : next
+    );
+  }, []);
+
+  const available = totalHeight ?? measuredHeight ?? FALLBACK_TOTAL_HEIGHT_PX;
+  const [upperHeight, lowerHeight] = paneCanvasHeights(available, split);
+  const minSize = minPanePercent(available);
 
   return (
-    <div ref={containerRef} className="flex h-full w-full flex-col gap-2">
-      <TradingChart
-        symbol={symbol}
-        timeframe={upperTimeframe}
-        height={perChart}
-        showHeader={false}
-        showFooter={false}
-        label={`${symbol} · ${upperTimeframe}`}
-      />
-      <TradingChart
-        symbol={symbol}
-        timeframe={lowerTimeframe}
-        height={perChart}
-        showHeader={false}
-        showFooter={false}
-        label={`${symbol} · ${lowerTimeframe}`}
-      />
+    <div
+      ref={containerRef}
+      className="h-full w-full"
+      style={totalHeight !== undefined ? { height: totalHeight } : undefined}
+    >
+      <ResizablePanelGroup
+        direction="vertical"
+        className="h-full w-full"
+        onLayout={onLayout}
+      >
+        <ResizablePanel
+          id="mtf-upper"
+          order={1}
+          defaultSize={DEFAULT_SPLIT[0]}
+          minSize={minSize}
+          className="overflow-hidden"
+        >
+          <TradingChart
+            symbol={symbol}
+            timeframe={upperTimeframe}
+            height={upperHeight}
+            showHeader={false}
+            showFooter={false}
+            label={`${symbol} · ${upperTimeframe}`}
+          />
+        </ResizablePanel>
+
+        <ResizableHandle
+          withHandle
+          aria-label={t('Drag to resize the upper and lower charts')}
+        />
+
+        <ResizablePanel
+          id="mtf-lower"
+          order={2}
+          defaultSize={DEFAULT_SPLIT[1]}
+          minSize={minSize}
+          className="overflow-hidden"
+        >
+          <TradingChart
+            symbol={symbol}
+            timeframe={lowerTimeframe}
+            height={lowerHeight}
+            showHeader={false}
+            showFooter={false}
+            label={`${symbol} · ${lowerTimeframe}`}
+          />
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 }
