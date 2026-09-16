@@ -130,8 +130,9 @@ resistance lines, ZigZag metrics, z-score body set).
 | OHLCV                                                                        | `open`, `high`, `low`, `close`, `volume` — the per-bar spine                                                         |
 | ZigZag                                                                       | pivot type + point + 9 segment metrics — **11 fields** (sparse: pivot events, not per-bar)                           |
 | Z-Score candle                                                               | `body_direction`, `body_size` (=\|z\|), `body_classification`                                                        |
+| Support & Resistance auto-calibration                                        | `sr_1`..`sr_4` supports below close, `sr_5`..`sr_8` resistances above it — **8 fields** (2026-09-16)                 |
 | **Pipeline adds**                                                            | `cycle_id`, `collected_at`, `calculated_at`, `synced_at`                                                             |
-|                                                                              | **= 87 columns**                                                                                                     |
+|                                                                              | **= 95 columns**                                                                                                     |
 
 **Why this was possible:** the indicators were _already exporting_ all of these columns. The
 collector simply wasn't reading the calculated ones. Nothing new had to be built in MQL5.
@@ -302,15 +303,15 @@ an API surface is only worth building when something actually consumes it.
 
 **But the column positions shift.** If the Engine 1.5A/B/C design refers to columns by position:
 
-|                   | Previous deck | Current         |
-| ----------------- | ------------- | --------------- |
-| Base columns      | 79            | **87**          |
-| MCD01-10          | Cols 80–89    | **Cols 88–97**  |
-| FREQ54            | Cols 90–99    | **Cols 98–107** |
-| JSONB54 Narrative | Col 100       | **Col 108**     |
-| Conf_Score        | Col 101       | **Col 109**     |
-| WACS54            | Col 102       | **Col 110**     |
-| **Prisma total**  | **102**       | **110**         |
+|                   | Previous deck | Current          |
+| ----------------- | ------------- | ---------------- |
+| Base columns      | 79            | **95**           |
+| MCD01-10          | Cols 80–89    | **Cols 96–105**  |
+| FREQ54            | Cols 90–99    | **Cols 106–115** |
+| JSONB54 Narrative | Col 100       | **Col 116**      |
+| Conf_Score        | Col 101       | **Col 117**      |
+| WACS54            | Col 102       | **Col 118**      |
+| **Prisma total**  | **102**       | **118**          |
 
 **Speaker note:** if the Engine 1.5 design refers to columns _by name_ rather than position, this
 is a non-issue. Worth confirming.

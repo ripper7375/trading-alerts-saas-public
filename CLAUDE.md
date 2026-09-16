@@ -13,6 +13,117 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-16, phase/session unchanged) — Stack C 14th indicator:
+> `SupportAndResistantAutoCalibration_v2_29` onboarded end to end, `market_data` 87 → 95
+> columns (`sr_1`..`sr_8`). Code complete and verified; migration authored, NOT applied.**
+> Davin supplied `ARCHITECTURE_DESIGN_14TH_INDICATOR_SUPPORT_AND_RESISTANCE.md` and asked for a
+> feasibility review plus the pipeline implementation. Planned via plan mode with three parallel
+> Explore passes (Python/SQLite, downstream TS/Prisma, the MQL5 source) before any edit, per
+> `EXECUTOR-PROTOCOL.md` §0's "live code wins".
+> **The MQL5 half of the doc is accurate** — filename, the 12-column bare TSV header,
+> empty-string nulls and the statistic block all verified against the live `.mq5`, and its
+> timestamp already uses the fixed `TimeTradeServer()`-rounded form rather than the
+> `TimeCurrent()` bug corrected across the other 13 on 2026-09-09. **Three of its pipeline
+> claims did not survive contact with the live code, each a production failure as written:**
+> (1) **§6.1 is false** — `migrate_raw_tables()` skips absent tables and its docstring says it
+> never touches `market_data`; `CREATE TABLE IF NOT EXISTS market_data` is a no-op on a deployed
+> `xauusd.db`. So the 8 columns had **no** automatic path and `promote_cycle()` would raise
+> `OperationalError`, uncaught in `run_cycle()` — a collector crash-loop, not a degradation.
+> (2) **§4.2.3 is a no-op AND harmful** — `STAT_SOURCES` is a derived blacklist, so adding the
+> source auto-enrolls it; the SR statistic vocabulary (Q25/Q75, IQR, Optimal Step) matches almost
+> nothing in `STAT_FIELDS`, and the stats contract pins `source` to a **closed 10-value enum**
+> while that POST is **batched** — one element would 400 the whole request and quarantine all
+> ~22 snapshots that cycle. A regression to a working lane. (3) **§4.5 under-scopes**: 10 files,
+> not 1, because the contract JSON generates the DTO and `schema-sync.spec.ts` diffs both Prisma
+> schemas order-sensitively.
+> **Three decisions escalated via `AskUserQuestion`; Davin took the recommendation on two and
+> went further on the third:** defer SR statistics capture (explicit `STAT_SOURCES` exclusion);
+> ship **both** an automatic `migrate_market_data()` **and** a hand-run
+> `migrate_sqlite_add_sr_columns.sql`; and **full** `PER_BAR_SOURCES` enrollment as the doc
+> intends — accepting that a missing or stale `SR_Levels_*.txt` rejects the entire price cycle,
+> now demonstrated live rather than assumed.
+> **⚠ ROLLOUT ORDER IS LOAD-BEARING.** Apply the Postgres migration **before** `railway-gateway`
+> deploys (it auto-deploys from `main`). The contract sets `additionalProperties: false`, the
+> NestJS pipe sets `forbidNonWhitelisted: true`, and the push worker's 400 handler quarantines a
+> row **and stamps `synced_at`** — so rows posted to an un-migrated gateway are permanently
+> marked synced, recoverable only by hand via `replay_quarantine.py`. The reverse order merely
+> 5xxs and retries. Full order: migration → gateway → VPS.
+> **A real capture turned up late and upgraded the verification.** An initial search found no
+> `SR_Levels_*` anywhere (the `Glob` timed out and a `find` was inconclusive); a `git grep` sweep
+> at the end found **two genuine captures** in `excel-calculation/` (~500 bars each, Feb 2026).
+> Both headers match the `SOURCES` registry **byte for byte**, 1001 rows parse with zero key
+> anomalies, and the documented semantics hold on real data: supports strictly below close,
+> resistances strictly above, nearest-first, **0 violations**. Better still, one capture carries a
+> **constant 298s sub-bar phase on all 500 rows** — the documented `TimeCurrent()` signature —
+> and the collector's defensive grid snap repaired every one, so that belt-and-braces path is now
+> proven on real data instead of trusted from a comment. Also confirms unresolved slots are
+> **common**, not theoretical (`sr_8` populated on only 86 of 501 bars), which validates keeping
+> every `sr_*` optional and nullable. Four golden tests now pin this, skipping (not failing) if
+> the captures move.
+> **Built:** `raw_sr_levels` + 8 `market_data` columns + the `v_validation_keys` branch (with a
+> `DROP VIEW` first — `CREATE VIEW IF NOT EXISTS` is a silent no-op on a deployed DB, so the view
+> would otherwise never refresh); `SOURCES['sr_levels']`, `sr_1..sr_8` added **explicitly** to
+> `PRICE_LEVEL_COLUMNS` (a numeric slot name matches no suffix rule, so an inactive `0.00` would
+> otherwise reach the alert engine as a $0.00 price); the `STAT_SOURCES` exclusion; the new
+> additive-only `migrate_market_data()` wired into `open_db()`; worker contract 87 → 95; the
+> contract JSON; regenerated DTO; both Prisma schemas; `types/indicator.ts`;
+> `types/prisma-stubs.d.ts`; and `20260916000000_add_market_data_v6_sr_levels`.
+> **Verified:** SQLite ↔ worker ↔ contract JSON agree at **95** three ways, including via the
+> pipeline's own `verify_schema_contract()` drift guard. New `test_sr_levels_source.py`
+> **28 tests**; `test_economic_events.py`'s column assertion 87 → 95; **mutation 5/5 killed**
+> (drop `sr_*` from the price guard → 3 fail; neuter `migrate_market_data()` → 3; unwire it from
+> `open_db()` → 1; re-enroll in `STAT_SOURCES` → 1; strip the DDL → 8), restores verified
+> **byte-exact by sha256** and run unconditionally. All 4 pre-existing Python suites green.
+> **Live `--once` dry run** against a synthetic 14-file export dir: 14 sources staged, cycle
+> validated, 20 bars promoted, the `0.00` sentinel NULL in every row, and a payload built from a
+> real promoted row carrying exactly **95** fields with `sr_3`/`sr_4` as JSON `null`. Negative
+> case confirmed: with `SR_Levels_*.txt` removed the cycle is rejected after 3 attempts.
+> railway-gateway `tsc` clean, **5/5·68/68** unit, **4/4·43/43** e2e (e2e passing untouched is
+> what proves the controller/validator/processor are genuinely field-agnostic). Monolith `tsc` +
+> `eslint` clean, full `test:ci` **218/218·2850/2850**. Prisma `migrate diff` confirms the hand-authored
+> migration's 8 `DOUBLE PRECISION` columns match Prisma's own generated DDL.
+> **Not verified:** no disposable-Postgres container rehearsal — Docker Desktop would not come
+> up (same recurring gap); acceptable here since the migration is 8 nullable `ADD COLUMN`s
+> touching no existing row, cross-checked against `migrate diff`.
+> **⚠ Needs Davin, in this order:** apply the migration to production
+> (`maglev.proxy.rlwy.net:58290`, via `prisma.production.config.ts`; run `prisma migrate status`
+> first) → merge/deploy railway-gateway → attach the `.ex5` to XAUUSD M5+M15 and widen the VPS
+> SQLite (either the script, or just restart the collector). **Decommission the predecessor
+> `SupportAndResistant_v2_29.mq5` first if attached anywhere** — it defaults to the same
+> `InpExportFileName = "SR_Levels"`, so both would truncate each other's export at `:59` with two
+> different statistic schemas.
+> **Flagged, not fixed (indicator-side):** the export is 3001 rows not 3000 (inclusive loop, 3000
+> closed + the forming bar); `ExportSRData(bool is_backfill)` never reads its parameter so the
+> "Backfill" button equals "Export"; the early return on unchanged `rates_total` makes the
+> intra-bar trigger unreachable; `sr_*` are hardcoded to 2 decimals while `close` uses `_Digits`;
+> the statistic file uses ASCII hyphens where the other ten use an em dash (moot while stats are
+> deferred). **And a look-ahead note worth recording:** `ArrayLevels` is resolved once from the
+> fixed window then re-bucketed against every exported bar's close, so a historical bar carries
+> today's level set — same class as `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` documents
+> for the centroids, and stronger. Fine for a live snapshot; invalid for backtesting.
+> **The legacy EA was deliberately left at 87 fields** — its own `CREATE TABLE`/JSON really do
+> carry 87, it is not in the v6 flow, and _adding_ an indicator cannot break its `OnInit` (unlike
+> the 2026-09-03 rename). Its comments now say so rather than carrying a number that would be
+> false. `operation-service` likewise unchanged: a narrow 21-column channel mirror that carries no
+> `best_resistance`/`best_support` either.
+> **Not committed** — per this file's established log-first-defer-commit pattern.
+> **Artifacts:** in `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/` — `sqlite_schema_v6_xauusd.sql`,
+> `export_collector_validator_v2.py`, `backfill_worker_api_gateway_v5.py`,
+> `gateway_contract_market_data.schema.json`, `migrate_sqlite_add_sr_columns.sql` (new),
+> `test_sr_levels_source.py` (new), `test_economic_events.py`,
+> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`, `ARCHITECTURE-SUMMARY-FOR-DECK.md`,
+> `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`,
+> `ARCHITECTURE_DESIGN_14TH_INDICATOR_SUPPORT_AND_RESISTANCE.md`,
+> `data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt`,
+> `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5`; plus `railway-gateway/{prisma/schema.prisma,
+src/gateway/dto/market-data.dto.ts, test/dto-contract.spec.ts, README.md}`,
+> `prisma/market-data/schema.prisma`,
+> `prisma/migrations/20260916000000_add_market_data_v6_sr_levels/migration.sql` (new,
+> authored/unapplied), `types/{indicator.ts, prisma-stubs.d.ts}`,
+> `operation-service/prisma/schema.prisma`, `docs/migration-orders/migration-stack-analysis.md`,
+> this file.
+
 > **Full account of this session's three rounds (workbench collapse, chart resize + toolbar fit, PRO
 > page header buttons):** `davintrade-frontend-ui-fix/frontend-ui-fix-1-manifest-work-completion.md`.
 > The three entries below are the index.

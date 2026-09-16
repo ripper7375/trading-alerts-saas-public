@@ -813,6 +813,11 @@ bool InitializeDatabases()
 //| Create table for symbol.                                         |
 //| Column set and names mirror gateway_contract_market_data.schema  |
 //| .json 1:1 (87 fields) so a row here is schema-compatible with    |
+//| market_data if this push path is ever reactivated. NOTE: as of   |
+//| 2026-09-16 the contract is 95 fields -- this LEGACY path was not |
+//| extended with the 14th indicator's sr_1..sr_8, because it is not |
+//| part of the v6 data flow (blueprint SS14). Reactivating it would |
+//| require adding them first.                                       |
 //| market_data if this push path is ever reactivated. terminal_id   |
 //| is added on top since the gateway contract requires it on POST   |
 //| but the server-side market_data table does not persist it.       |
@@ -1178,7 +1183,9 @@ bool InsertCandle(int symbolIndex, int tfIndex)
 //+------------------------------------------------------------------+
 //| Publish to Async TCP Socket Relay.                                |
 //| JSON field set/names match gateway_contract_market_data.schema   |
-//| .json exactly (additionalProperties:false - 87 fields, no more,  |
+//| .json exactly (additionalProperties:false - 87 fields at the     |
+//| time this was written; the contract is 95 since 2026-09-16 and   |
+//| this LEGACY path was deliberately not extended -- see SS14), no  |
 //| no less). Python-only fields are emitted as JSON null, never 0.  |
 //+------------------------------------------------------------------+
 bool PublishToLocalRelay(string symbol, ENUM_TIMEFRAMES tf, MqlRates &rate,

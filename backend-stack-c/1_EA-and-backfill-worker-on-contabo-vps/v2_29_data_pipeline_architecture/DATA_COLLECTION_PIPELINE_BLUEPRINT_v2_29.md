@@ -51,7 +51,7 @@ not part of the deployment.
 
 | File                                           | Role                                                             | Ref   |
 | ---------------------------------------------- | ---------------------------------------------------------------- | ----- |
-| `mq5/` (13 indicators, see §0.4)               | Data producers: compute + auto-export **every** value as `.txt`  | §5.1  |
+| `mq5/` (14 indicators, see §0.4)               | Data producers: compute + auto-export **every** value as `.txt`  | §5.1  |
 | `mq5/EconomicCalendarExport_v2_29.mq5`         | **EA**, not an indicator: exports the built-in Economic Calendar | §5.5  |
 | `export_collector_validator_v2.py`             | Pipeline engine: COLLECT → ADJUST → VALIDATE → PROMOTE           | §5.2  |
 | `sqlite_schema_v6_xauusd.sql`                  | `xauusd.db` schema: staging + validation + `market_data`         | §5.3  |
@@ -59,6 +59,7 @@ not part of the deployment.
 | `gateway_contract_market_data.schema.json`     | JSON-Schema of the POST body the gateway must accept             | §9    |
 | `gateway_contract_economic_events.schema.json` | JSON-Schema for the append-only economic-events stream           | §5.5  |
 | `install_services.bat`                         | Windows/NSSM installer for the VPS services                      | §8.2  |
+| `migrate_sqlite_add_sr_columns.sql`            | One-off `market_data` widening for the 14th indicator            | §5.3  |
 | `replay_quarantine.py`                         | Re-POST gateway-rejected rows after a fix                        | §10.2 |
 
 ### 0.2 Legacy (retained for reference; NOT in the v6 data flow — §14)
@@ -81,7 +82,7 @@ restore it.
 
 **None of this is deployed to the VPS and none of it runs.** See §6.
 
-### 0.4 The 13 export indicators — `mq5/`
+### 0.4 The 14 export indicators — `mq5/`
 
 Filenames are hyphen-free (MQL5 indicator names); the EA's `iCustom()` and the
 collector's file-prefix map both depend on these exactly.
@@ -111,6 +112,7 @@ collector's file-prefix map both depend on these exactly.
 | `ZigZagExportv43_v2_29.mq5`                                   | `ZigZag`                                 | `zigzag`             |
 | `ohlcvexportlightweight_v2_29.mq5`                            | `OHLCV`                                  | `ohlcv`              |
 | `zscoreohlccandleexport_v2_29.mq5`                            | `ZScore`                                 | `zscore`             |
+| `SupportAndResistantAutoCalibration_v2_29.mq5`                | `SR_Levels`                              | `sr_levels`          |
 
 > The export-file prefix is set by each indicator's `InpExportFileName` input
 > and is **independent of the `.mq5` filename** — so renaming the `.mq5` files
@@ -127,12 +129,13 @@ collector's file-prefix map both depend on these exactly.
 | `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`                                 | Active / hot-standby terminal topology and the promote design (§8.1)        |
 | `docs/runbooks/mt5-terminal-promote.md` (repo root)                       | The promote procedure itself — preconditions, switch, verify, rollback      |
 | `test_stale_export_guard.py`                                              | Guards the stale-export-directory rejection (§12 item 10); 9 tests          |
+| `test_sr_levels_source.py`                                                | Guards the 14th indicator end to end (§5.1, §13 item 7); 24 tests           |
 
 ---
 
 ## 1. Design Goals
 
-1. **Single source of truth = validated export files.** All 13 indicators
+1. **Single source of truth = validated export files.** All 14 indicators
    export per-bar `.txt` files; the collector cross-validates them and promotes
    one coherent `market_data` row per bar.
 2. **MQL5 computes everything; the pipeline transports it.** Every value in
@@ -158,14 +161,14 @@ collector's file-prefix map both depend on these exactly.
 │                                                                                │
 │  MT5 terminal — XAUUSD M5 chart + XAUUSD M15 chart                             │
 │  ┌──────────────────────────────┐  auto-export every minute at second :59     │
-│  │ 13 export indicators  (§5.1) │ ───────────────►  MQL5/Files/                │
+│  │ 14 export indicators  (§5.1) │ ───────────────►  MQL5/Files/                │
 │  │  7× Centroid Regression      │                   {Prefix}_XAUUSD_{TF}.txt   │
 │  │  Fractal Best-Fit v5         │                   (admin-layer columns)      │
 │  │  Single Best Resist/Support  │                          │                   │
 │  │  ZigZag v43 / OHLCV / ZScore │                          ▼                   │
 │  └──────────────────────────────┘   ┌──────────────────────────────────────┐  │
 │                                      │ export_collector_validator_v2.py(§5.2)│ │
-│  every 5 min at :05, market-hours    │  COLLECT  → 13 raw_* staging tables   │  │
+│  every 5 min at :05, market-hours    │  COLLECT  → 14 raw_* staging tables   │  │
 │  gated; M15 on 15-min boundaries     │             (EVERY exported column)   │  │
 │                                      │  ADJUST   → timestamp_adj (see §7)    │  │
 │                                      │  VALIDATE → keys agree across sources │  │
@@ -192,7 +195,7 @@ collector's file-prefix map both depend on these exactly.
 **Pipeline stages (one 5-minute cycle):**
 
 1. **COLLECT** — read the 13 `{Prefix}_XAUUSD_{TF}.txt` files; stage **every**
-   exported column into the 13 `raw_*` tables under one `collection_cycles` row.
+   exported column into the 14 `raw_*` tables under one `collection_cycles` row.
 2. **ADJUST** — snap `timestamp_adj` to the bar grid. A no-op on correct data
    since the 2026-09-09 MQL5 fix; retained as belt-and-braces (§7).
 3. **VALIDATE** — cross-source agreement on the keys (`timestamp_adj`, `symbol`,
@@ -291,7 +294,7 @@ existing `non_a`/`non_b` pair.
 
 ### 4.2 `market_data` (collector → gateway)
 
-The promoted wide table (87 columns — was 79 before the 2026-09-03
+The promoted wide table (95 columns — 79 before the 2026-09-03
 `best_fit_a`/`best_fit_b` split added a 7th centroid family). Field-by-field
 contract is `gateway_contract_market_data.schema.json` (§9). Column families:
 the 4 keys, OHLCV, the 7 centroid families (admin: `*_horiz_high_map/_horiz_low_map/_ssa/
@@ -320,8 +323,8 @@ Gateway **must** upsert idempotently on `(symbol, timeframe, timestamp)`.
 One full set on the XAUUSD M5 chart, one on the M15 chart. Each computes its
 buffers and auto-exports the admin-layer columns (§3.1).
 
-- **Auto-export inputs (all 13):** `InpAutoExport=true` (1-second `EventSetTimer`
-  loop), `InpExportSecond=59` — keep identical across all 13 so files are
+- **Auto-export inputs (all 14):** `InpAutoExport=true` (1-second `EventSetTimer`
+  loop), `InpExportSecond=59` — keep identical across all 14 so files are
   written in near-lockstep.
 - **Manual/button export retained** in every indicator for human review
   (format/correctness vs the chart); also answer the `CHARTEVENT_CUSTOM+1000` /
@@ -392,10 +395,10 @@ applies it on every start, so shipping schema changes = shipping the file.
 | Object                             | Purpose                                                                                                                                                      |
 | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `collection_cycles`                | one row per slot/timeframe/attempt; `collecting → validating → validated \| rejected`; rejected cycles keep the audit row, cascade-delete staged rows        |
-| 13 × `raw_*`                       | per-source staging — **every** exported column; lead with keys `cycle_id, timestamp_raw, timestamp_adj, symbol, timeframe, close`                            |
-| `v_validation_keys` (+ `…_zigzag`) | UNION view of the 11 per-bar sources' keys for the cross-source mismatch query (zigzag exposed separately as sparse pivots)                                  |
+| 14 × `raw_*`                       | per-source staging — **every** exported column; lead with keys `cycle_id, timestamp_raw, timestamp_adj, symbol, timeframe, close`                            |
+| `v_validation_keys` (+ `…_zigzag`) | UNION view of the 13 per-bar sources' keys for the cross-source mismatch query (zigzag exposed separately as sparse pivots)                                  |
 | `validation_failures`              | per-mismatch forensic log (field + per-source values as JSON)                                                                                                |
-| `market_data`                      | validated wide table (87 cols); PK `(timestamp, timeframe)`; `synced_at` outbox (NULL = unsynced; rows are marked, never deleted); partial index on unsynced |
+| `market_data`                      | validated wide table (95 cols); PK `(timestamp, timeframe)`; `synced_at` outbox (NULL = unsynced; rows are marked, never deleted); partial index on unsynced |
 
 CHECK constraints enforce `symbol='XAUUSD'` and `timeframe IN ('M5','M15')`.
 Empty export fields stored as `NULL`.
@@ -427,7 +430,7 @@ and queue, so a failure here can never delay or reject price data.
 
 **Source.** MT5's own built-in Economic Calendar
 (`CalendarValueHistory` → `CalendarEventById` → `CalendarCountryById`), read on
-the same terminal that runs the 13 indicators. No vendor, no API key, no new
+the same terminal that runs the 14 indicators. No vendor, no API key, no new
 cost. Availability was measured before any of this was designed — Eightcap-Demo
 build 6182: 333 events / 8 days, 333/333 id lookups resolved, 25 HIGH-impact,
 server-side currency filtering functional
@@ -534,7 +537,7 @@ believed to be.
 
 ## 6. Calculation — where it happens, and what was removed
 
-**All calculation happens inside MetaTrader.** Each of the 13 indicators
+**All calculation happens inside MetaTrader.** Each of the 14 indicators
 computes its values for the chart and exports exactly those values; the pipeline
 transports them. There is no second implementation, so there is nothing to
 certify and no way for the stored data to disagree with what the trader sees on
@@ -633,7 +636,7 @@ OHLCV bar and the subset rule rejected it. It now uses the current forming bar's
 **Not a bug, worth knowing:** the golden archive additionally shows whole-bar
 offsets between files (best_fit's newest bar is one bar behind ohlcv's). That is
 an artifact of capturing it by clicking each indicator's export button in turn
-over ~26 minutes. In production all 13 auto-export the same bar at the same
+over ~26 minutes. In production all 14 auto-export the same bar at the same
 second, and the `check_completeness` rule ("latest bar missing in: …") exists to
 reject a cycle if one ever lags.
 
@@ -674,14 +677,14 @@ MT5 terminals:   see below — the export directory is a SHARED BUS, not the
 ```
 
 **Terminals (active / hot-standby topology).** Four independent lanes read from an
-MT5 terminal's `MQL5/Files/`: price (13 indicators × M5/M15), fit statistics (10
+MT5 terminal's `MQL5/Files/`: price (14 indicators × M5/M15), fit statistics (10
 `_Statistic.txt`), the economic calendar, and — via its own separate service and
 its own `CGI_EXPORT_DIR` variable — the currency & gold index engine. Only the
 first three are read by `MT5Collector` from its single `--export-dir`.
 
 | Terminal       | Carries                                            | Alternates? |
 | -------------- | -------------------------------------------------- | ----------- |
-| **A** (EDT)    | 13 indicators on XAUUSD M5 + 13 on M15, + calendar | Yes         |
+| **A** (EDT)    | 14 indicators on XAUUSD M5 + 14 on M15, + calendar | Yes         |
 | **B** (EDT)    | identical to A                                     | Yes         |
 | **S** (static) | 8 × `OHLCV_{SYMBOL}_M5.txt` exporters (Lane 4)     | **Never**   |
 
@@ -708,7 +711,7 @@ requests`. Verify with `nssm status MT5Collector` / `MT5PushWorker`.
 1. Compile the 13 `mq5/` indicators in MetaEditor.
 2. Tools → Options → Expert Advisors: allow `127.0.0.1` (only needed if the
    legacy EA/relay is used).
-3. Attach all 13 indicators to the XAUUSD **M5** chart and all 13 to the **M15**
+3. Attach all 14 indicators to the XAUUSD **M5** chart and all 14 to the **M15**
    chart; set each windowed indicator's anchors (§5.1) and confirm lines draw.
    **Repeat identically on the standby terminal** (§8.1) — A and B must be
    interchangeable, or a promote changes more than the tuning that was intended.
@@ -751,7 +754,7 @@ Both lanes authenticate via Bearer token (`BACKFILL_API_KEY`) and share the same
 The gateway must provide:
 
 1. `POST /api/v1/market-data` accepting a body validated by
-   `gateway_contract_market_data.schema.json` — the 87-field `market_data`
+   `gateway_contract_market_data.schema.json` — the 95-field `market_data`
    record plus `terminal_id`. **All derived/indicator fields are nullable**
    (`null` = indicator inactive on that bar; never coerce to 0).
 2. **Idempotent upsert** on `(symbol, timeframe, timestamp)` — duplicate
@@ -886,7 +889,7 @@ fully cleared.
    table, outbox, HTTP route, Bull queue, processor and reject file — so a
    failure in this stream can never delay or reject price data; verified by
    pointing the endpoint at a dead URL and confirming the `market_data` drain is
-   unaffected. The frozen 87-field contract is untouched. Design and rationale:
+   unaffected. The then-frozen 87-field contract was untouched. Design and rationale:
    `STATISTIC-CAPTURE-SCOPE.md`. **The Postgres migration is authored but NOT
    applied** — see §13 item 5.
 10. ✅ **Stale-export-directory detection — BUILT** (2026-09-12). `validate_cycle`'s
@@ -984,6 +987,46 @@ LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
    promote during a market close**, and confirm the rollback path before it is
    needed in anger.
 
+7. **Deploy the 14th indicator (`SupportAndResistantAutoCalibration_v2_29`).**
+   The pipeline side shipped 2026-09-16 and is tested end to end against
+   synthetic exports; the physical steps are Davin's, and the ORDER matters.
+
+   **a. Apply `20260916000000_add_market_data_v6_sr_levels` to production
+   Postgres FIRST, before merging to `main`.** `railway-gateway` auto-deploys
+   from `main`, the contract sets `additionalProperties: false`, and the push
+   worker's 400 handler quarantines a row **and stamps `synced_at`** — so rows
+   posted to a gateway that predates the columns are permanently marked synced
+   and recoverable only by hand via `replay_quarantine.py`. The reverse order
+   is harmless: a gateway ahead of Postgres just 5xxs and the worker retries.
+
+   **b. Attach the `.ex5` to XAUUSD M5 and M15** (and identically to the
+   standby terminal when it exists — §8.1's parity rule). The binary is
+   compiled and current (2026-09-16, newer than its source). ⚠ **Decommission
+   the predecessor `SupportAndResistant_v2_29.mq5` first if it is attached
+   anywhere:** it defaults to the same `InpExportFileName = "SR_Levels"`, so
+   both would write the same `SR_Levels_XAUUSD_{TF}.txt` and truncate each
+   other at `:59`, producing non-deterministic content with two different
+   statistic-file schemas.
+
+   **c. Widen the VPS SQLite `market_data`** — either run
+   `migrate_sqlite_add_sr_columns.sql` by hand, or simply restart the
+   collector, whose new `migrate_market_data()` does it automatically on boot.
+   Either is safe; both is safe.
+
+   **⚠ No real capture of this indicator's export exists anywhere in the
+   repo.** The parser is verified against the `.mq5` source and synthetic
+   fixtures only. Diff a first real `SR_Levels_XAUUSD_M5.txt` against the
+   `SOURCES['sr_levels']` header list before trusting a green cycle.
+
+   **Statistics capture is deliberately NOT part of this.** `sr_levels` is
+   excluded from `STAT_SOURCES`: its `_Statistic.txt` records Freedman-Diaconis
+   calibration (Q25/Q75, IQR, Optimal Step), not regression fit quality, so
+   almost none of its labels exist in `STAT_FIELDS` — and
+   `gateway_contract_indicator_statistics.schema.json` pins `source` to a
+   closed enum while that POST is batched, so one `sr_levels` element would
+   400 the whole request and quarantine every other snapshot in it. MT5 still
+   writes the file. Ingesting it properly is its own scoped piece of work.
+
 Deferred product features (separate workstreams, not pipeline-blocking):
 trendline image rendering + statistical scoring/advice; parameter-revision
 alerting.
@@ -998,8 +1041,10 @@ purpose is keeping charts/indicators alive so they auto-export.
 
 ### 14.1 EA — `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5`
 
-Loads 12 `iCustom` handles (the 13 indicators minus OHLCV, which it reads via
-`CopyRates`) — including a `best_fit_a`/`best_fit_b` pair since the
+Loads 12 `iCustom` handles (the 13 indicators it was written against, minus
+OHLCV, which it reads via `CopyRates`; it has no handle for the 14th,
+`SupportAndResistantAutoCalibration_v2_29`, and needs none — adding an
+indicator cannot break `OnInit`, unlike the 2026-09-03 rename) — including a `best_fit_a`/`best_fit_b` pair since the
 2026-09-03 split (previously one `best_fit` handle). **Its `iCustom` names
 must exactly match the `mq5/` filenames** (§0.4) — updated to the
 hyphen-free v2.29 names. In the legacy design it
@@ -1025,16 +1070,17 @@ relay bounded-queue+spill+replay; worker `BACKFILL_API_KEY` via env var.
 
 ## Appendix A — Version History
 
-| Item                                          | State                                                                                                                                                                 |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EA / indicators                               | v2.29 (hyphen-free `mq5/` names; auto-export; SSA 8-decimal). **2026-09-09: GMT-offset fix in all 13 — needs recompile (§7.1)**                                       |
-| Schema                                        | v6 (`xauusd.db`: staging + validation + `market_data` outbox). **2026-09-09: staging widened to every exported column**                                               |
-| Collector                                     | v2 (header-name parsing; market-hours gate). **2026-09-09: CALCULATE stage removed; `migrate_raw_tables()` added**                                                    |
-| Push worker                                   | v5 (`market_data` outbox; synced_at; quarantine+replay)                                                                                                               |
-| Calc stack                                    | **PARKED 2026-09-09** — `calculation-split-between-mt5-and-python-PENDING-PROJECT/`. Not deployed, not running (§6)                                                   |
-| Centroid variants (2026-09-03)                | `best_fit` split into `best_fit_a` (config-identical to the old `best_fit`) + `best_fit_b` (new preset) — 6→7 variants, 12→13 indicators, `market_data` 79→87 columns |
-| `market_data` shape                           | 87 columns, unchanged by the 2026-09-09 work — the gateway contract, both Prisma schemas and the DTO were untouched                                                   |
-| Legacy v2.28/v2.27/v2.26 EAs, `.ex5` binaries | history only — do not deploy                                                                                                                                          |
+| Item                                          | State                                                                                                                                                                           |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EA / indicators                               | v2.29 (hyphen-free `mq5/` names; auto-export; SSA 8-decimal). **2026-09-09: GMT-offset fix in all 13 — needs recompile (§7.1)**                                                 |
+| Schema                                        | v6 (`xauusd.db`: staging + validation + `market_data` outbox). **2026-09-09: staging widened to every exported column**                                                         |
+| Collector                                     | v2 (header-name parsing; market-hours gate). **2026-09-09: CALCULATE stage removed; `migrate_raw_tables()` added**                                                              |
+| Push worker                                   | v5 (`market_data` outbox; synced_at; quarantine+replay)                                                                                                                         |
+| Calc stack                                    | **PARKED 2026-09-09** — `calculation-split-between-mt5-and-python-PENDING-PROJECT/`. Not deployed, not running (§6)                                                             |
+| Centroid variants (2026-09-03)                | `best_fit` split into `best_fit_a` (config-identical to the old `best_fit`) + `best_fit_b` (new preset) — 6→7 variants, 12→13 indicators, `market_data` 79→87 columns           |
+| `market_data` shape                           | 87 columns from the 2026-09-03 split, unchanged by the 2026-09-09 work — the contract, both Prisma schemas and the DTO were untouched then                                      |
+| 14th indicator (2026-09-16)                   | `SupportAndResistantAutoCalibration_v2_29` onboarded — 13→14 indicators, 87→95 columns, new `raw_sr_levels` + `migrate_market_data()`; statistics capture deliberately deferred |
+| Legacy v2.28/v2.27/v2.26 EAs, `.ex5` binaries | history only — do not deploy                                                                                                                                                    |
 
 The files in §0 are the deployment set; everything else in the directory is
 historical.

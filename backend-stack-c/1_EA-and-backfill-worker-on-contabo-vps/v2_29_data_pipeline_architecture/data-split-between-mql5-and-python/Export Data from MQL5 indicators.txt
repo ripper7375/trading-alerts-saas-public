@@ -56,6 +56,31 @@ Resistance_timestamp	Resistance_symbol	Resistance_timeframe	Resistance_close	Bes
 
 Support_timestamp	Support_symbol	Support_timeframe	Support_close	Best_Support
 
+SUPPORT & RESISTANCE AUTO-CALIBRATION -- the 14th indicator (2026-09-16)
+------------------------------------------------------------------
+timestamp	symbol	timeframe	close	sr_1	sr_2	sr_3	sr_4	sr_5	sr_6	sr_7	sr_8
+
+  NOTE the headers are BARE -- no source prefix on the keys OR the data
+  columns. This is the only source that does that; every other one prefixes
+  at least its line values. It parses fine because the collector reads the 4
+  keys POSITIONALLY and the data columns by NAME, so a bare header needs no
+  special case -- but do not "tidy" any of these to match each other. They
+  must match what MetaTrader actually writes, and this is what
+  SupportAndResistantAutoCalibration_v2_29's ExportSRData() writes.
+
+  sr_1..sr_4 are the nearest supports BELOW that bar's close (sr_1 closest);
+  sr_5..sr_8 the nearest resistances ABOVE it (sr_5 closest). Levels are
+  resolved once per export by Freedman-Diaconis IQR clustering over the fixed
+  [InpStartDateTime, InpEndDateTime] window, then re-bucketed against each
+  exported bar's own close -- so a historical bar carries today's level set
+  sorted around its own close, not the levels as they stood at the time. Same
+  class of look-ahead as HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md
+  documents for the centroid families, and stronger.
+
+  An unresolved slot is written as an EMPTY field. A slot holding a
+  non-positive value exports as 0.00; the collector's PRICE_LEVEL_COLUMNS
+  guard coerces both to NULL, because a $0.00 XAUUSD level is never real.
+
 OHLCV — the per-bar spine
 ------------------------------------------------------------------
 ohlcv_timestamp	ohlcv_symbol	ohlcv_timeframe	ohlcv_close	ohlcv_open	ohlcv_high	ohlcv_low	ohlcv_volume
