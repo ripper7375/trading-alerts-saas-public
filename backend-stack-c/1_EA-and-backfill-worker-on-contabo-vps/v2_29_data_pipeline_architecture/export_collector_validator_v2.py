@@ -5,9 +5,13 @@ Export Collector + Validator v2 — v6 collection pipeline (XAUUSD, M5/M15)
 Pipeline stages implemented here:
   COLLECT -> ADJUST -> VALIDATE -> PROMOTE
 
-MQL5 IS THE SINGLE SOURCE OF EVERY VALUE (2026-09-09). The 13 indicators export
-all 83 market_data data fields; this collector parses, validates, and forwards
+MQL5 IS THE SINGLE SOURCE OF EVERY VALUE (2026-09-09). The 14 indicators export
+all 91 market_data data fields; this collector parses, validates, and forwards
 them unchanged. It calculates nothing.
+
+2026-09-16: SupportAndResistantAutoCalibration_v2_29 onboarded as the 14th
+indicator, adding sr_1..sr_8 (Freedman-Diaconis auto-calibrated support and
+resistance levels) -- market_data 87 -> 95 columns.
 
 The former CALCULATE stage — a Python calc stack that recomputed the derived
 layer (centroid baselines/EDTs, fractal/resistance/support lines, zigzag
@@ -127,6 +131,19 @@ SOURCES = {
                     'columns': [('best_resistance', 'real', 'Best_Resistance')]},
     'support':     {'prefix': 'Support_Line', 'table': 'raw_support',
                     'columns': [('best_support', 'real', 'Best_Support')]},
+    # The 14th indicator (SupportAndResistantAutoCalibration_v2_29, 2026-09-16).
+    # NOTE its export headers are BARE -- 'sr_1', and keys 'timestamp/symbol/
+    # timeframe/close' -- where every other source prefixes them ('Best_Support',
+    # 'Resistance_timestamp', ...). Verified against the .mq5 source, which writes
+    # "timestamp	symbol	timeframe	close	sr_1	...	sr_8". That is fine here:
+    # parse_export_file() reads the 4 keys POSITIONALLY (cols 0-3) and data columns
+    # by header NAME, so a bare header needs no special case. Do not "tidy" these to
+    # match the other sources -- they must match what MetaTrader actually writes.
+    'sr_levels':   {'prefix': 'SR_Levels', 'table': 'raw_sr_levels',
+                    'columns': [('sr_1', 'real', 'sr_1'), ('sr_2', 'real', 'sr_2'),
+                                ('sr_3', 'real', 'sr_3'), ('sr_4', 'real', 'sr_4'),
+                                ('sr_5', 'real', 'sr_5'), ('sr_6', 'real', 'sr_6'),
+                                ('sr_7', 'real', 'sr_7'), ('sr_8', 'real', 'sr_8')]},
     'zscore':      {'prefix': 'ZScore', 'table': 'raw_zscore',
                     'columns': [('body_direction', 'int', 'body_direction'),
                                 ('body_size', 'real', 'body_size'),
@@ -156,19 +173,37 @@ PER_BAR_SOURCES = [s for s in SOURCES if s != 'zigzag']
 # cross), `body_size` (|z| = 0 when a candle sits exactly on its mean), `body_direction`
 # (0 = doji), and every zigzag metric (`slope`, `price_change`, `pct_change`, ... are
 # routinely zero or negative).
+# sr_1..sr_8 are listed EXPLICITLY because they match neither the base set nor
+# PRICE_LEVEL_SUFFIXES below -- a numeric slot name has no suffix to key off. The
+# indicator writes an unresolved slot as an empty field, which parse_export_file
+# already maps to NULL, but it exports 0.0 for a slot whose level exists and is
+# non-positive; both must land as NULL, never as a $0.00 "price".
 PRICE_LEVEL_COLUMNS = {
     'horiz_high_map', 'horiz_low_map', 'ssa', 'ema_ssa', 'current_point',
     'best_resistance', 'best_support', 'fractal_best_fl', 'fractal_uoedt',
-    'fractal_loedt', 'base_fl', 'uoedt', 'loedt'
+    'fractal_loedt', 'base_fl', 'uoedt', 'loedt',
+    'sr_1', 'sr_2', 'sr_3', 'sr_4', 'sr_5', 'sr_6', 'sr_7', 'sr_8',
 }
 PRICE_LEVEL_SUFFIXES = ('_map', '_point', '_fl', '_edt', '_ssa', '_resistance', '_support')
 
 # ============================================================
 # STATISTIC FILES — the fit-quality snapshot beside each timeseries export
 # ============================================================
-# 10 of the 13 indicators also write `{prefix}_{SYMBOL}_{TF}_Statistic.txt`:
-# the 7 centroid variants plus fractal_edt / resistance / support. OHLCV,
-# ZigZag and ZScore do not (fully reproducible from their timeseries).
+# 11 of the 14 indicators also write `{prefix}_{SYMBOL}_{TF}_Statistic.txt`:
+# the 7 centroid variants plus fractal_edt / resistance / support / sr_levels.
+# OHLCV, ZigZag and ZScore do not (fully reproducible from their timeseries).
+#
+# Only 10 are INGESTED. sr_levels is excluded deliberately (2026-09-16): its
+# statistic file is a different kind of document. It records Freedman-Diaconis
+# calibration -- Q25/Q75, IQR, Optimal Step, Fractals Sample -- where this
+# table's vocabulary is regression fit quality (MODEL A/B residuals, EDT
+# containment). Almost none of its labels appear in STAT_FIELDS, so ingesting it
+# would write a near-empty row per cycle; worse,
+# gateway_contract_indicator_statistics.schema.json pins `source` to a CLOSED
+# 10-value enum and the statistics POST is BATCHED, so one sr_levels element
+# would 400 the whole request and quarantine every other snapshot in it.
+# MT5 still writes the file; capturing it properly (new columns here, in both
+# Prisma mirrors and in that contract's enum) is its own scoped piece of work.
 #
 # Unlike the timeseries exports these are NOT per-bar — each file is a single
 # snapshot of the current fit. That is exactly why they are worth capturing:
@@ -176,7 +211,8 @@ PRICE_LEVEL_SUFFIXES = ('_map', '_point', '_fl', '_edt', '_ssa', '_resistance', 
 # they are not point-in-time honest, whereas a snapshot read at export time
 # is. See STATISTIC-CAPTURE-SCOPE.md and
 # HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md.
-STAT_SOURCES = [s for s in SOURCES if s not in ('ohlcv', 'zigzag', 'zscore')]
+STAT_SOURCES = [s for s in SOURCES
+                if s not in ('ohlcv', 'zigzag', 'zscore', 'sr_levels')]
 
 # (statistic-file label, section it appears in, staging column, type)
 # `section` is matched as a PREFIX because the files are written FILE_ANSI and
@@ -597,8 +633,9 @@ def migrate_raw_tables(conn) -> int:
     table_info and ALTERs in whatever SOURCES says is missing.
 
     Idempotent (a second run adds nothing), and driven by SOURCES itself so it
-    can never drift from the registry. Staging tables only — market_data is
-    never touched, so real history is never at risk.
+    can never drift from the registry. Staging tables only; market_data has its
+    own equivalent in migrate_market_data() below, which is likewise additive
+    only, so real history is never at risk from either.
     """
     added = 0
     for source, spec in SOURCES.items():
@@ -615,12 +652,58 @@ def migrate_raw_tables(conn) -> int:
     return added
 
 
+def migrate_market_data(conn) -> int:
+    """Add any market_data column promote_cycle() will write but the DB lacks.
+
+    The same gap migrate_raw_tables() closes, one table further down. The schema
+    file's CREATE TABLE IF NOT EXISTS market_data is a silent no-op against a
+    database that already exists, so widening the DDL does NOT widen a deployed
+    xauusd.db. promote_cycle() then names a column SQLite does not have and
+    raises OperationalError — which nothing in run_cycle() catches, so the
+    collector crash-loops on the first validated cycle instead of degrading.
+    That is a full outage from a forgotten manual step, which is why this runs
+    automatically rather than living only in a runbook.
+
+    ADDITIVE ONLY, and that distinction is the whole safety argument: it issues
+    ALTER TABLE ... ADD COLUMN and nothing else — never DROP, never RENAME,
+    never backfill, never rewrite a row. A nullable ADD COLUMN with no default
+    is a catalog-only change in SQLite, so existing history is untouched.
+    Anything destructive remains a deliberate, reviewed migration.
+
+    Driven by SOURCES through market_data_column(), the same pair of functions
+    promote_cycle() itself uses to build its INSERT, so the two cannot disagree
+    about what a column is called. Idempotent. (PROMOTE_SOURCES and
+    market_data_column are defined further down the module; Python resolves
+    them at call time, and this only ever runs from open_db().)
+
+    migrate_sqlite_add_sr_columns.sql is the hand-run equivalent for the
+    2026-09-16 sr_* addition, for operators who would rather widen the database
+    as an explicit step before starting the service. Running both is safe.
+    """
+    existing = {r[1] for r in conn.execute("PRAGMA table_info(market_data)")}
+    if not existing:
+        return 0                                  # table absent; the schema file creates it
+    added = 0
+    for source in PROMOTE_SOURCES:
+        for col, typ, _ in SOURCES[source]['columns']:
+            name = market_data_column(source, col)
+            if name not in existing:
+                conn.execute(f"ALTER TABLE market_data ADD COLUMN {name} {SQLITE_TYPE[typ]}")
+                logger.info(f"   schema migration: market_data.{name} {SQLITE_TYPE[typ]} added")
+                existing.add(name)
+                added += 1
+    if added:
+        conn.commit()
+    return added
+
+
 def open_db(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA_FILE.read_text())
     migrate_raw_tables(conn)
+    migrate_market_data(conn)
     return conn
 
 

@@ -3,8 +3,8 @@
 -- Database file: xauusd.db  (one DB per symbol; XAUUSD is the only symbol)
 --
 -- Pipeline (MQL5 is the single source of every value — 2026-09-09):
---   1. COLLECT   — every 5 minutes the 13 indicator export files are ingested
---                  into the 13 raw_* staging tables under one collection cycle.
+--   1. COLLECT   — every 5 minutes the 14 indicator export files are ingested
+--                  into the 14 raw_* staging tables under one collection cycle.
 --                  EVERY exported column is staged, not a subset.
 --   2. ADJUST    — timestamp_adj = raw timestamp snapped to the bar grid (a
 --                  no-op on correct data since the 2026-09-09 MQL5 GMT-offset
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS collection_cycles (
     attempt         INTEGER NOT NULL DEFAULT 1,       -- re-request counter
     status          TEXT    NOT NULL DEFAULT 'collecting'
                     CHECK (status IN ('collecting', 'validating', 'validated', 'rejected')),
-    sources_received INTEGER NOT NULL DEFAULT 0,      -- 0..13 export files ingested
+    sources_received INTEGER NOT NULL DEFAULT 0,      -- 0..14 export files ingested
     rejected_reason TEXT,
     created_at      INTEGER NOT NULL,
     validated_at    INTEGER,
@@ -264,6 +264,35 @@ CREATE TABLE IF NOT EXISTS raw_support (
     PRIMARY KEY (cycle_id, timeframe, timestamp_raw)
 );
 
+-- ---- 2.8 Support & Resistance auto-calibrated levels ---------------------
+-- The 14th indicator (SupportAndResistantAutoCalibration_v2_29), added
+-- 2026-09-16. Freedman-Diaconis IQR clustering resolves up to 8 macro levels,
+-- exported per bar relative to that bar's own close: sr_1..sr_4 are the
+-- nearest supports BELOW close (sr_1 closest), sr_5..sr_8 the nearest
+-- resistances ABOVE close (sr_5 closest). A slot that resolved no level is
+-- exported as an empty field and staged NULL, never 0.0 -- sr_* match neither
+-- the collector's PRICE_LEVEL_SUFFIXES rule nor its base set, so they are
+-- listed in PRICE_LEVEL_COLUMNS explicitly.
+-- Every data column is nullable and CHECK-free on purpose: test_stale_export_guard
+-- fills NOT NULL columns with 0/'' when it synthesises staging rows.
+CREATE TABLE IF NOT EXISTS raw_sr_levels (
+    cycle_id        INTEGER NOT NULL REFERENCES collection_cycles (cycle_id) ON DELETE CASCADE,
+    timestamp_raw   INTEGER NOT NULL,
+    timestamp_adj   INTEGER,
+    symbol          TEXT    NOT NULL CHECK (symbol = 'XAUUSD'),
+    timeframe       TEXT    NOT NULL CHECK (timeframe IN ('M5', 'M15')),
+    close           REAL    NOT NULL,
+    sr_1            REAL,
+    sr_2            REAL,
+    sr_3            REAL,
+    sr_4            REAL,
+    sr_5            REAL,
+    sr_6            REAL,
+    sr_7            REAL,
+    sr_8            REAL,
+    PRIMARY KEY (cycle_id, timeframe, timestamp_raw)
+);
+
 -- body_size is |z-score| (the MQL5 export convention), NOT a candle body size.
 -- body_direction and body_size are legitimately 0 (doji / on-mean), so they are
 -- deliberately outside the collector's "<=0 means NULL" price-level guard.
@@ -324,6 +353,11 @@ CREATE TABLE IF NOT EXISTS raw_zigzag (
 -- ============================================================================
 -- 3. CROSS-SOURCE VALIDATION VIEW
 -- ============================================================================
+-- DROP first: CREATE VIEW IF NOT EXISTS is a silent no-op against an existing
+-- xauusd.db, and open_db() re-runs this whole file on every collector start --
+-- so without the DROP a deployed database would keep an out-of-date branch
+-- list forever after a source is added. Dropping a view touches no data.
+DROP VIEW IF EXISTS v_validation_keys;
 CREATE VIEW IF NOT EXISTS v_validation_keys AS
     SELECT cycle_id, 'best_fit_a'  AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_best_fit_a
     UNION ALL
@@ -346,6 +380,8 @@ CREATE VIEW IF NOT EXISTS v_validation_keys AS
     SELECT cycle_id, 'resistance'  AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_resistance
     UNION ALL
     SELECT cycle_id, 'support'     AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_support
+    UNION ALL
+    SELECT cycle_id, 'sr_levels'   AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_sr_levels
     UNION ALL
     SELECT cycle_id, 'zscore'      AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_zscore;
 
@@ -526,6 +562,18 @@ CREATE TABLE IF NOT EXISTS market_data (
     best_resistance      REAL,                        -- from MQL5 (Best_Resistance)
     best_support         REAL,                        -- from MQL5 (Best_Support)
 
+    -- Support & Resistance auto-calibrated levels, the 14th indicator
+    -- (SupportAndResistantAutoCalibration_v2_29). Resolved against each bar's
+    -- own close; NULL = that slot resolved no level on that bar.
+    sr_1                 REAL,                        -- from MQL5 (closest support below close)
+    sr_2                 REAL,                        -- from MQL5 (2nd closest support)
+    sr_3                 REAL,                        -- from MQL5 (3rd closest support)
+    sr_4                 REAL,                        -- from MQL5 (4th closest support)
+    sr_5                 REAL,                        -- from MQL5 (closest resistance above close)
+    sr_6                 REAL,                        -- from MQL5 (2nd closest resistance)
+    sr_7                 REAL,                        -- from MQL5 (3rd closest resistance)
+    sr_8                 REAL,                        -- from MQL5 (4th closest resistance)
+
     -- Z-Score candle (zscoreohlccandleexport)
     body_direction       INTEGER CHECK (body_direction IN (-1, 0, 1)),
     body_size            REAL,                        -- |z-score| (export convention)
@@ -550,7 +598,7 @@ CREATE TABLE IF NOT EXISTS market_data (
     -- LEGACY: marked the old Python CALCULATE stage. With MQL5 as the single
     -- source there is no separate calculation step, so the collector sets it
     -- equal to collected_at. Kept (not dropped) because market_data is a 1:1
-    -- mirror of the frozen 87-field gateway contract.
+    -- mirror of the frozen 95-field gateway contract.
     calculated_at       INTEGER,                      -- unix, = collected_at
 
     -- Sync state for the gateway push worker (backfill worker v5).
@@ -616,7 +664,7 @@ END;
 -- ============================================================================
 -- Source: MT5's own Economic Calendar API (CalendarValueHistory ->
 -- CalendarEventById -> CalendarCountryById), read by the calendar exporter on
--- the same terminal that runs the 13 export indicators. No vendor, no API key.
+-- the same terminal that runs the 14 export indicators. No vendor, no API key.
 -- Availability confirmed on the live terminal before this table was designed
 -- (Eightcap-Demo build 6182: 333 events / 8 days, 333/333 lookups resolved,
 -- 25 HIGH-impact, server-side currency filtering functional).

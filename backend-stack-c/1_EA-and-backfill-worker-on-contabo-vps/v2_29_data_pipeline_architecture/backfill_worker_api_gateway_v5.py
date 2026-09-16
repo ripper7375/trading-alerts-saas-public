@@ -42,9 +42,10 @@ API_GATEWAY_URL = os.environ.get('API_GATEWAY_URL', 'https://your-api.railway.ap
 API_KEY = os.environ.get('BACKFILL_API_KEY', 'your_api_key_here')
 TERMINAL_ID = 'push_worker_v5'
 
-# The 87 fields gateway_contract_market_data.schema.json requires, as posted
+# The 95 fields gateway_contract_market_data.schema.json requires, as posted
 # (i.e. after dropping market_data's own synced_at and adding terminal_id).
-# (Was 79 before the 2026-09-03 best_fit_a/best_fit_b split added 8 fields.)
+# (Was 79 before the 2026-09-03 best_fit_a/best_fit_b split added 8 fields, and
+# 87 before the 2026-09-16 14th-indicator onboarding added sr_1..sr_8.)
 # Checked once at startup against the real market_data table so drift between
 # this SQLite schema and the JSON contract fails loudly instead of silently
 # producing 400s at the gateway.
@@ -57,6 +58,10 @@ EXPECTED_CONTRACT_FIELDS = frozenset({
                      'crossing', 'base_fl', 'uoedt', 'loedt')),
     'fractal_best_fl', 'fractal_uoedt', 'fractal_loedt',
     'best_resistance', 'best_support',
+    # 14th indicator (SupportAndResistantAutoCalibration_v2_29): sr_1..sr_4 are
+    # the nearest supports below each bar's close, sr_5..sr_8 the nearest
+    # resistances above it. Nullable; an unresolved slot posts as JSON null.
+    'sr_1', 'sr_2', 'sr_3', 'sr_4', 'sr_5', 'sr_6', 'sr_7', 'sr_8',
     'body_direction', 'body_size', 'body_classification',
     'zigzag_point_type', 'zigzag_current_point', 'zigzag_price_change',
     'zigzag_pct_change', 'zigzag_pct_change_class', 'zigzag_bars',
@@ -64,7 +69,7 @@ EXPECTED_CONTRACT_FIELDS = frozenset({
     'zigzag_slope', 'zigzag_category',
     'cycle_id', 'collected_at', 'calculated_at',
 })
-assert len(EXPECTED_CONTRACT_FIELDS) == 87, len(EXPECTED_CONTRACT_FIELDS)
+assert len(EXPECTED_CONTRACT_FIELDS) == 95, len(EXPECTED_CONTRACT_FIELDS)
 
 DB_PATH = Path('C:/Scripts/database/xauusd.db')      # the v6 pipeline database
 LOG_DIR = Path('C:/Scripts/logs')
@@ -149,7 +154,7 @@ def unsynced_count(conn) -> int:
 
 def verify_schema_contract(conn) -> bool:
     """Confirm market_data's columns match gateway_contract_market_data.schema.json
-    exactly (87 fields posted = table columns minus synced_at plus terminal_id).
+    exactly (95 fields posted = table columns minus synced_at plus terminal_id).
     Run once at startup so a future drift between the SQL schema and the JSON
     contract fails loudly here instead of surfacing as silent 400s at the gateway.
     """
