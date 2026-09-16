@@ -102,3 +102,52 @@ describe('Toolbar layout', () => {
     );
   });
 });
+
+/**
+ * The toolbar floats over the chart, and lightweight-charts paints its dashed
+ * crosshair for as long as the pointer is over the chart element. The gutter
+ * around the toolbar was chart surface, so reaching for a tool flashed a
+ * full-height dashed line up the toolbar's own column. A transparent padded
+ * wrapper makes that gutter part of the toolbar instead: padding is inside an
+ * element's hit area, so the chart sees a mouseleave and drops the crosshair.
+ */
+describe('Toolbar hover buffer', () => {
+  const bufferOf = (container: HTMLElement): HTMLElement => {
+    const frame = container.querySelector('[data-layout]');
+    const buffer = frame?.parentElement;
+    if (!buffer) throw new Error('toolbar is not wrapped');
+    return buffer;
+  };
+
+  it.each([
+    ['stacked', 600],
+    ['split', 400],
+    ['grid', 264],
+  ] as const)('wraps the %s layout in a padded buffer', (_mode, height) => {
+    const classes = bufferOf(renderToolbar(height).container).className.split(
+      /\s+/
+    );
+
+    expect(classes).toEqual(expect.arrayContaining(['absolute', 'z-10']));
+    // Any side without padding is a strip of live chart flush against the
+    // toolbar, which is exactly where the crosshair was showing up.
+    for (const side of ['pl-', 'pt-', 'pr-', 'pb-']) {
+      expect(classes.some((c) => c.startsWith(side))).toBe(true);
+    }
+  });
+
+  /**
+   * The buffer carries the offset the frame used to position itself with, so
+   * the toolbar must not also be offset -- that would move it 8px further in.
+   */
+  it('leaves the frame unpositioned, so the toolbar does not shift', () => {
+    const { container } = renderToolbar(400);
+    const frame = container.querySelector('[data-layout]') as HTMLElement;
+    const buffer = bufferOf(container);
+
+    expect(frame.className).not.toMatch(/(^|\s)absolute(\s|$)/);
+    expect(frame.className).not.toMatch(/(^|\s)(left|top)-/);
+    expect(buffer.className).toMatch(/(^|\s)left-0(\s|$)/);
+    expect(buffer.className).toMatch(/(^|\s)top-0(\s|$)/);
+  });
+});

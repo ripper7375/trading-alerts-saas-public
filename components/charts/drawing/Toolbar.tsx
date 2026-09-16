@@ -119,7 +119,20 @@ export function Toolbar({
   const active =
     'border-[#2962FF] bg-[#2962FF]/20 text-blue-700 dark:text-white';
   const frame =
-    'absolute left-2 top-2 z-10 rounded-lg border border-slate-200 bg-white/95 p-1 shadow-lg dark:border-[#2a2e39] dark:bg-[#1e222d]/95';
+    'rounded-lg border border-slate-200 bg-white/95 p-1 shadow-lg dark:border-[#2a2e39] dark:bg-[#1e222d]/95';
+  /**
+   * Transparent hover buffer, and the reason the toolbar is wrapped at all.
+   *
+   * lightweight-charts paints its dashed crosshair whenever the pointer is
+   * over the chart element, and it clears it on mouseleave. The toolbar is a
+   * sibling of that element, so hovering a tool button already clears the
+   * crosshair -- but the gutter around the toolbar was still chart surface,
+   * so reaching for a tool flashed a full-height dashed line up the toolbar's
+   * own column. Padding is part of an element's hit area, so this extends
+   * "not chart surface" a little past the frame without moving it: the
+   * left/top padding is the offset the frame used to carry itself.
+   */
+  const hoverBuffer = 'absolute left-0 top-0 z-10 pb-4 pl-2 pr-4 pt-2';
   const separator = 'bg-slate-200 dark:bg-[#2a2e39]';
 
   const toolButtons = (
@@ -225,32 +238,38 @@ export function Toolbar({
 
   if (layout.mode === 'split') {
     return (
-      <div data-layout="split" className={`${frame} flex flex-row gap-1`}>
-        <div className="flex flex-col gap-1">{toolButtons}</div>
-        <div className={`mx-1 w-px self-stretch ${separator}`} />
-        <div className="flex flex-col gap-1">{actionButtons}</div>
+      <div className={hoverBuffer}>
+        <div data-layout="split" className={`${frame} flex flex-row gap-1`}>
+          <div className="flex flex-col gap-1">{toolButtons}</div>
+          <div className={`mx-1 w-px self-stretch ${separator}`} />
+          <div className="flex flex-col gap-1">{actionButtons}</div>
+        </div>
       </div>
     );
   }
 
   if (layout.mode === 'grid') {
     return (
-      <div
-        data-layout="grid"
-        className={`${frame} grid grid-flow-col gap-1`}
-        style={{ gridTemplateRows: `repeat(${layout.rows}, ${BUTTON_PX}px)` }}
-      >
-        {toolButtons}
-        {actionButtons}
+      <div className={hoverBuffer}>
+        <div
+          data-layout="grid"
+          className={`${frame} grid grid-flow-col gap-1`}
+          style={{ gridTemplateRows: `repeat(${layout.rows}, ${BUTTON_PX}px)` }}
+        >
+          {toolButtons}
+          {actionButtons}
+        </div>
       </div>
     );
   }
 
   return (
-    <div data-layout="stacked" className={`${frame} flex flex-col gap-1`}>
-      {toolButtons}
-      <div className={`my-1 h-px ${separator}`} />
-      {actionButtons}
+    <div className={hoverBuffer}>
+      <div data-layout="stacked" className={`${frame} flex flex-col gap-1`}>
+        {toolButtons}
+        <div className={`my-1 h-px ${separator}`} />
+        {actionButtons}
+      </div>
     </div>
   );
 }
