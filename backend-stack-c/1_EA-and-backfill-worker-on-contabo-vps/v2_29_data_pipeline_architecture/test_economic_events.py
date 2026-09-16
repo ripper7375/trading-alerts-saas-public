@@ -244,7 +244,7 @@ def test_market_data_is_untouched_by_this_lane():
         collector.stage_economic_events(conn, Path(d))
         assert conn.execute("SELECT COUNT(*) FROM market_data").fetchone()[0] == 0
         cols = [r[1] for r in conn.execute("PRAGMA table_info(market_data)")]
-        assert len(cols) == 87, f'market_data changed shape: {len(cols)} columns'
+        assert len(cols) == 95, f'market_data changed shape: {len(cols)} columns'
 
 
 if __name__ == '__main__':
