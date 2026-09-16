@@ -13,6 +13,61 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-16, same day, phase/session unchanged) — workbench polish: one
+> correct grip per divider, and no crosshair at the drawing toolbar. Code complete, verified,
+> committed and pushed** (`24f67fc9`, plus this docs commit). Davin annotated a live
+> `/terminal` screenshot with three items.
+> **Items 2 and 3 were one root cause, and it had been silently live since the handle was
+> written.** react-resizable-panels puts `data-panel-group-direction` on the **handle**, so the
+> six direction-conditional classes on `components/ui/resizable.tsx`'s grip — written as plain
+> `data-[…]` variants on **child** elements — matched nothing. Both the box's size classes and
+> both icons' `hidden` classes were inert, so the box had **no size at all** and **both** grip
+> icons drew: the doubled-up pads Davin marked on all four dividers. The authors' intent was
+> already correct (hide the horizontal grip on a horizontal group, and vice versa); scoping the
+> variants to the handle with `group` is all it took. Now exactly one renders — **grip-vertical
+> in a 13.6×20 box on the column dividers** ("2 double vertical pads", item 2) and
+> **grip-horizontal in a 24×14 box on the M5/M15 row divider** ("2 horizontal pads", item 3),
+> both confirmed by computed `display` in a real browser, not by eye.
+> **Item 1 — the dashed vertical line — is the chart's own crosshair**, established by
+> elimination rather than reproduction: `trading-chart.tsx` sets
+> `crosshair.vertLine.style: 3` (LargeDashed) in `#758696`, `EventVerticalLine` is a **solid**
+> amber `fillRect`, and every other vertical line in the drawing engine is solid — nothing else
+> in the repo draws a dashed vertical line on hover. It would **not** reproduce locally: the
+> crosshair needs series data and the dev CSP blocks the `ws://localhost:5001` feed, so the
+> local chart is empty. **Four handlings were genuinely different work, so it went to Davin via
+> `AskUserQuestion`** rather than being guessed at; he took the recommendation — suppress it
+> around the toolbar, keeping the crosshair everywhere else (the seed prototype has one too, so
+> removing it outright would have been a regression).
+> **Built:** the toolbar floats over the chart as a **sibling** of the chart element, so hovering
+> a tool button already cleared the crosshair — it was the **gutter** around it that was still
+> live chart surface, which is why reaching for a tool flashed a full-height dashed line up the
+> toolbar's own column. `Toolbar.tsx`'s three layout branches now sit inside one transparent
+> padded wrapper (`pl-2 pt-2 pr-4 pb-4`); **padding is inside an element's hit area**, so that
+> gutter stops being chart. The frame does not move: the buffer carries the `left-2 top-2`
+> offset the frame used to apply itself — verified as **exactly 8,8 from the chart in all three
+> layouts** (`stacked`/`split`/`grid`).
+> **Verified live** (throwaway preview route carrying both a vertical and a horizontal panel
+> group, deleted — clean tree): both grips by computed `display` and box size; the toolbar's
+> unchanged offset; `elementFromPoint` showing the gutter **left of, below and right of** the
+> toolbar now resolving to the buffer while plain chart area still resolves to the chart; and —
+> the part that stands in for the un-reproducible crosshair — **the chart element receives the
+> `mouseleave` that lightweight-charts clears the crosshair on** when the pointer crosses into
+> the buffer. Both grips checked in dark mode.
+> **Verified:** `tsc`/ESLint/Prettier clean; new `__tests__/components/ui/resizable.test.tsx`
+> (6) + 4 hover-buffer tests on the existing toolbar suite. jsdom does not run Tailwind, so
+> these assert the **variant is group-scoped** rather than reading `display` back — deliberately,
+> since that is precisely the thing that was wrong and the thing no rendered-output check would
+> have caught. **Mutation 4/4 killed** (bare `data-` variants → 4 fail; `group` dropped → 2;
+> buffer removed → 4; buffer's bottom/right padding dropped → 3), restores byte-exact by sha256.
+> Full `test:ci` **220/220 · 2881/2881** (219/2871 + exactly this session's 1 suite/10 tests,
+> zero regressions).
+> **Not verified:** the crosshair itself was never seen painting or clearing — it needs live
+> candles. The mechanism is verified instead, and it is the same one the toolbar has always
+> relied on. Worth a look on `davintrade.app` once deployed.
+> **Artifacts:** `components/ui/resizable.tsx`, `components/charts/drawing/Toolbar.tsx`,
+> `__tests__/components/ui/resizable.test.tsx` (new), `__tests__/drawing/toolbar.test.tsx`,
+> this file.
+
 > **Ad-hoc session (2026-09-16, same day, phase/session unchanged) — workbench chart panel:
 > the M5/M15 divider is now drag-resizable. Code complete, verified, committed and pushed**
 > (`89cdd10a`, plus this docs commit). Davin supplied two annotated screenshots — the seed at
