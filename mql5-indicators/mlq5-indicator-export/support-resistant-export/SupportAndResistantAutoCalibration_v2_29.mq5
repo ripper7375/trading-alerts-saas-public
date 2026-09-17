@@ -26,13 +26,24 @@
 //--- Export Button name constants
 #define EXPORT_BUTTON_NAME   "SRAutoExportButton_v2_29"
 #define BACKFILL_BUTTON_NAME "SRAutoBackfillButton_v2_29"
+#define MAX_WINDOW_BARS      3000
+
+//+------------------------------------------------------------------+
+//| Window Calculation Mode                                          |
+//+------------------------------------------------------------------+
+enum ENUM_CALC_WINDOW_MODE
+{
+   CALC_WINDOW_FIXED_RANGE = 0,    // Fixed Window (Start Date -> End Date)
+   CALC_WINDOW_FIXED_START = 1     // Fix Start Date -> End at Last Bar (Shift 0)
+};
 
 //+------------------------------------------------------------------+
 //| Input parameters                                                 |
 //+------------------------------------------------------------------+
-input group "===== Window Period (Fixed Anchors) ====="
-input datetime InpStartDateTime = D'2026.06.04 14:20'; // Window Start Date/Time
-input datetime InpEndDateTime   = D'2026.06.08 07:45'; // Window End Date/Time
+input group "===== Window Period Settings ====="
+input ENUM_CALC_WINDOW_MODE InpWindowMode     = CALC_WINDOW_FIXED_RANGE; // Window Calculation Mode
+input datetime              InpStartDateTime  = D'2026.06.04 14:20';     // Window Start Date/Time
+input datetime              InpEndDateTime    = D'2026.06.08 07:45';     // Window End Date/Time (Used if Fixed Window)
 
 input group "===== Auto-Calibration Settings (Freedman-Diaconis IQR) ====="
 input bool     InpAutoCalibrate      = true;   // Enable Auto-Calibration (IQR Rule)
@@ -266,9 +277,11 @@ void WriteSRStatFile(string clean_symbol, string tf_str)
 
    FileWriteString(fh, "[SUPPORT-RESISTANCE AUTO-CALIBRATION - PARAMETERS]\r\n");
    FileWriteString(fh, "Calculation Mode: "       + g_stat_calc_mode + "\r\n");
+   string win_mode_stat = (InpWindowMode == CALC_WINDOW_FIXED_START) ? "Fix Start -> Last Bar" : "Fixed Window";
+   FileWriteString(fh, "Window Mode: "            + win_mode_stat + "\r\n");
    FileWriteString(fh, "Window Start TS (UTC): " + IntegerToString(g_stat_window_start_ts) + "\r\n");
    FileWriteString(fh, "Window End TS (UTC): "   + IntegerToString(g_stat_window_end_ts) + "\r\n");
-   FileWriteString(fh, "Window Bars: "            + IntegerToString(g_stat_window_bars) + "\r\n");
+   FileWriteString(fh, "Window Bars: "            + IntegerToString(g_stat_window_bars) + StringFormat(" (Max Cap: %d)\r\n", MAX_WINDOW_BARS));
    FileWriteString(fh, "Fractals Sample (N): "   + IntegerToString(g_stat_fractals_n) + "\r\n");
    FileWriteString(fh, "Q25 (25th percentile): "  + DoubleToString(g_stat_q25, _Digits) + "\r\n");
    FileWriteString(fh, "Q75 (75th percentile): "  + DoubleToString(g_stat_q75, _Digits) + "\r\n");
@@ -569,6 +582,8 @@ void DisplayDistanceComments()
 {
    string commentText = "Support & Resistance Auto-Calibration (v2.29) HUD:\n";
    commentText += "Mode: " + g_stat_calc_mode + "\n";
+   string win_mode_str = (InpWindowMode == CALC_WINDOW_FIXED_START) ? "Fix Start -> Last Bar" : "Fixed Window";
+   commentText += StringFormat("Window: %s (%d bars, Max: %d)\n", win_mode_str, g_stat_window_bars, MAX_WINDOW_BARS);
    commentText += "Pipeline 1:1 Alignment: Strict (Max 8 Slots: sr_1..sr_8)\n";
 
    if(DistanceFromResistance != INT_MAX)
@@ -849,20 +864,32 @@ int OnCalculate(const int rates_total,
       return 0;
    }
 
-   // Resolve date anchors to bar shifts
+   // Resolve date anchors to bar shifts based on selected InpWindowMode
    int idx1 = iBarShift(_Symbol, calc_tf, InpStartDateTime, false);
-   int idx2 = iBarShift(_Symbol, calc_tf, InpEndDateTime, false);
+   int idx2 = 0; // Default to current/last bar (shift 0) for CALC_WINDOW_FIXED_START
+
+   if(InpWindowMode == CALC_WINDOW_FIXED_RANGE)
+   {
+      idx2 = iBarShift(_Symbol, calc_tf, InpEndDateTime, false);
+   }
 
    if(idx1 < 0) idx1 = total_bars - 1;
    if(idx2 < 0) idx2 = 0;
 
-   int start_idx   = MathMin(total_bars - 1, MathMax(idx1, idx2)); // Older bar (higher index)
-   int end_idx     = MathMax(0, MathMin(idx1, idx2));              // Newer bar (lower index)
+   int start_idx = MathMin(total_bars - 1, MathMax(idx1, idx2)); // Older bar (higher index)
+   int end_idx   = MathMax(0, MathMin(idx1, idx2));              // Newer bar (lower index)
+
+   // Cap calculation window to at most MAX_WINDOW_BARS (3000 bars) for both modes
+   if((start_idx - end_idx + 1) > MAX_WINDOW_BARS)
+   {
+      start_idx = end_idx + MAX_WINDOW_BARS - 1;
+   }
+
    int window_bars = start_idx - end_idx + 1;
 
    if(window_bars < 5)
    {
-      Print("Window range too small (bars: ", window_bars, "). Check InpStartDateTime and InpEndDateTime.");
+      Print("Window range too small (bars: ", window_bars, "). Check date settings.");
       return 0;
    }
 
