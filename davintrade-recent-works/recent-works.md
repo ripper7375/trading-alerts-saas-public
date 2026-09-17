@@ -52,6 +52,10 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-frontend-ui-fix\frontend-u
 
 D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_data_pipeline_architecture\integrating-14th-Indicator-in-stack-c-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\frontend-ui-fix-2-manifest-work-completion.md
+
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_data_pipeline_architecture\frozen-baseline-and-centroid-watchdog-manifest-work-completion.md
+
 =================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder

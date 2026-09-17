@@ -27,6 +27,10 @@ enum ENUM_FRACTAL_BARS_119 {
 };
 enum ENUM_SYMBOL_SIZE { SIZE_SMALL = 1, SIZE_NORMAL = 3, SIZE_LARGE = 5 };
 enum ENUM_TOLERANCE_TYPE { TOLERANCE_ATR, TOLERANCE_PERCENT };
+enum ENUM_EDT_CALC_MODE {
+   EDT_MODE_FRACTAL_PROXIMITY = 0, // Fractal Proximity (Default)
+   EDT_MODE_PERCENT_DEVIATION = 1  // User Defined % Deviation
+};
 
 //--- Input parameters
 input string            Sep0 = "===== Window Period (Fixed Anchors) =====";
@@ -51,6 +55,10 @@ input double            InpMaxLineAngle = 3.0;
 input color             InpBestFLColor = clrBlue;
 
 input string            SepEDT = "===== EDT Settings =====";
+input bool              InpShowComments = false;           // Toggle to prevent comment flickering on Multi-Chart
+input ENUM_EDT_CALC_MODE InpEDTCalcMode = EDT_MODE_FRACTAL_PROXIMITY; // EDT Calculation Mode
+input double            InpUOEDTPctDev  = 1.50; // UOEDT Distance (% from Baseline)
+input double            InpLOEDTPctDev  = 1.75; // LOEDT Distance (% from Baseline)
 input int               LOEDTInpEDTMinTouches = 2;
 input int               UOEDTInpEDTMinTouches = 2;
 input color             InpEDTColor = clrMagenta;
@@ -189,6 +197,7 @@ void OnDeinit(const int reason)
    if(ExtATRHandle != INVALID_HANDLE) IndicatorRelease(ExtATRHandle);
    if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0) ObjectDelete(0, EXPORT_BUTTON_NAME);
    if(InpAutoExport) EventKillTimer();
+   Comment("");
   }
 
 //+------------------------------------------------------------------+
@@ -272,6 +281,8 @@ void BuildBestFlipLine(const int rates_total)
    ArrayInitialize(ExtLOEDT, EMPTY_VALUE);
 
    g_stat_found = false;   // reset capture each rebuild
+   g_stat_uoedt_offset = EMPTY_VALUE;
+   g_stat_loedt_offset = EMPTY_VALUE;
 
    // Apply DateTime anchoring
    int idx1 = iBarShift(_Symbol, _Period, InpStartDateTime, false);
@@ -391,44 +402,71 @@ void BuildBestFlipLine(const int rates_total)
       bool found_above = false;
       bool found_below = false;
 
-      for(int i = 0; i < f_count; i++) {
-         double test_intercept = fractals[i].price - base_m * fractals[i].bar;
-         int touches = 0;
+      // If User-Defined % Deviation mode is active, calculate directly and bypass fractal search
+      if(InpEDTCalcMode == EDT_MODE_PERCENT_DEVIATION) {
+          double live_base = base_m * (rates_total - 1) + base_c;
+          if(live_base <= 0.0) live_base = iClose(_Symbol, _Period, 0);
 
-         for(int k = 0; k < f_count; k++) {
-            double expected = base_m * fractals[k].bar + test_intercept;
-            if(MathAbs(fractals[k].price - expected) <= CalculateToleranceFast(fractals[k].price, current_atr)) {
-               touches++;
-            }
-         }
+          double uo_offset = live_base * (MathAbs(InpUOEDTPctDev) / 100.0);
+          double lo_offset = -live_base * (MathAbs(InpLOEDTPctDev) / 100.0);
 
-         if(test_intercept > base_c) {
-             if(touches >= UOEDTInpEDTMinTouches) {
-                 if(test_intercept > max_above_intercept) {
-                     max_above_intercept = test_intercept;
-                     found_above = true;
+          g_stat_uoedt_offset = uo_offset;
+          g_stat_loedt_offset = lo_offset;
+
+          double uo_intercept = base_c + uo_offset;
+          double lo_intercept = base_c + lo_offset;
+
+          for(int i = 0; i <= start_idx; i++) {
+             int chrono_bar = rates_total - 1 - i;
+             if(chrono_bar >= BestLine.bar_start) {
+                ExtBestFL[i] = base_m * chrono_bar + base_c;
+                ExtUOEDT[i]  = base_m * chrono_bar + uo_intercept;
+                ExtLOEDT[i]  = base_m * chrono_bar + lo_intercept;
+             }
+          }
+      } else {
+          for(int i = 0; i < f_count; i++) {
+             double test_intercept = fractals[i].price - base_m * fractals[i].bar;
+             int touches = 0;
+
+             for(int k = 0; k < f_count; k++) {
+                double expected = base_m * fractals[k].bar + test_intercept;
+                if(MathAbs(fractals[k].price - expected) <= CalculateToleranceFast(fractals[k].price, current_atr)) {
+                   touches++;
+                }
+             }
+
+             if(test_intercept > base_c) {
+                 if(touches >= UOEDTInpEDTMinTouches) {
+                     if(test_intercept > max_above_intercept) {
+                         max_above_intercept = test_intercept;
+                         found_above = true;
+                     }
+                 }
+             } else if (test_intercept < base_c) {
+                 if(touches >= LOEDTInpEDTMinTouches) {
+                     if(test_intercept < min_below_intercept) {
+                         min_below_intercept = test_intercept;
+                         found_below = true;
+                     }
                  }
              }
-         } else if (test_intercept < base_c) {
-             if(touches >= LOEDTInpEDTMinTouches) {
-                 if(test_intercept < min_below_intercept) {
-                     min_below_intercept = test_intercept;
-                     found_below = true;
-                 }
+          }
+
+          // 4. Fill Buffers for all 3 lines
+          for(int i = 0; i <= start_idx; i++) {
+             int chrono_bar = rates_total - 1 - i;
+
+             if(chrono_bar >= BestLine.bar_start) {
+                ExtBestFL[i] = base_m * chrono_bar + base_c;
+
+                if(found_above) ExtUOEDT[i] = base_m * chrono_bar + max_above_intercept;
+                if(found_below) ExtLOEDT[i] = base_m * chrono_bar + min_below_intercept;
              }
-         }
-      }
+          }
 
-      // 4. Fill Buffers for all 3 lines
-      for(int i = 0; i <= start_idx; i++) {
-         int chrono_bar = rates_total - 1 - i;
-
-         if(chrono_bar >= BestLine.bar_start) {
-            ExtBestFL[i] = base_m * chrono_bar + base_c;
-
-            if(found_above) ExtUOEDT[i] = base_m * chrono_bar + max_above_intercept;
-            if(found_below) ExtLOEDT[i] = base_m * chrono_bar + min_below_intercept;
-         }
+          g_stat_uoedt_offset = found_above ? (max_above_intercept - base_c) : EMPTY_VALUE;
+          g_stat_loedt_offset = found_below ? (min_below_intercept - base_c) : EMPTY_VALUE;
       }
 
       // --- Capture statistics for the companion stat-export file ---
@@ -445,8 +483,6 @@ void BuildBestFlipLine(const int rates_total)
       g_stat_window_start_ts    = (long)(iTime(_Symbol, _Period, start_idx) - gmt_off);
       g_stat_window_end_ts      = (long)(iTime(_Symbol, _Period, end_idx) - gmt_off);
       g_stat_line_start_ts      = (long)(iTime(_Symbol, _Period, line_start_i) - gmt_off);
-      g_stat_uoedt_offset       = found_above ? (max_above_intercept - base_c) : EMPTY_VALUE;
-      g_stat_loedt_offset       = found_below ? (min_below_intercept - base_c) : EMPTY_VALUE;
    }
   }
 
@@ -496,6 +532,82 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    }
 
    if(prev_calculated == 0 || new_bar) BuildBestFlipLine(rates_total);
+
+   if(!InpShowComments) {
+      Comment("");
+   } else {
+      string base_price_str = "N/A";
+      string uoedt_comment_str = "N/A";
+      string loedt_comment_str = "N/A";
+      string channel_width_str = "N/A";
+      string edt_mode_str = (InpEDTCalcMode == EDT_MODE_PERCENT_DEVIATION) ? "User Defined %" : "Fractal Proximity";
+
+      if(g_stat_found) {
+         double live_base = (ExtBestFL[0] != EMPTY_VALUE && ExtBestFL[0] != 0.0)
+                            ? ExtBestFL[0]
+                            : g_stat_intercept_anchored;
+         int price_digits = (_Digits > 2) ? _Digits : 2;
+         if(live_base > 0.0) base_price_str = StringFormat("%.*f USD", price_digits, live_base);
+
+         if(g_stat_uoedt_offset != EMPTY_VALUE && live_base > 0.0) {
+             double uo_pct = (g_stat_uoedt_offset / live_base) * 100.0;
+             uoedt_comment_str = StringFormat("%+.*f USD (%+.2f%%)", price_digits, g_stat_uoedt_offset, uo_pct);
+         }
+         if(g_stat_loedt_offset != EMPTY_VALUE && live_base > 0.0) {
+             double lo_pct = (g_stat_loedt_offset / live_base) * 100.0;
+             loedt_comment_str = StringFormat("%+.*f USD (%+.2f%%)", price_digits, g_stat_loedt_offset, lo_pct);
+         }
+         if(g_stat_uoedt_offset != EMPTY_VALUE && g_stat_loedt_offset != EMPTY_VALUE && live_base > 0.0) {
+             double ch_w = g_stat_uoedt_offset - g_stat_loedt_offset;
+             double ch_pct = (ch_w / live_base) * 100.0;
+             channel_width_str = StringFormat("%.*f USD (%.2f%%)", price_digits, ch_w, ch_pct);
+         }
+
+         string comment_text = StringFormat(
+             "--- DavinTrade V3.89 Fractal Best-Fit Pipeline ---\n" +
+             "Solution Found        : YES\n" +
+             "Best FL Touches       : %d\n" +
+             "Window Anchors        : %s to %s\n" +
+             "Raw Slope (b)         : %.8f\n" +
+             "Anchored Y-Int (Live) : %.5f\n" +
+             "=================================================\n" +
+             "            [EDT CHANNEL]\n" +
+             "EDT Mode              : %s\n" +
+             "Baseline Price (Live) : %s\n" +
+             "UOEDT Distance        : %s\n" +
+             "LOEDT Distance        : %s\n" +
+             "Channel Total Width   : %s",
+             g_stat_touches,
+             TimeToString(InpStartDateTime, TIME_DATE|TIME_MINUTES),
+             TimeToString(InpEndDateTime, TIME_DATE|TIME_MINUTES),
+             g_stat_slope,
+             g_stat_intercept_anchored,
+             edt_mode_str,
+             base_price_str,
+             uoedt_comment_str,
+             loedt_comment_str,
+             channel_width_str
+         );
+         Comment(comment_text);
+      } else {
+         string comment_text = StringFormat(
+             "--- DavinTrade V3.89 Fractal Best-Fit Pipeline ---\n" +
+             "Solution Found        : NO\n" +
+             "Window Anchors        : %s to %s\n" +
+             "=================================================\n" +
+             "            [EDT CHANNEL]\n" +
+             "EDT Mode              : %s\n" +
+             "Baseline Price (Live) : N/A\n" +
+             "UOEDT Distance        : N/A\n" +
+             "LOEDT Distance        : N/A\n" +
+             "Channel Total Width   : N/A",
+             TimeToString(InpStartDateTime, TIME_DATE|TIME_MINUTES),
+             TimeToString(InpEndDateTime, TIME_DATE|TIME_MINUTES),
+             edt_mode_str
+         );
+         Comment(comment_text);
+      }
+   }
    ChartRedraw(0); 
    return(rates_total);
   }

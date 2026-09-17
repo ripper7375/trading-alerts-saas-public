@@ -2,12 +2,41 @@
 
 **Raised:** 2026-09-09, while answering "so the newest data replaces the older data in the row with
 the same timestamp?" — yes, and this is the consequence.
-**Status:** **OPEN — mechanism verified in code, magnitude never measured.**
-**Severity:** low for reporting and charting; **high for backtesting, walk-forward validation and
-any fitness scoring** that reads `market_data_v6` history.
-**Not a bug.** Nothing here is malfunctioning. It is an inherent property of storing a
-sliding-window indicator's output in a mutable, timestamp-keyed table — worth recording before
-someone builds on the assumption that it works the other way.
+**Status:** **PARTLY ADDRESSED — a fix is BUILT but INERT (2026-09-18); magnitude still never
+measured.**
+
+> **Update, 2026-09-18.** A remedy now exists in code for the largest part of this issue and is
+> tested, but **nothing about production behaviour has changed yet** and the honest status is
+> still "open". Specifics, so this is neither over- nor under-read:
+>
+> - **What is fixed, in code.** All 7 centroid indicators gained `InpProjectionMode`. In
+>   `MODE_FROZEN_LINE` the clustering and combinatorial fit are bypassed and the approved line is
+>   projected forward from a fixed, time-resolved anchor, which makes a closed bar's
+>   `base_fl`/`uoedt`/`loedt` mathematically immutable. That covers ~**21 of the ~56 drifting
+>   fields** (7 variants x 3 channel columns). See `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`
+>   and the pipeline blueprint §5.6.
+> - **What is NOT fixed.** `fractal_*`, `best_resistance`, `best_support` and the per-variant
+>   `horiz_*_map`/`ssa`/`ema_ssa` columns are untouched by this work and still rewrite. The
+>   still-forming newest bar (§ below) is unchanged. Neither is the M5/M15 statistic snapshot
+>   path, which was already point-in-time honest by construction.
+> - **Why the status is not "RESOLVED".** `InpProjectionMode` defaults to
+>   `MODE_DYNAMIC_AUTOFIT`, the `.ex5` have not been rebuilt, and no terminal has been switched
+>   to frozen mode. Until an ACTIVE terminal actually runs frozen, every word below still
+>   describes live production exactly. Deployment is blueprint §13 item 8.
+> - **Evidence so far.** Synthetic exports driven through the REAL collector and the REAL
+>   `promote_cycle()`: the frozen path repainted **0 of 44** historical bars across two cycles;
+>   the dynamic path repainted **44 of 44**, largest single move **3.29 USD**. So the mechanism
+>   demonstrably works and the problem demonstrably exists — but neither number came from
+>   real MT5 data, and **the magnitude experiment described in §4 below has still never been
+>   run**. Run it before relying on any of this for backtesting.
+> - **A second, independent reason to run that experiment anyway:** it is the only way to size
+>   how wrong the ~3000 bars of history already sitting in `market_data_v6` are. Freezing from
+>   today forward does nothing about data already stored.
+>   **Severity:** low for reporting and charting; **high for backtesting, walk-forward validation and
+>   any fitness scoring** that reads `market_data_v6` history.
+>   **Not a bug.** Nothing here is malfunctioning. It is an inherent property of storing a
+>   sliding-window indicator's output in a mutable, timestamp-keyed table — worth recording before
+>   someone builds on the assumption that it works the other way.
 
 > **In one line:** a historical row does not hold "what the indicator said at that bar." It holds
 > "what the indicator said about that bar, up to ~2 weeks later" — so the row knows about its own

@@ -49,18 +49,20 @@ not part of the deployment.
 
 ### 0.1 Runtime — the pipeline that runs in production
 
-| File                                           | Role                                                             | Ref   |
-| ---------------------------------------------- | ---------------------------------------------------------------- | ----- |
-| `mq5/` (14 indicators, see §0.4)               | Data producers: compute + auto-export **every** value as `.txt`  | §5.1  |
-| `mq5/EconomicCalendarExport_v2_29.mq5`         | **EA**, not an indicator: exports the built-in Economic Calendar | §5.5  |
-| `export_collector_validator_v2.py`             | Pipeline engine: COLLECT → ADJUST → VALIDATE → PROMOTE           | §5.2  |
-| `sqlite_schema_v6_xauusd.sql`                  | `xauusd.db` schema: staging + validation + `market_data`         | §5.3  |
-| `backfill_worker_api_gateway_v5.py`            | Push worker: `market_data WHERE synced_at IS NULL` → gateway     | §5.4  |
-| `gateway_contract_market_data.schema.json`     | JSON-Schema of the POST body the gateway must accept             | §9    |
-| `gateway_contract_economic_events.schema.json` | JSON-Schema for the append-only economic-events stream           | §5.5  |
-| `install_services.bat`                         | Windows/NSSM installer for the VPS services                      | §8.2  |
-| `migrate_sqlite_add_sr_columns.sql`            | One-off `market_data` widening for the 14th indicator            | §5.3  |
-| `replay_quarantine.py`                         | Re-POST gateway-rejected rows after a fix                        | §10.2 |
+| File                                           | Role                                                              | Ref   |
+| ---------------------------------------------- | ----------------------------------------------------------------- | ----- |
+| `mq5/` (14 indicators, see §0.4)               | Data producers: compute + auto-export **every** value as `.txt`   | §5.1  |
+| `mq5/EconomicCalendarExport_v2_29.mq5`         | **EA**, not an indicator: exports the built-in Economic Calendar  | §5.5  |
+| `export_collector_validator_v2.py`             | Pipeline engine: COLLECT → ADJUST → VALIDATE → PROMOTE            | §5.2  |
+| `sqlite_schema_v6_xauusd.sql`                  | `xauusd.db` schema: staging + validation + `market_data`          | §5.3  |
+| `backfill_worker_api_gateway_v5.py`            | Push worker: `market_data WHERE synced_at IS NULL` → gateway      | §5.4  |
+| `gateway_contract_market_data.schema.json`     | JSON-Schema of the POST body the gateway must accept              | §9    |
+| `gateway_contract_economic_events.schema.json` | JSON-Schema for the append-only economic-events stream            | §5.5  |
+| `centroid_watchdog.py`                         | **Read-only** standby watcher: alerts on a confirmed new centroid | §5.6  |
+| `install_services.bat`                         | Windows/NSSM installer for the VPS services                       | §8.2  |
+| `install_centroid_watchdog_service.bat`        | Separate NSSM installer for the watchdog (never touches §8.2's)   | §5.6  |
+| `migrate_sqlite_add_sr_columns.sql`            | One-off `market_data` widening for the 14th indicator             | §5.3  |
+| `replay_quarantine.py`                         | Re-POST gateway-rejected rows after a fix                         | §10.2 |
 
 ### 0.2 Legacy (retained for reference; NOT in the v6 data flow — §14)
 
@@ -120,16 +122,20 @@ collector's file-prefix map both depend on these exactly.
 
 ### 0.5 Reference data & specs
 
-| Path                                                                      | Role                                                                        |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt` | The authoritative list of columns MQL5 exports (§3.1)                       |
-| `data-split-between-mql5-and-python/Python stacks calculation.txt`        | The authoritative list of values Python calculates (§3.2)                   |
-| `sqlite_schema_v6_xauusd_preview.txt`                                     | Excel-openable preview of every v6 table with mock rows                     |
-| `mock-data-from-indicators/golden_certification/` (repo root)             | The certified 3000-bar export batch (24 timeseries + 18 stat files, M5+M15) |
-| `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`                                 | Active / hot-standby terminal topology and the promote design (§8.1)        |
-| `docs/runbooks/mt5-terminal-promote.md` (repo root)                       | The promote procedure itself — preconditions, switch, verify, rollback      |
-| `test_stale_export_guard.py`                                              | Guards the stale-export-directory rejection (§12 item 10); 9 tests          |
-| `test_sr_levels_source.py`                                                | Guards the 14th indicator end to end (§5.1, §13 item 7); 24 tests           |
+| Path                                                                      | Role                                                                                  |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt` | The authoritative list of columns MQL5 exports (§3.1)                                 |
+| `data-split-between-mql5-and-python/Python stacks calculation.txt`        | The authoritative list of values Python calculates (§3.2)                             |
+| `sqlite_schema_v6_xauusd_preview.txt`                                     | Excel-openable preview of every v6 table with mock rows                               |
+| `mock-data-from-indicators/golden_certification/` (repo root)             | The certified 3000-bar export batch (24 timeseries + 18 stat files, M5+M15)           |
+| `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`                                 | Active / hot-standby terminal topology and the promote design (§8.1)                  |
+| `docs/runbooks/mt5-terminal-promote.md` (repo root)                       | The promote procedure itself — preconditions, switch, verify, rollback                |
+| `test_stale_export_guard.py`                                              | Guards the stale-export-directory rejection (§12 item 10); 9 tests                    |
+| `test_sr_levels_source.py`                                                | Guards the 14th indicator end to end (§5.1, §13 item 7); 24 tests                     |
+| `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`       | Frozen baseline/EDT projection + the centroid watchdog (§5.6, §12 item 8)             |
+| `active-standby-terminal-operation-for-admin/generate_frozen_preset.py`   | Captures an approved line into MT5 `.set` presets; `--verify` proves it took          |
+| `test_centroid_watchdog.py`                                               | Guards the watchdog's debounce automaton and parsing; 35 tests                        |
+| `verify_mq5_frozen_identifiers.py`                                        | Resolves every identifier the frozen-mode MQL5 code references; run before MetaEditor |
 
 ---
 
@@ -535,6 +541,87 @@ believed to be.
 
 ---
 
+### 5.6 Frozen baseline & the Centroid Watchdog — `centroid_watchdog.py`
+
+Two coordinated halves of ARCH-SPEC-2026-09-18-V2.29-FROZEN-ALERT, both built
+2026-09-18. Full design: `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`.
+
+**Pillar 1 — frozen projection (MQL5).** All 7 centroid indicators gained
+`InpProjectionMode`. In `MODE_FROZEN_LINE` the DBSCAN/K-Means clustering and the
+combinatorial fit are bypassed entirely; the approved line is projected forward
+from a fixed anchor instead:
+
+```
+base  = InpFrozenAnchorPrice + InpFrozenSlope * (bar_index - anchor_bar_index)
+UOEDT = base + InpFrozenUOEDTOffset      <- signed, POSITIVE
+LOEDT = base + InpFrozenLOEDTOffset      <- signed, NEGATIVE
+```
+
+Three details that are easy to get wrong and expensive to get wrong:
+
+- **The anchor is a TIME, not a bar index.** The regression is fitted in
+  bar-index space, but a bar index is not stable — MetaTrader deepening history
+  shifts every index in the array. The anchor is therefore resolved by time on
+  every pass. Measured on synthetic data, freezing the index instead moves the
+  whole channel by **72.60 USD** the first time 500 bars of history load.
+- **`InpFrozenAnchorPrice` is the baseline PRICE at the anchor** (the statistic
+  file's `Anchored Y-Int`), not the raw regression intercept `c`, which is the
+  price at bar index 0 and is thousands of dollars from the market.
+- **Both EDT offsets are signed and ADDED.** That is the convention the fractal
+  search and `[EDT CHANNEL]` already use (`LOEDT Offset` really is negative).
+  Subtracting the exported value would draw the lower band _above_ the baseline
+  and export `loedt > base_fl`. `OnInit` refuses to start on a wrong sign.
+
+Frozen mode still writes the structural buffers and both fit-quality models, so
+`indicator_statistics` keeps receiving complete rows — and those statistics
+become a **drift signal**, because R², MSE and Containment measured against a
+line that is no longer being refitted answer "is the approved line still
+describing this market?".
+
+**Pillar 2 — the Centroid Watchdog.** A standalone, read-only NSSM service that
+polls the STANDBY terminal's `_Statistic.txt` files and alerts once when a new
+centroid has formed and stabilised.
+
+- **Trigger:** an unseen centroid **timestamp**, not a change in the count. In a
+  sliding window an ancient cluster can leave in the same cycle a new one forms,
+  leaving the count unchanged (5 → 5) — a silent false negative.
+- **Debounce:** the candidate must persist across `CONFIRM_BARS` **closed bars**,
+  counted from `Live Bar TS (UTC)` inside the export, and must be present in
+  every poll. Wall-clock seconds would let a candidate "mature" over a weekend
+  when no bar ever closed.
+- **Drift:** a centroid is a centre of mass, so its timestamp moves. Candidates
+  are matched within `DRIFT_TOLERANCE_BARS`, or the debounce would reset every
+  poll and nothing would ever confirm.
+- **Seeding:** the first observation of a source records what is already there
+  and alerts nothing — otherwise every service restart would announce the
+  centroid the administrator has been watching all week.
+- **It also watches itself:** a standby whose terminal died freezes its exports,
+  which looks exactly like a quiet market. Stale exports raise their own alert.
+
+It holds no lock and opens no database. A crash here cannot affect the
+`market_data` path.
+
+**Two new statistic blocks** carry all of this, appended to every centroid
+`_Statistic.txt`. Both are additive: `parse_statistic_file()` maps only
+`STAT_FIELDS` into staging columns, so no existing column changed and
+`config_hash` is unaffected by their mere presence — verified. The five
+`Frozen *` keys ARE registered in `STAT_CONFIG_LABELS`, which makes the existing
+`indicator_configs` mechanism a free, permanent, append-only record of every
+promotion. The `Snapshot *` keys deliberately are not: they drift every cycle
+and would mint a new hash each time.
+
+```
+[FROZEN_SNAPSHOT]          <- what promote captures; which mode produced this row
+[CENTROIDS_DETAIL]         <- the watchdog's ground truth, newest first, UTC
+```
+
+The anchor is written in **both** server and UTC form. Everything else this
+stack exports is UTC, but `InpFrozenAnchorTime` is compared against MT5's own
+server-time bar array — a promote script reading only the UTC form would shift
+the anchor by the broker offset (2–3 hours, i.e. 24–36 M5 bars).
+
+---
+
 ## 6. Calculation — where it happens, and what was removed
 
 **All calculation happens inside MetaTrader.** Each of the 14 indicators
@@ -860,18 +947,41 @@ fully cleared.
    it with the measurements in `PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md` §4 before
    changing anything; that doc also ranks the fixes and names the invariants any
    fix must preserve. Predates and is unrelated to the 2026-09-09 refactor.
-8. ⚠ **Historical indicator values are not point-in-time** — OPEN, mechanism
-   verified, magnitude never measured. Because the centroid/SSA window
-   re-anchors to the live bar each pass (§7 above notwithstanding — different
-   issue), a bar's row is refitted for ~3000 bars before it freezes, so the
-   stored value for bar T was computed using data up to ~2 weeks _after_ T.
-   Harmless for live alerting and charts (they want the newest fit); **invalid
-   for backtesting, walk-forward or fitness scoring**, which is a second,
-   independent blocker on the decision layer. ~56 of the 83 data fields drift;
-   OHLCV and the z-score triple are genuinely causal and safe. Also documents a
-   related nuance: the newest row is always a still-forming, partial bar. Full
-   write-up, the experiment to size it, and the options:
+8. 🟡 **Historical indicator values are not point-in-time** — the MECHANISM is
+   now BUILT and code-complete (2026-09-18), **but it is inert until an
+   administrator turns it on**, so this stays amber, not green.
+   Because the centroid/SSA window re-anchors to the live bar each pass (§7
+   above notwithstanding — different issue), a bar's row is refitted for ~3000
+   bars before it freezes, so the stored value for bar T was computed using data
+   up to ~2 weeks _after_ T. Harmless for live alerting and charts (they want
+   the newest fit); **invalid for backtesting, walk-forward or fitness
+   scoring**, which is a second, independent blocker on the decision layer.
+   ~56 of the 83 data fields drift; OHLCV and the z-score triple are genuinely
+   causal and safe. The newest row is always a still-forming, partial bar.
+   Full write-up and the experiment to size it:
    `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md`.
+
+   **What changed:** all 7 centroid indicators gained `InpProjectionMode`. In
+   `MODE_FROZEN_LINE` the clustering and combinatorial fit are bypassed entirely
+   and the approved line is projected forward from a fixed anchor instead, so a
+   closed bar's `base_fl`/`uoedt`/`loedt` become mathematically immutable. SSA,
+   its crossings, the fractals, ZigZag and the z-score candles all keep
+   calculating live — only the structural channel freezes. See §5.6 and
+   `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`.
+
+   **Why it is still amber, stated plainly:** the mode defaults to
+   `MODE_DYNAMIC_AUTOFIT`, the `.ex5` have not been rebuilt, and no terminal has
+   been switched. Until a real ACTIVE terminal is running frozen, production
+   behaviour is byte-for-byte what it was. Verified so far only against
+   synthetic exports driven through the real collector, where the frozen path
+   repainted **0 of 44** historical bars and the dynamic path repainted
+   **44 of 44** (largest move 3.29 USD) — the mechanism works; the deployment is
+   §13 item 8.
+
+   **Scope, so this is not over-read:** freezing fixes the 7 centroid variants'
+   channel fields. `fractal_*`, `best_resistance` and `best_support` are stable
+   but still rewrite wholesale when their anchors re-set, and are NOT covered.
+
 9. ✅ **`_Statistic.txt` capture — BUILT** (2026-09-09), end to end, MT5 →
    SQLite → gateway → Postgres. All 10 files now carry a complete, comparable
    field set (§5.1) and are parsed into a new **append-only** `indicator_statistics`
@@ -1017,6 +1127,70 @@ LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
    repo.** The parser is verified against the `.mq5` source and synthetic
    fixtures only. Diff a first real `SR_Levels_XAUUSD_M5.txt` against the
    `SOURCES['sr_levels']` header list before trusting a green cycle.
+
+8. **Turn on the frozen baseline and the Centroid Watchdog (§5.6).** Everything
+   below is code-complete, tested and committed; **none of it changes production
+   behaviour until these physical steps happen**, because `InpProjectionMode`
+   defaults to `MODE_DYNAMIC_AUTOFIT` and the watchdog is not installed.
+
+   **a. Recompile all 7 centroid indicators in MetaEditor and redeploy the
+   `.ex5`.** Gating for everything else in this item.
+   ⚠ **A first attempt failed on 5 of the 7** — the frozen routine was written
+   against the reference variant and the seven are not identifier-uniform
+   (`InpCFLVisualLookback` vs `InpEDTVisualLookback`; `g_stat_excluded` and
+   `g_stat_lambda` are not declared everywhere). Fixed, and now guarded by
+   `verify_mq5_frozen_identifiers.py` — **run it before handing these to
+   MetaEditor again.** Those failed compiles deleted 5 `.ex5`, so CherryPick A/B,
+   MostRecent and NonRecent A/B have **no binary at all** right now; they were
+   deliberately not restored from git, because an old binary deploys indicators
+   without frozen mode and looks healthy doing it. Until then the terminals
+   emit no `[CENTROIDS_DETAIL]` and no `[FROZEN_SNAPSHOT]`, the watchdog
+   correctly logs "pre-upgrade file" and refuses to reason about them, and
+   `generate_frozen_preset.py` correctly refuses to build a preset.
+   ⚠ **This is the same self-hiding staleness as item 1.** A terminal running
+   old binaries looks entirely healthy — cycles validate, rows promote, nothing
+   errors — while the two new blocks are simply absent. **Confirm a fresh
+   `_Statistic.txt` actually contains `[FROZEN_SNAPSHOT]` before trusting a
+   green cycle.**
+
+   **b. Install the watchdog** with `install_centroid_watchdog_service.bat`
+   (deliberately a separate script — running `install_services.bat` wholesale on
+   a live VPS overwrites the push worker's real credentials with placeholders;
+   see §8.2). Set `WATCHDOG_STANDBY_DIR` to the terminal being TUNED and
+   `WATCHDOG_ACTIVE_DIR` to the one FEEDING production. With no webhook set it
+   runs in log-only mode and loses nothing — every alert is written to
+   `centroid_watchdog.log` in full. **Expected on first start: 14 "seeded"
+   lines and no alert.** That is correct, not a fault.
+
+   ⚠ **Swap both paths on every promote**, and note that
+   `AppEnvironmentExtra` **replaces the whole variable set** — every variable
+   must be repeated, not just the two that changed. Left unswapped, the watchdog
+   keeps watching the terminal that is now frozen and will never see another
+   centroid: silently, because a frozen terminal reports zero centroids and that
+   is indistinguishable from a quiet market.
+
+   **c. Freeze the ACTIVE terminal — the step that actually closes §12 item 8.**
+   Order matters, and it is enforced by `promote_terminal.bat`'s new pre-flight:
+   1. `promote_terminal.bat` → **[4]** generates `*_FROZEN.set` from the
+      terminal being promoted.
+   2. **Load each preset by hand in MetaTrader** (right-click the indicator →
+      Properties → Inputs → Load). ⚠ **This cannot be scripted.** MetaTrader
+      exposes no way for an outside process to change a running indicator's
+      inputs, and pretending otherwise would be the worst failure available
+      here: the script reports success, the administrator believes the terminal
+      is frozen, and it goes on repainting ~3000 bars for as long as nobody
+      checks.
+   3. → **[5]** verifies the terminal genuinely reports `FROZEN`. **Do not skip
+      this.** Loading a preset is the step most likely to be half-done, and
+      without the check the failure is invisible.
+   4. Only then → **[1]/[2]** to point the collector at it.
+   5. Load `DAVINTRADE_DYNAMIC.set` into the terminal being demoted, so the new
+      hot standby starts hunting for the next regime.
+
+   **d. Rehearse it once during a market close**, alongside item 6's promote
+   rehearsal. Nothing in this item has ever run against a live MT5 terminal;
+   verification so far is synthetic exports driven through the real collector,
+   the real watchdog process and the real preset generator.
 
    **Statistics capture is deliberately NOT part of this.** `sr_levels` is
    excluded from `STAT_SOURCES`: its `_Statistic.txt` records Freedman-Diaconis

@@ -36,6 +36,14 @@ enum ENUM_SYMBOL_SIZE {
 enum ENUM_TOLERANCE_TYPE {
    TOLERANCE_ATR, TOLERANCE_PERCENT
 };
+enum ENUM_EDT_CALC_MODE {
+   EDT_MODE_FRACTAL_PROXIMITY = 0, // Fractal Proximity (Default)
+   EDT_MODE_PERCENT_DEVIATION = 1  // User Defined % Deviation
+};
+enum ENUM_PROJECTION_MODE {
+   MODE_DYNAMIC_AUTOFIT = 0, // Standby: live clustering and refitting
+   MODE_FROZEN_LINE     = 1  // Active: linear projection of the approved line
+};
 
 //--- INPUT PARAMETERS ---
 input string               Sep0 = "===== Main & SSA Settings =====";
@@ -85,6 +93,31 @@ input int               LOEDTInpEDTMinTouches = 2;
 input int               UOEDTInpEDTMinTouches = 2;
 
 input color             InpBaseLineColor = clrPaleTurquoise;
+input ENUM_EDT_CALC_MODE InpEDTCalcMode = EDT_MODE_FRACTAL_PROXIMITY; // EDT Calculation Mode
+input double            InpUOEDTPctDev  = 1.50; // UOEDT Distance (% from Baseline)
+input double            InpLOEDTPctDev  = 1.75; // LOEDT Distance (% from Baseline)
+input string            SepFreeze = "===== Freeze / Projection Settings =====";
+// MODE_FROZEN_LINE bypasses DBSCAN/K-Means and the combinatorial fit entirely and
+// projects the approved line forward instead: y = anchor_price + slope * (bar - anchor_bar).
+// Bars at or before the anchor therefore stop being recalculated, which is what
+// removes both the unannounced chart redrawing and the look-ahead bias documented
+// in HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md. SSA, its crossings, the
+// fractals, ZigZag and the Z-score candles all keep calculating live.
+input ENUM_PROJECTION_MODE InpProjectionMode = MODE_DYNAMIC_AUTOFIT; // Projection Mode
+// SERVER time, not UTC -- it is compared against MT5's own bar array. The export
+// stream is UTC, so [FROZEN_SNAPSHOT] writes BOTH forms and promote_terminal.bat
+// reads the server one. Getting this wrong shifts the line by the broker offset.
+input datetime          InpFrozenAnchorTime  = 0;   // Frozen: anchor bar time (SERVER time)
+input double            InpFrozenSlope       = 0.0; // Frozen: slope (b), price per bar
+// The baseline PRICE at the anchor bar -- the statistic file's "Anchored Y-Int" --
+// NOT the raw regression intercept c, which is the price at bar index 0 and is
+// thousands of dollars away from the market.
+input double            InpFrozenAnchorPrice = 0.0; // Frozen: baseline price at the anchor
+// SIGNED, baseline-relative, exactly as [EDT CHANNEL] exports them: UOEDT is
+// POSITIVE above the baseline, LOEDT is NEGATIVE below it. Both are ADDED. Copy
+// the exported numbers through unchanged; do not flip a sign on the way in.
+input double            InpFrozenUOEDTOffset = 0.0; // Frozen: UOEDT offset (signed, +)
+input double            InpFrozenLOEDTOffset = 0.0; // Frozen: LOEDT offset (signed, -)
 input color             InpEDTColor = clrDodgerBlue;
 input ENUM_TOLERANCE_TYPE InpToleranceType = TOLERANCE_PERCENT;
 input double            InpTolerancePercent = 0.25;
@@ -157,6 +190,42 @@ int g_stat_n_crossings = 0;
 int g_stat_n_close = 0;
 int g_stat_leftmost_bar = 0;
 double g_cen_prices[12];
+double g_stat_uoedt_offset = EMPTY_VALUE;
+double g_stat_loedt_offset = EMPTY_VALUE;
+
+//--- CENTROID DETAIL SNAPSHOT (Pillar 2: Centroid Watchdog ground truth) -----
+// The centroid array is LOCAL to the clustering routine, so ExportData() cannot
+// see it. These globals carry one snapshot of the discovered set across to the
+// exporter. Times are held in SERVER time and converted to UTC on the way out,
+// exactly as the timeseries export already does.
+//--- FROZEN PROJECTION STATE (Pillar 1) -------------------------------------
+int      g_frozen_anchor_bar = -1;   // resolved each pass; -1 = not resolved
+datetime g_frozen_anchor_time = 0;   // server time of that bar
+int      g_frozen_bars_since = 0;    // bars elapsed since the anchor
+
+#define CEN_DETAIL_MAX 64
+int      g_cen_detail_n = 0;        // how many are held below (capped)
+int      g_cen_detail_total = 0;    // how many were actually found (uncapped)
+datetime g_cen_detail_time[CEN_DETAIL_MAX];
+double   g_cen_detail_price[CEN_DETAIL_MAX];
+int      g_cen_detail_points[CEN_DETAIL_MAX];
+
+//+------------------------------------------------------------------+
+//| Reset the centroid detail snapshot.                              |
+//| Called at the TOP of the clustering routine, not the bottom: that |
+//| routine has several early returns (too few points, too few        |
+//| centroids) and a stale snapshot surviving one of them would make  |
+//| the watchdog believe centroids still exist after they stopped     |
+//| resolving -- an invisible false negative.                        |
+//+------------------------------------------------------------------+
+void ResetCentroidDetail()
+{
+   g_cen_detail_n = 0;
+   g_cen_detail_total = 0;
+   ArrayInitialize(g_cen_detail_time, 0);
+   ArrayInitialize(g_cen_detail_price, 0.0);
+   ArrayInitialize(g_cen_detail_points, 0);
+}
 
 //--- STRUCTURES ---
 struct ClusterPoint {
@@ -262,6 +331,44 @@ int OnInit()
    if(!InpCalcCentroidRegressionEDT) {
       ClearCentroidRegressionBuffers(0);
    }
+
+   // --- FROZEN MODE PRE-FLIGHT --------------------------------------------
+   // Fail at init rather than draw something wrong. This indicator feeds the
+   // ACTIVE terminal's production export, and a misconfigured frozen line does
+   // not look broken -- it looks like a channel, in the wrong place, for every
+   // bar, for as long as nobody notices.
+   if(InpProjectionMode == MODE_FROZEN_LINE) {
+      if(InpFrozenAnchorTime <= 0) {
+         Print("FROZEN MODE: InpFrozenAnchorTime is not set. Take the anchor from "
+               "the standby's [FROZEN_SNAPSHOT] 'Snapshot Anchor TS (Server)'.");
+         return(INIT_PARAMETERS_INCORRECT);
+      }
+      if(InpFrozenAnchorPrice <= 0.0) {
+         Print("FROZEN MODE: InpFrozenAnchorPrice must be the baseline PRICE at the "
+               "anchor bar ([FROZEN_SNAPSHOT] 'Snapshot Anchor Price' / 'Anchored "
+               "Y-Int'), not the raw regression intercept c.");
+         return(INIT_PARAMETERS_INCORRECT);
+      }
+      // Signed, baseline-relative, and ADDED -- so a positive LOEDT would draw the
+      // lower band ABOVE the baseline and export loedt > base_fl, which downstream
+      // reads as a support level above price.
+      if(InpFrozenUOEDTOffset < 0.0) {
+         Print("FROZEN MODE: InpFrozenUOEDTOffset must be POSITIVE (above the "
+               "baseline) or 0 for no band. Copy the sign from [EDT CHANNEL].");
+         return(INIT_PARAMETERS_INCORRECT);
+      }
+      if(InpFrozenLOEDTOffset > 0.0) {
+         Print("FROZEN MODE: InpFrozenLOEDTOffset must be NEGATIVE (below the "
+               "baseline) or 0 for no band. Copy the sign from [EDT CHANNEL].");
+         return(INIT_PARAMETERS_INCORRECT);
+      }
+      PrintFormat("FROZEN MODE active: anchor=%s slope=%.8f price=%.5f "
+                  "UOEDT=%+.5f LOEDT=%+.5f. Clustering is bypassed; SSA, fractals "
+                  "and crossings continue live.",
+                  TimeToString(InpFrozenAnchorTime), InpFrozenSlope,
+                  InpFrozenAnchorPrice, InpFrozenUOEDTOffset, InpFrozenLOEDTOffset);
+   }
+
    return(INIT_SUCCEEDED);
 }
 
@@ -545,6 +652,7 @@ void ClearCentroidRegressionBuffers(const int rates_total)
    g_stat_n_crossings = 0;
    g_stat_n_close = 0;
    g_stat_leftmost_bar = 0;
+   ResetCentroidDetail();
 }
 
 //+------------------------------------------------------------------+
@@ -557,6 +665,7 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
    ArrayInitialize(ExtCrossInCluster, 0.0);
    ArrayInitialize(ExtBaseLine, EMPTY_VALUE);
    ArrayInitialize(g_cen_prices, 0.0);
+   ResetCentroidDetail();
    
    int startIdx = (rates_total > InpSSAMathLookback) ? rates_total - InpSSAMathLookback : 0;
    
@@ -663,6 +772,32 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
       }
    }
 
+   // --- CENTROID DETAIL CAPTURE (Pillar 2) ---------------------------------
+   // Snapshot the FULL discovered set, newest first, BEFORE any variant-specific
+   // selection narrows it. The watchdog's trigger is "a centroid exists whose
+   // timestamp has never been seen", so it needs what was FOUND, not what this
+   // variant's regression happened to pick.
+   //
+   // Why timestamps and not the count: in a sliding window an ancient cluster can
+   // leave in the same cycle a new one forms, leaving the count unchanged (5 -> 5)
+   // -- a false negative. Bar time is strictly monotonic, so an unseen timestamp
+   // is unambiguously new.
+   //
+   // centroids[0] is the NEWEST: the sort directly above is DESCENDING by
+   // bar_index. Reading the far end would report the oldest centroid as "latest"
+   // and invert the whole trigger.
+   g_cen_detail_total = centroid_count;
+   g_cen_detail_n = (centroid_count < CEN_DETAIL_MAX) ? centroid_count : CEN_DETAIL_MAX;
+   for(int d = 0; d < g_cen_detail_n; d++) {
+      g_cen_detail_time[d]  = centroids[d].time;
+      g_cen_detail_price[d] = centroids[d].price;
+      int cen_pts = 0;
+      for(int p = 0; p < p_count; p++) {
+         if(assignments[p] == centroids[d].cluster_id) cen_pts++;
+      }
+      g_cen_detail_points[d] = cen_pts;
+   }
+
    int user_target_reg = (int)MathMax(3, MathMin(InpRegCentroids, 12));
    int user_exclude = (int)MathMax(0, MathMin(InpExcludeRecentCentroids, 9));
    
@@ -698,6 +833,8 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
    }
 
    double base_m = 0, base_c = 0;
+   g_stat_uoedt_offset = EMPTY_VALUE;
+   g_stat_loedt_offset = EMPTY_VALUE;
    if(den != 0) {
       base_m = num / den;
       base_c = meanY - base_m * meanX;
@@ -883,45 +1020,6 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
       ExtBaseLine[i] = base_m * i + base_c;
    }
    
-   if(InpShowComments) {
-      string comment_text = StringFormat(
-          "--- DavinTrade V3.895_B A/B Statistical Pipeline ---\n" +
-          "Regression Centroids (Box B): %d (Excluded Box A: %d)\n" +
-          "Math Search Window: %d Bars\n" +
-          "Visual EDT Window: %d Bars%s\n" +
-          "Observation Window (Box B): %d Bars (Index %d to %d)\n" +
-          "Total 171 Crossings (n): %d\n" +
-          "Timeframe (Sec): %d\n" +
-          "Raw Slope (b): %.5f\n" +
-          "Regression Angle: %.2f°  |  Anchored Y-Int (Live Bar): %.5f\n" +
-          "=================================================\n" +
-          "            [MODEL A]         [MODEL B]\n" +
-          "METRIC      (CROSSINGS)       (CLOSE PRICE)\n" +
-          "-------------------------------------------------\n" +
-          "Sample (n) : %-16d %d\n" +
-          "R-Square   : %-16.4f %.4f\n" +
-          "MSE        : %-16.4f %.4f\n" +
-          "Var Ratio  : %-16.2f %.2f\n" +
-          "Skewness   : %-16.2f %.2f\n" +
-          "Kurtosis   : %-16.2f %.2f",
-          n_reg, actual_exclude,
-          InpSSAMathLookback,
-          active_visual_lookback, override_msg,
-          n_close_bars, leftmost_bar, rightmost_bar,
-          n_crossings,
-          PeriodSeconds(_Period),
-          base_m,
-          current_angle, current_intercept_anchored,
-          n_crossings, n_close_bars,
-          r2_cross, r2_close,
-          mse_cross, mse_close,
-          var_cross, var_close,
-          skew_cross, skew_close,
-          kurt_cross, kurt_close
-      );
-      Comment(comment_text);
-   }
-
    FractalPoint fractals[];
    
    // --- Strict Math Window Containment ---
@@ -941,6 +1039,83 @@ void PerformClusteringAndEDT(const int rates_total, const datetime &time[], cons
    }
 
    BuildSymmetricalEDTs(base_m, base_c, fractals, rates_total, close_arr[rates_total-1], drawStartIdx, actualDrawEndIdx);
+
+   if(InpShowComments) {
+      string base_price_str = "N/A";
+      string uoedt_comment_str = "N/A";
+      string loedt_comment_str = "N/A";
+      string channel_width_str = "N/A";
+      string edt_mode_str = (InpEDTCalcMode == EDT_MODE_PERCENT_DEVIATION) ? "User Defined %" : "Fractal Proximity";
+
+      double live_base = (ExtBaseLine[rates_total - 1] != EMPTY_VALUE && ExtBaseLine[rates_total - 1] != 0.0)
+                         ? ExtBaseLine[rates_total - 1]
+                         : (base_m * (rates_total - 1) + base_c);
+      int price_digits = (_Digits > 2) ? _Digits : 2;
+      if(live_base > 0.0) base_price_str = StringFormat("%.*f USD", price_digits, live_base);
+
+      if(g_stat_uoedt_offset != EMPTY_VALUE && live_base > 0.0) {
+          double uo_pct = (g_stat_uoedt_offset / live_base) * 100.0;
+          uoedt_comment_str = StringFormat("%+.*f USD (%+.2f%%)", price_digits, g_stat_uoedt_offset, uo_pct);
+      }
+      if(g_stat_loedt_offset != EMPTY_VALUE && live_base > 0.0) {
+          double lo_pct = (g_stat_loedt_offset / live_base) * 100.0;
+          loedt_comment_str = StringFormat("%+.*f USD (%+.2f%%)", price_digits, g_stat_loedt_offset, lo_pct);
+      }
+      if(g_stat_uoedt_offset != EMPTY_VALUE && g_stat_loedt_offset != EMPTY_VALUE && live_base > 0.0) {
+          double ch_w = g_stat_uoedt_offset - g_stat_loedt_offset;
+          double ch_pct = (ch_w / live_base) * 100.0;
+          channel_width_str = StringFormat("%.*f USD (%.2f%%)", price_digits, ch_w, ch_pct);
+      }
+
+      string comment_text = StringFormat(
+          "--- DavinTrade V3.895_B A/B Statistical Pipeline ---\n" +
+          "Regression Centroids (Box B): %d (Excluded Box A: %d)\n" +
+          "Math Search Window: %d Bars\n" +
+          "Visual EDT Window: %d Bars%s\n" +
+          "Observation Window (Box B): %d Bars (Index %d to %d)\n" +
+          "Total 171 Crossings (n): %d\n" +
+          "Timeframe (Sec): %d\n" +
+          "Raw Slope (b): %.5f\n" +
+          "Regression Angle: %.2f°  |  Anchored Y-Int (Live Bar): %.5f\n" +
+          "=================================================\n" +
+          "            [MODEL A]         [MODEL B]\n" +
+          "METRIC      (CROSSINGS)       (CLOSE PRICE)\n" +
+          "-------------------------------------------------\n" +
+          "Sample (n) : %-16d %d\n" +
+          "R-Square   : %-16.4f %.4f\n" +
+          "MSE        : %-16.4f %.4f\n" +
+          "Var Ratio  : %-16.2f %.2f\n" +
+          "Skewness   : %-16.2f %.2f\n" +
+          "Kurtosis   : %-16.2f %.2f\n" +
+          "=================================================\n" +
+          "            [EDT CHANNEL]\n" +
+          "EDT Mode              : %s\n" +
+          "Baseline Price (Live) : %s\n" +
+          "UOEDT Distance        : %s\n" +
+          "LOEDT Distance        : %s\n" +
+          "Channel Total Width   : %s",
+          n_reg, actual_exclude,
+          InpSSAMathLookback,
+          active_visual_lookback, override_msg,
+          n_close_bars, leftmost_bar, rightmost_bar,
+          n_crossings,
+          PeriodSeconds(_Period),
+          base_m,
+          current_angle, current_intercept_anchored,
+          n_crossings, n_close_bars,
+          r2_cross, r2_close,
+          mse_cross, mse_close,
+          var_cross, var_close,
+          skew_cross, skew_close,
+          kurt_cross, kurt_close,
+          edt_mode_str,
+          base_price_str,
+          uoedt_comment_str,
+          loedt_comment_str,
+          channel_width_str
+      );
+      Comment(comment_text);
+   }
 }
 
 //+------------------------------------------------------------------+
@@ -950,6 +1125,31 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
 {
    ArrayInitialize(ExtUOEDT, EMPTY_VALUE);
    ArrayInitialize(ExtLOEDT, EMPTY_VALUE);
+   g_stat_uoedt_offset = EMPTY_VALUE;
+   g_stat_loedt_offset = EMPTY_VALUE;
+
+   // If User-Defined % Deviation mode is active, calculate directly and bypass fractal search
+   if(InpEDTCalcMode == EDT_MODE_PERCENT_DEVIATION) {
+       double live_base = (ExtBaseLine[rates_total - 1] != EMPTY_VALUE && ExtBaseLine[rates_total - 1] != 0.0)
+                          ? ExtBaseLine[rates_total - 1]
+                          : (base_m * (rates_total - 1) + base_c);
+       if(live_base <= 0.0) live_base = current_close;
+
+       double uo_offset = live_base * (MathAbs(InpUOEDTPctDev) / 100.0);
+       double lo_offset = -live_base * (MathAbs(InpLOEDTPctDev) / 100.0);
+
+       g_stat_uoedt_offset = uo_offset;
+       g_stat_loedt_offset = lo_offset;
+
+       double uo_intercept = base_c + uo_offset;
+       double lo_intercept = base_c + lo_offset;
+
+       for(int k = drawStartIdx; k <= drawEndIdx; k++) {
+           ExtUOEDT[k] = base_m * k + uo_intercept;
+           ExtLOEDT[k] = base_m * k + lo_intercept;
+       }
+       return;
+   }
 
    int f_count = ArraySize(fractals);
    if(f_count == 0) return;
@@ -996,6 +1196,7 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
 
    // Draw Upper Outermost
    if(found_above) {
+       g_stat_uoedt_offset = max_above_intercept - base_c;
        for(int k = drawStartIdx; k <= drawEndIdx; k++) {
            ExtUOEDT[k] = base_m * k + max_above_intercept;
        }
@@ -1003,10 +1204,197 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
    
    // Draw Lower Outermost
    if(found_below) {
+       g_stat_loedt_offset = min_below_intercept - base_c;
        for(int k = drawStartIdx; k <= drawEndIdx; k++) {
            ExtLOEDT[k] = base_m * k + min_below_intercept;
        }
    }
+}
+
+//+------------------------------------------------------------------+
+//| FROZEN LINEAR PROJECTION (Pillar 1)                              |
+//|                                                                  |
+//| Draws the approved baseline and its two EDT bands by linear       |
+//| extension from a fixed anchor, and writes the same structural and |
+//| fit-quality buffers the dynamic path writes, so nothing           |
+//| downstream can tell which path produced the row except by reading |
+//| [FROZEN_SNAPSHOT].                                                |
+//|                                                                  |
+//| WHY THE ANCHOR IS A TIME AND THE SLOPE IS PER BAR INDEX:          |
+//| the regression is fitted in bar-index space (ExtBaseLine[i] =     |
+//| m*i + c), but a bar INDEX is not stable -- MetaTrader deepening   |
+//| history shifts every index in the array. A bar TIME is stable. So |
+//| the anchor is resolved by time on every pass and the projection   |
+//| is measured as an offset from it. Freezing the raw intercept c    |
+//| instead would silently move the whole channel the first time MT5  |
+//| loaded more history.                                              |
+//|                                                                  |
+//| The statistics computed here are not decoration: they are a drift |
+//| signal. R-Square and Containment measured against a line that is  |
+//| no longer being refitted answer "is the approved line still        |
+//| describing this market?" -- which is the question the Centroid    |
+//| Watchdog's alert asks the administrator to judge.                 |
+//+------------------------------------------------------------------+
+void ProjectFrozenChannel(const int rates_total, const datetime &time[], const double &close_arr[])
+{
+   g_frozen_anchor_bar = -1;
+   g_frozen_anchor_time = 0;
+   g_frozen_bars_since = 0;
+   if(rates_total <= 0) return;
+
+   // Last bar at or before the anchor. Scanning from the right finds it in a few
+   // steps in the normal case, where the anchor is recent.
+   for(int k = rates_total - 1; k >= 0; k--) {
+      if(time[k] <= InpFrozenAnchorTime) { g_frozen_anchor_bar = k; break; }
+   }
+   if(g_frozen_anchor_bar < 0) {
+      // The anchor predates every bar the terminal holds. Projecting from bar 0
+      // would draw a plausible-looking line from the wrong origin, so refuse and
+      // say so instead -- an empty channel is visible, a wrong one is not.
+      static datetime last_warn = 0;
+      if(TimeLocal() - last_warn > 300) {
+         last_warn = TimeLocal();
+         Print("FROZEN MODE: anchor ", TimeToString(InpFrozenAnchorTime),
+               " is older than the oldest loaded bar (", TimeToString(time[0]),
+               "). Not drawing. Load more history or re-anchor.");
+      }
+      return;
+   }
+   g_frozen_anchor_time = time[g_frozen_anchor_bar];
+   g_frozen_bars_since = rates_total - 1 - g_frozen_anchor_bar;
+
+   int drawStartIdx = rates_total - InpEDTVisualLookback;
+   if(drawStartIdx < 0) drawStartIdx = 0;
+
+   for(int i = drawStartIdx; i < rates_total; i++) {
+      double base_val = InpFrozenAnchorPrice
+                        + InpFrozenSlope * (double)(i - g_frozen_anchor_bar);
+      ExtBaseLine[i] = base_val;
+      // Both offsets are SIGNED and therefore ADDED. LOEDT arrives negative, as
+      // the fractal search and the statistic file both express it; subtracting it
+      // would draw the lower band above the baseline.
+      ExtUOEDT[i] = (InpFrozenUOEDTOffset != 0.0) ? base_val + InpFrozenUOEDTOffset : EMPTY_VALUE;
+      ExtLOEDT[i] = (InpFrozenLOEDTOffset != 0.0) ? base_val + InpFrozenLOEDTOffset : EMPTY_VALUE;
+   }
+
+   // --- structural buffers -------------------------------------------------
+   // The dynamic path fills these inside PerformClustering*(); frozen mode
+   // bypasses that, so without this the ACTIVE terminal would push an
+   // all-NULL row into indicator_statistics on every cycle -- a silent
+   // regression of a capability that is already shipped and append-only.
+   int live = rates_total - 1;
+   double live_base = ExtBaseLine[live];
+   ExtTimeframe[live] = PeriodSeconds(_Period);
+   ExtSlope[live]     = InpFrozenSlope;
+   ExtIntercept[live] = live_base;
+   double mean_px = (live_base != 0.0) ? live_base : close_arr[live];
+   double slope_pct_per_bar = (mean_px != 0.0) ? (InpFrozenSlope / mean_px) * 100.0 : 0.0;
+   ExtAngle[live] = MathArctan(slope_pct_per_bar * 100.0) * 180.0 / M_PI;
+
+   g_stat_centroids = 0;            // no clustering ran; 0 is the honest answer
+   g_stat_math_window = InpSSAMathLookback;
+   // g_stat_excluded and g_stat_lambda are deliberately NOT set here. They
+   // describe the exclusion and time-decay configuration of a fit that did not
+   // run, they are declared `= 0` wherever they exist, and three of the seven
+   // variants do not declare them at all -- CherryPick excludes by a string-index
+   // array, MostRecent does not exclude, and the WLS lambda is a BestFit-family
+   // feature. Setting them here would invent state to satisfy a line of code.
+   g_stat_visual_window = InpEDTVisualLookback;
+   g_stat_leftmost_bar = drawStartIdx;
+   g_stat_uoedt_offset = (InpFrozenUOEDTOffset != 0.0) ? InpFrozenUOEDTOffset : EMPTY_VALUE;
+   g_stat_loedt_offset = (InpFrozenLOEDTOffset != 0.0) ? InpFrozenLOEDTOffset : EMPTY_VALUE;
+
+   // --- fit quality of the frozen line over the drawn window ---------------
+   // Same two models and the same formulas as the dynamic path (Model A on SSA
+   // crossings, Model B on closes), evaluated over the span actually drawn so
+   // they are directly comparable with Containment Rate, which is computed from
+   // these same buffers in ExportData().
+   int n_x = 0, n_c = 0;
+   double sum_x = 0, sum_c = 0;
+   for(int i = drawStartIdx; i <= live; i++) {
+      if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) { sum_x += ExtSSACross[i]; n_x++; }
+      sum_c += close_arr[i]; n_c++;
+   }
+
+   double mse_x = 0, r2_x = 0, var_x_ratio = 1.0, skew_x = 0, kurt_x = 0;
+   double mse_c = 0, r2_c = 0, var_c_ratio = 1.0, skew_c = 0, kurt_c = 0;
+
+   if(n_x >= 3 && n_c >= 3) {
+      double mean_x_val = sum_x / n_x;
+      double mean_c_val = sum_c / n_c;
+      double res_x[]; ArrayResize(res_x, n_x);
+      double res_c[]; ArrayResize(res_c, n_c);
+      int ix = 0, ic = 0;
+      double se_x = 0, se_c = 0;
+      for(int i = drawStartIdx; i <= live; i++) {
+         double pred = ExtBaseLine[i];
+         if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) {
+            res_x[ix] = ExtSSACross[i] - pred; se_x += res_x[ix]; ix++;
+         }
+         res_c[ic] = close_arr[i] - pred; se_c += res_c[ic]; ic++;
+      }
+      double me_x = se_x / n_x, me_c = se_c / n_c;
+      double m2x = 0, vx = 0, m3x = 0, m4x = 0, totx = 0;
+      double m2c = 0, vc = 0, m3c = 0, m4c = 0, totc = 0;
+      ix = 0; ic = 0;
+      for(int i = drawStartIdx; i <= live; i++) {
+         if(ExtSSACross[i] != EMPTY_VALUE && ExtSSACross[i] != 0.0) {
+            double e = res_x[ix], d = e - me_x;
+            m2x += MathPow(e, 2); vx += MathPow(d, 2);
+            m3x += MathPow(d, 3); m4x += MathPow(d, 4);
+            totx += MathPow(ExtSSACross[i] - mean_x_val, 2);
+            ix++;
+         }
+         double ec = res_c[ic], dc = ec - me_c;
+         m2c += MathPow(ec, 2); vc += MathPow(dc, 2);
+         m3c += MathPow(dc, 3); m4c += MathPow(dc, 4);
+         totc += MathPow(close_arr[i] - mean_c_val, 2);
+         ic++;
+      }
+      m2x /= n_x; vx /= n_x; m3x /= n_x; m4x /= n_x;
+      mse_x = m2x;
+      if(totx != 0) r2_x = 1.0 - ((m2x * n_x) / totx);
+      if(vx > 0) { skew_x = m3x / MathPow(vx, 1.5); kurt_x = m4x / MathPow(vx, 2.0); }
+
+      m2c /= n_c; vc /= n_c; m3c /= n_c; m4c /= n_c;
+      mse_c = m2c;
+      if(totc != 0) r2_c = 1.0 - ((m2c * n_c) / totc);
+      if(vc > 0) { skew_c = m3c / MathPow(vc, 1.5); kurt_c = m4c / MathPow(vc, 2.0); }
+
+      int hx = n_x / 2;
+      if(hx > 1) {
+         double a1=0,a2=0,v1=0,v2=0;
+         for(int i=0;i<hx;i++) a1 += res_x[i];
+         for(int i=hx;i<n_x;i++) a2 += res_x[i];
+         a1 /= hx; a2 /= (n_x - hx);
+         for(int i=0;i<hx;i++) v1 += MathPow(res_x[i]-a1,2);
+         for(int i=hx;i<n_x;i++) v2 += MathPow(res_x[i]-a2,2);
+         v1 /= (hx - 1); v2 /= (n_x - hx - 1);
+         if(v1 > 0) var_x_ratio = v2 / v1;
+      }
+      int hc = n_c / 2;
+      if(hc > 1) {
+         double b1=0,b2=0,w1=0,w2=0;
+         for(int i=0;i<hc;i++) b1 += res_c[i];
+         for(int i=hc;i<n_c;i++) b2 += res_c[i];
+         b1 /= hc; b2 /= (n_c - hc);
+         for(int i=0;i<hc;i++) w1 += MathPow(res_c[i]-b1,2);
+         for(int i=hc;i<n_c;i++) w2 += MathPow(res_c[i]-b2,2);
+         w1 /= (hc - 1); w2 /= (n_c - hc - 1);
+         if(w1 > 0) var_c_ratio = w2 / w1;
+      }
+   }
+
+   g_stat_obs_window = n_c;
+   g_stat_n_crossings = n_x;
+   g_stat_n_close = n_c;
+
+   ExtRSquare_Cross[live]  = r2_x;   ExtMSE_Cross[live]      = mse_x;
+   ExtVarRatio_Cross[live] = var_x_ratio;
+   ExtSkewness_Cross[live] = skew_x; ExtKurtosis_Cross[live] = kurt_x;
+   ExtRSquare_Close[live]  = r2_c;   ExtMSE_Close[live]      = mse_c;
+   ExtVarRatio_Close[live] = var_c_ratio;
+   ExtSkewness_Close[live] = skew_c; ExtKurtosis_Close[live] = kurt_c;
 }
 
 bool ExportData(bool silent = false)
@@ -1105,6 +1493,9 @@ bool ExportData(bool silent = false)
    if(base_ok && ExtLOEDT[live_idx] != EMPTY_VALUE && ExtLOEDT[live_idx] != 0.0)
       lo_off = ExtLOEDT[live_idx] - ExtBaseLine[live_idx];
 
+   if(uo_off == EMPTY_VALUE && g_stat_uoedt_offset != EMPTY_VALUE) uo_off = g_stat_uoedt_offset;
+   if(lo_off == EMPTY_VALUE && g_stat_loedt_offset != EMPTY_VALUE) lo_off = g_stat_loedt_offset;
+
    int edt_n = 0, edt_in = 0;
    int scan_n = MathMin(g_rates_total, ArraySize(ExtUOEDT));
    for(int i = 0; i < scan_n; i++)
@@ -1122,6 +1513,78 @@ bool ExportData(bool silent = false)
    FileWrite(fh_stat, "Containment Sample (n): " + IntegerToString(edt_n));
    FileWrite(fh_stat, "Containment Count: "      + IntegerToString(edt_in));
    FileWrite(fh_stat, "Containment Rate: "       + (edt_n > 0 ? DoubleToString(100.0 * edt_in / edt_n, 2) : ""));
+   FileWrite(fh_stat, "");
+
+   // ---- CENTROID DETAIL [added 2026-09-18] --------------------------------
+   // The Centroid Watchdog's ground truth (ARCH-SPEC-2026-09-18-V2.29-FROZEN-ALERT
+   // Pillar 2). Written unconditionally so the field set is identical in every
+   // file: on a FROZEN/active terminal the clustering engine is bypassed, and a
+   // count of 0 there is the correct, readable answer -- it lets the watchdog tell
+   // "this terminal is not hunting" apart from "this terminal found nothing".
+   //
+   // Timestamps are UTC, matching the timeseries export, so nothing downstream has
+   // to know about the broker's offset. Newest first.
+   string cd_times = "", cd_prices = "", cd_points = "";
+   for(int d = 0; d < g_cen_detail_n; d++) {
+      string cd_sep = (d < g_cen_detail_n - 1) ? "," : "";
+      cd_times  += IntegerToString((long)(g_cen_detail_time[d] - gmt_offset)) + cd_sep;
+      cd_prices += DoubleToString(g_cen_detail_price[d], _Digits) + cd_sep;
+      cd_points += IntegerToString(g_cen_detail_points[d]) + cd_sep;
+   }
+
+   // ---- FROZEN SNAPSHOT [added 2026-09-18] --------------------------------
+   // What promote_terminal.bat captures to build the incoming ACTIVE terminal's
+   // .set file, and what tells any reader which mode produced this row.
+   //
+   // The anchor is written in BOTH forms on purpose. Everything this indicator
+   // exports is UTC, but InpFrozenAnchorTime is compared against MT5's own
+   // server-time bar array -- so a promote script reading only the UTC form and
+   // writing it into the input would shift the whole channel by the broker
+   // offset, which on this broker is 2-3 hours of bars.
+   //
+   // "Snapshot" values are what is LIVE right now (what to capture). "Frozen"
+   // values are what this terminal was CONFIGURED with (0 in dynamic mode). The
+   // Frozen set is registered as configuration in the collector, so promoting a
+   // terminal mints a new config_hash and indicator_configs records the
+   // promotion permanently and append-only.
+   FileWrite(fh_stat, "[FROZEN_SNAPSHOT]");
+   FileWrite(fh_stat, "Projection Mode: " +
+             (InpProjectionMode == MODE_FROZEN_LINE ? "FROZEN" : "DYNAMIC"));
+   FileWrite(fh_stat, "Server UTC Offset (Sec): " + IntegerToString((long)gmt_offset));
+   FileWrite(fh_stat, "Snapshot Anchor TS (Server): " + IntegerToString((long)g_time[live_idx]));
+   FileWrite(fh_stat, "Snapshot Anchor TS (UTC): " + IntegerToString((long)(g_time[live_idx] - gmt_offset)));
+   FileWrite(fh_stat, "Snapshot Slope (b): " + DoubleToString(ExtSlope[live_idx], 8));
+   FileWrite(fh_stat, "Snapshot Anchor Price: " + DoubleToString(ExtIntercept[live_idx], 5));
+   FileWrite(fh_stat, "Snapshot UOEDT Offset: " + (uo_off == EMPTY_VALUE ? "" : DoubleToString(uo_off, 5)));
+   FileWrite(fh_stat, "Snapshot LOEDT Offset: " + (lo_off == EMPTY_VALUE ? "" : DoubleToString(lo_off, 5)));
+   FileWrite(fh_stat, "Frozen Anchor TS (Server): " + IntegerToString((long)InpFrozenAnchorTime));
+   FileWrite(fh_stat, "Frozen Slope (b): " + DoubleToString(InpFrozenSlope, 8));
+   FileWrite(fh_stat, "Frozen Anchor Price: " + DoubleToString(InpFrozenAnchorPrice, 5));
+   FileWrite(fh_stat, "Frozen UOEDT Offset: " + DoubleToString(InpFrozenUOEDTOffset, 5));
+   FileWrite(fh_stat, "Frozen LOEDT Offset: " + DoubleToString(InpFrozenLOEDTOffset, 5));
+   FileWrite(fh_stat, "Bars Since Anchor: " +
+             (InpProjectionMode == MODE_FROZEN_LINE ? IntegerToString(g_frozen_bars_since) : ""));
+   FileWrite(fh_stat, "");
+
+   FileWrite(fh_stat, "[CENTROIDS_DETAIL]");
+   // The bar these centroids were computed against, and the watchdog's reference
+   // clock. It must count CLOSED BARS, not wall-clock seconds: a stopwatch keeps
+   // running over a weekend when no bar ever closes, so a flickering candidate
+   // would "mature" against a market that was shut. Bar time only advances when a
+   // bar actually forms, which is the thing being measured. It is also the
+   // liveness signal -- a standby whose terminal died stops advancing this.
+   FileWrite(fh_stat, "Live Bar TS (UTC): " + IntegerToString((long)(g_time[live_idx] - gmt_offset)));
+   FileWrite(fh_stat, "Centroid Count: " + IntegerToString(g_cen_detail_total));
+   FileWrite(fh_stat, "Centroid Exported (n): " + IntegerToString(g_cen_detail_n));
+   FileWrite(fh_stat, "Centroid Timestamps (UTC): " + cd_times);
+   FileWrite(fh_stat, "Centroid Prices: " + cd_prices);
+   FileWrite(fh_stat, "Centroid Points: " + cd_points);
+   FileWrite(fh_stat, "Latest Centroid TS (UTC): " +
+             (g_cen_detail_n > 0 ? IntegerToString((long)(g_cen_detail_time[0] - gmt_offset)) : ""));
+   FileWrite(fh_stat, "Latest Centroid Price: " +
+             (g_cen_detail_n > 0 ? DoubleToString(g_cen_detail_price[0], _Digits) : ""));
+   FileWrite(fh_stat, "Latest Centroid Points: " +
+             (g_cen_detail_n > 0 ? IntegerToString(g_cen_detail_points[0]) : ""));
    FileWrite(fh_stat, "");
 
    FileClose(fh_stat);
@@ -1297,8 +1760,18 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
        last_math_time = TimeLocal();
    }
 
-   if(math_update_due) { 
-      PerformClusteringAndEDT(rates_total, time, close); 
+   if(InpProjectionMode == MODE_FROZEN_LINE) {
+      // Frozen projection runs on EVERY call, not only when math_update_due.
+      // OnCalculate blanks [prev_calculated, rates_total) at the top of this
+      // function on every tick, while the clustering path refreshes at most once
+      // a minute. That is tolerable when the line is redrawn wholesale, but here
+      // it would leave the forming bar's baseline visibly empty between updates
+      // and export it as NULL. The projection is a few hundred doubles; the SSA
+      // decomposition above already runs every tick and costs far more.
+      ProjectFrozenChannel(rates_total, time, close);
+      if(math_update_due) ChartRedraw(0);
+   } else if(math_update_due) {
+      PerformClusteringAndEDT(rates_total, time, close);
       ChartRedraw(0);
    }
 

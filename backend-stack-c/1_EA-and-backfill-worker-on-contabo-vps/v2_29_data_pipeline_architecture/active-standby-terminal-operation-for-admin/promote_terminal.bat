@@ -35,6 +35,13 @@ set "LOG_FILE=C:\Scripts\logs\collector.log"
 
 set "DIR_TERMINAL_A=C:\MT5-A\MQL5\Files"
 set "DIR_TERMINAL_B=C:\MT5-B\MQL5\Files"
+
+:: Frozen-baseline preset tooling (ARCH-SPEC-2026-09-18-V2.29-FROZEN-ALERT).
+:: The terminal being promoted must be switched to MODE_FROZEN_LINE BEFORE the
+:: collector is pointed at it -- otherwise it is promoted while still refitting,
+:: which is the autonomous repainting this whole architecture exists to stop.
+set "PRESET_SCRIPT=C:\Scripts\collector\generate_frozen_preset.py"
+set "PRESET_DIR=C:\Scripts\presets"
 :: ----------------------------------------------------------------------------
 
 :MENU
@@ -89,6 +96,9 @@ echo เลือกการทำงาน:
 echo   [1] สลับระบบไปใช้ Terminal A (%DIR_TERMINAL_A%)
 echo   [2] สลับระบบไปใช้ Terminal B (%DIR_TERMINAL_B%)
 echo   [3] ดู Log ล่าสุดของ Collector (View Recent Logs)
+echo   --- Frozen Baseline (ทำก่อนสลับระบบ / do this BEFORE promoting) ---
+echo   [4] สร้าง Preset สำหรับ Freeze เส้น (Generate frozen .set presets)
+echo   [5] ตรวจสอบว่า Terminal อยู่ในโหมด FROZEN แล้วหรือยัง (Verify FROZEN)
 echo   [0] ออกจากโปรแกรม (Exit)
 echo ============================================================================
 if "%CURRENT_ACTIVE%"=="Terminal A" (
@@ -99,7 +109,7 @@ if "%CURRENT_ACTIVE%"=="Terminal A" (
 echo.
 
 set "CHOICE="
-set /p "CHOICE=กรุณาเลือกหมายเลข [0-3]: "
+set /p "CHOICE=กรุณาเลือกหมายเลข [0-5]: "
 
 if "%CHOICE%"=="1" (
     set "TARGET_TERMINAL=Terminal A"
@@ -113,6 +123,12 @@ if "%CHOICE%"=="2" (
 )
 if "%CHOICE%"=="3" (
     goto :VIEW_LOGS
+)
+if "%CHOICE%"=="4" (
+    goto :GEN_PRESETS
+)
+if "%CHOICE%"=="5" (
+    goto :VERIFY_FROZEN
 )
 if "%CHOICE%"=="0" (
     exit /b 0
@@ -173,10 +189,41 @@ if "%FRESH_CHECK%"=="NO_FILES" (
     echo.
 )
 
+:: 3b. Pre-flight: is the target actually in FROZEN mode yet?
+:: Promoting a terminal that is still in MODE_DYNAMIC_AUTOFIT makes it the active
+:: producer WHILE it keeps refitting -- so it goes on rewriting ~3000 bars of
+:: history in place, which is exactly the behaviour the frozen baseline exists to
+:: remove. Nothing about it looks wrong afterwards, so it is checked here.
+set "FROZEN_CHECK=NOT_CHECKED"
+if exist "%PRESET_SCRIPT%" (
+    echo [*] กำลังตรวจสอบว่า %TARGET_TERMINAL% อยู่ในโหมด FROZEN แล้วหรือยัง...
+    "%PYTHON_EXE%" "%PRESET_SCRIPT%" --verify --standby-dir "%TARGET_DIR%" >nul 2>&1
+    if !errorlevel! equ 0 (
+        set "FROZEN_CHECK=FROZEN"
+        echo [+] ตรวจสอบผ่าน: ทุก Indicator รายงานโหมด FROZEN
+    ) else (
+        set "FROZEN_CHECK=NOT_FROZEN"
+        color 0C
+        echo.
+        echo [คำเตือนร้ายแรง] %TARGET_TERMINAL% ยังไม่ได้อยู่ในโหมด FROZEN ทั้งหมด!
+        echo หากสลับตอนนี้ Terminal จะยังคงคำนวณเส้นใหม่และเขียนทับประวัติย้อนหลัง ~3,000 แท่ง
+        echo ให้เลือกเมนู [4] สร้าง Preset แล้วโหลดเข้า Indicator ก่อน จากนั้นเลือก [5] เพื่อตรวจสอบ
+        echo (Target is NOT fully FROZEN. Promoting now keeps the repainting bug alive.)
+        echo.
+        echo รายละเอียด:
+        "%PYTHON_EXE%" "%PRESET_SCRIPT%" --verify --standby-dir "%TARGET_DIR%"
+        echo.
+    )
+) else (
+    echo [หมายเหตุ] ไม่พบ %PRESET_SCRIPT% - ข้ามการตรวจสอบโหมด FROZEN
+    echo (Frozen-mode check skipped: preset script not installed on this VPS.)
+)
+
 echo ----------------------------------------------------------------------------
 echo กฎเหล็กก่อนกดยืนยัน:
 echo 1. คุณได้ตรวจสอบความถูกต้องของ Indicator บนกราฟ %TARGET_TERMINAL% ด้วยสายตาแล้ว
 echo 2. ปล่อยให้ %CURRENT_ACTIVE% รันนิ่งๆ ไว้อย่างเดิม ห้ามปิด เพื่อใช้เป็น Rollback
+echo 3. %TARGET_TERMINAL% ถูกตั้งเป็นโหมด FROZEN แล้ว [ สถานะ: %FROZEN_CHECK% ]
 echo ----------------------------------------------------------------------------
 echo.
 set "CONFIRM="
@@ -232,6 +279,102 @@ echo - ตรวจสอบว่าใน Log บรรทัดบนมี�
 echo - ระบบจะทยอยซิงค์ข้อมูลย้อนหลัง (~3,000 แท่ง) ขึ้นระบบประมาณ 5-6 นาที
 echo - หากพบความผิดปกติ สามารถรันไฟล์นี้เพื่อสลับกลับ (Rollback) ได้ทันที
 echo ============================================================================
+echo.
+pause
+goto :MENU
+
+:: ----------------------------------------------------------------------------
+:GEN_PRESETS
+cls
+color 0B
+echo ============================================================================
+echo        สร้าง PRESET สำหรับ FREEZE เส้น (GENERATE FROZEN PRESETS)
+echo ============================================================================
+echo.
+echo เลือก Terminal ที่ "กำลังจะถูก Promote" (อ่านค่าเส้นที่อนุมัติแล้วจากที่นี่)
+echo   [A] Terminal A (%DIR_TERMINAL_A%)
+echo   [B] Terminal B (%DIR_TERMINAL_B%)
+echo   [X] ยกเลิก
+echo.
+set "SRC="
+set /p "SRC=เลือก [A/B/X]: "
+if /i "%SRC%"=="X" goto :MENU
+if /i "%SRC%"=="A" set "SRC_DIR=%DIR_TERMINAL_A%"
+if /i "%SRC%"=="B" set "SRC_DIR=%DIR_TERMINAL_B%"
+if not defined SRC_DIR (
+    echo [ข้อผิดพลาด] ตัวเลือกไม่ถูกต้อง
+    timeout /t 2 >nul
+    goto :GEN_PRESETS
+)
+
+if not exist "%PRESET_SCRIPT%" (
+    color 0C
+    echo.
+    echo [ข้อผิดพลาด] ไม่พบสคริปต์: "%PRESET_SCRIPT%"
+    echo คัดลอก generate_frozen_preset.py ไปไว้ที่พาธนั้นก่อน
+    echo.
+    pause
+    set "SRC_DIR="
+    goto :MENU
+)
+
+echo.
+"%PYTHON_EXE%" "%PRESET_SCRIPT%" --standby-dir "%SRC_DIR%" --out-dir "%PRESET_DIR%"
+echo.
+echo ============================================================================
+echo [ขั้นตอนถัดไป - ต้องทำด้วยมือใน MetaTrader]
+echo MetaTrader ไม่มี API ให้โปรแกรมภายนอกแก้ค่า Input ของ Indicator ได้
+echo   1. เปิด %SRC_DIR% ^-^> คลิกขวาที่ Indicator แต่ละตัว ^-^> Properties ^-^> Inputs
+echo      ^-^> Load ^-^> เลือกไฟล์ *_FROZEN.set ที่อยู่ใน %PRESET_DIR% ^-^> OK
+echo   2. กลับมาที่เมนูนี้ แล้วเลือก [5] เพื่อยืนยันว่าเปลี่ยนโหมดสำเร็จจริง
+echo   3. จากนั้นจึงค่อยสลับระบบด้วย [1] หรือ [2]
+echo ============================================================================
+echo.
+set "SRC_DIR="
+pause
+goto :MENU
+
+:: ----------------------------------------------------------------------------
+:VERIFY_FROZEN
+cls
+color 0B
+echo ============================================================================
+echo          ตรวจสอบโหมด FROZEN (VERIFY FROZEN PROJECTION MODE)
+echo ============================================================================
+echo.
+echo   [A] Terminal A (%DIR_TERMINAL_A%)
+echo   [B] Terminal B (%DIR_TERMINAL_B%)
+echo   [X] ยกเลิก
+echo.
+set "VSRC="
+set /p "VSRC=เลือก [A/B/X]: "
+if /i "%VSRC%"=="X" goto :MENU
+if /i "%VSRC%"=="A" set "VDIR=%DIR_TERMINAL_A%"
+if /i "%VSRC%"=="B" set "VDIR=%DIR_TERMINAL_B%"
+if not defined VDIR (
+    echo [ข้อผิดพลาด] ตัวเลือกไม่ถูกต้อง
+    timeout /t 2 >nul
+    goto :VERIFY_FROZEN
+)
+
+if not exist "%PRESET_SCRIPT%" (
+    color 0C
+    echo [ข้อผิดพลาด] ไม่พบสคริปต์: "%PRESET_SCRIPT%"
+    pause
+    set "VDIR="
+    goto :MENU
+)
+
+echo.
+"%PYTHON_EXE%" "%PRESET_SCRIPT%" --verify --standby-dir "%VDIR%"
+echo.
+echo ============================================================================
+echo [ความหมาย]
+echo - ALL FROZEN  = ปลอดภัย พร้อมสลับระบบมาที่ Terminal นี้
+echo - PROBLEM     = ยังไม่ได้โหลด Preset หรือ Terminal ไม่ได้รันอยู่
+echo                 ห้ามสลับระบบ เพราะเส้นจะยังถูกคำนวณใหม่และเขียนทับประวัติ
+echo ============================================================================
+set "VDIR="
 echo.
 pause
 goto :MENU

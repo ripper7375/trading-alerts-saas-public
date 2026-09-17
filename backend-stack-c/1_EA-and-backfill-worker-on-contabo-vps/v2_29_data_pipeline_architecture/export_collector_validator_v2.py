@@ -264,6 +264,19 @@ STAT_CONFIG_LABELS = {
     'Max Line Angle', 'Tolerance Type', 'Tolerance Percent',
     'Tolerance ATR Multiplier', 'EDT Min Touches', 'LOEDT Min Touches',
     'UOEDT Min Touches', 'Extend To Current',
+    # [FROZEN_SNAPSHOT], added 2026-09-18 with the frozen-projection mode.
+    # These five describe how the terminal was SET UP, so they belong here and
+    # not among the measurements -- and that turns the existing config_hash
+    # mechanism into a free, permanent, append-only record of every promotion:
+    # switching a terminal from DYNAMIC to FROZEN, or re-freezing it on a newly
+    # approved line, mints a new hash in indicator_configs the moment it happens.
+    #
+    # The 'Snapshot *' keys in that same block are deliberately NOT listed. They
+    # are the LIVE measured geometry, which drifts every cycle in dynamic mode --
+    # registering them as configuration would mint a new hash on every single
+    # cycle and bury the real signal in noise.
+    'Projection Mode', 'Frozen Anchor TS (Server)', 'Frozen Slope (b)',
+    'Frozen Anchor Price', 'Frozen UOEDT Offset', 'Frozen LOEDT Offset',
 }
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

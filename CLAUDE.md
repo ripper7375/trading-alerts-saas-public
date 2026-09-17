@@ -13,6 +13,139 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-18, phase/session unchanged) — Frozen Baseline (Pillar 1) and the
+> event-driven Centroid Watchdog (Pillar 2) built end to end from
+> `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`. Code complete and
+> verified; NOT deployed and NOT compiled.** Davin supplied the spec and asked for a feasibility
+> and edge-case assessment first, then implementation in its own §6.3 build order. Per
+> `EXECUTOR-PROTOCOL.md` §6. **Full account:**
+> `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/
+frozen-baseline-and-centroid-watchdog-manifest-work-completion.md`; the spec's own new §8 holds
+> the deviation table. This entry is the index.
+> **Both pillars are feasible, but nine of the spec's own claims did not survive contact with the
+> live code**, each resolved in favour of the code per §0. Three would have shipped a broken
+> feature rather than a rough one. **(1) The trigger was inverted.** §5.1.4 reads
+> `centroids[centroid_count-1]` as "latest"; the array is sorted **descending** by `bar_index`
+> (`if(centroids[j].bar_index < centroids[j+1].bar_index) swap`), so that is the **oldest**
+> centroid — as written the watchdog would never fire on a new centroid forming and would instead
+> fire when an ancient one dropped out of the 3000-bar window. **(2) The LOEDT sign was
+> backwards.** Live code sets `g_stat_loedt_offset = min_below_intercept - base_c`, which is
+> **negative**, and `[EDT CHANNEL]` exports that negative number; §3.1/§5.1.3 then subtract it,
+> which draws the lower band **above** the baseline and exports `loedt > base_fl` — read
+> downstream as a support level above price. Confirmed numerically, not by reading. **(3) The
+> debounce did not debounce.** §5.2's code counts wall-clock seconds and **never removes a
+> candidate that vanishes**, so a flickering centroid — the exact thing the feature exists to
+> filter — still confirms after 600s, and a Friday-evening candidate "matures" over a weekend in
+> which no bar closed. Also: `centroids[]` is local to the clustering routine so §5.1.4's snippet
+> cannot see it; frozen mode as specced would push an **all-NULL** `indicator_statistics` row
+> every cycle (those buffers are written only inside the bypassed routine), silently regressing a
+> shipped append-only capability; `OnCalculate` blanks the forming bar every tick so the
+> projection cannot sit behind `math_update_due`; `InpFrozenIntercept` had to become
+> `InpFrozenAnchorPrice` (the price at the anchor, not the regression's `c`, which is the price at
+> bar index 0 and thousands of dollars away); and the watchdog's state had to be persisted,
+> seeded and keyed by `(source, timeframe, ts)` or **every service restart would cry wolf** and a
+> bare timestamp key would collide across 7 sources × 2 timeframes.
+> **One spec item is not a defect but a constraint, and is worth recording:** §5.3 wants the
+> promote script to switch the terminal into frozen mode. **MetaTrader exposes no supported way
+> for an outside process to change a running indicator's inputs.** Automating the claim would be
+> the worst outcome available here — the script reports success, the admin believes the terminal
+> is frozen, and it repaints for weeks. So `generate_frozen_preset.py` writes the `.set` files and
+> `--verify` re-reads the terminal's own exports to prove a human loaded them; `promote_terminal.bat`
+> now refuses to promote quietly to a terminal that is not FROZEN.
+> **Built:** `[CENTROIDS_DETAIL]` + `[FROZEN_SNAPSHOT]` export blocks and `ENUM_PROJECTION_MODE` +
+> `ProjectFrozenChannel()` + an `OnInit` pre-flight across all 7 centroid `.mq5` (applied by
+> anchored script with every anchor asserted unique in every file first — an edit landing in 6 of
+> 7 is worse than none, since the 7th would be silently unwatched); `centroid_watchdog.py` (704
+> lines, read-only, own NSSM service, no DB handle); `generate_frozen_preset.py`;
+> `install_centroid_watchdog_service.bat`; `promote_terminal.bat` menu `[4]`/`[5]` + pre-flight;
+> 6 `Frozen *` labels into `STAT_CONFIG_LABELS` so **a promotion mints a new `config_hash`** and
+> `indicator_configs` becomes a free permanent append-only record of it (the `Snapshot *` keys are
+> deliberately excluded — they drift every cycle and would mint a hash each time).
+> **Three additions beyond the spec, without which the feature is not trustworthy:** centroid-drift
+> matching (§4.3 names "ΔT ≤ 1 bar" but nothing implements it; a centre of mass moves, so treating
+> each reported position as new resets the debounce every poll and **nothing ever confirms**);
+> standby-staleness detection (a dead standby's frozen export is indistinguishable from a quiet
+> market — the same silent class the collector's own stale-export guard exists for); and alert
+> coalescing (7 variants × 2 timeframes = 14 messages for one market event).
+> **⚠ A COMPILE FAILURE MY VERIFICATION DID NOT CATCH, found by Davin in MetaEditor: 5 of the 7
+> did not build.** Recorded because the gap is instructive, not incidental. Every static check I
+> ran passed and every one was beside the point — they verified the **insertion points** (anchors
+> unique, braces balanced, blocks outside the certified routine) and **never asked whether the
+> identifiers the inserted code consumes are declared in the file it landed in.** I wrote
+> `ProjectFrozenChannel()` against the reference file the spec names (`BestFitNonMostRecentA`)
+> and treated the other six as structurally identical. **They are not identifier-uniform:** the
+> visual-lookback input is `InpCFLVisualLookback` in BestFit A/B but **`InpEDTVisualLookback`** in
+> the other 5; `g_stat_excluded` is not declared in CherryPick A/B or MostRecent; `g_stat_lambda`
+> is not declared in CherryPick B, MostRecent or NonRecent A/B. That is exactly why the two
+> BestFit files compiled and the other five did not — **the two that passed are the reference
+> implementation and its sibling.**
+> **Fixed two ways for two reasons:** the lookback input has no common name so it is per-file,
+> resolved by **reading each file's own declaration** rather than hard-coding a map (a map is the
+> same assumption that caused this); and `g_stat_excluded`/`g_stat_lambda` were dropped from **all
+> seven**, including the two that compiled — those variants have no such concept (CherryPick
+> excludes by a string-index array, MostRecent does not exclude, WLS lambda is BestFit-family),
+> both are declared `= 0` where they exist and MT5 re-runs `OnInit` on an input change, so omitting
+> the assignment leaves exactly the value it was setting. Declaring the missing globals was
+> rejected as inventing state to satisfy a line of code. The routine is byte-identical in all 7
+> again (one sha256, normalising only the lookback name).
+> **The lesson became a check, not a note:** new `verify_mq5_frozen_identifiers.py` resolves every
+> identifier the inserted regions reference against what each file declares, and **reproduces
+> MetaEditor's output exactly** — same files, same identifiers, matching counts. ⚠ **Its first
+> draft did not:** a permissive comma-declaration regex swallowed the RHS of `int drawStartIdx =
+rates_total - InpCFLVisualLookback;` and registered all three words as declarations, so the
+> checker silently absolved the one identifier it was written to catch while correctly flagging
+> the other two. **A verifier that agrees with you is worth less than one you have watched fail.**
+> **⚠ Binary state: the 5 failed compiles made MetaEditor DELETE their `.ex5`**, so CherryPick A/B,
+> MostRecent and NonRecent A/B have **no binary at all**; BestFit A/B have one but it predates the
+> fix. **All 7 need compiling.** The 5 were deliberately **not** restored from git — an old binary
+> deploys indicators without frozen mode and looks healthy doing it, whereas a missing one fails
+> loudly.
+> **Verified:** `py_compile` clean ×5; MQL5 static ×3 passes over all 7 (brace/paren balance vs
+> HEAD, decl-before-use, scope, arity, **certified clustering path still reachable and free of
+> every frozen-mode identifier**, plus the new identifier-resolution pass); frozen-projection maths with the formula **extracted from the
+> `.mq5` rather than retyped** — 13/13, including a check that the _rejected_ index-anchored design
+> genuinely fails (it moves the channel **72.60 USD** when 500 bars of history load, so the
+> time-anchor choice is load-bearing, not stylistic); `test_centroid_watchdog.py` **35/35**;
+> **mutation 8/8 killed**, restore byte-exact by sha256 and run unconditionally; watchdog e2e
+> 22/22 (real process, real files, state across process restarts); preset generator 22/22 (all the
+> interesting cases are refusals); `promote_terminal.bat` structural + `cmd` parse; collector
+> compatibility — every staging column and `config_hash` **unchanged** by both new sections.
+> **The one that matters most: a full promotion cycle through the REAL collector and REAL
+> `promote_cycle()` — frozen repaints 0 of 44 historical bars; dynamic repaints 44 of 44, largest
+> move 3.29 USD.** All 6 existing Python suites green, **112 tests, zero regressions**.
+> **Two of my own test expectations were wrong and were corrected rather than worked around:** a
+> "duplicate" alert was the M15 lane confirming on its own 3×-slower bar clock (correct; now
+> asserted explicitly), and a dropout fixture placed a new centroid one bar from a known one,
+> inside the drift-tolerance window — that suppression is deliberate (a known centroid's own
+> centre of mass drifts ~1 bar between polls; without it it re-alerts forever), so the ±1-bar
+> blind spot now has its own test rather than being quietly widened away.
+> **⚠ INERT UNTIL DAVIN ACTS — nothing about production has changed.** `InpProjectionMode`
+> defaults to `MODE_DYNAMIC_AUTOFIT`, the watchdog is not installed, no terminal is switched.
+> **All 7 centroid indicators MUST be (re)compiled in MetaEditor** — 5 have no `.ex5` at all and
+> BestFit A/B's predates the identifier fix. MQL5 cannot be compiled here, so **the fix itself has
+> never been compiled**; MetaEditor is still the first real test. Run
+> `verify_mq5_frozen_identifiers.py` before handing them over. The other 9 indicators are untouched and current.
+> **That staleness hides itself** (same class as the 2026-09-09/11 entries): a terminal on old
+> binaries validates cycles and promotes rows perfectly while both new blocks are simply absent —
+> confirm a fresh `_Statistic.txt` really contains `[FROZEN_SNAPSHOT]` before trusting a green
+> cycle. Full ordered procedure in blueprint §13 item 8 and runbook §8 (EN + TH).
+> **Scope stated rather than implied:** freezing covers the 7 variants' channel fields (~21 of the
+> ~56 drifting columns). `fractal_*`, `best_resistance`, `best_support` and the per-variant
+> `horiz_*_map`/`ssa`/`ema_ssa` still rewrite, and freezing from today does nothing about the
+> ~3000 bars already stored — `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` is now
+> **PARTLY ADDRESSED**, not resolved, and its §4 magnitude experiment has still never been run.
+> **Not committed** — per this file's established log-first-defer-commit pattern.
+> **Artifacts:** in `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/` — `centroid_watchdog.py` (new),
+> `test_centroid_watchdog.py` (new), `install_centroid_watchdog_service.bat` (new),
+> `verify_mq5_frozen_identifiers.py` (new),
+> `frozen-baseline-and-centroid-watchdog-manifest-work-completion.md` (new), all 7
+> `mq5/2EDTCentroidRegression*_v2_29.mq5`, `export_collector_validator_v2.py`,
+> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`, `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md`,
+> `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`, and in
+> `active-standby-terminal-operation-for-admin/` — `generate_frozen_preset.py` (new),
+> `promote_terminal.bat`, `OPERATIONAL_RUNBOOK_EN.md`, `OPERATIONAL_RUNBOOK_TH.md`; plus this file.
+
 > **Ad-hoc session (2026-09-16, same day, phase/session unchanged) — workbench polish: one
 > correct grip per divider, and no crosshair at the drawing toolbar. Code complete, verified,
 > committed and pushed** (`24f67fc9`, plus this docs commit). Davin annotated a live
