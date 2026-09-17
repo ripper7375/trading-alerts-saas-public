@@ -231,3 +231,78 @@ rewrite — `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` now says so explic
 Freezing from today forward also does nothing about the ~3000 bars of history
 already stored; sizing that still needs the magnitude experiment in that
 document's §4, which has never been run.
+
+---
+
+## 6. Appendix: Webhook & Alert Integration Guide (Discord / Telegram / Generic)
+
+The `centroid_watchdog.py` daemon dispatches notifications via HTTP POST using `requests.Session` with automatic retry adapters. The alert formatting is configured in `install_centroid_watchdog_service.bat` (lines 50–53) before installing the NSSM service.
+
+### 6.1 Mode 1: Discord (Recommended — 1-Minute Setup)
+
+Direct integration via Discord's native Incoming Webhooks. Requires no bot tokens or server development.
+
+1. **Create Webhook in Discord:**
+   - In your Discord Server, navigate to the target text channel (e.g., `#trading-alerts` or `#admin-ops`).
+   - Click **Edit Channel (Gear Icon)** → **Integrations** → **Webhooks** → **New Webhook**.
+   - Name the webhook (e.g. `DavinTrade Centroid Watchdog`) and click **Copy Webhook URL**.
+2. **Configure `install_centroid_watchdog_service.bat`:**
+   ```bat
+   set ADMIN_ALERT_WEBHOOK_FORMAT=discord
+   set ADMIN_ALERT_WEBHOOK_URL=https://discord.com/api/webhooks/1234567890/abcdefghijklmnopqrstuvwxyz
+   set ADMIN_ALERT_TELEGRAM_CHAT_ID=
+   ```
+   _(Leave `ADMIN_ALERT_TELEGRAM_CHAT_ID` blank)_
+
+### 6.2 Mode 2: Telegram (Direct Mobile Push Notifications)
+
+Sends notifications directly to an administrator's personal Telegram chat or a private group chat via the Telegram Bot API.
+
+1. **Create Telegram Bot & Obtain Token:**
+   - In Telegram, message [`@BotFather`](https://t.me/BotFather) and send `/newbot`.
+   - Follow prompts to name your bot and choose a username ending in `bot`.
+   - BotFather returns an HTTP API token (e.g., `7123456789:AAFxxx_yyy_zzz`).
+2. **Obtain Telegram Chat ID:**
+   - Start a conversation with your new bot (send `/start`).
+   - Message [`@userinfobot`](https://t.me/userinfobot) or [`@getmyid_bot`](https://t.me/getmyid_bot) to get your numeric User ID (e.g., `123456789`).
+   - _For a group:_ Add the bot to the group, send a message, and obtain the Group Chat ID (e.g., `-1001234567890`).
+3. **Configure `install_centroid_watchdog_service.bat`:**
+   ```bat
+   set ADMIN_ALERT_WEBHOOK_FORMAT=telegram
+   set ADMIN_ALERT_WEBHOOK_URL=https://api.telegram.org/bot7123456789:AAFxxx_yyy_zzz/sendMessage
+   set ADMIN_ALERT_TELEGRAM_CHAT_ID=123456789
+   ```
+
+### 6.3 Mode 3: Generic JSON (Internal APIs / Custom Dashboards)
+
+Emits the full structured JSON payload defined in specification §4.4.
+
+1. **Endpoint Requirement:** An internal HTTP server or webhook receiver accepting `POST` with `Content-Type: application/json`.
+2. **Configure `install_centroid_watchdog_service.bat`:**
+   ```bat
+   set ADMIN_ALERT_WEBHOOK_FORMAT=generic
+   set ADMIN_ALERT_WEBHOOK_URL=https://api.davintrade.com/internal/webhooks/centroid-alert
+   set ADMIN_ALERT_TELEGRAM_CHAT_ID=
+   ```
+
+### 6.4 Notification Message Layout
+
+When triggered, the dispatcher renders an impact summary showing source, timeframe, centroid time/price, cluster size, and the percentage shift in slope and channel width:
+
+```text
+🚨 New Market Centroid Confirmed
+Symbol: XAUUSD
+
+- best_fit_a / M5: centroid at 2026-09-18 03:15 UTC, price 2584.50, 7 pts
+    slope +0.14520 -> +0.02110 (-85.47%)
+    channel width +14.80%
+- best_fit_b / M5: centroid at 2026-09-18 03:15 UTC, price 2584.50, 7 pts
+    slope +0.13800 -> +0.01950 (-85.87%)
+
+Action Required: Inspect Standby Terminal (B). Verify visual fit, then execute promote_terminal.bat.
+```
+
+### 6.5 Failure Safety & Logging Fallback
+
+- All alert payloads are written to `%WATCHDOG_LOG_DIR%\centroid_watchdog.log` **before** dispatching the HTTP POST.
+- Network outages, invalid tokens, or rate limits in Telegram/Discord will be logged as HTTP errors without crashing or blocking the daemon.
