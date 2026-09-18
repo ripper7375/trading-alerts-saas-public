@@ -13,6 +13,113 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-18, same day, phase/session unchanged) — locale/i18n compliance
+> audit and remediation pass, CLOSED SUCCESSFUL, committed and pushed.** Davin asked for a
+> comprehensive audit against `docs/policies/08-locale-i18n-compliance.md` across all
+> un-wired or partially-wired frontend surfaces, since several recently-built pages/components
+> (chiefly the Currency Index PRO stack and the chart drawing toolbar) and the newer
+> zh-TW/fr/ko/ar/th locale work had not gone through that document's own audit procedure.
+> **Since the working tree was clean (no meaningful `git diff` against a base branch), the
+> audit ran against live code directly** — §5's Step 1/3 grep patterns across the whole
+> `app/`/`components/` tree, cross-referenced against `useLocale`/`getServerLanguage`/
+> `getDictionary` call sites — rather than a diff-scoped pass, per the document's own "audit
+> everything before closing a session that adds UI" framing.
+> **Found 18 genuinely non-compliant files, all confirmed by reading each one directly before
+> fixing anything** (several other flagged-by-grep files, e.g. `PriceDisplay.tsx`'s non-USD
+> `toLocaleString`, `currency-index-hero-widget.tsx`'s deliberately-unconverted index value,
+> and every admin-analytics percentage display, were checked and confirmed already correct
+> per §2.C/§4 rather than false-positived into the fix list):
+> **Failure Mode A, zero locale wiring (9 files, the Currency Index PRO cluster)** —
+> `top5-screener-card.tsx`, `dashboard-table-m5.tsx`, `analysis-table-m15.tsx`,
+> `trading-advisory-banner.tsx`, `indicator-settings-modal.tsx`, `chart-control-header.tsx`,
+> `relative-strength-chart.tsx`, `high-impact-news-tooltip.tsx`, and
+> `pro-currency-index-cockpit.tsx` itself — every label, badge, and even the
+> Overbought/Oversold/Extreme titles drawn on the lightweight-charts canvas via
+> `createPriceLine()` were hardcoded English with no `useLocale()` call anywhere in the
+> cluster. Wired all nine through `t()`, using the `labelKey`-map pattern from §2.C for the
+> confluence/zone/crossover/spread enum badges instead of rendering the raw value.
+> **A real, load-bearing bug found while doing this, not left in:** adding `t` to the
+> corridor-price-line effect's own dependency array doubled the price lines on first mount —
+> `t`'s identity changes when `LocaleProvider` reconciles `localStorage` after the initial
+> SSR-preferences render, re-firing the effect a second time before the first batch of lines
+> was ever removed. Caught by the existing `relative-strength-chart.test.tsx` failing, not by
+> inspection; fixed by excluding `t` from that effect's deps with an explanatory comment (the
+> 30s corridor refresh already carries any mid-session language change).
+> **The drawing toolbar (`Toolbar.tsx`)** had the same zero-wiring gap for every button's
+> aria-label/title (Select, the 6 tool names, Edit style, Alerts, Add price alert, the PRO
+> upsell hint, Delete selected). `TOOL_DEFINITIONS[tool].label` in the tool registry
+> (`./tools/index.ts`) was deliberately left English at its source — that module has no
+> locale-hook context and Toolbar is its only rendering consumer (confirmed via search) — with
+> the translation applied at render time via a `DrawingType`-keyed lookup in `Toolbar.tsx`
+> itself.
+> **Two files already called `useLocale()`/`getServerLanguage()` elsewhere but still bypassed
+> the shared formatters for specific figures — the §2.C "never write a local ad-hoc
+> formatCurrency/formatDate" anti-pattern, found in `components/payments/PlanSelector.tsx`
+> (hardcoded `$${threeDayPrice.toFixed(2)}`), `components/auth/register-form.tsx` (a discount
+> price split across two literal `t()` fallback strings with a bare `$` embedded in each), and
+> `components/notifications/notification-list.tsx` (a local `formatDate` shadowing the real
+> one, hardcoded to `toLocaleDateString('en-US', ...)` for the >6-day-old fallback).**
+> **Six admin affiliate pages had the identical local-ad-hoc-formatter gap, at larger scale** —
+> `app/admin/affiliates/page.tsx`,
+> `app/admin/affiliates/reports/{sales-performance,profit-loss,commission-owings,
+code-inventory}/page.tsx`, and `app/admin/settings/affiliate/page.tsx` each defined their own
+> `formatCurrency`/`formatDate` (`` `$${amount.toLocaleString('en-US', ...)}` ``,
+> `toLocaleDateString('en-US', ...)`) despite already having `useLocale()` in scope for every
+> surrounding label. Deleted all 8 local helpers; call sites now use the shared
+> `formatCurrency()`/`formatDate()`/`formatTimestamp()` (the settings page combined the latter
+> two, since its own local formatter included a time-of-day the shared `formatDate()` alone
+> doesn't).
+> **58 new dotted keys, all with literal English fallbacks (so `en-US`/`en-GB` render correctly
+> whether or not the key is added), given curated real translations in the 8
+> actively-maintained dictionaries** (`en-US`, `en-GB`, `fr`, `ko`, `zh`, `zh-TW`, `ar`, `th`) —
+> matching the curated-partial-coverage precedent from the 2026-08-30 UAE/Arabic session; the
+> 9 legacy dictionaries (`de`/`es`/`ja`/`hi`/`vi`/`id`/`tr`/`ur`/`pt`) were left untouched and
+> degrade safely to the English fallback, per §2.C.
+> **Two pre-existing tests broke on the new `useLocale()` calls** (`LESSONS-LEARNED.md` L40) —
+> `trading-advisory-banner.test.tsx` and `__tests__/drawing/toolbar.test.tsx` rendered their
+> components with no `LocaleProvider` ancestor; both fixed with the established
+> render()-wrapper + seeded-`localStorage` pattern. `PlanSelector.test.tsx`'s own price
+> assertions (`/\$29\.00/`, `/\$1\.99/`) were updated to the real GBP-converted output
+> (`formatCurrency()` converts the seeded locale's default GB/GBP preference at its 0.78
+> exchange rate) rather than loosened — a locale-driven format change is a finding to fix, not
+> a regression to route around, per §5 Step 4.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean on every changed file (one
+> pre-existing, unrelated `react-hooks/exhaustive-deps` warning on `register-form.tsx`,
+> confirmed untouched by this session); full `npm run test:ci` **220/220 suites, 2881/2881
+> tests**, run three times across the session (before, immediately after the Toolbar fix, and
+> again after all 5 commits' own pre-commit `eslint --fix`/`prettier --write` hooks ran) —
+> zero regressions each time.
+> **Deliberately left as-is, not silently skipped:** admin-analytics percentage displays
+> (`toFixed(2)%` for deltas/shares/growth rates across `components/admin/analytics/*` and the
+> `app/admin/dashboards/*` pages) — these are not currency and match this repo's own
+> already-audited, consistent convention; re-formatting dozens of already-shipped, tested
+> percentage displays for decimal-separator localization would have been unbounded scope creep
+> beyond the confirmed gaps this pass targeted. `PriceDisplay.tsx`'s non-USD
+> `Intl`-equivalent `toLocaleString('en-US', ...)` formatting is the sanctioned §4 exception
+> (a genuinely non-USD, already-converted dLocal figure) and was left untouched.
+> **Not verified live in a browser** — this was a static audit-and-remediation pass (grep,
+> direct file reads, `tsc`/`eslint`/`jest`), matching the scope Davin asked for; needs his own
+> click-through on `/pro/currency-index`, `/pro/currency-index/compare`'s drawing toolbar, and
+> the 6 admin affiliate report pages in a non-English locale to see the translations render,
+> same "Executor never enters credentials" boundary as every authenticated surface in this
+> file's history.
+> **Committed and pushed in 5 batches, one per logical group, per `EXECUTOR-PROTOCOL.md` §2:**
+> `d0612789` (Currency Index PRO cluster), `6ad8bcff` (payments/auth formatter fixes),
+> `e588282a` (admin affiliate reports), `b8f93db1` (drawing toolbar), `e03685e8` (dictionary
+> translations).
+> **Artifacts:** `components/currency-index-pro/{tables/{top5-screener-card,dashboard-table-m5,
+analysis-table-m15,trading-advisory-banner}.tsx, chart/{indicator-settings-modal,
+chart-control-header,relative-strength-chart,high-impact-news-tooltip}.tsx,
+pro-currency-index-cockpit.tsx}`, `components/charts/drawing/Toolbar.tsx`,
+> `components/payments/PlanSelector.tsx`, `components/auth/register-form.tsx`,
+> `components/notifications/notification-list.tsx`, `app/admin/affiliates/page.tsx`,
+> `app/admin/affiliates/reports/{sales-performance,profit-loss,commission-owings,
+code-inventory}/page.tsx`, `app/admin/settings/affiliate/page.tsx`,
+> `__tests__/components/currency-index-pro/{trading-advisory-banner,
+relative-strength-chart}.test.tsx`, `__tests__/components/payments/PlanSelector.test.tsx`,
+> `__tests__/drawing/toolbar.test.tsx`, `lib/i18n/dictionaries/{en-US,en-GB,fr,ko,zh,zh-TW,ar,
+th}.json`, this file.
+
 > **Ad-hoc session (2026-09-18, phase/session unchanged) — Frozen Baseline (Pillar 1) and the
 > event-driven Centroid Watchdog (Pillar 2) built end to end from
 > `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`. Code complete and
