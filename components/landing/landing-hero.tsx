@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -7,6 +8,17 @@ import { useChartAppearance } from '@/components/providers/appearance-provider';
 import { useLocale } from '@/lib/context/locale-context';
 import { ArrowRight } from 'lucide-react';
 import { CurrencyIndexHeroWidget } from '@/components/market/currency-index-hero-widget';
+import { cn } from '@/lib/utils';
+
+const HERO_SLIDE_INTERVAL_MS = 6000;
+const LIGHT_HERO_IMAGES = [
+  '/mathematic-trading1.png',
+  '/mathematic-trading2.png',
+];
+const DARK_HERO_IMAGES = [
+  '/mathematic-trading1-invert.png',
+  '/mathematic-trading2-invert.png',
+];
 
 /**
  * Session 9-1 deferred the seed-code support-chat widget
@@ -20,10 +32,17 @@ export function LandingHero() {
   const { t } = useLocale();
   const { data: session, status } = useSession();
   const { resolvedTheme } = useChartAppearance();
-  const heroImageSrc =
-    resolvedTheme === 'dark'
-      ? '/mathematic-trading1-invert.png'
-      : '/mathematic-trading1.png';
+  const heroImages =
+    resolvedTheme === 'dark' ? DARK_HERO_IMAGES : LIGHT_HERO_IMAGES;
+  const [heroSlideIndex, setHeroSlideIndex] = useState(0);
+
+  useEffect(() => {
+    setHeroSlideIndex(0);
+    const intervalId = setInterval(() => {
+      setHeroSlideIndex((prev) => (prev + 1) % heroImages.length);
+    }, HERO_SLIDE_INTERVAL_MS);
+    return () => clearInterval(intervalId);
+  }, [heroImages]);
 
   const userTier = (session?.user as { tier?: string } | undefined)?.tier;
   const workbenchHref = userTier === 'PRO' ? '/terminal' : '/free';
@@ -126,17 +145,23 @@ export function LandingHero() {
 
               {/* Main Container Card */}
               <div className="relative rounded-3xl border border-slate-700/80 bg-white p-3 shadow-2xl shadow-black/10 dark:bg-[#0b0e17] dark:shadow-black/50">
-                <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
-                  <Image
-                    src={heroImageSrc}
-                    alt={t(
-                      'DavinTrade Gold Trade Analyst Mascot with XAUUSD Chart Analysis'
-                    )}
-                    width={1950}
-                    height={1430}
-                    priority
-                    className="w-full rounded-2xl object-cover transition-transform duration-500 hover:scale-[1.02]"
-                  />
+                <div className="group relative aspect-[1950/1430] w-full overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+                  {heroImages.map((src, index) => (
+                    <Image
+                      key={src}
+                      src={src}
+                      alt={t(
+                        'DavinTrade Gold Trade Analyst Mascot with XAUUSD Chart Analysis'
+                      )}
+                      fill
+                      priority={index === 0}
+                      sizes="(max-width: 1024px) 100vw, 50vw"
+                      className={cn(
+                        'rounded-2xl object-cover transition-opacity duration-1000 ease-in-out group-hover:scale-[1.02]',
+                        index === heroSlideIndex ? 'opacity-100' : 'opacity-0'
+                      )}
+                    />
+                  ))}
                 </div>
 
                 {/* Floating Bottom Quick Bar */}
