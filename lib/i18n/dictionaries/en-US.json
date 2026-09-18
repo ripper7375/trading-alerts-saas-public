@@ -4216,5 +4216,9 @@
   "charts.drawing.add_price_alert": "Add price alert",
   "charts.drawing.line_alerts_pro_hint": "Line alerts are a PRO feature — upgrade to unlock",
   "charts.drawing.delete_selected": "Delete selected",
-  "charts.drawing.delete_del": "Delete (Del)"
+  "charts.drawing.delete_del": "Delete (Del)",
+  "Academy": "Academy",
+  "DavinTrade Gold Trade Analyst Mascot with XAUUSD Chart Analysis": "DavinTrade Gold Trade Analyst Mascot with XAUUSD Chart Analysis",
+  "Switch to dark mode": "Switch to dark mode",
+  "Switch to light mode": "Switch to light mode"
 }
