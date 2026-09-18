@@ -2062,5 +2062,17 @@
   "Switch to light mode": "라이트 모드로 전환",
   "System Status": "시스템 상태",
   "Trading Insights Blog": "트레이딩 인사이트 블로그",
-  "XAUX vs USDX Comparison chart": "XAUX vs USDX 비교 차트"
+  "XAUX vs USDX Comparison chart": "XAUX vs USDX 비교 차트",
+  "AI Pattern Recognition": "AI 패턴 인식",
+  "Automated scanning for double bottoms, head & shoulders, order blocks, and Liquidity Sweeps in real time across M5 to D1 timeframes.": "M5부터 D1까지 모든 타임프레임에서 더블 바텀, 헤드 앤 숄더, 오더 블록, 유동성 스윕을 실시간으로 자동 스캔합니다.",
+  "Real-time AI": "실시간 AI",
+  "Sub-500ms Breach Alerts": "500ms 이하 돌파 알림",
+  "Set precise price breach and trendline alert triggers evaluated every 500ms on server-side engine with instant push notifications.": "서버 측 엔진에서 500ms마다 평가되는 정밀한 가격 돌파 및 추세선 알림 트리거를 설정하고, 즉시 푸시 알림을 받으세요.",
+  "<500ms Latency": "500ms 미만 지연시간",
+  "Multi-Model Confluence": "멀티 모델 컨플루언스",
+  "Dual AI models cross-examine technical signals and macroeconomic sentiment to produce a 0–100% Confluence Score before you enter.": "두 개의 AI 모델이 기술적 신호와 거시경제 심리를 교차 검증하여 진입 전에 0~100% 컨플루언스 점수를 산출합니다.",
+  "Dual AI Verification": "듀얼 AI 검증",
+  "Risk & Order Calculator": "리스크 및 주문 계산기",
+  "Institutional lot size computation based on account equity, maximum risk % per trade, spread buffer, and precise pip distance.": "계좌 자본금, 거래당 최대 리스크 비율, 스프레드 버퍼, 정확한 핍 거리를 기반으로 기관급 랏 사이즈를 계산합니다.",
+  "1-Click Execution": "원클릭 실행"
 }

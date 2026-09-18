@@ -759,5 +759,17 @@
   "month": "شهر",
   "off your first month!": "على شهرك الأول!",
   "/ forever free": "/ مجاني للأبد",
-  "/ month": "/ شهريًا"
+  "/ month": "/ شهريًا",
+  "AI Pattern Recognition": "التعرف على الأنماط بالذكاء الاصطناعي",
+  "Automated scanning for double bottoms, head & shoulders, order blocks, and Liquidity Sweeps in real time across M5 to D1 timeframes.": "مسح آلي في الوقت الفعلي للقيعان المزدوجة، ونموذج الرأس والكتفين، وكتل الأوامر، وعمليات اكتساح السيولة عبر جميع الأطر الزمنية من M5 إلى D1.",
+  "Real-time AI": "ذكاء اصطناعي فوري",
+  "Sub-500ms Breach Alerts": "تنبيهات اختراق أقل من 500 مللي ثانية",
+  "Set precise price breach and trendline alert triggers evaluated every 500ms on server-side engine with instant push notifications.": "حدد مشغلات دقيقة لتنبيهات اختراق السعر وخط الاتجاه، يتم تقييمها كل 500 مللي ثانية على محرك من جانب الخادم، مع إشعارات فورية.",
+  "<500ms Latency": "زمن استجابة أقل من 500 مللي ثانية",
+  "Multi-Model Confluence": "التقاء متعدد النماذج",
+  "Dual AI models cross-examine technical signals and macroeconomic sentiment to produce a 0–100% Confluence Score before you enter.": "يقوم نموذجان من الذكاء الاصطناعي بالتدقيق المتبادل في الإشارات الفنية والمعنويات الاقتصادية الكلية لإنتاج درجة التقاء من 0 إلى 100% قبل الدخول.",
+  "Dual AI Verification": "تحقق مزدوج بالذكاء الاصطناعي",
+  "Risk & Order Calculator": "حاسبة المخاطر والأوامر",
+  "Institutional lot size computation based on account equity, maximum risk % per trade, spread buffer, and precise pip distance.": "حساب مؤسسي لحجم اللوت بناءً على رأس مال الحساب، والحد الأقصى لنسبة المخاطرة لكل صفقة، وهامش السبريد، والمسافة الدقيقة بالنقاط.",
+  "1-Click Execution": "تنفيذ بنقرة واحدة"
 }

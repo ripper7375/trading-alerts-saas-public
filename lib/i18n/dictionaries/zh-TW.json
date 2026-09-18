@@ -2062,5 +2062,17 @@
   "Switch to light mode": "切換至淺色模式",
   "System Status": "系統狀態",
   "Trading Insights Blog": "交易洞察部落格",
-  "XAUX vs USDX Comparison chart": "XAUX 與 USDX 對比圖表"
+  "XAUX vs USDX Comparison chart": "XAUX 與 USDX 對比圖表",
+  "AI Pattern Recognition": "AI 形態識別",
+  "Automated scanning for double bottoms, head & shoulders, order blocks, and Liquidity Sweeps in real time across M5 to D1 timeframes.": "在 M5 至 D1 全時間週期內，自動即時掃描雙底、頭肩形態、訂單塊和流動性掃蕩。",
+  "Real-time AI": "即時 AI",
+  "Sub-500ms Breach Alerts": "500 毫秒內突破警報",
+  "Set precise price breach and trendline alert triggers evaluated every 500ms on server-side engine with instant push notifications.": "在伺服器端引擎上每 500 毫秒評估一次精確的價格突破和趨勢線警報觸發條件，並即時推播通知。",
+  "<500ms Latency": "延遲低於 500 毫秒",
+  "Multi-Model Confluence": "多模型共振",
+  "Dual AI models cross-examine technical signals and macroeconomic sentiment to produce a 0–100% Confluence Score before you enter.": "雙 AI 模型交叉驗證技術訊號與總體經濟情緒，在您進場前產生 0-100% 的共振評分。",
+  "Dual AI Verification": "雙 AI 驗證",
+  "Risk & Order Calculator": "風險與訂單計算器",
+  "Institutional lot size computation based on account equity, maximum risk % per trade, spread buffer, and precise pip distance.": "根據帳戶淨值、每筆交易最大風險百分比、點差緩衝和精確點數距離，計算機構級手數。",
+  "1-Click Execution": "一鍵執行"
 }

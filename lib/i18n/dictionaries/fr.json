@@ -2062,5 +2062,17 @@
   "Switch to light mode": "Passer en mode clair",
   "System Status": "État du système",
   "Trading Insights Blog": "Blog d'analyses de trading",
-  "XAUX vs USDX Comparison chart": "Graphique de comparaison XAUX vs USDX"
+  "XAUX vs USDX Comparison chart": "Graphique de comparaison XAUX vs USDX",
+  "AI Pattern Recognition": "Reconnaissance de figures par IA",
+  "Automated scanning for double bottoms, head & shoulders, order blocks, and Liquidity Sweeps in real time across M5 to D1 timeframes.": "Analyse automatisée en temps réel des doubles creux, figures tête-épaules, order blocks et Liquidity Sweeps, sur les périodes M5 à D1.",
+  "Real-time AI": "IA en temps réel",
+  "Sub-500ms Breach Alerts": "Alertes de franchissement en moins de 500 ms",
+  "Set precise price breach and trendline alert triggers evaluated every 500ms on server-side engine with instant push notifications.": "Définissez des déclencheurs précis de franchissement de prix et de ligne de tendance, évalués toutes les 500 ms sur un moteur côté serveur, avec notifications push instantanées.",
+  "<500ms Latency": "Latence < 500 ms",
+  "Multi-Model Confluence": "Confluence multi-modèles",
+  "Dual AI models cross-examine technical signals and macroeconomic sentiment to produce a 0–100% Confluence Score before you enter.": "Deux modèles d'IA analysent conjointement les signaux techniques et le sentiment macroéconomique pour produire un score de confluence de 0 à 100 % avant votre entrée.",
+  "Dual AI Verification": "Double vérification par IA",
+  "Risk & Order Calculator": "Calculateur de risque et d'ordre",
+  "Institutional lot size computation based on account equity, maximum risk % per trade, spread buffer, and precise pip distance.": "Calcul institutionnel de la taille de position basé sur l'équité du compte, le risque maximal par transaction, la marge de spread et la distance précise en pips.",
+  "1-Click Execution": "Exécution en un clic"
 }
