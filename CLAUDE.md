@@ -13,6 +13,63 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-18, same day, phase/session unchanged) — public marketing chrome:
+> full translation coverage, CLOSED SUCCESSFUL, committed and pushed (`d9c1efd0`).** Direct
+> follow-on to the same-day locale/i18n audit below — Davin supplied three annotated
+> screenshots of `davintrade.app` in Korean, Japanese, and Thai, showing the top navbar
+> (Features/Pricing/Docs/Blog/Academy/Affiliates/EconNews/More) rendering partly or entirely in
+> English while the hero tagline below it rendered correctly, and asked for the root cause plus
+> an assessment of how widespread the pattern was.
+> **Two distinct root causes, not one.** (1) `marketing-navbar.tsx`'s labels all use the bare-
+> literal-as-key `t()` convention (`t('Features')`, `t('Academy')`, etc., no fallback arg) —
+> `fr`/`ko`/`zh`/`zh-TW` had **zero** of the navbar's 18 keys, matching a gap this file's own
+> 2026-09-04 language-modal entry had already found and explicitly left open ("MarketingNavbar
+> was never in scope for the 18-batch locale audit's public-marketing-chrome batch"). The
+> Korean screenshot is exactly that still-open gap. (2) `th`/`ja`/`de`/`es`/`pt`/`hi`/`vi`/
+> `id`/`tr`/`ur` already had the _older_ nav labels translated, but were missing exactly
+> `Academy`, `EconNews`, and `Language` — because those three items were added to the navbar in
+> _later_ sessions (Academy: 2026-08-31; EconNews + Language: 2026-09-04), after those ten
+> dictionaries had already been populated. Nothing in this repo's locale tooling re-checks an
+> already-"done" dictionary when a new key lands in a component it partially covers, so the gap
+> was silent and structural, not a one-off oversight — the Japanese and Thai screenshots are
+> this second mechanism, confirmed by checking each dictionary's own `Gold Trade` entry (every
+> dictionary that has one maps it to itself, confirming that string is a deliberate brand-style
+> identity mapping, not a translation gap, which ruled out a third hypothesis before it was
+> chased).
+> **Scoped, not assumed, before writing any translation.** Extracted every `t()` key (both the
+> bare-literal and dotted-with-fallback conventions) from the full public marketing surface —
+> navbar, footer, hero, features, pricing card, tier-comparison table, ticker tape, and the
+> theme-toggle button — **109 distinct keys total**, then checked all 17 dictionaries directly
+> rather than trusting the navbar-only hypothesis the screenshots suggested. Found **548 missing
+> entries** in total, `ar` alone missing 85 of 109 — far beyond the navbar Davin had actually
+> screenshotted. Presented the full breakdown and asked Davin to choose remediation scope via
+> `AskUserQuestion` (navbar-only vs. the 8 actively-maintained languages vs. full 17-language
+> coverage); **he chose full coverage, all 17 languages.**
+> **Built:** curated, professional translations for all 548 missing entries across all 17
+> dictionaries, following conventions already established elsewhere in this file's history —
+> `DavinTrade`, ticker symbols (`XAUUSD`/`XAUX`/`USDX`), and `PRO`/`FREE` tier names stay in
+> Latin script; `Gold Trade` stays as an identity mapping everywhere (confirmed brand-style, not
+> translatable copy); `Workbench` genuinely translates/transliterates per-language (confirmed by
+> the pre-existing `AI Workbench` entries in `de`/`es`/`ja`/`th`, e.g. `AIワークベンチ`,
+> `KI-Workbench`). Several Korean, Japanese, and Thai strings were matched verbatim against text
+> already visible in Davin's own screenshots (e.g. Korean `알림 발생 시간`, `다중 모델 감독`,
+> `신호 컨플루언스 비율`; Japanese `会話型定量SaaS`, `機能`, `料金`; Thai's hero tagline) to keep
+> terminology internally consistent with what's already shipped and correct, rather than
+> re-deriving a possibly-different phrasing from scratch.
+> **Verified:** a fresh coverage re-extraction shows **0/109 missing across all 17
+> dictionaries**; `npx tsc --noEmit` clean; full `npm run test:ci` **220/220 suites, 2881/2881
+> tests**, zero regressions (translation-only JSON changes; confirmed no test in the repo asserts
+> an exact dictionary key count, which would have gone stale). JSON validity checked for all 17
+> files directly (`JSON.parse` clean), and every diff confirmed minimal/append-only via
+> `git diff --stat` (no pre-existing key was reordered or altered) before committing.
+> **Not verified live in a browser** — same static-audit scope as the earlier session today;
+> needs Davin's own click-through on `davintrade.app` in Korean/Japanese/Thai (and ideally the
+> other 14 languages) to confirm the navbar, footer, hero, and pricing card all render fully
+> translated now. Translation quality caveat, same as every dictionary this repo has shipped:
+> good-faith professional translations, not reviewed by a native-speaking linguist per language.
+> **Artifacts:** `lib/i18n/dictionaries/{en-US,en-GB,fr,ko,zh,zh-TW,ar,th,de,es,ja,pt,hi,vi,id,
+tr,ur}.json` (548 new entries across all 17), this file.
+
 > **Ad-hoc session (2026-09-18, same day, phase/session unchanged) — locale/i18n compliance
 > audit and remediation pass, CLOSED SUCCESSFUL, committed and pushed.** Davin asked for a
 > comprehensive audit against `docs/policies/08-locale-i18n-compliance.md` across all
