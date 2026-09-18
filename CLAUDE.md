@@ -13,6 +13,51 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-18, same day, phase/session unchanged) — landing-features.tsx
+> translation gap, CLOSED SUCCESSFUL, committed and pushed (`84b72453`).** Direct follow-on to
+> the same-day public-marketing-chrome session below — Davin supplied two more annotated
+> screenshots of `davintrade.app`, this time in Traditional Chinese and Thai, showing the "AI
+> Pattern Recognition"/"Sub-500ms Breach Alerts"/"Multi-Model Confluence"/"Risk & Order
+> Calculator" feature cards still rendering entirely in English on the Chinese page while the
+> identical cards were correctly translated on the Thai page, and asked why the inconsistency
+> exists.
+> **Root cause: a genuine blind spot in the prior session's own extraction tooling, not a
+> content gap.** `components/landing/landing-features.tsx` stores each card's title/description/
+> badge in a `features` array and renders them via `t(item.title)`/`t(item.badge)`/
+> `t(item.description)` — a dynamic property reference, not a literal string passed directly to
+> `t()`. The 2026-09-18 marketing-chrome session's regex-based key extractor only matches
+> literal `t('...')` calls (`docs/policies/08-locale-i18n-compliance.md` §5 Step 2's own script),
+> so even though `landing-features.tsx` was correctly named in that session's file list, the
+> script only ever saw the section's 3 static strings (eyebrow badge, heading, subhead) — it was
+> structurally blind to the 12 keys inside the 4 cards (4 × title/description/badge). Those 12
+> keys were therefore never flagged as missing and never translated for the 5 "actively
+> maintained" newer dictionaries (`fr`/`ko`/`zh`/`zh-TW`/`ar`).
+> **Why Thai rendered correctly while Chinese didn't:** `th.json` already had these exact 12
+> keys from an earlier, unrelated, broader translation pass (Thai is one of the older "legacy"
+> dictionaries with ~2,636 keys, predating this whole session sequence) — a coincidence of
+> earlier coverage, not evidence the 2026-09-18 session actually reached this file's dynamic
+> content.
+> **Confirmed, not assumed, that the blind spot is isolated to this one file:** grepped every
+> other file in the 2026-09-18 session's scope (navbar, footer, hero, pricing card,
+> tier-comparison table, ticker tape) for the same `t(\w+\.\w+)` shape — zero other matches, all
+> of them use only literal `t('...')` calls.
+> **Fixed:** translated the 12 keys (4 cards × title/description/badge) into `fr`/`ko`/`zh`/
+> `zh-TW`/`ar`; `th`/`en-US`/`en-GB` already had them, left untouched. `docs/policies/
+08-locale-i18n-compliance.md` §5 Step 2 already documented this general failure class in
+> principle ("keys referenced via a variable... the regex can't resolve these") — strengthened it
+> with this concrete confirmed instance and a mechanical grep pattern
+> (`t\(\s*[a-zA-Z_]\w*\.[a-zA-Z_]`) so a future audit can catch this shape without relying on
+> remembering to "walk it by hand," plus a new §8 verification-log row.
+> **Verified:** `npx tsc --noEmit` clean; JSON validity checked directly on all 5 edited
+> dictionary files; `git diff --stat` confirmed additive-only (14 insertions/~1 line-ending
+> change per file, from appending to the end of each JSON object). No test suite run needed —
+> pure dictionary-data changes, no source/test file touched.
+> **Not verified live in a browser** — needs Davin's own click-through on `davintrade.app` in
+> Traditional Chinese (and ideally `fr`/`ko`/`zh`/`ar` too) to confirm the 4 cards now render
+> translated.
+> **Artifacts:** `lib/i18n/dictionaries/{fr,ko,zh,zh-TW,ar}.json`, `docs/policies/
+08-locale-i18n-compliance.md` (§5 Step 2 strengthened + §8 log row), this file.
+
 > **Ad-hoc session (2026-09-18, same day, phase/session unchanged) — public marketing chrome:
 > full translation coverage, CLOSED SUCCESSFUL, committed and pushed (`d9c1efd0`).** Direct
 > follow-on to the same-day locale/i18n audit below — Davin supplied three annotated
