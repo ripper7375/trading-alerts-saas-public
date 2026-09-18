@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import type { JSX } from 'react';
 
+import { useLocale } from '@/lib/context/locale-context';
 import { DRAWABLE_TOOLS, TOOL_DEFINITIONS } from './tools';
 import type { DrawingType } from './types';
 
@@ -99,6 +100,21 @@ const TOOL_ICONS: Partial<Record<DrawingType, JSX.Element>> = {
   TEXT: <Type className="h-4 w-4" />,
 };
 
+/**
+ * `TOOL_DEFINITIONS[tool].label` is plain English used by the DrawingEngine's
+ * own registry, not translated -- Toolbar is the only place that renders it
+ * to a viewer (confirmed via search), so the translation lives here rather
+ * than in the tool-registry module, which has no locale-hook context.
+ */
+const TOOL_LABEL_KEY: Partial<Record<DrawingType, string>> = {
+  HLINE: 'charts.drawing.tool_hline',
+  TRENDLINE: 'charts.drawing.tool_trendline',
+  CHANNEL: 'charts.drawing.tool_channel',
+  FIB_RETRACE: 'charts.drawing.tool_fib_retrace',
+  FIB_EXT: 'charts.drawing.tool_fib_ext',
+  TEXT: 'charts.drawing.tool_text',
+};
+
 export function Toolbar({
   chartHeight,
   activeTool,
@@ -112,6 +128,7 @@ export function Toolbar({
   onEditStyle,
   onToggleAlerts,
 }: ToolbarProps): JSX.Element {
+  const { t } = useLocale();
   const buttonBase =
     'flex h-9 w-9 items-center justify-center rounded-md border transition-colors';
   const idle =
@@ -139,8 +156,8 @@ export function Toolbar({
     <>
       <button
         type="button"
-        aria-label="Select / cursor"
-        title="Select (Esc)"
+        aria-label={t('charts.drawing.select_cursor', 'Select / cursor')}
+        title={t('charts.drawing.select_esc', 'Select (Esc)')}
         className={`${buttonBase} ${activeTool === null ? active : idle}`}
         onClick={() => onSelectTool(null)}
       >
@@ -150,12 +167,14 @@ export function Toolbar({
       {DRAWABLE_TOOLS.map((tool) => {
         const def = TOOL_DEFINITIONS[tool];
         if (!def) return null;
+        const labelKey = TOOL_LABEL_KEY[tool];
+        const label = labelKey ? t(labelKey, def.label) : def.label;
         return (
           <button
             key={tool}
             type="button"
-            aria-label={def.label}
-            title={def.label}
+            aria-label={label}
+            title={label}
             className={`${buttonBase} ${activeTool === tool ? active : idle}`}
             onClick={() => onSelectTool(tool)}
           >
@@ -170,8 +189,8 @@ export function Toolbar({
     <>
       <button
         type="button"
-        aria-label="Edit style"
-        title="Edit style"
+        aria-label={t('charts.drawing.edit_style', 'Edit style')}
+        title={t('charts.drawing.edit_style', 'Edit style')}
         disabled={!hasSelection}
         className={`${buttonBase} ${
           hasSelection
@@ -185,8 +204,11 @@ export function Toolbar({
 
       <button
         type="button"
-        aria-label="Toggle alerts panel"
-        title="Alerts"
+        aria-label={t(
+          'charts.drawing.toggle_alerts_panel',
+          'Toggle alerts panel'
+        )}
+        title={t('charts.drawing.alerts', 'Alerts')}
         className={`${buttonBase} ${alertsOpen ? active : idle}`}
         onClick={onToggleAlerts}
       >
@@ -195,11 +217,14 @@ export function Toolbar({
 
       <button
         type="button"
-        aria-label="Add price alert"
+        aria-label={t('charts.drawing.add_price_alert', 'Add price alert')}
         title={
           isPro
-            ? 'Add price alert'
-            : 'Line alerts are a PRO feature — upgrade to unlock'
+            ? t('charts.drawing.add_price_alert', 'Add price alert')
+            : t(
+                'charts.drawing.line_alerts_pro_hint',
+                'Line alerts are a PRO feature — upgrade to unlock'
+              )
         }
         disabled={!canAddAlert || !isPro}
         className={`${buttonBase} relative ${
@@ -219,8 +244,8 @@ export function Toolbar({
 
       <button
         type="button"
-        aria-label="Delete selected"
-        title="Delete (Del)"
+        aria-label={t('charts.drawing.delete_selected', 'Delete selected')}
+        title={t('charts.drawing.delete_del', 'Delete (Del)')}
         disabled={!hasSelection}
         className={`${buttonBase} ${
           hasSelection

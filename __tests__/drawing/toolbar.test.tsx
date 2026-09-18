@@ -1,8 +1,32 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from '@jest/globals';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from '@jest/globals';
 
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 import { Toolbar, toolbarLayout } from '@/components/charts/drawing/Toolbar';
+
+// Toolbar now calls useLocale() -- needs a LocaleProvider ancestor
+// (LESSONS-LEARNED.md L40).
+jest.mock('next/navigation', () => ({ usePathname: () => '/terminal' }));
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
+
+beforeEach(() => {
+  localStorage.setItem(
+    LOCALE_STORAGE_KEY,
+    JSON.stringify({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'America/New_York',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+    })
+  );
+});
 
 /**
  * The drawing toolbar used to be a fixed ~460px column that ran off the bottom
