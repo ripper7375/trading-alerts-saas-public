@@ -69,7 +69,10 @@ entry for the Advisor to consider consolidating or promoting once room exists. A
 compliance session (2026-09-01): no new lesson added (stayed at the cap) -- a recurrence note
 appended to L40 (5th-8th occurrences in one session, same LocaleProvider-in-tests fix pattern,
 plus one new variant: a blanket `global.fetch` mock also answering LocaleProvider's own geo-IP
-call). Full history in
+call). Ad-hoc locale-i18n-compliance audit-and-remediation session (2026-09-18): no new lesson
+added (stayed at the cap) -- a recurrence note appended to L40 (9th-10th occurrences, same fix
+pattern; one variant, a price-format test assertion pinned to the raw USD literal instead of the
+seeded locale's converted output). Full history in
 `LESSONS-ARCHIVE.md`. **At the cap — the next new lesson must consolidate first**
 (same rule Session 9-6 hit at 41; nothing to merge yet, all 40 are still genuinely distinct).
 
@@ -566,6 +569,16 @@ does not exist`, even connecting via the byte-identical `DATABASE_URL` `operatio
   needs its literal expectations updated, not just re-wrapped. Still not promoted to a repo-wide
   `jest.setup.js` default (5 sessions now) — this order's own scope was locale wiring, not test
   infrastructure; flagged again for whichever session next has room to add it.
+- Recurrence (ad-hoc locale-i18n-compliance audit-and-remediation session, 2026-09-18), 9th–10th
+  occurrences: `__tests__/components/currency-index-pro/trading-advisory-banner.test.tsx` and
+  `__tests__/drawing/toolbar.test.tsx` both rendered their component directly with no
+  `LocaleProvider` ancestor and broke the instant those components gained their first `useLocale()`
+  call; same fix both times (seed `LOCALE_STORAGE_KEY`, stub `next/navigation`'s `usePathname`,
+  wrap `render()` in `<LocaleProvider>`). `PlanSelector.test.tsx` needed the further step this
+  lesson's own 5th–8th-occurrence note already documents: its price assertions were pinned to the
+  raw USD literal (`/\$29\.00/`) and had to be updated to the seeded locale's real converted output
+  (`formatCurrency()`'s GBP conversion at the default country's exchange rate), not loosened. Still
+  not promoted to a repo-wide `jest.setup.js` default (6 sessions now).
 
 ### L42 — A local dev environment that doesn't mirror production's service wiring produces real-looking errors that are environment gaps, not app bugs — verify with a curl/log check before touching app code
 
