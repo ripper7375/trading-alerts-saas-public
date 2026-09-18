@@ -157,7 +157,7 @@ export function LandingHero() {
                       priority={index === 0}
                       sizes="(max-width: 1024px) 100vw, 50vw"
                       className={cn(
-                        'rounded-2xl object-cover transition-opacity duration-1000 ease-in-out group-hover:scale-[1.02]',
+                        'rounded-2xl object-cover object-top transition-opacity duration-1000 ease-in-out group-hover:scale-[1.02]',
                         index === heroSlideIndex ? 'opacity-100' : 'opacity-0'
                       )}
                     />
