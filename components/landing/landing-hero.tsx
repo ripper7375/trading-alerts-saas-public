@@ -125,7 +125,7 @@ export function LandingHero() {
               <div className="absolute -inset-1 animate-pulse rounded-3xl bg-gradient-to-r from-amber-500 via-emerald-500 to-cyan-500 opacity-30 blur-xl" />
 
               {/* Main Container Card */}
-              <div className="relative rounded-3xl border border-slate-700/80 bg-white p-3 shadow-2xl shadow-black dark:bg-[#0b0e17]">
+              <div className="relative rounded-3xl border border-slate-700/80 bg-white p-3 shadow-2xl shadow-black/10 dark:bg-[#0b0e17] dark:shadow-black/50">
                 <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
                   <Image
                     src={heroImageSrc}
