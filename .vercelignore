@@ -1,75 +1,86 @@
 # ============================================================================
 # Vercel Deployment Ignore (.vercelignore)
 # Prevents uploading non-frontend services, test suites, docs, and scratch files
+#
+# IMPORTANT: every path below is anchored to the repo root with a leading
+# slash. Without the leading slash, gitignore-style matching applies the
+# pattern at ANY depth — e.g. an unanchored `money-service/` also excludes
+# `lib/money-service/`, the Next.js app's own client module for talking to
+# that service, breaking the build. This bit us once (see git history);
+# keep every root-directory entry below anchored.
 # ============================================================================
 
 # Testing suites & reports
+# (left unanchored: these are generic folder-naming conventions with no
+# real production directory sharing the name, and we want them excluded
+# at every depth, e.g. component-colocated __tests__ folders)
 __tests__/
 __mocks__/
-coverage/
-e2e/
-e2e-testing/
-k6-tests/
-postman/
-test-results/
-playwright-report/
+
+/coverage/
+/e2e/
+/e2e-testing/
+/k6-tests/
+/postman/
+/test-results/
+/playwright-report/
 
 # Documentation & Guidelines
-docs/
-reports/
-operation-manual-for-human/
-shift-left-testing-principles/
-testing-and-ui-development-framework/
-testing-framework-development-before-deployment/
-testing-framework-models/
-ui-frontend-user-journey/
-vercel-and-frontend-ui-skills/
+/docs/
+/reports/
+/operation-manual-for-human/
+/shift-left-testing-principles/
+/testing-and-ui-development-framework/
+/testing-framework-development-before-deployment/
+/testing-framework-models/
+/ui-frontend-user-journey/
+/vercel-and-frontend-ui-skills/
 
 # Scratch & Temporary Folders
-scratch/
-seed-code/
-claude-utilities/
-archive/
-errors/
-frountend-ui-validation-and-fixing/
-prompt-with-testing-framework-to-claude-code/
-sync/
+/scratch/
+/seed-code/
+/claude-utilities/
+/archive/
+/errors/
+/frountend-ui-validation-and-fixing/
+/prompt-with-testing-framework-to-claude-code/
+/sync/
 
 # Backend & External Microservices
-backend-stack-a/
-backend-stack-b/
-backend-stack-c/
-frontend-and-backend-python-stack/
-money-service/
-operation-service/
-operation-service-dist.bak/
-railway-gateway/
-mt5-service/
-mt5-execution-stack/
-mt5-installation/
-mql5-indicators/
-mql5-sqlite-and-json/
-mock-data-from-indicators/
-mobile-app/
-excel-calculation/
-riseworks/
-dlocal-and-potential-countries/
-infra/
+/backend-stack-a/
+/backend-stack-b/
+/backend-stack-c/
+/frontend-and-backend-python-stack/
+/money-service/
+/operation-service/
+/operation-service-dist.bak/
+/railway-gateway/
+/mt5-service/
+/mt5-execution-stack/
+/mt5-installation/
+/mql5-indicators/
+/mql5-sqlite-and-json/
+/mock-data-from-indicators/
+/mobile-app/
+/excel-calculation/
+/riseworks/
+/dlocal-and-potential-countries/
+/infra/
 
 # Historical Feature Stacks & Workflows
-davintrade-*/
-affiliate-marketing-part-17/
-bundle-size-optimization/
-enhancement-all-19-parts/
-Integration-4-py-validation-layers-to-workflow/
-monolith-to-microservice-architecture-uionly-stack-a-b-c/
-monolith-to-modular-monolith-migration/
-oauth/
-part-*/
-sql-injection-identification-and-detection-and-fix/
+/davintrade-*/
+/affiliate-marketing-part-17/
+/bundle-size-optimization/
+/enhancement-all-19-parts/
+/Integration-4-py-validation-layers-to-workflow/
+/monolith-to-microservice-architecture-uionly-stack-a-b-c/
+/monolith-to-modular-monolith-migration/
+/oauth/
+/part-*/
+/sql-injection-identification-and-detection-and-fix/
 
 # Git & Tooling
-.github/
-.husky/
-.agents/
-.claude/
+/.github/
+/.husky/
+/.agents/
+/.claude/
