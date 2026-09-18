@@ -78,7 +78,7 @@ export function LandingFeatures() {
             return (
               <div
                 key={idx}
-                className={`group relative rounded-2xl border border-slate-200 bg-white/80 p-6 backdrop-blur-md transition-all duration-300 dark:border-slate-800 dark:bg-[#0c0f18]/80 ${item.borderColor} ${item.glowColor} shadow-lg shadow-black/60 hover:-translate-y-1`}
+                className={`group relative rounded-2xl border border-slate-200 bg-white/80 p-6 backdrop-blur-md transition-all duration-300 dark:border-slate-800 dark:bg-[#0c0f18]/80 ${item.borderColor} ${item.glowColor} shadow-lg shadow-black/5 hover:-translate-y-1 dark:shadow-black/30`}
               >
                 <div className="mb-4 flex items-center justify-between">
                   <div
