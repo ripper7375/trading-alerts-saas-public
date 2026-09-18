@@ -9,6 +9,7 @@
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/context/locale-context';
 import type { TopTrade } from '../hooks/use-currency-index-screener';
 
 interface Top5ScreenerCardProps {
@@ -16,11 +17,23 @@ interface Top5ScreenerCardProps {
   onViewChart: (pair: string) => void;
 }
 
-const CONFLUENCE_LABEL: Record<string, string> = {
-  DOUBLE_CONFLUENCE: 'Double Confirmed',
-  SINGLE_CONFIRMED: 'Stage B Confirmed',
-  SINGLE_CONFLUENCE: 'Stage A Zone',
-  BASELINE_DIVERGENCE: 'Baseline',
+const CONFLUENCE_LABEL_KEY: Record<string, { key: string; label: string }> = {
+  DOUBLE_CONFLUENCE: {
+    key: 'currency_index_pro.confluence.double',
+    label: 'Double Confirmed',
+  },
+  SINGLE_CONFIRMED: {
+    key: 'currency_index_pro.confluence.single_confirmed',
+    label: 'Stage B Confirmed',
+  },
+  SINGLE_CONFLUENCE: {
+    key: 'currency_index_pro.confluence.single_zone',
+    label: 'Stage A Zone',
+  },
+  BASELINE_DIVERGENCE: {
+    key: 'currency_index_pro.confluence.baseline',
+    label: 'Baseline',
+  },
 };
 
 const CONFLUENCE_BADGE_CLASS: Record<string, string> = {
@@ -42,12 +55,14 @@ export function Top5ScreenerCard({
   trades,
   onViewChart,
 }: Top5ScreenerCardProps): React.JSX.Element | null {
+  const { t } = useLocale();
   if (trades.length === 0) return null;
 
   return (
     <div className="space-y-1 rounded-lg border border-border bg-card p-3">
       <h2 className="mb-2 text-sm font-bold uppercase tracking-tight text-muted-foreground">
-        🏆 Top 5 Highest Potential Trades
+        🏆{' '}
+        {t('currency_index_pro.top5.title', 'Top 5 Highest Potential Trades')}
       </h2>
       {trades.map((trade) => (
         <div
@@ -65,13 +80,17 @@ export function Top5ScreenerCard({
           </div>
           <div className="flex items-center gap-2">
             <span className="font-mono text-xs tabular-nums text-muted-foreground">
-              Spread: {trade.divergenceSpread.toFixed(2)}%
+              {t('currency_index_pro.top5.spread', 'Spread')}:{' '}
+              {trade.divergenceSpread.toFixed(2)}%
             </span>
             <Badge
               variant="outline"
               className={CONFLUENCE_BADGE_CLASS[trade.confluenceLevel]}
             >
-              {CONFLUENCE_LABEL[trade.confluenceLevel] ?? trade.confluenceLevel}
+              {(() => {
+                const cfg = CONFLUENCE_LABEL_KEY[trade.confluenceLevel];
+                return cfg ? t(cfg.key, cfg.label) : trade.confluenceLevel;
+              })()}
             </Badge>
             <Button
               type="button"
@@ -79,7 +98,7 @@ export function Top5ScreenerCard({
               size="sm"
               onClick={() => onViewChart(trade.pair)}
             >
-              🔍 View Chart
+              🔍 {t('currency_index_pro.top5.view_chart', 'View Chart')}
             </Button>
           </div>
         </div>

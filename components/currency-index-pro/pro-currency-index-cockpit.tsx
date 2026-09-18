@@ -17,6 +17,7 @@ import { useEffect, useRef, useState } from 'react';
 import { LineChart, Settings } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/context/locale-context';
 import { CURRENCY_INDEX_COMPARE_PATH } from '@/lib/currency-index-comparison/series';
 import type { CurrencyCode } from '@/lib/currency-index-pro/pairs';
 
@@ -37,6 +38,7 @@ import { useCurrencyIndexPreferences } from './hooks/use-currency-index-preferen
 import { useHiddenCurrencyLines } from './hooks/use-hidden-currency-lines';
 
 export function ProCurrencyIndexCockpit(): React.JSX.Element {
+  const { t } = useLocale();
   const [timeframe, setTimeframeState] = useState<'M5' | 'M15'>('M15');
   const [detailCurrency, setDetailCurrency] = useState<CurrencyCode | null>(
     null
@@ -88,13 +90,18 @@ export function ProCurrencyIndexCockpit(): React.JSX.Element {
   return (
     <div className="w-full space-y-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Currency Index PRO</h1>
+        <h1 className="text-xl font-semibold">
+          {t('currency_index_pro.cockpit.title', 'Currency Index PRO')}
+        </h1>
         <div className="flex flex-wrap items-center gap-2">
           <ProPageNav className="mr-6" />
           <Button asChild variant="outline" size="sm">
             <Link href={CURRENCY_INDEX_COMPARE_PATH}>
               <LineChart className="h-3.5 w-3.5" />
-              Compare indices
+              {t(
+                'currency_index_pro.cockpit.compare_indices',
+                'Compare indices'
+              )}
             </Link>
           </Button>
           <Button
@@ -104,7 +111,7 @@ export function ProCurrencyIndexCockpit(): React.JSX.Element {
             onClick={() => setSettingsOpen(true)}
           >
             <Settings className="h-3.5 w-3.5" />
-            Settings
+            {t('currency_index_pro.cockpit.settings', 'Settings')}
           </Button>
         </div>
       </div>

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
+import { useLocale } from '@/lib/context/locale-context';
 import type { CurrencyIndexPreferences } from '../hooks/use-currency-index-preferences';
 
 interface IndicatorSettingsModalProps {
@@ -42,17 +43,23 @@ export function IndicatorSettingsModal({
   preferences,
   onChange,
 }: IndicatorSettingsModalProps): React.JSX.Element {
+  const { t } = useLocale();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Currency Index Settings</DialogTitle>
+          <DialogTitle>
+            {t('currency_index_pro.settings.title', 'Currency Index Settings')}
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5">
           <div className="space-y-1.5">
             <span className="text-xs font-medium text-muted-foreground">
-              Corridor lookback period
+              {t(
+                'currency_index_pro.settings.lookback_period',
+                'Corridor lookback period'
+              )}
             </span>
             <div className="flex gap-1 rounded-md border border-border p-0.5">
               {LOOKBACK_OPTIONS.map((days) => (
@@ -75,9 +82,14 @@ export function IndicatorSettingsModal({
 
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-medium">Auto zones</div>
+              <div className="text-sm font-medium">
+                {t('currency_index_pro.settings.auto_zones', 'Auto zones')}
+              </div>
               <div className="text-xs text-muted-foreground">
-                Use the system-computed daily corridor
+                {t(
+                  'currency_index_pro.settings.auto_zones_desc',
+                  'Use the system-computed daily corridor'
+                )}
               </div>
             </div>
             <Switch
@@ -91,7 +103,10 @@ export function IndicatorSettingsModal({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-muted-foreground">
-                    Overbought override
+                    {t(
+                      'currency_index_pro.settings.overbought_override',
+                      'Overbought override'
+                    )}
                   </span>
                   <span className="font-mono tabular-nums">
                     +{(preferences.customObPct ?? 0.78).toFixed(2)}%
@@ -110,7 +125,10 @@ export function IndicatorSettingsModal({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-muted-foreground">
-                    Oversold override
+                    {t(
+                      'currency_index_pro.settings.oversold_override',
+                      'Oversold override'
+                    )}
                   </span>
                   <span className="font-mono tabular-nums">
                     {(preferences.customOsPct ?? -0.78).toFixed(2)}%
@@ -132,7 +150,7 @@ export function IndicatorSettingsModal({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-muted-foreground">
-                HRMA period
+                {t('currency_index_pro.settings.hrma_period', 'HRMA period')}
               </span>
               <span className="font-mono tabular-nums">
                 {preferences.hrmaPeriod}
@@ -152,7 +170,7 @@ export function IndicatorSettingsModal({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-xs">
               <span className="font-medium text-muted-foreground">
-                SMMA period
+                {t('currency_index_pro.settings.smma_period', 'SMMA period')}
               </span>
               <span className="font-mono tabular-nums">
                 {preferences.smmaPeriod}

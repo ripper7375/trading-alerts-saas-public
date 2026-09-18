@@ -6,9 +6,33 @@
  * accidentally make it conditional.
  */
 import React from 'react';
-import { render, cleanup, screen } from '@testing-library/react';
+import { render as rtlRender, cleanup, screen } from '@testing-library/react';
 
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 import { TradingAdvisoryBanner } from '@/components/currency-index-pro/tables/trading-advisory-banner';
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/pro/currency-index',
+}));
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
+
+beforeEach(() => {
+  localStorage.setItem(
+    LOCALE_STORAGE_KEY,
+    JSON.stringify({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'America/New_York',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+    })
+  );
+});
 
 afterEach(() => cleanup());
 

@@ -22,6 +22,7 @@
 import type { IChartApi, MouseEventParams, Time } from 'lightweight-charts';
 import { useEffect, useState } from 'react';
 
+import { useLocale } from '@/lib/context/locale-context';
 import type { CurrencyIndexNewsEvent } from '../hooks/use-currency-index-chart';
 
 interface HighImpactNewsTooltipProps {
@@ -44,6 +45,7 @@ export function HighImpactNewsTooltip({
   events,
   toleranceSeconds = 450,
 }: HighImpactNewsTooltipProps): React.JSX.Element | null {
+  const { t } = useLocale();
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   useEffect(() => {
@@ -85,8 +87,14 @@ export function HighImpactNewsTooltip({
       </div>
       <div className="text-muted-foreground">{event.eventName}</div>
       <div className="mt-1 flex justify-between gap-3 font-mono tabular-nums">
-        <span>Forecast: {event.forecastValue ?? '--'}</span>
-        <span>Prev: {event.previousValue ?? '--'}</span>
+        <span>
+          {t('currency_index_pro.news_tooltip.forecast', 'Forecast')}:{' '}
+          {event.forecastValue ?? '--'}
+        </span>
+        <span>
+          {t('currency_index_pro.news_tooltip.previous', 'Prev')}:{' '}
+          {event.previousValue ?? '--'}
+        </span>
       </div>
     </div>
   );

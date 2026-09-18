@@ -11,6 +11,7 @@
  * @module components/currency-index-pro/tables/dashboard-table-m5
  */
 
+import { useLocale } from '@/lib/context/locale-context';
 import type { DashboardRowM5 } from '../hooks/use-currency-index-screener';
 
 interface DashboardTableM5Props {
@@ -26,6 +27,7 @@ function signColor(value: number): string {
 export function DashboardTableM5({
   rows,
 }: DashboardTableM5Props): React.JSX.Element | null {
+  const { t } = useLocale();
   // Absent is the honest rendering of "Lane 4 hasn't pushed today's data
   // yet" -- same rule this app's own containment-rate-strip.tsx follows,
   // rather than a placeholder/broken-looking table.
@@ -36,11 +38,21 @@ export function DashboardTableM5({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b border-border text-xs uppercase tracking-tight text-muted-foreground">
-            <th className="px-3 py-2 text-left font-semibold">Currency</th>
-            <th className="px-3 py-2 text-right font-semibold">Price</th>
-            <th className="px-3 py-2 text-right font-semibold">Change %</th>
-            <th className="px-3 py-2 text-right font-semibold">High %</th>
-            <th className="px-3 py-2 text-right font-semibold">Low %</th>
+            <th className="px-3 py-2 text-left font-semibold">
+              {t('currency_index_pro.table.currency', 'Currency')}
+            </th>
+            <th className="px-3 py-2 text-right font-semibold">
+              {t('currency_index_pro.table.price', 'Price')}
+            </th>
+            <th className="px-3 py-2 text-right font-semibold">
+              {t('currency_index_pro.table.change_pct', 'Change %')}
+            </th>
+            <th className="px-3 py-2 text-right font-semibold">
+              {t('currency_index_pro.table.high_pct', 'High %')}
+            </th>
+            <th className="px-3 py-2 text-right font-semibold">
+              {t('currency_index_pro.table.low_pct', 'Low %')}
+            </th>
           </tr>
         </thead>
         <tbody>

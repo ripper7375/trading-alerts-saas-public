@@ -6,11 +6,21 @@
  * its own recording series so the test can tell the host from the 8 lines.
  */
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render as rtlRender } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from '@jest/globals';
 
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 import type { CurrencyCode } from '@/lib/currency-index-pro/pairs';
 import type { CurrencyIndexChartData } from '@/components/currency-index-pro/hooks/use-currency-index-chart';
+
+jest.mock('next/navigation', () => ({
+  usePathname: () => '/pro/currency-index',
+}));
+
+function render(ui: React.ReactElement) {
+  return rtlRender(ui, { wrapper: LocaleProvider });
+}
 
 interface MockSeries {
   options: Record<string, unknown>;
@@ -112,6 +122,17 @@ const lastVisible = (s: MockSeries) =>
 describe('RelativeStrengthChart', () => {
   beforeEach(() => {
     mockSeries.length = 0;
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'US',
+        language: 'en-US',
+        timezone: 'America/New_York',
+        dateFormat: 'MDY',
+        timeFormat: '12h',
+        currency: 'USD',
+      })
+    );
   });
 
   it('creates a stroke-less host beneath the 8 currency lines, outside autoscale', () => {

@@ -12,6 +12,7 @@
  */
 
 import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/context/locale-context';
 import type { AnalysisRowM15 } from '../hooks/use-currency-index-screener';
 import type { CurrencyCode } from '@/lib/currency-index-pro/pairs';
 
@@ -28,16 +29,32 @@ const ZONE_BADGE_CLASS: Record<string, string> = {
   NEUTRAL: 'border-border bg-muted text-muted-foreground',
 };
 
-const CROSSOVER_LABEL: Record<string, string> = {
-  CONFIRMED_BUY: 'Bullish Reversal',
-  CONFIRMED_SELL: 'Bearish Reversal',
-  NONE: '—',
+const ZONE_LABEL_KEY: Record<string, { key: string; label: string }> = {
+  OVERBOUGHT: {
+    key: 'currency_index_pro.zone.overbought',
+    label: 'Overbought',
+  },
+  OVERSOLD: { key: 'currency_index_pro.zone.oversold', label: 'Oversold' },
+  NEUTRAL: { key: 'currency_index_pro.zone.neutral', label: 'Neutral' },
+};
+
+const CROSSOVER_LABEL_KEY: Record<string, { key: string; label: string }> = {
+  CONFIRMED_BUY: {
+    key: 'currency_index_pro.crossover.bullish',
+    label: 'Bullish Reversal',
+  },
+  CONFIRMED_SELL: {
+    key: 'currency_index_pro.crossover.bearish',
+    label: 'Bearish Reversal',
+  },
+  NONE: { key: 'currency_index_pro.crossover.none', label: '—' },
 };
 
 export function AnalysisTableM15({
   rows,
   onSelectCurrency,
 }: AnalysisTableM15Props): React.JSX.Element | null {
+  const { t } = useLocale();
   if (rows.length === 0) return null;
 
   return (
@@ -45,14 +62,23 @@ export function AnalysisTableM15({
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-muted/40 border-b border-border text-xs uppercase tracking-tight text-muted-foreground">
-            <th className="px-3 py-2 text-left font-semibold">Currency</th>
-            <th className="px-3 py-2 text-left font-semibold">Status</th>
+            <th className="px-3 py-2 text-left font-semibold">
+              {t('currency_index_pro.table.currency', 'Currency')}
+            </th>
+            <th className="px-3 py-2 text-left font-semibold">
+              {t('currency_index_pro.table.status', 'Status')}
+            </th>
             <th className="px-3 py-2 text-right font-semibold">HRMA</th>
             <th className="px-3 py-2 text-right font-semibold">SMMA</th>
             <th className="px-3 py-2 text-left font-semibold">
-              HRMA × SMMA Cross
+              {t(
+                'currency_index_pro.table.hrma_smma_cross',
+                'HRMA × SMMA Cross'
+              )}
             </th>
-            <th className="px-3 py-2 text-left font-semibold">Target Pairs</th>
+            <th className="px-3 py-2 text-left font-semibold">
+              {t('currency_index_pro.table.target_pairs', 'Target Pairs')}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -77,7 +103,10 @@ export function AnalysisTableM15({
                     ZONE_BADGE_CLASS[row.zone] ?? ZONE_BADGE_CLASS['NEUTRAL']
                   }
                 >
-                  {row.zone}
+                  {(() => {
+                    const cfg = ZONE_LABEL_KEY[row.zone];
+                    return cfg ? t(cfg.key, cfg.label) : row.zone;
+                  })()}
                 </Badge>
               </td>
               <td className="px-3 py-2 text-right font-mono tabular-nums">
@@ -95,11 +124,17 @@ export function AnalysisTableM15({
                         : 'font-semibold text-red-600 dark:text-red-400'
                     }
                   >
-                    {CROSSOVER_LABEL[row.crossoverState]}
+                    {t(
+                      CROSSOVER_LABEL_KEY[row.crossoverState]!.key,
+                      CROSSOVER_LABEL_KEY[row.crossoverState]!.label
+                    )}
                   </span>
                 ) : (
                   <span className="text-muted-foreground">
-                    {CROSSOVER_LABEL['NONE']}
+                    {t(
+                      CROSSOVER_LABEL_KEY['NONE']!.key,
+                      CROSSOVER_LABEL_KEY['NONE']!.label
+                    )}
                   </span>
                 )}
               </td>

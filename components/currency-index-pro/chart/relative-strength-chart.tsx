@@ -43,6 +43,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 
 import { useChartAppearance } from '@/components/providers/appearance-provider';
+import { useLocale } from '@/lib/context/locale-context';
 import { EventVerticalLine } from '@/components/charts/drawing/EventVerticalLine';
 import {
   ALL_CURRENCIES,
@@ -130,6 +131,7 @@ export function RelativeStrengthChart({
   const [chartApi, setChartApi] = useState<IChartApi | null>(null);
 
   const { resolvedTheme, gridOpacityDecimal } = useChartAppearance();
+  const { t } = useLocale();
 
   // Create the chart + 8 line series once.
   useEffect(() => {
@@ -304,18 +306,25 @@ export function RelativeStrengthChart({
     if (!effectiveCorridor) return;
     const { strikeZonePct, extremeZonePct } = effectiveCorridor;
 
+    const overboughtTitle = t(
+      'currency_index_pro.zone.overbought',
+      'Overbought'
+    );
+    const oversoldTitle = t('currency_index_pro.zone.oversold', 'Oversold');
+    const extremeTitle = t('currency_index_pro.zone.extreme', 'Extreme');
+
     const specs = [
       {
         price: strikeZonePct,
         color: CORRIDOR_LINE_COLOR,
         style: LineStyle.Dashed,
-        title: 'Overbought',
+        title: overboughtTitle,
       },
       {
         price: -strikeZonePct,
         color: CORRIDOR_LINE_COLOR,
         style: LineStyle.Dashed,
-        title: 'Oversold',
+        title: oversoldTitle,
       },
       // A manual override has no statistical "extreme" tier to show --
       // see this prop's own doc comment on why one is never fabricated.
@@ -325,13 +334,13 @@ export function RelativeStrengthChart({
               price: extremeZonePct,
               color: EXTREME_LINE_COLOR,
               style: LineStyle.Dotted,
-              title: 'Extreme',
+              title: extremeTitle,
             },
             {
               price: -extremeZonePct,
               color: EXTREME_LINE_COLOR,
               style: LineStyle.Dotted,
-              title: 'Extreme',
+              title: extremeTitle,
             },
           ]
         : []),
@@ -347,6 +356,12 @@ export function RelativeStrengthChart({
         title: spec.title,
       })
     );
+    // `t` deliberately excluded: it changes identity on every locale
+    // rehydration (LocaleProvider reconciling stored preferences after
+    // mount), which would tear down and recreate the price lines a second
+    // time on first load. The corridor already redraws on its own 30s
+    // refresh, which is enough to pick up a language switch mid-session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.corridor, corridorOverride]);
 
   // High-impact news vertical markers -- attach the new set before

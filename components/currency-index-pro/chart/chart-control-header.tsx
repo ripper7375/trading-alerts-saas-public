@@ -8,6 +8,7 @@
  */
 
 import { formatCountdown } from '@/lib/market-sessions/sessions';
+import { useLocale } from '@/lib/context/locale-context';
 
 import { useSessionCountdown } from '../hooks/use-session-countdown';
 import type { SpreadDelta } from '../hooks/use-currency-index-screener';
@@ -28,10 +29,22 @@ const SPREAD_BADGE_CLASS: Record<SpreadDelta['status'], string> = {
     'border-red-500/60 bg-red-500/15 text-red-700 dark:text-red-300 animate-pulse',
 };
 
-const SPREAD_BADGE_LABEL: Record<SpreadDelta['status'], string> = {
-  LOW: 'LOW VOLATILITY',
-  ACTIVE: 'ACTIVE DIVERGENCE',
-  EXTREME: 'EXTREME GAP',
+const SPREAD_BADGE_LABEL_KEY: Record<
+  SpreadDelta['status'],
+  { key: string; label: string }
+> = {
+  LOW: {
+    key: 'currency_index_pro.spread.low_volatility',
+    label: 'LOW VOLATILITY',
+  },
+  ACTIVE: {
+    key: 'currency_index_pro.spread.active_divergence',
+    label: 'ACTIVE DIVERGENCE',
+  },
+  EXTREME: {
+    key: 'currency_index_pro.spread.extreme_gap',
+    label: 'EXTREME GAP',
+  },
 };
 
 export function ChartControlHeader({
@@ -40,6 +53,7 @@ export function ChartControlHeader({
   todaySessionOpen,
   spreadDelta,
 }: ChartControlHeaderProps): React.JSX.Element {
+  const { t } = useLocale();
   // Approximation, same as the chart route's own comment: the exact
   // next-rollover instant is only known to the VPS engine's DST-aware
   // logic; +24h is good enough for a countdown display.
@@ -50,7 +64,9 @@ export function ChartControlHeader({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2">
       <div className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground">
-        <span className="uppercase tracking-tight">Reset in</span>
+        <span className="uppercase tracking-tight">
+          {t('currency_index_pro.header.reset_in', 'Reset in')}
+        </span>
         <span className="rounded-md border border-border bg-background px-2 py-0.5 font-mono text-sm tabular-nums text-foreground">
           {secondsRemaining === null
             ? '--:--:--'
@@ -82,8 +98,11 @@ export function ChartControlHeader({
           title={`${spreadDelta.leader.currency} +${spreadDelta.leader.changePct.toFixed(2)}% vs ${spreadDelta.laggard.currency} ${spreadDelta.laggard.changePct.toFixed(2)}%`}
         >
           {spreadDelta.status === 'EXTREME' && '🔥 '}
-          {SPREAD_BADGE_LABEL[spreadDelta.status]}:{' '}
-          {spreadDelta.spreadPct.toFixed(2)}%
+          {t(
+            SPREAD_BADGE_LABEL_KEY[spreadDelta.status].key,
+            SPREAD_BADGE_LABEL_KEY[spreadDelta.status].label
+          )}
+          : {spreadDelta.spreadPct.toFixed(2)}%
         </span>
       )}
     </div>
