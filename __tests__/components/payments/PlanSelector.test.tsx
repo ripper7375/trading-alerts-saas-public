@@ -77,14 +77,19 @@ describe('PlanSelector', () => {
       render(<PlanSelector {...defaultProps} showThreeDayPlan={false} />);
 
       expect(screen.getByText('Monthly')).toBeInTheDocument();
-      expect(screen.getByText(/\$29\.00/)).toBeInTheDocument();
+      // formatCurrency() converts the USD price into the seeded locale's own
+      // currency (GBP, rate 0.78) rather than showing the raw USD figure --
+      // 29.00 * 0.78 = 22.62, matching landing-pricing.tsx's identical
+      // treatment of the same useAffiliateConfig() price.
+      expect(screen.getByText(/£22\.62/)).toBeInTheDocument();
     });
 
     it('should render 3-day plan when showThreeDayPlan is true', () => {
       render(<PlanSelector {...defaultProps} />);
 
       expect(screen.getByText('3-Day Trial')).toBeInTheDocument();
-      expect(screen.getByText(/\$1\.99/)).toBeInTheDocument();
+      // 1.99 * 0.78 = 1.5522, rounded to 2 decimals by Intl.NumberFormat.
+      expect(screen.getByText(/£1\.55/)).toBeInTheDocument();
     });
 
     it('should not render 3-day plan when showThreeDayPlan is false', () => {

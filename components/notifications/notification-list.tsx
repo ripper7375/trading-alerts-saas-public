@@ -73,7 +73,7 @@ type TypeFilter = 'ALERT' | 'SUBSCRIPTION' | 'PAYMENT' | 'SYSTEM' | undefined;
  */
 export function NotificationList(): React.JSX.Element {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, formatDate: formatDateValue } = useLocale();
   const { data: session } = useSession();
   const isPro = session?.user?.tier === 'PRO';
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -461,11 +461,11 @@ export function NotificationList(): React.JSX.Element {
     if (days < 7)
       return `${days} ${t('notifications.days_ago_suffix', 'days ago')}`;
 
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-    });
+    // Respects the viewer's own date-format preference (DMY/MDY/YMD) rather
+    // than a hardcoded en-US short date -- see docs/policies/
+    // 08-locale-i18n-compliance.md §2.C on never writing a local ad-hoc
+    // date formatter.
+    return formatDateValue(date);
   };
 
   return (

@@ -45,7 +45,7 @@ type RegistrationFormData = z.infer<typeof registrationSchema>;
 export default function RegisterForm(): JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
 
   // Get dynamic affiliate config from SystemConfig
   const { discountPercent, regularPrice, calculateDiscountedPrice } =
@@ -463,10 +463,10 @@ export default function RegisterForm(): JSX.Element {
               <p className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                 <Check className="h-3.5 w-3.5 flex-shrink-0" />
                 {t('Valid code! You’ll get')} {discountPercent}%{' '}
-                {t('off PRO ($')}
-                {calculateDiscountedPrice(regularPrice).toFixed(2)}
-                {t('/month instead of $')}
-                {regularPrice.toFixed(2)})
+                {t('auth.register.off_pro', 'off PRO')} (
+                {formatCurrency(calculateDiscountedPrice(regularPrice))}
+                {t('auth.register.instead_of', '/month instead of')}{' '}
+                {formatCurrency(regularPrice)})
               </p>
               <span className="mt-1 inline-block rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-semibold text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300">
                 🎉 {discountPercent}% {t('DISCOUNT APPLIED')}

@@ -46,7 +46,7 @@ export function PlanSelector({
   showThreeDayPlan,
   disabled = false,
 }: PlanSelectorProps): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
   // Get dynamic prices from SystemConfig
   const { regularPrice, threeDayPrice } = useAffiliateConfig();
 
@@ -105,7 +105,7 @@ export function PlanSelector({
                   </span>
                 </div>
                 <div className="text-2xl font-bold text-purple-600">
-                  ${threeDayPrice.toFixed(2)}
+                  {formatCurrency(threeDayPrice)}
                 </div>
               </div>
               {value === 'THREE_DAY' && canUseThreeDayPlan && (
@@ -160,7 +160,7 @@ export function PlanSelector({
                 </span>
               </div>
               <div className="text-2xl font-bold text-blue-600">
-                ${regularPrice.toFixed(2)}
+                {formatCurrency(regularPrice)}
                 <span className="text-sm font-normal text-muted-foreground">
                   /{t('checkout.month', 'month')}
                 </span>
