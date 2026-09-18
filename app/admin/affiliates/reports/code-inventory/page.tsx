@@ -69,7 +69,7 @@ interface CodeInventoryReport {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function CodeInventoryReportPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const [report, setReport] = useState<CodeInventoryReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -174,14 +174,6 @@ export default function CodeInventoryReportPage(): React.ReactElement {
     } finally {
       setIsCancelling(false);
     }
-  };
-
-  const formatDate = (date: string): string => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
   };
 
   return (

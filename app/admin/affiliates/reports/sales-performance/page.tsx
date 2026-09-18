@@ -52,7 +52,7 @@ interface SalesPerformanceReport {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function SalesPerformanceReportPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatCurrency, formatDate } = useLocale();
   const [report, setReport] = useState<SalesPerformanceReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,18 +95,6 @@ export default function SalesPerformanceReportPage(): React.ReactElement {
   useEffect(() => {
     fetchReport();
   }, [fetchReport]);
-
-  const formatCurrency = (amount: number): string => {
-    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const formatDate = (date: string): string => {
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
 
   const getRankBadgeClass = (index: number): string => {
     if (index === 0) return 'bg-yellow-500/10 text-yellow-500';

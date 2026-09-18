@@ -110,7 +110,7 @@ const REPORT_LINKS = [
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function AdminAffiliatesPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -181,16 +181,6 @@ export default function AdminAffiliatesPage(): React.ReactElement {
       default:
         return 'bg-muted text-muted-foreground hover:bg-muted';
     }
-  };
-
-  const formatCurrency = (
-    amount: number | { toNumber?: () => number }
-  ): string => {
-    const value =
-      typeof amount === 'object' && amount.toNumber
-        ? amount.toNumber()
-        : Number(amount);
-    return `$${value.toFixed(2)}`;
   };
 
   return (

@@ -42,7 +42,12 @@ interface AffiliateSettings {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function AdminAffiliateSettingsPage(): React.ReactElement {
-  const { t } = useLocale();
+  const {
+    t,
+    formatCurrency,
+    formatDate: formatDateValue,
+    formatTimestamp,
+  } = useLocale();
   const [settings, setSettings] = useState<AffiliateSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -142,15 +147,8 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
     }
   };
 
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const formatDate = (dateString: string): string =>
+    `${formatDateValue(dateString)} ${formatTimestamp(dateString)}`;
 
   // Calculate example commission
   const exampleNetPrice = basePrice * (1 - discountPercent / 100);
@@ -411,7 +409,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                     {t('admin.affiliates.regular_price', 'Regular Price:')}
                   </span>
                   <span className="font-medium text-foreground">
-                    ${basePrice.toFixed(2)}
+                    {formatCurrency(basePrice)}
                   </span>
                 </div>
                 <div className="flex justify-between text-amber-600 dark:text-amber-400">
@@ -422,7 +420,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                     ).replace('{n}', String(discountPercent))}
                   </span>
                   <span className="font-medium">
-                    -${((basePrice * discountPercent) / 100).toFixed(2)}
+                    -{formatCurrency((basePrice * discountPercent) / 100)}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-border pt-2">
@@ -430,7 +428,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                     {t('admin.affiliates.customer_pays', 'Customer Pays:')}
                   </span>
                   <span className="font-semibold text-foreground">
-                    ${exampleNetPrice.toFixed(2)}
+                    {formatCurrency(exampleNetPrice)}
                   </span>
                 </div>
                 <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
@@ -441,7 +439,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                     ).replace('{n}', String(commissionPercent))}
                   </span>
                   <span className="font-semibold">
-                    ${exampleCommission.toFixed(2)}
+                    {formatCurrency(exampleCommission)}
                   </span>
                 </div>
                 <div className="flex justify-between border-t border-border pt-2 text-blue-500">
@@ -449,7 +447,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                     {t('admin.affiliates.company_revenue', 'Company Revenue:')}
                   </span>
                   <span className="font-semibold">
-                    ${(exampleNetPrice - exampleCommission).toFixed(2)}
+                    {formatCurrency(exampleNetPrice - exampleCommission)}
                   </span>
                 </div>
               </CardContent>
