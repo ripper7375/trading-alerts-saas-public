@@ -386,6 +386,47 @@ Confirmed once wired correctly, `t()`/`getDictionary()` both degrade
 safely (§2.C) — the failure is silent, not a crash, which is exactly why
 it survives so long undetected.
 
+### Failure mode C-2 — a dictionary that was already "done" falls behind a later key added to the same component (CONFIRMED live, 2026-09-18)
+
+A variant of Failure mode C, distinct enough to name separately: this is
+**not** a dictionary with zero coverage for a component — it's a
+dictionary that was correctly, deliberately populated for a component at
+the time that translation pass ran, which then silently regresses the
+moment the component gains **one more key** in a later, unrelated
+session.
+
+Confirmed live on `components/marketing/marketing-navbar.tsx`: the
+2026-09-18 session found `th`/`ja`/`de`/`es`/`pt`/`hi`/`vi`/`id`/`tr`/`ur`
+all had real, correct translations for the navbar's original items
+(`Features`/`Pricing`/`Docs`/`Blog`/`Affiliates`/`More`) — but were
+missing exactly `Academy`, `EconNews`, and `Language`, the three items
+added to that same navbar in later, unrelated sessions (2026-08-31 and
+2026-09-04). Nothing about those later sessions' own verification could
+have caught this: `useLocale()`/`t()` was already correctly wired (§5
+step 1 clean), and the **other 9 dictionaries this repo actively
+maintains** (`en-US`/`en-GB`/`fr`/`ko`/`zh`/`zh-TW`/`ar` at the time, plus
+`th`) either got the new keys added in the same session or degrade
+safely to English — so the gap was invisible from the perspective of
+whichever session added the nav item, and only surfaces when a user on
+one of the _other_ ~9 "legacy" dictionaries loads the page.
+
+**Why this needs its own audit trigger, not just Step 2 as written:**
+Step 2's extraction-and-diff already catches this correctly **if run**
+— the failure isn't in the tooling, it's that nothing prompts a re-audit
+of a component you didn't just author. §1's framing ("read this before
+building or auditing any user-facing surface... re-run its audit
+procedure before closing any session that adds one") reads naturally as
+"session that adds a _new_ page/component," not "session that adds one
+more nav link / footer link / dropdown item to an _existing_, already-
+translated shared component." **The rule needs to cover both:** any
+session that adds a key to a shared marketing/navigation/footer
+component — however small the addition looks — must re-run Step 2
+against that component's full key set across every dictionary, not just
+confirm the new key renders correctly in whichever language the session
+happened to test in. A one-line nav addition is exactly the kind of
+change likely to be verified in English only and shipped without anyone
+thinking of it as "adding UI."
+
 ## 4. The one real gotcha: `formatCurrency()` expects USD
 
 `formatCurrency(amountInUSD: number)` multiplies by the country's
