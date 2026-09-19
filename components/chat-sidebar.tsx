@@ -161,7 +161,7 @@ export function ChatSidebar({
 
   return (
     <aside className="relative z-20 flex h-full w-full select-none flex-col overflow-hidden border-r border-sidebar-border bg-sidebar shadow-2xl">
-      {/* Brand & Tier Selector Dropdown */}
+      {/* Brand & Tier Badge */}
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-sidebar-border bg-sidebar px-3.5">
         {!isCollapsed && (
           <div className="flex min-w-0 flex-col justify-center">
@@ -181,46 +181,17 @@ export function ChatSidebar({
                 </span>
               </Link>
 
-              {/* Tier Switcher Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="ml-1 h-5 border border-sidebar-border px-1.5 font-mono text-[10px] font-bold hover:bg-sidebar-accent"
-                  >
-                    <Badge
-                      className={cn(
-                        'px-1.5 py-0 font-mono text-[9px] font-bold',
-                        currentTier === 'PRO'
-                          ? 'border-amber-500/40 bg-amber-500/20 text-amber-700 dark:text-amber-300'
-                          : 'border-border bg-muted text-muted-foreground'
-                      )}
-                    >
-                      {currentTier === 'PRO' ? t('⚡ PRO') : t('🔒 FREE')}
-                    </Badge>
-                    <ChevronDown className="ml-0.5 h-3 w-3 text-muted-foreground" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-36 border-sidebar-border bg-popover text-xs text-popover-foreground">
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/terminal"
-                      className="flex cursor-pointer items-center justify-between font-bold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
-                    >
-                      <span>{t('⚡ PRO Tier Page')}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/free"
-                      className="flex cursor-pointer items-center justify-between font-bold text-popover-foreground hover:bg-sidebar-accent"
-                    >
-                      <span>{t('🔒 FREE Tier Page')}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              {/* Tier Badge */}
+              <Badge
+                className={cn(
+                  'ml-1 px-1.5 py-0 font-mono text-[9px] font-bold',
+                  currentTier === 'PRO'
+                    ? 'border-amber-500/40 bg-amber-500/20 text-amber-700 dark:text-amber-300'
+                    : 'border-border bg-muted text-muted-foreground'
+                )}
+              >
+                {currentTier === 'PRO' ? t('⚡ PRO') : t('🔒 FREE')}
+              </Badge>
             </div>
           </div>
         )}
