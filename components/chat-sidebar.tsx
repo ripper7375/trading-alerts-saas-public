@@ -396,49 +396,82 @@ export function ChatSidebar({
 
         {/*
           PRO gets a plain anchor so the browser drives the download -- same
-          pattern as the affiliate resource download. FREE is sent to /pricing
-          instead of linking out; the real refusal happens server-side at the
-          route, since client tier here is only an affordance (it defaults to
-          PRO while the session loads).
+          pattern as the affiliate resource download. FREE gets the same
+          locked frosted-glass treatment as the two ProFeatureLinks cards
+          above (components/sidebar/pro-feature-links.tsx), so all three
+          locked cards read as one consistent "what PRO unlocks" affordance
+          instead of PNG Download's own plain outlined/two-line style. The
+          real refusal happens server-side at the route either way.
         */}
-        <Button
-          asChild
-          variant="outline"
-          size="sm"
-          className={cn(
-            'border-[var(--primary)]/30 bg-[var(--primary)]/5 shadow-xs hover:border-[var(--primary)]/60 hover:bg-[var(--primary)]/15 h-auto w-full flex-col justify-center rounded-xl py-2 text-center transition-all',
-            isCollapsed && 'p-2'
-          )}
-        >
-          <Link
-            href={currentTier === 'PRO' ? '/api/chart/download' : '/pricing'}
-            aria-label={
-              currentTier === 'PRO' ? t('PNG Download') : t('Upgrade to PRO')
-            }
-          >
-            {!isCollapsed ? (
-              <div className="flex min-w-0 flex-col items-center">
-                <span className="flex items-center gap-1.5 truncate text-xs font-bold text-[var(--primary)]">
-                  {currentTier === 'PRO' ? (
-                    <Download className="h-3.5 w-3.5 shrink-0" />
-                  ) : (
-                    <Lock className="h-3.5 w-3.5 shrink-0" />
-                  )}
-                  {t('PNG Download')}
-                </span>
-                <span className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">
-                  {currentTier === 'PRO'
-                    ? t('Matplotlib 2-Panel Vision Render')
-                    : t('PRO Subscriber Feature')}
-                </span>
-              </div>
-            ) : currentTier === 'PRO' ? (
-              <Download className="h-4 w-4 shrink-0 text-[var(--primary)]" />
-            ) : (
-              <Lock className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+        {currentTier === 'PRO' ? (
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className={cn(
+              'border-[var(--primary)]/30 bg-[var(--primary)]/5 shadow-xs hover:border-[var(--primary)]/60 hover:bg-[var(--primary)]/15 h-auto w-full flex-col justify-center rounded-xl py-2 text-center transition-all',
+              isCollapsed && 'p-2'
             )}
+          >
+            <Link href="/api/chart/download" aria-label={t('PNG Download')}>
+              {!isCollapsed ? (
+                <div className="flex min-w-0 flex-col items-center">
+                  <span className="flex items-center gap-1.5 truncate text-xs font-bold text-[var(--primary)]">
+                    <Download className="h-3.5 w-3.5 shrink-0" />
+                    {t('PNG Download')}
+                  </span>
+                  <span className="mt-0.5 truncate font-mono text-[9px] text-muted-foreground">
+                    {t('Matplotlib 2-Panel Vision Render')}
+                  </span>
+                </div>
+              ) : (
+                <Download className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+              )}
+            </Link>
+          </Button>
+        ) : isCollapsed ? (
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="h-9 w-full rounded-xl p-0"
+          >
+            <Link
+              href="/pricing"
+              title={`${t('PNG Download')} -- ${t('Upgrade to PRO')}`}
+              aria-label={`${t('PNG Download')} -- ${t('Upgrade to PRO')}`}
+            >
+              <Lock className="h-4 w-4 text-[var(--primary)]" />
+            </Link>
+          </Button>
+        ) : (
+          <Link
+            href="/pricing"
+            aria-label={`${t('PNG Download')} -- ${t('Upgrade to PRO')}`}
+            className="group relative block overflow-hidden rounded-xl border border-sidebar-border shadow-sm"
+          >
+            {/* The real label, visible but frosted -- it shows what PRO unlocks. */}
+            <span
+              aria-hidden="true"
+              className="flex min-h-10 select-none items-center justify-center px-2 py-2 text-center text-xs font-bold text-sidebar-foreground blur-[1.5px]"
+            >
+              <Download className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+              {t('PNG Download')}
+            </span>
+            <span
+              aria-hidden="true"
+              className={cn(
+                'absolute inset-0 flex items-center justify-center gap-1.5 backdrop-blur-[2px] transition-colors',
+                'bg-white/45 group-hover:bg-white/60 dark:bg-slate-950/45 dark:group-hover:bg-slate-950/60'
+              )}
+            >
+              <Lock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <span className="text-[11px] font-extrabold text-amber-700 dark:text-amber-300">
+                {t('Upgrade to PRO')}
+              </span>
+            </span>
           </Link>
-        </Button>
+        )}
       </div>
 
       {/* User Profile Footer */}
