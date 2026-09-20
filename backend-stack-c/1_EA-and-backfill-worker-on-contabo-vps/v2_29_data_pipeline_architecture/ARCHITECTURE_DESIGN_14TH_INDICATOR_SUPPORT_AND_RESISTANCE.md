@@ -423,9 +423,24 @@ COLUMN`, never DROP, RENAME or backfill), derived from `SOURCES` through
   columns **by name**, but it is the only source that does it — so it is now written down
   in `data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt` and pinned
   by a test.
-- **The export is 3001 rows, not 3000.** The loop runs `shift = MathMin(InpExportBars,
-bars-1) ... 0`, inclusive at both ends — 3000 closed bars plus the still-forming bar.
-  Harmless, and consistent with the other producers, which also export shift 0.
+- ~~**The export is 3001 rows, not 3000.**~~ **FIXED 2026-09-20.** The loop ran
+  `shift = MathMin(InpExportBars, bars-1) ... 0`, inclusive at both ends, so a nominal 3000 wrote
+  3001 rows.
+  > **Confirmed against a real capture before touching it**, not reasoned from the source:
+  > `engine-1-5-new/SR_Levels_XAUUSD_M15.txt` carries **3001** data rows against OHLCV's **3000**,
+  > and its oldest timestamp is exactly **one M15 bar** further back. So the extra row was at the
+  > OLD end, not the new one — the description above ("3000 closed bars plus the still-forming
+  > bar") was the wrong explanation of a real off-by-one.
+  >
+  > **Genuinely harmless**, as claimed: `promote_cycle()` merges onto the OHLCV spine, so a bar
+  > the spine does not have is never promoted, and `validate_cycle()` skips any timestamp carried
+  > by fewer than two sources. But an unexplained off-by-one in a lane where a **missing** bar
+  > rejects the entire cycle is worth removing rather than leaving to be rediscovered.
+  >
+  > Now `MathMin(InpExportBars - 1, available_bars - 1)` → exactly `InpExportBars` rows, matching
+  > the OHLCV spine and the seven centroid producers. **Shift 0 stays included** — that is not the
+  > off-by-one: `validate_cycle()`'s completeness check requires every per-bar source to carry the
+  > spine's newest bar, so dropping it would reject every cycle.
 - **Output-filename collision with the predecessor.** `SupportAndResistant_v2_29.mq5` (in
   `mql5-indicators/mlq5-indicator-export/support-resistant-export/`) also defaults to
   `InpExportFileName = "SR_Levels"`. Attached together they would truncate each other's
@@ -436,15 +451,65 @@ bars-1) ... 0`, inclusive at both ends — 3000 closed bars plus the still-formi
   against each bar's own close — so a historical bar carries today's level set. Same class
   of look-ahead as `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` documents for the
   centroid families, and stronger. Fine for a live snapshot; invalid for backtesting.
-- **Two dead code paths in the indicator** (flagged, not fixed — indicator-side, outside
-  this change's scope): `ExportSRData(bool is_backfill)` never reads its parameter, so the
-  "Backfill" button is identical to "Export"; and the early return on unchanged
-  `rates_total` means the intra-bar price-move trigger can never fire.
-- **`sr_*` are written to 2 decimals** while `close` uses `_Digits`. Identical on XAUUSD;
-  not portable to a 5-digit symbol.
+- ~~**Two dead code paths in the indicator**~~ **BOTH FIXED 2026-09-20.**
+
+  > **`ExportSRData(bool is_backfill)` never read its parameter**, so the Backfill button did
+  > exactly what Export did while printing `"Starting backfill export for N historical bars..."`.
+  > The worst kind of dead code: the log asserts a behaviour that does not exist.
+  >
+  > The flag now selects between two genuinely different exports. `false` (auto timer, the
+  > `EXPORT_ALL` broadcast, the manual Export button) is **the pipeline export**, unchanged —
+  > `{Prefix}_{Symbol}_{TF}.txt`, `InpExportBars` rows, refreshes the statistic file. `true`
+  > (Backfill button only) writes the deepest history MT5 has loaded — capped by a new
+  > `InpBackfillBars`, 0 = all — to `{Prefix}_{Symbol}_{TF}_Backfill.txt`, and does **not** touch
+  > the statistic file.
+  >
+  > **Why a separate file rather than deeper history in the pipeline file:** `promote_cycle()`
+  > merges every source onto the OHLCV spine, and OHLCV exports 3000 bars with no backfill button
+  > of its own. Bars older than the spine are dropped on promotion — so deeper history in the
+  > pipeline file would cost staging I/O, be discarded, and be overwritten by the next `:59` auto
+  > export. Deeper history is only meaningful **outside** the pipeline. The collector builds an
+  > exact filename and does not glob, so the suffixed file is invisible to it; pinned by test.
+  >
+  > **Why the statistic file is left alone on backfill:** it is a snapshot of the CURRENT
+  > calibration and, since 2026-09-20, it is **ingested** into `indicator_statistics`. A manual
+  > click rewriting it underneath the collector's read would be a torn read of a live lane, for
+  > no gain.
+  >
+  > **The intra-bar trigger could never fire.** `if (prev_calculated > 0 && rates_total ==
+prev_calculated) return rates_total;` — `rates_total` differs from `prev_calculated` only when
+  > a NEW BAR opens, so this returned on every tick inside a forming bar and the entire body ran
+  > at most once per bar. Three live consequences: `FillBuffers()` never re-slotted `sr_1..sr_8`
+  > as price crossed a level; `LevelAbove`/`LevelBelow` and the point distances (and therefore the
+  > `g_stat_*` fields the statistic file publishes) were a bar stale; and the
+  > `MathAbs(lastClose - close[0]) > Point()` branch below it was unreachable — dead code guarding
+  > dead code.
+  >
+  > The gate now sits where the cost is. **Expensive** (first run / new bar only): the three
+  > `CopyBuffer` calls over up to `InpExportBars` values, and `CalculateLevels()`'s
+  > Freedman-Diaconis clustering. **Cheap** (every tick): re-slotting the already-resolved
+  > `ArrayLevels` against the live close — a linear scan of tens of macro clusters.
+  >
+  > Note this is not merely an optimisation: **re-clustering intra-bar would be wrong.**
+  > `ArrayLevels` is built from `iFractals`, which needs confirmed bars on both sides, so the
+  > forming bar can never be a fractal. The level SET cannot change within a bar; only which
+  > levels sit above and below the live close can, and that is exactly what the cheap path
+  > recomputes. The existing `prevLevelAbove != LevelAbove || prevLevelBelow != LevelBelow`
+  > condition is therefore a genuine crossing detector now, and reports one.
+  >
+  > **File exports keep their bar-close guarantee** — they are driven by `OnTimer()` at
+  > `InpExportSecond` and by the `EXPORT_ALL` broadcast, never from `OnCalculate()`.
+
+- ~~**`sr_*` are written to 2 decimals**~~ **FIXED 2026-09-20.** All price formatting — the eight
+  TSV slots, the eight resolved-level lines in the statistic file, and the on-chart line/tag
+  labels — now goes through one `SRPriceToString()` helper using `_Digits`. Byte-identical output
+  on XAUUSD (`_Digits == 2`); on EURUSD the old code wrote 1.08435 as `1.08`, which is a
+  different price, not a rounded one.
 - **The statistic file uses ASCII hyphens** in its section headers where the other ten
-  producers use an em dash. Moot while `sr_levels` is excluded from statistics capture; it
-  matters whenever that is built.
+  producers use an em dash. ~~Moot while `sr_levels` is excluded from statistics capture~~
+  — `sr_levels` **is** ingested as of 2026-09-20, and this is still moot: `STAT_FIELDS` matches
+  the section as the **prefix** `[SUPPORT-RESISTANCE`, which stops before the hyphen that differs.
+  Verified against the real captured statistic file, not assumed. No change needed.
 
 ### 6.4 Pre-Implementation Safety Checklist for Claude Code
 

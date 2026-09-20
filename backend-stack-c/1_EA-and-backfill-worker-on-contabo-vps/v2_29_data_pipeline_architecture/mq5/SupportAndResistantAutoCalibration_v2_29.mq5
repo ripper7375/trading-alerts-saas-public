@@ -73,6 +73,7 @@ input int    InpExportSecond         = 59;                    // Export trigger 
 input int    InpExportBars           = 3000;                  // Bars to export (matches 3000-bar pipeline depth)
 input bool   InpEnableExportButton   = true;                  // Enable on-chart manual export button
 input bool   InpEnableBackfillButton = true;                  // Enable on-chart backfill button
+input int    InpBackfillBars         = 0;                     // Backfill depth in bars (0 = all loaded history)
 input string IndicatorName           = "MQLTA-SR-Auto-v2_29";  // Object Prefix / Indicator Name
 
 //+------------------------------------------------------------------+
@@ -154,6 +155,25 @@ bool IsValidSRLevel(double value)
 }
 
 //+------------------------------------------------------------------+
+//| Format a price for export                                        |
+//+------------------------------------------------------------------+
+// Every price this indicator emits -- the sr_1..sr_8 slots in the TSV and the
+// resolved-level block of the statistic file -- goes through here, so the
+// precision is decided in exactly one place.
+//
+// This was hardcoded to 2 decimals while `close` on the same row used _Digits.
+// Identical on XAUUSD (_Digits == 2) and therefore invisible, but on a 5-digit
+// FX symbol it silently truncated every level to 2dp -- for EURUSD that rounds
+// 1.08435 to 1.08, which is not a level, it is a different price entirely.
+// An unresolved slot stays an empty string, which the collector stages as NULL;
+// see PRICE_LEVEL_COLUMNS in export_collector_validator_v2.py, which would
+// otherwise read a 0.0 sentinel as a real $0.00 price level.
+string SRPriceToString(double value)
+{
+   return IsValidSRLevel(value) ? DoubleToString(value, _Digits) : "";
+}
+
+//+------------------------------------------------------------------+
 //| Calculate percentile from a sorted array of doubles              |
 //+------------------------------------------------------------------+
 double CalculatePercentile(const double &sorted_array[], double percentile)
@@ -176,7 +196,12 @@ double CalculatePercentile(const double &sorted_array[], double percentile)
 //+------------------------------------------------------------------+
 //| Generate standardized export filename                            |
 //+------------------------------------------------------------------+
-string GenerateFilename(string base_name, string symbol, ENUM_TIMEFRAMES timeframe)
+// `suffix` is appended before the extension. The pipeline export passes "" and
+// keeps the exact `{Prefix}_{Symbol}_{TF}.txt` name the collector globs for;
+// the backfill export passes "_Backfill" so it lands beside it under a name the
+// collector does not match, and therefore cannot disturb a live cycle.
+string GenerateFilename(string base_name, string symbol, ENUM_TIMEFRAMES timeframe,
+                        string suffix = "")
 {
    string clean_symbol = symbol;
    int dot_pos = StringFind(clean_symbol, ".");
@@ -186,7 +211,7 @@ string GenerateFilename(string base_name, string symbol, ENUM_TIMEFRAMES timefra
    string tf_str = EnumToString(timeframe);
    StringReplace(tf_str, "PERIOD_", "");
 
-   return StringFormat("%s_%s_%s.txt", base_name, clean_symbol, tf_str);
+   return StringFormat("%s_%s_%s%s.txt", base_name, clean_symbol, tf_str, suffix);
 }
 
 //+------------------------------------------------------------------+
@@ -306,14 +331,19 @@ void WriteSRStatFile(string clean_symbol, string tf_str)
    FileWriteString(fh, "[SUPPORT-RESISTANCE AUTO-CALIBRATION - RESOLVED LEVELS]\r\n");
    FileWriteString(fh, "Total Macro Clusters: "  + IntegerToString(g_stat_levels_count) + "\r\n");
    FileWriteString(fh, "Pipeline 1:1 Slots: 8 (sr_1..sr_8)\r\n");
-   FileWriteString(fh, "sr_1 (Support 1): "       + (IsValidSRLevel(BufferThree[0]) ? DoubleToString(BufferThree[0], 2) : "NULL") + "\r\n");
-   FileWriteString(fh, "sr_2 (Support 2): "       + (IsValidSRLevel(BufferTwo[0]) ? DoubleToString(BufferTwo[0], 2) : "NULL") + "\r\n");
-   FileWriteString(fh, "sr_3 (Support 3): "       + (IsValidSRLevel(BufferOne[0]) ? DoubleToString(BufferOne[0], 2) : "NULL") + "\r\n");
-   FileWriteString(fh, "sr_4 (Support 4): "       + (IsValidSRLevel(BufferZero[0]) ? DoubleToString(BufferZero[0], 2) : "NULL") + "\r\n");
-   FileWriteString(fh, "sr_5 (Resistance 1): "    + (IsValidSRLevel(BufferFour[0]) ? DoubleToString(BufferFour[0], 2) : "NULL") + "\r\n");
-   FileWriteString(fh, "sr_6 (Resistance 2): "    + (IsValidSRLevel(BufferFive[0]) ? DoubleToString(BufferFive[0], 2) : "NULL") + "\r\n");
-   FileWriteString(fh, "sr_7 (Resistance 3): "    + (IsValidSRLevel(BufferSix[0]) ? DoubleToString(BufferSix[0], 2) : "NULL") + "\r\n");
-   FileWriteString(fh, "sr_8 (Resistance 4): "    + (IsValidSRLevel(BufferSeven[0]) ? DoubleToString(BufferSeven[0], 2) : "NULL") + "\r\n");
+   // "NULL" rather than an empty value, deliberately: this block is a human
+   // audit record, and an unresolved slot is a real and common outcome (in a
+   // real capture sr_8 was populated on only 86 of 501 bars). The collector
+   // does not read these eight lines -- it reads the sr_* columns from the TSV
+   // -- so the spelling here is a readability choice, not a contract.
+   FileWriteString(fh, "sr_1 (Support 1): "       + (IsValidSRLevel(BufferThree[0]) ? SRPriceToString(BufferThree[0]) : "NULL") + "\r\n");
+   FileWriteString(fh, "sr_2 (Support 2): "       + (IsValidSRLevel(BufferTwo[0])   ? SRPriceToString(BufferTwo[0])   : "NULL") + "\r\n");
+   FileWriteString(fh, "sr_3 (Support 3): "       + (IsValidSRLevel(BufferOne[0])   ? SRPriceToString(BufferOne[0])   : "NULL") + "\r\n");
+   FileWriteString(fh, "sr_4 (Support 4): "       + (IsValidSRLevel(BufferZero[0])  ? SRPriceToString(BufferZero[0])  : "NULL") + "\r\n");
+   FileWriteString(fh, "sr_5 (Resistance 1): "    + (IsValidSRLevel(BufferFour[0])  ? SRPriceToString(BufferFour[0])  : "NULL") + "\r\n");
+   FileWriteString(fh, "sr_6 (Resistance 2): "    + (IsValidSRLevel(BufferFive[0])  ? SRPriceToString(BufferFive[0])  : "NULL") + "\r\n");
+   FileWriteString(fh, "sr_7 (Resistance 3): "    + (IsValidSRLevel(BufferSix[0])   ? SRPriceToString(BufferSix[0])   : "NULL") + "\r\n");
+   FileWriteString(fh, "sr_8 (Resistance 4): "    + (IsValidSRLevel(BufferSeven[0]) ? SRPriceToString(BufferSeven[0]) : "NULL") + "\r\n");
    FileWriteString(fh, "Nearest Resistance: "     + (g_stat_nearest_resist > 0 ? DoubleToString(g_stat_nearest_resist, _Digits) : "") + "\r\n");
    FileWriteString(fh, "Nearest Support: "        + (g_stat_nearest_support > 0 ? DoubleToString(g_stat_nearest_support, _Digits) : "") + "\r\n");
    FileWriteString(fh, "Distance to Resistance: " + (g_stat_dist_resist != INT_MAX ? IntegerToString(g_stat_dist_resist) : "") + "\r\n");
@@ -325,6 +355,32 @@ void WriteSRStatFile(string clean_symbol, string tf_str)
 //+------------------------------------------------------------------+
 //| Export Support & Resistance Levels (Stack C Pipeline TSV)        |
 //+------------------------------------------------------------------+
+// `is_backfill` selects between two genuinely different exports. It used to be
+// accepted and never read, which made the on-chart "Backfill" button a
+// relabelled "Export" -- it printed "Starting backfill export for N historical
+// bars..." and then wrote the same file with the same depth.
+//
+//   false (auto timer / EXPORT_ALL broadcast / manual Export button)
+//       THE PIPELINE EXPORT. `{Prefix}_{Symbol}_{TF}.txt`, exactly
+//       InpExportBars rows, and it refreshes the companion statistic file.
+//       This is what the collector globs for every cycle; unchanged.
+//
+//   true (manual Backfill button only)
+//       AN OPERATOR ARTEFACT. The deepest history MT5 has loaded (capped by
+//       InpBackfillBars, 0 = all), written to `{...}_{TF}_Backfill.txt`.
+//
+// Why backfill must NOT write the pipeline file: promote_cycle() merges every
+// source onto the OHLCV spine, and OHLCV exports 3000 bars with no backfill
+// button of its own. Bars older than the spine are therefore dropped on
+// promotion -- so writing deeper history into the pipeline file would cost
+// staging I/O, be discarded, and then be overwritten by the next :59 auto
+// export. Deeper history is only meaningful outside the pipeline, which is why
+// it gets its own filename.
+//
+// The statistic file is likewise not rewritten on backfill: it is a snapshot of
+// the CURRENT calibration, it is now ingested into indicator_statistics, and a
+// manual click landing on the collector's :05 read would be a torn read of a
+// live lane for no gain.
 bool ExportSRData(bool is_backfill = false)
 {
    string symbol = _Symbol;
@@ -338,7 +394,8 @@ bool ExportSRData(bool is_backfill = false)
    string tf_str = EnumToString(timeframe);
    StringReplace(tf_str, "PERIOD_", "");
 
-   string filename = GenerateFilename(InpExportFileName, clean_symbol, timeframe);
+   string filename = GenerateFilename(InpExportFileName, clean_symbol, timeframe,
+                                      is_backfill ? "_Backfill" : "");
 
    ResetLastError();
    int file_handle = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI);
@@ -359,11 +416,36 @@ bool ExportSRData(bool is_backfill = false)
    long _srv_off = (long)TimeTradeServer() - (long)TimeGMT();
    datetime gmt_offset = (datetime)((long)MathRound(_srv_off / 3600.0) * 3600);
 
+   // 3. Export depth.
+   //
+   // `export_limit` is the OLDEST shift written and the loop below is inclusive
+   // at both ends, so the row count is export_limit + 1. It read
+   // MathMin(InpExportBars, available_bars - 1), i.e. 3001 rows for a nominal
+   // 3000 -- one bar deeper than every other producer. Confirmed against a real
+   // capture: SR_Levels_XAUUSD_M15.txt carried 3001 data rows against OHLCV's
+   // 3000, reaching exactly one M15 bar further back.
+   //
+   // That extra row was harmless (promote_cycle() joins on the OHLCV spine, so
+   // a bar the spine does not have is never promoted, and validate_cycle()
+   // skips any timestamp carried by fewer than two sources) but it was also
+   // pure waste, and an unexplained off-by-one in a lane where a missing bar
+   // rejects the whole cycle is worth removing rather than leaving to be
+   // rediscovered. Now exactly InpExportBars rows, matching the OHLCV spine and
+   // the seven centroid producers.
+   //
+   // Shift 0 -- the still-forming bar -- is deliberately INCLUDED. It is not an
+   // off-by-one: validate_cycle()'s completeness check takes the spine's newest
+   // bar and requires every per-bar source to carry it, so dropping shift 0
+   // here would reject every cycle. See HISTORICAL-VALUES-LOOK-AHEAD-BIAS
+   // section 4 for what that newest row therefore is.
    int available_bars = iBars(symbol, timeframe);
-   int export_limit   = MathMin(InpExportBars, available_bars - 1);
+   int requested_bars = is_backfill
+                        ? (InpBackfillBars > 0 ? InpBackfillBars : available_bars)
+                        : InpExportBars;
+   int export_limit   = MathMin(requested_bars - 1, available_bars - 1);
    if(export_limit < 0) export_limit = 0;
 
-   // 3. Export rows from oldest bar down to bar 0 (live bar)
+   // 4. Export rows from oldest bar down to bar 0 (live bar)
    for(int shift = export_limit; shift >= 0; shift--)
    {
       datetime bar_time = iTime(symbol, timeframe, shift);
@@ -408,16 +490,17 @@ bool ExportSRData(bool is_backfill = false)
          }
       }
 
-      // Unresolved levels export as empty string "" -> staged as NULL
-      string support_1_str = (sr_support_1 <= 0.0) ? "" : DoubleToString(sr_support_1, 2);
-      string support_2_str = (sr_support_2 <= 0.0) ? "" : DoubleToString(sr_support_2, 2);
-      string support_3_str = (sr_support_3 <= 0.0) ? "" : DoubleToString(sr_support_3, 2);
-      string support_4_str = (sr_support_4 <= 0.0) ? "" : DoubleToString(sr_support_4, 2);
+      // Unresolved levels export as empty string "" -> staged as NULL.
+      // SRPriceToString() applies both that rule and _Digits precision.
+      string support_1_str = SRPriceToString(sr_support_1);
+      string support_2_str = SRPriceToString(sr_support_2);
+      string support_3_str = SRPriceToString(sr_support_3);
+      string support_4_str = SRPriceToString(sr_support_4);
 
-      string resist_1_str  = (sr_resistance_1 <= 0.0) ? "" : DoubleToString(sr_resistance_1, 2);
-      string resist_2_str  = (sr_resistance_2 <= 0.0) ? "" : DoubleToString(sr_resistance_2, 2);
-      string resist_3_str  = (sr_resistance_3 <= 0.0) ? "" : DoubleToString(sr_resistance_3, 2);
-      string resist_4_str  = (sr_resistance_4 <= 0.0) ? "" : DoubleToString(sr_resistance_4, 2);
+      string resist_1_str  = SRPriceToString(sr_resistance_1);
+      string resist_2_str  = SRPriceToString(sr_resistance_2);
+      string resist_3_str  = SRPriceToString(sr_resistance_3);
+      string resist_4_str  = SRPriceToString(sr_resistance_4);
 
       string data_row = StringFormat("%lld\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\r\n",
                                      unix_ts,
@@ -438,8 +521,18 @@ bool ExportSRData(bool is_backfill = false)
 
    FileClose(file_handle);
 
-   // Write companion audit statistic file
-   WriteSRStatFile(clean_symbol, tf_str);
+   // Write companion audit statistic file. Pipeline exports only -- see the
+   // header comment: the statistic file is the CURRENT calibration snapshot and
+   // is ingested into indicator_statistics, so a backfill click must not
+   // rewrite it underneath a live collector read.
+   if(!is_backfill)
+      WriteSRStatFile(clean_symbol, tf_str);
+
+   // Only the manual backfill reports its depth. The pipeline export runs every
+   // minute on every attached chart and its callers already log success; a
+   // second line per minute per chart is noise in the Experts log.
+   if(is_backfill)
+      Print(StringFormat("Backfill export: %d rows -> %s", export_limit + 1, filename));
 
    return true;
 }
@@ -569,14 +662,14 @@ void DrawLines(double currentClose)
       ObjectSetInteger(0, line_name, OBJPROP_WIDTH, LineThickness);
       ObjectSetInteger(0, line_name, OBJPROP_SELECTABLE, false);
       ObjectSetInteger(0, line_name, OBJPROP_RAY_RIGHT, true);
-      ObjectSetString(0, line_name, OBJPROP_TEXT, StringFormat("[%s] %s", names[k], DoubleToString(lvl, 2)));
+      ObjectSetString(0, line_name, OBJPROP_TEXT, StringFormat("[%s] %s", names[k], DoubleToString(lvl, _Digits)));
       ObjectSetString(0, line_name, OBJPROP_TOOLTIP, StringFormat("Pipeline Slot: %s | Price: %s", names[k], DoubleToString(lvl, _Digits)));
 
       // 2. On-Chart Slot Tag (rendered next to live price candle)
       if(InpShowSlotTags)
       {
          ObjectCreate(0, tag_name, OBJ_TEXT, 0, tag_time, lvl);
-         ObjectSetString(0, tag_name, OBJPROP_TEXT, StringFormat("  %s (%s)", names[k], DoubleToString(lvl, 2)));
+         ObjectSetString(0, tag_name, OBJPROP_TEXT, StringFormat("  %s (%s)", names[k], DoubleToString(lvl, _Digits)));
          ObjectSetString(0, tag_name, OBJPROP_FONT, "Arial Bold");
          ObjectSetInteger(0, tag_name, OBJPROP_FONTSIZE, 9);
          ObjectSetInteger(0, tag_name, OBJPROP_COLOR, col);
@@ -861,11 +954,53 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-   if (prev_calculated > 0 && rates_total == prev_calculated)
-      return rates_total;
-
+   // THE INTRA-BAR GATE.
+   //
+   // This used to open with:
+   //
+   //     if (prev_calculated > 0 && rates_total == prev_calculated)
+   //        return rates_total;
+   //
+   // `rates_total` only differs from `prev_calculated` when a NEW BAR opens, so
+   // that returned on every tick inside a forming bar and the whole body below
+   // ran at most once per bar. Three consequences, all live:
+   //
+   //   * FillBuffers() never re-slotted sr_1..sr_8 as price crossed a level, so
+   //     the eight buffers and the on-chart slot tags were a bar stale.
+   //   * LevelAbove / LevelBelow / the two point distances -- and therefore the
+   //     g_stat_* fields the statistic file publishes -- were a bar stale.
+   //   * The `MathAbs(lastClose - close[0]) > Point()` branch of
+   //     needsRecalculation below was unreachable: by the time control got
+   //     here a new bar had opened, so the `lastCalculationTime != time[0]`
+   //     branch had already fired. Dead code guarding dead code.
+   //
+   // The gate is now applied where the cost actually is rather than across the
+   // whole function. Two paths:
+   //
+   //   EXPENSIVE (first run / new bar only): CopyBuffer of up to InpExportBars
+   //     fractal + ATR values, and CalculateLevels()'s Freedman-Diaconis
+   //     clustering. This is what the early return existed to protect and it
+   //     still is protected.
+   //
+   //   CHEAP (every tick): re-slot the levels already resolved in ArrayLevels
+   //     against the live close. All of it is a linear scan of ArrayLevels,
+   //     which holds the macro clusters -- tens of entries, not thousands.
+   //
+   // Note the expensive path is not merely an optimisation: re-clustering
+   // intra-bar would be WRONG. ArrayLevels is built from iFractals, and a
+   // fractal needs confirmed bars on both sides, so the forming bar can never
+   // be one. The level SET genuinely cannot change within a bar; only which
+   // levels sit above and below the live close can, and that is exactly what
+   // the cheap path recomputes.
+   //
+   // File exports are unaffected and keep their bar-close guarantee: they are
+   // driven by OnTimer() at InpExportSecond and by the EXPORT_ALL broadcast,
+   // never from here.
    ArraySetAsSeries(close, true);
    ArraySetAsSeries(time, true);
+
+   bool first_run = (prev_calculated == 0);
+   bool new_bar   = (rates_total != prev_calculated);
 
    ENUM_TIMEFRAMES calc_tf = (SRTimeframe == PERIOD_CURRENT) ? (ENUM_TIMEFRAMES)_Period : SRTimeframe;
    int total_bars = iBars(_Symbol, calc_tf);
@@ -875,74 +1010,84 @@ int OnCalculate(const int rates_total,
       return 0;
    }
 
-   // Resolve date anchors to bar shifts based on selected InpWindowMode
-   int idx1 = iBarShift(_Symbol, calc_tf, InpStartDateTime, false);
-   int idx2 = 0; // Default to current/last bar (shift 0) for CALC_WINDOW_FIXED_START
-
-   if(InpWindowMode == CALC_WINDOW_FIXED_RANGE)
-   {
-      idx2 = iBarShift(_Symbol, calc_tf, InpEndDateTime, false);
-   }
-
-   if(idx1 < 0) idx1 = total_bars - 1;
-   if(idx2 < 0) idx2 = 0;
-
-   int start_idx = MathMin(total_bars - 1, MathMax(idx1, idx2)); // Older bar (higher index)
-   int end_idx   = MathMax(0, MathMin(idx1, idx2));              // Newer bar (lower index)
-
-   // Cap calculation window to at most MAX_WINDOW_BARS (3000 bars) for both modes
-   if((start_idx - end_idx + 1) > MAX_WINDOW_BARS)
-   {
-      start_idx = end_idx + MAX_WINDOW_BARS - 1;
-   }
-
-   int window_bars = start_idx - end_idx + 1;
-
-   if(window_bars < 5)
-   {
-      Print("Window range too small (bars: ", window_bars, "). Check date settings.");
-      return 0;
-   }
-
-   int bars_needed = MathMax(start_idx + 1, InpExportBars);
-   if(bars_needed > total_bars) bars_needed = total_bars;
-
-   // Copy buffer data
-   if (CopyBuffer(FractalsHandle, 0, 0, bars_needed, BufferFractalsUp) <= 0 ||
-       CopyBuffer(FractalsHandle, 1, 0, bars_needed, BufferFractalsDown) <= 0 ||
-       CopyBuffer(ATRHandle, 0, 0, bars_needed, BufferATR) <= 0)
-   {
-      if(!Waiting)
-      {
-         Print("Waiting for indicator data to load...");
-         Waiting = true;
-      }
-      return prev_calculated;
-   }
-
-   if(Waiting)
-   {
-      Print("Indicator data loaded successfully.");
-      Waiting = false;
-   }
-
+   // ================================================================
+   // EXPENSIVE PATH -- first run, or a new bar has opened
+   // ================================================================
+   // `lastCalculationTime != time[0]` is kept alongside `new_bar` rather than
+   // folded into it: MT5 can call OnCalculate with prev_calculated == rates_total
+   // after a history refresh or a symbol-data reload, where the bar array has
+   // genuinely changed underneath us but the counts have not. It is one datetime
+   // comparison, so carrying both costs nothing and closes that case.
    static datetime lastCalculationTime = 0;
-   static double   lastClose = 0;
 
-   bool needsRecalculation = false;
-   if (prev_calculated == 0)
-      needsRecalculation = true;
-   else if (lastCalculationTime != time[0])
-      needsRecalculation = true;
-   else if (MathAbs(lastClose - close[0]) > Point())
-      needsRecalculation = true;
-
-   if (needsRecalculation)
+   if(first_run || new_bar || lastCalculationTime != time[0])
    {
+      // Resolve date anchors to bar shifts based on selected InpWindowMode
+      int idx1 = iBarShift(_Symbol, calc_tf, InpStartDateTime, false);
+      int idx2 = 0; // Default to current/last bar (shift 0) for CALC_WINDOW_FIXED_START
+
+      if(InpWindowMode == CALC_WINDOW_FIXED_RANGE)
+      {
+         idx2 = iBarShift(_Symbol, calc_tf, InpEndDateTime, false);
+      }
+
+      if(idx1 < 0) idx1 = total_bars - 1;
+      if(idx2 < 0) idx2 = 0;
+
+      int start_idx = MathMin(total_bars - 1, MathMax(idx1, idx2)); // Older bar (higher index)
+      int end_idx   = MathMax(0, MathMin(idx1, idx2));              // Newer bar (lower index)
+
+      // Cap calculation window to at most MAX_WINDOW_BARS (3000 bars) for both modes
+      if((start_idx - end_idx + 1) > MAX_WINDOW_BARS)
+      {
+         start_idx = end_idx + MAX_WINDOW_BARS - 1;
+      }
+
+      int window_bars = start_idx - end_idx + 1;
+
+      if(window_bars < 5)
+      {
+         Print("Window range too small (bars: ", window_bars, "). Check date settings.");
+         return 0;
+      }
+
+      int bars_needed = MathMax(start_idx + 1, InpExportBars);
+      if(bars_needed > total_bars) bars_needed = total_bars;
+
+      // Copy buffer data. This is the cost the old blanket early return was
+      // really protecting -- up to InpExportBars values, three times over.
+      if (CopyBuffer(FractalsHandle, 0, 0, bars_needed, BufferFractalsUp) <= 0 ||
+          CopyBuffer(FractalsHandle, 1, 0, bars_needed, BufferFractalsDown) <= 0 ||
+          CopyBuffer(ATRHandle, 0, 0, bars_needed, BufferATR) <= 0)
+      {
+         if(!Waiting)
+         {
+            Print("Waiting for indicator data to load...");
+            Waiting = true;
+         }
+         // Returning prev_calculated (not 0) asks MT5 to call again on the next
+         // tick without discarding what is already calculated. lastCalculationTime
+         // is deliberately NOT advanced, so the retry re-enters this block.
+         return prev_calculated;
+      }
+
+      if(Waiting)
+      {
+         Print("Indicator data loaded successfully.");
+         Waiting = false;
+      }
+
       CalculateLevels(calc_tf, start_idx, end_idx, window_bars);
       lastCalculationTime = time[0];
-      lastClose = close[0];
    }
+
+   // ================================================================
+   // CHEAP PATH -- every tick, including inside a forming bar
+   // ================================================================
+   // Nothing below rebuilds ArrayLevels; it re-reads the levels already resolved
+   // above against the live close. That is precisely the intra-bar behaviour the
+   // old early return suppressed: as price crosses a level, the slot assignment
+   // (which level is sr_1 vs sr_5) changes even though the level set does not.
 
    // Update buffers with closest levels
    FillBuffers(close[0]);
@@ -968,20 +1113,47 @@ int OnCalculate(const int rates_total,
 
    DisplayDistanceComments();
 
-   // Draw lines only when levels change or on new bar (to refresh tag positions)
+   // THE CROSSING CHECK.
+   //
+   // A change in the active pair (LevelAbove, LevelBelow) between two ticks of
+   // the same bar means exactly one thing: price crossed a level. The level set
+   // is fixed within a bar (see the intra-bar gate note above), so the pair can
+   // only change because the live close moved past one of them.
+   //
+   // This condition already existed, but it was unreachable intra-bar behind the
+   // old early return, so it only ever fired on `prevTagBarTime != time[0]` --
+   // i.e. it was a new-bar redraw, never a crossing detector. It is one now.
    static double   prevLevelAbove = 0;
    static double   prevLevelBelow = 0;
    static datetime prevTagBarTime = 0;
 
-   if (prevLevelAbove != LevelAbove || prevLevelBelow != LevelBelow || prevTagBarTime != time[0])
+   bool level_pair_changed = (prevLevelAbove != LevelAbove || prevLevelBelow != LevelBelow);
+   bool new_tag_bar        = (prevTagBarTime != time[0]);
+
+   if (level_pair_changed || new_tag_bar)
    {
-      if (DrawLinesEnabled)
+      // A crossing WITHIN a bar is the event; on a new bar the pair routinely
+      // changes for uninteresting reasons, so it is not reported as one.
+      if (level_pair_changed && !new_tag_bar && !first_run)
       {
-         DrawLines(close[0]);
-         prevLevelAbove = LevelAbove;
-         prevLevelBelow = LevelBelow;
-         prevTagBarTime = time[0];
+         Print(StringFormat(
+            "S&R crossing at %s: close=%s  sr_5(above)=%s  sr_1(below)=%s",
+            TimeToString(time[0], TIME_DATE | TIME_MINUTES),
+            DoubleToString(close[0], _Digits),
+            LevelAbove > 0 ? DoubleToString(LevelAbove, _Digits) : "none",
+            LevelBelow > 0 ? DoubleToString(LevelBelow, _Digits) : "none"));
       }
+
+      if (DrawLinesEnabled)
+         DrawLines(close[0]);
+
+      // Advanced unconditionally, outside the DrawLinesEnabled branch. They
+      // track observed state, not drawn state -- left inside, a chart with
+      // drawing off would re-evaluate and re-log the same crossing on every
+      // subsequent tick.
+      prevLevelAbove = LevelAbove;
+      prevLevelBelow = LevelBelow;
+      prevTagBarTime = time[0];
    }
 
    return rates_total;
@@ -1041,7 +1213,14 @@ void OnChartEvent(const int id,
       }
       else if(sparam == BACKFILL_BUTTON_NAME)
       {
-         Print("Starting backfill export for ", InpExportBars, " historical bars...");
+         // Reports the depth actually used, not InpExportBars. The old message
+         // named the pipeline depth while the call did the same thing as
+         // Export, so it described neither what it was about to do nor what it
+         // had done.
+         Print("Starting backfill export (",
+               InpBackfillBars > 0 ? IntegerToString(InpBackfillBars)
+                                   : "all loaded",
+               " bars) to a separate _Backfill file - the pipeline export is untouched...");
          if(ExportSRData(true))
             Print("SUCCESS: [Backfill Export] Completed successfully!");
          else

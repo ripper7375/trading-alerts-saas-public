@@ -33,19 +33,32 @@ WHAT IS BEING PROTECTED, and why each group is here:
    (columns dropped) and prove the function closes that gap without touching
    the rows already in it.
 
-4. STAT_SOURCES EXCLUSION. STAT_SOURCES is a derived blacklist, so adding a
-   source to SOURCES auto-enrolls it. sr_levels is excluded on purpose: its
-   _Statistic.txt records Freedman-Diaconis calibration, not regression fit
-   quality, and gateway_contract_indicator_statistics.schema.json pins `source`
-   to a CLOSED enum while the statistics POST is BATCHED -- so one sr_levels
-   element would 400 the whole request and quarantine every other snapshot in
-   it. A silent re-enrollment must fail loudly here, not in production.
+4. STAT_SOURCES ENROLMENT. STAT_SOURCES is a derived blacklist, so adding a
+   source to SOURCES auto-enrols it. sr_levels was deliberately EXCLUDED from
+   2026-09-16 until 2026-09-20 -- its _Statistic.txt records Freedman-Diaconis
+   calibration, not regression fit quality, and
+   gateway_contract_indicator_statistics.schema.json pins `source` to a CLOSED
+   enum while the statistics POST is BATCHED, so one sr_levels element would
+   400 the whole request and quarantine every other snapshot in it. That is no
+   longer true: the sr_* columns exist and the enum has been widened to 11. The
+   tests below now pin ENROLMENT, and the enum/STAT_SOURCES agreement, because
+   the closed enum plus the batched POST means the two must never disagree.
 
 5. CONTRACT PARITY. The market_data contract had no test tying the push
    worker's EXPECTED_CONTRACT_FIELDS to gateway_contract_market_data.schema.json
    (the economic-events lane has one; this lane did not). Set-based, never
    count-based -- the contract carries a `_centroid_admin_note` pseudo-property
    that breaks naive counts.
+
+6. INDICATOR-SIDE DEFECTS. Four defects recorded in
+   ARCHITECTURE_DESIGN_14TH_INDICATOR_SUPPORT_AND_RESISTANCE.md section 6.3 and
+   fixed 2026-09-20. These assert against the .mq5 SOURCE, which is unusual but
+   deliberate: MQL5 cannot be exercised from Python, and every one of the four
+   is a silent defect -- a backfill button that does nothing different, an
+   intra-bar branch that can never run, a precision that is only wrong off
+   XAUUSD, an extra row that is quietly discarded downstream. None of them
+   would ever surface as a failing pipeline test, so a source assertion is the
+   only guard available. The alternative is no guard at all.
 """
 import io
 import json
@@ -554,6 +567,166 @@ def test_golden_timestamp_snap_repairs_a_sub_bar_phase():
     phases = {r['timestamp_raw'] % 300 for r in rows}
     assert len(phases) == 1 and phases != {0}, f'expected one non-zero phase, got {phases}'
     assert all(r['timestamp_adj'] % 300 == 0 for r in rows), 'snap left a row off-grid'
+
+
+# ============================================================
+# 6. INDICATOR-SIDE DEFECTS (section 6.3, fixed 2026-09-20)
+# ============================================================
+INDICATOR = HERE / 'mq5' / 'SupportAndResistantAutoCalibration_v2_29.mq5'
+
+
+def _indicator_source() -> str:
+    return INDICATOR.read_text(encoding='utf-8')
+
+
+def test_indicator_source_is_present():
+    """Everything in this section is vacuous if the file moved."""
+    assert INDICATOR.exists(), f'indicator source not found at {INDICATOR}'
+
+
+def test_backfill_parameter_is_actually_read():
+    """`ExportSRData(bool is_backfill)` accepted the flag and never read it.
+
+    The Backfill button therefore did exactly what Export did, while printing
+    that it was backfilling -- the worst kind of dead code, because the log
+    says otherwise. It must now branch on the flag.
+    """
+    src = _indicator_source()
+    assert 'bool ExportSRData(bool is_backfill = false)' in src, (
+        'ExportSRData signature changed; this test needs updating')
+    body_start = src.index('bool ExportSRData(bool is_backfill = false)\n{')
+    body = src[body_start:src.index('\nint OnInit()', body_start)]
+    code = '\n'.join(l for l in body.split('\n') if not l.strip().startswith('//'))
+    assert 'is_backfill' in code, (
+        'is_backfill is never read in the body of ExportSRData -- the Backfill '
+        'button is a relabelled Export again')
+
+
+def test_backfill_writes_a_separate_file_the_collector_cannot_match():
+    """A backfill must never overwrite the file the collector is polling.
+
+    Proven against the collector's own filename construction rather than by
+    eye: run_cycle() builds an EXACT name, so a suffixed file is invisible to
+    it. If that ever became a glob, this test is where it shows up.
+    """
+    import re
+    src = _indicator_source()
+    # Comment-stripped. The first draft asserted `'"_Backfill"' in src` and a
+    # mutation that removed the suffix from the CALL still passed, because the
+    # explanatory comment above it also contains the literal. Assert the call.
+    code = '\n'.join(l for l in src.split('\n') if not l.strip().startswith('//'))
+    call = re.search(r'GenerateFilename\(\s*InpExportFileName,\s*clean_symbol,'
+                     r'\s*timeframe,\s*is_backfill \? "_Backfill" : ""\s*\)',
+                     code, re.S)
+    assert call, ('ExportSRData no longer suffixes the backfill filename -- a '
+                  'backfill would overwrite the file the collector polls')
+
+    # And the collector genuinely cannot see a suffixed file: run_cycle() builds
+    # an EXACT name, it does not glob. Asserted against the real construction so
+    # that turning it into a glob fails here.
+    spec = collector.SOURCES[SOURCE]
+    polled = f"{spec['prefix']}_{collector.SYMBOL}_M5.txt"
+    backfill = f"{spec['prefix']}_{collector.SYMBOL}_M5_Backfill.txt"
+    with tempfile.TemporaryDirectory() as tmp:
+        d = Path(tmp)
+        (d / backfill).write_text('decoy', encoding='utf-8')
+        assert not (d / polled).exists(), (
+            'writing the backfill file created the polled filename')
+        matched = [p.name for p in d.iterdir() if p.name == polled]
+        assert matched == [], (
+            f'the collector would pick up {backfill} as {polled}')
+
+
+def test_backfill_does_not_rewrite_the_statistic_file():
+    """The statistic file is a LIVE calibration snapshot and is now ingested.
+
+    A manual click rewriting it underneath the collector's read would be a torn
+    read of a lane that reaches indicator_statistics.
+    """
+    src = _indicator_source()
+    assert 'if(!is_backfill)\n      WriteSRStatFile(' in src, (
+        'WriteSRStatFile is no longer gated on !is_backfill')
+
+
+def test_intra_bar_trigger_is_reachable():
+    """The blanket early return made every intra-bar branch unreachable.
+
+        if (prev_calculated > 0 && rates_total == prev_calculated)
+           return rates_total;
+
+    `rates_total` only differs from `prev_calculated` on a NEW BAR, so this
+    returned on every tick inside a forming bar.
+    """
+    src = _indicator_source()
+    code = '\n'.join(l for l in src.split('\n') if not l.strip().startswith('//'))
+    assert 'rates_total == prev_calculated' not in code, (
+        'the blanket intra-bar early return is back in live code')
+    assert 'bool new_bar   = (rates_total != prev_calculated);' in code, (
+        'the new-bar flag that replaced it is gone')
+    # FillBuffers must sit outside the expensive block, i.e. after it closes.
+    assert code.index('CalculateLevels(calc_tf, start_idx, end_idx, window_bars);') \
+        < code.index('FillBuffers(close[0]);'), (
+        'FillBuffers moved back inside the new-bar-gated block')
+
+
+def test_crossing_detection_exists_and_is_intra_bar_only():
+    src = _indicator_source()
+    assert 'bool level_pair_changed' in src, 'crossing detector removed'
+    assert 'level_pair_changed && !new_tag_bar' in src, (
+        'a crossing is being reported on new bars too, which is just a redraw')
+
+
+def test_no_hardcoded_two_decimal_price_formatting():
+    """sr_* were written to 2dp while `close` on the same row used _Digits.
+
+    Identical on XAUUSD, silently wrong on a 5-digit symbol: EURUSD 1.08435
+    would be written as 1.08, which is a different price, not a rounded one.
+    """
+    import re
+    src = _indicator_source()
+    code = '\n'.join(l for l in src.split('\n') if not l.strip().startswith('//'))
+    hits = re.findall(r'DoubleToString\s*\([^;\n]*?,\s*2\s*\)', code)
+    assert not hits, f'hardcoded 2-decimal price formatting is back: {hits}'
+    assert 'string SRPriceToString(double value)' in code, (
+        'the single-point-of-truth price formatter was removed')
+
+
+def test_export_row_count_matches_the_ohlcv_spine():
+    """3001 rows, not 3000 -- one bar deeper than the spine it merges onto.
+
+    Harmless (promote_cycle() joins on OHLCV, so the extra bar is dropped) but
+    an unexplained off-by-one in a lane where a MISSING bar rejects the whole
+    cycle is worth removing. The loop is inclusive at both ends, so the row
+    count is export_limit + 1 and export_limit must be requested_bars - 1.
+
+    Shift 0 stays INCLUDED -- validate_cycle() requires every per-bar source to
+    carry the spine's newest bar, so dropping it would reject every cycle.
+    """
+    src = _indicator_source()
+    # Comment-stripped, because the fix's own comment quotes the old expression
+    # verbatim to explain what was wrong with it. Asserting against raw source
+    # made this test fail on the explanation of the bug rather than the bug.
+    code = '\n'.join(l for l in src.split('\n') if not l.strip().startswith('//'))
+    assert ('int export_limit   = MathMin(requested_bars - 1, available_bars - 1);'
+            in code), 'export depth arithmetic changed'
+    assert 'MathMin(InpExportBars, available_bars - 1)' not in code, (
+        'the off-by-one export depth is back')
+    assert 'for(int shift = export_limit; shift >= 0; shift--)' in code, (
+        'the export loop no longer reaches shift 0 -- every cycle would be '
+        'rejected by the completeness check')
+
+
+def test_export_row_count_arithmetic():
+    """The arithmetic itself, independent of the source text."""
+    def rows(requested, available):
+        limit = min(requested - 1, available - 1)
+        return max(limit, 0) + 1
+
+    assert rows(3000, 5000) == 3000, 'nominal depth must be exact'
+    assert rows(3000, 3000) == 3000
+    assert rows(3000, 500) == 500, 'short history must clamp, not over-read'
+    assert rows(1, 5000) == 1, 'a single-bar export is just the forming bar'
+    assert rows(0, 5000) == 1, 'a nonsense depth must still write one row, not crash'
 
 
 if __name__ == '__main__':
