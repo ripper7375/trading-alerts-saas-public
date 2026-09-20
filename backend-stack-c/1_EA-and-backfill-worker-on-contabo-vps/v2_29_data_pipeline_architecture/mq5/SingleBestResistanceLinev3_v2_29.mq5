@@ -507,15 +507,260 @@ void ComputeLineCloseStats(int &n_out, double &r2, double &mse, double &var_rati
      }
   }
 
+//+------------------------------------------------------------------+
+//| Regression angle for the resolved line.                           |
+//|                                                                   |
+//| Same formula the 7 centroid variants and the fractal indicator    |
+//| use -- slope as a percentage of the mean close, through atan --    |
+//| so the number is comparable across indicators rather than merely  |
+//| present in each of them. Computed over the bars the line actually  |
+//| resolves on, which is the same sample [MODEL B; CLOSE PRICE] uses. |
+//|                                                                   |
+//| regression_angle has been NULL for this source in every           |
+//| indicator_statistics row to date: the file exported Raw Slope but  |
+//| never an angle, and a slope alone is not comparable between        |
+//| instruments or timeframes.                                         |
+//|                                                                   |
+//| [added 2026-09-20 -- statistic enrichment pass]                   |
+//+------------------------------------------------------------------+
+bool LineRegressionAngle(double &angle_out)
+  {
+   angle_out = 0.0;
+   int cap = ArraySize(ExtBestFL);
+   double sum_close = 0.0;
+   int n = 0;
+   for(int i = cap - 1; i >= 0; i--)
+     {
+      double b = ExtBestFL[i];
+      if(b == EMPTY_VALUE || b == 0.0) continue;
+      double c = iClose(_Symbol, _Period, i);
+      if(c <= 0.0) continue;
+      sum_close += c;
+      n++;
+     }
+   if(n <= 0) return false;
+   double mean_close = sum_close / n;
+   if(mean_close <= 0.0) return false;
+   angle_out = MathArctan((g_stat_slope / mean_close) * 100.0 * 100.0) * 180.0 / M_PI;
+   return true;
+  }
+
+//+------------------------------------------------------------------+
+//| Residual diagnostics shared by both models.                       |
+//|                                                                   |
+//| Byte-identical to the routine in the 7 centroid indicators and in  |
+//| 2EDTFractalBestFitv5, so a number carrying the same label means    |
+//| the same thing in every statistic file in the stack.               |
+//|                                                                   |
+//| None of these is derivable from the MSE/R2/skew/kurtosis already  |
+//| exported, which is the bar a field had to clear to be added here: |
+//|   Mean Residual   bias -- a line parallel to price but offset     |
+//|                   from it scores well on MSE and is still wrong.  |
+//|   MAE             outlier-insensitive counterpart to MSE; MAE far |
+//|                   below sqrt(MSE) means a few bars carry the      |
+//|                   error rather than the fit being broadly poor.   |
+//|   Residual StdDev dispersion around that bias, in price units.    |
+//|   Max Abs Residual worst single miss.                             |
+//|   Durbin-Watson   serial correlation. ~2 = independent, <1 = the  |
+//|                   residuals trend, i.e. a straight line is the    |
+//|                   wrong MODEL for this stretch of price rather    |
+//|                   than merely a badly fitted one. That matters    |
+//|                   most here: this line is fitted to fractal       |
+//|                   TOUCHES and then scored against CLOSE prices it |
+//|                   never tried to fit, so its R2 is routinely      |
+//|                   negative and carries little information.        |
+//|                                                                   |
+//| [added 2026-09-20 -- statistic enrichment pass]                   |
+//+------------------------------------------------------------------+
+void ResidualDiagnostics(const double &e[], const int n, double &mean_e, double &mae,
+                         double &sd, double &max_abs, double &dw)
+  {
+   mean_e = 0.0; mae = 0.0; sd = 0.0; max_abs = 0.0; dw = 0.0;
+   if(n <= 0) return;
+
+   double s = 0.0, sa = 0.0;
+   for(int i = 0; i < n; i++)
+     {
+      double a = MathAbs(e[i]);
+      s  += e[i];
+      sa += a;
+      if(a > max_abs) max_abs = a;
+     }
+   mean_e = s / n;
+   mae    = sa / n;
+   if(n < 2) return;
+
+   double v = 0.0;
+   for(int i = 0; i < n; i++) v += MathPow(e[i] - mean_e, 2);
+   sd = MathSqrt(v / (n - 1));
+
+   double num = 0.0, den = 0.0;
+   for(int i = 1; i < n; i++) num += MathPow(e[i] - e[i - 1], 2);
+   for(int i = 0; i < n; i++) den += MathPow(e[i], 2);
+   if(den > 0.0) dw = num / den;
+  }
+
+//+------------------------------------------------------------------+
+//| Extended statistics -- the SAME uniform, ASCII-only schema the 7  |
+//| centroid indicators and 2EDTFractalBestFitv5 write, so a          |
+//| downstream consumer reads ONE field set across the whole stack.   |
+//|                                                                   |
+//| Before this, these two indicators carried 13 populated columns and |
+//| 55 NULLs in indicator_statistics, and none of the 40 extended      |
+//| columns at all -- measured against the real captured exports, not  |
+//| estimated.                                                         |
+//|                                                                   |
+//| THIS IS A SINGLE LINE, NOT A CHANNEL, and that distinction is      |
+//| carried honestly rather than by omission:                          |
+//|                                                                   |
+//|   * every channel field is written EMPTY, never 0. For a centroid |
+//|     "Above UOEDT Count: 0" is a measurement -- price never left    |
+//|     the channel. Here there is no channel to leave, so 0 would     |
+//|     assert something that was never measured. Empty parses to      |
+//|     NULL, which is the truthful answer.                            |
+//|   * the sections are still all emitted. A consumer that sees a     |
+//|     section DISAPPEAR cannot tell "not applicable to this          |
+//|     indicator" from "this terminal is on an older binary than I    |
+//|     think"; an empty field says which it is.                       |
+//|                                                                   |
+//| Buffers here are ArraySetAsSeries(true), so index 0 is the NEWEST  |
+//| bar. The loop walks DOWN to collect residuals in CHRONOLOGICAL     |
+//| order, which Durbin-Watson depends on: reversed, it measures       |
+//| nothing meaningful while still returning a plausible number.       |
+//|                                                                   |
+//| Residuals are measured against ExtBestFL[] directly rather than by |
+//| rebuilding the line equation -- ExtBestFL IS the fitted value at   |
+//| each bar, so there is no intercept convention to get wrong.        |
+//|                                                                   |
+//| [added 2026-09-20 -- statistic enrichment pass]                   |
+//+------------------------------------------------------------------+
+void WriteLineExtendedStatistics(const int fh)
+  {
+   int cap = ArraySize(ExtBestFL);
+
+   int    base_n = 0;                  // bars carrying a resolved line value
+   int    base_first = -1;             // NEWEST resolved bar (series index)
+   int    base_last  = -1;             // OLDEST resolved bar (series index)
+   double win_hi = 0.0, win_lo = 0.0;
+
+   double res_c[], res_x[];
+   ArrayResize(res_c, cap > 0 ? cap : 1);
+   ArrayResize(res_x, 1);
+
+   for(int i = cap - 1; i >= 0; i--)
+     {
+      double b = ExtBestFL[i];
+      if(b == EMPTY_VALUE || b == 0.0) continue;
+      double c = iClose(_Symbol, _Period, i);
+      if(c <= 0.0) continue;
+
+      double h = iHigh(_Symbol, _Period, i);
+      double l = iLow(_Symbol, _Period, i);
+      if(base_n == 0) { win_hi = h; win_lo = l; }
+      else
+        {
+         if(h > win_hi) win_hi = h;
+         if(l < win_lo) win_lo = l;
+        }
+
+      if(base_last < 0) base_last = i;   // first seen walking down == oldest
+      base_first = i;                    // last seen == newest
+      res_c[base_n] = c - b;
+      base_n++;
+     }
+
+   int    span  = (base_first >= 0) ? (base_last - base_first + 1) : 0;
+   double cover = (span > 0) ? (100.0 * base_n / span) : 0.0;
+
+   FileWrite(fh, "[FIT WINDOW]");
+   FileWrite(fh, "Window Start TS (UTC): "   + IntegerToString(g_stat_window_start_ts));
+   FileWrite(fh, "Window End TS (UTC): "     + IntegerToString(g_stat_window_end_ts));
+   FileWrite(fh, "Window Bars: "             + (span > 0 ? IntegerToString(span) : ""));
+   FileWrite(fh, "Observation Bars: "        + IntegerToString(base_n));
+   FileWrite(fh, "Visual Window Bars: "      + (span > 0 ? IntegerToString(span) : ""));
+   FileWrite(fh, "Math Window Bars: "        + (cap > 0 ? IntegerToString(cap) : ""));
+   FileWrite(fh, "Bars Available: "          + IntegerToString(cap));
+   FileWrite(fh, "Leftmost Bar Index: "      + (base_last >= 0 ? IntegerToString(base_last) : ""));
+   FileWrite(fh, "Line Span Bars: "          + IntegerToString(span));
+   FileWrite(fh, "Baseline Coverage (n): "   + IntegerToString(base_n));
+   FileWrite(fh, "Baseline Coverage Rate: "  + (span > 0 ? DoubleToString(cover, 2) : ""));
+   FileWrite(fh, "Centroids Used: ");        // no centroid stage in this indicator
+   FileWrite(fh, "Crossings In Window (n): ");
+   FileWrite(fh, "First Crossing TS (UTC): ");
+   FileWrite(fh, "Last Crossing TS (UTC): ");
+   FileWrite(fh, "");
+
+   double live_close = iClose(_Symbol, _Period, 0);
+   double base_live  = (cap > 0) ? ExtBestFL[0] : EMPTY_VALUE;
+   bool   base_res   = (base_live != EMPTY_VALUE && base_live != 0.0);
+   bool   px_res     = (live_close > 0.0);
+
+   // Baseline Value is the resolved LINE at the live bar, which is what this
+   // indicator's single line is -- the same role ExtBaseLine plays for the
+   // centroids. Distance To Baseline is therefore "how far is price from the
+   // support/resistance line right now", signed, and is the field a screener
+   // or a generated report actually wants.
+   FileWrite(fh, "[PRICE CONTEXT]");
+   FileWrite(fh, "Live Close: "            + (px_res   ? DoubleToString(live_close, _Digits) : ""));
+   FileWrite(fh, "Baseline Value: "        + (base_res ? DoubleToString(base_live, 5) : ""));
+   FileWrite(fh, "UOEDT Value: ");         // single line -- no channel
+   FileWrite(fh, "LOEDT Value: ");
+   FileWrite(fh, "Distance To Baseline: "  + ((px_res && base_res) ? DoubleToString(live_close - base_live, 5) : ""));
+   FileWrite(fh, "Distance To UOEDT: ");
+   FileWrite(fh, "Distance To LOEDT: ");
+   FileWrite(fh, "Channel Position: ");
+   FileWrite(fh, "Window High: "           + (base_n > 0 ? DoubleToString(win_hi, _Digits) : ""));
+   FileWrite(fh, "Window Low: "            + (base_n > 0 ? DoubleToString(win_lo, _Digits) : ""));
+   FileWrite(fh, "Window Range: "          + (base_n > 0 ? DoubleToString(win_hi - win_lo, 5) : ""));
+   FileWrite(fh, "");
+
+   // Emitted in full and entirely empty. A channel needs an upper and a lower
+   // band; this indicator has one line, so there is nothing here that was
+   // measured and found to be zero.
+   FileWrite(fh, "[CHANNEL GEOMETRY]");
+   FileWrite(fh, "Channel Width: ");
+   FileWrite(fh, "Channel Asymmetry: ");
+   FileWrite(fh, "Above UOEDT Count: ");
+   FileWrite(fh, "Below LOEDT Count: ");
+   FileWrite(fh, "Max Excursion Above: ");
+   FileWrite(fh, "Max Excursion Below: ");
+   FileWrite(fh, "");
+
+   double me = 0.0, mae = 0.0, sd = 0.0, mx = 0.0, dw = 0.0;
+
+   // No SSA crossings in this indicator. Sample (n) is EMPTY, not 0: 0 would
+   // claim a measurement that found nothing, which is a different statement.
+   ResidualDiagnostics(res_x, 0, me, mae, sd, mx, dw);
+   FileWrite(fh, "[RESIDUAL DIAGNOSTICS; CROSSINGS]");
+   FileWrite(fh, "Sample (n): ");
+   FileWrite(fh, "Mean Residual: ");
+   FileWrite(fh, "MAE: ");
+   FileWrite(fh, "Residual StdDev: ");
+   FileWrite(fh, "Max Abs Residual: ");
+   FileWrite(fh, "Durbin-Watson: ");
+   FileWrite(fh, "");
+
+   ResidualDiagnostics(res_c, base_n, me, mae, sd, mx, dw);
+   FileWrite(fh, "[RESIDUAL DIAGNOSTICS; CLOSE PRICE]");
+   FileWrite(fh, "Sample (n): "        + IntegerToString(base_n));
+   FileWrite(fh, "Mean Residual: "     + (base_n > 0 ? DoubleToString(me,  5) : ""));
+   FileWrite(fh, "MAE: "               + (base_n > 0 ? DoubleToString(mae, 5) : ""));
+   FileWrite(fh, "Residual StdDev: "   + (base_n > 1 ? DoubleToString(sd,  5) : ""));
+   FileWrite(fh, "Max Abs Residual: "  + (base_n > 0 ? DoubleToString(mx,  5) : ""));
+   FileWrite(fh, "Durbin-Watson: "     + (base_n > 1 ? DoubleToString(dw,  4) : ""));
+   FileWrite(fh, "");
+  }
+
 void WriteLineStatFile(string clean_symbol, string tf_str)
   {
    string filename = StringFormat("%s_%s_%s_Statistic.txt", InpExportFileName, clean_symbol, tf_str);
    int fh = FileOpen(filename, FILE_WRITE|FILE_TXT|FILE_ANSI);
    if(fh == INVALID_HANDLE) { Print("ERROR: Failed to open stat file."); return; }
-   FileWrite(fh, "[RESISTANCE LINE — PARAMETERS]");
+   FileWrite(fh, "[RESISTANCE LINE - PARAMETERS]");
    FileWrite(fh, "Window Start TS (UTC): " + IntegerToString(g_stat_window_start_ts));
    FileWrite(fh, "Window End TS (UTC): "   + IntegerToString(g_stat_window_end_ts));
    FileWrite(fh, "Fractal Bars: "          + IntegerToString((int)InpFractalBars));
+   FileWrite(fh, "Timeframe (Sec): "       + IntegerToString(PeriodSeconds(_Period)));
    FileWrite(fh, "Min Touches: "           + IntegerToString(InpMinTouches));
    FileWrite(fh, "Max Line Angle: "        + DoubleToString(InpMaxLineAngle, 4));
    FileWrite(fh, "Tolerance Type: "        + (InpToleranceType == TOLERANCE_PERCENT ? "PERCENT" : "ATR"));
@@ -523,11 +768,14 @@ void WriteLineStatFile(string clean_symbol, string tf_str)
    FileWrite(fh, "Tolerance ATR Multiplier: " + DoubleToString(InpToleranceATRMultiplier, 4));
    FileWrite(fh, "Extend To Current: "     + (InpExtendToCurrent ? "true" : "false"));
    FileWrite(fh, "");
-   FileWrite(fh, "[RESISTANCE LINE — RESOLVED LINE]");
+   FileWrite(fh, "[RESISTANCE LINE - RESOLVED LINE]");
    FileWrite(fh, "Solution Found: "        + (g_stat_found ? "true" : "false"));
    FileWrite(fh, "Line Origin TS (UTC): "  + IntegerToString(g_stat_line_start_ts));
    FileWrite(fh, "Best FL Touches: "       + IntegerToString(g_stat_touches));
    FileWrite(fh, "Raw Slope (b): "         + DoubleToString(g_stat_slope, 8));
+   double ln_angle = 0.0;
+   bool   ln_angle_ok = LineRegressionAngle(ln_angle);
+   FileWrite(fh, "Regression Angle: "      + (ln_angle_ok ? DoubleToString(ln_angle, 2) : ""));
    FileWrite(fh, "Anchored Y-Int: "        + DoubleToString(g_stat_intercept_anchored, 5));
    FileWrite(fh, "");
 
@@ -543,6 +791,11 @@ void WriteLineStatFile(string clean_symbol, string tf_str)
    FileWrite(fh, "Var Ratio: "    + DoubleToString(mb_var, 2));
    FileWrite(fh, "Skewness: "     + DoubleToString(mb_skew, 2));
    FileWrite(fh, "Kurtosis: "     + DoubleToString(mb_kurt, 2));
+   FileWrite(fh, "");
+
+   // Extended, stack-wide statistics [added 2026-09-20] -- the same
+   // section set every other statistic-emitting indicator now writes.
+   WriteLineExtendedStatistics(fh);
 
    FileClose(fh);
    Print("Statistic exported to: ", filename);

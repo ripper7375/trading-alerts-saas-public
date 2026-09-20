@@ -1211,6 +1211,309 @@ void BuildSymmetricalEDTs(double base_m, double base_c, const FractalPoint &frac
 }
 
 //+------------------------------------------------------------------+
+//| Residual diagnostics shared by both models.                       |
+//|                                                                   |
+//| None of these is derivable from the MSE/R2/skew/kurtosis already  |
+//| exported, which is the bar a field had to clear to be added here: |
+//|   Mean Residual   bias -- a line parallel to price but offset     |
+//|                   from it scores well on MSE and is still wrong.  |
+//|   MAE             outlier-insensitive counterpart to MSE; MAE far |
+//|                   below sqrt(MSE) means a few bars carry the      |
+//|                   error rather than the fit being broadly poor.   |
+//|   Residual StdDev dispersion around that bias, in price units.    |
+//|   Max Abs Residual worst single miss.                             |
+//|   Durbin-Watson   serial correlation. ~2 = independent, <1 = the  |
+//|                   residuals trend, i.e. a straight line is the    |
+//|                   wrong MODEL for this stretch of price rather    |
+//|                   than merely a badly fitted one. That is the     |
+//|                   diagnostic R2 cannot give on trending data,     |
+//|                   and R2 is measured negative here in real        |
+//|                   captured exports.                               |
+//|                                                                   |
+//| [added 2026-09-20 -- statistic enrichment pass]                   |
+//+------------------------------------------------------------------+
+void ResidualDiagnostics(const double &e[], const int n, double &mean_e, double &mae,
+                         double &sd, double &max_abs, double &dw)
+  {
+   mean_e = 0.0; mae = 0.0; sd = 0.0; max_abs = 0.0; dw = 0.0;
+   if(n <= 0) return;
+
+   double s = 0.0, sa = 0.0;
+   for(int i = 0; i < n; i++)
+     {
+      double a = MathAbs(e[i]);
+      s  += e[i];
+      sa += a;
+      if(a > max_abs) max_abs = a;
+     }
+   mean_e = s / n;
+   mae    = sa / n;
+   if(n < 2) return;
+
+   double v = 0.0;
+   for(int i = 0; i < n; i++) v += MathPow(e[i] - mean_e, 2);
+   sd = MathSqrt(v / (n - 1));
+
+   double num = 0.0, den = 0.0;
+   for(int i = 1; i < n; i++) num += MathPow(e[i] - e[i - 1], 2);
+   for(int i = 0; i < n; i++) den += MathPow(e[i], 2);
+   if(den > 0.0) dw = num / den;
+  }
+
+//+------------------------------------------------------------------+
+//| Extended statistics -- ONE uniform, ASCII-only schema written by  |
+//| every indicator in the stack, so a downstream consumer reads one  |
+//| field set instead of seven variant-flavoured ones.                |
+//|                                                                   |
+//| Why this exists: the per-variant header lines ("Regression        |
+//| Centroids (Best WLS CFL)" vs "(Box B)", "Observation Window       |
+//| (Bars)" vs "(Box B Bars)") are meaningful to a human reading one  |
+//| file and actively harmful to a collector reading all seven --     |
+//| export_collector_validator_v2.py matches labels literally, so     |
+//| BestFit A/B and MostRecent silently lose window_bars and most of  |
+//| their config_params today. Those lines are left exactly as they   |
+//| are; the canonical values are re-emitted here under names that    |
+//| are identical in every file.                                      |
+//|                                                                   |
+//| Deliberately self-contained: it reads ONLY identifiers declared   |
+//| in all seven variants. It must NOT touch g_stat_excluded (absent  |
+//| from CherryPick A/B and MostRecent), g_stat_lambda (absent from   |
+//| CherryPick B and MostRecent) or Inp*VisualLookback (named         |
+//| InpCFLVisualLookback in BestFit A/B and InpEDTVisualLookback in   |
+//| the other five). That exact non-uniformity made 5 of 7 indicators |
+//| fail to compile on 2026-09-18 while the two the code was written  |
+//| against built fine. verify_mq5_frozen_identifiers.py now covers   |
+//| this region too.                                                  |
+//|                                                                   |
+//| Residuals are measured against ExtBaseLine[] directly instead of  |
+//| rebuilding the line equation: ExtBaseLine IS the fitted value at  |
+//| each bar, so there is no intercept convention to get wrong (the   |
+//| exported "Anchored Y-Int" is the value at the ANCHOR, not the     |
+//| regression's c at bar index 0 -- confusing the two shifts every   |
+//| residual by thousands of USD). Its span is the DRAWN window,      |
+//| which is not always the sample the certified [MODEL A/B] blocks   |
+//| use, which is precisely why these live in their own sections      |
+//| carrying their own Sample (n) instead of being appended to those  |
+//| blocks.                                                           |
+//|                                                                   |
+//| An empty value means NOT AVAILABLE and never zero: a 0.0          |
+//| residual, a 0.0 offset and a 0 crossing count are all real        |
+//| measurements, so coercing a missing one to zero would fabricate   |
+//| a reading.                                                        |
+//|                                                                   |
+//| [added 2026-09-20 -- statistic enrichment pass]                   |
+//+------------------------------------------------------------------+
+void WriteExtendedStatistics(const int fh, const int live_bar, const datetime gmt_off,
+                             const double uo_off, const double lo_off)
+  {
+   int cap = g_rates_total;
+   if(ArraySize(ExtBaseLine) < cap) cap = ArraySize(ExtBaseLine);
+   if(ArraySize(ExtUOEDT)    < cap) cap = ArraySize(ExtUOEDT);
+   if(ArraySize(ExtLOEDT)    < cap) cap = ArraySize(ExtLOEDT);
+   if(ArraySize(ExtSSACross) < cap) cap = ArraySize(ExtSSACross);
+   if(ArraySize(g_close)     < cap) cap = ArraySize(g_close);
+   if(ArraySize(g_high)      < cap) cap = ArraySize(g_high);
+   if(ArraySize(g_low)       < cap) cap = ArraySize(g_low);
+   if(ArraySize(g_time)      < cap) cap = ArraySize(g_time);
+
+   int last = live_bar;
+   if(last > cap - 1) last = cap - 1;
+
+   // Every section below is emitted unconditionally, with empty values where
+   // there is nothing to measure. A consumer that sees a section DISAPPEAR
+   // cannot tell "not applicable" from "this terminal is on an older binary
+   // than I think"; an empty field says which it is. That is also why this is
+   // a flag rather than an early return -- one emission sequence, always.
+   bool have_bars = (last >= 0);
+
+   int left = g_stat_leftmost_bar;
+   if(left < 0)                 left = 0;
+   if(have_bars && left > last) left = last;
+
+   // ---- one pass over the drawn line ----------------------------------
+   int    base_n = 0;                  // bars carrying a resolved baseline
+   int    base_first = -1, base_last = -1;  // chronological span of those bars
+   double win_hi = 0.0, win_lo = 0.0;  // price extremes across those bars
+   int    x_n = 0;                     // SSA crossings inside that span
+   long   x_first = 0, x_last = 0;
+   int    brk_up = 0, brk_dn = 0;      // closes outside the channel
+   double exc_up = 0.0, exc_dn = 0.0;  // worst excursion beyond each band
+
+   double res_c[], res_x[];
+   ArrayResize(res_c, cap);
+   ArrayResize(res_x, cap);
+
+   for(int i = 0; have_bars && i <= last; i++)
+     {
+      double b = ExtBaseLine[i];
+      if(b == EMPTY_VALUE || b == 0.0) continue;
+      double c = g_close[i];
+      if(c <= 0.0) continue;
+
+      if(base_n == 0) { win_hi = g_high[i]; win_lo = g_low[i]; }
+      else
+        {
+         if(g_high[i] > win_hi) win_hi = g_high[i];
+         if(g_low[i]  < win_lo) win_lo = g_low[i];
+        }
+
+      if(base_first < 0) base_first = i;
+      base_last = i;
+      res_c[base_n] = c - b;
+      base_n++;
+
+      double xv = ExtSSACross[i];
+      if(xv != EMPTY_VALUE && xv != 0.0)
+        {
+         res_x[x_n] = xv - b;
+         x_n++;
+         if(x_n == 1) x_first = (long)(g_time[i] - gmt_off);
+         x_last = (long)(g_time[i] - gmt_off);
+        }
+
+      double up = ExtUOEDT[i], dn = ExtLOEDT[i];
+      if(up != EMPTY_VALUE && up != 0.0 && dn != EMPTY_VALUE && dn != 0.0)
+        {
+         if(c > up) { brk_up++; if(c - up > exc_up) exc_up = c - up; }
+         if(c < dn) { brk_dn++; if(dn - c > exc_dn) exc_dn = dn - c; }
+        }
+     }
+
+   // ---- [FIT WINDOW] ---------------------------------------------------
+   // Window Start/End TS are the two fields the line indicators have always
+   // exported and the centroids never did, so every centroid row in
+   // indicator_statistics carries NULL for both today. They are the only way
+   // to know WHICH stretch of price a fit describes without re-deriving it
+   // from bar counts against a bar clock the reader does not have.
+   int    span  = (base_first >= 0) ? (base_last - base_first + 1) : 0;
+   double cover = (span > 0) ? (100.0 * base_n / span) : 0.0;
+
+   // Hoisted out of the FileWrite calls: an indexed read must not happen at
+   // all when there are no bars, rather than relying on ternary laziness.
+   string s_win_start = "", s_win_end = "", s_win_bars = "", s_left = "";
+   if(have_bars)
+     {
+      s_win_start = IntegerToString((long)(g_time[left] - gmt_off));
+      s_win_end   = IntegerToString((long)(g_time[last] - gmt_off));
+      s_win_bars  = IntegerToString(last - left + 1);
+      s_left      = IntegerToString(left);
+     }
+
+   FileWrite(fh, "[FIT WINDOW]");
+   FileWrite(fh, "Window Start TS (UTC): "   + s_win_start);
+   FileWrite(fh, "Window End TS (UTC): "     + s_win_end);
+   FileWrite(fh, "Window Bars: "             + s_win_bars);
+   FileWrite(fh, "Observation Bars: "        + IntegerToString(g_stat_obs_window));
+   FileWrite(fh, "Visual Window Bars: "      + IntegerToString(g_stat_visual_window));
+   FileWrite(fh, "Math Window Bars: "        + IntegerToString(g_stat_math_window));
+   FileWrite(fh, "Bars Available: "          + IntegerToString(g_rates_total));
+   FileWrite(fh, "Leftmost Bar Index: "      + s_left);
+   FileWrite(fh, "Line Span Bars: "          + IntegerToString(span));
+   FileWrite(fh, "Baseline Coverage (n): "   + IntegerToString(base_n));
+   FileWrite(fh, "Baseline Coverage Rate: "  + (span > 0 ? DoubleToString(cover, 2) : ""));
+   FileWrite(fh, "Centroids Used: "          + IntegerToString(g_stat_centroids));
+   FileWrite(fh, "Crossings In Window (n): " + IntegerToString(x_n));
+   FileWrite(fh, "First Crossing TS (UTC): " + (x_n > 0 ? IntegerToString(x_first) : ""));
+   FileWrite(fh, "Last Crossing TS (UTC): "  + (x_n > 0 ? IntegerToString(x_last)  : ""));
+   FileWrite(fh, "");
+
+   // ---- [PRICE CONTEXT] ------------------------------------------------
+   // Where price actually sits relative to the channel just fitted. Nothing
+   // downstream can reconstruct it from this file: the timeseries export
+   // carries the bands, but a consumer reading the snapshot alone has no bar
+   // to join against. Channel Position is the single number a screener or a
+   // generated report needs -- 0 at LOEDT, 1 at UOEDT, outside that range
+   // means price has left the channel.
+   double live_close = 0.0, base_live = EMPTY_VALUE;
+   double up_live = EMPTY_VALUE, dn_live = EMPTY_VALUE;
+   if(have_bars)
+     {
+      live_close = g_close[last];
+      base_live  = ExtBaseLine[last];
+      up_live    = ExtUOEDT[last];
+      dn_live    = ExtLOEDT[last];
+     }
+   bool   base_res   = (base_live != EMPTY_VALUE && base_live != 0.0);
+   bool   up_res     = (up_live   != EMPTY_VALUE && up_live   != 0.0);
+   bool   dn_res     = (dn_live   != EMPTY_VALUE && dn_live   != 0.0);
+   bool   px_res     = (live_close > 0.0);
+
+   double width = EMPTY_VALUE;
+   if(up_res && dn_res)                                    width = up_live - dn_live;
+   else if(uo_off != EMPTY_VALUE && lo_off != EMPTY_VALUE) width = uo_off - lo_off;
+
+   double pos = EMPTY_VALUE;
+   if(px_res && up_res && dn_res && width != EMPTY_VALUE && width != 0.0)
+      pos = (live_close - dn_live) / width;
+
+   FileWrite(fh, "[PRICE CONTEXT]");
+   FileWrite(fh, "Live Close: "            + (px_res   ? DoubleToString(live_close, _Digits) : ""));
+   FileWrite(fh, "Baseline Value: "        + (base_res ? DoubleToString(base_live, 5) : ""));
+   FileWrite(fh, "UOEDT Value: "           + (up_res   ? DoubleToString(up_live, 5) : ""));
+   FileWrite(fh, "LOEDT Value: "           + (dn_res   ? DoubleToString(dn_live, 5) : ""));
+   FileWrite(fh, "Distance To Baseline: "  + ((px_res && base_res) ? DoubleToString(live_close - base_live, 5) : ""));
+   FileWrite(fh, "Distance To UOEDT: "     + ((px_res && up_res)   ? DoubleToString(up_live - live_close, 5) : ""));
+   FileWrite(fh, "Distance To LOEDT: "     + ((px_res && dn_res)   ? DoubleToString(live_close - dn_live, 5) : ""));
+   FileWrite(fh, "Channel Position: "      + (pos != EMPTY_VALUE ? DoubleToString(pos, 4) : ""));
+   FileWrite(fh, "Window High: "           + (base_n > 0 ? DoubleToString(win_hi, _Digits) : ""));
+   FileWrite(fh, "Window Low: "            + (base_n > 0 ? DoubleToString(win_lo, _Digits) : ""));
+   FileWrite(fh, "Window Range: "          + (base_n > 0 ? DoubleToString(win_hi - win_lo, 5) : ""));
+   FileWrite(fh, "");
+
+   // ---- [CHANNEL GEOMETRY] ---------------------------------------------
+   // The existing [EDT CHANNEL] block reports how often price closed INSIDE
+   // the channel. It cannot say which side price left from, or by how far --
+   // and a channel breached 40% of the time upward is a different market
+   // from one breached 20% each way at the same containment rate.
+   //
+   // Channel Asymmetry is (UOEDT + LOEDT) / width, so 0 is symmetric and
+   // positive means the upper band sits further from the baseline. It is
+   // reported, never penalised: EDT bands are built from the outermost
+   // qualifying touches, so asymmetry is frequently a true reading about
+   // the market rather than a defect in the fit.
+   double asym = EMPTY_VALUE;
+   if(uo_off != EMPTY_VALUE && lo_off != EMPTY_VALUE && (uo_off - lo_off) != 0.0)
+      asym = (uo_off + lo_off) / (uo_off - lo_off);
+
+   FileWrite(fh, "[CHANNEL GEOMETRY]");
+   FileWrite(fh, "Channel Width: "       + (width != EMPTY_VALUE ? DoubleToString(width, 5) : ""));
+   FileWrite(fh, "Channel Asymmetry: "   + (asym  != EMPTY_VALUE ? DoubleToString(asym, 4) : ""));
+   FileWrite(fh, "Above UOEDT Count: "   + IntegerToString(brk_up));
+   FileWrite(fh, "Below LOEDT Count: "   + IntegerToString(brk_dn));
+   FileWrite(fh, "Max Excursion Above: " + (brk_up > 0 ? DoubleToString(exc_up, 5) : ""));
+   FileWrite(fh, "Max Excursion Below: " + (brk_dn > 0 ? DoubleToString(exc_dn, 5) : ""));
+   FileWrite(fh, "");
+
+   // ---- [RESIDUAL DIAGNOSTICS] -----------------------------------------
+   // Section names are ASCII-only (the files are FILE_ANSI, which mangles
+   // the em-dash the older headers use) and each carries its own Sample (n):
+   // these are measured over the DRAWN span, which need not equal the
+   // certified [MODEL A/B] sample, and saying so is cheaper than a reader
+   // assuming they match.
+   double me = 0.0, mae = 0.0, sd = 0.0, mx = 0.0, dw = 0.0;
+
+   ResidualDiagnostics(res_x, x_n, me, mae, sd, mx, dw);
+   FileWrite(fh, "[RESIDUAL DIAGNOSTICS; CROSSINGS]");
+   FileWrite(fh, "Sample (n): "        + IntegerToString(x_n));
+   FileWrite(fh, "Mean Residual: "     + (x_n > 0 ? DoubleToString(me,  5) : ""));
+   FileWrite(fh, "MAE: "               + (x_n > 0 ? DoubleToString(mae, 5) : ""));
+   FileWrite(fh, "Residual StdDev: "   + (x_n > 1 ? DoubleToString(sd,  5) : ""));
+   FileWrite(fh, "Max Abs Residual: "  + (x_n > 0 ? DoubleToString(mx,  5) : ""));
+   FileWrite(fh, "Durbin-Watson: "     + (x_n > 1 ? DoubleToString(dw,  4) : ""));
+   FileWrite(fh, "");
+
+   ResidualDiagnostics(res_c, base_n, me, mae, sd, mx, dw);
+   FileWrite(fh, "[RESIDUAL DIAGNOSTICS; CLOSE PRICE]");
+   FileWrite(fh, "Sample (n): "        + IntegerToString(base_n));
+   FileWrite(fh, "Mean Residual: "     + (base_n > 0 ? DoubleToString(me,  5) : ""));
+   FileWrite(fh, "MAE: "               + (base_n > 0 ? DoubleToString(mae, 5) : ""));
+   FileWrite(fh, "Residual StdDev: "   + (base_n > 1 ? DoubleToString(sd,  5) : ""));
+   FileWrite(fh, "Max Abs Residual: "  + (base_n > 0 ? DoubleToString(mx,  5) : ""));
+   FileWrite(fh, "Durbin-Watson: "     + (base_n > 1 ? DoubleToString(dw,  4) : ""));
+   FileWrite(fh, "");
+  }
+
+//+------------------------------------------------------------------+
 //| FROZEN LINEAR PROJECTION (Pillar 1)                              |
 //|                                                                  |
 //| Draws the approved baseline and its two EDT bands by linear       |
@@ -1513,6 +1816,12 @@ bool ExportData(bool silent = false)
    FileWrite(fh_stat, "Containment Count: "      + IntegerToString(edt_in));
    FileWrite(fh_stat, "Containment Rate: "       + (edt_n > 0 ? DoubleToString(100.0 * edt_in / edt_n, 2) : ""));
    FileWrite(fh_stat, "");
+
+   // Extended, variant-neutral statistics [added 2026-09-20]. Written
+   // here so the uniform schema sits between the certified blocks above
+   // and the frozen-mode blocks below, and so uo_off/lo_off are reused
+   // rather than recomputed with a second convention.
+   WriteExtendedStatistics(fh_stat, live_idx, gmt_offset, uo_off, lo_off);
 
    // ---- CENTROID DETAIL [added 2026-09-18] --------------------------------
    // The Centroid Watchdog's ground truth (ARCH-SPEC-2026-09-18-V2.29-FROZEN-ALERT

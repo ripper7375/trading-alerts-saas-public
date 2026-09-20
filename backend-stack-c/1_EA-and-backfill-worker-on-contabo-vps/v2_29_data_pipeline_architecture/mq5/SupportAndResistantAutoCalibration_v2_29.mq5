@@ -281,7 +281,12 @@ void WriteSRStatFile(string clean_symbol, string tf_str)
    FileWriteString(fh, "Window Mode: "            + win_mode_stat + "\r\n");
    FileWriteString(fh, "Window Start TS (UTC): " + IntegerToString(g_stat_window_start_ts) + "\r\n");
    FileWriteString(fh, "Window End TS (UTC): "   + IntegerToString(g_stat_window_end_ts) + "\r\n");
-   FileWriteString(fh, "Window Bars: "            + IntegerToString(g_stat_window_bars) + StringFormat(" (Max Cap: %d)\r\n", MAX_WINDOW_BARS));
+   // Two clean fields rather than "67 (Max Cap: 3000)": a trailing
+   // parenthetical makes the collector's int coercion return None, which
+   // would silently void this field for every row.
+   FileWriteString(fh, "Window Bars: "            + IntegerToString(g_stat_window_bars) + "\r\n");
+   FileWriteString(fh, "Max Window Bars: "        + IntegerToString(MAX_WINDOW_BARS) + "\r\n");
+   FileWriteString(fh, "Timeframe (Sec): "        + IntegerToString(PeriodSeconds(_Period)) + "\r\n");
    FileWriteString(fh, "Fractals Sample (N): "   + IntegerToString(g_stat_fractals_n) + "\r\n");
    FileWriteString(fh, "Q25 (25th percentile): "  + DoubleToString(g_stat_q25, _Digits) + "\r\n");
    FileWriteString(fh, "Q75 (75th percentile): "  + DoubleToString(g_stat_q75, _Digits) + "\r\n");
@@ -290,6 +295,12 @@ void WriteSRStatFile(string clean_symbol, string tf_str)
    FileWriteString(fh, "Min Touches Filter: "     + IntegerToString(InpMinFractalTouches) + "\r\n");
    FileWriteString(fh, "Highest High: "           + DoubleToString(g_stat_highest_window, _Digits) + "\r\n");
    FileWriteString(fh, "Lowest Low: "             + DoubleToString(g_stat_lowest_window, _Digits) + "\r\n");
+   // Price context. These levels are only interpretable relative to where
+   // price actually is, and nothing in this file recorded that; Window Range
+   // is the scale Optimal Step has to be read against.
+   FileWriteString(fh, "Window Range: "           + DoubleToString(g_stat_highest_window - g_stat_lowest_window, _Digits) + "\r\n");
+   double sr_live_close = iClose(_Symbol, _Period, 0);
+   FileWriteString(fh, "Live Close: "             + (sr_live_close > 0.0 ? DoubleToString(sr_live_close, _Digits) : "") + "\r\n");
    FileWriteString(fh, "\r\n");
 
    FileWriteString(fh, "[SUPPORT-RESISTANCE AUTO-CALIBRATION - RESOLVED LEVELS]\r\n");
