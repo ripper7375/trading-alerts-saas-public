@@ -1063,6 +1063,42 @@ fully cleared.
    channel fields. `fractal_*`, `best_resistance` and `best_support` are stable
    but still rewrite wholesale when their anchors re-set, and are NOT covered.
 
+   **⚠ MEASURED 2026-09-20 — the drift is large, and freezing is not enough.**
+   The magnitude experiment this entry has deferred since 2026-09-09 has now been
+   run on two real MT5 captures 12 days apart, over **2114 overlapping M15 bars**
+   (new `measure_indicator_drift.py`):
+
+   | Column           | changed            |    mean \|Δ\| | as % of EDT channel |
+   | ---------------- | ------------------ | ------------: | ------------------: |
+   | `non_b_uoedt`    | **100 % of bars**  | **19.26 USD** |          **14.0 %** |
+   | `non_b_loedt`    | 99.9 %             |      3.20 USD |               2.3 % |
+   | `non_b_base_fl`  | **100 % of bars**  |      1.98 USD |               1.4 % |
+   | `non_b_ssa`      | **100 % of bars**  |     0.057 USD |                   — |
+   | `non_b_crossing` | 0.71 % **flipped** |       boolean |                   — |
+
+   Controls behaved: OHLCV unchanged bar a handful of genuine broker revisions,
+   confirmed ZigZag pivots **0.0 %**. One confound is stated rather than buried —
+   `Regression Centroids` changed 5 → 7 between the captures, so the channel
+   figures mix refit with reconfiguration; the SSA columns are confound-free
+   (`InpRegCentroids` does not touch the SSA path, verified in source) and still
+   moved on 100 % of bars.
+
+   **Freezing covers 21 of the 69 drifting columns** (7 variants × base_fl/uoedt/
+   loedt). `*_ssa`/`*_ema_ssa`/`*_crossing` stay dynamic in frozen mode — the SSA
+   decomposition runs _before_ the mode branch — so a **signal flag still flips
+   retroactively on a frozen terminal.** Worth doing; not the fix.
+
+   **BUILT in response (2026-09-20), not deployed:** a point-in-time snapshot
+   lane, `market_data_point_in_time` — one immutable row per bar holding the 69
+   drifting columns as they stood at bar close, written by the gateway
+   `ON CONFLICT DO NOTHING`, plus `snapshot_age_bars` recording how much
+   hindsight a row carries. **Nothing on the VPS changed** (no new SQLite table,
+   no outbox, no collector change) and **the 95-field wire contract is
+   untouched** — the snapshot is derived server-side from the same payload.
+   Migration authored, NOT applied. Details, query guards for backtesters and the
+   rollout order: `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` §9/§10, and
+   §13 item 9 below.
+
 9. ✅ **`_Statistic.txt` capture — BUILT** (2026-09-09), end to end, MT5 →
    SQLite → gateway → Postgres. All 10 files now carry a complete, comparable
    field set (§5.1) and are parsed into a new **append-only** `indicator_statistics`
@@ -1289,14 +1325,42 @@ LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
    verification so far is synthetic exports driven through the real collector,
    the real watchdog process and the real preset generator.
 
-   **Statistics capture is deliberately NOT part of this.** `sr_levels` is
-   excluded from `STAT_SOURCES`: its `_Statistic.txt` records Freedman-Diaconis
-   calibration (Q25/Q75, IQR, Optimal Step), not regression fit quality, so
-   almost none of its labels exist in `STAT_FIELDS` — and
-   `gateway_contract_indicator_statistics.schema.json` pins `source` to a
-   closed enum while that POST is batched, so one `sr_levels` element would
-   400 the whole request and quarantine every other snapshot in it. MT5 still
-   writes the file. Ingesting it properly is its own scoped piece of work.
+   ~~**Statistics capture is deliberately NOT part of this.**~~ **Superseded
+   2026-09-20 — `sr_levels` IS now enrolled in `STAT_SOURCES`.** The reasoning
+   that excluded it (its `_Statistic.txt` records Freedman-Diaconis calibration,
+   not regression fit quality, so almost none of its labels existed in
+   `STAT_FIELDS`) was true then and is not now: ten `sr_*` columns exist for
+   exactly that vocabulary, and the `source` enum in
+   `gateway_contract_indicator_statistics.schema.json` has been widened to 11 to
+   match. **⚠ The enum is still CLOSED and the POST is still BATCHED, so the
+   gateway must be deployed before the VPS starts sending this source** —
+   otherwise one element 400s the whole request and every other snapshot in it is
+   quarantined _and_ stamped `synced_at`.
+
+9. ⚠ **Deploy the point-in-time snapshot lane (§12 item 8).** Closes the
+   look-ahead-bias gap for the 69 drifting columns from the moment it is live.
+   **ORDER IS LOAD-BEARING:**
+   1. Apply `prisma/migrations/20260920000000_add_market_data_point_in_time/`
+      to production (`maglev.proxy.rlwy.net:58290`). Run `prisma migrate status`
+      first — `migrate deploy` applies **every** pending migration in history
+      order, not just the intended one. A single additive `CREATE TABLE`;
+      verified byte-identical to `prisma migrate diff`'s own output.
+   2. **Then** let `railway-gateway` deploy — it auto-deploys from `main`.
+
+   Reversing the order corrupts nothing (the snapshot write is wrapped and
+   cannot fail the `market_data` upsert; it logs a warning and continues) but
+   **every bar missed in between is gone for good** — the honest value exists
+   exactly once, and there is no backfill for it.
+
+   **Nothing on the VPS changes.** No new SQLite table, no new outbox, no
+   collector edit, no `.ex5` rebuild. The 95-field wire contract is untouched:
+   the snapshot is derived server-side from the same payload the gateway already
+   receives.
+
+   **Then tell the consumers.** Backtests, walk-forward validation and the
+   Decision Layer's `fitness_scorer` must read `market_data_point_in_time` with
+   `snapshot_age_bars = 1`, never `market_data_v6` history. Ready-to-use queries:
+   `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` §9.
 
 Deferred product features (separate workstreams, not pipeline-blocking):
 trendline image rendering + statistical scoring/advice; parameter-revision
@@ -1341,17 +1405,19 @@ relay bounded-queue+spill+replay; worker `BACKFILL_API_KEY` via env var.
 
 ## Appendix A — Version History
 
-| Item                                          | State                                                                                                                                                                           |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| EA / indicators                               | v2.29 (hyphen-free `mq5/` names; auto-export; SSA 8-decimal). **2026-09-09: GMT-offset fix in all 13 — needs recompile (§7.1)**                                                 |
-| Schema                                        | v6 (`xauusd.db`: staging + validation + `market_data` outbox). **2026-09-09: staging widened to every exported column**                                                         |
-| Collector                                     | v2 (header-name parsing; market-hours gate). **2026-09-09: CALCULATE stage removed; `migrate_raw_tables()` added**                                                              |
-| Push worker                                   | v5 (`market_data` outbox; synced_at; quarantine+replay)                                                                                                                         |
-| Calc stack                                    | **PARKED 2026-09-09** — `calculation-split-between-mt5-and-python-PENDING-PROJECT/`. Not deployed, not running (§6)                                                             |
-| Centroid variants (2026-09-03)                | `best_fit` split into `best_fit_a` (config-identical to the old `best_fit`) + `best_fit_b` (new preset) — 6→7 variants, 12→13 indicators, `market_data` 79→87 columns           |
-| `market_data` shape                           | 87 columns from the 2026-09-03 split, unchanged by the 2026-09-09 work — the contract, both Prisma schemas and the DTO were untouched then                                      |
-| 14th indicator (2026-09-16)                   | `SupportAndResistantAutoCalibration_v2_29` onboarded — 13→14 indicators, 87→95 columns, new `raw_sr_levels` + `migrate_market_data()`; statistics capture deliberately deferred |
-| Legacy v2.28/v2.27/v2.26 EAs, `.ex5` binaries | history only — do not deploy                                                                                                                                                    |
+| Item                                          | State                                                                                                                                                                                                                                                                      |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EA / indicators                               | v2.29 (hyphen-free `mq5/` names; auto-export; SSA 8-decimal). **2026-09-09: GMT-offset fix in all 13 — needs recompile (§7.1)**                                                                                                                                            |
+| Schema                                        | v6 (`xauusd.db`: staging + validation + `market_data` outbox). **2026-09-09: staging widened to every exported column**                                                                                                                                                    |
+| Collector                                     | v2 (header-name parsing; market-hours gate). **2026-09-09: CALCULATE stage removed; `migrate_raw_tables()` added**                                                                                                                                                         |
+| Push worker                                   | v5 (`market_data` outbox; synced_at; quarantine+replay)                                                                                                                                                                                                                    |
+| Calc stack                                    | **PARKED 2026-09-09** — `calculation-split-between-mt5-and-python-PENDING-PROJECT/`. Not deployed, not running (§6)                                                                                                                                                        |
+| Centroid variants (2026-09-03)                | `best_fit` split into `best_fit_a` (config-identical to the old `best_fit`) + `best_fit_b` (new preset) — 6→7 variants, 12→13 indicators, `market_data` 79→87 columns                                                                                                      |
+| `market_data` shape                           | 87 columns from the 2026-09-03 split, unchanged by the 2026-09-09 work — the contract, both Prisma schemas and the DTO were untouched then                                                                                                                                 |
+| 14th indicator (2026-09-16)                   | `SupportAndResistantAutoCalibration_v2_29` onboarded — 13→14 indicators, 87→95 columns, new `raw_sr_levels` + `migrate_market_data()`; statistics capture deliberately deferred                                                                                            |
+| 14th indicator defects (2026-09-20)           | Four §6.3 defects fixed and recompiled (0 errors): `is_backfill` now selects a genuinely separate `_Backfill` export; the intra-bar trigger is reachable; all price formatting uses `_Digits`; the export is exactly `InpExportBars` rows, not one more                    |
+| Look-ahead bias (2026-09-20)                  | **Measured** for the first time on two real captures 12 days apart — `*_uoedt` moves 14 % of the EDT channel on 100 % of bars. New `market_data_point_in_time` snapshot lane BUILT (gateway-side, VPS untouched, wire contract untouched); migration authored, NOT applied |
+| Legacy v2.28/v2.27/v2.26 EAs, `.ex5` binaries | history only — do not deploy                                                                                                                                                                                                                                               |
 
 The files in §0 are the deployment set; everything else in the directory is
 historical.

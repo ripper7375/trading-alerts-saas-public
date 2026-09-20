@@ -176,8 +176,24 @@ same stack's `ARCHITECTURE_DESIGN_14TH_INDICATOR_SUPPORT_AND_RESISTANCE.md`. ⚠
 must be applied **before** `railway-gateway` deploys: the gateway rejects unknown fields
 (`additionalProperties: false` + `forbidNonWhitelisted`), and the push worker's 400 handler
 quarantines _and_ stamps `synced_at`, so rows posted to an un-migrated gateway are lost until
-replayed by hand. It exists in **two
-physically separate databases today**, not one:
+replayed by hand.
+
+**2026-09-20:** a companion table, **`market_data_point_in_time`**, was added alongside it — new
+migration `prisma/migrations/20260920000000_add_market_data_point_in_time`, purely additive, one
+`CREATE TABLE`. `market_data_v6` is **mutable by design**: the collector re-queues every in-window
+bar on every cycle and the gateway upserts on `(symbol, timeframe, timestamp)`, so a historical
+row holds what the indicator says about that bar _today_, not at bar close. Measured on two real
+MT5 captures 12 days apart: the EDT upper band of a closed bar moves by 14% of the channel width
+on 100% of bars. The new table is **append-only** — the gateway inserts one row the first time it
+sees a bar that has already closed, `ON CONFLICT DO NOTHING`, and never updates it — carrying the
+69 columns that actually drift plus `snapshot_age_bars`. Backtesters, walk-forward validation and
+the Decision Layer's fitness scorer must read it, not `market_data_v6` history. **No wire-contract
+change** (the snapshot is derived server-side from the same 95-field payload) and **no VPS
+change**. Same rollout-order caveat as above: apply the migration **before** `railway-gateway`
+deploys, or every bar in between is missed permanently. See
+`backend-stack-c/.../HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` §9.
+
+`market_data_v6` exists in **two physically separate databases today**, not one:
 
 | Store                 | Engine               | Location                                           | Authoritative schema file                                                                                                                                                                                                                                    |
 | --------------------- | -------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
