@@ -354,6 +354,87 @@ Offset`/`LOEDT Offset` (matching the Fractal indicator's existing
     > a low or negative value is expected and is not by itself a fault.
     > `Containment Rate` is the more direct measure of whether a channel is doing
     > its job.
+
+  **2026-09-20 — statistic enrichment pass.** The 2026-09-09 additions left the
+  _header_ lines variant-flavoured, and that turned out to cost real data rather
+  than just looking untidy. `parse_statistic_file()` matches labels **literally**
+  and stores NULL on a miss, so `Observation Window (Bars)` (BestFit A/B,
+  MostRecent) never matched the single rule written for `Observation Window
+(Box B Bars)` (CherryPick, NonRecent) — three of the seven centroids had been
+  storing NULL for `window_bars`, and BestFit A/B were also dropping
+  `Regression Centroids` and `Visual CFL/EDT Window` from `config_params`, which
+  is what `config_hash` is built from. Reproduced against the real captured
+  exports before changing anything.
+  - All 8 channel-emitting indicators (7 centroids + `2EDTFractalBestFitv5`) now
+    additionally write **five ASCII-only sections with an identical label
+    sequence in every file**: `[FIT WINDOW]`, `[PRICE CONTEXT]`,
+    `[CHANNEL GEOMETRY]`, `[RESIDUAL DIAGNOSTICS; CROSSINGS]` and
+    `[RESIDUAL DIAGNOSTICS; CLOSE PRICE]` — **40 new fields**, all captured into
+    `indicator_statistics`.
+  - The variant-flavoured header lines are **unchanged**; the canonical values
+    are re-emitted under names that are the same everywhere. `STAT_FIELDS` now
+    accepts a _tuple_ of label spellings, canonical first, so a terminal still
+    running an older binary keeps populating the legacy columns.
+  - `[FIT WINDOW]` finally gives the centroids `Window Start/End TS (UTC)`,
+    which the line indicators always had and the centroids never did — every
+    centroid row in `indicator_statistics` carries NULL for both today.
+  - New in kind, not just in count: `Channel Position` (0 at LOEDT, 1 at UOEDT),
+    the breach split (`Above/Below … Count` + `Max Excursion …`, which
+    `Containment Rate` alone cannot express), and **Durbin-Watson** — the
+    diagnostic R² cannot give on trending data, and R² is measured _negative_
+    in real captured exports here.
+  - The shared block is **byte-identical across all 7 centroids** (one sha256)
+    and uses only identifiers declared in all seven. `g_stat_excluded` (absent
+    from CherryPick A/B and MostRecent), `g_stat_lambda` (absent from CherryPick
+    B and MostRecent) and `Inp*VisualLookback` (named differently in BestFit
+    A/B) are deliberately untouched — that non-uniformity is what broke 5 of 7
+    compiles on 2026-09-18. `verify_mq5_frozen_identifiers.py` now covers these
+    regions and the fractal file too.
+  - Guarded by `test_extended_statistics.py` (labels read **out of the `.mq5`
+    source**, so it cannot pass by being edited in step with a mistake) and
+    `test_statistics_schema_sync.py` (SQLite ↔ collector ↔ push worker ↔
+    contract ↔ both Prisma mirrors ↔ migration).
+
+  **2026-09-20, same pass — the remaining 3 statistic-emitting indicators.**
+  Auditing them turned up one gap per file, all measured against the real
+  captured exports rather than estimated:
+  - `SingleBestResistanceLinev3` / `SingleBestSupportLinev3` carried **13
+    populated columns and 55 NULLs**, and **none** of the 40 extended ones.
+    They now write the same five sections, taking them to **19 of 40** — the
+    other 21 stay NULL because a single line has no channel and no crossings.
+    That distinction is carried by an **empty value, never a 0**: for a
+    centroid `Above UOEDT Count: 0` is a measurement, whereas here it would
+    make a support line look like a perfectly contained channel to anything
+    reading the table without knowing the source. They also gained
+    `Regression Angle` (NULL for these sources in every row to date) and
+    `Timeframe (Sec)`, and their em-dash headers became ASCII.
+  - `SupportAndResistantAutoCalibration` was **dropped in full** — `sr_levels`
+    was excluded from `STAT_SOURCES` on 2026-09-16 for two stated reasons, and
+    it is re-enrolled now that **both** are closed: its vocabulary has ten
+    section-scoped rules, and the contract's closed `source` enum is widened
+    10 → 11. It is deliberately **not** reshaped into the regression-fit
+    schema — it measures bucket calibration, not residuals against a fitted
+    line, and padding it with permanently-empty channel fields would add noise,
+    not data. **10 new `sr_*` columns** capture the provenance
+    (Q25/Q75, IQR, **Optimal Step**, fractal sample, macro clusters, nearest
+    S/R + distances in points). `sr_1..sr_8` are **not** duplicated — those
+    already reach Postgres through `market_data`; what was being lost is _why_
+    those levels exist and how wide each bucket is. Real file → **18 columns
+    captured, was 0**.
+  - A latent defect fixed with it: `Window Bars: 67 (Max Cap: 3000)` coerces to
+    **None** (verified against the real coercion, not read), so that field
+    would have been silently NULL for every row the moment this source was
+    ingested. The cap is now its own `Max Window Bars` field.
+  - ⚠ **The `source` enum is still CLOSED and the POST is still BATCHED.** A
+    sender using a value the deployed gateway does not know 400s the **whole**
+    request, and the push worker quarantines every element in that batch _and_
+    stamps `synced_at`. Deploy the gateway **before** the VPS starts sending
+    `sr_levels`. `test_sr_levels_source.py` now asserts the enum and
+    `STAT_SOURCES` agree exactly, since a source the collector stages but the
+    contract omits is a latent outage for the other ten, not just for itself.
+  - Totals: **50 new columns** (40 uniform + 10 `sr_*`); `indicator_statistics`
+    37 → 87; all 11 statistic files now reach the database.
+
 - ⚠ **`_Statistic.txt` files are still not consumed by anything.** The collector
   reads only the timeseries exports; every statistic file is overwritten each
   minute and read by nobody. Capturing them is an open design decision — see
@@ -1047,6 +1128,22 @@ LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
    them. The parser handles that correctly (missing reads as NULL, never as 0),
    which is exactly why nothing would error. Verify by checking that a fresh
    `_Statistic.txt` contains an `[EDT CHANNEL]` section before deploying.
+
+   **Updated 2026-09-20 — the same hazard, one round further on.** The
+   enrichment pass added five more sections to all 8 channel-emitting `.mq5`
+   files, so the binaries must be rebuilt again. The staleness still hides
+   itself for exactly the same reason: rows are created, the cycle validates,
+   and the 40 new columns are simply NULL. The check is now **stronger and
+   cheaper** — a fresh `_Statistic.txt` must contain the line
+   `[RESIDUAL DIAGNOSTICS; CLOSE PRICE]`. If it does, the binary is current for
+   both the 2026-09-09 and the 2026-09-20 additions; if `[EDT CHANNEL]` is
+   present but that line is not, the terminal is on a 2026-09-11-era build.
+   That single line works for **10** of the 11 files. The eleventh,
+   `SR_Levels_*_Statistic.txt`, keeps its own shape by design -- check it for
+   `Max Window Bars` instead, which only the rebuilt binary writes. Run
+   `verify_mq5_frozen_identifiers.py` (now covering all 10 uniform files)
+   before handing anything to MetaEditor.
+
 2. **Gateway migration** — implement the §9 contract (nullable field set,
    idempotent upsert).
 3. **Windowed-anchor handling** — operational re-anchoring procedure or a
