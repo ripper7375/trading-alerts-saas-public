@@ -211,8 +211,17 @@ PRICE_LEVEL_SUFFIXES = ('_map', '_point', '_fl', '_edt', '_ssa', '_resistance', 
 # they are not point-in-time honest, whereas a snapshot read at export time
 # is. See STATISTIC-CAPTURE-SCOPE.md and
 # HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md.
+# sr_levels was excluded here from 2026-09-16 until 2026-09-20, on the
+# grounds that its statistic file is a different kind of document and would
+# write a near-empty row. That was true then and is no longer: its own
+# vocabulary now has columns (sr_q25/sr_iqr/sr_optimal_step/...), and the
+# `source` enum in gateway_contract_indicator_statistics.schema.json has
+# been widened to 11 to match. The enum is still CLOSED and the POST is
+# still BATCHED, so the gateway MUST be deployed before the VPS starts
+# sending this source -- otherwise one element 400s the whole request and
+# every other snapshot in it is quarantined AND stamped synced_at.
 STAT_SOURCES = [s for s in SOURCES
-                if s not in ('ohlcv', 'zigzag', 'zscore', 'sr_levels')]
+                if s not in ('ohlcv', 'zigzag', 'zscore')]
 
 # (statistic-file label, section it appears in, staging column, type)
 # `section` is matched as a PREFIX because the files are written FILE_ANSI and
@@ -227,8 +236,17 @@ STAT_FIELDS = [
     ('Best FL Touches',          None,            'touches',          'int'),
     ('Window Start TS (UTC)',    None,            'window_start_ts',  'int'),
     ('Window End TS (UTC)',      None,            'window_end_ts',    'int'),
-    ('Observation Window (Box B Bars)', None,      'window_bars',      'int'),
-    ('Math Search Window (Bars)', None,           'math_lookback',    'int'),
+    # A tuple of labels is tried in order, first hit wins. This is how the
+    # variant-flavoured header lines stop losing data: 'Observation Window'
+    # is spelled '(Bars)' by BestFit A/B and MostRecent and '(Box B Bars)'
+    # by CherryPick/NonRecent, so a single literal captured only four of
+    # the seven and the other three stored NULL. The canonical [FIT WINDOW]
+    # name is tried first; the legacy spellings remain so a terminal still
+    # running an older binary keeps populating the column.
+    (('Observation Bars', 'Observation Window (Box B Bars)',
+      'Observation Window (Bars)'), None,          'window_bars',      'int'),
+    (('Math Window Bars', 'Math Search Window (Bars)',
+      'Max Window Bars'), None,                     'math_lookback',    'int'),
     ('Total 171 Crossings (n)',  None,            'crossings_n',      'int'),
 
     ('Sample (n)',  '[MODEL A',   'model_a_n',         'int'),
@@ -250,6 +268,71 @@ STAT_FIELDS = [
     ('Containment Sample (n)', '[EDT CHANNEL', 'containment_n',     'int'),
     ('Containment Count',      '[EDT CHANNEL', 'containment_count', 'int'),
     ('Containment Rate',       '[EDT CHANNEL', 'containment_rate',  'real'),
+
+    # Extended statistics [added 2026-09-20]. Section prefixes are
+    # ASCII-only by construction now, so the FILE_ANSI em-dash quirk that
+    # forced prefix matching cannot bite these.
+    # 'Window Bars' is unique per file, so section-agnostic lookup is safe and
+    # lets sr_levels (which writes it under its own PARAMETERS header) land in
+    # the same column as the other ten.
+    ('Window Bars',                 None,                                      'window_span_bars',        'int'),
+    ('Visual Window Bars',          '[FIT WINDOW',                             'visual_window_bars',      'int'),
+    ('Bars Available',              '[FIT WINDOW',                             'bars_available',          'int'),
+    ('Leftmost Bar Index',          '[FIT WINDOW',                             'leftmost_bar_index',      'int'),
+    ('Line Span Bars',              '[FIT WINDOW',                             'line_span_bars',          'int'),
+    ('Baseline Coverage (n)',       '[FIT WINDOW',                             'baseline_coverage_n',     'int'),
+    ('Baseline Coverage Rate',      '[FIT WINDOW',                             'baseline_coverage_rate',  'real'),
+    ('Centroids Used',              '[FIT WINDOW',                             'centroids_used',          'int'),
+    ('Crossings In Window (n)',     '[FIT WINDOW',                             'crossings_in_window_n',   'int'),
+    ('First Crossing TS (UTC)',     '[FIT WINDOW',                             'first_crossing_ts',       'int'),
+    ('Last Crossing TS (UTC)',      '[FIT WINDOW',                             'last_crossing_ts',        'int'),
+    ('Live Close',                  None,                                      'live_close',              'real'),
+    ('Baseline Value',              '[PRICE CONTEXT',                          'baseline_value',          'real'),
+    ('UOEDT Value',                 '[PRICE CONTEXT',                          'uoedt_value',             'real'),
+    ('LOEDT Value',                 '[PRICE CONTEXT',                          'loedt_value',             'real'),
+    ('Distance To Baseline',        '[PRICE CONTEXT',                          'dist_to_baseline',        'real'),
+    ('Distance To UOEDT',           '[PRICE CONTEXT',                          'dist_to_uoedt',           'real'),
+    ('Distance To LOEDT',           '[PRICE CONTEXT',                          'dist_to_loedt',           'real'),
+    ('Channel Position',            '[PRICE CONTEXT',                          'channel_position',        'real'),
+    # sr_levels calls these Highest High / Lowest Low; same measurement, same
+    # column. Canonical spelling first, so the other ten are unaffected.
+    (('Window High', 'Highest High'), None,                                    'window_high',             'real'),
+    (('Window Low', 'Lowest Low'),  None,                                      'window_low',              'real'),
+    ('Window Range',                None,                                      'window_range',            'real'),
+    ('Channel Width',               '[CHANNEL GEOMETRY',                       'channel_width',           'real'),
+    ('Channel Asymmetry',           '[CHANNEL GEOMETRY',                       'channel_asymmetry',       'real'),
+    ('Above UOEDT Count',           '[CHANNEL GEOMETRY',                       'breach_above_n',          'int'),
+    ('Below LOEDT Count',           '[CHANNEL GEOMETRY',                       'breach_below_n',          'int'),
+    ('Max Excursion Above',         '[CHANNEL GEOMETRY',                       'max_excursion_above',     'real'),
+    ('Max Excursion Below',         '[CHANNEL GEOMETRY',                       'max_excursion_below',     'real'),
+    ('Sample (n)',                  '[RESIDUAL DIAGNOSTICS; CROSSINGS',        'resid_a_n',               'int'),
+    ('Mean Residual',               '[RESIDUAL DIAGNOSTICS; CROSSINGS',        'resid_a_mean',            'real'),
+    ('MAE',                         '[RESIDUAL DIAGNOSTICS; CROSSINGS',        'resid_a_mae',             'real'),
+    ('Residual StdDev',             '[RESIDUAL DIAGNOSTICS; CROSSINGS',        'resid_a_sd',              'real'),
+    ('Max Abs Residual',            '[RESIDUAL DIAGNOSTICS; CROSSINGS',        'resid_a_max',             'real'),
+    ('Durbin-Watson',               '[RESIDUAL DIAGNOSTICS; CROSSINGS',        'resid_a_dw',              'real'),
+    ('Sample (n)',                  '[RESIDUAL DIAGNOSTICS; CLOSE',            'resid_b_n',               'int'),
+    ('Mean Residual',               '[RESIDUAL DIAGNOSTICS; CLOSE',            'resid_b_mean',            'real'),
+    ('MAE',                         '[RESIDUAL DIAGNOSTICS; CLOSE',            'resid_b_mae',             'real'),
+    ('Residual StdDev',             '[RESIDUAL DIAGNOSTICS; CLOSE',            'resid_b_sd',              'real'),
+    ('Max Abs Residual',            '[RESIDUAL DIAGNOSTICS; CLOSE',            'resid_b_max',             'real'),
+    ('Durbin-Watson',               '[RESIDUAL DIAGNOSTICS; CLOSE',            'resid_b_dw',              'real'),
+
+    # [SUPPORT-RESISTANCE AUTO-CALIBRATION] -- sr_levels only. Section-scoped
+    # rather than reshaping that file into the regression-fit schema: it
+    # measures bucket calibration, not residuals against a fitted line, and
+    # padding it with permanently-empty channel fields would add noise, not
+    # data.
+    ('Fractals Sample (N)',         '[SUPPORT-RESISTANCE',                     'sr_fractals_n',           'int'),
+    ('Q25 (25th percentile)',       '[SUPPORT-RESISTANCE',                     'sr_q25',                  'real'),
+    ('Q75 (75th percentile)',       '[SUPPORT-RESISTANCE',                     'sr_q75',                  'real'),
+    ('IQR',                         '[SUPPORT-RESISTANCE',                     'sr_iqr',                  'real'),
+    ('Optimal Step',                '[SUPPORT-RESISTANCE',                     'sr_optimal_step',         'real'),
+    ('Total Macro Clusters',        '[SUPPORT-RESISTANCE',                     'sr_macro_clusters',       'int'),
+    ('Nearest Resistance',          '[SUPPORT-RESISTANCE',                     'sr_nearest_resistance',   'real'),
+    ('Nearest Support',             '[SUPPORT-RESISTANCE',                     'sr_nearest_support',      'real'),
+    ('Distance to Resistance',      '[SUPPORT-RESISTANCE',                     'sr_dist_resistance_pts',  'int'),
+    ('Distance to Support',         '[SUPPORT-RESISTANCE',                     'sr_dist_support_pts',     'int'),
 ]
 
 # Labels captured as configuration rather than as measurements: they describe
@@ -277,7 +360,67 @@ STAT_CONFIG_LABELS = {
     # cycle and bury the real signal in noise.
     'Projection Mode', 'Frozen Anchor TS (Server)', 'Frozen Slope (b)',
     'Frozen Anchor Price', 'Frozen UOEDT Offset', 'Frozen LOEDT Offset',
+    # sr_levels [added 2026-09-20]. Calculation Mode and Window Mode are
+    # compiled-in choices; a new config_hash appearing means someone changed
+    # how the levels are calibrated, which is exactly the signal wanted.
+    'Calculation Mode', 'Window Mode', 'Min Touches Filter', 'Max Window Bars',
 }
+
+# The columns migrate_statistics_table() adds to a deployed database.
+# Kept beside STAT_FIELDS so the two are edited together; a column here
+# with no STAT_FIELDS entry is dead, and the reverse crashes the lane.
+STAT_EXTENDED_COLUMNS = [
+    ('sr_fractals_n', 'INTEGER'),
+    ('sr_q25', 'REAL'),
+    ('sr_q75', 'REAL'),
+    ('sr_iqr', 'REAL'),
+    ('sr_optimal_step', 'REAL'),
+    ('sr_macro_clusters', 'INTEGER'),
+    ('sr_nearest_resistance', 'REAL'),
+    ('sr_nearest_support', 'REAL'),
+    ('sr_dist_resistance_pts', 'INTEGER'),
+    ('sr_dist_support_pts', 'INTEGER'),
+    ('window_span_bars', 'INTEGER'),
+    ('visual_window_bars', 'INTEGER'),
+    ('bars_available', 'INTEGER'),
+    ('leftmost_bar_index', 'INTEGER'),
+    ('line_span_bars', 'INTEGER'),
+    ('baseline_coverage_n', 'INTEGER'),
+    ('baseline_coverage_rate', 'REAL'),
+    ('centroids_used', 'INTEGER'),
+    ('crossings_in_window_n', 'INTEGER'),
+    ('first_crossing_ts', 'INTEGER'),
+    ('last_crossing_ts', 'INTEGER'),
+    ('live_close', 'REAL'),
+    ('baseline_value', 'REAL'),
+    ('uoedt_value', 'REAL'),
+    ('loedt_value', 'REAL'),
+    ('dist_to_baseline', 'REAL'),
+    ('dist_to_uoedt', 'REAL'),
+    ('dist_to_loedt', 'REAL'),
+    ('channel_position', 'REAL'),
+    ('window_high', 'REAL'),
+    ('window_low', 'REAL'),
+    ('window_range', 'REAL'),
+    ('channel_width', 'REAL'),
+    ('channel_asymmetry', 'REAL'),
+    ('breach_above_n', 'INTEGER'),
+    ('breach_below_n', 'INTEGER'),
+    ('max_excursion_above', 'REAL'),
+    ('max_excursion_below', 'REAL'),
+    ('resid_a_n', 'INTEGER'),
+    ('resid_a_mean', 'REAL'),
+    ('resid_a_mae', 'REAL'),
+    ('resid_a_sd', 'REAL'),
+    ('resid_a_max', 'REAL'),
+    ('resid_a_dw', 'REAL'),
+    ('resid_b_n', 'INTEGER'),
+    ('resid_b_mean', 'REAL'),
+    ('resid_b_mae', 'REAL'),
+    ('resid_b_sd', 'REAL'),
+    ('resid_b_max', 'REAL'),
+    ('resid_b_dw', 'REAL'),
+]
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('export_collector')
@@ -447,11 +590,16 @@ def parse_statistic_file(path: Path) -> Optional[dict]:
 
     row: dict = {}
     for label, sect_prefix, col, typ in STAT_FIELDS:
-        if sect_prefix is None:
-            raw = seen.get((None, label))
-        else:
-            raw = next((v for (s, l), v in seen.items()
-                        if l == label and s is not None and s.startswith(sect_prefix)), None)
+        # A label may be a tuple of spellings, tried in order; first hit wins.
+        raw = None
+        for lb in (label if isinstance(label, tuple) else (label,)):
+            if sect_prefix is None:
+                raw = seen.get((None, lb))
+            else:
+                raw = next((v for (s, l), v in seen.items()
+                            if l == lb and s is not None and s.startswith(sect_prefix)), None)
+            if raw is not None:
+                break
         row[col] = _stat_value(raw, typ) if raw is not None else None
 
     # Hash a canonical rendering, so reformatting or reordering the file can
@@ -710,6 +858,37 @@ def migrate_market_data(conn) -> int:
     return added
 
 
+def migrate_statistics_table(conn) -> int:
+    """Add any indicator_statistics column parse_statistic_file() will write
+    but the DB lacks -- the same CREATE TABLE IF NOT EXISTS gap that
+    migrate_raw_tables() and migrate_market_data() close, one table further on.
+
+    It matters more here than it looks. stage_statistics() builds its INSERT
+    from the parsed row's own keys, so against a deployed xauusd.db that has
+    not been widened it names a column SQLite does not have and raises
+    OperationalError. That call is wrapped best-effort by design -- a
+    statistics failure must never reject a price cycle -- so the exception is
+    swallowed and the entire statistics lane goes SILENTLY dark while every
+    other part of the pipeline reports success.
+
+    ADDITIVE ONLY: ALTER TABLE ... ADD COLUMN and nothing else. Never DROP,
+    never RENAME, never backfill. Idempotent.
+    """
+    existing = {r[1] for r in conn.execute("PRAGMA table_info(indicator_statistics)")}
+    if not existing:
+        return 0                                  # table absent; the schema file creates it
+    added = 0
+    for col, typ in STAT_EXTENDED_COLUMNS:
+        if col not in existing:
+            conn.execute(f"ALTER TABLE indicator_statistics ADD COLUMN {col} {typ}")
+            logger.info(f"   schema migration: indicator_statistics.{col} {typ} added")
+            existing.add(col)
+            added += 1
+    if added:
+        conn.commit()
+    return added
+
+
 def open_db(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA foreign_keys = ON")
@@ -717,6 +896,7 @@ def open_db(db_path: str) -> sqlite3.Connection:
     conn.executescript(SCHEMA_FILE.read_text())
     migrate_raw_tables(conn)
     migrate_market_data(conn)
+    migrate_statistics_table(conn)
     return conn
 
 

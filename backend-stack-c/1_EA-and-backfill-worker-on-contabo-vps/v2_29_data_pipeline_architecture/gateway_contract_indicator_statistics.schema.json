@@ -21,8 +21,14 @@
       "type": "string",
       "description": "Sender id; 'push_worker_v5' from the v6 push worker."
     },
-    "symbol": { "type": "string", "const": "XAUUSD" },
-    "timeframe": { "type": "string", "enum": ["M5", "M15"] },
+    "symbol": {
+      "type": "string",
+      "const": "XAUUSD"
+    },
+    "timeframe": {
+      "type": "string",
+      "enum": ["M5", "M15"]
+    },
     "source": {
       "type": "string",
       "enum": [
@@ -35,11 +41,11 @@
         "non_b",
         "fractal_edt",
         "resistance",
-        "support"
+        "support",
+        "sr_levels"
       ],
-      "description": "Which indicator produced this snapshot. The 3 non-centroid sources omit the MODEL A block; resistance/support additionally omit the EDT channel (single lines, not channels)."
+      "description": "Which indicator produced this snapshot. The 3 non-centroid line sources omit the MODEL A block; resistance/support additionally omit the EDT channel (single lines, not channels). sr_levels is a calibration document rather than a regression fit: it populates the sr_* fields and leaves the model/channel fields null. This enum is CLOSED and the request is an ARRAY, so a sender using a value the deployed gateway does not know will 400 the WHOLE batch -- deploy the gateway before the VPS starts sending a new source."
     },
-
     "captured_at": {
       "type": "integer",
       "description": "WHEN the fit was observed — the collector's 5-minute cycle slot (UTC unix sec). This is the half of the primary key that makes the table append-only: it is new on every cycle, so a new row never collides with an old one."
@@ -52,18 +58,31 @@
       "type": "integer",
       "description": "provenance: the collection_cycles row this snapshot came from."
     },
-
     "_resolved_line_note": "All 10 sources: the line the indicator settled on. solution_found/line_origin_ts/touches are only emitted by the 3 line indicators; the centroids leave them null.",
-
-    "solution_found": { "type": ["boolean", "null"] },
-    "raw_slope": { "type": ["number", "null"] },
-    "anchored_y_int": { "type": ["number", "null"] },
-    "regression_angle": { "type": ["number", "null"] },
-    "line_origin_ts": { "type": ["integer", "null"] },
-    "touches": { "type": ["integer", "null"] },
-
-    "window_start_ts": { "type": ["integer", "null"] },
-    "window_end_ts": { "type": ["integer", "null"] },
+    "solution_found": {
+      "type": ["boolean", "null"]
+    },
+    "raw_slope": {
+      "type": ["number", "null"]
+    },
+    "anchored_y_int": {
+      "type": ["number", "null"]
+    },
+    "regression_angle": {
+      "type": ["number", "null"]
+    },
+    "line_origin_ts": {
+      "type": ["integer", "null"]
+    },
+    "touches": {
+      "type": ["integer", "null"]
+    },
+    "window_start_ts": {
+      "type": ["integer", "null"]
+    },
+    "window_end_ts": {
+      "type": ["integer", "null"]
+    },
     "window_bars": {
       "type": ["integer", "null"],
       "description": "centroids: Observation Window (Box B Bars). Bar Coverage is derived from this."
@@ -76,36 +95,269 @@
       "type": ["integer", "null"],
       "description": "centroids: Total Crossings (n)."
     },
-
     "_model_a_note": "[MODEL A; CROSSINGS] — residuals against the SSA crossing points. CENTROIDS ONLY; the line indicators have no crossings and leave these null.",
-
-    "model_a_n": { "type": ["integer", "null"] },
-    "model_a_r2": { "type": ["number", "null"] },
-    "model_a_mse": { "type": ["number", "null"] },
-    "model_a_var_ratio": { "type": ["number", "null"] },
-    "model_a_skew": { "type": ["number", "null"] },
-    "model_a_kurt": { "type": ["number", "null"] },
-
+    "model_a_n": {
+      "type": ["integer", "null"]
+    },
+    "model_a_r2": {
+      "type": ["number", "null"]
+    },
+    "model_a_mse": {
+      "type": ["number", "null"]
+    },
+    "model_a_var_ratio": {
+      "type": ["number", "null"]
+    },
+    "model_a_skew": {
+      "type": ["number", "null"]
+    },
+    "model_a_kurt": {
+      "type": ["number", "null"]
+    },
     "_model_b_note": "[MODEL B; CLOSE PRICE] — residuals against close prices. All 10 sources. NOTE these lines are fitted to centroids or fractal touches, NOT to closes, so a low or negative R2 is structurally expected and is not by itself a fault; containment_rate is the more direct quality measure.",
-
-    "model_b_n": { "type": ["integer", "null"] },
-    "model_b_r2": { "type": ["number", "null"] },
-    "model_b_mse": { "type": ["number", "null"] },
-    "model_b_var_ratio": { "type": ["number", "null"] },
-    "model_b_skew": { "type": ["number", "null"] },
-    "model_b_kurt": { "type": ["number", "null"] },
-
+    "model_b_n": {
+      "type": ["integer", "null"]
+    },
+    "model_b_r2": {
+      "type": ["number", "null"]
+    },
+    "model_b_mse": {
+      "type": ["number", "null"]
+    },
+    "model_b_var_ratio": {
+      "type": ["number", "null"]
+    },
+    "model_b_skew": {
+      "type": ["number", "null"]
+    },
+    "model_b_kurt": {
+      "type": ["number", "null"]
+    },
     "_edt_note": "[EDT CHANNEL] — the 7 centroids + fractal_edt only. Offsets are baseline-relative. resistance/support are single lines and leave these null.",
-
-    "uoedt_offset": { "type": ["number", "null"] },
-    "loedt_offset": { "type": ["number", "null"] },
-    "containment_n": { "type": ["integer", "null"] },
-    "containment_count": { "type": ["integer", "null"] },
+    "uoedt_offset": {
+      "type": ["number", "null"]
+    },
+    "loedt_offset": {
+      "type": ["number", "null"]
+    },
+    "containment_n": {
+      "type": ["integer", "null"]
+    },
+    "containment_count": {
+      "type": ["integer", "null"]
+    },
     "containment_rate": {
       "type": ["number", "null"],
       "description": "Percent of the fitted window that closed inside the channel."
     },
-
+    "_extended_note": {
+      "type": "string",
+      "description": "Marker only. Extended statistics [added 2026-09-20]: [FIT WINDOW], [PRICE CONTEXT], [CHANNEL GEOMETRY] and the two [RESIDUAL DIAGNOSTICS] blocks, written with identical labels by every indicator. All optional and nullable: a field is null when it does not apply to that source, or when the terminal still runs a binary that predates the block. Never zero-filled -- 0.0 is a real reading for most of them."
+    },
+    "window_span_bars": {
+      "type": ["integer", "null"],
+      "description": "bars from the leftmost evaluated bar to the live bar, inclusive"
+    },
+    "visual_window_bars": {
+      "type": ["integer", "null"],
+      "description": "bars the channel is DRAWN over (can exceed the evaluated window)"
+    },
+    "bars_available": {
+      "type": ["integer", "null"],
+      "description": "bars the indicator actually had; distinguishes a short fit from a short chart"
+    },
+    "leftmost_bar_index": {
+      "type": ["integer", "null"],
+      "description": "index of the oldest evaluated bar, for reproducing the fit"
+    },
+    "line_span_bars": {
+      "type": ["integer", "null"],
+      "description": "bars between the oldest and newest resolved baseline value"
+    },
+    "baseline_coverage_n": {
+      "type": ["integer", "null"],
+      "description": "bars in that span carrying a resolved baseline"
+    },
+    "baseline_coverage_rate": {
+      "type": ["number", "null"],
+      "description": "percent; 100 * baseline_coverage_n / line_span_bars, gaps show up as < 100"
+    },
+    "centroids_used": {
+      "type": ["integer", "null"],
+      "description": "centroids the winning fit actually used; null for non-centroid sources"
+    },
+    "crossings_in_window_n": {
+      "type": ["integer", "null"],
+      "description": "SSA crossings inside the drawn span (crossings_n counts the evaluated window)"
+    },
+    "first_crossing_ts": {
+      "type": ["integer", "null"],
+      "description": "unix UTC of the oldest crossing in that span"
+    },
+    "last_crossing_ts": {
+      "type": ["integer", "null"],
+      "description": "unix UTC of the newest; with first_crossing_ts this dates the evidence the fit rests on"
+    },
+    "live_close": {
+      "type": ["number", "null"],
+      "description": "close of the newest bar, so the snapshot is self-contained"
+    },
+    "baseline_value": {
+      "type": ["number", "null"],
+      "description": "fitted baseline AT the live bar (not the y-intercept)"
+    },
+    "uoedt_value": {
+      "type": ["number", "null"],
+      "description": "upper band price at the live bar"
+    },
+    "loedt_value": {
+      "type": ["number", "null"],
+      "description": "lower band price at the live bar"
+    },
+    "dist_to_baseline": {
+      "type": ["number", "null"],
+      "description": "live_close - baseline_value; signed"
+    },
+    "dist_to_uoedt": {
+      "type": ["number", "null"],
+      "description": "uoedt_value - live_close; negative means price is above the band"
+    },
+    "dist_to_loedt": {
+      "type": ["number", "null"],
+      "description": "live_close - loedt_value; negative means price is below the band"
+    },
+    "channel_position": {
+      "type": ["number", "null"],
+      "description": "0 at LOEDT, 1 at UOEDT; outside [0,1] means price has left the channel"
+    },
+    "window_high": {
+      "type": ["number", "null"],
+      "description": "highest high across the resolved span"
+    },
+    "window_low": {
+      "type": ["number", "null"],
+      "description": "lowest low across the resolved span"
+    },
+    "window_range": {
+      "type": ["number", "null"],
+      "description": "window_high - window_low; the scale channel_width should be read against"
+    },
+    "channel_width": {
+      "type": ["number", "null"],
+      "description": "uoedt_value - loedt_value in price units"
+    },
+    "channel_asymmetry": {
+      "type": ["number", "null"],
+      "description": "(uoedt_offset + loedt_offset) / width; 0 = symmetric. Reported, never penalised: EDT bands come from outermost touches, so asymmetry is often a true reading"
+    },
+    "breach_above_n": {
+      "type": ["integer", "null"],
+      "description": "closes above the upper band; containment_rate alone cannot say which side price left from"
+    },
+    "breach_below_n": {
+      "type": ["integer", "null"],
+      "description": "closes below the lower band"
+    },
+    "max_excursion_above": {
+      "type": ["number", "null"],
+      "description": "worst close-above-band distance; null when there was none"
+    },
+    "max_excursion_below": {
+      "type": ["number", "null"],
+      "description": "worst close-below-band distance; null when there was none"
+    },
+    "resid_a_n": {
+      "type": ["integer", "null"],
+      "description": "sample for the crossings residual diagnostics; measured over the DRAWN span, which need not equal model_a_n"
+    },
+    "resid_a_mean": {
+      "type": ["number", "null"],
+      "description": "bias: a line parallel to price but offset from it still scores well on MSE"
+    },
+    "resid_a_mae": {
+      "type": ["number", "null"],
+      "description": "outlier-insensitive counterpart to MSE"
+    },
+    "resid_a_sd": {
+      "type": ["number", "null"],
+      "description": "dispersion around that bias, in price units"
+    },
+    "resid_a_max": {
+      "type": ["number", "null"],
+      "description": "worst single miss"
+    },
+    "resid_a_dw": {
+      "type": ["number", "null"],
+      "description": "serial correlation; ~2 independent, <1 means a straight line is the wrong MODEL here, not merely a badly fitted one"
+    },
+    "resid_b_n": {
+      "type": ["integer", "null"],
+      "description": "sample for the close-price residual diagnostics"
+    },
+    "resid_b_mean": {
+      "type": ["number", "null"],
+      "description": "bias against close prices"
+    },
+    "resid_b_mae": {
+      "type": ["number", "null"],
+      "description": "outlier-insensitive counterpart to model_b_mse"
+    },
+    "resid_b_sd": {
+      "type": ["number", "null"],
+      "description": "dispersion around that bias"
+    },
+    "resid_b_max": {
+      "type": ["number", "null"],
+      "description": "worst single miss"
+    },
+    "resid_b_dw": {
+      "type": ["number", "null"],
+      "description": "the diagnostic model_b_r2 cannot give: these lines are fitted to centroids or touches and then scored against closes, so r2 is routinely negative"
+    },
+    "_sr_note": {
+      "type": "string",
+      "description": "Marker only. [SUPPORT-RESISTANCE AUTO-CALIBRATION] provenance [added 2026-09-20], populated by sr_levels only and null for every other source. sr_1..sr_8 are not carried here: they already reach Postgres through market_data. These record WHY those levels exist."
+    },
+    "sr_fractals_n": {
+      "type": ["integer", "null"],
+      "description": "fractals the Freedman-Diaconis calibration was computed from; a small N means a wide, unreliable step"
+    },
+    "sr_q25": {
+      "type": ["number", "null"],
+      "description": "25th percentile of that fractal sample"
+    },
+    "sr_q75": {
+      "type": ["number", "null"],
+      "description": "75th percentile"
+    },
+    "sr_iqr": {
+      "type": ["number", "null"],
+      "description": "interquartile range; the dispersion the bucket width is derived from"
+    },
+    "sr_optimal_step": {
+      "type": ["number", "null"],
+      "description": "auto-calibrated bucket width. THE field: every sr_1..sr_8 level in market_data is a bucket of this size, and nothing downstream could previously tell how wide they were"
+    },
+    "sr_macro_clusters": {
+      "type": ["integer", "null"],
+      "description": "clusters found before the 8-slot pipeline truncation; > 8 means levels were dropped"
+    },
+    "sr_nearest_resistance": {
+      "type": ["number", "null"],
+      "description": "closest level above the live close"
+    },
+    "sr_nearest_support": {
+      "type": ["number", "null"],
+      "description": "closest level below"
+    },
+    "sr_dist_resistance_pts": {
+      "type": ["integer", "null"],
+      "description": "distance to it in POINTS, not price -- the indicator's own unit, kept as exported"
+    },
+    "sr_dist_support_pts": {
+      "type": ["integer", "null"],
+      "description": "distance to it in POINTS"
+    },
     "config_hash": {
       "type": "string",
       "description": "sha256 of the normalised parameter block. Deduplicates configuration out of this fact table — the params are compiled into the .mq5 and change only on redeploy, so storing them inline would repeat an identical blob on every row. A NEW hash appearing is itself the drift signal (the indicator was reconfigured)."

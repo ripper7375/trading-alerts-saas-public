@@ -452,6 +452,68 @@ CREATE TABLE IF NOT EXISTS indicator_statistics (
     containment_count   INTEGER,
     containment_rate    REAL,
 
+    -- Extended statistics [added 2026-09-20]. Every indicator writes the
+    -- same section set, so these are populated for all 10 sources rather
+    -- than a subset. NULL means the field does not apply to that source
+    -- (or the terminal is still on a binary that predates the block) --
+    -- never zero, because 0.0 is a real reading for most of them.
+    window_span_bars        INTEGER , -- bars from the leftmost evaluated bar to the live bar, inclusive
+    visual_window_bars      INTEGER , -- bars the channel is DRAWN over (can exceed the evaluated window)
+    bars_available          INTEGER , -- bars the indicator actually had; distinguishes a short fit from a short chart
+    leftmost_bar_index      INTEGER , -- index of the oldest evaluated bar, for reproducing the fit
+    line_span_bars          INTEGER , -- bars between the oldest and newest resolved baseline value
+    baseline_coverage_n     INTEGER , -- bars in that span carrying a resolved baseline
+    baseline_coverage_rate  REAL    , -- percent; 100 * baseline_coverage_n / line_span_bars, gaps show up as < 100
+    centroids_used          INTEGER , -- centroids the winning fit actually used; null for non-centroid sources
+    crossings_in_window_n   INTEGER , -- SSA crossings inside the drawn span (crossings_n counts the evaluated window)
+    first_crossing_ts       INTEGER , -- unix UTC of the oldest crossing in that span
+    last_crossing_ts        INTEGER , -- unix UTC of the newest; with first_crossing_ts this dates the evidence the fit rests on
+    live_close              REAL    , -- close of the newest bar, so the snapshot is self-contained
+    baseline_value          REAL    , -- fitted baseline AT the live bar (not the y-intercept)
+    uoedt_value             REAL    , -- upper band price at the live bar
+    loedt_value             REAL    , -- lower band price at the live bar
+    dist_to_baseline        REAL    , -- live_close - baseline_value; signed
+    dist_to_uoedt           REAL    , -- uoedt_value - live_close; negative means price is above the band
+    dist_to_loedt           REAL    , -- live_close - loedt_value; negative means price is below the band
+    channel_position        REAL    , -- 0 at LOEDT, 1 at UOEDT; outside [0,1] means price has left the channel
+    window_high             REAL    , -- highest high across the resolved span
+    window_low              REAL    , -- lowest low across the resolved span
+    window_range            REAL    , -- window_high - window_low; the scale channel_width should be read against
+    channel_width           REAL    , -- uoedt_value - loedt_value in price units
+    channel_asymmetry       REAL    , -- (uoedt_offset + loedt_offset) / width; 0 = symmetric. Reported, never penalised: EDT bands come from outermost touches, so asymmetry is often a true reading
+    breach_above_n          INTEGER , -- closes above the upper band; containment_rate alone cannot say which side price left from
+    breach_below_n          INTEGER , -- closes below the lower band
+    max_excursion_above     REAL    , -- worst close-above-band distance; null when there was none
+    max_excursion_below     REAL    , -- worst close-below-band distance; null when there was none
+    resid_a_n               INTEGER , -- sample for the crossings residual diagnostics; measured over the DRAWN span, which need not equal model_a_n
+    resid_a_mean            REAL    , -- bias: a line parallel to price but offset from it still scores well on MSE
+    resid_a_mae             REAL    , -- outlier-insensitive counterpart to MSE
+    resid_a_sd              REAL    , -- dispersion around that bias, in price units
+    resid_a_max             REAL    , -- worst single miss
+    resid_a_dw              REAL    , -- serial correlation; ~2 independent, <1 means a straight line is the wrong MODEL here, not merely a badly fitted one
+    resid_b_n               INTEGER , -- sample for the close-price residual diagnostics
+    resid_b_mean            REAL    , -- bias against close prices
+    resid_b_mae             REAL    , -- outlier-insensitive counterpart to model_b_mse
+    resid_b_sd              REAL    , -- dispersion around that bias
+    resid_b_max             REAL    , -- worst single miss
+    resid_b_dw              REAL    , -- the diagnostic model_b_r2 cannot give: these lines are fitted to centroids or touches and then scored against closes, so r2 is routinely negative
+
+    -- [SUPPORT-RESISTANCE AUTO-CALIBRATION] provenance [added 2026-09-20].
+    -- Populated by sr_levels only; NULL for the other 10 sources. sr_1..sr_8
+    -- are NOT duplicated here -- they already reach Postgres through
+    -- market_data's 95 columns. What was being lost is WHY those levels:
+    -- which sample, what dispersion, what bucket width.
+    sr_fractals_n           INTEGER , -- fractals the Freedman-Diaconis calibration was computed from; a small N means a wide, unreliable step
+    sr_q25                  REAL    , -- 25th percentile of that fractal sample
+    sr_q75                  REAL    , -- 75th percentile
+    sr_iqr                  REAL    , -- interquartile range; the dispersion the bucket width is derived from
+    sr_optimal_step         REAL    , -- auto-calibrated bucket width. THE field: every sr_1..sr_8 level in market_data is a bucket of this size, and nothing downstream could previously tell how wide they were
+    sr_macro_clusters       INTEGER , -- clusters found before the 8-slot pipeline truncation; > 8 means levels were dropped
+    sr_nearest_resistance   REAL    , -- closest level above the live close
+    sr_nearest_support      REAL    , -- closest level below
+    sr_dist_resistance_pts  INTEGER , -- distance to it in POINTS, not price -- the indicator's own unit, kept as exported
+    sr_dist_support_pts     INTEGER , -- distance to it in POINTS
+
     config_hash         TEXT    NOT NULL,   -- sha256 of the normalised params block
     config_params       TEXT    NOT NULL,   -- JSON; the gateway creates indicator_configs on first sight
     synced_at           INTEGER,            -- NULL = not yet pushed

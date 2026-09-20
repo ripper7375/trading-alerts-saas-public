@@ -185,7 +185,28 @@ STAT_COLUMNS = [
     'model_b_n', 'model_b_r2', 'model_b_mse', 'model_b_var_ratio',
     'model_b_skew', 'model_b_kurt',
     'uoedt_offset', 'loedt_offset', 'containment_n', 'containment_count',
-    'containment_rate', 'config_hash', 'config_params',
+    'containment_rate',
+    # extended statistics [added 2026-09-20]
+    'window_span_bars', 'visual_window_bars', 'bars_available',
+    'leftmost_bar_index', 'line_span_bars', 'baseline_coverage_n',
+    'baseline_coverage_rate', 'centroids_used', 'crossings_in_window_n',
+    'first_crossing_ts', 'last_crossing_ts', 'live_close',
+    'baseline_value', 'uoedt_value', 'loedt_value',
+    'dist_to_baseline', 'dist_to_uoedt', 'dist_to_loedt',
+    'channel_position', 'window_high', 'window_low',
+    'window_range', 'channel_width', 'channel_asymmetry',
+    'breach_above_n', 'breach_below_n', 'max_excursion_above',
+    'max_excursion_below', 'resid_a_n', 'resid_a_mean',
+    'resid_a_mae', 'resid_a_sd', 'resid_a_max',
+    'resid_a_dw', 'resid_b_n', 'resid_b_mean',
+    'resid_b_mae', 'resid_b_sd', 'resid_b_max',
+    'resid_b_dw',
+    # sr_levels calibration provenance [added 2026-09-20]
+    'sr_fractals_n', 'sr_q25', 'sr_q75',
+    'sr_iqr', 'sr_optimal_step', 'sr_macro_clusters',
+    'sr_nearest_resistance', 'sr_nearest_support', 'sr_dist_resistance_pts',
+    'sr_dist_support_pts',
+    'config_hash', 'config_params',
 ]
 STAT_MAX_ROWS_PER_CYCLE = 200          # a cycle produces at most 20 (10 sources x 2 TF)
 REJECTED_STATS_FILE = DB_PATH.parent / 'rejected_statistics.jsonl'
