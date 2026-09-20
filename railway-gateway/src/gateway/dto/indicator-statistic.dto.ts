@@ -33,6 +33,7 @@ export class IndicatorStatisticDto {
     'fractal_edt',
     'resistance',
     'support',
+    'sr_levels',
   ])
   source!: string;
 
@@ -158,6 +159,214 @@ export class IndicatorStatisticDto {
   containment_rate?: number | null;
 
   @IsString()
+  @IsOptional()
+  _extended_note?: string;
+
+  @IsInt()
+  @IsOptional()
+  window_span_bars?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  visual_window_bars?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  bars_available?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  leftmost_bar_index?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  line_span_bars?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  baseline_coverage_n?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  baseline_coverage_rate?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  centroids_used?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  crossings_in_window_n?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  first_crossing_ts?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  last_crossing_ts?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  live_close?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  baseline_value?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  uoedt_value?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  loedt_value?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  dist_to_baseline?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  dist_to_uoedt?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  dist_to_loedt?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  channel_position?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  window_high?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  window_low?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  window_range?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  channel_width?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  channel_asymmetry?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  breach_above_n?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  breach_below_n?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  max_excursion_above?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  max_excursion_below?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  resid_a_n?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_a_mean?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_a_mae?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_a_sd?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_a_max?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_a_dw?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  resid_b_n?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_b_mean?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_b_mae?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_b_sd?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_b_max?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  resid_b_dw?: number | null;
+
+  @IsString()
+  @IsOptional()
+  _sr_note?: string;
+
+  @IsInt()
+  @IsOptional()
+  sr_fractals_n?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_q25?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_q75?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_iqr?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_optimal_step?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  sr_macro_clusters?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_nearest_resistance?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_nearest_support?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  sr_dist_resistance_pts?: number | null;
+
+  @IsInt()
+  @IsOptional()
+  sr_dist_support_pts?: number | null;
+
+  @IsString()
   config_hash!: string;
 
   @IsObject()
@@ -203,6 +412,58 @@ export const INDICATOR_STATISTIC_DTO_FIELDS = [
   'containment_n',
   'containment_count',
   'containment_rate',
+  '_extended_note',
+  'window_span_bars',
+  'visual_window_bars',
+  'bars_available',
+  'leftmost_bar_index',
+  'line_span_bars',
+  'baseline_coverage_n',
+  'baseline_coverage_rate',
+  'centroids_used',
+  'crossings_in_window_n',
+  'first_crossing_ts',
+  'last_crossing_ts',
+  'live_close',
+  'baseline_value',
+  'uoedt_value',
+  'loedt_value',
+  'dist_to_baseline',
+  'dist_to_uoedt',
+  'dist_to_loedt',
+  'channel_position',
+  'window_high',
+  'window_low',
+  'window_range',
+  'channel_width',
+  'channel_asymmetry',
+  'breach_above_n',
+  'breach_below_n',
+  'max_excursion_above',
+  'max_excursion_below',
+  'resid_a_n',
+  'resid_a_mean',
+  'resid_a_mae',
+  'resid_a_sd',
+  'resid_a_max',
+  'resid_a_dw',
+  'resid_b_n',
+  'resid_b_mean',
+  'resid_b_mae',
+  'resid_b_sd',
+  'resid_b_max',
+  'resid_b_dw',
+  '_sr_note',
+  'sr_fractals_n',
+  'sr_q25',
+  'sr_q75',
+  'sr_iqr',
+  'sr_optimal_step',
+  'sr_macro_clusters',
+  'sr_nearest_resistance',
+  'sr_nearest_support',
+  'sr_dist_resistance_pts',
+  'sr_dist_support_pts',
   'config_hash',
   'config_params',
 ] as const;
