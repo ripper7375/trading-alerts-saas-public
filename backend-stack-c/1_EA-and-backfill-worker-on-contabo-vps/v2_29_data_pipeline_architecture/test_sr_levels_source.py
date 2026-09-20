@@ -362,25 +362,80 @@ def test_open_db_widens_a_pre_change_database():
 # ============================================================
 # 5. Statistics exclusion (deliberate) and contract parity
 # ============================================================
-def test_sr_levels_is_excluded_from_stat_sources():
-    """Re-enrolling it would 400 the whole batched statistics POST."""
-    assert SOURCE not in collector.STAT_SOURCES, (
-        'sr_levels back in STAT_SOURCES: its _Statistic.txt vocabulary has no '
-        'home in STAT_FIELDS, and the stats gateway contract pins `source` to a '
-        'closed enum that does not include it -- one element would reject the '
-        'entire batch. See the comment above STAT_SOURCES.')
-    assert len(collector.STAT_SOURCES) == 10, collector.STAT_SOURCES
+def test_sr_levels_is_enrolled_in_stat_sources():
+    """Enrolled 2026-09-20, after BOTH blockers the old guard named were closed.
+
+    This test used to assert the opposite, and it is worth recording why it
+    flipped rather than quietly rewriting it. The 2026-09-16 exclusion gave two
+    reasons, and enrolment was conditional on clearing both:
+
+      1. "its _Statistic.txt vocabulary has no home in STAT_FIELDS" -- it now
+         has ten section-scoped rules ([SUPPORT-RESISTANCE ...) writing the
+         sr_* calibration columns.
+      2. "the contract pins `source` to a closed enum that does not include it"
+         -- the enum is now 11 and includes it.
+
+    The enum is STILL closed and the POST is STILL batched, so the ordering
+    hazard the old test protected against is real and unchanged: the gateway
+    must deploy before the VPS starts sending this source, or one element 400s
+    the whole request. That constraint moved into the migration header and the
+    comment above STAT_SOURCES; it did not go away.
+    """
+    assert SOURCE in collector.STAT_SOURCES, (
+        'sr_levels dropped out of STAT_SOURCES -- its statistic file would be '
+        'discarded in full again, losing the calibration provenance (Q25/Q75, '
+        'IQR, Optimal Step, fractal sample) that exists nowhere else.')
+    assert len(collector.STAT_SOURCES) == 11, collector.STAT_SOURCES
 
 
-def test_stats_contract_enum_still_excludes_sr_levels():
-    """If the enum ever gains sr_levels, the exclusion above should be revisited."""
+def test_sr_levels_vocabulary_has_collector_rules():
+    """The first of the two blockers, asserted rather than assumed closed."""
+    rules = {label for label, sect, _c, _t in collector.STAT_FIELDS
+             if sect is not None and sect.startswith('[SUPPORT-RESISTANCE')}
+    for label in ('Q25 (25th percentile)', 'Q75 (75th percentile)', 'IQR',
+                  'Optimal Step', 'Fractals Sample (N)', 'Total Macro Clusters',
+                  'Nearest Resistance', 'Nearest Support',
+                  'Distance to Resistance', 'Distance to Support'):
+        assert label in rules, f'{label!r} has no STAT_FIELDS rule'
+
+
+def test_sr_levels_window_bars_has_no_trailing_parenthetical():
+    """`Window Bars: 67 (Max Cap: 3000)` coerces to None, silently voiding it.
+
+    Verified against the real coercion, not by reading it: this is the kind of
+    defect that only shows up as a column that has been NULL for weeks.
+    """
+    assert collector._stat_value('67 (Max Cap: 3000)', 'int') is None
+    src = (HERE / 'mq5' / 'SupportAndResistantAutoCalibration_v2_29.mq5').read_text(
+        encoding='utf-8')
+    assert '(Max Cap: %d)' not in src, (
+        'Window Bars carries a trailing parenthetical again -- it will parse to '
+        'None for every row now that this source is ingested')
+    assert '"Max Window Bars: "' in src, 'the cap must still be exported, as its own field'
+
+
+def test_stats_contract_enum_includes_sr_levels_and_matches_stat_sources():
+    """The second blocker, and the ordering hazard that outlived it.
+
+    The enum is CLOSED (`additionalProperties: false`, `forbidNonWhitelisted`)
+    and the statistics POST is an ARRAY. A sender using a value the deployed
+    gateway does not know 400s the WHOLE request, and the push worker
+    quarantines every element in that batch AND stamps synced_at -- recoverable
+    only by hand. So the enum and STAT_SOURCES must agree exactly: a source the
+    collector stages but the contract does not list is a latent outage for the
+    other ten, not just for itself.
+    """
     contract = json.loads(
         (HERE / 'gateway_contract_indicator_statistics.schema.json')
         .read_text(encoding='utf-8'))
     enum = contract['properties']['source']['enum']
-    assert SOURCE not in enum, (
-        'the statistics contract now accepts sr_levels -- STAT_SOURCES and '
-        'STAT_FIELDS should be revisited together with it')
+    assert SOURCE in enum, 'the statistics contract no longer accepts sr_levels'
+    assert sorted(enum) == sorted(collector.STAT_SOURCES), (
+        f'contract enum and STAT_SOURCES disagree: '
+        f'{sorted(set(enum) ^ set(collector.STAT_SOURCES))}')
+    assert contract.get('additionalProperties') is False, (
+        'additionalProperties must stay false: an unknown field has to 400, '
+        'not slip silently into the database')
 
 
 def test_worker_contract_matches_the_gateway_schema_exactly():
