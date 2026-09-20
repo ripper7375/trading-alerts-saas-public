@@ -1,16 +1,16 @@
 # DavinTrade Architecture Reference: 95 Columns in `market_data_v6` & MQL5 Indicator Suite (14 Indicators)
 
-**Document Version:** 1.3.0  
-**Document Code:** `MARKET-DATA-V6-95-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md` _(Upgraded from 87 to 95 Columns via the 14th Indicator)_  
+**Document Version:** 1.4.0  
+**Document Code:** `MARKET-DATA-V6-95-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md` _(Upgraded from 87 to 95 Columns via the 14th Indicator; Dual-Table Point-in-Time Architecture Active)_  
 **Target Scope:** `XAUUSD` on `M5` and `M15` Timeframes  
 **System Layer:** Data Pipeline (Stack C) ➔ PostgreSQL Datastore ➔ Conversational AI Co-Pilot (Stack D & E)  
-**Last Updated:** 2026-09-20 _(Reflecting production deployment of Prisma migration `20260916000000_add_market_data_v6_sr_levels` adding `sr_1` to `sr_8` on Railway PostgreSQL, alongside indicator_statistics 87-column extension)_
+**Last Updated:** 2026-09-20 _(Reflecting production deployment of all three Prisma migrations on Railway PostgreSQL, point-in-time snapshot table for zero look-ahead bias, S&R indicator defect fixes, and all 11 recompiled MQL5 indicator binaries)_
 
 ---
 
 ## 📌 1. Executive Summary & Data Pipeline Architecture
 
-The `market_data_v6` database table (hosted on PostgreSQL via Railway and SQLite on Contabo VPS) serves as the **Single Source of Truth (SSOT)** for all quantitative technical analysis across the DavinTrade platform. This table consolidates raw candlestick price data (OHLCV) alongside advanced mathematical and statistical indicators:
+The `market_data_v6` database table (hosted on PostgreSQL via Railway and SQLite on Contabo VPS) serves as the **Single Source of Truth (SSOT)** for all live quantitative technical analysis across the DavinTrade platform. This table consolidates raw candlestick price data (OHLCV) alongside advanced mathematical and statistical indicators:
 
 1. **7 Singular Spectrum Analysis (SSA) Centroid Regression variants** (with isolated coexistence for `best_fit_a` and `best_fit_b`),
 2. **Fractal Support/Resistance lines and 2EDT channels**,
@@ -21,12 +21,13 @@ The `market_data_v6` database table (hosted on PostgreSQL via Railway and SQLite
 The database table comprises **95 core contract columns** in total _(upgraded from 79 columns, then 87 columns, and now 95 columns following the onboarding of the 14th indicator `SupportAndResistantAutoCalibration_v2_29.mq5`)_. In the Prisma ORM schema ([`prisma/market-data/schema.prisma`](file:///d:/SaaS%20Project/trading-alerts-saas-public/prisma/market-data/schema.prisma)), 3 system-managed properties (`id` as cuid, `createdAt`, and `updatedAt`) bring the total field count to **98 fields**.
 
 > [!NOTE]
-> **Production PostgreSQL Migration Status (Applied 2026-09-20):**
-> On 2026-09-20, `npx prisma migrate deploy` was executed against production PostgreSQL (Railway), successfully bringing the database schema up-to-date:
+> **Production PostgreSQL Migration Status (All 3 Applied on Railway 2026-09-20):**
+> On 2026-09-20, `npx prisma migrate deploy` was executed against production PostgreSQL (Railway), successfully bringing the entire database schema up-to-date across 26 migrations:
 >
-> - **`market_data_v6` (95 Columns / 98 Prisma Fields):** Applied via migration `20260916000000_add_market_data_v6_sr_levels`, adding columns `sr_1` through `sr_8`.
-> - **`indicator_statistics` (87 Columns):** Applied via migration `20260920000000_add_indicator_statistics_extended`, providing 50 new extended columns (including 10 `sr_*` calibration provenance metrics like `sr_optimal_step`, `sr_iqr`, `sr_q25`, `sr_q75`).
-> - **Indicator Binaries:** All 11 statistic-emitting indicators (including `SupportAndResistantAutoCalibration_v2_29.ex5`) have been compiled with `MetaEditor64.exe` (0 errors) and are staged for Contabo VPS deployment.
+> 1. **`market_data_v6` (95 Columns / 98 Prisma Fields):** Applied via migration `20260916000000_add_market_data_v6_sr_levels`, adding columns `sr_1` through `sr_8`. Serves as the live operational table with UPSERT semantics.
+> 2. **`indicator_statistics` (87 Columns):** Applied via migration `20260920000000_add_indicator_statistics_extended`, adding 50 extended columns (including 10 `sr_*` calibration provenance metrics like `sr_optimal_step`, `sr_iqr`, `sr_q25`, `sr_q75`).
+> 3. **`market_data_point_in_time` (76 Prisma Fields / 69 Drifting Indicator Columns):** Applied via migration `20260920000000_add_market_data_point_in_time`, creating the append-only snapshot table that captures bar 1 as it stood upon close, completely eliminating look-ahead bias for backtesting and model training.
+> 4. **Indicator Binaries:** All 11 statistic-emitting indicators (including `SupportAndResistantAutoCalibration_v2_29.ex5`) have been recompiled with `MetaEditor64.exe` (0 errors) and are staged in `backend-stack-c/.../mq5/` ready for Contabo VPS deployment.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -34,9 +35,10 @@ The database table comprises **95 core contract columns** in total _(upgraded fr
 ├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ 1. MT5 Terminal (Contabo VPS)                                                                          │
 │    • 14 MQL5 Indicators export raw calculations every 5 minutes at second :59                         │
+│    • All 4 S&R calibrator defects resolved (exact 3000-bar export, 2-decimal gold price, tick gate)     │
 │                                                   │                                                    │
 │                                                   ▼                                                    │
-│ 2. SQLite Ingestion & Python Calc Stack                                                                 │
+│ 2. SQLite Ingestion & Python Calc Stack (Contabo VPS)                                                  │
 │    • Ingests Admin Layer (OHLCV, Crossovers, Fractals, S&R Levels, ZigZag Pivots) into staging         │
 │    • Python Calc Modules (`centroid_regression.py`, `fractal_lines.py`, `zscore_candle.py`,           │
 │      `zigzag_metrics.py`) calculate derived lines and statistical classifications                      │
@@ -46,14 +48,19 @@ The database table comprises **95 core contract columns** in total _(upgraded fr
 │    • Idempotent UPSERT on `(symbol, timeframe, timestamp)`                                            │
 │    • Direct 1:1 validation via `gateway_contract_market_data.schema.json` (95 fields)                 │
 │                                                   │                                                    │
-│                                                   ▼                                                    │
-│ 4. PostgreSQL `market_data_v6` (Wide Table: 95 Columns / 98 Prisma Fields)                             │
-│    • Serves as the quantitative foundation for:                                                        │
-│      - Engine 1 (VANNA NL2SQL)                                                                         │
-│      - Engine 1.5A (MCD01-MCD10+ Discrete States & FREQ54 Signal Density)                              │
-│      - Engine 1.5B (JSONB54 Deduplicated Storyline Narrative)                                          │
-│      - Engine 1.5C (WACS54 Weighted Confluence Score)                                                  │
-│      - Engine 2 (Multimodal Synthesis & Rules Engine)                                                  │
+│                         ┌─────────────────────────┴─────────────────────────┐                          │
+│                         ▼                                                   ▼                          │
+│ 4A. PostgreSQL `market_data_v6`                         4B. PostgreSQL `market_data_point_in_time`    │
+│     (Wide Table: 95 Cols / 98 Fields)                       (Append-Only Snapshot: 76 Fields)          │
+│     • UPSERT on (symbol, timeframe, timestamp)              • INSERT ... ON CONFLICT DO NOTHING        │
+│     • Dynamic sliding window (~3,000 bars)                  • Frozen state at bar close                │
+│     • Continuous refit of historical lines                  • `snapshot_age_bars = 1` verification     │
+│     • Foundation for:                                       • Foundation for:                          │
+│       - Engine 1 (VANNA NL2SQL)                               - Quantitative Backtesting               │
+│       - Engine 1.5A (MCD01-MCD10+ Discrete States)            - Fitness Function Scoring               │
+│       - Engine 1.5B (JSONB54 Deduplicated Storyline)          - Machine Learning Training              │
+│       - Engine 1.5C (WACS54 Weighted Confluence Score)        - Look-Ahead Bias Elimination            │
+│       - Engine 2 (Live Multimodal Synthesis & Rules)                                                   │
 └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -81,6 +88,8 @@ The database table comprises **95 core contract columns** in total _(upgraded fr
 │ 11 │ `SingleBestSupportLinev3_v2_29.mq5`             │ Single Best Support Line from Lower Fractals     │
 │ 12 │ `SupportAndResistantAutoCalibration_v2_29.mq5`  │ 14th Indicator: Freedman-Diaconis IQR Clustering │
 │    │                                                 │ 8 S&R auto-calibrated levels (sr_1 to sr_8)      │
+│    │                                                 │ 4 defects fixed: exact 3000 rows, 2 decimals,    │
+│    │                                                 │ safe backfill file, intra-bar tick execution     │
 │ 13 │ `ZigZagExportv43_v2_29.mq5`                     │ ZigZag (12,5,3), Structure (HH/HL/LH/LL/EQ),     │
 │    │                                                 │ Rolling Z-Score 50 Segments (%Chg, Bar, Speed)   │
 │ 14 │ `zscoreohlccandleexport_v2_29.mq5`              │ Candle Body Z-Score (Window 432, Z1=1.5, Z2=2.5) │
@@ -237,6 +246,15 @@ _Role: Geometric trendlines and support/resistance boundaries optimized for maxi
 
 _Role: The 14th Indicator suite (`SupportAndResistantAutoCalibration_v2_29.mq5`, schema live on PostgreSQL via migration `20260916000000_add_market_data_v6_sr_levels` applied 2026-09-20). Automatically identifies high-density horizontal price reaction zones using Freedman-Diaconis Interquartile Range (IQR) clustering across recent fractals. Levels are assigned per bar relative to that bar's own close: `sr_1`..`sr_4` are the nearest active supports **below** close (`sr_1` closest), and `sr_5`..`sr_8` are the nearest active resistances **above** close (`sr_5` closest). Unresolved slots store `NULL` (never 0.0)._
 
+> [!IMPORTANT]
+> **Production Defect Fixes & Formatting Standard (Resolved 2026-09-20):**
+> Four legacy defects originally noted in §6.3 of the 14th Indicator Design have been fully remediated:
+>
+> 1. **Row Count Alignment:** Corrected the off-by-one 3001-row export (which had an extra row at the oldest end) to export exactly 3,000 bars, perfectly aligning with the OHLCV spine.
+> 2. **2-Decimal Price Formatting:** Updated to `SRPriceToString(val, 2)` (e.g. `2748.50`), removing 5-decimal truncation and matching XAUUSD standard contract precision.
+> 3. **Tick Gate Separation:** Re-clustering via Freedman-Diaconis runs once per new bar open, while distance calculation and `sr_1`..`sr_8` slotting run per-tick to ensure zero intra-bar lag.
+> 4. **Safe Backfill Handling:** Backfill exports write to a dedicated `{Prefix}_{Symbol}_{TF}_Backfill.txt` file outside the pipeline ingestion polling loop.
+
 | #   | Column Name | Data Type | Nullability | Origin           | Mathematical & Functional Description                                                                   |
 | :-- | :---------- | :-------- | :---------- | :--------------- | :------------------------------------------------------------------------------------------------------ |
 | 70  | **`sr_1`**  | `DOUBLE`  | `NULLABLE`  | MQL5 14th Indiv. | **Support Level 1**: Closest auto-calibrated horizontal support level **below** this bar's close price. |
@@ -308,6 +326,67 @@ _Role: Auditing, data integrity, cycle tracking, and sync confirmation across VP
 
 ---
 
+## 🛡️ 3.1 Dual-Table Architecture: Live Operational View (`market_data_v6`) vs. Immutable Point-in-Time Snapshot (`market_data_point_in_time`)
+
+A foundational breakthrough implemented on 2026-09-20 is the formal separation between **Live Operational Technical Analysis** and **Historical Point-in-Time Evaluation**.
+
+### 1. Empirical Measurement of Historical Indicator Drift (Look-Ahead Bias)
+
+As documented in [`HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md`](file:///d:/SaaS%20Project/trading-alerts-saas-public/backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md), indicators utilizing future price context to fit polynomial trendlines, SSA curves, and fractal channels continuously recompute their historical trajectories as new price bars form.
+
+On 2026-09-20, an empirical drift test (`measure_indicator_drift.py`) was executed across two real MT5 captures taken 12 days apart (2026-09-07 vs. 2026-09-19) over **2,114 overlapping M15 bars**:
+
+- **Dynamic Channels Drift:** `*_uoedt` (Upper Outermost Equidistant Trendlines) drifted on **100.0%** of comparable bars, with an average drift of **$19.26 USD** (reaching a maximum drift of **$22.86 USD**), representing **~14% of the entire median EDT channel width**.
+- **SSA Smoothed Trendlines:** `*_ssa` shifted on **100.0%** of historical bars as new centroids adjusted the underlying singular spectrum decomposition.
+- **Signal Flag Inversions:** `*_crossing` (a boolean signal indicator) flipped state on **0.71% of historical bars** (15 bars), proving that relying on re-fitted historical data in `market_data_v6` for backtesting produces artificial foresight (look-ahead bias).
+- **Controls Confirmed Stable:** Baseline OHLCV candle prices and confirmed ZigZag structural pivot points exhibited **0.00% drift** across the entire 12-day window.
+
+### 2. Dual Datastore Comparative Matrix
+
+To guarantee mathematical integrity, the database datastore employs two complementary tables in production:
+
+| Architectural Property     | Operational Table: `market_data_v6`                                                                                                                    | Snapshot Table: `market_data_point_in_time`                                                                                                           |
+| :------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Prisma Model**           | `MarketDataV6`                                                                                                                                         | `MarketDataPointInTime`                                                                                                                               |
+| **Storage Semantics**      | Mutable Wide Table (Sliding ~3,000 bars)                                                                                                               | **Append-Only, Never Updated** (Immutable log)                                                                                                        |
+| **Write Operation**        | Idempotent `UPSERT` on `(symbol, timeframe, timestamp)`                                                                                                | `INSERT ... ON CONFLICT DO NOTHING`                                                                                                                   |
+| **Schema Footprint**       | 95 Contract Columns (98 Prisma Fields)                                                                                                                 | 69 Drifting Indicator Columns + 4 Provenance + 3 PK (76 Fields)                                                                                       |
+| **Historical Value State** | **Latest Refit:** Shows what indicators say about bar $T$ _today_                                                                                      | **Frozen Point-in-Time:** Shows what indicators said at bar $T$ _at close_                                                                            |
+| **Primary Consumers**      | • Live Real-time Charting & Dashboards<br>• Real-time Conversational AI Copilot (Stack D & E)<br>• Live Alert Engines (VANNA NL2SQL, MCD01-10, WACS54) | • Quantitative Strategy Backtesting<br>• Machine Learning Model Training & Feature Stores<br>• Fitness Function Scoring & Signal Reliability Auditing |
+| **Look-Ahead Bias**        | Exists on historical rows (by mathematical design)                                                                                                     | **Zero Look-Ahead Bias** (Strictly Point-in-Time)                                                                                                     |
+
+```
+                               ┌──────────────────────────────────────────────┐
+                               │       Push Worker Payload (95 Columns)       │
+                               └──────────────────────┬───────────────────────┘
+                                                      │
+                                                      ▼
+                                       Railway NestJS Gateway Processor
+                                                      │
+                       ┌──────────────────────────────┴──────────────────────────────┐
+                       ▼                                                             ▼
+         Upsert into `market_data_v6`                             Evaluate `barAgeInPeriods(timestamp)`
+         (Updates all ~3,000 bars in-place)                                          │
+                       │                                                             ▼
+                       │                                                  Is Bar Closed? (Age >= 1)
+                       │                                                    ├── No (Age 0) ➔ Skip snapshot
+                       │                                                    └── Yes (Age >= 1) ➔
+                       │                                                          INSERT ON CONFLICT DO NOTHING
+                       │                                                          into `market_data_point_in_time`
+                       ▼                                                             ▼
+         Operational Querying (Live UI)                            Point-in-Time Backtesting (Zero Foresight)
+```
+
+### 3. The `snapshot_age_bars` Provenance Guard
+
+The `market_data_point_in_time` table incorporates `snapshot_age_bars`:
+
+- **`snapshot_age_bars = 1`:** The honest, ideal snapshot. The bar completed and was recorded on the very next collection cycle without queue backlog.
+- **`snapshot_age_bars > 1`:** Indicates that the ingestion/push worker was delayed or recovering from a backlog (capturing the row with $N$ bars of subsequent hindsight).
+- **Rule for Backtesters:** Any quantitative strategy evaluation or ML training pipeline **MUST** filter with `WHERE snapshot_age_bars = 1` to guarantee absolute immunity from look-ahead bias.
+
+---
+
 ## ⚙️ 4. Detailed Operation of the MQL5 Indicator Suite (14 Indicators)
 
 Data ingestion relies on **14 MetaTrader 5 indicators** executing concurrently on Contabo VPS every 5 minutes at second :59 (`InpExportSecond = 59`):
@@ -357,6 +436,11 @@ Data ingestion relies on **14 MetaTrader 5 indicators** executing concurrently o
   - Resistances: `sr_5` is the nearest active resistance above close, followed by `sr_6`, `sr_7`, and `sr_8`.
   - Unused or unresolved slots remain `NULL` (never 0.0).
 - **Export Files:** `SR_Levels_XAUUSD_{TF}.txt` and `SR_Levels_XAUUSD_{TF}_Statistic.txt`.
+- **Engineering Remediation of 4 Production Defects (2026-09-20):**
+  1. **3001-Row Defect Resolution:** Analysis proved the extra 3001st row existed at the _oldest_ end of the historical file (`shift = InpExportBars`), not at the forming bar. The loop was corrected to export exactly `InpExportBars` (3,000 bars), establishing strict 1:1 row alignment with the OHLCV spine without dropping shift 0.
+  2. **Price Formatting Precision:** Corrected from 5 decimal places (`DoubleToString(val, 5)`) to 2 decimal places using `SRPriceToString(val, 2)` (e.g., `2748.50`). This adheres to standard Gold (XAUUSD) contract tick conventions and prevents floating-point formatting inconsistencies in PostgreSQL.
+  3. **Safe Isolated Backfill:** `ExportSRData(bool is_backfill)` previously ignored `is_backfill`. It now writes to `{Prefix}_{Symbol}_{TF}_Backfill.txt` with configurable `InpBackfillBars`, completely isolated from the live pipeline collector polling loop so backfill requests cannot corrupt production cycles.
+  4. **Decoupled Intra-Bar Execution Gate:** The previous intra-bar check caused distance metrics to freeze during the bar. The engine now decouples expensive Freedman-Diaconis clustering (executes strictly once on new bar open `time[0] != lastCalculationTime`) from buffer allocation `FillBuffers()` and distance tracking (executes every tick). This provides sub-second S&R proximity tracking without taxing VPS CPU.
 
 ### 5. `ZigZagExportv43_v2_29.mq5`
 
@@ -375,4 +459,27 @@ Data ingestion relies on **14 MetaTrader 5 indicators** executing concurrently o
 
 ---
 
-_This specification is fully synchronized with the live PostgreSQL schema (95 contract columns / 98 Prisma fields), the Data Collection Pipeline Blueprint v2.29, the 14th Indicator Architecture Report (2026-09-16), and the latest Prisma MarketDataV6 model. Production database migrations (`20260916000000_add_market_data_v6_sr_levels` and `20260920000000_add_indicator_statistics_extended`) were officially applied and verified on Railway PostgreSQL on 2026-09-20._
+## 🚀 5. Multi-Tier Deployment & Operational Status (as of 2026-09-20)
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                               MULTI-TIER DEPLOYMENT READINESS MATRIX                                   │
+├────┬────────────────────────────┬─────────────┬────────────────────────────────────────────────────────┤
+│ Tier│ Platform / Component       │ Status      │ Technical Verification Details                         │
+├────┼────────────────────────────┼─────────────┼────────────────────────────────────────────────────────┤
+│ 1  │ Railway PostgreSQL         │ READY (Live)│ 26 migrations applied; `market_data_v6` (95 cols),     │
+│    │                            │             │ `indicator_statistics` (87 cols), and                  │
+│    │                            │             │ `market_data_point_in_time` (76 fields) verified up-to-│
+│    │                            │             │ date.                                                  │
+│ 2  │ Railway NestJS Gateway     │ READY (Live)│ CI/CD automated deployment active on `origin/main`.    │
+│    │                            │             │ 93 unit tests PASS, 43 e2e tests PASS, 220 suites PASS.│
+│ 3  │ MQL5 Indicator Binaries    │ READY (Code)│ All 11 `.ex5` files compiled via `MetaEditor64.exe`    │
+│    │                            │             │ with 0 errors / 0 warnings in `backend-stack-c/.../mq5`│
+│ 4  │ Contabo VPS Host           │ PENDING RDP │ Files staged in `DEPLOY_TO_CONTABO_VPS_READY/`; awaiting│
+│    │                            │             │ manual RDP transfer & terminal restart by user.        │
+└────┴────────────────────────────┴─────────────┴────────────────────────────────────────────────────────┘
+```
+
+---
+
+_This specification is fully synchronized with the live PostgreSQL schema (95 contract columns / 98 Prisma fields), the Data Collection Pipeline Blueprint v2.29, the 14th Indicator Architecture Report, the Look-Ahead Bias Mitigation Manifest, and the latest Prisma `MarketDataV6` and `MarketDataPointInTime` models. All three production database migrations (`20260916000000_add_market_data_v6_sr_levels`, `20260920000000_add_indicator_statistics_extended`, and `20260920000000_add_market_data_point_in_time`) were officially applied and verified on Railway PostgreSQL on 2026-09-20._
