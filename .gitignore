@@ -13,6 +13,10 @@
 # Allow .aider.conf.yml to be committed (configuration file)
 !.aider.conf.yml
 
+# Local staging packages
+DEPLOY_TO_CONTABO_VPS_READY/
+DEPLOY_TO_CONTABO_VPS_READY.zip
+
 # ============================================================================
 # ENVIRONMENT VARIABLES (CRITICAL - NEVER COMMIT SECRETS!)
 # ============================================================================

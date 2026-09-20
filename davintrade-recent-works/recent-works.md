@@ -56,6 +56,10 @@ D:\SaaS Project\trading-alerts-saas-public\frontend-ui-fix-2-manifest-work-compl
 
 D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_data_pipeline_architecture\frozen-baseline-and-centroid-watchdog-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_data_pipeline_architecture\statistic-data-pipeline-modification-manifest-work-completion.md
+
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_data_pipeline_architecture\S&R-calibrator-indicator-and-look-ahead-bias-manifest-work-completion.md
+
 =================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder

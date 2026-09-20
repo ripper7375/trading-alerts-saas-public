@@ -6,9 +6,8 @@
 indicator was onboarded on 2026-09-16, and (2) address the look-ahead bias documented in
 `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md`, starting with the §6 magnitude experiment that
 document has carried as unrun since 2026-09-09.
-**Status:** **Part 1 complete and compiled (0 errors). Part 2 measured and built; migration
-authored, NOT applied; gateway NOT deployed.** Nothing about production behaviour has changed yet
-— see §6.
+**Status:** **Part 1 & 2 Cloud layers complete: Indicators compiled (0 errors), DB migration applied, Gateway deployed. Pending Contabo VPS deployment.**
+Database migration `20260920000000_add_market_data_point_in_time` was applied to production PostgreSQL (Railway) on 2026-09-20 13:20. Commits pushed to `origin/main` (Railway auto-deploy active). All 11 `.ex5` binaries in `mq5/` are up to date. Deployment staging directory organized at `DEPLOY_TO_CONTABO_VPS_READY/`. The only remaining task is transferring the binaries and scripts to the Contabo VPS — see §6.
 
 ---
 
@@ -284,6 +283,7 @@ retroactively on a frozen terminal.**
 | Monolith                                     | `tsc` clean; `npm run test:ci` **220/220 suites, 2881/2881 tests** — exact baseline match, zero regressions                                                 |
 | Prisma                                       | both schemas validate; `MarketDataPointInTime` field lists identical across both copies (asserted by test, both directions)                                 |
 | Migration vs. `prisma migrate diff`          | **byte-identical** after comment stripping, including index emission order                                                                                  |
+| Production PostgreSQL Migration              | **26/26 applied**; `20260920000000_add_market_data_point_in_time` applied via `prisma migrate deploy`; schema up to date                                    |
 | Generator self-check                         | `generate_point_in_time_schema.py --check` — 69 registry-derived columns present in both schemas; leak check confirms no stable-source column crept in      |
 | Real statistic-file round trip               | `SR_Levels_XAUUSD_M15_Statistic.txt` through the real collector parser → **16 fields**, all 10 `sr_*` values present despite the ASCII-hyphen header        |
 
@@ -362,36 +362,49 @@ diff`'s own output.
 
 ## 6. Deployment Status & Execution Plan
 
-**Current status:** Part 1 is compiled and ready to deploy. Part 2 is code-complete and **inert** —
-the table does not exist, the gateway has not been deployed, and `market_data_v6` behaves exactly as
-it did yesterday.
+**Current status:** **Cloud & Database layers are complete.** The PostgreSQL migration is applied, the
+Railway Gateway is deployed from `main`, and all 11 `.ex5` indicator binaries in `mq5/` have been recompiled.
+The deployment files have been consolidated into `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/DEPLOY_TO_CONTABO_VPS_READY/`.
+**The only remaining task is transferring the indicators and scripts to the Contabo VPS.**
 
-### Part 1 — the S&R indicator
+### Part 1 — Database & Cloud Gateway (COMPLETED)
 
-1. ✅ **Compiled 2026-09-20 12:42** via `MetaEditor64.exe` CLI — **0 errors, 0 warnings**. Read the
-   log's `Result:` line, not the exit code (§5).
-2. ⬜ **Transfer `SupportAndResistantAutoCalibration_v2_29.ex5` to the VPS terminal** and reattach
-   to XAUUSD M5 + M15.
-3. ⬜ **Confirm the export depth changed.** A fresh `SR_Levels_XAUUSD_M5.txt` must have **3000** data
-   rows, not 3001, and its newest timestamp must still equal OHLCV's. If the newest row is missing,
-   stop — every cycle will be rejected.
-4. ⬜ **Optional:** `InpBackfillBars` defaults to `0` (all loaded history). The Backfill button now
-   writes `SR_Levels_XAUUSD_{TF}_Backfill.txt`, which the collector ignores.
+1. ✅ **Migration Applied to Production Postgres (2026-09-20 13:20):**
+   - Executed `npx prisma migrate deploy --schema=prisma/market-data/schema.prisma`.
+   - Migration `20260920000000_add_market_data_point_in_time` applied cleanly.
+   - All 26 migrations applied; `Database schema is up to date!` on production Railway PostgreSQL.
+   - Table `market_data_point_in_time` is live with 69 snapshot columns, keys, and indexes.
 
-**No collector, schema or contract change accompanies this.** Part 1 is indicator-side only.
+2. ✅ **Deploy `railway-gateway` (2026-09-20):**
+   - Commits `5882de08` through `9c84e74b` pushed to `origin/main` on GitHub.
+   - Railway auto-deploy active with the new `point-in-time-snapshot` processor.
 
-### Part 2 — the snapshot lane. ⚠ ORDER IS LOAD-BEARING
+### Part 2 — Indicators & Contabo VPS Deployment (PENDING ACTION)
 
-1. ⬜ **Apply the migration to production** (`maglev.proxy.rlwy.net:58290`).
-   Run `prisma migrate status` **first** — `migrate deploy` applies _every_ pending migration in
-   history order, not just the intended one. This has ridden along unnoticed before.
-2. ⬜ **Then** let `railway-gateway` deploy — it auto-deploys from `main`.
+_(Organized by Davin: redundant root staging was removed, and deployment files are consolidated at `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/DEPLOY_TO_CONTABO_VPS_READY/`)_
 
-Reversing the order corrupts nothing: the snapshot write is wrapped and cannot fail the
-`market_data` upsert; it logs a warning and continues. But **every bar missed in between is gone for
-good**, because the honest value exists exactly once and there is no backfill for it.
+1. ✅ **Indicators Recompiled (2026-09-20 12:42):**
+   - All 11 `.ex5` files in `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/` are up to date (including `SupportAndResistantAutoCalibration_v2_29.ex5` 63,180 bytes, 0 errors, 0 warnings).
 
-3. ⬜ **Verify it is actually writing**, not merely deployed:
+2. ⬜ **Transfer Files to Contabo VPS (via Remote Desktop / mstsc):**
+   Follow the guide in `DEPLOY_TO_CONTABO_VPS_READY/DEPLOY_INSTRUCTIONS.txt`:
+   - **Step A:** Copy all 11 `.ex5` files from `mq5/` to:
+     - `C:\MT5-A\MQL5\Indicators\`
+     - `C:\MT5-B\MQL5\Indicators\`
+     - (and any other active MT5 terminals on the VPS)
+   - **Step B:** Copy the 2 Python scripts from `DEPLOY_TO_CONTABO_VPS_READY/Python_Scripts/`:
+     - `export_collector_validator_v2.py`
+     - `backfill_worker_api_gateway_v5.py`
+       to the VPS scripts directory.
+   - **Step C:** Restart MT5 terminals and Collector & Push Worker background services.
+
+3. ⬜ **Verification on VPS:**
+   - **Export Depth:** Confirm fresh `SR_Levels_XAUUSD_M5.txt` has **3000** data rows, not 3001, and its newest timestamp equals OHLCV's.
+   - **Staleness Check:** Confirm fresh `_Statistic.txt` contains `[RESIDUAL DIAGNOSTICS; CLOSE PRICE]` (10 files) and `Max Window Bars` (SR file).
+   - **Optional:** `InpBackfillBars` defaults to `0` (all loaded history). Clicking Backfill now writes `SR_Levels_XAUUSD_{TF}_Backfill.txt`, which the collector ignores.
+
+4. ⬜ **Verification on PostgreSQL (Post-Deployment):**
+   Once the VPS starts pushing new cycles, verify that snapshots are recording:
 
 ```sql
 SELECT snapshot_age_bars, COUNT(*)
@@ -400,13 +413,10 @@ WHERE  symbol = 'XAUUSD' AND timeframe = 'M15'
 GROUP  BY 1 ORDER BY 1;
 ```
 
-Expect the overwhelming majority at `snapshot_age_bars = 1`. A long tail above 1 means the push
-worker is behind — `PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md`, not a fault in this lane.
+Expect the overwhelming majority at `snapshot_age_bars = 1`.
 
-4. ⬜ **Tell the consumers.** Backtests, walk-forward validation and the Decision Layer's
-   `fitness_scorer` must read `market_data_point_in_time` with `snapshot_age_bars = 1`, never
-   `market_data_v6` history. Ready-to-use query in
-   `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` §9.
+5. ⬜ **Consumer Query Protocol:**
+   Backtests, walk-forward validation and the Decision Layer's `fitness_scorer` must read `market_data_point_in_time` with `snapshot_age_bars = 1`, never `market_data_v6` history. Ready-to-use query in `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` §9.
 
 ### Still open after this work
 

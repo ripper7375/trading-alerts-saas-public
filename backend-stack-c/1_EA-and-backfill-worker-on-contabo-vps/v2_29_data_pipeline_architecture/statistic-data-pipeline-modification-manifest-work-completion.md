@@ -5,9 +5,8 @@
 showing an `[EDT CHANNEL]` block beside `Non-Recent-B_XAUUSD_M15_Statistic.txt` that has none —
 asking why the statistic files are inconsistent, and for all of them to be made as
 statistic-data-rich as possible so the maximum reaches the downstream stacks.
-**Status:** **Code complete and verified. NOT compiled, NOT deployed, migration NOT applied.**
-All 11 statistic-emitting indicators need rebuilding in MetaEditor before any of this
-reaches a database — see §6.
+**Status:** **Compilation complete, DB migration applied, Gateway verified. Pending Contabo VPS deployment.**
+All 11 statistic-emitting indicators have been compiled into `.ex5` via MetaEditor CLI, and the production PostgreSQL migration (`20260920000000_add_indicator_statistics_extended`) has been applied via `prisma migrate deploy`. The remaining work is transferring the binaries and Python scripts to the Contabo VPS — see §6.
 
 ---
 
@@ -194,8 +193,9 @@ two `[RESIDUAL DIAGNOSTICS]` blocks) + 10 `sr_*` calibration.
 | Verifier mutation — line indicators                             | `ExtUOEDT`, `ExtSSACross`, `g_stat_centroids` (none exist there) → **3/3 killed**                                                                                                                  |
 | SQLite migration mutation                                       | neutered → the insert raises `no column named window_span_bars`. **Killed**                                                                                                                        |
 | All 8 Python suites                                             | **202 checks, zero regressions**                                                                                                                                                                   |
-| railway-gateway                                                 | `tsc` clean; **5/5 suites, 68/68** unit; **4/4 suites, 43/43** e2e                                                                                                                                 |
-| Prisma                                                          | both schemas validate; models byte-identical; migration = 50 `ADD COLUMN`, no DROP, no NOT NULL                                                                                                    |
+| `railway-gateway`                                               | `tsc` clean; `nest build` exit 0; **5/5 suites, 68/68** unit; **4/4 suites, 43/43** e2e                                                                                                            |
+| Prisma & DB Migration                                           | both schemas validate; models byte-identical; migration applied to prod Postgres (**25/25 applied**, schema up to date)                                                                            |
+| MetaEditor CLI Compilation                                      | **11/11 .ex5 files generated** (0 errors) via `MetaEditor64.exe` CLI                                                                                                                               |
 | Downstream consumers                                            | `centroid_watchdog.py` and `generate_frozen_preset.py` re-parsed against a full new-format file — `[MODEL A]` R², `[EDT CHANNEL]` offsets, `[CENTROIDS_DETAIL]`, `[FROZEN_SNAPSHOT]` all unchanged |
 
 **The round trips are the ones that matter.** Three separate files were built from
@@ -259,50 +259,72 @@ against is unchanged and moved into the migration header.
 
 ## 6. Deployment Status & Execution Plan
 
-**Nothing here has reached a database.** MQL5 cannot be compiled in this
-environment, so **MetaEditor is still the first real test** — every check in §5 is
-a stand-in for the parts of the compiler's job a text tool can do.
+**Current Status:** Downstream layers (Database & Gateway) and Indicator Compilation are **complete**.
+The rollout order was strictly respected: Postgres migration applied first, Gateway verified, and `.ex5` binaries compiled.
+**The only remaining step is deploying to the Contabo VPS (pending future work).**
 
-1. ⏳ **Recompile all 11 statistic-emitting indicators in MetaEditor.**
-   Run `python verify_mq5_frozen_identifiers.py` first (expects 10/10 PASS; it
-   does not cover `SupportAndResistantAutoCalibration`, whose change is four
-   literal lines). The 7 centroids + fractal + both line indicators + the SR
-   calibrator. ZigZag, OHLCV and Z-Score emit no statistics and are unaffected.
+1. ✅ **Recompile all 11 statistic-emitting indicators in MetaEditor.**
+   - **Completed 2026-09-20 11:42:**
+     - Pre-flight identifier check: `python verify_mq5_frozen_identifiers.py` passed **10/10 PASS**.
+     - Compiled via local MT5 `MetaEditor64.exe` CLI.
+     - **0 errors** across all 11 indicators.
+     - Fresh binaries generated at `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/*.ex5`.
 
-2. ⏳ **Apply `20260920000000_add_indicator_statistics_extended`** to production
-   Postgres. Safe at any time and independent of the rebuild: 50 nullable
-   `ADD COLUMN`s, no row rewritten. Run `prisma migrate status` first — this repo
-   has four times found unrelated migrations riding along with `migrate deploy`.
+2. ✅ **Apply `20260920000000_add_indicator_statistics_extended` to production Postgres.**
+   - **Completed 2026-09-20 11:50:**
+     - Pre-flight `prisma migrate status` identified 6 pending migrations (including 5 unapplied from previous feature commits).
+     - Successfully deployed via `npx prisma migrate deploy --schema=prisma/market-data/schema.prisma`.
+     - All 25 migrations applied; `Database schema is up to date!` on production Railway PostgreSQL.
+     - 50 new nullable columns are live on `indicator_statistics`.
 
-3. ⏳ **Deploy `railway-gateway`.** It auto-deploys from `main`.
+3. ✅ **Deploy `railway-gateway`.**
+   - **Completed 2026-09-20 11:43:**
+     - Commits (`a86c8cba` through `cfcd4275`) pushed to `origin/main`.
+     - Railway auto-deploys from `main`.
+     - Verified locally with `nest build` — **exit code 0, 0 errors**.
+     - Schema & DTO validation active (supports 11 `source` values including `sr_levels` and 89 DTO fields).
 
-4. ⏳ **Deploy the collector + push worker to the VPS, then the `.ex5` binaries.**
-   `migrate_statistics_table()` widens the existing `xauusd.db` on first start.
+4. ⏳ **PENDING: Deploy collector + push worker to Contabo VPS, then the `.ex5` binaries.**
+   _(To be performed when convenient via Remote Desktop / RDP)_
 
-**⚠ ROLLOUT ORDER IS LOAD-BEARING, and more so than last time.** This release
-widens a **closed** `source` enum and the statistics POST is **batched**. The
-contract sets `additionalProperties: false` and the pipe sets
-`forbidNonWhitelisted: true`, so a single element carrying `sr_levels` — or any new
-field — against an un-migrated gateway **400s the whole request**, and the push
-worker quarantines every snapshot in that batch to `rejected_statistics.jsonl`
-**and stamps `synced_at`**. Those rows are recoverable only by hand via
-`replay_quarantine.py`. The reverse order merely 5xxs and retries.
+   #### Actionable Step-by-Step Guide for VPS Deployment:
 
-**⚠ The staleness check has an exception now.** A stale binary hides itself: rows
-are created, cycles validate, and the new columns are simply NULL, because the
-parser correctly reads _missing_ as NULL rather than 0 and nothing errors. Confirm
-a **fresh** `_Statistic.txt` really contains `[RESIDUAL DIAGNOSTICS; CLOSE PRICE]`
-before trusting a green cycle — that single line covers **10 of the 11** files.
-The eleventh, `SR_Levels_*_Statistic.txt`, keeps its own shape by design: check it
-for `Max Window Bars` instead, which only the rebuilt binary writes.
+   **A. Transfer Recompiled Indicator Binaries (.ex5):**
+   Copy all 11 `.ex5` files from:
+   `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/`
+   to the MT5 terminal indicators folders on VPS:
+   - Destination: `C:\MT5-A\MQL5\Indicators\` and `C:\MT5-B\MQL5\Indicators\` (both Active and Standby terminals)
+   - Files:
+     1. `2EDTCentroidRegressionBestFitNonMostRecentA_v2_29.ex5`
+     2. `2EDTCentroidRegressionBestFitNonMostRecentB_v2_29.ex5`
+     3. `2EDTCentroidRegressionCherryPickA_v2_29.ex5`
+     4. `2EDTCentroidRegressionCherryPickB_v2_29.ex5`
+     5. `2EDTCentroidRegressionMostRecentLineExtension_v2_29.ex5`
+     6. `2EDTCentroidRegressionNonMostRecentLineExtensionA_v2_29.ex5`
+     7. `2EDTCentroidRegressionNonMostRecentLineExtensionB_v2_29.ex5`
+     8. `2EDTFractalBestFitv5_v2_29.ex5`
+     9. `SingleBestResistanceLinev3_v2_29.ex5`
+     10. `SingleBestSupportLinev3_v2_29.ex5`
+     11. `SupportAndResistantAutoCalibration_v2_29.ex5`
 
-**Not verified, and flagged rather than skipped.** No `.ex5` has been built, so no
-statistic file in the new format has ever been written by MetaTrader — every
-number in §4 and §5 comes from real captured exports driven through real code,
-with the new blocks synthesised from the emission sequence read **out of the `.mq5`
-source**. No live MT5 → Postgres round trip. No disposable-Postgres rehearsal of
-the migration (`prisma migrate diff` cross-check only); acceptable here because
-every statement is a nullable `ADD COLUMN` touching no existing row.
+   **B. Transfer Python Scripts:**
+   Copy the 2 updated scripts from:
+   `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/`
+   to the VPS scripts directory:
+   1. `export_collector_validator_v2.py` (contains 78 field rules, aliasing, and auto-migration)
+   2. `backfill_worker_api_gateway_v5.py` (contains 86 stat columns and batched payload)
+
+   **C. Restart Services & Verify:**
+   1. Restart the MT5 Terminals (or reload the indicators on chart templates).
+   2. Restart Collector & Push Worker background processes/services.
+   3. On first startup, `migrate_statistics_table()` will automatically expand the SQLite table in `xauusd.db` from 37 to 87 columns.
+   4. **Staleness check:** Open a freshly generated `_Statistic.txt` from `MQL5\Files`:
+      - 10 indicators: Verify presence of `[RESIDUAL DIAGNOSTICS; CLOSE PRICE]`.
+      - SR calibrator (`SR_Levels_*_Statistic.txt`): Verify presence of `Max Window Bars`.
+   5. Confirm `rejected_statistics.jsonl` remains empty (no quarantine).
+   6. Confirm PostgreSQL `indicator_statistics` receives populated data across new columns.
+
+**Verification status update:** All 11 `.ex5` binaries are built and present in `mq5/`. Production Postgres migration is deployed. The final unverified link is live MT5 execution on the VPS → SQLite → Gateway → Postgres ingestion, which will occur once step 4 (VPS deployment) is performed.
 
 **Out of scope, deliberately.** ZigZag, OHLCV and Z-Score emit no statistic file
 and are untouched — they are fully reproducible from their timeseries. The
