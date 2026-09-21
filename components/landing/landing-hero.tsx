@@ -14,10 +14,12 @@ const HERO_SLIDE_INTERVAL_MS = 6000;
 const LIGHT_HERO_IMAGES = [
   '/mathematic-trading1.png',
   '/mathematic-trading2.png',
+  '/mathematic-trading3.png',
 ];
 const DARK_HERO_IMAGES = [
   '/mathematic-trading1-invert.png',
   '/mathematic-trading2-invert.png',
+  '/mathematic-trading3-invert.png',
 ];
 
 /**
