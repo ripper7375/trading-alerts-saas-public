@@ -71,7 +71,7 @@ export function LandingHero() {
               </h1>
               <p className="text-lg font-normal leading-relaxed text-slate-700 dark:text-slate-300">
                 {t(
-                  'Your highly sophisticated Maths & AI Models for more accurate entry and exit XAUUSD trading'
+                  'Your highly sophisticated AI and Maths Models for higher XAUUSD trading quality'
                 )}
               </p>
             </div>
