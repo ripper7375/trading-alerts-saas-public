@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://trading-alerts-saas/v6/gateway_contract_indicator_statistics.schema.json",
   "title": "POST /api/v1/indicator-statistics — one element of the request array (v6 pipeline, XAUUSD)",
-  "description": "Contract between the push worker (backfill_worker_api_gateway_v5.py) and the API Gateway for the APPEND-ONLY indicator statistics stream. One JSON object = one indicator's _Statistic.txt snapshot for one collection cycle. The request body is an ARRAY of these (one cycle produces up to 10, and they are pushed together). This stream is entirely separate from market_data: it has its own endpoint, queue and outbox, and a failure here must never block the market_data path. The gateway MUST upsert idempotently on (symbol, timeframe, source, captured_at) — duplicate delivery is by design (push retries) — but the content of a re-push is byte-identical, so rows are never meaningfully mutated. Correcting a value means a NEW row with a later captured_at, never an update.",
+  "description": "Contract between the push worker (backfill_worker_api_gateway_v5.py) and the API Gateway for the APPEND-ONLY indicator statistics stream. One JSON object = one indicator's _Statistic.txt snapshot for one collection cycle. The request body is an ARRAY of these (one cycle produces up to 12, and they are pushed together). This stream is entirely separate from market_data: it has its own endpoint, queue and outbox, and a failure here must never block the market_data path. The gateway MUST upsert idempotently on (symbol, timeframe, source, captured_at) — duplicate delivery is by design (push retries) — but the content of a re-push is byte-identical, so rows are never meaningfully mutated. Correcting a value means a NEW row with a later captured_at, never an update.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -42,9 +42,10 @@
         "fractal_edt",
         "resistance",
         "support",
-        "sr_levels"
+        "sr_levels",
+        "sr2_levels"
       ],
-      "description": "Which indicator produced this snapshot. The 3 non-centroid line sources omit the MODEL A block; resistance/support additionally omit the EDT channel (single lines, not channels). sr_levels is a calibration document rather than a regression fit: it populates the sr_* fields and leaves the model/channel fields null. This enum is CLOSED and the request is an ARRAY, so a sender using a value the deployed gateway does not know will 400 the WHOLE batch -- deploy the gateway before the VPS starts sending a new source."
+      "description": "Which indicator produced this snapshot. The 3 non-centroid line sources omit the MODEL A block; resistance/support additionally omit the EDT channel (single lines, not channels). sr_levels and sr2_levels (the 14th and 15th indicators, the same Freedman-Diaconis engine run as two independently anchored instances) are calibration documents rather than regression fits: they populate the sr_* fields and leave the model/channel fields null. This enum is CLOSED and the request is an ARRAY, so a sender using a value the deployed gateway does not know will 400 the WHOLE batch -- deploy the gateway before the VPS starts sending a new source."
     },
     "captured_at": {
       "type": "integer",
@@ -316,7 +317,7 @@
     },
     "_sr_note": {
       "type": "string",
-      "description": "Marker only. [SUPPORT-RESISTANCE AUTO-CALIBRATION] provenance [added 2026-09-20], populated by sr_levels only and null for every other source. sr_1..sr_8 are not carried here: they already reach Postgres through market_data. These record WHY those levels exist."
+      "description": "Marker only. [SUPPORT-RESISTANCE AUTO-CALIBRATION] provenance [added 2026-09-20], populated by sr_levels and sr2_levels only and null for every other source. sr_1..sr_16 are not carried here: they already reach Postgres through market_data. These record WHY those levels exist."
     },
     "sr_fractals_n": {
       "type": ["integer", "null"],
@@ -336,7 +337,7 @@
     },
     "sr_optimal_step": {
       "type": ["number", "null"],
-      "description": "auto-calibrated bucket width. THE field: every sr_1..sr_8 level in market_data is a bucket of this size, and nothing downstream could previously tell how wide they were"
+      "description": "auto-calibrated bucket width. THE field: every sr_* level in market_data (sr_1..sr_8 for sr_levels, sr_9..sr_16 for sr2_levels) is a bucket of this size, and nothing downstream could previously tell how wide they were"
     },
     "sr_macro_clusters": {
       "type": ["integer", "null"],

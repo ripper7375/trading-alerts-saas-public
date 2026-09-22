@@ -219,13 +219,14 @@ def test_source_is_fully_enrolled_in_validation():
     assert SOURCE in collector.SOURCES
     assert SOURCE in collector.PER_BAR_SOURCES
     assert SOURCE in collector.PROMOTE_SOURCES
-    assert len(collector.SOURCES) == 14, len(collector.SOURCES)
+    assert len(collector.SOURCES) == 15, len(collector.SOURCES)
 
 
-def test_market_data_has_ninety_five_columns():
+def test_market_data_has_one_hundred_three_columns():
     conn = fresh_db()
     cols = [r[1] for r in conn.execute('PRAGMA table_info(market_data)')]
-    assert len(cols) == 95, f'market_data changed shape: {len(cols)} columns'
+    # 95 until 2026-09-22, when the 15th indicator added sr_9..sr_16.
+    assert len(cols) == 103, f'market_data changed shape: {len(cols)} columns'
     for col in SR_COLS:
         assert col in cols, f'{col} missing from market_data'
 
@@ -398,7 +399,8 @@ def test_sr_levels_is_enrolled_in_stat_sources():
         'sr_levels dropped out of STAT_SOURCES -- its statistic file would be '
         'discarded in full again, losing the calibration provenance (Q25/Q75, '
         'IQR, Optimal Step, fractal sample) that exists nowhere else.')
-    assert len(collector.STAT_SOURCES) == 11, collector.STAT_SOURCES
+    # 11 until 2026-09-22, when the 15th indicator (sr2_levels) was enrolled.
+    assert len(collector.STAT_SOURCES) == 12, collector.STAT_SOURCES
 
 
 def test_sr_levels_vocabulary_has_collector_rules():

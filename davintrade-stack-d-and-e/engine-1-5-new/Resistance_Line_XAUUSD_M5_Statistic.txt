@@ -1,0 +1,82 @@
+[RESISTANCE LINE - PARAMETERS]
+Window Start TS (UTC): 1789646400
+Window End TS (UTC): 1789758600
+Fractal Bars: 13
+Timeframe (Sec): 300
+Min Touches: 2
+Max Line Angle: 3.0000
+Tolerance Type: PERCENT
+Tolerance Percent: 0.5000
+Tolerance ATR Multiplier: 1.0000
+Extend To Current: true
+
+[RESISTANCE LINE - RESOLVED LINE]
+Solution Found: true
+Line Origin TS (UTC): 1789664700
+Best FL Touches: 19
+Raw Slope (b): 0.06724252
+Regression Angle: 8.75
+Anchored Y-Int: 4387.48209
+
+[MODEL B; CLOSE PRICE]
+Sample (n): 323
+R-Square: -0.0286
+MSE: 301.5977
+Var Ratio: 1.22
+Skewness: 0.29
+Kurtosis: 2.16
+
+[FIT WINDOW]
+Window Start TS (UTC): 1789646400
+Window End TS (UTC): 1789758600
+Window Bars: 323
+Observation Bars: 323
+Visual Window Bars: 323
+Math Window Bars: 100000
+Bars Available: 100000
+Leftmost Bar Index: 322
+Line Span Bars: 323
+Baseline Coverage (n): 323
+Baseline Coverage Rate: 100.00
+Centroids Used: 
+Crossings In Window (n): 
+First Crossing TS (UTC): 
+Last Crossing TS (UTC): 
+
+[PRICE CONTEXT]
+Live Close: 4377.99
+Baseline Value: 4387.48209
+UOEDT Value: 
+LOEDT Value: 
+Distance To Baseline: -9.49209
+Distance To UOEDT: 
+Distance To LOEDT: 
+Channel Position: 
+Window High: 4399.56
+Window Low: 4334.45
+Window Range: 65.11000
+
+[CHANNEL GEOMETRY]
+Channel Width: 
+Channel Asymmetry: 
+Above UOEDT Count: 
+Below LOEDT Count: 
+Max Excursion Above: 
+Max Excursion Below: 
+
+[RESIDUAL DIAGNOSTICS; CROSSINGS]
+Sample (n): 
+Mean Residual: 
+MAE: 
+Residual StdDev: 
+Max Abs Residual: 
+Durbin-Watson: 
+
+[RESIDUAL DIAGNOSTICS; CLOSE PRICE]
+Sample (n): 323
+Mean Residual: -9.75369
+MAE: 14.60873
+Residual StdDev: 14.39112
+Max Abs Residual: 39.22718
+Durbin-Watson: 0.0312
+

@@ -5,13 +5,18 @@ Export Collector + Validator v2 — v6 collection pipeline (XAUUSD, M5/M15)
 Pipeline stages implemented here:
   COLLECT -> ADJUST -> VALIDATE -> PROMOTE
 
-MQL5 IS THE SINGLE SOURCE OF EVERY VALUE (2026-09-09). The 14 indicators export
-all 91 market_data data fields; this collector parses, validates, and forwards
+MQL5 IS THE SINGLE SOURCE OF EVERY VALUE (2026-09-09). The 15 indicators export
+all 99 market_data data fields; this collector parses, validates, and forwards
 them unchanged. It calculates nothing.
 
 2026-09-16: SupportAndResistantAutoCalibration_v2_29 onboarded as the 14th
 indicator, adding sr_1..sr_8 (Freedman-Diaconis auto-calibrated support and
 resistance levels) -- market_data 87 -> 95 columns.
+
+2026-09-22: S-R-AutoCalibration_v2_29 onboarded as the 15th indicator, adding
+sr_9..sr_16 -- the same calibration engine run as a second, independently
+anchored instance (source 'sr2_levels', export prefix 'S_R_Levels') --
+market_data 95 -> 103 columns.
 
 The former CALCULATE stage — a Python calc stack that recomputed the derived
 layer (centroid baselines/EDTs, fractal/resistance/support lines, zigzag
@@ -62,7 +67,7 @@ CYCLE_INTERVAL_SEC = 300
 # Reject a cycle whose newest exported bar is older than N x the bar period.
 # Guards against reading a STALE export directory — e.g. after promoting the
 # collector to a standby MT5 terminal that was not actually running. Such a
-# directory passes every other check, because all 13 sources are stale by the
+# directory passes every other check, because every per-bar source is stale by the
 # SAME amount and therefore agree with each other perfectly (validate_cycle's
 # completeness check is relative, not absolute). The pipeline would report
 # healthy while the newest bar silently stopped advancing.
@@ -144,6 +149,20 @@ SOURCES = {
                                 ('sr_3', 'real', 'sr_3'), ('sr_4', 'real', 'sr_4'),
                                 ('sr_5', 'real', 'sr_5'), ('sr_6', 'real', 'sr_6'),
                                 ('sr_7', 'real', 'sr_7'), ('sr_8', 'real', 'sr_8')]},
+    # The 15th indicator (S-R-AutoCalibration_v2_29, 2026-09-22): a replica of
+    # the 14th exporting slots sr_9..sr_16, so a second calibration window can
+    # run beside the first. Same bare-header convention as sr_levels.
+    #
+    # The two prefixes differ by ONE underscore -- 'SR_Levels' vs 'S_R_Levels'.
+    # run_cycle() builds an EXACT filename (it does not glob), so they can never
+    # pick up each other's file; test_sr2_levels_source.py pins that. The 14th
+    # still claims sr_1..sr_8 and this one sr_9..sr_16, so the column names are
+    # disjoint and market_data_column()'s identity branch serves both.
+    'sr2_levels':  {'prefix': 'S_R_Levels', 'table': 'raw_sr2_levels',
+                    'columns': [('sr_9', 'real', 'sr_9'), ('sr_10', 'real', 'sr_10'),
+                                ('sr_11', 'real', 'sr_11'), ('sr_12', 'real', 'sr_12'),
+                                ('sr_13', 'real', 'sr_13'), ('sr_14', 'real', 'sr_14'),
+                                ('sr_15', 'real', 'sr_15'), ('sr_16', 'real', 'sr_16')]},
     'zscore':      {'prefix': 'ZScore', 'table': 'raw_zscore',
                     'columns': [('body_direction', 'int', 'body_direction'),
                                 ('body_size', 'real', 'body_size'),
@@ -173,27 +192,29 @@ PER_BAR_SOURCES = [s for s in SOURCES if s != 'zigzag']
 # cross), `body_size` (|z| = 0 when a candle sits exactly on its mean), `body_direction`
 # (0 = doji), and every zigzag metric (`slope`, `price_change`, `pct_change`, ... are
 # routinely zero or negative).
-# sr_1..sr_8 are listed EXPLICITLY because they match neither the base set nor
+# sr_1..sr_16 are listed EXPLICITLY because they match neither the base set nor
 # PRICE_LEVEL_SUFFIXES below -- a numeric slot name has no suffix to key off. The
-# indicator writes an unresolved slot as an empty field, which parse_export_file
-# already maps to NULL, but it exports 0.0 for a slot whose level exists and is
+# indicators write an unresolved slot as an empty field, which parse_export_file
+# already maps to NULL, but they export 0.0 for a slot whose level exists and is
 # non-positive; both must land as NULL, never as a $0.00 "price".
 PRICE_LEVEL_COLUMNS = {
     'horiz_high_map', 'horiz_low_map', 'ssa', 'ema_ssa', 'current_point',
     'best_resistance', 'best_support', 'fractal_best_fl', 'fractal_uoedt',
     'fractal_loedt', 'base_fl', 'uoedt', 'loedt',
-    'sr_1', 'sr_2', 'sr_3', 'sr_4', 'sr_5', 'sr_6', 'sr_7', 'sr_8',
+    'sr_1', 'sr_2', 'sr_3', 'sr_4', 'sr_5', 'sr_6', 'sr_7', 'sr_8',        # sr_levels
+    'sr_9', 'sr_10', 'sr_11', 'sr_12', 'sr_13', 'sr_14', 'sr_15', 'sr_16',  # sr2_levels
 }
 PRICE_LEVEL_SUFFIXES = ('_map', '_point', '_fl', '_edt', '_ssa', '_resistance', '_support')
 
 # ============================================================
 # STATISTIC FILES — the fit-quality snapshot beside each timeseries export
 # ============================================================
-# 11 of the 14 indicators also write `{prefix}_{SYMBOL}_{TF}_Statistic.txt`:
-# the 7 centroid variants plus fractal_edt / resistance / support / sr_levels.
-# OHLCV, ZigZag and ZScore do not (fully reproducible from their timeseries).
+# 12 of the 15 indicators also write `{prefix}_{SYMBOL}_{TF}_Statistic.txt`:
+# the 7 centroid variants plus fractal_edt / resistance / support / sr_levels /
+# sr2_levels. OHLCV, ZigZag and ZScore do not (fully reproducible from their
+# timeseries). All 12 are ingested.
 #
-# Only 10 are INGESTED. sr_levels is excluded deliberately (2026-09-16): its
+# HISTORY -- sr_levels was excluded deliberately on 2026-09-16: its
 # statistic file is a different kind of document. It records Freedman-Diaconis
 # calibration -- Q25/Q75, IQR, Optimal Step, Fractals Sample -- where this
 # table's vocabulary is regression fit quality (MODEL A/B residuals, EDT
@@ -220,6 +241,21 @@ PRICE_LEVEL_SUFFIXES = ('_map', '_point', '_fl', '_edt', '_ssa', '_resistance', 
 # still BATCHED, so the gateway MUST be deployed before the VPS starts
 # sending this source -- otherwise one element 400s the whole request and
 # every other snapshot in it is quarantined AND stamped synced_at.
+#
+# sr2_levels (2026-09-22) is enrolled from day one: its statistic file is
+# the 14th indicator's, section for section, so the ten [SUPPORT-RESISTANCE
+# rules below already parse it, and the enum is widened to 12 in the same
+# release. The ordering hazard is unchanged, and it is NOT new to this lane:
+# the market_data contract also rejects unknown fields, so sr_9..sr_16 force
+# the same migration -> gateway -> VPS order regardless.
+#
+# Note on config_hash: indicator_configs is keyed by the hash ALONE, so two
+# sources with identical parameter blocks share one row whose `source` is
+# whichever was seen first. That already happens for resistance/support
+# (measured: both hash to 12a7d85e8bf6 on the real captures) and will happen
+# for sr_levels/sr2_levels, whose window anchors are measurements (STAT_FIELDS)
+# rather than configuration. The per-source reconfiguration signal lives in
+# indicator_statistics' (source, config_hash) history, which is unaffected.
 STAT_SOURCES = [s for s in SOURCES
                 if s not in ('ohlcv', 'zigzag', 'zscore')]
 
@@ -318,7 +354,8 @@ STAT_FIELDS = [
     ('Max Abs Residual',            '[RESIDUAL DIAGNOSTICS; CLOSE',            'resid_b_max',             'real'),
     ('Durbin-Watson',               '[RESIDUAL DIAGNOSTICS; CLOSE',            'resid_b_dw',              'real'),
 
-    # [SUPPORT-RESISTANCE AUTO-CALIBRATION] -- sr_levels only. Section-scoped
+    # [SUPPORT-RESISTANCE AUTO-CALIBRATION] -- sr_levels and sr2_levels only
+    # (the 15th indicator writes this file section for section). Section-scoped
     # rather than reshaping that file into the regression-fit schema: it
     # measures bucket calibration, not residuals against a fitted line, and
     # padding it with permanently-empty channel fields would add noise, not
@@ -889,11 +926,37 @@ def migrate_statistics_table(conn) -> int:
     return added
 
 
+def assert_staging_tables(conn) -> None:
+    """Refuse to start if a SOURCES staging table does not exist.
+
+    The migrate_* functions above widen tables that exist; a staging table for
+    a NEW source can only come from the schema file's CREATE TABLE. That file
+    is read from beside this script, so deploying an updated collector without
+    its matching sqlite_schema_v6_xauusd.sql -- the 2-file pattern the VPS
+    staging package uses -- leaves the new table uncreated, and the first
+    stage_source() raises an uncaught `no such table` inside run_cycle(): a
+    crash loop on every cycle. Failing here instead says what to fix, once.
+    """
+    missing = [spec['table'] for spec in SOURCES.values()
+               if not conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' "
+                                   "AND name = ?", (spec['table'],)).fetchone()]
+    if missing:
+        raise RuntimeError(
+            f"staging table(s) {', '.join(missing)} missing after running "
+            f"{SCHEMA_FILE} -- that schema file is older than this collector. "
+            f"Deploy the matching sqlite_schema_v6_xauusd.sql beside it.")
+
+
 def open_db(db_path: str) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA_FILE.read_text())
+    try:
+        assert_staging_tables(conn)
+    except RuntimeError:
+        conn.close()
+        raise
     migrate_raw_tables(conn)
     migrate_market_data(conn)
     migrate_statistics_table(conn)

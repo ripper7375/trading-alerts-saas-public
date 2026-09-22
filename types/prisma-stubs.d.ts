@@ -940,6 +940,14 @@ declare module '@prisma/client' {
     sr_6: number | null;
     sr_7: number | null;
     sr_8: number | null;
+    sr_9: number | null;
+    sr_10: number | null;
+    sr_11: number | null;
+    sr_12: number | null;
+    sr_13: number | null;
+    sr_14: number | null;
+    sr_15: number | null;
+    sr_16: number | null;
     body_direction: number | null;
     body_size: number | null;
     body_classification: number | null;

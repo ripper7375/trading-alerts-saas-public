@@ -308,6 +308,38 @@ export class MarketDataDto {
   @IsOptional()
   sr_8?: number | null;
 
+  @IsNumber()
+  @IsOptional()
+  sr_9?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_10?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_11?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_12?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_13?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_14?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_15?: number | null;
+
+  @IsNumber()
+  @IsOptional()
+  sr_16?: number | null;
+
   @IsIn([-1, 0, 1])
   @IsOptional()
   body_direction?: number | null;
@@ -457,6 +489,14 @@ export const MARKET_DATA_DTO_FIELDS = [
   'sr_6',
   'sr_7',
   'sr_8',
+  'sr_9',
+  'sr_10',
+  'sr_11',
+  'sr_12',
+  'sr_13',
+  'sr_14',
+  'sr_15',
+  'sr_16',
   'body_direction',
   'body_size',
   'body_classification',

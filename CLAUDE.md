@@ -13,6 +13,76 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-22, phase/session unchanged) — Stack C 15th indicator:
+> `S-R-AutoCalibration_v2_29` onboarded end to end as source `sr2_levels`, `market_data`
+> 95 → 103 (`sr_9..sr_16`). Code complete and verified. NOT committed, migration authored and
+> NOT applied, nothing deployed.** Davin supplied `CLAUDE_CODE_15TH_INDICATOR_INTEGRATION_PROMPT.md`
+> and the indicator + spec in `mq5/`. **Full account:**
+> `backend-stack-c/.../v2_29_data_pipeline_architecture/integrating-15th-Indicator-in-stack-c-manifest-work-completion.md`.
+> This entry is the index.
+> **The prompt predated the 2026-09-20 work, and two of its assumptions were wrong:** (1) it
+> recommended excluding the statistic file, but `sr_levels` had been re-enrolled 09-20, so
+> enrolling the 15th needed no new column and adds no new rollout constraint. (2) It did not know
+> the `market_data_point_in_time` lane exists. **Both went to Davin via `AskUserQuestion`; he took
+> the recommendation on each:** enroll statistics (enum 11 → 12), and snapshot `sr_9..sr_16`
+> (69 → 77, since the 15th inherits the 14th's re-bucketing look-ahead). One migration,
+> `20260922000000_add_market_data_v6_sr2_levels`, adds 8 nullable columns to each table,
+> byte-identical to `prisma migrate diff`.
+> **Found and fixed:** the point-in-time generator labelled columns by name prefix, which would
+> file `sr_9..sr_16` under `sr_levels`; the existing 69 columns still render byte-identically.
+> Both Prisma schemas carried the generated PIT doc comment **twice** (a pre-existing stray
+> partial copy, removed by regeneration, comment-only).
+> **⚠ A real deployment hazard, guarded:** the gitignored `DEPLOY_TO_CONTABO_VPS_READY/` package
+> ships only the two `.py` files, but only `sqlite_schema_v6_xauusd.sql` creates
+> `raw_sr2_levels`. A new collector beside the old schema would crash-loop (`no such table`
+> inside `run_cycle()`). New `assert_staging_tables()` in `open_db()` refuses to start and names
+> the file. **The VPS step is now THREE files.** That package predates this change and was left
+> untouched.
+> **Flagged, not changed:** `indicator_configs` is keyed by `config_hash` alone, so identical
+> parameter blocks share a row. That already happens for `resistance`/`support` (measured,
+> `12a7d85e8bf6`) and will for `sr_levels`/`sr2_levels`. The 15th's **defaults are identical to
+> the 14th's**, so until it gets its own window `sr_9..sr_16` duplicate `sr_1..sr_8`.
+> `v_validation_keys` is an operator diagnostic, not the validator: `validate_cycle()` reads each
+> staging table via `PER_BAR_SOURCES`.
+> **Verified:**
+>
+> - new `test_sr2_levels_source.py` **36/36**, with header, prefix and stat labels read from the
+>   `.mq5`, real files through `run_cycle()`, and a 95-column deployed DB brought to 103 by
+>   `open_db()`;
+> - **mutation 14/14 killed** (13 Python + 1 TS), every restore byte-exact by sha256;
+> - live `--once` cycle with the freshness guard on promoted 103 columns;
+> - the real payload validates against the regenerated `MarketDataDto` (an unknown `sr_17` is
+>   rejected), and the real stats element validates as `sr2_levels`;
+> - all other Python suites green; `railway-gateway` `tsc` clean, unit **6/6·93/93**, e2e
+>   **4/4·43/43**; monolith `tsc` clean, `test:ci` **220/220·2881/2881** (zero drift).
+>
+> **⚠ Pre-existing, not caused here:** `test_extended_statistics.py` fails 15 checks both
+> **before** and after this session. Its gitignored `engine-1-5-new/` fixtures were re-captured
+> after the test pinned their values; needs re-pinning.
+> **⚠ Rollout order, same as the 14th:** migration → `railway-gateway` → VPS (3 files) → attach
+> the `.ex5` on A+B **before** restarting the collector (a missing `S_R_Levels_*.txt` rejects
+> every cycle).
+> **Flagged:** this file is **430 KB**, over four times the ~100 KB archival gate. Deliberately
+> not archived as a side effect of a feature session.
+> **Artifacts:** in `v2_29_data_pipeline_architecture/`:
+>
+> - code: `export_collector_validator_v2.py`, `sqlite_schema_v6_xauusd.sql`,
+>   `backfill_worker_api_gateway_v5.py`, both `gateway_contract_*.schema.json`,
+>   `generate_point_in_time_schema.py`, `migrate_sqlite_add_sr2_columns.sql` (new)
+> - tests: `test_sr2_levels_source.py` (new), `test_sr_levels_source.py`,
+>   `test_economic_events.py`, `test_statistics_schema_sync.py`, `test_extended_statistics.py`
+> - docs: the blueprint, `ARCHITECTURE-SUMMARY-FOR-DECK.md`,
+>   `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`, `Export Data from MQL5 indicators.txt`, the
+>   manifest (new)
+>
+> Elsewhere: both `schema.prisma`, `prisma/migrations/20260922000000_add_market_data_v6_sr2_levels/`
+> (new, unapplied), `railway-gateway/src/gateway/dto/{market-data,indicator-statistic}.dto.ts`
+> (regenerated), `railway-gateway/src/worker/point-in-time-snapshot.ts`,
+> `railway-gateway/{test/dto-contract.spec.ts, README.md}`,
+> `types/{indicator.ts, prisma-stubs.d.ts}`, `docs/migration-orders/migration-stack-analysis.md`,
+> this file. Davin's own uncommitted edits to the 14th indicator's `.mq5`/`.ex5` and the
+> `engine-1-5/` deletions were left untouched.
+
 > **Ad-hoc session (2026-09-18, same day, phase/session unchanged) — landing-features.tsx
 > translation gap, CLOSED SUCCESSFUL, committed and pushed (`84b72453`).** Direct follow-on to
 > the same-day public-marketing-chrome session below — Davin supplied two more annotated
@@ -4385,6 +4455,13 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   `history/sessions-archive.md`).
 
 ## Waiting on
+
+- **⚠ 15th indicator rollout (2026-09-22): migration → gateway → VPS (3 files) → attach.**
+  `20260922000000_add_market_data_v6_sr2_levels` is authored, not applied, and nothing is
+  committed. Apply it before `railway-gateway` deploys. Ship `sqlite_schema_v6_xauusd.sql` with
+  the two `.py` files (the `DEPLOY_TO_CONTABO_VPS_READY/` package predates this change). Attach
+  `S-R-AutoCalibration_v2_29.ex5` on A+B before restarting the collector, then give it a window
+  that differs from the 14th's. Full steps: blueprint §13 item 10.
 
 - **RESOLVED 2026-09-11 — the R2 chart-render path is DEPLOYED AND LIVE end to end.** Bucket
   `davintrade-renders` created private, five `R2_*` vars set in Vercel (Production) and redeployed,

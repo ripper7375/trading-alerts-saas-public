@@ -1,0 +1,92 @@
+{
+  "mcd_id": "MCD1",
+  "name": "M15 Primary Trend Direction",
+  "symbol": "XAUUSD",
+  "timeframe": "M15",
+  "evaluated_at": "2026-09-20 12:13:08 UTC",
+  "evaluated_epoch": 1789906388,
+  "parameters": {
+    "micro_lookback_pct": 5.0,
+    "min_micro_floor": 96,
+    "micro_breach_threshold_pct": 80.0,
+    "min_containment_threshold": 50.0,
+    "sideways_angle_threshold_degrees": 5.0
+  },
+  "validation": {
+    "status": "PASS",
+    "errors": [],
+    "warnings": [],
+    "checks": {
+      "total_bars_available": 3000,
+      "candidate_indicator_coverage": {
+        "best_fit_a": 0,
+        "best_fit_b": 0,
+        "cherry_a": 0,
+        "cherry_b": 0,
+        "most_recent": 0,
+        "non_a": 0,
+        "non_b": 1808
+      },
+      "active_indicators_detected": ["non_b"],
+      "indicator_statistics_record": {
+        "source": "non_b",
+        "captured_at": 1789764900,
+        "live_bar_ts": 1789764300,
+        "regression_angle": -29.72,
+        "containment_rate": 73.95,
+        "edt_time_horizon": 1808,
+        "channel_position_stat": 1.6447,
+        "raw_slope": -0.25452,
+        "total_matching_snapshots": 1
+      },
+      "edt_time_horizon": 1808,
+      "dynamic_micro_window_bars": 96,
+      "evaluation_start_bar_index": 2906,
+      "evaluation_end_bar_index": 3001
+    }
+  },
+  "active_indicator": "non_b",
+  "macro_structure": {
+    "edt_time_horizon": 1808,
+    "regression_angle": -29.72,
+    "containment_rate_pct": 73.95,
+    "channel_position_stat": 1.6447,
+    "is_corridor_valid": true,
+    "macro_trend": "DOWNTREND",
+    "provenance": {
+      "source": "non_b",
+      "captured_at": 1789764900,
+      "live_bar_ts": 1789764300,
+      "raw_slope": -0.25452
+    }
+  },
+  "micro_regime": {
+    "window_bars": 96,
+    "channel_position_latest": 1.6447,
+    "regime": "UPPER_BREAKOUT",
+    "contained_bar_count": 0,
+    "upper_breach_count": 96,
+    "upper_breach_pct": 100.0,
+    "lower_breach_count": 0,
+    "lower_breach_pct": 0.0,
+    "breach_threshold_pct": 80.0,
+    "containment_rate_pct": 0.0,
+    "latest_bar": {
+      "timestamp": 1789764300,
+      "close": 4377.99,
+      "ssa": 4380.76289794,
+      "uoedt": 4279.20888,
+      "loedt": 4125.9876,
+      "channel_position": 1.6447,
+      "breach_type": "UPPER_BREACH"
+    }
+  },
+  "synthesis": {
+    "primary_trend": "DOWNTREND",
+    "regime_status": "COUNTER_TREND_EXPANSION",
+    "description": "Price breaking out upward against macro downtrend slope. Sustained counter-trend buying with high probability of structural trend reversal."
+  },
+  "trend_state": "DOWNTREND",
+  "regime_status": "COUNTER_TREND_EXPANSION",
+  "commentary": "XAUUSD M15 macro slope is DOWNTREND (-29.72°), yet recent micro price action has breached above the UOEDT corridor (channel_position=1.6447 > 1.0) sustained over the past 96 bars (1 day: 96/96 bars = 100.0% >= 80.0% threshold). This demonstrates persistent counter-trend buying expansion with high probability of structural reversal."
+}

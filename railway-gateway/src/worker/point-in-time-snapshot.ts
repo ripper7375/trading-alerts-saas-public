@@ -32,10 +32,10 @@ export const TIMEFRAME_SECONDS: Readonly<Record<string, number>> = {
 };
 
 /**
- * The 69 columns whose historical values are rewritten and therefore need
+ * The 77 columns whose historical values are rewritten and therefore need
  * freezing. Ordered by source, matching the generated Prisma model.
  *
- * NOT a copy of the 95-field contract, deliberately: the OHLCV spine, the
+ * NOT a copy of the 103-field contract, deliberately: the OHLCV spine, the
  * causal z-score triple (`InpZScoreLength` is a trailing window) and the
  * ZigZag metrics (confirmed pivots measured at 0.0% drift) are stable, so
  * duplicating them would cost storage and buy nothing. A consumer needing them
@@ -117,6 +117,16 @@ export const SNAPSHOT_COLUMNS = [
   'sr_6',
   'sr_7',
   'sr_8',
+  // sr2_levels: the 15th indicator, a second S&R calibration window. Same
+  // re-bucketing code as sr_levels, therefore the same look-ahead.
+  'sr_9',
+  'sr_10',
+  'sr_11',
+  'sr_12',
+  'sr_13',
+  'sr_14',
+  'sr_15',
+  'sr_16',
 ] as const;
 
 export interface PointInTimeSnapshot {

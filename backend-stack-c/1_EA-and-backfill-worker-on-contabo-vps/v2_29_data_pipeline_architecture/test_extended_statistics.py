@@ -467,7 +467,7 @@ _contract = json.loads((HERE / "gateway_contract_indicator_statistics.schema.jso
                        .read_text(encoding="utf-8"))
 _enum = _contract["properties"]["source"]["enum"]
 check("sr_levels" in _enum, "sr_levels is in the gateway contract's source enum")
-check(len(_enum) == 11, f"enum widened to 11 (got {len(_enum)})")
+check(len(_enum) == 12, f"enum widened to 12, sr2_levels included (got {len(_enum)})")
 check(sorted(_enum) == sorted(col.STAT_SOURCES),
       "the contract enum and STAT_SOURCES agree exactly")
 

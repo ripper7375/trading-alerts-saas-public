@@ -81,6 +81,21 @@ timestamp	symbol	timeframe	close	sr_1	sr_2	sr_3	sr_4	sr_5	sr_6	sr_7	sr_8
   non-positive value exports as 0.00; the collector's PRICE_LEVEL_COLUMNS
   guard coerces both to NULL, because a $0.00 XAUUSD level is never real.
 
+SUPPORT & RESISTANCE AUTO-CALIBRATION, 2ND WINDOW -- the 15th indicator (2026-09-22)
+------------------------------------------------------------------
+timestamp	symbol	timeframe	close	sr_9	sr_10	sr_11	sr_12	sr_13	sr_14	sr_15	sr_16
+
+  S-R-AutoCalibration_v2_29, a replica of the 14th exporting slots
+  sr_9..sr_16 from its own calibration window, to S_R_Levels_{SYMBOL}_{TF}.txt
+  (collector source sr2_levels). Everything said above for the 14th holds
+  unchanged: bare headers, sr_9..sr_12 supports BELOW close (sr_9 closest),
+  sr_13..sr_16 resistances ABOVE it (sr_13 closest), empty or 0.00 -> NULL,
+  and the same re-bucketing look-ahead.
+
+  SR_Levels and S_R_Levels differ by ONE underscore. The collector builds an
+  exact filename per source, so they never collide -- but a typo in either
+  InpExportFileName would make one indicator overwrite the other at :59.
+
 OHLCV — the per-bar spine
 ------------------------------------------------------------------
 ohlcv_timestamp	ohlcv_symbol	ohlcv_timeframe	ohlcv_close	ohlcv_open	ohlcv_high	ohlcv_low	ohlcv_volume

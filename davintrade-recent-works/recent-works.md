@@ -60,6 +60,8 @@ D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-wor
 
 D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_data_pipeline_architecture\S&R-calibrator-indicator-and-look-ahead-bias-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\backend-stack-c\1_EA-and-backfill-worker-on-contabo-vps\v2_29_data_pipeline_architecture\integrating-15th-Indicator-in-stack-c-manifest-work-completion.md
+
 =================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder

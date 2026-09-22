@@ -22,7 +22,7 @@ datasource db {
 
 /// Downstream store for the backend-stack-c v6 XAUUSD pipeline (Push Worker ->
 /// Railway Gateway -> here). Field names/types are a direct 1:1 mirror of
-/// gateway_contract_market_data.schema.json (95 fields) — a different indicator
+/// gateway_contract_market_data.schema.json (103 fields) — a different indicator
 /// methodology (centroid-regression variants, EDT channels, ZigZag
 /// categorization, cycle provenance) than the now-decommissioned MarketData
 /// model this replaces (see the section comment above). Written by
@@ -136,6 +136,20 @@ model MarketDataV6 {
   sr_7 Float?
   sr_8 Float?
 
+  // The same levels from a second, independently anchored calibration window
+  // — the 15th indicator, S-R-AutoCalibration_v2_29 (2026-09-22), a replica of
+  // the 14th. sr_9..sr_12 are the nearest supports BELOW close (sr_9 closest),
+  // sr_13..sr_16 the nearest resistances ABOVE it (sr_13 closest). NULL = that
+  // slot resolved no level; never 0.
+  sr_9  Float?
+  sr_10 Float?
+  sr_11 Float?
+  sr_12 Float?
+  sr_13 Float?
+  sr_14 Float?
+  sr_15 Float?
+  sr_16 Float?
+
   // Z-Score candle (calculated)
   body_direction      Int? // -1, 0, 1
   body_size           Float? // |z-score| (export convention)
@@ -198,43 +212,7 @@ model MarketDataV6 {
 /// exists because a snapshot lane built on a backlogged push worker would
 /// otherwise reproduce the very bias it is meant to remove, silently.
 ///
-/// Columns are the 69 that actually drift. The OHLCV spine, the causal z-score
-/// triple and the ZigZag metrics are deliberately absent -- they are stable, so
-/// duplicating them would cost storage and buy nothing; join `market_data_v6`
-/// on (symbol, timeframe, timestamp) for those.
-///
-/// APPEND-ONLY, NEVER UPDATED. One row per (symbol, timeframe, timestamp),
-/// holding each indicator's reading AS IT STOOD when the bar had just closed.
-///
-/// `market_data_v6` cannot answer "what did the indicator say at that bar?".
-/// Its rows are upserted on every collection cycle for as long as MT5 keeps
-/// exporting the bar (~3000 bars: about 2.2 weeks on M5, 6.5 weeks on M15), so
-/// a historical row holds what the indicator says about that bar TODAY, fitted
-/// with price action that had not happened yet. That is correct and wanted for
-/// live alerting and charts, and it is textbook look-ahead bias for anything
-/// that reads stored history.
-///
-/// MEASURED, not assumed. Two real MT5 captures 12 days apart, diffed by
-/// measure_indicator_drift.py over 2114 overlapping M15 bars: `*_uoedt` moved
-/// on 100% of comparable bars by a mean of 19.26 USD, which is 14% of the
-/// median EDT channel width; `*_ssa` moved on 100% of bars; `*_crossing`, a
-/// boolean signal flag, FLIPPED on 0.71%. The controls behaved: OHLCV and
-/// confirmed ZigZag pivots were unchanged.
-///
-/// WRITE-ONCE. The gateway inserts a row the first time it sees a bar whose
-/// period has already ended, and never touches it again (INSERT ... ON CONFLICT
-/// DO NOTHING). `market_data_v6` keeps updating in place, which is deliberate:
-/// alerts and charts depend on the newest fit.
-///
-/// READ `snapshot_age_bars` BEFORE TRUSTING A ROW. It records how many whole
-/// bar periods had elapsed between the bar closing and this snapshot being
-/// taken. 1 is the honest value. Larger means the push worker was behind (see
-/// PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md) and the row has that many bars of
-/// hindsight in it. A backtest or fitness scorer MUST filter on it; the column
-/// exists because a snapshot lane built on a backlogged push worker would
-/// otherwise reproduce the very bias it is meant to remove, silently.
-///
-/// Columns are the 69 that actually drift. The OHLCV spine, the causal z-score
+/// Columns are the 77 that actually drift. The OHLCV spine, the causal z-score
 /// triple and the ZigZag metrics are deliberately absent -- they are stable, so
 /// duplicating them would cost storage and buy nothing; join `market_data_v6`
 /// on (symbol, timeframe, timestamp) for those.
@@ -333,6 +311,15 @@ model MarketDataPointInTime {
   sr_6                       Float?
   sr_7                       Float?
   sr_8                       Float?
+  // sr2_levels
+  sr_9                       Float?
+  sr_10                      Float?
+  sr_11                      Float?
+  sr_12                      Float?
+  sr_13                      Float?
+  sr_14                      Float?
+  sr_15                      Float?
+  sr_16                      Float?
 
   createdAt DateTime @default(now())
 
@@ -369,7 +356,7 @@ model IndicatorStatistic {
   terminal_id String
   symbol      String
   timeframe   String
-  source      String // best_fit_a | best_fit_b | cherry_a | cherry_b | most_recent | non_a | non_b | fractal_edt | resistance | support
+  source      String // best_fit_a | best_fit_b | cherry_a | cherry_b | most_recent | non_a | non_b | fractal_edt | resistance | support | sr_levels | sr2_levels
   captured_at Int // unix — the collector's 5-minute cycle slot; the append-only half of the key
   live_bar_ts Int // newest bar in that export; joins to MarketDataV6.timestamp
   cycle_id    Int
@@ -465,15 +452,15 @@ model IndicatorStatistic {
 
 
   // [SUPPORT-RESISTANCE AUTO-CALIBRATION] provenance [added 2026-09-20].
-  // Populated by source 'sr_levels' only; null everywhere else. sr_1..sr_8
-  // are NOT duplicated here -- they already reach Postgres through
-  // MarketDataV6. What these record is WHY those levels exist: which
+  // Populated by sources 'sr_levels' and 'sr2_levels' only; null everywhere
+  // else. sr_1..sr_16 are NOT duplicated here -- they already reach Postgres
+  // through MarketDataV6. What these record is WHY those levels exist: which
   // fractal sample, what dispersion, what bucket width.
   sr_fractals_n           Int?    // fractals the Freedman-Diaconis calibration was computed from; a small N means a wide, unreliable step
   sr_q25                  Float?  // 25th percentile of that fractal sample
   sr_q75                  Float?  // 75th percentile
   sr_iqr                  Float?  // interquartile range; the dispersion the bucket width is derived from
-  sr_optimal_step         Float?  // auto-calibrated bucket width. THE field: every sr_1..sr_8 level in market_data is a bucket of this size, and nothing downstream could previously tell how wide they were
+  sr_optimal_step         Float?  // auto-calibrated bucket width. THE field: every sr_* level in market_data (sr_1..sr_8 for sr_levels, sr_9..sr_16 for sr2_levels) is a bucket of this size, and nothing downstream could previously tell how wide they were
   sr_macro_clusters       Int?    // clusters found before the 8-slot pipeline truncation; > 8 means levels were dropped
   sr_nearest_resistance   Float?  // closest level above the live close
   sr_nearest_support      Float?  // closest level below

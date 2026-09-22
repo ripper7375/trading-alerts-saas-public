@@ -48,7 +48,7 @@ stat_cols = [r[1] for r in conn.execute("PRAGMA table_info(indicator_statistics)
 md_cols = [r[1] for r in conn.execute("PRAGMA table_info(market_data)")]
 
 print("\nSQLite")
-check(len(md_cols) == 95, f"market_data untouched at 95 columns (got {len(md_cols)})")
+check(len(md_cols) == 103, f"market_data at 103 columns (got {len(md_cols)})")
 check(len(stat_cols) == len(set(stat_cols)), "no duplicate indicator_statistics columns")
 
 print("\ncollector")

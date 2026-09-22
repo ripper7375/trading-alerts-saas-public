@@ -121,7 +121,7 @@ resistance lines, ZigZag metrics, z-score body set).
 
 **Now:** MQL5 computes all 83 data fields and exports them. Python adds only 4 provenance fields.
 
-| Source (13 total)                                                            | Exports                                                                                                              |
+| Source (15 total)                                                            | Exports                                                                                                              |
 | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | 7 centroid variants (`best_fit_a/b`, `cherry_a/b`, `most_recent`, `non_a/b`) | `Base_FL`, `UOEDT`, `LOEDT`, `horiz_high_map`, `horiz_low_map`, `ssa`, `ema_ssa`, `crossing` — **8 × 7 = 56 fields** |
 | Fractal EDT                                                                  | `Fractal_Best_FL`, `Fractal_UOEDT`, `Fractal_LOEDT`                                                                  |
@@ -131,8 +131,9 @@ resistance lines, ZigZag metrics, z-score body set).
 | ZigZag                                                                       | pivot type + point + 9 segment metrics — **11 fields** (sparse: pivot events, not per-bar)                           |
 | Z-Score candle                                                               | `body_direction`, `body_size` (=\|z\|), `body_classification`                                                        |
 | Support & Resistance auto-calibration                                        | `sr_1`..`sr_4` supports below close, `sr_5`..`sr_8` resistances above it — **8 fields** (2026-09-16)                 |
+| Support & Resistance auto-calibration, 2nd window                            | `sr_9`..`sr_12` supports below close, `sr_13`..`sr_16` resistances above it — **8 fields** (2026-09-22)              |
 | **Pipeline adds**                                                            | `cycle_id`, `collected_at`, `calculated_at`, `synced_at`                                                             |
-|                                                                              | **= 95 columns**                                                                                                     |
+|                                                                              | **= 103 columns**                                                                                                    |
 
 **Why this was possible:** the indicators were _already exporting_ all of these columns. The
 collector simply wasn't reading the calculated ones. Nothing new had to be built in MQL5.
@@ -303,15 +304,15 @@ an API surface is only worth building when something actually consumes it.
 
 **But the column positions shift.** If the Engine 1.5A/B/C design refers to columns by position:
 
-|                   | Previous deck | Current          |
-| ----------------- | ------------- | ---------------- |
-| Base columns      | 79            | **95**           |
-| MCD01-10          | Cols 80–89    | **Cols 96–105**  |
-| FREQ54            | Cols 90–99    | **Cols 106–115** |
-| JSONB54 Narrative | Col 100       | **Col 116**      |
-| Conf_Score        | Col 101       | **Col 117**      |
-| WACS54            | Col 102       | **Col 118**      |
-| **Prisma total**  | **102**       | **118**          |
+|                   | Previous deck | 2026-09-16   | Current (2026-09-22) |
+| ----------------- | ------------- | ------------ | -------------------- |
+| Base columns      | 79            | 95           | **103**              |
+| MCD01-10          | Cols 80–89    | Cols 96–105  | **Cols 104–113**     |
+| FREQ54            | Cols 90–99    | Cols 106–115 | **Cols 114–123**     |
+| JSONB54 Narrative | Col 100       | Col 116      | **Col 124**          |
+| Conf_Score        | Col 101       | Col 117      | **Col 125**          |
+| WACS54            | Col 102       | Col 118      | **Col 126**          |
+| **Prisma total**  | **102**       | **118**      | **126**              |
 
 **Speaker note:** if the Engine 1.5 design refers to columns _by name_ rather than position, this
 is a non-issue. Worth confirming.

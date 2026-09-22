@@ -6,7 +6,7 @@ WHY THIS IS GENERATED AND NOT HAND-WRITTEN
 `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` section 7 option 1 asks for a
 second table holding each bar's values as they stood at bar close, never
 updated. Its cost line names the real hazard: "a rule for which fields are worth
-snapshotting". A hand-maintained 69-column mirror across two Prisma schemas is
+snapshotting". A hand-maintained 77-column mirror across two Prisma schemas is
 exactly the drift this repo has already been bitten by four times (the
 best_fit_a/b split touched ten files; railway-gateway/test/schema-sync.spec.ts
 exists because of it).
@@ -32,6 +32,11 @@ Snapshotted -- the sources whose historical values are rewritten:
     ago carries today's level set. Section 6.3 of
     ARCHITECTURE_DESIGN_14TH_INDICATOR_SUPPORT_AND_RESISTANCE.md calls this the
     same class of look-ahead "and stronger".
+  * sr2_levels (8 columns, added 2026-09-22). The 15th indicator,
+    S-R-AutoCalibration_v2_29, is a replica of the 14th exporting sr_9..sr_16
+    from a second calibration window, so it inherits the identical re-bucketing
+    and therefore the identical look-ahead. Snapshotting sr_1..sr_8 and not
+    sr_9..sr_16 would leave one of the two S&R lanes with no honest history.
 
 NOT snapshotted, each for a measured or structural reason:
 
@@ -75,13 +80,19 @@ TABLE_NAME = 'market_data_point_in_time'
 # names, hand-picked membership -- the membership IS the judgement call this
 # file exists to write down, and it is justified in the module docstring.
 DRIFTING_SOURCES = (list(collector.CENTROID_VARIANTS)
-                    + ['fractal_edt', 'resistance', 'support', 'sr_levels'])
+                    + ['fractal_edt', 'resistance', 'support', 'sr_levels',
+                       'sr2_levels'])
 
 STABLE_SOURCES = ['ohlcv', 'zscore', 'zigzag']
 
 
-def drifting_columns() -> list:
-    """market_data column names for every drifting source, registry-derived."""
+def drifting_columns_by_source() -> list:
+    """(source, market_data column) for every drifting source, registry-derived.
+
+    The source travels with each column because it can no longer be recovered
+    from the column name: sr_levels and sr2_levels both write bare `sr_<n>`
+    columns, so a name-prefix lookup would file sr_9..sr_16 under sr_levels.
+    """
     out = []
     for source in DRIFTING_SOURCES:
         if source not in collector.SOURCES:
@@ -89,8 +100,13 @@ def drifting_columns() -> list:
                 f'source {source!r} is not in the collector registry -- it was '
                 f'renamed or removed and this file must be updated with it')
         for staging_col, _type, _header in collector.SOURCES[source]['columns']:
-            out.append(collector.market_data_column(source, staging_col))
+            out.append((source, collector.market_data_column(source, staging_col)))
     return out
+
+
+def drifting_columns() -> list:
+    """market_data column names for every drifting source, registry-derived."""
+    return [col for _source, col in drifting_columns_by_source()]
 
 
 def parse_market_data_field_types(schema_text: str) -> dict:
@@ -150,7 +166,7 @@ DOC = '''/// APPEND-ONLY, NEVER UPDATED. One row per (symbol, timeframe, timesta
 /// exists because a snapshot lane built on a backlogged push worker would
 /// otherwise reproduce the very bias it is meant to remove, silently.
 ///
-/// Columns are the 69 that actually drift. The OHLCV spine, the causal z-score
+/// Columns are the 77 that actually drift. The OHLCV spine, the causal z-score
 /// triple and the ZigZag metrics are deliberately absent -- they are stable, so
 /// duplicating them would cost storage and buy nothing; join `market_data_v6`
 /// on (symbol, timeframe, timestamp) for those.
@@ -159,7 +175,7 @@ DOC = '''/// APPEND-ONLY, NEVER UPDATED. One row per (symbol, timeframe, timesta
 /// collector's own SOURCES registry. Do not hand-edit; run the generator.'''
 
 
-def render_prisma(types: dict, columns: list) -> str:
+def render_prisma(types: dict, columns_by_source: list) -> str:
     lines = [DOC, f'model {MODEL_NAME} {{']
     lines.append('  id        String @id @default(cuid())')
     lines.append('  timestamp Int')
@@ -173,17 +189,11 @@ def render_prisma(types: dict, columns: list) -> str:
     lines.append('  collected_at      Int? // when the collector promoted that row')
     lines.append('')
 
-    current_prefix = None
-    for col in columns:
-        prefix = col.rsplit('_', 1)[0] if col.startswith('sr_') else col.split('_')[0]
-        source_label = next(
-            (s for s in DRIFTING_SOURCES if col.startswith(
-                {'fractal_edt': 'fractal_', 'resistance': 'best_resistance',
-                 'support': 'best_support', 'sr_levels': 'sr_'}.get(s, s + '_'))),
-            None)
-        if source_label != current_prefix:
-            lines.append(f'  // {source_label}')
-            current_prefix = source_label
+    current_source = None
+    for source, col in columns_by_source:
+        if source != current_source:
+            lines.append(f'  // {source}')
+            current_source = source
         lines.append(f'  {col:<26} {types[col]}')
     lines.append('')
     lines.append('  createdAt DateTime @default(now())')
@@ -255,7 +265,8 @@ def main() -> int:
 
     schema_text = APP_SCHEMA.read_text(encoding='utf-8')
     types = parse_market_data_field_types(schema_text)
-    columns = drifting_columns()
+    columns_by_source = drifting_columns_by_source()
+    columns = [col for _source, col in columns_by_source]
 
     missing = [c for c in columns if c not in types]
     if missing:
@@ -272,7 +283,7 @@ def main() -> int:
     if leaked:
         raise SystemExit(f'stable columns leaked into the snapshot set: {leaked}')
 
-    prisma = render_prisma(types, columns)
+    prisma = render_prisma(types, columns_by_source)
     sql = render_sql(types, columns)
 
     if args.do_print:

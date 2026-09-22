@@ -42,10 +42,11 @@ API_GATEWAY_URL = os.environ.get('API_GATEWAY_URL', 'https://your-api.railway.ap
 API_KEY = os.environ.get('BACKFILL_API_KEY', 'your_api_key_here')
 TERMINAL_ID = 'push_worker_v5'
 
-# The 95 fields gateway_contract_market_data.schema.json requires, as posted
+# The 103 fields gateway_contract_market_data.schema.json requires, as posted
 # (i.e. after dropping market_data's own synced_at and adding terminal_id).
-# (Was 79 before the 2026-09-03 best_fit_a/best_fit_b split added 8 fields, and
-# 87 before the 2026-09-16 14th-indicator onboarding added sr_1..sr_8.)
+# (Was 79 before the 2026-09-03 best_fit_a/best_fit_b split added 8 fields,
+# 87 before the 2026-09-16 14th-indicator onboarding added sr_1..sr_8, and 95
+# before the 2026-09-22 15th-indicator onboarding added sr_9..sr_16.)
 # Checked once at startup against the real market_data table so drift between
 # this SQLite schema and the JSON contract fails loudly instead of silently
 # producing 400s at the gateway.
@@ -62,6 +63,9 @@ EXPECTED_CONTRACT_FIELDS = frozenset({
     # the nearest supports below each bar's close, sr_5..sr_8 the nearest
     # resistances above it. Nullable; an unresolved slot posts as JSON null.
     'sr_1', 'sr_2', 'sr_3', 'sr_4', 'sr_5', 'sr_6', 'sr_7', 'sr_8',
+    # 15th indicator (S-R-AutoCalibration_v2_29), a second calibration window:
+    # sr_9..sr_12 supports below close, sr_13..sr_16 resistances above it.
+    'sr_9', 'sr_10', 'sr_11', 'sr_12', 'sr_13', 'sr_14', 'sr_15', 'sr_16',
     'body_direction', 'body_size', 'body_classification',
     'zigzag_point_type', 'zigzag_current_point', 'zigzag_price_change',
     'zigzag_pct_change', 'zigzag_pct_change_class', 'zigzag_bars',
@@ -69,7 +73,7 @@ EXPECTED_CONTRACT_FIELDS = frozenset({
     'zigzag_slope', 'zigzag_category',
     'cycle_id', 'collected_at', 'calculated_at',
 })
-assert len(EXPECTED_CONTRACT_FIELDS) == 95, len(EXPECTED_CONTRACT_FIELDS)
+assert len(EXPECTED_CONTRACT_FIELDS) == 103, len(EXPECTED_CONTRACT_FIELDS)
 
 DB_PATH = Path('C:/Scripts/database/xauusd.db')      # the v6 pipeline database
 LOG_DIR = Path('C:/Scripts/logs')
@@ -154,7 +158,7 @@ def unsynced_count(conn) -> int:
 
 def verify_schema_contract(conn) -> bool:
     """Confirm market_data's columns match gateway_contract_market_data.schema.json
-    exactly (95 fields posted = table columns minus synced_at plus terminal_id).
+    exactly (103 fields posted = table columns minus synced_at plus terminal_id).
     Run once at startup so a future drift between the SQL schema and the JSON
     contract fails loudly here instead of surfacing as silent 400s at the gateway.
     """
@@ -201,14 +205,14 @@ STAT_COLUMNS = [
     'resid_a_dw', 'resid_b_n', 'resid_b_mean',
     'resid_b_mae', 'resid_b_sd', 'resid_b_max',
     'resid_b_dw',
-    # sr_levels calibration provenance [added 2026-09-20]
+    # sr_levels / sr2_levels calibration provenance [added 2026-09-20]
     'sr_fractals_n', 'sr_q25', 'sr_q75',
     'sr_iqr', 'sr_optimal_step', 'sr_macro_clusters',
     'sr_nearest_resistance', 'sr_nearest_support', 'sr_dist_resistance_pts',
     'sr_dist_support_pts',
     'config_hash', 'config_params',
 ]
-STAT_MAX_ROWS_PER_CYCLE = 200          # a cycle produces at most 20 (10 sources x 2 TF)
+STAT_MAX_ROWS_PER_CYCLE = 200          # a cycle produces at most 24 (12 sources x 2 TF)
 REJECTED_STATS_FILE = DB_PATH.parent / 'rejected_statistics.jsonl'
 
 

@@ -34,6 +34,7 @@ export class IndicatorStatisticDto {
     'resistance',
     'support',
     'sr_levels',
+    'sr2_levels',
   ])
   source!: string;
 

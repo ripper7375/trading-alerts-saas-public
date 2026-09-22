@@ -159,7 +159,7 @@ after the monolith split. These axes disagree on a meaningful number of files:
 There are two logically distinct data domains in this system, and — as of 2026-07-11 — they are
 at very different points in their own separation-from-the-monolith journey.
 
-### 1. `market_data_v6` — 95-field centroid-regression/EDT schema
+### 1. `market_data_v6` — 103-field centroid-regression/EDT schema
 
 This is the trading-data table (OHLCV + the seven centroid-regression variants: `best_fit_a`,
 `best_fit_b`, `cherry_a`, `cherry_b`, `most_recent`, `non_a`, `non_b` — see
@@ -192,6 +192,16 @@ change** (the snapshot is derived server-side from the same 95-field payload) an
 change**. Same rollout-order caveat as above: apply the migration **before** `railway-gateway`
 deploys, or every bar in between is missed permanently. See
 `backend-stack-c/.../HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` §9.
+
+**2026-09-22:** the 15th MQL5 indicator (`S-R-AutoCalibration_v2_29`, a second, independently
+anchored instance of the 14th) onboarded as collector source `sr2_levels`, adding 8 nullable
+levels `sr_9`..`sr_16` to **both** tables — `market_data_v6` 95 → 103 fields and
+`market_data_point_in_time` 69 → 77 snapshot columns, since it inherits the 14th's look-ahead.
+New migration `prisma/migrations/20260922000000_add_market_data_v6_sr2_levels` (16 nullable
+`ADD COLUMN`s, byte-identical to `prisma migrate diff`; authored, NOT applied). `indicator_statistics`
+needs no migration (`source` is TEXT); the closed enum widens 11 → 12 in the gateway contract/DTO.
+Same rollout order as above — migration, then `railway-gateway`, then the VPS (which must also
+receive `sqlite_schema_v6_xauusd.sql`, the only thing that creates `raw_sr2_levels`).
 
 `market_data_v6` exists in **two physically separate databases today**, not one:
 

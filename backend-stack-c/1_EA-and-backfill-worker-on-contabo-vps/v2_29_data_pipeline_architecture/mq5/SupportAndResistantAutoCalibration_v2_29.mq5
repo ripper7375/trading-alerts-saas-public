@@ -64,6 +64,7 @@ input ENUM_LINE_STYLE SupportStyle     = STYLE_DASHDOTDOT;     // Support Line S
 input color           ResistanceColor  = clrRed;               // Resistance Color
 input color           SupportColor     = clrGreen;             // Support Color
 input bool            InpShowSlotTags  = true;                 // Show sr_1..sr_8 Slot Tags on Chart
+input bool            InpShowComments  = false;                // Toggle to prevent comment flickering on Multi-Chart
 
 input group "===== Stack C Pipeline & Export Settings ====="
 input string InpExportFileName       = "SR_Levels";           // Export file prefix ({Prefix}_{Symbol}_{TF}.txt)
@@ -547,6 +548,9 @@ int OnInit()
    CleanChart();
    InitializeHandles();
 
+   if(!InpShowComments)
+      Comment("");
+
    SetIndexBuffer(0, BufferZero, INDICATOR_DATA);
    SetIndexBuffer(1, BufferOne, INDICATOR_DATA);
    SetIndexBuffer(2, BufferTwo, INDICATOR_DATA);
@@ -591,6 +595,8 @@ int OnInit()
 void CleanChart()
 {
    ObjectsDeleteAll(0, IndicatorName);
+   ObjectDelete(0, EXPORT_BUTTON_NAME);
+   ObjectDelete(0, BACKFILL_BUTTON_NAME);
 }
 
 //+------------------------------------------------------------------+
@@ -684,6 +690,12 @@ void DrawLines(double currentClose)
 //+------------------------------------------------------------------+
 void DisplayDistanceComments()
 {
+   if(!InpShowComments)
+   {
+      Comment("");
+      return;
+   }
+
    string commentText = "Support & Resistance Auto-Calibration (v2.29) HUD:\n";
    commentText += "Mode: " + g_stat_calc_mode + "\n";
    string win_mode_str = (InpWindowMode == CALC_WINDOW_FIXED_START) ? "Fix Start -> Last Bar" : "Fixed Window";
@@ -1237,8 +1249,7 @@ void OnChartEvent(const int id,
 //+------------------------------------------------------------------+
 void OnDeinit(const int reason)
 {
-   if(InpAutoExport)
-      EventKillTimer();
+   EventKillTimer();
 
    CleanChart();
    Comment("");
@@ -1254,9 +1265,6 @@ void OnDeinit(const int reason)
       FractalsHandle = INVALID_HANDLE;
    }
 
-   if(ObjectFind(0, EXPORT_BUTTON_NAME) >= 0)
-      ObjectDelete(0, EXPORT_BUTTON_NAME);
-   if(ObjectFind(0, BACKFILL_BUTTON_NAME) >= 0)
-      ObjectDelete(0, BACKFILL_BUTTON_NAME);
+   ChartRedraw(0);
 }
 //+------------------------------------------------------------------+

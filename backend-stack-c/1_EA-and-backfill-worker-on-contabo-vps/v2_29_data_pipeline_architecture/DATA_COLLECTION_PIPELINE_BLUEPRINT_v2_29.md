@@ -3,7 +3,15 @@
 **Status:** Authoritative reference ("the bible") for the XAUUSD data-collection
 pipeline. **MQL5 is the single source of every value** (2026-09-09) — the Python
 calc stack was removed from the pipeline and parked; see §6.
-**Last Updated:** 2026-09-11 (Economic calendar lane, Railway Gateway integration & batching live-verified in production)
+**Last Updated:** 2026-09-22 (15th indicator `S-R-AutoCalibration_v2_29` onboarded — `market_data` 95 → 103; see §13 item 10)
+
+> **2026-09-22 — the 15th indicator.** `S-R-AutoCalibration_v2_29` is a replica
+> of the 14th (`SupportAndResistantAutoCalibration_v2_29`) exporting slots
+> `sr_9..sr_16` from a second, independently anchored calibration window, under
+> export prefix `S_R_Levels` and collector source `sr2_levels`. Indicators 14 → 15,
+> `raw_*` staging tables 14 → 15, `market_data` / wire contract 95 → 103,
+> statistics `source` enum 11 → 12 (its `_Statistic.txt` is ingested from day
+> one), point-in-time snapshot columns 69 → 77. §13 item 10 is the rollout.
 
 > **2026-09-09 — two architecture changes.**
 >
@@ -51,7 +59,7 @@ not part of the deployment.
 
 | File                                           | Role                                                              | Ref   |
 | ---------------------------------------------- | ----------------------------------------------------------------- | ----- |
-| `mq5/` (14 indicators, see §0.4)               | Data producers: compute + auto-export **every** value as `.txt`   | §5.1  |
+| `mq5/` (15 indicators, see §0.4)               | Data producers: compute + auto-export **every** value as `.txt`   | §5.1  |
 | `mq5/EconomicCalendarExport_v2_29.mq5`         | **EA**, not an indicator: exports the built-in Economic Calendar  | §5.5  |
 | `export_collector_validator_v2.py`             | Pipeline engine: COLLECT → ADJUST → VALIDATE → PROMOTE            | §5.2  |
 | `sqlite_schema_v6_xauusd.sql`                  | `xauusd.db` schema: staging + validation + `market_data`          | §5.3  |
@@ -62,6 +70,7 @@ not part of the deployment.
 | `install_services.bat`                         | Windows/NSSM installer for the VPS services                       | §8.2  |
 | `install_centroid_watchdog_service.bat`        | Separate NSSM installer for the watchdog (never touches §8.2's)   | §5.6  |
 | `migrate_sqlite_add_sr_columns.sql`            | One-off `market_data` widening for the 14th indicator             | §5.3  |
+| `migrate_sqlite_add_sr2_columns.sql`           | One-off `market_data` widening for the 15th indicator (95 → 103)  | §5.3  |
 | `replay_quarantine.py`                         | Re-POST gateway-rejected rows after a fix                         | §10.2 |
 
 ### 0.2 Legacy (retained for reference; NOT in the v6 data flow — §14)
@@ -84,7 +93,7 @@ restore it.
 
 **None of this is deployed to the VPS and none of it runs.** See §6.
 
-### 0.4 The 14 export indicators — `mq5/`
+### 0.4 The 15 export indicators — `mq5/`
 
 Filenames are hyphen-free (MQL5 indicator names); the EA's `iCustom()` and the
 collector's file-prefix map both depend on these exactly.
@@ -115,6 +124,13 @@ collector's file-prefix map both depend on these exactly.
 | `ohlcvexportlightweight_v2_29.mq5`                            | `OHLCV`                                  | `ohlcv`              |
 | `zscoreohlccandleexport_v2_29.mq5`                            | `ZScore`                                 | `zscore`             |
 | `SupportAndResistantAutoCalibration_v2_29.mq5`                | `SR_Levels`                              | `sr_levels`          |
+| `S-R-AutoCalibration_v2_29.mq5`                               | `S_R_Levels`                             | `sr2_levels`         |
+
+> **`SR_Levels` vs `S_R_Levels` differ by one underscore.** `run_cycle()` builds
+> an exact filename (it does not glob), so the two cannot collide — pinned by
+> `test_sr2_levels_source.py`. The 15th's `.mq5` filename is the one exception
+> to "hyphen-free": it is not loaded by the legacy EA's `iCustom()`, so nothing
+> depends on its name.
 
 > The export-file prefix is set by each indicator's `InpExportFileName` input
 > and is **independent of the `.mq5` filename** — so renaming the `.mq5` files
@@ -131,7 +147,9 @@ collector's file-prefix map both depend on these exactly.
 | `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`                                 | Active / hot-standby terminal topology and the promote design (§8.1)                  |
 | `docs/runbooks/mt5-terminal-promote.md` (repo root)                       | The promote procedure itself — preconditions, switch, verify, rollback                |
 | `test_stale_export_guard.py`                                              | Guards the stale-export-directory rejection (§12 item 10); 9 tests                    |
-| `test_sr_levels_source.py`                                                | Guards the 14th indicator end to end (§5.1, §13 item 7); 24 tests                     |
+| `test_sr_levels_source.py`                                                | Guards the 14th indicator end to end (§5.1, §13 item 7); 39 tests                     |
+| `test_sr2_levels_source.py`                                               | Guards the 15th indicator end to end (§5.1, §13 item 10); 36 tests                    |
+| `mq5/S-R-AutoCalibration_v2_29.md`                                        | Specification of the 15th indicator (slot map, coexistence rules)                     |
 | `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`       | Frozen baseline/EDT projection + the centroid watchdog (§5.6, §12 item 8)             |
 | `active-standby-terminal-operation-for-admin/generate_frozen_preset.py`   | Captures an approved line into MT5 `.set` presets; `--verify` proves it took          |
 | `test_centroid_watchdog.py`                                               | Guards the watchdog's debounce automaton and parsing; 35 tests                        |
@@ -141,7 +159,7 @@ collector's file-prefix map both depend on these exactly.
 
 ## 1. Design Goals
 
-1. **Single source of truth = validated export files.** All 14 indicators
+1. **Single source of truth = validated export files.** All 15 indicators
    export per-bar `.txt` files; the collector cross-validates them and promotes
    one coherent `market_data` row per bar.
 2. **MQL5 computes everything; the pipeline transports it.** Every value in
@@ -167,14 +185,14 @@ collector's file-prefix map both depend on these exactly.
 │                                                                                │
 │  MT5 terminal — XAUUSD M5 chart + XAUUSD M15 chart                             │
 │  ┌──────────────────────────────┐  auto-export every minute at second :59     │
-│  │ 14 export indicators  (§5.1) │ ───────────────►  MQL5/Files/                │
+│  │ 15 export indicators  (§5.1) │ ───────────────►  MQL5/Files/                │
 │  │  7× Centroid Regression      │                   {Prefix}_XAUUSD_{TF}.txt   │
 │  │  Fractal Best-Fit v5         │                   (admin-layer columns)      │
 │  │  Single Best Resist/Support  │                          │                   │
 │  │  ZigZag v43 / OHLCV / ZScore │                          ▼                   │
 │  └──────────────────────────────┘   ┌──────────────────────────────────────┐  │
 │                                      │ export_collector_validator_v2.py(§5.2)│ │
-│  every 5 min at :05, market-hours    │  COLLECT  → 14 raw_* staging tables   │  │
+│  every 5 min at :05, market-hours    │  COLLECT  → 15 raw_* staging tables   │  │
 │  gated; M15 on 15-min boundaries     │             (EVERY exported column)   │  │
 │                                      │  ADJUST   → timestamp_adj (see §7)    │  │
 │                                      │  VALIDATE → keys agree across sources │  │
@@ -200,8 +218,8 @@ collector's file-prefix map both depend on these exactly.
 
 **Pipeline stages (one 5-minute cycle):**
 
-1. **COLLECT** — read the 13 `{Prefix}_XAUUSD_{TF}.txt` files; stage **every**
-   exported column into the 14 `raw_*` tables under one `collection_cycles` row.
+1. **COLLECT** — read the 15 `{Prefix}_XAUUSD_{TF}.txt` files; stage **every**
+   exported column into the 15 `raw_*` tables under one `collection_cycles` row.
 2. **ADJUST** — snap `timestamp_adj` to the bar grid. A no-op on correct data
    since the 2026-09-09 MQL5 fix; retained as belt-and-braces (§7).
 3. **VALIDATE** — cross-source agreement on the keys (`timestamp_adj`, `symbol`,
@@ -300,12 +318,14 @@ existing `non_a`/`non_b` pair.
 
 ### 4.2 `market_data` (collector → gateway)
 
-The promoted wide table (95 columns — 79 before the 2026-09-03
-`best_fit_a`/`best_fit_b` split added a 7th centroid family). Field-by-field
+The promoted wide table (103 columns — 79 before the 2026-09-03
+`best_fit_a`/`best_fit_b` split added a 7th centroid family, 87 before the
+14th indicator's `sr_1..sr_8`, 95 before the 15th's `sr_9..sr_16`). Field-by-field
 contract is `gateway_contract_market_data.schema.json` (§9). Column families:
 the 4 keys, OHLCV, the 7 centroid families (admin: `*_horiz_high_map/_horiz_low_map/_ssa/
 _ema_ssa/_crossing`; calculated: `*_base_fl/_uoedt/_loedt`), fractal/resistance/
-support lines, the z-score candle set, the zigzag pivot + metrics, and
+support lines, the two S&R level sets (`sr_1..sr_8`, `sr_9..sr_16`), the
+z-score candle set, the zigzag pivot + metrics, and
 provenance (`cycle_id`, `collected_at`, `calculated_at`, `synced_at`).
 
 ### 4.3 Gateway response semantics (push worker)
@@ -329,8 +349,8 @@ Gateway **must** upsert idempotently on `(symbol, timeframe, timestamp)`.
 One full set on the XAUUSD M5 chart, one on the M15 chart. Each computes its
 buffers and auto-exports the admin-layer columns (§3.1).
 
-- **Auto-export inputs (all 14):** `InpAutoExport=true` (1-second `EventSetTimer`
-  loop), `InpExportSecond=59` — keep identical across all 14 so files are
+- **Auto-export inputs (all 15):** `InpAutoExport=true` (1-second `EventSetTimer`
+  loop), `InpExportSecond=59` — keep identical across all 15 so files are
   written in near-lockstep.
 - **Manual/button export retained** in every indicator for human review
   (format/correctness vs the chart); also answer the `CHARTEVENT_CUSTOM+1000` /
@@ -434,6 +454,14 @@ Offset`/`LOEDT Offset` (matching the Fractal indicator's existing
     contract omits is a latent outage for the other ten, not just for itself.
   - Totals: **50 new columns** (40 uniform + 10 `sr_*`); `indicator_statistics`
     37 → 87; all 11 statistic files now reach the database.
+  - **2026-09-22:** the 15th indicator's file (`S_R_Levels_*_Statistic.txt`) is
+    the 14th's section for section, so it is ingested as source `sr2_levels`
+    with **no new column** — the ten `[SUPPORT-RESISTANCE` rules already parse
+    it. The closed enum is widened 11 → 12 in the same release (gateway before
+    VPS, as above). Known and pre-existing: `indicator_configs` is keyed by
+    `config_hash` alone, so two sources with identical parameter blocks share
+    one row (`resistance`/`support` already do); `sr_levels`/`sr2_levels` will
+    too, since their window anchors are measurements, not configuration.
 
 - ⚠ **`_Statistic.txt` files are still not consumed by anything.** The collector
   reads only the timeseries exports; every statistic file is overwritten each
@@ -479,13 +507,13 @@ The pipeline engine. Self-contained: its only local dependency is
 Defines `xauusd.db`; idempotent (`CREATE … IF NOT EXISTS`) — the collector
 applies it on every start, so shipping schema changes = shipping the file.
 
-| Object                             | Purpose                                                                                                                                                      |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `collection_cycles`                | one row per slot/timeframe/attempt; `collecting → validating → validated \| rejected`; rejected cycles keep the audit row, cascade-delete staged rows        |
-| 14 × `raw_*`                       | per-source staging — **every** exported column; lead with keys `cycle_id, timestamp_raw, timestamp_adj, symbol, timeframe, close`                            |
-| `v_validation_keys` (+ `…_zigzag`) | UNION view of the 13 per-bar sources' keys for the cross-source mismatch query (zigzag exposed separately as sparse pivots)                                  |
-| `validation_failures`              | per-mismatch forensic log (field + per-source values as JSON)                                                                                                |
-| `market_data`                      | validated wide table (95 cols); PK `(timestamp, timeframe)`; `synced_at` outbox (NULL = unsynced; rows are marked, never deleted); partial index on unsynced |
+| Object                             | Purpose                                                                                                                                                       |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collection_cycles`                | one row per slot/timeframe/attempt; `collecting → validating → validated \| rejected`; rejected cycles keep the audit row, cascade-delete staged rows         |
+| 15 × `raw_*`                       | per-source staging — **every** exported column; lead with keys `cycle_id, timestamp_raw, timestamp_adj, symbol, timeframe, close`                             |
+| `v_validation_keys` (+ `…_zigzag`) | UNION view of the 14 per-bar sources' keys — an operator diagnostic; `validate_cycle()` reads each staging table directly (zigzag exposed separately)         |
+| `validation_failures`              | per-mismatch forensic log (field + per-source values as JSON)                                                                                                 |
+| `market_data`                      | validated wide table (103 cols); PK `(timestamp, timeframe)`; `synced_at` outbox (NULL = unsynced; rows are marked, never deleted); partial index on unsynced |
 
 CHECK constraints enforce `symbol='XAUUSD'` and `timeframe IN ('M5','M15')`.
 Empty export fields stored as `NULL`.
@@ -845,14 +873,14 @@ MT5 terminals:   see below — the export directory is a SHARED BUS, not the
 ```
 
 **Terminals (active / hot-standby topology).** Four independent lanes read from an
-MT5 terminal's `MQL5/Files/`: price (14 indicators × M5/M15), fit statistics (10
+MT5 terminal's `MQL5/Files/`: price (15 indicators × M5/M15), fit statistics (12
 `_Statistic.txt`), the economic calendar, and — via its own separate service and
 its own `CGI_EXPORT_DIR` variable — the currency & gold index engine. Only the
 first three are read by `MT5Collector` from its single `--export-dir`.
 
 | Terminal       | Carries                                            | Alternates? |
 | -------------- | -------------------------------------------------- | ----------- |
-| **A** (EDT)    | 14 indicators on XAUUSD M5 + 14 on M15, + calendar | Yes         |
+| **A** (EDT)    | 15 indicators on XAUUSD M5 + 15 on M15, + calendar | Yes         |
 | **B** (EDT)    | identical to A                                     | Yes         |
 | **S** (static) | 8 × `OHLCV_{SYMBOL}_M5.txt` exporters (Lane 4)     | **Never**   |
 
@@ -879,7 +907,7 @@ requests`. Verify with `nssm status MT5Collector` / `MT5PushWorker`.
 1. Compile the 13 `mq5/` indicators in MetaEditor.
 2. Tools → Options → Expert Advisors: allow `127.0.0.1` (only needed if the
    legacy EA/relay is used).
-3. Attach all 14 indicators to the XAUUSD **M5** chart and all 14 to the **M15**
+3. Attach all 15 indicators to the XAUUSD **M5** chart and all 15 to the **M15**
    chart; set each windowed indicator's anchors (§5.1) and confirm lines draw.
    **Repeat identically on the standby terminal** (§8.1) — A and B must be
    interchangeable, or a promote changes more than the tuning that was intended.
@@ -922,7 +950,7 @@ Both lanes authenticate via Bearer token (`BACKFILL_API_KEY`) and share the same
 The gateway must provide:
 
 1. `POST /api/v1/market-data` accepting a body validated by
-   `gateway_contract_market_data.schema.json` — the 95-field `market_data`
+   `gateway_contract_market_data.schema.json` — the 103-field `market_data`
    record plus `terminal_id`. **All derived/indicator fields are nullable**
    (`null` = indicator inactive on that bar; never coerce to 0).
 2. **Idempotent upsert** on `(symbol, timeframe, timestamp)` — duplicate
@@ -1083,9 +1111,9 @@ fully cleared.
    (`InpRegCentroids` does not touch the SSA path, verified in source) and still
    moved on 100 % of bars.
 
-   **Freezing covers 21 of the 69 drifting columns** (7 variants × base_fl/uoedt/
+   **Freezing covers 21 of the 69 drifting columns** (7 variants × base*fl/uoedt/
    loedt). `*_ssa`/`*_ema_ssa`/`*_crossing` stay dynamic in frozen mode — the SSA
-   decomposition runs _before_ the mode branch — so a **signal flag still flips
+   decomposition runs \_before* the mode branch — so a **signal flag still flips
    retroactively on a frozen terminal.** Worth doing; not the fix.
 
    **BUILT in response (2026-09-20), not deployed:** a point-in-time snapshot
@@ -1362,6 +1390,49 @@ LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
    `snapshot_age_bars = 1`, never `market_data_v6` history. Ready-to-use queries:
    `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` §9.
 
+10. ⚠ **Deploy the 15th indicator (`S-R-AutoCalibration_v2_29`).** The
+    pipeline side shipped 2026-09-22 and is tested end to end (36 tests, every
+    mutation tried killed, a live `--once` cycle promoting 103 columns); the
+    physical steps are Davin's, and **the ORDER is item 7's, for the same
+    reasons:**
+
+    **a. Apply `20260922000000_add_market_data_v6_sr2_levels` to production
+    Postgres FIRST** (`prisma migrate status` first — `migrate deploy` applies
+    every pending migration). Eight nullable columns on `market_data_v6` **and**
+    eight on `market_data_point_in_time`; byte-identical to `prisma migrate
+diff`'s own output.
+
+    **b. Then let `railway-gateway` deploy** (auto-deploys from `main`). It then
+    accepts 103 fields and the `sr2_levels` statistics source, and snapshots 77
+    columns. Sending the VPS change first would 400 **every** `market_data` row
+    (quarantined **and** stamped `synced_at`) and every statistics **batch**.
+
+    **c. Deploy the VPS side — THREE files, not two:**
+    `export_collector_validator_v2.py`, `backfill_worker_api_gateway_v5.py`
+    **and `sqlite_schema_v6_xauusd.sql`** beside the collector. Only the schema
+    file creates `raw_sr2_levels`; the migrate functions widen tables that
+    already exist. A collector started beside a stale schema file now refuses
+    to start with a message naming the file (`assert_staging_tables()`) instead
+    of crash-looping on the first cycle. `market_data` widens itself on start
+    (`migrate_market_data()`), or run `migrate_sqlite_add_sr2_columns.sql` by
+    hand first. ⚠ The local `DEPLOY_TO_CONTABO_VPS_READY/` package (gitignored)
+    **predates this change** and carries only the two `.py` files.
+
+    **d. Attach the `.ex5` to XAUUSD M5 and M15, on A and B identically,
+    BEFORE restarting the collector.** Once the updated collector runs, a
+    missing `S_R_Levels_XAUUSD_{TF}.txt` rejects **every** cycle (full
+    `PER_BAR_SOURCES` enrolment, as for the 14th).
+
+    **e. Give it its own window.** ⚠ Its defaults (`InpStartDateTime`,
+    `InpEndDateTime`, window mode, touches) are **identical to the 14th's**, so
+    out of the box `sr_9..sr_16` reproduce `sr_1..sr_8` exactly. The second
+    instance only adds information once its anchors differ.
+
+    **⚠ No real capture of this indicator exists yet.** The parser is verified
+    against the `.mq5` source, synthetic fixtures, and the 14th's real captures
+    relabelled. Diff a first real `S_R_Levels_XAUUSD_M5.txt` header against
+    `SOURCES['sr2_levels']` before trusting a green cycle.
+
 Deferred product features (separate workstreams, not pipeline-blocking):
 trendline image rendering + statistical scoring/advice; parameter-revision
 alerting.
@@ -1416,6 +1487,7 @@ relay bounded-queue+spill+replay; worker `BACKFILL_API_KEY` via env var.
 | `market_data` shape                           | 87 columns from the 2026-09-03 split, unchanged by the 2026-09-09 work — the contract, both Prisma schemas and the DTO were untouched then                                                                                                                                 |
 | 14th indicator (2026-09-16)                   | `SupportAndResistantAutoCalibration_v2_29` onboarded — 13→14 indicators, 87→95 columns, new `raw_sr_levels` + `migrate_market_data()`; statistics capture deliberately deferred                                                                                            |
 | 14th indicator defects (2026-09-20)           | Four §6.3 defects fixed and recompiled (0 errors): `is_backfill` now selects a genuinely separate `_Backfill` export; the intra-bar trigger is reachable; all price formatting uses `_Digits`; the export is exactly `InpExportBars` rows, not one more                    |
+| 15th indicator (2026-09-22)                   | `S-R-AutoCalibration_v2_29` onboarded as `sr2_levels` — 14→15 indicators, 95→103 columns, new `raw_sr2_levels`, stats enum 11→12, point-in-time 69→77; `assert_staging_tables()` guards a stale schema file; migration authored, NOT applied                               |
 | Look-ahead bias (2026-09-20)                  | **Measured** for the first time on two real captures 12 days apart — `*_uoedt` moves 14 % of the EDT channel on 100 % of bars. New `market_data_point_in_time` snapshot lane BUILT (gateway-side, VPS untouched, wire contract untouched); migration authored, NOT applied |
 | Legacy v2.28/v2.27/v2.26 EAs, `.ex5` binaries | history only — do not deploy                                                                                                                                                                                                                                               |
 

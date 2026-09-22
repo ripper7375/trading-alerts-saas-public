@@ -1,0 +1,58 @@
+{
+  "symbol": "XAUUSD",
+  "timeframe": "M15_M5",
+  "timestamp": "2026-09-18T20:55:00Z",
+  "evaluator_version": "1.0.0",
+  "module": "MCD3_CONSOLIDATED_TREND_AND_EDT_STOCHASTIC",
+  "validation": {
+    "status": "PASS",
+    "tier1_active_indicators": {
+      "m15": ["non_b"],
+      "m5": ["best_fit_a"]
+    },
+    "tier2_continuity": "PASS",
+    "tier3_sanity": "PASS",
+    "tier4_statistics": "PASS",
+    "warnings": []
+  },
+  "m15_metrics": {
+    "active_indicator": "non_b",
+    "trend_state": "DOWNTREND",
+    "regression_angle": -29.72,
+    "current_close": 4377.99,
+    "current_ssa": 4380.76,
+    "current_uoedt": 4279.21,
+    "current_loedt": 4125.99,
+    "containment_rate": 73.95,
+    "edt_horizon_n": 1808
+  },
+  "m5_metrics": {
+    "active_indicator": "best_fit_a",
+    "trend_state": "UPTREND",
+    "regression_angle": 6.94,
+    "current_close": 4377.99,
+    "current_ssa_or_close": 4377.33,
+    "current_uoedt": 4384.28,
+    "current_loedt": 4350.22,
+    "containment_rate": 55.76,
+    "edt_horizon_n": 755
+  },
+  "consolidated_trend_conditions": {
+    "condition_1_trend_aligned": false,
+    "condition_2_historical_nesting_passed": false,
+    "condition_2_nesting_rate_pct": 0.0,
+    "condition_2_contained_bars": 0,
+    "condition_2_total_bars": 755,
+    "condition_3_current_bar_engulfed": false
+  },
+  "evaluation": {
+    "is_consolidated_trend": false,
+    "consolidated_trend_state": "NON_CONSOLIDATED",
+    "edt_stochastic": null,
+    "stochastic_zone": "UNAVAILABLE",
+    "regime_status": "TREND_MISALIGNMENT",
+    "discrete_state_code": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+    "tactical_bias": "NEUTRAL_STAND_ASIDE"
+  },
+  "commentary": "XAUUSD multi-timeframe structure is NON_CONSOLIDATED due to trend conflict: M15 slope is DOWNTREND (-29.72°) while M5 slope is UPTREND (+6.94°). Because the 3 strict conditions are not satisfied, a Consolidated Trend does not exist and EDT Stochastic is UNAVAILABLE."
+}

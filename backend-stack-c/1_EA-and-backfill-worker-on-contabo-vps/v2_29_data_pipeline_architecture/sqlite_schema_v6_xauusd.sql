@@ -3,8 +3,8 @@
 -- Database file: xauusd.db  (one DB per symbol; XAUUSD is the only symbol)
 --
 -- Pipeline (MQL5 is the single source of every value — 2026-09-09):
---   1. COLLECT   — every 5 minutes the 14 indicator export files are ingested
---                  into the 14 raw_* staging tables under one collection cycle.
+--   1. COLLECT   — every 5 minutes the 15 indicator export files are ingested
+--                  into the 15 raw_* staging tables under one collection cycle.
 --                  EVERY exported column is staged, not a subset.
 --   2. ADJUST    — timestamp_adj = raw timestamp snapped to the bar grid (a
 --                  no-op on correct data since the 2026-09-09 MQL5 GMT-offset
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS collection_cycles (
     attempt         INTEGER NOT NULL DEFAULT 1,       -- re-request counter
     status          TEXT    NOT NULL DEFAULT 'collecting'
                     CHECK (status IN ('collecting', 'validating', 'validated', 'rejected')),
-    sources_received INTEGER NOT NULL DEFAULT 0,      -- 0..14 export files ingested
+    sources_received INTEGER NOT NULL DEFAULT 0,      -- 0..15 export files ingested
     rejected_reason TEXT,
     created_at      INTEGER NOT NULL,
     validated_at    INTEGER,
@@ -293,6 +293,33 @@ CREATE TABLE IF NOT EXISTS raw_sr_levels (
     PRIMARY KEY (cycle_id, timeframe, timestamp_raw)
 );
 
+-- ---- 2.9 Support & Resistance auto-calibrated levels, second instance -----
+-- The 15th indicator (S-R-AutoCalibration_v2_29), added 2026-09-22. The same
+-- Freedman-Diaconis engine as 2.8, replicated so a second, independently
+-- anchored calibration window can run beside the first. It exports slots
+-- sr_9..sr_16 under the prefix S_R_Levels (vs the 14th's SR_Levels):
+-- sr_9..sr_12 the nearest supports BELOW close (sr_9 closest), sr_13..sr_16
+-- the nearest resistances ABOVE close (sr_13 closest). Same NULL-never-0 rule
+-- and the same reason for listing sr_* in PRICE_LEVEL_COLUMNS explicitly.
+-- Nullable and CHECK-free on purpose, exactly as raw_sr_levels.
+CREATE TABLE IF NOT EXISTS raw_sr2_levels (
+    cycle_id        INTEGER NOT NULL REFERENCES collection_cycles (cycle_id) ON DELETE CASCADE,
+    timestamp_raw   INTEGER NOT NULL,
+    timestamp_adj   INTEGER,
+    symbol          TEXT    NOT NULL CHECK (symbol = 'XAUUSD'),
+    timeframe       TEXT    NOT NULL CHECK (timeframe IN ('M5', 'M15')),
+    close           REAL    NOT NULL,
+    sr_9            REAL,
+    sr_10           REAL,
+    sr_11           REAL,
+    sr_12           REAL,
+    sr_13           REAL,
+    sr_14           REAL,
+    sr_15           REAL,
+    sr_16           REAL,
+    PRIMARY KEY (cycle_id, timeframe, timestamp_raw)
+);
+
 -- body_size is |z-score| (the MQL5 export convention), NOT a candle body size.
 -- body_direction and body_size are legitimately 0 (doji / on-mean), so they are
 -- deliberately outside the collector's "<=0 means NULL" price-level guard.
@@ -382,6 +409,8 @@ CREATE VIEW IF NOT EXISTS v_validation_keys AS
     SELECT cycle_id, 'support'     AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_support
     UNION ALL
     SELECT cycle_id, 'sr_levels'   AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_sr_levels
+    UNION ALL
+    SELECT cycle_id, 'sr2_levels'  AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_sr2_levels
     UNION ALL
     SELECT cycle_id, 'zscore'      AS source, timestamp_raw, timestamp_adj, symbol, timeframe, close FROM raw_zscore;
 
@@ -499,10 +528,10 @@ CREATE TABLE IF NOT EXISTS indicator_statistics (
     resid_b_dw              REAL    , -- the diagnostic model_b_r2 cannot give: these lines are fitted to centroids or touches and then scored against closes, so r2 is routinely negative
 
     -- [SUPPORT-RESISTANCE AUTO-CALIBRATION] provenance [added 2026-09-20].
-    -- Populated by sr_levels only; NULL for the other 10 sources. sr_1..sr_8
-    -- are NOT duplicated here -- they already reach Postgres through
-    -- market_data's 95 columns. What was being lost is WHY those levels:
-    -- which sample, what dispersion, what bucket width.
+    -- Populated by sr_levels and sr2_levels only; NULL for the other 10
+    -- sources. sr_1..sr_16 are NOT duplicated here -- they already reach
+    -- Postgres through market_data's 103 columns. What was being lost is
+    -- WHY those levels: which sample, what dispersion, what bucket width.
     sr_fractals_n           INTEGER , -- fractals the Freedman-Diaconis calibration was computed from; a small N means a wide, unreliable step
     sr_q25                  REAL    , -- 25th percentile of that fractal sample
     sr_q75                  REAL    , -- 75th percentile
@@ -636,6 +665,17 @@ CREATE TABLE IF NOT EXISTS market_data (
     sr_7                 REAL,                        -- from MQL5 (3rd closest resistance)
     sr_8                 REAL,                        -- from MQL5 (4th closest resistance)
 
+    -- The same, second instance: the 15th indicator (S-R-AutoCalibration_v2_29),
+    -- added 2026-09-22 with its own calibration window.
+    sr_9                 REAL,                        -- from MQL5 (closest support below close)
+    sr_10                REAL,                        -- from MQL5 (2nd closest support)
+    sr_11                REAL,                        -- from MQL5 (3rd closest support)
+    sr_12                REAL,                        -- from MQL5 (4th closest support)
+    sr_13                REAL,                        -- from MQL5 (closest resistance above close)
+    sr_14                REAL,                        -- from MQL5 (2nd closest resistance)
+    sr_15                REAL,                        -- from MQL5 (3rd closest resistance)
+    sr_16                REAL,                        -- from MQL5 (4th closest resistance)
+
     -- Z-Score candle (zscoreohlccandleexport)
     body_direction       INTEGER CHECK (body_direction IN (-1, 0, 1)),
     body_size            REAL,                        -- |z-score| (export convention)
@@ -660,7 +700,7 @@ CREATE TABLE IF NOT EXISTS market_data (
     -- LEGACY: marked the old Python CALCULATE stage. With MQL5 as the single
     -- source there is no separate calculation step, so the collector sets it
     -- equal to collected_at. Kept (not dropped) because market_data is a 1:1
-    -- mirror of the frozen 95-field gateway contract.
+    -- mirror of the frozen 103-field gateway contract.
     calculated_at       INTEGER,                      -- unix, = collected_at
 
     -- Sync state for the gateway push worker (backfill worker v5).
@@ -726,7 +766,7 @@ END;
 -- ============================================================================
 -- Source: MT5's own Economic Calendar API (CalendarValueHistory ->
 -- CalendarEventById -> CalendarCountryById), read by the calendar exporter on
--- the same terminal that runs the 14 export indicators. No vendor, no API key.
+-- the same terminal that runs the 15 export indicators. No vendor, no API key.
 -- Availability confirmed on the live terminal before this table was designed
 -- (Eightcap-Demo build 6182: 333 events / 8 days, 333/333 lookups resolved,
 -- 25 HIGH-impact, server-side currency filtering functional).

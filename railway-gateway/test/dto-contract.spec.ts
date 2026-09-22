@@ -27,8 +27,8 @@ describe('MarketDataDto contract', () => {
     Object.keys(schema.properties).filter((k) => k !== '_centroid_admin_note')
   );
 
-  it('has exactly 95 fields in the schema', () => {
-    expect(schemaFields.size).toBe(95);
+  it('has exactly 103 fields in the schema', () => {
+    expect(schemaFields.size).toBe(103);
   });
 
   it('DTO field set matches the schema field set exactly', () => {

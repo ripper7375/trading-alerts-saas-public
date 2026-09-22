@@ -1,0 +1,93 @@
+[FRACTAL BEST-FIT - PARAMETERS]
+Window Start TS (UTC): 1789646700
+Window End TS (UTC): 1789761900
+Fractal Bars: 35
+Timeframe (Sec): 300
+Min Touches: 3
+Require Both Sides: true
+Max Line Angle: 3.0000
+Tolerance Type: PERCENT
+Tolerance Percent: 0.5000
+Tolerance ATR Multiplier: 1.0000
+LOEDT Min Touches: 2
+UOEDT Min Touches: 2
+
+[FRACTAL BEST-FIT - RESOLVED LINE]
+Solution Found: true
+Line Origin TS (UTC): 1789660800
+Best FL Touches: 9
+Raw Slope (b): 0.08177852
+Regression Angle: 10.61
+Anchored Y-Int: 4399.83581
+UOEDT Offset: 12.75952
+LOEDT Offset: -25.51905
+
+[MODEL B; CLOSE PRICE]
+Sample (n): 336
+R-Square: -1.0145
+MSE: 569.8619
+Var Ratio: 1.60
+Skewness: 0.22
+Kurtosis: 2.28
+
+[EDT CHANNEL]
+UOEDT Offset: 12.75952
+LOEDT Offset: -25.51905
+Containment Sample (n): 336
+Containment Count: 218
+Containment Rate: 64.88
+
+[FIT WINDOW]
+Window Start TS (UTC): 1789646700
+Window End TS (UTC): 1789761900
+Window Bars: 336
+Observation Bars: 336
+Visual Window Bars: 336
+Math Window Bars: 100000
+Bars Available: 100000
+Leftmost Bar Index: 335
+Line Span Bars: 336
+Baseline Coverage (n): 336
+Baseline Coverage Rate: 100.00
+Centroids Used: 
+Crossings In Window (n): 
+First Crossing TS (UTC): 
+Last Crossing TS (UTC): 
+
+[PRICE CONTEXT]
+Live Close: 4377.99
+Baseline Value: 4399.83581
+UOEDT Value: 4412.59533
+LOEDT Value: 4374.31676
+Distance To Baseline: -21.84581
+Distance To UOEDT: 34.60533
+Distance To LOEDT: 3.67324
+Channel Position: 0.0960
+Window High: 4399.56
+Window Low: 4334.45
+Window Range: 65.11000
+
+[CHANNEL GEOMETRY]
+Channel Width: 38.27857
+Channel Asymmetry: -0.3333
+Above UOEDT Count: 0
+Below LOEDT Count: 118
+Max Excursion Above: 
+Max Excursion Below: 24.92803
+
+[RESIDUAL DIAGNOSTICS; CROSSINGS]
+Sample (n): 
+Mean Residual: 
+MAE: 
+Residual StdDev: 
+Max Abs Residual: 
+Durbin-Watson: 
+
+[RESIDUAL DIAGNOSTICS; CLOSE PRICE]
+Sample (n): 336
+Mean Residual: -19.34775
+MAE: 20.65037
+Residual StdDev: 14.00393
+Max Abs Residual: 50.44708
+Durbin-Watson: 0.0164
+

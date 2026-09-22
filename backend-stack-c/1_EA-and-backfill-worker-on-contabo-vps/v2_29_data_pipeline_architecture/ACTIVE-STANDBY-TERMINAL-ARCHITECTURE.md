@@ -131,7 +131,7 @@ read from it:**
 
 | #   | Lane                  | Reader                          | Files consumed                                    |
 | --- | --------------------- | ------------------------------- | ------------------------------------------------- |
-| 1   | Price (alerts/charts) | `MT5Collector`                  | 14 indicator `.txt` × M5/M15                      |
+| 1   | Price (alerts/charts) | `MT5Collector`                  | 15 indicator `.txt` × M5/M15                      |
 | 2   | Fit statistics        | `MT5Collector`                  | 10 `_Statistic.txt`                               |
 | 3   | Economic calendar     | `MT5Collector`                  | `EconomicCalendar.txt`                            |
 | 4   | Currency & gold index | `DavinTradeCurrencyIndexEngine` | 8 × `OHLCV_{SYMBOL}_M5.txt` (7 FX pairs + XAUUSD) |
@@ -144,7 +144,7 @@ every other layer, but it shares this one input folder.
 
 ### 3.2 What a naive switch would break — silently
 
-Move the collector to a standby carrying only the 14 EDT indicators and:
+Move the collector to a standby carrying only the 15 EDT indicators and:
 
 - **Lane 3 stops.** `stage_economic_events()` returns `(0, 0)` when the file is absent
   (`export_collector_validator_v2.py:529-532`) — best-effort by design, so a calendar
@@ -161,8 +161,9 @@ updating" with no obvious link back to the promote.
 ### 3.3 Two options
 
 **Option A — everything alternates.** Both terminals carry the full export surface:
-28 indicator attachments (14 × M5, 14 × M15) + the calendar exporter + 8 currency-index
-OHLCV charts = **35 attachments across 11 charts, twice.**
+30 indicator attachments (15 × M5, 15 × M15) + the calendar exporter + 8 currency-index
+OHLCV charts = **39 attachments across 11 charts, twice.** (Counts updated 2026-09-22 for
+the 15th indicator; this line read 35 when written, for 13 indicators.)
 
 - _For:_ one switch moves everything; no ambiguity about which terminal serves what.
 - _Against:_ a heavy, error-prone manual build repeated per terminal, and it churns two
@@ -174,8 +175,8 @@ OHLCV charts = **35 attachments across 11 charts, twice.**
 
 | Terminal       | Carries                                          | Alternates? |
 | -------------- | ------------------------------------------------ | ----------- |
-| **A** (EDT)    | 28 EDT indicator attachments + calendar exporter | Yes         |
-| **B** (EDT)    | 28 EDT indicator attachments + calendar exporter | Yes         |
+| **A** (EDT)    | 30 EDT indicator attachments + calendar exporter | Yes         |
+| **B** (EDT)    | 30 EDT indicator attachments + calendar exporter | Yes         |
 | **S** (static) | 8 × `OHLCV_{SYMBOL}_M5.txt` exporters            | **Never**   |
 
 - Lane 4 is decoupled for free: point `CGI_EXPORT_DIR` at terminal S. **Zero code
@@ -184,7 +185,7 @@ OHLCV charts = **35 attachments across 11 charts, twice.**
 - The calendar exporter sits on **both** A and B. It is parameterless, so both produce
   identical output and it rides along with the switch harmlessly. This avoids adding a
   `--calendar-dir` argument to the collector.
-- Only the 28 EDT attachments — the genuinely tunable surface — participate in the
+- Only the 30 EDT attachments — the genuinely tunable surface — participate in the
   alternation.
 
 _Cost:_ a third MT5 terminal (~300–500 MB RAM). _Benefit:_ the two lanes that must not
@@ -369,8 +370,8 @@ design.
 
 **A and B (identical):**
 
-- 14 EDT indicators on XAUUSD **M5**
-- 14 EDT indicators on XAUUSD **M15**
+- 15 EDT indicators on XAUUSD **M5**
+- 15 EDT indicators on XAUUSD **M15**
 - `EconomicCalendarExport_v2_29.mq5` (once)
 - Per-indicator anchors set for the windowed indicators — Fractal-Best-Fit and both
   Single-Best lines use fixed `InpStartDateTime` / `InpEndDateTime` and go stale
@@ -495,6 +496,6 @@ Written for whoever turns this into a presentation deck.
 | Bars rewritten by a configuration change | ~3,000 (~2.2 weeks of M5) |
 | Rows re-pushed per promote               | ~6,000                    |
 | Terminals required (Option B)            | 3                         |
-| EDT attachments per alternating terminal | 28 (14 × M5, 14 × M15)    |
+| EDT attachments per alternating terminal | 30 (15 × M5, 15 × M15)    |
 | Code changed to support the switch       | One validation check      |
 | Schema migrations required               | None                      |

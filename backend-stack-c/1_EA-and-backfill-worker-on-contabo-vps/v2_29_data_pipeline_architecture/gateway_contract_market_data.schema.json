@@ -152,6 +152,38 @@
       "type": ["number", "null"],
       "description": "Resistance 4: 4th closest (furthest tracked) resistance level above close. null = unresolved."
     },
+    "sr_9": {
+      "type": ["number", "null"],
+      "description": "Support 1 (second calibration window): closest auto-calibrated support level BELOW this bar's close. From S-R-AutoCalibration_v2_29, the 15th indicator -- the same Freedman-Diaconis IQR engine as sr_1..sr_8, run as an independently anchored second instance. null = no level resolved in this slot for this bar; never 0."
+    },
+    "sr_10": {
+      "type": ["number", "null"],
+      "description": "Support 2 (second calibration window): 2nd closest support level below close. null = unresolved."
+    },
+    "sr_11": {
+      "type": ["number", "null"],
+      "description": "Support 3 (second calibration window): 3rd closest support level below close. null = unresolved."
+    },
+    "sr_12": {
+      "type": ["number", "null"],
+      "description": "Support 4 (second calibration window): 4th closest (furthest tracked) support level below close. null = unresolved."
+    },
+    "sr_13": {
+      "type": ["number", "null"],
+      "description": "Resistance 1 (second calibration window): closest auto-calibrated resistance level ABOVE this bar's close. null = unresolved."
+    },
+    "sr_14": {
+      "type": ["number", "null"],
+      "description": "Resistance 2 (second calibration window): 2nd closest resistance level above close. null = unresolved."
+    },
+    "sr_15": {
+      "type": ["number", "null"],
+      "description": "Resistance 3 (second calibration window): 3rd closest resistance level above close. null = unresolved."
+    },
+    "sr_16": {
+      "type": ["number", "null"],
+      "description": "Resistance 4 (second calibration window): 4th closest (furthest tracked) resistance level above close. null = unresolved."
+    },
 
     "body_direction": {
       "type": ["integer", "null"],
