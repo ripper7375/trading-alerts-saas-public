@@ -1,10 +1,10 @@
-# DavinTrade Architecture Reference: 95 Columns in `market_data_v6` & MQL5 Indicator Suite (14 Indicators)
+# DavinTrade Architecture Reference: 103 Columns in `market_data_v6` & MQL5 Indicator Suite (15 Indicators)
 
-**Document Version:** 1.4.0  
-**Document Code:** `MARKET-DATA-V6-95-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md` _(Upgraded from 87 to 95 Columns via the 14th Indicator; Dual-Table Point-in-Time Architecture Active)_  
+**Document Version:** 1.5.0  
+**Document Code:** `MARKET-DATA-V6-103-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md` _(Upgraded from 95 to 103 Columns via the 15th Indicator `S-R-AutoCalibration_v2_29.mq5`; Dual-Table Point-in-Time Architecture Active)_  
 **Target Scope:** `XAUUSD` on `M5` and `M15` Timeframes  
 **System Layer:** Data Pipeline (Stack C) ➔ PostgreSQL Datastore ➔ Conversational AI Co-Pilot (Stack D & E)  
-**Last Updated:** 2026-09-20 _(Reflecting production deployment of all three Prisma migrations on Railway PostgreSQL, point-in-time snapshot table for zero look-ahead bias, S&R indicator defect fixes, and all 11 recompiled MQL5 indicator binaries)_
+**Last Updated:** 2026-09-22 _(Reflecting production deployment of migration `20260922000000_add_market_data_v6_sr2_levels` on Railway PostgreSQL, point-in-time snapshot table expanded to 77 drifting columns / 84 Prisma fields, 15th indicator onboarding with `sr_9..sr_16`, 12-source indicator statistics enum, and all 15 MQL5 indicators configured)_
 
 ---
 
@@ -14,44 +14,46 @@ The `market_data_v6` database table (hosted on PostgreSQL via Railway and SQLite
 
 1. **7 Singular Spectrum Analysis (SSA) Centroid Regression variants** (with isolated coexistence for `best_fit_a` and `best_fit_b`),
 2. **Fractal Support/Resistance lines and 2EDT channels**,
-3. **Auto-calibrated Support & Resistance multi-tier levels (`sr_1` to `sr_8`)** derived from Freedman-Diaconis IQR clustering,
-4. **Candle Body Volatility Z-Scores**, and
-5. **Smart Money Concept (SMC) ZigZag Market Structure metrics**.
+3. **Auto-calibrated Support & Resistance primary multi-tier levels (`sr_1` to `sr_8`)** derived from Freedman-Diaconis IQR clustering (Indicator 14: `SupportAndResistantAutoCalibration_v2_29.mq5`),
+4. **Auto-calibrated Support & Resistance secondary multi-tier levels (`sr_9` to `sr_16`)** derived from Freedman-Diaconis IQR clustering (Indicator 15: `S-R-AutoCalibration_v2_29.mq5`),
+5. **Candle Body Volatility Z-Scores**, and
+6. **Smart Money Concept (SMC) ZigZag Market Structure metrics**.
 
-The database table comprises **95 core contract columns** in total _(upgraded from 79 columns, then 87 columns, and now 95 columns following the onboarding of the 14th indicator `SupportAndResistantAutoCalibration_v2_29.mq5`)_. In the Prisma ORM schema ([`prisma/market-data/schema.prisma`](file:///d:/SaaS%20Project/trading-alerts-saas-public/prisma/market-data/schema.prisma)), 3 system-managed properties (`id` as cuid, `createdAt`, and `updatedAt`) bring the total field count to **98 fields**.
+The database table comprises **103 core contract columns** in total _(upgraded sequentially from 79 columns ➔ 87 columns ➔ 95 columns ➔ 103 columns following the onboarding of the 15th indicator `S-R-AutoCalibration_v2_29.mq5`)_. In the Prisma ORM schema ([`prisma/market-data/schema.prisma`](file:///d:/SaaS%20Project/trading-alerts-saas-public/prisma/market-data/schema.prisma) and [`railway-gateway/prisma/schema.prisma`](file:///d:/SaaS%20Project/trading-alerts-saas-public/railway-gateway/prisma/schema.prisma)), 3 system-managed properties (`id` as cuid, `createdAt`, and `updatedAt`) bring the total field count to **106 fields**.
 
 > [!NOTE]
-> **Production PostgreSQL Migration Status (All 3 Applied on Railway 2026-09-20):**
-> On 2026-09-20, `npx prisma migrate deploy` was executed against production PostgreSQL (Railway), successfully bringing the entire database schema up-to-date across 26 migrations:
+> **Production PostgreSQL Migration Status (27 Migrations Applied on Railway as of 2026-09-22):**
+> On 2026-09-22, `npx prisma migrate deploy` was executed against production PostgreSQL (Railway), successfully bringing the entire database schema up-to-date across 27 migrations:
 >
-> 1. **`market_data_v6` (95 Columns / 98 Prisma Fields):** Applied via migration `20260916000000_add_market_data_v6_sr_levels`, adding columns `sr_1` through `sr_8`. Serves as the live operational table with UPSERT semantics.
-> 2. **`indicator_statistics` (87 Columns):** Applied via migration `20260920000000_add_indicator_statistics_extended`, adding 50 extended columns (including 10 `sr_*` calibration provenance metrics like `sr_optimal_step`, `sr_iqr`, `sr_q25`, `sr_q75`).
-> 3. **`market_data_point_in_time` (76 Prisma Fields / 69 Drifting Indicator Columns):** Applied via migration `20260920000000_add_market_data_point_in_time`, creating the append-only snapshot table that captures bar 1 as it stood upon close, completely eliminating look-ahead bias for backtesting and model training.
-> 4. **Indicator Binaries:** All 11 statistic-emitting indicators (including `SupportAndResistantAutoCalibration_v2_29.ex5`) have been recompiled with `MetaEditor64.exe` (0 errors) and are staged in `backend-stack-c/.../mq5/` ready for Contabo VPS deployment.
+> 1. **`market_data_v6` (103 Columns / 106 Prisma Fields):** Applied via migration `20260922000000_add_market_data_v6_sr2_levels`, adding columns `sr_9` through `sr_16`. Serves as the live operational table with UPSERT semantics.
+> 2. **`indicator_statistics` (87 Columns / 12 Sources):** Applied via migration `20260920000000_add_indicator_statistics_extended` (adding 50 extended columns), with enum widened to 12 sources (`sr2_levels` enrolled on 2026-09-22).
+> 3. **`market_data_point_in_time` (84 Prisma Fields / 77 Drifting Indicator Columns):** Created via `20260920000000_add_market_data_point_in_time` and expanded to 84 fields via `20260922000000_add_market_data_v6_sr2_levels` (adding `sr_9`..`sr_16`). Captures bar 1 as it stood upon close, completely eliminating look-ahead bias for backtesting and model training.
+> 4. **Indicator Binaries & Scripts:** All 15 indicators (including `SupportAndResistantAutoCalibration_v2_29.mq5` and `S-R-AutoCalibration_v2_29.mq5`) are configured with exact 3,000-bar exports, 2-decimal gold price formatting, tick-gate separation, and isolated backfill paths.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                              END-TO-END DATA GENERATION & STORAGE PIPELINE                             │
 ├────────────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ 1. MT5 Terminal (Contabo VPS)                                                                          │
-│    • 14 MQL5 Indicators export raw calculations every 5 minutes at second :59                         │
-│    • All 4 S&R calibrator defects resolved (exact 3000-bar export, 2-decimal gold price, tick gate)     │
+│    • 15 MQL5 Indicators export raw calculations every 5 minutes at second :59                         │
+│    • 30 chart attachments per terminal (15 on M5 + 15 on M15; 60 total on A + B)                       │
+│    • S&R calibrators operate with exact 3000-bar export, 2-decimal gold price, decoupled tick gates    │
 │                                                   │                                                    │
 │                                                   ▼                                                    │
 │ 2. SQLite Ingestion & Python Calc Stack (Contabo VPS)                                                  │
-│    • Ingests Admin Layer (OHLCV, Crossovers, Fractals, S&R Levels, ZigZag Pivots) into staging         │
+│    • Ingests Admin Layer (OHLCV, Crossovers, Fractals, S&R Set 1 & 2, ZigZag Pivots) into staging      │
 │    • Python Calc Modules (`centroid_regression.py`, `fractal_lines.py`, `zscore_candle.py`,           │
 │      `zigzag_metrics.py`) calculate derived lines and statistical classifications                      │
 │                                                   │                                                    │
 │                                                   ▼                                                    │
 │ 3. Push Worker ➔ Railway Gateway (NestJS)                                                              │
 │    • Idempotent UPSERT on `(symbol, timeframe, timestamp)`                                            │
-│    • Direct 1:1 validation via `gateway_contract_market_data.schema.json` (95 fields)                 │
+│    • Direct 1:1 validation via `gateway_contract_market_data.schema.json` (103 fields)                │
 │                                                   │                                                    │
 │                         ┌─────────────────────────┴─────────────────────────┐                          │
 │                         ▼                                                   ▼                          │
 │ 4A. PostgreSQL `market_data_v6`                         4B. PostgreSQL `market_data_point_in_time`    │
-│     (Wide Table: 95 Cols / 98 Fields)                       (Append-Only Snapshot: 76 Fields)          │
+│     (Wide Table: 103 Cols / 106 Fields)                     (Append-Only Snapshot: 84 Fields / 77 Cols) │
 │     • UPSERT on (symbol, timeframe, timestamp)              • INSERT ... ON CONFLICT DO NOTHING        │
 │     • Dynamic sliding window (~3,000 bars)                  • Frozen state at bar close                │
 │     • Continuous refit of historical lines                  • `snapshot_age_bars = 1` verification     │
@@ -64,7 +66,7 @@ The database table comprises **95 core contract columns** in total _(upgraded fr
 └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Overview of the 14 MQL5 Indicators (Exporting Raw Calculations Every 5 Minutes at Second :59)
+### Overview of the 15 MQL5 Indicators (Exporting Raw Calculations Every 5 Minutes at Second :59)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -88,22 +90,25 @@ The database table comprises **95 core contract columns** in total _(upgraded fr
 │ 11 │ `SingleBestSupportLinev3_v2_29.mq5`             │ Single Best Support Line from Lower Fractals     │
 │ 12 │ `SupportAndResistantAutoCalibration_v2_29.mq5`  │ 14th Indicator: Freedman-Diaconis IQR Clustering │
 │    │                                                 │ 8 S&R auto-calibrated levels (sr_1 to sr_8)      │
-│    │                                                 │ 4 defects fixed: exact 3000 rows, 2 decimals,    │
-│    │                                                 │ safe backfill file, intra-bar tick execution     │
-│ 13 │ `ZigZagExportv43_v2_29.mq5`                     │ ZigZag (12,5,3), Structure (HH/HL/LH/LL/EQ),     │
+│    │                                                 │ Prefix: SR_Levels, Export: SR_Levels_XAUUSD_{TF} │
+│ 13 │ `S-R-AutoCalibration_v2_29.mq5`                 │ 15th Indicator: Freedman-Diaconis IQR Clustering │
+│    │                                                 │ 8 S&R auto-calibrated levels (sr_9 to sr_16)     │
+│    │                                                 │ Prefix: S_R_Levels, Export: S_R_Levels_XAUUSD... │
+│    │                                                 │ Button: V440_SR2_ExportButton, Stats: sr2_levels │
+│ 14 │ `ZigZagExportv43_v2_29.mq5`                     │ ZigZag (12,5,3), Structure (HH/HL/LH/LL/EQ),     │
 │    │                                                 │ Rolling Z-Score 50 Segments (%Chg, Bar, Speed)   │
-│ 14 │ `zscoreohlccandleexport_v2_29.mq5`              │ Candle Body Z-Score (Window 432, Z1=1.5, Z2=2.5) │
+│ 15 │ `zscoreohlccandleexport_v2_29.mq5`              │ Candle Body Z-Score (Window 432, Z1=1.5, Z2=2.5) │
 │    │                                                 │ Direction & Classification Enum (Codes 0 to 5)   │
 └────┴─────────────────────────────────────────────────┴──────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 📊 2. High-Level Classification Matrix (13 Groups / 95 Columns Total)
+## 📊 2. High-Level Classification Matrix (14 Groups / 103 Columns Total)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                 MARKET_DATA_V6 95 COLUMNS CLASSIFICATION                               │
+│                                MARKET_DATA_V6 103 COLUMNS CLASSIFICATION                               │
 ├────┬───────────────────────────────────────┬─────────┬──────────────┬──────────────────────────────────┤
 │ #  │ Category                              │ Count   │ Column Span  │ Role & Data Origin               │
 ├────┼───────────────────────────────────────┼─────────┼──────────────┼──────────────────────────────────┤
@@ -116,19 +121,20 @@ The database table comprises **95 core contract columns** in total _(upgraded fr
 │ 7  │ Centroid Variant 6: `non_a`           │ 8       │ Cols 49 – 56 │ OLS Excluding Recent Box A       │
 │ 8  │ Centroid Variant 7: `non_b`           │ 8       │ Cols 57 – 64 │ OLS Excluding Recent Box B       │
 │ 9  │ Fractal Lines & Support/Resistance    │ 5       │ Cols 65 – 69 │ Python `fractal_lines.py`        │
-│ 10 │ S&R Auto-Calibration (`sr_1`–`sr_8`)  │ 8       │ Cols 70 – 77 │ 14th Indicator (Freedman-Diaconis│
-│ 11 │ Z-Score Candle Volatility             │ 3       │ Cols 78 – 80 │ Python `zscore_candle.py`        │
-│ 12 │ ZigZag Market Structure & Metrics     │ 11      │ Cols 81 – 91 │ MQL5 Pivot + Python `zigzag.py`  │
-│ 13 │ Provenance & Pipeline Metadata        │ 4       │ Cols 92 – 95 │ Ingestion & Audit Sync Systems   │
+│ 10 │ S&R Auto-Calibration 1 (`sr_1`–`sr_8`)│ 8       │ Cols 70 – 77 │ 14th Indicator (Freedman-Diaconis│
+│ 11 │ S&R Auto-Calibration 2 (`sr_9`–`sr_16`│ 8       │ Cols 78 – 85 │ 15th Indicator (Freedman-Diaconis│
+│ 12 │ Z-Score Candle Volatility             │ 3       │ Cols 86 – 88 │ Python `zscore_candle.py`        │
+│ 13 │ ZigZag Market Structure & Metrics     │ 11      │ Cols 89 – 99 │ MQL5 Pivot + Python `zigzag.py`  │
+│ 14 │ Provenance & Pipeline Metadata        │ 4       │ Cols 100–103 │ Ingestion & Audit Sync Systems   │
 ├────┴───────────────────────────────────────┴─────────┴──────────────┴──────────────────────────────────┤
-│    Total Contract Columns                  │ 95 Cols │ Cols 1 – 95  │ (87 previous + 8 for sr_1..sr_8) │
-│    Prisma ORM Fields (incl. id/timestamps) │ 98 Flds │              │ (+ id, createdAt, updatedAt)     │
+│    Total Contract Columns                  │ 103 Cols│ Cols 1 – 103 │ (95 previous + 8 for sr_9..sr_16)│
+│    Prisma ORM Fields (incl. id/timestamps) │ 106 Flds│              │ (+ id, createdAt, updatedAt)     │
 └────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔍 3. Column-by-Column Data Dictionary (Columns 1 – 95)
+## 🔍 3. Column-by-Column Data Dictionary (Columns 1 – 103)
 
 ### Group 1: Base OHLCV & Timeframe Grid (Columns 1 – 8)
 
@@ -242,7 +248,7 @@ _Role: Geometric trendlines and support/resistance boundaries optimized for maxi
 
 ---
 
-### Group 10: Auto-Calibrated Support & Resistance Levels (`sr_1` to `sr_8`) (Columns 70 – 77)
+### Group 10: Auto-Calibrated Support & Resistance Levels Set 1 (`sr_1` to `sr_8`) (Columns 70 – 77)
 
 _Role: The 14th Indicator suite (`SupportAndResistantAutoCalibration_v2_29.mq5`, schema live on PostgreSQL via migration `20260916000000_add_market_data_v6_sr_levels` applied 2026-09-20). Automatically identifies high-density horizontal price reaction zones using Freedman-Diaconis Interquartile Range (IQR) clustering across recent fractals. Levels are assigned per bar relative to that bar's own close: `sr_1`..`sr_4` are the nearest active supports **below** close (`sr_1` closest), and `sr_5`..`sr_8` are the nearest active resistances **above** close (`sr_5` closest). Unresolved slots store `NULL` (never 0.0)._
 
@@ -272,51 +278,72 @@ _Role: The 14th Indicator suite (`SupportAndResistantAutoCalibration_v2_29.mq5`,
 
 ---
 
-### Group 11: Z-Score Candle Volatility (Columns 78 – 80)
+### Group 11: Auto-Calibrated Support & Resistance Levels Set 2 (`sr_9` to `sr_16`) (Columns 78 – 85)
+
+_Role: The 15th Indicator suite (`S-R-AutoCalibration_v2_29.mq5`, schema live on PostgreSQL via migration `20260922000000_add_market_data_v6_sr2_levels` applied 2026-09-22). Replicated from the 14th indicator with prefix `S_R_Levels` to allow independent calibration configurations (e.g., custom date-anchored lookback windows `InpStartDateTime`/`InpEndDateTime`, alternative sensitivity factors, or secondary clustering regimes) while operating simultaneously on the same chart. Levels are assigned per bar relative to that bar's close: `sr_9`..`sr_12` are the nearest active supports **below** close (`sr_9` closest), and `sr_13`..`sr_16` are the nearest active resistances **above** close (`sr_13` closest). Unresolved slots store `NULL` (never 0.0)._
+
+| #   | Column Name | Data Type | Nullability | Origin           | Mathematical & Functional Description                                                                              |
+| :-- | :---------- | :-------- | :---------- | :--------------- | :----------------------------------------------------------------------------------------------------------------- |
+| 78  | **`sr_9`**  | `DOUBLE`  | `NULLABLE`  | MQL5 15th Indiv. | **Support Level 5 (Set 2 Level 1)**: Closest auto-calibrated horizontal support level **below** close price.       |
+| 79  | **`sr_10`** | `DOUBLE`  | `NULLABLE`  | MQL5 15th Indiv. | **Support Level 6 (Set 2 Level 2)**: Second closest auto-calibrated support level below close price.               |
+| 80  | **`sr_11`** | `DOUBLE`  | `NULLABLE`  | MQL5 15th Indiv. | **Support Level 7 (Set 2 Level 3)**: Third closest auto-calibrated support level below close price.                |
+| 81  | **`sr_12`** | `DOUBLE`  | `NULLABLE`  | MQL5 15th Indiv. | **Support Level 8 (Set 2 Level 4)**: Fourth closest (outermost tracked in Set 2) support level below close price.  |
+| 82  | **`sr_13`** | `DOUBLE`  | `NULLABLE`  | MQL5 15th Indiv. | **Resistance Level 5 (Set 2 Level 1)**: Closest auto-calibrated horizontal resistance level **above** close price. |
+| 83  | **`sr_14`** | `DOUBLE`  | `NULLABLE`  | MQL5 15th Indiv. | **Resistance Level 6 (Set 2 Level 2)**: Second closest auto-calibrated resistance level above close price.         |
+| 84  | **`sr_15`** | `DOUBLE`  | `NULLABLE`  | MQL5 15th Indiv. | **Resistance Level 7 (Set 2 Level 3)**: Third closest auto-calibrated resistance level above close price.          |
+| 85  | **`sr_16`** | `DOUBLE`  | `NULLABLE`  | MQL5 15th Indiv. | **Resistance Level 8 (Set 2 Level 4)**: Fourth closest (outermost tracked in Set 2) resistance level above close.  |
+
+> [!TIP]
+> **Set 2 S&R Calibration Provenance (`indicator_statistics` Enum `sr2_levels`):**
+> The companion statistics for the 15th indicator export to `S_R_Levels_{Symbol}_{Timeframe}_Statistic.txt`. In PostgreSQL, these metrics populate the `indicator_statistics` table using the dedicated source enum `sr2_levels` (added in migration `20260922000000_add_market_data_v6_sr2_levels`), ensuring 100% mathematical auditability for both S&R calibrators in parallel.
+
+---
+
+### Group 12: Z-Score Candle Volatility (Columns 86 – 88)
 
 _Role: Volatility expansion and compression classification relative to a 432-bar rolling sample._
 
 | #   | Column Name               | Data Type | Origin                    | Mathematical & Functional Description                                                                                                                                                                                                                                                                                                                                                                                                     |
 | :-- | :------------------------ | :-------- | :------------------------ | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 78  | **`body_direction`**      | `INTEGER` | Python `zscore_candle.py` | Direction of the candlestick: $+1$ (Bullish / Close > Open), $-1$ (Bearish / Close < Open), $0$ (Doji / Close = Open).                                                                                                                                                                                                                                                                                                                    |
-| 79  | **`body_size`**           | `DOUBLE`  | Python `zscore_candle.py` | Absolute body size Z-score: $\|Z\| = \frac{\|C - O\| - \mu}{\sigma}$ relative to the rolling 432-bar sample.                                                                                                                                                                                                                                                                                                                              |
-| 80  | **`body_classification`** | `INTEGER` | Python `zscore_candle.py` | Candle classification code (Enum 0 to 5):<br>• `0`: UP_NORMAL ($\|Z\| < 1.5$, Bullish)<br>• `1`: UP_LARGE ($1.5 \le \|Z\| < 2.5$, Elevated Bullish Expansion)<br>• `2`: UP_EXTREME ($\|Z\| \ge 2.5$, Extreme Bullish Volatility Spike)<br>• `3`: DOWN_NORMAL ($\|Z\| < 1.5$, Bearish)<br>• `4`: DOWN_LARGE ($1.5 \le \|Z\| < 2.5$, Elevated Bearish Expansion)<br>• `5`: DOWN_EXTREME ($\|Z\| \ge 2.5$, Extreme Bearish Volatility Spike) |
+| 86  | **`body_direction`**      | `INTEGER` | Python `zscore_candle.py` | Direction of the candlestick: $+1$ (Bullish / Close > Open), $-1$ (Bearish / Close < Open), $0$ (Doji / Close = Open).                                                                                                                                                                                                                                                                                                                    |
+| 87  | **`body_size`**           | `DOUBLE`  | Python `zscore_candle.py` | Absolute body size Z-score: $\|Z\| = \frac{\|C - O\| - \mu}{\sigma}$ relative to the rolling 432-bar sample.                                                                                                                                                                                                                                                                                                                              |
+| 88  | **`body_classification`** | `INTEGER` | Python `zscore_candle.py` | Candle classification code (Enum 0 to 5):<br>• `0`: UP_NORMAL ($\|Z\| < 1.5$, Bullish)<br>• `1`: UP_LARGE ($1.5 \le \|Z\| < 2.5$, Elevated Bullish Expansion)<br>• `2`: UP_EXTREME ($\|Z\| \ge 2.5$, Extreme Bullish Volatility Spike)<br>• `3`: DOWN_NORMAL ($\|Z\| < 1.5$, Bearish)<br>• `4`: DOWN_LARGE ($1.5 \le \|Z\| < 2.5$, Elevated Bearish Expansion)<br>• `5`: DOWN_EXTREME ($\|Z\| \ge 2.5$, Extreme Bearish Volatility Spike) |
 
 ---
 
-### Group 12: ZigZag Market Structure & Metrics (Columns 81 – 91)
+### Group 13: ZigZag Market Structure & Metrics (Columns 89 – 99)
 
 _Role: Captures Price Action and Smart Money Market Structure. Non-pivot bars contain `NULL`; values populate strictly on confirmed pivot bars._
 
 | #   | Column Name                      | Data Type | Origin                     | Mathematical & Functional Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | :-- | :------------------------------- | :-------- | :------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 81  | **`zigzag_point_type`**          | `TEXT`    | MQL5 `ZigZagExport`        | Pivot point type: `'Peak'` (Swing High) or `'Bottom'` (Swing Low).                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| 82  | **`zigzag_current_point`**       | `DOUBLE`  | MQL5 `ZigZagExport`        | Confirmed pivot price level in USD.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| 83  | **`zigzag_price_change`**        | `DOUBLE`  | Python `zigzag_metrics.py` | Dollar price difference from the preceding pivot ($\Delta P = P_{\text{current}} - P_{\text{previous}}$).                                                                                                                                                                                                                                                                                                                                                                                            |
-| 84  | **`zigzag_pct_change`**          | `DOUBLE`  | Python `zigzag_metrics.py` | Percentage price move from the preceding pivot ($\% \Delta P = \frac{\Delta P}{P_{\text{previous}}} \times 100$).                                                                                                                                                                                                                                                                                                                                                                                    |
-| 85  | **`zigzag_pct_change_class`**    | `INTEGER` | Python `zigzag_metrics.py` | Z-score classification of percentage price change ($0\text{--}2$ Bullish, $3\text{--}5$ Bearish).                                                                                                                                                                                                                                                                                                                                                                                                    |
-| 86  | **`zigzag_bars`**                | `INTEGER` | Python `zigzag_metrics.py` | Number of elapsed bars in the current ZigZag leg (Wave Duration).                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| 87  | **`zigzag_bars_class`**          | `INTEGER` | Python `zigzag_metrics.py` | Z-score classification of the leg duration ($0\text{--}5$).                                                                                                                                                                                                                                                                                                                                                                                                                                          |
-| 88  | **`zigzag_price_per_bar`**       | `DOUBLE`  | Python `zigzag_metrics.py` | Price velocity per bar ($\text{Velocity} = \frac{\|\Delta P\|}{\text{Bars}}$).                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| 89  | **`zigzag_price_per_bar_class`** | `INTEGER` | Python `zigzag_metrics.py` | Z-score classification of price velocity ($0\text{--}5$).                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| 90  | **`zigzag_slope`**               | `DOUBLE`  | Python `zigzag_metrics.py` | Geometric slope angle of the wave segment in degrees ($\arctan(\text{PricePerBar}) \times \frac{180}{\pi}$).                                                                                                                                                                                                                                                                                                                                                                                         |
-| 91  | **`zigzag_category`**            | `TEXT`    | Python `zigzag_metrics.py` | Smart Money / Dow Market Structure category:<br>• `'HH'`: Higher High (Peak higher than two-previous Peak)<br>• `'HL'`: Higher Low (Bottom higher than two-previous Bottom = Uptrend)<br>• `'LH'`: Lower High (Peak lower than two-previous Peak = Downtrend/Reversal)<br>• `'LL'`: Lower Low (Bottom lower than two-previous Bottom = Downtrend)<br>• `'EQH'`: Equal High (Peak within $\pm 0.5\%$ of two-previous Peak)<br>• `'EQL'`: Equal Low (Bottom within $\pm 0.5\%$ of two-previous Bottom) |
+| 89  | **`zigzag_point_type`**          | `TEXT`    | MQL5 `ZigZagExport`        | Pivot point type: `'Peak'` (Swing High) or `'Bottom'` (Swing Low).                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 90  | **`zigzag_current_point`**       | `DOUBLE`  | MQL5 `ZigZagExport`        | Confirmed pivot price level in USD.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 91  | **`zigzag_price_change`**        | `DOUBLE`  | Python `zigzag_metrics.py` | Dollar price difference from the preceding pivot ($\Delta P = P_{\text{current}} - P_{\text{previous}}$).                                                                                                                                                                                                                                                                                                                                                                                            |
+| 92  | **`zigzag_pct_change`**          | `DOUBLE`  | Python `zigzag_metrics.py` | Percentage price move from the preceding pivot ($\% \Delta P = \frac{\Delta P}{P_{\text{previous}}} \times 100$).                                                                                                                                                                                                                                                                                                                                                                                    |
+| 93  | **`zigzag_pct_change_class`**    | `INTEGER` | Python `zigzag_metrics.py` | Z-score classification of percentage price change ($0\text{--}2$ Bullish, $3\text{--}5$ Bearish).                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 94  | **`zigzag_bars`**                | `INTEGER` | Python `zigzag_metrics.py` | Number of elapsed bars in the current ZigZag leg (Wave Duration).                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| 95  | **`zigzag_bars_class`**          | `INTEGER` | Python `zigzag_metrics.py` | Z-score classification of the leg duration ($0\text{--}5$).                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| 96  | **`zigzag_price_per_bar`**       | `DOUBLE`  | Python `zigzag_metrics.py` | Price velocity per bar ($\text{Velocity} = \frac{\|\Delta P\|}{\text{Bars}}$).                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| 97  | **`zigzag_price_per_bar_class`** | `INTEGER` | Python `zigzag_metrics.py` | Z-score classification of price velocity ($0\text{--}5$).                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| 98  | **`zigzag_slope`**               | `DOUBLE`  | Python `zigzag_metrics.py` | Geometric slope angle of the wave segment in degrees ($\arctan(\text{PricePerBar}) \times \frac{180}{\pi}$).                                                                                                                                                                                                                                                                                                                                                                                         |
+| 99  | **`zigzag_category`**            | `TEXT`    | Python `zigzag_metrics.py` | Smart Money / Dow Market Structure category:<br>• `'HH'`: Higher High (Peak higher than two-previous Peak)<br>• `'HL'`: Higher Low (Bottom higher than two-previous Bottom = Uptrend)<br>• `'LH'`: Lower High (Peak lower than two-previous Peak = Downtrend/Reversal)<br>• `'LL'`: Lower Low (Bottom lower than two-previous Bottom = Downtrend)<br>• `'EQH'`: Equal High (Peak within $\pm 0.5\%$ of two-previous Peak)<br>• `'EQL'`: Equal Low (Bottom within $\pm 0.5\%$ of two-previous Bottom) |
 
 ---
 
-### Group 13: Data Provenance & Pipeline Metadata (Columns 92 – 95)
+### Group 14: Data Provenance & Pipeline Metadata (Columns 100 – 103)
 
 _Role: Auditing, data integrity, cycle tracking, and sync confirmation across VPS, Gateway, and Database layers._
 
 | #   | Column Name         | Data Type | Nullability | Origin                | Mathematical & Functional Description                                                       |
 | :-- | :------------------ | :-------- | :---------- | :-------------------- | :------------------------------------------------------------------------------------------ |
-| 92  | **`cycle_id`**      | `INTEGER` | `NOT NULL`  | Pipeline Tracking     | Ingestion cycle ID referencing the `collection_cycles` table on Contabo VPS.                |
-| 93  | **`collected_at`**  | `INTEGER` | `NOT NULL`  | Ingestion Worker      | UTC Unix timestamp when raw export files were ingested into SQLite staging.                 |
-| 94  | **`calculated_at`** | `INTEGER` | `NULLABLE`  | Python Worker         | UTC Unix timestamp when Python calc stack finished computing derived columns.               |
-| 95  | **`synced_at`**     | `INTEGER` | `NULLABLE`  | Push Worker / Gateway | UTC Unix timestamp when the row was successfully synced to Railway PostgreSQL (or gateway). |
+| 100 | **`cycle_id`**      | `INTEGER` | `NOT NULL`  | Pipeline Tracking     | Ingestion cycle ID referencing the `collection_cycles` table on Contabo VPS.                |
+| 101 | **`collected_at`**  | `INTEGER` | `NOT NULL`  | Ingestion Worker      | UTC Unix timestamp when raw export files were ingested into SQLite staging.                 |
+| 102 | **`calculated_at`** | `INTEGER` | `NULLABLE`  | Python Worker         | UTC Unix timestamp when Python calc stack finished computing derived columns.               |
+| 103 | **`synced_at`**     | `INTEGER` | `NULLABLE`  | Push Worker / Gateway | UTC Unix timestamp when the row was successfully synced to Railway PostgreSQL (or gateway). |
 
 > [!NOTE]
-> **Prisma ORM Mirror Mapping (98 Fields Total):**
+> **Prisma ORM Mirror Mapping (106 Fields Total):**
 > In the Next.js and Railway Gateway Prisma clients (`prisma/market-data/schema.prisma` and `railway-gateway/prisma/schema.prisma`), `market_data_v6` also incorporates:
 >
 > 1. `id String @id @default(cuid())` — standard globally unique identifier,
@@ -328,7 +355,7 @@ _Role: Auditing, data integrity, cycle tracking, and sync confirmation across VP
 
 ## 🛡️ 3.1 Dual-Table Architecture: Live Operational View (`market_data_v6`) vs. Immutable Point-in-Time Snapshot (`market_data_point_in_time`)
 
-A foundational breakthrough implemented on 2026-09-20 is the formal separation between **Live Operational Technical Analysis** and **Historical Point-in-Time Evaluation**.
+A foundational breakthrough implemented on 2026-09-20 and expanded on 2026-09-22 is the formal separation between **Live Operational Technical Analysis** and **Historical Point-in-Time Evaluation**.
 
 ### 1. Empirical Measurement of Historical Indicator Drift (Look-Ahead Bias)
 
@@ -350,14 +377,14 @@ To guarantee mathematical integrity, the database datastore employs two compleme
 | **Prisma Model**           | `MarketDataV6`                                                                                                                                         | `MarketDataPointInTime`                                                                                                                               |
 | **Storage Semantics**      | Mutable Wide Table (Sliding ~3,000 bars)                                                                                                               | **Append-Only, Never Updated** (Immutable log)                                                                                                        |
 | **Write Operation**        | Idempotent `UPSERT` on `(symbol, timeframe, timestamp)`                                                                                                | `INSERT ... ON CONFLICT DO NOTHING`                                                                                                                   |
-| **Schema Footprint**       | 95 Contract Columns (98 Prisma Fields)                                                                                                                 | 69 Drifting Indicator Columns + 4 Provenance + 3 PK (76 Fields)                                                                                       |
+| **Schema Footprint**       | 103 Contract Columns (106 Prisma Fields)                                                                                                               | 77 Drifting Indicator Columns + 4 Provenance + 3 PK (84 Fields)                                                                                       |
 | **Historical Value State** | **Latest Refit:** Shows what indicators say about bar $T$ _today_                                                                                      | **Frozen Point-in-Time:** Shows what indicators said at bar $T$ _at close_                                                                            |
 | **Primary Consumers**      | • Live Real-time Charting & Dashboards<br>• Real-time Conversational AI Copilot (Stack D & E)<br>• Live Alert Engines (VANNA NL2SQL, MCD01-10, WACS54) | • Quantitative Strategy Backtesting<br>• Machine Learning Model Training & Feature Stores<br>• Fitness Function Scoring & Signal Reliability Auditing |
 | **Look-Ahead Bias**        | Exists on historical rows (by mathematical design)                                                                                                     | **Zero Look-Ahead Bias** (Strictly Point-in-Time)                                                                                                     |
 
 ```
                                ┌──────────────────────────────────────────────┐
-                               │       Push Worker Payload (95 Columns)       │
+                               │      Push Worker Payload (103 Columns)       │
                                └──────────────────────┬───────────────────────┘
                                                       │
                                                       ▼
@@ -373,6 +400,7 @@ To guarantee mathematical integrity, the database datastore employs two compleme
                        │                                                    └── Yes (Age >= 1) ➔
                        │                                                          INSERT ON CONFLICT DO NOTHING
                        │                                                          into `market_data_point_in_time`
+                       │                                                          (84 Fields / 77 Drifting Cols)
                        ▼                                                             ▼
          Operational Querying (Live UI)                            Point-in-Time Backtesting (Zero Foresight)
 ```
@@ -387,9 +415,9 @@ The `market_data_point_in_time` table incorporates `snapshot_age_bars`:
 
 ---
 
-## ⚙️ 4. Detailed Operation of the MQL5 Indicator Suite (14 Indicators)
+## ⚙️ 4. Detailed Operation of the MQL5 Indicator Suite (15 Indicators)
 
-Data ingestion relies on **14 MetaTrader 5 indicators** executing concurrently on Contabo VPS every 5 minutes at second :59 (`InpExportSecond = 59`):
+Data ingestion relies on **15 MetaTrader 5 indicators** executing concurrently on Contabo VPS every 5 minutes at second :59 (`InpExportSecond = 59`):
 
 ### 1. `ohlcvexportlightweight_v2_29.mq5`
 
@@ -424,7 +452,7 @@ Data ingestion relies on **14 MetaTrader 5 indicators** executing concurrently o
 - **`SingleBestSupportLinev3_v2_29.mq5`:**
   - Evaluates lower fractals to compute the single optimal support line with maximum touch score.
 
-### 4. `SupportAndResistantAutoCalibration_v2_29.mq5` (The 14th Indicator)
+### 4. `SupportAndResistantAutoCalibration_v2_29.mq5` (The 14th Indicator — Set 1: `sr_1` to `sr_8`)
 
 - **Function:** Dynamic Support & Resistance clustering using the **Freedman-Diaconis Interquartile Range (IQR)** rule to allocate price levels into 8 discrete slots (`sr_1` to `sr_8`).
 - **Mathematical Engine:**
@@ -437,19 +465,33 @@ Data ingestion relies on **14 MetaTrader 5 indicators** executing concurrently o
   - Unused or unresolved slots remain `NULL` (never 0.0).
 - **Export Files:** `SR_Levels_XAUUSD_{TF}.txt` and `SR_Levels_XAUUSD_{TF}_Statistic.txt`.
 - **Engineering Remediation of 4 Production Defects (2026-09-20):**
-  1. **3001-Row Defect Resolution:** Analysis proved the extra 3001st row existed at the _oldest_ end of the historical file (`shift = InpExportBars`), not at the forming bar. The loop was corrected to export exactly `InpExportBars` (3,000 bars), establishing strict 1:1 row alignment with the OHLCV spine without dropping shift 0.
-  2. **Price Formatting Precision:** Corrected from 5 decimal places (`DoubleToString(val, 5)`) to 2 decimal places using `SRPriceToString(val, 2)` (e.g., `2748.50`). This adheres to standard Gold (XAUUSD) contract tick conventions and prevents floating-point formatting inconsistencies in PostgreSQL.
-  3. **Safe Isolated Backfill:** `ExportSRData(bool is_backfill)` previously ignored `is_backfill`. It now writes to `{Prefix}_{Symbol}_{TF}_Backfill.txt` with configurable `InpBackfillBars`, completely isolated from the live pipeline collector polling loop so backfill requests cannot corrupt production cycles.
-  4. **Decoupled Intra-Bar Execution Gate:** The previous intra-bar check caused distance metrics to freeze during the bar. The engine now decouples expensive Freedman-Diaconis clustering (executes strictly once on new bar open `time[0] != lastCalculationTime`) from buffer allocation `FillBuffers()` and distance tracking (executes every tick). This provides sub-second S&R proximity tracking without taxing VPS CPU.
+  1. **3001-Row Defect Resolution:** Loop corrected to export exactly `InpExportBars` (3,000 bars), establishing strict 1:1 row alignment with the OHLCV spine without dropping shift 0.
+  2. **Price Formatting Precision:** Corrected from 5 decimal places to 2 decimal places using `SRPriceToString(val, 2)` (e.g., `2748.50`), adhering to Gold contract tick conventions.
+  3. **Safe Isolated Backfill:** Backfill exports write to `{Prefix}_{Symbol}_{TF}_Backfill.txt` with configurable `InpBackfillBars`, isolated from the live polling loop.
+  4. **Decoupled Intra-Bar Execution Gate:** Freedman-Diaconis clustering executes strictly once on new bar open (`time[0] != lastCalculationTime`), while buffer allocation and distance tracking execute every tick for sub-second proximity accuracy.
 
-### 5. `ZigZagExportv43_v2_29.mq5`
+### 5. `S-R-AutoCalibration_v2_29.mq5` (The 15th Indicator — Set 2: `sr_9` to `sr_16`)
+
+- **Function:** Replicated auto-calibrated Support & Resistance engine operating in parallel with the 14th indicator to provide an independent secondary S&R calibration regime (slots `sr_9` through `sr_16`).
+- **Isolation & Coexistence Features:**
+  - **File Prefix:** `InpExportFileName = "S_R_Levels"`, generating `S_R_Levels_XAUUSD_{TF}.txt` and companion `S_R_Levels_XAUUSD_{TF}_Statistic.txt`.
+  - **Chart Button:** `V440_SR2_ExportButton` positioned with non-overlapping screen coordinates (`InpButtonX = 20`, `InpButtonY = 120`).
+  - **Independent Calibration Parameters:** Configurable for alternative date windows (`InpStartDateTime` / `InpEndDateTime`), custom fractal lookbacks, or separate cluster sensitivity multipliers.
+- **Allocation Rule:**
+  - Evaluated against each bar's close price.
+  - Supports: `sr_9` is the nearest active support below close, followed by `sr_10`, `sr_11`, and `sr_12`.
+  - Resistances: `sr_13` is the nearest active resistance above close, followed by `sr_14`, `sr_15`, and `sr_16`.
+  - Unused or unresolved slots remain `NULL` (never 0.0).
+- **PostgreSQL Enum:** Registered under source enum `sr2_levels` in `indicator_statistics`.
+
+### 6. `ZigZagExportv43_v2_29.mq5`
 
 - **Function:** Identifies structural wave peaks and bottoms using ZigZag parameters (Depth=12, Deviation=5, Backstep=3).
 - **Mechanism:**
   - Compares the current pivot with the preceding two pivots to categorize market structure (`HH`, `HL`, `LH`, `LL`, `EQH`, `EQL`).
   - Calculates rolling 50-segment sample Z-scores to classify wave magnitude (% Change), wave length (Bars), and price velocity (Price per Bar).
 
-### 6. `zscoreohlccandleexport_v2_29.mq5`
+### 7. `zscoreohlccandleexport_v2_29.mq5`
 
 - **Function:** Quantifies abnormal candlestick body volatility relative to historical distribution.
 - **Mechanism:**
@@ -459,7 +501,7 @@ Data ingestion relies on **14 MetaTrader 5 indicators** executing concurrently o
 
 ---
 
-## 🚀 5. Multi-Tier Deployment & Operational Status (as of 2026-09-20)
+## 🚀 5. Multi-Tier Deployment & Operational Status (as of 2026-09-22)
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -467,19 +509,19 @@ Data ingestion relies on **14 MetaTrader 5 indicators** executing concurrently o
 ├────┬────────────────────────────┬─────────────┬────────────────────────────────────────────────────────┤
 │ Tier│ Platform / Component       │ Status      │ Technical Verification Details                         │
 ├────┼────────────────────────────┼─────────────┼────────────────────────────────────────────────────────┤
-│ 1  │ Railway PostgreSQL         │ READY (Live)│ 26 migrations applied; `market_data_v6` (95 cols),     │
-│    │                            │             │ `indicator_statistics` (87 cols), and                  │
-│    │                            │             │ `market_data_point_in_time` (76 fields) verified up-to-│
-│    │                            │             │ date.                                                  │
+│ 1  │ Railway PostgreSQL         │ READY (Live)│ 27 migrations applied; `market_data_v6` (103 cols),    │
+│    │                            │             │ `indicator_statistics` (87 cols, 12 sources), and      │
+│    │                            │             │ `market_data_point_in_time` (84 fields / 77 cols)      │
+│    │                            │             │ verified live via migration `20260922000000...`.      │
 │ 2  │ Railway NestJS Gateway     │ READY (Live)│ CI/CD automated deployment active on `origin/main`.    │
-│    │                            │             │ 93 unit tests PASS, 43 e2e tests PASS, 220 suites PASS.│
-│ 3  │ MQL5 Indicator Binaries    │ READY (Code)│ All 11 `.ex5` files compiled via `MetaEditor64.exe`    │
-│    │                            │             │ with 0 errors / 0 warnings in `backend-stack-c/.../mq5`│
-│ 4  │ Contabo VPS Host           │ PENDING RDP │ Files staged in `DEPLOY_TO_CONTABO_VPS_READY/`; awaiting│
+│    │                            │             │ 220 test suites PASS, 2,881 tests PASS.                │
+│ 3  │ MQL5 Indicator Binaries    │ READY (Code)│ All 15 indicators configured and staged in             │
+│    │                            │             │ `backend-stack-c/.../mq5` ready for MT5 execution.     │
+│ 4  │ Contabo VPS Host           │ PENDING RDP │ Staged in `DEPLOY_TO_CONTABO_VPS_READY/`; awaiting     │
 │    │                            │             │ manual RDP transfer & terminal restart by user.        │
 └────┴────────────────────────────┴─────────────┴────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-_This specification is fully synchronized with the live PostgreSQL schema (95 contract columns / 98 Prisma fields), the Data Collection Pipeline Blueprint v2.29, the 14th Indicator Architecture Report, the Look-Ahead Bias Mitigation Manifest, and the latest Prisma `MarketDataV6` and `MarketDataPointInTime` models. All three production database migrations (`20260916000000_add_market_data_v6_sr_levels`, `20260920000000_add_indicator_statistics_extended`, and `20260920000000_add_market_data_point_in_time`) were officially applied and verified on Railway PostgreSQL on 2026-09-20._
+_This specification is fully synchronized with the live PostgreSQL schema (103 contract columns / 106 Prisma fields), the Data Collection Pipeline Blueprint v2.29, the 14th & 15th Indicator Architecture Reports, the Look-Ahead Bias Mitigation Manifest, and the latest Prisma `MarketDataV6` and `MarketDataPointInTime` models. Production database migration `20260922000000_add_market_data_v6_sr2_levels` was officially applied and verified on Railway PostgreSQL on 2026-09-22._

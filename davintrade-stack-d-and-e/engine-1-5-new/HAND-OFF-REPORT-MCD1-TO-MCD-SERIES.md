@@ -49,7 +49,7 @@ d:\SaaS Project\trading-alerts-saas-public\davintrade-stack-d-and-e\
 │       ├── mcd1.md                           <-- Full architectural specification
 │       └── mcd1-manifest-work-completion.md  <-- Audit & integration manifest for Claude Code
 │
-├── MARKET-DATA-V6-95-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md  <-- Full 98-column dictionary
+├── MARKET-DATA-V6-103-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md  <-- Full 106-column dictionary
 ├── STACK-D-ENGINE-1.5A-1.5B-1.5C-ARCHITECTURE-PLAN.md            <-- Stack D discrete state master plan
 └── STACK-D-MASTER-MODIFICATION-PLAN.md                           <-- Stack D modification rules
 ```
