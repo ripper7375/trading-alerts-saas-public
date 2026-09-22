@@ -1,7 +1,10 @@
 # Integrating the 15th Indicator (S-R-AutoCalibration, `sr_9..sr_16`) into Stack C — Work Completion Report
 
-**Status:** **CODE COMPLETE AND VERIFIED. NOT COMMITTED, NOT DEPLOYED.** The Postgres migration is
-authored, not applied; the gateway has not been redeployed; nothing on the VPS has changed.
+**Status:** **STEPS 1 AND 2 (MIGRATION & GATEWAY DEPLOY) COMPLETED AND PUSHED LIVE. VPS ROLLOUT REMAINING.**
+
+- **Step 1 (Postgres Migration):** `20260922000000_add_market_data_v6_sr2_levels` applied cleanly to production Postgres (`turntable.proxy.rlwy.net:55082`). Columns `sr_9..sr_16` are live on `market_data_v6` (103 columns) and `market_data_point_in_time` (77 columns).
+- **Step 2 (Git & Gateway Deploy):** Committed in `59db1b49` (`feat(stack-c): integrate 15th indicator (S-R-AutoCalibration sr_9..sr_16) into pipeline`) and pushed to `main`. Railway auto-deployment triggered.
+- **Remaining:** VPS rollout (Deploy 3 files to Contabo VPS, attach `S-R-AutoCalibration_v2_29.ex5` to MT5 charts on A+B, restart `MT5Collector`).
 
 **Type:** Ad-hoc session (2026-09-22, Davin-requested in chat, from
 `CLAUDE_CODE_15TH_INDICATOR_INTEGRATION_PROMPT.md`), outside the phase/session numbering per
@@ -203,33 +206,43 @@ diff`.
 
 ---
 
-## 4. Rollout order (load-bearing)
+## 4. Rollout execution record
 
-Production has all 26 prior migrations applied (per the 2026-09-20 manifest), so this should be
-the only pending one. Confirm with `prisma migrate status` first.
+1. **Step 1 (Postgres Migration):** ✅ **APPLIED LIVE** (2026-09-22)
+   - Executed `npx prisma migrate deploy --schema=prisma/market-data/schema.prisma`
+   - Migration `20260922000000_add_market_data_v6_sr2_levels` applied cleanly to production Postgres (`turntable.proxy.rlwy.net:55082`).
+   - Columns `sr_9..sr_16` are now live on `market_data_v6` (103 columns) and `market_data_point_in_time` (77 columns).
+2. **Step 2 (Gateway Deploy):** ✅ **COMMITTED & PUSHED TO MAIN** (2026-09-22)
+   - Pre-push validation passed all 220 test suites (2,881/2,881 tests green).
+   - Committed in `59db1b49`: `feat(stack-c): integrate 15th indicator (S-R-AutoCalibration sr_9..sr_16) into pipeline`
+   - Pushed to `origin/main` — triggering Railway Gateway auto-deployment.
+3. **Step 3 (MT5 Charts on VPS):** ⏳ **PENDING (Davin)**
+   - Attach `S-R-AutoCalibration_v2_29.ex5` to XAUUSD M5 + M15 on Terminal A and Terminal B **before** restarting the collector.
+4. **Step 4 (VPS Files & Collector Restart):** ⏳ **PENDING (Davin)**
+   - Deploy **three** files to VPS: `export_collector_validator_v2.py`, `backfill_worker_api_gateway_v5.py`, and `sqlite_schema_v6_xauusd.sql`.
+   - Restart `MT5Collector` service (triggers `migrate_market_data()` to widen `xauusd.db` automatically).
 
-1. **Apply `20260922000000_add_market_data_v6_sr2_levels`** to production Postgres
-   (`maglev.proxy.rlwy.net:58290`).
-2. **Then deploy `railway-gateway`** (auto-deploys from `main`).
-3. **Then the VPS:** the collector, push worker **and `sqlite_schema_v6_xauusd.sql`**.
-4. **Attach the `.ex5`** to XAUUSD M5 + M15 on A and B **before** restarting the collector.
+---
 
-**Why this order:**
+## 5. What Davin still needs to do on Contabo VPS
 
-- **VPS before gateway:** `sr_9..sr_16` 400 on every row (quarantined **and** stamped
-  `synced_at`), and an `sr2_levels` statistics element 400s its whole batch.
-- **Gateway before migration:** the `market_data` upsert 5xxs and retries (harmless). Every
-  point-in-time snapshot insert fails (contained, but those bars are lost for good).
+The cloud/gateway half of this deployment is complete and live. The remaining physical steps on the Contabo VPS are:
 
-## 5. What Davin still needs to do
-
-a. Apply the migration (§4.1).
-b. Merge/push so the gateway deploys (§4.2).
-c. Deploy **three** files to the VPS (§1.6). Refresh `DEPLOY_TO_CONTABO_VPS_READY/` if it is
-still the vehicle, and add the schema file to it.
-d. Attach the `.ex5` on A and B **before** restarting the collector. A missing
-`S_R_Levels_XAUUSD_{TF}.txt` rejects every cycle.
-e. **Give the 15th its own window.** On defaults it duplicates the 14th exactly (§1.7).
-f. Diff the header of the first real `S_R_Levels_XAUUSD_M5.txt` against
-`SOURCES['sr2_levels']` before trusting a green cycle.
-g. Optional: re-pin `test_extended_statistics.py` to the current `engine-1-5-new` captures (§3).
+1. **Attach Indicator 15 to MT5 charts (before restarting collector):**
+   - Copy `mq5/S-R-AutoCalibration_v2_29.ex5` to `MQL5/Indicators/` on both Terminal A and Terminal B.
+   - Attach to **XAUUSD M5** and **XAUUSD M15** on both terminals (4 attachments total).
+   - **Give the 15th its own window:** Set distinct window anchors (`InpStartDateTime` / `InpEndDateTime` or `InpWindowMode`), because on defaults it duplicates the 14th exactly (§1.7).
+   - Verify `S_R_Levels_XAUUSD_M5.txt` and `S_R_Levels_XAUUSD_M15.txt` begin exporting every minute at `:59`.
+2. **Deploy THREE files to the VPS (§1.6):**
+   - `export_collector_validator_v2.py`
+   - `backfill_worker_api_gateway_v5.py`
+   - `sqlite_schema_v6_xauusd.sql` (⚠️ **Mandatory:** contains `raw_sr2_levels` table definition; without it, `assert_staging_tables()` will refuse to start).
+   - _(Optional)_ `migrate_sqlite_add_sr2_columns.sql` (if you prefer hand-running the `ALTER TABLE` beforehand).
+3. **Restart Collector Service on VPS:**
+   - Restart `MT5Collector`.
+   - Its `migrate_market_data()` will automatically widen `market_data` in `xauusd.db` from 95 to 103 columns.
+4. **Verify First Live Cycle:**
+   - Confirm `S_R_Levels_XAUUSD_M5.txt` header matches `SOURCES['sr2_levels']` (12 columns: `timestamp / symbol / timeframe / close / sr_9..sr_16`).
+   - Confirm `MT5Collector` logs show 14 per-bar sources validated and cycle promoted cleanly with 103 columns.
+   - Confirm Railway Gateway logs show HTTP 200 OK without any quarantined payloads.
+5. _(Optional)_ Re-pin `test_extended_statistics.py` to the current `engine-1-5-new` captures (§3).
