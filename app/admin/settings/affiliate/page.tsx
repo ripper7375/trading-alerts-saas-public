@@ -490,6 +490,22 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
           </div>
         </div>
       )}
+
+      {/* Related settings (DECISION-LOG F83, spec §8A.4): money in here,
+          money out on the payout settings page — same SystemConfig store. */}
+      <p className="text-xs text-muted-foreground">
+        {t(
+          'admin.settings.affiliate.related_prefix',
+          'Related settings: minimum payout, pause switch and batch size are on'
+        )}{' '}
+        <Link
+          href="/admin/disbursement/settings"
+          className="underline hover:text-foreground"
+        >
+          {t('admin.settings.affiliate.related_link', 'Payout Settings')}
+        </Link>
+        .
+      </p>
     </div>
   );
 }

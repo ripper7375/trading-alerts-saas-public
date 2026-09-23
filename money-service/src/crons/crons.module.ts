@@ -16,6 +16,7 @@ import { CodeGeneratorService } from '../affiliate/code-generator.service';
 import { BatchManagerService } from '../disbursement/batch-manager.service';
 import { CommissionAggregatorService } from '../disbursement/commission-aggregator.service';
 import { DisbursementProcessorService } from '../disbursement/disbursement-processor.service';
+import { DisbursementSettingsService } from '../disbursement/disbursement-settings.service';
 import { PaymentOrchestratorService } from '../disbursement/payment-orchestrator.service';
 import { RetryHandlerService } from '../disbursement/retry-handler.service';
 import { TransactionLoggerService } from '../disbursement/transaction-logger.service';
@@ -66,6 +67,8 @@ import { WiseReconciliationService } from './wise-reconciliation.service';
     CommissionAggregatorService,
     PaymentOrchestratorService,
     DisbursementProcessorService,
+    // DECISION-LOG F83 -- payout settings reader (E1-E4)
+    DisbursementSettingsService,
     // File 4/6
     CronsScheduler,
     // File 5/6

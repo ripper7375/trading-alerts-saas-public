@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { getDefaultProvider } from '@/lib/disbursement/constants';
+import { getDisbursementSettings } from '@/lib/disbursement/settings';
 import { cn } from '@/lib/utils';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
@@ -74,11 +75,11 @@ const disbursementNavItems: NavItem[] = [
     href: '/admin/disbursement/audit',
   },
   {
-    id: 'config',
+    id: 'settings',
     icon: '⚙️',
-    labelKey: 'admin.disbursement.nav_configuration',
-    label: 'Configuration',
-    href: '/admin/disbursement/config',
+    labelKey: 'admin.disbursement.nav_settings',
+    label: 'Payout Settings',
+    href: '/admin/disbursement/settings',
   },
 ];
 
@@ -92,7 +93,9 @@ const disbursementNavItems: NavItem[] = [
  * Features:
  * - Admin role verification (403 if not admin)
  * - Dark theme sidebar with disbursement navigation
- * - Top bar with disbursement badge
+ * - Top bar with disbursement badge, plus a red "Payouts paused" badge when
+ *   payouts are paused (spec E12, DECISION-LOG F83 — this deployment's view:
+ *   DB setting + the web app's own DISBURSEMENT_ENABLED env)
  * - Back links to main admin and app
  *
  * Security:
@@ -127,6 +130,7 @@ export default async function DisbursementLayout({
 
   const userName = session.user.name || session.user.email || 'Admin';
   const activeProvider = getDefaultProvider();
+  const payoutSettings = await getDisbursementSettings(prisma);
   const dict = getDictionary(await getServerLanguage());
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
 
@@ -142,6 +146,19 @@ export default async function DisbursementLayout({
             <Badge className="bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400">
               {activeProvider}
             </Badge>
+            {!payoutSettings.effectiveEnabled && (
+              <Link href="/admin/disbursement/settings">
+                <Badge
+                  data-testid="payouts-paused-badge"
+                  className="bg-red-500/10 px-2 py-0.5 text-xs font-bold text-red-600 hover:bg-red-500/20 dark:text-red-400"
+                >
+                  {dt(
+                    'admin.disbursement.payouts_paused_badge',
+                    'Payouts paused'
+                  )}
+                </Badge>
+              </Link>
+            )}
           </div>
           <div className="flex items-center gap-3 sm:gap-4">
             <span className="hidden text-sm text-muted-foreground sm:inline">

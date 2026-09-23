@@ -93,6 +93,9 @@ jest.mock('@/lib/db/prisma', () => ({
     disbursementAuditLog: {
       create: jest.fn(),
     },
+    systemConfig: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
   },
 }));
 
@@ -187,5 +190,35 @@ describe('Quick Payment API', () => {
 
     const data = await response.json();
     expect(data.error).toBe('Invalid provider. Must be MOCK or RISE');
+  });
+});
+
+describe('Quick Payment API — pause gate (E10, DECISION-LOG F83)', () => {
+  it('returns 409 DISBURSEMENTS_PAUSED while payouts are paused, before any payout work', async () => {
+    const { POST } = await import('@/app/api/disbursement/pay/route');
+    const { prisma } = await import('@/lib/db/prisma');
+    mockSession.mockResolvedValueOnce({
+      user: { id: 'admin-123', role: 'ADMIN' },
+    });
+    (prisma.systemConfig.findMany as jest.Mock).mockResolvedValueOnce([
+      { key: 'disbursement_enabled', value: 'false' },
+    ]);
+
+    const request = new MockRequest(
+      'http://localhost:3000/api/disbursement/pay',
+      {
+        method: 'POST',
+        body: JSON.stringify({ affiliateId: 'aff-123' }),
+      }
+    );
+    const response = await POST(request as never);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      error: 'Disbursements are paused',
+      code: 'DISBURSEMENTS_PAUSED',
+    });
+    expect(prisma.affiliateProfile.findUnique).not.toHaveBeenCalled();
+    expect(prisma.paymentBatch.create).not.toHaveBeenCalled();
   });
 });

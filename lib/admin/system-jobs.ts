@@ -1,14 +1,15 @@
 /**
  * System Cron Job Registry (Session 6-11, B2-15)
  *
- * The canonical list of the 8 jobs money-service's `CronsScheduler` actually
+ * The canonical list of the jobs money-service's `CronsScheduler` actually
  * runs on a schedule (Session 4A-2/3, Slice 1 CUT-OVER) -- ported verbatim
  * from the monolith's own `app/api/cron/<job>/route.ts` handlers, which are
  * no longer scheduled by anything (`vercel.json`'s `crons` array is empty)
  * but still exist as manual/legacy endpoints. Job ids here match
  * money-service's `CronTriggerController` route segments
  * (`POST /v1/cron-trigger/<id>`) exactly -- do not rename without checking
- * both sides.
+ * both sides. `approve-matured-commissions` was added by DECISION-LOG F84
+ * (split out of `process-pending-disbursements`, which is now monthly).
  *
  * @module lib/admin/system-jobs
  */
@@ -62,11 +63,19 @@ export const SYSTEM_CRON_JOBS: SystemCronJob[] = [
     descriptionKey: 'admin.system.job_distribute_codes_desc',
   },
   {
+    id: 'approve-matured-commissions',
+    label: 'Approve Matured Commissions',
+    labelKey: 'admin.system.job_approve_matured_commissions',
+    description:
+      'Daily: moves PENDING commissions past the refund window to APPROVED. Pays nothing.',
+    descriptionKey: 'admin.system.job_approve_matured_commissions_desc',
+  },
+  {
     id: 'process-pending-disbursements',
     label: 'Process Pending Disbursements',
     labelKey: 'admin.system.job_process_pending_disbursements',
     description:
-      'Batches and executes payable affiliate commissions through the active disbursement provider.',
+      'Monthly (1st, 02:00 UTC): batches and executes payable affiliate commissions through the active disbursement provider, unless payouts are paused.',
     descriptionKey: 'admin.system.job_process_pending_disbursements_desc',
   },
   {

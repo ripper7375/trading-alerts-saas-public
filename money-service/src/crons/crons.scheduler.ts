@@ -5,6 +5,8 @@
  * (Session 4A-2, File 4/6). Replaces Vercel's HTTP-triggered cron routes
  * with NestJS `@Cron()` decorators. UTC expressions are copied verbatim
  * from `vercel.json` — CRITICAL invariant, do not change the timing.
+ * Exception: process-pending-disbursements moved to monthly (DECISION-LOG
+ * F84); approve-matured-commissions added (daily).
  *
  * `CRON_SECRET` auth is dropped here on purpose: these are internally
  * scheduled jobs, not public HTTP endpoints, so there's no request to
@@ -31,6 +33,11 @@ import {
   AccountSyncResult,
   DisbursementProcessorService,
 } from '../disbursement/disbursement-processor.service';
+import {
+  APPROVAL_CRON_EXPRESSION,
+  PAYOUT_CRON_EXPRESSION,
+} from '../disbursement/disbursement-settings.constants';
+import { TransactionLoggerService } from '../disbursement/transaction-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 import {
@@ -73,6 +80,10 @@ export interface ExpireCodesResult {
   count: number;
 }
 
+export interface ApproveMaturedCommissionsResult {
+  approvedCount: number;
+}
+
 @Injectable()
 export class CronsScheduler {
   constructor(
@@ -80,7 +91,8 @@ export class CronsScheduler {
     private readonly subscriptionCron: SubscriptionCronService,
     private readonly affiliateCron: AffiliateCronService,
     private readonly disbursementProcessor: DisbursementProcessorService,
-    private readonly wiseReconciliation: WiseReconciliationService
+    private readonly wiseReconciliation: WiseReconciliationService,
+    private readonly transactionLogger: TransactionLoggerService
   ) {}
 
   /**
@@ -256,7 +268,11 @@ export class CronsScheduler {
   }
 
   /**
-   * Job: process-pending-disbursements — vercel.json "0 2 * * *"
+   * Job: process-pending-disbursements — monthly, "0 2 1 * *" (1st of each
+   * month, 02:00 UTC). Was vercel.json "0 2 * * *" (daily); moved to monthly
+   * by DECISION-LOG F84. Approves matured commissions first (idempotent),
+   * then pays — unless payouts are paused (F83), in which case it approves
+   * only and logs `cron.disbursement_skipped`.
    */
   async handleProcessPendingDisbursements(): Promise<AutoDisbursementResult> {
     console.log('Starting automated disbursement processing...');
@@ -272,6 +288,24 @@ export class CronsScheduler {
       errorCount: result.errors.length,
     });
     return result;
+  }
+
+  /**
+   * Job: approve-matured-commissions — daily, "0 2 * * *" (DECISION-LOG F84).
+   * New job split out of process-pending-disbursements' Step 0 so affiliates
+   * see PENDING -> APPROVED on time while payouts run monthly. Bookkeeping
+   * only, so it runs even while payouts are paused (spec D5).
+   */
+  async handleApproveMaturedCommissions(): Promise<ApproveMaturedCommissionsResult> {
+    const approvedCount =
+      await this.disbursementProcessor.approveMaturedCommissions();
+    await this.transactionLogger.log({
+      action: 'cron.commissions_auto_approved',
+      status: 'SUCCESS',
+      details: { approvedCount, job: 'approve-matured-commissions' },
+    });
+    logger.info(`[CRON] Auto-approved ${approvedCount} matured commissions`);
+    return { approvedCount };
   }
 
   /**
@@ -455,7 +489,7 @@ export class CronsScheduler {
     await this.handleExpireCodes();
   }
 
-  @Cron('0 2 * * *')
+  @Cron(PAYOUT_CRON_EXPRESSION)
   async scheduledProcessPendingDisbursements(): Promise<void> {
     if (!this.isCronEnabled()) {
       logger.info(
@@ -464,6 +498,17 @@ export class CronsScheduler {
       return;
     }
     await this.handleProcessPendingDisbursements();
+  }
+
+  @Cron(APPROVAL_CRON_EXPRESSION)
+  async scheduledApproveMaturedCommissions(): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(
+        '[CRON] Skipped approve-matured-commissions — CRON_ENABLED is not "true"'
+      );
+      return;
+    }
+    await this.handleApproveMaturedCommissions();
   }
 
   @Cron('0 6 1 * *')

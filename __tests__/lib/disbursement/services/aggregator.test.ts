@@ -16,6 +16,9 @@ const mockPrisma = {
   affiliateProfile: {
     findMany: jest.fn(),
   },
+  systemConfig: {
+    findMany: jest.fn(),
+  },
 };
 
 describe('CommissionAggregator', () => {
@@ -23,6 +26,8 @@ describe('CommissionAggregator', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // No payout-setting rows -> the $50 default (DECISION-LOG F83)
+    mockPrisma.systemConfig.findMany.mockResolvedValue([]);
     // @ts-expect-error Mocking PrismaClient
     aggregator = new CommissionAggregator(mockPrisma);
   });
@@ -329,5 +334,57 @@ describe('CommissionAggregator', () => {
       expect(result).toBe(0);
       expect(mockPrisma.commission.updateMany).not.toHaveBeenCalled();
     });
+  });
+});
+
+describe('CommissionAggregator — dynamic minimum payout (E7, DECISION-LOG F83)', () => {
+  let aggregator: CommissionAggregator;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // @ts-expect-error Mocking PrismaClient
+    aggregator = new CommissionAggregator(mockPrisma);
+  });
+
+  const minimum = (value: string) =>
+    mockPrisma.systemConfig.findMany.mockResolvedValue([
+      { key: 'disbursement_minimum_payout_usd', value },
+    ]);
+
+  it('the threshold follows the setting, not the constant', async () => {
+    minimum('75');
+    mockPrisma.commission.findMany.mockResolvedValue([
+      { id: 'c1', commissionAmount: 60, createdAt: new Date('2026-08-01') },
+    ]);
+
+    const result = await aggregator.getAggregatesByAffiliate('aff-1');
+
+    expect(result.canPayout).toBe(false);
+    expect(result.reason).toBe('Below minimum payout of $75');
+  });
+
+  it('a lower setting makes a sub-$50 balance payable in getAllPayableAffiliates', async () => {
+    minimum('30');
+    mockPrisma.commission.findMany.mockResolvedValue([
+      {
+        id: 'c1',
+        affiliateProfileId: 'aff-1',
+        commissionAmount: 40,
+        createdAt: new Date('2026-08-01'),
+      },
+    ]);
+
+    const result = await aggregator.getAllPayableAffiliates();
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.affiliateId).toBe('aff-1');
+  });
+
+  it('an explicit minimum argument skips the settings read', async () => {
+    mockPrisma.commission.findMany.mockResolvedValue([]);
+
+    await aggregator.getAllPayableAffiliates(60);
+
+    expect(mockPrisma.systemConfig.findMany).not.toHaveBeenCalled();
   });
 });

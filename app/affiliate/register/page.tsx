@@ -23,7 +23,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { useLocale } from '@/lib/context/locale-context';
-import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 interface FormData {
@@ -42,7 +41,14 @@ export default function AffiliateRegisterPage(): React.ReactElement {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { t } = useLocale();
-  const { commissionPercent, codesPerMonth } = useAffiliateConfig();
+  const { commissionPercent, codesPerMonth, minimumPayoutUsd } =
+    useAffiliateConfig();
+  // Admin-editable payout minimum (DECISION-LOG F83), shown in USD.
+  const minimumPayoutLabel = `$${
+    Number.isInteger(minimumPayoutUsd)
+      ? minimumPayoutUsd
+      : minimumPayoutUsd.toFixed(2)
+  }`;
 
   useEffect(() => {
     if (session?.user?.role === 'ADMIN') {
@@ -370,8 +376,11 @@ export default function AffiliateRegisterPage(): React.ReactElement {
             />
             <span className="text-[11px] leading-relaxed text-slate-600 dark:text-slate-400">
               {t(
-                `I agree to the affiliate program terms and conditions. I understand that I will earn ${commissionPercent}% commission on referrals and that payouts are processed monthly for balances over $${AFFILIATE_CONFIG.MINIMUM_PAYOUT}.`
-              )}
+                'affiliate.register.terms_consent',
+                'I agree to the affiliate program terms and conditions. I understand that I will earn {percent}% commission on referrals and that payouts are processed monthly for balances over {amount}.'
+              )
+                .replace('{percent}', String(commissionPercent))
+                .replace('{amount}', minimumPayoutLabel)}
             </span>
           </label>
 
@@ -400,8 +409,9 @@ export default function AffiliateRegisterPage(): React.ReactElement {
             <li>{t(`- Receive ${codesPerMonth} unique codes per month`)}</li>
             <li>
               {t(
-                `- Monthly automated payouts for balances over $${AFFILIATE_CONFIG.MINIMUM_PAYOUT}`
-              )}
+                'affiliate.register.benefit_monthly_payouts',
+                '- Monthly automated payouts for balances over {amount}'
+              ).replace('{amount}', minimumPayoutLabel)}
             </li>
           </ul>
         </div>

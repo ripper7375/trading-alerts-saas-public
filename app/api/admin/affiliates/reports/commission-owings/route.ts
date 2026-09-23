@@ -12,7 +12,7 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
-import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { getDisbursementSettings } from '@/lib/disbursement/settings';
 import { MoneyServiceError } from '@/lib/money-service/client';
 import { isAdminReadApiMigrated } from '@/lib/money-service/flags';
 import {
@@ -87,7 +87,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const minimumPayout = minBalance ?? AFFILIATE_CONFIG.MINIMUM_PAYOUT;
+    // Admin-editable payout minimum (DECISION-LOG F83)
+    const { minimumPayoutUsd } = await getDisbursementSettings(prisma);
+    const minimumPayout = minBalance ?? minimumPayoutUsd;
 
     // Get affiliates with pending commissions
     const affiliatesWithPendingRows = await prisma.affiliateProfile.findMany({
@@ -175,8 +177,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         pendingCount: affiliate.commissions?.length ?? 0,
         oldestPendingDate: oldestPending,
         readyForPayout:
-          Number(affiliate.pendingCommissions) >=
-          AFFILIATE_CONFIG.MINIMUM_PAYOUT,
+          Number(affiliate.pendingCommissions) >= minimumPayoutUsd,
       };
     });
 
@@ -194,7 +195,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         totalAffiliatesOwed: totalCount,
         affiliatesReadyForPayout: affiliatesReadyCount,
         totalOwed: Math.round(totalOwed * 100) / 100,
-        minimumPayoutThreshold: AFFILIATE_CONFIG.MINIMUM_PAYOUT,
+        minimumPayoutThreshold: minimumPayoutUsd,
       },
       affiliates: affiliatesOwed,
       pagination: {

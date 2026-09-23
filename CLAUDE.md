@@ -13,6 +13,33 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-23, phase/session unchanged) — Disbursement payout settings:
+> `/admin/disbursement/settings` built end to end (DECISION-LOG **F83**), plus monthly payouts
+> (**F84**). Code complete and verified, on branch `feat/disbursement-payout-settings`
+> (11 commits, NOT pushed, NOT deployed). No migration.** Davin supplied
+> `davintrade-disbursement-payout-settings-stack/DavinTrade-Architecture-Design-Disbursement-Payout-Settings.md`.
+> **Full account:** that folder's `feasibility-assessment.md` and
+> `disbursement-payout-settings-manifest-work-completion.md`. This entry is the index.
+> **Phase 0 verdict: feasible with adjustments A1–A7. No stop.** The spec missed 3 admin readers
+> of `AFFILIATE_CONFIG.MINIMUM_PAYOUT` and `PayoutCalculator`'s own eligibility check; both are
+> now routed through the settings readers. Env vars are **per service**: the page can only show
+> the **Vercel** `DISBURSEMENT_ENABLED`/`DISBURSEMENT_PROVIDER`, so G3/G4 must be checked on
+> Railway directly.
+> **Built:** payout on/off, minimum, max batch size and the approval window as `SystemConfig`
+> rows, read uncached by twin readers (`lib/disbursement/settings.ts` ↔ money-service
+> `disbursement-settings.constants.ts`, whose SHARED block a parity test diffs byte for byte).
+> The pause gates every money-moving entry point (cron, execute, Wise prepare/complete/fund,
+> batches, pay) with 409 `DISBURSEMENTS_PAUSED`. The cron splits batches by max batch size.
+> The payout cron is `0 2 1 * *`, plus a new daily `approve-matured-commissions`. The public
+> `/api/config/affiliate` gains `minimumPayoutUsd` only. `/admin/disbursement/config` is now a
+> redirect and its placeholder API is deleted. money-service's global exception filter now
+> passes a `code` field through.
+> **Verified:** root `test:ci` **227/227 · 2951/2951**; money-service **63/63 · 621/621**; `tsc`
+> clean in both; ESLint 0 warnings on the Next files (money-service has no ESLint setup);
+> page checked live via a throwaway route (deleted).
+> **⚠ Not done:** `davintrade-ui-page.xlsx` rows 97/19. The file was write-locked, so the values
+> are in the manifest §5.
+
 > **Ad-hoc session (2026-09-22, phase/session unchanged) — Stack C 15th indicator:
 > `S-R-AutoCalibration_v2_29` onboarded end to end as source `sr2_levels`, `market_data`
 > 95 → 103 (`sr_9..sr_16`). Code complete and verified. NOT committed, migration authored and
@@ -4455,6 +4482,14 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   `history/sessions-archive.md`).
 
 ## Waiting on
+
+- **⚠ Disbursement payout settings (F83/F84, 2026-09-23): deploy + go-live checks.** Branch
+  `feat/disbursement-payout-settings` is unpushed. Deploy money-service first, then the Next app.
+  Monthly payouts are live only when **G1** (money-service deployed), **G2** (`CRON_ENABLED=true`
+  on Railway), **G3** (not paused; `DISBURSEMENT_ENABLED` not `false` on **both** Vercel and
+  Railway) and **G4** (`DISBURSEMENT_PROVIDER=WISE` on **Railway** money-service) all hold. Then
+  run the post-deploy checks and search the logs for `[disbursement-settings]`. The checklist is
+  in `davintrade-disbursement-payout-settings-stack/disbursement-payout-settings-manifest-work-completion.md` §5.
 
 - **⚠ 15th indicator rollout (2026-09-22): migration → gateway → VPS (3 files) → attach.**
   `20260922000000_add_market_data_v6_sr2_levels` is authored, not applied, and nothing is

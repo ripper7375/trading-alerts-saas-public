@@ -26,6 +26,7 @@ describe('CronTriggerController', () => {
       handleProcessPendingDisbursements: jest.fn().mockResolvedValue({ ok: 6 }),
       handleSendMonthlyReports: jest.fn().mockResolvedValue({ ok: 7 }),
       handleSyncRiseWorksAccounts: jest.fn().mockResolvedValue({ ok: 8 }),
+      handleApproveMaturedCommissions: jest.fn().mockResolvedValue({ ok: 9 }),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -71,6 +72,18 @@ describe('CronTriggerController', () => {
 
   it('sendMonthlyReports calls the scheduler', async () => {
     await expect(controller.sendMonthlyReports()).resolves.toEqual({ ok: 7 });
+  });
+
+  it('approveMaturedCommissions calls the scheduler (DECISION-LOG F84)', async () => {
+    await expect(controller.approveMaturedCommissions()).resolves.toEqual({
+      ok: 9,
+    });
+    expect(schedulerMock.handleApproveMaturedCommissions).toHaveBeenCalledTimes(
+      1
+    );
+    expect(
+      schedulerMock.handleProcessPendingDisbursements
+    ).not.toHaveBeenCalled();
   });
 
   it('syncRiseWorksAccounts calls the scheduler', async () => {

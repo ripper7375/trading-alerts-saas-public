@@ -16,6 +16,7 @@ interface ErrorResponseBody {
   error: string;
   timestamp: string;
   path: string;
+  code?: string;
   correlationId?: string;
 }
 
@@ -27,7 +28,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
-    const { statusCode, message, error } = this.resolve(exception);
+    const { statusCode, message, error, code } = this.resolve(exception);
     const correlationId =
       getCorrelationId() ??
       (response.getHeader('x-correlation-id') as string | undefined);
@@ -39,6 +40,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       error,
       timestamp: new Date().toISOString(),
       path,
+      ...(code ? { code } : {}),
       ...(correlationId ? { correlationId } : {}),
     };
 
@@ -66,6 +68,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     statusCode: number;
     message: string | string[];
     error: string;
+    code?: string;
   } {
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
@@ -85,7 +88,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         | string[];
       const error =
         (payloadObj['error'] as string | undefined) ?? exception.name;
-      return { statusCode: status, message, error };
+      // Machine-readable `code` (e.g. DISBURSEMENTS_PAUSED, DECISION-LOG
+      // F83) is passed through so clients can branch on it; additive only.
+      const code =
+        typeof payloadObj['code'] === 'string' ? payloadObj['code'] : undefined;
+      return { statusCode: status, message, error, code };
     }
 
     return {

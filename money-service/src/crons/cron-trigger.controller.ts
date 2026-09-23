@@ -45,6 +45,11 @@ export class CronTriggerController {
     return this.scheduler.handleExpireCodes();
   }
 
+  @Post('approve-matured-commissions')
+  approveMaturedCommissions() {
+    return this.scheduler.handleApproveMaturedCommissions();
+  }
+
   @Post('process-pending-disbursements')
   processPendingDisbursements() {
     return this.scheduler.handleProcessPendingDisbursements();

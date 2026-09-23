@@ -19,6 +19,7 @@ import React, { useEffect, useState } from 'react';
 
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 import { useLocale } from '@/lib/context/locale-context';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -54,6 +55,13 @@ interface ResourcesResponse {
 
 export default function AffiliateResourcesPage(): React.ReactElement {
   const { t, formatCurrency } = useLocale();
+  // Commission % and codes/month are admin-editable (SystemConfig via
+  // /admin/settings/affiliate) — read them live instead of the deprecated
+  // AFFILIATE_CONFIG constants, which never change after an admin edit.
+  // Minimum payout is admin-editable too (/admin/disbursement/settings,
+  // DECISION-LOG F83) — replaces the deprecated AFFILIATE_CONFIG.MINIMUM_PAYOUT.
+  const { commissionPercent, codesPerMonth, minimumPayoutUsd } =
+    useAffiliateConfig();
   const [codes, setCodes] = useState<AffiliateCode[]>([]);
   const [assets, setAssets] = useState<MarketingAsset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -340,10 +348,7 @@ export default function AffiliateResourcesPage(): React.ReactElement {
               {t(
                 'affiliate.resources.faq_earn_answer',
                 "You earn {percent}% of net revenue on each referral's subscription — your dashboard's displayed rate always reflects the current program configuration."
-              ).replace(
-                '{percent}',
-                String(AFFILIATE_CONFIG.COMMISSION_PERCENT)
-              )}
+              ).replace('{percent}', String(commissionPercent))}
             </dd>
           </div>
           <div>
@@ -358,7 +363,7 @@ export default function AffiliateResourcesPage(): React.ReactElement {
                 'affiliate.resources.faq_codes_answer',
                 'Up to {count} new codes are distributed monthly, each valid for {days} days from distribution.'
               )
-                .replace('{count}', String(AFFILIATE_CONFIG.CODES_PER_MONTH))
+                .replace('{count}', String(codesPerMonth))
                 .replace('{days}', String(AFFILIATE_CONFIG.CODE_EXPIRY_DAYS))}
             </dd>
           </div>
@@ -373,10 +378,7 @@ export default function AffiliateResourcesPage(): React.ReactElement {
               {t(
                 'affiliate.resources.faq_minimum_payout_answer_prefix',
                 'Balances need to reach {amount} before a payout is scheduled. See'
-              ).replace(
-                '{amount}',
-                formatCurrency(AFFILIATE_CONFIG.MINIMUM_PAYOUT)
-              )}{' '}
+              ).replace('{amount}', formatCurrency(minimumPayoutUsd))}{' '}
               <a
                 href="/affiliate/dashboard/payouts"
                 className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"

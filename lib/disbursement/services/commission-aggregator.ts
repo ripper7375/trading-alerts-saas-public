@@ -3,6 +3,13 @@
  *
  * Aggregates pending approved commissions by affiliate for disbursement.
  * Groups commissions and calculates totals for batch payment processing.
+ *
+ * Minimum payout (DECISION-LOG F83, spec E7): every public method resolves
+ * the admin-editable `minimumPayoutUsd` ONCE per call via
+ * `getDisbursementSettings()` (uncached), or takes it from an optional
+ * trailing parameter when the caller already holds the settings.
+ * `MINIMUM_PAYOUT_USD` is now only the default. Twin:
+ * money-service/src/disbursement/commission-aggregator.service.ts (E4).
  */
 
 import { PrismaClient } from '.prisma/non-market-client';
@@ -11,7 +18,7 @@ import type {
   PayableAffiliate,
   RiseWorksKycStatus,
 } from '@/types/disbursement';
-import { MINIMUM_PAYOUT_USD } from '../constants';
+import { getDisbursementSettings } from '../settings';
 
 /**
  * Commission aggregator for disbursement processing
@@ -19,15 +26,23 @@ import { MINIMUM_PAYOUT_USD } from '../constants';
 export class CommissionAggregator {
   constructor(private readonly prisma: PrismaClient) {}
 
+  private async resolveMinimumPayout(explicit?: number): Promise<number> {
+    if (explicit !== undefined) return explicit;
+    return (await getDisbursementSettings(this.prisma)).minimumPayoutUsd;
+  }
+
   /**
    * Get aggregate commission data for a specific affiliate
    *
    * @param affiliateId The affiliate profile ID
+   * @param minimumPayoutUsd Threshold to apply; resolved from settings when omitted
    * @returns Aggregated commission data
    */
   async getAggregatesByAffiliate(
-    affiliateId: string
+    affiliateId: string,
+    minimumPayoutUsd?: number
   ): Promise<CommissionAggregate> {
+    const minimum = await this.resolveMinimumPayout(minimumPayoutUsd);
     const commissions = await this.prisma.commission.findMany({
       where: {
         affiliateProfileId: affiliateId,
@@ -45,7 +60,7 @@ export class CommissionAggregator {
       0
     );
 
-    const canPayout = totalAmount >= MINIMUM_PAYOUT_USD;
+    const canPayout = totalAmount >= minimum;
 
     return {
       affiliateId,
@@ -54,18 +69,20 @@ export class CommissionAggregator {
       commissionCount: commissions.length,
       oldestDate: commissions[0]?.createdAt ?? new Date(),
       canPayout,
-      reason: !canPayout
-        ? `Below minimum payout of $${MINIMUM_PAYOUT_USD}`
-        : undefined,
+      reason: !canPayout ? `Below minimum payout of $${minimum}` : undefined,
     };
   }
 
   /**
    * Get all affiliates with payable commissions (meeting minimum threshold)
    *
+   * @param minimumPayoutUsd Threshold to apply; resolved from settings when omitted
    * @returns Array of commission aggregates for payable affiliates
    */
-  async getAllPayableAffiliates(): Promise<CommissionAggregate[]> {
+  async getAllPayableAffiliates(
+    minimumPayoutUsd?: number
+  ): Promise<CommissionAggregate[]> {
+    const minimum = await this.resolveMinimumPayout(minimumPayoutUsd);
     // Get all approved commissions not yet disbursed
     const commissions = await this.prisma.commission.findMany({
       where: {
@@ -99,7 +116,7 @@ export class CommissionAggregator {
         0
       );
 
-      if (totalAmount >= MINIMUM_PAYOUT_USD) {
+      if (totalAmount >= minimum) {
         aggregates.push({
           affiliateId,
           commissionIds: comms.map((c) => c.id),
@@ -118,9 +135,13 @@ export class CommissionAggregator {
   /**
    * Get detailed payable affiliate information including RiseWorks account status
    *
+   * @param minimumPayoutUsd Threshold to apply; resolved from settings when omitted
    * @returns Array of payable affiliates with full details
    */
-  async getPayableAffiliatesWithDetails(): Promise<PayableAffiliate[]> {
+  async getPayableAffiliatesWithDetails(
+    minimumPayoutUsd?: number
+  ): Promise<PayableAffiliate[]> {
+    const minimum = await this.resolveMinimumPayout(minimumPayoutUsd);
     const affiliateProfiles = await this.prisma.affiliateProfile.findMany({
       where: {
         status: 'ACTIVE',
@@ -172,7 +193,7 @@ export class CommissionAggregator {
         const kycApproved =
           hasRiseAccount && affiliate.riseAccount?.kycStatus === 'APPROVED';
         const canReceivePayments = hasRiseAccount && kycApproved;
-        const meetsMinimum = pendingAmount >= MINIMUM_PAYOUT_USD;
+        const meetsMinimum = pendingAmount >= minimum;
 
         return {
           id: affiliate.id,
@@ -195,7 +216,7 @@ export class CommissionAggregator {
           },
         };
       })
-      .filter((a) => a.pendingAmount >= MINIMUM_PAYOUT_USD);
+      .filter((a) => a.pendingAmount >= minimum);
   }
 
   /**

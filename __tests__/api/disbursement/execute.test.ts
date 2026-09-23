@@ -4,6 +4,19 @@
 
 import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/disbursement/batches/[batchId]/execute/route';
+import { shouldUseMoneyServiceForDisbursementWrite } from '@/lib/money-service/flags';
+import { forwardWriteRequestToMoneyService } from '@/lib/money-service/write-routes';
+
+// Money-service forward (Session 4A-10a): off by default so the existing
+// local-path tests are unchanged; the pause-gate tests below turn it on.
+jest.mock('@/lib/money-service/flags', () => ({
+  ...jest.requireActual('@/lib/money-service/flags'),
+  shouldUseMoneyServiceForDisbursementWrite: jest.fn(() => false),
+}));
+jest.mock('@/lib/money-service/write-routes', () => ({
+  ...jest.requireActual('@/lib/money-service/write-routes'),
+  forwardWriteRequestToMoneyService: jest.fn(),
+}));
 
 // Mock auth
 jest.mock('@/lib/auth/session', () => ({
@@ -33,6 +46,9 @@ jest.mock('@/lib/db/prisma', () => ({
     },
     affiliateProfile: {
       update: jest.fn(),
+    },
+    systemConfig: {
+      findMany: jest.fn().mockResolvedValue([]),
     },
   },
 }));
@@ -198,5 +214,74 @@ describe('POST /api/disbursement/batches/[batchId]/execute', () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data.success).toBe(true);
+  });
+});
+
+describe('POST /api/disbursement/batches/[batchId]/execute — pause gate (E11, DECISION-LOG F83)', () => {
+  const callExecute = () =>
+    POST(
+      new NextRequest(
+        'http://localhost:3000/api/disbursement/batches/batch-1/execute',
+        { method: 'POST' }
+      ),
+      { params: Promise.resolve({ batchId: 'batch-1' }) }
+    );
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    const { requireAdmin } = await import('@/lib/auth/session');
+    (requireAdmin as jest.Mock).mockResolvedValue({
+      user: { id: 'admin-123', role: 'ADMIN' },
+    });
+  });
+
+  it('returns 409 before the money-service forward when paused', async () => {
+    const { prisma } = await import('@/lib/db/prisma');
+    (shouldUseMoneyServiceForDisbursementWrite as jest.Mock).mockReturnValue(
+      true
+    );
+    (prisma.systemConfig.findMany as jest.Mock).mockResolvedValueOnce([
+      { key: 'disbursement_enabled', value: 'false' },
+    ]);
+
+    const response = await callExecute();
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      code: 'DISBURSEMENTS_PAUSED',
+    });
+    expect(forwardWriteRequestToMoneyService).not.toHaveBeenCalled();
+  });
+
+  it('returns 409 on the local path when paused, without touching the batch', async () => {
+    const { prisma } = await import('@/lib/db/prisma');
+    (shouldUseMoneyServiceForDisbursementWrite as jest.Mock).mockReturnValue(
+      false
+    );
+    (prisma.systemConfig.findMany as jest.Mock).mockResolvedValueOnce([
+      { key: 'disbursement_enabled', value: 'false' },
+    ]);
+
+    const response = await callExecute();
+
+    expect(response.status).toBe(409);
+    expect(prisma.paymentBatch.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('still forwards to money-service when payouts are active', async () => {
+    (shouldUseMoneyServiceForDisbursementWrite as jest.Mock).mockReturnValue(
+      true
+    );
+    (forwardWriteRequestToMoneyService as jest.Mock).mockResolvedValue({
+      success: true,
+    });
+
+    const response = await callExecute();
+
+    expect(response.status).toBe(200);
+    expect(forwardWriteRequestToMoneyService).toHaveBeenCalledWith(
+      expect.anything(),
+      '/v1/disbursement/batches/batch-1/execute'
+    );
   });
 });

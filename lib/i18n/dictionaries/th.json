@@ -2726,5 +2726,6 @@
   "XAUX vs USDX Comparison chart": "กราฟเปรียบเทียบ XAUX กับ USDX",
   "and get": "และรับ",
   "hour": "ชั่วโมง",
-  "off your first month!": "ส่วนลดเดือนแรก!"
+  "off your first month!": "ส่วนลดเดือนแรก!",
+  "affiliate.register.benefit_monthly_payouts": "- จ่ายเงินอัตโนมัติรายเดือนสำหรับยอดคงเหลือที่เกิน {amount}"
 }

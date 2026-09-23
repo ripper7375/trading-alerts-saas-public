@@ -5,6 +5,10 @@
  *
  * Allows admin to pay a single affiliate immediately.
  * Creates a single-affiliate batch and executes it.
+ *
+ * E10 (DECISION-LOG F83): 409 `DISBURSEMENTS_PAUSED` while payouts are
+ * paused; the minimum payout is the admin-editable setting (via the
+ * aggregator, E7).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -15,6 +19,10 @@ import { PaymentOrchestrator } from '@/lib/disbursement/services/payment-orchest
 import { CommissionAggregator } from '@/lib/disbursement/services/commission-aggregator';
 import { BatchManager } from '@/lib/disbursement/services/batch-manager';
 import { createPaymentProvider } from '@/lib/disbursement/providers/provider-factory';
+import {
+  DISBURSEMENTS_PAUSED_BODY,
+  getDisbursementSettings,
+} from '@/lib/disbursement/settings';
 import type { DisbursementProvider } from '@/types/disbursement';
 
 interface QuickPaymentRequest {
@@ -33,6 +41,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   try {
+    const settings = await getDisbursementSettings(prisma);
+    if (!settings.effectiveEnabled) {
+      return NextResponse.json(DISBURSEMENTS_PAUSED_BODY, { status: 409 });
+    }
+
     const body = (await request.json()) as QuickPaymentRequest;
     const { affiliateId, provider = 'MOCK' } = body;
 
@@ -68,7 +81,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Check if affiliate has commissions ready for payout
     const aggregator = new CommissionAggregator(prisma);
-    const aggregate = await aggregator.getAggregatesByAffiliate(affiliateId);
+    const aggregate = await aggregator.getAggregatesByAffiliate(
+      affiliateId,
+      settings.minimumPayoutUsd
+    );
 
     if (!aggregate.canPayout) {
       return NextResponse.json(

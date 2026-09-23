@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
 import { CommissionAggregatorService } from './commission-aggregator.service';
+import { DisbursementSettingsService } from './disbursement-settings.service';
 
 describe('CommissionAggregatorService.getAllPayableAffiliatesForProvider', () => {
   let service: CommissionAggregatorService;
@@ -20,9 +21,12 @@ describe('CommissionAggregatorService.getAllPayableAffiliatesForProvider', () =>
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
+    // No payout-setting rows -> the $50 default (DECISION-LOG F83)
+    prismaMock.systemConfig.findMany.mockResolvedValue([]);
     const moduleRef = await Test.createTestingModule({
       providers: [
         CommissionAggregatorService,
+        DisbursementSettingsService,
         { provide: PrismaService, useValue: prismaMock },
       ],
     }).compile();
@@ -83,5 +87,83 @@ describe('CommissionAggregatorService.getAllPayableAffiliatesForProvider', () =>
         canPayout: true,
       }),
     ]);
+  });
+
+  describe('dynamic minimum payout (E4, DECISION-LOG F83)', () => {
+    const minimumRow = (value: string) =>
+      [
+        {
+          id: 'cfg-min',
+          key: 'disbursement_minimum_payout_usd',
+          value,
+        },
+      ] as never;
+
+    it('WISE path: excludes a $60 balance when the admin minimum is $75', async () => {
+      prismaMock.systemConfig.findMany.mockResolvedValue(minimumRow('75'));
+      prismaMock.affiliateWiseRecipient.findMany.mockResolvedValue([
+        { affiliateProfileId: 'aff-active' },
+      ] as never);
+      prismaMock.commission.findMany.mockResolvedValue([
+        {
+          id: 'comm-1',
+          affiliateProfileId: 'aff-active',
+          commissionAmount: 60,
+          createdAt: new Date('2026-07-01'),
+        },
+      ] as never);
+
+      await expect(
+        service.getAllPayableAffiliatesForProvider('WISE')
+      ).resolves.toEqual([]);
+    });
+
+    it('generic path: includes a $40 balance when the admin minimum is $30', async () => {
+      prismaMock.systemConfig.findMany.mockResolvedValue(minimumRow('30'));
+      prismaMock.commission.findMany.mockResolvedValue([
+        {
+          id: 'comm-1',
+          affiliateProfileId: 'aff-1',
+          commissionAmount: 40,
+          createdAt: new Date('2026-07-01'),
+        },
+      ] as never);
+
+      const result = await service.getAllPayableAffiliates();
+      expect(result).toEqual([
+        expect.objectContaining({ affiliateId: 'aff-1', canPayout: true }),
+      ]);
+    });
+
+    it('getAggregatesByAffiliate reports the dynamic minimum in its reason', async () => {
+      prismaMock.systemConfig.findMany.mockResolvedValue(minimumRow('75'));
+      prismaMock.commission.findMany.mockResolvedValue([
+        {
+          id: 'comm-1',
+          commissionAmount: 60,
+          createdAt: new Date('2026-07-01'),
+        },
+      ] as never);
+
+      const result = await service.getAggregatesByAffiliate('aff-1');
+      expect(result.canPayout).toBe(false);
+      expect(result.reason).toBe('Below minimum payout of $75');
+    });
+
+    it('an explicit minimum argument wins and skips the settings read', async () => {
+      prismaMock.commission.findMany.mockResolvedValue([]);
+
+      await service.getAllPayableAffiliatesForProvider('MOCK', 60);
+
+      expect(prismaMock.systemConfig.findMany).not.toHaveBeenCalled();
+    });
+
+    it('resolves the minimum once per public call on the WISE path', async () => {
+      prismaMock.affiliateWiseRecipient.findMany.mockResolvedValue([]);
+
+      await service.getAllPayableAffiliatesForProvider('WISE');
+
+      expect(prismaMock.systemConfig.findMany).toHaveBeenCalledTimes(1);
+    });
   });
 });

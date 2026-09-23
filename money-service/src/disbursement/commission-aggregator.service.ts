@@ -7,6 +7,13 @@
  * batch payment processing. Converted to `@Injectable()` with
  * `PrismaService` constructor-injected (was a plain class taking a raw
  * `PrismaClient` positional argument).
+ *
+ * Minimum payout (DECISION-LOG F83, spec E4): every public method resolves
+ * the admin-editable `minimumPayoutUsd` ONCE per call (via
+ * `DisbursementSettingsService`, uncached) and passes it down, or takes it
+ * from an optional trailing parameter when the caller already holds the
+ * settings (the cron does). `MINIMUM_PAYOUT_USD` is now only the default.
+ * Twin: lib/disbursement/services/commission-aggregator.ts (E7).
  */
 
 import { Injectable } from '@nestjs/common';
@@ -14,7 +21,7 @@ import type { DisbursementProvider } from '@prisma/client';
 
 import { PrismaService } from '../prisma/prisma.service';
 
-import { MINIMUM_PAYOUT_USD } from './disbursement.constants';
+import { DisbursementSettingsService } from './disbursement-settings.service';
 import type {
   CommissionAggregate,
   PayableAffiliate,
@@ -26,17 +33,28 @@ import type {
  */
 @Injectable()
 export class CommissionAggregatorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly settings: DisbursementSettingsService
+  ) {}
+
+  private async resolveMinimumPayout(explicit?: number): Promise<number> {
+    if (explicit !== undefined) return explicit;
+    return (await this.settings.get()).minimumPayoutUsd;
+  }
 
   /**
    * Get aggregate commission data for a specific affiliate
    *
    * @param affiliateId The affiliate profile ID
+   * @param minimumPayoutUsd Threshold to apply; resolved from settings when omitted
    * @returns Aggregated commission data
    */
   async getAggregatesByAffiliate(
-    affiliateId: string
+    affiliateId: string,
+    minimumPayoutUsd?: number
   ): Promise<CommissionAggregate> {
+    const minimum = await this.resolveMinimumPayout(minimumPayoutUsd);
     const commissions = await this.prisma.commission.findMany({
       where: {
         affiliateProfileId: affiliateId,
@@ -54,7 +72,7 @@ export class CommissionAggregatorService {
       0
     );
 
-    const canPayout = totalAmount >= MINIMUM_PAYOUT_USD;
+    const canPayout = totalAmount >= minimum;
 
     return {
       affiliateId,
@@ -63,18 +81,20 @@ export class CommissionAggregatorService {
       commissionCount: commissions.length,
       oldestDate: commissions[0]?.createdAt ?? new Date(),
       canPayout,
-      reason: !canPayout
-        ? `Below minimum payout of $${MINIMUM_PAYOUT_USD}`
-        : undefined,
+      reason: !canPayout ? `Below minimum payout of $${minimum}` : undefined,
     };
   }
 
   /**
    * Get all affiliates with payable commissions (meeting minimum threshold)
    *
+   * @param minimumPayoutUsd Threshold to apply; resolved from settings when omitted
    * @returns Array of commission aggregates for payable affiliates
    */
-  async getAllPayableAffiliates(): Promise<CommissionAggregate[]> {
+  async getAllPayableAffiliates(
+    minimumPayoutUsd?: number
+  ): Promise<CommissionAggregate[]> {
+    const minimum = await this.resolveMinimumPayout(minimumPayoutUsd);
     // Get all approved commissions not yet disbursed
     const commissions = await this.prisma.commission.findMany({
       where: {
@@ -108,7 +128,7 @@ export class CommissionAggregatorService {
         0
       );
 
-      if (totalAmount >= MINIMUM_PAYOUT_USD) {
+      if (totalAmount >= minimum) {
         aggregates.push({
           affiliateId,
           commissionIds: comms.map((c) => c.id),
@@ -144,13 +164,16 @@ export class CommissionAggregatorService {
    * for `WISE` is 4A-W7's job, when the provider actually flips.
    *
    * @param provider Payment provider driving this aggregation pass
+   * @param minimumPayoutUsd Threshold to apply; resolved from settings when omitted
    * @returns Array of commission aggregates for payable, eligible affiliates
    */
   async getAllPayableAffiliatesForProvider(
-    provider: DisbursementProvider
+    provider: DisbursementProvider,
+    minimumPayoutUsd?: number
   ): Promise<CommissionAggregate[]> {
+    const minimum = await this.resolveMinimumPayout(minimumPayoutUsd);
     if (provider !== 'WISE') {
-      return this.getAllPayableAffiliates();
+      return this.getAllPayableAffiliates(minimum);
     }
 
     const activeRecipients = await this.prisma.affiliateWiseRecipient.findMany({
@@ -187,7 +210,7 @@ export class CommissionAggregatorService {
         (sum, c) => sum + Number(c.commissionAmount),
         0
       );
-      if (totalAmount >= MINIMUM_PAYOUT_USD) {
+      if (totalAmount >= minimum) {
         aggregates.push({
           affiliateId,
           commissionIds: comms.map((c) => c.id),
@@ -205,9 +228,13 @@ export class CommissionAggregatorService {
   /**
    * Get detailed payable affiliate information including RiseWorks account status
    *
+   * @param minimumPayoutUsd Threshold to apply; resolved from settings when omitted
    * @returns Array of payable affiliates with full details
    */
-  async getPayableAffiliatesWithDetails(): Promise<PayableAffiliate[]> {
+  async getPayableAffiliatesWithDetails(
+    minimumPayoutUsd?: number
+  ): Promise<PayableAffiliate[]> {
+    const minimum = await this.resolveMinimumPayout(minimumPayoutUsd);
     const affiliateProfiles = await this.prisma.affiliateProfile.findMany({
       where: {
         status: 'ACTIVE',
@@ -259,7 +286,7 @@ export class CommissionAggregatorService {
         const kycApproved =
           hasRiseAccount && affiliate.riseAccount?.kycStatus === 'APPROVED';
         const canReceivePayments = hasRiseAccount && kycApproved;
-        const meetsMinimum = pendingAmount >= MINIMUM_PAYOUT_USD;
+        const meetsMinimum = pendingAmount >= minimum;
 
         return {
           id: affiliate.id,
@@ -282,7 +309,7 @@ export class CommissionAggregatorService {
           },
         };
       })
-      .filter((a) => a.pendingAmount >= MINIMUM_PAYOUT_USD);
+      .filter((a) => a.pendingAmount >= minimum);
   }
 
   /**

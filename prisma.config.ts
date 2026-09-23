@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { defineConfig, env } from 'prisma/config';
+import { defineConfig } from 'prisma/config';
 
 // Prisma 7 CLI no longer auto-loads .env or reads datasource url/directUrl
 // from schema.prisma. Mirror Next.js's own .env precedence (.env.local
@@ -24,6 +24,9 @@ export default defineConfig({
     seed: 'tsx prisma/seed.ts',
   },
   datasource: {
-    url: env('DIRECT_URL'),
+    url:
+      process.env['DIRECT_URL'] ||
+      process.env['DATABASE_URL'] ||
+      'postgresql://placeholder:placeholder@localhost:5432/placeholder',
   },
 });

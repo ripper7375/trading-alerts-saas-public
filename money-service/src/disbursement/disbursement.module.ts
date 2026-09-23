@@ -18,6 +18,7 @@ import { IdempotencyStore } from '../common/idempotency/idempotency.store';
 import { WiseModule } from '../wise/wise.module';
 
 import { BatchManagerService } from './batch-manager.service';
+import { DisbursementSettingsService } from './disbursement-settings.service';
 import { DisbursementBatchesController } from './controllers/disbursement-batches.controller';
 import { PaymentOrchestratorService } from './payment-orchestrator.service';
 import { RetryHandlerService } from './retry-handler.service';
@@ -33,6 +34,8 @@ import { TransactionService } from './transaction.service';
     RetryHandlerService,
     BatchManagerService,
     PaymentOrchestratorService,
+    // DECISION-LOG F83 -- payout pause gate for execute (E5)
+    DisbursementSettingsService,
     IdempotencyInterceptor,
     IdempotencyStore,
   ],

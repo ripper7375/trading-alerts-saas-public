@@ -9,7 +9,12 @@ import { Test } from '@nestjs/testing';
 
 import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { ReportBuilderService } from '../affiliate/report-builder.service';
+import { DisbursementSettingsService } from '../disbursement/disbursement-settings.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  createDisbursementSettingsService,
+  SettingRowFixture,
+} from '../test-utils/disbursement-settings';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
 import { AdminAffiliateReportsController } from './admin-affiliate-reports.controller';
@@ -19,9 +24,11 @@ describe('AdminAffiliateReportsController', () => {
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let reportBuilderMock: Record<string, jest.Mock>;
   let affiliateConfigMock: Record<string, jest.Mock>;
+  let settingRows: SettingRowFixture[];
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
+    settingRows = [];
     reportBuilderMock = { buildGlobalCodeInventoryReport: jest.fn() };
     affiliateConfigMock = {
       getAffiliateConfigFromDB: jest.fn().mockResolvedValue({
@@ -37,6 +44,10 @@ describe('AdminAffiliateReportsController', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: ReportBuilderService, useValue: reportBuilderMock },
         { provide: AffiliateConfigService, useValue: affiliateConfigMock },
+        {
+          provide: DisbursementSettingsService,
+          useFactory: () => createDisbursementSettingsService(settingRows),
+        },
       ],
     }).compile();
 
@@ -96,7 +107,7 @@ describe('AdminAffiliateReportsController', () => {
   });
 
   describe('commissionOwings', () => {
-    it('defaults minimumPayout to AFFILIATE_CONFIG.MINIMUM_PAYOUT', async () => {
+    it('defaults minimumPayout to the $50 default when no setting row exists', async () => {
       prismaMock.affiliateProfile.findMany.mockResolvedValue([] as never);
       prismaMock.user.findMany.mockResolvedValue([] as never);
       prismaMock.affiliateProfile.count.mockResolvedValue(0);
@@ -108,6 +119,27 @@ describe('AdminAffiliateReportsController', () => {
         expect.objectContaining({
           where: expect.objectContaining({
             pendingCommissions: { gte: 50.0 },
+          }),
+        })
+      );
+    });
+
+    it('uses the admin-edited minimum payout setting (DECISION-LOG F83)', async () => {
+      settingRows.push({
+        key: 'disbursement_minimum_payout_usd',
+        value: '75',
+      });
+      prismaMock.affiliateProfile.findMany.mockResolvedValue([] as never);
+      prismaMock.user.findMany.mockResolvedValue([] as never);
+      prismaMock.affiliateProfile.count.mockResolvedValue(0);
+
+      const result = await controller.commissionOwings({});
+
+      expect(result.summary.minimumPayoutThreshold).toBe(75);
+      expect(prismaMock.affiliateProfile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            pendingCommissions: { gte: 75 },
           }),
         })
       );

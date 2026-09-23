@@ -20,9 +20,9 @@ import {
 import { z } from 'zod';
 
 import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
-import { AFFILIATE_CONFIG } from '../affiliate/affiliate.constants';
 import { ReportBuilderService } from '../affiliate/report-builder.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { DisbursementSettingsService } from '../disbursement/disbursement-settings.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { AdminGuard } from './admin.guard';
@@ -58,7 +58,8 @@ export class AdminAffiliateReportsController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly reportBuilder: ReportBuilderService,
-    private readonly affiliateConfigService: AffiliateConfigService
+    private readonly affiliateConfigService: AffiliateConfigService,
+    private readonly disbursementSettings: DisbursementSettingsService
   ) {}
 
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -232,7 +233,10 @@ export class AdminAffiliateReportsController {
       }
 
       const { page, limit, minBalance } = validation.data;
-      const minimumPayout = minBalance ?? AFFILIATE_CONFIG.MINIMUM_PAYOUT;
+      // Threshold is the admin-editable payout minimum (DECISION-LOG F83),
+      // not the deprecated AFFILIATE_CONFIG.MINIMUM_PAYOUT constant.
+      const { minimumPayoutUsd } = await this.disbursementSettings.get();
+      const minimumPayout = minBalance ?? minimumPayoutUsd;
 
       const affiliatesWithPendingRows =
         await this.prisma.affiliateProfile.findMany({
@@ -299,8 +303,7 @@ export class AdminAffiliateReportsController {
           pendingCount: affiliate.commissions?.length ?? 0,
           oldestPendingDate: oldestPending,
           readyForPayout:
-            Number(affiliate.pendingCommissions) >=
-            AFFILIATE_CONFIG.MINIMUM_PAYOUT,
+            Number(affiliate.pendingCommissions) >= minimumPayoutUsd,
         };
       });
 
@@ -317,7 +320,7 @@ export class AdminAffiliateReportsController {
           totalAffiliatesOwed: totalCount,
           affiliatesReadyForPayout: affiliatesReadyCount,
           totalOwed: Math.round(totalOwed * 100) / 100,
-          minimumPayoutThreshold: AFFILIATE_CONFIG.MINIMUM_PAYOUT,
+          minimumPayoutThreshold: minimumPayoutUsd,
         },
         affiliates: affiliatesOwed,
         pagination: {

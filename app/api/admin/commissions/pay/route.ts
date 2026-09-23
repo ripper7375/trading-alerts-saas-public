@@ -13,7 +13,7 @@ import { Prisma } from '.prisma/non-market-client';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
-import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { getDisbursementSettings } from '@/lib/disbursement/settings';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VALIDATION SCHEMAS
@@ -107,11 +107,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       0
     );
 
-    // Check minimum payout
-    if (totalAmount < AFFILIATE_CONFIG.MINIMUM_PAYOUT) {
+    // Check minimum payout — the admin-editable setting (DECISION-LOG F83).
+    // Not pause-gated: this only RECORDS a payment made outside the system
+    // (same reasoning as Wise mark-funded, spec D4).
+    const { minimumPayoutUsd } = await getDisbursementSettings(prisma);
+    if (totalAmount < minimumPayoutUsd) {
       return NextResponse.json(
         {
-          error: `Total amount ($${totalAmount.toFixed(2)}) is below minimum payout threshold ($${AFFILIATE_CONFIG.MINIMUM_PAYOUT})`,
+          error: `Total amount ($${totalAmount.toFixed(2)}) is below minimum payout threshold ($${minimumPayoutUsd})`,
         },
         { status: 400 }
       );

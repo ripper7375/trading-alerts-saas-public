@@ -71,7 +71,9 @@ export const AFFILIATE_CONFIG = {
   CODES_PER_MONTH: 15,
 
   /**
-   * Minimum balance required to request payout (USD)
+   * @deprecated Use SystemConfig 'disbursement_minimum_payout_usd' via getDisbursementSettings() / useAffiliateConfig().minimumPayoutUsd
+   * (money-service: DisbursementSettingsService.get().minimumPayoutUsd).
+   * Minimum balance required to request payout (USD) — default only.
    */
   MINIMUM_PAYOUT: 50.0,
 

@@ -23,6 +23,7 @@
 import { Module } from '@nestjs/common';
 
 import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
+import { DisbursementSettingsService } from '../disbursement/disbursement-settings.service';
 import { CodeGeneratorService } from '../affiliate/code-generator.service';
 import { ReportBuilderService } from '../affiliate/report-builder.service';
 import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
@@ -44,6 +45,8 @@ import { AdminAffiliateManagementService } from './affiliate-management.service'
     AdminAffiliateManagementService,
     ReportBuilderService,
     AffiliateConfigService,
+    // DECISION-LOG F83 -- payout minimum for the commission-owings report
+    DisbursementSettingsService,
     AdminCodeDistributionService,
     CodeGeneratorService,
     IdempotencyInterceptor,
