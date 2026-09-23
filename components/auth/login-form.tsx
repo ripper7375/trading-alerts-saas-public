@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { navigateAfterLogin } from '@/lib/auth/post-login-navigation';
 import {
   callbackUrlFromLocation,
   DEFAULT_POST_LOGIN_PATH,
@@ -105,8 +106,11 @@ export default function LoginForm(): JSX.Element {
           }
           await getSession();
           setIsSuccess(true);
+          // Full page load, not router.push: the in-tab SessionProvider only
+          // picks up the new session on a fresh load. See
+          // lib/auth/post-login-navigation.ts.
           setTimeout(() => {
-            router.push(destination);
+            navigateAfterLogin(destination);
           }, 1500);
           return;
         }
@@ -129,7 +133,7 @@ export default function LoginForm(): JSX.Element {
       if (result?.ok) {
         setIsSuccess(true);
         setTimeout(() => {
-          router.push(destination);
+          navigateAfterLogin(destination);
         }, 1500);
         return;
       }

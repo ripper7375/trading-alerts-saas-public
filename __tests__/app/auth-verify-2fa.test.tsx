@@ -43,6 +43,14 @@ jest.mock('@/lib/auth/auth-bridge-flag', () => ({
   isAuthBridgeEnabled: () => mockIsAuthBridgeEnabled(),
 }));
 
+// Post-2FA landing is a full page load, not a router push -- see
+// lib/auth/post-login-navigation.ts.
+const mockNavigateAfterLogin = jest.fn();
+jest.mock('@/lib/auth/post-login-navigation', () => ({
+  navigateAfterLogin: (destination: string) =>
+    mockNavigateAfterLogin(destination),
+}));
+
 import TwoFactorVerificationPage from '@/app/(auth)/verify-2fa/page';
 import { LocaleProvider } from '@/lib/context/locale-context';
 import {
@@ -157,9 +165,11 @@ describe('verify-2fa page', () => {
       render(withLocale(<TwoFactorVerificationPage />));
       typeCode();
 
-      await waitFor(() => expect(mockPush).toHaveBeenCalledWith(expected), {
-        timeout: 3000,
-      });
+      await waitFor(
+        () => expect(mockNavigateAfterLogin).toHaveBeenCalledWith(expected),
+        { timeout: 3000 }
+      );
+      expect(mockPush).not.toHaveBeenCalled();
     }
   );
 });

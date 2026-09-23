@@ -12,11 +12,12 @@ import {
   KeyRound,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { signIn, getSession, signOut } from 'next-auth/react';
 import { useState, useEffect, useRef, Suspense } from 'react';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
+import { navigateAfterLogin } from '@/lib/auth/post-login-navigation';
 import { safeCallbackUrl } from '@/lib/auth/safe-callback-url';
 import { useLocale } from '@/lib/context/locale-context';
 import { Button } from '@/components/ui/button';
@@ -30,7 +31,6 @@ interface SafeUserSession {
 }
 
 function TwoFactorVerificationContent(): JSX.Element {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   // Forwarded by login-form.tsx when the visitor was sent to sign in from a
@@ -171,9 +171,9 @@ function TwoFactorVerificationContent(): JSX.Element {
         // Bridge path (Session 4B-21, DECISION-LOG.md F56/F57): token-login's
         // AuthService.login() handles this exact '__2fa_verified__' sentinel
         // itself (see token-login/route.ts's own comment) — completes the
-        // login and sets the shared session cookie server-side. A forced
-        // getSession() refresh keeps next-auth/react's client cache correct,
-        // matching login-form.tsx's bridge branch (Entry Criterion 1).
+        // login and sets the shared session cookie server-side. The page then
+        // loads the destination fully (navigateAfterLogin), since getSession()
+        // alone does not refresh this tab's SessionProvider.
         const bridgeResponse = await fetch('/api/auth/token-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -185,7 +185,7 @@ function TwoFactorVerificationContent(): JSX.Element {
         }
         setIsSuccess(true);
         setTimeout(() => {
-          router.push(destination);
+          navigateAfterLogin(destination);
         }, 1500);
         return;
       }
@@ -200,12 +200,12 @@ function TwoFactorVerificationContent(): JSX.Element {
       if (result?.error) {
         setIsSuccess(true);
         setTimeout(() => {
-          router.push(destination);
+          navigateAfterLogin(destination);
         }, 1500);
       } else if (result?.ok) {
         setIsSuccess(true);
         setTimeout(() => {
-          router.push(destination);
+          navigateAfterLogin(destination);
         }, 1500);
       }
     } catch (err) {
