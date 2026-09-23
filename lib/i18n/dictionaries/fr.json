@@ -2129,5 +2129,7 @@
   "admin.settings.affiliate.related_prefix": "Paramètres associés : le versement minimum, la suspension et la taille des lots se trouvent dans",
   "admin.settings.affiliate.related_link": "Paramètres de versement",
   "admin.system.job_approve_matured_commissions": "Approuver les commissions arrivées à échéance",
-  "admin.system.job_approve_matured_commissions_desc": "Quotidien : passe à APPROVED les commissions PENDING dont le délai de remboursement est écoulé. Aucun paiement."
+  "admin.system.job_approve_matured_commissions_desc": "Quotidien : passe à APPROVED les commissions PENDING dont le délai de remboursement est écoulé. Aucun paiement.",
+  "affiliate.register.benefit_monthly_payouts": "- Versements mensuels automatiques pour les soldes supérieurs à {amount}",
+  "affiliate.register.terms_consent": "J'accepte les conditions générales du programme d'affiliation. Je comprends que je gagnerai {percent}% de commission sur les parrainages et que les versements sont traités chaque mois pour les soldes supérieurs à {amount}."
 }

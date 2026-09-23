@@ -49,6 +49,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
     discountPercent,
     commissionPercent,
     regularPrice,
+    minimumPayoutUsd,
     calculateCommissionAmount,
   } = useAffiliateConfig();
 
@@ -368,7 +369,7 @@ export default function AffiliateDashboardPage(): React.ReactElement {
             {t(
               'affiliate.dashboard.info_monthly_payouts',
               'Payouts are processed monthly for balances over {amount}'
-            ).replace('{amount}', formatCurrency(50))}
+            ).replace('{amount}', formatCurrency(minimumPayoutUsd))}
           </li>
         </ul>
       </div>

@@ -30,6 +30,8 @@ export interface AffiliateConfig {
   regularPrice: number;
   /** 3-day trial plan price in USD (dLocal only) */
   threeDayPrice: number;
+  /** Minimum approved balance (USD) before a payout (DECISION-LOG F83) */
+  minimumPayoutUsd: number;
   /** ISO timestamp of when config was last updated */
   lastUpdated: string;
 }
@@ -50,6 +52,8 @@ export interface UseAffiliateConfigReturn {
   regularPrice: number;
   /** 3-day trial plan price (default: 1.99) */
   threeDayPrice: number;
+  /** Minimum payout in USD (default: 50) — admin-editable at /admin/disbursement/settings */
+  minimumPayoutUsd: number;
   /** Helper function to calculate discounted price */
   calculateDiscountedPrice: (price: number) => number;
   /** Helper function to calculate commission amount */
@@ -73,6 +77,7 @@ const DEFAULTS = {
   codesPerMonth: 15,
   regularPrice: 29.0,
   threeDayPrice: 1.99,
+  minimumPayoutUsd: 50,
 } as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -159,6 +164,7 @@ export function useAffiliateConfig(): UseAffiliateConfigReturn {
   const codesPerMonth = data?.codesPerMonth ?? DEFAULTS.codesPerMonth;
   const regularPrice = data?.regularPrice ?? DEFAULTS.regularPrice;
   const threeDayPrice = data?.threeDayPrice ?? DEFAULTS.threeDayPrice;
+  const minimumPayoutUsd = data?.minimumPayoutUsd ?? DEFAULTS.minimumPayoutUsd;
 
   /**
    * Calculate price after applying affiliate discount
@@ -195,6 +201,7 @@ export function useAffiliateConfig(): UseAffiliateConfigReturn {
     codesPerMonth,
     regularPrice,
     threeDayPrice,
+    minimumPayoutUsd,
     calculateDiscountedPrice,
     calculateCommissionAmount,
     calculateDiscountAmount,

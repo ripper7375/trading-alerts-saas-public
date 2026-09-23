@@ -2129,5 +2129,7 @@
   "admin.settings.affiliate.related_prefix": "相关设置：最低付款金额、暂停开关和批次大小位于",
   "admin.settings.affiliate.related_link": "付款设置",
   "admin.system.job_approve_matured_commissions": "审核到期佣金",
-  "admin.system.job_approve_matured_commissions_desc": "每日：将已过退款期的 PENDING 佣金转为 APPROVED。不进行付款。"
+  "admin.system.job_approve_matured_commissions_desc": "每日：将已过退款期的 PENDING 佣金转为 APPROVED。不进行付款。",
+  "affiliate.register.benefit_monthly_payouts": "- 余额超过 {amount} 时每月自动付款",
+  "affiliate.register.terms_consent": "我同意联盟计划的条款和条件。我了解我将从推荐中获得 {percent}% 的佣金，且余额超过 {amount} 时每月处理付款。"
 }

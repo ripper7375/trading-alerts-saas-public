@@ -4275,5 +4275,7 @@
   "admin.settings.affiliate.related_prefix": "Related settings: minimum payout, pause switch and batch size are on",
   "admin.settings.affiliate.related_link": "Payout Settings",
   "admin.system.job_approve_matured_commissions": "Approve Matured Commissions",
-  "admin.system.job_approve_matured_commissions_desc": "Daily: moves PENDING commissions past the refund window to APPROVED. Pays nothing."
+  "admin.system.job_approve_matured_commissions_desc": "Daily: moves PENDING commissions past the refund window to APPROVED. Pays nothing.",
+  "affiliate.register.benefit_monthly_payouts": "- Monthly automated payouts for balances over {amount}",
+  "affiliate.register.terms_consent": "I agree to the affiliate program terms and conditions. I understand that I will earn {percent}% commission on referrals and that payouts are processed monthly for balances over {amount}."
 }

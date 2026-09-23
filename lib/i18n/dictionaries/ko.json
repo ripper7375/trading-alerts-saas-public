@@ -2129,5 +2129,7 @@
   "admin.settings.affiliate.related_prefix": "관련 설정: 최소 지급액, 일시 중지 스위치 및 배치 크기는 다음에서 관리합니다:",
   "admin.settings.affiliate.related_link": "지급 설정",
   "admin.system.job_approve_matured_commissions": "만기 커미션 승인",
-  "admin.system.job_approve_matured_commissions_desc": "매일: 환불 기간이 지난 PENDING 커미션을 APPROVED로 전환합니다. 지급은 하지 않습니다."
+  "admin.system.job_approve_matured_commissions_desc": "매일: 환불 기간이 지난 PENDING 커미션을 APPROVED로 전환합니다. 지급은 하지 않습니다.",
+  "affiliate.register.benefit_monthly_payouts": "- {amount} 초과 잔액에 대한 월간 자동 지급",
+  "affiliate.register.terms_consent": "제휴 프로그램 약관에 동의합니다. 추천 시 {percent}%의 커미션을 받으며, {amount}을(를) 초과하는 잔액에 대해 매월 지급이 처리된다는 것을 이해합니다."
 }

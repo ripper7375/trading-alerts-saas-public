@@ -275,6 +275,39 @@ async function main() {
         description: '3-day trial plan price in USD (dLocal only)',
         category: 'affiliate',
       },
+      // Disbursement payout settings (DECISION-LOG F83) — defaults equal
+      // pre-F83 behaviour; `update: {}` below never overwrites a real value.
+      {
+        key: 'disbursement_enabled',
+        value: 'true',
+        valueType: 'boolean',
+        description:
+          'Master switch for automated and manual affiliate payouts (env DISBURSEMENT_ENABLED=false overrides)',
+        category: 'disbursement',
+      },
+      {
+        key: 'disbursement_minimum_payout_usd',
+        value: '50',
+        valueType: 'number',
+        description:
+          'Minimum approved commission balance (USD) before a payout',
+        category: 'disbursement',
+      },
+      {
+        key: 'disbursement_max_batch_size',
+        value: '100',
+        valueType: 'number',
+        description: 'Maximum payments per disbursement batch',
+        category: 'disbursement',
+      },
+      {
+        key: 'affiliate_commission_approval_days',
+        value: '14',
+        valueType: 'number',
+        description:
+          'Days after a commission is earned before it is auto-approved (refund window)',
+        category: 'disbursement',
+      },
     ];
 
     for (const config of systemConfigEntries) {
@@ -285,7 +318,9 @@ async function main() {
       });
     }
 
-    console.log('✅ SystemConfig entries created (affiliate settings)');
+    console.log(
+      '✅ SystemConfig entries created (affiliate + disbursement settings)'
+    );
 
     // Seed the affiliate Media Kit with the real brand asset files copied
     // into public/ (davintrade-ai-icon.png, DavinTrade_Logo.jpg,

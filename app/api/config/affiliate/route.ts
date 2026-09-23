@@ -5,11 +5,20 @@
  * from SystemConfig. This endpoint is public (no authentication required)
  * and is cached for 5 minutes.
  *
+ * Also exposes `minimumPayoutUsd` (DECISION-LOG F83, spec §8A.2), resolved
+ * through `getDisbursementSettings()` so there is one reader and one set of
+ * defaults/bounds. ONLY the minimum is public — the pause switch, batch
+ * size, approval window and provider are operational and never appear here.
+ *
  * @module app/api/config/affiliate/route
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import {
+  DISBURSEMENT_SETTING_DEFINITIONS,
+  getDisbursementSettings,
+} from '@/lib/disbursement/settings';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -21,6 +30,8 @@ interface AffiliateConfigResponse {
   codesPerMonth: number;
   regularPrice: number;
   threeDayPrice: number;
+  /** Minimum approved balance (USD) before an affiliate is paid */
+  minimumPayoutUsd: number;
   lastUpdated: string;
 }
 
@@ -67,6 +78,9 @@ export async function GET(
       },
     });
 
+    // Payout minimum via the disbursement settings reader (never throws)
+    const { minimumPayoutUsd } = await getDisbursementSettings(prisma);
+
     // Create a map for easy lookup
     const configMap: Record<string, string> = {};
     let latestUpdate: Date | null = null;
@@ -100,6 +114,7 @@ export async function GET(
         configMap['affiliate_three_day_price'] ??
           DEFAULTS['affiliate_three_day_price']
       ),
+      minimumPayoutUsd,
       lastUpdated: latestUpdate?.toISOString() ?? new Date().toISOString(),
     };
 
@@ -119,6 +134,8 @@ export async function GET(
       codesPerMonth: parseInt(DEFAULTS.affiliate_codes_per_month, 10),
       regularPrice: parseFloat(DEFAULTS.affiliate_base_price),
       threeDayPrice: parseFloat(DEFAULTS.affiliate_three_day_price),
+      minimumPayoutUsd:
+        DISBURSEMENT_SETTING_DEFINITIONS.minimumPayoutUsd.default,
       lastUpdated: new Date().toISOString(),
     };
 
