@@ -17,6 +17,10 @@ import {
   createPaymentProvider,
   isProviderAvailable,
 } from '@/lib/disbursement/providers/provider-factory';
+import {
+  DISBURSEMENTS_PAUSED_BODY,
+  getDisbursementSettings,
+} from '@/lib/disbursement/settings';
 import { shouldUseMoneyServiceForDisbursementWrite } from '@/lib/money-service/flags';
 import {
   forwardWriteRequestToMoneyService,
@@ -37,6 +41,7 @@ interface RouteContext {
  * @returns 401 - Unauthorized
  * @returns 403 - Forbidden (not admin)
  * @returns 404 - Batch not found
+ * @returns 409 - Payouts are paused (DISBURSEMENTS_PAUSED)
  * @returns 500 - Server error
  */
 export async function POST(
@@ -48,6 +53,14 @@ export async function POST(
     await requireAdmin();
 
     const { batchId } = await context.params;
+
+    // E11 (DECISION-LOG F83): checked BEFORE the money-service forward, so
+    // both the forwarded and the local path are gated here. money-service's
+    // own execute also checks its own settings/env (E5).
+    const settings = await getDisbursementSettings(prisma);
+    if (!settings.effectiveEnabled) {
+      return NextResponse.json(DISBURSEMENTS_PAUSED_BODY, { status: 409 });
+    }
 
     // Session 4A-10a: money-service's DisbursementBatchesController.execute
     // (Session 4A-9 PORT) already re-implements this route in full, delegating

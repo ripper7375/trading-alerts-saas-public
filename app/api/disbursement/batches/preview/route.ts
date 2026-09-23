@@ -14,7 +14,7 @@ import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { CommissionAggregator } from '@/lib/disbursement/services/commission-aggregator';
 import { PayoutCalculator } from '@/lib/disbursement/services/payout-calculator';
-import { MINIMUM_PAYOUT_USD } from '@/lib/disbursement/constants';
+import { getDisbursementSettings } from '@/lib/disbursement/settings';
 
 /**
  * Request body schema
@@ -54,6 +54,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { affiliateIds, feePercentage } = validation.data;
 
+    // E8 (DECISION-LOG F83): threshold is the admin-editable minimum payout,
+    // resolved once for this request and used for eligibility and labels.
+    const { minimumPayoutUsd } = await getDisbursementSettings(prisma);
+
     const aggregator = new CommissionAggregator(prisma);
 
     // Get aggregates for specified affiliates or all payable affiliates
@@ -61,11 +65,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (affiliateIds && affiliateIds.length > 0) {
       aggregates = await Promise.all(
         affiliateIds.map((id: string) =>
-          aggregator.getAggregatesByAffiliate(id)
+          aggregator.getAggregatesByAffiliate(id, minimumPayoutUsd)
         )
       );
     } else {
-      aggregates = await aggregator.getAllPayableAffiliates();
+      aggregates = await aggregator.getAllPayableAffiliates(minimumPayoutUsd);
     }
 
     type CommissionAgg = (typeof aggregates)[number];
@@ -73,7 +77,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Calculate payout for all aggregates
     const batchSummary = PayoutCalculator.calculateBatchTotal(
       aggregates,
-      feePercentage
+      feePercentage,
+      minimumPayoutUsd
     );
 
     // Get affiliate details for preview
@@ -99,7 +104,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         const calculation = PayoutCalculator.calculatePayout(
           agg,
-          feePercentage
+          feePercentage,
+          minimumPayoutUsd
         );
         const hasRiseAccount = !!profile?.riseAccount;
         const kycApproved = profile?.riseAccount?.kycStatus === 'APPROVED';
@@ -114,7 +120,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         if (!calculation.eligible) {
           status = 'below_threshold';
-          statusReason = `Below minimum of $${MINIMUM_PAYOUT_USD}`;
+          statusReason = `Below minimum of $${minimumPayoutUsd}`;
         } else if (!hasRiseAccount) {
           status = 'no_rise_account';
           statusReason = 'No RiseWorks account linked';
@@ -176,7 +182,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         totalNetAmount: batchSummary.totalNetAmount,
         eligibleNetAmount: PayoutCalculator.roundUsd(eligibleTotal),
         feePercentage,
-        minimumThreshold: MINIMUM_PAYOUT_USD,
+        minimumThreshold: minimumPayoutUsd,
       },
       canCreate: eligibleItems.length > 0,
     });

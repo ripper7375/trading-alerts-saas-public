@@ -16,6 +16,10 @@ import { prisma } from '@/lib/db/prisma';
 import { BatchManager } from '@/lib/disbursement/services/batch-manager';
 import { CommissionAggregator } from '@/lib/disbursement/services/commission-aggregator';
 import { isValidProvider } from '@/lib/disbursement/constants';
+import {
+  DISBURSEMENTS_PAUSED_BODY,
+  getDisbursementSettings,
+} from '@/lib/disbursement/settings';
 
 /**
  * Query parameter schema for GET
@@ -124,8 +128,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * Create a new payment batch from payable affiliates.
  * If affiliateIds is not provided, includes all affiliates meeting the payout threshold.
  *
- * @returns 201 - Batch created successfully
- * @returns 400 - Invalid request body or no payable affiliates
+ * Payout settings (E9, DECISION-LOG F83): 409 `DISBURSEMENTS_PAUSED` while
+ * payouts are paused. The "all payable" path is split into batches of at
+ * most `maxBatchSize` (response `batch` = the first, `batches` = all). An
+ * explicit `affiliateIds` list stays one batch and is rejected with 400 when
+ * longer than `maxBatchSize`.
+ *
+ * @returns 201 - Batch(es) created successfully
+ * @returns 400 - Invalid request body, too many affiliates, or no payable affiliates
+ * @returns 409 - Payouts are paused
  * @returns 401 - Unauthorized
  * @returns 403 - Forbidden (not admin)
  * @returns 500 - Server error
@@ -156,19 +167,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const settings = await getDisbursementSettings(prisma);
+    if (!settings.effectiveEnabled) {
+      return NextResponse.json(DISBURSEMENTS_PAUSED_BODY, { status: 409 });
+    }
+
+    const explicitSelection = !!affiliateIds && affiliateIds.length > 0;
+    if (explicitSelection && affiliateIds.length > settings.maxBatchSize) {
+      return NextResponse.json(
+        {
+          error: `Too many affiliates for one batch (${affiliateIds.length}); the maximum is ${settings.maxBatchSize}`,
+          code: 'BATCH_SIZE_EXCEEDED',
+        },
+        { status: 400 }
+      );
+    }
+
     const aggregator = new CommissionAggregator(prisma);
     const batchManager = new BatchManager(prisma);
 
     // Get aggregates for specified affiliates or all payable affiliates
     let aggregates;
-    if (affiliateIds && affiliateIds.length > 0) {
+    if (explicitSelection) {
       aggregates = await Promise.all(
         affiliateIds.map((id: string) =>
-          aggregator.getAggregatesByAffiliate(id)
+          aggregator.getAggregatesByAffiliate(id, settings.minimumPayoutUsd)
         )
       );
     } else {
-      aggregates = await aggregator.getAllPayableAffiliates();
+      aggregates = await aggregator.getAllPayableAffiliates(
+        settings.minimumPayoutUsd
+      );
     }
 
     // Filter to only payable aggregates (meeting threshold)
@@ -187,31 +216,44 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Create batch
-    const batch = await batchManager.createBatch(
-      payableAggregates,
-      provider,
-      session.user?.id
-    );
+    // One batch for an explicit selection; chunks of maxBatchSize otherwise
+    const chunks = explicitSelection
+      ? [payableAggregates]
+      : batchManager.splitIntoBatches(payableAggregates, settings.maxBatchSize);
 
-    // Get batch with full details
-    const batchWithDetails = await batchManager.getBatchById(batch.id);
+    const createdBatches = [];
+    for (const chunk of chunks) {
+      const batch = await batchManager.createBatch(
+        chunk,
+        provider,
+        session.user?.id
+      );
+
+      // Get batch with full details
+      const batchWithDetails = await batchManager.getBatchById(batch.id);
+
+      createdBatches.push({
+        id: batch.id,
+        batchNumber: batch.batchNumber,
+        provider: batch.provider,
+        status: batch.status,
+        paymentCount: batch.paymentCount,
+        totalAmount: Number(batch.totalAmount),
+        currency: batch.currency,
+        affiliateCount: chunk.length,
+        transactionCount: batchWithDetails?.transactions?.length || 0,
+        createdAt: batch.createdAt,
+      });
+    }
 
     return NextResponse.json(
       {
-        message: 'Payment batch created successfully',
-        batch: {
-          id: batch.id,
-          batchNumber: batch.batchNumber,
-          provider: batch.provider,
-          status: batch.status,
-          paymentCount: batch.paymentCount,
-          totalAmount: Number(batch.totalAmount),
-          currency: batch.currency,
-          affiliateCount: payableAggregates.length,
-          transactionCount: batchWithDetails?.transactions?.length || 0,
-          createdAt: batch.createdAt,
-        },
+        message:
+          createdBatches.length === 1
+            ? 'Payment batch created successfully'
+            : `${createdBatches.length} payment batches created successfully`,
+        batch: createdBatches[0],
+        batches: createdBatches,
       },
       { status: 201 }
     );

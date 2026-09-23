@@ -53,11 +53,14 @@ export class PayoutCalculator {
    *
    * @param aggregate Commission aggregate data
    * @param feePercentage Optional fee percentage (0-100)
+   * @param minimumPayoutUsd Threshold (default MINIMUM_PAYOUT_USD; callers
+   *   pass the admin-editable setting — DECISION-LOG F83)
    * @returns Payout calculation result
    */
   static calculatePayout(
     aggregate: CommissionAggregate,
-    feePercentage: number = 0
+    feePercentage: number = 0,
+    minimumPayoutUsd: number = MINIMUM_PAYOUT_USD
   ): PayoutCalculation {
     // Validate fee percentage
     if (feePercentage < 0 || feePercentage > 100) {
@@ -65,13 +68,13 @@ export class PayoutCalculator {
     }
 
     // Check minimum threshold
-    if (aggregate.totalAmount < MINIMUM_PAYOUT_USD) {
+    if (aggregate.totalAmount < minimumPayoutUsd) {
       return {
         eligible: false,
         grossAmount: aggregate.totalAmount,
         feeAmount: 0,
         netAmount: 0,
-        reason: `Below minimum payout threshold of $${MINIMUM_PAYOUT_USD}`,
+        reason: `Below minimum payout threshold of $${minimumPayoutUsd}`,
       };
     }
 
@@ -106,11 +109,13 @@ export class PayoutCalculator {
    *
    * @param aggregates Array of commission aggregates
    * @param feePercentage Optional fee percentage (0-100)
+   * @param minimumPayoutUsd Threshold (default MINIMUM_PAYOUT_USD)
    * @returns Batch payout summary
    */
   static calculateBatchTotal(
     aggregates: CommissionAggregate[],
-    feePercentage: number = 0
+    feePercentage: number = 0,
+    minimumPayoutUsd: number = MINIMUM_PAYOUT_USD
   ): BatchPayoutSummary {
     const calculations = new Map<string, PayoutCalculation>();
 
@@ -123,7 +128,8 @@ export class PayoutCalculator {
     for (const aggregate of aggregates) {
       const calculation = PayoutCalculator.calculatePayout(
         aggregate,
-        feePercentage
+        feePercentage,
+        minimumPayoutUsd
       );
 
       calculations.set(aggregate.affiliateId, calculation);
