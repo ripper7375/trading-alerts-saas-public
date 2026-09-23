@@ -7,9 +7,10 @@
  *   success. There is no per-code listing UI/API anywhere in this codebase
  *   (see the order's own Deviations), so this is a standalone lookup form,
  *   not a per-row action.
- * - Disbursement Configuration page's new WISE provider option, including
- *   the "Configured via DISBURSEMENT_PROVIDER env var" notice and the fixed
- *   config.provider object shape (was a flat string, a pre-existing bug).
+ * - Disbursement Configuration page: retired to a redirect to
+ *   /admin/disbursement/settings (DECISION-LOG F83). Its old WISE-provider
+ *   rendering tests went with it; the provider is now shown read-only on the
+ *   settings page (__tests__/pages/admin/disbursement-settings.test.tsx).
  *
  * @module __tests__/pages/admin/code-cancel.test
  */
@@ -25,6 +26,7 @@ import React from 'react';
 
 import CodeInventoryReportPage from '@/app/admin/affiliates/reports/code-inventory/page';
 import ConfigurationPage from '@/app/admin/disbursement/config/page';
+import { redirect } from 'next/navigation';
 import { LocaleProvider } from '@/lib/context/locale-context';
 import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 
@@ -34,6 +36,7 @@ function render(ui: React.ReactElement) {
 
 jest.mock('next/navigation', () => ({
   usePathname: () => '/admin/affiliates/reports/code-inventory',
+  redirect: jest.fn(),
 }));
 
 const realReport = {
@@ -165,53 +168,9 @@ describe('Code Inventory — Cancel a Code widget', () => {
   });
 });
 
-describe('Disbursement Configuration — WISE provider option', () => {
-  const realConfig = {
-    provider: {
-      default: 'WISE',
-      available: ['MOCK', 'WISE'],
-      riseEnabled: false,
-      wiseEnabled: true,
-    },
-    enabled: true,
-    minimumPayout: 50,
-    batchSize: 100,
-    environment: 'production',
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({ config: realConfig }),
-    } as Response);
-  });
-
-  it('shows the active WISE provider and the env-var notice, not a flat string render', async () => {
-    render(<ConfigurationPage />);
-
-    expect(await screen.findByText('WISE')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Configured via/, { exact: false })
-    ).toBeInTheDocument();
-  });
-
-  it('offers a selectable WISE radio option when editing, disabled for unavailable RISE', async () => {
-    const user = userEvent.setup();
-    render(<ConfigurationPage />);
-
-    await screen.findByText('WISE');
-    await user.click(
-      screen.getByRole('button', { name: 'Edit Configuration' })
-    );
-
-    const wiseRadio = screen.getByRole('radio', { name: /WISE \(Wise\)/ });
-    const riseRadio = screen.getByRole('radio', {
-      name: /RISE \(RiseWorks/,
-    });
-
-    expect(wiseRadio).toBeChecked();
-    expect(riseRadio).toBeDisabled();
-    expect(wiseRadio).not.toBeDisabled();
+describe('Disbursement Configuration — retired to a redirect (F83)', () => {
+  it('redirects /admin/disbursement/config to /admin/disbursement/settings', () => {
+    ConfigurationPage();
+    expect(redirect).toHaveBeenCalledWith('/admin/disbursement/settings');
   });
 });

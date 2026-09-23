@@ -15,10 +15,12 @@ const HISTORY_LIMIT = 50;
 /**
  * Config Audit History - Server Component (Session 6-11, B2-17)
  *
- * `SystemConfigHistory` exists in the schema with zero readers or writers
- * anywhere in this codebase (monolith or operation-service) -- confirmed at
- * this order's own CONFIRM. Renders an honest "no entries recorded" empty
- * state rather than fabricating audit rows.
+ * Lists the latest `SystemConfigHistory` rows. Writers: `PATCH
+ * /api/admin/settings/affiliate` (affiliate pricing/commission keys) and
+ * `PATCH /api/disbursement/settings` (payout settings, DECISION-LOG F83).
+ * (The Session 6-11 note that the table had "zero readers or writers" is
+ * stale.) Renders an honest "no entries recorded" empty state when the table
+ * is empty rather than fabricating audit rows.
  */
 export default async function AdminSystemConfigHistoryPage(): Promise<React.ReactElement> {
   const entries = await prisma.systemConfigHistory.findMany({
