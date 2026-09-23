@@ -15,6 +15,7 @@
 import { Test } from '@nestjs/testing';
 
 import { DisbursementProcessorService } from '../disbursement/disbursement-processor.service';
+import { TransactionLoggerService } from '../disbursement/transaction-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, testFactories } from '../test-utils/prisma-mock';
 
@@ -34,7 +35,9 @@ describe('CronsScheduler', () => {
   let disbursementProcessorMock: {
     processAutomatedDisbursements: jest.Mock;
     syncRiseWorksAccounts: jest.Mock;
+    approveMaturedCommissions: jest.Mock;
   };
+  let transactionLoggerMock: { log: jest.Mock };
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
@@ -75,7 +78,11 @@ describe('CronsScheduler', () => {
         endTime: new Date(),
         durationMs: 0,
       }),
+      approveMaturedCommissions: jest.fn().mockResolvedValue(4),
     };
+    // DECISION-LOG F84: the new approve-matured-commissions job logs its
+    // count through TransactionLoggerService.
+    transactionLoggerMock = { log: jest.fn().mockResolvedValue(undefined) };
     // Session 4A-W6, File 7/8: CronsScheduler gained a 5th constructor
     // dependency for the new wise-reconciliation job. Wiring only -- no
     // existing assertion below changed.
@@ -101,6 +108,7 @@ describe('CronsScheduler', () => {
           provide: WiseReconciliationService,
           useValue: wiseReconciliationMock,
         },
+        { provide: TransactionLoggerService, useValue: transactionLoggerMock },
       ],
     }).compile();
 
@@ -241,6 +249,7 @@ describe('CronsScheduler', () => {
         | 'scheduledDowngradeExpiredSubscriptions'
         | 'scheduledExpireCodes'
         | 'scheduledProcessPendingDisbursements'
+        | 'scheduledApproveMaturedCommissions'
         | 'scheduledSendMonthlyReports'
         | 'scheduledSyncRiseWorksAccounts'
       >
@@ -251,6 +260,7 @@ describe('CronsScheduler', () => {
       'scheduledDowngradeExpiredSubscriptions',
       'scheduledExpireCodes',
       'scheduledProcessPendingDisbursements',
+      'scheduledApproveMaturedCommissions',
       'scheduledSendMonthlyReports',
       'scheduledSyncRiseWorksAccounts',
     ];
@@ -263,6 +273,7 @@ describe('CronsScheduler', () => {
         'handleDowngradeExpiredSubscriptions',
       scheduledExpireCodes: 'handleExpireCodes',
       scheduledProcessPendingDisbursements: 'handleProcessPendingDisbursements',
+      scheduledApproveMaturedCommissions: 'handleApproveMaturedCommissions',
       scheduledSendMonthlyReports: 'handleSendMonthlyReports',
       scheduledSyncRiseWorksAccounts: 'handleSyncRiseWorksAccounts',
     };
@@ -345,11 +356,68 @@ describe('CronsScheduler', () => {
       ).toHaveBeenCalledTimes(1);
     });
 
+    it('handleApproveMaturedCommissions delegates to approveMaturedCommissions and audit-logs the count (F84)', async () => {
+      const result = await scheduler.handleApproveMaturedCommissions();
+
+      expect(result).toEqual({ approvedCount: 4 });
+      expect(
+        disbursementProcessorMock.approveMaturedCommissions
+      ).toHaveBeenCalledTimes(1);
+      // approval never triggers a payout
+      expect(
+        disbursementProcessorMock.processAutomatedDisbursements
+      ).not.toHaveBeenCalled();
+      expect(transactionLoggerMock.log).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'cron.commissions_auto_approved',
+          details: expect.objectContaining({ approvedCount: 4 }),
+        })
+      );
+    });
+
     it('handleSyncRiseWorksAccounts delegates to DisbursementProcessorService', async () => {
       await scheduler.handleSyncRiseWorksAccounts();
       expect(
         disbursementProcessorMock.syncRiseWorksAccounts
       ).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('@Cron schedule metadata (DECISION-LOG F84)', () => {
+    // @nestjs/schedule's @Cron() stores its options under this key on the
+    // decorated method (SCHEDULE_CRON_OPTIONS in its schedule.constants).
+    const cronTimeOf = (method: keyof CronsScheduler): unknown =>
+      (
+        Reflect.getMetadata(
+          'SCHEDULE_CRON_OPTIONS',
+          CronsScheduler.prototype[method] as object
+        ) as { cronTime?: unknown } | undefined
+      )?.cronTime;
+
+    it('process-pending-disbursements runs monthly: 1st of the month, 02:00 UTC', () => {
+      expect(cronTimeOf('scheduledProcessPendingDisbursements')).toBe(
+        '0 2 1 * *'
+      );
+    });
+
+    it('approve-matured-commissions runs daily at 02:00 UTC', () => {
+      expect(cronTimeOf('scheduledApproveMaturedCommissions')).toBe(
+        '0 2 * * *'
+      );
+    });
+
+    it('leaves every other job on its original vercel.json timing', () => {
+      expect(cronTimeOf('scheduledCheckExpiringSubscriptions')).toBe(
+        '0 0 * * *'
+      );
+      expect(cronTimeOf('scheduledDailyMaintenance')).toBe('0 4 * * *');
+      expect(cronTimeOf('scheduledDistributeCodes')).toBe('0 0 1 * *');
+      expect(cronTimeOf('scheduledDowngradeExpiredSubscriptions')).toBe(
+        '0 1 * * *'
+      );
+      expect(cronTimeOf('scheduledExpireCodes')).toBe('59 23 28-31 * *');
+      expect(cronTimeOf('scheduledSendMonthlyReports')).toBe('0 6 1 * *');
+      expect(cronTimeOf('scheduledSyncRiseWorksAccounts')).toBe('0 3 * * *');
     });
   });
 });
