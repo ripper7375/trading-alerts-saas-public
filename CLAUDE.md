@@ -16,7 +16,7 @@
 > **Ad-hoc session (2026-09-23, phase/session unchanged) — Disbursement payout settings:
 > `/admin/disbursement/settings` built end to end (DECISION-LOG **F83**), plus monthly payouts
 > (**F84**). Code complete and verified, on branch `feat/disbursement-payout-settings`
-> (10 commits, NOT pushed, NOT deployed). No migration.** Davin supplied
+> (11 commits, NOT pushed, NOT deployed). No migration.** Davin supplied
 > `davintrade-disbursement-payout-settings-stack/DavinTrade-Architecture-Design-Disbursement-Payout-Settings.md`.
 > **Full account:** that folder's `feasibility-assessment.md` and
 > `disbursement-payout-settings-manifest-work-completion.md`. This entry is the index.

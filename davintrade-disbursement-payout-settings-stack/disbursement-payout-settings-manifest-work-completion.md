@@ -4,7 +4,7 @@
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Spec**       | `DavinTrade-Architecture-Design-Disbursement-Payout-Settings.md`                                                                                                                                         |
 | **Phase 0**    | `feasibility-assessment.md`. Verdict: **feasible with adjustments A1–A7**. The stop gate did not trigger.                                                                                                |
-| **Branch**     | `feat/disbursement-payout-settings`, 10 commits on top of `main` @ `22e24055`. **Not pushed** (local only).                                                                                              |
+| **Branch**     | `feat/disbursement-payout-settings`, 11 commits on top of `main` @ `22e24055`. **Not pushed** (local only).                                                                                              |
 | **Decisions**  | DECISION-LOG **F83** (DB-backed payout settings, supersedes Session 9-9) and **F84** (monthly payouts)                                                                                                   |
 | **Migration**  | **None.** No `schema.prisma` touched in either package. `prisma migrate` was never run, and nothing was run from money-service (LESSONS-LEARNED **L1**; the spec cites L24, but L1 is the right number). |
 | **§6A status** | **Code complete — pending deploy + verification.** This is **not** "monthly payouts live". See §5.                                                                                                       |
@@ -25,6 +25,7 @@
 | `81a743b7` | 7       | `/admin/disbursement/config` → redirect stub; placeholder API deleted; 33 dead i18n keys removed; config-history comment fixed                                                                                                                                            |
 | `729347a0` | 8       | Next tests                                                                                                                                                                                                                                                                |
 | `9a6fd187` | fix     | Date + time on the page's audit and next-run labels. Found in a live browser check.                                                                                                                                                                                       |
+| `789fdac6` | docs    | This manifest + the CLAUDE.md index entry (then a one-line count correction)                                                                                                                                                                                              |
 
 ## 2. Files changed
 
