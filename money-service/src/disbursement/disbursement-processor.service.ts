@@ -21,6 +21,7 @@ import { WisePaymentProvider } from '../wise/providers/wise-payment.provider';
 import { BatchManagerService } from './batch-manager.service';
 import { CommissionAggregatorService } from './commission-aggregator.service';
 import { getDefaultProvider } from './disbursement.constants';
+import { DisbursementSettingsService } from './disbursement-settings.service';
 import { PaymentOrchestratorService } from './payment-orchestrator.service';
 import { createPaymentProvider } from './providers/provider-factory';
 import { TransactionLoggerService } from './transaction-logger.service';
@@ -58,37 +59,30 @@ export class DisbursementProcessorService {
     private readonly commissionAggregator: CommissionAggregatorService,
     private readonly batchManager: BatchManagerService,
     private readonly paymentOrchestrator: PaymentOrchestratorService,
-    private readonly wisePaymentProvider: WisePaymentProvider
+    private readonly wisePaymentProvider: WisePaymentProvider,
+    private readonly settings: DisbursementSettingsService
   ) {}
 
   /**
    * Auto-approve PENDING commissions whose refund window has passed.
    *
-   * The window (in days) is read from SystemConfig key
-   * `affiliate_commission_approval_days` (default: 14) so admins can tune
-   * it without redeploying. Idempotent: approved commissions are skipped.
+   * The window (in days) is the admin-editable `commissionApprovalDays`
+   * setting (SystemConfig key `affiliate_commission_approval_days`, default
+   * 14, bounds 0–90), read through `DisbursementSettingsService` — the single
+   * reader for that key (spec E3, DECISION-LOG F83). Idempotent: approved
+   * commissions are skipped. Runs daily as its own job
+   * (`approve-matured-commissions`, F84) and as Step 0 of the monthly payout
+   * run.
    *
+   * @param approvalDays Window to use; resolved from settings when omitted
    * @returns Number of commissions transitioned PENDING -> APPROVED
    */
-  async approveMaturedCommissions(): Promise<number> {
-    // Read approval window from SystemConfig (dynamic, admin-tunable)
-    let approvalDays = 14;
-    try {
-      const config = await this.prisma.systemConfig.findUnique({
-        where: { key: 'affiliate_commission_approval_days' },
-      });
-      if (config?.value) {
-        const parsed = parseInt(String(config.value), 10);
-        if (!isNaN(parsed) && parsed >= 0) {
-          approvalDays = parsed;
-        }
-      }
-    } catch {
-      // Fall back to default window if config lookup fails
-    }
+  async approveMaturedCommissions(approvalDays?: number): Promise<number> {
+    const windowDays =
+      approvalDays ?? (await this.settings.get()).commissionApprovalDays;
 
     const maturityDate = new Date(
-      Date.now() - approvalDays * 24 * 60 * 60 * 1000
+      Date.now() - windowDays * 24 * 60 * 60 * 1000
     );
 
     const result = await this.prisma.commission.updateMany({
@@ -109,6 +103,14 @@ export class DisbursementProcessorService {
    * Process automated disbursements (idempotent)
    * Safe to run multiple times - will only process eligible commissions
    *
+   * Payout settings (DECISION-LOG F83) are read once, first:
+   * - Step 0 (commission approval) still runs while payouts are paused (D5);
+   * - paused (DB `disbursement_enabled=false` or this service's env
+   *   `DISBURSEMENT_ENABLED=false`) -> logs `cron.disbursement_skipped` and
+   *   returns success with 0 batches (E1);
+   * - payable affiliates are split into batches of at most `maxBatchSize`,
+   *   each created and executed in turn, results summed (E2).
+   *
    * @returns Processing result
    */
   async processAutomatedDisbursements(): Promise<AutoDisbursementResult> {
@@ -127,14 +129,42 @@ export class DisbursementProcessorService {
         details: { startTime: startTime.toISOString() },
       });
 
+      const settings = await this.settings.get();
+
       // Step 0: Auto-approve matured PENDING commissions (refund window passed)
-      const approvedCount = await this.approveMaturedCommissions();
+      const approvedCount = await this.approveMaturedCommissions(
+        settings.commissionApprovalDays
+      );
       if (approvedCount > 0) {
         await this.logger.log({
           action: 'cron.commissions_auto_approved',
           status: 'SUCCESS',
           details: { approvedCount },
         });
+      }
+
+      // E1: payouts paused -> approval only, pay nothing
+      if (!settings.effectiveEnabled) {
+        await this.logger.log({
+          action: 'cron.disbursement_skipped',
+          status: 'INFO',
+          details: {
+            reason: settings.envKillSwitch ? 'env_kill_switch' : 'db_disabled',
+          },
+        });
+
+        const endTime = new Date();
+        return {
+          success: true,
+          batchesCreated: 0,
+          batchesExecuted: 0,
+          totalAmount: 0,
+          affiliatesProcessed: 0,
+          errors: [],
+          startTime,
+          endTime,
+          durationMs: endTime.getTime() - startTime.getTime(),
+        };
       }
 
       // Get provider (fetched before aggregation -- 4A-W7: WISE needs its
@@ -144,7 +174,8 @@ export class DisbursementProcessorService {
       // Get all payable affiliates, eligibility-filtered per provider
       const aggregates =
         await this.commissionAggregator.getAllPayableAffiliatesForProvider(
-          providerType
+          providerType,
+          settings.minimumPayoutUsd
         );
 
       if (aggregates.length === 0) {
@@ -170,46 +201,55 @@ export class DisbursementProcessorService {
 
       affiliatesProcessed = aggregates.length;
 
-      // Create batch
-      const batch = await this.batchManager.createBatch(
+      // E2: one batch per chunk of at most maxBatchSize affiliates
+      const chunks = this.batchManager.splitIntoBatches(
         aggregates,
-        providerType,
-        'CRON_JOB'
+        settings.maxBatchSize
       );
-      batchesCreated++;
 
-      // Execute batch
-      try {
-        const paymentProvider = createPaymentProvider(
+      for (const chunk of chunks) {
+        // Create batch (a creation failure aborts the remaining chunks via
+        // the outer catch -- conservative for money movement)
+        const batch = await this.batchManager.createBatch(
+          chunk,
           providerType,
-          providerType === 'WISE'
-            ? { wiseProvider: this.wisePaymentProvider }
-            : undefined
+          'CRON_JOB'
         );
-        const result = await this.paymentOrchestrator.executeBatch(
-          batch.id,
-          paymentProvider
-        );
+        batchesCreated++;
 
-        if (result.success) {
-          batchesExecuted++;
-          totalAmount = result.totalAmount;
-        } else {
-          errors.push(...result.errors);
+        // Execute batch
+        try {
+          const paymentProvider = createPaymentProvider(
+            providerType,
+            providerType === 'WISE'
+              ? { wiseProvider: this.wisePaymentProvider }
+              : undefined
+          );
+          const result = await this.paymentOrchestrator.executeBatch(
+            batch.id,
+            paymentProvider
+          );
+
+          if (result.success) {
+            batchesExecuted++;
+            totalAmount += result.totalAmount;
+          } else {
+            errors.push(...result.errors);
+          }
+        } catch (execError) {
+          const errorMessage =
+            execError instanceof Error
+              ? execError.message
+              : 'Batch execution failed';
+          errors.push(errorMessage);
+
+          await this.logger.log({
+            action: 'cron.batch_execution_failed',
+            status: 'FAILURE',
+            batchId: batch.id,
+            details: { error: errorMessage },
+          });
         }
-      } catch (execError) {
-        const errorMessage =
-          execError instanceof Error
-            ? execError.message
-            : 'Batch execution failed';
-        errors.push(errorMessage);
-
-        await this.logger.log({
-          action: 'cron.batch_execution_failed',
-          status: 'FAILURE',
-          batchId: batch.id,
-          details: { error: errorMessage },
-        });
       }
 
       // Log completion

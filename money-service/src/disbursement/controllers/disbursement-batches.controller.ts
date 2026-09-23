@@ -8,6 +8,9 @@
  * and provider-factory.ts's own header comments before touching either;
  * `executeBatch`'s WISE branch (4A-W6's `isFundable` check) is untouched
  * here.
+ *
+ * E5 (DECISION-LOG F83): execution is refused with 409
+ * `DISBURSEMENTS_PAUSED` while payouts are paused.
  */
 
 import {
@@ -28,6 +31,7 @@ import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.int
 import { WisePaymentProvider } from '../../wise/providers/wise-payment.provider';
 import { BatchManagerService } from '../batch-manager.service';
 import { PaymentOrchestratorService } from '../payment-orchestrator.service';
+import { DisbursementSettingsService } from '../disbursement-settings.service';
 import type { PaymentProvider } from '../providers/base-provider';
 import {
   createPaymentProvider,
@@ -40,7 +44,8 @@ export class DisbursementBatchesController {
   constructor(
     private readonly batchManager: BatchManagerService,
     private readonly paymentOrchestrator: PaymentOrchestratorService,
-    private readonly wisePaymentProvider: WisePaymentProvider
+    private readonly wisePaymentProvider: WisePaymentProvider,
+    private readonly settings: DisbursementSettingsService
   ) {}
 
   @Post(':batchId/execute')
@@ -49,6 +54,10 @@ export class DisbursementBatchesController {
     @Param('batchId') batchId: string
   ): Promise<Record<string, unknown>> {
     try {
+      // E5 (DECISION-LOG F83): 409 DISBURSEMENTS_PAUSED while payouts are
+      // paused (DB or this service's env), before any provider check.
+      await this.settings.assertPayoutsNotPaused();
+
       const batch = await this.batchManager.getBatchById(batchId);
 
       if (!batch) {

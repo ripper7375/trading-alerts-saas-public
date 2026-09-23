@@ -4,7 +4,13 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
+import { DisbursementSettingsService } from '../../disbursement/disbursement-settings.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import {
+  createDisbursementSettingsService,
+  PAUSED_SETTING_ROWS,
+  SettingRowFixture,
+} from '../../test-utils/disbursement-settings';
 import { createPrismaMock } from '../../test-utils/prisma-mock';
 import { WiseBatchesController } from '../controllers/wise-batches.controller';
 import { CapabilityUnavailableError } from '../providers/provider-capabilities';
@@ -23,6 +29,7 @@ describe('WiseBatchesController', () => {
     markFunded: jest.Mock;
     cancelBatch: jest.Mock;
   };
+  let settingRows: SettingRowFixture[];
 
   const batchGroup = {
     id: 'wbg-1',
@@ -41,6 +48,7 @@ describe('WiseBatchesController', () => {
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
+    settingRows = [];
     wisePaymentProviderMock = {
       prepareBatch: jest.fn(),
       completeBatch: jest.fn(),
@@ -57,6 +65,10 @@ describe('WiseBatchesController', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: WisePaymentProvider, useValue: wisePaymentProviderMock },
         { provide: WiseBatchGroupService, useValue: wiseBatchGroupServiceMock },
+        {
+          provide: DisbursementSettingsService,
+          useFactory: () => createDisbursementSettingsService(settingRows),
+        },
       ],
     }).compile();
 
@@ -143,6 +155,58 @@ describe('WiseBatchesController', () => {
         }),
       });
       expect(wisePaymentProviderMock.prepareBatch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('pause gate (E6 / D4, DECISION-LOG F83)', () => {
+    const paused = {
+      status: 409,
+      response: {
+        error: 'Disbursements are paused',
+        code: 'DISBURSEMENTS_PAUSED',
+      },
+    };
+
+    beforeEach(() => {
+      settingRows.push(...PAUSED_SETTING_ROWS);
+      prismaMock.wiseBatchGroup.findUnique.mockResolvedValue(
+        batchGroup as never
+      );
+    });
+
+    it('blocks prepare while paused', async () => {
+      await expect(
+        controller.prepare({
+          paymentBatchId: 'batch-1',
+          idempotencyKey: '3f9a4a5e-1111-4222-8333-444455556666',
+        })
+      ).rejects.toMatchObject(paused);
+      expect(wisePaymentProviderMock.prepareBatch).not.toHaveBeenCalled();
+    });
+
+    it('blocks complete while paused', async () => {
+      await expect(controller.complete('wbg-1')).rejects.toMatchObject(paused);
+      expect(wisePaymentProviderMock.completeBatch).not.toHaveBeenCalled();
+    });
+
+    it('blocks fund while paused', async () => {
+      await expect(controller.fund('wbg-1')).rejects.toMatchObject(paused);
+      expect(
+        wisePaymentProviderMock.fundBatchFromBalance
+      ).not.toHaveBeenCalled();
+    });
+
+    it('still allows GET, mark-funded and cancel while paused (recording/recovery)', async () => {
+      wiseBatchGroupServiceMock.markFunded.mockResolvedValue(batchGroup);
+      wiseBatchGroupServiceMock.cancelBatch.mockResolvedValue(batchGroup);
+
+      await expect(controller.get('wbg-1')).resolves.toBeDefined();
+      await expect(
+        controller.markFunded('wbg-1', { fundedAt: '2026-09-01T09:00:00Z' })
+      ).resolves.toBeDefined();
+      await expect(controller.cancel('wbg-1')).resolves.toBeDefined();
+      expect(wiseBatchGroupServiceMock.markFunded).toHaveBeenCalled();
+      expect(wiseBatchGroupServiceMock.cancelBatch).toHaveBeenCalled();
     });
   });
 });

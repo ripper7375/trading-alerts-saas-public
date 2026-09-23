@@ -10,15 +10,23 @@ import { DisbursementBatchesController } from './disbursement-batches.controller
 import { WisePaymentProvider } from '../../wise/providers/wise-payment.provider';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { IdempotencyStore } from '../../common/idempotency/idempotency.store';
+import { DisbursementSettingsService } from '../disbursement-settings.service';
+import {
+  createDisbursementSettingsService,
+  PAUSED_SETTING_ROWS,
+  SettingRowFixture,
+} from '../../test-utils/disbursement-settings';
 
 describe('DisbursementBatchesController', () => {
   let controller: DisbursementBatchesController;
   let batchManagerMock: { getBatchById: jest.Mock };
   let orchestratorMock: { executeBatch: jest.Mock };
+  let settingRows: SettingRowFixture[];
 
   beforeEach(async () => {
     batchManagerMock = { getBatchById: jest.fn() };
     orchestratorMock = { executeBatch: jest.fn() };
+    settingRows = [];
 
     const moduleRef = await Test.createTestingModule({
       controllers: [DisbursementBatchesController],
@@ -26,6 +34,10 @@ describe('DisbursementBatchesController', () => {
         { provide: BatchManagerService, useValue: batchManagerMock },
         { provide: PaymentOrchestratorService, useValue: orchestratorMock },
         { provide: WisePaymentProvider, useValue: {} },
+        {
+          provide: DisbursementSettingsService,
+          useFactory: () => createDisbursementSettingsService(settingRows),
+        },
         IdempotencyInterceptor,
         {
           provide: IdempotencyStore,
@@ -156,6 +168,40 @@ describe('DisbursementBatchesController', () => {
 
     await expect(controller.execute('batch-1')).rejects.toMatchObject({
       status: 404,
+    });
+  });
+
+  describe('pause gate (E5, DECISION-LOG F83)', () => {
+    const pendingBatch = { id: 'batch-1', status: 'PENDING', provider: 'MOCK' };
+
+    it('returns 409 DISBURSEMENTS_PAUSED when payouts are paused in the DB, before any provider check', async () => {
+      settingRows.push(...PAUSED_SETTING_ROWS);
+      batchManagerMock.getBatchById.mockResolvedValue(pendingBatch);
+
+      await expect(controller.execute('batch-1')).rejects.toMatchObject({
+        status: 409,
+        response: {
+          error: 'Disbursements are paused',
+          code: 'DISBURSEMENTS_PAUSED',
+        },
+      });
+      expect(batchManagerMock.getBatchById).not.toHaveBeenCalled();
+      expect(orchestratorMock.executeBatch).not.toHaveBeenCalled();
+    });
+
+    it('returns 409 when the env kill switch DISBURSEMENT_ENABLED=false is set', async () => {
+      const original = process.env['DISBURSEMENT_ENABLED'];
+      process.env['DISBURSEMENT_ENABLED'] = 'false';
+      try {
+        batchManagerMock.getBatchById.mockResolvedValue(pendingBatch);
+        await expect(controller.execute('batch-1')).rejects.toMatchObject({
+          status: 409,
+        });
+        expect(orchestratorMock.executeBatch).not.toHaveBeenCalled();
+      } finally {
+        if (original === undefined) delete process.env['DISBURSEMENT_ENABLED'];
+        else process.env['DISBURSEMENT_ENABLED'] = original;
+      }
     });
   });
 });

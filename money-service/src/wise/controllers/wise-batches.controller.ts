@@ -26,6 +26,11 @@
  * (`WiseBatchGroupService`/`WiseTransferService`), which are idempotent per
  * `PaymentBatch`, so calling either path twice — cron then admin retry, or
  * vice versa — is safe.
+ *
+ * Pause gate (spec E6 / D4, DECISION-LOG F83): while payouts are paused,
+ * `prepare`, `complete` and `fund` return 409 `DISBURSEMENTS_PAUSED` (they
+ * start or advance real money movement). GETs, `mark-funded` and `cancel`
+ * stay available — they record or undo what already happened at the bank.
  */
 
 import {
@@ -43,6 +48,7 @@ import { z } from 'zod';
 
 import { AdminGuard } from '../../admin/admin.guard';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { DisbursementSettingsService } from '../../disbursement/disbursement-settings.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CapabilityUnavailableError } from '../providers/provider-capabilities';
 import { WisePaymentProvider } from '../providers/wise-payment.provider';
@@ -81,7 +87,8 @@ export class WiseBatchesController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly wisePaymentProvider: WisePaymentProvider,
-    private readonly wiseBatchGroupService: WiseBatchGroupService
+    private readonly wiseBatchGroupService: WiseBatchGroupService,
+    private readonly settings: DisbursementSettingsService
   ) {}
 
   @Get()
@@ -111,6 +118,7 @@ export class WiseBatchesController {
 
   @Post()
   async prepare(@Body() body: unknown) {
+    await this.settings.assertPayoutsNotPaused();
     const validation = prepareBodySchema.safeParse(body);
     if (!validation.success) {
       throw new BadRequestException({
@@ -166,6 +174,7 @@ export class WiseBatchesController {
 
   @Post(':batchId/complete')
   async complete(@Param('batchId') batchId: string) {
+    await this.settings.assertPayoutsNotPaused();
     const batchGroup = await this.findByIdOrThrow(batchId);
     await this.wisePaymentProvider.completeBatch(batchGroup.wiseBatchGroupId);
     const updated = await this.findByIdOrThrow(batchId);
@@ -174,6 +183,7 @@ export class WiseBatchesController {
 
   @Post(':batchId/fund')
   async fund(@Param('batchId') batchId: string) {
+    await this.settings.assertPayoutsNotPaused();
     const batchGroup = await this.findByIdOrThrow(batchId);
     try {
       await this.wisePaymentProvider.fundBatchFromBalance(

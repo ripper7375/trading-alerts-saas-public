@@ -24,6 +24,8 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
+import { DisbursementSettingsService } from '../disbursement/disbursement-settings.service';
+
 import { WiseBatchesController } from './controllers/wise-batches.controller';
 import { WiseWebhookController } from './controllers/wise-webhook.controller';
 import { WisePaymentProvider } from './providers/wise-payment.provider';
@@ -61,6 +63,10 @@ import { WiseTransferStateReducer } from './services/wise-transfer-state.reducer
     WiseTransferService,
     WiseBatchGroupService,
     WisePaymentProvider,
+    // DECISION-LOG F83 -- payout pause gate on /wise/batches (E6). Own
+    // instance (stateless reader) rather than importing DisbursementModule,
+    // which already imports this module.
+    DisbursementSettingsService,
   ],
   exports: [WisePaymentProvider],
 })

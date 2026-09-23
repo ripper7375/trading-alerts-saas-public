@@ -10,10 +10,14 @@ import crypto from 'crypto';
 
 import { DisbursementProvider } from './disbursement.types';
 
-// Minimum payout threshold in USD
+// Minimum payout threshold in USD — default; runtime value comes from
+// SystemConfig `disbursement_minimum_payout_usd` via settings
+// (disbursement-settings.constants.ts, DECISION-LOG F83)
 export const MINIMUM_PAYOUT_USD = 50.0;
 
-// Maximum payments per batch
+// Maximum payments per batch — default; runtime value comes from
+// SystemConfig `disbursement_max_batch_size` via settings
+// (disbursement-settings.constants.ts, DECISION-LOG F83)
 export const MAX_BATCH_SIZE = 100;
 
 // RiseWorks amount conversion factor (USDC has 6 decimals)
@@ -59,7 +63,7 @@ export const WEBHOOK_EVENT_TYPES = {
   ACCOUNT_DUPLICATION: 'account.duplication_detected',
 } as const;
 
-// Retry configuration
+// Retry configuration (engineering setting, not admin-editable — F83 scope)
 export const DEFAULT_RETRY_CONFIG = {
   maxAttempts: 3,
   initialDelay: 1000, // 1 second

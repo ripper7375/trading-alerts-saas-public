@@ -7,6 +7,7 @@
  */
 import {
   Body,
+  ConflictException,
   Controller,
   Get,
   INestApplication,
@@ -40,6 +41,14 @@ class ThrowingController {
   @Get('boom')
   boom(): never {
     throw new Error('genuinely unhandled');
+  }
+
+  @Get('paused')
+  paused(): never {
+    throw new ConflictException({
+      error: 'Disbursements are paused',
+      code: 'DISBURSEMENTS_PAUSED',
+    });
   }
 }
 
@@ -118,5 +127,22 @@ describe('AllExceptionsFilter (app-wide wiring)', () => {
       error: 'Internal Server Error',
       correlationId: 'test-correlation-3',
     });
+  });
+
+  it('passes a machine-readable `code` through to the body (DECISION-LOG F83)', async () => {
+    const res = await request(app.getHttpServer()).get('/paused');
+
+    expect(res.status).toBe(409);
+    expect(res.body).toMatchObject({
+      statusCode: 409,
+      error: 'Disbursements are paused',
+      code: 'DISBURSEMENTS_PAUSED',
+    });
+  });
+
+  it('omits `code` when the exception carries none', async () => {
+    const res = await request(app.getHttpServer()).get('/does-not-exist');
+
+    expect(res.body).not.toHaveProperty('code');
   });
 });
