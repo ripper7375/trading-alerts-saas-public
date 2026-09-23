@@ -159,7 +159,11 @@ function parseNumeric(text: string, meta: SettingMeta<number>): number | null {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function DisbursementSettingsPage(): React.ReactElement {
-  const { t, formatTimestamp } = useLocale();
+  const { t, formatDate, formatTimestamp } = useLocale();
+  // formatTimestamp() is time-only; audit entries and the next run need the
+  // date too (same combination as app/admin/settings/affiliate/page.tsx).
+  const formatWhen = (utc: string): string =>
+    `${formatDate(utc)} ${formatTimestamp(utc)}`;
   const { toasts, success: showSuccess, removeToast } = useToast();
 
   const [data, setData] = useState<SettingsResponse | null>(null);
@@ -403,7 +407,7 @@ export default function DisbursementSettingsPage(): React.ReactElement {
             'Last changed by {who} on {when}'
           )
             .replace('{who}', meta.lastChange.changedBy)
-            .replace('{when}', formatTimestamp(meta.lastChange.changedAt))}
+            .replace('{when}', formatWhen(meta.lastChange.changedAt))}
         </p>
       ) : (
         <p>
@@ -524,7 +528,7 @@ export default function DisbursementSettingsPage(): React.ReactElement {
                 .replace('{who}', settings.enabled.lastChange.changedBy)
                 .replace(
                   '{when}',
-                  formatTimestamp(settings.enabled.lastChange.changedAt)
+                  formatWhen(settings.enabled.lastChange.changedAt)
                 )}
             </>
           )}
@@ -644,7 +648,7 @@ export default function DisbursementSettingsPage(): React.ReactElement {
                   'admin.disbursement.settings.next_run',
                   'Next run: {when} ({utc} UTC)'
                 )
-                  .replace('{when}', formatTimestamp(schedule.nextRunAt))
+                  .replace('{when}', formatWhen(schedule.nextRunAt))
                   .replace(
                     '{utc}',
                     schedule.nextRunAt.slice(0, 16).replace('T', ' ')
@@ -844,7 +848,7 @@ export default function DisbursementSettingsPage(): React.ReactElement {
                     : {change.oldValue} → {change.newValue}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {change.changedBy} · {formatTimestamp(change.changedAt)}
+                    {change.changedBy} · {formatWhen(change.changedAt)}
                     {change.reason ? ` · ${change.reason}` : ''}
                   </p>
                 </li>
