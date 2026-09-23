@@ -48,6 +48,8 @@ The Executor writes entries at session close; Davin's sign-off is quoted where r
 | F77  | `/alerts` and `/alerts/new` client-side double-render on reload                                                                                                                                                                                                            | OPEN — found Session 9-4 (2026-08-22); likely root cause (React/Next Suspense-streaming reveal artifact, benign) identified at Session 9-5's addendum; a test-alert price-corruption side-effect was observed and needs re-verification before being treated as a proven data-integrity risk; full detail in `history/decisions-archive.md`                                                                                                                            |
 | F81  | `POST /api/wise/recipients/[id]/revalidate` is `requireAffiliate()`-guarded, self-service-only (derives target from the caller's own token, `:id` used only for an ownership check) — no admin-scoped equivalent exists                                                    | OPEN — found Session 9-9 (2026-08-23); Row 20's admin `disbursement/recipients` page cannot safely call this route (403 for a non-affiliate admin, or silently revalidates the admin's own recipient instead of the target affiliate's); Davin declined to build a new admin-scoped endpoint in this UI-BUILD session — dropped from Decision 4's scope; a future session needs `requireAdmin()` + explicit affiliate lookup if admin-triggered revalidation is wanted |
 | F82  | `DELETE /api/drawings/:id` left the backing `Alert` row permanently orphaned (only `DrawingAlert` cascaded)                                                                                                                                                                | RESOLVED — Session 10-2 (2026-08-23): both `remove()` (operation-service) and the monolith route now collect the attached `alertId`(s) before the cascade and delete them explicitly; full detail in `history/decisions-archive.md`                                                                                                                                                                                                                                    |
+| F83  | Disbursement payout settings become DB-backed (`SystemConfig` category `disbursement`, `/admin/disbursement/settings`); supersedes Session 9-9 CONFIRM's "keep `/admin/disbursement/config` a placeholder"                                                                 | RESOLVED — 2026-09-23 (Davin, spec `davintrade-disbursement-payout-settings-stack/`); full entry below                                                                                                                                                                                                                                                                                                                                                                 |
+| F84  | Automated payouts run **monthly** (1st, 02:00 UTC), not daily; commission approval split into its own daily job — overrides the Session 4A-2 "do not change the cron timing" invariant for `process-pending-disbursements` only                                            | RESOLVED — 2026-09-23 (Davin); full entry below                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 > **Legacy flags F1–F64** (all RESOLVED, excluding F12/F21 still OPEN and PD1) have been
 > archived to `history/decisions-archive.md` §"Legacy Flag Register (F1–F64)" — complete
@@ -154,3 +156,46 @@ already exists`.
   healthy `/health`, deferring production ingest verification to this flag's resolution.
 - Approved by: Davin (live chat, 2026-08-24) — accept staging proof + production health as Session
   8-2's verification of record; defer schema/role fix to Session 12-0.
+
+## F83 — Disbursement payout settings become DB-backed (supersedes Session 9-9 CONFIRM, 2026-08-23)
+
+- Status: RESOLVED
+- Session: ad-hoc (disbursement payout settings stack) · Date: 2026-09-23
+- Decision: Session 9-9 kept `/admin/disbursement/config` as a placeholder over hardcoded/env
+  config and did not build persistence, because that session was only a UI restyle. That
+  persistence is now built. Payouts on/off (`disbursement_enabled`), minimum payout
+  (`disbursement_minimum_payout_usd`), max batch size (`disbursement_max_batch_size`) and the
+  commission approval window (the existing key `affiliate_commission_approval_days`) become
+  `SystemConfig` rows (category `disbursement`), editable at `/admin/disbursement/settings`.
+  Each change is written to `SystemConfigHistory` and `DisbursementAuditLog` in one transaction,
+  and `reason` is required. Missing rows mean today's defaults (50 / 100 / 14 / enabled), so the
+  deploy itself changes nothing. **The payment provider stays env-var-only**
+  (`DISBURSEMENT_PROVIDER`, redeploy required) because it decides which system moves real money.
+  **`DISBURSEMENT_ENABLED=false` stays a deploy-level emergency stop** that the UI cannot
+  override. It is read per service: the Vercel value gates the Next entry points (E9–E11), and
+  the money-service value gates the cron (E1) and the money-service admin routes (E5/E6).
+  `/admin/disbursement/config` is retired to a redirect, and its placeholder API is deleted.
+- Evidence: feasibility assessment
+  `davintrade-disbursement-payout-settings-stack/feasibility-assessment.md` (C1–C16 re-verified
+  against live code; adjustments A1–A7).
+- Approved by: Davin (spec author, 2026-09-23).
+
+## F84 — Automated payouts run monthly, not daily (Davin, 2026-09-23)
+
+- Status: RESOLVED
+- Session: ad-hoc (disbursement payout settings stack) · Date: 2026-09-23
+- Decision: the published policy is monthly (affiliate register/dashboard copy,
+  `AFFILIATE_CONFIG.PAYMENT_FREQUENCY = 'MONTHLY'`). The code ran daily
+  (`@Cron('0 2 * * *')`), carried over verbatim from `vercel.json` under Session 4A-2's
+  "do not change the timing" invariant. This decision overrides that invariant **for
+  `process-pending-disbursements` only**, which moves to `0 2 1 * *` (1st of each month,
+  02:00 UTC = 09:00 Bangkok, before `send-monthly-reports` at 06:00 UTC). Commission approval
+  (refund-window maturity) moves into its own daily job, `approve-matured-commissions`
+  (`0 2 * * *`, same `CRON_ENABLED` gate, manual trigger
+  `POST /v1/cron-trigger/approve-matured-commissions`). The monthly run still approves first
+  (idempotent), then pays. Under Wise `MANUAL` funding (F37), "the 1st" means the batch is
+  **created and prepared** on the 1st. Money moves after Davin funds it, within the 72h SLA.
+- Go-live: code complete ≠ live. This takes effect only after the money-service deploy with
+  `CRON_ENABLED=true`, payouts not paused, and `DISBURSEMENT_PROVIDER=WISE` on money-service
+  (the go-live conditions G1–G4 in the completion manifest).
+- Approved by: Davin (2026-09-23).
