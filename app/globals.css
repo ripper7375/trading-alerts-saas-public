@@ -317,12 +317,16 @@
   }
 }
 
-/* Hide TradingView logo link in lightweight-charts */
+/* Hide TradingView logo link in lightweight-charts.
+ * The table-cell catch-all is scoped to the chart's own root element
+ * (`.tv-lightweight-charts`, which lays itself out as a <table>). Unscoped,
+ * `td a[target='_blank']` hid EVERY new-tab link in ANY table -- including
+ * the Settings -> Billing "View" and "PDF" invoice buttons. */
 a[href*='tradingview'],
 a[title*='TradingView'],
 .tv-lightweight-charts-logo,
 [class*='logo'] a,
-td a[target='_blank'] {
+.tv-lightweight-charts td a[target='_blank'] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
