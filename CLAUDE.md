@@ -13,6 +13,35 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — admin read-only "view as affiliate",
+> plus a full page load after login. Code complete and verified, on branch
+> `feat/admin-view-as-affiliate` (2 commits, NOT pushed, NOT deployed). No migration.**
+> Davin asked whether Admin = Admin + PRO + Affiliate. Answer: Admin + PRO only
+> (`isAffiliate: false` in `auth-options.ts`). Making the admin a real affiliate was advised
+> against (commissions and payouts to the admin, polluted affiliate metrics). He chose a
+> read-only view of any affiliate's dashboard instead.
+> **Built:** `lib/affiliate/view-as.ts` (2h httpOnly cookie bound to the admin's user id and a
+> profile id; honoured only for ADMIN; fails closed; strips `paymentDetails`; never auto-creates
+> a profile). `/api/admin/affiliates/view-as` does search (name, email, code), start and stop.
+> The picker is at `/admin/affiliates/view-as` (header menu and admin sidebar). The 6 affiliate
+> GET routes and the payouts page serve the viewed affiliate and **skip the money-service proxy**,
+> which authenticates as the caller. Every write route still needs `requireAffiliate()`, so an
+> admin write gets 403. Payout settings (bank details), profile editing and download counters are
+> excluded from the view. No admin audit table exists, so start/stop go to server logs
+> (`[admin-view-as]`).
+> **Found while verifying:** `middleware.ts` sent every admin on `/affiliate/*` to `/admin`, which
+> would have blocked the feature in production. `/affiliate/dashboard*` is now exempt (tested).
+> **Login bug:** after sign-in the header showed "Trader" / "Trader Account" with no Admin
+> Control. next-auth 4.24's `getSession()` only notifies other tabs, so `router.push` kept the
+> pre-login `SessionProvider`. Login and 2FA now use a full load (`lib/auth/post-login-navigation.ts`).
+> **Verified:** `tsc`/ESLint clean; full `test:ci` **230/230 · 2983/2983** (227/2951 + 3 suites and
+> 32 tests); mutation 5/5 killed, each restore byte-exact. Live `next dev`: signed-out API gives
+> 401 (403 cross-origin) and both pages redirect to login. A throwaway route (deleted) confirmed
+> picker search, the start request, banner, nav and no overflow at 375px. The dev server 404'd
+> every route until `.next/dev` was cleared (stale cache).
+> **Not verified:** a signed-in admin click-through (the Executor never enters credentials).
+> New strings use `t(key, fallback)`, English only, no dictionary entries added.
+
 > **Ad-hoc session (2026-09-23, phase/session unchanged) — Disbursement payout settings:
 > `/admin/disbursement/settings` built end to end (DECISION-LOG **F83**), plus monthly payouts
 > (**F84**). Code complete and verified, on branch `feat/disbursement-payout-settings`
