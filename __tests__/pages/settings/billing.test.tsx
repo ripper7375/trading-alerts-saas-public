@@ -236,8 +236,11 @@ describe('BillingSettingsPage', () => {
 
     renderBilling();
 
-    expect(await screen.findByText('$34.51')).toBeInTheDocument();
-    expect(screen.getByText('incl. $5.51 VAT (19%, DE)')).toBeInTheDocument();
+    // Shown in the currency actually charged (EUR), exactly as the Stripe
+    // PDF shows it. Before 2026-09-24 this rendered "$34.51" -- the EUR
+    // figure mislabelled as dollars.
+    expect(await screen.findByText('€34.51')).toBeInTheDocument();
+    expect(screen.getByText('incl. €5.51 VAT (19%, DE)')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /View/ })).toHaveAttribute(
       'href',
       'https://invoice.stripe.com/i/in_eu'
@@ -269,9 +272,8 @@ describe('BillingSettingsPage', () => {
 
     renderBilling();
 
-    // $58.00 (not $29.00) avoids colliding with the plan-price card's own
-    // "$29.00" text elsewhere on the page.
-    expect(await screen.findByText('$58.00')).toBeInTheDocument();
+    // Charged in EUR, so shown in EUR (see the VAT test above).
+    expect(await screen.findByText('€58.00')).toBeInTheDocument();
     expect(screen.getByText('Reverse charge — 0% VAT')).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: /View/ })
@@ -369,5 +371,162 @@ describe('BillingSettingsPage', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByText('PRO TIER')).toBeInTheDocument();
+  });
+
+  //━━ 2026-09-24: dLocal receipts, amount-difference notice, full history ━━
+
+  const dLocalInvoice = {
+    id: 'pay_inr_1',
+    date: '2026-08-01T00:00:00.000Z',
+    amount: 1930.34,
+    currency: 'INR',
+    amountUsd: 23.2,
+    provider: 'DLOCAL',
+    status: 'paid',
+    description: 'Trading Alerts PRO - Monthly',
+    invoicePdfUrl: '/api/invoices/pay_inr_1/receipt',
+    hostedInvoiceUrl: null,
+    taxAmount: 0,
+    taxRate: 0,
+    taxCountry: 'IN',
+    reverseCharge: false,
+  };
+
+  it('shows the exact local charge, an indicative conversion, a receipt link and the difference notice for a dLocal payment', async () => {
+    mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
+    global.fetch = mockFetchImplementation({
+      invoices: [dLocalInvoice],
+    }) as unknown as typeof fetch;
+
+    renderBilling();
+
+    // Exact charge, in the currency paid -- matches the receipt PDF.
+    expect(await screen.findByText('₹1,930.34')).toBeInTheDocument();
+    // Indicative figure in the viewer's display currency (USD here), from
+    // the net-of-discount USD value, not the $29 list price.
+    expect(screen.getByText('≈ $23.20')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Download receipt (PDF)' })
+    ).toHaveAttribute('href', '/api/invoices/pay_inr_1/receipt');
+
+    const notice = screen.getByRole('note', { name: 'Why amounts may differ' });
+    expect(notice).toHaveTextContent(/exactly what you were charged/);
+    expect(notice).toHaveTextContent(/Local payments \(via dLocal\)/);
+    // No USD card charge that differs from a USD display currency.
+    expect(notice).not.toHaveTextContent(/Card payments are charged in USD/);
+  });
+
+  it('shows no indicative line and no notice when the charge is already in the display currency', async () => {
+    mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
+    global.fetch = mockFetchImplementation({
+      invoices: [
+        {
+          ...dLocalInvoice,
+          id: 'in_usd',
+          provider: 'STRIPE',
+          currency: 'USD',
+          amount: 19.99,
+          amountUsd: 19.99,
+          invoicePdfUrl: 'https://pay.stripe.com/invoice/in_usd/pdf',
+        },
+      ],
+    }) as unknown as typeof fetch;
+
+    renderBilling();
+
+    expect(await screen.findByText('$19.99')).toBeInTheDocument();
+    expect(screen.queryByText(/^≈/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Download invoice (PDF)' })
+    ).toHaveAttribute('href', 'https://pay.stripe.com/invoice/in_usd/pdf');
+  });
+
+  it('explains USD card charges and the approximate plan price for a GBP viewer', async () => {
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'GB',
+        language: 'en-GB',
+        timezone: 'Europe/London',
+        dateFormat: 'DMY',
+        timeFormat: '24h',
+        currency: 'GBP',
+      })
+    );
+    mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
+    global.fetch = mockFetchImplementation({
+      invoices: [
+        {
+          ...dLocalInvoice,
+          id: 'in_card',
+          provider: 'STRIPE',
+          currency: 'USD',
+          amount: 19.99,
+          amountUsd: 19.99,
+        },
+      ],
+    }) as unknown as typeof fetch;
+
+    renderBilling();
+
+    expect(await screen.findByText('US$19.99')).toBeInTheDocument();
+    const notice = screen.getByRole('note', { name: 'Why amounts may differ' });
+    expect(notice).toHaveTextContent(/into GBP, your display currency/);
+    expect(notice).toHaveTextContent(/Card payments are charged in USD/);
+    expect(
+      screen.getByText(
+        /Approximate price in GBP\. The plan is priced at US\$29\.00 USD/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('pages through the COMPLETE invoice history, not just the latest 12', async () => {
+    const user = userEvent.setup();
+    mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
+    const history = Array.from({ length: 30 }, (_, i) => ({
+      ...dLocalInvoice,
+      id: `in_${i}`,
+      provider: 'STRIPE',
+      currency: 'USD',
+      amount: 29,
+      amountUsd: 29,
+      description: `Invoice row ${i}`,
+    }));
+    global.fetch = mockFetchImplementation({
+      invoices: history,
+    }) as unknown as typeof fetch;
+
+    renderBilling();
+
+    expect(await screen.findByText('Invoice row 0')).toBeInTheDocument();
+    expect(screen.getByText('Showing 12 of 30 invoices')).toBeInTheDocument();
+    expect(screen.queryByText('Invoice row 12')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Load More' }));
+    expect(screen.getByText('Invoice row 23')).toBeInTheDocument();
+    expect(screen.getByText('Showing 24 of 30 invoices')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Show all' }));
+    expect(screen.getByText('Invoice row 29')).toBeInTheDocument();
+    expect(screen.getByText('Showing 30 of 30 invoices')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Load More' })
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps past invoices downloadable for a FREE user who used to pay', async () => {
+    mockUseSession.mockReturnValue({ data: { user: { tier: 'FREE' } } });
+    global.fetch = mockFetchImplementation({
+      subscription: freeSubscription,
+      invoices: [dLocalInvoice],
+    }) as unknown as typeof fetch;
+
+    renderBilling();
+
+    expect(await screen.findByText('Invoice History')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Download receipt (PDF)' })
+    ).toBeInTheDocument();
   });
 });
