@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SUPPORTED_COUNTRIES } from '@/lib/country-config';
 import { useLocale } from '@/lib/context/locale-context';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/languages';
 import {
@@ -58,7 +59,28 @@ const currencies = [
   { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
   { code: 'AED', symbol: 'AED', name: 'UAE Dirham' },
   { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
+  { code: 'THB', symbol: '฿', name: 'Thai Baht' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+  { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
+  { code: 'PKR', symbol: 'Rs', name: 'Pakistani Rupee' },
+  { code: 'VND', symbol: '₫', name: 'Vietnamese Dong' },
+  { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah' },
+  { code: 'ZAR', symbol: 'R', name: 'South African Rand' },
+  { code: 'TRY', symbol: '₺', name: 'Turkish Lira' },
 ];
+
+/**
+ * The currency a language implies: that of the one country using it (Thai
+ * gives THB). A language shared by several countries (en-US: US, Nigeria,
+ * South Africa) implies none, so the current choice is kept. Same rule
+ * `LocaleProvider` applies when the language changes.
+ */
+function currencyForLanguage(language: string): string | null {
+  const matches = Object.values(SUPPORTED_COUNTRIES).filter(
+    (c) => c.language === language
+  );
+  return matches.length === 1 ? matches[0]!.currency : null;
+}
 
 export default function LanguageSettingsPage(): React.ReactElement {
   const { t, setLocalePreferences } = useLocale();
@@ -186,7 +208,15 @@ export default function LanguageSettingsPage(): React.ReactElement {
           </Label>
           <Select
             value={settings.language}
-            onValueChange={(value) => handleChange('language', value)}
+            onValueChange={(value) =>
+              setSettings((prev) => ({
+                ...prev,
+                language: value,
+                // Suggest the language's currency; the user can still pick
+                // another one before saving.
+                currency: currencyForLanguage(value) ?? prev.currency,
+              }))
+            }
           >
             <SelectTrigger id="language">
               <SelectValue placeholder={t('Select language')} />
@@ -379,7 +409,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
             <SelectContent>
               {currencies.map((curr) => (
                 <SelectItem key={curr.code} value={curr.code}>
-                  {curr.code} {curr.symbol} - {curr.name}
+                  {curr.code} {curr.symbol} - {t(curr.name)}
                 </SelectItem>
               ))}
             </SelectContent>

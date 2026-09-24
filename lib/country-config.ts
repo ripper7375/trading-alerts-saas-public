@@ -203,27 +203,51 @@ export function getCountryByCode(code?: string): CountryConfig {
 }
 
 /**
- * Converts a USD amount into a display currency and formats it. The
- * exchange rate and the display currency are deliberately separate
- * parameters, not both read off one `CountryConfig` -- a user can set a
- * `currency` preference independently of their `countryCode` (see
- * `app/settings/language/page.tsx`), and this preserves that exact
- * original behavior (convert using the country's rate, label using the
- * user's chosen currency) rather than silently re-deriving one from the
- * other. Framework-agnostic (no React/browser APIs) so it can run in both
+ * Display currencies offered on Settings → Language & Region that no
+ * supported country uses. Approximate units per 1 USD, not sourced from a
+ * dated snapshot like the country rates above; refresh before relying on
+ * them for anything beyond display.
+ */
+const EXTRA_CURRENCY_RATES: Record<string, number> = {
+  CNY: 7.1,
+  AUD: 1.52,
+  CAD: 1.38,
+};
+
+/**
+ * Units of `currency` per 1 USD. Keyed by currency, never by country: a user
+ * can pick a display currency that differs from their country (Thai language
+ * with GBP), and converting with the country's rate would print a baht amount
+ * behind a pound sign. Countries sharing a currency (EU and FR, both EUR)
+ * carry the same rate.
+ */
+export const CURRENCY_USD_RATES: Record<string, number> = {
+  ...EXTRA_CURRENCY_RATES,
+  ...Object.fromEntries(
+    Object.values(SUPPORTED_COUNTRIES).map((c) => [c.currency, c.exchangeRate])
+  ),
+};
+
+/** Rate for a display currency; an unknown code gets no conversion (1.0). */
+export function exchangeRateForCurrency(currency?: string): number {
+  if (!currency) return 1.0;
+  return CURRENCY_USD_RATES[currency.toUpperCase()] ?? 1.0;
+}
+
+/**
+ * Converts a USD amount into the display currency and formats it. The rate
+ * is derived from `currency` itself, so the figure and the symbol can never
+ * disagree. Framework-agnostic (no React/browser APIs) so it can run in both
  * `lib/context/locale-context.tsx`'s client `formatCurrency()` and Server
  * Components that resolve preferences via `getServerLocalePreferences()`.
  */
 export function formatCurrencyAmount(
   amountInUSD: number,
-  {
-    currency,
-    exchangeRate,
-    language,
-  }: { currency: string; exchangeRate: number; language?: string }
+  { currency, language }: { currency: string; language?: string }
 ): string {
   try {
-    const convertedAmount = amountInUSD * (exchangeRate || 1.0);
+    const convertedAmount =
+      amountInUSD * exchangeRateForCurrency(currency || 'GBP');
     return new Intl.NumberFormat(language || 'en-GB', {
       style: 'currency',
       currency: currency || 'GBP',

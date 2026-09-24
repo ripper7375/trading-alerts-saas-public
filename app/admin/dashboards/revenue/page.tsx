@@ -7,7 +7,7 @@ import {
 } from '@/lib/admin/analytics/revenue';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
-import { getCountryByCode, formatCurrencyAmount } from '@/lib/country-config';
+import { formatCurrencyAmount } from '@/lib/country-config';
 
 export const metadata = { title: 'Revenue & Growth | DavinTrade Admin' };
 
@@ -28,11 +28,9 @@ export default async function RevenuePage({
   const data = await getRevenueAnalytics(timeframe);
   const prefs = await getServerLocalePreferences();
   const dict = getDictionary(prefs.language);
-  const exchangeRate = getCountryByCode(prefs.countryCode).exchangeRate;
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
       currency: prefs.currency,
-      exchangeRate,
       language: prefs.language,
     });
   const newLabel = dict['analytics.new_badge'] ?? 'New';

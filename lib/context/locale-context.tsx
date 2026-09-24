@@ -326,7 +326,6 @@ export function LocaleProvider({
     const formatCurrency = (amountInUSD: number): string =>
       formatCurrencyAmount(amountInUSD, {
         currency: preferences.currency || 'GBP',
-        exchangeRate: getCountryByCode(preferences.countryCode).exchangeRate,
         language: preferences.language,
       });
 

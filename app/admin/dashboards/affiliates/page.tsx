@@ -9,7 +9,7 @@ import {
 } from '@/lib/admin/analytics/affiliates';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
-import { getCountryByCode, formatCurrencyAmount } from '@/lib/country-config';
+import { formatCurrencyAmount } from '@/lib/country-config';
 
 export const metadata = {
   title: 'Affiliate Partner Network | DavinTrade Admin',
@@ -31,11 +31,9 @@ export default async function AffiliatesPage({
   const data = await getAffiliatesAnalytics(period);
   const prefs = await getServerLocalePreferences();
   const dict = getDictionary(prefs.language);
-  const exchangeRate = getCountryByCode(prefs.countryCode).exchangeRate;
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
       currency: prefs.currency,
-      exchangeRate,
       language: prefs.language,
     });
   const noDataYet = dict['analytics.no_data_yet'] ?? 'No data yet';
