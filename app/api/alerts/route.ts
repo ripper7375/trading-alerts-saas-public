@@ -10,6 +10,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import {
+  VIEW_AS_DENIED_BODY,
+  resolveViewAsSubject,
+} from '@/lib/admin/user-view-as';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { shouldUseOperationServiceForAlertsCrud } from '@/lib/operation-service/flags';
@@ -60,10 +64,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Admin read-only "view as user" (billing usage count): ?view_as=user
+    // reads the viewed user's alerts via Prisma, skipping the proxy below,
+    // which would authenticate as the admin.
+    const subject = await resolveViewAsSubject(request, session.user);
+    if (subject.kind === 'denied') {
+      return NextResponse.json(VIEW_AS_DENIED_BODY, { status: 403 });
+    }
+
     // Session 4B-6: when the flag is on, operation-service's AlertsController
     // (Session 4B-5 PORT) already re-implements this list/filter logic
     // against the same schema — forward instead of running it twice.
-    if (shouldUseOperationServiceForAlertsCrud()) {
+    if (subject.kind === 'self' && shouldUseOperationServiceForAlertsCrud()) {
       const { status: opStatus, body } = await forwardRequestToOperationService(
         request,
         `/alerts${new URL(request.url).search}`
@@ -83,7 +95,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       lastTriggered?: { not: null };
     }
 
-    const where: WhereClause = { userId: session.user.id };
+    const where: WhereClause = { userId: subject.userId };
 
     // Filter by status
     if (status === 'active') {

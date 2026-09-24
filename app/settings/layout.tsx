@@ -1,8 +1,12 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
+import UserViewAsBanner from '@/components/admin/user-view-as/user-view-as-banner';
+import { UserViewAsProvider } from '@/components/admin/user-view-as/user-view-as-context';
+import UserViewAsGate from '@/components/admin/user-view-as/user-view-as-gate';
 import { LoginTracker } from '@/components/auth/login-tracker';
 import { TokenRefreshProvider } from '@/components/auth/token-refresh-provider';
+import { getAdminUserViewAs } from '@/lib/admin/user-view-as';
 import { authOptions } from '@/lib/auth/auth-options';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
 
@@ -26,6 +30,11 @@ interface SettingsLayoutProps {
  * until Session 9-8.
  *
  * Protected route - requires valid session.
+ *
+ * Admin "view as user" (lib/admin/user-view-as.ts): when an admin has an
+ * active view, Billing / Security / Security Activity show the viewed user,
+ * read-only, under a banner; every other settings page is replaced by a
+ * notice (UserViewAsGate), since it would show the admin's own account.
  */
 export default async function SettingsLayout({
   children,
@@ -37,6 +46,7 @@ export default async function SettingsLayout({
   }
 
   const appearance = await getServerAppearance();
+  const viewAs = await getAdminUserViewAs(session.user);
 
   return (
     <div
@@ -54,17 +64,21 @@ export default async function SettingsLayout({
       <TokenRefreshProvider />
       <AppHeader title="Settings" subtitle="Account & preferences" />
 
-      <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
-        <div className="flex flex-col gap-6 lg:flex-row">
-          <SettingsNav />
+      <UserViewAsProvider value={viewAs}>
+        <UserViewAsBanner />
 
-          <div className="flex-1">
-            <div className="min-h-[600px] rounded-xl border border-border bg-card p-6 shadow-sm md:p-8">
-              {children}
+        <div className="mx-auto max-w-7xl p-4 md:p-6 lg:p-8">
+          <div className="flex flex-col gap-6 lg:flex-row">
+            <SettingsNav />
+
+            <div className="flex-1">
+              <div className="min-h-[600px] rounded-xl border border-border bg-card p-6 shadow-sm md:p-8">
+                <UserViewAsGate>{children}</UserViewAsGate>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </UserViewAsProvider>
     </div>
   );
 }

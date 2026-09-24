@@ -24,11 +24,34 @@ jest.mock('next/headers', () => ({
 }));
 
 import AdminUserDetailPage from '@/app/admin/users/[id]/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+
+// The page's header carries the client-side "View as user" button, which
+// calls useLocale() -- it needs a LocaleProvider ancestor (L40). A seeded
+// preference keeps LocaleProvider off its real geo-IP fetch, which would
+// otherwise outlive this file and crash a later suite's teardown.
+function renderPage(jsx: React.ReactElement): ReturnType<typeof render> {
+  localStorage.setItem(
+    LOCALE_STORAGE_KEY,
+    JSON.stringify({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'America/New_York',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+    })
+  );
+  return render(<LocaleProvider>{jsx}</LocaleProvider>);
+}
 
 jest.mock('next/navigation', () => ({
   notFound: jest.fn(() => {
     throw new Error('NEXT_NOT_FOUND');
   }),
+  // LocaleProvider (wrapping the page's client "View as user" button) reads it.
+  usePathname: () => '/admin/users/user-1',
 }));
 
 const mockUserFindUnique = jest.fn();
@@ -115,7 +138,7 @@ describe('AdminUserDetailPage (server component)', () => {
     const jsx = await AdminUserDetailPage({
       params: Promise.resolve({ id: 'user-1' }),
     });
-    render(jsx);
+    renderPage(jsx);
 
     // 1. Profile & Account Status (email appears in both the page header
     // and the Profile card)
@@ -158,7 +181,7 @@ describe('AdminUserDetailPage (server component)', () => {
     const jsx = await AdminUserDetailPage({
       params: Promise.resolve({ id: 'user-1' }),
     });
-    render(jsx);
+    renderPage(jsx);
 
     expect(screen.getByText('Not an affiliate.')).toBeInTheDocument();
     expect(screen.getByText('No fraud alerts on record.')).toBeInTheDocument();

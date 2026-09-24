@@ -19,6 +19,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import {
+  VIEW_AS_DENIED_BODY,
+  resolveViewAsSubject,
+} from '@/lib/admin/user-view-as';
 import { authOptions } from '@/lib/auth/auth-options';
 import { buildDlocalReceipt } from '@/lib/billing/dlocal-receipt';
 import { renderReceiptPdf } from '@/lib/billing/receipt-pdf';
@@ -31,7 +35,7 @@ interface RouteParams {
 }
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: RouteParams
 ): Promise<NextResponse> {
   const session = await getServerSession(authOptions);
@@ -42,10 +46,17 @@ export async function GET(
   const { id } = await params;
 
   try {
+    // Admin read-only "view as user": ?view_as=user renders the viewed
+    // user's receipt. The payment must still belong to that user.
+    const subject = await resolveViewAsSubject(request, session.user);
+    if (subject.kind === 'denied') {
+      return NextResponse.json(VIEW_AS_DENIED_BODY, { status: 403 });
+    }
+
     const payment = await prisma.payment.findFirst({
       where: {
         id,
-        userId: session.user.id,
+        userId: subject.userId,
         provider: 'DLOCAL',
         status: 'COMPLETED',
       },
@@ -56,7 +67,7 @@ export async function GET(
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: subject.userId },
       select: { name: true, email: true },
     });
 

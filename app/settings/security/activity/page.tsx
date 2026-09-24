@@ -23,6 +23,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
+import { useUserViewAs } from '@/components/admin/user-view-as/user-view-as-context';
+import { withViewAsQuery } from '@/lib/admin/user-view-as-paths';
 import { useLocale } from '@/lib/context/locale-context';
 
 /**
@@ -156,6 +158,9 @@ function formatRelativeTime(
 export default function SecurityActivityPage(): React.ReactElement {
   useSession();
   const { t } = useLocale();
+  // Admin "view as user": read the viewed user; "Mark read" is hidden, since
+  // it would act on the admin's own account (lib/admin/user-view-as.ts).
+  const viewing = useUserViewAs() !== null;
   const { toasts, removeToast, error: showError } = useToast();
 
   const [alerts, setAlerts] = useState<SecurityAlertItem[]>([]);
@@ -165,44 +170,52 @@ export default function SecurityActivityPage(): React.ReactElement {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [markingReadId, setMarkingReadId] = useState<string | null>(null);
 
-  const fetchAlerts = useCallback(async (offset: number, append: boolean) => {
-    if (append) {
-      setIsLoadingMore(true);
-    } else {
-      setIsLoading(true);
-    }
-    setLoadError(null);
-    try {
-      const response = await fetch(
-        `/api/user/security-alerts?limit=${PAGE_SIZE}&offset=${offset}`
-      );
-      if (!response.ok) {
-        throw new Error(
+  const fetchAlerts = useCallback(
+    async (offset: number, append: boolean) => {
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsLoading(true);
+      }
+      setLoadError(null);
+      try {
+        const response = await fetch(
+          withViewAsQuery(
+            `/api/user/security-alerts?limit=${PAGE_SIZE}&offset=${offset}`,
+            viewing
+          )
+        );
+        if (!response.ok) {
+          throw new Error(
+            t(
+              'settings.security.error_load_activity',
+              'Failed to load security activity'
+            )
+          );
+        }
+        const data = await response.json();
+        setAlerts((prev) =>
+          append ? [...prev, ...(data.alerts || [])] : data.alerts || []
+        );
+        setPagination(data.pagination || null);
+      } catch (err) {
+        console.error('Error fetching security alerts:', err);
+        setLoadError(
           t(
             'settings.security.error_load_activity',
             'Failed to load security activity'
           )
         );
+      } finally {
+        setIsLoading(false);
+        setIsLoadingMore(false);
       }
-      const data = await response.json();
-      setAlerts((prev) =>
-        append ? [...prev, ...(data.alerts || [])] : data.alerts || []
-      );
-      setPagination(data.pagination || null);
-    } catch (err) {
-      console.error('Error fetching security alerts:', err);
-      setLoadError(
-        t(
-          'settings.security.error_load_activity',
-          'Failed to load security activity'
-        )
-      );
-    } finally {
-      setIsLoading(false);
-      setIsLoadingMore(false);
-    }
+    },
+    // `t` is left out on purpose, as before: its identity changes when the
+    // locale loads, which would refetch the list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    [viewing]
+  );
 
   useEffect(() => {
     fetchAlerts(0, false);
@@ -379,7 +392,7 @@ export default function SecurityActivityPage(): React.ReactElement {
                       </div>
                     </div>
 
-                    {!alert.read && (
+                    {!alert.read && !viewing && (
                       <Button
                         variant="ghost"
                         size="sm"

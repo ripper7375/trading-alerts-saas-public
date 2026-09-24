@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import {
+  VIEW_AS_DENIED_BODY,
+  resolveViewAsSubject,
+} from '@/lib/admin/user-view-as';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { shouldUseOperationServiceForUserSessions } from '@/lib/operation-service/flags';
@@ -59,7 +63,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (shouldUseOperationServiceForUserSessions()) {
+    // Admin read-only "view as user" (lib/admin/user-view-as.ts): with
+    // ?view_as=user, read the viewed user's rows via Prisma and skip the
+    // operation-service proxy, which would authenticate as the admin.
+    const subject = await resolveViewAsSubject(request, session.user);
+    if (subject.kind === 'denied') {
+      return NextResponse.json(VIEW_AS_DENIED_BODY, { status: 403 });
+    }
+    const userId = subject.userId;
+
+    if (subject.kind === 'self' && shouldUseOperationServiceForUserSessions()) {
       const { status: opStatus, body: opBody } =
         await forwardRequestToOperationService(
           request,
@@ -75,7 +88,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Fetch login history
     const loginHistory = await prisma.loginHistory.findMany({
-      where: { userId: session.user.id },
+      where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset,
@@ -99,7 +112,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Get total count for pagination
     const totalCount = await prisma.loginHistory.count({
-      where: { userId: session.user.id },
+      where: { userId },
     });
 
     // Format the response

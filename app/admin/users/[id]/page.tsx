@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import ViewAsUserButton from '@/components/admin/user-view-as/view-as-user-button';
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -147,10 +148,16 @@ export default async function AdminUserDetailPage({
         >
           {dt('admin.users.back_to_users', '← Back to Users')}
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-foreground sm:text-3xl">
-          {user.name || dt('admin.users.no_name', 'No name')}
-        </h1>
-        <p className="mt-1 text-muted-foreground">{user.email}</p>
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+              {user.name || dt('admin.users.no_name', 'No name')}
+            </h1>
+            <p className="mt-1 text-muted-foreground">{user.email}</p>
+          </div>
+          {/* Read-only Billing / Security view for customer support. */}
+          <ViewAsUserButton userId={user.id} role={user.role} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

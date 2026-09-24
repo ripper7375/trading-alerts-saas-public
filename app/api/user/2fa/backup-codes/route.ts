@@ -3,6 +3,10 @@ import { getServerSession } from 'next-auth';
 import { compare } from 'bcryptjs';
 import { z } from 'zod';
 
+import {
+  VIEW_AS_DENIED_BODY,
+  resolveViewAsSubject,
+} from '@/lib/admin/user-view-as';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import {
@@ -163,7 +167,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (shouldUseOperationServiceForUser2FA()) {
+    // Admin read-only "view as user" (lib/admin/user-view-as.ts): with
+    // ?view_as=user, read the viewed user via Prisma, skipping the proxy
+    // (it would authenticate as the admin).
+    const subject = await resolveViewAsSubject(request, session.user);
+    if (subject.kind === 'denied') {
+      return NextResponse.json(VIEW_AS_DENIED_BODY, { status: 403 });
+    }
+
+    if (subject.kind === 'self' && shouldUseOperationServiceForUser2FA()) {
       const { status: opStatus, body } = await forwardRequestToOperationService(
         request,
         '/user/2fa/backup-codes'
@@ -171,9 +183,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(body, { status: opStatus });
     }
 
-    // Get user with 2FA data
+    // Get user with 2FA data (only the remaining count leaves this route)
     const user = (await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: subject.userId },
       select: {
         twoFactorEnabled: true,
         twoFactorBackupCodes: true,
