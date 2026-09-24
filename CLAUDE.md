@@ -14,7 +14,9 @@
 ## Current state _(update at the end of EVERY session)_
 
 > **Same session, round 3 — every place that shows a time, date or price now uses the user's own
-> timezone, date format, time format and currency. Same branch, NOT pushed.** Davin asked to make
+> timezone, date format, time format and currency. Branch `fix/currency-display-rate` pushed, NOT
+> merged, NOT deployed.** **Full account of all three rounds:**
+> `davintrade-language-and-locale-format-fix/language-and-locale-format-fix-manifest-work-completion.md`. Davin asked to make
 > sure all four apply throughout the app. The Settings page already stored them, but an audit found
 > several places that never read them:
 >
