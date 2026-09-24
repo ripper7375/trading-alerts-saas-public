@@ -13,6 +13,31 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Same session, round 2 — Language & Region now works as Davin's annotated screenshot describes.
+> Same branch, NOT pushed.** The rules: the header's country (GB by default) sets the language; the
+> language sets date format, time format and currency, each of which the user can still change; the
+> **timezone is detected from the IP** (Vercel `x-vercel-ip-timezone`, then `cf-timezone`, then the
+> browser's zone locally) and never follows a country or language. Picking a timezone pins it
+> (`timezoneSetByUser`), and "Use detected timezone" unpins it.
+> **Found:** the Settings page loaded its form from the DB, which nothing else reads, while the
+> header wrote the live locale, so the two could disagree and a save would undo a header switch.
+> The page now edits the live locale (no GET), and the DB is only written on Save.
+> **Server rendering:** Server Components only saw the language cookie, so Thai + GBP still showed
+> THB there. New `davintrade-currency` and `davintrade-timezone` cookies feed `resolvePreferences()`
+> through one shared `resolveRequestPreferences()` (layout and `getServerLocalePreferences()`).
+> **Removed CNY/AUD/CAD** (Davin: the rates were unrealistic). A stored one now falls back to the
+> language's currency, and the formatter shows plain USD for any code without a rate.
+> **Existing users:** a stored timezone that equals the country's default is treated as automatic;
+> any other value is kept as the user's own.
+> **Verified:** `tsc`/ESLint/Prettier clean; full `test:ci` **240/240 · 3084/3084** (+2 suites, +19
+> tests). Mutation 3/3 killed; the first survived until a user-pinned-timezone test was added. Live
+> `next dev` (throwaway route, deleted): a fresh visitor gets GB/en-GB/GBP/DMY/24h with the timezone
+> detected as Asia/Bangkok; the header's Thailand updates the page to Thai/THB with the timezone
+> unchanged; English (US) on the page sets MDY/12h/USD; the SSR HTML with th + GBP cookies renders
+> £22.62. **Not verified:** the Vercel IP header in production, and a signed-in Save.
+> **Note:** a first-time visitor whose IP resolves to a supported country still gets that country
+> (existing ipapi lookup); GB applies when there is no match. That lookup failed locally.
+
 > **Ad-hoc session (2026-09-24, phase/session unchanged) — display currency now converts at its own
 > rate, and choosing a language suggests its currency. Branch `fix/currency-display-rate`
 > (`1461c3fb`), NOT pushed, NOT merged. No migration.** Davin asked two questions about

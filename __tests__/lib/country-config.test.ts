@@ -13,6 +13,7 @@ import {
   SUPPORTED_COUNTRIES,
   exchangeRateForCurrency,
   formatCurrencyAmount,
+  isSupportedCurrency,
 } from '@/lib/country-config';
 
 describe('exchangeRateForCurrency', () => {
@@ -24,9 +25,10 @@ describe('exchangeRateForCurrency', () => {
     }
   });
 
-  it('covers the display-only currencies no country uses', () => {
+  it('offers no currency without a country behind its rate', () => {
     for (const code of ['CNY', 'AUD', 'CAD']) {
-      expect(CURRENCY_USD_RATES[code]).toBeGreaterThan(0);
+      expect(CURRENCY_USD_RATES[code]).toBeUndefined();
+      expect(isSupportedCurrency(code)).toBe(false);
     }
   });
 
@@ -49,6 +51,12 @@ describe('formatCurrencyAmount', () => {
     expect(formatCurrencyAmount(29, { currency: 'THB', language: 'th' })).toBe(
       '฿1,015'
     );
+  });
+
+  it('shows a withdrawn currency as plain USD, not USD behind its symbol', () => {
+    expect(
+      formatCurrencyAmount(29, { currency: 'CNY', language: 'en-GB' })
+    ).toBe('US$29.00');
   });
 
   it('leaves USD unconverted', () => {

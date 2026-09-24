@@ -1,14 +1,16 @@
 /**
- * Language & Region Settings Page — display currency.
+ * Language & Region Settings Page.
  *
- * Choosing a language suggests its country's currency (Thai gives THB), the
- * user can still pick another one before saving, and every currency offered
- * has a conversion rate of its own.
+ * The page edits the live locale, so the header's country switcher and this
+ * page always agree. The header's country sets the language; the language
+ * sets date format, time format and currency, each of which the user can
+ * still change; the timezone is IP-detected and never follows the language.
  *
  * @module __tests__/pages/settings/language.test
  */
 
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -18,13 +20,15 @@ import {
 
 import LanguageSettingsPage from '@/app/settings/language/page';
 import { CURRENCY_USD_RATES } from '@/lib/country-config';
-import { LocaleProvider } from '@/lib/context/locale-context';
+import { LocaleProvider, useLocale } from '@/lib/context/locale-context';
 import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 
 jest.mock('next/navigation', () => ({
   usePathname: () => '/settings/language',
 }));
 
+// Stored the way the header switcher wrote it before timezones were
+// detected: the UK's own default zone, so it counts as automatic.
 const UK_PREFERENCES = {
   countryCode: 'GB',
   language: 'en-GB',
@@ -35,27 +39,48 @@ const UK_PREFERENCES = {
 };
 
 const fetchMock = jest.fn();
+let switchCountry: (code: string) => void = () => {};
 
-function renderPage(): void {
+/** Stands in for the header's "Select Country & Region" menu. */
+function HeaderCountrySwitcher(): null {
+  switchCountry = useLocale().setCountryCode;
+  return null;
+}
+
+function renderPage(detectedTimezone = 'Europe/London'): void {
   render(
-    <LocaleProvider>
+    <LocaleProvider detectedTimezone={detectedTimezone}>
+      <HeaderCountrySwitcher />
       <LanguageSettingsPage />
     </LocaleProvider>
   );
 }
 
+function combobox(name: string): HTMLElement {
+  return screen.getByRole('combobox', { name });
+}
+
 function pick(comboboxName: string, option: RegExp): void {
-  fireEvent.keyDown(screen.getByRole('combobox', { name: comboboxName }), {
-    key: 'Enter',
-  });
+  fireEvent.keyDown(combobox(comboboxName), { key: 'Enter' });
   fireEvent.click(screen.getByRole('option', { name: option }));
 }
 
-function currencyTrigger(): HTMLElement {
-  return screen.getByRole('combobox', { name: 'Display Currency' });
+function checked(name: 'dateFormat' | 'timeFormat'): string | undefined {
+  return (
+    document.querySelector(
+      `input[name="${name}"]:checked`
+    ) as HTMLInputElement | null
+  )?.value;
 }
 
-describe('LanguageSettingsPage display currency', () => {
+async function renderLoaded(detectedTimezone?: string): Promise<void> {
+  renderPage(detectedTimezone);
+  await waitFor(() =>
+    expect(combobox('Display Language')).toHaveTextContent('English (UK)')
+  );
+}
+
+describe('LanguageSettingsPage', () => {
   beforeAll(() => {
     // Radix Select calls these, which jsdom does not implement.
     Element.prototype.hasPointerCapture ??= () => false;
@@ -65,66 +90,115 @@ describe('LanguageSettingsPage display currency', () => {
 
   beforeEach(() => {
     fetchMock.mockReset();
-    fetchMock.mockImplementation((_url: string, init?: RequestInit) =>
-      Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve(
-            init?.method === 'PUT' ? {} : { preferences: UK_PREFERENCES }
-          ),
-      })
-    );
+    fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
     global.fetch = fetchMock as unknown as typeof fetch;
     // Seeding skips LocaleProvider's real geo-IP fetch() (L40).
     localStorage.setItem(LOCALE_STORAGE_KEY, JSON.stringify(UK_PREFERENCES));
   });
 
-  async function renderLoaded(): Promise<void> {
-    renderPage();
-    await waitFor(() => expect(currencyTrigger()).toHaveTextContent('GBP'));
-  }
+  it('shows the live settings, with GB as the default region', async () => {
+    await renderLoaded();
+    expect(combobox('Display Currency')).toHaveTextContent('GBP');
+    expect(combobox('Your Timezone')).toHaveTextContent('Europe/London');
+    expect(checked('dateFormat')).toBe('DMY');
+    expect(checked('timeFormat')).toBe('24h');
+    // Nothing is loaded from the database any more.
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 
-  it('switches the currency to THB when Thai is chosen', async () => {
+  it('follows the header: Thailand sets Thai and THB, not the timezone', async () => {
+    await renderLoaded();
+    act(() => switchCountry('TH'));
+
+    // The page itself is now in Thai, so find the fields by id.
+    const byId = (id: string): HTMLElement => document.getElementById(id)!;
+    await waitFor(() => expect(byId('language')).toHaveTextContent('Thai'));
+    expect(byId('currency')).toHaveTextContent('THB');
+    expect(byId('timezone')).toHaveTextContent('Europe/London');
+  });
+
+  it('sets date format, time format and currency from the language', async () => {
+    await renderLoaded();
+    pick('Display Language', /English \(US\)/);
+
+    expect(checked('dateFormat')).toBe('MDY');
+    expect(checked('timeFormat')).toBe('12h');
+    expect(combobox('Display Currency')).toHaveTextContent('USD');
+    expect(combobox('Your Timezone')).toHaveTextContent('Europe/London');
+  });
+
+  it('keeps the current values for a language with no country', async () => {
+    await renderLoaded();
+    pick('Display Language', /Chinese \(Simplified\)/);
+
+    expect(checked('dateFormat')).toBe('DMY');
+    expect(combobox('Display Currency')).toHaveTextContent('GBP');
+  });
+
+  it('lets the user override each value after choosing a language', async () => {
     await renderLoaded();
     pick('Display Language', /Thai/);
-    expect(currencyTrigger()).toHaveTextContent('THB');
+    expect(combobox('Display Currency')).toHaveTextContent('THB');
+
+    pick('Display Currency', /^GBP/);
+    fireEvent.click(screen.getByRole('radio', { name: /12-hour/ }));
+
+    expect(combobox('Display Currency')).toHaveTextContent('GBP');
+    expect(checked('timeFormat')).toBe('12h');
   });
 
-  it('keeps the current currency for a language several countries share', async () => {
-    await renderLoaded();
-    // en-US is used by the US, Nigeria and South Africa.
-    pick('Display Language', /English \(US\)/);
-    expect(currencyTrigger()).toHaveTextContent('GBP');
+  it('shows the detected timezone and switches back to it after an override', async () => {
+    await renderLoaded('Asia/Bangkok');
+    await waitFor(() =>
+      expect(combobox('Your Timezone')).toHaveTextContent('Asia/Bangkok')
+    );
+    expect(screen.getByText(/Detected from your location/)).toHaveTextContent(
+      'Asia/Bangkok'
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Use detected timezone' })
+    ).not.toBeInTheDocument();
+
+    pick('Your Timezone', /Asia\/Tokyo/);
+    expect(combobox('Your Timezone')).toHaveTextContent('Asia/Tokyo');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use detected timezone' })
+    );
+    expect(combobox('Your Timezone')).toHaveTextContent('Asia/Bangkok');
   });
 
-  it('saves Thai with GBP when the user overrides the suggestion', async () => {
+  it('saves Thai with GBP to the database and applies it live', async () => {
     await renderLoaded();
     pick('Display Language', /Thai/);
     pick('Display Currency', /^GBP/);
     fireEvent.click(screen.getByRole('button', { name: /Save Changes/ }));
 
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith(
-        '/api/user/preferences',
-        expect.objectContaining({ method: 'PUT' })
-      )
-    );
-    const put = fetchMock.mock.calls.find(
-      ([, init]) => (init as RequestInit | undefined)?.method === 'PUT'
-    );
-    const body = JSON.parse((put![1] as RequestInit).body as string);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/user/preferences');
+    expect(init.method).toBe('PUT');
+    const body = JSON.parse(init.body as string);
     expect(body).toMatchObject({ language: 'th', currency: 'GBP' });
+    // The client-only flag is not sent to the API.
+    expect(body).not.toHaveProperty('timezoneSetByUser');
+
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(LOCALE_STORAGE_KEY)!);
+      expect(stored).toMatchObject({ language: 'th', currency: 'GBP' });
+    });
+    expect(document.cookie).toContain('davintrade-currency=GBP');
   });
 
   it('offers only currencies that have a conversion rate, THB included', async () => {
     await renderLoaded();
-    fireEvent.keyDown(currencyTrigger(), { key: 'Enter' });
-    const listbox = screen.getByRole('listbox');
-    const codes = within(listbox)
+    fireEvent.keyDown(combobox('Display Currency'), { key: 'Enter' });
+    const codes = within(screen.getByRole('listbox'))
       .getAllByRole('option')
       .map((o) => (o.textContent ?? '').trim().split(' ')[0]!);
 
     expect(codes).toContain('THB');
+    expect(codes).not.toEqual(expect.arrayContaining(['CNY']));
     for (const code of codes) {
       expect(CURRENCY_USD_RATES[code]).toBeGreaterThan(0);
     }

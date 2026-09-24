@@ -13,11 +13,13 @@ export function Providers({
   initialTheme,
   initialPreferences,
   initialAppearance,
+  detectedTimezone,
 }: {
   children: React.ReactNode;
   initialTheme?: 'light' | 'dark' | 'system';
   initialPreferences?: LocalePreferences;
   initialAppearance?: AppearanceSettings;
+  detectedTimezone?: string | null;
 }) {
   return (
     <ThemeProvider
@@ -34,6 +36,7 @@ export function Providers({
         <ClientProviders
           initialPreferences={initialPreferences}
           initialAppearance={initialAppearance}
+          detectedTimezone={detectedTimezone}
         >
           {children}
         </ClientProviders>

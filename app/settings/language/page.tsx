@@ -20,9 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SUPPORTED_COUNTRIES } from '@/lib/country-config';
 import { useLocale } from '@/lib/context/locale-context';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/languages';
+import { preferencesForLanguage } from '@/lib/i18n/locale-resolver';
 import {
   getAllTimezones,
   getTimezoneLabel,
@@ -32,13 +32,19 @@ import {
 /**
  * Language & Region Settings Page (Row 77)
  *
- * Bound to the real GET/PUT /api/user/preferences endpoint -- already has
- * a real backend (Session 9-0's language/timezone hand-off), not rebuilt.
+ * The form edits the live locale (`useLocale()`), the same state the header's
+ * country switcher writes, so switching country there updates this page too.
+ * How the fields relate:
  *
- * `handleSave()` also calls `setLocalePreferences()` from `useLocale()` (the
- * same write path `components/layout/app-header.tsx` already uses) so a save
- * takes effect immediately in the current session, not just in the database
- * -- see `docs/policies/08-locale-i18n-compliance.md` §0.
+ * - The header's country sets the language.
+ * - The language sets date format, time format and currency (Thai: DD/MM/YYYY,
+ *   24-hour, THB). The user can then change each one before saving.
+ * - The timezone is detected from the visitor's IP and never follows the
+ *   language. Picking one pins it; "Use detected timezone" unpins it.
+ *
+ * `handleSave()` writes the database (PUT /api/user/preferences) and then the
+ * live locale via `setLocalePreferences()`, so the change applies at once --
+ * see `docs/policies/08-locale-i18n-compliance.md` §0.
  */
 
 interface LanguageSettings {
@@ -47,6 +53,7 @@ interface LanguageSettings {
   dateFormat: 'MDY' | 'DMY' | 'YMD';
   timeFormat: '12h' | '24h';
   currency: string;
+  timezoneSetByUser: boolean;
 }
 
 const currencies = [
@@ -54,9 +61,6 @@ const currencies = [
   { code: 'EUR', symbol: '€', name: 'Euro' },
   { code: 'GBP', symbol: '£', name: 'British Pound' },
   { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
-  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
   { code: 'AED', symbol: 'AED', name: 'UAE Dirham' },
   { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
   { code: 'THB', symbol: '฿', name: 'Thai Baht' },
@@ -69,27 +73,25 @@ const currencies = [
   { code: 'TRY', symbol: '₺', name: 'Turkish Lira' },
 ];
 
-/**
- * The currency a language implies: that of the one country using it (Thai
- * gives THB). A language shared by several countries (en-US: US, Nigeria,
- * South Africa) implies none, so the current choice is kept. Same rule
- * `LocaleProvider` applies when the language changes.
- */
-function currencyForLanguage(language: string): string | null {
-  const matches = Object.values(SUPPORTED_COUNTRIES).filter(
-    (c) => c.language === language
-  );
-  return matches.length === 1 ? matches[0]!.currency : null;
-}
-
 export default function LanguageSettingsPage(): React.ReactElement {
-  const { t, setLocalePreferences } = useLocale();
+  const {
+    t,
+    setLocalePreferences,
+    detectedTimezone,
+    language,
+    timezone,
+    dateFormat,
+    timeFormat,
+    currency,
+    timezoneSetByUser,
+  } = useLocale();
   const [settings, setSettings] = useState<LanguageSettings>({
-    language: 'en-US',
-    timezone: 'America/New_York',
-    dateFormat: 'MDY',
-    timeFormat: '12h',
-    currency: 'USD',
+    language,
+    timezone,
+    dateFormat,
+    timeFormat,
+    currency,
+    timezoneSetByUser: !!timezoneSetByUser,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -107,32 +109,55 @@ export default function LanguageSettingsPage(): React.ReactElement {
     );
   }, [allTimezones, timezoneSearch]);
 
+  // Follow the live locale: a country picked in the header, the detected
+  // timezone arriving, or a save all show up here.
   useEffect(() => {
-    const loadSettings = async (): Promise<void> => {
-      try {
-        const response = await fetch('/api/user/preferences');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.preferences) {
-            setSettings({
-              language: data.preferences.language || 'en-US',
-              timezone: data.preferences.timezone || 'America/New_York',
-              dateFormat: data.preferences.dateFormat || 'MDY',
-              timeFormat: data.preferences.timeFormat || '12h',
-              currency: data.preferences.currency || 'USD',
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load language settings:', error);
-      }
-    };
-
-    loadSettings();
-  }, []);
+    setSettings({
+      language,
+      timezone,
+      dateFormat,
+      timeFormat,
+      currency,
+      timezoneSetByUser: !!timezoneSetByUser,
+    });
+  }, [language, timezone, dateFormat, timeFormat, currency, timezoneSetByUser]);
 
   const handleChange = (field: keyof LanguageSettings, value: string): void => {
     setSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // A new language brings its country's date/time format and currency; the
+  // timezone is left alone. Languages without a country (Chinese, Spanish)
+  // keep the current values.
+  const handleLanguageChange = (value: string): void => {
+    const implied = preferencesForLanguage(value);
+    setSettings((prev) => ({
+      ...prev,
+      language: value,
+      ...(implied && {
+        dateFormat: implied.dateFormat,
+        timeFormat: implied.timeFormat,
+        currency: implied.currency,
+      }),
+    }));
+  };
+
+  const handleTimezoneChange = (value: string): void => {
+    setSettings((prev) => ({
+      ...prev,
+      timezone: value,
+      timezoneSetByUser: true,
+    }));
+    setTimezoneSearch('');
+  };
+
+  const resetToDetectedTimezone = (): void => {
+    if (!detectedTimezone) return;
+    setSettings((prev) => ({
+      ...prev,
+      timezone: detectedTimezone,
+      timezoneSetByUser: false,
+    }));
   };
 
   const getCurrentTime = (): string => {
@@ -171,10 +196,11 @@ export default function LanguageSettingsPage(): React.ReactElement {
     setSaveSuccess(false);
 
     try {
+      const { timezoneSetByUser: _local, ...stored } = settings;
       const response = await fetch('/api/user/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(stored),
       });
 
       if (!response.ok) {
@@ -208,15 +234,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
           </Label>
           <Select
             value={settings.language}
-            onValueChange={(value) =>
-              setSettings((prev) => ({
-                ...prev,
-                language: value,
-                // Suggest the language's currency; the user can still pick
-                // another one before saving.
-                currency: currencyForLanguage(value) ?? prev.currency,
-              }))
-            }
+            onValueChange={handleLanguageChange}
           >
             <SelectTrigger id="language">
               <SelectValue placeholder={t('Select language')} />
@@ -229,6 +247,12 @@ export default function LanguageSettingsPage(): React.ReactElement {
               ))}
             </SelectContent>
           </Select>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t(
+              'settings.language.cascade_hint',
+              'Changing the language also sets the date format, time format and currency. You can still change each one below.'
+            )}
+          </p>
         </div>
       </section>
 
@@ -245,10 +269,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
           </Label>
           <Select
             value={settings.timezone}
-            onValueChange={(value) => {
-              handleChange('timezone', value);
-              setTimezoneSearch('');
-            }}
+            onValueChange={handleTimezoneChange}
           >
             <SelectTrigger
               id="timezone"
@@ -291,6 +312,33 @@ export default function LanguageSettingsPage(): React.ReactElement {
             {t('Current time:')}{' '}
             <span className="font-mono font-semibold">{getCurrentTime()}</span>
           </p>
+          {detectedTimezone && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>
+                {t(
+                  'settings.language.detected_timezone',
+                  'Detected from your location:'
+                )}{' '}
+                <span className="font-mono">
+                  {getTimezoneLabel(detectedTimezone)}
+                </span>
+              </span>
+              {settings.timezone !== detectedTimezone && (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0"
+                  onClick={resetToDetectedTimezone}
+                >
+                  {t(
+                    'settings.language.use_detected_timezone',
+                    'Use detected timezone'
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </section>
 

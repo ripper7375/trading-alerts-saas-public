@@ -4231,5 +4231,8 @@
   "admin.system.job_approve_matured_commissions": "Approve Matured Commissions",
   "admin.system.job_approve_matured_commissions_desc": "Daily: moves PENDING commissions past the refund window to APPROVED. Pays nothing.",
   "affiliate.register.benefit_monthly_payouts": "- Monthly automated payouts for balances over {amount}",
-  "affiliate.register.terms_consent": "I agree to the affiliate program terms and conditions. I understand that I will earn {percent}% commission on referrals and that payouts are processed monthly for balances over {amount}."
+  "affiliate.register.terms_consent": "I agree to the affiliate program terms and conditions. I understand that I will earn {percent}% commission on referrals and that payouts are processed monthly for balances over {amount}.",
+  "settings.language.cascade_hint": "Changing the language also sets the date format, time format and currency. You can still change each one below.",
+  "settings.language.detected_timezone": "Detected from your location:",
+  "settings.language.use_detected_timezone": "Use detected timezone"
 }

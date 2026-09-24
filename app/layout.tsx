@@ -3,13 +3,12 @@ import { Inter } from 'next/font/google';
 import { cookies, headers } from 'next/headers';
 import { Providers } from './providers';
 import './globals.css';
-import {
-  COUNTRY_HEADER,
-  LOCALE_COOKIE,
-  LOCALE_STORAGE_KEY,
-  resolvePreferences,
-} from '@/lib/i18n/locale-resolver';
+import { LOCALE_COOKIE, LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
+import {
+  detectedTimezoneFromHeaders,
+  resolveRequestPreferences,
+} from '@/lib/i18n/server-locale';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -98,11 +97,13 @@ export default async function RootLayout({
   // Resolve the FULL preference set (language + timezone + date/time format +
   // currency) on the server, mirroring getServerAppearance() above -- a Thai
   // user must not be server-rendered with GBP/Europe-London defaults that
-  // flip to Baht/Bangkok after hydration.
-  const initialPreferences = resolvePreferences({
-    countryPrefix: headerStore.get(COUNTRY_HEADER),
-    cookieLanguage: cookieStore.get(LOCALE_COOKIE)?.value,
-  });
+  // flip to Baht/Bangkok after hydration. The timezone is IP-detected
+  // unless the user picked one.
+  const initialPreferences = resolveRequestPreferences(
+    cookieStore,
+    headerStore
+  );
+  const detectedTimezone = detectedTimezoneFromHeaders(headerStore);
   const initialLocale = initialPreferences.language;
 
   return (
@@ -181,6 +182,7 @@ export default async function RootLayout({
         <Providers
           initialTheme={initialAppearance.theme}
           initialPreferences={initialPreferences}
+          detectedTimezone={detectedTimezone}
           initialAppearance={initialAppearance}
         >
           {children}

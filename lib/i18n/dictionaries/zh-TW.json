@@ -2098,5 +2098,8 @@
   "admin.system.job_approve_matured_commissions": "審核到期佣金",
   "admin.system.job_approve_matured_commissions_desc": "每日：將已過退款期的 PENDING 佣金轉為 APPROVED。不進行付款。",
   "affiliate.register.benefit_monthly_payouts": "- 餘額超過 {amount} 時每月自動付款",
-  "affiliate.register.terms_consent": "我同意聯盟計畫的條款與條件。我了解我將從推薦中獲得 {percent}% 的佣金，且餘額超過 {amount} 時每月處理付款。"
+  "affiliate.register.terms_consent": "我同意聯盟計畫的條款與條件。我了解我將從推薦中獲得 {percent}% 的佣金，且餘額超過 {amount} 時每月處理付款。",
+  "settings.language.cascade_hint": "變更語言也會設定日期格式、時間格式和貨幣。您仍可在下方分別變更。",
+  "settings.language.detected_timezone": "根據您的位置偵測到：",
+  "settings.language.use_detected_timezone": "使用偵測到的時區"
 }

@@ -203,30 +203,21 @@ export function getCountryByCode(code?: string): CountryConfig {
 }
 
 /**
- * Display currencies offered on Settings → Language & Region that no
- * supported country uses. Approximate units per 1 USD, not sourced from a
- * dated snapshot like the country rates above; refresh before relying on
- * them for anything beyond display.
- */
-const EXTRA_CURRENCY_RATES: Record<string, number> = {
-  CNY: 7.1,
-  AUD: 1.52,
-  CAD: 1.38,
-};
-
-/**
  * Units of `currency` per 1 USD. Keyed by currency, never by country: a user
  * can pick a display currency that differs from their country (Thai language
  * with GBP), and converting with the country's rate would print a baht amount
  * behind a pound sign. Countries sharing a currency (EU and FR, both EUR)
- * carry the same rate.
+ * carry the same rate. Only currencies of a supported country are listed, so
+ * every rate comes from a country config rather than a guess.
  */
-export const CURRENCY_USD_RATES: Record<string, number> = {
-  ...EXTRA_CURRENCY_RATES,
-  ...Object.fromEntries(
-    Object.values(SUPPORTED_COUNTRIES).map((c) => [c.currency, c.exchangeRate])
-  ),
-};
+export const CURRENCY_USD_RATES: Record<string, number> = Object.fromEntries(
+  Object.values(SUPPORTED_COUNTRIES).map((c) => [c.currency, c.exchangeRate])
+);
+
+/** Whether `currency` can be displayed (it has a conversion rate). */
+export function isSupportedCurrency(currency?: string | null): boolean {
+  return !!currency && currency.toUpperCase() in CURRENCY_USD_RATES;
+}
 
 /** Rate for a display currency; an unknown code gets no conversion (1.0). */
 export function exchangeRateForCurrency(currency?: string): number {
@@ -237,23 +228,28 @@ export function exchangeRateForCurrency(currency?: string): number {
 /**
  * Converts a USD amount into the display currency and formats it. The rate
  * is derived from `currency` itself, so the figure and the symbol can never
- * disagree. Framework-agnostic (no React/browser APIs) so it can run in both
- * `lib/context/locale-context.tsx`'s client `formatCurrency()` and Server
+ * disagree. A currency with no rate (one saved before it was withdrawn, such
+ * as CNY) is shown as unconverted USD rather than as a USD figure behind a
+ * foreign symbol. Framework-agnostic (no React/browser APIs) so it can run in
+ * both `lib/context/locale-context.tsx`'s client `formatCurrency()` and Server
  * Components that resolve preferences via `getServerLocalePreferences()`.
  */
 export function formatCurrencyAmount(
   amountInUSD: number,
   { currency, language }: { currency: string; language?: string }
 ): string {
+  const displayCurrency = isSupportedCurrency(currency || 'GBP')
+    ? (currency || 'GBP').toUpperCase()
+    : 'USD';
   try {
     const convertedAmount =
-      amountInUSD * exchangeRateForCurrency(currency || 'GBP');
+      amountInUSD * exchangeRateForCurrency(displayCurrency);
     return new Intl.NumberFormat(language || 'en-GB', {
       style: 'currency',
-      currency: currency || 'GBP',
+      currency: displayCurrency,
       maximumFractionDigits: convertedAmount >= 1000 ? 0 : 2,
     }).format(convertedAmount);
   } catch {
-    return `${currency || 'GBP'} ${amountInUSD.toFixed(2)}`;
+    return `USD ${amountInUSD.toFixed(2)}`;
   }
 }
