@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getAdminViewAs } from '@/lib/affiliate/view-as';
 import { requireAffiliate, getAffiliateProfile } from '@/lib/auth/session';
 import { buildDashboardStats } from '@/lib/affiliate/report-builder';
 import { MoneyServiceError } from '@/lib/money-service/client';
@@ -35,14 +36,19 @@ import {
  */
 export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
-    // Require affiliate access
-    await requireAffiliate();
+    // Admin "view as affiliate" (read-only) serves the chosen affiliate's
+    // data; everyone else must be an affiliate. See lib/affiliate/view-as.ts.
+    const viewAs = await getAdminViewAs();
+    if (!viewAs) {
+      await requireAffiliate();
+    }
 
     // Session 4A-7a (F45 server-side proxy) — when the flag is on, forward
     // the already-authenticated session's token to money-service instead of
     // querying Prisma locally. Falls through to the monolith logic below if
     // the flag is off or the session cookie is unexpectedly absent.
-    if (isAffiliateReadApiMigrated()) {
+    // The proxy authenticates as the caller, so view-as reads Prisma below.
+    if (!viewAs && isAffiliateReadApiMigrated()) {
       const token = await getMoneyServiceToken();
       if (token) {
         try {
@@ -58,7 +64,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     }
 
     // Get affiliate profile
-    const profile = await getAffiliateProfile();
+    const profile = viewAs?.profile ?? (await getAffiliateProfile());
 
     if (!profile) {
       return NextResponse.json(

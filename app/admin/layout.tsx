@@ -90,6 +90,13 @@ const adminNavItems: AdminNavItem[] = [
     href: '/admin/affiliates',
   },
   {
+    id: 'affiliate-view-as',
+    icon: '👁️',
+    labelKey: 'nav.admin.affiliate_view_as',
+    fallback: 'View as Affiliate',
+    href: '/admin/affiliates/view-as',
+  },
+  {
     id: 'disbursement',
     icon: '💸',
     labelKey: 'nav.admin.disbursements',

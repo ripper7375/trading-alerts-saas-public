@@ -23,6 +23,8 @@ import { LogOut, ChevronRight } from 'lucide-react';
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { useLocale } from '@/lib/context/locale-context';
 
+import { useAffiliateViewAs } from './view-as-context';
+
 const NAV_LINKS = [
   {
     href: '/affiliate/dashboard',
@@ -75,6 +77,12 @@ export default function AffiliateNav(): React.ReactElement {
   const pathname = usePathname();
   const { data: session } = useSession();
   const { t } = useLocale();
+  // Admin read-only view: Payout Settings (the affiliate's bank details) is
+  // not viewable, and "Back to App" returns to the admin console.
+  const viewAs = useAffiliateViewAs();
+  const navLinks = viewAs
+    ? NAV_LINKS.filter((link) => link.href !== '/affiliate/settings/payout')
+    : NAV_LINKS;
 
   // Same bridge-aware logout as components/layout/app-header.tsx.
   const handleLogout = async (): Promise<void> => {
@@ -115,7 +123,7 @@ export default function AffiliateNav(): React.ReactElement {
             {session?.user?.email}
           </span>
           <Link
-            href="/dashboard"
+            href={viewAs ? '/admin' : '/dashboard'}
             className="rounded-md border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             {t('nav.affiliate.back_to_app', 'Back to App')}
@@ -135,7 +143,7 @@ export default function AffiliateNav(): React.ReactElement {
       {/* Second row: scrollable nav tabs */}
       <nav className="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6 lg:px-8">
         <div className="flex gap-1 pb-2">
-          {NAV_LINKS.map((link) => {
+          {navLinks.map((link) => {
             const isActive =
               link.href === '/affiliate/dashboard'
                 ? pathname === link.href

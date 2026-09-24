@@ -72,6 +72,35 @@ describe('middleware', () => {
     }
   );
 
+  it.each(['/affiliate/dashboard', '/affiliate/dashboard/commissions'])(
+    'lets an admin through to %s for the read-only "view as affiliate" mode',
+    async (path) => {
+      (getToken as jest.Mock).mockResolvedValueOnce({
+        id: 'admin-1',
+        role: 'ADMIN',
+      });
+
+      const response = await middleware(makeRequest(path));
+
+      expect(response.headers.get('location')).toBeNull();
+    }
+  );
+
+  it.each(['/affiliate/settings/payout', '/affiliate/register'])(
+    'still sends an admin away from %s to /admin',
+    async (path) => {
+      (getToken as jest.Mock).mockResolvedValueOnce({
+        id: 'admin-1',
+        role: 'ADMIN',
+      });
+
+      const response = await middleware(makeRequest(path));
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toContain('/admin');
+    }
+  );
+
   it('fails open (passes the request through) if getToken throws', async () => {
     (getToken as jest.Mock).mockRejectedValueOnce(new Error('decode blew up'));
 

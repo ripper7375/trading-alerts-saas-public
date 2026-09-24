@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ShieldAlert,
   Share2,
+  Eye,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -292,14 +293,29 @@ export default function AppHeader({
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-border" />
+            {/* Admins are not affiliates: they pick an affiliate and view that
+                dashboard read-only (lib/affiliate/view-as.ts). */}
             <DropdownMenuItem asChild>
-              <Link
-                href="/affiliate/dashboard"
-                className="flex cursor-pointer items-center"
-              >
-                <Share2 className="mr-2 h-3.5 w-3.5 text-muted-foreground" />{' '}
-                {t('Affiliate Partner Dashboard')}
-              </Link>
+              {isAdmin ? (
+                <Link
+                  href="/admin/affiliates/view-as"
+                  className="flex cursor-pointer items-center"
+                >
+                  <Eye className="mr-2 h-3.5 w-3.5 text-muted-foreground" />{' '}
+                  {t(
+                    'nav.admin.affiliate_view_as_menu',
+                    'View as Affiliate (read-only)'
+                  )}
+                </Link>
+              ) : (
+                <Link
+                  href="/affiliate/dashboard"
+                  className="flex cursor-pointer items-center"
+                >
+                  <Share2 className="mr-2 h-3.5 w-3.5 text-muted-foreground" />{' '}
+                  {t('Affiliate Partner Dashboard')}
+                </Link>
+              )}
             </DropdownMenuItem>
             {isAdmin && (
               <DropdownMenuItem asChild>

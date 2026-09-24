@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getAdminViewAs } from '@/lib/affiliate/view-as';
 import { requireAffiliate, getAffiliateProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { affiliateProfileUpdateSchema } from '@/lib/affiliate/validators';
@@ -24,6 +25,14 @@ import { affiliateProfileUpdateSchema } from '@/lib/affiliate/validators';
  */
 export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
+    // Admin "view as affiliate" (read-only): return the chosen affiliate's
+    // profile (bank details removed) and never auto-create one.
+    // See lib/affiliate/view-as.ts.
+    const viewAs = await getAdminViewAs();
+    if (viewAs) {
+      return NextResponse.json(viewAs.profile);
+    }
+
     await requireAffiliate();
     const profile = await getAffiliateProfile();
 

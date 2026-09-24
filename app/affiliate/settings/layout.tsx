@@ -37,9 +37,11 @@ export default async function AffiliateSettingsLayout({
     redirect('/login?callbackUrl=/affiliate/settings/payout');
   }
 
-  // Redirect admin users to Admin Executive Dashboard
+  // Payout settings hold the affiliate's bank details, so they are not part
+  // of the admin read-only view. The dashboard layout sends an admin on to
+  // the affiliate being viewed, or to the picker.
   if (session.user.role === 'ADMIN') {
-    redirect('/admin');
+    redirect('/affiliate/dashboard');
   }
 
   try {

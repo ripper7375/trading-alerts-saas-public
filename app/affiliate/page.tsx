@@ -102,10 +102,18 @@ export default function AffiliateLandingPage(): React.ReactElement {
                 'You are signed in with System Administrator privileges. Affiliate program oversight is managed from the Admin console.'
               )}
             </p>
-            <div className="mt-6">
+            <div className="mt-6 space-y-3">
               <Button asChild className="w-full bg-blue-600 hover:bg-blue-700">
                 <Link href="/admin">
                   {t('Go to Admin Executive Dashboard')}
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/admin/affiliates/view-as">
+                  {t(
+                    'affiliate.view_as.open_picker',
+                    "View an affiliate's dashboard (read-only)"
+                  )}
                 </Link>
               </Button>
             </div>

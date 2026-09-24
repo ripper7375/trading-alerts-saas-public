@@ -21,6 +21,12 @@ import { redirect } from 'next/navigation';
 import { getSession, requireAffiliate } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import AffiliateNav from '@/components/affiliate/affiliate-nav';
+import AffiliateViewAsBanner from '@/components/affiliate/view-as-banner';
+import {
+  AffiliateViewAsProvider,
+  type AffiliateViewAsInfo,
+} from '@/components/affiliate/view-as-context';
+import { getAdminViewAs } from '@/lib/affiliate/view-as';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 
@@ -53,42 +59,52 @@ export default async function AffiliateDashboardLayout({
     redirect('/login?callbackUrl=/affiliate/dashboard');
   }
 
-  // Redirect admin users to Admin Executive Dashboard
+  // Admins are not affiliates. They see an affiliate's dashboard only
+  // read-only, after picking one at /admin/affiliates/view-as
+  // (lib/affiliate/view-as.ts).
+  let viewAs: AffiliateViewAsInfo | null = null;
   if (session.user.role === 'ADMIN') {
-    redirect('/admin');
-  }
-
-  // F79: re-check the DB when the JWT hasn't caught up yet, instead of
-  // bouncing a genuine affiliate back to /register.
-  try {
-    await requireAffiliate();
-  } catch (err) {
-    if (err instanceof AuthError) {
-      redirect('/affiliate/register');
+    const adminViewAs = await getAdminViewAs();
+    if (!adminViewAs) {
+      redirect('/admin/affiliates/view-as');
     }
-    throw err;
+    viewAs = adminViewAs.target;
+  } else {
+    // F79: re-check the DB when the JWT hasn't caught up yet, instead of
+    // bouncing a genuine affiliate back to /register.
+    try {
+      await requireAffiliate();
+    } catch (err) {
+      if (err instanceof AuthError) {
+        redirect('/affiliate/register');
+      }
+      throw err;
+    }
   }
 
   const dict = getDictionary(await getServerLanguage());
 
   return (
-    <div className="min-h-screen bg-background">
-      <AffiliateNav />
+    <AffiliateViewAsProvider value={viewAs}>
+      <div className="min-h-screen bg-background">
+        <AffiliateNav />
+        <AffiliateViewAsBanner />
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-        <div className="px-4 sm:px-0">{children}</div>
-      </main>
+        {/* Main Content */}
+        <main className="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
+          <div className="px-4 sm:px-0">{children}</div>
+        </main>
 
-      {/* Footer */}
-      <footer className="mt-auto border-t border-border bg-card">
-        <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-muted-foreground">
-            {dict['nav.affiliate.footer_tagline'] ??
-              'DavinTrade Affiliate Partner Program'}
-          </p>
-        </div>
-      </footer>
-    </div>
+        {/* Footer */}
+        <footer className="mt-auto border-t border-border bg-card">
+          <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
+            <p className="text-center text-sm text-muted-foreground">
+              {dict['nav.affiliate.footer_tagline'] ??
+                'DavinTrade Affiliate Partner Program'}
+            </p>
+          </div>
+        </footer>
+      </div>
+    </AffiliateViewAsProvider>
   );
 }

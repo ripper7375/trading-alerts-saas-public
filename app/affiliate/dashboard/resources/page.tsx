@@ -18,6 +18,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { useAffiliateViewAs } from '@/components/affiliate/view-as-context';
 import { useLocale } from '@/lib/context/locale-context';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
@@ -67,6 +68,10 @@ export default function AffiliateResourcesPage(): React.ReactElement {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  // Admin read-only view (lib/affiliate/view-as.ts): engagement counters
+  // (downloads, swipe copies) are the affiliate's own, so an admin must not
+  // move them. Their routes refuse an admin anyway.
+  const readOnly = useAffiliateViewAs() !== null;
   const [origin, setOrigin] = useState('');
 
   useEffect(() => {
@@ -126,6 +131,8 @@ export default function AffiliateResourcesPage(): React.ReactElement {
     // Copy immediately from already-fetched text (no round trip needed to
     // show the result), then fire the engagement-tracking call.
     await copyToClipboard(`swipe-${asset.id}`, asset.copyText);
+
+    if (readOnly) return;
 
     try {
       await fetch(`/api/affiliate/dashboard/resources/${asset.id}/copy`, {
@@ -279,15 +286,31 @@ export default function AffiliateResourcesPage(): React.ReactElement {
                     {asset.format} · {asset.resolution}
                   </p>
                 </div>
-                <a
-                  href={`/api/affiliate/dashboard/resources/${asset.id}/download`}
-                  className="inline-block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
-                >
-                  {t(
-                    'affiliate.resources.download_format',
-                    'Download {format}'
-                  ).replace('{format}', asset.format)}
-                </a>
+                {readOnly ? (
+                  <span
+                    aria-disabled="true"
+                    title={t(
+                      'affiliate.view_as.download_disabled',
+                      'Downloads are disabled in the admin read-only view'
+                    )}
+                    className="inline-block w-full cursor-not-allowed rounded-md border border-border bg-muted px-3 py-1.5 text-sm font-medium text-muted-foreground"
+                  >
+                    {t(
+                      'affiliate.resources.download_format',
+                      'Download {format}'
+                    ).replace('{format}', asset.format)}
+                  </span>
+                ) : (
+                  <a
+                    href={`/api/affiliate/dashboard/resources/${asset.id}/download`}
+                    className="inline-block w-full rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+                  >
+                    {t(
+                      'affiliate.resources.download_format',
+                      'Download {format}'
+                    ).replace('{format}', asset.format)}
+                  </a>
+                )}
               </div>
             ))}
           </div>
@@ -399,12 +422,16 @@ export default function AffiliateResourcesPage(): React.ReactElement {
               )}
             </dt>
             <dd className="mt-1 text-muted-foreground">
-              <a
-                href="/affiliate/settings/payout"
-                className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
-              >
-                {t('affiliate.payouts.payout_settings', 'Payout Settings')}
-              </a>{' '}
+              {readOnly ? (
+                t('affiliate.payouts.payout_settings', 'Payout Settings')
+              ) : (
+                <a
+                  href="/affiliate/settings/payout"
+                  className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
+                >
+                  {t('affiliate.payouts.payout_settings', 'Payout Settings')}
+                </a>
+              )}{' '}
               {t(
                 'affiliate.resources.faq_setup_payment_answer',
                 'is the single place to configure your bank details.'

@@ -9,6 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getAdminViewAs } from '@/lib/affiliate/view-as';
 import { requireAffiliate, getAffiliateProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { buildCommissionSummary } from '@/lib/affiliate/report-builder';
@@ -39,14 +40,19 @@ import {
  */
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    // Require affiliate access
-    await requireAffiliate();
+    // Admin "view as affiliate" (read-only) serves the chosen affiliate's
+    // data; everyone else must be an affiliate. See lib/affiliate/view-as.ts.
+    const viewAs = await getAdminViewAs();
+    if (!viewAs) {
+      await requireAffiliate();
+    }
 
     // Parse query params (also needed for the money-service branch below)
     const searchParams = Object.fromEntries(request.nextUrl.searchParams);
 
     // Session 4A-7a (F45 server-side proxy) — see stats/route.ts's comment.
-    if (isAffiliateReadApiMigrated()) {
+    // The proxy authenticates as the caller, so view-as reads Prisma below.
+    if (!viewAs && isAffiliateReadApiMigrated()) {
       const token = await getMoneyServiceToken();
       if (token) {
         try {
@@ -72,7 +78,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
 
     // Get affiliate profile
-    const profile = await getAffiliateProfile();
+    const profile = viewAs?.profile ?? (await getAffiliateProfile());
 
     if (!profile) {
       return NextResponse.json(
