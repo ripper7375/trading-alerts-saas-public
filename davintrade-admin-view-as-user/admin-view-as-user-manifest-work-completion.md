@@ -7,7 +7,7 @@
 | **Model**     | The affiliate view-as (`davintrade-admin-view-as-affiliate/`), adapted for users.                                                                         |
 | **Branch**    | `feat/admin-view-as-user`, off `main` @ `084ddaae`: `e5f087fb` (read path), `50e6916c` (UI), plus this docs commit. **Pushed, not merged, not deployed.** |
 | **Migration** | **None.** No schema change. Start/stop is logged to the server log (`[admin-view-as-user]`); no admin audit table exists.                                 |
-| **Status**    | Code complete and verified locally. **Signed-in admin click-through not done** (the Executor never enters credentials).                                   |
+| **Status**    | Code complete, verified locally, and **tested signed-in by Davin (2026-09-24)**. Merged to `main` by PR. Not deployed.                                    |
 
 ---
 
@@ -150,10 +150,9 @@ rendered the real banner, nav, gate and billing page with the API stubbed in the
 
 ## 7. Not verified / open
 
-1. **Signed-in admin click-through** on a deployed build: Users → View as user → Billing,
-   Security, Security Activity → Switch → Exit, for one FREE and one PRO customer.
-2. **Real data under view mode.** Only the Prisma paths were exercised, with mocks. The first
-   real view shows whether they match operation-service's output for the same user.
+1. ~~Signed-in admin click-through~~ and ~~real data under view mode~~: **done by Davin,
+   2026-09-24**, before merge.
+2. **Deploy.** Merged, not yet deployed.
 3. **Currency.** Plan prices are formatted in the **admin's** display currency, not the
    customer's. Invoice rows show the exact charged currency, so billing disputes are unaffected.
 4. **Audit trail** is server logs only. A durable record needs a table and a migration.

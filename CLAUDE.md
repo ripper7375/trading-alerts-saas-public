@@ -16,7 +16,8 @@
 > **Ad-hoc session (2026-09-24, phase/session unchanged) — admin read-only "view as user" for
 > customer support: a FREE or PRO user's Billing, Login History (Security) and Security Activity.
 > Code complete and verified, on branch `feat/admin-view-as-user` (`e5f087fb` read path,
-> `50e6916c` UI, plus a docs commit). Pushed, NOT merged, NOT deployed. No migration.** **Full account:** `davintrade-admin-view-as-user/admin-view-as-user-manifest-work-completion.md`.
+> `50e6916c` UI, plus docs commits). **Tested signed-in by Davin 2026-09-24, merged to `main` by PR.**
+> NOT deployed. No migration.** **Full account:** `davintrade-admin-view-as-user/admin-view-as-user-manifest-work-completion.md`.
 > Modelled on the affiliate view-as. Entry: a **View as user** button on `/admin/users` rows and
 > on `/admin/users/[id]` (disabled for admins), which opens `/settings/billing` under a banner
 > (Switch user / Exit view). The nav shows only Security and Billing; every other settings page
@@ -35,7 +36,7 @@
 > **Found:** my own `user-detail.test.tsx` wrapper leaked LocaleProvider's real geo-IP fetch and
 > crashed other suites at random (L40 again); fixed by seeding the locale. Pre-existing: the
 > floating Support Centre button overflows 375px on every page (seen on untouched `/pricing`).
-> **Not verified:** signed-in click-through; real data. **Davin's call:** the full preferences
+> **Verified by Davin:** the signed-in admin click-through, on real data. **Davin's call:** the full preferences
 > object in view mode is fine (not personal data; useful for support and marketing).
 > **Gotcha:** the desktop app's background `git status` polling holds `.git/index.lock`, which
 > made lint-staged's backup step fail repeatedly; waiting ~2s for the lock to stay free before
