@@ -13,6 +13,31 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — display currency now converts at its own
+> rate, and choosing a language suggests its currency. Branch `fix/currency-display-rate`
+> (`1461c3fb`), NOT pushed, NOT merged. No migration.** Davin asked two questions about
+> Settings → Language & Region (does Thai default to THB, and does Thai + GBP show GBP everywhere?).
+> The answer to both was no. **Real bug:** `formatCurrency()` took the **symbol** from
+> `preferences.currency` but the **rate** from `preferences.countryCode`, so Thai + GBP showed a baht
+> amount with a pound sign: **$29 → "£1,015" instead of "£22.62"**. The same happened in the 5 Server
+> Components that format USD (the 4 admin BI dashboards and affiliate payouts). A 2026-09-01 comment
+> had kept the split on purpose as "original behavior"; it was the bug.
+> **Fix:** the rate now comes from the currency (`CURRENCY_USD_RATES` / `exchangeRateForCurrency()`
+> in `lib/country-config.ts`). `formatCurrencyAmount` no longer takes an `exchangeRate` argument, so
+> the symbol and the rate cannot disagree. The Settings page suggests the language's currency when a
+> language is chosen (only when exactly one country uses that language, e.g. Thai → THB; en-US, used
+> by US/NG/ZA, keeps the current currency), and the user can still override it. THB, INR, NGN, PKR,
+> VND, IDR, ZAR and TRY were added to the dropdown.
+> **⚠ Approximate rates:** CNY 7.1, AUD 1.52, CAD 1.38 are approximations with no dated source (no
+> country uses them); before this change they were converted with the country's rate.
+> **Verified:** `tsc`/ESLint/Prettier clean; 2 new suites/10 tests; full `test:ci` **238/238 ·
+> 3065/3065** (236/3055 + exactly these). Live `next dev` via a throwaway route (deleted): picking
+> Thai switches the real dropdown to THB; a stored Thai/TH/GBP preference renders £22.62; no console
+> errors other than the expected signed-out 401s. **Not verified:** a signed-in Save on
+> `davintrade.app`. **Gotcha:** never use `git stash` here. The desktop app's `.git/index.lock`
+> polling made `stash push` fail silently, and the following `pop` then tried an unrelated
+> 2026-09-12 lint-staged backup. It aborted, so nothing was lost.
+
 > **Ad-hoc session (2026-09-24, phase/session unchanged) — admin read-only "view as user" for
 > customer support: a FREE or PRO user's Billing, Login History (Security) and Security Activity.
 > Code complete and verified, on branch `feat/admin-view-as-user` (`e5f087fb` read path,
