@@ -13,6 +13,35 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — the 8 CI checks that failed on every
+> PR now pass. PR #467, merged.** The same 8 checks (api-tests, both TypeScript checks, Unit &
+> Component Tests, Run Tests, Test Summary, ESLint Security Check, Security Check Summary) had
+> failed on #465, #466 and `main`. There were three causes:
+>
+> 1. `@trading-alerts/types` is consumed from its gitignored `dist/`, which only `prebuild`
+>    built. That gave 141 TS errors, all "Cannot find module", and most failing suites. The root
+>    `postinstall` now builds it.
+> 2. `lint` ran `next lint`, which Next 16 removed. It now runs ESLint on `app components lib src
+hooks types middleware.ts` (0 errors).
+> 3. **db-push drift:** 7 tables, 2 enums and 4 `User` 2FA columns were never created by any
+>    migration, so a fresh `migrate deploy` failed at `20260904120000_default_theme_light`. The
+>    fix is guarded, idempotent `20260904110000_backfill_untracked_tables`, with DDL from
+>    `prisma migrate diff`.
+>
+> **Verified:** on a disposable Postgres 16 all 28 migrations replay, the result diffs clean
+> against both schemas, and re-applying the backfill to a populated DB is a no-op. A fresh
+> worktree plus `pnpm install --frozen-lockfile` passes type-check, lint and `test:ci`
+> **230/230 · 2983/2983**. PR CI: **24/24 pass**, including Integration Tests and the Production
+> Build Check, which used to be skipped.
+> **⚠ Production:** the backfill is dated before already-applied migrations, so production lists
+> it as pending. Applying it is a no-op that only records history. Run `prisma migrate status`
+> first, since `deploy` applies _every_ pending migration. `check-production-migrations.yml` and
+> `deploy.yml` were already failing on `main` for other reasons, were not among the 8, and were
+> not investigated.
+> **Local gotcha:** `prisma.config.ts` loads `.env.local` with `override: true`, so `DIRECT_URL`
+> beats any `DATABASE_URL` you pass. The replay used a throwaway config with a hardcoded
+> container URL (deleted afterwards).
+
 > **Ad-hoc session (2026-09-24, phase/session unchanged) — admin read-only "view as affiliate",
 > plus a full page load after login. Code complete and verified, on branch
 > `feat/admin-view-as-affiliate` (4 commits, pushed, NOT merged, NOT deployed). No migration.**
