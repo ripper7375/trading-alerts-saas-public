@@ -10,6 +10,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import {
+  VIEW_AS_DENIED_BODY,
+  resolveViewAsSubject,
+} from '@/lib/admin/user-view-as';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import {
@@ -91,9 +95,9 @@ interface SubscriptionResponse {
  *   }
  * }
  */
-export async function GET(): Promise<
-  NextResponse<SubscriptionResponse | { error: string }>
-> {
+export async function GET(
+  request: NextRequest
+): Promise<NextResponse<SubscriptionResponse | { error: string }>> {
   try {
     // Authenticate user
     const session = await getServerSession(authOptions);
@@ -102,7 +106,12 @@ export async function GET(): Promise<
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    // Admin read-only "view as user": ?view_as=user reads the viewed user.
+    const subject = await resolveViewAsSubject(request, session.user);
+    if (subject.kind === 'denied') {
+      return NextResponse.json(VIEW_AS_DENIED_BODY, { status: 403 });
+    }
+    const userId = subject.userId;
 
     // Get user with subscription from database
     const user = await prisma.user.findUnique({

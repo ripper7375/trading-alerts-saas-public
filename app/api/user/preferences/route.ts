@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 
+import {
+  VIEW_AS_DENIED_BODY,
+  resolveViewAsSubject,
+} from '@/lib/admin/user-view-as';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
@@ -67,7 +71,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    if (shouldUseOperationServiceForUserProfile()) {
+    // Admin read-only "view as user" (lib/admin/user-view-as.ts): with
+    // ?view_as=user, read the viewed user via Prisma, skipping the proxy
+    // (it would authenticate as the admin).
+    const subject = await resolveViewAsSubject(request, session.user);
+    if (subject.kind === 'denied') {
+      return NextResponse.json(VIEW_AS_DENIED_BODY, { status: 403 });
+    }
+
+    if (subject.kind === 'self' && shouldUseOperationServiceForUserProfile()) {
       const { status: opStatus, body } = await forwardRequestToOperationService(
         request,
         '/user/preferences'
@@ -77,7 +89,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     // Fetch user preferences
     const userPreferences = await prisma.userPreferences.findUnique({
-      where: { userId: session.user.id },
+      where: { userId: subject.userId },
     });
 
     // Server-side GeoIP resolution (spec §4/§6.B): a user with NO stored

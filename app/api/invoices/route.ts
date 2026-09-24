@@ -29,6 +29,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import {
+  VIEW_AS_DENIED_BODY,
+  resolveViewAsSubject,
+} from '@/lib/admin/user-view-as';
 import { authOptions } from '@/lib/auth/auth-options';
 import { planDescription } from '@/lib/billing/dlocal-receipt';
 import {
@@ -109,7 +113,14 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    // Admin read-only "view as user": ?view_as=user reads the viewed user.
+    const subject = await resolveViewAsSubject(request, session.user);
+    if (subject.kind === 'denied') {
+      return NextResponse.json(VIEW_AS_DENIED_BODY, { status: 403 });
+    }
+    const userId = subject.userId;
+    // Receipt links must carry the opt-in too, or they'd resolve to the admin.
+    const receiptQuery = subject.kind === 'view-as' ? '?view_as=user' : '';
 
     // Optional cap; default is the full history.
     const limitParam = request.nextUrl.searchParams.get('limit');
@@ -142,7 +153,7 @@ export async function GET(
         status: 'paid',
         description: planDescription(payment.planType),
         // dLocal issues no PDF -- we generate a Stripe-style receipt.
-        invoicePdfUrl: `/api/invoices/${encodeURIComponent(payment.id)}/receipt`,
+        invoicePdfUrl: `/api/invoices/${encodeURIComponent(payment.id)}/receipt${receiptQuery}`,
         provider: 'DLOCAL',
         planType: payment.planType,
         // davintrade-vat-stack Section 1.1: dLocal markets are flat-rate,
