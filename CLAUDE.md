@@ -13,6 +13,60 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — billing history: dLocal PDF receipts,
+> an "amounts may differ" notice, and the full history instead of 12 rows. Code complete and
+> verified, on branch `feat/billing-receipts-and-history` (`725a3781` backend, `82294af8` UI,
+> `1ad896a0` CSS, plus a docs commit). Pushed, NOT merged, NOT deployed. No migration.**
+> **Full account:** `davintrade-bill-receipts-and-history/bill-receipts-and-history-manifest-work-completion.md`.
+> This entry is the index. Davin asked for three things on `/settings/billing`.
+>
+> 1. **dLocal receipts.** dLocal issues no invoice PDF, so dLocal rows had nothing to download.
+>    New `GET /api/invoices/[id]/receipt` renders a receipt in Stripe's layout: receipt and
+>    invoice numbers, seller and bill-to, "INR X paid on DATE", line items, subtotal, discount,
+>    total, amount paid, and the rate dLocal applied. Built with `pdf-lib` (new dependency, pure
+>    JS, standard fonts, no font files). The route returns 404 unless the payment is the caller's
+>    own completed dLocal payment. Numbers are derived from the payment, so they are stable and
+>    need no migration; they are receipts, **not** sequential tax invoices. The seller block comes
+>    from optional `BILLING_SELLER_NAME/ADDRESS/TAX_ID`, because the repo records no legal entity
+>    or address. Standard fonts only encode Latin-1, so amounts use ISO codes and a Thai or Arabic
+>    name is left off (the email line stays).
+> 2. **Amount differences.** The table used to show only a figure converted into the display
+>    currency, so it disagreed with the PDF. Now the bold figure is the exact charge in its own
+>    currency, an "≈" line shows the indicative conversion, and a "Why amounts may differ" note
+>    explains card FX, dLocal conversion and rounding. The plan card also says its price is an
+>    approximation. `ar` and `th` translations were added (the only dictionaries with `billing.*`
+>    keys).
+> 3. **Full history.** Stripe is fetched with cursor pagination, capped at 1000. The page shows
+>    12 rows, then Load More and Show all. FREE users who have past invoices now see the section,
+>    so receipts stay reachable after cancelling.
+>
+> **Real bugs found and fixed:**
+>
+> - `app/globals.css` hid `td a[target='_blank']` everywhere (a TradingView-logo rule copied from
+>   the seed in 9-1). That means the invoice **View/PDF buttons were never visible in production**,
+>   for Stripe users too. The rule is now scoped to `.tv-lightweight-charts`, and the chart logo
+>   is still hidden by `a[href*='tradingview']`.
+> - dLocal rows showed the gross `amountUSD`, which ignored affiliate discounts.
+> - Non-USD Stripe amounts were converted a second time.
+> - Stripe zero-decimal currencies were divided by 100.
+> - Two billing tests had encoded the bug by expecting a EUR invoice to render as "$34.51". They
+>   now expect "€34.51".
+>
+> **Verified:**
+>
+> - `tsc`, ESLint and Prettier are clean.
+> - Two new suites and five new page tests. Full `test:ci` gives **232/232 · 3008/3008**
+>   (230/2983 + 2/25).
+> - Mutation 5/5 killed, each restore byte-exact.
+> - Sample PDFs were rendered and inspected.
+> - Live `next dev` through throwaway routes (deleted): the list, notice, paging, visible
+>   buttons, and a PDF served through the Turbopack bundle. The receipt and invoices APIs return
+>   401 when signed out.
+>
+> **Not verified:** a signed-in click-through, and a real dLocal payment. **Gotcha:** this shell
+> collapses `\\` to `\`, so escapes written through Bash or Python heredocs get corrupted; make
+> regex and escape edits with the Edit tool.
+
 > **Ad-hoc session (2026-09-24, phase/session unchanged) — the 8 CI checks that failed on every
 > PR now pass. PR #467, merged.** The same 8 checks (api-tests, both TypeScript checks, Unit &
 > Component Tests, Run Tests, Test Summary, ESLint Security Check, Security Check Summary) had
