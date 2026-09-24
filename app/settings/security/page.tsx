@@ -39,6 +39,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useUserViewAs } from '@/components/admin/user-view-as/user-view-as-context';
+import { withViewAsQuery } from '@/lib/admin/user-view-as-paths';
 import { useLocale } from '@/lib/context/locale-context';
 
 /**
@@ -49,6 +51,9 @@ import { useLocale } from '@/lib/context/locale-context';
  *   /api/user/2fa/* endpoints
  * - Login history with device/location info (GET /api/user/login-history,
  *   paginated)
+ * - Admin "view as user" (lib/admin/user-view-as.ts): the GETs add
+ *   `?view_as=user` to read the viewed user; the alert switches are disabled
+ *   and the 2FA buttons hidden, since they would change the admin's account.
  */
 
 interface LoginHistoryItem {
@@ -132,6 +137,7 @@ function getStatusColor(status: string): string {
 
 export default function SecuritySettingsPage(): React.ReactElement {
   useSession();
+  const viewing = useUserViewAs() !== null;
   const { t } = useLocale();
   const { toasts, removeToast, success, error: showError } = useToast();
 
@@ -174,45 +180,53 @@ export default function SecuritySettingsPage(): React.ReactElement {
   const [regeneratePassword, setRegeneratePassword] = useState('');
   const codeInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  const fetchLoginHistory = useCallback(async (offset = 0, append = false) => {
-    if (append) {
-      setIsLoadingMoreHistory(true);
-    } else {
-      setIsLoadingHistory(true);
-    }
-    setHistoryError(null);
-    try {
-      const response = await fetch(
-        `/api/user/login-history?limit=20&offset=${offset}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setLoginHistory((prev) =>
-          append ? [...prev, ...(data.history || [])] : data.history || []
-        );
-        setHistoryHasMore(Boolean(data.pagination?.hasMore));
+  const fetchLoginHistory = useCallback(
+    async (offset = 0, append = false) => {
+      if (append) {
+        setIsLoadingMoreHistory(true);
       } else {
+        setIsLoadingHistory(true);
+      }
+      setHistoryError(null);
+      try {
+        const response = await fetch(
+          withViewAsQuery(
+            `/api/user/login-history?limit=20&offset=${offset}`,
+            viewing
+          )
+        );
+        if (response.ok) {
+          const data = await response.json();
+          setLoginHistory((prev) =>
+            append ? [...prev, ...(data.history || [])] : data.history || []
+          );
+          setHistoryHasMore(Boolean(data.pagination?.hasMore));
+        } else {
+          setHistoryError(
+            t(
+              'settings.security.error_load_history',
+              'Failed to load login history'
+            )
+          );
+        }
+      } catch (error) {
+        console.error('Error fetching login history:', error);
         setHistoryError(
           t(
             'settings.security.error_load_history',
             'Failed to load login history'
           )
         );
+      } finally {
+        setIsLoadingHistory(false);
+        setIsLoadingMoreHistory(false);
       }
-    } catch (error) {
-      console.error('Error fetching login history:', error);
-      setHistoryError(
-        t(
-          'settings.security.error_load_history',
-          'Failed to load login history'
-        )
-      );
-    } finally {
-      setIsLoadingHistory(false);
-      setIsLoadingMoreHistory(false);
-    }
+    },
+    // `t` is left out on purpose, as before: its identity changes when the
+    // locale loads, which would refetch the list.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    [viewing]
+  );
 
   const handleLoadMoreHistory = useCallback(() => {
     fetchLoginHistory(loginHistory.length, true);
@@ -221,7 +235,9 @@ export default function SecuritySettingsPage(): React.ReactElement {
   const fetchPreferences = useCallback(async () => {
     setIsLoadingPrefs(true);
     try {
-      const response = await fetch('/api/user/preferences');
+      const response = await fetch(
+        withViewAsQuery('/api/user/preferences', viewing)
+      );
       if (response.ok) {
         const data = await response.json();
         setPreferences({
@@ -234,17 +250,21 @@ export default function SecuritySettingsPage(): React.ReactElement {
     } finally {
       setIsLoadingPrefs(false);
     }
-  }, []);
+  }, [viewing]);
 
   const fetch2FAStatus = useCallback(async () => {
     setIsLoading2FA(true);
     try {
-      const response = await fetch('/api/user/2fa/setup');
+      const response = await fetch(
+        withViewAsQuery('/api/user/2fa/setup', viewing)
+      );
       if (response.ok) {
         const data = await response.json();
         setTwoFactorEnabled(data.enabled);
       }
-      const backupResponse = await fetch('/api/user/2fa/backup-codes');
+      const backupResponse = await fetch(
+        withViewAsQuery('/api/user/2fa/backup-codes', viewing)
+      );
       if (backupResponse.ok) {
         const backupData = await backupResponse.json();
         setRemainingBackupCodes(backupData.remainingCodes || 0);
@@ -254,7 +274,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
     } finally {
       setIsLoading2FA(false);
     }
-  }, []);
+  }, [viewing]);
 
   useEffect(() => {
     fetchLoginHistory();
@@ -623,7 +643,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
                   onCheckedChange={(checked) =>
                     updatePreference('newDeviceAlerts', checked)
                   }
-                  disabled={isSavingPrefs}
+                  disabled={isSavingPrefs || viewing}
                 />
               </CardContent>
             </Card>
@@ -656,7 +676,7 @@ export default function SecuritySettingsPage(): React.ReactElement {
                   onCheckedChange={(checked) =>
                     updatePreference('passwordChangeAlerts', checked)
                   }
-                  disabled={isSavingPrefs}
+                  disabled={isSavingPrefs || viewing}
                 />
               </CardContent>
             </Card>
@@ -732,23 +752,25 @@ export default function SecuritySettingsPage(): React.ReactElement {
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowBackupCodesDialog(true)}
-                  >
-                    {t('settings.security.backup_codes', 'Backup Codes')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowDisableDialog(true)}
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
-                  >
-                    {t('settings.security.disable', 'Disable')}
-                  </Button>
-                </div>
+                {!viewing && (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowBackupCodesDialog(true)}
+                    >
+                      {t('settings.security.backup_codes', 'Backup Codes')}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowDisableDialog(true)}
+                      className="text-red-600 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+                    >
+                      {t('settings.security.disable', 'Disable')}
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -780,16 +802,18 @@ export default function SecuritySettingsPage(): React.ReactElement {
                     </p>
                   </div>
                 </div>
-                <Button onClick={startSetup} disabled={is2FASubmitting}>
-                  {is2FASubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t('settings.security.setting_up', 'Setting up...')}
-                    </>
-                  ) : (
-                    t('settings.security.enable_2fa', 'Enable 2FA')
-                  )}
-                </Button>
+                {!viewing && (
+                  <Button onClick={startSetup} disabled={is2FASubmitting}>
+                    {is2FASubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t('settings.security.setting_up', 'Setting up...')}
+                      </>
+                    ) : (
+                      t('settings.security.enable_2fa', 'Enable 2FA')
+                    )}
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

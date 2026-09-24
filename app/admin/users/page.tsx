@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 
+import ViewAsUserButton from '@/components/admin/user-view-as/view-as-user-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -362,11 +363,14 @@ export default function UsersPage(): React.ReactElement {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button asChild variant="outline" size="sm">
-                          <Link href={`/admin/users/${user.id}`}>
-                            {t('admin.users.inspect_user', 'Inspect User →')}
-                          </Link>
-                        </Button>
+                        <div className="flex items-start justify-end gap-2">
+                          <ViewAsUserButton userId={user.id} role={user.role} />
+                          <Button asChild variant="outline" size="sm">
+                            <Link href={`/admin/users/${user.id}`}>
+                              {t('admin.users.inspect_user', 'Inspect User →')}
+                            </Link>
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

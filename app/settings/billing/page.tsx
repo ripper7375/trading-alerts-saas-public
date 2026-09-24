@@ -21,7 +21,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useUserViewAs } from '@/components/admin/user-view-as/user-view-as-context';
 import { InvoiceList, type Invoice } from '@/components/billing/invoice-list';
+import { withViewAsQuery } from '@/lib/admin/user-view-as-paths';
 import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
@@ -46,6 +48,9 @@ import { useLocale } from '@/lib/context/locale-context';
  *   is actually live and does not have that bug. See Deviations.
  * - Invoice history table, driven by GET /api/invoices (via `InvoiceList`)
  * - Usage statistics (alerts, from GET /api/alerts)
+ * - Admin "view as user" (lib/admin/user-view-as.ts): every GET adds
+ *   `?view_as=user` so it reads the viewed user, and the plan actions
+ *   (cancel, manage, upgrade) are hidden -- they would act on the admin.
  */
 
 /** Invoice history is revealed this many rows at a time. */
@@ -86,6 +91,8 @@ interface UsageStats {
 
 export default function BillingSettingsPage(): React.ReactElement {
   const { data: session } = useSession();
+  const viewAs = useUserViewAs();
+  const viewing = viewAs !== null;
   const { t, formatDate, formatCurrency, language, currency } = useLocale();
   const displayCurrency = (currency || 'GBP').toUpperCase();
 
@@ -113,14 +120,19 @@ export default function BillingSettingsPage(): React.ReactElement {
   const [cancelError, setCancelError] = useState<string | null>(null);
 
   const userTier = (subscriptionData?.tier ??
-    session?.user?.tier ??
+    (viewAs ? viewAs.tier : session?.user?.tier) ??
     'FREE') as Tier;
+  const userRole = viewAs
+    ? viewAs.role
+    : (session?.user as { role?: string } | undefined)?.role;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
   const { regularPrice } = useAffiliateConfig();
 
   const fetchSubscription = useCallback(async (): Promise<void> => {
     try {
-      const response = await fetch('/api/subscription');
+      const response = await fetch(
+        withViewAsQuery('/api/subscription', viewing)
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch subscription');
       }
@@ -132,12 +144,12 @@ export default function BillingSettingsPage(): React.ReactElement {
         error instanceof Error ? error.message : 'Failed to fetch subscription'
       );
     }
-  }, []);
+  }, [viewing]);
 
   useEffect(() => {
     async function fetchInvoices(): Promise<void> {
       try {
-        const response = await fetch('/api/invoices');
+        const response = await fetch(withViewAsQuery('/api/invoices', viewing));
         if (!response.ok) {
           throw new Error('Failed to fetch invoices');
         }
@@ -172,7 +184,7 @@ export default function BillingSettingsPage(): React.ReactElement {
 
     async function fetchAlertUsage(): Promise<void> {
       try {
-        const response = await fetch('/api/alerts');
+        const response = await fetch(withViewAsQuery('/api/alerts', viewing));
         if (!response.ok) {
           throw new Error('Failed to fetch alert usage');
         }
@@ -201,7 +213,7 @@ export default function BillingSettingsPage(): React.ReactElement {
     }
 
     void loadAll();
-  }, [fetchSubscription]);
+  }, [fetchSubscription, viewing]);
 
   const handleConfirmCancellation = async (): Promise<void> => {
     setCancelling(true);
@@ -246,7 +258,7 @@ export default function BillingSettingsPage(): React.ReactElement {
         {t('billing.title', 'Billing & Subscription')}
       </h2>
 
-      {(session?.user as { role?: string })?.role === 'AFFILIATE' && (
+      {userRole === 'AFFILIATE' && (
         <div className="mb-6 rounded-lg border border-indigo-200 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-900/20">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -260,23 +272,25 @@ export default function BillingSettingsPage(): React.ReactElement {
                 )}
               </p>
             </div>
-            <div className="flex shrink-0 gap-2">
-              <Button
-                asChild
-                size="sm"
-                variant="outline"
-                className="border-indigo-300 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:text-indigo-200"
-              >
-                <Link href="/affiliate/dashboard/payouts">
-                  {t('billing.view_payouts', 'View Payouts')}
-                </Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href="/affiliate/settings/payout">
-                  {t('billing.payout_settings', 'Payout Settings')}
-                </Link>
-              </Button>
-            </div>
+            {!viewing && (
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="border-indigo-300 text-indigo-700 hover:bg-indigo-100 dark:border-indigo-700 dark:text-indigo-200"
+                >
+                  <Link href="/affiliate/dashboard/payouts">
+                    {t('billing.view_payouts', 'View Payouts')}
+                  </Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href="/affiliate/settings/payout">
+                    {t('billing.payout_settings', 'Payout Settings')}
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -405,7 +419,14 @@ export default function BillingSettingsPage(): React.ReactElement {
 
           {/* Action Buttons -- FREE tier always shows a real re-subscribe
               path to /pricing, including immediately after a cancel below */}
-          {userTier === 'FREE' ? (
+          {viewing ? (
+            <p className="text-sm italic text-muted-foreground">
+              {t(
+                'admin.user_view_as.billing_actions_hidden',
+                'Plan actions are hidden in admin view. They would apply to your own account, not this user.'
+              )}
+            </p>
+          ) : userTier === 'FREE' ? (
             <Link href="/pricing">
               <Button>
                 {t('billing.upgrade_to_pro', 'Upgrade to PRO')}
@@ -653,8 +674,8 @@ export default function BillingSettingsPage(): React.ReactElement {
         </section>
       )}
 
-      {/* Upgrade Prompt for FREE users */}
-      {userTier === 'FREE' && (
+      {/* Upgrade Prompt for FREE users (not in admin view: marketing only) */}
+      {userTier === 'FREE' && !viewing && (
         <Card className="border-0 bg-gradient-to-r from-primary to-amber-600 text-primary-foreground">
           <CardContent className="p-6">
             <div className="flex flex-col items-center gap-6 sm:flex-row">

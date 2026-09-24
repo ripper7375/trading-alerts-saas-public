@@ -13,6 +13,7 @@ import {
   Shield,
 } from 'lucide-react';
 
+import { useUserViewAs } from '@/components/admin/user-view-as/user-view-as-context';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/lib/context/locale-context';
 
@@ -92,11 +93,18 @@ const settingsTabs: SettingsTabDef[] = [
   },
 ];
 
+/** Tabs that show the viewed user in admin "view as user" mode. */
+const VIEW_AS_TAB_IDS = new Set(['security', 'billing']);
+
 export function SettingsNav(): React.ReactElement {
   const pathname = usePathname();
   const { t } = useLocale();
+  const viewAs = useUserViewAs();
+  const tabs = viewAs
+    ? settingsTabs.filter((tab) => VIEW_AS_TAB_IDS.has(tab.id))
+    : settingsTabs;
 
-  const activeTabId = settingsTabs.find(
+  const activeTabId = tabs.find(
     (tab) => pathname === tab.href || pathname.startsWith(`${tab.href}/`)
   )?.id;
 
@@ -106,7 +114,7 @@ export function SettingsNav(): React.ReactElement {
       <div className="hidden w-56 flex-shrink-0 lg:block">
         <div className="sticky top-20 rounded-xl border border-border bg-card p-3 shadow-sm">
           <nav className="space-y-1">
-            {settingsTabs.map((tab) => {
+            {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTabId === tab.id;
 
@@ -133,7 +141,7 @@ export function SettingsNav(): React.ReactElement {
       {/* Mobile Horizontal Tabs */}
       <div className="overflow-x-auto lg:hidden">
         <div className="flex gap-2 pb-4">
-          {settingsTabs.map((tab) => {
+          {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTabId === tab.id;
 
