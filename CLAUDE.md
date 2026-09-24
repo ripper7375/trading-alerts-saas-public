@@ -15,7 +15,8 @@
 
 > **Ad-hoc session (2026-09-24, phase/session unchanged) — admin read-only "view as affiliate",
 > plus a full page load after login. Code complete and verified, on branch
-> `feat/admin-view-as-affiliate` (2 commits, NOT pushed, NOT deployed). No migration.**
+> `feat/admin-view-as-affiliate` (4 commits, pushed, NOT merged, NOT deployed). No migration.**
+> **Full account:** `davintrade-admin-view-as-affiliate/admin-view-as-affiliate-manifest-work-completion.md`.
 > Davin asked whether Admin = Admin + PRO + Affiliate. Answer: Admin + PRO only
 > (`isAffiliate: false` in `auth-options.ts`). Making the admin a real affiliate was advised
 > against (commissions and payouts to the admin, polluted affiliate metrics). He chose a
