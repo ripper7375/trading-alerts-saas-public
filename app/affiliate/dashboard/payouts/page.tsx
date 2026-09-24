@@ -22,6 +22,7 @@
 
 import { redirect } from 'next/navigation';
 
+import { getAdminViewAs } from '@/lib/affiliate/view-as';
 import { getAffiliateProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
@@ -53,7 +54,10 @@ const BATCH_STATUS_STYLES: Record<string, string> = {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default async function AffiliatePayoutsPage(): Promise<React.ReactElement> {
-  const profile = await getAffiliateProfile();
+  // Admin "view as affiliate" (read-only) shows the chosen affiliate's
+  // payouts; see lib/affiliate/view-as.ts.
+  const viewAs = await getAdminViewAs();
+  const profile = viewAs?.profile ?? (await getAffiliateProfile());
 
   if (!profile) {
     redirect('/affiliate/register');
@@ -128,12 +132,17 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
             'affiliate.payouts.payout_history_desc_prefix',
             'Real payment-batch status for every commission that has entered a payout run. To configure where payouts are sent, visit'
           )}{' '}
-          <a
-            href="/affiliate/settings/payout"
-            className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
-          >
-            {dt('affiliate.payouts.payout_settings', 'Payout Settings')}
-          </a>
+          {viewAs ? (
+            // Payout settings hold bank details: not part of the admin view.
+            dt('affiliate.payouts.payout_settings', 'Payout Settings')
+          ) : (
+            <a
+              href="/affiliate/settings/payout"
+              className="text-amber-600 underline hover:text-amber-700 dark:text-amber-400"
+            >
+              {dt('affiliate.payouts.payout_settings', 'Payout Settings')}
+            </a>
+          )}
           .
         </p>
       </div>

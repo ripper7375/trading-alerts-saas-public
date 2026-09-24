@@ -41,6 +41,14 @@ jest.mock('@/lib/auth/auth-bridge-flag', () => ({
   isAuthBridgeEnabled: () => mockIsAuthBridgeEnabled(),
 }));
 
+// Post-login landings are a full page load (window.location.assign), not a
+// router push -- see lib/auth/post-login-navigation.ts.
+const mockNavigateAfterLogin = jest.fn();
+jest.mock('@/lib/auth/post-login-navigation', () => ({
+  navigateAfterLogin: (destination: string) =>
+    mockNavigateAfterLogin(destination),
+}));
+
 import LoginForm from '@/components/auth/login-form';
 import { LocaleProvider } from '@/lib/context/locale-context';
 import {
@@ -185,7 +193,9 @@ describe('LoginForm', () => {
 
       await waitFor(
         () =>
-          expect(mockPush).toHaveBeenCalledWith('/pro/currency-index/compare'),
+          expect(mockNavigateAfterLogin).toHaveBeenCalledWith(
+            '/pro/currency-index/compare'
+          ),
         { timeout: 3000 }
       );
     });
@@ -205,12 +215,16 @@ describe('LoginForm', () => {
       render(withLocale(<LoginForm />));
       await fillAndSubmit();
 
-      await waitFor(() => expect(mockPush).toHaveBeenCalledWith('/dashboard'), {
-        timeout: 3000,
-      });
-      expect(mockPush).not.toHaveBeenCalledWith(
+      await waitFor(
+        () => expect(mockNavigateAfterLogin).toHaveBeenCalledWith('/dashboard'),
+        { timeout: 3000 }
+      );
+      expect(mockNavigateAfterLogin).not.toHaveBeenCalledWith(
         expect.stringContaining('evil.example')
       );
+      // The landing must be a full load, never a client-side push: a push
+      // keeps the pre-login SessionProvider state (header shows "Trader").
+      expect(mockPush).not.toHaveBeenCalled();
     });
 
     it('carries a safe callbackUrl through the 2FA step', async () => {

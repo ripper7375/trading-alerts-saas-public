@@ -11,6 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { getAdminViewAs } from '@/lib/affiliate/view-as';
 import { requireAffiliate, getAffiliateProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { affiliateAssetListQuerySchema } from '@/lib/marketing-resources/validators';
@@ -18,9 +19,14 @@ import { listPublishedAssets } from '@/lib/marketing-resources/service';
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
-    await requireAffiliate();
+    // Admin "view as affiliate" (read-only) sees the chosen affiliate's
+    // codes; everyone else must be an affiliate. See lib/affiliate/view-as.ts.
+    const viewAs = await getAdminViewAs();
+    if (!viewAs) {
+      await requireAffiliate();
+    }
 
-    const profile = await getAffiliateProfile();
+    const profile = viewAs?.profile ?? (await getAffiliateProfile());
     if (!profile) {
       return NextResponse.json(
         {

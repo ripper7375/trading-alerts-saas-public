@@ -13,6 +13,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
+import { useAffiliateViewAs } from '@/components/affiliate/view-as-context';
 import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -49,6 +50,9 @@ interface AffiliateProfile {
 export default function AffiliateProfilePage(): React.ReactElement {
   const { t, formatCurrency, formatDate } = useLocale();
   const { data: session } = useSession();
+  // Admin read-only view (lib/affiliate/view-as.ts): no editing, no payout
+  // settings link, and no fallback profile built from the admin's own session.
+  const readOnly = useAffiliateViewAs() !== null;
   const [profile, setProfile] = useState<AffiliateProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -99,7 +103,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
     } catch (err) {
       console.error('Affiliate profile fetch error:', err);
       // If session exists, build a graceful fallback profile so UI remains fully usable
-      if (session?.user) {
+      if (session?.user && !readOnly) {
         const fallbackProfile: AffiliateProfile = {
           id: `profile-${session.user.id}`,
           fullName:
@@ -139,7 +143,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [session, readOnly]);
 
   useEffect(() => {
     void fetchProfile();
@@ -224,7 +228,7 @@ export default function AffiliateProfilePage(): React.ReactElement {
             )}
           </p>
         </div>
-        {!editing && (
+        {!editing && !readOnly && (
           <button
             onClick={() => setEditing(true)}
             className="rounded-md bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-2 text-sm font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:from-amber-400 hover:to-amber-500"
@@ -470,15 +474,17 @@ export default function AffiliateProfilePage(): React.ReactElement {
               )}
             </p>
           </div>
-          <Link
-            href="/affiliate/settings/payout"
-            className="rounded-md border border-border bg-background px-4 py-2 text-foreground hover:bg-accent"
-          >
-            {t(
-              'affiliate.profile.manage_payout_settings',
-              'Manage Payout Settings'
-            )}
-          </Link>
+          {!readOnly && (
+            <Link
+              href="/affiliate/settings/payout"
+              className="rounded-md border border-border bg-background px-4 py-2 text-foreground hover:bg-accent"
+            >
+              {t(
+                'affiliate.profile.manage_payout_settings',
+                'Manage Payout Settings'
+              )}
+            </Link>
+          )}
         </div>
       </div>
 

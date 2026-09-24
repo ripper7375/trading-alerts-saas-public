@@ -123,8 +123,15 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
         );
       }
 
-      // Role-based Edge Guard: Admin visiting affiliate routes redirected to Admin Executive Dashboard
-      if (targetPathname.startsWith('/affiliate') && token.role === 'ADMIN') {
+      // Role-based Edge Guard: Admin visiting affiliate routes redirected to
+      // Admin Executive Dashboard -- except the affiliate dashboard, which an
+      // admin opens read-only via "view as affiliate". Its layout decides:
+      // the viewed affiliate, or the picker (lib/affiliate/view-as.ts).
+      if (
+        targetPathname.startsWith('/affiliate') &&
+        !targetPathname.startsWith('/affiliate/dashboard') &&
+        token.role === 'ADMIN'
+      ) {
         return finishWithLocale(
           request,
           countryPrefix,
