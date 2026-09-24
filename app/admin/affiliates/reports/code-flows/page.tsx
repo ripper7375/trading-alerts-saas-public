@@ -60,20 +60,12 @@ function currentMonthRange(): { start: string; end: string } {
   };
 }
 
-function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function CodeFlowsReportPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const defaultRange = currentMonthRange();
   const [start, setStart] = useState(defaultRange.start);
   const [end, setEnd] = useState(defaultRange.end);

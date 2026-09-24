@@ -27,7 +27,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency, formatDateTime } from '@/lib/utils/formatters';
+import { formatCurrency } from '@/lib/utils/formatters';
 import { COUNTRY_NAMES } from '@/lib/dlocal/constants';
 import type { DLocalCountry, PaymentStatus } from '@/types/dlocal';
 import { useLocale } from '@/lib/context/locale-context';
@@ -134,7 +134,7 @@ const STATUS_PRESENTATION: Record<
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function CheckoutReturnContent(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDateTime } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
 

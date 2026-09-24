@@ -23,6 +23,7 @@ import {
 import { useLocale } from '@/lib/context/locale-context';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/languages';
 import { preferencesForLanguage } from '@/lib/i18n/locale-resolver';
+import { formatDateInZone, formatTimeInZone } from '@/lib/i18n/format-datetime';
 import {
   getAllTimezones,
   getTimezoneLabel,
@@ -160,36 +161,11 @@ export default function LanguageSettingsPage(): React.ReactElement {
     }));
   };
 
-  const getCurrentTime = (): string => {
-    try {
-      return new Intl.DateTimeFormat('en-US', {
-        timeZone: settings.timezone,
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: settings.timeFormat === '12h',
-      }).format(new Date());
-    } catch {
-      return '--:--';
-    }
-  };
+  // Previews use the same formatters as the rest of the app, with the
+  // values currently in the form.
+  const getCurrentTime = (): string => formatTimeInZone(Date.now(), settings);
 
-  const getDatePreview = (): string => {
-    const date = new Date();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
-
-    switch (settings.dateFormat) {
-      case 'MDY':
-        return `${month}/${day}/${year}`;
-      case 'DMY':
-        return `${day}/${month}/${year}`;
-      case 'YMD':
-        return `${year}-${month}-${day}`;
-      default:
-        return `${month}/${day}/${year}`;
-    }
-  };
+  const getDatePreview = (): string => formatDateInZone(Date.now(), settings);
 
   const handleSave = async (): Promise<void> => {
     setIsSaving(true);

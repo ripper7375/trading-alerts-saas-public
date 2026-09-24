@@ -125,7 +125,8 @@ const TYPE_META: Record<
 
 function formatRelativeTime(
   dateString: string,
-  t: (keyOrText: string, fallback?: string) => string
+  t: (keyOrText: string, fallback?: string) => string,
+  formatDateTime: (utc: string) => string
 ): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -148,16 +149,14 @@ function formatRelativeTime(
       .replace('{n}', String(diffDays))
       .replace('{plural}', diffDays === 1 ? '' : 's');
 
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-  });
+  // Older than a week: the date and time in the user's own timezone and
+  // formats (Settings → Language & Region).
+  return formatDateTime(dateString);
 }
 
 export default function SecurityActivityPage(): React.ReactElement {
   useSession();
-  const { t } = useLocale();
+  const { t, formatDateTime } = useLocale();
   // Admin "view as user": read the viewed user; "Mark read" is hidden, since
   // it would act on the admin's own account (lib/admin/user-view-as.ts).
   const viewing = useUserViewAs() !== null;
@@ -388,7 +387,13 @@ export default function SecurityActivityPage(): React.ReactElement {
                           </span>
                         )}
                         {alert.ipAddress && <span>{alert.ipAddress}</span>}
-                        <span>{formatRelativeTime(alert.createdAt, t)}</span>
+                        <span>
+                          {formatRelativeTime(
+                            alert.createdAt,
+                            t,
+                            formatDateTime
+                          )}
+                        </span>
                       </div>
                     </div>
 

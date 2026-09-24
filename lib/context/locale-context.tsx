@@ -30,6 +30,12 @@ import {
   type LocalePreferences,
 } from '@/lib/i18n/locale-resolver';
 
+import {
+  formatDateInZone,
+  formatDateTimeInZone,
+  formatTimeInZone,
+} from '@/lib/i18n/format-datetime';
+
 import thDict from '@/lib/i18n/dictionaries/th.json';
 import enGBDict from '@/lib/i18n/dictionaries/en-GB.json';
 import enUSDict from '@/lib/i18n/dictionaries/en-US.json';
@@ -140,6 +146,8 @@ interface LocaleContextType extends LocalePreferences {
   setLocalePreferences: (prefs: Partial<LocalePreferences>) => void;
   formatTimestamp: (utc: number | string | Date) => string;
   formatDate: (utc: number | string | Date) => string;
+  /** Date and time, e.g. `25/12/2024 14:30`, in the user's timezone. */
+  formatDateTime: (utc: number | string | Date) => string;
   formatCurrency: (amountInUSD: number) => string;
   formatRelativeTime: (minutesAgo: number) => string;
   t: (keyOrText: string, fallback?: string) => string;
@@ -393,34 +401,15 @@ export function LocaleProvider({
   );
 
   const value = useMemo<LocaleContextType>(() => {
-    const formatTimestamp = (utc: number | string | Date): string => {
-      try {
-        return new Intl.DateTimeFormat('en-GB', {
-          timeZone: preferences.timezone || 'Europe/London',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: preferences.timeFormat === '12h',
-        }).format(new Date(utc));
-      } catch {
-        return '--:--:--';
-      }
-    };
+    // All three use the user's timezone, date format and time format.
+    const formatTimestamp = (utc: number | string | Date): string =>
+      formatTimeInZone(utc, preferences, { seconds: true });
 
-    const formatDate = (utc: number | string | Date): string => {
-      try {
-        const date = new Date(utc);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
+    const formatDate = (utc: number | string | Date): string =>
+      formatDateInZone(utc, preferences);
 
-        if (preferences.dateFormat === 'DMY') return `${day}/${month}/${year}`;
-        if (preferences.dateFormat === 'YMD') return `${year}-${month}-${day}`;
-        return `${month}/${day}/${year}`;
-      } catch {
-        return '--/--/----';
-      }
-    };
+    const formatDateTime = (utc: number | string | Date): string =>
+      formatDateTimeInZone(utc, preferences);
 
     const formatCurrency = (amountInUSD: number): string =>
       formatCurrencyAmount(amountInUSD, {
@@ -446,6 +435,7 @@ export function LocaleProvider({
       setLocalePreferences: updatePreferences,
       formatTimestamp,
       formatDate,
+      formatDateTime,
       formatCurrency,
       formatRelativeTime,
       t,

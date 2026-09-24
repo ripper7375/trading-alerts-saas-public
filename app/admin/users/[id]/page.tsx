@@ -11,8 +11,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { prisma } from '@/lib/db/prisma';
-import { formatDate } from '@/lib/utils';
-import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { formatCurrencyAmount } from '@/lib/country-config';
+import { formatDateInZone } from '@/lib/i18n/format-datetime';
+import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -90,7 +91,11 @@ export default async function AdminUserDetailPage({
   params,
 }: AdminUserDetailPageProps): Promise<React.ReactElement> {
   const { id } = await params;
-  const dict = getDictionary(await getServerLanguage());
+  const prefs = await getServerLocalePreferences();
+  const dict = getDictionary(prefs.language);
+  // Dates in the admin's own timezone and date format.
+  const formatDate = (value: Date | string): string =>
+    formatDateInZone(value, prefs);
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
 
   const user = await prisma.user.findUnique({
@@ -498,7 +503,10 @@ export default async function AdminUserDetailPage({
                     {dt('admin.users.total_earnings', 'Total Earnings')}
                   </p>
                   <p className="mt-1 text-lg font-bold text-foreground">
-                    ${affiliateProfile.totalEarnings.toString()}
+                    {formatCurrencyAmount(
+                      Number(affiliateProfile.totalEarnings),
+                      prefs
+                    )}
                   </p>
                 </div>
                 <div>
@@ -509,7 +517,10 @@ export default async function AdminUserDetailPage({
                     )}
                   </p>
                   <p className="mt-1 text-lg font-bold text-yellow-600 dark:text-yellow-400">
-                    ${affiliateProfile.pendingCommissions.toString()}
+                    {formatCurrencyAmount(
+                      Number(affiliateProfile.pendingCommissions),
+                      prefs
+                    )}
                   </p>
                 </div>
               </div>

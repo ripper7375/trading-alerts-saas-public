@@ -310,6 +310,34 @@ describe('TradingChart Component', () => {
         screen.getByText('Updates in real-time via WebSocket')
       ).toBeInTheDocument();
     });
+
+    it("labels the time axis in the user's timezone and formats", () => {
+      // Preferences that do not change after mount, so the labels must be
+      // applied when the chart is created, not by a later preference change.
+      const stable = { ...defaultPreferences, timezoneSetByUser: true };
+      localStorage.setItem(LOCALE_STORAGE_KEY, JSON.stringify(stable));
+      rtlRender(<TradingChart symbol="XAUUSD" timeframe="H1" />, {
+        wrapper: ({ children }: { children: React.ReactNode }) => (
+          <LocaleProvider
+            initialPreferences={stable}
+            detectedTimezone={stable.timezone}
+          >
+            <AppearanceProvider>{children}</AppearanceProvider>
+          </LocaleProvider>
+        ),
+      });
+
+      // Without these formatters lightweight-charts prints UTC.
+      const timeOptions = mockApplyOptions.mock.calls
+        .map(([options]) => options as Record<string, Record<string, unknown>>)
+        .find((options) => options?.localization?.timeFormatter);
+      expect(timeOptions?.localization?.timeFormatter).toEqual(
+        expect.any(Function)
+      );
+      expect(timeOptions?.timeScale?.tickMarkFormatter).toEqual(
+        expect.any(Function)
+      );
+    });
   });
 
   // ──────────────────────────────────────────────────────────

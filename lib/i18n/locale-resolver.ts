@@ -44,6 +44,21 @@ export const LOCALE_COOKIE = 'davintrade-locale';
  */
 export const CURRENCY_COOKIE = 'davintrade-currency';
 
+/** The user's date and time format, e.g. `DMY.24h`. */
+export const FORMATS_COOKIE = 'davintrade-formats';
+
+const DATE_FORMATS = ['MDY', 'DMY', 'YMD'] as const;
+const TIME_FORMATS = ['12h', '24h'] as const;
+
+function parseFormatsCookie(
+  value?: string | null
+): Pick<LocalePreferences, 'dateFormat' | 'timeFormat'> | null {
+  const [date, time] = (value ?? '').split('.');
+  const dateFormat = DATE_FORMATS.find((f) => f === date);
+  const timeFormat = TIME_FORMATS.find((f) => f === time);
+  return dateFormat && timeFormat ? { dateFormat, timeFormat } : null;
+}
+
 /** A timezone the user picked themselves; absent while it is IP-detected. */
 export const TIMEZONE_COOKIE = 'davintrade-timezone';
 
@@ -161,18 +176,24 @@ export function resolvePreferences({
   countryPrefix,
   cookieLanguage,
   cookieCurrency,
+  cookieFormats,
   cookieTimezone,
   detectedTimezone,
 }: {
   countryPrefix?: string | null;
   cookieLanguage?: string | null;
   cookieCurrency?: string | null;
+  cookieFormats?: string | null;
   cookieTimezone?: string | null;
   detectedTimezone?: string | null;
 }): LocalePreferences {
   const fromPrefix = preferencesForCountryPrefix(countryPrefix);
-  const base =
+  const fromLanguage =
     fromPrefix ?? preferencesForLanguage(cookieLanguage) ?? defaultPreferences;
+  // The user's own date/time format refines a cookie-language resolution; a
+  // URL prefix brings its country's formats, like its currency.
+  const formats = fromPrefix ? null : parseFormatsCookie(cookieFormats);
+  const base = formats ? { ...fromLanguage, ...formats } : fromLanguage;
 
   const currency =
     !fromPrefix && isSupportedCurrency(cookieCurrency)
@@ -202,11 +223,15 @@ export function localeCookieString(language: string): string {
   return `${LOCALE_COOKIE}=${language}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
-/** The cookies that let the server render the user's currency and timezone. */
+/**
+ * The cookies that let the server render the user's currency, date/time
+ * format and timezone.
+ */
 export function preferenceCookieStrings(prefs: LocalePreferences): string[] {
   const attrs = 'path=/; SameSite=Lax';
   return [
     `${CURRENCY_COOKIE}=${prefs.currency}; ${attrs}; max-age=31536000`,
+    `${FORMATS_COOKIE}=${prefs.dateFormat}.${prefs.timeFormat}; ${attrs}; max-age=31536000`,
     prefs.timezoneSetByUser
       ? `${TIMEZONE_COOKIE}=${encodeURIComponent(prefs.timezone)}; ${attrs}; max-age=31536000`
       : `${TIMEZONE_COOKIE}=; ${attrs}; max-age=0`,

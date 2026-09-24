@@ -11,7 +11,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { formatDate } from '@/lib/utils';
 import type {
   WiseRecipientStatus,
   WiseRecipientsAdminList,
@@ -85,7 +84,7 @@ function getKycStatusBadge(status: RiseWorksKycStatus): React.ReactElement {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function WiseRecipientsTab(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const [data, setData] = useState<WiseRecipientsAdminList | null>(null);
   const [status, setStatus] = useState<WiseRecipientStatus | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
@@ -283,7 +282,7 @@ function WiseRecipientsTab(): React.ReactElement {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function RiseWorksHistoricalTab(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const [accounts, setAccounts] = useState<RiseWorksAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

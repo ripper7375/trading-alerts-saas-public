@@ -19,7 +19,7 @@ import { useLocale } from '@/lib/context/locale-context';
 export function UpgradePrompt(): React.ReactElement {
   // Get dynamic PRO price from SystemConfig
   const { regularPrice } = useAffiliateConfig();
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
 
   return (
     <Card className="overflow-hidden border-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
@@ -33,8 +33,8 @@ export function UpgradePrompt(): React.ReactElement {
             <p className="mb-4 text-white/90">
               {t(
                 'dashboard.upgrade_desc',
-                'Get the full alert system and advanced chart tools for just ${price}/month'
-              ).replace('{price}', String(regularPrice))}
+                'Get the full alert system and advanced chart tools for just {price}/month'
+              ).replace('{price}', formatCurrency(regularPrice))}
             </p>
             <ul className="mb-4 grid grid-cols-1 gap-2 text-sm text-white/80 sm:grid-cols-2">
               <li className="flex items-center gap-2">
@@ -62,8 +62,8 @@ export function UpgradePrompt(): React.ReactElement {
                 <Button className="bg-white px-6 font-semibold text-blue-600 hover:bg-white/90">
                   {t(
                     'dashboard.upgrade_now',
-                    'Upgrade Now - ${price}/month'
-                  ).replace('{price}', String(regularPrice))}
+                    'Upgrade Now - {price}/month'
+                  ).replace('{price}', formatCurrency(regularPrice))}
                 </Button>
               </Link>
               <Link

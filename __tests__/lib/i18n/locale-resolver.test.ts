@@ -75,6 +75,18 @@ describe('resolvePreferences', () => {
       resolvePreferences({ countryPrefix: 'th', cookieCurrency: 'GBP' })
     ).toMatchObject({ language: 'th', currency: 'THB' });
   });
+
+  it("honours the user's date and time format (Thai with MM/DD, 12-hour)", () => {
+    expect(
+      resolvePreferences({ cookieLanguage: 'th', cookieFormats: 'MDY.12h' })
+    ).toMatchObject({ language: 'th', dateFormat: 'MDY', timeFormat: '12h' });
+  });
+
+  it('ignores a malformed formats cookie', () => {
+    expect(
+      resolvePreferences({ cookieLanguage: 'th', cookieFormats: 'XYZ.13h' })
+    ).toMatchObject({ dateFormat: 'DMY', timeFormat: '24h' });
+  });
 });
 
 describe('preferenceCookieStrings', () => {
@@ -87,20 +99,24 @@ describe('preferenceCookieStrings', () => {
     currency: 'GBP',
   };
 
-  it('writes the currency and a user-picked timezone', () => {
-    const [currency, timezone] = preferenceCookieStrings({
+  const cookie = (cookies: string[], name: string): string | undefined =>
+    cookies.find((c) => c.startsWith(`${name}=`));
+
+  it('writes the currency, formats and a user-picked timezone', () => {
+    const cookies = preferenceCookieStrings({
       ...base,
       timezoneSetByUser: true,
     });
-    expect(currency).toMatch(/^davintrade-currency=GBP;/);
-    expect(timezone).toMatch(/^davintrade-timezone=Europe%2FLondon;/);
+    expect(cookie(cookies, 'davintrade-currency')).toMatch(/=GBP;/);
+    expect(cookie(cookies, 'davintrade-formats')).toMatch(/=DMY\.24h;/);
+    expect(cookie(cookies, 'davintrade-timezone')).toMatch(/=Europe%2FLondon;/);
   });
 
   it('clears the timezone cookie while the timezone is IP-detected', () => {
-    const [, timezone] = preferenceCookieStrings({
+    const cookies = preferenceCookieStrings({
       ...base,
       timezoneSetByUser: false,
     });
-    expect(timezone).toMatch(/^davintrade-timezone=;.*max-age=0/);
+    expect(cookie(cookies, 'davintrade-timezone')).toMatch(/=;.*max-age=0/);
   });
 });

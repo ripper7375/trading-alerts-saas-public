@@ -2,6 +2,7 @@ import { cookies, headers } from 'next/headers';
 import {
   COUNTRY_HEADER,
   CURRENCY_COOKIE,
+  FORMATS_COOKIE,
   IP_TIMEZONE_HEADERS,
   LOCALE_COOKIE,
   TIMEZONE_COOKIE,
@@ -46,6 +47,7 @@ export function resolveRequestPreferences(
     countryPrefix: headerStore.get(COUNTRY_HEADER),
     cookieLanguage: cookieStore.get(LOCALE_COOKIE)?.value,
     cookieCurrency: cookieStore.get(CURRENCY_COOKIE)?.value,
+    cookieFormats: cookieStore.get(FORMATS_COOKIE)?.value,
     cookieTimezone: decodeCookie(cookieStore.get(TIMEZONE_COOKIE)?.value),
     detectedTimezone: detectedTimezoneFromHeaders(headerStore),
   });

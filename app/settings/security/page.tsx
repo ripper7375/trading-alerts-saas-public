@@ -92,7 +92,8 @@ function getDeviceIcon(
 
 function formatRelativeTime(
   dateString: string,
-  t: (keyOrText: string, fallback?: string) => string
+  t: (keyOrText: string, fallback?: string) => string,
+  formatDateTime: (utc: string) => string
 ): string {
   const date = new Date(dateString);
   const now = new Date();
@@ -115,11 +116,9 @@ function formatRelativeTime(
       .replace('{n}', String(diffDays))
       .replace('{plural}', diffDays === 1 ? '' : 's');
 
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-  });
+  // Older than a week: the date and time in the user's own timezone and
+  // formats (Settings → Language & Region).
+  return formatDateTime(dateString);
 }
 
 function getStatusColor(status: string): string {
@@ -138,7 +137,7 @@ function getStatusColor(status: string): string {
 export default function SecuritySettingsPage(): React.ReactElement {
   useSession();
   const viewing = useUserViewAs() !== null;
-  const { t } = useLocale();
+  const { t, formatDateTime } = useLocale();
   const { toasts, removeToast, success, error: showError } = useToast();
 
   const [loginHistory, setLoginHistory] = useState<LoginHistoryItem[]>([]);
@@ -1375,7 +1374,13 @@ export default function SecuritySettingsPage(): React.ReactElement {
                         </div>
 
                         <div className="mt-1 flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>{formatRelativeTime(entry.createdAt, t)}</span>
+                          <span>
+                            {formatRelativeTime(
+                              entry.createdAt,
+                              t,
+                              formatDateTime
+                            )}
+                          </span>
                           <span>
                             {t(
                               'settings.security.via_provider',

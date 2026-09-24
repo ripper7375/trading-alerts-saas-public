@@ -21,6 +21,7 @@ import { useFiredAlertMarkers } from './drawing/useFiredAlertMarkers';
 import { MtfToggle } from './mtf/MtfToggle';
 import { useMtfOverlay } from './mtf/useMtfOverlay';
 import { useMtfPreference } from './mtf/useMtfPreference';
+import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 
 /**
  * TradingChart Props
@@ -93,6 +94,7 @@ export function TradingChart({
   const { t } = useLocale();
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const chartTime = useChartTimeOptions(chartRef);
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const isFirstLoadRef = useRef(true);
   // Read by the mount-once creation effect, which deliberately has no deps.
@@ -205,6 +207,7 @@ export function TradingChart({
     });
 
     chartRef.current = chart;
+    chartTime.applyTo(chart);
     candleSeriesRef.current = candleSeries;
     setChartApi(chart);
     setSeriesApi(candleSeries);

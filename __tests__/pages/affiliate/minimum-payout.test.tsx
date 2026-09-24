@@ -97,11 +97,11 @@ describe('affiliate pages show the admin-set minimum payout ($75)', () => {
 
     expect(
       await screen.findByText(
-        /payouts are processed monthly for balances over \$75\./
+        /payouts are processed monthly for balances over \$75\.00\./
       )
     ).toBeInTheDocument();
     expect(
-      screen.getByText('- Monthly automated payouts for balances over $75')
+      screen.getByText('- Monthly automated payouts for balances over $75.00')
     ).toBeInTheDocument();
     expect(screen.queryByText(/over \$50/)).not.toBeInTheDocument();
     // commission % goes through the same fixed-key + placeholder path

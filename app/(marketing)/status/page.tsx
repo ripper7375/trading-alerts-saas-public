@@ -8,7 +8,8 @@ import {
   getSystemStatus,
   type ComponentStatus,
 } from '@/lib/status/check-system-status';
-import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { formatDateTimeInZone } from '@/lib/i18n/format-datetime';
+import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 /**
@@ -82,7 +83,8 @@ export default async function StatusPage(): Promise<React.ReactElement> {
         ? 'border-amber-500/30 bg-amber-500/10'
         : 'border-slate-300 bg-slate-100 dark:border-slate-800 dark:bg-slate-900/40';
 
-  const dict = getDictionary(await getServerLanguage());
+  const prefs = await getServerLocalePreferences();
+  const dict = getDictionary(prefs.language);
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
 
   return (
@@ -103,7 +105,7 @@ export default async function StatusPage(): Promise<React.ReactElement> {
                 </h1>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                   {dt('marketing.status.last_checked', 'Last checked')}{' '}
-                  {new Date(status.checkedAt).toLocaleString()}
+                  {formatDateTimeInZone(status.checkedAt, prefs)}
                 </p>
               </div>
               <StatusRefreshButton />

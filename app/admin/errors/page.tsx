@@ -76,7 +76,7 @@ interface ErrorLogsResponse {
  * below surfaces it in the UI rather than presenting it as live.
  */
 export default function ErrorLogsPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDateTime } = useLocale();
   const [logs, setLogs] = useState<ErrorLog[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -409,7 +409,7 @@ export default function ErrorLogsPage(): React.ReactElement {
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
                       <span className="text-sm text-muted-foreground">
-                        {new Date(log.timestamp).toLocaleString()}
+                        {formatDateTime(log.timestamp)}
                       </span>
                       <Badge
                         className={`${getErrorTypeBadgeClass(log.type)} w-fit text-xs text-white`}

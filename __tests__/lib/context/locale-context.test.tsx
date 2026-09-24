@@ -30,6 +30,9 @@ function Probe(): React.ReactElement {
         locale.timezoneSetByUser ? 'user' : 'auto',
         locale.formatCurrency(29),
       ].join('|')}
+      <span data-testid="when">
+        {locale.formatDateTime(Date.UTC(2024, 11, 25, 22, 30))}
+      </span>
     </p>
   );
 }
@@ -90,6 +93,22 @@ describe('LocaleProvider', () => {
 
     act(() => setCountry('TH'));
     expect(probe()).toHaveTextContent('th|THB|Asia/Tokyo|user');
+  });
+
+  it("formats dates and times in the user's timezone and formats", async () => {
+    renderWith({
+      countryCode: 'US',
+      language: 'en-US',
+      timezone: 'Asia/Bangkok',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      currency: 'USD',
+      timezoneSetByUser: true,
+    });
+    // 22:30 UTC on 25 Dec is 5:30 AM on 26 Dec in Bangkok.
+    await waitFor(() =>
+      expect(screen.getByTestId('when')).toHaveTextContent('12/26/2024 5:30 AM')
+    );
   });
 
   it('falls back to the language currency for a withdrawn one (CNY)', async () => {

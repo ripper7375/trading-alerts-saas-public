@@ -13,6 +13,42 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Same session, round 3 — every place that shows a time, date or price now uses the user's own
+> timezone, date format, time format and currency. Same branch, NOT pushed.** Davin asked to make
+> sure all four apply throughout the app. The Settings page already stored them, but an audit found
+> several places that never read them:
+>
+> - **Every chart axis and crosshair printed UTC.** lightweight-charts prints timestamps as UTC,
+>   and none of the 5 charts set formatters. New `components/charts/use-chart-time-options.ts`
+>   formats labels only (data and tick positions stay UTC, so drawings, markers and alerts are
+>   untouched). It is wired into trading-chart, relative-strength, hrma-smma modal,
+>   currency-index-comparison and xaux-usdx.
+> - **`formatDate()` used the browser's clock, not the chosen timezone.** New shared
+>   `lib/i18n/format-datetime.ts` (`formatDateInZone`/`TimeInZone`/`DateTimeInZone`) now backs
+>   `formatDate`, `formatTimestamp` and the new `formatDateTime`, in the client context and in
+>   Server Components.
+> - **~20 files formatted dates themselves** (`toLocaleDateString('en-US')`, `date-fns` `PPp`,
+>   `lib/utils` `formatDate`). Converted: Alerts, Security login history and activity, Account
+>   deletion, affiliate payouts, checkout return, the status page, and 13 admin pages or components.
+> - **Server pages lacked the date/time format.** A new `davintrade-formats` cookie (`DMY.24h`) joins
+>   the currency and timezone cookies.
+> - **4 hardcoded `$` prices:** the Settings overview PRO price, the dashboard upgrade prompt (6
+>   dictionaries also embedded `$` around `{price}`), the affiliate register payout minimum (now
+>   `formatCurrency`, as on the affiliate dashboard), and admin user-detail earnings; plus the admin
+>   P&L `${price}` label.
+>
+> **Deliberately left:** checkout's "≈ $x USD" (the real charge); money-service/admin USD
+> config values; emails, PDF receipts and `session-tracker` (sent or stored, no viewer preferences);
+> admin analytics month buckets.
+> **Verified:** `tsc`/ESLint/Prettier clean. Full `test:ci` **242/242 · 3099/3099**, run in local
+> time **and** with `TZ=UTC`, as CI uses. Mutation 3/4 killed; the 4th was a control with no test.
+> The chart-labels mutant first survived, because a preference change after mount re-applied the
+> labels; the test now pins stable preferences. A real lightweight-charts chart on a throwaway route
+> (deleted): London → Tokyo moved the axis 9h and the crosshair read the next day; MDY + 12h gave
+> `12/26/2024 8:00 AM`; no console errors.
+> **Gotcha:** Windows intermittently refuses writes (`OSError 22`, Prettier `UNKNOWN`) to files that
+> are open elsewhere. A mutation harness must retry the write and verify the restore.
+
 > **Same session, round 2 — Language & Region now works as Davin's annotated screenshot describes.
 > Same branch, NOT pushed.** The rules: the header's country (GB by default) sets the language; the
 > language sets date format, time format and currency, each of which the user can still change; the

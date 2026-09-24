@@ -88,7 +88,7 @@ export function AlertsClient({
   limit,
 }: AlertsClientProps): React.JSX.Element {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, formatDate, formatDateTime } = useLocale();
   const [alerts, setAlerts] = useState(initialAlerts);
   const [activeTab, setActiveTab] = useState<string>('active');
   const [symbolFilter, setSymbolFilter] = useState<string>('all');
@@ -390,13 +390,7 @@ export function AlertsClient({
             <div className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
               <p className="text-sm text-foreground">
                 {t('dashboard.status_triggered', 'Triggered')}:{' '}
-                {new Date(alert.lastTriggered).toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
+                {formatDateTime(alert.lastTriggered)}
               </p>
               <p className="text-xs text-muted-foreground">
                 {t('alerts.trigger_count', 'Trigger count')}:{' '}
@@ -408,8 +402,7 @@ export function AlertsClient({
           {/* Card Footer */}
           <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-4">
             <span className="text-xs text-muted-foreground">
-              {t('alerts.created', 'Created')}{' '}
-              {new Date(alert.createdAt).toLocaleDateString()}
+              {t('alerts.created', 'Created')} {formatDate(alert.createdAt)}
             </span>
 
             <div className="flex flex-wrap gap-2">

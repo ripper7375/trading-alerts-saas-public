@@ -51,13 +51,8 @@ interface FraudAlertCardProps {
 export function FraudAlertCard({
   alert,
 }: FraudAlertCardProps): React.ReactElement {
-  const { t } = useLocale();
-  const formattedDate = new Date(alert.createdAt).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const { t, formatDateTime } = useLocale();
+  const formattedDate = formatDateTime(alert.createdAt);
 
   return (
     <Card className="border-border bg-card transition-shadow hover:shadow-md">

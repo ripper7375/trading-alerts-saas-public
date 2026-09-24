@@ -6,7 +6,6 @@ import { useEffect, useState, useCallback, Suspense } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { formatDate } from '@/lib/utils';
 import type { AuditLogStatus } from '@/types/disbursement';
 import { useLocale } from '@/lib/context/locale-context';
 
@@ -87,7 +86,7 @@ function getActionIcon(action: string): string {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function AuditLogsPageContent(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDate, formatTimestamp } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -321,7 +320,7 @@ function AuditLogsPageContent(): React.ReactElement {
 
                   {/* Timestamp */}
                   <span className="whitespace-nowrap text-xs text-muted-foreground">
-                    {new Date(log.createdAt).toLocaleTimeString()}
+                    {formatTimestamp(log.createdAt)}
                   </span>
                 </div>
               </CardContent>
