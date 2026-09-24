@@ -228,7 +228,7 @@
 
   /* Card variants */
   .card-interactive {
-    @apply transition-shadow hover:shadow-md cursor-pointer;
+    @apply cursor-pointer transition-shadow hover:shadow-md;
   }
 
   /* Form focus states */
@@ -238,26 +238,26 @@
 
   /* Loading states */
   .skeleton {
-    @apply animate-pulse bg-muted rounded;
+    @apply animate-pulse rounded bg-muted;
   }
 
   /* Chart container */
   .chart-container {
-    @apply relative w-full h-full min-h-[300px];
+    @apply relative h-full min-h-[300px] w-full;
   }
 
   /* Alert status indicators */
   .status-active {
-    @apply w-2 h-2 rounded-full bg-[oklch(var(--success))];
+    @apply h-2 w-2 rounded-full bg-[oklch(var(--success))];
   }
 
   .status-inactive {
-    @apply w-2 h-2 rounded-full;
+    @apply h-2 w-2 rounded-full;
     background-color: oklch(var(--muted-foreground) / 0.3);
   }
 
   .status-triggered {
-    @apply w-2 h-2 rounded-full bg-[oklch(var(--warning))];
+    @apply h-2 w-2 rounded-full bg-[oklch(var(--warning))];
   }
 }
 
@@ -282,11 +282,19 @@
 
   /* Gradient backgrounds */
   .gradient-primary {
-    background: linear-gradient(to right, oklch(var(--primary)), oklch(var(--primary) / 0.8));
+    background: linear-gradient(
+      to right,
+      oklch(var(--primary)),
+      oklch(var(--primary) / 0.8)
+    );
   }
 
   .gradient-success {
-    background: linear-gradient(to right, oklch(var(--success)), oklch(var(--success) / 0.8));
+    background: linear-gradient(
+      to right,
+      oklch(var(--success)),
+      oklch(var(--success) / 0.8)
+    );
   }
 
   /* Hide scrollbar but keep functionality. .no-scrollbar is the class name
@@ -317,12 +325,16 @@
   }
 }
 
-/* Hide TradingView logo link in lightweight-charts */
+/* Hide TradingView logo link in lightweight-charts.
+ * The table-cell catch-all is scoped to the chart's own root element
+ * (`.tv-lightweight-charts`, which lays itself out as a <table>). Unscoped,
+ * `td a[target='_blank']` hid EVERY new-tab link in ANY table -- including
+ * the Settings -> Billing "View" and "PDF" invoice buttons. */
 a[href*='tradingview'],
 a[title*='TradingView'],
 .tv-lightweight-charts-logo,
 [class*='logo'] a,
-td a[target='_blank'] {
+.tv-lightweight-charts td a[target='_blank'] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;

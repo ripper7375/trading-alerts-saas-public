@@ -21,7 +21,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { InvoiceList } from '@/components/billing/invoice-list';
+import { InvoiceList, type Invoice } from '@/components/billing/invoice-list';
+import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 import { useLocale } from '@/lib/context/locale-context';
@@ -47,22 +48,8 @@ import { useLocale } from '@/lib/context/locale-context';
  * - Usage statistics (alerts, from GET /api/alerts)
  */
 
-interface Invoice {
-  id: string;
-  date: string;
-  amount: number;
-  status: 'paid' | 'open' | 'failed';
-  description: string;
-  invoicePdfUrl: string | null;
-  // davintrade-vat-stack: tax breakdown, additive to the API response.
-  // `amount` above is always the tax-inclusive total actually charged;
-  // `taxAmount` is how much of that total is tax, not an extra charge.
-  hostedInvoiceUrl: string | null;
-  taxAmount: number;
-  taxRate: number;
-  taxCountry: string | null;
-  reverseCharge: boolean;
-}
+/** Invoice history is revealed this many rows at a time. */
+const INVOICE_PAGE_SIZE = 12;
 
 interface SubscriptionData {
   tier: 'FREE' | 'PRO';
@@ -99,7 +86,8 @@ interface UsageStats {
 
 export default function BillingSettingsPage(): React.ReactElement {
   const { data: session } = useSession();
-  const { t, formatDate, formatCurrency } = useLocale();
+  const { t, formatDate, formatCurrency, language, currency } = useLocale();
+  const displayCurrency = (currency || 'GBP').toUpperCase();
 
   const [subscriptionData, setSubscriptionData] =
     useState<SubscriptionData | null>(null);
@@ -110,6 +98,8 @@ export default function BillingSettingsPage(): React.ReactElement {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [invoicesLoading, setInvoicesLoading] = useState(true);
   const [invoicesError, setInvoicesError] = useState<string | null>(null);
+  const [visibleInvoiceCount, setVisibleInvoiceCount] =
+    useState(INVOICE_PAGE_SIZE);
 
   const [usageStats, setUsageStats] = useState<UsageStats>({
     alerts: { current: 0, max: 100 },
@@ -153,33 +143,22 @@ export default function BillingSettingsPage(): React.ReactElement {
         }
         const data = await response.json();
         setInvoices(
-          data.invoices.map(
-            (invoice: {
-              id: string;
-              date: string;
-              amount: number;
-              status: 'paid' | 'open' | 'failed';
-              description: string;
-              invoicePdfUrl: string | null;
-              hostedInvoiceUrl: string | null;
-              taxAmount: number;
-              taxRate: number;
-              taxCountry: string | null;
-              reverseCharge: boolean;
-            }) => ({
-              id: invoice.id,
-              date: invoice.date,
-              amount: invoice.amount,
-              status: invoice.status,
-              description: invoice.description,
-              invoicePdfUrl: invoice.invoicePdfUrl,
-              hostedInvoiceUrl: invoice.hostedInvoiceUrl,
-              taxAmount: invoice.taxAmount,
-              taxRate: invoice.taxRate,
-              taxCountry: invoice.taxCountry,
-              reverseCharge: invoice.reverseCharge,
-            })
-          )
+          data.invoices.map((invoice: Invoice & { currency?: string }) => ({
+            id: invoice.id,
+            date: invoice.date,
+            amount: invoice.amount,
+            currency: invoice.currency ?? 'USD',
+            amountUsd: invoice.amountUsd ?? null,
+            provider: invoice.provider,
+            status: invoice.status,
+            description: invoice.description,
+            invoicePdfUrl: invoice.invoicePdfUrl,
+            hostedInvoiceUrl: invoice.hostedInvoiceUrl,
+            taxAmount: invoice.taxAmount,
+            taxRate: invoice.taxRate,
+            taxCountry: invoice.taxCountry,
+            reverseCharge: invoice.reverseCharge,
+          }))
         );
         setInvoicesError(null);
       } catch (error) {
@@ -372,6 +351,19 @@ export default function BillingSettingsPage(): React.ReactElement {
               /{t('billing.month', 'month')}
             </span>
           </div>
+          {userTier === 'PRO' && displayCurrency !== 'USD' && (
+            <p className="-mt-2 mb-4 text-xs text-muted-foreground">
+              {t(
+                'billing.price_indicative_note',
+                'Approximate price in {currency}. The plan is priced at {usdPrice} USD; the amount you pay depends on the exchange rate of your payment method.'
+              )
+                .replace('{currency}', displayCurrency)
+                .replace(
+                  '{usdPrice}',
+                  formatChargedAmount(regularPrice, 'USD', language)
+                )}
+            </p>
+          )}
 
           <ul className="mb-6 space-y-2">
             <li className="flex items-center gap-2 text-sm text-foreground">
@@ -629,9 +621,10 @@ export default function BillingSettingsPage(): React.ReactElement {
 
       <Separator className="my-8" />
 
-      {/* Invoice History */}
-      {userTier === 'PRO' && (
-        <section>
+      {/* Invoice History -- also shown to a FREE user who has paid before
+          (e.g. after cancelling), so past receipts stay downloadable. */}
+      {(userTier === 'PRO' || invoices.length > 0) && (
+        <section className="mb-8">
           <h3 className="mb-4 text-lg font-semibold text-foreground">
             {t('billing.invoice_history', 'Invoice History')}
           </h3>
@@ -644,7 +637,16 @@ export default function BillingSettingsPage(): React.ReactElement {
           ) : (
             <Card>
               <CardContent className="p-0">
-                <InvoiceList invoices={invoices} isLoading={invoicesLoading} />
+                <InvoiceList
+                  invoices={invoices.slice(0, visibleInvoiceCount)}
+                  isLoading={invoicesLoading}
+                  totalCount={invoices.length}
+                  hasMore={visibleInvoiceCount < invoices.length}
+                  onLoadMore={() =>
+                    setVisibleInvoiceCount((n) => n + INVOICE_PAGE_SIZE)
+                  }
+                  onShowAll={() => setVisibleInvoiceCount(invoices.length)}
+                />
               </CardContent>
             </Card>
           )}

@@ -6,32 +6,47 @@
  * Displays invoice history with:
  * - Date, description, amount columns
  * - Payment status badges (Paid/Open/Failed)
- * - PDF download links
+ * - PDF download links (Stripe's own PDF, or our generated dLocal receipt)
+ *
+ * Amounts (2026-09-24): the bold figure is EXACTLY what was charged, in
+ * the currency it was charged in -- the same figure as the PDF. When that
+ * currency differs from the viewer's display currency, an "≈" line gives
+ * an indicative conversion, and a notice above the table explains why the
+ * two (and the bank statement) can differ. Previously the only figure was
+ * the converted one, which silently disagreed with the PDF.
  *
  * @module components/billing/invoice-list
  */
 
-import { Download, ExternalLink, FileText, Loader2 } from 'lucide-react';
+import { Download, ExternalLink, FileText, Info, Loader2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
 import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-interface Invoice {
+export interface Invoice {
   id: string;
   date: string;
+  /** Exactly what was charged, in `currency` (matches the PDF). */
   amount: number;
+  /** ISO code of the charge. */
+  currency: string;
+  /** USD value of the charge, for the indicative conversion; null if unknown. */
+  amountUsd: number | null;
+  provider: 'STRIPE' | 'DLOCAL';
   status: 'paid' | 'open' | 'failed';
   description: string;
   invoicePdfUrl: string | null;
   /**
    * davintrade-vat-stack: multi-jurisdiction tax breakdown. `amount` above
    * is always the tax-inclusive total actually charged -- `taxAmount` is
-   * how much of that total is tax, not an amount added on top of it.
+   * how much of that total is tax (in `currency`), not an amount added on
+   * top of it.
    */
   hostedInvoiceUrl: string | null;
   taxAmount: number;
@@ -49,6 +64,10 @@ interface InvoiceListProps {
   hasMore?: boolean;
   /** Callback to load more invoices */
   onLoadMore?: () => void;
+  /** Callback to show the whole history at once */
+  onShowAll?: () => void;
+  /** Size of the whole history, for the "Showing X of Y" line */
+  totalCount?: number;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -74,21 +93,86 @@ const STATUS_CONFIG = {
 } as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DISCREPANCY NOTICE
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function AmountDifferenceNotice({
+  displayCurrency,
+  hasCardCharges,
+  hasLocalCharges,
+}: {
+  displayCurrency: string;
+  hasCardCharges: boolean;
+  hasLocalCharges: boolean;
+}): React.ReactElement {
+  const { t } = useLocale();
+
+  return (
+    <div
+      role="note"
+      aria-label={t('billing.amounts_notice_title', 'Why amounts may differ')}
+      className="flex gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-900/20 dark:text-blue-100"
+    >
+      <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+      <div className="space-y-1.5">
+        <p className="font-semibold">
+          {t('billing.amounts_notice_title', 'Why amounts may differ')}
+        </p>
+        <ul className="list-disc space-y-1 pl-4">
+          <li>
+            {t(
+              'billing.amounts_notice_exact',
+              'The amount in bold is exactly what you were charged, in the currency you paid in. It matches your invoice or receipt PDF.'
+            )}
+          </li>
+          <li>
+            {t(
+              'billing.amounts_notice_indicative',
+              'The ≈ figure converts it into {currency}, your display currency, at an indicative exchange rate. It is for reference only and is not what you were charged.'
+            ).replace('{currency}', displayCurrency)}
+          </li>
+          {hasCardCharges && (
+            <li>
+              {t(
+                'billing.amounts_notice_card',
+                'Card payments are charged in USD. If your card is in another currency, your bank converts the charge at its own rate and may add a foreign transaction fee, so your statement can show a different amount.'
+              )}
+            </li>
+          )}
+          {hasLocalCharges && (
+            <li>
+              {t(
+                'billing.amounts_notice_local',
+                'Local payments (via dLocal) are priced in USD and converted into your local currency by dLocal at the moment you pay. The rate used is printed on each receipt.'
+              )}
+            </li>
+          )}
+          <li>
+            {t(
+              'billing.amounts_notice_rounding',
+              'Exchange rates change daily and amounts are rounded, so small differences are normal.'
+            )}
+          </li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
  * Invoice List Component
  *
- * @param props - Component props
- * @returns React element
- *
  * @example
  * <InvoiceList
- *   invoices={invoices}
- *   isLoading={false}
- *   hasMore={true}
- *   onLoadMore={() => fetchMoreInvoices()}
+ *   invoices={visibleInvoices}
+ *   totalCount={allInvoices.length}
+ *   hasMore={visibleInvoices.length < allInvoices.length}
+ *   onLoadMore={() => setVisible((n) => n + 12)}
+ *   onShowAll={() => setVisible(allInvoices.length)}
  * />
  */
 export function InvoiceList({
@@ -96,11 +180,17 @@ export function InvoiceList({
   isLoading = false,
   hasMore = false,
   onLoadMore,
+  onShowAll,
+  totalCount,
 }: InvoiceListProps): React.ReactElement {
-  const { t, formatDate, formatCurrency } = useLocale();
+  const { t, formatDate, formatCurrency, language, currency } = useLocale();
+  const displayCurrency = (currency || 'GBP').toUpperCase();
+
+  const charged = (amount: number, code: string): string =>
+    formatChargedAmount(amount, code, language);
 
   const formatVatLine = (
-    invoice: Pick<Invoice, 'taxAmount' | 'taxRate' | 'taxCountry'>
+    invoice: Pick<Invoice, 'taxAmount' | 'taxRate' | 'taxCountry' | 'currency'>
   ): string => {
     const ratePercent = Math.round(invoice.taxRate * 100);
     const countrySuffix =
@@ -108,10 +198,15 @@ export function InvoiceList({
         ? `, ${invoice.taxCountry}`
         : '';
     return t('billing.vat_included', 'incl. {amount} VAT ({rate}%{country})')
-      .replace('{amount}', formatCurrency(invoice.taxAmount))
+      .replace('{amount}', charged(invoice.taxAmount, invoice.currency))
       .replace('{rate}', String(ratePercent))
       .replace('{country}', countrySuffix);
   };
+
+  /** A second, indicative figure is only useful when the currencies differ. */
+  const showsIndicative = (invoice: Invoice): boolean =>
+    invoice.amountUsd !== null &&
+    invoice.currency.toUpperCase() !== displayCurrency;
 
   // Loading state
   if (isLoading && invoices.length === 0) {
@@ -143,8 +238,26 @@ export function InvoiceList({
     );
   }
 
+  const anyIndicative = invoices.some(showsIndicative);
+  const hasCardCharges = invoices.some(
+    (invoice) =>
+      invoice.provider === 'STRIPE' &&
+      invoice.currency.toUpperCase() !== displayCurrency
+  );
+  const hasLocalCharges = invoices.some(
+    (invoice) => invoice.provider === 'DLOCAL'
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
+      {anyIndicative && (
+        <AmountDifferenceNotice
+          displayCurrency={displayCurrency}
+          hasCardCharges={hasCardCharges}
+          hasLocalCharges={hasLocalCharges}
+        />
+      )}
+
       {/* Invoice Table */}
       <div className="overflow-x-auto rounded-lg border">
         <table className="w-full">
@@ -190,8 +303,19 @@ export function InvoiceList({
                   {/* Amount */}
                   <td className="px-4 py-3 text-sm">
                     <div className="font-semibold">
-                      {formatCurrency(invoice.amount)}
+                      {charged(invoice.amount, invoice.currency)}
                     </div>
+                    {showsIndicative(invoice) && invoice.amountUsd !== null && (
+                      <div
+                        className="mt-0.5 text-xs text-muted-foreground"
+                        title={t(
+                          'billing.indicative_tooltip',
+                          'Indicative conversion into your display currency, not the amount charged'
+                        )}
+                      >
+                        ≈ {formatCurrency(invoice.amountUsd)}
+                      </div>
+                    )}
                     {invoice.reverseCharge ? (
                       <Badge
                         variant="outline"
@@ -238,6 +362,17 @@ export function InvoiceList({
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1"
+                            aria-label={
+                              invoice.provider === 'DLOCAL'
+                                ? t(
+                                    'billing.download_receipt',
+                                    'Download receipt (PDF)'
+                                  )
+                                : t(
+                                    'billing.download_invoice',
+                                    'Download invoice (PDF)'
+                                  )
+                            }
                           >
                             <Download className="h-4 w-4" />
                             <span className="sr-only sm:not-sr-only">PDF</span>
@@ -255,9 +390,16 @@ export function InvoiceList({
         </table>
       </div>
 
-      {/* Load More Button */}
+      {/* History size + paging */}
+      {totalCount !== undefined && totalCount > 0 && (
+        <p className="text-center text-xs text-muted-foreground">
+          {t('billing.showing_count', 'Showing {shown} of {total} invoices')
+            .replace('{shown}', String(invoices.length))
+            .replace('{total}', String(totalCount))}
+        </p>
+      )}
       {hasMore && (
-        <div className="flex justify-center pt-4">
+        <div className="flex justify-center gap-2">
           <Button variant="outline" onClick={onLoadMore} disabled={isLoading}>
             {isLoading ? (
               <>
@@ -268,6 +410,11 @@ export function InvoiceList({
               t('Load More')
             )}
           </Button>
+          {onShowAll && (
+            <Button variant="ghost" onClick={onShowAll} disabled={isLoading}>
+              {t('billing.show_all', 'Show all')}
+            </Button>
+          )}
         </div>
       )}
     </div>

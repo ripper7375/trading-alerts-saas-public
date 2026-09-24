@@ -275,6 +275,30 @@ export async function getCustomerInvoices(
 }
 
 /**
+ * Hard ceiling on a single customer's invoice history. A monthly
+ * subscriber accrues 12 a year, so this is decades of billing -- it only
+ * exists so a pathological customer can't turn one page load into an
+ * unbounded Stripe pagination loop.
+ */
+export const MAX_INVOICE_HISTORY = 1000;
+
+/**
+ * Get a customer's COMPLETE invoice history from Stripe, following
+ * Stripe's cursor pagination (100 per page, the API maximum) rather than
+ * stopping at the first page the way `getCustomerInvoices` does.
+ *
+ * @param customerId - Stripe customer ID
+ * @returns Every invoice for the customer, newest first (Stripe's order)
+ */
+export async function getAllCustomerInvoices(
+  customerId: string
+): Promise<Stripe.Invoice[]> {
+  return getStripeClient()
+    .invoices.list({ customer: customerId, limit: 100 })
+    .autoPagingToArray({ limit: MAX_INVOICE_HISTORY });
+}
+
+/**
  * Get customer's payment methods from Stripe
  *
  * @param customerId - Stripe customer ID

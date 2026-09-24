@@ -2,9 +2,26 @@
  * Invoices API Route
  *
  * GET /api/invoices
- * Returns user's unified invoice history from both Stripe and dLocal.
+ * Returns the user's COMPLETE unified invoice history from Stripe and
+ * dLocal, newest first.
  *
- * Part 18B: Now includes dLocal payments alongside Stripe invoices.
+ * Part 18B: includes dLocal payments alongside Stripe invoices.
+ *
+ * Amount semantics (2026-09-24):
+ * - `amount` + `currency` are EXACTLY what was charged -- the same figure
+ *   the downloadable PDF shows. For dLocal that is the local-currency
+ *   amount (e.g. INR), not the USD price.
+ * - `amountUsd` is the USD value of that charge (net of any affiliate
+ *   discount), so the UI can show an indicative conversion into the
+ *   viewer's display currency. `null` when unknown (a Stripe invoice
+ *   charged in a non-USD currency).
+ * - dLocal rows link `invoicePdfUrl` to our own generated receipt,
+ *   GET /api/invoices/[id]/receipt, since dLocal issues no PDF.
+ *
+ * History: previously capped at 12 per provider. Now everything is
+ * returned (Stripe via cursor pagination, bounded by MAX_INVOICE_HISTORY);
+ * the billing page pages through it client-side. `?limit=N` still caps
+ * the response for any caller that wants fewer.
  *
  * @module app/api/invoices/route
  */
@@ -13,8 +30,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { planDescription } from '@/lib/billing/dlocal-receipt';
+import {
+  dLocalChargedUsd,
+  roundMoney,
+  stripeAmountToMajor,
+} from '@/lib/billing/invoice-amounts';
 import { prisma } from '@/lib/db/prisma';
-import { getCustomerInvoices } from '@/lib/stripe/stripe';
+import {
+  getAllCustomerInvoices,
+  MAX_INVOICE_HISTORY,
+} from '@/lib/stripe/stripe';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -26,13 +52,14 @@ import { getCustomerInvoices } from '@/lib/stripe/stripe';
 interface InvoiceItem {
   id: string;
   date: string;
-  amount: number;
-  currency: string; // NEW: Currency code
+  amount: number; // exactly what was charged, in `currency`
+  currency: string; // ISO code of the charge
+  amountUsd: number | null; // USD value of the charge, when known
   status: 'paid' | 'open' | 'failed';
   description: string;
   invoicePdfUrl: string | null;
-  provider: 'STRIPE' | 'DLOCAL'; // NEW: Payment provider
-  planType: string | null; // NEW: Plan type (for dLocal)
+  provider: 'STRIPE' | 'DLOCAL';
+  planType: string | null;
   hostedInvoiceUrl: string | null; // davintrade-vat-stack: Stripe-hosted invoice page
   taxAmount: number; // davintrade-vat-stack: VAT/GST collected, in `currency`
   taxRate: number; // e.g. 0.19 for German 19% VAT, 0 for reverse charge/no tax
@@ -44,6 +71,7 @@ interface InvoiceItem {
 interface InvoicesResponse {
   invoices: InvoiceItem[];
   hasMore: boolean;
+  total: number;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -53,12 +81,6 @@ interface InvoicesResponse {
 /**
  * Get user's invoice history
  *
- * @param request - Next.js request object with optional limit query param
- * @returns JSON response with invoice list
- *
- * @example Request:
- * GET /api/invoices?limit=12
- *
  * @example Response:
  * {
  *   "invoices": [
@@ -66,19 +88,21 @@ interface InvoicesResponse {
  *       "id": "in_xxx",
  *       "date": "2024-01-01T00:00:00.000Z",
  *       "amount": 29.00,
+ *       "currency": "USD",
+ *       "amountUsd": 29.00,
  *       "status": "paid",
  *       "description": "Trading Alerts PRO - Monthly",
  *       "invoicePdfUrl": "https://pay.stripe.com/invoice/xxx/pdf"
  *     }
  *   ],
- *   "hasMore": false
+ *   "hasMore": false,
+ *   "total": 1
  * }
  */
 export async function GET(
   request: NextRequest
 ): Promise<NextResponse<InvoicesResponse | { error: string }>> {
   try {
-    // Authenticate user
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
@@ -87,15 +111,16 @@ export async function GET(
 
     const userId = session.user.id;
 
-    // Get limit from query params (default: 12, max: 100)
-    const searchParams = request.nextUrl.searchParams;
-    const limitParam = searchParams.get('limit');
-    const limit = Math.min(Math.max(parseInt(limitParam || '12', 10), 1), 100);
+    // Optional cap; default is the full history.
+    const limitParam = request.nextUrl.searchParams.get('limit');
+    const parsedLimit = limitParam ? parseInt(limitParam, 10) : NaN;
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), MAX_INVOICE_HISTORY)
+      : MAX_INVOICE_HISTORY;
 
-    // Collect invoices from all providers
     const allInvoices: InvoiceItem[] = [];
 
-    // 1. Get dLocal payments (completed ones only)
+    // 1. dLocal payments (completed ones only)
     const dLocalPayments = await prisma.payment.findMany({
       where: {
         userId,
@@ -103,22 +128,21 @@ export async function GET(
         status: 'COMPLETED',
       },
       orderBy: { createdAt: 'desc' },
-      take: limit,
+      take: MAX_INVOICE_HISTORY,
     });
 
-    // Transform dLocal payments to invoice format
     for (const payment of dLocalPayments) {
       allInvoices.push({
         id: payment.id,
         date: payment.createdAt.toISOString(),
-        amount: Number(payment.amountUSD),
-        currency: payment.currency,
+        amount: roundMoney(Number(payment.amount)),
+        currency: payment.currency.toUpperCase(),
+        // amountUSD is the gross list price; the charge was net of discount.
+        amountUsd: dLocalChargedUsd(payment),
         status: 'paid',
-        description:
-          payment.planType === 'THREE_DAY'
-            ? 'Trading Alerts PRO - 3 Day'
-            : 'Trading Alerts PRO - Monthly',
-        invoicePdfUrl: null, // dLocal doesn't provide PDF invoices
+        description: planDescription(payment.planType),
+        // dLocal issues no PDF -- we generate a Stripe-style receipt.
+        invoicePdfUrl: `/api/invoices/${encodeURIComponent(payment.id)}/receipt`,
         provider: 'DLOCAL',
         planType: payment.planType,
         // davintrade-vat-stack Section 1.1: dLocal markets are flat-rate,
@@ -132,16 +156,15 @@ export async function GET(
       });
     }
 
-    // 2. Get Stripe invoices if customer exists
+    // 2. Stripe invoices, if the user has a Stripe customer
     const subscription = await prisma.subscription.findUnique({
       where: { userId },
     });
 
     if (subscription?.stripeCustomerId) {
       try {
-        const stripeInvoices = await getCustomerInvoices(
-          subscription.stripeCustomerId,
-          limit
+        const stripeInvoices = await getAllCustomerInvoices(
+          subscription.stripeCustomerId
         );
 
         // Tax breakdown for these invoices is captured separately, by the
@@ -156,17 +179,22 @@ export async function GET(
           taxRecords.map((record) => [record.stripeInvoiceId, record])
         );
 
-        // Transform Stripe invoices to our format
         for (const invoice of stripeInvoices) {
           const taxRecord = taxRecordsById.get(invoice.id);
+          const currency = (invoice.currency || 'usd').toUpperCase();
+          const amount = stripeAmountToMajor(
+            invoice.amount_paid || 0,
+            currency
+          );
           allInvoices.push({
             id: invoice.id,
             date: new Date((invoice.created || 0) * 1000).toISOString(),
-            amount: (invoice.amount_paid || 0) / 100, // Convert cents to dollars
-            currency: (invoice.currency || 'usd').toUpperCase(),
+            amount,
+            currency,
+            amountUsd: currency === 'USD' ? amount : null,
             status: mapInvoiceStatus(invoice.status),
             description: getInvoiceDescription(invoice),
-            invoicePdfUrl: invoice.invoice_pdf || null,
+            invoicePdfUrl: invoice.invoice_pdf || taxRecord?.invoicePdf || null,
             provider: 'STRIPE',
             planType: 'MONTHLY',
             hostedInvoiceUrl:
@@ -184,18 +212,15 @@ export async function GET(
       }
     }
 
-    // Sort all invoices by date (newest first)
+    // Newest first across both providers
     allInvoices.sort(
       (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
-    // Apply limit and check for hasMore
-    const hasMore = allInvoices.length > limit;
-    const invoicesToReturn = allInvoices.slice(0, limit);
-
     return NextResponse.json({
-      invoices: invoicesToReturn,
-      hasMore,
+      invoices: allInvoices.slice(0, limit),
+      hasMore: allInvoices.length > limit,
+      total: allInvoices.length,
     });
   } catch (error) {
     console.error('[Invoices] Error fetching invoices:', error);
