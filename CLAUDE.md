@@ -13,6 +13,35 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — admin read-only "view as user" for
+> customer support: a FREE or PRO user's Billing, Login History (Security) and Security Activity.
+> Code complete and verified, on branch `feat/admin-view-as-user` (`e5f087fb` read path,
+> `50e6916c` UI, plus a docs commit). Pushed, NOT merged, NOT deployed. No migration.** **Full account:** `davintrade-admin-view-as-user/admin-view-as-user-manifest-work-completion.md`.
+> Modelled on the affiliate view-as. Entry: a **View as user** button on `/admin/users` rows and
+> on `/admin/users/[id]` (disabled for admins), which opens `/settings/billing` under a banner
+> (Switch user / Exit view). The nav shows only Security and Billing; every other settings page
+> is replaced by a notice, because it would show the admin's own account.
+> **Two conditions before any route serves another user** (`lib/admin/user-view-as.ts`): a 2h
+> httpOnly cookie bound to the admin's id and naming a non-admin user, **and** a
+> `?view_as=user` opt-in that only the three settings pages add. Every other request ignores
+> the cookie, so an open view can't leak into `/alerts` or the header. An opt-in without a valid
+> view returns 403, never the admin's own data. 9 GET routes changed; the 6 that proxy to
+> operation-service skip the proxy in view mode (it authenticates as the admin). **Writes still act
+> on the session user (the admin),** so the pages hide Cancel Plan, 2FA buttons, alert switches
+> and Mark read: they could never reach the customer, but would change the admin's own account.
+> **Verified:** `tsc`/ESLint/Prettier clean; full `test:ci` **236/236 · 3055/3055** twice
+> (232/3008 + 4 suites/47 tests); mutation **9/9** killed, restores byte-exact; live `next dev`
+> signed out: admin API and all 9 routes 401; UI via a throwaway route (deleted).
+> **Found:** my own `user-detail.test.tsx` wrapper leaked LocaleProvider's real geo-IP fetch and
+> crashed other suites at random (L40 again); fixed by seeding the locale. Pre-existing: the
+> floating Support Centre button overflows 375px on every page (seen on untouched `/pricing`).
+> **Not verified:** signed-in click-through; real data. **Davin's call:** the full preferences
+> object in view mode is fine (not personal data; useful for support and marketing).
+> **Gotcha:** the desktop app's background `git status` polling holds `.git/index.lock`, which
+> made lint-staged's backup step fail repeatedly; waiting ~2s for the lock to stay free before
+> `git commit` got through. ~40 files still list as `M` after an over-broad prettier run, but
+> their blob hashes equal HEAD (stale stat only); they commit as nothing.
+
 > **Ad-hoc session (2026-09-24, phase/session unchanged) — billing history: dLocal PDF receipts,
 > an "amounts may differ" notice, and the full history instead of 12 rows. Code complete and
 > verified, on branch `feat/billing-receipts-and-history` (`725a3781` backend, `82294af8` UI,
