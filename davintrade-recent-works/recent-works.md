@@ -70,6 +70,8 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-ci-fix\ci-fix-manifest-wor
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-bill-receipts-and-history\bill-receipts-and-history-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\davintrade-admin-view-as-user\admin-view-as-user-manifest-work-completion.md
+
 =================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder
