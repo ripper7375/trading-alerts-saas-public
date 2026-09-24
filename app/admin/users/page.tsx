@@ -21,7 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { formatDate } from '@/lib/utils';
 import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -67,7 +66,7 @@ type SortOrder = 'asc' | 'desc';
  * - Pagination (50 per page)
  */
 export default function UsersPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);

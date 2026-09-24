@@ -23,13 +23,18 @@ export default function ClientProviders({
   children,
   initialPreferences = defaultPreferences,
   initialAppearance,
+  detectedTimezone,
 }: {
   children: React.ReactNode;
   initialPreferences?: LocalePreferences;
   initialAppearance?: AppearanceSettings;
+  detectedTimezone?: string | null;
 }) {
   return (
-    <LocaleProvider initialPreferences={initialPreferences}>
+    <LocaleProvider
+      initialPreferences={initialPreferences}
+      detectedTimezone={detectedTimezone}
+    >
       <AppearanceProvider initialSettings={initialAppearance}>
         <SupportChatProvider>
           {children}

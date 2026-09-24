@@ -302,7 +302,7 @@
   "admin.affiliates.flows_subtitle": "聯盟程式碼分發的期間對帳 — 期初 + 增加 - 減少 = 期末",
   "admin.affiliates.flows_title": "程式碼流轉報告",
   "admin.affiliates.gross_revenue": "總收入",
-  "admin.affiliates.gross_revenue_calc": "總收入（{sales} x ${price}）",
+  "admin.affiliates.gross_revenue_calc": "總收入（{sales} x {price}）",
   "admin.affiliates.important_notes": "重要提示",
   "admin.affiliates.initial_distribution": "初始分發",
   "admin.affiliates.inventory_subtitle": "聯盟程式碼分發與使用統計",
@@ -1489,8 +1489,8 @@
   "dashboard.tip_2": "探索通道與結構疊加層",
   "dashboard.tip_3_free": "升級到 PRO 以建立價格警報",
   "dashboard.tip_3_pro": "根據價格水平或圖表繪圖建立警報",
-  "dashboard.upgrade_desc": "每月僅需 ${price}，即可獲得完整警報系統和高階圖表工具",
-  "dashboard.upgrade_now": "立即升級 - 每月 ${price}",
+  "dashboard.upgrade_desc": "每月僅需 {price}，即可獲得完整警報系統和高階圖表工具",
+  "dashboard.upgrade_now": "立即升級 - 每月 {price}",
   "dashboard.upgrade_to_pro": "升級到 PRO",
   "dashboard.view_all": "檢視全部",
   "dashboard.welcome_back": "歡迎回來，{name}！",
@@ -2098,5 +2098,8 @@
   "admin.system.job_approve_matured_commissions": "審核到期佣金",
   "admin.system.job_approve_matured_commissions_desc": "每日：將已過退款期的 PENDING 佣金轉為 APPROVED。不進行付款。",
   "affiliate.register.benefit_monthly_payouts": "- 餘額超過 {amount} 時每月自動付款",
-  "affiliate.register.terms_consent": "我同意聯盟計畫的條款與條件。我了解我將從推薦中獲得 {percent}% 的佣金，且餘額超過 {amount} 時每月處理付款。"
+  "affiliate.register.terms_consent": "我同意聯盟計畫的條款與條件。我了解我將從推薦中獲得 {percent}% 的佣金，且餘額超過 {amount} 時每月處理付款。",
+  "settings.language.cascade_hint": "變更語言也會設定日期格式、時間格式和貨幣。您仍可在下方分別變更。",
+  "settings.language.detected_timezone": "根據您的位置偵測到：",
+  "settings.language.use_detected_timezone": "使用偵測到的時區"
 }

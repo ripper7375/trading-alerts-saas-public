@@ -783,5 +783,8 @@
   "billing.download_invoice": "تنزيل الفاتورة (PDF)",
   "billing.showing_count": "عرض {shown} من أصل {total} فاتورة",
   "billing.show_all": "عرض الكل",
-  "billing.price_indicative_note": "سعر تقريبي بعملة {currency}. سعر الخطة {usdPrice} دولار أمريكي؛ ويعتمد المبلغ الذي تدفعه على سعر الصرف لدى وسيلة الدفع الخاصة بك."
+  "billing.price_indicative_note": "سعر تقريبي بعملة {currency}. سعر الخطة {usdPrice} دولار أمريكي؛ ويعتمد المبلغ الذي تدفعه على سعر الصرف لدى وسيلة الدفع الخاصة بك.",
+  "settings.language.cascade_hint": "يؤدي تغيير اللغة أيضًا إلى ضبط تنسيق التاريخ وتنسيق الوقت والعملة. لا يزال بإمكانك تغيير كل منها أدناه.",
+  "settings.language.detected_timezone": "تم اكتشافه من موقعك:",
+  "settings.language.use_detected_timezone": "استخدام المنطقة الزمنية المكتشفة"
 }

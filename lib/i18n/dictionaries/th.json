@@ -2739,5 +2739,8 @@
   "billing.download_invoice": "ดาวน์โหลดใบแจ้งหนี้ (PDF)",
   "billing.showing_count": "แสดง {shown} จาก {total} รายการ",
   "billing.show_all": "แสดงทั้งหมด",
-  "billing.price_indicative_note": "ราคาโดยประมาณใน {currency} แผนนี้ตั้งราคาไว้ที่ {usdPrice} USD จำนวนที่คุณชำระขึ้นอยู่กับอัตราแลกเปลี่ยนของวิธีการชำระเงินของคุณ"
+  "billing.price_indicative_note": "ราคาโดยประมาณใน {currency} แผนนี้ตั้งราคาไว้ที่ {usdPrice} USD จำนวนที่คุณชำระขึ้นอยู่กับอัตราแลกเปลี่ยนของวิธีการชำระเงินของคุณ",
+  "settings.language.cascade_hint": "การเปลี่ยนภาษาจะตั้งค่ารูปแบบวันที่ รูปแบบเวลา และสกุลเงินให้ด้วย คุณยังเปลี่ยนแต่ละรายการได้ด้านล่าง",
+  "settings.language.detected_timezone": "ตรวจพบจากตำแหน่งของคุณ:",
+  "settings.language.use_detected_timezone": "ใช้เขตเวลาที่ตรวจพบ"
 }

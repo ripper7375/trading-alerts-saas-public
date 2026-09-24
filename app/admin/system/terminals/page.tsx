@@ -119,7 +119,7 @@ function StatusAlertCard({
  * service unreachable, non-2xx) -- never a fabricated "operational" state.
  */
 export default function AdminSystemTerminalsPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDateTime, formatTimestamp } = useLocale();
   const [data, setData] = useState<TerminalsApiResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
@@ -172,7 +172,7 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
         {lastChecked && (
           <span className="text-xs text-muted-foreground">
             {t('admin.system.last_checked', 'Last checked')}{' '}
-            {lastChecked.toLocaleTimeString()}
+            {formatTimestamp(lastChecked)}
           </span>
         )}
       </div>
@@ -353,7 +353,7 @@ export default function AdminSystemTerminalsPage(): React.ReactElement {
                             {terminal.reconnect_count ?? '—'}
                           </td>
                           <td className="py-2 text-muted-foreground">
-                            {new Date(terminal.last_check).toLocaleString()}
+                            {formatDateTime(terminal.last_check)}
                           </td>
                         </tr>
                       )

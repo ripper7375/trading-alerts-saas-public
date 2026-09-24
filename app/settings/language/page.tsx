@@ -22,6 +22,8 @@ import {
 } from '@/components/ui/select';
 import { useLocale } from '@/lib/context/locale-context';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/languages';
+import { preferencesForLanguage } from '@/lib/i18n/locale-resolver';
+import { formatDateInZone, formatTimeInZone } from '@/lib/i18n/format-datetime';
 import {
   getAllTimezones,
   getTimezoneLabel,
@@ -31,13 +33,19 @@ import {
 /**
  * Language & Region Settings Page (Row 77)
  *
- * Bound to the real GET/PUT /api/user/preferences endpoint -- already has
- * a real backend (Session 9-0's language/timezone hand-off), not rebuilt.
+ * The form edits the live locale (`useLocale()`), the same state the header's
+ * country switcher writes, so switching country there updates this page too.
+ * How the fields relate:
  *
- * `handleSave()` also calls `setLocalePreferences()` from `useLocale()` (the
- * same write path `components/layout/app-header.tsx` already uses) so a save
- * takes effect immediately in the current session, not just in the database
- * -- see `docs/policies/08-locale-i18n-compliance.md` §0.
+ * - The header's country sets the language.
+ * - The language sets date format, time format and currency (Thai: DD/MM/YYYY,
+ *   24-hour, THB). The user can then change each one before saving.
+ * - The timezone is detected from the visitor's IP and never follows the
+ *   language. Picking one pins it; "Use detected timezone" unpins it.
+ *
+ * `handleSave()` writes the database (PUT /api/user/preferences) and then the
+ * live locale via `setLocalePreferences()`, so the change applies at once --
+ * see `docs/policies/08-locale-i18n-compliance.md` §0.
  */
 
 interface LanguageSettings {
@@ -46,6 +54,7 @@ interface LanguageSettings {
   dateFormat: 'MDY' | 'DMY' | 'YMD';
   timeFormat: '12h' | '24h';
   currency: string;
+  timezoneSetByUser: boolean;
 }
 
 const currencies = [
@@ -53,21 +62,37 @@ const currencies = [
   { code: 'EUR', symbol: '€', name: 'Euro' },
   { code: 'GBP', symbol: '£', name: 'British Pound' },
   { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
-  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
-  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
-  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
   { code: 'AED', symbol: 'AED', name: 'UAE Dirham' },
   { code: 'KRW', symbol: '₩', name: 'South Korean Won' },
+  { code: 'THB', symbol: '฿', name: 'Thai Baht' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+  { code: 'NGN', symbol: '₦', name: 'Nigerian Naira' },
+  { code: 'PKR', symbol: 'Rs', name: 'Pakistani Rupee' },
+  { code: 'VND', symbol: '₫', name: 'Vietnamese Dong' },
+  { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah' },
+  { code: 'ZAR', symbol: 'R', name: 'South African Rand' },
+  { code: 'TRY', symbol: '₺', name: 'Turkish Lira' },
 ];
 
 export default function LanguageSettingsPage(): React.ReactElement {
-  const { t, setLocalePreferences } = useLocale();
+  const {
+    t,
+    setLocalePreferences,
+    detectedTimezone,
+    language,
+    timezone,
+    dateFormat,
+    timeFormat,
+    currency,
+    timezoneSetByUser,
+  } = useLocale();
   const [settings, setSettings] = useState<LanguageSettings>({
-    language: 'en-US',
-    timezone: 'America/New_York',
-    dateFormat: 'MDY',
-    timeFormat: '12h',
-    currency: 'USD',
+    language,
+    timezone,
+    dateFormat,
+    timeFormat,
+    currency,
+    timezoneSetByUser: !!timezoneSetByUser,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -85,74 +110,73 @@ export default function LanguageSettingsPage(): React.ReactElement {
     );
   }, [allTimezones, timezoneSearch]);
 
+  // Follow the live locale: a country picked in the header, the detected
+  // timezone arriving, or a save all show up here.
   useEffect(() => {
-    const loadSettings = async (): Promise<void> => {
-      try {
-        const response = await fetch('/api/user/preferences');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.preferences) {
-            setSettings({
-              language: data.preferences.language || 'en-US',
-              timezone: data.preferences.timezone || 'America/New_York',
-              dateFormat: data.preferences.dateFormat || 'MDY',
-              timeFormat: data.preferences.timeFormat || '12h',
-              currency: data.preferences.currency || 'USD',
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load language settings:', error);
-      }
-    };
-
-    loadSettings();
-  }, []);
+    setSettings({
+      language,
+      timezone,
+      dateFormat,
+      timeFormat,
+      currency,
+      timezoneSetByUser: !!timezoneSetByUser,
+    });
+  }, [language, timezone, dateFormat, timeFormat, currency, timezoneSetByUser]);
 
   const handleChange = (field: keyof LanguageSettings, value: string): void => {
     setSettings((prev) => ({ ...prev, [field]: value }));
   };
 
-  const getCurrentTime = (): string => {
-    try {
-      return new Intl.DateTimeFormat('en-US', {
-        timeZone: settings.timezone,
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: settings.timeFormat === '12h',
-      }).format(new Date());
-    } catch {
-      return '--:--';
-    }
+  // A new language brings its country's date/time format and currency; the
+  // timezone is left alone. Languages without a country (Chinese, Spanish)
+  // keep the current values.
+  const handleLanguageChange = (value: string): void => {
+    const implied = preferencesForLanguage(value);
+    setSettings((prev) => ({
+      ...prev,
+      language: value,
+      ...(implied && {
+        dateFormat: implied.dateFormat,
+        timeFormat: implied.timeFormat,
+        currency: implied.currency,
+      }),
+    }));
   };
 
-  const getDatePreview = (): string => {
-    const date = new Date();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const year = date.getFullYear();
-
-    switch (settings.dateFormat) {
-      case 'MDY':
-        return `${month}/${day}/${year}`;
-      case 'DMY':
-        return `${day}/${month}/${year}`;
-      case 'YMD':
-        return `${year}-${month}-${day}`;
-      default:
-        return `${month}/${day}/${year}`;
-    }
+  const handleTimezoneChange = (value: string): void => {
+    setSettings((prev) => ({
+      ...prev,
+      timezone: value,
+      timezoneSetByUser: true,
+    }));
+    setTimezoneSearch('');
   };
+
+  const resetToDetectedTimezone = (): void => {
+    if (!detectedTimezone) return;
+    setSettings((prev) => ({
+      ...prev,
+      timezone: detectedTimezone,
+      timezoneSetByUser: false,
+    }));
+  };
+
+  // Previews use the same formatters as the rest of the app, with the
+  // values currently in the form.
+  const getCurrentTime = (): string => formatTimeInZone(Date.now(), settings);
+
+  const getDatePreview = (): string => formatDateInZone(Date.now(), settings);
 
   const handleSave = async (): Promise<void> => {
     setIsSaving(true);
     setSaveSuccess(false);
 
     try {
+      const { timezoneSetByUser: _local, ...stored } = settings;
       const response = await fetch('/api/user/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(stored),
       });
 
       if (!response.ok) {
@@ -186,7 +210,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
           </Label>
           <Select
             value={settings.language}
-            onValueChange={(value) => handleChange('language', value)}
+            onValueChange={handleLanguageChange}
           >
             <SelectTrigger id="language">
               <SelectValue placeholder={t('Select language')} />
@@ -199,6 +223,12 @@ export default function LanguageSettingsPage(): React.ReactElement {
               ))}
             </SelectContent>
           </Select>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t(
+              'settings.language.cascade_hint',
+              'Changing the language also sets the date format, time format and currency. You can still change each one below.'
+            )}
+          </p>
         </div>
       </section>
 
@@ -215,10 +245,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
           </Label>
           <Select
             value={settings.timezone}
-            onValueChange={(value) => {
-              handleChange('timezone', value);
-              setTimezoneSearch('');
-            }}
+            onValueChange={handleTimezoneChange}
           >
             <SelectTrigger
               id="timezone"
@@ -261,6 +288,33 @@ export default function LanguageSettingsPage(): React.ReactElement {
             {t('Current time:')}{' '}
             <span className="font-mono font-semibold">{getCurrentTime()}</span>
           </p>
+          {detectedTimezone && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>
+                {t(
+                  'settings.language.detected_timezone',
+                  'Detected from your location:'
+                )}{' '}
+                <span className="font-mono">
+                  {getTimezoneLabel(detectedTimezone)}
+                </span>
+              </span>
+              {settings.timezone !== detectedTimezone && (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0"
+                  onClick={resetToDetectedTimezone}
+                >
+                  {t(
+                    'settings.language.use_detected_timezone',
+                    'Use detected timezone'
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
@@ -379,7 +433,7 @@ export default function LanguageSettingsPage(): React.ReactElement {
             <SelectContent>
               {currencies.map((curr) => (
                 <SelectItem key={curr.code} value={curr.code}>
-                  {curr.code} {curr.symbol} - {curr.name}
+                  {curr.code} {curr.symbol} - {t(curr.name)}
                 </SelectItem>
               ))}
             </SelectContent>

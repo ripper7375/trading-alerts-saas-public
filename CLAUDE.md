@@ -13,6 +13,94 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Same session, round 3 — every place that shows a time, date or price now uses the user's own
+> timezone, date format, time format and currency. Branch `fix/currency-display-rate` pushed, NOT
+> merged, NOT deployed.** **Full account of all three rounds:**
+> `davintrade-language-and-locale-format-fix/language-and-locale-format-fix-manifest-work-completion.md`. Davin asked to make
+> sure all four apply throughout the app. The Settings page already stored them, but an audit found
+> several places that never read them:
+>
+> - **Every chart axis and crosshair printed UTC.** lightweight-charts prints timestamps as UTC,
+>   and none of the 5 charts set formatters. New `components/charts/use-chart-time-options.ts`
+>   formats labels only (data and tick positions stay UTC, so drawings, markers and alerts are
+>   untouched). It is wired into trading-chart, relative-strength, hrma-smma modal,
+>   currency-index-comparison and xaux-usdx.
+> - **`formatDate()` used the browser's clock, not the chosen timezone.** New shared
+>   `lib/i18n/format-datetime.ts` (`formatDateInZone`/`TimeInZone`/`DateTimeInZone`) now backs
+>   `formatDate`, `formatTimestamp` and the new `formatDateTime`, in the client context and in
+>   Server Components.
+> - **~20 files formatted dates themselves** (`toLocaleDateString('en-US')`, `date-fns` `PPp`,
+>   `lib/utils` `formatDate`). Converted: Alerts, Security login history and activity, Account
+>   deletion, affiliate payouts, checkout return, the status page, and 13 admin pages or components.
+> - **Server pages lacked the date/time format.** A new `davintrade-formats` cookie (`DMY.24h`) joins
+>   the currency and timezone cookies.
+> - **4 hardcoded `$` prices:** the Settings overview PRO price, the dashboard upgrade prompt (6
+>   dictionaries also embedded `$` around `{price}`), the affiliate register payout minimum (now
+>   `formatCurrency`, as on the affiliate dashboard), and admin user-detail earnings; plus the admin
+>   P&L `${price}` label.
+>
+> **Deliberately left:** checkout's "≈ $x USD" (the real charge); money-service/admin USD
+> config values; emails, PDF receipts and `session-tracker` (sent or stored, no viewer preferences);
+> admin analytics month buckets.
+> **Verified:** `tsc`/ESLint/Prettier clean. Full `test:ci` **242/242 · 3099/3099**, run in local
+> time **and** with `TZ=UTC`, as CI uses. Mutation 3/4 killed; the 4th was a control with no test.
+> The chart-labels mutant first survived, because a preference change after mount re-applied the
+> labels; the test now pins stable preferences. A real lightweight-charts chart on a throwaway route
+> (deleted): London → Tokyo moved the axis 9h and the crosshair read the next day; MDY + 12h gave
+> `12/26/2024 8:00 AM`; no console errors.
+> **Gotcha:** Windows intermittently refuses writes (`OSError 22`, Prettier `UNKNOWN`) to files that
+> are open elsewhere. A mutation harness must retry the write and verify the restore.
+
+> **Same session, round 2 — Language & Region now works as Davin's annotated screenshot describes.
+> Same branch, NOT pushed.** The rules: the header's country (GB by default) sets the language; the
+> language sets date format, time format and currency, each of which the user can still change; the
+> **timezone is detected from the IP** (Vercel `x-vercel-ip-timezone`, then `cf-timezone`, then the
+> browser's zone locally) and never follows a country or language. Picking a timezone pins it
+> (`timezoneSetByUser`), and "Use detected timezone" unpins it.
+> **Found:** the Settings page loaded its form from the DB, which nothing else reads, while the
+> header wrote the live locale, so the two could disagree and a save would undo a header switch.
+> The page now edits the live locale (no GET), and the DB is only written on Save.
+> **Server rendering:** Server Components only saw the language cookie, so Thai + GBP still showed
+> THB there. New `davintrade-currency` and `davintrade-timezone` cookies feed `resolvePreferences()`
+> through one shared `resolveRequestPreferences()` (layout and `getServerLocalePreferences()`).
+> **Removed CNY/AUD/CAD** (Davin: the rates were unrealistic). A stored one now falls back to the
+> language's currency, and the formatter shows plain USD for any code without a rate.
+> **Existing users:** a stored timezone that equals the country's default is treated as automatic;
+> any other value is kept as the user's own.
+> **Verified:** `tsc`/ESLint/Prettier clean; full `test:ci` **240/240 · 3084/3084** (+2 suites, +19
+> tests). Mutation 3/3 killed; the first survived until a user-pinned-timezone test was added. Live
+> `next dev` (throwaway route, deleted): a fresh visitor gets GB/en-GB/GBP/DMY/24h with the timezone
+> detected as Asia/Bangkok; the header's Thailand updates the page to Thai/THB with the timezone
+> unchanged; English (US) on the page sets MDY/12h/USD; the SSR HTML with th + GBP cookies renders
+> £22.62. **Not verified:** the Vercel IP header in production, and a signed-in Save.
+> **Note:** a first-time visitor whose IP resolves to a supported country still gets that country
+> (existing ipapi lookup); GB applies when there is no match. That lookup failed locally.
+
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — display currency now converts at its own
+> rate, and choosing a language suggests its currency. Branch `fix/currency-display-rate`
+> (`1461c3fb`), NOT pushed, NOT merged. No migration.** Davin asked two questions about
+> Settings → Language & Region (does Thai default to THB, and does Thai + GBP show GBP everywhere?).
+> The answer to both was no. **Real bug:** `formatCurrency()` took the **symbol** from
+> `preferences.currency` but the **rate** from `preferences.countryCode`, so Thai + GBP showed a baht
+> amount with a pound sign: **$29 → "£1,015" instead of "£22.62"**. The same happened in the 5 Server
+> Components that format USD (the 4 admin BI dashboards and affiliate payouts). A 2026-09-01 comment
+> had kept the split on purpose as "original behavior"; it was the bug.
+> **Fix:** the rate now comes from the currency (`CURRENCY_USD_RATES` / `exchangeRateForCurrency()`
+> in `lib/country-config.ts`). `formatCurrencyAmount` no longer takes an `exchangeRate` argument, so
+> the symbol and the rate cannot disagree. The Settings page suggests the language's currency when a
+> language is chosen (only when exactly one country uses that language, e.g. Thai → THB; en-US, used
+> by US/NG/ZA, keeps the current currency), and the user can still override it. THB, INR, NGN, PKR,
+> VND, IDR, ZAR and TRY were added to the dropdown.
+> **⚠ Approximate rates:** CNY 7.1, AUD 1.52, CAD 1.38 are approximations with no dated source (no
+> country uses them); before this change they were converted with the country's rate.
+> **Verified:** `tsc`/ESLint/Prettier clean; 2 new suites/10 tests; full `test:ci` **238/238 ·
+> 3065/3065** (236/3055 + exactly these). Live `next dev` via a throwaway route (deleted): picking
+> Thai switches the real dropdown to THB; a stored Thai/TH/GBP preference renders £22.62; no console
+> errors other than the expected signed-out 401s. **Not verified:** a signed-in Save on
+> `davintrade.app`. **Gotcha:** never use `git stash` here. The desktop app's `.git/index.lock`
+> polling made `stash push` fail silently, and the following `pop` then tried an unrelated
+> 2026-09-12 lint-staged backup. It aborted, so nothing was lost.
+
 > **Ad-hoc session (2026-09-24, phase/session unchanged) — admin read-only "view as user" for
 > customer support: a FREE or PRO user's Billing, Login History (Security) and Security Activity.
 > Code complete and verified, on branch `feat/admin-view-as-user` (`e5f087fb` read path,

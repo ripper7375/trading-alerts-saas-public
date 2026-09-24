@@ -33,6 +33,7 @@ import { useChartAppearance } from '@/components/providers/appearance-provider';
 import type { CurrencyGoldIndexHistorySeries } from '@/lib/currency-gold-indices/queries';
 
 import { ComparisonDrawingLayer } from './comparison-drawing-layer';
+import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 
 interface XauxUsdxComparisonChartProps {
   series: CurrencyGoldIndexHistorySeries[];
@@ -130,6 +131,7 @@ export function XauxUsdxComparisonChart({
 }: XauxUsdxComparisonChartProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const chartTime = useChartTimeOptions(chartRef);
   const seriesRef = useRef<Map<string, ISeriesApi<'Line'>>>(new Map());
   const watermarkRef = useRef<ITextWatermarkPluginApi<Time> | null>(null);
   const isFirstLoadRef = useRef(true);
@@ -205,6 +207,7 @@ export function XauxUsdxComparisonChart({
     }
 
     chartRef.current = chart;
+    chartTime.applyTo(chart);
     setChartApi(chart);
     setPrimarySeries(seriesMap.get('XAUX') ?? null);
 

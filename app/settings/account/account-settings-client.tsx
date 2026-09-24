@@ -1,6 +1,6 @@
 'use client';
 
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Eye,
   EyeOff,
@@ -162,7 +162,7 @@ function PendingDeletionBanner({
   isCancelling: boolean;
   onCancel: () => void;
 }): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDateTime } = useLocale();
   const isConfirmed = deletionStatus.status === 'CONFIRMED';
   const targetDate = getDeletionTargetDate(deletionStatus);
 
@@ -197,13 +197,13 @@ function PendingDeletionBanner({
                       'Your account will be permanently deleted in about {duration} (around {date}).'
                     )
                       .replace('{duration}', formatDistanceToNow(targetDate))
-                      .replace('{date}', format(targetDate, 'PPp'))
+                      .replace('{date}', formatDateTime(targetDate))
                   : t(
                       'settings.account.deletion_pending_desc',
                       'Confirm via the link in your email within {duration} (link expires {date}), or cancel below.'
                     )
                       .replace('{duration}', formatDistanceToNow(targetDate))
-                      .replace('{date}', format(targetDate, 'PPp'))}{' '}
+                      .replace('{date}', formatDateTime(targetDate))}{' '}
                 {t(
                   'settings.account.deletion_still_cancellable',
                   'You can still cancel this request.'

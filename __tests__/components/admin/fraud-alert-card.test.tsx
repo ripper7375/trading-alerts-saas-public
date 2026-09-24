@@ -31,6 +31,7 @@ beforeEach(() => {
       dateFormat: 'MDY',
       timeFormat: '12h',
       currency: 'USD',
+      timezoneSetByUser: true,
     })
   );
 });
@@ -143,10 +144,12 @@ describe('FraudAlertCard Component', () => {
   // Date Formatting
   // ============================================================================
   describe('date formatting', () => {
-    it('should format the date correctly', () => {
+    it("shows the date in the user's timezone and formats", async () => {
       render(<FraudAlertCard alert={mockAlert} />);
-      // The date format is 'Jan 15, 10:30 AM' (or similar based on locale)
-      expect(screen.getByText(/Jan/)).toBeInTheDocument();
+      // 10:30 UTC is 5:30 AM in New York, shown as MM/DD/YYYY and 12-hour.
+      expect(
+        await screen.findByText(/01\/15\/2024 5:30 AM/)
+      ).toBeInTheDocument();
     });
   });
 

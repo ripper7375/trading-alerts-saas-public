@@ -40,15 +40,12 @@ interface FormData {
 export default function AffiliateRegisterPage(): React.ReactElement {
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
   const { commissionPercent, codesPerMonth, minimumPayoutUsd } =
     useAffiliateConfig();
-  // Admin-editable payout minimum (DECISION-LOG F83), shown in USD.
-  const minimumPayoutLabel = `$${
-    Number.isInteger(minimumPayoutUsd)
-      ? minimumPayoutUsd
-      : minimumPayoutUsd.toFixed(2)
-  }`;
+  // Admin-editable payout minimum (DECISION-LOG F83), a USD figure shown in
+  // the user's display currency, as on the affiliate dashboard.
+  const minimumPayoutLabel = formatCurrency(minimumPayoutUsd);
 
   useEffect(() => {
     if (session?.user?.role === 'ADMIN') {

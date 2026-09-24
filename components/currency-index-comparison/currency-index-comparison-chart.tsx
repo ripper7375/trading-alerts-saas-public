@@ -99,6 +99,7 @@ import {
   type HighlightedZScoreClass,
   type ZScoreCandleClass,
 } from '@/lib/currency-index-comparison/zscore-candle';
+import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 
 export type PlotType = 'none' | 'line' | 'ohlc' | 'heikin-ashi';
 export type SlotId = 'A' | 'B';
@@ -379,6 +380,7 @@ export function CurrencyIndexComparisonChart({
 }: CurrencyIndexComparisonChartProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const chartTime = useChartTimeOptions(chartRef);
   const seriesRef = useRef<Partial<Record<SlotId, SlotSeries>>>({});
   const hostRef = useRef<ISeriesApi<'Line'> | null>(null);
   const fittedKeyRef = useRef<string | null>(null);
@@ -502,6 +504,7 @@ export function CurrencyIndexComparisonChart({
     }
 
     chartRef.current = chart;
+    chartTime.applyTo(chart);
     hostRef.current = host;
     setChartApi(chart);
     setHostSeries(host);

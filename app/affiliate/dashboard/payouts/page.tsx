@@ -27,7 +27,8 @@ import { getAffiliateProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
-import { getCountryByCode, formatCurrencyAmount } from '@/lib/country-config';
+import { formatCurrencyAmount } from '@/lib/country-config';
+import { formatDateInZone } from '@/lib/i18n/format-datetime';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,11 +67,9 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
   const prefs = await getServerLocalePreferences();
   const dict = getDictionary(prefs.language);
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
-  const exchangeRate = getCountryByCode(prefs.countryCode).exchangeRate;
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
       currency: prefs.currency,
-      exchangeRate,
       language: prefs.language,
     });
   const batchStatusLabelKeys: Record<string, string> = {
@@ -232,12 +231,12 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                     {tx.batch.scheduledAt
-                      ? new Date(tx.batch.scheduledAt).toLocaleDateString()
+                      ? formatDateInZone(tx.batch.scheduledAt, prefs)
                       : '—'}
                   </td>
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                     {tx.batch.completedAt
-                      ? new Date(tx.batch.completedAt).toLocaleDateString()
+                      ? formatDateInZone(tx.batch.completedAt, prefs)
                       : '—'}
                   </td>
                 </tr>

@@ -2277,7 +2277,7 @@
   "admin.affiliates.flows_subtitle": "Period reconciliation of affiliate code distribution — opening + additions - reductions = closing",
   "admin.affiliates.flows_title": "Code Flows Report",
   "admin.affiliates.gross_revenue": "Gross Revenue",
-  "admin.affiliates.gross_revenue_calc": "Gross Revenue ({sales} x ${price})",
+  "admin.affiliates.gross_revenue_calc": "Gross Revenue ({sales} x {price})",
   "admin.affiliates.important_notes": "Important Notes",
   "admin.affiliates.initial_distribution": "Initial Distribution",
   "admin.affiliates.inventory_subtitle": "Affiliate code distribution and usage statistics",
@@ -3494,8 +3494,8 @@
   "dashboard.tip_2": "Explore channel and structure overlays",
   "dashboard.tip_3_free": "Upgrade to PRO to create price alerts",
   "dashboard.tip_3_pro": "Create alerts for price levels or from chart drawings",
-  "dashboard.upgrade_desc": "Get the full alert system and advanced chart tools for just ${price}/month",
-  "dashboard.upgrade_now": "Upgrade Now - ${price}/month",
+  "dashboard.upgrade_desc": "Get the full alert system and advanced chart tools for just {price}/month",
+  "dashboard.upgrade_now": "Upgrade Now - {price}/month",
   "dashboard.upgrade_to_pro": "Upgrade to PRO",
   "dashboard.view_all": "View All",
   "dashboard.welcome_back": "Welcome back, {name}!",
@@ -4231,5 +4231,8 @@
   "admin.system.job_approve_matured_commissions": "Approve Matured Commissions",
   "admin.system.job_approve_matured_commissions_desc": "Daily: moves PENDING commissions past the refund window to APPROVED. Pays nothing.",
   "affiliate.register.benefit_monthly_payouts": "- Monthly automated payouts for balances over {amount}",
-  "affiliate.register.terms_consent": "I agree to the affiliate program terms and conditions. I understand that I will earn {percent}% commission on referrals and that payouts are processed monthly for balances over {amount}."
+  "affiliate.register.terms_consent": "I agree to the affiliate program terms and conditions. I understand that I will earn {percent}% commission on referrals and that payouts are processed monthly for balances over {amount}.",
+  "settings.language.cascade_hint": "Changing the language also sets the date format, time format and currency. You can still change each one below.",
+  "settings.language.detected_timezone": "Detected from your location:",
+  "settings.language.use_detected_timezone": "Use detected timezone"
 }

@@ -98,6 +98,7 @@ import type { CurrencyCode } from '@/lib/currency-index-pro/pairs';
 import { currencyColor } from '@/lib/currency-index-pro/colors';
 
 import { useCurrencyIndexDetail } from '../hooks/use-currency-index-detail';
+import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 
 interface HrmaSmmaDetailModalProps {
   open: boolean;
@@ -154,6 +155,7 @@ export function HrmaSmmaDetailModal({
   // (confirmed live: the chart silently never got created, 0 canvases).
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const chartTime = useChartTimeOptions(chartRef);
   const hrmaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   const smmaSeriesRef = useRef<ISeriesApi<'Line'> | null>(null);
   // Carries the bands, marker and warm-up line -- see the module doc.
@@ -271,6 +273,7 @@ export function HrmaSmmaDetailModal({
     const markersPlugin = createSeriesMarkers(hostSeries, []);
 
     chartRef.current = chart;
+    chartTime.applyTo(chart);
     hostSeriesRef.current = hostSeries;
     hrmaSeriesRef.current = hrmaSeries;
     smmaSeriesRef.current = smmaSeries;

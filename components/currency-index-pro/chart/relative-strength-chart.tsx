@@ -54,6 +54,7 @@ import { currencyColor } from '@/lib/currency-index-pro/colors';
 
 import { HighImpactNewsTooltip } from './high-impact-news-tooltip';
 import type { CurrencyIndexChartData } from '../hooks/use-currency-index-chart';
+import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 
 interface RelativeStrengthChartProps {
   data: CurrencyIndexChartData | null;
@@ -116,6 +117,7 @@ export function RelativeStrengthChart({
 }: RelativeStrengthChartProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const chartTime = useChartTimeOptions(chartRef);
   const seriesRef = useRef<Map<CurrencyCode, ISeriesApi<'Line'>>>(new Map());
   // Carries the corridor price lines and news markers -- see the module doc.
   const hostRef = useRef<ISeriesApi<'Line'> | null>(null);
@@ -194,6 +196,7 @@ export function RelativeStrengthChart({
     }
 
     chartRef.current = chart;
+    chartTime.applyTo(chart);
     setChartApi(chart);
 
     const handleResize = (): void => {

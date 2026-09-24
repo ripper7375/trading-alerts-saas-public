@@ -52,7 +52,7 @@ interface JobRunState {
  * shows the real, ephemeral result of that one call.
  */
 export default function AdminSystemJobsPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatTimestamp } = useLocale();
   const [runStates, setRunStates] = useState<Record<string, JobRunState>>({});
 
   const triggerJob = async (jobId: string): Promise<void> => {
@@ -186,7 +186,7 @@ export default function AdminSystemJobsPage(): React.ReactElement {
                         'Last triggered'
                       )}{' '}
                       {runState.triggeredAt
-                        ? new Date(runState.triggeredAt).toLocaleTimeString()
+                        ? formatTimestamp(runState.triggeredAt)
                         : ''}{' '}
                       {t('admin.system.last_triggered_suffix', 'this session')}
                     </Badge>

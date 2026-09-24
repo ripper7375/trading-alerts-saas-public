@@ -253,10 +253,13 @@ export default function ProfitLossReportPage(): React.ReactElement {
                     <dt className="text-muted-foreground">
                       {t(
                         'admin.affiliates.gross_revenue_calc',
-                        'Gross Revenue ({sales} x ${price})'
+                        'Gross Revenue ({sales} x {price})'
                       )
                         .replace('{sales}', String(report.volume.totalSales))
-                        .replace('{price}', String(report.volume.regularPrice))}
+                        .replace(
+                          '{price}',
+                          formatCurrency(report.volume.regularPrice)
+                        )}
                     </dt>
                     <dd className="font-medium text-foreground">
                       {formatCurrency(report.revenue.grossRevenue)}

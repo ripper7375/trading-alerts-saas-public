@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import type {
   DisbursementTransactionStatus,
   DisbursementProvider,
@@ -104,7 +104,7 @@ function getStatusBadge(
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function TransactionsPageContent(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
 

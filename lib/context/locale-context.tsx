@@ -14,17 +14,27 @@ import {
   SUPPORTED_COUNTRIES,
   getCountryByCode,
   formatCurrencyAmount,
+  isSupportedCurrency,
 } from '@/lib/country-config';
 import type { CountryConfig } from '@/lib/country-config';
 import {
   LOCALE_COOKIE,
   LOCALE_STORAGE_KEY,
   defaultPreferences,
+  isValidTimezone,
   localeCookieString,
+  preferenceCookieStrings,
   preferencesForCountryPrefix,
+  preferencesForLanguage,
   preferencesFromCountry,
   type LocalePreferences,
 } from '@/lib/i18n/locale-resolver';
+
+import {
+  formatDateInZone,
+  formatDateTimeInZone,
+  formatTimeInZone,
+} from '@/lib/i18n/format-datetime';
 
 import thDict from '@/lib/i18n/dictionaries/th.json';
 import enGBDict from '@/lib/i18n/dictionaries/en-GB.json';
@@ -56,8 +66,24 @@ function samePreferences(a: LocalePreferences, b: LocalePreferences): boolean {
     a.timezone === b.timezone &&
     a.dateFormat === b.dateFormat &&
     a.timeFormat === b.timeFormat &&
-    a.currency === b.currency
+    a.currency === b.currency &&
+    !!a.timezoneSetByUser === !!b.timezoneSetByUser
   );
+}
+
+/**
+ * Apply a country's or language's defaults without touching the timezone:
+ * that is IP-detected (or the user's own pick), never implied by a country.
+ */
+function keepTimezone(
+  next: LocalePreferences,
+  prev: LocalePreferences
+): LocalePreferences {
+  return {
+    ...next,
+    timezone: prev.timezone,
+    timezoneSetByUser: !!prev.timezoneSetByUser,
+  };
 }
 
 function readStoredPreferences(): LocalePreferences | null {
@@ -70,7 +96,24 @@ function readStoredPreferences(): LocalePreferences | null {
     const base = parsed.countryCode
       ? preferencesFromCountry(getCountryByCode(parsed.countryCode))
       : defaultPreferences;
-    return { ...base, ...parsed } as LocalePreferences;
+    const merged = { ...base, ...parsed } as LocalePreferences;
+    // A currency that has since been withdrawn (CNY, AUD, CAD) falls back to
+    // the language's own currency.
+    if (!isSupportedCurrency(merged.currency)) {
+      merged.currency =
+        preferencesForLanguage(merged.language)?.currency ?? base.currency;
+    }
+    // Stored before the flag existed: a timezone other than the country's
+    // default can only have been picked by the user.
+    if (parsed.timezoneSetByUser === undefined) {
+      merged.timezoneSetByUser =
+        !!parsed.timezone && parsed.timezone !== base.timezone;
+    }
+    if (!isValidTimezone(merged.timezone)) {
+      merged.timezone = base.timezone;
+      merged.timezoneSetByUser = false;
+    }
+    return merged;
   } catch {
     return null;
   }
@@ -86,6 +129,9 @@ function persistPreferences(preferences: LocalePreferences): void {
   try {
     localStorage.setItem(LOCALE_STORAGE_KEY, JSON.stringify(preferences));
     document.cookie = localeCookieString(preferences.language);
+    for (const cookie of preferenceCookieStrings(preferences)) {
+      document.cookie = cookie;
+    }
   } catch {
     /* storage error fallback */
   }
@@ -93,10 +139,15 @@ function persistPreferences(preferences: LocalePreferences): void {
 
 interface LocaleContextType extends LocalePreferences {
   countryConfig: CountryConfig;
+  /** The visitor's timezone as detected from their IP (or, without an edge
+   *  header, from the browser); null until known. */
+  detectedTimezone: string | null;
   setCountryCode: (code: string) => void;
   setLocalePreferences: (prefs: Partial<LocalePreferences>) => void;
   formatTimestamp: (utc: number | string | Date) => string;
   formatDate: (utc: number | string | Date) => string;
+  /** Date and time, e.g. `25/12/2024 14:30`, in the user's timezone. */
+  formatDateTime: (utc: number | string | Date) => string;
   formatCurrency: (amountInUSD: number) => string;
   formatRelativeTime: (minutesAgo: number) => string;
   t: (keyOrText: string, fallback?: string) => string;
@@ -108,10 +159,13 @@ export function LocaleProvider({
   children,
   initialPreferences,
   initialLocale,
+  detectedTimezone: serverDetectedTimezone,
 }: {
   children: React.ReactNode;
   /** Full preference set resolved on the server in `app/layout.tsx`. */
   initialPreferences?: LocalePreferences;
+  /** IANA timezone the edge detected from the visitor's IP, if any. */
+  detectedTimezone?: string | null;
   /** @deprecated language-only entry point, kept for backwards compatibility. */
   initialLocale?: string;
 }) {
@@ -145,13 +199,52 @@ export function LocaleProvider({
 
   const geoLookupAttempted = useRef(false);
 
+  const [detectedTimezone, setDetectedTimezone] = useState<string | null>(
+    isValidTimezone(serverDetectedTimezone) ? serverDetectedTimezone : null
+  );
+
   const applyPreferences = useCallback(
-    (next: LocalePreferences, options?: { persist?: boolean }) => {
-      setPreferences((prev) => (samePreferences(prev, next) ? prev : next));
-      if (options?.persist) persistPreferences(next);
+    (
+      next:
+        | LocalePreferences
+        | ((prev: LocalePreferences) => LocalePreferences),
+      options?: { persist?: boolean }
+    ) => {
+      setPreferences((prev) => {
+        const resolved = typeof next === 'function' ? next(prev) : next;
+        if (options?.persist) persistPreferences(resolved);
+        return samePreferences(prev, resolved) ? prev : resolved;
+      });
     },
     []
   );
+
+  // Without an edge header (local dev, or a host that sends none) fall back
+  // to the browser's own zone. Runs after hydration so SSR and the first
+  // client render agree.
+  useEffect(() => {
+    if (detectedTimezone) return;
+    try {
+      const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (isValidTimezone(browserZone)) setDetectedTimezone(browserZone);
+    } catch {
+      /* keep the country default */
+    }
+  }, [detectedTimezone]);
+
+  // Until the user picks a timezone, it follows the detected one.
+  useEffect(() => {
+    if (!detectedTimezone || preferences.timezoneSetByUser) return;
+    if (preferences.timezone === detectedTimezone) return;
+    applyPreferences((prev) =>
+      prev.timezoneSetByUser ? prev : { ...prev, timezone: detectedTimezone }
+    );
+  }, [
+    detectedTimezone,
+    preferences.timezone,
+    preferences.timezoneSetByUser,
+    applyPreferences,
+  ]);
 
   // `<html lang>` is stamped by the server and by the inline script in
   // `app/layout.tsx`, neither of which sees a later language change. Without
@@ -200,7 +293,9 @@ export function LocaleProvider({
     //    prefixes, where the root layout does not re-run.
     const fromUrl = preferencesForCountryPrefix(firstSegment);
     if (fromUrl) {
-      applyPreferences(fromUrl, { persist: true });
+      applyPreferences((prev) => keepTimezone(fromUrl, prev), {
+        persist: true,
+      });
       return;
     }
 
@@ -231,9 +326,15 @@ export function LocaleProvider({
         });
         if (!res.ok) return;
         const data = await res.json();
+        if (cancelled) return;
+        if (isValidTimezone(data.timezone)) {
+          setDetectedTimezone((current) => current ?? data.timezone);
+        }
         const detected = preferencesForCountryPrefix(data.country_code);
-        if (detected && !cancelled) {
-          applyPreferences(detected, { persist: true });
+        if (detected) {
+          applyPreferences((prev) => keepTimezone(detected, prev), {
+            persist: true,
+          });
         }
       } catch {
         // Fallback safely to UK English default
@@ -247,9 +348,13 @@ export function LocaleProvider({
 
   const setCountryCode = useCallback(
     (code: string) => {
-      applyPreferences(preferencesFromCountry(getCountryByCode(code)), {
-        persist: true,
-      });
+      // The header's country sets language, date/time format and currency;
+      // the timezone stays IP-detected (or the user's own pick).
+      applyPreferences(
+        (prev) =>
+          keepTimezone(preferencesFromCountry(getCountryByCode(code)), prev),
+        { persist: true }
+      );
     },
     [applyPreferences]
   );
@@ -258,17 +363,19 @@ export function LocaleProvider({
     (newPrefs: Partial<LocalePreferences>) => {
       setPreferences((prev) => {
         let updated: LocalePreferences = { ...prev, ...newPrefs };
+        // A new language brings its country's date/time format and currency
+        // (Thai: TH, DD/MM/YYYY, 24-hour, THB). Anything passed explicitly
+        // overrides them, and the timezone is left alone.
         if (newPrefs.language && newPrefs.language !== prev.language) {
-          const matches = Object.values(SUPPORTED_COUNTRIES).filter(
-            (c) => c.language === newPrefs.language
-          );
-          if (matches.length === 1) {
-            updated = {
-              ...updated,
-              ...preferencesFromCountry(matches[0]!),
-              ...newPrefs,
-            };
+          const implied = preferencesForLanguage(newPrefs.language);
+          if (implied) {
+            updated = { ...keepTimezone(implied, prev), ...newPrefs };
           }
+        }
+        if (!isSupportedCurrency(updated.currency)) {
+          updated.currency =
+            preferencesForLanguage(updated.language)?.currency ??
+            getCountryByCode(updated.countryCode).currency;
         }
         persistPreferences(updated);
         return samePreferences(prev, updated) ? prev : updated;
@@ -294,39 +401,19 @@ export function LocaleProvider({
   );
 
   const value = useMemo<LocaleContextType>(() => {
-    const formatTimestamp = (utc: number | string | Date): string => {
-      try {
-        return new Intl.DateTimeFormat('en-GB', {
-          timeZone: preferences.timezone || 'Europe/London',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: preferences.timeFormat === '12h',
-        }).format(new Date(utc));
-      } catch {
-        return '--:--:--';
-      }
-    };
+    // All three use the user's timezone, date format and time format.
+    const formatTimestamp = (utc: number | string | Date): string =>
+      formatTimeInZone(utc, preferences, { seconds: true });
 
-    const formatDate = (utc: number | string | Date): string => {
-      try {
-        const date = new Date(utc);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
+    const formatDate = (utc: number | string | Date): string =>
+      formatDateInZone(utc, preferences);
 
-        if (preferences.dateFormat === 'DMY') return `${day}/${month}/${year}`;
-        if (preferences.dateFormat === 'YMD') return `${year}-${month}-${day}`;
-        return `${month}/${day}/${year}`;
-      } catch {
-        return '--/--/----';
-      }
-    };
+    const formatDateTime = (utc: number | string | Date): string =>
+      formatDateTimeInZone(utc, preferences);
 
     const formatCurrency = (amountInUSD: number): string =>
       formatCurrencyAmount(amountInUSD, {
         currency: preferences.currency || 'GBP',
-        exchangeRate: getCountryByCode(preferences.countryCode).exchangeRate,
         language: preferences.language,
       });
 
@@ -343,15 +430,17 @@ export function LocaleProvider({
     return {
       ...preferences,
       countryConfig: getCountryByCode(preferences.countryCode),
+      detectedTimezone,
       setCountryCode,
       setLocalePreferences: updatePreferences,
       formatTimestamp,
       formatDate,
+      formatDateTime,
       formatCurrency,
       formatRelativeTime,
       t,
     };
-  }, [preferences, t, setCountryCode, updatePreferences]);
+  }, [preferences, detectedTimezone, t, setCountryCode, updatePreferences]);
 
   return (
     <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>

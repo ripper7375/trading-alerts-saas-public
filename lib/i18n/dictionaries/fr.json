@@ -302,7 +302,7 @@
   "admin.affiliates.flows_subtitle": "Réconciliation périodique de la distribution des codes affiliés — ouverture + ajouts - réductions = clôture",
   "admin.affiliates.flows_title": "Rapport des flux de codes",
   "admin.affiliates.gross_revenue": "Revenu brut",
-  "admin.affiliates.gross_revenue_calc": "Revenu brut ({sales} x {price} $)",
+  "admin.affiliates.gross_revenue_calc": "Revenu brut ({sales} x {price})",
   "admin.affiliates.important_notes": "Notes importantes",
   "admin.affiliates.initial_distribution": "Distribution initiale",
   "admin.affiliates.inventory_subtitle": "Distribution et statistiques d’utilisation des codes affiliés",
@@ -1489,8 +1489,8 @@
   "dashboard.tip_2": "Explorez les superpositions de canaux et de structure",
   "dashboard.tip_3_free": "Passez à PRO pour créer des alertes de prix",
   "dashboard.tip_3_pro": "Créez des alertes pour des niveaux de prix ou à partir de dessins sur le graphique",
-  "dashboard.upgrade_desc": "Obtenez le système d'alertes complet et des outils graphiques avancés pour seulement {price} $/mois",
-  "dashboard.upgrade_now": "Passer à PRO maintenant - {price} $/mois",
+  "dashboard.upgrade_desc": "Obtenez le système d'alertes complet et des outils graphiques avancés pour seulement {price}/mois",
+  "dashboard.upgrade_now": "Passer à PRO maintenant - {price}/mois",
   "dashboard.upgrade_to_pro": "Passer à PRO",
   "dashboard.view_all": "Voir tout",
   "dashboard.welcome_back": "Bon retour, {name} !",
@@ -2098,5 +2098,8 @@
   "admin.system.job_approve_matured_commissions": "Approuver les commissions arrivées à échéance",
   "admin.system.job_approve_matured_commissions_desc": "Quotidien : passe à APPROVED les commissions PENDING dont le délai de remboursement est écoulé. Aucun paiement.",
   "affiliate.register.benefit_monthly_payouts": "- Versements mensuels automatiques pour les soldes supérieurs à {amount}",
-  "affiliate.register.terms_consent": "J'accepte les conditions générales du programme d'affiliation. Je comprends que je gagnerai {percent}% de commission sur les parrainages et que les versements sont traités chaque mois pour les soldes supérieurs à {amount}."
+  "affiliate.register.terms_consent": "J'accepte les conditions générales du programme d'affiliation. Je comprends que je gagnerai {percent}% de commission sur les parrainages et que les versements sont traités chaque mois pour les soldes supérieurs à {amount}.",
+  "settings.language.cascade_hint": "Changer la langue définit aussi le format de date, le format d'heure et la devise. Vous pouvez encore modifier chacun ci-dessous.",
+  "settings.language.detected_timezone": "Détecté d'après votre position :",
+  "settings.language.use_detected_timezone": "Utiliser le fuseau horaire détecté"
 }

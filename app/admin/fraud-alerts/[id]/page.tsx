@@ -83,7 +83,7 @@ interface FraudAlertDetail {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function FraudAlertDetailPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatDateTime } = useLocale();
   const params = useParams();
   const alertId = params['id'] as string;
 
@@ -223,10 +223,7 @@ export default function FraudAlertDetailPage(): React.ReactElement {
     );
   }
 
-  const formattedDate = new Date(alert.createdAt).toLocaleString('en-US', {
-    dateStyle: 'full',
-    timeStyle: 'short',
-  });
+  const formattedDate = formatDateTime(alert.createdAt);
 
   return (
     <div className="space-y-6">
@@ -373,10 +370,7 @@ export default function FraudAlertDetailPage(): React.ReactElement {
                 <p className="text-xs text-muted-foreground">
                   {t('admin.fraud.reviewed_at', 'Reviewed {date}').replace(
                     '{date}',
-                    new Date(alert.reviewedAt).toLocaleString('en-US', {
-                      dateStyle: 'medium',
-                      timeStyle: 'short',
-                    })
+                    formatDateTime(alert.reviewedAt)
                   )}
                 </p>
               )}

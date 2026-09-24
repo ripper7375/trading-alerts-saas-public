@@ -76,7 +76,7 @@ interface PayableSummary {
  * - Fetches from /api/disbursement/affiliates/payable
  */
 export default function DisbursementDashboardPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatTimestamp } = useLocale();
   const [summary, setSummary] = useState<DisbursementSummary | null>(null);
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [payableSummary, setPayableSummary] = useState<PayableSummary | null>(
@@ -193,7 +193,7 @@ export default function DisbursementDashboardPage(): React.ReactElement {
                 )}
               </CardTitle>
               <span className="text-sm text-muted-foreground">
-                {new Date(health.timestamp).toLocaleTimeString()}
+                {formatTimestamp(health.timestamp)}
               </span>
             </div>
           </CardHeader>

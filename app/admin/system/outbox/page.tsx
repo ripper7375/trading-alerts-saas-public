@@ -8,8 +8,8 @@ import {
 } from '@/components/ui/card';
 import { RetryFailedEventsButton } from '@/components/admin/system/retry-failed-events-button';
 import { prisma } from '@/lib/db/prisma';
-import { formatDate } from '@/lib/utils';
-import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { formatDateInZone } from '@/lib/i18n/format-datetime';
+import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 const RECENT_FAILURES_LIMIT = 20;
@@ -54,7 +54,11 @@ export default async function AdminSystemOutboxPage(): Promise<React.ReactElemen
   const countsByStatus = new Map(grouped.map((g) => [g.status, g._count._all]));
   const failedCount = countsByStatus.get('FAILED') ?? 0;
 
-  const dict = getDictionary(await getServerLanguage());
+  const prefs = await getServerLocalePreferences();
+  const dict = getDictionary(prefs.language);
+  // Dates in the admin's own timezone and date format.
+  const formatDate = (value: Date | string): string =>
+    formatDateInZone(value, prefs);
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
   const statusLabel = (status: string): string =>
     dt(`admin.system.outbox_status_${status.toLowerCase()}`, status);

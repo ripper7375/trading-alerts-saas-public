@@ -31,7 +31,7 @@ interface UsageData {
 }
 
 export default function SettingsPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatCurrency } = useLocale();
   const { data: session } = useSession();
   const [isLoading, setIsLoading] = useState(true);
   const [usageData, setUsageData] = useState<UsageData>({ alerts: 0 });
@@ -123,7 +123,7 @@ export default function SettingsPage(): React.ReactElement {
               <div className="mt-1 text-muted-foreground">
                 {tier === 'FREE'
                   ? t('settings.free_forever', 'Free Forever')
-                  : `$${regularPrice}/${t('checkout.month', 'month')}`}
+                  : `${formatCurrency(regularPrice)}/${t('checkout.month', 'month')}`}
               </div>
             </div>
 

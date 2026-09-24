@@ -77,7 +77,7 @@ interface FraudAlertsListResponse {
  * - Refreshes on initial load
  */
 export default function AdminDashboardPage(): React.ReactElement {
-  const { t } = useLocale();
+  const { t, formatTimestamp } = useLocale();
   const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [recentAlerts, setRecentAlerts] = useState<RecentFraudAlert[]>([]);
   const [activityError, setActivityError] = useState<string | null>(null);
@@ -542,7 +542,7 @@ export default function AdminDashboardPage(): React.ReactElement {
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground">
-                    {new Date(alert.createdAt).toLocaleTimeString()}
+                    {formatTimestamp(alert.createdAt)}
                   </span>
                 </Link>
               ))}
