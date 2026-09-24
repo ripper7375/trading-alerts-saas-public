@@ -4,7 +4,7 @@
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Request**   | Davin, 2026-09-24, in chat, from a screenshot of `davintrade.app/settings/billing` (an empty "Invoice History").                                                    |
 | **Scope**     | Three asks: (1) PDF receipts for dLocal payments, in Stripe's format; (2) a message explaining why on-screen amounts can differ from the PDF; (3) the full history. |
-| **Branch**    | `feat/billing-receipts-and-history`, 3 code commits + 1 docs commit on top of `main` @ `a3343098`. **Pushed. Not merged, not deployed.**                            |
+| **Branch**    | `feat/billing-receipts-and-history`, 4 code commits + 1 docs commit on top of `main` @ `a3343098`. **Pushed. Not merged, not deployed.**                            |
 | **Migration** | **None.** No `schema.prisma` touched. Receipt numbers are derived from the payment itself, so no counter table was needed (§3.1).                                   |
 | **New dep**   | `pdf-lib@^1.17.1` (pure JS, no native code, no font files).                                                                                                         |
 | **Status**    | Code complete and verified locally. **Signed-in click-through and a real dLocal payment not done** (the Executor never enters credentials). Those are Davin's.      |
@@ -37,6 +37,7 @@ Davin asked for all three to be addressed.
 | `725a3781` | Receipts backend: `lib/billing/*`, the receipt route, full-history API, Stripe helper, `pdf-lib` |
 | `82294af8` | Billing UI: exact amounts, "Why amounts may differ" notice, paging, `ar`/`th` keys, page tests   |
 | `1ad896a0` | CSS: stop hiding every new-tab link inside a table (§4)                                          |
+| `636edcd2` | Style: format `app/globals.css` with Prettier and include `*.css` in `lint-staged`               |
 | (docs)     | This manifest and the `CLAUDE.md` entry                                                          |
 
 ## 3. What was built
@@ -233,11 +234,11 @@ a loosened assertion.
 - `lib/stripe/stripe.ts` — `getAllCustomerInvoices()`, `MAX_INVOICE_HISTORY`
 - `components/billing/invoice-list.tsx` — amounts, notice, paging, accessible link names
 - `app/settings/billing/page.tsx` — paging state, plan-price note, FREE-with-invoices section
-- `app/globals.css` — the scoped rule (§4)
+- `app/globals.css` — the scoped rule (§4) and Prettier code style formatting
 - `lib/i18n/dictionaries/{ar,th}.json` — 12 keys each
 - `__tests__/pages/settings/billing.test.tsx` — 2 corrected assertions, 5 new tests
 - `package.json`, `pnpm-lock.yaml` — `pdf-lib` (lockfile adds exactly `pdf-lib`,
-  `@pdf-lib/standard-fonts`, `@pdf-lib/upng`, `pako`, `tslib@1`)
+  `@pdf-lib/standard-fonts`, `@pdf-lib/upng`, `pako`, `tslib@1`); added `*.css` to `lint-staged`
 - `.env.example` — the three `BILLING_SELLER_*` vars, documented without values
 - `CLAUDE.md` — session entry
 
@@ -247,8 +248,10 @@ a loosened assertion.
 ## 7. Verification
 
 **Static:** `tsc --noEmit` clean. ESLint clean on every changed file. Prettier clean on every
-changed TS file. (`app/globals.css` fails Prettier's check on `HEAD` too, so that predates this
-work, and lint-staged doesn't cover CSS.)
+changed file, including `app/globals.css` (initially failed Prettier check from pre-existing
+code on `main` and was left untouched in `1ad896a0`; subsequently formatted with Prettier and added
+`*.css` to `lint-staged` in `package.json` under commit `636edcd2` so all files and CSS now pass
+Prettier cleanly).
 
 **Tests:** full `npm run test:ci` gives **232/232 suites · 3008/3008 tests**. That is the previous
 baseline of 230/2983 plus exactly this work's 2 new suites and 25 new tests, with no regressions.
