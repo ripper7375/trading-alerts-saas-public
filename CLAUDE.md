@@ -14,7 +14,7 @@
 ## Current state _(update at the end of EVERY session)_
 
 > **Same session, round 2 (2026-09-25) — language and format changes now reach server-rendered parts
-> without a refresh. Same branch, NOT committed.** Davin's `/admin` screenshots showed a Thai page body
+> without a refresh. Same branch (`e8350262`, `b64cc305`, docs), pushed, NOT merged, NOT deployed.** Davin's `/admin` screenshots showed a Thai page body
 > with a Korean sidebar and header until he refreshed. **Cause (reproduced on `/academy` first):**
 > Server Components render locale from cookies that the browser only updated for the next request, and
 > the Next.js client router reuses cached layouts without asking the server. 26 files render locale on
@@ -4768,7 +4768,7 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   signed-in click-through; the checklist is item 7 of §6 in
   `davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`.
   The click-through should include Davin's round-2 case: change language, then open `/admin` without
-  refreshing; the sidebar must follow (manifest §7). Round 2 is uncommitted on the branch.
+  refreshing; the sidebar must follow (manifest §7). Round 2 is committed on the same branch.
   That §6 lists all 19 open items. The largest is Tier-2 translation (about 25% translated). Two need
   Davin's call: loading saved preferences on a new device (auth-adjacent), and GB versus IP country on
   a first visit.
