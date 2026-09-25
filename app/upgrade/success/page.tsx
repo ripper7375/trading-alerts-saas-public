@@ -31,6 +31,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONSTANTS
@@ -42,28 +43,38 @@ import { Badge } from '@/components/ui/badge';
 
 const UNLOCKED_FEATURES: Array<{
   icon: typeof Bell;
-  name: string;
-  detail: string;
+  nameKey: string;
+  defaultName: string;
+  detailKey: string;
+  defaultDetail: string;
 }> = [
   {
     icon: Bell,
-    name: '100 Active Alerts',
-    detail: 'Price alerts on XAUUSD M5/M15',
+    nameKey: 'upgrade.feature.active_alerts',
+    defaultName: '100 Active Alerts',
+    detailKey: 'upgrade.feature.active_alerts_detail',
+    defaultDetail: 'Price alerts on XAUUSD M5/M15',
   },
   {
     icon: LineChart,
-    name: 'Drawing Engine Line Alerts',
-    detail: 'Draw a line, get alerted when price touches it',
+    nameKey: 'upgrade.feature.drawing_alerts',
+    defaultName: 'Drawing Engine Line Alerts',
+    detailKey: 'upgrade.feature.drawing_alerts_detail',
+    defaultDetail: 'Draw a line, get alerted when price touches it',
   },
   {
     icon: Zap,
-    name: 'Priority Chart Updates',
-    detail: '30s refresh rate, 300 API requests/hour',
+    nameKey: 'upgrade.feature.priority_updates',
+    defaultName: 'Priority Chart Updates',
+    detailKey: 'upgrade.feature.priority_updates_detail',
+    defaultDetail: '30s refresh rate, 300 API requests/hour',
   },
   {
     icon: Headphones,
-    name: 'Priority Support & All Notifications',
-    detail: 'Email, push, and SMS alerts',
+    nameKey: 'upgrade.feature.priority_support',
+    defaultName: 'Priority Support & All Notifications',
+    detailKey: 'upgrade.feature.priority_support_detail',
+    defaultDetail: 'Email, push, and SMS alerts',
   },
 ];
 
@@ -78,6 +89,7 @@ interface SubscriptionState {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function UpgradeSuccessContent(): React.ReactElement {
+  const { t } = useLocale();
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -105,12 +117,17 @@ function UpgradeSuccessContent(): React.ReactElement {
       });
     } catch (err) {
       console.error('Failed to fetch subscription status:', err);
-      setError('Failed to load your subscription status.');
+      setError(
+        t(
+          'upgrade.error_load_subscription',
+          'Failed to load your subscription status.'
+        )
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -128,7 +145,9 @@ function UpgradeSuccessContent(): React.ReactElement {
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
           <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-muted-foreground" />
-          <p className="text-muted-foreground">Confirming your upgrade...</p>
+          <p className="text-muted-foreground">
+            {t('upgrade.confirming', 'Confirming your upgrade...')}
+          </p>
         </div>
       </div>
     );
@@ -138,7 +157,9 @@ function UpgradeSuccessContent(): React.ReactElement {
     router.push('/login?callbackUrl=/upgrade/success');
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Redirecting to login...</p>
+        <p className="text-muted-foreground">
+          {t('upgrade.redirecting_login', 'Redirecting to login...')}
+        </p>
       </div>
     );
   }
@@ -160,12 +181,12 @@ function UpgradeSuccessContent(): React.ReactElement {
                 role="status"
                 aria-live="polite"
               >
-                Welcome to PRO!
+                {t('upgrade.welcome_pro', 'Welcome to PRO!')}
               </CardTitle>
               <Badge className="bg-primary/10 mx-auto mt-2 w-fit text-primary">
                 {subscription?.provider === 'DLOCAL'
-                  ? 'Activated'
-                  : 'Subscription Active'}
+                  ? t('upgrade.activated', 'Activated')
+                  : t('upgrade.subscription_active', 'Subscription Active')}
               </Badge>
             </>
           ) : (
@@ -179,7 +200,7 @@ function UpgradeSuccessContent(): React.ReactElement {
                 role="status"
                 aria-live="polite"
               >
-                Finishing up your upgrade
+                {t('upgrade.finishing', 'Finishing up your upgrade')}
               </CardTitle>
             </>
           )}
@@ -189,15 +210,20 @@ function UpgradeSuccessContent(): React.ReactElement {
           {isPro ? (
             <>
               <p className="text-center text-muted-foreground">
-                Your PRO subscription is active. Here&apos;s what you just
-                unlocked:
+                {t(
+                  'upgrade.pro_active_desc',
+                  "Your PRO subscription is active. Here's what you just unlocked:"
+                )}
               </p>
 
               <ul className="space-y-3">
                 {UNLOCKED_FEATURES.map((feature) => {
                   const Icon = feature.icon;
                   return (
-                    <li key={feature.name} className="flex items-start gap-3">
+                    <li
+                      key={feature.nameKey}
+                      className="flex items-start gap-3"
+                    >
                       <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
                         <Check
                           className="h-4 w-4 text-emerald-600 dark:text-emerald-400"
@@ -206,10 +232,10 @@ function UpgradeSuccessContent(): React.ReactElement {
                       </span>
                       <div>
                         <p className="font-medium text-foreground">
-                          {feature.name}
+                          {t(feature.nameKey, feature.defaultName)}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          {feature.detail}
+                          {t(feature.detailKey, feature.defaultDetail)}
                         </p>
                       </div>
                       <Icon
@@ -222,14 +248,19 @@ function UpgradeSuccessContent(): React.ReactElement {
               </ul>
 
               <Button asChild className="w-full" size="lg">
-                <Link href="/dashboard">Go to Dashboard</Link>
+                <Link href="/dashboard">
+                  {t('upgrade.go_to_dashboard', 'Go to Dashboard')}
+                </Link>
               </Button>
             </>
           ) : (
             <>
               <p className="text-center text-muted-foreground" role="alert">
                 {error ||
-                  "Your payment went through, but we're still waiting for confirmation from your payment provider. This is usually instant but can take a minute."}
+                  t(
+                    'upgrade.waiting_provider',
+                    "Your payment went through, but we're still waiting for confirmation from your payment provider. This is usually instant but can take a minute."
+                  )}
               </p>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -241,10 +272,12 @@ function UpgradeSuccessContent(): React.ReactElement {
                   <RefreshCw
                     className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`}
                   />
-                  Check Again
+                  {t('upgrade.check_again', 'Check Again')}
                 </Button>
                 <Button asChild>
-                  <Link href="/dashboard">Go to Dashboard</Link>
+                  <Link href="/dashboard">
+                    {t('upgrade.go_to_dashboard', 'Go to Dashboard')}
+                  </Link>
                 </Button>
               </div>
             </>
