@@ -65,6 +65,32 @@ describe('LocaleProvider', () => {
     );
   });
 
+  it('replaces an unknown stored language with the country language', async () => {
+    renderWith({
+      countryCode: 'TH',
+      language: "x'+alert(1)+'",
+      timezone: 'Europe/London',
+      dateFormat: 'DMY',
+      timeFormat: '24h',
+      currency: 'THB',
+    });
+    await waitFor(() => expect(probe()).toHaveTextContent('th|THB'));
+    expect(document.documentElement.lang).toBe('th');
+    expect(document.documentElement.dir).toBe('ltr');
+  });
+
+  it('sets a right-to-left document for Arabic', async () => {
+    renderWith({
+      countryCode: 'AE',
+      language: 'ar',
+      timezone: 'Europe/London',
+      dateFormat: 'DMY',
+      timeFormat: '12h',
+      currency: 'AED',
+    });
+    await waitFor(() => expect(document.documentElement.dir).toBe('rtl'));
+  });
+
   it('keeps a timezone the user picked before the flag existed', async () => {
     renderWith({
       countryCode: 'GB',

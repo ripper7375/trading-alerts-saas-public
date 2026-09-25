@@ -29,6 +29,7 @@ import {
   preferencesFromCountry,
   type LocalePreferences,
 } from '@/lib/i18n/locale-resolver';
+import { isSupportedLanguage, textDirection } from '@/lib/i18n/languages';
 
 import {
   formatDateInZone,
@@ -97,6 +98,10 @@ function readStoredPreferences(): LocalePreferences | null {
       ? preferencesFromCountry(getCountryByCode(parsed.countryCode))
       : defaultPreferences;
     const merged = { ...base, ...parsed } as LocalePreferences;
+    // Storage is user-controlled and becomes the live language (and the
+    // cookie on the next save), so an unknown one is replaced with the
+    // country's own.
+    if (!isSupportedLanguage(merged.language)) merged.language = base.language;
     // A currency that has since been withdrawn (CNY, AUD, CAD) falls back to
     // the language's own currency.
     if (!isSupportedCurrency(merged.currency)) {
@@ -254,9 +259,7 @@ export function LocaleProvider({
   useEffect(() => {
     if (preferences.language) {
       document.documentElement.lang = preferences.language;
-      document.documentElement.dir = ['ar', 'ur'].includes(preferences.language)
-        ? 'rtl'
-        : 'ltr';
+      document.documentElement.dir = textDirection(preferences.language);
     }
   }, [preferences.language]);
 

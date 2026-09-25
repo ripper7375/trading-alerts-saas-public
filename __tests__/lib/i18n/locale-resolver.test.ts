@@ -87,6 +87,37 @@ describe('resolvePreferences', () => {
       resolvePreferences({ cookieLanguage: 'th', cookieFormats: 'XYZ.13h' })
     ).toMatchObject({ dateFormat: 'DMY', timeFormat: '24h' });
   });
+
+  it.each(['zh', 'zh-TW', 'es', 'pt'])(
+    'keeps %s, a language with no country, instead of falling back to English',
+    (language) => {
+      expect(resolvePreferences({ cookieLanguage: language })).toMatchObject({
+        language,
+        countryCode: 'GB',
+        currency: 'GBP',
+        dateFormat: 'DMY',
+      });
+    }
+  );
+
+  it("resolves Hindi to India's formats and currency", () => {
+    expect(resolvePreferences({ cookieLanguage: 'hi' })).toMatchObject({
+      language: 'hi',
+      countryCode: 'IN',
+      currency: 'INR',
+    });
+  });
+
+  // The language reaches <html lang> and an inline script in app/layout.tsx.
+  it.each(["x'+alert(1)+'", '</script><img src=x onerror=alert(1)>', 'xx', ''])(
+    'ignores an unknown language cookie (%j)',
+    (cookieLanguage) => {
+      expect(resolvePreferences({ cookieLanguage })).toMatchObject({
+        language: 'en-GB',
+        countryCode: 'GB',
+      });
+    }
+  );
 });
 
 describe('preferenceCookieStrings', () => {

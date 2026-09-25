@@ -4,6 +4,7 @@ import {
   isSupportedCurrency,
   type CountryConfig,
 } from '@/lib/country-config';
+import { isSupportedLanguage } from '@/lib/i18n/languages';
 
 /**
  * Single source of truth for turning a country prefix / cookie language into a
@@ -89,8 +90,9 @@ export const SUPPORTED_COUNTRY_PREFIXES = Object.keys(SUPPORTED_COUNTRIES);
  * USD/New_York after hydration. Pin the primary country per language instead.
  */
 const PRIMARY_COUNTRY_FOR_LANGUAGE: Record<string, string> = {
-  'en-GB': 'gb',
   'en-US': 'us',
+  'en-GB': 'gb',
+  en: 'gb',
   hi: 'in',
   ur: 'pk',
   vi: 'vn',
@@ -188,8 +190,19 @@ export function resolvePreferences({
   detectedTimezone?: string | null;
 }): LocalePreferences {
   const fromPrefix = preferencesForCountryPrefix(countryPrefix);
+  // The cookie is user-controlled and the result reaches `<html lang>` and an
+  // inline script, so an unknown value is ignored rather than passed through.
+  const language = isSupportedLanguage(cookieLanguage) ? cookieLanguage : null;
+  // A language with no backing country (zh, zh-TW, es, pt) keeps the default
+  // formats but must not fall back to English.
   const fromLanguage =
-    fromPrefix ?? preferencesForLanguage(cookieLanguage) ?? defaultPreferences;
+    fromPrefix ??
+    (language
+      ? (preferencesForLanguage(language) ?? {
+          ...defaultPreferences,
+          language,
+        })
+      : defaultPreferences);
   // The user's own date/time format refines a cookie-language resolution; a
   // URL prefix brings its country's formats, like its currency.
   const formats = fromPrefix ? null : parseFormatsCookie(cookieFormats);

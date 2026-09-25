@@ -4,6 +4,7 @@ import { cookies, headers } from 'next/headers';
 import { Providers } from './providers';
 import './globals.css';
 import { LOCALE_COOKIE, LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+import { SUPPORTED_LANGUAGE_CODES, textDirection } from '@/lib/i18n/languages';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
 import {
   detectedTimezoneFromHeaders,
@@ -105,10 +106,16 @@ export default async function RootLayout({
   );
   const detectedTimezone = detectedTimezoneFromHeaders(headerStore);
   const initialLocale = initialPreferences.language;
+  // Values interpolated into the inline script below. The resolver only
+  // returns known language codes; JSON-encoding (with `<` escaped so nothing
+  // can close the <script>) keeps the script safe even if that ever changes.
+  const toScript = (value: unknown): string =>
+    JSON.stringify(value).replace(/</g, '\\u003c');
 
   return (
     <html
       lang={initialLocale}
+      dir={textDirection(initialLocale)}
       className={inter.variable}
       suppressHydrationWarning
       data-accent={initialAppearance.accent}
@@ -155,7 +162,7 @@ export default async function RootLayout({
                   // The server already resolved this render's language from the
                   // URL prefix / cookie, so keep <html lang> matching the HTML
                   // that was actually streamed instead of racing localStorage.
-                  var lang = '${initialLocale}';
+                  var lang = ${toScript(initialLocale)};
                   d.lang = lang;
 
                   // Self-heal a diverged cookie: if localStorage still holds an
@@ -167,7 +174,8 @@ export default async function RootLayout({
                   if (ls) {
                     try {
                       var saved = JSON.parse(ls).language;
-                      if (saved && (!lc || lc[1] !== saved)) {
+                      var known = ${toScript(SUPPORTED_LANGUAGE_CODES)};
+                      if (known.indexOf(saved) !== -1 && (!lc || lc[1] !== saved)) {
                         document.cookie = '${LOCALE_COOKIE}=' + saved + '; path=/; max-age=31536000; SameSite=Lax';
                       }
                     } catch (e) {}
