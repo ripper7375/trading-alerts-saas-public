@@ -27,9 +27,11 @@ import {
   preferencesForCountryPrefix,
   preferencesForLanguage,
   preferencesFromCountry,
+  serverRenderKey,
   type LocalePreferences,
 } from '@/lib/i18n/locale-resolver';
 import { isSupportedLanguage, textDirection } from '@/lib/i18n/languages';
+import { syncLocaleCookiesAction } from '@/app/actions/locale';
 
 import {
   formatDateInZone,
@@ -223,6 +225,29 @@ export function LocaleProvider({
     },
     []
   );
+
+  // Server Components (the admin sidebar, BI dashboards, /academy, ...) are
+  // rendered from the locale cookies, and the client router reuses cached
+  // layouts, so a language or format change left them in the old language
+  // until a reload. When what the server renders from changes, set the
+  // cookies through a Server Action: Next.js re-renders the current route in
+  // the same round trip and drops its cached routes.
+  const serverRendered = useRef(serverRenderKey(serverPreferences));
+  useEffect(() => {
+    const key = serverRenderKey(preferences);
+    if (key === serverRendered.current) return;
+    serverRendered.current = key;
+    void syncLocaleCookiesAction({
+      language: preferences.language,
+      currency: preferences.currency,
+      dateFormat: preferences.dateFormat,
+      timeFormat: preferences.timeFormat,
+      timezone: preferences.timezone,
+      timezoneSetByUser: !!preferences.timezoneSetByUser,
+    }).catch(() => {
+      /* the browser-side cookies still apply on the next load */
+    });
+  }, [preferences]);
 
   // Without an edge header (local dev, or a host that sends none) fall back
   // to the browser's own zone. Runs after hydration so SSR and the first
