@@ -13,6 +13,35 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Ad-hoc session (2026-09-25) — final audit of language and locale, then fixes. Branch
+> `fix/16-language-localization-reaudit`, pushed, NOT merged, NOT deployed. No migration.** Davin asked for an audit across the locale-format manifest, the
+> 16-language remediation manifest (Antigravity's work, committed together with these fixes) and the policy, then
+> for every recommendation to be implemented. **Full account:** §0 of
+> `davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`.
+> The locale-format work on `main` held up. The 16-language work had four problems, now fixed:
+>
+> 1. **Script injection.** Its SSR fix passed any `davintrade-locale` cookie through as the language,
+>    and `app/layout.tsx` wrote it unescaped into an inline script. Reproduced on `next dev`. Now only
+>    codes in `lib/i18n/languages.ts` are accepted (resolver and `LocaleProvider`), and the script
+>    JSON-encodes its values.
+> 2. **Truncated text.** Its extractor cut 4 fallbacks at an apostrophe (e.g. `admin.view_as.subtitle`
+>    became "Open any affiliate") and reworded 4 payment messages, in all 17 dictionaries. Restored and
+>    retranslated.
+> 3. **Tests.** Full `test:ci` was 240/242 suites; its manifest ran 7 suites.
+> 4. **The "100% Pass" matrix measured key presence.** Tier-2 dictionaries hold English copies, and
+>    about a quarter of their used keys are translated. The new `scripts/i18n-translation-coverage.js`
+>    regraded the workbook: fr/ko/zh/zh-TW pass 91 of 101 pages, th 88, Tier-2 12–15.
+>
+> Also: Hindi added to the picker (the India header set it, and Settings showed blank) and as column X;
+> `dir="rtl"` is now server-rendered for ar/ur.
+> **Verified:** `tsc`/ESLint clean; full `test:ci` **242/242 · 3110/3110**; mutation 5/5 killed, restores
+> byte-exact; live `curl` and browser checks on `next dev`.
+> **Open:** 16 items, all listed in the manifest's §6. The main ones: Tier-2 translation;
+> `not-found.tsx` is English in fr/ko/zh/zh-TW; the landing page's currency-index tooltips are English
+> in French; 11 view-as and chat keys exist in no dictionary; `global-error.tsx` is hardcoded English.
+> **Gotcha:** this checkout is CRLF while Prettier expects LF, so `prettier --check` fails on every file.
+> Use `--end-of-line auto` to see real formatting issues.
+
 > **Same session, round 3 — every place that shows a time, date or price now uses the user's own
 > timezone, date format, time format and currency. Branch `fix/currency-display-rate` pushed, NOT
 > merged, NOT deployed.** **Full account of all three rounds:**
@@ -4713,6 +4742,14 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   `history/sessions-archive.md`).
 
 ## Waiting on
+
+- **Language & locale (2026-09-25): merge, then the open items.** Branch
+  `fix/16-language-localization-reaudit` is pushed, not merged, not deployed. After deploy, do the
+  signed-in click-through; the checklist is item 7 of §6 in
+  `davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`.
+  That §6 lists all 16 open items. The largest is Tier-2 translation (about 25% translated). Two need
+  Davin's call: loading saved preferences on a new device (auth-adjacent), and GB versus IP country on
+  a first visit.
 
 - **⚠ Disbursement payout settings (F83/F84, 2026-09-23): deploy + go-live checks.** Branch
   `feat/disbursement-payout-settings` is unpushed. Deploy money-service first, then the Next app.
