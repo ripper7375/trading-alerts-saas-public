@@ -296,6 +296,11 @@ export function RelativeStrengthChart({
   // corridor changes. Skipped entirely when null (Lane 4 hasn't finalized a
   // day yet), matching this app's "absent is the honest rendering" rule
   // rather than a placeholder pair of lines at 0.
+  // Canvas labels are drawn once, so they must redraw when the language changes.
+  const overboughtTitle = t('currency_index_pro.zone.overbought', 'Overbought');
+  const oversoldTitle = t('currency_index_pro.zone.oversold', 'Oversold');
+  const extremeTitle = t('currency_index_pro.zone.extreme', 'Extreme');
+
   useEffect(() => {
     const referenceSeries = hostRef.current;
     if (!referenceSeries) return;
@@ -308,13 +313,6 @@ export function RelativeStrengthChart({
     const effectiveCorridor = corridorOverride ?? data?.corridor;
     if (!effectiveCorridor) return;
     const { strikeZonePct, extremeZonePct } = effectiveCorridor;
-
-    const overboughtTitle = t(
-      'currency_index_pro.zone.overbought',
-      'Overbought'
-    );
-    const oversoldTitle = t('currency_index_pro.zone.oversold', 'Oversold');
-    const extremeTitle = t('currency_index_pro.zone.extreme', 'Extreme');
 
     const specs = [
       {
@@ -359,13 +357,17 @@ export function RelativeStrengthChart({
         title: spec.title,
       })
     );
-    // `t` deliberately excluded: it changes identity on every locale
-    // rehydration (LocaleProvider reconciling stored preferences after
-    // mount), which would tear down and recreate the price lines a second
-    // time on first load. The corridor already redraws on its own 30s
-    // refresh, which is enough to pick up a language switch mid-session.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.corridor, corridorOverride]);
+    // Depends on the label strings, not on `t`: `t` changes identity when
+    // LocaleProvider reconciles after mount, which redrew the lines a second
+    // time on first load, while the strings change only when the visible
+    // text does (a language switch, or a lazily loaded dictionary arriving).
+  }, [
+    data?.corridor,
+    corridorOverride,
+    overboughtTitle,
+    oversoldTitle,
+    extremeTitle,
+  ]);
 
   // High-impact news vertical markers -- attach the new set before
   // detaching the old one, same ordering `useEventMarkers.ts` uses, so a

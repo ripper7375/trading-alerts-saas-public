@@ -6,10 +6,10 @@
  * its own recording series so the test can tell the host from the 8 lines.
  */
 import React from 'react';
-import { render as rtlRender } from '@testing-library/react';
+import { act, render as rtlRender } from '@testing-library/react';
 import { describe, it, expect, beforeEach } from '@jest/globals';
 
-import { LocaleProvider } from '@/lib/context/locale-context';
+import { LocaleProvider, useLocale } from '@/lib/context/locale-context';
 import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 import type { CurrencyCode } from '@/lib/currency-index-pro/pairs';
 import type { CurrencyIndexChartData } from '@/components/currency-index-pro/hooks/use-currency-index-chart';
@@ -229,5 +229,39 @@ describe('RelativeStrengthChart', () => {
     );
     expect(host().createPriceLine.mock.calls.length).toBe(created);
     expect(host().removePriceLine).not.toHaveBeenCalled();
+  });
+
+  // The band titles are drawn on the canvas, so they do not re-render with
+  // React; they must be redrawn when the language changes.
+  it('redraws the corridor band titles in a new language', () => {
+    let setPrefs: ReturnType<
+      typeof useLocale
+    >['setLocalePreferences'] = () => {};
+    function LanguageSwitch(): null {
+      setPrefs = useLocale().setLocalePreferences;
+      return null;
+    }
+    render(
+      <>
+        <LanguageSwitch />
+        <RelativeStrengthChart data={data} />
+      </>
+    );
+    const titles = () =>
+      host()
+        .createPriceLine.mock.calls.slice(-4)
+        .map(([opts]) => (opts as { title: string }).title);
+    expect(titles()).toEqual(['Overbought', 'Oversold', 'Extreme', 'Extreme']);
+
+    act(() => setPrefs({ language: 'th' }));
+
+    expect(titles()).toEqual([
+      'ซื้อมากเกินไป',
+      'ขายมากเกินไป',
+      'รุนแรง',
+      'รุนแรง',
+    ]);
+    // The English lines were taken down, not left underneath.
+    expect(host().removePriceLine).toHaveBeenCalledTimes(4);
   });
 });
