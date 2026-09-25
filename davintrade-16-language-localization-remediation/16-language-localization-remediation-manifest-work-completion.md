@@ -1,12 +1,12 @@
 # 16-Language Full Localization Remediation & Matrix Audit — Work Completion Manifest
 
-|               |                                                                                                                                                                                                                                                                                                                           |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Request**   | Davin, 2026-09-25, in chat: audit all 16 supported languages across all 113 pages in `docs/files-completion-list/davintrade-ui-page.xlsx` (Columns `H`–`W`), fix language application dropouts (especially French, Korean, Chinese Simplified, Chinese Traditional, and Thai), and bring all active pages to Pass status. |
-| **Goal**      | 100% Pass rate across all 16 languages for all active pages in the DavinTrade SaaS Web App (`davintrade.app`), zero regression against Claude Code's language & locale manifest, full dictionary parity (4,710 keys per language), and complete Excel tracking update.                                                    |
-| **Branch**    | `fix/16-language-localization-reaudit`, off `main` @ `32cf98a8`. Committed together with the re-audit (§0). **Pushed, not merged, not deployed.**                                                                                                                                                                         |
-| **Migration** | **None.** No database schema change. Dictionary expansions and locale resolver refinement only.                                                                                                                                                                                                                           |
-| **Status**    | **Corrected by a same-day re-audit (§0).** The original status read "100% verified … 100 Pass / 13 N/A across all 16 languages". The full suite was not green, the SSR fix introduced a script-injection sink, and the matrix measured key presence rather than translation. All are fixed (§0); open issues are in §6.   |
+|               |                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Request**   | Davin, 2026-09-25, in chat: audit all 16 supported languages across all 113 pages in `docs/files-completion-list/davintrade-ui-page.xlsx` (Columns `H`–`W`), fix language application dropouts (especially French, Korean, Chinese Simplified, Chinese Traditional, and Thai), and bring all active pages to Pass status.                                                                                                   |
+| **Goal**      | 100% Pass rate across all 16 languages for all active pages in the DavinTrade SaaS Web App (`davintrade.app`), zero regression against Claude Code's language & locale manifest, full dictionary parity (4,710 keys per language), and complete Excel tracking update.                                                                                                                                                      |
+| **Branch**    | `fix/16-language-localization-reaudit`, off `main` @ `32cf98a8`. Committed together with the re-audit (§0). **Pushed, not merged, not deployed.**                                                                                                                                                                                                                                                                           |
+| **Migration** | **None.** No database schema change. Dictionary expansions and locale resolver refinement only.                                                                                                                                                                                                                                                                                                                             |
+| **Status**    | **Corrected by a same-day re-audit (§0).** The original status read "100% verified … 100 Pass / 13 N/A across all 16 languages". The full suite was not green, the SSR fix introduced a script-injection sink, and the matrix measured key presence rather than translation. All are fixed (§0). **Round 2 (§7):** language and format changes now apply to server-rendered parts without a refresh. Open issues are in §6. |
 
 ---
 
@@ -221,10 +221,13 @@ and are still open.
 | --- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 6   | **Client Components paint English first** for every language except `en-GB`, `en-US`, `th`. | `LocaleProvider` bundles only those three dictionaries and lazy-loads the rest, so client text switches after load. Server Components and `<html lang>` are right from the first response. A bundle-size trade-off, documented rather than changed; bundling `fr`/`ko`/`zh`/`zh-TW` would remove it for the well-translated languages.                                                                    |
 | 7   | **No signed-in click-through on `davintrade.app`** _(inherited, extended)_.                 | The Executor never enters credentials. Suggested checks after deploy: Settings → Language picks Thai → THB; a changed currency, timezone and 12-hour Save survive a reload; the `/terminal` chart axis, Alerts dates and `/settings` prices follow them; a header country change shows on the Settings page; **Hindi appears in the Settings dropdown**; **Arabic renders right-to-left without a flip**. |
-| 8   | **Vercel's `x-vercel-ip-timezone` header not seen in production** _(inherited)_.            | Locally the browser's zone is used instead.                                                                                                                                                                                                                                                                                                                                                               |
+| 8   | **Vercel's `x-vercel-ip-timezone` header not seen in production** _(inherited)_.            | Without it the client uses the browser's zone, but the server falls back to the country's default zone, so the two can disagree. Seen locally in §7: switching English (UK) → English (US) moved a server-rendered time from London to New York. Production depends on the header being sent.                                                                                                             |
 | 9   | **First visit uses the IP's country, not GB** _(inherited, needs Davin's call)_.            | A visitor whose IP resolves to a supported country starts in that country; GB applies only without a match.                                                                                                                                                                                                                                                                                               |
 | 10  | **Saved preferences are not loaded on a new device** _(inherited)_.                         | The database row is written on Save but never read back into the live locale (policy §0 Part 2). Needs Davin's sign-off: it touches the session data flow.                                                                                                                                                                                                                                                |
 | 11  | **Emails and PDF receipts ignore the user's preferences** _(inherited)_.                    | They are sent or stored with no viewer; they could read the saved database preferences.                                                                                                                                                                                                                                                                                                                   |
+| 17  | **Error messages already on screen keep the old language.**                                 | About 35 hooks store a translated error or status message in state when a fetch fails (e.g. "Failed to load codes"). A message already showing stays in the old language until the next fetch. Low impact; found by the §7 scan.                                                                                                                                                                          |
+| 18  | **A URL country prefix wins on the server.**                                                | On a prefixed URL such as `/th/pricing`, the server renders the prefix's language. Choosing another language there updates client text, while server-rendered parts stay Thai until the user moves to an unprefixed path. Existing precedence, unchanged by §7.                                                                                                                                           |
+| 19  | **Each locale change discards the client's cached routes.**                                 | Deliberate (§7): the Server Action's cookie write clears the router cache, so the next navigations fetch layouts afresh. The cost is one extra request per route visited after a change, which is rare.                                                                                                                                                                                                   |
 
 ### 6.3 Tooling and hygiene
 
@@ -235,3 +238,99 @@ and are still open.
 | 14  | **The inline-script escaping in `app/layout.tsx` has no unit test.** | The root layout is an async Server Component. Covered by live `curl` checks and by the resolver's validation, which is tested.                                                                                                                                                                                                                                                           |
 | 15  | **`en: 'gb'` in `PRIMARY_COUNTRY_FOR_LANGUAGE` is unreachable.**     | Added by this work; `en` is not a supported language code, so the resolver never passes it. Harmless; remove when next touching the file.                                                                                                                                                                                                                                                |
 | 16  | **`prettier --check` fails on every file in this checkout.**         | The working tree is CRLF and `.prettierrc` sets `endOfLine: lf`. Use `--end-of-line auto` to see real formatting problems; the commit hook's `prettier --write` is unaffected.                                                                                                                                                                                                           |
+
+---
+
+## 7. Round 2 (2026-09-25): changes that needed a refresh
+
+**Report.** Davin sent two screenshots of `/admin`. He had picked Korean on the Settings page, then Thai
+in the landing page's language modal. On `/admin` the page body was Thai, but the sidebar and header
+were still Korean until he refreshed. He asked for every page where a language or locale-format change
+needs a refresh to be found and fixed.
+
+**Cause, reproduced before any change.**
+
+- Server Components render language, currency, date/time format and a user-picked timezone from
+  cookies. `LocaleProvider` updated those cookies in the browser but never asked the server to render
+  again, so a server-rendered part kept the old values until a reload.
+- The Next.js client router also caches layouts and reuses them "instantly without a server request"
+  (per `node_modules/next/dist/docs/01-app/04-glossary.md`, Client Cache). So a layout rendered
+  earlier, such as the admin sidebar in Korean, came back unchanged on a later navigation.
+- Reproduced on `next dev`, on `/academy` (a public Server Component page): after picking Thai in the
+  modal the navbar (client) was Thai while the heading (server) stayed English. The cookie was already
+  `th`, and a fresh request with that cookie rendered the Thai heading. So this was staleness, not a
+  missing translation.
+
+**Affected (26 server-side locale consumers):**
+
+- `app/layout.tsx` and the admin, admin-dashboards, admin-disbursement and affiliate-dashboard layouts
+- about 20 pages, among them:
+  - `/dashboard`, `/alerts`, `/alerts/new`, `/alerts/[id]/edit`, `/notifications`
+  - the 5 BI dashboards
+  - `/admin/users/[id]`, `/admin/system/config-history` and `/admin/system/outbox`
+  - `/affiliate/dashboard/payouts`, `/affiliate/leaderboard`, `/affiliate/resources`
+  - `/academy`, `/academy/[id]`, `/status`
+- 2 analytics components
+
+**Fix.**
+
+- **New `app/actions/locale.ts`** (`syncLocaleCookiesAction`): a Server Action that re-validates every
+  value and writes the locale cookies. Setting cookies inside a Server Action makes Next.js re-render
+  the current route in the same round trip and clear the client's cached routes, per the `cookies`
+  and glossary docs. This is the precedent `app/actions/appearance.ts` already follows.
+- **`LocaleProvider`** tracks what the server last rendered from (`serverRenderKey()`: language,
+  currency, date/time format, and the timezone only if the user picked it). When the live preferences
+  differ, it calls the action once. This covers the header's country menu, the Settings page, the
+  landing page's modal and first-visit geo detection alike. An IP-detected timezone does not trigger
+  a call, because the server detects it itself.
+- **`lib/i18n/locale-resolver.ts`**: a new `localeCookies()` list, used by both the browser writes
+  and the action, so the two write identical cookies. `preferenceCookieStrings()` output is unchanged.
+- **The client-side scan.** It looked for hooks that use `t()` or a formatter without listing it as a
+  dependency. It found one real stale label: the currency-index chart's canvas band titles
+  ("Overbought", "Oversold", "Extreme"). They were redrawn only by the 30-second corridor refresh.
+  The effect now depends on the three label strings rather than on `t`, so it redraws when the
+  language changes, including when a lazily loaded dictionary arrives. It still does not redraw on
+  first-load identity churn, which was the original reason for excluding `t`.
+- The scan's other hits are error or status messages kept in state. They are low impact and are listed
+  in §6, item 17.
+
+**Verified.**
+
+- `tsc` and ESLint are clean.
+- **Full `test:ci`: 243/243 suites · 3,123/3,123 tests**, up 1 suite and 13 tests:
+  - `__tests__/app/actions/locale.test.ts` (7 tests): the cookies written; nothing written for a
+    malicious language, a withdrawn currency, a bad format or an invalid timezone
+  - 5 provider tests: no call on first load; one call on a language change; a call on a currency or
+    format change; no call for a detected timezone; a call for a user-picked timezone
+  - 1 chart test: the band titles are redrawn in Thai and the English lines are removed
+- **Mutation 4/4 killed**, each file restored byte-exact:
+  - the provider never syncs (3 tests fail)
+  - the server key ignores the currency (1)
+  - the action accepts any language (1)
+  - the chart ignores label changes (1)
+- **Live on `next dev`, no reload in any case** (a `window` marker survived each time):
+  - `/academy`: English → Thai updated the server-rendered heading and the tab title. One `POST` was
+    sent, the Server Action.
+  - Navigating client-side from `/academy` to `/status`: English → French updated `/status`. Going
+    **back** to `/academy` then showed French, including the tab title; before the fix the browser
+    reused its earlier copy.
+  - `/status` timestamp: English (UK) → English (US) changed `25/09/2026 10:03` to
+    `09/25/2026 5:03 AM`. The hour moved because locally there is no IP-timezone header (see §6,
+    item 8).
+
+**Not verified:** the signed-in admin flow from Davin's screenshots, which sits behind login. The
+mechanism is the one verified above, and the admin layout is one of the 26 consumers. It belongs to the
+click-through in §6, item 7.
+
+**Files:**
+
+- `app/actions/locale.ts` (new)
+- `lib/context/locale-context.tsx`
+- `lib/i18n/locale-resolver.ts`
+- `components/currency-index-pro/chart/relative-strength-chart.tsx`
+- `__tests__/app/actions/locale.test.ts` (new)
+- `__tests__/lib/context/locale-context.test.tsx`
+- `__tests__/components/currency-index-pro/relative-strength-chart.test.tsx`
+- `docs/policies/08-locale-i18n-compliance.md` (Failure mode F)
+- `CLAUDE.md`
+- this manifest

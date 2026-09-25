@@ -13,6 +13,26 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Same session, round 2 (2026-09-25) — language and format changes now reach server-rendered parts
+> without a refresh. Same branch, NOT committed.** Davin's `/admin` screenshots showed a Thai page body
+> with a Korean sidebar and header until he refreshed. **Cause (reproduced on `/academy` first):**
+> Server Components render locale from cookies that the browser only updated for the next request, and
+> the Next.js client router reuses cached layouts without asking the server. 26 files render locale on
+> the server (the root, admin, affiliate-dashboard and BI layouts, and about 20 pages).
+> **Fix:** new `app/actions/locale.ts` Server Action (re-validates, writes the cookies);
+> `LocaleProvider` calls it whenever `serverRenderKey()` changes. Setting cookies in a Server Action
+> re-renders the current route and clears the client's cached routes. A client scan found one more stale
+> label, the currency-index chart's canvas band titles, which now redraw on a language change.
+> **Verified:** `tsc`/ESLint clean; full `test:ci` **243/243 · 3123/3123**; mutation 4/4 killed.
+> Live on `next dev`, no reload in any case:
+>
+> - `/academy` English → Thai (heading and tab title)
+> - back-navigation to a cached page showed the new language
+> - `/status` timestamp `25/09/2026 10:03` → `09/25/2026 5:03 AM`
+>
+> **Documented:** policy Failure mode F. **Account:** 16-language manifest §7; open items 17–19 are in
+> its §6. **Not verified:** the signed-in `/admin` flow itself.
+
 > **Ad-hoc session (2026-09-25) — final audit of language and locale, then fixes. Branch
 > `fix/16-language-localization-reaudit`, pushed, NOT merged, NOT deployed. No migration.** Davin asked for an audit across the locale-format manifest, the
 > 16-language remediation manifest (Antigravity's work, committed together with these fixes) and the policy, then
@@ -4747,7 +4767,9 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   `fix/16-language-localization-reaudit` is pushed, not merged, not deployed. After deploy, do the
   signed-in click-through; the checklist is item 7 of §6 in
   `davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`.
-  That §6 lists all 16 open items. The largest is Tier-2 translation (about 25% translated). Two need
+  The click-through should include Davin's round-2 case: change language, then open `/admin` without
+  refreshing; the sidebar must follow (manifest §7). Round 2 is uncommitted on the branch.
+  That §6 lists all 19 open items. The largest is Tier-2 translation (about 25% translated). Two need
   Davin's call: loading saved preferences on a new device (auth-adjacent), and GB versus IP country on
   a first visit.
 
