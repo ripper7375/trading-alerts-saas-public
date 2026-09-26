@@ -20,6 +20,8 @@ import type { CountryConfig, DisplayUsdRates } from '@/lib/country-config';
 import {
   LOCALE_COOKIE,
   LOCALE_STORAGE_KEY,
+  NO_COUNTRY_LANGUAGE_CURRENCY,
+  currencyForLanguage,
   defaultPreferences,
   isValidTimezone,
   localeCookieString,
@@ -107,8 +109,7 @@ function readStoredPreferences(): LocalePreferences | null {
     // A currency that has since been withdrawn (CNY, AUD, CAD) falls back to
     // the language's own currency.
     if (!isSupportedCurrency(merged.currency)) {
-      merged.currency =
-        preferencesForLanguage(merged.language)?.currency ?? base.currency;
+      merged.currency = currencyForLanguage(merged.language);
     }
     // Stored before the flag existed: a timezone other than the country's
     // default can only have been picked by the user.
@@ -432,12 +433,18 @@ export function LocaleProvider({
           const implied = preferencesForLanguage(newPrefs.language);
           if (implied) {
             updated = { ...keepTimezone(implied, prev), ...newPrefs };
+          } else {
+            // No country of its own (Chinese, Spanish): keep the country and
+            // formats, but stop showing the previous language's currency.
+            updated = {
+              ...prev,
+              currency: NO_COUNTRY_LANGUAGE_CURRENCY,
+              ...newPrefs,
+            };
           }
         }
         if (!isSupportedCurrency(updated.currency)) {
-          updated.currency =
-            preferencesForLanguage(updated.language)?.currency ??
-            getCountryByCode(updated.countryCode).currency;
+          updated.currency = currencyForLanguage(updated.language);
         }
         persistPreferences(updated);
         return samePreferences(prev, updated) ? prev : updated;

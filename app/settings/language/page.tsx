@@ -22,7 +22,10 @@ import {
 } from '@/components/ui/select';
 import { useLocale } from '@/lib/context/locale-context';
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/languages';
-import { preferencesForLanguage } from '@/lib/i18n/locale-resolver';
+import {
+  currencyForLanguage,
+  preferencesForLanguage,
+} from '@/lib/i18n/locale-resolver';
 import { formatDateInZone, formatTimeInZone } from '@/lib/i18n/format-datetime';
 import {
   getAllTimezones,
@@ -129,16 +132,17 @@ export default function LanguageSettingsPage(): React.ReactElement {
 
   // A new language brings its country's date/time format and currency; the
   // timezone is left alone. Languages without a country (Chinese, Spanish)
-  // keep the current values.
+  // keep the current formats and suggest USD (same rule as the header's
+  // language picker).
   const handleLanguageChange = (value: string): void => {
     const implied = preferencesForLanguage(value);
     setSettings((prev) => ({
       ...prev,
       language: value,
+      currency: currencyForLanguage(value),
       ...(implied && {
         dateFormat: implied.dateFormat,
         timeFormat: implied.timeFormat,
-        currency: implied.currency,
       }),
     }));
   };

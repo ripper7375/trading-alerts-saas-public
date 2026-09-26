@@ -89,14 +89,18 @@ describe('resolvePreferences', () => {
   });
 
   it.each(['zh', 'zh-TW', 'es', 'pt'])(
-    'keeps %s, a language with no country, instead of falling back to English',
+    'keeps %s, a language with no country, instead of falling back to English, priced in USD',
     (language) => {
       expect(resolvePreferences({ cookieLanguage: language })).toMatchObject({
         language,
         countryCode: 'GB',
-        currency: 'GBP',
+        currency: 'USD',
         dateFormat: 'DMY',
       });
+      // The user's own currency still wins.
+      expect(
+        resolvePreferences({ cookieLanguage: language, cookieCurrency: 'THB' })
+      ).toMatchObject({ language, currency: 'THB' });
     }
   );
 
