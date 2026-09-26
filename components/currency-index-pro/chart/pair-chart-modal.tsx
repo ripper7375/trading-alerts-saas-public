@@ -59,7 +59,7 @@ export function PairChartModal({
   pair,
   onOpenChange,
 }: PairChartModalProps): React.JSX.Element {
-  const { language } = useLocale();
+  const { language, t } = useLocale();
   const { resolvedTheme } = useChartAppearance();
 
   const locale = resolveTradingViewLocale(language);
@@ -82,14 +82,24 @@ export function PairChartModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{pair ? `${pair} — Live Chart` : 'Chart'}</DialogTitle>
+          <DialogTitle>
+            {pair
+              ? t(
+                  'currency_index_pro.pair_chart.title',
+                  '{pair} — Live Chart'
+                ).replace('{pair}', pair)
+              : t('currency_index_pro.pair_chart.title_empty', 'Chart')}
+          </DialogTitle>
         </DialogHeader>
         {pair && (
           <div className="h-[480px] w-full overflow-hidden rounded-lg border border-border">
             <iframe
               key={pair} // a fresh iframe per pair -- never re-point an existing one's src
               src={src}
-              title={`${pair} TradingView chart`}
+              title={t(
+                'currency_index_pro.pair_chart.iframe_title',
+                '{pair} TradingView chart'
+              ).replace('{pair}', pair)}
               className="h-full w-full"
               style={{ border: 'none' }}
             />

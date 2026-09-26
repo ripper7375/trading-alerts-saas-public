@@ -16,9 +16,11 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/lib/context/locale-context';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 export default function DocsPage() {
   const { t } = useLocale();
+  const { commissionPercent } = useAffiliateConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [openSections, setOpenSections] = useState<Record<number, boolean>>({
     0: true,
@@ -130,8 +132,9 @@ export default function DocsPage() {
           'Create custom discount promo codes for your audience in /affiliate/dashboard/codes.'
         ),
         t(
-          'Receive 30% recurring commissions disbursed directly to your Wise or RiseWorks account.'
-        ),
+          'docs.affiliate_commission_payouts',
+          'Receive {percent}% recurring commissions disbursed directly to your Wise or RiseWorks account.'
+        ).replace('{percent}', String(commissionPercent)),
       ],
     },
   ];

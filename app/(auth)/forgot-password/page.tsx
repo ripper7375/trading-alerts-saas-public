@@ -22,7 +22,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
-import { useLocale } from '@/lib/context/locale-context';
+import { Translated, useLocale } from '@/lib/context/locale-context';
 import { Button } from '@/components/ui/button';
 
 // Validation schemas
@@ -248,7 +248,9 @@ function RequestResetStep({
             className="dark:border-slate-750 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-[#06080e] dark:text-slate-100"
           />
           {errors.email && (
-            <p className="text-xs text-rose-600">{errors.email.message}</p>
+            <p className="text-xs text-rose-600">
+              {t(errors.email.message ?? '')}
+            </p>
           )}
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
             {t('Enter the email address associated with your account')}
@@ -660,14 +662,14 @@ function ResetPasswordStep({
           )}
           {errors.confirmPassword && (
             <p className="text-xs text-rose-600">
-              {errors.confirmPassword.message}
+              {t(errors.confirmPassword.message ?? '')}
             </p>
           )}
         </div>
 
         {error && (
           <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-300">
-            {error}
+            {t(error)}
           </div>
         )}
 
@@ -731,7 +733,7 @@ export default function ForgotPasswordPage(): JSX.Element {
           <div className="py-8 text-center">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-amber-500" />
             <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
-              Loading...
+              <Translated k="Loading..." fallback="Loading..." />
             </p>
           </div>
         </div>

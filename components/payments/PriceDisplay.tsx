@@ -215,7 +215,7 @@ export function PriceDisplay({
           {symbol}
           {formatLocalAmount(conversion.localAmount, currency)}
         </div>
-        <div className="text-sm text-muted-foreground">{currencyName}</div>
+        <div className="text-sm text-muted-foreground">{t(currencyName)}</div>
       </div>
 
       {/* USD equivalent */}

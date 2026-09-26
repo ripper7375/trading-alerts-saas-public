@@ -38,17 +38,26 @@ import { Badge } from '@/components/ui/badge';
 import type { DLocalCountry, DLocalCurrency, PlanType } from '@/types/dlocal';
 import {
   getCurrency,
-  PRICING,
   DLOCAL_SUPPORTED_COUNTRIES,
 } from '@/lib/dlocal/constants';
+import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
 import { useLocale } from '@/lib/context/locale-context';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CHECKOUT CONTENT
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function CheckoutContent(): React.ReactElement {
-  const { t } = useLocale();
+  const {
+    t,
+    formatCurrency,
+    currency: displayCurrency,
+    language,
+  } = useLocale();
+  // PRO and 3-day prices from SystemConfig (admin-editable), as charged.
+  const { regularPrice, threeDayPrice, annualPrice, annualSavingsPercent } =
+    useAffiliateConfig();
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -56,6 +65,10 @@ function CheckoutContent(): React.ReactElement {
   // Form state
   const [country, setCountry] = useState<DLocalCountry | null>(null);
   const [planType, setPlanType] = useState<PlanType>('MONTHLY');
+  // Card (Stripe) billing period: monthly or the annual plan
+  const [stripeBilling, setStripeBilling] = useState<'monthly' | 'yearly'>(
+    'monthly'
+  );
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [discountCode, setDiscountCode] = useState('');
   const [discountPercent, setDiscountPercent] = useState<number | null>(null);
@@ -104,8 +117,18 @@ function CheckoutContent(): React.ReactElement {
       setCountry(paramCountry as DLocalCountry);
     }
 
-    if (paramPlan === 'THREE_DAY' || paramPlan === 'MONTHLY') {
+    if (
+      paramPlan === 'THREE_DAY' ||
+      paramPlan === 'MONTHLY' ||
+      paramPlan === 'YEARLY'
+    ) {
       setPlanType(paramPlan);
+    }
+
+    // ?billing=yearly (from /pricing's annual view) preselects the annual plan
+    if (searchParams.get('billing') === 'yearly') {
+      setStripeBilling('yearly');
+      if (!paramPlan) setPlanType('YEARLY');
     }
 
     if (paramRef) {
@@ -193,6 +216,7 @@ function CheckoutContent(): React.ReactElement {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           affiliateCode: discountCode || undefined,
+          billingPeriod: stripeBilling,
         }),
       });
 
@@ -226,9 +250,14 @@ function CheckoutContent(): React.ReactElement {
   // Calculate prices
   const getUsdAmount = (): number => {
     let baseAmount =
-      planType === 'THREE_DAY' ? PRICING.THREE_DAY_USD : PRICING.MONTHLY_USD;
+      planType === 'THREE_DAY'
+        ? threeDayPrice
+        : planType === 'YEARLY'
+          ? annualPrice
+          : regularPrice;
 
-    if (discountPercent && planType === 'MONTHLY') {
+    // Affiliate discounts apply to the monthly and annual plans
+    if (discountPercent && planType !== 'THREE_DAY') {
       baseAmount = baseAmount * (1 - discountPercent / 100);
     }
 
@@ -357,14 +386,60 @@ function CheckoutContent(): React.ReactElement {
                 )}
               </p>
 
+              {/* Billing period */}
+              <div
+                className="grid grid-cols-2 gap-2"
+                role="radiogroup"
+                aria-label={t('checkout.billing_period', 'Billing period')}
+              >
+                {(['monthly', 'yearly'] as const).map((period) => (
+                  <button
+                    key={period}
+                    type="button"
+                    role="radio"
+                    aria-checked={stripeBilling === period}
+                    onClick={() => setStripeBilling(period)}
+                    className={`rounded-lg border-2 px-3 py-2 text-sm font-semibold transition-all ${
+                      stripeBilling === period
+                        ? 'bg-primary/10 border-primary text-foreground'
+                        : 'hover:border-primary/40 border-border text-muted-foreground'
+                    }`}
+                  >
+                    {period === 'monthly'
+                      ? t('checkout.monthly', 'Monthly')
+                      : t('checkout.annual', 'Annual')}
+                    {period === 'yearly' && annualSavingsPercent > 0 && (
+                      <span className="ml-1 text-xs font-normal text-emerald-600 dark:text-emerald-400">
+                        {t('pricing.save_percent', 'Save {percent}%').replace(
+                          '{percent}',
+                          String(annualSavingsPercent)
+                        )}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+
               {/* Price display */}
               <div className="bg-muted/30 rounded-lg border border-border p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-lg font-semibold text-foreground">
-                    {t('checkout.pro_monthly', 'PRO Monthly')}
+                    {stripeBilling === 'yearly'
+                      ? t('checkout.pro_annual', 'PRO Annual')
+                      : t('checkout.pro_monthly', 'PRO Monthly')}
                   </span>
                   <span className="text-2xl font-bold text-foreground">
-                    $29/{t('checkout.month_abbr', 'mo')}
+                    {stripeBilling === 'yearly' ? (
+                      <>
+                        {formatCurrency(annualPrice)}/
+                        {t('checkout.year_abbr', 'yr')}
+                      </>
+                    ) : (
+                      <>
+                        {formatCurrency(regularPrice)}/
+                        {t('checkout.month_abbr', 'mo')}
+                      </>
+                    )}
                   </span>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">
@@ -374,6 +449,29 @@ function CheckoutContent(): React.ReactElement {
                   )}
                 </p>
               </div>
+
+              {/* The card charge is in USD; the local figure is approximate */}
+              {displayCurrency && displayCurrency !== 'USD' && (
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    'checkout.card_charged_usd',
+                    'You will be charged {usdPrice} in USD. The {currency} amount shown is approximate, converted at a recent market rate; your card issuer converts the charge at its own rate.'
+                  )
+                    .replace(
+                      '{usdPrice}',
+                      `${formatChargedAmount(
+                        stripeBilling === 'yearly' ? annualPrice : regularPrice,
+                        'USD',
+                        language
+                      )}/${
+                        stripeBilling === 'yearly'
+                          ? t('checkout.year', 'year')
+                          : t('checkout.month', 'month')
+                      }`
+                    )
+                    .replace('{currency}', displayCurrency)}
+                </p>
+              )}
 
               {/* Discount code for Stripe */}
               {discountCode && (
@@ -473,7 +571,7 @@ function CheckoutContent(): React.ReactElement {
                     />
                   </div>
 
-                  {discountPercent && planType === 'MONTHLY' && (
+                  {discountPercent && planType !== 'THREE_DAY' && (
                     <p className="text-sm text-emerald-600 dark:text-emerald-400">
                       {t(
                         'checkout.discount_applied',
@@ -511,7 +609,7 @@ function CheckoutContent(): React.ReactElement {
             )}
           </p>
           <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-            <span>256-bit SSL</span>
+            <span>{t('checkout.ssl', '256-bit SSL')}</span>
             <span>•</span>
             <span>{t('checkout.pci_compliant', 'PCI Compliant')}</span>
             <span>•</span>

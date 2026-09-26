@@ -57,7 +57,10 @@ export default function AffiliateLandingPage(): React.ReactElement {
   const benefits = [
     {
       icon: Percent,
-      title: t(`${commissionPercent}% Lifetime Recurring Commission`),
+      title: t(
+        'affiliate.landing.lifetime_commission',
+        '{percent}% Lifetime Recurring Commission'
+      ).replace('{percent}', String(commissionPercent)),
       desc: t(
         'Earn every renewal as long as your referred trader maintains their PRO subscription.'
       ),
@@ -180,8 +183,9 @@ export default function AffiliateLandingPage(): React.ReactElement {
 
             <p className="mx-auto max-w-2xl text-base leading-relaxed text-slate-600 dark:text-slate-400 md:text-lg">
               {t(
-                `Earn ${commissionPercent}% recurring monthly revenue by introducing traders to DavinTrade AI precision fractal analytics and conversational copilots.`
-              )}
+                'affiliate.landing.subtitle',
+                'Earn {percent}% recurring monthly revenue by introducing traders to DavinTrade AI precision fractal analytics and conversational copilots.'
+              ).replace('{percent}', String(commissionPercent))}
             </p>
 
             <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
@@ -227,8 +231,11 @@ export default function AffiliateLandingPage(): React.ReactElement {
               </h2>
               <p className="text-xs text-slate-600 dark:text-slate-400">
                 {t(
-                  `Based on active PRO subscriptions at ${formatCurrency(regularPrice)}/mo with ${commissionPercent}% commission.`
-                )}
+                  'affiliate.landing.calculator_basis',
+                  'Based on active PRO subscriptions at {price}/mo with {percent}% commission.'
+                )
+                  .replace('{price}', formatCurrency(regularPrice))
+                  .replace('{percent}', String(commissionPercent))}
               </p>
             </div>
 

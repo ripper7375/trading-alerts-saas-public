@@ -3,14 +3,23 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { localizedMetadata } from '@/lib/i18n/server-metadata';
 import type { Tier } from '@/lib/tier-config';
 import { ProCurrencyIndexCockpit } from '@/components/currency-index-pro/pro-currency-index-cockpit';
 
-export const metadata: Metadata = {
-  title: 'Currency Index PRO | DavinTrade',
-  description:
-    '28-pair relative-strength screener across the G8 currency basket.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata(
+    {
+      key: 'currency_index_pro.meta_title',
+      fallback: 'Currency Index PRO | DavinTrade',
+    },
+    {
+      key: 'currency_index_pro.meta_description',
+      fallback:
+        '28-pair relative-strength screener across the G8 currency basket.',
+    }
+  );
+}
 
 /**
  * `/pro/currency-index` -- PRO-only, matching `app/terminal/page.tsx`'s own

@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { AlertOctagon, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useLocale } from '@/lib/context/locale-context';
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -22,6 +23,7 @@ export default function Error({
   error,
   reset,
 }: ErrorPageProps): React.ReactElement {
+  const { t } = useLocale();
   useEffect(() => {
     console.error('Application error:', error);
   }, [error]);
@@ -35,38 +37,42 @@ export default function Error({
           </div>
 
           <h1 className="mb-2 text-2xl font-bold text-foreground">
-            Something went wrong
+            {t('errors.page.title', 'Something went wrong')}
           </h1>
           <p className="mb-6 text-muted-foreground">
-            {error.message || 'An unexpected error occurred. Please try again.'}
+            {error.message ||
+              t(
+                'errors.page.unexpected',
+                'An unexpected error occurred. Please try again.'
+              )}
           </p>
 
           {error.digest && (
             <p className="mb-6 font-mono text-xs text-muted-foreground">
-              Error ID: {error.digest}
+              {t('errors.page.error_id', 'Error ID:')} {error.digest}
             </p>
           )}
 
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
             <Button onClick={reset} className="w-full sm:w-auto">
               <RefreshCw className="mr-2 h-4 w-4" />
-              Try again
+              {t('errors.page.try_again', 'Try again')}
             </Button>
             <Link href="/" className="w-full sm:w-auto">
               <Button variant="outline" className="w-full">
                 <Home className="mr-2 h-4 w-4" />
-                Go to Homepage
+                {t('errors.page.go_home', 'Go to Homepage')}
               </Button>
             </Link>
           </div>
 
           <p className="mt-8 text-sm text-muted-foreground">
-            If the problem persists, please{' '}
+            {t('errors.page.persists', 'If the problem persists, please')}{' '}
             <a
               href="mailto:support@davintrade.app"
               className="hover:text-primary/80 text-primary underline underline-offset-4"
             >
-              contact support
+              {t('errors.page.contact_support', 'contact support')}
             </a>
           </p>
         </CardContent>

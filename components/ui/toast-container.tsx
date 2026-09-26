@@ -1,6 +1,7 @@
 'use client';
 
 import { X, CheckCircle, XCircle, AlertTriangle, Info } from 'lucide-react';
+import { useOptionalTranslation } from '@/lib/context/locale-context';
 import { cn } from '@/lib/utils';
 
 type ToastType = 'success' | 'error' | 'warning' | 'info';
@@ -68,6 +69,7 @@ export function ToastContainer({
   toasts,
   onDismiss,
 }: ToastContainerProps): React.ReactElement | null {
+  const t = useOptionalTranslation();
   if (toasts.length === 0) return null;
 
   return (
@@ -98,7 +100,7 @@ export function ToastContainer({
             <button
               onClick={() => onDismiss(toast.id)}
               className="text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
-              aria-label="Dismiss notification"
+              aria-label={t('ui.toast.dismiss', 'Dismiss notification')}
             >
               <X className="h-4 w-4" />
             </button>

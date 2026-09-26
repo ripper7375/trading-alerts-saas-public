@@ -103,7 +103,11 @@ describe('app/not-found.tsx (404 handling)', () => {
 describe('app/error.tsx (route-segment error boundary)', () => {
   it('renders the error heading and calls reset() from Try again', () => {
     const reset = jest.fn();
-    render(<ErrorPage error={new Error('boom')} reset={reset} />);
+    render(
+      <LocaleProvider>
+        <ErrorPage error={new Error('boom')} reset={reset} />
+      </LocaleProvider>
+    );
 
     expect(
       screen.getByRole('heading', { name: /something went wrong/i, level: 1 })
@@ -115,7 +119,11 @@ describe('app/error.tsx (route-segment error boundary)', () => {
   it('surfaces the error digest when present, for support triage', () => {
     const error = new Error('boom') as Error & { digest?: string };
     error.digest = 'digest-abc123';
-    render(<ErrorPage error={error} reset={jest.fn()} />);
+    render(
+      <LocaleProvider>
+        <ErrorPage error={error} reset={jest.fn()} />
+      </LocaleProvider>
+    );
 
     expect(screen.getByText(/digest-abc123/)).toBeInTheDocument();
   });

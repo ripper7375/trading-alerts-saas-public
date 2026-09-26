@@ -3,13 +3,19 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { localizedMetadata } from '@/lib/i18n/server-metadata';
 
 import { FreeWorkspace } from './free-workspace';
 
-export const metadata: Metadata = {
-  title: 'Free Workspace | DavinTrade',
-  description: 'Real-Time XAUUSD Trading Workspace',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata(
+    { key: 'free.meta_title', fallback: 'Free Workspace | DavinTrade' },
+    {
+      key: 'free.meta_description',
+      fallback: 'Real-Time XAUUSD Trading Workspace',
+    }
+  );
+}
 
 /**
  * `/free` -- Protected Page #3 (FREE-tier workspace).

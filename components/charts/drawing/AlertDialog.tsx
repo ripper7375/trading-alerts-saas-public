@@ -180,7 +180,10 @@ export function AlertDialog({
               id="alert-name"
               value={name}
               maxLength={120}
-              placeholder="e.g. XAUUSD support break"
+              placeholder={t(
+                'charts.drawing.alert_name_placeholder',
+                'e.g. XAUUSD support break'
+              )}
               onChange={(e) => setName(e.target.value)}
             />
           </div>

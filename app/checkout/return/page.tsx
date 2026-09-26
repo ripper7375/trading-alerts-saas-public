@@ -322,7 +322,9 @@ function CheckoutReturnContent(): React.ReactElement {
                   ? t('checkout.three_day_trial', '3-Day Trial')
                   : payment.planType === 'MONTHLY'
                     ? t('checkout.monthly_pro', 'Monthly PRO')
-                    : payment.planType || '—'}
+                    : payment.planType === 'YEARLY'
+                      ? t('checkout.annual_pro', 'Annual PRO')
+                      : payment.planType || '—'}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -344,7 +346,7 @@ function CheckoutReturnContent(): React.ReactElement {
                 <span className="text-muted-foreground">
                   {t('checkout.country', 'Country')}
                 </span>
-                <span className="font-medium">{countryName}</span>
+                <span className="font-medium">{t(countryName)}</span>
               </div>
             )}
             {payment.paymentMethod && (

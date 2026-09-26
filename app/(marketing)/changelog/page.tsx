@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/lib/context/locale-context';
 
 export default function ChangelogPage() {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
 
   const releases = [
     {
       version: 'v2.4.0',
-      date: 'August 16, 2026',
+      // Midday UTC, so the day is the same in every timezone.
+      date: '2026-08-16T12:00:00Z',
       badge: t('Latest Release'),
       title: t('Conversational AI Copilot & Unified Multi-Language Workspaces'),
       items: [
@@ -31,7 +32,7 @@ export default function ChangelogPage() {
     },
     {
       version: 'v2.2.0',
-      date: 'July 28, 2026',
+      date: '2026-07-28T12:00:00Z',
       badge: t('Major Update'),
       title: t('Automated Wise & RiseWorks Partner Disbursements'),
       items: [
@@ -44,7 +45,7 @@ export default function ChangelogPage() {
     },
     {
       version: 'v2.0.0',
-      date: 'June 15, 2026',
+      date: '2026-06-15T12:00:00Z',
       badge: t('Architecture'),
       title: t('Sub-Millisecond MT5 WebSocket Telemetry Engine'),
       items: [
@@ -93,7 +94,7 @@ export default function ChangelogPage() {
                     {rel.badge}
                   </Badge>
                   <span className="text-xs font-medium text-slate-500">
-                    {rel.date}
+                    {formatDate(rel.date)}
                   </span>
                 </div>
 

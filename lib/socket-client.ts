@@ -175,7 +175,7 @@ class ChatSocketManager {
       lower.includes('tier')
     ) {
       replyText =
-        'The PRO Tier ($49/mo) unlocks the full 4-panel resizable workbench, unlimited 500ms line alerts, dual AI model confluence validation, and multi-currency local checkout (GBP £, INR ₹, VND ₫, THB ฿, etc.).';
+        'The PRO Tier unlocks the full 4-panel resizable workbench, unlimited 500ms line alerts, dual AI model confluence validation, and multi-currency local checkout (GBP £, INR ₹, VND ₫, THB ฿, etc.).';
     } else if (
       lower.includes('billing') ||
       lower.includes('invoice') ||

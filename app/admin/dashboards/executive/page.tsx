@@ -8,6 +8,7 @@ import {
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
+import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
 
 export const metadata = {
   title: 'Executive Command Center | DavinTrade Admin',
@@ -33,11 +34,13 @@ const RAG_BADGE_CLASS: Record<RagStatus, string> = {
 export default async function ExecutivePage(): Promise<React.ReactElement> {
   const data = await getExecutiveAnalytics();
   const prefs = await getServerLocalePreferences();
+  const { rates: usdRates } = await getDisplayUsdRates();
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
       currency: prefs.currency,
       language: prefs.language,
+      rates: usdRates, // live rate, same table dLocal uses
     });
   const newLabel = dict['analytics.new_badge'] ?? 'New';
   const overallRag: RagStatus = data.healthStatusMatrix.some(

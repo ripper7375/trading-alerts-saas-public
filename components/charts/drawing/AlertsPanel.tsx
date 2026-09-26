@@ -78,7 +78,10 @@ export function AlertsPanel({
         </span>
         <button
           type="button"
-          aria-label="Close alerts panel"
+          aria-label={t(
+            'charts.drawing.close_alerts_panel',
+            'Close alerts panel'
+          )}
           className="rounded p-1 hover:bg-slate-100 dark:hover:bg-[#2a2e39]"
           onClick={onClose}
         >
@@ -122,11 +125,15 @@ export function AlertsPanel({
                 <Switch
                   checked={a.alert.isActive}
                   onCheckedChange={() => void togglePause(a)}
-                  aria-label={a.alert.isActive ? 'Pause alert' : 'Resume alert'}
+                  aria-label={
+                    a.alert.isActive
+                      ? t('charts.drawing.pause_alert', 'Pause alert')
+                      : t('charts.drawing.resume_alert', 'Resume alert')
+                  }
                 />
                 <button
                   type="button"
-                  aria-label="Delete alert"
+                  aria-label={t('charts.drawing.delete_alert', 'Delete alert')}
                   className="rounded p-1 text-[#ef5350] hover:bg-slate-100 dark:hover:bg-[#2a2e39]"
                   onClick={() => void remove(a)}
                 >

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { prisma } from '@/lib/db/prisma';
 import { formatCurrencyAmount } from '@/lib/country-config';
+import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
 import { formatDateInZone } from '@/lib/i18n/format-datetime';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
@@ -91,7 +92,11 @@ export default async function AdminUserDetailPage({
   params,
 }: AdminUserDetailPageProps): Promise<React.ReactElement> {
   const { id } = await params;
-  const prefs = await getServerLocalePreferences();
+  const prefs = {
+    ...(await getServerLocalePreferences()),
+    // live rate, same table dLocal uses
+    rates: (await getDisplayUsdRates()).rates,
+  };
   const dict = getDictionary(prefs.language);
   // Dates in the admin's own timezone and date format.
   const formatDate = (value: Date | string): string =>

@@ -43,18 +43,21 @@ function ChatErrorBanner({
     switch (error.code) {
       case 'RATE_LIMIT_EXCEEDED':
         return t(
-          `Guest message limit reached (10 msgs/hr). Please log in or email ${SUPPORT_EMAIL}`
-        );
+          'chat.error.rate_limit',
+          'Guest message limit reached (10 msgs/hr). Please log in or email {email}'
+        ).replace('{email}', SUPPORT_EMAIL);
       case 'QUOTA_EXCEEDED':
         return t(
+          'chat.error.quota',
           'Support AI quota reached for now. Pick a topic below or try again shortly.'
         );
       case 'UNAUTHORIZED':
       case 'SERVER_ERROR':
       default:
         return t(
-          `Something went wrong on our end. Please try again, or email ${SUPPORT_EMAIL} for help.`
-        );
+          'chat.error.server',
+          'Something went wrong on our end. Please try again, or email {email} for help.'
+        ).replace('{email}', SUPPORT_EMAIL);
     }
   })();
 
@@ -69,7 +72,7 @@ function ChatErrorBanner({
               href={`mailto:${SUPPORT_EMAIL}`}
               className="font-semibold underline underline-offset-2"
             >
-              {t('Email support')}
+              {t('chat.error.email_support', 'Email support')}
             </a>
           )}
         </span>

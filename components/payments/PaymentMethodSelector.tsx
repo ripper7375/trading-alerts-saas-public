@@ -384,7 +384,7 @@ export function PaymentMethodSelector({
               role="radio"
               aria-checked={isSelected}
               aria-disabled={disabled}
-              aria-label={`${method.name}, ${processingTimeLabel}${method.sublabel ? `, ${method.sublabel}` : ''}`}
+              aria-label={`${t(method.name)}, ${processingTimeLabel}${method.sublabel ? `, ${method.sublabel}` : ''}`}
             >
               {isSelected && (
                 <CheckCircle
@@ -397,7 +397,7 @@ export function PaymentMethodSelector({
                 <div className="mb-2 text-muted-foreground" aria-hidden="true">
                   {getMethodIcon(method.icon)}
                 </div>
-                <p className="mb-1 text-sm font-semibold">{method.name}</p>
+                <p className="mb-1 text-sm font-semibold">{t(method.name)}</p>
                 {method.sublabel && (
                   <p className="mb-2 text-xs text-muted-foreground">
                     {method.sublabel}

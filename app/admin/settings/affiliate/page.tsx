@@ -35,6 +35,7 @@ interface AffiliateSettings {
   codesPerMonth: ConfigValue;
   basePrice: ConfigValue;
   threeDayPrice: ConfigValue;
+  annualPrice: ConfigValue;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -60,6 +61,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
   const [codesPerMonth, setCodesPerMonth] = useState<number>(15);
   const [basePrice, setBasePrice] = useState<number>(29);
   const [threeDayPrice, setThreeDayPrice] = useState<number>(1.99);
+  const [annualPrice, setAnnualPrice] = useState<number>(290);
   const [reason, setReason] = useState<string>('');
 
   // Fetch current settings
@@ -85,6 +87,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
       setCodesPerMonth(data.codesPerMonth.value);
       setBasePrice(data.basePrice.value);
       setThreeDayPrice(data.threeDayPrice.value);
+      setAnnualPrice(data.annualPrice.value);
     } catch (err) {
       setError(
         err instanceof Error
@@ -118,6 +121,7 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
           codesPerMonth,
           basePrice,
           threeDayPrice,
+          annualPrice,
           reason: reason || undefined,
         }),
       });
@@ -353,6 +357,27 @@ export default function AdminAffiliateSettingsPage(): React.ReactElement {
                     {t(
                       'admin.affiliates.three_day_trial_price_desc',
                       '3-day trial plan price in USD (dLocal countries only)'
+                    )}
+                  </p>
+                </div>
+
+                {/* Annual PRO Price */}
+                <div className="space-y-1">
+                  <Label htmlFor="annualPrice">
+                    {t('admin.affiliates.annual_price', 'Annual PRO Price ($)')}
+                  </Label>
+                  <Input
+                    type="number"
+                    id="annualPrice"
+                    min="0"
+                    step="0.01"
+                    value={annualPrice}
+                    onChange={(e) => setAnnualPrice(parseFloat(e.target.value))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {t(
+                      'admin.affiliates.annual_price_desc',
+                      'PRO price in USD for a year, billed once a year (Stripe and dLocal). Existing annual subscribers keep their price.'
                     )}
                   </p>
                 </div>

@@ -28,6 +28,7 @@ import { prisma } from '@/lib/db/prisma';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
+import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
 import { formatDateInZone } from '@/lib/i18n/format-datetime';
 
 export const dynamic = 'force-dynamic';
@@ -65,12 +66,14 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
   }
 
   const prefs = await getServerLocalePreferences();
+  const { rates: usdRates } = await getDisplayUsdRates();
   const dict = getDictionary(prefs.language);
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
       currency: prefs.currency,
       language: prefs.language,
+      rates: usdRates, // live rate, same table dLocal uses
     });
   const batchStatusLabelKeys: Record<string, string> = {
     PENDING: 'admin.disbursement.tx_status_pending',

@@ -30,10 +30,14 @@ import {
 } from '@/components/ui/card';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
+import { getAffiliateConfigFromDB } from '@/lib/affiliate/db';
 
 export default async function PublicAffiliateResourcesPage(): Promise<React.ReactElement> {
   const dict = getDictionary(await getServerLanguage());
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
+  // Discount and commission rates from SystemConfig (admin-editable)
+  const { discountPercent, commissionPercent } =
+    await getAffiliateConfigFromDB();
 
   return (
     <div className="mx-auto max-w-5xl space-y-12 px-4 py-12">
@@ -119,21 +123,21 @@ export default async function PublicAffiliateResourcesPage(): Promise<React.Reac
             <CardTitle className="text-lg">
               {dt(
                 'affiliate.resources.promo_discount_codes',
-                '20% Promo Discount Codes'
-              )}
+                '{percent}% Promo Discount Codes'
+              ).replace('{percent}', String(discountPercent))}
             </CardTitle>
             <CardDescription>
               {dt(
                 'affiliate.resources.promo_discount_codes_desc',
-                'Distribute exclusive monthly discount codes offering 20% off PRO subscriptions.'
-              )}
+                'Distribute exclusive monthly discount codes offering {percent}% off PRO subscriptions.'
+              ).replace('{percent}', String(discountPercent))}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
             {dt(
               'affiliate.resources.promo_discount_codes_body',
-              'Provide tangible value to your trading audience while earning 20% recurring net commissions.'
-            )}
+              'Provide tangible value to your trading audience while earning {percent}% recurring net commissions.'
+            ).replace('{percent}', String(commissionPercent))}
           </CardContent>
         </Card>
 

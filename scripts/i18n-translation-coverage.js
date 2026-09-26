@@ -82,6 +82,20 @@ function loadDictionaries() {
   return dicts;
 }
 
+/**
+ * Keys whose correct translation in a language is the English text itself
+ * (e.g. "Heiken Ashi", or "Dashboard" in German). Maintained by hand next to
+ * the translations: { "<lang>": ["<key>", ...] }.
+ */
+const IDENTICAL_OK_FILE = path.join(__dirname, 'i18n-identical-ok.json');
+const IDENTICAL_OK = fs.existsSync(IDENTICAL_OK_FILE)
+  ? Object.fromEntries(
+      Object.entries(
+        JSON.parse(fs.readFileSync(IDENTICAL_OK_FILE, 'utf8'))
+      ).map(([lang, keys]) => [lang, new Set(keys)])
+    )
+  : {};
+
 function needsTranslation(english) {
   return (
     /[a-z]{3,}/.test(english) && !NO_TRANSLATION_NEEDED.has(english.trim())
@@ -92,6 +106,7 @@ function isTranslated(language, key, dicts) {
   const english = dicts['en-GB'][key];
   if (language.startsWith('en') || !needsTranslation(english)) return true;
   const value = dicts[language][key];
+  if (value === english && IDENTICAL_OK[language]?.has(key)) return true;
   return typeof value === 'string' && value !== '' && value !== english;
 }
 
@@ -275,6 +290,45 @@ function allSourceKeys(dictKeys) {
   return keys;
 }
 
+/**
+ * Pages that must be fully translated in every language (Davin, 2026-09-25):
+ * public marketing, auth, and FREE/PRO user pages, with their layouts,
+ * loading and error files, plus the provider tree that renders on every page
+ * (chat widget). Admin pages are internal and affiliate pages are optional,
+ * so both are excluded; so are local-only preview routes (app/dev*).
+ * Repo-relative paths, sorted.
+ */
+function compulsoryPages() {
+  const out = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(path.join(ROOT, dir), {
+      withFileTypes: true,
+    })) {
+      const rel = `${dir}/${entry.name}`;
+      if (entry.isDirectory()) {
+        if (
+          rel === 'app/admin' ||
+          rel === 'app/affiliate' ||
+          rel === 'app/api' ||
+          /^app\/dev/.test(rel)
+        ) {
+          continue;
+        }
+        walk(rel);
+      } else if (
+        /^(page|layout|loading|error|global-error|not-found)\.tsx$/.test(
+          entry.name
+        )
+      ) {
+        out.push(rel);
+      }
+    }
+  };
+  walk('app');
+  out.push('components/providers/client-providers.tsx');
+  return out.sort();
+}
+
 function coverage(keys, dicts, languages) {
   const byLanguage = {};
   for (const language of languages) {
@@ -345,4 +399,15 @@ function main() {
     );
 }
 
-main();
+if (require.main === module) main();
+
+module.exports = {
+  loadDictionaries,
+  isTranslated,
+  keysForPage,
+  allSourceKeys,
+  coverage,
+  compulsoryPages,
+  literalsOf,
+  resolveImport,
+};

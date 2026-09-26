@@ -1,6 +1,5 @@
 'use client';
 
-import { formatDistanceToNow } from 'date-fns';
 import {
   Eye,
   EyeOff,
@@ -153,6 +152,28 @@ function getDeletionTargetDate(deletionStatus: DeletionStatus): Date {
   return new Date(deletionStatus.expiresAt);
 }
 
+/**
+ * Time left until `target` in the viewer's language, e.g. "23 hours" or
+ * "6 days" (date-fns' formatDistanceToNow only speaks English).
+ */
+function formatDuration(target: Date, language: string): string {
+  const hours = Math.max(
+    0,
+    Math.round((target.getTime() - Date.now()) / 3_600_000)
+  );
+  const [value, unit] =
+    hours >= 48 ? [Math.round(hours / 24), 'day'] : [hours, 'hour'];
+  try {
+    return new Intl.NumberFormat(language, {
+      style: 'unit',
+      unit,
+      unitDisplay: 'long',
+    }).format(value);
+  } catch {
+    return `${value} ${unit}${value === 1 ? '' : 's'}`;
+  }
+}
+
 function PendingDeletionBanner({
   deletionStatus,
   isCancelling,
@@ -162,7 +183,7 @@ function PendingDeletionBanner({
   isCancelling: boolean;
   onCancel: () => void;
 }): React.ReactElement {
-  const { t, formatDateTime } = useLocale();
+  const { t, formatDateTime, language } = useLocale();
   const isConfirmed = deletionStatus.status === 'CONFIRMED';
   const targetDate = getDeletionTargetDate(deletionStatus);
 
@@ -196,13 +217,19 @@ function PendingDeletionBanner({
                       'settings.account.deletion_confirmed_desc',
                       'Your account will be permanently deleted in about {duration} (around {date}).'
                     )
-                      .replace('{duration}', formatDistanceToNow(targetDate))
+                      .replace(
+                        '{duration}',
+                        formatDuration(targetDate, language)
+                      )
                       .replace('{date}', formatDateTime(targetDate))
                   : t(
                       'settings.account.deletion_pending_desc',
                       'Confirm via the link in your email within {duration} (link expires {date}), or cancel below.'
                     )
-                      .replace('{duration}', formatDistanceToNow(targetDate))
+                      .replace(
+                        '{duration}',
+                        formatDuration(targetDate, language)
+                      )
                       .replace('{date}', formatDateTime(targetDate))}{' '}
                 {t(
                   'settings.account.deletion_still_cancellable',

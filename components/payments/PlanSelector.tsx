@@ -6,6 +6,7 @@
  * Displays plan cards for selection:
  * - 3-Day Trial plan - only for eligible users in dLocal countries
  * - Monthly plan - always available
+ * - Annual plan - always available, billed once a year
  *
  * Prices are fetched from SystemConfig via useAffiliateConfig hook.
  *
@@ -48,7 +49,8 @@ export function PlanSelector({
 }: PlanSelectorProps): React.ReactElement {
   const { t, formatCurrency } = useLocale();
   // Get dynamic prices from SystemConfig
-  const { regularPrice, threeDayPrice } = useAffiliateConfig();
+  const { regularPrice, threeDayPrice, annualPrice, annualSavingsPercent } =
+    useAffiliateConfig();
 
   const handlePlanSelect = (plan: PlanType): void => {
     if (disabled) return;
@@ -65,10 +67,12 @@ export function PlanSelector({
       <div
         className={cn(
           'grid gap-4',
-          showThreeDayPlan ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'
+          showThreeDayPlan
+            ? 'grid-cols-1 md:grid-cols-3'
+            : 'grid-cols-1 md:grid-cols-2'
         )}
         role="radiogroup"
-        aria-label="Select a plan"
+        aria-label={t('payments.select_plan_aria', 'Select a plan')}
       >
         {/* 3-Day Plan */}
         {showThreeDayPlan && (
@@ -175,6 +179,61 @@ export function PlanSelector({
             {t(
               'checkout.monthly_desc',
               'Full PRO access with discount code support'
+            )}
+          </p>
+        </button>
+
+        {/* Annual Plan */}
+        <button
+          type="button"
+          onClick={() => handlePlanSelect('YEARLY')}
+          disabled={disabled}
+          className={cn(
+            'relative rounded-lg border-2 p-4 text-left transition-all',
+            'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+            value === 'YEARLY'
+              ? 'border-emerald-500 bg-emerald-50'
+              : 'border-border hover:border-emerald-300',
+            disabled && 'cursor-not-allowed opacity-50'
+          )}
+          role="radio"
+          aria-checked={value === 'YEARLY'}
+          aria-disabled={disabled}
+        >
+          {annualSavingsPercent > 0 && (
+            <div className="absolute -top-2 right-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                {t('pricing.save_percent', 'Save {percent}%').replace(
+                  '{percent}',
+                  String(annualSavingsPercent)
+                )}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-start justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold">
+                  {t('checkout.annual', 'Annual')}
+                </span>
+              </div>
+              <div className="text-2xl font-bold text-emerald-600">
+                {formatCurrency(annualPrice)}
+                <span className="text-sm font-normal text-muted-foreground">
+                  /{t('checkout.year', 'year')}
+                </span>
+              </div>
+            </div>
+            {value === 'YEARLY' && (
+              <Check className="h-6 w-6 text-emerald-600" aria-hidden="true" />
+            )}
+          </div>
+
+          <p className="mt-2 text-sm text-muted-foreground">
+            {t(
+              'checkout.annual_desc',
+              '12 months of PRO access in one payment, with discount code support'
             )}
           </p>
         </button>

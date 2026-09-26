@@ -9,6 +9,8 @@ import { TokenRefreshProvider } from '@/components/auth/token-refresh-provider';
 import { getAdminUserViewAs } from '@/lib/admin/user-view-as';
 import { authOptions } from '@/lib/auth/auth-options';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
+import { getDictionary } from '@/lib/i18n/get-dictionary';
+import { getServerLanguage } from '@/lib/i18n/server-locale';
 
 import { SettingsNav } from './_components/settings-nav';
 import AppHeader from '@/components/layout/app-header';
@@ -46,6 +48,7 @@ export default async function SettingsLayout({
   }
 
   const appearance = await getServerAppearance();
+  const dict = getDictionary(await getServerLanguage());
   const viewAs = await getAdminUserViewAs(session.user);
 
   return (
@@ -62,7 +65,10 @@ export default async function SettingsLayout({
     >
       <LoginTracker />
       <TokenRefreshProvider />
-      <AppHeader title="Settings" subtitle="Account & preferences" />
+      <AppHeader
+        title={dict['breadcrumb.settings'] ?? 'Settings'}
+        subtitle={dict['settings.layout.subtitle'] ?? 'Account & preferences'}
+      />
 
       <UserViewAsProvider value={viewAs}>
         <UserViewAsBanner />

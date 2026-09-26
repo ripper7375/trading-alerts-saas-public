@@ -31,7 +31,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useLocale } from '@/lib/context/locale-context';
+import { Translated, useLocale } from '@/lib/context/locale-context';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONSTANTS
@@ -299,7 +299,9 @@ export default function UpgradeSuccessPage(): React.ReactElement {
         <div className="flex min-h-screen items-center justify-center">
           <div className="text-center">
             <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground">
+              <Translated k="upgrade.loading" fallback="Loading..." />
+            </p>
           </div>
         </div>
       }
