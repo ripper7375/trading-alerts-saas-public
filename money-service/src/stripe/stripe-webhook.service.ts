@@ -23,11 +23,13 @@ import { Injectable } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import type Stripe from 'stripe';
 
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
 import { logger } from '../common/logger.util';
 import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { invoicePlan } from './invoice-plan';
 import { StripeService } from './stripe.service';
 
 type SubscriptionStatusValue =
@@ -44,7 +46,8 @@ export class StripeWebhookService {
     private readonly prisma: PrismaService,
     private readonly conversionProcessor: ConversionProcessorService,
     private readonly outboxService: OutboxService,
-    private readonly stripeService: StripeService
+    private readonly stripeService: StripeService,
+    private readonly affiliateConfig: AffiliateConfigService
   ) {}
 
   private async emitOutboxEvent(
@@ -83,7 +86,11 @@ export class StripeWebhookService {
     try {
       const billingPeriod =
         session.metadata?.['billingPeriod'] === 'yearly' ? 'yearly' : 'monthly';
-      const amountUsd = billingPeriod === 'yearly' ? 290 : 29;
+      // The PRO price checkout charged: the admin's SystemConfig price.
+      const amountUsd =
+        billingPeriod === 'yearly'
+          ? await this.affiliateConfig.getAnnualPriceUsd()
+          : await this.affiliateConfig.getBasePriceUsd();
 
       const nextBillingDate = new Date();
       if (billingPeriod === 'yearly') {
@@ -383,8 +390,10 @@ export class StripeWebhookService {
         return;
       }
 
+      // Billing period and list price from the invoice's own price line (not
+      // from the amount paid: the PRO price is admin-editable)
       const amountPaid = invoice.amount_paid || 0;
-      const isYearly = amountPaid >= 28000;
+      const { yearly: isYearly, listPriceUsd } = invoicePlan(invoice);
 
       const nextBillingDate = new Date();
       if (isYearly) {
@@ -404,7 +413,7 @@ export class StripeWebhookService {
             expiresAt: nextBillingDate,
             renewalReminderSent: false,
             planType: isYearly ? 'YEARLY' : 'MONTHLY',
-            amountUsd: isYearly ? 290 : 29,
+            ...(listPriceUsd !== null && { amountUsd: listPriceUsd }),
           },
         });
 

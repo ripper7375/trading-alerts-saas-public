@@ -24,15 +24,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// CONSTANTS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-const PRO_MONTHLY_PRICE = 29;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -61,7 +56,10 @@ interface AnalyticsResponse {
 @Controller('admin/analytics')
 @UseGuards(JwtAuthGuard)
 export class AdminAnalyticsController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly affiliateConfig: AffiliateConfigService
+  ) {}
 
   @Get()
   async getAnalytics(
@@ -84,7 +82,9 @@ export class AdminAnalyticsController {
         totalUsers > 0 ? (freeUsers / totalUsers) * 100 : 0;
       const proPercentage = totalUsers > 0 ? (proUsers / totalUsers) * 100 : 0;
 
-      const mrr = proUsers * PRO_MONTHLY_PRICE;
+      // Estimate: PRO users x the admin's SystemConfig PRO price
+      const proMonthlyPrice = await this.affiliateConfig.getBasePriceUsd();
+      const mrr = proUsers * proMonthlyPrice;
       const arr = mrr * 12;
 
       const conversionRate = totalUsers > 0 ? (proUsers / totalUsers) * 100 : 0;
@@ -113,7 +113,7 @@ export class AdminAnalyticsController {
           mrr,
           arr,
           conversionRate: Math.round(conversionRate * 100) / 100,
-          pricePerUser: PRO_MONTHLY_PRICE,
+          pricePerUser: proMonthlyPrice,
         },
         growth: {
           newUsersThisMonth,

@@ -28,6 +28,9 @@ import Stripe from 'stripe';
  */
 export const CHECKOUT_IDEMPOTENCY_WINDOW_MS = 60_000;
 
+/** PRO billing period: monthly (`affiliate_base_price`) or yearly (`affiliate_annual_price`). */
+export type BillingPeriod = 'monthly' | 'yearly';
+
 @Injectable()
 export class StripeService {
   private stripeClient: Stripe | null = null;
@@ -56,19 +59,95 @@ export class StripeService {
     return this.configService.get<string>('STRIPE_PRO_PRICE_ID');
   }
 
+  /** STRIPE_PRO_PRICE_ID's Price object, fetched once per process. */
+  private proPriceCache: { id: string; price: Promise<Stripe.Price> } | null =
+    null;
+
+  private getProPrice(priceId: string): Promise<Stripe.Price> {
+    if (this.proPriceCache?.id !== priceId) {
+      const price = this.getClient().prices.retrieve(priceId);
+      // A failed lookup must not be cached: the next checkout retries.
+      price.catch(() => {
+        if (this.proPriceCache?.price === price) this.proPriceCache = null;
+      });
+      this.proPriceCache = { id: priceId, price };
+    }
+    return this.proPriceCache.price;
+  }
+
+  /**
+   * The PRO line item for a checkout session, charging `unitAmountUsd` (the
+   * SystemConfig price for the billing period) once per month or per year.
+   * Mirrors lib/stripe/stripe.ts buildProLineItem().
+   *
+   * When the configured Stripe Price already charges that amount in USD on
+   * that interval, it is used directly. Otherwise an inline price is built on
+   * the same product and tax behaviour, so an admin price change (or the
+   * annual plan) applies to new subscribers without editing Stripe. Existing
+   * subscriptions keep the price they were created with.
+   */
+  async buildProLineItem(
+    priceId: string,
+    unitAmountUsd: number | undefined,
+    billingPeriod: BillingPeriod = 'monthly'
+  ): Promise<Stripe.Checkout.SessionCreateParams.LineItem> {
+    const interval = billingPeriod === 'yearly' ? 'year' : 'month';
+    if (unitAmountUsd === undefined) {
+      if (billingPeriod === 'yearly') {
+        throw new Error(
+          'An annual checkout needs the SystemConfig annual price'
+        );
+      }
+      return { price: priceId, quantity: 1 };
+    }
+    if (!Number.isFinite(unitAmountUsd) || unitAmountUsd <= 0) {
+      throw new Error(`Invalid PRO price: ${unitAmountUsd}`);
+    }
+    const unitAmount = Math.round(unitAmountUsd * 100);
+    const base = await this.getProPrice(priceId);
+    if (
+      base.currency === 'usd' &&
+      base.unit_amount === unitAmount &&
+      (base.recurring?.interval ?? 'month') === interval &&
+      (base.recurring?.interval_count ?? 1) === 1
+    ) {
+      return { price: priceId, quantity: 1 };
+    }
+    const taxBehavior =
+      base.tax_behavior && base.tax_behavior !== 'unspecified'
+        ? base.tax_behavior
+        : undefined;
+    return {
+      price_data: {
+        currency: 'usd',
+        unit_amount: unitAmount,
+        product:
+          typeof base.product === 'string' ? base.product : base.product.id,
+        recurring: { interval, interval_count: 1 },
+        ...(taxBehavior && { tax_behavior: taxBehavior }),
+      },
+      quantity: 1,
+    };
+  }
+
   /**
    * Deterministic Stripe idempotency key for a checkout attempt. Pure/no
    * I/O so the caller can derive it before calling `createCheckoutSession`.
+   * A yearly attempt gets its own key (monthly keys are unchanged).
    */
   buildCheckoutIdempotencyKey(
     userId: string,
-    affiliateCode: string | undefined
+    affiliateCode: string | undefined,
+    billingPeriod: BillingPeriod = 'monthly'
   ): string {
     const windowBucket = Math.floor(
       Date.now() / CHECKOUT_IDEMPOTENCY_WINDOW_MS
     );
+    const period = billingPeriod === 'yearly' ? ':yearly' : '';
     return createHash('sha256')
-      .update(`checkout:${userId}:${affiliateCode ?? 'none'}:${windowBucket}`)
+      .update(
+        `checkout:${userId}:${affiliateCode ?? 'none'}:${windowBucket}${period}`
+      )
       .digest('hex');
   }
 
@@ -84,6 +163,11 @@ export class StripeService {
    *   (davintrade-vat-stack, Section 3.1): when set, attaches `customer`
    *   + `customer_update` instead of `customer_email` so the address/name
    *   entered at checkout is saved onto the existing customer record.
+   * @param unitAmountUsd - The PRO price to charge per billing period, from
+   *   SystemConfig (`getBasePriceUsd()` monthly, `getAnnualPriceUsd()`
+   *   yearly). Omitted (monthly only): the Stripe Price's own amount.
+   * @param billingPeriod - 'monthly' (default) or 'yearly'; recorded in the
+   *   session and subscription metadata, which the webhook reads.
    */
   async createCheckoutSession(
     userId: string,
@@ -93,34 +177,38 @@ export class StripeService {
     affiliateCode?: string,
     discountPercent?: number,
     idempotencyKey?: string,
-    existingStripeCustomerId?: string
+    existingStripeCustomerId?: string,
+    unitAmountUsd?: number,
+    billingPeriod: BillingPeriod = 'monthly'
   ): Promise<Stripe.Checkout.Session> {
     const priceId = this.proTierPriceId;
     if (!priceId) {
       throw new Error('STRIPE_PRO_PRICE_ID environment variable is not set');
     }
+    const lineItem = await this.buildProLineItem(
+      priceId,
+      unitAmountUsd,
+      billingPeriod
+    );
 
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: existingStripeCustomerId || undefined,
       customer_email: existingStripeCustomerId ? undefined : userEmail,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [lineItem],
       mode: 'subscription',
       success_url: successUrl,
       cancel_url: cancelUrl,
       metadata: {
         userId,
         tier: 'PRO',
+        billingPeriod,
         ...(affiliateCode && { affiliateCode }),
       },
       subscription_data: {
         metadata: {
           userId,
           tier: 'PRO',
+          billingPeriod,
           ...(affiliateCode && { affiliateCode }),
         },
         trial_period_days: 7,

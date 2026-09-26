@@ -12,10 +12,8 @@
 
 import { Injectable } from '@nestjs/common';
 
-import {
-  AFFILIATE_CONFIG,
-  type DistributionReason,
-} from '../affiliate/affiliate.constants';
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
+import { type DistributionReason } from '../affiliate/affiliate.constants';
 import { CodeGeneratorService } from '../affiliate/code-generator.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -46,7 +44,8 @@ export interface MonthlyDistributionOptions {
 export class AffiliateCronService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly codeGenerator: CodeGeneratorService
+    private readonly codeGenerator: CodeGeneratorService,
+    private readonly affiliateConfig: AffiliateConfigService
   ) {}
 
   /**
@@ -98,6 +97,9 @@ export class AffiliateCronService {
         return result;
       }
 
+      // Codes per affiliate: the admin's SystemConfig value, read once per run
+      const codesPerMonth = await this.affiliateConfig.getCodesPerMonth();
+
       console.log(
         `[CRON] Starting distribution for ${affiliates.length} affiliates`
       );
@@ -111,15 +113,11 @@ export class AffiliateCronService {
             continue;
           }
 
-          await distributeCodes(
-            affiliate.id,
-            AFFILIATE_CONFIG.CODES_PER_MONTH,
-            'MONTHLY'
-          );
+          await distributeCodes(affiliate.id, codesPerMonth, 'MONTHLY');
 
           result.distributed++;
           console.log(
-            `[CRON] Distributed ${AFFILIATE_CONFIG.CODES_PER_MONTH} codes to ${affiliateUser.email}`
+            `[CRON] Distributed ${codesPerMonth} codes to ${affiliateUser.email}`
           );
 
           // TODO: Send notification email

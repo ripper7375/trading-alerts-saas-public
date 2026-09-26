@@ -24,6 +24,7 @@ import type { RawBodyRequest } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
 import { logger } from '../common/logger.util';
 import { OutboxService } from '../outbox/outbox.service';
@@ -33,7 +34,7 @@ import {
   verifyWebhookSignature,
   mapDLocalStatus,
 } from './dlocal-payment.service';
-import { PRICING } from './dlocal.constants';
+import { PLAN_DURATION } from './dlocal.constants';
 import type { DLocalWebhookPayload } from './dlocal.types';
 import { ThreeDayValidatorService } from './three-day-validator.service';
 
@@ -57,7 +58,8 @@ export class DlocalWebhookController {
     private readonly prisma: PrismaService,
     private readonly threeDayValidator: ThreeDayValidatorService,
     private readonly conversionProcessor: ConversionProcessorService,
-    private readonly outboxService: OutboxService
+    private readonly outboxService: OutboxService,
+    private readonly affiliateConfig: AffiliateConfigService
   ) {}
 
   // Session 4A-W4 (Defect 2, plan §13 CC-D): the app-wide ThrottlerGuard
@@ -193,17 +195,28 @@ export class DlocalWebhookController {
 
     // Calculate subscription expiry based on plan type
     const now = new Date();
-    const expiresAt =
-      payment.planType === 'THREE_DAY'
-        ? new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000) // 3 days
-        : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    const expiresAt = new Date(
+      now.getTime() +
+        PLAN_DURATION[
+          payment.planType === 'THREE_DAY' || payment.planType === 'YEARLY'
+            ? payment.planType
+            : 'MONTHLY'
+        ] *
+          24 *
+          60 *
+          60 *
+          1000
+    ); // 3, 30 or 365 days
 
-    // Actual USD amount for this plan (fixes hardcoded $29 for 3-day plans)
+    // USD amount recorded at payment creation; a row without one falls back
+    // to the current SystemConfig price for its plan.
     const planAmountUsd =
       Number(payment.amountUSD) ||
       (payment.planType === 'THREE_DAY'
-        ? PRICING.THREE_DAY_USD
-        : PRICING.MONTHLY_USD);
+        ? await this.affiliateConfig.getThreeDayPriceUsd()
+        : payment.planType === 'YEARLY'
+          ? await this.affiliateConfig.getAnnualPriceUsd()
+          : await this.affiliateConfig.getBasePriceUsd());
 
     // Use a transaction to ensure all updates succeed or fail together
     await this.prisma.$transaction(async (tx) => {
@@ -298,7 +311,7 @@ export class DlocalWebhookController {
 
       // 5b. Process affiliate conversion if a discount code was used (Part 17 seam)
       // Mirrors the Stripe webhook path; idempotent on webhook retries.
-      if (payment.discountCode && payment.planType === 'MONTHLY') {
+      if (payment.discountCode && payment.planType !== 'THREE_DAY') {
         try {
           const linkedSubscription = await this.prisma.subscription.findUnique({
             where: { userId: payment.userId },
@@ -344,7 +357,7 @@ export class DlocalWebhookController {
           userId: payment.userId,
           type: 'SUBSCRIPTION',
           title: 'Welcome to PRO!',
-          body: `Your ${payment.planType === 'THREE_DAY' ? '3-day' : 'monthly'} subscription is now active. Enjoy all PRO features!`,
+          body: `Your ${payment.planType === 'THREE_DAY' ? '3-day' : payment.planType === 'YEARLY' ? 'annual' : 'monthly'} subscription is now active. Enjoy all PRO features!`,
           priority: 'HIGH',
         },
       });

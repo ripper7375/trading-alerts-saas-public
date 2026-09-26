@@ -124,8 +124,8 @@ describe('Admin P&L Calculator', () => {
   });
 
   describe('calculateStandardSale', () => {
-    it('derives net revenue and commission from AFFILIATE_CONFIG defaults', () => {
-      const result = calculateStandardSale();
+    it('derives net revenue and commission from the given rates', () => {
+      const result = calculateStandardSale(29, 20, 20);
 
       expect(result.regularPrice).toBe(29.0);
       expect(result.netRevenue).toBeCloseTo(23.2, 2); // 29 - 20% discount
@@ -133,7 +133,7 @@ describe('Admin P&L Calculator', () => {
     });
 
     it('accepts a custom regular price and scales discount/commission accordingly', () => {
-      const result = calculateStandardSale(100);
+      const result = calculateStandardSale(100, 20, 20);
 
       expect(result.regularPrice).toBe(100);
       expect(result.netRevenue).toBeCloseTo(80, 2); // 100 - 20%

@@ -6,6 +6,7 @@ import type Stripe from 'stripe';
 
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
 import { OutboxService } from '../outbox/outbox.service';
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
@@ -54,6 +55,15 @@ describe('StripeWebhookService', () => {
         StripeWebhookService,
         { provide: PrismaService, useValue: prismaMock },
         {
+          provide: AffiliateConfigService,
+          useValue: {
+            getBasePriceUsd: jest.fn().mockResolvedValue(35),
+            getThreeDayPriceUsd: jest.fn().mockResolvedValue(2.49),
+            getCodesPerMonth: jest.fn().mockResolvedValue(12),
+            getAnnualPriceUsd: jest.fn().mockResolvedValue(350),
+          },
+        },
+        {
           provide: ConversionProcessorService,
           useValue: conversionProcessorMock,
         },
@@ -90,7 +100,7 @@ describe('StripeWebhookService', () => {
             stripeCustomerId: 'cus_123',
             stripeSubscriptionId: 'sub_123',
             status: 'ACTIVE',
-            amountUsd: 29,
+            amountUsd: 35, // the SystemConfig PRO price, as charged
             planType: 'MONTHLY',
           }),
         })
@@ -306,6 +316,20 @@ describe('StripeWebhookService', () => {
       status_transitions: { paid_at: 1735689600 },
     };
 
+    /** An invoice line carrying its Stripe Price (amount in cents). */
+    const priceLine = (unitAmount: number, interval: 'month' | 'year') => ({
+      data: [
+        {
+          tax_rates: [],
+          price: {
+            currency: 'usd',
+            unit_amount: unitAmount,
+            recurring: { interval },
+          },
+        },
+      ],
+    });
+
     it('renews monthly and emits PAYMENT_SUCCEEDED for a $29 invoice', async () => {
       prismaMock.subscription.findFirst.mockResolvedValue({
         id: 'sub-row-1',
@@ -315,6 +339,7 @@ describe('StripeWebhookService', () => {
       await service.handleInvoiceSucceeded({
         ...baseInvoice,
         amount_paid: 2900,
+        lines: priceLine(2900, 'month'),
       } as unknown as Stripe.Invoice);
 
       expect(prismaMock.subscription.update).toHaveBeenCalledWith(
@@ -337,7 +362,30 @@ describe('StripeWebhookService', () => {
       );
     });
 
-    it('renews yearly for a $290+ invoice', async () => {
+    it('keeps a high monthly price monthly (once "paid >= $280 means yearly")', async () => {
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-row-1',
+        userId: 'user-1',
+      } as never);
+
+      await service.handleInvoiceSucceeded({
+        ...baseInvoice,
+        total: 30000,
+        amount_paid: 30000,
+        lines: priceLine(30000, 'month'),
+      } as unknown as Stripe.Invoice);
+
+      expect(prismaMock.subscription.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            planType: 'MONTHLY',
+            amountUsd: 300,
+          }),
+        })
+      );
+    });
+
+    it('renews yearly when the invoice line bills per year', async () => {
       prismaMock.subscription.findFirst.mockResolvedValue({
         id: 'sub-row-1',
         userId: 'user-1',
@@ -347,6 +395,7 @@ describe('StripeWebhookService', () => {
         ...baseInvoice,
         total: 29000,
         amount_paid: 29000,
+        lines: priceLine(29000, 'year'),
       } as unknown as Stripe.Invoice);
 
       expect(prismaMock.subscription.update).toHaveBeenCalledWith(
