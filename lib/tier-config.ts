@@ -43,21 +43,15 @@ export {
 };
 
 /**
- * PRO monthly price (USD).
- * Configurable via env so the marketed price can be changed without a deploy.
- * NEXT_PUBLIC_ so both server and client bundles agree on the displayed price.
- * The authoritative billing amount remains the Stripe/dLocal Price ID.
+ * Catalog default PRO price (USD). NOT the live price: the admin sets that in
+ * SystemConfig (`affiliate_base_price`, /admin/settings/affiliate), and
+ * checkout charges it. Display or charge it with `useAffiliateConfig()` in
+ * the browser or `getBasePriceUsd()` (lib/affiliate/db) on the server.
  *
- * This override is intentionally NOT hoisted into `@trading-alerts/types`:
- * NEXT_PUBLIC_-prefixed env vars are Next.js client-bundle plumbing with no
- * equivalent in the NestJS services that package also feeds. The shared
- * package's own `PRO_TIER_CONFIG.price` is the $29 catalog default; this
- * file layers the monolith's env override on top of it.
+ * The former NEXT_PUBLIC_PRO_PRICE_MONTHLY override was a second price
+ * source that could disagree with SystemConfig; it was retired 2026-09-26.
  */
-export const PRO_MONTHLY_PRICE: number = Number(
-  process.env['NEXT_PUBLIC_PRO_PRICE_MONTHLY'] ??
-    String(SHARED_PRO_TIER_CONFIG.price)
-);
+export const PRO_MONTHLY_PRICE: number = SHARED_PRO_TIER_CONFIG.price;
 
 /**
  * FREE Tier Configuration
@@ -76,7 +70,7 @@ export const FREE_TIER_CONFIG: TierConfig = SHARED_FREE_TIER_CONFIG;
  * - 100 alerts (incl. drawing-engine line-touch alerts)
  * - Multi-timeframe visualization
  * - 300 requests/hour
- * - Configurable price/month (env NEXT_PUBLIC_PRO_PRICE_MONTHLY, default $29)
+ * - Price/month: SystemConfig `affiliate_base_price` (this `price` is the default)
  * - 7-day free trial with full PRO access
  * - AI Analyst (Stack D, 500k monthly tokens) and Market Comments + Quality
  *   Metrics (Stack E) entitlements

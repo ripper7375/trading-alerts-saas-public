@@ -24,6 +24,8 @@ import {
 import { sendSubscriptionConfirmationEmail } from '@/lib/email/email';
 import { calculateFullBreakdown } from '@/lib/affiliate/commission-calculator';
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { getAnnualPriceUsd, getBasePriceUsd } from '@/lib/affiliate/db';
+import { invoicePlan } from '@/lib/stripe/invoice-plan';
 
 /**
  * Subscription/AffiliateProfile no longer carry a `user` relation (Session
@@ -71,7 +73,11 @@ export async function handleCheckoutCompleted(
     // Determine billing period from session metadata or line items
     const billingPeriod =
       session.metadata?.['billingPeriod'] === 'yearly' ? 'yearly' : 'monthly';
-    const amountUsd = billingPeriod === 'yearly' ? 290 : 29;
+    // The PRO price checkout charged: the admin's SystemConfig price.
+    const amountUsd =
+      billingPeriod === 'yearly'
+        ? await getAnnualPriceUsd()
+        : await getBasePriceUsd();
 
     // Update user tier to PRO
     const user = await prisma.user.update({
@@ -141,7 +147,8 @@ export async function handleCheckoutCompleted(
         user.email,
         user.name || 'User',
         'PRO',
-        billingPeriod
+        billingPeriod,
+        amountUsd
       );
     }
 
@@ -340,7 +347,14 @@ export async function handleInvoiceFailed(
       await sendPaymentFailedEmail(
         failedUser.email,
         failedUser.name || 'User',
-        failureReason
+        failureReason,
+        // This subscriber's own price and period (existing subscribers
+        // keep theirs)
+        Number(dbSubscription.amountUsd) ||
+          (dbSubscription.planType === 'YEARLY'
+            ? await getAnnualPriceUsd()
+            : await getBasePriceUsd()),
+        dbSubscription.planType === 'YEARLY' ? 'yearly' : 'monthly'
       );
     }
 
@@ -404,10 +418,10 @@ export async function handleInvoiceSucceeded(
       return;
     }
 
-    // Determine billing period based on amount paid
-    // $29 (2900 cents) = monthly, $290 (29000 cents) = yearly
+    // Billing period and list price from the invoice's own price line (not
+    // from the amount paid: the PRO price is admin-editable)
     const amountPaid = invoice.amount_paid || 0;
-    const isYearly = amountPaid >= 28000; // Allow some flexibility for rounding
+    const { yearly: isYearly, listPriceUsd } = invoicePlan(invoice);
     const billingPeriod = isYearly ? 'yearly' : 'monthly';
 
     // Calculate next billing date based on billing period
@@ -427,7 +441,7 @@ export async function handleInvoiceSucceeded(
         expiresAt: nextBillingDate,
         renewalReminderSent: false,
         planType: isYearly ? 'YEARLY' : 'MONTHLY',
-        amountUsd: isYearly ? 290 : 29,
+        ...(listPriceUsd !== null && { amountUsd: listPriceUsd }),
       },
     });
 

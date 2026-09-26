@@ -143,7 +143,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 export function planDescription(planType: string | null): string {
   return planType === 'THREE_DAY'
     ? 'Trading Alerts PRO - 3 Day'
-    : 'Trading Alerts PRO - Monthly';
+    : planType === 'YEARLY'
+      ? 'Trading Alerts PRO - Annual'
+      : 'Trading Alerts PRO - Monthly';
 }
 
 export function buildDlocalReceipt(
@@ -158,7 +160,13 @@ export function buildDlocalReceipt(
   const totalUsd = dLocalChargedUsd(payment);
   const localAmount = roundMoney(Number(payment.amount));
 
-  const days = payment.duration ?? (payment.planType === 'THREE_DAY' ? 3 : 30);
+  const days =
+    payment.duration ??
+    (payment.planType === 'THREE_DAY'
+      ? 3
+      : payment.planType === 'YEARLY'
+        ? 365
+        : 30);
   const start = payment.createdAt;
 
   const countryName = payment.country

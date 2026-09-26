@@ -3,15 +3,24 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { localizedMetadata } from '@/lib/i18n/server-metadata';
 import { prisma } from '@/lib/db/prisma';
 import { CURRENCY_INDEX_COMPARE_PATH } from '@/lib/currency-index-comparison/series';
 import { CurrencyIndexComparisonWorkspace } from '@/components/currency-index-comparison/currency-index-comparison-workspace';
 
-export const metadata: Metadata = {
-  title: 'Currency Index Comparison PRO | DavinTrade',
-  description:
-    'Compare any 2 of the 9 DavinTrade currency and gold indices with OHLC, Heiken Ashi, HRMA, SMMA, ZigZag and Z-score candles.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata(
+    {
+      key: 'currency_index_compare.meta_title',
+      fallback: 'Currency Index Comparison PRO | DavinTrade',
+    },
+    {
+      key: 'currency_index_compare.meta_description',
+      fallback:
+        'Compare any 2 of the 9 DavinTrade currency and gold indices with OHLC, Heiken Ashi, HRMA, SMMA, ZigZag and Z-score candles.',
+    }
+  );
+}
 
 /**
  * `/pro/currency-index/compare` -- the PRO counterpart of the public

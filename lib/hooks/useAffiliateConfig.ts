@@ -30,6 +30,8 @@ export interface AffiliateConfig {
   regularPrice: number;
   /** 3-day trial plan price in USD (dLocal only) */
   threeDayPrice: number;
+  /** Annual PRO price in USD, billed once a year */
+  annualPrice: number;
   /** Minimum approved balance (USD) before a payout (DECISION-LOG F83) */
   minimumPayoutUsd: number;
   /** ISO timestamp of when config was last updated */
@@ -52,6 +54,10 @@ export interface UseAffiliateConfigReturn {
   regularPrice: number;
   /** 3-day trial plan price (default: 1.99) */
   threeDayPrice: number;
+  /** Annual PRO price, billed once a year (default: 290.00) */
+  annualPrice: number;
+  /** Percent saved by paying yearly instead of 12 monthly payments (0 or more) */
+  annualSavingsPercent: number;
   /** Minimum payout in USD (default: 50) — admin-editable at /admin/disbursement/settings */
   minimumPayoutUsd: number;
   /** Helper function to calculate discounted price */
@@ -77,6 +83,7 @@ const DEFAULTS = {
   codesPerMonth: 15,
   regularPrice: 29.0,
   threeDayPrice: 1.99,
+  annualPrice: 290.0,
   minimumPayoutUsd: 50,
 } as const;
 
@@ -164,6 +171,11 @@ export function useAffiliateConfig(): UseAffiliateConfigReturn {
   const codesPerMonth = data?.codesPerMonth ?? DEFAULTS.codesPerMonth;
   const regularPrice = data?.regularPrice ?? DEFAULTS.regularPrice;
   const threeDayPrice = data?.threeDayPrice ?? DEFAULTS.threeDayPrice;
+  const annualPrice = data?.annualPrice ?? DEFAULTS.annualPrice;
+  const annualSavingsPercent =
+    regularPrice > 0
+      ? Math.max(0, Math.round((1 - annualPrice / (regularPrice * 12)) * 100))
+      : 0;
   const minimumPayoutUsd = data?.minimumPayoutUsd ?? DEFAULTS.minimumPayoutUsd;
 
   /**
@@ -201,6 +213,8 @@ export function useAffiliateConfig(): UseAffiliateConfigReturn {
     codesPerMonth,
     regularPrice,
     threeDayPrice,
+    annualPrice,
+    annualSavingsPercent,
     minimumPayoutUsd,
     calculateDiscountedPrice,
     calculateCommissionAmount,

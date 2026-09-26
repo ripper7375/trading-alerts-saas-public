@@ -22,6 +22,7 @@ const mockPush = jest.fn();
 const mockRouter = { push: mockPush };
 jest.mock('next/navigation', () => ({
   useRouter: () => mockRouter,
+  usePathname: () => '/upgrade/success',
 }));
 
 const mockUseSession = jest.fn();
@@ -30,6 +31,11 @@ jest.mock('next-auth/react', () => ({
 }));
 
 import UpgradeSuccessPage from '@/app/upgrade/success/page';
+import { LocaleProvider } from '@/lib/context/locale-context';
+import {
+  LOCALE_STORAGE_KEY,
+  defaultPreferences,
+} from '@/lib/i18n/locale-resolver';
 
 function jsonResponse(status: number, body: unknown): Response {
   return {
@@ -42,14 +48,28 @@ function jsonResponse(status: number, body: unknown): Response {
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
+function renderUpgradeSuccess(): ReturnType<typeof render> {
+  return render(
+    <LocaleProvider>
+      <UpgradeSuccessPage />
+    </LocaleProvider>
+  );
+}
+
 describe('UpgradeSuccessPage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    localStorage.clear();
+    // Pre-seed localStorage to satisfy L40 and prevent unmocked geo-IP fetch
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
   });
 
   it('redirects to login when unauthenticated', () => {
     mockUseSession.mockReturnValue({ data: null, status: 'unauthenticated' });
-    render(<UpgradeSuccessPage />);
+    renderUpgradeSuccess();
 
     expect(mockPush).toHaveBeenCalledWith(
       '/login?callbackUrl=/upgrade/success'
@@ -75,7 +95,7 @@ describe('UpgradeSuccessPage', () => {
       })
     );
 
-    render(<UpgradeSuccessPage />);
+    renderUpgradeSuccess();
 
     await waitFor(() => {
       expect(screen.getByText('Welcome to PRO!')).toBeInTheDocument();
@@ -121,7 +141,7 @@ describe('UpgradeSuccessPage', () => {
       );
 
     const user = userEvent.setup();
-    render(<UpgradeSuccessPage />);
+    renderUpgradeSuccess();
 
     await waitFor(() => {
       expect(screen.getByText('Finishing up your upgrade')).toBeInTheDocument();
@@ -154,7 +174,7 @@ describe('UpgradeSuccessPage', () => {
       })
     );
 
-    render(<UpgradeSuccessPage />);
+    renderUpgradeSuccess();
 
     await waitFor(() => {
       expect(screen.getByText('Activated')).toBeInTheDocument();

@@ -63,6 +63,7 @@ describe('GET /api/config/affiliate', () => {
       codesPerMonth: 15,
       regularPrice: 29,
       threeDayPrice: 1.99,
+      annualPrice: 290,
       minimumPayoutUsd: 50,
     });
     expect(typeof body['lastUpdated']).toBe('string');
@@ -81,6 +82,14 @@ describe('GET /api/config/affiliate', () => {
     expect(body['discountPercent']).toBe(20);
   });
 
+  it('serves the admin annual price from SystemConfig', async () => {
+    seed([{ key: 'affiliate_annual_price', value: '240' }]);
+
+    const { body } = await getBody();
+
+    expect(body['annualPrice']).toBe(240);
+  });
+
   it('never exposes the other payout settings or the provider', async () => {
     seed([
       { key: 'disbursement_enabled', value: 'false' },
@@ -96,6 +105,7 @@ describe('GET /api/config/affiliate', () => {
         'commissionPercent',
         'discountPercent',
         'lastUpdated',
+        'annualPrice',
         'minimumPayoutUsd',
         'regularPrice',
         'threeDayPrice',

@@ -35,6 +35,7 @@ import type { Request, Response } from 'express';
 
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
 import { OutboxService } from '../outbox/outbox.service';
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
@@ -84,6 +85,15 @@ describe('DlocalWebhookController', () => {
       controllers: [DlocalWebhookController],
       providers: [
         { provide: PrismaService, useValue: prismaMock },
+        {
+          provide: AffiliateConfigService,
+          useValue: {
+            getBasePriceUsd: jest.fn().mockResolvedValue(35),
+            getThreeDayPriceUsd: jest.fn().mockResolvedValue(2.49),
+            getCodesPerMonth: jest.fn().mockResolvedValue(12),
+            getAnnualPriceUsd: jest.fn().mockResolvedValue(350),
+          },
+        },
         {
           provide: ThreeDayValidatorService,
           useValue: threeDayValidatorMock,
@@ -233,6 +243,52 @@ describe('DlocalWebhookController', () => {
     );
     expect(response.status).toHaveBeenCalledWith(200);
     expect(response.json).toHaveBeenCalledWith({ received: true });
+  });
+
+  it('should give a completed YEARLY payment 365 days of PRO', async () => {
+    const payload = JSON.stringify({
+      id: 'payment-y',
+      status: 'PAID',
+      order_id: 'order-user-1-123',
+    });
+
+    prismaMock.payment.findFirst.mockResolvedValue({
+      id: 'payment-y',
+      userId: 'user-1',
+      planType: 'YEARLY',
+      amountUSD: 350,
+      currency: 'USD',
+      country: null,
+      paymentMethod: null,
+      providerPaymentId: 'payment-y',
+      discountCode: null,
+    } as never);
+    prismaMock.payment.update.mockResolvedValue({} as never);
+    prismaMock.user.update.mockResolvedValue({} as never);
+    prismaMock.subscription.findUnique
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'sub-1' } as never);
+    prismaMock.subscription.create.mockResolvedValue({} as never);
+
+    const before = Date.now();
+    await controller.handleWebhook(
+      createMockRequest(payload, {
+        authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+        'x-date': '2026-07-24T09:23:38.899Z',
+        'x-login': 'test-merchant-login',
+      }),
+      createMockResponse()
+    );
+
+    const data = (
+      prismaMock.subscription.create.mock.calls[0]?.[0] as {
+        data: { expiresAt: Date; planType: string };
+      }
+    ).data;
+    expect(data.planType).toBe('YEARLY');
+    const days = (data.expiresAt.getTime() - before) / 86_400_000;
+    expect(days).toBeGreaterThan(364.9);
+    expect(days).toBeLessThan(365.1);
   });
 
   it('should mark the 3-day plan used for a completed THREE_DAY payment', async () => {

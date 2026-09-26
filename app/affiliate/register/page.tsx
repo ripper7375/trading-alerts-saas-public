@@ -202,8 +202,9 @@ export default function AffiliateRegisterPage(): React.ReactElement {
           </h1>
           <p className="text-xs text-slate-600 dark:text-slate-400">
             {t(
-              `Earn ${commissionPercent}% monthly recurring commission on every trader you refer`
-            )}
+              'affiliate.register.subtitle',
+              'Earn {percent}% monthly recurring commission on every trader you refer'
+            ).replace('{percent}', String(commissionPercent))}
           </p>
         </div>
 
@@ -400,10 +401,16 @@ export default function AffiliateRegisterPage(): React.ReactElement {
           <ul className="space-y-1 text-[11px] text-slate-600 dark:text-slate-400">
             <li>
               {t(
-                `- Earn ${commissionPercent}% recurring commission on every successful referral`
-              )}
+                'affiliate.register.benefit_commission',
+                '- Earn {percent}% recurring commission on every successful referral'
+              ).replace('{percent}', String(commissionPercent))}
             </li>
-            <li>{t(`- Receive ${codesPerMonth} unique codes per month`)}</li>
+            <li>
+              {t(
+                'affiliate.register.benefit_codes',
+                '- Receive {count} unique codes per month'
+              ).replace('{count}', String(codesPerMonth))}
+            </li>
             <li>
               {t(
                 'affiliate.register.benefit_monthly_payouts',

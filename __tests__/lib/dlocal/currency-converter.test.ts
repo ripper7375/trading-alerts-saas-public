@@ -12,6 +12,9 @@ import {
 } from '@/lib/dlocal/currency-converter.service';
 import type { DLocalCurrency } from '@/types/dlocal';
 
+// The real shared rate table (jest.setup.js mocks it for every other suite)
+jest.unmock('@/lib/fx/usd-rates');
+
 // Mock fetch for API calls
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -64,6 +67,28 @@ describe('Currency Converter Service', () => {
 
       expect(rate1).toBe(rate2);
       expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('never charges at an expired rate: waits for the new one', async () => {
+      let now = Date.parse('2026-09-26T10:00:00Z');
+      const spy = jest.spyOn(Date, 'now').mockImplementation(() => now);
+      try {
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ rates: { INR: 83 } }),
+        });
+        expect(await getExchangeRate('INR')).toBe(83);
+
+        now += 60 * 60 * 1000 + 1; // the hour is up
+        mockFetch.mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ rates: { INR: 84.2 } }),
+        });
+        // Display callers may get the old table; a charge must not.
+        expect(await getExchangeRate('INR')).toBe(84.2);
+      } finally {
+        spy.mockRestore();
+      }
     });
 
     it('should throw error for unsupported currency', async () => {

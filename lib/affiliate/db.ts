@@ -54,6 +54,7 @@ export async function getAffiliateConfigFromDB(): Promise<DynamicAffiliateConfig
             'affiliate_codes_per_month',
             'affiliate_base_price',
             'affiliate_three_day_price',
+            'affiliate_annual_price',
           ],
         },
       },
@@ -79,6 +80,7 @@ export async function getAffiliateConfigFromDB(): Promise<DynamicAffiliateConfig
       threeDayPriceUsd: parseFloat(
         configMap['affiliate_three_day_price'] || '1.99'
       ),
+      annualPriceUsd: parseFloat(configMap['affiliate_annual_price'] || '290'),
     };
   } catch (error) {
     console.error(
@@ -92,6 +94,7 @@ export async function getAffiliateConfigFromDB(): Promise<DynamicAffiliateConfig
       codesPerMonth: AFFILIATE_CONFIG.CODES_PER_MONTH,
       basePriceUsd: AFFILIATE_CONFIG.BASE_PRICE_USD,
       threeDayPriceUsd: 1.99,
+      annualPriceUsd: 290,
     };
   }
 }
@@ -153,4 +156,13 @@ export async function getBasePriceUsd(): Promise<number> {
 export async function getThreeDayPriceUsd(): Promise<number> {
   const config = await getAffiliateConfigFromDB();
   return config.threeDayPriceUsd;
+}
+
+/**
+ * Get the annual PRO price from SystemConfig (`affiliate_annual_price`)
+ * @returns Current annual price in USD, billed once a year
+ */
+export async function getAnnualPriceUsd(): Promise<number> {
+  const config = await getAffiliateConfigFromDB();
+  return config.annualPriceUsd;
 }

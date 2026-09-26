@@ -108,7 +108,7 @@ export default function AppHeader({
 
         <div className="flex flex-col">
           <h1 className="flex items-center gap-2 text-xs font-bold text-foreground">
-            {title || 'Dashboard'}
+            {title || t('Dashboard')}
             <Badge
               className={
                 currentTier === 'PRO'

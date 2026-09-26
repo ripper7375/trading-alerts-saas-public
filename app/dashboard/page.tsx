@@ -58,6 +58,8 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   const userTier = (session.user.tier || 'FREE') as Tier;
   const userName = session.user.name || 'User';
 
+  const dict = getDictionary(await getServerLanguage());
+
   // Fetch user data from database
   let alertCount = 0;
   let recentAlerts: {
@@ -109,7 +111,12 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
       return {
         id: alert.id,
         status,
-        title: alert.name || `${alert.symbol} Alert`,
+        title:
+          alert.name ||
+          (dict['alerts.fallback_name'] ?? '{symbol} Alert').replace(
+            '{symbol}',
+            alert.symbol
+          ),
         symbol: alert.symbol,
         timeframe: alert.timeframe,
         targetPrice,
@@ -121,8 +128,6 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
     console.error('Error fetching dashboard data:', error);
     // Continue with empty data - dashboard should still render
   }
-
-  const dict = getDictionary(await getServerLanguage());
 
   // Get tier limits (with fallback to FREE if tier is invalid)
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;

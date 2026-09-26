@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
 import { IdempotencyStore } from '../common/idempotency/idempotency.store';
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
@@ -87,6 +88,15 @@ describe('DlocalPaymentController', () => {
       controllers: [DlocalPaymentController],
       providers: [
         { provide: PrismaService, useValue: prismaMock },
+        {
+          provide: AffiliateConfigService,
+          useValue: {
+            getBasePriceUsd: jest.fn().mockResolvedValue(35),
+            getThreeDayPriceUsd: jest.fn().mockResolvedValue(2.49),
+            getCodesPerMonth: jest.fn().mockResolvedValue(12),
+            getAnnualPriceUsd: jest.fn().mockResolvedValue(350),
+          },
+        },
         IdempotencyInterceptor,
         {
           provide: IdempotencyStore,
@@ -126,6 +136,29 @@ describe('DlocalPaymentController', () => {
       where: { id: 'payment-1' },
       data: { providerPaymentId: 'dlocal-pay-1' },
     });
+  });
+
+  it('charges the SystemConfig price, not the fixed $29 / $1.99 defaults', async () => {
+    await controller.create(makeRequest(), validBody);
+    expect(convertUSDToLocal).toHaveBeenLastCalledWith(35, expect.any(String));
+    expect(prismaMock.payment.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ amountUSD: 35 }),
+      })
+    );
+  });
+
+  it('charges the SystemConfig annual price for the YEARLY plan', async () => {
+    await controller.create(makeRequest(), {
+      ...validBody,
+      planType: 'YEARLY',
+    });
+    expect(convertUSDToLocal).toHaveBeenLastCalledWith(350, expect.any(String));
+    expect(prismaMock.payment.create).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ amountUSD: 350, planType: 'YEARLY' }),
+      })
+    );
   });
 
   it('returns 400 for an invalid request body', async () => {

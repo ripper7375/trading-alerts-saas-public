@@ -3,9 +3,57 @@
 **Project:** Trading Alerts SaaS V7
 **Feature:** Dynamic Affiliate Settings Management
 **Created:** 2025-11-16
-**Updated:** 2025-12-24
+**Updated:** 2026-09-26 (status section below)
 **Purpose:** Guide for using and extending SystemConfig for current and future pages
 **Configuration Source:** Part 17 Admin Portal (`/admin/settings/affiliate`)
+
+---
+
+## ✅ Status 2026-09-26: what actually follows SystemConfig
+
+An audit found figures that bypassed SystemConfig. **The admin's Base Price changed what
+pages showed but not what anyone was charged.** All of the following now read SystemConfig:
+
+| What                                                                                    | Reads                                               | Where                                                                                                     |
+| --------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Stripe charge                                                                           | `affiliate_base_price`                              | `lib/stripe/stripe.ts` `buildProLineItem()`, money-service `StripeService.buildProLineItem()`             |
+| dLocal charge (monthly, 3-day)                                                          | `affiliate_base_price`, `affiliate_three_day_price` | `app/api/payments/dlocal/create/route.ts`, money-service `DlocalPaymentController`                        |
+| Subscription price stored by the Stripe webhook                                         | the price charged, then the invoice line's price    | `lib/stripe/webhook-handlers.ts`, money-service `StripeWebhookService`, `invoice-plan.ts` (both)          |
+| Codes handed out (registration, monthly job)                                            | `affiliate_codes_per_month`                         | `lib/affiliate/registration.ts`, `lib/cron/monthly-distribution.ts`, money-service `AffiliateCronService` |
+| `/pricing` table, upgrade pop-up, checkout page                                         | `affiliate_base_price`, `affiliate_three_day_price` | `useAffiliateConfig()`                                                                                    |
+| `/docs`, `/affiliate`, `/affiliate/join`, `/affiliate/register`, `/affiliate/resources` | discount and commission %                           | `{percent}`/`{price}`/`{count}` placeholders in the dictionaries                                          |
+| Emails (subscription confirmed, payment failed, trial reminder, upgrade prompt)         | price passed in by the caller                       | `lib/email/email.ts`, `lib/email/subscription-emails.ts`                                                  |
+| Admin MRR                                                                               | `affiliate_base_price` × PRO users                  | `/api/admin/analytics`, `lib/admin/analytics/revenue.ts`, money-service `AdminAnalyticsController`        |
+
+**How Stripe follows an admin price change (Davin's choice, 2026-09-26):** checkout uses
+`STRIPE_PRO_PRICE_ID` as-is when it already charges the SystemConfig price; otherwise it
+builds an inline price on the same Stripe product, interval and tax behaviour. New subscribers
+pay the admin price; existing subscriptions keep the price they were created with, and the
+payment-failed email quotes each subscriber's own price. Nothing needs editing in Stripe.
+
+**Annual plan (added 2026-09-26):** `affiliate_annual_price`, editable next to Base Price. Card payments use an inline yearly Stripe price on the same product (`billingPeriod: 'yearly'` on `/api/checkout`); dLocal sells `planType: 'YEARLY'` for 365 days. Reads: `getAnnualPriceUsd()`, `AffiliateConfigService.getAnnualPriceUsd()`, `useAffiliateConfig().annualPrice` / `annualSavingsPercent`. Full account: `davintrade-systemconfig/systemconfig-fix-manifest-work-completion.md`.
+
+**Local-currency prices (2026-09-26):** SystemConfig prices are in USD. Pages convert them into the
+viewer's currency at the **live** rate from `lib/fx/usd-rates.ts`, the same hourly table the dLocal
+charge uses; the fixed rates in `lib/country-config.ts` apply only when the rate API is down. Card
+payments are charged in USD, so `/pricing` and checkout say the local figure is approximate and name
+the USD charge. The "Save x%" badge is computed from the two USD prices, so it follows an admin price
+change and does not depend on any exchange rate. Details: §10 of the manifest above.
+
+**Retired:** the `NEXT_PUBLIC_PRO_PRICE_MONTHLY` env price (a second price source), the
+`/pricing` annual toggle that sold nothing (since replaced by a real annual plan), fixed "$29/$290" in emails, and the
+"paid ≥ $280 means yearly" rule in both Stripe webhooks (a monthly price at or above $280 would
+have been recorded as a yearly plan).
+
+**Rule, enforced by `__tests__/lib/systemconfig-figures-guard.test.ts`:** no price or
+discount/commission rate may be written into source or dictionary text; charge, email and
+display code may not read the static defaults (`AFFILIATE_CONFIG.*`, dLocal `PRICING.*`);
+no price may be assigned as a number literal; the env price may not return. The defaults
+remain only as fallbacks when the SystemConfig read fails (`lib/affiliate/db.ts`,
+`AffiliateConfigService`, `useAffiliateConfig()` before its fetch answers).
+
+**Snapshot rule unchanged:** commissions and the Stripe/dLocal discount use each affiliate
+code's own saved percentages (see "Affiliate Code Snapshot Behavior").
 
 ---
 
@@ -72,6 +120,11 @@ model SystemConfigHistory {
 | `affiliate_commission_percent` | number | 20.0    | Affiliate commission percentage         |
 | `affiliate_codes_per_month`    | number | 15      | Codes distributed per affiliate monthly |
 | `affiliate_base_price`         | number | 29.0    | Base subscription price (USD)           |
+| `affiliate_three_day_price`    | number | 1.99    | 3-day plan price (USD, dLocal)          |
+| `affiliate_annual_price`       | number | 290.0   | Annual PRO price (USD, billed yearly)   |
+
+Payout settings (`disbursement_minimum_payout_usd` and others) are also SystemConfig rows; see
+`davintrade-disbursement-payout-settings-stack/disbursement-payout-settings-manifest-work-completion.md`.
 
 ---
 

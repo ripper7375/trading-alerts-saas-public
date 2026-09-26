@@ -46,8 +46,9 @@ export default function AffiliateJoinPage(): React.ReactElement {
             </h1>
             <p className="mx-auto max-w-xl text-sm text-slate-600 dark:text-slate-400">
               {t(
-                `Instant partner application. Start creating custom promo codes and earning ${commissionPercent}% lifetime recurring commissions immediately.`
-              )}
+                'affiliate.join.subtitle',
+                'Instant partner application. Start creating custom promo codes and earning {percent}% lifetime recurring commissions immediately.'
+              ).replace('{percent}', String(commissionPercent))}
             </p>
           </div>
 
@@ -62,7 +63,10 @@ export default function AffiliateJoinPage(): React.ReactElement {
                   <Percent className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
                   <div>
                     <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
-                      {t(`${commissionPercent}% Recurring Monthly Share`)}
+                      {t(
+                        'affiliate.join.recurring_share',
+                        '{percent}% Recurring Monthly Share'
+                      ).replace('{percent}', String(commissionPercent))}
                     </h4>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400">
                       {t(

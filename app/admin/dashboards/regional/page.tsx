@@ -8,6 +8,7 @@ import { getRegionalAnalytics } from '@/lib/admin/analytics/regional';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
+import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
 
 export const metadata = {
   title: 'Regional & Tax Surveillance | DavinTrade Admin',
@@ -24,11 +25,13 @@ export const metadata = {
 export default async function RegionalPage(): Promise<React.ReactElement> {
   const data = await getRegionalAnalytics();
   const prefs = await getServerLocalePreferences();
+  const { rates: usdRates } = await getDisplayUsdRates();
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
       currency: prefs.currency,
       language: prefs.language,
+      rates: usdRates, // live rate, same table dLocal uses
     });
   const noDataYet = dict['analytics.no_data_yet'] ?? 'No data yet';
 

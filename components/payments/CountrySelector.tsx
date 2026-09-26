@@ -137,7 +137,7 @@ export function CountrySelector({
         </option>
         {DLOCAL_SUPPORTED_COUNTRIES.map((country) => (
           <option key={country} value={country}>
-            {COUNTRY_FLAGS[country]} {COUNTRY_NAMES[country]}
+            {COUNTRY_FLAGS[country]} {t(COUNTRY_NAMES[country])}
           </option>
         ))}
       </select>

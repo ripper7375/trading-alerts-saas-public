@@ -141,7 +141,9 @@ export default function SettingsPage(): React.ReactElement {
           <div className="mt-6 space-y-3">
             <div className="flex items-center justify-between border-b border-border py-2">
               <span className="text-muted-foreground">{t('Symbol')}</span>
-              <span className="font-medium text-foreground">XAUUSD (Gold)</span>
+              <span className="font-medium text-foreground">
+                {t('XAUUSD (Gold)')}
+              </span>
             </div>
 
             <div className="flex items-center justify-between border-b border-border py-2">

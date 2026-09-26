@@ -19,8 +19,9 @@ type InputJsonValue = Prisma.InputJsonValue;
 import { prisma } from '@/lib/db/prisma';
 import { sendAffiliateWelcomeEmail } from '@/lib/email/email';
 
-import { AFFILIATE_CONFIG, type PaymentMethod } from './constants';
+import { type PaymentMethod } from './constants';
 import { distributeCodes } from './code-generator';
+import { getCodesPerMonth } from './db';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -118,22 +119,15 @@ export async function registerAffiliate(
     },
   });
 
-  // Distribute the first month's codes
-  await distributeCodes(
-    profile.id,
-    AFFILIATE_CONFIG.CODES_PER_MONTH,
-    'INITIAL'
-  );
+  // Distribute the first month's codes (admin's SystemConfig count)
+  const codesPerMonth = await getCodesPerMonth();
+  await distributeCodes(profile.id, codesPerMonth, 'INITIAL');
 
   // Best-effort welcome email — registration has already succeeded, so a
   // delivery failure here shouldn't fail the request
   if (user.email) {
     try {
-      await sendAffiliateWelcomeEmail(
-        user.email,
-        fullName,
-        AFFILIATE_CONFIG.CODES_PER_MONTH
-      );
+      await sendAffiliateWelcomeEmail(user.email, fullName, codesPerMonth);
     } catch (error) {
       console.error('[Affiliate Register] Welcome email failed:', error);
     }
@@ -144,6 +138,6 @@ export async function registerAffiliate(
     message:
       'Registration successful. Your affiliate account is active and your first codes are ready.',
     profileId: profile.id,
-    codesDistributed: AFFILIATE_CONFIG.CODES_PER_MONTH,
+    codesDistributed: codesPerMonth,
   };
 }

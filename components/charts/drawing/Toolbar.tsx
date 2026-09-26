@@ -102,11 +102,11 @@ const TOOL_ICONS: Partial<Record<DrawingType, JSX.Element>> = {
 
 /**
  * `TOOL_DEFINITIONS[tool].label` is plain English used by the DrawingEngine's
- * own registry, not translated -- Toolbar is the only place that renders it
- * to a viewer (confirmed via search), so the translation lives here rather
- * than in the tool-registry module, which has no locale-hook context.
+ * own registry, not translated; the toolbars translate it when they render
+ * it (this one and components/market/comparison-chart-toolbar.tsx), since the
+ * tool-registry module has no locale-hook context.
  */
-const TOOL_LABEL_KEY: Partial<Record<DrawingType, string>> = {
+export const TOOL_LABEL_KEY: Partial<Record<DrawingType, string>> = {
   HLINE: 'charts.drawing.tool_hline',
   TRENDLINE: 'charts.drawing.tool_trendline',
   CHANNEL: 'charts.drawing.tool_channel',

@@ -233,7 +233,7 @@ export default function RegisterForm(): JSX.Element {
           {errors.name && touchedFields.name && (
             <p className="flex items-center gap-1 text-xs text-rose-600">
               <X className="h-3.5 w-3.5" />
-              {errors.name.message}
+              {t(errors.name.message ?? '')}
             </p>
           )}
         </div>
@@ -267,7 +267,7 @@ export default function RegisterForm(): JSX.Element {
           {errors.email && touchedFields.email && (
             <p className="flex items-center gap-1 text-xs text-rose-600">
               <X className="h-3.5 w-3.5" />
-              {errors.email.message}
+              {t(errors.email.message ?? '')}
             </p>
           )}
         </div>
@@ -395,7 +395,7 @@ export default function RegisterForm(): JSX.Element {
           {errors.confirmPassword && touchedFields.confirmPassword && (
             <p className="flex items-center gap-1 text-xs text-rose-600">
               <X className="h-3.5 w-3.5" />
-              {errors.confirmPassword.message}
+              {t(errors.confirmPassword.message ?? '')}
             </p>
           )}
         </div>
@@ -512,7 +512,7 @@ export default function RegisterForm(): JSX.Element {
             {errors.agreedToTerms && (
               <p className="mt-1 flex items-center gap-1 text-xs text-rose-600">
                 <X className="h-3.5 w-3.5" />
-                {errors.agreedToTerms.message}
+                {t(errors.agreedToTerms.message ?? '')}
               </p>
             )}
           </div>

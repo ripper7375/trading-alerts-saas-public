@@ -86,11 +86,10 @@ describe('CommissionTable Component', () => {
     it('should render table headers', () => {
       renderCT(mockCommissions);
 
-      expect(screen.getByText('Code')).toBeInTheDocument();
-      expect(screen.getByText('Amount')).toBeInTheDocument();
-      expect(screen.getByText('Status')).toBeInTheDocument();
-      expect(screen.getByText('Earned')).toBeInTheDocument();
-      expect(screen.getByText('Paid')).toBeInTheDocument();
+      // By role: the PAID row's badge also reads "Paid".
+      for (const name of ['Code', 'Amount', 'Status', 'Earned', 'Paid']) {
+        expect(screen.getByRole('columnheader', { name })).toBeInTheDocument();
+      }
     });
 
     it('should render as a table element', () => {
@@ -142,28 +141,30 @@ describe('CommissionTable Component', () => {
     });
   });
 
+  // Badges show the translated status label (affiliate.status.*), not the raw
+  // enum, so they are looked up inside the data row: the PAID badge and the
+  // "Paid" column header have the same text.
   describe('Status Badges', () => {
+    const dataRow = (): HTMLElement => screen.getAllByRole('row')[1]!;
+
     it('should show PENDING status badge', () => {
       renderCT([mockCommissions[0]]);
 
-      const statusBadge = screen.getByText('PENDING');
-      expect(statusBadge).toBeInTheDocument();
+      const statusBadge = within(dataRow()).getByText('Pending');
       expect(statusBadge.className).toMatch(/amber/i);
     });
 
     it('should show PAID status badge', () => {
       renderCT([mockCommissions[1]]);
 
-      const statusBadge = screen.getByText('PAID');
-      expect(statusBadge).toBeInTheDocument();
+      const statusBadge = within(dataRow()).getByText('Paid');
       expect(statusBadge.className).toMatch(/green/i);
     });
 
     it('should show APPROVED status badge', () => {
       renderCT([mockCommissions[2]]);
 
-      const statusBadge = screen.getByText('APPROVED');
-      expect(statusBadge).toBeInTheDocument();
+      const statusBadge = within(dataRow()).getByText('Approved');
       expect(statusBadge.className).toMatch(/blue/i);
     });
 
@@ -174,7 +175,7 @@ describe('CommissionTable Component', () => {
       };
       renderCT([cancelledCommission]);
 
-      expect(screen.getByText('CANCELLED')).toBeInTheDocument();
+      expect(within(dataRow()).getByText('Cancelled')).toBeInTheDocument();
     });
   });
 
@@ -301,7 +302,7 @@ describe('CommissionTable Component', () => {
       expect(amountCell).toBeInTheDocument();
       expect(amountCell.className).toMatch(/red/i);
       // The underlying status badge is still shown alongside it.
-      expect(screen.getByText('APPROVED')).toBeInTheDocument();
+      expect(screen.getByText('Approved')).toBeInTheDocument();
     });
 
     it('does not show a Clawback badge for a normal commission', () => {

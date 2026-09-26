@@ -99,6 +99,7 @@ export const PRICING = {
 export const PLAN_DURATION = {
   THREE_DAY: 3,
   MONTHLY: 30,
+  YEARLY: 365,
 } as const;
 
 /**
@@ -160,8 +161,8 @@ export function getPriceUSD(planType: 'THREE_DAY' | 'MONTHLY'): number {
 /**
  * Get plan duration in days
  */
-export function getPlanDuration(planType: 'THREE_DAY' | 'MONTHLY'): number {
-  return planType === 'THREE_DAY'
-    ? PLAN_DURATION.THREE_DAY
-    : PLAN_DURATION.MONTHLY;
+export function getPlanDuration(
+  planType: 'THREE_DAY' | 'MONTHLY' | 'YEARLY'
+): number {
+  return PLAN_DURATION[planType];
 }

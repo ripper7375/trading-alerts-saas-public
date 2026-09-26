@@ -176,7 +176,7 @@ function ResetPasswordForm(): JSX.Element {
             {error && (
               <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-950/40 dark:text-rose-300">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{error}</span>
+                <span>{t(error)}</span>
               </div>
             )}
 
@@ -255,7 +255,7 @@ function ResetPasswordForm(): JSX.Element {
               )}
               {errors.password && (
                 <p className="text-xs text-rose-600">
-                  {errors.password.message}
+                  {t(errors.password.message ?? '')}
                 </p>
               )}
             </div>
@@ -302,7 +302,7 @@ function ResetPasswordForm(): JSX.Element {
               )}
               {errors.confirmPassword && (
                 <p className="text-xs text-rose-600">
-                  {errors.confirmPassword.message}
+                  {t(errors.confirmPassword.message ?? '')}
                 </p>
               )}
             </div>

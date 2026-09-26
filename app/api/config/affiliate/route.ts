@@ -30,6 +30,8 @@ interface AffiliateConfigResponse {
   codesPerMonth: number;
   regularPrice: number;
   threeDayPrice: number;
+  /** Annual PRO price in USD, billed once a year */
+  annualPrice: number;
   /** Minimum approved balance (USD) before an affiliate is paid */
   minimumPayoutUsd: number;
   lastUpdated: string;
@@ -46,6 +48,7 @@ const DEFAULTS = {
   affiliate_codes_per_month: '15',
   affiliate_base_price: '29.0',
   affiliate_three_day_price: '1.99',
+  affiliate_annual_price: '290.0',
 } as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -73,6 +76,7 @@ export async function GET(
             'affiliate_codes_per_month',
             'affiliate_base_price',
             'affiliate_three_day_price',
+            'affiliate_annual_price',
           ],
         },
       },
@@ -114,6 +118,10 @@ export async function GET(
         configMap['affiliate_three_day_price'] ??
           DEFAULTS['affiliate_three_day_price']
       ),
+      annualPrice: parseFloat(
+        configMap['affiliate_annual_price'] ??
+          DEFAULTS['affiliate_annual_price']
+      ),
       minimumPayoutUsd,
       lastUpdated: latestUpdate?.toISOString() ?? new Date().toISOString(),
     };
@@ -134,6 +142,7 @@ export async function GET(
       codesPerMonth: parseInt(DEFAULTS.affiliate_codes_per_month, 10),
       regularPrice: parseFloat(DEFAULTS.affiliate_base_price),
       threeDayPrice: parseFloat(DEFAULTS.affiliate_three_day_price),
+      annualPrice: parseFloat(DEFAULTS.affiliate_annual_price),
       minimumPayoutUsd:
         DISBURSEMENT_SETTING_DEFINITIONS.minimumPayoutUsd.default,
       lastUpdated: new Date().toISOString(),

@@ -232,3 +232,21 @@ the affiliate dashboard).
 Revert the four code commits in reverse order: `fd103f05`, `a51ba861`, then `1461c3fb` (`6f33f1d1` is
 docs only). There is no migration and no stored data to undo. The new cookies become unused, and
 old stored preferences are read as before, since the new `timezoneSetByUser` field is optional.
+
+---
+
+## 9. Later changes (2026-09-25)
+
+A later 16-language remediation and its same-day re-audit changed code this manifest describes. Full
+account in
+`davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`
+§0; open issues are in its §6, which also carries this manifest's §7 items.
+
+- **`resolvePreferences()`:** a language with no backing country (`zh`, `zh-TW`, `es`, `pt`) now keeps
+  that language on the server with the default formats, instead of falling back to English. Only codes
+  in `lib/i18n/languages.ts` are accepted, since the value reaches an inline script in `app/layout.tsx`.
+  §2's rule is unchanged: such a language still leaves date/time format and currency alone.
+- **Hindi** is in the language list. India, in the header, sets it.
+- **`<html dir="rtl">`** for Arabic and Urdu is now server-rendered.
+- **`formatCurrency()` and rates:** unchanged. The policy's example that still passed an
+  `exchangeRate` was corrected.

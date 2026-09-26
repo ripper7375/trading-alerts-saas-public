@@ -12,8 +12,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Zap, Sparkles } from 'lucide-react';
-import { PRO_MONTHLY_PRICE } from '@/lib/tier-config';
 import { useLocale } from '@/lib/context/locale-context';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 interface ProUpgradeModalProps {
   isOpen: boolean;
@@ -38,6 +38,8 @@ export function ProUpgradeModal({
   featureName = 'this feature',
 }: ProUpgradeModalProps): React.JSX.Element {
   const { t, formatCurrency } = useLocale();
+  // The admin's SystemConfig PRO price, as charged at checkout.
+  const { regularPrice } = useAffiliateConfig();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -92,7 +94,7 @@ export function ProUpgradeModal({
               {t('7-Day Free Trial')}
             </span>
             <span className="text-lg font-extrabold text-amber-700 dark:text-amber-400">
-              {formatCurrency(PRO_MONTHLY_PRICE)}{' '}
+              {formatCurrency(regularPrice)}{' '}
               <span className="text-xs font-normal text-muted-foreground">
                 / {t('month')}
               </span>

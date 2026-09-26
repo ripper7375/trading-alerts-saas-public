@@ -167,6 +167,10 @@ export function HrmaSmmaDetailModal({
   const { resolvedTheme, gridOpacityDecimal } = useChartAppearance();
   const { t } = useLocale();
   const { data, isLoading } = useCurrencyIndexDetail(open, currency);
+  // Drawn on the canvas, so they are passed into the chart effect below and
+  // listed in its deps: a language change redraws them.
+  const overboughtTitle = t('currency_index_pro.zone.overbought', 'Overbought');
+  const oversoldTitle = t('currency_index_pro.zone.oversold', 'Oversold');
 
   // Kept for the page visit (this component stays mounted between opens), so
   // a line hidden for one currency stays hidden when inspecting the next.
@@ -342,7 +346,7 @@ export function HrmaSmmaDetailModal({
             color: CORRIDOR_LINE_COLOR,
             lineWidth: 1,
             lineStyle: LineStyle.Dashed,
-            title: 'Overbought',
+            title: overboughtTitle,
             axisLabelVisible: true,
           }),
           hostSeries.createPriceLine({
@@ -350,7 +354,7 @@ export function HrmaSmmaDetailModal({
             color: CORRIDOR_LINE_COLOR,
             lineWidth: 1,
             lineStyle: LineStyle.Dashed,
-            title: 'Oversold',
+            title: oversoldTitle,
             axisLabelVisible: true,
           }),
         ]
@@ -397,7 +401,7 @@ export function HrmaSmmaDetailModal({
     // `container` is a dependency because the chart is created a render
     // after the portal attaches it: data already present by then would
     // otherwise never be painted into the new chart.
-  }, [recomputed, data?.corridor, container]);
+  }, [recomputed, data?.corridor, container, overboughtTitle, oversoldTitle]);
 
   useEffect(() => {
     chartRef.current?.timeScale().fitContent();
@@ -434,7 +438,12 @@ export function HrmaSmmaDetailModal({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {currency ? `${currency} — HRMA × SMMA Detail` : 'Detail'}
+            {currency
+              ? t(
+                  'currency_index_pro.detail.title',
+                  '{currency} — HRMA × SMMA Detail'
+                ).replace('{currency}', currency)
+              : t('currency_index_pro.detail.title_empty', 'Detail')}
           </DialogTitle>
         </DialogHeader>
 
@@ -443,7 +452,7 @@ export function HrmaSmmaDetailModal({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-muted-foreground">
-                  HRMA period
+                  {t('currency_index_pro.detail.hrma_period', 'HRMA period')}
                 </span>
                 <span className="font-mono tabular-nums">{hrmaPeriod}</span>
               </div>
@@ -458,7 +467,7 @@ export function HrmaSmmaDetailModal({
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-medium text-muted-foreground">
-                  SMMA period
+                  {t('currency_index_pro.detail.smma_period', 'SMMA period')}
                 </span>
                 <span className="font-mono tabular-nums">{smmaPeriod}</span>
               </div>
@@ -527,12 +536,15 @@ export function HrmaSmmaDetailModal({
           <div ref={setContainer} className="w-full" />
           {isLoading && (
             <div className="bg-card/70 absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-              Loading…
+              {t('charts.loading_ellipsis', 'Loading…')}
             </div>
           )}
           {!isLoading && data && !hasData && (
             <div className="bg-card/70 absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-              No data for {currency} yet today.
+              {t(
+                'currency_index_pro.detail.no_data_today',
+                'No data for {currency} yet today.'
+              ).replace('{currency}', currency ?? '')}
             </div>
           )}
         </div>
@@ -541,9 +553,20 @@ export function HrmaSmmaDetailModal({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
               {warmedUp
-                ? `Signals are reliable from bar ${recomputed.minBarsForSignal} onward (dashed grey line). `
-                : `Still warming up — needs ${recomputed.minBarsForSignal} bars (has ${recomputed.bars.length}) before a crossing can confirm. `}
-              What-if reading:{' '}
+                ? t(
+                    'currency_index_pro.detail.reliable_from',
+                    'Signals are reliable from bar {bar} onward (dashed grey line).'
+                  ).replace('{bar}', String(recomputed.minBarsForSignal))
+                : t(
+                    'currency_index_pro.detail.warming_up',
+                    'Still warming up — needs {needed} bars (has {has}) before a crossing can confirm.'
+                  )
+                    .replace('{needed}', String(recomputed.minBarsForSignal))
+                    .replace('{has}', String(recomputed.bars.length))}{' '}
+              {t(
+                'currency_index_pro.detail.what_if_reading',
+                'What-if reading:'
+              )}{' '}
               {recomputed.signal !== 'NONE' ? (
                 <span
                   className={
@@ -552,10 +575,23 @@ export function HrmaSmmaDetailModal({
                       : 'font-semibold text-red-600 dark:text-red-400'
                   }
                 >
-                  {recomputed.signal.replace('_', ' ')}
+                  {recomputed.signal === 'CONFIRMED_BUY'
+                    ? t(
+                        'currency_index_pro.detail.confirmed_buy',
+                        'CONFIRMED BUY'
+                      )
+                    : t(
+                        'currency_index_pro.detail.confirmed_sell',
+                        'CONFIRMED SELL'
+                      )}
                 </span>
               ) : (
-                <span className="font-semibold">no confirmed signal</span>
+                <span className="font-semibold">
+                  {t(
+                    'currency_index_pro.detail.no_confirmed_signal',
+                    'no confirmed signal'
+                  )}
+                </span>
               )}
             </p>
             {periodsChanged && (
@@ -566,7 +602,12 @@ export function HrmaSmmaDetailModal({
                 disabled={savingDefault}
                 onClick={() => void handleSaveDefault()}
               >
-                {savingDefault ? 'Saving…' : 'Save as my default'}
+                {savingDefault
+                  ? t('currency_index_pro.detail.saving', 'Saving…')
+                  : t(
+                      'currency_index_pro.detail.save_default',
+                      'Save as my default'
+                    )}
               </Button>
             )}
           </div>

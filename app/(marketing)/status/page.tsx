@@ -11,6 +11,7 @@ import {
 import { formatDateTimeInZone } from '@/lib/i18n/format-datetime';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
+import { localizedMetadata } from '@/lib/i18n/server-metadata';
 
 /**
  * Public System Status Page (B2-12, restyled Session 9-2).
@@ -32,10 +33,15 @@ import { getDictionary } from '@/lib/i18n/get-dictionary';
  * @module app/(marketing)/status/page
  */
 
-export const metadata: Metadata = {
-  title: 'System Status',
-  description: 'Live operational status of DavinTrade AI.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata(
+    { key: 'marketing.status.meta_title', fallback: 'System Status' },
+    {
+      key: 'marketing.status.meta_description',
+      fallback: 'Live operational status of DavinTrade AI.',
+    }
+  );
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -169,10 +175,10 @@ export default async function StatusPage(): Promise<React.ReactElement> {
                         </div>
                         <div>
                           <div className="text-sm font-bold text-slate-900 dark:text-slate-200">
-                            {component.name}
+                            {dict[component.name] ?? component.name}
                           </div>
                           <div className="text-xs text-slate-500">
-                            {component.detail}
+                            {dict[component.detail] ?? component.detail}
                           </div>
                         </div>
                       </div>

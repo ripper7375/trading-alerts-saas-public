@@ -8,6 +8,7 @@ import {
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
+import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
 
 export const metadata = { title: 'Revenue & Growth | DavinTrade Admin' };
 
@@ -27,11 +28,13 @@ export default async function RevenuePage({
   const timeframe = (params.timeframe as RevenueTimeframe) || '6M';
   const data = await getRevenueAnalytics(timeframe);
   const prefs = await getServerLocalePreferences();
+  const { rates: usdRates } = await getDisplayUsdRates();
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
       currency: prefs.currency,
       language: prefs.language,
+      rates: usdRates, // live rate, same table dLocal uses
     });
   const newLabel = dict['analytics.new_badge'] ?? 'New';
 

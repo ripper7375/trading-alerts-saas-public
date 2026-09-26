@@ -22,15 +22,18 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
 import { PrismaService } from '../prisma/prisma.service';
 
-import { StripeService } from './stripe.service';
+import { type BillingPeriod, StripeService } from './stripe.service';
 
 interface CheckoutRequestBody {
   affiliateCode?: string;
+  /** 'yearly' for the annual plan; anything else is monthly */
+  billingPeriod?: string;
 }
 
 @Controller('stripe/checkout')
@@ -39,7 +42,8 @@ export class StripeCheckoutController {
   constructor(
     private readonly stripeService: StripeService,
     private readonly prisma: PrismaService,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly affiliateConfig: AffiliateConfigService
   ) {}
 
   @Post()
@@ -60,6 +64,8 @@ export class StripeCheckoutController {
       }
 
       const affiliateCode = body?.affiliateCode;
+      const billingPeriod: BillingPeriod =
+        body?.billingPeriod === 'yearly' ? 'yearly' : 'monthly';
 
       // Reuse an existing Stripe customer (e.g. re-subscribing after a
       // prior cancellation) so checkout can attach `customer_update` --
@@ -119,7 +125,8 @@ export class StripeCheckoutController {
 
       const idempotencyKey = this.stripeService.buildCheckoutIdempotencyKey(
         userId,
-        normalizedAffiliateCode
+        normalizedAffiliateCode,
+        billingPeriod
       );
 
       const checkoutSession = await this.stripeService.createCheckoutSession(
@@ -130,7 +137,12 @@ export class StripeCheckoutController {
         normalizedAffiliateCode,
         discountPercent,
         idempotencyKey,
-        existingSubscription?.stripeCustomerId || undefined
+        existingSubscription?.stripeCustomerId || undefined,
+        // The admin's PRO price (SystemConfig), not a fixed Stripe amount.
+        billingPeriod === 'yearly'
+          ? await this.affiliateConfig.getAnnualPriceUsd()
+          : await this.affiliateConfig.getBasePriceUsd(),
+        billingPeriod
       );
 
       return {

@@ -27,6 +27,7 @@ import {
 } from '@nestjs/common';
 import { z } from 'zod';
 
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { logger } from '../common/logger.util';
@@ -34,7 +35,7 @@ import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interc
 import { PrismaService } from '../prisma/prisma.service';
 
 import { convertUSDToLocal } from './currency-converter.service';
-import { getPlanDuration, PRICING } from './dlocal.constants';
+import { getPlanDuration } from './dlocal.constants';
 import type { DLocalCountry, DLocalCurrency } from './dlocal.types';
 import {
   acquireCreatePaymentLock,
@@ -45,7 +46,7 @@ import { isValidPaymentMethod } from './payment-methods.service';
 const createPaymentSchema = z.object({
   country: z.enum(['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR', 'AE']),
   paymentMethod: z.string().min(1, 'Payment method is required'),
-  planType: z.enum(['THREE_DAY', 'MONTHLY']),
+  planType: z.enum(['THREE_DAY', 'MONTHLY', 'YEARLY']),
   currency: z.enum([
     'INR',
     'NGN',
@@ -63,7 +64,10 @@ const createPaymentSchema = z.object({
 @Controller('payments/dlocal')
 @UseGuards(JwtAuthGuard)
 export class DlocalPaymentController {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly affiliateConfig: AffiliateConfigService
+  ) {}
 
   @Post('create')
   @UseInterceptors(IdempotencyInterceptor)
@@ -125,12 +129,16 @@ export class DlocalPaymentController {
       }
 
       const usdAmount =
-        planType === 'THREE_DAY' ? PRICING.THREE_DAY_USD : PRICING.MONTHLY_USD;
+        planType === 'THREE_DAY'
+          ? await this.affiliateConfig.getThreeDayPriceUsd()
+          : planType === 'YEARLY'
+            ? await this.affiliateConfig.getAnnualPriceUsd()
+            : await this.affiliateConfig.getBasePriceUsd();
 
       let discountAmount = 0;
       let normalizedDiscountCode: string | null = null;
 
-      if (discountCode && planType === 'MONTHLY') {
+      if (discountCode && planType !== 'THREE_DAY') {
         normalizedDiscountCode = discountCode.trim().toUpperCase();
 
         const affiliateCode = await this.prisma.affiliateCode.findFirst({

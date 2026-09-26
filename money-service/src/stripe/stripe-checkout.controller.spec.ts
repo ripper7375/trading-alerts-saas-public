@@ -8,6 +8,7 @@ import { Test } from '@nestjs/testing';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
 import { IdempotencyStore } from '../common/idempotency/idempotency.store';
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
@@ -48,6 +49,15 @@ describe('StripeCheckoutController', () => {
       providers: [
         { provide: StripeService, useValue: stripeServiceMock },
         { provide: PrismaService, useValue: prismaMock },
+        {
+          provide: AffiliateConfigService,
+          useValue: {
+            getBasePriceUsd: jest.fn().mockResolvedValue(35),
+            getThreeDayPriceUsd: jest.fn().mockResolvedValue(2.49),
+            getCodesPerMonth: jest.fn().mockResolvedValue(12),
+            getAnnualPriceUsd: jest.fn().mockResolvedValue(350),
+          },
+        },
         {
           provide: ConfigService,
           useValue: { get: jest.fn().mockReturnValue(undefined) },
@@ -101,7 +111,9 @@ describe('StripeCheckoutController', () => {
       undefined,
       0,
       'idem-key-1',
-      'cus_returning_1'
+      'cus_returning_1',
+      35, // the SystemConfig PRO price
+      'monthly'
     );
   });
 
@@ -127,6 +139,33 @@ describe('StripeCheckoutController', () => {
     expect(stripeServiceMock.createCheckoutSession).not.toHaveBeenCalled();
   });
 
+  it('charges the SystemConfig annual price for billingPeriod yearly', async () => {
+    stripeServiceMock.createCheckoutSession.mockResolvedValue({
+      id: 'cs_year',
+      url: 'https://checkout.stripe.com/pay/cs_year',
+    });
+
+    await controller.createCheckout(makeRequest(), { billingPeriod: 'yearly' });
+
+    expect(stripeServiceMock.buildCheckoutIdempotencyKey).toHaveBeenCalledWith(
+      'user-1',
+      undefined,
+      'yearly'
+    );
+    expect(stripeServiceMock.createCheckoutSession).toHaveBeenCalledWith(
+      'user-1',
+      'user@example.com',
+      expect.any(String),
+      expect.any(String),
+      undefined,
+      0,
+      'idem-key-1',
+      undefined,
+      350, // the SystemConfig annual price
+      'yearly'
+    );
+  });
+
   it('applies the discount from a valid affiliate code', async () => {
     prismaMock.affiliateCode.findFirst.mockResolvedValue({
       discountPercent: 15,
@@ -149,7 +188,9 @@ describe('StripeCheckoutController', () => {
       'GOOD10',
       15,
       'idem-key-1',
-      undefined
+      undefined,
+      35, // the SystemConfig PRO price
+      'monthly'
     );
   });
 
@@ -191,7 +232,9 @@ describe('StripeCheckoutController', () => {
       'GOOD10',
       15,
       'idem-key-1',
-      undefined
+      undefined,
+      35, // the SystemConfig PRO price
+      'monthly'
     );
   });
 

@@ -74,6 +74,10 @@ describe('AffiliateCronService', () => {
         mockUser1,
         mockUser2,
       ] as never);
+      // The admin's SystemConfig count, deliberately not the default 15
+      prismaMock.systemConfig.findMany.mockResolvedValue([
+        { key: 'affiliate_codes_per_month', value: '12' },
+      ] as never);
 
       const result = await service.runMonthlyDistribution({
         distributeCodes: mockDistributeCodes,
@@ -81,16 +85,8 @@ describe('AffiliateCronService', () => {
 
       expect(result.distributed).toBe(2);
       expect(mockDistributeCodes).toHaveBeenCalledTimes(2);
-      expect(mockDistributeCodes).toHaveBeenCalledWith(
-        'aff-1',
-        AFFILIATE_CONFIG.CODES_PER_MONTH,
-        'MONTHLY'
-      );
-      expect(mockDistributeCodes).toHaveBeenCalledWith(
-        'aff-2',
-        AFFILIATE_CONFIG.CODES_PER_MONTH,
-        'MONTHLY'
-      );
+      expect(mockDistributeCodes).toHaveBeenCalledWith('aff-1', 12, 'MONTHLY');
+      expect(mockDistributeCodes).toHaveBeenCalledWith('aff-2', 12, 'MONTHLY');
     });
 
     it('should only distribute to ACTIVE affiliates', async () => {

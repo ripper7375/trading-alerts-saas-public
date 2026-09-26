@@ -11,7 +11,7 @@
  * @module lib/email/subscription-emails
  */
 
-import { sendEmail } from './email';
+import { formatEmailUsd, sendEmail } from './email';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -121,14 +121,17 @@ ${APP_URL}`,
  *
  * @param name - User's display name
  * @param reason - Failure reason from Stripe
- * @param monthlyPrice - Monthly subscription price (from SystemConfig, default 29)
+ * @param price - The subscriber's price per billing period (USD)
+ * @param billingPeriod - 'monthly' or 'yearly'
  * @returns Email template with subject, HTML, and text content
  */
 export function getPaymentFailedEmailTemplate(
   name: string,
   reason: string,
-  monthlyPrice: number = 29
+  price: number,
+  billingPeriod: 'monthly' | 'yearly' = 'monthly'
 ): EmailTemplate {
+  const per = billingPeriod === 'yearly' ? 'year' : 'month';
   return {
     subject: 'Payment Failed - Action Required',
     html: `
@@ -147,7 +150,7 @@ export function getPaymentFailedEmailTemplate(
   <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px;">Hi ${name},</p>
 
-    <p style="font-size: 16px;">We couldn't process your payment for ${APP_NAME} PRO ($${monthlyPrice}/month).</p>
+    <p style="font-size: 16px;">We couldn't process your payment for ${APP_NAME} PRO (${formatEmailUsd(price)}/${per}).</p>
 
     <div style="background: #fef2f2; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
       <p style="margin: 0; font-size: 14px; color: #991b1b;">
@@ -178,7 +181,7 @@ export function getPaymentFailedEmailTemplate(
 
 Hi ${name},
 
-We couldn't process your payment for ${APP_NAME} PRO ($${monthlyPrice}/month).
+We couldn't process your payment for ${APP_NAME} PRO (${formatEmailUsd(price)}/${per}).
 
 Reason: ${reason}
 
@@ -329,14 +332,23 @@ export async function sendCancellationEmail(
  * @param email - Recipient email address
  * @param name - User's display name
  * @param reason - Failure reason
+ * @param price - The subscriber's own price per billing period (USD)
+ * @param billingPeriod - The subscriber's billing period
  * @returns Email result with success status
  */
 export async function sendPaymentFailedEmail(
   email: string,
   name: string,
-  reason: string
+  reason: string,
+  price: number,
+  billingPeriod: 'monthly' | 'yearly' = 'monthly'
 ): Promise<EmailResult> {
-  const template = getPaymentFailedEmailTemplate(name, reason);
+  const template = getPaymentFailedEmailTemplate(
+    name,
+    reason,
+    price,
+    billingPeriod
+  );
 
   console.log(`[Email] Sending payment failed email to ${email}`);
 

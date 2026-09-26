@@ -30,6 +30,7 @@ import request from 'supertest';
 
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
 import { OutboxService } from '../outbox/outbox.service';
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
@@ -62,6 +63,15 @@ class UnthrottledControlController {
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: PrismaService, useValue: createPrismaMock() },
+    {
+      provide: AffiliateConfigService,
+      useValue: {
+        getBasePriceUsd: jest.fn().mockResolvedValue(35),
+        getThreeDayPriceUsd: jest.fn().mockResolvedValue(2.49),
+        getCodesPerMonth: jest.fn().mockResolvedValue(12),
+        getAnnualPriceUsd: jest.fn().mockResolvedValue(350),
+      },
+    },
     {
       provide: ThreeDayValidatorService,
       useValue: { markThreeDayPlanUsed: jest.fn() },

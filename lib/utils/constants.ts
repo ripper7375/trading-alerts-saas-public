@@ -84,7 +84,8 @@ export const TIER_LIMITS = {
 
 /**
  * Pricing configuration (in USD)
- * PRO monthly price is configurable via NEXT_PUBLIC_PRO_PRICE_MONTHLY.
+ * Defaults only. The live PRO price is SystemConfig `affiliate_base_price`
+ * (useAffiliateConfig() / getBasePriceUsd()).
  */
 export const PRICING = {
   FREE: {
@@ -94,8 +95,8 @@ export const PRICING = {
     description: 'For casual traders',
   },
   PRO: {
-    monthly: Number(process.env['NEXT_PUBLIC_PRO_PRICE_MONTHLY'] ?? '29'),
-    yearly: Number(process.env['NEXT_PUBLIC_PRO_PRICE_YEARLY'] ?? '290'),
+    monthly: 29 /* default only; live price: SystemConfig affiliate_base_price */,
+    yearly: 290 /* no annual plan is sold */,
     name: 'Pro',
     description: 'For serious traders',
   },

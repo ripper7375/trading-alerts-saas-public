@@ -14,18 +14,40 @@ export interface LanguageOption {
 export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'en-US', name: 'English (US)', flag: '🇺🇸' },
   { code: 'en-GB', name: 'English (UK)', flag: '🇬🇧' },
-  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'de', name: 'German', flag: '🇩🇪' },
-  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+  { code: 'es', name: 'Spanish (Español)', flag: '🇪🇸' },
+  { code: 'de', name: 'German (Deutsch)', flag: '🇩🇪' },
+  { code: 'pt', name: 'Portuguese (Português)', flag: '🇵🇹' },
+  { code: 'ja', name: 'Japanese (日本語)', flag: '🇯🇵' },
   { code: 'ar', name: 'Arabic (العربية)', flag: '🇦🇪' },
   { code: 'fr', name: 'French (Français)', flag: '🇫🇷' },
   { code: 'ko', name: 'Korean (한국어)', flag: '🇰🇷' },
   { code: 'zh', name: 'Chinese (Simplified) (简体中文)', flag: '🇨🇳' },
   { code: 'zh-TW', name: 'Chinese (Traditional) (繁體中文)', flag: '🇹🇼' },
   { code: 'ur', name: 'Urdu (اردو)', flag: '🇵🇰' },
+  // India's language in the header's country menu; without an entry here the
+  // Settings language dropdown showed blank after picking India.
+  { code: 'hi', name: 'Hindi (हिन्दी)', flag: '🇮🇳' },
   { code: 'vi', name: 'Vietnamese (Tiếng Việt)', flag: '🇻🇳' },
   { code: 'id', name: 'Indonesian (Bahasa Indonesia)', flag: '🇮🇩' },
   { code: 'th', name: 'Thai (ภาษาไทย)', flag: '🇹🇭' },
   { code: 'tr', name: 'Turkish (Türkçe)', flag: '🇹🇷' },
 ];
+
+export const SUPPORTED_LANGUAGE_CODES: readonly string[] =
+  SUPPORTED_LANGUAGES.map((l) => l.code);
+
+/**
+ * Whether `code` is a language the app offers. The language cookie and
+ * localStorage are user-controlled, and the resolved language is written into
+ * `<html lang>` and an inline script, so only a known code may pass.
+ */
+export function isSupportedLanguage(code?: string | null): code is string {
+  return !!code && SUPPORTED_LANGUAGE_CODES.includes(code);
+}
+
+const RTL_LANGUAGES = ['ar', 'ur'];
+
+/** `<html dir>` for a language: right-to-left for Arabic and Urdu. */
+export function textDirection(language?: string | null): 'rtl' | 'ltr' {
+  return language && RTL_LANGUAGES.includes(language) ? 'rtl' : 'ltr';
+}

@@ -26,12 +26,15 @@ import {
   getPlanDuration,
   PRICING,
 } from '@/lib/dlocal/constants';
-import type { DLocalCountry, DLocalCurrency } from '@/types/dlocal';
+import type { DLocalCountry } from '@/types/dlocal';
 import crypto from 'crypto';
 
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
+
+// The real shared rate table (jest.setup.js mocks it for every other suite)
+jest.unmock('@/lib/fx/usd-rates');
 
 describe('Integration: Payment Creation Flow', () => {
   beforeEach(() => {

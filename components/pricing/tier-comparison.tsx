@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { Check, X, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
 import { useLocale } from '@/lib/context/locale-context';
+import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { FREE_TIER_CONFIG, PRO_TIER_CONFIG } from '@/lib/tier-config';
 
 /**
@@ -17,30 +19,27 @@ import { FREE_TIER_CONFIG, PRO_TIER_CONFIG } from '@/lib/tier-config';
  * MASTER-ROADMAP-PHASES-7-15.md). Shipping that list would advertise
  * non-existent product capabilities to paying customers.
  *
- * This version keeps seed-code's visual design but binds price to
- * lib/tier-config.ts (PRO_MONTHLY_PRICE, the tier system's single source of
- * truth) via useLocale().formatCurrency, per Davin's explicit instruction at
- * CONFIRM, and lists the REAL V8 single-symbol feature set both tiers
+ * This version keeps seed-code's visual design but binds price to the
+ * admin's SystemConfig price (useAffiliateConfig().regularPrice, the amount
+ * checkout charges) via useLocale().formatCurrency, and lists the REAL V8 single-symbol feature set both tiers
  * actually have today (alerts, rate limit, drawing-engine line alerts,
  * multi-timeframe visualization, notifications, export, support) -- the
  * same substance the previous (differently-styled) version of this
  * component already showed.
  *
- * No separate annual Stripe Price ID exists (checkout only knows
- * STRIPE_PRO_MONTHLY_PRICE_ID, app/api/checkout/route.ts has no billing-
- * cycle parameter) -- same as the component this replaces, the annual
- * figure is informational (price x10 months) rather than a distinct
- * purchasable plan; both CTAs go through the one real monthly checkout.
+ * Monthly / Annual toggle: both are real plans (annual added 2026-09-26),
+ * priced from SystemConfig (`affiliate_base_price`, `affiliate_annual_price`)
+ * and bought through /checkout (`?billing=yearly` preselects annual). The
+ * savings badge is computed from the two prices, never a fixed figure.
  */
 export function TierComparison(): React.ReactElement {
-  const { t, formatCurrency } = useLocale();
-  const [isAnnual, setIsAnnual] = useState(true);
-
-  const monthlyPrice = PRO_TIER_CONFIG.price;
-  const annualPrice = Math.round(monthlyPrice * 10); // 10 months billed, 2 free
-  const annualSavingsPercent = Math.round(
-    ((monthlyPrice * 12 - annualPrice) / (monthlyPrice * 12)) * 100
-  );
+  const { t, formatCurrency, currency, language } = useLocale();
+  const {
+    regularPrice: monthlyPrice,
+    annualPrice,
+    annualSavingsPercent,
+  } = useAffiliateConfig();
+  const [isAnnual, setIsAnnual] = useState(false);
 
   const features = [
     {
@@ -87,7 +86,6 @@ export function TierComparison(): React.ReactElement {
 
   return (
     <div className="mx-auto max-w-5xl select-none space-y-8">
-      {/* Billing Cycle Toggle */}
       <div className="flex flex-col items-center space-y-3 text-center">
         <Badge className="border-amber-500/40 bg-amber-500/10 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-300">
           ⚡ {t('ONE SYMBOL, FULL DATA ACCESS, PRO UNLOCKS ALERTS & MORE')}
@@ -96,9 +94,15 @@ export function TierComparison(): React.ReactElement {
           {t('Flexible Pricing Built for Quantitative Traders')}
         </h1>
 
-        <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-[#0b0e17]">
+        <div
+          className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-100 p-1 dark:border-slate-800 dark:bg-[#0b0e17]"
+          role="radiogroup"
+          aria-label={t('checkout.billing_period', 'Billing period')}
+        >
           <button
             type="button"
+            role="radio"
+            aria-checked={!isAnnual}
             onClick={() => setIsAnnual(false)}
             className={`rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
               !isAnnual
@@ -110,6 +114,8 @@ export function TierComparison(): React.ReactElement {
           </button>
           <button
             type="button"
+            role="radio"
+            aria-checked={isAnnual}
             onClick={() => setIsAnnual(true)}
             className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-bold transition-all ${
               isAnnual
@@ -118,9 +124,14 @@ export function TierComparison(): React.ReactElement {
             }`}
           >
             {t('Annual Billing')}
-            <span className="rounded bg-amber-300 px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-slate-950">
-              {t('SAVE')} {annualSavingsPercent}%
-            </span>
+            {annualSavingsPercent > 0 && (
+              <span className="rounded bg-amber-300 px-1.5 py-0.5 text-[9px] font-extrabold uppercase text-slate-950">
+                {t('pricing.save_percent', 'Save {percent}%').replace(
+                  '{percent}',
+                  String(annualSavingsPercent)
+                )}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -219,15 +230,23 @@ export function TierComparison(): React.ReactElement {
                 {formatCurrency(isAnnual ? annualPrice / 12 : monthlyPrice)}
               </span>
               <span className="text-xs text-slate-600 dark:text-slate-400">
-                / {t('month')} {isAnnual && t('(billed annually)')}
+                / {t('month')}
               </span>
             </div>
+            {isAnnual && (
+              <p className="-mt-2 text-xs text-slate-600 dark:text-slate-400">
+                {t(
+                  'pricing.billed_yearly',
+                  '{price} billed once a year'
+                ).replace('{price}', formatCurrency(annualPrice))}
+              </p>
+            )}
 
             <Button
               asChild
               className="h-10 w-full bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/25 hover:from-amber-400 hover:to-amber-500"
             >
-              <Link href="/checkout">
+              <Link href={isAnnual ? '/checkout?billing=yearly' : '/checkout'}>
                 {t('Upgrade to PRO Now')}{' '}
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
@@ -263,6 +282,25 @@ export function TierComparison(): React.ReactElement {
           </div>
         </div>
       </div>
+
+      {/* Local prices are an approximation of the USD charge */}
+      {currency && currency !== 'USD' && (
+        <p className="mx-auto max-w-3xl text-center text-xs text-slate-600 dark:text-slate-400">
+          {t(
+            'pricing.approx_note',
+            'Prices in {currency} are approximate: converted from USD at a recent market rate. Card payments are charged in USD ({usdPrice}), and your bank converts them at its own rate. Local payment methods show the exact amount in your currency at checkout.'
+          )
+            .replace('{currency}', currency)
+            .replace(
+              '{usdPrice}',
+              `${formatChargedAmount(isAnnual ? annualPrice : monthlyPrice, 'USD', language)} / ${
+                isAnnual
+                  ? t('checkout.year', 'year')
+                  : t('checkout.month', 'month')
+              }`
+            )}
+        </p>
+      )}
 
       {/* Feature Comparison Table */}
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-[#090c14]">

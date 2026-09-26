@@ -13,7 +13,7 @@ import {
 import { ChatSidebar } from '@/components/chat-sidebar';
 import ChatPanel from '@/components/chat-panel';
 import MarketCommentsPanel from '@/components/market-comments-panel';
-import { useLocale } from '@/lib/context/locale-context';
+import { Translated, useLocale } from '@/lib/context/locale-context';
 import type { Tier } from '@/lib/tier-config';
 
 import { CollapsedPanelRail } from './collapsed-panel-rail';
@@ -40,7 +40,9 @@ const MtfStackedCharts = dynamic(
       <div className="flex h-full items-center justify-center rounded-lg bg-card">
         <div className="text-center">
           <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Loading chart...</p>
+          <p className="text-sm text-muted-foreground">
+            <Translated k="charts.loading_chart" fallback="Loading chart..." />
+          </p>
         </div>
       </div>
     ),

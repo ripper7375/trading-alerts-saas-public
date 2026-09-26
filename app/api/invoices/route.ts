@@ -41,6 +41,7 @@ import {
   stripeAmountToMajor,
 } from '@/lib/billing/invoice-amounts';
 import { prisma } from '@/lib/db/prisma';
+import { invoicePlan } from '@/lib/stripe/invoice-plan';
 import {
   getAllCustomerInvoices,
   MAX_INVOICE_HISTORY,
@@ -207,7 +208,7 @@ export async function GET(
             description: getInvoiceDescription(invoice),
             invoicePdfUrl: invoice.invoice_pdf || taxRecord?.invoicePdf || null,
             provider: 'STRIPE',
-            planType: 'MONTHLY',
+            planType: invoicePlan(invoice).yearly ? 'YEARLY' : 'MONTHLY',
             hostedInvoiceUrl:
               taxRecord?.hostedInvoiceUrl ?? invoice.hosted_invoice_url ?? null,
             taxAmount: taxRecord ? Number(taxRecord.taxAmount) : 0,

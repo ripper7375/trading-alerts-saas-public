@@ -130,26 +130,43 @@ describe('Email Service', () => {
 
   describe('getSubscriptionConfirmationEmail', () => {
     it('should generate PRO subscription email with correct pricing', () => {
-      const html = getSubscriptionConfirmationEmail('John Doe', 'PRO', 'monthly');
+      const html = getSubscriptionConfirmationEmail(
+        'John Doe',
+        'PRO',
+        'monthly',
+        35
+      );
 
       expect(html).toContain('Subscription Confirmed');
       expect(html).toContain('John Doe');
       expect(html).toContain('PRO');
-      expect(html).toContain('$29/month');
+      // The price passed in (SystemConfig), never a fixed $29
+      expect(html).toContain('$35/month');
+      expect(html).not.toContain('$29');
       expect(html).toContain('7-Day Free Trial');
     });
 
     it('should include PRO features (V8)', () => {
-      const html = getSubscriptionConfirmationEmail('User', 'PRO', 'yearly');
+      const html = getSubscriptionConfirmationEmail(
+        'User',
+        'PRO',
+        'yearly',
+        350
+      );
 
       expect(html).toContain('100 Price Alerts');
       expect(html).toContain('Drawing Engine Line Alerts');
       expect(html).toContain('Multi-Timeframe Visualization');
-      expect(html).toContain('$290/year');
+      expect(html).toContain('$350/year');
     });
 
     it('should generate FREE subscription email with correct limits (V8)', () => {
-      const html = getSubscriptionConfirmationEmail('Jane Doe', 'FREE', 'monthly');
+      const html = getSubscriptionConfirmationEmail(
+        'Jane Doe',
+        'FREE',
+        'monthly',
+        35
+      );
 
       expect(html).toContain('FREE');
       expect(html).toContain('XAUUSD (Gold)');
@@ -158,7 +175,12 @@ describe('Email Service', () => {
     });
 
     it('should not include trial info for FREE plan', () => {
-      const html = getSubscriptionConfirmationEmail('User', 'FREE', 'monthly');
+      const html = getSubscriptionConfirmationEmail(
+        'User',
+        'FREE',
+        'monthly',
+        35
+      );
 
       expect(html).not.toContain('7-Day Free Trial');
     });
@@ -166,7 +188,7 @@ describe('Email Service', () => {
 
   describe('getTrialReminderEmail', () => {
     it('should generate trial reminder email with days remaining', () => {
-      const html = getTrialReminderEmail('John Doe', 3);
+      const html = getTrialReminderEmail('John Doe', 3, 35);
 
       expect(html).toContain('Pro Trial is Ending Soon');
       expect(html).toContain('John Doe');
@@ -174,14 +196,15 @@ describe('Email Service', () => {
     });
 
     it('should show correct pricing', () => {
-      const html = getTrialReminderEmail('User', 1);
+      const html = getTrialReminderEmail('User', 1, 35);
 
-      expect(html).toContain('$29/month');
-      expect(html).toContain('$290/year');
+      expect(html).toContain('$35/month');
+      expect(html).not.toContain('$29');
+      expect(html).not.toContain('/year'); // no annual plan is sold
     });
 
     it('should handle singular day', () => {
-      const html = getTrialReminderEmail('User', 1);
+      const html = getTrialReminderEmail('User', 1, 35);
 
       expect(html).toContain('1 day');
       expect(html).not.toContain('1 days');
@@ -190,7 +213,7 @@ describe('Email Service', () => {
 
   describe('getUpgradePromptEmail', () => {
     it('should generate upgrade email for alert limit (V8)', () => {
-      const html = getUpgradePromptEmail('John Doe', 'alert_limit');
+      const html = getUpgradePromptEmail('John Doe', 'alert_limit', 35);
 
       expect(html).toContain('Upgrade to Pro');
       expect(html).toContain('Pro feature');
@@ -198,31 +221,31 @@ describe('Email Service', () => {
     });
 
     it('should generate upgrade email for symbol limit (V8)', () => {
-      const html = getUpgradePromptEmail('User', 'symbol_limit');
+      const html = getUpgradePromptEmail('User', 'symbol_limit', 35);
 
       expect(html).toContain('Pro-exclusive features');
       expect(html).toContain('line alerts');
     });
 
     it('should generate upgrade email for timeframe limit (V8)', () => {
-      const html = getUpgradePromptEmail('User', 'timeframe_limit');
+      const html = getUpgradePromptEmail('User', 'timeframe_limit', 35);
 
       expect(html).toContain('Pro-exclusive features');
       expect(html).toContain('Multi-timeframe visualization');
     });
 
     it('should generate upgrade email for indicator limit (V8)', () => {
-      const html = getUpgradePromptEmail('User', 'indicator_limit');
+      const html = getUpgradePromptEmail('User', 'indicator_limit', 35);
 
       expect(html).toContain('Pro-exclusive features');
       expect(html).toContain('alert');
     });
 
     it('should include correct pricing and trial info', () => {
-      const html = getUpgradePromptEmail('User', 'alert_limit');
+      const html = getUpgradePromptEmail('User', 'alert_limit', 35);
 
-      expect(html).toContain('$29/month');
-      expect(html).toContain('$290/year');
+      expect(html).toContain('$35/month');
+      expect(html).not.toContain('$29');
       expect(html).toContain('7-day free trial');
     });
   });

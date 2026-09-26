@@ -10,6 +10,7 @@ const mockCouponsCreate = jest.fn();
 const mockSessionsCreate = jest.fn();
 const mockSubscriptionsCancel = jest.fn();
 const mockWebhooksConstructEvent = jest.fn();
+const mockPricesRetrieve = jest.fn();
 
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
@@ -17,6 +18,7 @@ jest.mock('stripe', () => {
     checkout: { sessions: { create: mockSessionsCreate } },
     subscriptions: { cancel: mockSubscriptionsCancel },
     webhooks: { constructEvent: mockWebhooksConstructEvent },
+    prices: { retrieve: mockPricesRetrieve },
   }));
 });
 
@@ -169,6 +171,87 @@ describe('StripeService', () => {
           'https://app/cancel'
         )
       ).rejects.toThrow('STRIPE_PRO_PRICE_ID environment variable is not set');
+    });
+  });
+
+  describe('buildProLineItem (SystemConfig price)', () => {
+    beforeEach(() => {
+      mockPricesRetrieve.mockResolvedValue({
+        id: 'price_pro_123',
+        currency: 'usd',
+        unit_amount: 2900,
+        product: { id: 'prod_pro' },
+        recurring: { interval: 'month', interval_count: 1 },
+        tax_behavior: 'unspecified',
+      });
+    });
+
+    it('uses the Stripe Price as-is when it already charges that amount', async () => {
+      await expect(
+        service.buildProLineItem('price_pro_123', 29)
+      ).resolves.toEqual({ price: 'price_pro_123', quantity: 1 });
+    });
+
+    it('charges an admin price change on the same product and interval', async () => {
+      await expect(
+        service.buildProLineItem('price_pro_123', 35)
+      ).resolves.toEqual({
+        price_data: {
+          currency: 'usd',
+          unit_amount: 3500,
+          product: 'prod_pro',
+          recurring: { interval: 'month', interval_count: 1 },
+        },
+        quantity: 1,
+      });
+    });
+
+    it('looks the Stripe Price up once and passes the item to the session', async () => {
+      mockSessionsCreate.mockResolvedValue({ id: 'cs_1' });
+      await service.createCheckoutSession(
+        'user-1',
+        'u@example.com',
+        'https://s',
+        'https://c',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        35
+      );
+      await service.buildProLineItem('price_pro_123', 40);
+      expect(mockPricesRetrieve).toHaveBeenCalledTimes(1);
+      expect(mockSessionsCreate.mock.calls[0][0].line_items).toEqual([
+        expect.objectContaining({
+          price_data: expect.objectContaining({ unit_amount: 3500 }),
+        }),
+      ]);
+    });
+
+    it('bills the annual plan once a year on the same product', async () => {
+      await expect(
+        service.buildProLineItem('price_pro_123', 290, 'yearly')
+      ).resolves.toEqual({
+        price_data: {
+          currency: 'usd',
+          unit_amount: 29000,
+          product: 'prod_pro',
+          recurring: { interval: 'year', interval_count: 1 },
+        },
+        quantity: 1,
+      });
+    });
+
+    it('refuses an annual checkout without the SystemConfig annual price', async () => {
+      await expect(
+        service.buildProLineItem('price_pro_123', undefined, 'yearly')
+      ).rejects.toThrow('annual checkout needs');
+    });
+
+    it('refuses a non-positive price', async () => {
+      await expect(
+        service.buildProLineItem('price_pro_123', -1)
+      ).rejects.toThrow('Invalid PRO price');
     });
   });
 

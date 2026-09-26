@@ -28,6 +28,7 @@ interface GetResponse {
   codesPerMonth: ConfigValue;
   basePrice: ConfigValue;
   threeDayPrice: ConfigValue;
+  annualPrice: ConfigValue;
 }
 
 interface PatchRequest {
@@ -36,6 +37,7 @@ interface PatchRequest {
   codesPerMonth?: number;
   basePrice?: number;
   threeDayPrice?: number;
+  annualPrice?: number;
   reason?: string;
 }
 
@@ -59,6 +61,7 @@ const CONFIG_KEYS = {
   codesPerMonth: 'affiliate_codes_per_month',
   basePrice: 'affiliate_base_price',
   threeDayPrice: 'affiliate_three_day_price',
+  annualPrice: 'affiliate_annual_price',
 } as const;
 
 const DEFAULTS = {
@@ -67,6 +70,7 @@ const DEFAULTS = {
   affiliate_codes_per_month: '15',
   affiliate_base_price: '29.0',
   affiliate_three_day_price: '1.99',
+  affiliate_annual_price: '290.0',
 } as const;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -161,6 +165,16 @@ export async function GET(
           configMap[CONFIG_KEYS.threeDayPrice]?.updatedAt?.toISOString() ??
           new Date().toISOString(),
       },
+      annualPrice: {
+        value: parseFloat(
+          configMap[CONFIG_KEYS.annualPrice]?.value ??
+            DEFAULTS.affiliate_annual_price
+        ),
+        updatedBy: configMap[CONFIG_KEYS.annualPrice]?.updatedBy ?? null,
+        updatedAt:
+          configMap[CONFIG_KEYS.annualPrice]?.updatedAt?.toISOString() ??
+          new Date().toISOString(),
+      },
     };
 
     return NextResponse.json(response);
@@ -210,6 +224,7 @@ export async function PATCH(
       codesPerMonth,
       basePrice,
       threeDayPrice,
+      annualPrice,
       reason,
     } = body;
 
@@ -242,7 +257,7 @@ export async function PATCH(
     }
 
     if (basePrice !== undefined) {
-      if (basePrice < 0) {
+      if (!(basePrice > 0)) {
         return NextResponse.json(
           { error: 'Base price must be positive' },
           { status: 400 }
@@ -251,9 +266,18 @@ export async function PATCH(
     }
 
     if (threeDayPrice !== undefined) {
-      if (threeDayPrice < 0) {
+      if (!(threeDayPrice > 0)) {
         return NextResponse.json(
           { error: '3-day trial price must be positive' },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (annualPrice !== undefined) {
+      if (!(annualPrice > 0)) {
+        return NextResponse.json(
+          { error: 'Annual price must be positive' },
           { status: 400 }
         );
       }
@@ -328,6 +352,20 @@ export async function PATCH(
       );
       if (change) {
         changes.push({ setting: 'threeDayPrice', ...change });
+      }
+    }
+
+    // Update annual PRO price
+    if (annualPrice !== undefined) {
+      const change = await updateConfig(
+        CONFIG_KEYS.annualPrice,
+        annualPrice.toString(),
+        adminId,
+        adminEmail,
+        reason
+      );
+      if (change) {
+        changes.push({ setting: 'annualPrice', ...change });
       }
     }
 
@@ -435,6 +473,8 @@ function getDescription(key: string): string {
       return 'Base subscription price in USD before discount';
     case 'affiliate_three_day_price':
       return '3-day trial plan price in USD (dLocal only)';
+    case 'affiliate_annual_price':
+      return 'Annual PRO subscription price in USD (billed once a year)';
     default:
       return '';
   }

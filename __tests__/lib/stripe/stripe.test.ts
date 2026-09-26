@@ -23,6 +23,7 @@ const mockCustomersRetrieve = jest.fn();
 const mockWebhooksConstructEvent = jest.fn();
 const mockBillingPortalSessionsCreate = jest.fn();
 const mockCouponsCreate = jest.fn();
+const mockPricesRetrieve = jest.fn();
 
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
@@ -33,6 +34,9 @@ jest.mock('stripe', () => {
     },
     coupons: {
       create: mockCouponsCreate,
+    },
+    prices: {
+      retrieve: mockPricesRetrieve,
     },
     subscriptions: {
       cancel: mockSubscriptionsCancel,
@@ -80,12 +84,6 @@ describe('Stripe Client Functions', () => {
   });
 
   describe('Constants', () => {
-    it('should export PRO_TIER_PRICE as 29', async () => {
-      // Use isolated modules to get fresh import with env vars
-      const { PRO_TIER_PRICE } = await import('@/lib/stripe/stripe');
-      expect(PRO_TIER_PRICE).toBe(29);
-    });
-
     it('should export STRIPE_PRO_PRICE_ID from environment when set', async () => {
       // The constant is evaluated at module load time
       // We can test it exists as undefined or with value depending on load order
@@ -434,6 +432,128 @@ describe('Stripe Client Functions', () => {
         }),
         { idempotencyKey: 'idem-key-xyz' }
       );
+    });
+
+    describe('charging the SystemConfig price (unitAmountUsd)', () => {
+      const stripePrice = {
+        id: 'price_test_pro',
+        currency: 'usd',
+        unit_amount: 2900,
+        product: 'prod_pro',
+        recurring: { interval: 'month', interval_count: 1 },
+        tax_behavior: 'exclusive',
+      };
+      const checkout = async (
+        unitAmountUsd?: number,
+        billingPeriod?: 'monthly' | 'yearly'
+      ) => {
+        const { createCheckoutSession } = await import('@/lib/stripe/stripe');
+        await createCheckoutSession(
+          'user-123',
+          'user@example.com',
+          'https://example.com/success',
+          'https://example.com/cancel',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          unitAmountUsd,
+          billingPeriod
+        );
+        const params = mockCheckoutSessionsCreate.mock.calls.at(-1)?.[0] as {
+          line_items: unknown[];
+        };
+        return params.line_items;
+      };
+
+      beforeEach(() => {
+        jest.resetModules();
+        mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test' });
+        mockPricesRetrieve.mockResolvedValue(stripePrice);
+      });
+
+      it('uses the Stripe Price as-is when it already charges that amount', async () => {
+        expect(await checkout(29)).toEqual([
+          { price: 'price_test_pro', quantity: 1 },
+        ]);
+      });
+
+      it('charges an admin price change on the same product, interval and tax behaviour', async () => {
+        expect(await checkout(35.5)).toEqual([
+          {
+            price_data: {
+              currency: 'usd',
+              unit_amount: 3550,
+              product: 'prod_pro',
+              recurring: { interval: 'month', interval_count: 1 },
+              tax_behavior: 'exclusive',
+            },
+            quantity: 1,
+          },
+        ]);
+      });
+
+      it('looks the Stripe Price up once per process', async () => {
+        await checkout(35);
+        await checkout(40);
+        expect(mockPricesRetrieve).toHaveBeenCalledTimes(1);
+      });
+
+      it('retries the lookup after a failure instead of caching it', async () => {
+        mockPricesRetrieve.mockRejectedValueOnce(new Error('stripe down'));
+        await expect(checkout(35)).rejects.toThrow('stripe down');
+        expect((await checkout(35))[0]).toHaveProperty('price_data');
+        expect(mockPricesRetrieve).toHaveBeenCalledTimes(2);
+      });
+
+      it('bills the annual plan once a year on the same product', async () => {
+        expect(await checkout(290, 'yearly')).toEqual([
+          {
+            price_data: {
+              currency: 'usd',
+              unit_amount: 29000,
+              product: 'prod_pro',
+              recurring: { interval: 'year', interval_count: 1 },
+              tax_behavior: 'exclusive',
+            },
+            quantity: 1,
+          },
+        ]);
+        const params = mockCheckoutSessionsCreate.mock.calls.at(-1)?.[0] as {
+          metadata: Record<string, string>;
+          subscription_data: { metadata: Record<string, string> };
+        };
+        expect(params.metadata['billingPeriod']).toBe('yearly');
+        expect(params.subscription_data.metadata['billingPeriod']).toBe(
+          'yearly'
+        );
+      });
+
+      it('never reuses the monthly Stripe Price for a yearly amount that happens to match', async () => {
+        mockPricesRetrieve.mockResolvedValue({
+          ...stripePrice,
+          unit_amount: 29000,
+        });
+        expect((await checkout(290, 'yearly'))[0]).toHaveProperty('price_data');
+      });
+
+      it('refuses an annual checkout without the SystemConfig annual price', async () => {
+        await expect(checkout(undefined, 'yearly')).rejects.toThrow(
+          'annual checkout needs'
+        );
+      });
+
+      it('refuses a non-positive price', async () => {
+        await expect(checkout(0)).rejects.toThrow('Invalid PRO price');
+        expect(mockCheckoutSessionsCreate).not.toHaveBeenCalled();
+      });
+
+      it('keeps the Stripe Price when no amount is passed', async () => {
+        expect(await checkout()).toEqual([
+          { price: 'price_test_pro', quantity: 1 },
+        ]);
+        expect(mockPricesRetrieve).not.toHaveBeenCalled();
+      });
     });
 
     it('should throw when STRIPE_PRO_PRICE_ID is not set', async () => {

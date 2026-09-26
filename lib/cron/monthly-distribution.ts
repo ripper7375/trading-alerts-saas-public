@@ -9,7 +9,7 @@
 
 import { prisma } from '@/lib/db/prisma';
 import { distributeCodes as defaultDistributeCodes } from '@/lib/affiliate/code-generator';
-import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import { getCodesPerMonth } from '@/lib/affiliate/db';
 import type { DistributionReason } from '@/lib/affiliate/constants';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -92,6 +92,9 @@ export async function runMonthlyDistribution(
       return result;
     }
 
+    // Codes per affiliate: the admin's SystemConfig value, read once per run
+    const codesPerMonth = await getCodesPerMonth();
+
     console.log(
       `[CRON] Starting distribution for ${affiliates.length} affiliates`
     );
@@ -105,15 +108,11 @@ export async function runMonthlyDistribution(
           continue;
         }
 
-        await distributeCodes(
-          affiliate.id,
-          AFFILIATE_CONFIG.CODES_PER_MONTH,
-          'MONTHLY'
-        );
+        await distributeCodes(affiliate.id, codesPerMonth, 'MONTHLY');
 
         result.distributed++;
         console.log(
-          `[CRON] Distributed ${AFFILIATE_CONFIG.CODES_PER_MONTH} codes to ${affiliateUser.email}`
+          `[CRON] Distributed ${codesPerMonth} codes to ${affiliateUser.email}`
         );
 
         // TODO: Send notification email

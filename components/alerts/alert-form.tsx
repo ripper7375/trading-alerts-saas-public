@@ -381,7 +381,7 @@ export function AlertForm({
                 onValueChange={setSymbol}
                 disabled={isEditing}
               >
-                <SelectTrigger id="alert-symbol" aria-label="Symbol">
+                <SelectTrigger id="alert-symbol" aria-label={t('Symbol')}>
                   <SelectValue
                     placeholder={t('alerts.select_symbol', 'Select a symbol')}
                   />
@@ -421,7 +421,7 @@ export function AlertForm({
                 onValueChange={setTimeframe}
                 disabled={isEditing}
               >
-                <SelectTrigger id="alert-timeframe" aria-label="Timeframe">
+                <SelectTrigger id="alert-timeframe" aria-label={t('Timeframe')}>
                   <SelectValue
                     placeholder={t(
                       'alerts.select_timeframe',

@@ -7,6 +7,7 @@ import ClientProviders from '@/components/providers/client-providers';
 import { ThemeSync } from '@/components/theme-sync';
 import type { LocalePreferences } from '@/lib/i18n/locale-resolver';
 import type { AppearanceSettings } from '@/lib/appearance/types';
+import type { DisplayUsdRates } from '@/lib/country-config';
 
 export function Providers({
   children,
@@ -14,12 +15,14 @@ export function Providers({
   initialPreferences,
   initialAppearance,
   detectedTimezone,
+  initialUsdRates,
 }: {
   children: React.ReactNode;
   initialTheme?: 'light' | 'dark' | 'system';
   initialPreferences?: LocalePreferences;
   initialAppearance?: AppearanceSettings;
   detectedTimezone?: string | null;
+  initialUsdRates?: DisplayUsdRates | null;
 }) {
   return (
     <ThemeProvider
@@ -37,6 +40,7 @@ export function Providers({
           initialPreferences={initialPreferences}
           initialAppearance={initialAppearance}
           detectedTimezone={detectedTimezone}
+          initialUsdRates={initialUsdRates}
         >
           {children}
         </ClientProviders>

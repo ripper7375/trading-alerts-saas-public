@@ -170,7 +170,7 @@ export class ThreeDayValidatorService {
    */
   async validatePlanPurchase(
     userId: string,
-    planType: 'THREE_DAY' | 'MONTHLY'
+    planType: 'THREE_DAY' | 'MONTHLY' | 'YEARLY'
   ): Promise<ThreeDayPlanEligibilityResult> {
     if (planType === 'THREE_DAY') {
       return this.canPurchaseThreeDayPlan(userId);

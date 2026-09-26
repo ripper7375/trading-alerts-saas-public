@@ -10,19 +10,11 @@
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 
-/* eslint-disable import/order -- this whole block MUST stay in this exact
- * order: '../../setup' first, before any '@/lib/...' import. Its
- * jest.mock() calls only take effect if this file loads first (see
- * __tests__/setup.ts's header comment). `eslint --fix`/import/order WILL
- * silently reorder this without a disable — it already has once (Session
- * 2-4) — breaking the Prisma mock for every test in this file with no
- * error, just wrong results. Do not remove this disable block. */
 import { prismaMock, testFactories } from '../../setup';
 
 import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
 import { runMonthlyDistribution } from '@/lib/cron/monthly-distribution';
 import type { DistributeCodesFunction } from '@/lib/cron/monthly-distribution';
-/* eslint-enable import/order */
 
 describe('Monthly Distribution Cron', () => {
   let mockDistributeCodes: jest.Mock<DistributeCodesFunction>;
@@ -65,6 +57,10 @@ describe('Monthly Distribution Cron', () => {
         mockUser1,
         mockUser2,
       ] as never);
+      // The admin's SystemConfig count, deliberately not the default 15
+      prismaMock.systemConfig.findMany.mockResolvedValue([
+        { key: 'affiliate_codes_per_month', value: '12' },
+      ] as never);
 
       const result = await runMonthlyDistribution({
         distributeCodes: mockDistributeCodes,
@@ -72,16 +68,8 @@ describe('Monthly Distribution Cron', () => {
 
       expect(result.distributed).toBe(2);
       expect(mockDistributeCodes).toHaveBeenCalledTimes(2);
-      expect(mockDistributeCodes).toHaveBeenCalledWith(
-        'aff-1',
-        AFFILIATE_CONFIG.CODES_PER_MONTH,
-        'MONTHLY'
-      );
-      expect(mockDistributeCodes).toHaveBeenCalledWith(
-        'aff-2',
-        AFFILIATE_CONFIG.CODES_PER_MONTH,
-        'MONTHLY'
-      );
+      expect(mockDistributeCodes).toHaveBeenCalledWith('aff-1', 12, 'MONTHLY');
+      expect(mockDistributeCodes).toHaveBeenCalledWith('aff-2', 12, 'MONTHLY');
     });
 
     it('should only distribute to ACTIVE affiliates', async () => {

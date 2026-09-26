@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { useLocale } from '@/lib/context/locale-context';
 
 export default function BlogPage() {
-  const { t } = useLocale();
+  const { t, formatDate } = useLocale();
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   const categories = [
@@ -31,7 +31,8 @@ export default function BlogPage() {
         'How 5-bar mathematical pivot structures identify liquidity sweeps before institutional breakout extensions materialize.'
       ),
       category: 'Fractal Models',
-      date: 'Aug 14, 2026',
+      // Midday UTC, so the day is the same in every timezone.
+      date: '2026-08-14T12:00:00Z',
       readTime: t('6 min read'),
       badge: 'Featured',
     },
@@ -44,7 +45,7 @@ export default function BlogPage() {
         'Why LLMs combined with sub-millisecond MT5 tick feeds give retail traders real-time statistical confidence without cluttered screen fatigue.'
       ),
       category: 'AI Research',
-      date: 'Aug 10, 2026',
+      date: '2026-08-10T12:00:00Z',
       readTime: t('8 min read'),
       badge: 'Engineering',
     },
@@ -57,7 +58,7 @@ export default function BlogPage() {
         'Quantitative risk rules for managing position sizing and volatility expansion around CPI and FOMC announcements.'
       ),
       category: 'Risk Management',
-      date: 'Aug 04, 2026',
+      date: '2026-08-04T12:00:00Z',
       readTime: t('5 min read'),
       badge: 'Strategy',
     },
@@ -132,7 +133,7 @@ export default function BlogPage() {
                   </div>
 
                   <div className="flex items-center justify-between border-t border-slate-200 pt-4 text-xs text-slate-500 dark:border-slate-800/80">
-                    <span>{post.date}</span>
+                    <span>{formatDate(post.date)}</span>
                     <Link
                       href="/terminal"
                       className="flex items-center gap-1 font-semibold text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"

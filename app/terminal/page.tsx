@@ -3,14 +3,20 @@ import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { localizedMetadata } from '@/lib/i18n/server-metadata';
 import type { Tier } from '@/lib/tier-config';
 
 import { TerminalWorkspace } from './terminal-workspace';
 
-export const metadata: Metadata = {
-  title: 'Terminal | DavinTrade',
-  description: 'Real-Time XAUUSD Quantitative Trading Terminal',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return localizedMetadata(
+    { key: 'terminal.meta_title', fallback: 'Terminal | DavinTrade' },
+    {
+      key: 'terminal.meta_description',
+      fallback: 'Real-Time XAUUSD Quantitative Trading Terminal',
+    }
+  );
+}
 
 /**
  * `/terminal` -- Protected Page #2 (PRO 4-panel workspace).

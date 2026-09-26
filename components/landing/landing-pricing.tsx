@@ -22,8 +22,13 @@ export function LandingPricing() {
   const searchParams = useSearchParams();
   const affiliateCode = searchParams.get('ref');
 
-  const { discountPercent, regularPrice, calculateDiscountedPrice } =
-    useAffiliateConfig();
+  const {
+    discountPercent,
+    regularPrice,
+    annualPrice,
+    annualSavingsPercent,
+    calculateDiscountedPrice,
+  } = useAffiliateConfig();
 
   const discountedPrice = calculateDiscountedPrice(regularPrice);
   const proPriceDisplay = affiliateCode
@@ -156,6 +161,17 @@ export function LandingPricing() {
                   {t('/ month')}
                 </span>
               </div>
+              <p className="-mt-4 mb-6 text-xs text-slate-600 dark:text-slate-400">
+                {(annualSavingsPercent > 0
+                  ? t(
+                      'pricing.or_annual_save',
+                      'or {price} per year (save {percent}%)'
+                    )
+                  : t('pricing.or_annual', 'or {price} per year')
+                )
+                  .replace('{price}', formatCurrency(annualPrice))
+                  .replace('{percent}', String(annualSavingsPercent))}
+              </p>
               <p className="mb-6 text-sm text-slate-700 dark:text-slate-300">
                 {t(
                   'Full 4-Panel Workbench, dual AI model confluence score, sub-500ms alerts, & local multi-currency checkout.'

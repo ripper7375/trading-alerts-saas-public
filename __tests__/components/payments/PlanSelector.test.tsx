@@ -52,6 +52,9 @@ jest.mock('@/lib/hooks/useAffiliateConfig', () => ({
     codesPerMonth: 15,
     regularPrice: 29.0,
     threeDayPrice: 1.99,
+    // SystemConfig annual price; 240 < 12 x 29, so the plan shows a saving
+    annualPrice: 240,
+    annualSavingsPercent: 31,
     calculateDiscountedPrice: (price: number) => price * 0.8,
     calculateCommissionAmount: (price: number) => price * 0.8 * 0.2,
     calculateDiscountAmount: (price: number) => price * 0.2,
@@ -227,7 +230,20 @@ describe('PlanSelector', () => {
       render(<PlanSelector {...defaultProps} />);
 
       const radios = screen.getAllByRole('radio');
-      expect(radios).toHaveLength(2);
+      expect(radios).toHaveLength(3); // 3-day, monthly, annual
+    });
+
+    it('offers the annual plan at the SystemConfig price with its saving', () => {
+      const onChange = jest.fn();
+      render(<PlanSelector {...defaultProps} onChange={onChange} />);
+
+      const annual = screen.getAllByRole('radio')[2] as HTMLElement;
+      expect(annual).toHaveTextContent('Annual');
+      expect(annual).toHaveTextContent('Save 31%');
+      expect(annual).toHaveTextContent('/year');
+      expect(annual).not.toHaveTextContent('NaN');
+      fireEvent.click(annual);
+      expect(onChange).toHaveBeenCalledWith('YEARLY');
     });
 
     it('should have aria-label on radiogroup', () => {

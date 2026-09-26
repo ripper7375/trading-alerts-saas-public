@@ -10,8 +10,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import { getAnnualPriceUsd, getBasePriceUsd } from '@/lib/affiliate/db';
 import { authOptions } from '@/lib/auth/auth-options';
 import {
+  type BillingPeriod,
   buildCheckoutIdempotencyKey,
   createCheckoutSession,
 } from '@/lib/stripe/stripe';
@@ -99,13 +101,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Parse optional affiliate code from request body
+    // Parse optional affiliate code and billing period from request body
     let affiliateCode: string | undefined;
+    let billingPeriod: BillingPeriod = 'monthly';
     try {
       const body = await request.json();
       affiliateCode = body.affiliateCode;
+      if (body.billingPeriod === 'yearly') billingPeriod = 'yearly';
     } catch {
-      // No body or invalid JSON - that's fine, affiliateCode is optional
+      // No body or invalid JSON - that's fine, both are optional
     }
 
     // Look up first: `Subscription.userId` is unique, so a returning row
@@ -178,7 +182,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Create Stripe Checkout session
     const idempotencyKey = buildCheckoutIdempotencyKey(
       userId,
-      normalizedAffiliateCode
+      normalizedAffiliateCode,
+      billingPeriod
     );
     const checkoutSession = await createCheckoutSession(
       userId,
@@ -188,7 +193,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       normalizedAffiliateCode,
       discountPercent,
       idempotencyKey,
-      existingSubscription?.stripeCustomerId || undefined
+      existingSubscription?.stripeCustomerId || undefined,
+      // The admin's PRO price for the period (SystemConfig), not a fixed
+      // Stripe amount.
+      billingPeriod === 'yearly'
+        ? await getAnnualPriceUsd()
+        : await getBasePriceUsd(),
+      billingPeriod
     );
 
     // Return session details

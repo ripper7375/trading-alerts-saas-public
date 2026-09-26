@@ -1,9 +1,25 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { AlertOctagon, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { isSupportedLanguage, textDirection } from '@/lib/i18n/languages';
+import { LOCALE_COOKIE } from '@/lib/i18n/locale-resolver';
+
+/**
+ * The language cookie, if it names a supported language. This page replaces
+ * the root layout, so LocaleProvider is not available here.
+ */
+function cookieLanguage(): string {
+  if (typeof document === 'undefined') return 'en-GB';
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${LOCALE_COOKIE}=([^;]*)`)
+  );
+  const value = match?.[1] ? decodeURIComponent(match[1]) : '';
+  return isSupportedLanguage(value) ? value : 'en-GB';
+}
 
 export default function GlobalError({
   error,
@@ -12,8 +28,30 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const [language, setLanguage] = useState('en-GB');
+  const [dict, setDict] = useState<Record<string, string>>({});
+  const t = (key: string, fallback: string): string => dict[key] ?? fallback;
+
+  useEffect(() => {
+    const lang = cookieLanguage();
+    setLanguage(lang);
+    let cancelled = false;
+    import(`@/lib/i18n/dictionaries/${lang}.json`)
+      .then((mod) => {
+        if (!cancelled) setDict(mod.default || {});
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
-    <html lang="en-GB" suppressHydrationWarning>
+    <html
+      lang={language}
+      dir={textDirection(language)}
+      suppressHydrationWarning
+    >
       <body className="flex min-h-screen items-center justify-center bg-slate-50 p-4 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
         <Card className="w-full max-w-md space-y-6 border-rose-500/30 bg-white/95 p-6 text-center shadow-2xl backdrop-blur-2xl dark:bg-[#0a0d18]/95">
           <div className="flex justify-center">
@@ -24,16 +62,18 @@ export default function GlobalError({
 
           <div className="space-y-2">
             <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100">
-              System Error Encountered
+              {t('errors.global.title', 'System Error Encountered')}
             </h1>
             <p className="text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-              An unexpected application exception occurred. Our diagnostic
-              telemetry has recorded this incident.
+              {t(
+                'errors.global.body',
+                'An unexpected application exception occurred. Our diagnostic telemetry has recorded this incident.'
+              )}
             </p>
             {error.digest && (
               <div className="pt-1">
                 <span className="rounded border border-rose-500/30 bg-rose-50 px-2 py-0.5 font-mono text-[10px] text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
-                  Digest: {error.digest}
+                  {t('errors.global.digest', 'Digest:')} {error.digest}
                 </span>
               </div>
             )}
@@ -45,7 +85,7 @@ export default function GlobalError({
               className="w-full bg-amber-500 font-bold text-slate-950 hover:bg-amber-400"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
-              Try Again
+              {t('errors.page.try_again', 'Try again')}
             </Button>
 
             <Link href="/" className="w-full">
@@ -54,18 +94,18 @@ export default function GlobalError({
                 className="w-full border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 dark:border-slate-800 dark:bg-[#070912] dark:text-slate-300 dark:hover:bg-slate-800"
               >
                 <Home className="mr-2 h-4 w-4" />
-                Return to Safe Home
+                {t('errors.global.home', 'Return to Safe Home')}
               </Button>
             </Link>
           </div>
 
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            If the problem persists, please{' '}
+            {t('errors.page.persists', 'If the problem persists, please')}{' '}
             <a
               href="mailto:support@davintrade.app"
               className="text-amber-700 underline underline-offset-4 hover:text-amber-600 dark:text-amber-400 dark:hover:text-amber-300"
             >
-              contact support
+              {t('errors.page.contact_support', 'contact support')}
             </a>
             .
           </p>

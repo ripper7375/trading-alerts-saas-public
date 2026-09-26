@@ -35,6 +35,8 @@ export interface DynamicAffiliateConfig {
   codesPerMonth: number;
   basePriceUsd: number;
   threeDayPriceUsd: number;
+  /** Annual PRO price in USD, billed once a year */
+  annualPriceUsd: number;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

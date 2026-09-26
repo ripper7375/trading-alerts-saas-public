@@ -7,8 +7,6 @@
  * @module lib/admin/pnl-calculator
  */
 
-import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -91,15 +89,19 @@ export function calculatePnL(sales: SalesData[]): PnLReport {
 /**
  * Calculate standard sales data from base price
  *
+ * Rates are required: pass the SystemConfig values (or a code's snapshot),
+ * never fixed defaults.
+ *
  * @param regularPrice - Base subscription price
+ * @param discountPercent - Customer discount percentage
+ * @param commissionPercent - Affiliate commission percentage
  * @returns Sales data with standard discount and commission
  */
 export function calculateStandardSale(
-  regularPrice: number = AFFILIATE_CONFIG.BASE_PRICE_USD
+  regularPrice: number,
+  discountPercent: number,
+  commissionPercent: number
 ): SalesData {
-  const discountPercent = AFFILIATE_CONFIG.DISCOUNT_PERCENT;
-  const commissionPercent = AFFILIATE_CONFIG.COMMISSION_PERCENT;
-
   const discount = (regularPrice * discountPercent) / 100;
   const netRevenue = regularPrice - discount;
   const commission = (netRevenue * commissionPercent) / 100;

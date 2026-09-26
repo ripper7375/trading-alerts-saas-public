@@ -386,7 +386,7 @@ export default function LoginForm(): JSX.Element {
               id="email-error"
               className="flex items-center gap-1 text-xs text-rose-600"
             >
-              {errors.email.message}
+              {t(errors.email.message ?? '')}
             </p>
           )}
         </div>
@@ -431,7 +431,7 @@ export default function LoginForm(): JSX.Element {
           </div>
           {errors.password && (
             <p id="password-error" className="text-xs text-rose-600">
-              {errors.password.message}
+              {t(errors.password.message ?? '')}
             </p>
           )}
         </div>

@@ -89,6 +89,9 @@ export function AlertsClient({
 }: AlertsClientProps): React.JSX.Element {
   const router = useRouter();
   const { t, formatDate, formatDateTime } = useLocale();
+  const alertName = (a: { name?: string | null; symbol: string }): string =>
+    a.name ||
+    t('alerts.fallback_name', '{symbol} Alert').replace('{symbol}', a.symbol);
   const [alerts, setAlerts] = useState(initialAlerts);
   const [activeTab, setActiveTab] = useState<string>('active');
   const [symbolFilter, setSymbolFilter] = useState<string>('all');
@@ -360,7 +363,7 @@ export function AlertsClient({
           <div className="mb-4 flex items-start justify-between">
             <div>
               <h3 className="text-lg font-bold text-foreground">
-                {alert.name || `${alert.symbol} Alert`}
+                {alertName(alert)}
               </h3>
               <div className="mt-1 flex items-center gap-2">
                 <Badge variant="secondary">{alert.symbol}</Badge>
@@ -438,7 +441,10 @@ export function AlertsClient({
                 <Button
                   variant="outline"
                   size="sm"
-                  aria-label={`Edit ${alert.name || `${alert.symbol} Alert`}`}
+                  aria-label={t('alerts.edit_aria', 'Edit {name}').replace(
+                    '{name}',
+                    alertName(alert)
+                  )}
                 >
                   {t('alerts.edit', 'Edit')}
                 </Button>
@@ -449,7 +455,10 @@ export function AlertsClient({
                 variant="outline"
                 size="sm"
                 className="text-red-600 hover:border-red-500 hover:text-red-700"
-                aria-label={`Delete ${alert.name || `${alert.symbol} Alert`}`}
+                aria-label={t('alerts.delete_aria', 'Delete {name}').replace(
+                  '{name}',
+                  alertName(alert)
+                )}
               >
                 {t('alerts.delete', 'Delete')}
               </Button>
@@ -591,7 +600,7 @@ export function AlertsClient({
                 placeholder={t('alerts.search_placeholder', 'Search alerts...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Search alerts"
+                aria-label={t('alerts.search_aria', 'Search alerts')}
                 className="w-[200px] rounded-lg border-2"
               />
             </div>
@@ -604,7 +613,7 @@ export function AlertsClient({
             <span className="text-sm">
               {t('alerts.alert_quoted', 'Alert "{name}" deleted').replace(
                 '{name}',
-                deletedAlert.name || `${deletedAlert.symbol} Alert`
+                alertName(deletedAlert)
               )}
             </span>
             <Button
@@ -675,7 +684,7 @@ export function AlertsClient({
                 'Are you sure you want to delete the alert "{name}"? This action cannot be undone.'
               ).replace(
                 '{name}',
-                alertToDelete?.name || `${alertToDelete?.symbol} Alert`
+                alertToDelete ? alertName(alertToDelete) : ''
               )}
             </DialogDescription>
           </DialogHeader>

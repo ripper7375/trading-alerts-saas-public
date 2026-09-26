@@ -10,6 +10,7 @@ import {
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
+import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
 
 export const metadata = {
   title: 'Affiliate Partner Network | DavinTrade Admin',
@@ -30,11 +31,13 @@ export default async function AffiliatesPage({
   const period = (params.period as AffiliateReportPeriod) || '3months';
   const data = await getAffiliatesAnalytics(period);
   const prefs = await getServerLocalePreferences();
+  const { rates: usdRates } = await getDisplayUsdRates();
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
       currency: prefs.currency,
       language: prefs.language,
+      rates: usdRates, // live rate, same table dLocal uses
     });
   const noDataYet = dict['analytics.no_data_yet'] ?? 'No data yet';
 

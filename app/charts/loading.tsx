@@ -1,3 +1,5 @@
+import { Translated } from '@/lib/context/locale-context';
+
 export default function Loading() {
   return (
     <div className="animate-pulse space-y-6">
@@ -11,7 +13,9 @@ export default function Loading() {
       <div className="flex h-[500px] items-center justify-center rounded-lg border border-gray-700 bg-gray-800">
         <div className="space-y-2 text-center">
           <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-700 border-t-gray-500" />
-          <p className="text-sm text-gray-400">Loading chart...</p>
+          <p className="text-sm text-gray-400">
+            <Translated k="charts.loading_chart" fallback="Loading chart..." />
+          </p>
         </div>
       </div>
 

@@ -28,6 +28,9 @@ import {
 } from 'lucide-react';
 import type { JSX } from 'react';
 
+import { TOOL_LABEL_KEY } from '@/components/charts/drawing/Toolbar';
+import { useLocale } from '@/lib/context/locale-context';
+
 import {
   DRAWABLE_TOOLS,
   TOOL_DEFINITIONS,
@@ -58,6 +61,7 @@ export function ComparisonChartToolbar({
   onDelete,
   onEditStyle,
 }: ComparisonChartToolbarProps): JSX.Element {
+  const { t } = useLocale();
   const buttonBase =
     'flex h-9 w-9 items-center justify-center rounded-md border transition-colors';
   const idle =
@@ -69,8 +73,8 @@ export function ComparisonChartToolbar({
     <div className="absolute left-2 top-2 z-10 flex flex-col gap-1 rounded-lg border border-slate-200 bg-white/95 p-1 shadow-lg dark:border-[#2a2e39] dark:bg-[#1e222d]/95">
       <button
         type="button"
-        aria-label="Select / cursor"
-        title="Select (Esc)"
+        aria-label={t('charts.drawing.select_cursor', 'Select / cursor')}
+        title={t('charts.drawing.select_esc', 'Select (Esc)')}
         className={`${buttonBase} ${activeTool === null ? active : idle}`}
         onClick={() => onSelectTool(null)}
       >
@@ -80,12 +84,14 @@ export function ComparisonChartToolbar({
       {DRAWABLE_TOOLS.map((tool) => {
         const def = TOOL_DEFINITIONS[tool];
         if (!def) return null;
+        const labelKey = TOOL_LABEL_KEY[tool];
+        const label = labelKey ? t(labelKey, def.label) : def.label;
         return (
           <button
             key={tool}
             type="button"
-            aria-label={def.label}
-            title={def.label}
+            aria-label={label}
+            title={label}
             className={`${buttonBase} ${activeTool === tool ? active : idle}`}
             onClick={() => onSelectTool(tool)}
           >
@@ -98,8 +104,8 @@ export function ComparisonChartToolbar({
 
       <button
         type="button"
-        aria-label="Edit style"
-        title="Edit style"
+        aria-label={t('charts.drawing.edit_style', 'Edit style')}
+        title={t('charts.drawing.edit_style', 'Edit style')}
         disabled={!hasSelection}
         className={`${buttonBase} ${
           hasSelection
@@ -113,8 +119,8 @@ export function ComparisonChartToolbar({
 
       <button
         type="button"
-        aria-label="Delete selected"
-        title="Delete (Del)"
+        aria-label={t('charts.drawing.delete_selected', 'Delete selected')}
+        title={t('charts.drawing.delete_del', 'Delete (Del)')}
         disabled={!hasSelection}
         className={`${buttonBase} ${
           hasSelection

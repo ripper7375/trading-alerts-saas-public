@@ -51,14 +51,86 @@ export function getStripeClient(): Stripe {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * Stripe Price ID for PRO tier ($29/month)
+ * Stripe Price for the PRO tier. Checkout charges the admin's SystemConfig
+ * price (`affiliate_base_price`); this Price supplies the product, billing
+ * interval and tax behaviour, and is used as-is when its amount matches.
  */
 export const STRIPE_PRO_PRICE_ID = process.env['STRIPE_PRO_PRICE_ID'];
 
+/** STRIPE_PRO_PRICE_ID's Price object, fetched once per process. */
+let proPriceCache: { id: string; price: Promise<Stripe.Price> } | null = null;
+
+function getProPrice(priceId: string): Promise<Stripe.Price> {
+  if (proPriceCache?.id !== priceId) {
+    const price = getStripeClient().prices.retrieve(priceId);
+    // A failed lookup must not be cached: the next checkout retries.
+    price.catch(() => {
+      if (proPriceCache?.price === price) proPriceCache = null;
+    });
+    proPriceCache = { id: priceId, price };
+  }
+  return proPriceCache.price;
+}
+
+/** For tests: forget the cached Price. */
+export function resetProPriceCache(): void {
+  proPriceCache = null;
+}
+
+/** PRO billing period: monthly (`affiliate_base_price`) or yearly (`affiliate_annual_price`). */
+export type BillingPeriod = 'monthly' | 'yearly';
+
 /**
- * PRO tier price in USD
+ * The PRO line item for a checkout session, charging `unitAmountUsd` (the
+ * SystemConfig price for the billing period) once per month or per year.
+ *
+ * When the configured Stripe Price already charges that amount in USD on
+ * that interval, it is used directly. Otherwise an inline price is built on
+ * the same product and tax behaviour, so an admin price change (or the
+ * annual plan) applies to new subscribers without editing Stripe. Existing
+ * subscriptions keep the price they were created with.
  */
-export const PRO_TIER_PRICE = 29;
+export async function buildProLineItem(
+  priceId: string,
+  unitAmountUsd: number | undefined,
+  billingPeriod: BillingPeriod = 'monthly'
+): Promise<Stripe.Checkout.SessionCreateParams.LineItem> {
+  const interval = billingPeriod === 'yearly' ? 'year' : 'month';
+  if (unitAmountUsd === undefined) {
+    if (billingPeriod === 'yearly') {
+      throw new Error('An annual checkout needs the SystemConfig annual price');
+    }
+    return { price: priceId, quantity: 1 };
+  }
+  if (!Number.isFinite(unitAmountUsd) || unitAmountUsd <= 0) {
+    throw new Error(`Invalid PRO price: ${unitAmountUsd}`);
+  }
+  const unitAmount = Math.round(unitAmountUsd * 100);
+  const base = await getProPrice(priceId);
+  if (
+    base.currency === 'usd' &&
+    base.unit_amount === unitAmount &&
+    (base.recurring?.interval ?? 'month') === interval &&
+    (base.recurring?.interval_count ?? 1) === 1
+  ) {
+    return { price: priceId, quantity: 1 };
+  }
+  const taxBehavior =
+    base.tax_behavior && base.tax_behavior !== 'unspecified'
+      ? base.tax_behavior
+      : undefined;
+  return {
+    price_data: {
+      currency: 'usd',
+      unit_amount: unitAmount,
+      product:
+        typeof base.product === 'string' ? base.product : base.product.id,
+      recurring: { interval, interval_count: 1 },
+      ...(taxBehavior && { tax_behavior: taxBehavior }),
+    },
+    quantity: 1,
+  };
+}
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // IDEMPOTENCY (Session 4A-8, CC-C)
@@ -76,15 +148,21 @@ export const CHECKOUT_IDEMPOTENCY_WINDOW_MS = 60_000;
 /**
  * Deterministic Stripe idempotency key for a checkout attempt. Pure/no I/O
  * so the caller (app/api/checkout/route.ts) can derive it before calling
- * `createCheckoutSession`.
+ * `createCheckoutSession`. A yearly attempt gets its own key, so switching
+ * from monthly to yearly within the window is not answered with the monthly
+ * session (monthly keys are unchanged).
  */
 export function buildCheckoutIdempotencyKey(
   userId: string,
-  affiliateCode: string | undefined
+  affiliateCode: string | undefined,
+  billingPeriod: BillingPeriod = 'monthly'
 ): string {
   const windowBucket = Math.floor(Date.now() / CHECKOUT_IDEMPOTENCY_WINDOW_MS);
+  const period = billingPeriod === 'yearly' ? ':yearly' : '';
   return createHash('sha256')
-    .update(`checkout:${userId}:${affiliateCode ?? 'none'}:${windowBucket}`)
+    .update(
+      `checkout:${userId}:${affiliateCode ?? 'none'}:${windowBucket}${period}`
+    )
     .digest('hex');
 }
 
@@ -119,6 +197,11 @@ export function buildCheckoutIdempotencyKey(
  *   record -- required for the EU two-factor location-proof rule. Stripe
  *   rejects `customer` and `customer_email` together, so this is mutually
  *   exclusive with the email path.
+ * @param unitAmountUsd - The PRO price to charge per billing period, from
+ *   SystemConfig (`getBasePriceUsd()` monthly, `getAnnualPriceUsd()` yearly).
+ *   Omitted (monthly only): the Stripe Price's own amount.
+ * @param billingPeriod - 'monthly' (default) or 'yearly'; recorded in the
+ *   session and subscription metadata, which the webhook reads.
  * @returns Stripe Checkout Session
  */
 export async function createCheckoutSession(
@@ -129,33 +212,37 @@ export async function createCheckoutSession(
   affiliateCode?: string,
   discountPercent?: number,
   idempotencyKey?: string,
-  existingStripeCustomerId?: string
+  existingStripeCustomerId?: string,
+  unitAmountUsd?: number,
+  billingPeriod: BillingPeriod = 'monthly'
 ): Promise<Stripe.Checkout.Session> {
   if (!STRIPE_PRO_PRICE_ID) {
     throw new Error('STRIPE_PRO_PRICE_ID environment variable is not set');
   }
+  const lineItem = await buildProLineItem(
+    STRIPE_PRO_PRICE_ID,
+    unitAmountUsd,
+    billingPeriod
+  );
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
     customer: existingStripeCustomerId || undefined,
     customer_email: existingStripeCustomerId ? undefined : userEmail,
-    line_items: [
-      {
-        price: STRIPE_PRO_PRICE_ID,
-        quantity: 1,
-      },
-    ],
+    line_items: [lineItem],
     mode: 'subscription',
     success_url: successUrl,
     cancel_url: cancelUrl,
     metadata: {
       userId,
       tier: 'PRO',
+      billingPeriod,
       ...(affiliateCode && { affiliateCode }),
     },
     subscription_data: {
       metadata: {
         userId,
         tier: 'PRO',
+        billingPeriod,
         ...(affiliateCode && { affiliateCode }),
       },
       trial_period_days: 7, // 7-day free trial

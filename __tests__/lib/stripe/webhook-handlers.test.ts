@@ -69,6 +69,14 @@ jest.mock('@/lib/email/subscription-emails', () => ({
   sendAffiliateCommissionEmail: jest.fn(),
 }));
 
+// The admin's SystemConfig PRO price; deliberately not the $29 default so
+// a hardcoded figure would fail these tests.
+jest.mock('@/lib/affiliate/db', () => ({
+  __esModule: true,
+  getBasePriceUsd: () => Promise.resolve(35),
+  getAnnualPriceUsd: () => Promise.resolve(350),
+}));
+
 jest.mock('@/lib/email/email', () => ({
   __esModule: true,
   sendSubscriptionConfirmationEmail: (...args: unknown[]) =>
@@ -120,6 +128,37 @@ describe('Stripe Webhook Handlers', () => {
       subscription: 'sub_test_123',
     } as unknown as Stripe.Checkout.Session;
 
+    it('records the SystemConfig annual price for a yearly checkout', async () => {
+      mockUserUpdate.mockResolvedValue({
+        id: 'user-123',
+        email: 'user@example.com',
+        name: 'Test User',
+      });
+      mockSubscriptionUpsert.mockResolvedValue({ id: 'sub-db-123' });
+      mockSendSubscriptionConfirmationEmail.mockResolvedValue(undefined);
+
+      await handleCheckoutCompleted({
+        ...mockSession,
+        metadata: { userId: 'user-123', billingPeriod: 'yearly' },
+      } as unknown as Stripe.Checkout.Session);
+
+      expect(mockSubscriptionUpsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            amountUsd: 350,
+            planType: 'YEARLY',
+          }),
+        })
+      );
+      expect(mockSendSubscriptionConfirmationEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        'Test User',
+        'PRO',
+        'yearly',
+        350
+      );
+    });
+
     it('should upgrade user to PRO and create subscription', async () => {
       const mockUser = {
         id: 'user-123',
@@ -151,7 +190,7 @@ describe('Stripe Webhook Handlers', () => {
             stripeCustomerId: 'cus_test_123',
             stripeSubscriptionId: 'sub_test_123',
             status: 'ACTIVE',
-            amountUsd: 29,
+            amountUsd: 35,
           }),
         })
       );
@@ -161,7 +200,8 @@ describe('Stripe Webhook Handlers', () => {
         'user@example.com',
         'Test User',
         'PRO',
-        'monthly'
+        'monthly',
+        35
       );
     });
 
@@ -217,7 +257,8 @@ describe('Stripe Webhook Handlers', () => {
         'user@example.com',
         'User',
         'PRO',
-        'monthly'
+        'monthly',
+        35
       );
     });
 
@@ -588,6 +629,25 @@ describe('Stripe Webhook Handlers', () => {
       });
     });
 
+    it('quotes an annual subscriber the annual price and period', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue({
+        ...mockDbSubscription,
+        planType: 'YEARLY',
+      });
+      mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+      mockSendPaymentFailedEmail.mockResolvedValue(undefined);
+
+      await handleInvoiceFailed(mockInvoice);
+
+      expect(mockSendPaymentFailedEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        'Test User',
+        'Card declined',
+        350,
+        'yearly'
+      );
+    });
+
     it('should update status to PAST_DUE and send failure email', async () => {
       mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
       mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
@@ -605,7 +665,9 @@ describe('Stripe Webhook Handlers', () => {
       expect(mockSendPaymentFailedEmail).toHaveBeenCalledWith(
         'user@example.com',
         'Test User',
-        'Card declined'
+        'Card declined',
+        35,
+        'monthly'
       );
     });
 
@@ -624,7 +686,9 @@ describe('Stripe Webhook Handlers', () => {
       expect(mockSendPaymentFailedEmail).toHaveBeenCalledWith(
         'user@example.com',
         'Test User',
-        'Payment method declined'
+        'Payment method declined',
+        35,
+        'monthly'
       );
     });
 
@@ -642,7 +706,9 @@ describe('Stripe Webhook Handlers', () => {
       expect(mockSendPaymentFailedEmail).toHaveBeenCalledWith(
         'user@example.com',
         'User',
-        'Card declined'
+        'Card declined',
+        35,
+        'monthly'
       );
     });
 
@@ -717,6 +783,52 @@ describe('Stripe Webhook Handlers', () => {
         name: 'Test User',
       });
       mockInvoiceUpsert.mockResolvedValue({ id: 'invoice-db-123' });
+    });
+
+    it('takes the interval and list price from the invoice line, not the amount paid', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+      mockUserUpdate.mockResolvedValue({ id: 'user-123' });
+      mockSendPaymentReceiptEmail.mockResolvedValue(undefined);
+
+      // A $300/month price once meant "yearly" (paid >= $280)
+      await handleInvoiceSucceeded({
+        ...mockInvoice,
+        amount_paid: 30000,
+        total: 30000,
+        lines: {
+          data: [
+            {
+              tax_rates: [],
+              price: {
+                currency: 'usd',
+                unit_amount: 30000,
+                recurring: { interval: 'month' },
+              },
+            },
+          ],
+        },
+      } as unknown as Stripe.Invoice);
+
+      expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+        where: { id: 'sub-db-123' },
+        data: expect.objectContaining({ planType: 'MONTHLY', amountUsd: 300 }),
+      });
+    });
+
+    it('leaves the stored price alone when the invoice line has no price', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+      mockUserUpdate.mockResolvedValue({ id: 'user-123' });
+      mockSendPaymentReceiptEmail.mockResolvedValue(undefined);
+
+      await handleInvoiceSucceeded(mockInvoice);
+
+      const data = (
+        mockSubscriptionUpdate.mock.calls[0]?.[0] as { data: object }
+      ).data;
+      expect(data).not.toHaveProperty('amountUsd');
+      expect(data).toMatchObject({ planType: 'MONTHLY' });
     });
 
     it('should update subscription and send receipt email', async () => {

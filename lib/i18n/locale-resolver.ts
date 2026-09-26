@@ -4,6 +4,7 @@ import {
   isSupportedCurrency,
   type CountryConfig,
 } from '@/lib/country-config';
+import { isSupportedLanguage } from '@/lib/i18n/languages';
 
 /**
  * Single source of truth for turning a country prefix / cookie language into a
@@ -89,8 +90,9 @@ export const SUPPORTED_COUNTRY_PREFIXES = Object.keys(SUPPORTED_COUNTRIES);
  * USD/New_York after hydration. Pin the primary country per language instead.
  */
 const PRIMARY_COUNTRY_FOR_LANGUAGE: Record<string, string> = {
-  'en-GB': 'gb',
   'en-US': 'us',
+  'en-GB': 'gb',
+  en: 'gb',
   hi: 'in',
   ur: 'pk',
   vi: 'vn',
@@ -188,8 +190,19 @@ export function resolvePreferences({
   detectedTimezone?: string | null;
 }): LocalePreferences {
   const fromPrefix = preferencesForCountryPrefix(countryPrefix);
+  // The cookie is user-controlled and the result reaches `<html lang>` and an
+  // inline script, so an unknown value is ignored rather than passed through.
+  const language = isSupportedLanguage(cookieLanguage) ? cookieLanguage : null;
+  // A language with no backing country (zh, zh-TW, es, pt) keeps the default
+  // formats but must not fall back to English.
   const fromLanguage =
-    fromPrefix ?? preferencesForLanguage(cookieLanguage) ?? defaultPreferences;
+    fromPrefix ??
+    (language
+      ? (preferencesForLanguage(language) ?? {
+          ...defaultPreferences,
+          language,
+        })
+      : defaultPreferences);
   // The user's own date/time format refines a cookie-language resolution; a
   // URL prefix brings its country's formats, like its currency.
   const formats = fromPrefix ? null : parseFormatsCookie(cookieFormats);
@@ -223,17 +236,56 @@ export function localeCookieString(language: string): string {
   return `${LOCALE_COOKIE}=${language}; path=/; max-age=31536000; SameSite=Lax`;
 }
 
+const ONE_YEAR = 31536000;
+
+/**
+ * Every cookie the server renders locale from, as name/value pairs, so the
+ * browser (`preferenceCookieStrings`) and the Server Action
+ * (`app/actions/locale.ts`) write exactly the same set. Values are raw:
+ * `cookies().set()` encodes them itself. `maxAge: 0` deletes.
+ */
+export function localeCookies(
+  prefs: LocalePreferences
+): { name: string; value: string; maxAge: number }[] {
+  return [
+    { name: LOCALE_COOKIE, value: prefs.language, maxAge: ONE_YEAR },
+    { name: CURRENCY_COOKIE, value: prefs.currency, maxAge: ONE_YEAR },
+    {
+      name: FORMATS_COOKIE,
+      value: `${prefs.dateFormat}.${prefs.timeFormat}`,
+      maxAge: ONE_YEAR,
+    },
+    prefs.timezoneSetByUser
+      ? { name: TIMEZONE_COOKIE, value: prefs.timezone, maxAge: ONE_YEAR }
+      : { name: TIMEZONE_COOKIE, value: '', maxAge: 0 },
+  ];
+}
+
 /**
  * The cookies that let the server render the user's currency, date/time
  * format and timezone.
  */
 export function preferenceCookieStrings(prefs: LocalePreferences): string[] {
-  const attrs = 'path=/; SameSite=Lax';
+  return localeCookies(prefs)
+    .filter((c) => c.name !== LOCALE_COOKIE)
+    .map(
+      (c) =>
+        `${c.name}=${encodeURIComponent(c.value)}; path=/; SameSite=Lax; max-age=${c.maxAge}`
+    );
+}
+
+/**
+ * What a server render depends on. Server Components (layouts included) only
+ * see the cookies, so when this changes on the client they are stale until
+ * the server renders again. An IP-detected timezone is not included: the
+ * server detects it from the request itself.
+ */
+export function serverRenderKey(prefs: LocalePreferences): string {
   return [
-    `${CURRENCY_COOKIE}=${prefs.currency}; ${attrs}; max-age=31536000`,
-    `${FORMATS_COOKIE}=${prefs.dateFormat}.${prefs.timeFormat}; ${attrs}; max-age=31536000`,
-    prefs.timezoneSetByUser
-      ? `${TIMEZONE_COOKIE}=${encodeURIComponent(prefs.timezone)}; ${attrs}; max-age=31536000`
-      : `${TIMEZONE_COOKIE}=; ${attrs}; max-age=0`,
-  ];
+    prefs.language,
+    prefs.currency,
+    prefs.dateFormat,
+    prefs.timeFormat,
+    prefs.timezoneSetByUser ? prefs.timezone : '',
+  ].join('|');
 }

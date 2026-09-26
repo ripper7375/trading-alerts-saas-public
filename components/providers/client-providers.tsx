@@ -8,6 +8,7 @@ import {
 } from '@/lib/i18n/locale-resolver';
 import { AppearanceProvider } from '@/components/providers/appearance-provider';
 import { AppearanceSettings } from '@/lib/appearance/types';
+import type { DisplayUsdRates } from '@/lib/country-config';
 import { SupportChatProvider } from '@/components/chat-widget/chat-context';
 import { FloatingChatTrigger } from '@/components/chat-widget/floating-chat-trigger';
 import { SupportChatWidget } from '@/components/chat-widget/support-chat-widget';
@@ -24,16 +25,19 @@ export default function ClientProviders({
   initialPreferences = defaultPreferences,
   initialAppearance,
   detectedTimezone,
+  initialUsdRates,
 }: {
   children: React.ReactNode;
   initialPreferences?: LocalePreferences;
   initialAppearance?: AppearanceSettings;
   detectedTimezone?: string | null;
+  initialUsdRates?: DisplayUsdRates | null;
 }) {
   return (
     <LocaleProvider
       initialPreferences={initialPreferences}
       detectedTimezone={detectedTimezone}
+      initialUsdRates={initialUsdRates}
     >
       <AppearanceProvider initialSettings={initialAppearance}>
         <SupportChatProvider>

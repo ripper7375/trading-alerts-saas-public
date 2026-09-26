@@ -64,6 +64,8 @@ interface SubscriptionData {
     status: string;
     provider: 'STRIPE' | 'DLOCAL' | null;
     planType: string | null;
+    /** The subscriber's own price per billing period (USD), as charged */
+    amountUsd?: number | null;
     currentPeriodEnd: string | null;
     expiresAt: string | null;
     cancelAtPeriodEnd: boolean;
@@ -126,7 +128,7 @@ export default function BillingSettingsPage(): React.ReactElement {
     ? viewAs.role
     : (session?.user as { role?: string } | undefined)?.role;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
-  const { regularPrice } = useAffiliateConfig();
+  const { regularPrice, annualPrice } = useAffiliateConfig();
 
   const fetchSubscription = useCallback(async (): Promise<void> => {
     try {
@@ -251,6 +253,11 @@ export default function BillingSettingsPage(): React.ReactElement {
 
   const trial = subscriptionData?.trial;
   const subscription = subscriptionData?.subscription ?? null;
+  // The subscriber's own plan: its period and the price it was bought at
+  // (existing subscribers keep theirs), else today's SystemConfig price.
+  const isYearlyPlan = subscription?.planType === 'YEARLY';
+  const planPriceUsd =
+    subscription?.amountUsd ?? (isYearlyPlan ? annualPrice : regularPrice);
 
   return (
     <div className="animate-fade-in">
@@ -358,11 +365,14 @@ export default function BillingSettingsPage(): React.ReactElement {
           <div className="mb-4 flex items-baseline gap-2">
             <span className="text-4xl font-bold text-foreground">
               {userTier === 'PRO'
-                ? formatCurrency(regularPrice)
+                ? formatCurrency(planPriceUsd)
                 : formatCurrency(0)}
             </span>
             <span className="text-muted-foreground">
-              /{t('billing.month', 'month')}
+              /
+              {userTier === 'PRO' && isYearlyPlan
+                ? t('billing.year', 'year')
+                : t('billing.month', 'month')}
             </span>
           </div>
           {userTier === 'PRO' && displayCurrency !== 'USD' && (
@@ -374,7 +384,7 @@ export default function BillingSettingsPage(): React.ReactElement {
                 .replace('{currency}', displayCurrency)
                 .replace(
                   '{usdPrice}',
-                  formatChargedAmount(regularPrice, 'USD', language)
+                  formatChargedAmount(planPriceUsd, 'USD', language)
                 )}
             </p>
           )}

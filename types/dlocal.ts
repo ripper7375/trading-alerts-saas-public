@@ -33,7 +33,7 @@ export type DLocalCurrency =
   | 'AED';
 
 // Plan types (3-day only for dLocal, monthly for both)
-export type PlanType = 'THREE_DAY' | 'MONTHLY';
+export type PlanType = 'THREE_DAY' | 'MONTHLY' | 'YEARLY';
 
 // Payment status
 export type PaymentStatus =

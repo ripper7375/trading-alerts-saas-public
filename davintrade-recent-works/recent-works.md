@@ -72,6 +72,12 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-bill-receipts-and-history\
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-admin-view-as-user\admin-view-as-user-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\davintrade-language-and-locale-format-fix\language-and-locale-format-fix-manifest-work-completion.md
+
+D:\SaaS Project\trading-alerts-saas-public\davintrade-16-language-localization-remediation\16-language-localization-remediation-manifest-work-completion.md
+
+D:\SaaS Project\trading-alerts-saas-public\davintrade-systemconfig\systemconfig-fix-manifest-work-completion.md
+
 =================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder

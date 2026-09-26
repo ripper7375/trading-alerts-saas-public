@@ -10,6 +10,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
@@ -36,7 +37,18 @@ describe('AdminAnalyticsController', () => {
 
     const moduleRef = await Test.createTestingModule({
       controllers: [AdminAnalyticsController],
-      providers: [{ provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        { provide: PrismaService, useValue: prismaMock },
+        {
+          provide: AffiliateConfigService,
+          useValue: {
+            getBasePriceUsd: jest.fn().mockResolvedValue(35),
+            getThreeDayPriceUsd: jest.fn().mockResolvedValue(2.49),
+            getCodesPerMonth: jest.fn().mockResolvedValue(12),
+            getAnnualPriceUsd: jest.fn().mockResolvedValue(350),
+          },
+        },
+      ],
     }).compile();
 
     controller = moduleRef.get(AdminAnalyticsController);
@@ -70,8 +82,9 @@ describe('AdminAnalyticsController', () => {
       freePercentage: 80,
       proPercentage: 20,
     });
-    expect(result.revenue.mrr).toBe(580); // 20 * 29
-    expect(result.revenue.arr).toBe(6960); // 580 * 12
+    // 20 PRO users x the SystemConfig price (mocked 35, not the $29 default)
+    expect(result.revenue.mrr).toBe(700);
+    expect(result.revenue.arr).toBe(8400); // 700 * 12
     expect(result.growth.newUsersThisMonth).toBe(5);
     expect(result.growth.churnedThisMonth).toBe(0);
   });

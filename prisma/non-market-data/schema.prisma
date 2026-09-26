@@ -450,7 +450,7 @@ model Subscription {
   dLocalCurrency      String? // 'INR', 'IDR', 'PKR', etc.
 
   // Common fields
-  planType            String? // 'MONTHLY', 'THREE_DAY' (dLocal only)
+  planType            String? // 'MONTHLY', 'YEARLY', 'THREE_DAY' (dLocal only)
   amountUsd           Float
   status              SubscriptionStatus
   expiresAt           DateTime? // Explicit expiry date (critical for dLocal)
@@ -520,7 +520,7 @@ model Payment {
   paymentMethod String?
 
   // Additional Data
-  planType       String? // 'THREE_DAY', 'MONTHLY'
+  planType       String? // 'THREE_DAY', 'MONTHLY', 'YEARLY'
   duration       Int? // Days (3 or 30)
   discountCode   String?
   discountAmount Decimal?
