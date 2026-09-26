@@ -1,50 +1,43 @@
 'use client';
 
-import { Suspense } from 'react';
 import { SessionProvider } from 'next-auth/react';
-import { ThemeProvider } from 'next-themes';
 import ClientProviders from '@/components/providers/client-providers';
-import { ThemeSync } from '@/components/theme-sync';
 import type { LocalePreferences } from '@/lib/i18n/locale-resolver';
 import type { AppearanceSettings } from '@/lib/appearance/types';
 import type { DisplayUsdRates } from '@/lib/country-config';
 
+/**
+ * No next-themes <ThemeProvider> here: AppearanceProvider (inside
+ * ClientProviders) owns the <html> light/dark class. next-themes kept its
+ * own theme state, seeded from localStorage, and re-applied it in a passive
+ * effect AFTER AppearanceProvider's layout effect -- so whenever
+ * localStorage and the server-resolved theme disagreed, the page chrome
+ * ended up in one theme while components reading `resolvedTheme` (the
+ * landing hero image, charts) rendered the other, until a reload.
+ */
 export function Providers({
   children,
-  initialTheme,
   initialPreferences,
   initialAppearance,
   detectedTimezone,
   initialUsdRates,
 }: {
   children: React.ReactNode;
-  initialTheme?: 'light' | 'dark' | 'system';
   initialPreferences?: LocalePreferences;
   initialAppearance?: AppearanceSettings;
   detectedTimezone?: string | null;
   initialUsdRates?: DisplayUsdRates | null;
 }) {
   return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme={initialTheme ?? 'system'}
-      enableSystem
-      storageKey="davintrade-theme"
-      disableTransitionOnChange
-    >
-      <SessionProvider>
-        <Suspense fallback={null}>
-          <ThemeSync />
-        </Suspense>
-        <ClientProviders
-          initialPreferences={initialPreferences}
-          initialAppearance={initialAppearance}
-          detectedTimezone={detectedTimezone}
-          initialUsdRates={initialUsdRates}
-        >
-          {children}
-        </ClientProviders>
-      </SessionProvider>
-    </ThemeProvider>
+    <SessionProvider>
+      <ClientProviders
+        initialPreferences={initialPreferences}
+        initialAppearance={initialAppearance}
+        detectedTimezone={detectedTimezone}
+        initialUsdRates={initialUsdRates}
+      >
+        {children}
+      </ClientProviders>
+    </SessionProvider>
   );
 }

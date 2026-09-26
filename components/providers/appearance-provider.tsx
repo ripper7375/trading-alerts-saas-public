@@ -16,8 +16,6 @@ import {
   ThemeMode,
 } from '@/lib/appearance/types';
 
-const THEME_STORAGE_KEY = 'davintrade-theme';
-
 interface AppearanceContextValue {
   settings: AppearanceSettings;
   updateSettings: (newSettings: Partial<AppearanceSettings>) => void;
@@ -69,19 +67,14 @@ function resolveThemeClass(theme: ThemeMode): 'light' | 'dark' {
 }
 
 /**
- * Applies the resolved theme class directly to <html>, deliberately NOT
- * routed through next-themes' own setTheme()/class-application effect.
- * next-themes keeps a `window` 'storage' listener for cross-tab sync that
- * unconditionally trusts ANY external write to its storageKey and
- * re-applies it immediately -- with multiple tabs of the app open (a
- * trading terminal is routinely used that way: dashboard, alerts, settings
- * each in their own tab) or any other agent writing to the same
- * localStorage key, that listener can silently override this DB-backed,
- * per-user theme choice moments after it's set, producing a rapid
- * light/dark flip-flop that settles on the wrong value. AppearanceProvider
- * IS the actual source of truth (server-resolved fresh on every full page
- * load, persisted to the DB via saveAppearanceAction), so it owns the DOM
- * class directly instead of delegating to next-themes for it.
+ * Applies the resolved theme class directly to <html>. AppearanceProvider
+ * is the only owner of that class: its settings are server-resolved on
+ * every full page load (DB record, else the davintrade-appearance cookie)
+ * and persisted via saveAppearanceAction, and the root layout's inline
+ * script paints the same server value before hydration. next-themes is no
+ * longer mounted -- it kept a second, localStorage-seeded theme and
+ * re-applied it after hydration, splitting the page class from
+ * `resolvedTheme` consumers (see app/providers.tsx).
  */
 function applyThemeToDOM(theme: ThemeMode): void {
   if (typeof window === 'undefined') return;
@@ -90,11 +83,6 @@ function applyThemeToDOM(theme: ThemeMode): void {
   root.classList.remove('light', 'dark');
   root.classList.add(resolved);
   root.style.colorScheme = resolved;
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  } catch {
-    // localStorage unavailable (private browsing, etc.) -- DOM class above is already correct.
-  }
 }
 
 export function AppearanceProvider({
@@ -115,34 +103,13 @@ export function AppearanceProvider({
     applyAppearanceToDOM(settings);
   }, [settings]);
 
-  // Own the .dark/.light class directly (see applyThemeToDOM's own comment
-  // for why this bypasses next-themes) -- useLayoutEffect so there's no
-  // flash between commit and paint when the user picks a new Theme Mode.
-  // Deliberately depends on settings.theme alone: this must re-run only
-  // when OUR value actually changes, never as a reaction to next-themes'
-  // own internal churn.
+  // Own the .dark/.light class directly (see applyThemeToDOM) --
+  // useLayoutEffect so there's no flash between commit and paint when the
+  // user picks a new Theme Mode. The class and `resolvedTheme` are set
+  // together, from the same value, so they cannot disagree.
   useLayoutEffect(() => {
     applyThemeToDOM(settings.theme);
     setResolvedTheme(resolveThemeClass(settings.theme));
-  }, [settings.theme]);
-
-  // Re-assert our theme if something external changes the storage key
-  // afterward (another tab, a stray cross-context write) -- our value
-  // always wins, since the DB is the actual source of truth, not
-  // localStorage. Registered after next-themes' own <ThemeProvider> (a
-  // parent, so it mounts and registers its listener first), so on a
-  // genuine external write next-themes may apply the wrong class for one
-  // event-handling pass before this listener corrects it back in the same
-  // synchronous dispatch -- self-heals immediately rather than settling
-  // wrong.
-  useEffect(() => {
-    function handleStorage(e: StorageEvent): void {
-      if (e.key === THEME_STORAGE_KEY && e.newValue !== settings.theme) {
-        applyThemeToDOM(settings.theme);
-      }
-    }
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
   }, [settings.theme]);
 
   // Keep the DOM in sync with OS-level scheme changes while in 'system' mode.

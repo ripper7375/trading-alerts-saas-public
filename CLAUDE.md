@@ -13,6 +13,27 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Same day (2026-09-26), round 5: the landing hero image and the page theme no longer disagree. On
+> `main`, NOT committed, NOT deployed.** Davin's screenshots showed a dark page with the light hero
+> artwork until a refresh. **Cause:** next-themes' `<ThemeProvider>` was still mounted in
+> `app/providers.tsx`. Its theme was seeded from `localStorage['davintrade-theme']`, and its passive
+> effect re-applied that value to `<html>` after AppearanceProvider's layout effect had applied the
+> server value (DB, else the `davintrade-appearance` cookie). The root layout's inline script also
+> preferred localStorage. So a stale value painted the page while `resolvedTheme` (hero image,
+> charts) followed the server. Examples: the old dark default, or another account on the same
+> browser. **Fix:** next-themes unmounted. The inline script paints only `?theme=` or the server
+> theme ('system' resolved). AppearanceProvider's `storage` listener is removed, since two tabs on
+> different themes would re-write the key back and forth, and so is its localStorage write.
+> `ThemeSync` (`?theme=`) now goes through `updateSettings`.
+> **Verified:** `tsc`/ESLint clean; `test:ci` **251/251 · 3213/3213** (new
+> `__tests__/app/providers-theme.test.tsx`); mutation (next-themes restored) fails with
+> `Expected "light" / Received "dark"`, restore byte-exact; live `next dev`: stale `dark` in
+> localStorage with the server on light gives a light page and light images; the toggle switches
+> both; the saved choice survives a reload over the opposite localStorage value. **Seen, not
+> fixed:** `/` hydration mismatch when the `davintrade-locale` cookie is `zh` (server hero text
+> English, client Chinese), which is the locale system, not theme. `components/theme-toggle.tsx`
+> still imports next-themes but nothing imports it.
+
 > **Same day (2026-09-26), round 4 — commission cap in months, interval-aware MRR, one exchange-rate
 > table. Branch `fix/commission-cap-mrr-fx-rates`, committed as `a0b87b73`, merged to `main` via PR #473,
 > DEPLOYED to production (Vercel & Railway). Money change, done on Davin's explicit chat order.**

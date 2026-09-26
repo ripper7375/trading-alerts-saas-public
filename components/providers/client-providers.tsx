@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
+import { ThemeSync } from '@/components/theme-sync';
 import { LocaleProvider } from '@/lib/context/locale-context';
 import {
   defaultPreferences,
@@ -40,6 +41,9 @@ export default function ClientProviders({
       initialUsdRates={initialUsdRates}
     >
       <AppearanceProvider initialSettings={initialAppearance}>
+        <Suspense fallback={null}>
+          <ThemeSync />
+        </Suspense>
         <SupportChatProvider>
           {children}
           <FloatingChatTrigger />

@@ -148,21 +148,21 @@ export default async function RootLayout({
               (function() {
                 try {
                   var u = new URLSearchParams(window.location.search);
-                  var c = document.cookie.match(/davintrade-theme=([^;]+)/);
-                  // localStorage before the cookie: next-themes' setTheme()
-                  // (called live whenever the user picks a theme) only ever
-                  // updates localStorage, not this cookie -- the cookie is
-                  // only (re)written by this same script, once per full
-                  // page load. Checking the cookie first meant a stale
-                  // write-once value could outlive and override a fresher
-                  // live theme change on the next hard reload.
-                  var t = u.get('theme') || localStorage.getItem('davintrade-theme') || (c && c[1]) || '${initialAppearance.theme}';
+                  // The server-resolved theme (user's DB record, else the
+                  // davintrade-appearance cookie, else the default) is the
+                  // only source: it is exactly what AppearanceProvider
+                  // hydrates with, so the first paint, the page class and
+                  // every resolvedTheme consumer (hero image, charts) agree.
+                  // An old localStorage value must never win here.
+                  var t = u.get('theme');
+                  if (t !== 'dark' && t !== 'light') t = ${toScript(initialAppearance.theme)};
+                  if (t === 'system') {
+                    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
                   var d = document.documentElement;
                   d.classList.remove('dark', 'light');
                   d.classList.add(t);
                   d.style.colorScheme = t;
-                  document.cookie = 'davintrade-theme=' + t + '; path=/; max-age=31536000; SameSite=Lax';
-                  localStorage.setItem('davintrade-theme', t);
 
                   // The server already resolved this render's language from the
                   // URL prefix / cookie, so keep <html lang> matching the HTML
@@ -193,7 +193,6 @@ export default async function RootLayout({
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <Providers
-          initialTheme={initialAppearance.theme}
           initialPreferences={initialPreferences}
           detectedTimezone={detectedTimezone}
           initialAppearance={initialAppearance}
