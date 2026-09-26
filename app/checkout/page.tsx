@@ -540,6 +540,7 @@ function CheckoutContent(): React.ReactElement {
                   onChange={setPlanType}
                   canUseThreeDayPlan={canUseThreeDayPlan}
                   showThreeDayPlan={true}
+                  currency={currency}
                 />
 
                 {/* Payment Method */}

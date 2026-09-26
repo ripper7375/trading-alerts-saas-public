@@ -152,6 +152,19 @@ export function preferencesForLanguage(
   return match ? preferencesFromCountry(match) : null;
 }
 
+/**
+ * The currency a language implies: its country's (Thai: THB), or USD for a
+ * language with no country of its own (zh, zh-TW, es, pt). Without the USD
+ * default, switching Thai → Chinese kept showing baht.
+ */
+export const NO_COUNTRY_LANGUAGE_CURRENCY = 'USD';
+
+export function currencyForLanguage(language?: string | null): string {
+  return (
+    preferencesForLanguage(language)?.currency ?? NO_COUNTRY_LANGUAGE_CURRENCY
+  );
+}
+
 /** Whether `timezone` is an IANA zone this runtime can format in. */
 export function isValidTimezone(timezone?: string | null): timezone is string {
   if (!timezone) return false;
@@ -194,13 +207,14 @@ export function resolvePreferences({
   // inline script, so an unknown value is ignored rather than passed through.
   const language = isSupportedLanguage(cookieLanguage) ? cookieLanguage : null;
   // A language with no backing country (zh, zh-TW, es, pt) keeps the default
-  // formats but must not fall back to English.
+  // formats but must not fall back to English, and prices in USD.
   const fromLanguage =
     fromPrefix ??
     (language
       ? (preferencesForLanguage(language) ?? {
           ...defaultPreferences,
           language,
+          currency: NO_COUNTRY_LANGUAGE_CURRENCY,
         })
       : defaultPreferences);
   // The user's own date/time format refines a cookie-language resolution; a

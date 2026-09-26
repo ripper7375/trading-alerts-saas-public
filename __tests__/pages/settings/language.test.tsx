@@ -127,12 +127,12 @@ describe('LanguageSettingsPage', () => {
     expect(combobox('Your Timezone')).toHaveTextContent('Europe/London');
   });
 
-  it('keeps the current values for a language with no country', async () => {
+  it('keeps the formats but suggests USD for a language with no country', async () => {
     await renderLoaded();
     pick('Display Language', /Chinese \(Simplified\)/);
 
     expect(checked('dateFormat')).toBe('DMY');
-    expect(combobox('Display Currency')).toHaveTextContent('GBP');
+    expect(combobox('Display Currency')).toHaveTextContent('USD');
   });
 
   it('lets the user override each value after choosing a language', async () => {

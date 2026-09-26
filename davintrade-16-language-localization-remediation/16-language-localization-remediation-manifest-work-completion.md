@@ -521,3 +521,22 @@ the note naming "US$29.00 / month", then "US$290.00 / year" on Annual; in Thai, 
 - The landing-page pricing card shows local prices without the note.
 - Checkout's note was not seen live (checkout needs a signed-in session).
 - The new sentences are machine-written, not native-reviewed (§6 item 20 applies).
+
+## 11. Round 6 (2026-09-26): a language with no country prices in USD
+
+**Reported (Davin's /pricing screenshot):** Thai chosen, then Chinese from the navbar's language
+picker: the page was in Chinese but PRO still read THB 968.02.
+
+**Cause.** A language change takes its country's currency (`preferencesForLanguage()`), and
+zh, zh-TW, es and pt have no country, so nothing replaced the previous one. The Settings page
+did the same on purpose ("keep the current values").
+
+**Fix.** New `currencyForLanguage()` / `NO_COUNTRY_LANGUAGE_CURRENCY` (`USD`) in
+`lib/i18n/locale-resolver.ts`, used by `LocaleProvider` (language change, withdrawn-currency
+fallbacks), the Settings page's language suggestion, and `resolvePreferences()` for a
+no-country language cookie without a currency cookie. Country and date/time formats are left
+alone; a currency the user passes or picks still wins.
+
+**Verified:** `tsc`/ESLint clean; full `test:ci` **247/247 · 3178/3178**; mutation (remove the
+USD branch) fails 4 tests; live `next dev`: Thai `/pricing` ฿968.02 → Chinese via the navbar
+modal → US$29.00, no THB on the page, still USD after a reload (`davintrade-currency=USD`).

@@ -329,3 +329,23 @@ in USD.
 
 See §8: money-service's own converter copy, the fallback-rate mismatch, the landing card, and
 checkout's note not seen live.
+
+## 11. Round 3 (2026-09-26): checkout plan cards in the charged currency
+
+**Reported (Davin's /checkout screenshot):** country Thailand, language English (UK): plan cards
+£1.50 / £21.90 / £218.95, total ฿9,680.20.
+
+**Cause.** `PlanSelector` formatted with the display currency (`formatCurrency`, from the
+language), while the total (`PriceDisplay`) uses the dLocal country's currency, the one charged.
+The country comes from geo-IP, not the language, so the two differ whenever the language is not
+the payer country's.
+
+**Fix.** `PlanSelector` takes an optional `currency`; `/checkout` passes the dLocal country's, so
+every figure in the dLocal card is in the charged currency (at the same live rate table). Also:
+`/api/payments/dlocal/convert` did not list `AED` although the converter supports it, so a UAE
+total fell back to the estimated rate; added.
+
+**Verified:** new PlanSelector test (THB cards, no £); mutation fails it; full `test:ci`
+**247/247 · 3178/3178**. **Not seen live:** checkout needs a signed-in session. Cards round to
+whole units at ≥1000 (THB 9,680) while the total shows ฿9,680.20; same currency, different
+existing formatters.

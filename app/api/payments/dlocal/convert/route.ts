@@ -28,6 +28,7 @@ const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
   'THB',
   'ZAR',
   'TRY',
+  'AED',
 ];
 
 function isSupportedCurrency(currency: string): currency is DLocalCurrency {

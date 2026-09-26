@@ -13,6 +13,17 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Same day (2026-09-26), follow-up to Davin's two screenshots — currency mixing fixed. Branch
+> `fix/no-country-language-currency`, tested by Davin, merged to `main` by PR, NOT deployed.** (1) `/pricing`: Thai → Chinese via the navbar language picker kept
+> THB. zh/zh-TW/es/pt have no country, so a language change replaced nothing; now they take USD
+> (`currencyForLanguage()` in `lib/i18n/locale-resolver.ts`, used by `LocaleProvider`, the Settings
+> page and `resolvePreferences()`). (2) `/checkout`: Thailand + English (UK) showed £ plan cards over
+> a ฿ total; `PlanSelector` now takes the dLocal country's `currency`, so the dLocal card is all in
+> the charged currency. Also `AED` added to `/api/payments/dlocal/convert`'s allowlist.
+> **Verified:** `tsc`/ESLint clean; `test:ci` **247/247 · 3178/3178** (+6 tests); mutation 5/5 failing
+> tests; live `/pricing` ฿968.02 → US$29.00, survives reload. **Not seen live:** checkout (sign-in).
+> Accounts: 16-language manifest §11, SystemConfig manifest §11.
+
 > **Same session (2026-09-26) — SystemConfig figures are no longer hardcoded: the admin's price
 > is now what customers pay. Same branch, committed and pushed 2026-09-26 (5 commits, with round 3 and the live-rate work), NOT merged, NOT deployed. Money change, approved
 > by Davin in chat (Stripe option (a), dLocal, codes per month, displays and emails).** Davin
