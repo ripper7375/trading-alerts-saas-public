@@ -13,6 +13,88 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Same session (2026-09-26) — SystemConfig figures are no longer hardcoded: the admin's price
+> is now what customers pay. Same branch, committed and pushed 2026-09-26 (5 commits, with round 3 and the live-rate work), NOT merged, NOT deployed. Money change, approved
+> by Davin in chat (Stripe option (a), dLocal, codes per month, displays and emails).** Davin
+> worried that configurable figures (price, % discount, % commission) bypassed SystemConfig. An
+> audit confirmed it: **the admin Base Price changed displays but not charges.** dLocal charged
+> a fixed `PRICING.MONTHLY_USD`/`THREE_DAY_USD`; Stripe charged `STRIPE_PRO_PRICE_ID`'s own
+> amount; registration and both monthly jobs handed out a fixed 15 codes; `/docs` promised 30%
+> commission (20% configured); checkout, `/pricing` (env `NEXT_PUBLIC_PRO_PRICE_MONTHLY`) and the
+> upgrade pop-up showed fixed or second-source prices; emails said "$29/month or $290/year";
+> both Stripe webhooks stored `amountUsd` 29/290 and read "paid ≥ $280" as yearly.
+> **Done (both the Next app and money-service where mirrored):** Stripe checkout builds the line
+> item from the SystemConfig price (`buildProLineItem`: the Stripe Price as-is when it matches,
+> else an inline price on the same product/interval/tax behaviour; existing subscribers keep
+> theirs); dLocal charges `getBasePriceUsd()`/`getThreeDayPriceUsd()`; webhooks store the charged
+> price and read interval/price from the invoice line (new `invoice-plan.ts`); codes per month
+> from SystemConfig; displays via `useAffiliateConfig()`; `/pricing` annual toggle removed (no
+> annual plan is sold); emails take the price; admin MRR uses the SystemConfig price;
+> `calculateStandardSale` takes its rates as parameters. Dictionaries: 12 placeholder keys
+> (`{percent}`/`{price}`/`{count}`) replace text with 30%/20%/$49/15 on `/docs` and 4 affiliate
+> pages (template-literal `t()` keys never matched the dictionary at the real 20%); 29 unused
+> wrong-figure entries deleted from all 17. New guard `__tests__/lib/systemconfig-figures-guard.test.ts`.
+> **Verified:** `tsc` clean in both; full `test:ci` **245/245 · 3153/3153**; money-service
+> **63/63 · 627/627**; mutation **9/9** killed (restores byte-exact); live `next dev`: `/docs`
+> shows "20%", `/pricing` monthly only (£22.62 = $29), no console errors. Status table:
+> `docs/SYSTEMCONFIG-USAGE-GUIDE.md` top section. **Not verified:** a real Stripe/dLocal checkout
+> after an admin price change (needs a signed-in test on staging).
+> **Then, same day: a complete annual plan (Davin asked).** New SystemConfig key
+> `affiliate_annual_price` (default $290), editable at `/admin/settings/affiliate`. Stripe:
+> `billingPeriod: 'yearly'` on `/api/checkout` → inline yearly price on the same product, metadata
+> read by the webhook; dLocal: `planType: 'YEARLY'`, 365 days (no migration: `planType` is a string).
+> `/pricing` Monthly/Annual toggle back (computed saving, `?billing=yearly`), checkout card and
+> plan selector offer Annual, Settings → Billing shows each subscriber's own price and "/year",
+> receipts and invoice list name the plan, payment-failed email quotes the subscriber's period.
+> 14 new keys in all 17 dictionaries. **Verified:** `tsc` clean in both; `test:ci`
+> **246/246 · 3163/3163**; money-service **63/63 · 632/632**; mutation **15/15**; live `/pricing`
+> annual view and landing card. **Full account (both parts):**
+> `davintrade-systemconfig/systemconfig-fix-manifest-work-completion.md`; language side in the
+> 16-language manifest §9. **For Davin:** affiliate codes apply to the annual plan (discount on the
+> first year, commission on the amount collected) — manifest D6; no monthly↔annual switch for an
+> existing subscriber; admin MRR still counts annual subscribers at the monthly price.
+> **Then, same day: local prices at the live rate (Davin chose option 1).** Displays converted USD
+> at fixed rates (GBP 0.78) while dLocal charged at the live exchangerate-api.com rate. New
+> `lib/fx/usd-rates.ts`: one hourly table shared by the dLocal charge (`fresh: true`, never an
+> expired rate) and every display (root layout → `LocaleProvider`, refreshed from new public
+> `GET /api/fx/rates`; server pages pass `rates` to `formatCurrencyAmount`). Fixed rates are only
+> the fallback. `/pricing` and checkout now say the local price is approximate and name the USD card
+> charge (`pricing.approx_note`, `checkout.card_charged_usd`, all 17 dictionaries). `jest.setup.js`
+> mocks the rate module globally; suites testing real conversion opt out with `jest.unmock`.
+> **Verified:** `tsc` clean; `test:ci` **247/247 · 3172/3172**; mutation 3/3 (the stale-rate-charge
+> mutant survived first, so a test was added); live: `/api/fx/rates` `live`, `/pricing` £21.90 at
+> GBP 0.755 with the note (monthly and annual), Thai ฿968.02 with the Thai note. **Open:**
+> money-service's dLocal converter keeps its own cache (same source, can be up to an hour apart);
+> fallback rates differ between display and dLocal during an outage; the landing card has no note;
+> checkout's note not seen live (needs sign-in). Manifest §10; 16-language manifest §10; policy §4.
+
+> **Round 3 (2026-09-26) — every public, auth and FREE/PRO page is fully translated in all 16
+> languages, enforced by a test. Same branch `fix/16-language-localization-reaudit`, committed and pushed 2026-09-26,
+> NOT deployed.** Davin's Vercel-preview screenshots showed `/admin` in English with Japanese chosen
+> (only the support button was Japanese). **Cause:** `ja.json` held English copies of the admin keys;
+> Thai had real translations. Not the language switch. Davin then set the scope:
+>
+> - **Compulsory:** public marketing, auth, FREE/PRO user pages, every language and locale format.
+> - **Encouraged:** affiliate pages. **Not required:** admin pages (internal).
+>
+> **Done:** `compulsoryPages()` in `scripts/i18n-translation-coverage.js` (70 files, 270 with
+> imports). Text that bypassed `t()` wired: zod validation messages on the auth forms, payment,
+> country and currency names, `/status` components, tab titles (new `lib/i18n/server-metadata.ts`),
+> the HRMA/SMMA window, error pages (`global-error.tsx` reads the cookie itself), chat widget.
+> English-only formatting fixed: blog/changelog dates, the account-deletion countdown (`date-fns` →
+> `Intl` units), alert fallback names. Every compulsory key translated in all 15 non-English
+> languages (~1,130 keys each in the 10 Tier-2 languages; zh-TW via OpenCC). New
+> `scripts/i18n-identical-ok.json`; new guard `__tests__/lib/i18n/compulsory-translation-coverage.test.ts`.
+> Also removed a wrong "$49/mo" from a canned chat reply (PRO is $29).
+> **Verified:** `tsc`/ESLint/Prettier clean; full `test:ci` **244/244 · 3139/3139**; mutation 4/4
+> killed; live Japanese `/login`, `/status`, `/blog` on `next dev`. Workbook regraded: everything below
+> Pass is admin (38) or affiliate (12). **Full account:** manifest §8 of
+> `davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`.
+> **Open:** affiliate translation (optional, ~270 keys/language); client pages paint English briefly
+> before a lazily loaded dictionary arrives (§6 item 6); translations are not native-reviewed.
+> **Rule for new UI:** adding text to a compulsory page means a real translation in all 17
+> dictionaries, or the guard test fails (policy, top note).
+
 > **Same session, round 2 (2026-09-25) — language and format changes now reach server-rendered parts
 > without a refresh. Same branch (`e8350262`, `b64cc305`, docs), pushed, NOT merged, NOT deployed.** Davin's `/admin` screenshots showed a Thai page body
 > with a Korean sidebar and header until he refreshed. **Cause (reproduced on `/academy` first):**
@@ -4763,15 +4845,27 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
 
 ## Waiting on
 
+- **SystemConfig pricing (2026-09-26): deploy both apps together, then test a price change.**
+  Stripe checkout is proxied to money-service when its flag is on, so deploy money-service and the
+  Next app together. Then remove `NEXT_PUBLIC_PRO_PRICE_MONTHLY`/`_YEARLY` from Vercel if set (no
+  longer read). On staging: set a different Base Price in `/admin/settings/affiliate`, run a Stripe
+  test checkout (expect an inline price on the PRO product) and a dLocal test payment (expect the
+  new amount). Repeat for the annual plan (Stripe: yearly interval; dLocal: 365 days) and set the
+  Annual PRO Price in admin (default $290 until set). After deploy, open
+  `https://davintrade.app/api/fx/rates`: `source` must be `"live"` (otherwise local prices are at
+  the fixed fallback rates). Checklist: §7 of
+  `davintrade-systemconfig/systemconfig-fix-manifest-work-completion.md`.
+
 - **Language & locale (2026-09-25): merge, then the open items.** Branch
   `fix/16-language-localization-reaudit` is pushed, not merged, not deployed. After deploy, do the
   signed-in click-through; the checklist is item 7 of §6 in
   `davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`.
   The click-through should include Davin's round-2 case: change language, then open `/admin` without
-  refreshing; the sidebar must follow (manifest §7). Round 2 is committed on the same branch.
-  That §6 lists all 19 open items. The largest is Tier-2 translation (about 25% translated). Two need
-  Davin's call: loading saved preferences on a new device (auth-adjacent), and GB versus IP country on
-  a first visit.
+  refreshing; the sidebar must follow (manifest §7). Round 2 is committed on the same branch;
+  **round 3 (manifest §8), the SystemConfig/annual-plan work and the live exchange rates were committed and pushed 2026-09-26.**
+  That §6 lists the open items. Tier-2 translation is done for compulsory pages; admin (not required)
+  and affiliate (optional) remain. Two need Davin's call: loading saved preferences on a new device
+  (auth-adjacent), and GB versus IP country on a first visit.
 
 - **⚠ Disbursement payout settings (F83/F84, 2026-09-23): deploy + go-live checks.** Branch
   `feat/disbursement-payout-settings` is unpushed. Deploy money-service first, then the Next app.

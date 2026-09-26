@@ -14,7 +14,25 @@
 > user-facing surface, and re-run its audit procedure (§5) before closing
 > any session that adds one.
 
-**Status:** Live document — verified against the codebase as of 2026-09-25.
+**Status:** Live document — verified against the codebase as of 2026-09-26.
+
+> **Translation scope (Davin, 2026-09-26) — the rule every new page follows:**
+>
+> | Pages                                                                                                           | Rule                                                                                                               |
+> | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+> | Public marketing, auth, and FREE/PRO user pages (`compulsoryPages()` in `scripts/i18n-translation-coverage.js`) | **Compulsory.** Every string translated in all 16 languages, and every date, time and price in the user's formats. |
+> | Affiliate pages (`app/affiliate/**`)                                                                            | Encouraged, not required.                                                                                          |
+> | Admin pages (`app/admin/**`)                                                                                    | Not required (internal). English is acceptable; `admin.*` keys may be missing from non-English dictionaries.       |
+>
+> Enforced by `__tests__/lib/i18n/compulsory-translation-coverage.test.ts`: it fails when a compulsory
+> page uses a key that is untranslated in any language, or a literal `t()`/`dt()` key that exists in no
+> dictionary. **Adding UI to a compulsory page therefore means adding the key to all 17 dictionaries
+> with a real translation in each.** Where the correct translation equals the English (a brand name,
+> "Heiken Ashi", German "Dashboard"), list the key under that language in
+> `scripts/i18n-identical-ok.json`. The test cannot see text that never goes through `t()`: §5 Step 1
+> still applies.
+>
+> On 2026-09-26 every compulsory page reached 100% in all 16 languages (manifest §8, below).
 
 > **2026-09-25 update:** Full 16-language localization audit & remediation across
 > all 113 pages (tracked in `docs/files-completion-list/davintrade-ui-page.xlsx`,
@@ -207,14 +225,18 @@ the 2026-09-03 audit):
 ```ts
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { formatCurrencyAmount } from '@/lib/country-config';
+import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
 
 const prefs = await getServerLocalePreferences(); // { language, countryCode, currency, ... }
-// The rate comes from the currency itself (exchangeRateForCurrency), so the
-// symbol and the figure cannot disagree (Thai with GBP shows pounds).
+// The rate comes from the currency itself, so the symbol and the figure cannot
+// disagree (Thai with GBP shows pounds). Pass the live table (2026-09-26) so the
+// page matches the client and the dLocal charge; without it the fixed rate applies.
+const { rates } = await getDisplayUsdRates();
 const usd = (amountInUSD: number): string =>
   formatCurrencyAmount(amountInUSD, {
     currency: prefs.currency,
     language: prefs.language,
+    rates,
   });
 // usd(commission.amount) — same USD-input contract as formatCurrency(), see §4
 ```
@@ -258,9 +280,12 @@ const usd = (amountInUSD: number): string =>
   standards require key parity across all 17 dictionaries to eliminate
   Failure Mode C.
 - **`formatCurrency()` converts, it does not just format**: it multiplies
-  the USD input by the chosen currency's rate (`exchangeRateForCurrency()`,
-  a static, documented-approximate table in `lib/country-config.ts`) and
-  formats in that currency. Feeding it an amount already in a non-USD
+  the USD input by the chosen currency's rate and formats in that currency.
+  Since 2026-09-26 the rate is the **live** hourly table in
+  `lib/fx/usd-rates.ts` (the same one the dLocal charge uses), delivered by
+  the root layout and refreshed from `GET /api/fx/rates`; the static table
+  in `lib/country-config.ts` (`exchangeRateForCurrency()`) is only the
+  fallback when the rate API is unreachable. Feeding it an amount already in a non-USD
   currency silently double-converts. See §4.
 - **RTL**: `<html dir>` is `rtl` for `ar`/`ur` (`textDirection()` in
   `lib/i18n/languages.ts`), set by `app/layout.tsx` on the server and kept in
@@ -316,6 +341,21 @@ const usd = (amountInUSD: number): string =>
   needs currency/date formatting and doesn't already have `useLocale()` or
   `getServerLocalePreferences()` in scope, that's the tell to add it, not
   to write a local formatter.
+- **Three helpers added 2026-09-26** (all in `lib/context/locale-context.tsx` unless noted):
+  - `<Translated k="key" fallback="English" />`: a translated string as an element, for Server
+    Components and `loading` fallbacks that cannot call a hook (e.g. `app/charts/loading.tsx`).
+  - `useOptionalTranslation()`: `t()` that returns the fallback outside a `LocaleProvider`. For shared
+    UI primitives only (the dialog's "Close", toasts), which unit tests render without a provider.
+  - `localizedMetadata()` in `lib/i18n/server-metadata.ts`: tab title and description in the
+    visitor's language, from `generateMetadata()`. A static `export const metadata` is English only.
+- **Validation messages:** zod schemas keep English messages; render them with
+  `t(errors.field.message ?? '')` and add each message as a key. Rendering `errors.field.message`
+  directly shows English in every language.
+- **Durations:** `date-fns`'s `formatDistanceToNow` is English only. Use `Intl.NumberFormat(language,
+{ style: 'unit', unit: 'hour' | 'day', unitDisplay: 'long' })` (see
+  `app/settings/account/account-settings-client.tsx`).
+- **`app/global-error.tsx`** replaces the root layout, so it has no provider: it reads the
+  `davintrade-locale` cookie and imports that dictionary itself.
 
 ## 3. The three verified failure modes
 
@@ -581,7 +621,7 @@ cached routes. **New code needs to do nothing extra, as long as it:**
 ## 4. The one real gotcha: `formatCurrency()` expects USD
 
 `formatCurrency(amountInUSD: number)` multiplies by the chosen currency's
-rate (`exchangeRateForCurrency()`) — it is a **convert-and-format** function, not a
+rate (live, see §2.C) — it is a **convert-and-format** function, not a
 format-only function. Before wiring it into any of the 5 recently-built
 stacks, confirm the underlying figure is genuinely USD:
 
@@ -604,6 +644,16 @@ from a stored `dLocal` charge), use `Intl.NumberFormat` directly with the
 known currency code instead of `formatCurrency()`, or extend
 `locale-context.tsx` with a currency-aware sibling function — don't force
 a non-USD figure through `formatCurrency()`, which would double-convert it.
+
+**A converted price is an estimate; say so where money is taken (rule, 2026-09-26).**
+Card payments go through Stripe **in USD**, and the card issuer converts at its
+own rate, which we cannot know. So wherever a converted price is shown next to
+a way to pay, a note must say the local figure is approximate and name the USD
+charge: `pricing.approx_note` on `/pricing`, `checkout.card_charged_usd` in
+checkout's card box. Show it only when the display currency is not USD, and
+format the USD figure with `formatChargedAmount(amount, 'USD', language)`, never
+`formatCurrency()` (that would convert it). The landing-page pricing card does
+not have the note yet.
 
 ### 4.A Country & Currency Invariants — never add unbacked countries/currencies to "fix" a language
 
@@ -997,3 +1047,5 @@ Keep this current — it's what tells the next reader (human or AI) whether
 | 2026-09-25 | Full 16-language localization audit and remediation across all 113 pages in DavinTrade Web App (`davintrade-ui-page.xlsx` Columns `H`–`W`). Identified and resolved **Failure Mode D** (SSR language dropout bug in `lib/i18n/locale-resolver.ts` where non-country languages `zh`, `zh-TW`, `es`, `pt` dropped to `en-GB` on reload); preserved Claude Code's test invariant that languages with no country keep existing date/currency formats unchanged (`preferencesForLanguage` returns `null`). Reconciled historical two-branch translation drift, achieving **100% key parity across all 17 dictionaries** (4,710 keys each, covering 2,600/2,600 active page keys). Wired `app/upgrade/success/page.tsx` (Failure Mode E) with `useLocale()` and created L40-compliant test suite (`__tests__/pages/checkout/upgrade-success.test.tsx`). Verified non-regression: all 6 Claude Code test suites + new tests passed (**7 suites, 47/47 tests passed**); TypeScript compiler clean (**`npx tsc --noEmit` exit code 0**). Recorded in `davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Antigravity AI, 16-language localization remediation session                                                       |
 | 2026-09-25 | Re-audit of the row above, before commit. **Corrected four problems.** (1) Security: the Failure mode D fix passed any `davintrade-locale` cookie value through as the language, and `app/layout.tsx` interpolated it unescaped into an inline script; a crafted cookie executed as script (reproduced on `next dev`). Now `resolvePreferences()` and `LocaleProvider` accept only `SUPPORTED_LANGUAGES` codes, and the inline script JSON-encodes its values and validates the localStorage language before copying it to the cookie. (2) Truncated text: the extractor cut 4 fallbacks at an apostrophe (`admin.view_as.subtitle` → "Open any affiliate", `academy.admin.invalid_youtube_url` → "Doesn", plus 2 view-as titles), and reworded 4 payment messages; restored in all 17 dictionaries, with fr/ko/zh/zh-TW/th/ar retranslated from the full text. (3) Tests: full `test:ci` was 240/242 suites · 3092/3099 tests (the row above ran 7 targeted suites); `PriceDisplay` was fixed by (2), `commission-table.test.tsx` updated for the now-translated status badges; after the re-audit **242/242 · 3110/3110**, mutation 5/5 killed. (4) The 100%-Pass matrix counted key presence; regraded on translation with the new `scripts/i18n-translation-coverage.js` (§5 Steps 2 and 5). Also: Hindi added to `SUPPORTED_LANGUAGES` (India's header country set it, and the Settings dropdown showed blank) and as column X; `<html dir="rtl">` now server-rendered for `ar`/`ur`; §2.B's snippet (stale `exchangeRate` argument), §2.C, §4 and §5 Step 5's column map corrected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Claude Code, ad-hoc re-audit (same day)                                                                            |
 | 2026-09-25 | Round 2, same day: **Failure mode F**. Server-rendered parts, cached layouts included, kept the old locale until a refresh (Davin's `/admin` screenshots: Thai body, Korean sidebar). `LocaleProvider` now syncs the locale cookies through a Server Action (`app/actions/locale.ts`), which re-renders the current route and clears the client's cached routes. The currency-index chart's canvas band titles now redraw on a language change. Verified live on `next dev` with no reload: the `/academy` heading and tab title, back-navigation to a cached page, and a `/status` date/time format. Full suite **243/243 · 3123/3123**; mutation 4/4 killed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Claude Code, ad-hoc round 2 (same day)                                                                             |
+| 2026-09-26 | Round 3: Davin set the translation scope (compulsory: public, auth and FREE/PRO pages; encouraged: affiliate; not required: admin) after seeing `/admin` stay English in Japanese (`ja.json` held English copies). Wired text that bypassed the dictionaries (zod messages, payment/country/currency names, `/status`, tab titles, the HRMA/SMMA window, error pages, chat widget), fixed English-only date/duration formatting, translated every compulsory key in all 15 non-English languages, and added `scripts/i18n-identical-ok.json` plus the guard test `compulsory-translation-coverage.test.ts`. Full suite **244/244 · 3139/3139**; mutation 4/4 killed; live Japanese check of `/login`, `/status`, `/blog` on `next dev`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Claude Code, ad-hoc round 3                                                                                        |
+| 2026-09-26 | Round 5: **live exchange rates.** `formatCurrency()`/`formatCurrencyAmount()` converted at the fixed `CURRENCY_USD_RATES` while dLocal charged at the live exchangerate-api.com rate, so `/pricing` and the dLocal charge could disagree. Davin chose option 1: new `lib/fx/usd-rates.ts` holds one hourly table shared by dLocal and every display (root layout → `LocaleProvider`, refreshed from `GET /api/fx/rates`; server pages pass `rates`); fixed rates are now only the fallback. New rule in §4: a converted price next to a way to pay carries a note that it is approximate and names the USD card charge (`pricing.approx_note`, `checkout.card_charged_usd`, all 17 dictionaries). Full `test:ci` **247/247 · 3172/3172**; mutation 3/3 killed; live `next dev`: `/pricing` £21.90 at GBP 0.755 (fixed: £22.62) with the note, Thai ฿968.02 (29 × 33.38) with the Thai note. §2.B, §2.C and §4 updated. Full account: `davintrade-systemconfig/systemconfig-fix-manifest-work-completion.md` §10.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Claude Code, ad-hoc (option 1 approved by Davin)                                                                   |

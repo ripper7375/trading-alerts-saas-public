@@ -1,12 +1,12 @@
 # 16-Language Full Localization Remediation & Matrix Audit — Work Completion Manifest
 
-|               |                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Request**   | Davin, 2026-09-25, in chat: audit all 16 supported languages across all 113 pages in `docs/files-completion-list/davintrade-ui-page.xlsx` (Columns `H`–`W`), fix language application dropouts (especially French, Korean, Chinese Simplified, Chinese Traditional, and Thai), and bring all active pages to Pass status.                                                                                                   |
-| **Goal**      | 100% Pass rate across all 16 languages for all active pages in the DavinTrade SaaS Web App (`davintrade.app`), zero regression against Claude Code's language & locale manifest, full dictionary parity (4,710 keys per language), and complete Excel tracking update.                                                                                                                                                      |
-| **Branch**    | `fix/16-language-localization-reaudit`, off `main` @ `32cf98a8`. Committed together with the re-audit (§0). **Pushed, not merged, not deployed.**                                                                                                                                                                                                                                                                           |
-| **Migration** | **None.** No database schema change. Dictionary expansions and locale resolver refinement only.                                                                                                                                                                                                                                                                                                                             |
-| **Status**    | **Corrected by a same-day re-audit (§0).** The original status read "100% verified … 100 Pass / 13 N/A across all 16 languages". The full suite was not green, the SSR fix introduced a script-injection sink, and the matrix measured key presence rather than translation. All are fixed (§0). **Round 2 (§7):** language and format changes now apply to server-rendered parts without a refresh. Open issues are in §6. |
+|               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Request**   | Davin, 2026-09-25, in chat: audit all 16 supported languages across all 113 pages in `docs/files-completion-list/davintrade-ui-page.xlsx` (Columns `H`–`W`), fix language application dropouts (especially French, Korean, Chinese Simplified, Chinese Traditional, and Thai), and bring all active pages to Pass status.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| **Goal**      | 100% Pass rate across all 16 languages for all active pages in the DavinTrade SaaS Web App (`davintrade.app`), zero regression against Claude Code's language & locale manifest, full dictionary parity (4,710 keys per language), and complete Excel tracking update.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **Branch**    | `fix/16-language-localization-reaudit`, off `main` @ `32cf98a8`. Committed together with the re-audit (§0). **Pushed, not merged, not deployed.**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **Migration** | **None.** No database schema change. Dictionary expansions and locale resolver refinement only.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Status**    | **Corrected by a same-day re-audit (§0).** The original status read "100% verified … 100 Pass / 13 N/A across all 16 languages". The full suite was not green, the SSR fix introduced a script-injection sink, and the matrix measured key presence rather than translation. All are fixed (§0). **Round 2 (§7):** language and format changes now apply to server-rendered parts without a refresh. **Round 3 (§8):** every public, auth and FREE/PRO page is fully translated in all 16 languages, enforced by a test. **Round 4 (§9):** figures in translated text come from SystemConfig; annual plan strings added. **Round 5 (§10):** local prices use the live exchange rate, with an "approximate, charged in USD" note on `/pricing` and checkout. Open issues are in §6. |
 
 ---
 
@@ -207,37 +207,41 @@ and are still open.
 
 ### 6.1 Translation
 
-| #   | Issue                                                                | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Tier-2 languages are about a quarter translated.**                 | `es`, `de`, `pt`, `ja`, `ar`, `ur`, `vi`, `id`, `tr`, `hi`: 24–25% of used keys; 12–15 of 101 pages pass. **Arabic is weakest: 58 pages Untranslated.** Their dictionaries hold English copies, so a user sees English wherever there is no translation. The biggest remaining job.                                                                                                                                                                                       |
-| 2   | **French, Korean, Chinese (both): 9 pages Partial, 1 Untranslated.** | The same pages in all four: `/` (landing, 70%: the currency-index widget's 27 tooltip strings), `/settings/appearance`, `/settings/help`, the admin sidebar (row 92, `app/admin/layout.tsx`), `/academy`, `/academy/[id]`, `/xaux-vs-usdx`, `/pro/currency-index/compare` (55–57%), `/admin/affiliates/view-as`. **`app/not-found.tsx` is 0%**: "Page Not Found", "This page could not be found.", "Go Back", "Dashboard", "Return to Home".                              |
-| 3   | **Thai: 13 pages Partial.**                                          | `/admin/system/jobs` is lowest (22%). Also `/`, `/admin/affiliates`, `/admin/disbursement/audit`, `/terminal`, `/free`, `/checkout`, `/checkout/return`, `/settings/help`, `/settings/privacy`, `/settings/security/activity`, `/xaux-vs-usdx`, `/pro/currency-index/compare`.                                                                                                                                                                                            |
-| 4   | **11 keys used in code exist in no dictionary.**                     | They always render the English fallback, and key-parity checks cannot see them: `admin.user_view_as.{banner_prefix,switch,exit}` (`components/admin/user-view-as/user-view-as-banner.tsx`), `admin.user_view_as.{unavailable_title,unavailable_body,security_activity}` (`user-view-as-gate.tsx`), `affiliate.view_as.{banner_prefix,switch,exit}` (`components/affiliate/view-as-banner.tsx`), and two literal keys in `components/chat-widget/support-chat-widget.tsx`. |
-| 5   | **`app/global-error.tsx` is hardcoded English.**                     | "System Error Encountered" and its body. It replaces the root layout, so no `LocaleProvider` is available; it would have to read the language cookie itself. Marked N/A in the workbook, but users can see it.                                                                                                                                                                                                                                                            |
+| #   | Issue                                                                                                                                          | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Admin and affiliate pages are partly translated** _(was: Tier-2 languages about a quarter translated; resolved for compulsory pages in §8)_. | Davin's rule (2026-09-26): public, auth and FREE/PRO pages are compulsory; affiliate pages are encouraged; admin pages are internal. After §8, every compulsory page passes in all 16 languages. Below Pass remain 38 admin pages and 12 affiliate pages in `es`, `de`, `pt`, `ja`, `ar`, `ur`, `vi`, `id`, `tr`, `hi` (and 1–3 admin pages in `fr`, `ko`, `zh`, `zh-TW`, `th`). Affiliate: about 270 keys per language, 1,323 English words. |
+| 2   | _Resolved in §8:_ French, Korean, Chinese (both).                                                                                              | All their compulsory pages pass, including the landing page, `/academy`, `/xaux-vs-usdx`, `/pro/currency-index/compare` and `app/not-found.tsx`. The admin sidebar (row 92) is admin, so not required.                                                                                                                                                                                                                                        |
+| 3   | _Resolved in §8:_ Thai.                                                                                                                        | All compulsory pages pass. `/admin/system/jobs` and two other admin pages stay Partial (not required).                                                                                                                                                                                                                                                                                                                                        |
+| 4   | **6 admin-only keys exist in no dictionary** _(was 11)_.                                                                                       | `admin.user_view_as.*` in `components/admin/user-view-as/user-view-as-{banner,gate}.tsx`: shown only to an admin viewing a user, so they may stay English. The 3 `affiliate.view_as.*` keys in `components/affiliate/view-as-banner.tsx` are affiliate (encouraged). The two chat-widget keys were added in §8, and the guard test now fails on any other key missing from the dictionaries on a compulsory page.                             |
+| 5   | _Resolved in §8:_ `app/global-error.tsx`.                                                                                                      | It reads the language cookie itself and loads that dictionary; `app/error.tsx` uses `useLocale()`.                                                                                                                                                                                                                                                                                                                                            |
 
 ### 6.2 Behaviour
 
-| #   | Issue                                                                                       | Detail                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 6   | **Client Components paint English first** for every language except `en-GB`, `en-US`, `th`. | `LocaleProvider` bundles only those three dictionaries and lazy-loads the rest, so client text switches after load. Server Components and `<html lang>` are right from the first response. A bundle-size trade-off, documented rather than changed; bundling `fr`/`ko`/`zh`/`zh-TW` would remove it for the well-translated languages.                                                                    |
-| 7   | **No signed-in click-through on `davintrade.app`** _(inherited, extended)_.                 | The Executor never enters credentials. Suggested checks after deploy: Settings → Language picks Thai → THB; a changed currency, timezone and 12-hour Save survive a reload; the `/terminal` chart axis, Alerts dates and `/settings` prices follow them; a header country change shows on the Settings page; **Hindi appears in the Settings dropdown**; **Arabic renders right-to-left without a flip**. |
-| 8   | **Vercel's `x-vercel-ip-timezone` header not seen in production** _(inherited)_.            | Without it the client uses the browser's zone, but the server falls back to the country's default zone, so the two can disagree. Seen locally in §7: switching English (UK) → English (US) moved a server-rendered time from London to New York. Production depends on the header being sent.                                                                                                             |
-| 9   | **First visit uses the IP's country, not GB** _(inherited, needs Davin's call)_.            | A visitor whose IP resolves to a supported country starts in that country; GB applies only without a match.                                                                                                                                                                                                                                                                                               |
-| 10  | **Saved preferences are not loaded on a new device** _(inherited)_.                         | The database row is written on Save but never read back into the live locale (policy §0 Part 2). Needs Davin's sign-off: it touches the session data flow.                                                                                                                                                                                                                                                |
-| 11  | **Emails and PDF receipts ignore the user's preferences** _(inherited)_.                    | They are sent or stored with no viewer; they could read the saved database preferences.                                                                                                                                                                                                                                                                                                                   |
-| 17  | **Error messages already on screen keep the old language.**                                 | About 35 hooks store a translated error or status message in state when a fetch fails (e.g. "Failed to load codes"). A message already showing stays in the old language until the next fetch. Low impact; found by the §7 scan.                                                                                                                                                                          |
-| 18  | **A URL country prefix wins on the server.**                                                | On a prefixed URL such as `/th/pricing`, the server renders the prefix's language. Choosing another language there updates client text, while server-rendered parts stay Thai until the user moves to an unprefixed path. Existing precedence, unchanged by §7.                                                                                                                                           |
-| 19  | **Each locale change discards the client's cached routes.**                                 | Deliberate (§7): the Server Action's cookie write clears the router cache, so the next navigations fetch layouts afresh. The cost is one extra request per route visited after a change, which is rare.                                                                                                                                                                                                   |
+| #   | Issue                                                                                       | Detail                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 6   | **Client Components paint English first** for every language except `en-GB`, `en-US`, `th`. | `LocaleProvider` bundles only those three dictionaries and lazy-loads the rest, so client text switches after load. Server Components and `<html lang>` are right from the first response. A bundle-size trade-off, documented rather than changed. Seen again in §8 on `/blog` in Japanese on `next dev`: English first, Japanese once the dictionary loaded. Now that all 16 languages are translated, this is the most visible remaining gap; options are to bundle more dictionaries or pass the current language's dictionary from the server. |
+| 7   | **No signed-in click-through on `davintrade.app`** _(inherited, extended)_.                 | The Executor never enters credentials. Suggested checks after deploy: Settings → Language picks Thai → THB; a changed currency, timezone and 12-hour Save survive a reload; the `/terminal` chart axis, Alerts dates and `/settings` prices follow them; a header country change shows on the Settings page; **Hindi appears in the Settings dropdown**; **Arabic renders right-to-left without a flip**.                                                                                                                                           |
+| 8   | **Vercel's `x-vercel-ip-timezone` header not seen in production** _(inherited)_.            | Without it the client uses the browser's zone, but the server falls back to the country's default zone, so the two can disagree. Seen locally in §7: switching English (UK) → English (US) moved a server-rendered time from London to New York. Production depends on the header being sent.                                                                                                                                                                                                                                                       |
+| 9   | **First visit uses the IP's country, not GB** _(inherited, needs Davin's call)_.            | A visitor whose IP resolves to a supported country starts in that country; GB applies only without a match.                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| 10  | **Saved preferences are not loaded on a new device** _(inherited)_.                         | The database row is written on Save but never read back into the live locale (policy §0 Part 2). Needs Davin's sign-off: it touches the session data flow.                                                                                                                                                                                                                                                                                                                                                                                          |
+| 11  | **Emails and PDF receipts ignore the user's preferences** _(inherited)_.                    | They are sent or stored with no viewer; they could read the saved database preferences.                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 17  | **Error messages already on screen keep the old language.**                                 | About 35 hooks store a translated error or status message in state when a fetch fails (e.g. "Failed to load codes"). A message already showing stays in the old language until the next fetch. Low impact; found by the §7 scan.                                                                                                                                                                                                                                                                                                                    |
+| 18  | **A URL country prefix wins on the server.**                                                | On a prefixed URL such as `/th/pricing`, the server renders the prefix's language. Choosing another language there updates client text, while server-rendered parts stay Thai until the user moves to an unprefixed path. Existing precedence, unchanged by §7.                                                                                                                                                                                                                                                                                     |
+| 19  | **Each locale change discards the client's cached routes.**                                 | Deliberate (§7): the Server Action's cookie write clears the router cache, so the next navigations fetch layouts afresh. The cost is one extra request per route visited after a change, which is rare.                                                                                                                                                                                                                                                                                                                                             |
 
 ### 6.3 Tooling and hygiene
 
-| #   | Issue                                                                | Detail                                                                                                                                                                                                                                                                                                                                                                                   |
-| --- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 12  | **The coverage script is an estimate.**                              | It counts dictionary keys that appear as string literals in a page and its imports. Layout chrome (header, sidebar) is not charged to pages. A word that is correctly identical in a Latin language (e.g. "Admin" in French) counts as untranslated. Keys built at runtime are counted only if their literal appears in an imported file. Good enough to rank work; not an exact figure. |
-| 13  | **1,674 of 4,710 dictionary keys are unused.**                       | Includes 7 added by this work (`upgrade.loading`, `Germany`, `Preferences saved`, `Preferred Currency`, `Save Preferences`, and two long "connects in a future phase" strings). Harmless, but they inflate every dictionary.                                                                                                                                                             |
-| 14  | **The inline-script escaping in `app/layout.tsx` has no unit test.** | The root layout is an async Server Component. Covered by live `curl` checks and by the resolver's validation, which is tested.                                                                                                                                                                                                                                                           |
-| 15  | **`en: 'gb'` in `PRIMARY_COUNTRY_FOR_LANGUAGE` is unreachable.**     | Added by this work; `en` is not a supported language code, so the resolver never passes it. Harmless; remove when next touching the file.                                                                                                                                                                                                                                                |
-| 16  | **`prettier --check` fails on every file in this checkout.**         | The working tree is CRLF and `.prettierrc` sets `endOfLine: lf`. Use `--end-of-line auto` to see real formatting problems; the commit hook's `prettier --write` is unaffected.                                                                                                                                                                                                           |
+| #   | Issue                                                                  | Detail                                                                                                                                                                                                                                                                                                                                                                                   |
+| --- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 12  | **The coverage script is an estimate.**                                | It counts dictionary keys that appear as string literals in a page and its imports. Layout chrome (header, sidebar) is not charged to pages. A word that is correctly identical in a Latin language (e.g. "Admin" in French) counts as untranslated. Keys built at runtime are counted only if their literal appears in an imported file. Good enough to rank work; not an exact figure. |
+| 13  | **1,674 of 4,710 dictionary keys are unused.**                         | Includes 7 added by this work (`upgrade.loading`, `Germany`, `Preferences saved`, `Preferred Currency`, `Save Preferences`, and two long "connects in a future phase" strings). Harmless, but they inflate every dictionary.                                                                                                                                                             |
+| 14  | **The inline-script escaping in `app/layout.tsx` has no unit test.**   | The root layout is an async Server Component. Covered by live `curl` checks and by the resolver's validation, which is tested.                                                                                                                                                                                                                                                           |
+| 15  | **`en: 'gb'` in `PRIMARY_COUNTRY_FOR_LANGUAGE` is unreachable.**       | Added by this work; `en` is not a supported language code, so the resolver never passes it. Harmless; remove when next touching the file.                                                                                                                                                                                                                                                |
+| 16  | **`prettier --check` fails on every file in this checkout.**           | The working tree is CRLF and `.prettierrc` sets `endOfLine: lf`. Use `--end-of-line auto` to see real formatting problems; the commit hook's `prettier --write` is unaffected. _(§8 found the files it touched to be LF in both index and working tree; the git warnings are `core.autocrlf` noise.)_                                                                                    |
+| 20  | **§8's translations are machine-written, not native-reviewed.**        | About 1,130 keys in each of `es`, `de`, `pt`, `ja`, `ar`, `ur`, `vi`, `id`, `tr`, `hi`, plus about 250 in `fr`, `ko`, `zh`, `zh-TW`, `th`. Terminology follows each dictionary's existing entries (e.g. European Portuguese). A native review of the legal pages (terms, privacy, disclaimer) in `ar` is the most valuable spot check.                                                   |
+| 21  | **The guard test cannot see text that never reaches `t()`.**           | It checks dictionary keys. Hardcoded JSX text, aria labels and template strings were found with a TypeScript-parser scan in §8; that scan is not part of CI.                                                                                                                                                                                                                             |
+| 22  | **Content from the database stays in the language it was entered in.** | Academy tutorial titles and descriptions (entered by an admin) and chat replies generated by the AI are not translated.                                                                                                                                                                                                                                                                  |
+| 23  | **XAUUSD prices in the alerts list use `en-US` number formatting.**    | `app/alerts/alerts-client.tsx` formats target prices as instrument quotes (`2,650.50`), as the policy's §4 allows for non-currency prices. A decimal-comma language still sees a decimal point there.                                                                                                                                                                                    |
 
 ---
 
@@ -334,3 +338,186 @@ click-through in §6, item 7.
 - `docs/policies/08-locale-i18n-compliance.md` (Failure mode F)
 - `CLAUDE.md`
 - this manifest
+
+---
+
+## 8. Round 3 (2026-09-26): every public and user page in every language
+
+**Report.** Davin's screenshots of `/admin` on the Vercel preview: with Japanese chosen, the page stayed
+English except the support button ("サポートセンター"); with Thai, all of it was Thai.
+
+**Cause.** Not the language switch. `ja.json` held English copies for the admin keys (Tier-2, §6
+item 1): "Admin Panel", "Dashboard", "System overview and key metrics" were all English in `ja.json`,
+while `th.json` had real translations. The support button's key happened to have Japanese from an
+earlier pass.
+
+**Requirement (Davin, 2026-09-26).**
+
+- **Compulsory:** all public marketing pages and all FREE and PRO user pages, in every language and
+  locale format.
+- **Encouraged:** affiliate pages.
+- **Not required:** admin pages (internal).
+
+**What was done.**
+
+1. **Scope made explicit.** `compulsoryPages()` in `scripts/i18n-translation-coverage.js`: every
+   `page`, `layout`, `loading`, `error`, `global-error` and `not-found` file under `app/` except
+   `app/admin`, `app/affiliate`, `app/api` and `app/dev*`, plus `components/providers/client-providers.tsx`
+   (70 files; 270 files with their imports).
+2. **Text that bypassed the dictionaries, wired** (found by two scans: a string-literal scan and a
+   TypeScript-parser scan of JSX text and attributes):
+   - Auth form validation messages were rendered raw from zod (`errors.x.message`): now `t()`, on
+     login, register, forgot-password and reset-password.
+   - Payment method names ("Net Banking", "Bank Transfer"…), country names on checkout, currency
+     names on checkout and Settings.
+   - `/status` component names and details; tab titles on `/status`, `/free`, `/terminal` and both
+     PRO currency-index pages (new `lib/i18n/server-metadata.ts`).
+   - The HRMA/SMMA detail window (title, sliders, warm-up text, signal, save button, canvas band
+     titles), the comparison chart toolbar, the alerts panel, the settings header, loading texts,
+     `app/error.tsx`, and `app/global-error.tsx` (reads the language cookie, since it replaces the
+     root layout).
+   - Chat widget: welcome message, canned replies and error messages.
+   - New helpers in `lib/context/locale-context.tsx`: `useOptionalTranslation()` (for shared UI such as
+     the dialog close button, which also renders in tests without a provider) and `<Translated>`
+     (for Server Components and loading fallbacks).
+3. **Translation.** Every key the compulsory pages use, in every language:
+   - about 1,130 keys each in `es`, `de`, `pt`, `ja`, `ar`, `ur`, `vi`, `id`, `tr`, `hi`
+     (Arabic 1,313, including the legal pages);
+   - 240–261 each in `fr`, `ko`, `zh`, `th`; `zh-TW` generated from `zh` with OpenCC (Taiwan phrases)
+     plus the two fixes the dictionary already used, and 「」 quotes.
+   - Words whose correct translation equals English (e.g. "Heiken Ashi", German "Dashboard") are
+     listed in the new `scripts/i18n-identical-ok.json`, which the coverage script honours.
+4. **Locale formats on the same pages.** Blog and changelog dates now use `formatDate()`; the
+   account-deletion countdown uses `Intl.NumberFormat` units instead of `date-fns` (English only);
+   "{symbol} Alert" fallback names and the alerts list's Edit/Delete labels are translated.
+5. **Also corrected:** the support chat's canned reply quoted PRO at "$49/mo" (the configured price is
+   $29 and can change); the price was removed rather than translated into 16 languages. Language
+   picker names for Spanish, German, Portuguese and Japanese now include their own script, as the
+   other entries do.
+6. **Guard test** `__tests__/lib/i18n/compulsory-translation-coverage.test.ts` (17 tests): every key on
+   a compulsory page is translated in each of the 15 non-English languages, and every literal
+   `t()`/`dt()` key there exists in the dictionaries (admin-only `admin.*` keys excepted).
+
+**Verified.**
+
+- `tsc` clean; ESLint clean on every changed file except the pre-existing `exhaustive-deps` warning in
+  `register-form.tsx`; Prettier clean (`--end-of-line auto`).
+- **Full `test:ci`: 244/244 suites · 3,139/3,139 tests** (one new suite; one existing test wrapped in
+  `LocaleProvider` because `app/error.tsx` now calls `useLocale()`).
+- **Mutation 4/4 killed**, files restored byte-exact: a Japanese value reverted to English; a new
+  English-only key on a compulsory page; a French value reverted; a `t()` key present in no dictionary.
+- Coverage (`node scripts/i18n-translation-coverage.js`): 0 untranslated keys on compulsory pages in
+  every language. Workbook regraded: every page below Pass is admin (38) or affiliate (12).
+- Live on `next dev` with the language set to Japanese: `/login` fully Japanese, including a validation
+  error; `/status` fully Japanese, including the tab title and component names, with the date in
+  Japanese order; `/blog` Japanese once the dictionary loaded (see §6 item 6).
+
+**Not done.** Affiliate pages (encouraged; §6 item 1) and admin pages. A signed-in click-through
+(§6 item 7). A native-speaker review (§6 item 20).
+
+**Files:** 40 source files (listed by `git diff --stat`), all 17 dictionaries,
+`scripts/i18n-translation-coverage.js`, `scripts/i18n-identical-ok.json` (new),
+`lib/i18n/server-metadata.ts` (new), the guard test (new), `__tests__/pages/phase-6-exit.test.tsx`,
+`docs/files-completion-list/davintrade-ui-page.xlsx`, `docs/policies/08-locale-i18n-compliance.md`,
+`CLAUDE.md`, this manifest.
+
+---
+
+## 9. Round 4 (2026-09-26): figures in the text follow SystemConfig; annual plan strings
+
+This round's main work was the SystemConfig fix and the annual plan; the full account is
+`davintrade-systemconfig/systemconfig-fix-manifest-work-completion.md`. This section records only
+what it changed in language and locale format.
+
+**Wrong figures in translated text, corrected in all 16 languages.**
+
+- `/docs` said "Receive **30%** recurring commissions" while 20% is configured, and round 3 had
+  translated that sentence into every language. It is now `docs.affiliate_commission_payouts` with a
+  `{percent}` placeholder filled from SystemConfig.
+- `/affiliate`, `/affiliate/join` and `/affiliate/register` used template-literal keys such as
+  ``t(`${commissionPercent}% Recurring Monthly Share`)``. The key only matched a translation when the
+  rate was exactly 30%, so at the real 20% those lines were English in every language. They are now 8
+  dotted keys with `{percent}`, `{price}` or `{count}`.
+- `/affiliate/resources` stated "20%" in 3 strings; now `{percent}` from SystemConfig.
+- Translations: the ten Tier-2 languages were derived from their existing translations by swapping the
+  figure for the placeholder; Arabic, French, Korean and both Chinese variants were written. The
+  affiliate resources cards are now translated in all 15 non-English languages (10 were English).
+
+**Removed.** 29 unused dictionary entries carrying wrong figures ("30% commission", "$49/mo",
+"PRO Annual ($490)", "$50 minimum"), from all 17 dictionaries. Nine figure-bearing entries were kept
+because they are not SystemConfig settings (chart price samples, alert tolerance, VAT, a mock metric).
+
+**Added: annual plan strings**, 14 keys in all 17 dictionaries: `checkout.billing_period`,
+`checkout.annual`, `checkout.year`, `checkout.year_abbr`, `checkout.pro_annual`,
+`checkout.annual_pro`, `checkout.annual_desc`, `billing.year`, `pricing.save_percent`,
+`pricing.billed_yearly`, `pricing.or_annual`, `pricing.or_annual_save`,
+`admin.affiliates.annual_price`, `admin.affiliates.annual_price_desc`. `/pricing` reuses the existing
+`Monthly Billing` / `Annual Billing` keys.
+
+**Locale format.** Every price added or rewired this round goes through `formatCurrency()` (the
+viewer's currency and number format): `/pricing` monthly and annual, the annual per-month figure,
+the landing card's annual line, checkout's card box, the plan selector, Settings → Billing (now the
+subscriber's own price and "/year" for annual plans). Emails keep USD by design (no viewer
+preferences at send time; they quote the amount charged). The savings percentage is computed from the
+two prices and inserted into the translated text, never written into it.
+
+**Guards.**
+
+- The compulsory-page guard (§8) caught the 16 new strings before they were translated, as intended.
+- New `__tests__/lib/systemconfig-figures-guard.test.ts` fails when a dictionary string pairs a figure
+  with a business word (commission, discount, price, payout …) — the class of text fixed here.
+
+**Verified.** Full `test:ci` **246/246 · 3163/3163**; money-service **63/63 · 632/632**; the
+translation guards pass in all 15 languages; live `next dev`: `/docs` shows "20%", `/pricing`
+annual view "£18.85 / month" and "£226.20 billed once a year" (GBP display of $290), landing card
+"or £226.20 per year (save 17%)".
+
+**Open.** The same as §6, plus: the annual strings and the reworded affiliate strings are
+machine-written, not native-reviewed (§6 item 20 applies).
+
+---
+
+## 10. Round 5 (2026-09-26): local prices at the live rate; "charged in USD" note
+
+Full account: §10 of `davintrade-systemconfig/systemconfig-fix-manifest-work-completion.md`. This
+section records only the locale-format side.
+
+**Currency conversion now uses live rates.** `formatCurrency()` (client) and
+`formatCurrencyAmount()` (server) used to convert USD at the fixed rates in
+`CURRENCY_USD_RATES` (e.g. GBP 0.78, THB 35.0), while dLocal charged at the live
+exchangerate-api.com rate, so the two could disagree. Davin chose to show prices at the live rate
+dLocal uses (option 1):
+
+- New `lib/fx/usd-rates.ts` holds one hourly table, shared by the dLocal charge and the displays.
+- The root layout passes the table to `LocaleProvider` (first paint already at the live rate), which
+  refreshes it hourly from `GET /api/fx/rates`.
+- `formatCurrencyAmount(amount, { currency, language, rates })` uses a live rate when given and the
+  fixed rate otherwise. The server pages that format USD (4 admin BI dashboards, admin user detail,
+  affiliate payouts) pass the table too.
+- When the rate API is unreachable, the fixed rates apply, exactly as before.
+
+The number format (symbol, separators, decimals) is unchanged: it still follows the viewer's
+language and currency. Only the rate changed.
+
+**New note, two keys, all 17 dictionaries** (shown only when the display currency is not USD):
+
+- `pricing.approx_note` on `/pricing`: the local price is approximate; cards are charged in USD
+  (`{usdPrice}`, following the Monthly/Annual toggle) and the bank converts at its own rate; local
+  payment methods show the exact amount at checkout.
+- `checkout.card_charged_usd` in checkout's card box: the USD charge and that the local figure is
+  approximate.
+
+Both carry `{currency}` and `{usdPrice}`. The USD amount is formatted with the viewer's language
+(`formatChargedAmount(x, 'USD', language)`, e.g. "US$29.00" in en-GB), never converted. The
+compulsory-page guard (§8) covers both keys.
+
+**Verified.** Full `test:ci` **247/247 · 3172/3172**; translation guards pass. Live on `next dev`:
+`/pricing` in English (GBP) showed £21.90 at the live GBP 0.755 (£22.62 at the fixed rate), with
+the note naming "US$29.00 / month", then "US$290.00 / year" on Annual; in Thai, ฿968.02
+(29 × 33.38) with the Thai note.
+
+**Open.**
+
+- The landing-page pricing card shows local prices without the note.
+- Checkout's note was not seen live (checkout needs a signed-in session).
+- The new sentences are machine-written, not native-reviewed (§6 item 20 applies).
