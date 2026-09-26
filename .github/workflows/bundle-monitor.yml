@@ -62,31 +62,31 @@ jobs:
           du -sh .next/*/ 2>/dev/null || echo "Could not list subdirectories"
 
           # Set status based on thresholds
-          if [ $BUNDLE_SIZE -lt 340 ]; then
-            echo "status=excellent" >> $GITHUB_OUTPUT
-            echo "status_emoji=✅" >> $GITHUB_OUTPUT
-            echo "status_message=Excellent! Bundle size is under 340MB target" >> $GITHUB_OUTPUT
-          elif [ $BUNDLE_SIZE -lt 370 ]; then
+          if [ $BUNDLE_SIZE -lt 370 ]; then
             echo "status=good" >> $GITHUB_OUTPUT
             echo "status_emoji=✅" >> $GITHUB_OUTPUT
-            echo "status_message=Good! Bundle size is within acceptable limits" >> $GITHUB_OUTPUT
+            echo "status_message=Good! Bundle size is within target limits" >> $GITHUB_OUTPUT
           elif [ $BUNDLE_SIZE -lt 450 ]; then
+            echo "status=acceptable" >> $GITHUB_OUTPUT
+            echo "status_emoji=ℹ️" >> $GITHUB_OUTPUT
+            echo "status_message=Acceptable: Bundle size within Phase 0-1 limits" >> $GITHUB_OUTPUT
+          elif [ $BUNDLE_SIZE -lt 500 ]; then
             echo "status=warning" >> $GITHUB_OUTPUT
             echo "status_emoji=⚠️" >> $GITHUB_OUTPUT
-            echo "status_message=Warning: Bundle size approaching limit (Phase 0-1 threshold: 450MB)" >> $GITHUB_OUTPUT
-          elif [ $BUNDLE_SIZE -lt 500 ]; then
+            echo "status_message=Warning: Bundle size approaching limit (500MB)" >> $GITHUB_OUTPUT
+          elif [ $BUNDLE_SIZE -lt 550 ]; then
             echo "status=critical" >> $GITHUB_OUTPUT
             echo "status_emoji=🚨" >> $GITHUB_OUTPUT
-            echo "status_message=Critical: Bundle size nearing panic threshold (500MB)" >> $GITHUB_OUTPUT
+            echo "status_message=Critical: Bundle size nearing panic threshold (550MB)" >> $GITHUB_OUTPUT
           else
             echo "status=panic" >> $GITHUB_OUTPUT
             echo "status_emoji=❌" >> $GITHUB_OUTPUT
-            echo "status_message=PANIC: Bundle size exceeded 500MB - immediate action required!" >> $GITHUB_OUTPUT
+            echo "status_message=PANIC: Bundle size exceeded 550MB - immediate action required!" >> $GITHUB_OUTPUT
           fi
 
-          # Hard fail at 500MB (panic threshold)
-          if [ $BUNDLE_SIZE -gt 500 ]; then
-            echo "❌ CRITICAL: Bundle size exceeded panic threshold (500MB)"
+          # Hard fail at 550MB (panic threshold)
+          if [ $BUNDLE_SIZE -gt 550 ]; then
+            echo "❌ CRITICAL: Bundle size exceeded panic threshold (550MB)"
             exit 1
           fi
 
@@ -103,11 +103,11 @@ jobs:
           echo "### Thresholds" >> $GITHUB_STEP_SUMMARY
           echo "| Level | Threshold | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🎯 Target | <340MB | Phase 0 Goal |" >> $GITHUB_STEP_SUMMARY
-          echo "| ✅ Good | <370MB | Normal operation |" >> $GITHUB_STEP_SUMMARY
-          echo "| ⚠️ Warning | <450MB | Phase 0-1 limit |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🚨 Critical | <500MB | Approaching panic |" >> $GITHUB_STEP_SUMMARY
-          echo "| ❌ Panic | >500MB | Build fails |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🎯 Target | <370MB | Target operation |" >> $GITHUB_STEP_SUMMARY
+          echo "| ℹ️ Info | <450MB | Normal multi-language |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⚠️ Warning | <500MB | Approaching threshold |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🚨 Critical | <550MB | Nearing limit |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ Panic | >550MB | Build fails |" >> $GITHUB_STEP_SUMMARY
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'

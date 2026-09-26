@@ -128,25 +128,23 @@ jobs:
           BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
           echo "📊 Bundle size: ${BUNDLE_SIZE}MB"
 
-          # Bundle size thresholds (Phase 0 bundle optimization):
-          # - Target: <340MB (Phase 0 goal)
-          # - Normal: <370MB (stable operation)
-          # - Warning: <450MB (Phase 0-1 development threshold)
-          # - Panic: >500MB (hard fail - requires immediate action)
+          # Bundle size thresholds (Adjusted for 16-language localization & dictionaries):
+          # - Target: <370MB (base operation)
+          # - Acceptable: <450MB (multi-language Phase 0-1)
+          # - Warning: <500MB (multi-language Phase 2 with full dictionaries)
+          # - Panic: >550MB (hard fail - requires immediate action)
 
-          if [ $BUNDLE_SIZE -gt 500 ]; then
-            echo "❌ PANIC: Bundle size exceeds 500MB - immediate action required!"
+          if [ $BUNDLE_SIZE -gt 550 ]; then
+            echo "❌ PANIC: Bundle size exceeds 550MB - immediate action required!"
             exit 1
+          elif [ $BUNDLE_SIZE -gt 500 ]; then
+            echo "⚠️ WARNING: Bundle size exceeds 500MB threshold"
           elif [ $BUNDLE_SIZE -gt 450 ]; then
-            echo "🚨 CRITICAL: Bundle size exceeds 450MB Phase 0-1 threshold"
-            exit 1
+            echo "ℹ️ INFO: Bundle size above 450MB, within normal multi-language limits"
           elif [ $BUNDLE_SIZE -gt 370 ]; then
-            echo "⚠️ WARNING: Bundle size exceeds 370MB normal threshold"
-            echo "Note: 450MB allowed during Phase 0-1 development"
-          elif [ $BUNDLE_SIZE -gt 340 ]; then
-            echo "ℹ️ INFO: Bundle size above 340MB target, within normal limits"
+            echo "ℹ️ INFO: Bundle size above 370MB target, within normal limits"
           else
-            echo "✅ EXCELLENT: Bundle size under 340MB target!"
+            echo "✅ EXCELLENT: Bundle size under 370MB target!"
           fi
 
           echo "✅ Bundle size check passed"
