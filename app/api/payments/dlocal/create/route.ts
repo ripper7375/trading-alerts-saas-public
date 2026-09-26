@@ -6,7 +6,7 @@
  * Request Body:
  * - country: ISO 2-letter country code (required)
  * - paymentMethod: Payment method ID (required)
- * - planType: 'THREE_DAY' | 'MONTHLY' (required)
+ * - planType: 'THREE_DAY' | 'MONTHLY' | 'YEARLY' (required)
  * - currency: 3-letter currency code (required)
  * - discountCode: Optional discount code (only for MONTHLY)
  *
@@ -22,6 +22,11 @@ import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
+import {
+  getAnnualPriceUsd,
+  getBasePriceUsd,
+  getThreeDayPriceUsd,
+} from '@/lib/affiliate/db';
 import { authOptions } from '@/lib/auth/auth-options';
 import {
   createPayment,
@@ -29,7 +34,7 @@ import {
 } from '@/lib/dlocal/dlocal-payment.service';
 import { convertUSDToLocal } from '@/lib/dlocal/currency-converter.service';
 import { isValidPaymentMethod } from '@/lib/dlocal/payment-methods.service';
-import { PRICING, getPlanDuration } from '@/lib/dlocal/constants';
+import { getPlanDuration } from '@/lib/dlocal/constants';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 import { shouldUseMoneyServiceForDlocalWrite } from '@/lib/money-service/flags';
@@ -45,7 +50,7 @@ export const dynamic = 'force-dynamic';
 const createPaymentSchema = z.object({
   country: z.enum(['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR', 'AE']),
   paymentMethod: z.string().min(1, 'Payment method is required'),
-  planType: z.enum(['THREE_DAY', 'MONTHLY']),
+  planType: z.enum(['THREE_DAY', 'MONTHLY', 'YEARLY']),
   currency: z.enum([
     'INR',
     'NGN',
@@ -153,16 +158,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Get USD pricing (gross, before discount)
+    // USD price (gross, before discount): the admin's SystemConfig price
     const usdAmount =
-      planType === 'THREE_DAY' ? PRICING.THREE_DAY_USD : PRICING.MONTHLY_USD;
+      planType === 'THREE_DAY'
+        ? await getThreeDayPriceUsd()
+        : planType === 'YEARLY'
+          ? await getAnnualPriceUsd()
+          : await getBasePriceUsd();
 
     // Validate affiliate/discount code and calculate the discount actually
     // applied to the charge (Part 17 integration).
     let discountAmount = 0;
     let normalizedDiscountCode: string | null = null;
 
-    if (discountCode && planType === 'MONTHLY') {
+    if (discountCode && planType !== 'THREE_DAY') {
       normalizedDiscountCode = discountCode.trim().toUpperCase();
 
       const affiliateCode = await prisma.affiliateCode.findFirst({

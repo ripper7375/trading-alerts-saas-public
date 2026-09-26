@@ -5,7 +5,7 @@
  *
  * Request Body:
  * - code: string (required) - The discount code to validate
- * - planType: 'THREE_DAY' | 'MONTHLY' (required) - The plan type
+ * - planType: 'THREE_DAY' | 'MONTHLY' | 'YEARLY' (required) - The plan type
  *
  * Response:
  * - 200: { valid: boolean, discountPercent?: number, message?: string }
@@ -33,7 +33,7 @@ export const dynamic = 'force-dynamic';
 
 interface ValidateDiscountRequest {
   code: string;
-  planType: 'THREE_DAY' | 'MONTHLY';
+  planType: 'THREE_DAY' | 'MONTHLY' | 'YEARLY';
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    if (!planType || !['THREE_DAY', 'MONTHLY'].includes(planType)) {
+    if (!planType || !['THREE_DAY', 'MONTHLY', 'YEARLY'].includes(planType)) {
       return NextResponse.json(
         { valid: false, message: 'Invalid plan type' },
         { status: 400 }

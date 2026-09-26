@@ -26,7 +26,12 @@ import {
 } from '@/lib/dlocal/dlocal-payment.service';
 import { markThreeDayPlanUsed } from '@/lib/dlocal/three-day-validator.service';
 import { processAffiliateConversion } from '@/lib/affiliate/conversion-processor';
-import { PRICING } from '@/lib/dlocal/constants';
+import {
+  getAnnualPriceUsd,
+  getBasePriceUsd,
+  getThreeDayPriceUsd,
+} from '@/lib/affiliate/db';
+import { PLAN_DURATION } from '@/lib/dlocal/constants';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 import type { DLocalWebhookPayload } from '@/types/dlocal';
@@ -154,17 +159,28 @@ async function handlePaymentCompleted(
 
   // Calculate subscription expiry based on plan type
   const now = new Date();
-  const expiresAt =
-    payment.planType === 'THREE_DAY'
-      ? new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000) // 3 days
-      : new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+  const expiresAt = new Date(
+    now.getTime() +
+      PLAN_DURATION[
+        payment.planType === 'THREE_DAY' || payment.planType === 'YEARLY'
+          ? payment.planType
+          : 'MONTHLY'
+      ] *
+        24 *
+        60 *
+        60 *
+        1000
+  ); // 3, 30 or 365 days
 
-  // Actual USD amount for this plan (fixes hardcoded $29 for 3-day plans)
+  // USD amount recorded at payment creation; a row without one falls back to
+  // the current SystemConfig price for its plan.
   const planAmountUsd =
     Number(payment.amountUSD) ||
     (payment.planType === 'THREE_DAY'
-      ? PRICING.THREE_DAY_USD
-      : PRICING.MONTHLY_USD);
+      ? await getThreeDayPriceUsd()
+      : payment.planType === 'YEARLY'
+        ? await getAnnualPriceUsd()
+        : await getBasePriceUsd());
 
   // Use a transaction to ensure all updates succeed or fail together
   await prisma.$transaction(async (tx) => {
@@ -244,7 +260,7 @@ async function handlePaymentCompleted(
 
   // 5b. Process affiliate conversion if a discount code was used (Part 17 seam)
   // Mirrors the Stripe webhook path; idempotent on webhook retries.
-  if (payment.discountCode && payment.planType === 'MONTHLY') {
+  if (payment.discountCode && payment.planType !== 'THREE_DAY') {
     try {
       const linkedSubscription = await prisma.subscription.findUnique({
         where: { userId: payment.userId },
@@ -289,7 +305,7 @@ async function handlePaymentCompleted(
       userId: payment.userId,
       type: 'SUBSCRIPTION',
       title: 'Welcome to PRO!',
-      body: `Your ${payment.planType === 'THREE_DAY' ? '3-day' : 'monthly'} subscription is now active. Enjoy all PRO features!`,
+      body: `Your ${payment.planType === 'THREE_DAY' ? '3-day' : payment.planType === 'YEARLY' ? 'annual' : 'monthly'} subscription is now active. Enjoy all PRO features!`,
       priority: 'HIGH',
     },
   });

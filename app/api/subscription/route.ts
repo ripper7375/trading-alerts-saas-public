@@ -35,7 +35,9 @@ interface SubscriptionResponse {
     id: string;
     status: string;
     provider: 'STRIPE' | 'DLOCAL' | null; // NEW: Payment provider
-    planType: string | null; // NEW: Plan type (MONTHLY, THREE_DAY)
+    planType: string | null; // MONTHLY, YEARLY, THREE_DAY
+    /** This subscriber's own price per billing period (USD), as charged */
+    amountUsd: number | null;
     currentPeriodEnd: string | null; // For Stripe
     expiresAt: string | null; // NEW: For dLocal explicit expiry
     cancelAtPeriodEnd: boolean;
@@ -195,6 +197,8 @@ export async function GET(
         status: userSubscription.status,
         provider,
         planType: userSubscription.planType,
+        amountUsd:
+          userSubscription.amountUsd > 0 ? userSubscription.amountUsd : null,
         currentPeriodEnd:
           userSubscription.stripeCurrentPeriodEnd?.toISOString() || null,
         expiresAt: userSubscription.expiresAt?.toISOString() || null,

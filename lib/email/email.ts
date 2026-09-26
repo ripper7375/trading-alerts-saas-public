@@ -7,6 +7,14 @@
 
 import { Resend } from 'resend';
 
+/**
+ * A USD amount for an email: "$29", "$29.50". Emails go out without the
+ * reader's locale preferences, so prices stay in USD, as charged.
+ */
+export function formatEmailUsd(amount: number): string {
+  return `$${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
+}
+
 // Lazy initialization to prevent build-time errors
 let resendClient: Resend | null = null;
 
@@ -399,20 +407,20 @@ export async function sendAlertEmail(
  * @param name - User's name
  * @param plan - Subscription plan ('FREE' or 'PRO')
  * @param billingPeriod - Billing period ('monthly' or 'yearly')
+ * @param priceUsd - PRO price per billing period, as charged (the admin's
+ *   SystemConfig price at subscription time)
  * @returns HTML string for subscription confirmation email
  */
 export function getSubscriptionConfirmationEmail(
   name: string,
   plan: 'FREE' | 'PRO',
-  billingPeriod: 'monthly' | 'yearly'
+  billingPeriod: 'monthly' | 'yearly',
+  priceUsd: number
 ): string {
-  const pricing = {
-    FREE: { monthly: '$0', yearly: '$0' },
-    PRO: {
-      monthly: '$29/month',
-      yearly: '$290/year',
-    },
-  };
+  const billing =
+    plan === 'PRO'
+      ? `${formatEmailUsd(priceUsd)}/${billingPeriod === 'yearly' ? 'year' : 'month'}`
+      : '$0';
 
   const trialInfo =
     plan === 'PRO'
@@ -461,7 +469,7 @@ export function getSubscriptionConfirmationEmail(
         <div style="background: #f4f4f5; border-radius: 8px; padding: 20px; margin: 20px 0;">
           <h3 style="color: #18181b; margin: 0 0 12px 0; font-size: 16px;">Plan Details</h3>
           <p style="color: #52525b; margin: 4px 0;"><strong>Tier:</strong> ${plan}</p>
-          <p style="color: #52525b; margin: 4px 0;"><strong>Billing:</strong> ${pricing[plan][billingPeriod]}</p>
+          <p style="color: #52525b; margin: 4px 0;"><strong>Billing:</strong> ${billing}</p>
           ${trialInfo}
         </div>
 
@@ -487,9 +495,15 @@ export async function sendSubscriptionConfirmationEmail(
   to: string,
   name: string,
   plan: 'FREE' | 'PRO',
-  billingPeriod: 'monthly' | 'yearly'
+  billingPeriod: 'monthly' | 'yearly',
+  priceUsd: number
 ): Promise<{ success: boolean; error?: string }> {
-  const html = getSubscriptionConfirmationEmail(name, plan, billingPeriod);
+  const html = getSubscriptionConfirmationEmail(
+    name,
+    plan,
+    billingPeriod,
+    priceUsd
+  );
   return sendEmail(to, `${plan} Subscription Confirmed`, html);
 }
 
@@ -498,11 +512,13 @@ export async function sendSubscriptionConfirmationEmail(
  *
  * @param name - User's name
  * @param daysRemaining - Number of days remaining in trial
+ * @param monthlyPriceUsd - PRO monthly price (SystemConfig getBasePriceUsd())
  * @returns HTML string for trial reminder email
  */
 export function getTrialReminderEmail(
   name: string,
-  daysRemaining: number
+  daysRemaining: number,
+  monthlyPriceUsd: number
 ): string {
   return `
     <!DOCTYPE html>
@@ -521,7 +537,7 @@ export function getTrialReminderEmail(
           Hi ${name}, your <strong>7-day Pro trial</strong> ends in <strong>${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}</strong>.
         </p>
         <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          After your trial ends, you'll be charged <strong>$29/month</strong> or <strong>$290/year</strong> depending on your selected plan.
+          After your trial ends, you'll be charged <strong>${formatEmailUsd(monthlyPriceUsd)}/month</strong>.
         </p>
         <p style="color: #52525b; line-height: 1.6; margin: 0 0 24px 0;">
           You can cancel anytime before the trial ends to avoid charges.
@@ -544,9 +560,10 @@ export function getTrialReminderEmail(
 export async function sendTrialReminderEmail(
   to: string,
   name: string,
-  daysRemaining: number
+  daysRemaining: number,
+  monthlyPriceUsd: number
 ): Promise<{ success: boolean; error?: string }> {
-  const html = getTrialReminderEmail(name, daysRemaining);
+  const html = getTrialReminderEmail(name, daysRemaining, monthlyPriceUsd);
   return sendEmail(to, `Pro Trial Ending in ${daysRemaining} Days`, html);
 }
 
@@ -555,11 +572,17 @@ export async function sendTrialReminderEmail(
  *
  * @param name - User's name
  * @param reason - Reason for upgrade prompt
+ * @param monthlyPriceUsd - PRO monthly price (SystemConfig getBasePriceUsd())
  * @returns HTML string for upgrade prompt email
  */
 export function getUpgradePromptEmail(
   name: string,
-  reason: 'alert_limit' | 'symbol_limit' | 'timeframe_limit' | 'indicator_limit'
+  reason:
+    | 'alert_limit'
+    | 'symbol_limit'
+    | 'timeframe_limit'
+    | 'indicator_limit',
+  monthlyPriceUsd: number
 ): string {
   const reasons = {
     alert_limit: 'Price alerts are a Pro feature',
@@ -604,7 +627,7 @@ export function getUpgradePromptEmail(
         </ul>
 
         <p style="color: #18181b; font-weight: 600; margin: 0 0 24px 0;">
-          Only $29/month or save with $290/year
+          Only ${formatEmailUsd(monthlyPriceUsd)}/month
         </p>
 
         <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/pricing" style="display: inline-block; background: #22c55e; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
@@ -626,9 +649,14 @@ export function getUpgradePromptEmail(
 export async function sendUpgradePromptEmail(
   to: string,
   name: string,
-  reason: 'alert_limit' | 'symbol_limit' | 'timeframe_limit' | 'indicator_limit'
+  reason:
+    | 'alert_limit'
+    | 'symbol_limit'
+    | 'timeframe_limit'
+    | 'indicator_limit',
+  monthlyPriceUsd: number
 ): Promise<{ success: boolean; error?: string }> {
-  const html = getUpgradePromptEmail(name, reason);
+  const html = getUpgradePromptEmail(name, reason, monthlyPriceUsd);
   return sendEmail(to, 'Upgrade to Pro - 7-Day Free Trial', html);
 }
 

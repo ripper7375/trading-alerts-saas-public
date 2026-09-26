@@ -27,7 +27,6 @@ export const TIER_CONFIG = {
   },
   PRO: {
     name: 'Pro',
-    monthlyPrice: Number(process.env['NEXT_PUBLIC_PRO_PRICE_MONTHLY'] ?? '29'),
     symbolCount: 1,
     maxAlerts: 100,
     requestsPerHour: 300,

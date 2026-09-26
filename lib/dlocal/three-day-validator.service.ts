@@ -157,7 +157,7 @@ export async function markThreeDayPlanUsed(userId: string): Promise<void> {
  */
 export async function validatePlanPurchase(
   userId: string,
-  planType: 'THREE_DAY' | 'MONTHLY'
+  planType: 'THREE_DAY' | 'MONTHLY' | 'YEARLY'
 ): Promise<ThreeDayPlanEligibilityResult> {
   if (planType === 'THREE_DAY') {
     return canPurchaseThreeDayPlan(userId);

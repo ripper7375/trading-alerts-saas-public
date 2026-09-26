@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
+import { getBasePriceUsd } from '@/lib/affiliate/db';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { MoneyServiceError } from '@/lib/money-service/client';
@@ -9,12 +10,6 @@ import {
   getMoneyServiceToken,
   fetchAdminAnalytics,
 } from '@/lib/money-service/routes';
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// CONSTANTS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-const PRO_MONTHLY_PRICE = 29;
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -107,7 +102,9 @@ export async function GET(): Promise<
     const proPercentage = totalUsers > 0 ? (proUsers / totalUsers) * 100 : 0;
 
     // Calculate revenue
-    const mrr = proUsers * PRO_MONTHLY_PRICE;
+    // Estimate: PRO users x the admin's SystemConfig PRO price
+    const proMonthlyPrice = await getBasePriceUsd();
+    const mrr = proUsers * proMonthlyPrice;
     const arr = mrr * 12;
 
     // Calculate conversion rate
@@ -140,7 +137,7 @@ export async function GET(): Promise<
         mrr,
         arr,
         conversionRate: Math.round(conversionRate * 100) / 100,
-        pricePerUser: PRO_MONTHLY_PRICE,
+        pricePerUser: proMonthlyPrice,
       },
       growth: {
         newUsersThisMonth,
