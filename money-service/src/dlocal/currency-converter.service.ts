@@ -1,36 +1,23 @@
 /**
  * Currency Converter Service (Session 4A-9, File 6/10)
  *
- * Ported byte-for-byte from lib/dlocal/currency-converter.service.ts -- a
+ * Ported from lib/dlocal/currency-converter.service.ts -- a
  * real, direct dependency of app/api/payments/dlocal/create/route.ts that
  * the 4A-9 order's own File 5/6 list omitted (same class of gap as File
  * 4/10's missing webhook-handlers.ts). No policy decision here, just USD
- * to local currency conversion for dLocal payments -- ported as-is.
+ * to local currency conversion for dLocal payments. Rates come from the USD
+ * table shared with the Next app through Redis (../fx/usd-rates.ts).
  */
 
 import { logger } from '../common/logger.util';
+import { FALLBACK_USD_RATES } from '../fx/usd-fallback-rates';
+import {
+  clearUsdRateCache,
+  getUsdRateTable,
+  type SharedRateStore,
+} from '../fx/usd-rates';
 
 import type { DLocalCurrency, CurrencyConversionResult } from './dlocal.types';
-
-// Cache for exchange rates with 1-hour TTL
-const exchangeRateCache: Map<
-  DLocalCurrency,
-  { rate: number; timestamp: number }
-> = new Map();
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
-
-// Fallback rates for development/offline mode (updated periodically)
-const FALLBACK_RATES: Record<DLocalCurrency, number> = {
-  INR: 83.12,
-  NGN: 1505.5,
-  PKR: 278.45,
-  VND: 24750.0,
-  IDR: 15680.0,
-  THB: 35.25,
-  ZAR: 18.65,
-  TRY: 32.15,
-  AED: 3.67,
-};
 
 const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
   'INR',
@@ -44,71 +31,39 @@ const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
   'AED',
 ];
 
+/**
+ * Rates used when the rate API cannot be reached: the same fixed rates the
+ * Next app displays prices at, so an outage never shows one price and
+ * charges another (see ../fx/usd-fallback-rates.ts).
+ */
+const FALLBACK_RATES = Object.fromEntries(
+  SUPPORTED_CURRENCIES.map((c) => [c, FALLBACK_USD_RATES[c] as number])
+) as Record<DLocalCurrency, number>;
+
 function isSupportedCurrency(currency: string): currency is DLocalCurrency {
   return SUPPORTED_CURRENCIES.includes(currency as DLocalCurrency);
 }
 
-async function fetchExchangeRateFromAPI(
-  currency: DLocalCurrency
-): Promise<number> {
-  try {
-    const response = await fetch(
-      'https://api.exchangerate-api.com/v4/latest/USD'
-    );
-
-    if (!response.ok) {
-      throw new Error(`API responded with status ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (!data.rates || !data.rates[currency]) {
-      throw new Error(`Exchange rate not found for ${currency}`);
-    }
-
-    return data.rates[currency];
-  } catch (error) {
-    logger.warn('Failed to fetch exchange rate from API, using fallback rate', {
-      currency,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-
-    if (!FALLBACK_RATES[currency]) {
-      throw new Error(`Unsupported currency: ${currency}`);
-    }
-    return FALLBACK_RATES[currency];
-  }
-}
-
 /**
- * Gets the exchange rate for a currency (USD base). Uses caching to
- * minimize API calls.
+ * Gets the exchange rate for a currency (USD base) from the hourly USD table
+ * shared with the Next app (../fx/usd-rates.ts).
+ *
+ * @param store - Redis client holding the shared table (optional)
  */
 export async function getExchangeRate(
-  currency: DLocalCurrency
+  currency: DLocalCurrency,
+  store?: SharedRateStore | null
 ): Promise<number> {
   if (!isSupportedCurrency(currency)) {
     throw new Error('Unsupported currency');
   }
 
-  const cached = exchangeRateCache.get(currency);
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    logger.debug('Using cached exchange rate', {
-      currency,
-      rate: cached.rate,
-    });
-    return cached.rate;
-  }
+  const table = await getUsdRateTable(store);
+  const live = table.rates[currency];
+  if (live) return live;
 
-  const rate = await fetchExchangeRateFromAPI(currency);
-
-  exchangeRateCache.set(currency, {
-    rate,
-    timestamp: Date.now(),
-  });
-
-  logger.info('Exchange rate fetched', { currency, rate });
-  return rate;
+  logger.warn('Exchange rate unavailable, using fallback rate', { currency });
+  return FALLBACK_RATES[currency];
 }
 
 /**
@@ -116,13 +71,14 @@ export async function getExchangeRate(
  */
 export async function convertUSDToLocal(
   usdAmount: number,
-  currency: DLocalCurrency
+  currency: DLocalCurrency,
+  store?: SharedRateStore | null
 ): Promise<CurrencyConversionResult> {
   if (usdAmount <= 0) {
     throw new Error('Amount must be positive');
   }
 
-  const exchangeRate = await getExchangeRate(currency);
+  const exchangeRate = await getExchangeRate(currency, store);
   const localAmount = Math.round(usdAmount * exchangeRate * 100) / 100;
 
   return {
@@ -135,7 +91,7 @@ export async function convertUSDToLocal(
 
 /** Clears the exchange rate cache (for testing). */
 export function clearExchangeRateCache(): void {
-  exchangeRateCache.clear();
+  clearUsdRateCache();
 }
 
 /** Gets fallback rate for a currency (for testing/offline mode). */

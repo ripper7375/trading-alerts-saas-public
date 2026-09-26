@@ -463,9 +463,9 @@ export class StripeWebhookService {
       // has actually been collected (davintrade commission-timing fix) --
       // never at checkout completion. Recurring-commission follow-up:
       // fires on EVERY qualifying invoice, not just the first, up to
-      // MAX_RECURRING_COMMISSION_CYCLES -- creditAffiliateCommission is
-      // idempotent per invoice, and reports capReached so this caller
-      // knows when to stop the attribution.
+      // getMaxCommissionCycles (24 monthly or 2 annual invoices) --
+      // creditAffiliateCommission is idempotent per invoice, and reports
+      // capReached so this caller knows when to stop the attribution.
       if (dbSubscription.affiliateCodeId) {
         try {
           const conversion =
@@ -475,6 +475,7 @@ export class StripeWebhookService {
               subscriptionId: dbSubscription.stripeSubscriptionId,
               grossRevenueUsd: amountPaid / 100,
               stripeInvoiceId: invoice.id,
+              interval: isYearly ? 'year' : 'month',
             });
 
           if (conversion.processed) {
@@ -611,7 +612,7 @@ export class StripeWebhookService {
    */
   /**
    * Recurring-commission follow-up: a subscription can now have up to
-   * MAX_RECURRING_COMMISSION_CYCLES separate Commission rows (one per
+   * getMaxCommissionCycles() separate Commission rows (one per
    * billing cycle), so this must claw back the ONE row tied to the
    * specific invoice that was actually refunded/disputed -- mirrors
    * lib/stripe/webhook-handlers.ts. Falls back to the subscription-wide

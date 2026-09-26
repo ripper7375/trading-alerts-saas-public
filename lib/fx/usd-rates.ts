@@ -3,8 +3,12 @@
  * charges with (lib/dlocal/currency-converter.service.ts) and the rate pages
  * display local prices at (formatCurrency / formatCurrencyAmount).
  *
- * The whole USD table is fetched at most once an hour per server process and
- * shared. Display callers get the cached table immediately, even when it is
+ * The whole USD table is fetched at most once an hour and shared: through
+ * Redis (`fx:usd_rates`, lib/fx/shared-rate-store.ts) with money-service and
+ * every other server instance, and in memory within this process. A refresh
+ * reads Redis first and only calls the rate API when Redis has no table
+ * younger than an hour; a fetched table is written back for the others.
+ * Without Redis each process falls back to its own hourly fetch. Display callers get the cached table immediately, even when it is
  * older than an hour (a refresh then runs in the background), so a slow rate
  * API never holds up a page. Charge callers (`fresh: true`) wait for the
  * refresh instead. When the API cannot be reached, callers fall back to the
@@ -18,6 +22,10 @@
  */
 
 import { CURRENCY_USD_RATES, type DisplayUsdRates } from '@/lib/country-config';
+import {
+  readSharedUsdRates,
+  writeSharedUsdRates,
+} from '@/lib/fx/shared-rate-store';
 import { logger } from '@/lib/logger';
 
 export const USD_RATES_URL = 'https://api.exchangerate-api.com/v4/latest/USD';
@@ -73,6 +81,7 @@ async function fetchTable(): Promise<UsdRateTable> {
       fetchedAt,
     };
     cache = { table, expiresAt: nowMs + USD_RATES_TTL_MS };
+    await writeSharedUsdRates({ rates, fetchedAt });
     return table;
   } catch (error) {
     logger.warn('[fx] USD rate API unavailable, using fallback rates', {
@@ -90,9 +99,31 @@ async function fetchTable(): Promise<UsdRateTable> {
   }
 }
 
+/**
+ * The table another instance or money-service published in Redis, when it is
+ * younger than an hour; otherwise a fresh fetch from the rate API. The shared
+ * table keeps its own fetch time, so every reader expires it together.
+ */
+async function loadTable(): Promise<UsdRateTable> {
+  const shared = await readSharedUsdRates();
+  if (shared) {
+    const expiresAt = Date.parse(shared.fetchedAt) + USD_RATES_TTL_MS;
+    if (expiresAt > Date.now()) {
+      const table: UsdRateTable = {
+        rates: shared.rates,
+        source: 'live',
+        fetchedAt: shared.fetchedAt,
+      };
+      cache = { table, expiresAt };
+      return table;
+    }
+  }
+  return fetchTable();
+}
+
 function refresh(): Promise<UsdRateTable> {
   if (!inflight) {
-    inflight = fetchTable().finally(() => {
+    inflight = loadTable().finally(() => {
       inflight = null;
     });
   }

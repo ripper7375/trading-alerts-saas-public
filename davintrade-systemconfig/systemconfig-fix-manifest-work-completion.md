@@ -201,18 +201,15 @@ on a fixed $29/$290 is impossible.
 - **Signed-in click-through** of checkout and Settings → Billing (the Executor does not sign in).
 - **Switching plans** (monthly ↔ annual) for an existing subscriber: there is no upgrade/downgrade
   path; a subscriber cancels and subscribes again. Stripe proration was out of scope.
-- **Admin MRR** counts every PRO user at the monthly price, so annual subscribers are estimated as
-  monthly. A per-subscription MRR (annual ÷ 12) would be more accurate.
-- **Affiliate commission cap** (`MAX_RECURRING_COMMISSION_CYCLES = 24`) counts invoices, so for an
-  annual subscriber it means 24 years. Worth a decision if the cap is meant in time.
+- ~~**Admin MRR** counts every PRO user at the monthly price.~~ Fixed in §12: annual subscribers
+  count at the annual price ÷ 12.
+- ~~**Affiliate commission cap** counts invoices (24 years for an annual subscriber).~~ Fixed in
+  §12: the cap is 24 months, i.e. 24 monthly or 2 annual invoices.
 - **D6** (codes on the annual plan) is a business choice worth Davin's review.
 - dLocal annual, like dLocal monthly, does not renew automatically.
-- **money-service keeps its own copy of the dLocal converter** (§10.4): same API, 1-hour cache
-  per currency, but a separate cache. When money-service serves dLocal, its rate can be up to an
-  hour apart from the one on screen. Sharing one table would need a cross-service cache (Redis).
-- **Fallback rates disagree** when the rate API is down: the display falls back to
-  `CURRENCY_USD_RATES` (e.g. THB 35.0), dLocal to its own `FALLBACK_RATES` (THB 35.25). Only
-  during an outage; worth unifying.
+- ~~**money-service keeps its own rate cache.**~~ Fixed in §12: both apps share the table in
+  Redis (`fx:usd_rates`), provided Vercel's `REDIS_URL` points at the same Redis as money-service.
+- ~~**Fallback rates disagree** during an outage.~~ Fixed in §12: one set of fallback rates.
 - **The landing-page pricing card** shows local prices too but has no note. The note could be added
   there with the same key.
 - **Checkout's note is not verified live:** checkout needs a signed-in session. It uses the same
@@ -349,3 +346,74 @@ total fell back to the estimated rate; added.
 **247/247 · 3178/3178**. **Not seen live:** checkout needs a signed-in session. Cards round to
 whole units at ≥1000 (THB 9,680) while the total shows ฿9,680.20; same currency, different
 existing formatters.
+
+---
+
+## 12. Round 4 (2026-09-26): commission cap in months, interval-aware MRR, one exchange-rate table
+
+Three of the §8 open items, on Davin's instruction. Branch `fix/commission-cap-mrr-fx-rates`.
+
+### 12.1 Affiliate commission cap: 24 months, not 24 invoices
+
+`MAX_RECURRING_COMMISSION_CYCLES = 24` became `MAX_RECURRING_COMMISSION_MONTHS = 24` with
+`getMaxCommissionCycles(interval)`: 24 for a monthly invoice, 2 for an annual one
+(`lib/affiliate/constants.ts`, mirrored in `money-service/src/affiliate/affiliate.constants.ts`).
+The Stripe webhook passes the invoice line's interval (`invoicePlan()`) to
+`processAffiliateCommission` (Next) and `creditAffiliateCommission` (money-service, new required
+`interval` field). The cap is still counted in non-clawback `Commission` rows, and the attribution
+is still cleared on the invoice that reaches it. dLocal is unaffected: it credits one commission
+per code and does not renew.
+
+### 12.2 Admin MRR by billing interval
+
+`MRR = monthly PRO users × affiliate_base_price + annual PRO users × affiliate_annual_price ÷ 12`,
+`ARR = MRR × 12`, both rounded to cents. A PRO user is annual when their `Subscription.planType`
+is `YEARLY` (set by the Stripe webhook and dLocal); every other PRO user, including 3-day and
+admin-granted PRO, counts as monthly. `Subscription` has no relation to `User`, so the count is
+two queries: yearly subscriptions, then PRO users among them. Shared helper
+`lib/admin/analytics/mrr.ts` (used by `/api/admin/analytics` and `revenue.ts`); money-service
+mirror `src/admin/admin-mrr.ts`. `pricePerUser` in `/api/admin/analytics` stays the monthly price.
+
+### 12.3 One exchange-rate table, one set of fallback rates
+
+- **Shared cache.** A refresh reads `fx:usd_rates` from Redis first and calls exchangerate-api.com
+  only when Redis has no table younger than an hour; a fetched table is written back with a
+  3600 s TTL. The stored JSON is `{ rates, fetchedAt }`; a reader expires it at
+  `fetchedAt + 1 hour`, so every instance switches together. Next: new `lib/fx/shared-rate-store.ts`
+  used by `lib/fx/usd-rates.ts`. money-service: new `src/fx/usd-rates.ts`; the dLocal converter now
+  keeps one table instead of one entry per currency, and `DlocalPaymentController` passes
+  `RedisService`'s client.
+- **Redis is optional.** No `REDIS_URL`, a Redis error, a malformed value or a reply slower than
+  500 ms all fall through to the in-memory cache and the API. A fallback table is never written.
+- **Fallback rates.** The Next dLocal fallback is now derived from `CURRENCY_USD_RATES`, and
+  money-service's `src/fx/usd-fallback-rates.ts` holds the same numbers (e.g. THB 35.0, INR 83.5;
+  previously 35.25 and 83.12 for dLocal). New parity test `__tests__/lib/fx/usd-rates-parity.test.ts`.
+- **Tests.** `jest.setup.js` mocks the store globally (no Redis in tests); the usd-rates suite opts
+  out and runs against an in-memory Redis stand-in.
+
+### 12.4 Verification
+
+- `tsc --noEmit` clean in both apps; ESLint clean on the changed Next files; Prettier clean
+  (`--end-of-line auto`).
+- Next `test:ci` **250/250 · 3211/3211** (+3 suites: `commission-cap`, `mrr`,
+  `usd-rates-parity`; new cases in the webhook, revenue, usd-rates and dLocal converter suites).
+- money-service `npm test` **66/66 · 650/650** (+3 specs: `affiliate.constants`, `admin-mrr`,
+  `fx/usd-rates`). In the full parallel run `prisma.shutdown.spec.ts` timed out once and passed
+  alone (`--runInBand`), the known L24 flake.
+- `systemconfig-figures-guard` still passes.
+- **Mutation 11/11 killed**, every file restored byte-exact (sha256): cap ignores the interval
+  (both apps), webhook always passes monthly (both), annual MRR at the monthly price (both), Redis
+  never read (both), Redis never written, and each fallback table drifting from the other.
+
+### 12.5 Not covered
+
+- **Vercel's `REDIS_URL` was not checked.** Sharing works only if the Next app's `REDIS_URL`
+  (Vercel) points at the same Redis as money-service (Railway). If it is unset, the Next app keeps
+  its own hourly cache (as before) and money-service still publishes. Check after deploy: the key
+  `fx:usd_rates` should exist, and `/api/fx/rates` should show a `fetchedAt` equal to it.
+- **The fallback rates themselves are old approximations**, now identical in both apps. Refreshing
+  them is a separate decision.
+- **A subscriber who changes interval** would be capped by the current invoice's interval against
+  all prior commission rows; there is no plan-switch path today (§8).
+- Not seen live: an admin MRR page with annual subscribers, and a real renewal (needs production
+  data and a signed-in session).

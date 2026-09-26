@@ -103,6 +103,20 @@ jest.mock('@auth/prisma-adapter', () => ({
   PrismaAdapter: jest.fn(() => ({})),
 }));
 
+// Shared USD rate table in Redis (lib/fx/shared-rate-store.ts): no Redis in
+// tests, so suites that run the real rate module (see below) see an
+// empty store and go to the (mocked) rate API. Suites that test the store
+// opt out with jest.unmock('@/lib/fx/shared-rate-store').
+jest.mock('@/lib/fx/shared-rate-store', () => {
+  const actual = jest.requireActual('@/lib/fx/shared-rate-store');
+  return {
+    __esModule: true,
+    ...actual,
+    readSharedUsdRates: jest.fn(() => Promise.resolve(null)),
+    writeSharedUsdRates: jest.fn(() => Promise.resolve()),
+  };
+});
+
 // Live USD rates (lib/fx/usd-rates.ts): no network in tests. The root layout,
 // server pages and dLocal all read this module; by default they get the fixed
 // rates, exactly as when the rate API is unreachable. Suites that test the

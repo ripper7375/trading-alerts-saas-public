@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
-import { getBasePriceUsd } from '@/lib/affiliate/db';
+import { getProMrr } from '@/lib/admin/analytics/mrr';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { MoneyServiceError } from '@/lib/money-service/client';
@@ -101,11 +101,9 @@ export async function GET(): Promise<
     const freePercentage = totalUsers > 0 ? (freeUsers / totalUsers) * 100 : 0;
     const proPercentage = totalUsers > 0 ? (proUsers / totalUsers) * 100 : 0;
 
-    // Calculate revenue
-    // Estimate: PRO users x the admin's SystemConfig PRO price
-    const proMonthlyPrice = await getBasePriceUsd();
-    const mrr = proUsers * proMonthlyPrice;
-    const arr = mrr * 12;
+    // Calculate revenue: each PRO user at their billing interval's
+    // SystemConfig price (monthly price, or annual price / 12)
+    const { mrr, arr, monthlyPriceUsd } = await getProMrr(proUsers);
 
     // Calculate conversion rate
     const conversionRate = totalUsers > 0 ? (proUsers / totalUsers) * 100 : 0;
@@ -137,7 +135,7 @@ export async function GET(): Promise<
         mrr,
         arr,
         conversionRate: Math.round(conversionRate * 100) / 100,
-        pricePerUser: proMonthlyPrice,
+        pricePerUser: monthlyPriceUsd,
       },
       growth: {
         newUsersThisMonth,

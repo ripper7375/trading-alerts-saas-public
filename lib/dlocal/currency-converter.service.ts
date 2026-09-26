@@ -10,21 +10,9 @@
  */
 
 import type { DLocalCurrency, CurrencyConversionResult } from '@/types/dlocal';
+import { CURRENCY_USD_RATES } from '@/lib/country-config';
 import { clearUsdRateCache, getUsdRateTable } from '@/lib/fx/usd-rates';
 import { logger } from '@/lib/logger';
-
-// Fallback rates for development/offline mode (updated periodically)
-const FALLBACK_RATES: Record<DLocalCurrency, number> = {
-  INR: 83.12,
-  NGN: 1505.5,
-  PKR: 278.45,
-  VND: 24750.0,
-  IDR: 15680.0,
-  THB: 35.25,
-  ZAR: 18.65,
-  TRY: 32.15,
-  AED: 3.67,
-};
 
 // Supported currencies for validation
 const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
@@ -38,6 +26,16 @@ const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
   'TRY',
   'AED',
 ];
+
+/**
+ * Rates used when the rate API cannot be reached: the same fixed rates the
+ * pages display prices at (lib/country-config.ts), so an outage never shows
+ * one price and charges another. money-service/src/fx/usd-fallback-rates.ts
+ * holds the same numbers (parity test: __tests__/lib/fx/usd-rates-parity.test.ts).
+ */
+const FALLBACK_RATES = Object.fromEntries(
+  SUPPORTED_CURRENCIES.map((c) => [c, CURRENCY_USD_RATES[c] as number])
+) as Record<DLocalCurrency, number>;
 
 /**
  * Validates if a currency is supported

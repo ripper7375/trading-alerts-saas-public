@@ -13,6 +13,20 @@
 
 ## Current state _(update at the end of EVERY session)_
 
+> **Same day (2026-09-26), round 4 — commission cap in months, interval-aware MRR, one exchange-rate
+> table. Branch `fix/commission-cap-mrr-fx-rates`, NOT committed, NOT deployed. Money change, done on
+> Davin's explicit chat order.** (1) The recurring affiliate commission cap is now 24 **months**:
+> `MAX_RECURRING_COMMISSION_MONTHS` + `getMaxCommissionCycles(interval)` = 24 monthly or 2 annual
+> invoices (was 24 invoices = 24 years on the annual plan); the Stripe webhook passes the invoice
+> interval in both apps. (2) Admin MRR = monthly PRO × base price + annual PRO (`planType`
+> `YEARLY`) × annual price ÷ 12, via `lib/admin/analytics/mrr.ts` / money-service `admin-mrr.ts`.
+> (3) Both apps share the USD rate table in Redis (`fx:usd_rates`, 1 h, read first, written on
+> fetch, 500 ms timeout, optional); fallback rates unified to `CURRENCY_USD_RATES` (dLocal THB
+> 35.25 → 35.0 etc.), guarded by `__tests__/lib/fx/usd-rates-parity.test.ts`.
+> **Verified:** `tsc` clean both; `test:ci` **250/250 · 3211/3211**; money-service **66/66 ·
+> 650/650** (shutdown-spec flake passed alone); mutation **11/11**. **Not verified:** that Vercel's
+> `REDIS_URL` is the same Redis as money-service's. Account: SystemConfig manifest §12.
+
 > **Same day (2026-09-26), follow-up to Davin's two screenshots — currency mixing fixed. Branch
 > `fix/no-country-language-currency`, tested by Davin, merged to `main` by PR, NOT deployed.** (1) `/pricing`: Thai → Chinese via the navbar language picker kept
 > THB. zh/zh-TW/es/pt have no country, so a language change replaced nothing; now they take USD
@@ -4855,6 +4869,12 @@ route.ts`, `lib/socket-client.ts`, `components/chat-widget/*` (3 files), 3 new t
   `history/sessions-archive.md`).
 
 ## Waiting on
+
+- **Shared FX rates (2026-09-26 round 4): check Vercel's `REDIS_URL`.** The Next app shares the
+  rate table with money-service only if its `REDIS_URL` (Vercel) points at money-service's Redis
+  (Railway). If unset it silently keeps its own hourly cache. After deploy, confirm the key
+  `fx:usd_rates` exists and its `fetchedAt` matches `/api/fx/rates`. Deploy both apps together
+  (`creditAffiliateCommission` now requires `interval`).
 
 - **SystemConfig pricing (2026-09-26): deploy both apps together, then test a price change.**
   Stripe checkout is proxied to money-service when its flag is on, so deploy money-service and the

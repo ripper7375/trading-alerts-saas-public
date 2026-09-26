@@ -1081,6 +1081,86 @@ describe('Stripe Webhook Handlers', () => {
         });
       });
 
+      describe('annual plan: the 24-month cap is 2 annual invoices', () => {
+        const annualInvoice = {
+          ...mockInvoice,
+          amount_paid: 29000,
+          total: 29000,
+          lines: {
+            data: [
+              {
+                tax_rates: [],
+                price: {
+                  currency: 'usd',
+                  unit_amount: 29000,
+                  recurring: { interval: 'year' },
+                },
+              },
+            ],
+          },
+        } as unknown as Stripe.Invoice;
+
+        it('credits the 1st annual invoice and keeps the attribution', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+
+          await handleInvoiceSucceeded(annualInvoice);
+
+          expect(mockCalculateFullBreakdown).toHaveBeenCalledWith(290, 20, 20);
+          expect(mockSubscriptionUpdate).not.toHaveBeenCalledWith({
+            where: { id: 'sub-db-123' },
+            data: { affiliateCodeId: null },
+          });
+        });
+
+        it('credits the 2nd annual invoice and clears the attribution (24 months reached)', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+          mockCommissionFindMany.mockResolvedValue([
+            { stripeInvoiceId: 'inv_year_1' },
+          ]);
+
+          await handleInvoiceSucceeded(annualInvoice);
+
+          expect(mockCalculateFullBreakdown).toHaveBeenCalledWith(290, 0, 20);
+          expect(mockCommissionCreate).toHaveBeenCalled();
+          expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+            where: { id: 'sub-db-123' },
+            data: { affiliateCodeId: null },
+          });
+        });
+
+        it('does not credit a 3rd annual invoice', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+          mockCommissionFindMany.mockResolvedValue([
+            { stripeInvoiceId: 'inv_year_1' },
+            { stripeInvoiceId: 'inv_year_2' },
+          ]);
+
+          await handleInvoiceSucceeded(annualInvoice);
+
+          expect(mockCommissionCreate).not.toHaveBeenCalled();
+          expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+            where: { id: 'sub-db-123' },
+            data: { affiliateCodeId: null },
+          });
+        });
+      });
+
+      it('keeps crediting a monthly subscription on its 3rd invoice (cap is 24 monthly invoices)', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+        mockCommissionFindMany.mockResolvedValue([
+          { stripeInvoiceId: 'inv_prev_1' },
+          { stripeInvoiceId: 'inv_prev_2' },
+        ]);
+
+        await handleInvoiceSucceeded(mockInvoice);
+
+        expect(mockCommissionCreate).toHaveBeenCalled();
+        expect(mockSubscriptionUpdate).not.toHaveBeenCalledWith({
+          where: { id: 'sub-db-123' },
+          data: { affiliateCodeId: null },
+        });
+      });
+
       it('does not credit anything when the subscription has no pending affiliate attribution', async () => {
         mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription); // no affiliateCodeId
 
