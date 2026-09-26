@@ -13,8 +13,8 @@
 
 ## Current state _(update at the end of EVERY session)_
 
-> **Same day (2026-09-26), follow-up to Davin's two screenshots — currency mixing fixed. On `main`,
-> NOT committed, NOT deployed.** (1) `/pricing`: Thai → Chinese via the navbar language picker kept
+> **Same day (2026-09-26), follow-up to Davin's two screenshots — currency mixing fixed. Branch
+> `fix/no-country-language-currency`, tested by Davin, merged to `main` by PR, NOT deployed.** (1) `/pricing`: Thai → Chinese via the navbar language picker kept
 > THB. zh/zh-TW/es/pt have no country, so a language change replaced nothing; now they take USD
 > (`currencyForLanguage()` in `lib/i18n/locale-resolver.ts`, used by `LocaleProvider`, the Settings
 > page and `resolvePreferences()`). (2) `/checkout`: Thailand + English (UK) showed £ plan cards over
