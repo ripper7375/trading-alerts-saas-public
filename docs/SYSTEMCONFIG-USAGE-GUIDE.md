@@ -33,12 +33,17 @@ payment-failed email quotes each subscriber's own price. Nothing needs editing i
 
 **Annual plan (added 2026-09-26):** `affiliate_annual_price`, editable next to Base Price. Card payments use an inline yearly Stripe price on the same product (`billingPeriod: 'yearly'` on `/api/checkout`); dLocal sells `planType: 'YEARLY'` for 365 days. Reads: `getAnnualPriceUsd()`, `AffiliateConfigService.getAnnualPriceUsd()`, `useAffiliateConfig().annualPrice` / `annualSavingsPercent`. Full account: `davintrade-systemconfig/systemconfig-fix-manifest-work-completion.md`.
 
-**Local-currency prices (2026-09-26):** SystemConfig prices are in USD. Pages convert them into the
-viewer's currency at the **live** rate from `lib/fx/usd-rates.ts`, the same hourly table the dLocal
-charge uses; the fixed rates in `lib/country-config.ts` apply only when the rate API is down. Card
-payments are charged in USD, so `/pricing` and checkout say the local figure is approximate and name
-the USD charge. The "Save x%" badge is computed from the two USD prices, so it follows an admin price
-change and does not depend on any exchange rate. Details: §10 of the manifest above.
+**Local-currency prices & shared Redis cache (2026-09-26):** SystemConfig prices are in USD. Pages convert them into the
+viewer's currency at the **live** rate from `lib/fx/usd-rates.ts`, shared with money-service via a 1-hour Redis
+cache (`fx:usd_rates`). The fixed rates in `lib/country-config.ts` (and money-service's `usd-fallback-rates.ts`)
+are unified and apply only when the rate API and Redis are down. Card payments are charged in USD, so `/pricing`
+and checkout say the local figure is approximate and name the USD charge. The "Save x%" badge is computed
+from the two USD prices, so it follows an admin price change and does not depend on any exchange rate.
+Details: §10 and §12 of the manifest above.
+
+**Affiliate commission cap (2026-09-26):** Recurring commission is capped at **24 months** of subscription
+lifetime (`MAX_RECURRING_COMMISSION_MONTHS = 24`), resolved via `getMaxCommissionCycles(interval)`: 24 cycles
+for monthly subscribers, 2 cycles for annual subscribers.
 
 **Retired:** the `NEXT_PUBLIC_PRO_PRICE_MONTHLY` env price (a second price source), the
 `/pricing` annual toggle that sold nothing (since replaced by a real annual plan), fixed "$29/$290" in emails, and the

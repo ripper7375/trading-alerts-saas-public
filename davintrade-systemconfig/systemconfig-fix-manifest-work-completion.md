@@ -1,12 +1,13 @@
 # SystemConfig fix and annual plan — Manifest of Work Completion
 
 **Date:** 2026-09-26
-**Branch:** `fix/16-language-localization-reaudit` (same branch as the 16-language round 3)
-**State:** code complete and verified; committed and pushed 2026-09-26 on the branch above; **NOT merged, NOT deployed**
+**Branch:** `main` (merged via PR #471 and PR #473)
+**State:** code complete, verified, **merged to main and deployed to production** (Vercel & Railway)
 **Approved by Davin in chat:** Stripe option (a), the dLocal and codes-per-month fixes, the display
 and email fixes, then a complete annual plan driven by SystemConfig. **Same day, round 2 (§10):**
 local prices use the live exchange rate dLocal uses (option 1), with an "approximate, charged in USD"
-note on `/pricing` and checkout.
+note on `/pricing` and checkout. **Round 3 (§11):** checkout plan cards in charged currency. **Round 4 (§12):**
+24-month commission cap, annual-aware admin MRR, shared Redis FX rate store.
 
 ---
 
@@ -351,7 +352,8 @@ existing formatters.
 
 ## 12. Round 4 (2026-09-26): commission cap in months, interval-aware MRR, one exchange-rate table
 
-Three of the §8 open items, on Davin's instruction. Branch `fix/commission-cap-mrr-fx-rates`.
+Three of the §8 open items, on Davin's instruction. Branch `fix/commission-cap-mrr-fx-rates`,
+committed as `a0b87b73`, merged to `main` via PR #473, and deployed to production.
 
 ### 12.1 Affiliate commission cap: 24 months, not 24 invoices
 
@@ -405,12 +407,21 @@ mirror `src/admin/admin-mrr.ts`. `pricePerUser` in `/api/admin/analytics` stays 
   (both apps), webhook always passes monthly (both), annual MRR at the monthly price (both), Redis
   never read (both), Redis never written, and each fallback table drifting from the other.
 
-### 12.5 Not covered
+### 12.5 Production deployment and live verification
 
-- **Vercel's `REDIS_URL` was not checked.** Sharing works only if the Next app's `REDIS_URL`
-  (Vercel) points at the same Redis as money-service (Railway). If it is unset, the Next app keeps
-  its own hourly cache (as before) and money-service still publishes. Check after deploy: the key
-  `fx:usd_rates` should exist, and `/api/fx/rates` should show a `fetchedAt` equal to it.
+- **Merged & Deployed:** PR #473 merged to `main`. Deployed to production on both **Vercel**
+  (`trading-alerts-saas-frontend-denqisd10`) and **Railway** (`money-service` deployment `40b79199`).
+- **Vercel `REDIS_URL` configured:** `REDIS_URL` added to Vercel across Production, Preview, and
+  Development, pointing to Railway's public Redis proxy
+  (`redis://default:...@shuttle.proxy.rlwy.net:43928`). Tested external ping: PONG.
+- **Live Redis sharing verified:** Node test against Railway Redis confirmed `fx:usd_rates` exists
+  with fresh live rate data (`FOUND: {"rates": ...}`). Both Vercel and Railway now share the same
+  1-hour Redis cache.
+- **Live FX API verified:** `https://www.davintrade.app/api/fx/rates` returns `"source": "live"`
+  with current rates matching the shared Redis store.
+
+### 12.6 Not covered
+
 - **The fallback rates themselves are old approximations**, now identical in both apps. Refreshing
   them is a separate decision.
 - **A subscriber who changes interval** would be capped by the current invoice's interval against

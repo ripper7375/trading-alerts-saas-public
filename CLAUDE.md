@@ -14,8 +14,9 @@
 ## Current state _(update at the end of EVERY session)_
 
 > **Same day (2026-09-26), round 4 — commission cap in months, interval-aware MRR, one exchange-rate
-> table. Branch `fix/commission-cap-mrr-fx-rates`, NOT committed, NOT deployed. Money change, done on
-> Davin's explicit chat order.** (1) The recurring affiliate commission cap is now 24 **months**:
+> table. Branch `fix/commission-cap-mrr-fx-rates`, committed as `a0b87b73`, merged to `main` via PR #473,
+> DEPLOYED to production (Vercel & Railway). Money change, done on Davin's explicit chat order.**
+> (1) The recurring affiliate commission cap is now 24 **months**:
 > `MAX_RECURRING_COMMISSION_MONTHS` + `getMaxCommissionCycles(interval)` = 24 monthly or 2 annual
 > invoices (was 24 invoices = 24 years on the annual plan); the Stripe webhook passes the invoice
 > interval in both apps. (2) Admin MRR = monthly PRO × base price + annual PRO (`planType`
@@ -23,12 +24,13 @@
 > (3) Both apps share the USD rate table in Redis (`fx:usd_rates`, 1 h, read first, written on
 > fetch, 500 ms timeout, optional); fallback rates unified to `CURRENCY_USD_RATES` (dLocal THB
 > 35.25 → 35.0 etc.), guarded by `__tests__/lib/fx/usd-rates-parity.test.ts`.
-> **Verified:** `tsc` clean both; `test:ci` **250/250 · 3211/3211**; money-service **66/66 ·
-> 650/650** (shutdown-spec flake passed alone); mutation **11/11**. **Not verified:** that Vercel's
-> `REDIS_URL` is the same Redis as money-service's. Account: SystemConfig manifest §12.
+> **Verified & Live:** `tsc` clean both; `test:ci` **250/250 · 3211/3211**; money-service **66/66 ·
+> 650/650**; mutation **11/11**. Vercel `REDIS_URL` set to Railway Redis public proxy
+> (`shuttle.proxy.rlwy.net:43928`). Live `/api/fx/rates` returns `"source": "live"`, and `fx:usd_rates`
+> key verified populated in Railway Redis. Account: SystemConfig manifest §12.
 
 > **Same day (2026-09-26), follow-up to Davin's two screenshots — currency mixing fixed. Branch
-> `fix/no-country-language-currency`, tested by Davin, merged to `main` by PR, NOT deployed.** (1) `/pricing`: Thai → Chinese via the navbar language picker kept
+> `fix/no-country-language-currency`, tested by Davin, merged to `main` by PR, DEPLOYED to production.** (1) `/pricing`: Thai → Chinese via the navbar language picker kept
 > THB. zh/zh-TW/es/pt have no country, so a language change replaced nothing; now they take USD
 > (`currencyForLanguage()` in `lib/i18n/locale-resolver.ts`, used by `LocaleProvider`, the Settings
 > page and `resolvePreferences()`). (2) `/checkout`: Thailand + English (UK) showed £ plan cards over
@@ -39,8 +41,8 @@
 > Accounts: 16-language manifest §11, SystemConfig manifest §11.
 
 > **Same session (2026-09-26) — SystemConfig figures are no longer hardcoded: the admin's price
-> is now what customers pay. Same branch, committed and pushed 2026-09-26 (5 commits, with round 3 and the live-rate work), NOT merged, NOT deployed. Money change, approved
-> by Davin in chat (Stripe option (a), dLocal, codes per month, displays and emails).** Davin
+> is now what customers pay. Merged to `main` via PR #471, DEPLOYED to production (Vercel & Railway).
+> Money change, approved by Davin in chat (Stripe option (a), dLocal, codes per month, displays and emails).** Davin
 > worried that configurable figures (price, % discount, % commission) bypassed SystemConfig. An
 > audit confirmed it: **the admin Base Price changed displays but not charges.** dLocal charged
 > a fixed `PRICING.MONTHLY_USD`/`THREE_DAY_USD`; Stripe charged `STRIPE_PRO_PRICE_ID`'s own
