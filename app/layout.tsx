@@ -6,6 +6,7 @@ import './globals.css';
 import { LOCALE_COOKIE, LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
 import { SUPPORTED_LANGUAGE_CODES, textDirection } from '@/lib/i18n/languages';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
+import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
 import {
   detectedTimezoneFromHeaders,
   resolveRequestPreferences,
@@ -89,11 +90,15 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }): Promise<React.ReactElement> {
-  const [initialAppearance, cookieStore, headerStore] = await Promise.all([
-    getServerAppearance(),
-    cookies(),
-    headers(),
-  ]);
+  const [initialAppearance, cookieStore, headerStore, initialUsdRates] =
+    await Promise.all([
+      getServerAppearance(),
+      cookies(),
+      headers(),
+      // Live USD display rates (hourly, shared with dLocal); never blocks on
+      // a slow rate API -- see lib/fx/usd-rates.ts.
+      getDisplayUsdRates(),
+    ]);
 
   // Resolve the FULL preference set (language + timezone + date/time format +
   // currency) on the server, mirroring getServerAppearance() above -- a Thai
@@ -192,6 +197,7 @@ export default async function RootLayout({
           initialPreferences={initialPreferences}
           detectedTimezone={detectedTimezone}
           initialAppearance={initialAppearance}
+          initialUsdRates={initialUsdRates}
         >
           {children}
         </Providers>

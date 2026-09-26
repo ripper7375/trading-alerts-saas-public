@@ -48,6 +48,9 @@ import type { DLocalCountry, DLocalCurrency, PlanType } from '@/types/dlocal';
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
+// The real shared rate table (jest.setup.js mocks it for every other suite)
+jest.unmock('@/lib/fx/usd-rates');
+
 // Mock Prisma for database operations
 jest.mock('@/lib/db/prisma', () => ({
   prisma: {

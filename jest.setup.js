@@ -103,6 +103,31 @@ jest.mock('@auth/prisma-adapter', () => ({
   PrismaAdapter: jest.fn(() => ({})),
 }));
 
+// Live USD rates (lib/fx/usd-rates.ts): no network in tests. The root layout,
+// server pages and dLocal all read this module; by default they get the fixed
+// rates, exactly as when the rate API is unreachable. Suites that test the
+// rate logic itself opt out with jest.unmock('@/lib/fx/usd-rates').
+jest.mock('@/lib/fx/usd-rates', () => {
+  const { CURRENCY_USD_RATES } = jest.requireActual('@/lib/country-config');
+  const fetchedAt = '2026-01-01T00:00:00.000Z';
+  return {
+    __esModule: true,
+    USD_RATES_URL: 'https://api.exchangerate-api.com/v4/latest/USD',
+    USD_RATES_TTL_MS: 60 * 60 * 1000,
+    getUsdRateTable: jest.fn(() =>
+      Promise.resolve({ rates: {}, source: 'fallback', fetchedAt })
+    ),
+    getDisplayUsdRates: jest.fn(() =>
+      Promise.resolve({
+        rates: { ...CURRENCY_USD_RATES },
+        source: 'fallback',
+        fetchedAt,
+      })
+    ),
+    clearUsdRateCache: jest.fn(),
+  };
+});
+
 // Mock Next.js router (if needed in tests)
 // jest.mock('next/navigation', () => ({
 //   useRouter: () => ({

@@ -16,7 +16,7 @@ import {
   formatCurrencyAmount,
   isSupportedCurrency,
 } from '@/lib/country-config';
-import type { CountryConfig } from '@/lib/country-config';
+import type { CountryConfig, DisplayUsdRates } from '@/lib/country-config';
 import {
   LOCALE_COOKIE,
   LOCALE_STORAGE_KEY,
@@ -155,7 +155,13 @@ interface LocaleContextType extends LocalePreferences {
   formatDate: (utc: number | string | Date) => string;
   /** Date and time, e.g. `25/12/2024 14:30`, in the user's timezone. */
   formatDateTime: (utc: number | string | Date) => string;
+  /** A USD amount in the viewer's currency, at the live rate when known. */
   formatCurrency: (amountInUSD: number) => string;
+  /**
+   * The rates behind formatCurrency (null: the fixed fallback rates). Prices
+   * in any currency but USD are an approximation of the USD charge.
+   */
+  usdRates: DisplayUsdRates | null;
   formatRelativeTime: (minutesAgo: number) => string;
   t: (keyOrText: string, fallback?: string) => string;
 }
@@ -167,6 +173,7 @@ export function LocaleProvider({
   initialPreferences,
   initialLocale,
   detectedTimezone: serverDetectedTimezone,
+  initialUsdRates,
 }: {
   children: React.ReactNode;
   /** Full preference set resolved on the server in `app/layout.tsx`. */
@@ -175,6 +182,13 @@ export function LocaleProvider({
   detectedTimezone?: string | null;
   /** @deprecated language-only entry point, kept for backwards compatibility. */
   initialLocale?: string;
+  /**
+   * Live USD display rates resolved on the server (app/layout.tsx), so the
+   * server-rendered and hydrated prices agree. Refreshed hourly from
+   * GET /api/fx/rates while the page stays open. Absent (e.g. in tests):
+   * the fixed rates in lib/country-config.ts, and no refresh.
+   */
+  initialUsdRates?: DisplayUsdRates | null;
 }) {
   const pathname = usePathname();
 
@@ -199,6 +213,26 @@ export function LocaleProvider({
    */
   const [preferences, setPreferences] =
     useState<LocalePreferences>(serverPreferences);
+
+  const [usdRates, setUsdRates] = useState<DisplayUsdRates | null>(
+    initialUsdRates ?? null
+  );
+
+  // Keep long-open pages on a current rate: refresh hourly, only when the
+  // server supplied rates to begin with.
+  useEffect(() => {
+    if (!initialUsdRates) return;
+    const refresh = async (): Promise<void> => {
+      try {
+        const res = await fetch('/api/fx/rates');
+        if (res.ok) setUsdRates((await res.json()) as DisplayUsdRates);
+      } catch {
+        /* keep the rates already shown */
+      }
+    };
+    const timer = setInterval(() => void refresh(), 60 * 60 * 1000);
+    return () => clearInterval(timer);
+  }, [initialUsdRates]);
 
   const [dictionary, setDictionary] = useState<Record<string, string>>(() =>
     dictionaryFor(serverPreferences.language)
@@ -443,6 +477,7 @@ export function LocaleProvider({
       formatCurrencyAmount(amountInUSD, {
         currency: preferences.currency || 'GBP',
         language: preferences.language,
+        rates: usdRates?.rates,
       });
 
     const formatRelativeTime = (minutesAgo: number): string => {
@@ -465,10 +500,18 @@ export function LocaleProvider({
       formatDate,
       formatDateTime,
       formatCurrency,
+      usdRates,
       formatRelativeTime,
       t,
     };
-  }, [preferences, detectedTimezone, t, setCountryCode, updatePreferences]);
+  }, [
+    preferences,
+    detectedTimezone,
+    t,
+    setCountryCode,
+    updatePreferences,
+    usdRates,
+  ]);
 
   return (
     <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
@@ -481,6 +524,34 @@ export function useLocale() {
     throw new Error('useLocale must be used within a LocaleProvider');
   }
   return context;
+}
+
+/**
+ * `t()` for shared UI primitives (dialog close button, toasts) that may also
+ * render outside a LocaleProvider, e.g. in unit tests: there it returns the
+ * fallback instead of throwing.
+ */
+export function useOptionalTranslation(): (
+  key: string,
+  fallback?: string
+) => string {
+  const context = useContext(LocaleContext);
+  return context?.t ?? ((key: string, fallback?: string) => fallback ?? key);
+}
+
+/**
+ * A translated string as an element, for Server Components and `loading`
+ * fallbacks that cannot call a hook themselves.
+ */
+export function Translated({
+  k,
+  fallback,
+}: {
+  k: string;
+  fallback: string;
+}): React.ReactElement {
+  const t = useOptionalTranslation();
+  return <>{t(k, fallback)}</>;
 }
 
 export function T({ children }: { children: React.ReactNode }) {

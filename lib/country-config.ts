@@ -219,7 +219,25 @@ export function isSupportedCurrency(currency?: string | null): boolean {
   return !!currency && currency.toUpperCase() in CURRENCY_USD_RATES;
 }
 
-/** Rate for a display currency; an unknown code gets no conversion (1.0). */
+/**
+ * Live USD display rates (lib/fx/usd-rates.ts getDisplayUsdRates()), passed
+ * from the server to formatCurrencyAmount() and the browser's LocaleProvider.
+ * Client-safe type; the fetching module is server-only.
+ */
+export interface DisplayUsdRates {
+  /** Units per 1 USD for every display currency (fixed rate where no live one). */
+  rates: Record<string, number>;
+  /** 'live' from the rate API, 'fallback' when the fixed rates are in use. */
+  source: 'live' | 'fallback';
+  /** When the rates were fetched, ISO 8601. */
+  fetchedAt: string;
+}
+
+/**
+ * Fixed rate for a display currency; an unknown code gets no conversion (1.0).
+ * Only the fallback: prices are shown at the live rate when one is known
+ * (formatCurrencyAmount's `rates`).
+ */
 export function exchangeRateForCurrency(currency?: string): number {
   if (!currency) return 1.0;
   return CURRENCY_USD_RATES[currency.toUpperCase()] ?? 1.0;
@@ -236,14 +254,24 @@ export function exchangeRateForCurrency(currency?: string): number {
  */
 export function formatCurrencyAmount(
   amountInUSD: number,
-  { currency, language }: { currency: string; language?: string }
+  {
+    currency,
+    language,
+    rates,
+  }: {
+    currency: string;
+    language?: string;
+    /** Live display rates (units per USD); the fixed rate fills any gap. */
+    rates?: Record<string, number>;
+  }
 ): string {
   const displayCurrency = isSupportedCurrency(currency || 'GBP')
     ? (currency || 'GBP').toUpperCase()
     : 'USD';
   try {
-    const convertedAmount =
-      amountInUSD * exchangeRateForCurrency(displayCurrency);
+    const rate =
+      rates?.[displayCurrency] ?? exchangeRateForCurrency(displayCurrency);
+    const convertedAmount = amountInUSD * rate;
     return new Intl.NumberFormat(language || 'en-GB', {
       style: 'currency',
       currency: displayCurrency,
