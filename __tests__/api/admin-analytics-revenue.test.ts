@@ -44,6 +44,7 @@ jest.mock('next/cache', () => ({
 
 const mockQueryRaw = jest.fn();
 const mockUserCount = jest.fn();
+const mockSubscriptionFindMany = jest.fn();
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   prisma: {
@@ -51,7 +52,17 @@ jest.mock('@/lib/db/prisma', () => ({
     user: {
       count: (...args: unknown[]) => mockUserCount(...args),
     },
+    subscription: {
+      findMany: (...args: unknown[]) => mockSubscriptionFindMany(...args),
+    },
   },
+}));
+
+// SystemConfig prices (monthly $29, annual $290)
+jest.mock('@/lib/affiliate/db', () => ({
+  __esModule: true,
+  getBasePriceUsd: jest.fn().mockResolvedValue(29),
+  getAnnualPriceUsd: jest.fn().mockResolvedValue(290),
 }));
 
 class MockRequest {
@@ -64,6 +75,8 @@ class MockRequest {
 describe('GET /api/admin/analytics/revenue', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // No annual subscribers unless a test says otherwise
+    mockSubscriptionFindMany.mockResolvedValue([]);
   });
 
   it('should return 401 when not authenticated', async () => {
@@ -139,6 +152,38 @@ describe('GET /api/admin/analytics/revenue', () => {
     expect(data.summary.mrr).toBe(1690 * 29);
     expect(data.summary.arr).toBe(1690 * 29 * 12);
     expect(data.monthlyTrailing).toHaveLength(2);
+  });
+
+  it('weights annual subscribers at the annual price / 12', async () => {
+    mockRequireAdmin.mockResolvedValue(undefined);
+    mockSubscriptionFindMany.mockResolvedValue([
+      { userId: 'u1' },
+      { userId: 'u2' },
+      { userId: 'u3' },
+    ]);
+    // 10 PRO users in total; 3 of them are on the annual plan
+    mockUserCount.mockImplementation(
+      async (args?: { where?: { id?: unknown } }) => (args?.where?.id ? 3 : 10)
+    );
+    mockQueryRaw.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+
+    const { GET } = await import('@/app/api/admin/analytics/revenue/route');
+    const request = new MockRequest(
+      'http://localhost/api/admin/analytics/revenue'
+    );
+    const response = await GET(request as unknown as Request);
+    const data = await response.json();
+
+    // 7 x $29 + 3 x $290 / 12 = 203 + 72.5
+    expect(data.summary.mrr).toBe(275.5);
+    expect(data.summary.arr).toBe(3306);
+    expect(mockSubscriptionFindMany).toHaveBeenCalledWith({
+      where: { planType: 'YEARLY' },
+      select: { userId: true },
+    });
+    expect(mockUserCount).toHaveBeenCalledWith({
+      where: { tier: 'PRO', id: { in: ['u1', 'u2', 'u3'] } },
+    });
   });
 
   it('should return null deltas (not crash or NaN) on an empty database', async () => {

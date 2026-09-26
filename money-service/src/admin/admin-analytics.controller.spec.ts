@@ -67,6 +67,7 @@ describe('AdminAnalyticsController', () => {
   });
 
   it('computes MRR/ARR and percentages for an admin caller', async () => {
+    prismaMock.subscription.findMany.mockResolvedValue([]); // no annual plans
     prismaMock.user.count
       .mockResolvedValueOnce(100) // totalUsers
       .mockResolvedValueOnce(80) // freeUsers
@@ -87,5 +88,35 @@ describe('AdminAnalyticsController', () => {
     expect(result.revenue.arr).toBe(8400); // 700 * 12
     expect(result.growth.newUsersThisMonth).toBe(5);
     expect(result.growth.churnedThisMonth).toBe(0);
+    expect(result.revenue.pricePerUser).toBe(35);
+  });
+
+  it('weights annual subscribers at the annual price / 12', async () => {
+    prismaMock.subscription.findMany.mockResolvedValue([
+      { userId: 'y1' },
+      { userId: 'y2' },
+      { userId: 'y3' },
+      { userId: 'y4' },
+    ] as never);
+    prismaMock.user.count
+      .mockResolvedValueOnce(100) // totalUsers
+      .mockResolvedValueOnce(80) // freeUsers
+      .mockResolvedValueOnce(20) // proUsers
+      .mockResolvedValueOnce(4) // PRO users on the annual plan
+      .mockResolvedValueOnce(5); // newUsersThisMonth
+
+    const result = await controller.getAnalytics(requestWithRole('ADMIN'));
+
+    expect(prismaMock.subscription.findMany).toHaveBeenCalledWith({
+      where: { planType: 'YEARLY' },
+      select: { userId: true },
+    });
+    expect(prismaMock.user.count).toHaveBeenCalledWith({
+      where: { tier: 'PRO', id: { in: ['y1', 'y2', 'y3', 'y4'] } },
+    });
+    // 16 monthly x $35 + 4 annual x $350 / 12 = 560 + 116.666...
+    expect(result.revenue.mrr).toBe(676.67);
+    expect(result.revenue.arr).toBe(8120); // unrounded MRR x 12
+    expect(result.growth.newUsersThisMonth).toBe(5);
   });
 });

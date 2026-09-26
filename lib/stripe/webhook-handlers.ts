@@ -23,7 +23,10 @@ import {
 } from '@/lib/email/subscription-emails';
 import { sendSubscriptionConfirmationEmail } from '@/lib/email/email';
 import { calculateFullBreakdown } from '@/lib/affiliate/commission-calculator';
-import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import {
+  getMaxCommissionCycles,
+  type CommissionBillingInterval,
+} from '@/lib/affiliate/constants';
 import { getAnnualPriceUsd, getBasePriceUsd } from '@/lib/affiliate/db';
 import { invoicePlan } from '@/lib/stripe/invoice-plan';
 
@@ -457,8 +460,9 @@ export async function handleInvoiceSucceeded(
     // charge happens there yet; crediting it that early paid affiliates on
     // signups that later failed to pay or were cancelled during the trial.
     // Recurring-commission follow-up: fires on EVERY qualifying invoice (not
-    // just the first) up to MAX_RECURRING_COMMISSION_CYCLES -- see
-    // processAffiliateCommission's own doc comment.
+    // just the first) up to MAX_RECURRING_COMMISSION_MONTHS of lifetime (24
+    // monthly or 2 annual invoices) -- see processAffiliateCommission's own
+    // doc comment.
     if (dbSubscription.affiliateCodeId) {
       await processAffiliateCommission(
         dbSubscription.id,
@@ -466,7 +470,8 @@ export async function handleInvoiceSucceeded(
         dbSubscription.userId,
         dbSubscription.stripeSubscriptionId,
         amountPaid / 100,
-        invoice.id
+        invoice.id,
+        isYearly ? 'year' : 'month'
       );
     }
 
@@ -597,7 +602,7 @@ export async function handleChargeDisputeCreated(
  *   refund with no affiliate code involved at all).
  *
  * Recurring-commission follow-up: a subscription can now have up to
- * MAX_RECURRING_COMMISSION_CYCLES separate Commission rows (one per billing
+ * getMaxCommissionCycles() separate Commission rows (one per billing
  * cycle), so this must claw back the ONE row tied to the specific invoice
  * that was actually refunded/disputed -- not just whichever commission for
  * the subscription happens to be found first. Falls back to the
@@ -862,7 +867,8 @@ async function reserveAffiliateCode(
  *
  * Cycle 1 (the original discounted signup) applies the code's
  * discountPercent, since that's the invoice the discount actually landed
- * on. Cycles 2..MAX_RECURRING_COMMISSION_CYCLES pay commission on the FULL,
+ * on. Cycles 2..getMaxCommissionCycles(interval) -- 24 monthly or 2 annual
+ * invoices, i.e. 24 months of lifetime -- pay commission on the FULL,
  * undiscounted price (discountPercent 0) -- the Stripe coupon itself is
  * `duration: 'once'`, so the customer really is paying full price on every
  * renewal; only the affiliate's commission recurs, not the customer's
@@ -882,6 +888,7 @@ async function reserveAffiliateCode(
  *   Subscription model's own stripeSubscriptionId type)
  * @param grossRevenueUsd - Actual amount collected on this invoice, in USD
  * @param stripeInvoiceId - The Stripe invoice this cycle's commission is for
+ * @param interval - Billing interval of this invoice; sets the cycle cap
  */
 async function processAffiliateCommission(
   dbSubscriptionId: string,
@@ -889,7 +896,8 @@ async function processAffiliateCommission(
   userId: string,
   subscriptionId: string | null,
   grossRevenueUsd: number,
-  stripeInvoiceId: string
+  stripeInvoiceId: string,
+  interval: CommissionBillingInterval
 ): Promise<void> {
   try {
     const affiliateCode = await prisma.affiliateCode.findUnique({
@@ -924,7 +932,7 @@ async function processAffiliateCommission(
     }
 
     const cycleNumber = priorCommissions.length + 1;
-    const maxCycles = AFFILIATE_CONFIG.MAX_RECURRING_COMMISSION_CYCLES;
+    const maxCycles = getMaxCommissionCycles(interval);
 
     if (cycleNumber > maxCycles) {
       // Cap was already reached on a prior cycle -- clear the attribution

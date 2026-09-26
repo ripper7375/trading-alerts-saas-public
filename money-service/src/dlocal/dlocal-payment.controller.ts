@@ -33,6 +33,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { logger } from '../common/logger.util';
 import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 import { convertUSDToLocal } from './currency-converter.service';
 import { getPlanDuration } from './dlocal.constants';
@@ -66,7 +67,8 @@ const createPaymentSchema = z.object({
 export class DlocalPaymentController {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly affiliateConfig: AffiliateConfigService
+    private readonly affiliateConfig: AffiliateConfigService,
+    private readonly redis: RedisService
   ) {}
 
   @Post('create')
@@ -167,9 +169,12 @@ export class DlocalPaymentController {
 
       const chargeUsd = Math.round((usdAmount - discountAmount) * 100) / 100;
 
+      // Rate from the USD table shared with the Next app through Redis, so
+      // the charge matches the local price the checkout page showed
       const { localAmount, exchangeRate } = await convertUSDToLocal(
         chargeUsd,
-        currency as DLocalCurrency
+        currency as DLocalCurrency,
+        this.redis.getClient()
       );
 
       logger.info('Creating payment', {

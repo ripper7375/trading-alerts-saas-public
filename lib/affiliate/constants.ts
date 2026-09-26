@@ -105,16 +105,34 @@ export const AFFILIATE_CONFIG = {
   BASE_PRICE_USD: 29.0,
 
   /**
-   * Recurring-commission follow-up: total number of billing cycles an
-   * affiliate is paid a commission for on one referred subscription --
-   * cycle 1 (the discounted signup) plus 23 further renewals, 24 total.
-   * The discount itself is one-time only (cycle 1); cycles 2-24 pay
-   * commission on the full, undiscounted price. Once this cap is reached,
-   * or the subscription is cancelled, whichever comes first, no further
-   * commission is credited even if the customer keeps paying.
+   * Recurring-commission cap, in months of subscription lifetime. An
+   * affiliate is paid on one referred subscription for at most this many
+   * months: 24 monthly invoices, or 2 annual invoices (each annual invoice
+   * covers 12 months). Resolve the invoice count for a billing interval
+   * with getMaxCommissionCycles(). The discount itself is one-time only
+   * (cycle 1); later cycles pay commission on the full price. Once the cap
+   * is reached, or the subscription is cancelled, whichever comes first, no
+   * further commission is credited even if the customer keeps paying.
    */
-  MAX_RECURRING_COMMISSION_CYCLES: 24,
+  MAX_RECURRING_COMMISSION_MONTHS: 24,
 } as const;
+
+/** Billing interval of a subscription invoice. */
+export type CommissionBillingInterval = 'month' | 'year';
+
+/**
+ * Number of commission-bearing invoices that make up
+ * MAX_RECURRING_COMMISSION_MONTHS for a billing interval: 24 for monthly,
+ * 2 for annual.
+ */
+export function getMaxCommissionCycles(
+  interval: CommissionBillingInterval
+): number {
+  const monthsPerCycle = interval === 'year' ? 12 : 1;
+  return Math.ceil(
+    AFFILIATE_CONFIG.MAX_RECURRING_COMMISSION_MONTHS / monthsPerCycle
+  );
+}
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DERIVED TYPES

@@ -8,6 +8,7 @@ import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interc
 import { IdempotencyStore } from '../common/idempotency/idempotency.store';
 import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
 import { DlocalPaymentController } from './dlocal-payment.controller';
@@ -33,6 +34,7 @@ import { isValidPaymentMethod } from './payment-methods.service';
 describe('DlocalPaymentController', () => {
   let controller: DlocalPaymentController;
   let prismaMock: ReturnType<typeof createPrismaMock>;
+  const redisClient = { get: jest.fn(), set: jest.fn() };
 
   const validBody = {
     country: 'IN',
@@ -97,6 +99,7 @@ describe('DlocalPaymentController', () => {
             getAnnualPriceUsd: jest.fn().mockResolvedValue(350),
           },
         },
+        { provide: RedisService, useValue: { getClient: () => redisClient } },
         IdempotencyInterceptor,
         {
           provide: IdempotencyStore,
@@ -140,7 +143,11 @@ describe('DlocalPaymentController', () => {
 
   it('charges the SystemConfig price, not the fixed $29 / $1.99 defaults', async () => {
     await controller.create(makeRequest(), validBody);
-    expect(convertUSDToLocal).toHaveBeenLastCalledWith(35, expect.any(String));
+    expect(convertUSDToLocal).toHaveBeenLastCalledWith(
+      35,
+      expect.any(String),
+      redisClient
+    );
     expect(prismaMock.payment.create).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ amountUSD: 35 }),
@@ -153,7 +160,11 @@ describe('DlocalPaymentController', () => {
       ...validBody,
       planType: 'YEARLY',
     });
-    expect(convertUSDToLocal).toHaveBeenLastCalledWith(350, expect.any(String));
+    expect(convertUSDToLocal).toHaveBeenLastCalledWith(
+      350,
+      expect.any(String),
+      redisClient
+    );
     expect(prismaMock.payment.create).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ amountUSD: 350, planType: 'YEARLY' }),

@@ -10,6 +10,7 @@ import {
   clearExchangeRateCache,
   getFallbackRate,
 } from '@/lib/dlocal/currency-converter.service';
+import { CURRENCY_USD_RATES } from '@/lib/country-config';
 import type { DLocalCurrency } from '@/types/dlocal';
 
 // The real shared rate table (jest.setup.js mocks it for every other suite)
@@ -205,7 +206,23 @@ describe('Currency Converter Service', () => {
   describe('getFallbackRate', () => {
     it('should return fallback rate for INR', () => {
       const rate = getFallbackRate('INR');
-      expect(rate).toBe(83.12);
+      expect(rate).toBe(83.5);
+    });
+
+    it('uses the same fallback rates as the displayed prices', () => {
+      for (const currency of [
+        'INR',
+        'NGN',
+        'PKR',
+        'VND',
+        'IDR',
+        'THB',
+        'ZAR',
+        'TRY',
+        'AED',
+      ] as DLocalCurrency[]) {
+        expect(getFallbackRate(currency)).toBe(CURRENCY_USD_RATES[currency]);
+      }
     });
 
     it('should return fallback rate for AED', () => {

@@ -493,6 +493,7 @@ describe('StripeWebhookService', () => {
           subscriptionId: 'sub_123',
           grossRevenueUsd: 29,
           stripeInvoiceId: 'inv_123',
+          interval: 'month',
         });
         expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
           prismaMock,
@@ -516,6 +517,27 @@ describe('StripeWebhookService', () => {
           where: { id: 'sub-row-1' },
           data: { affiliateCodeId: null },
         });
+      });
+
+      it('passes the annual interval so the cap is 2 annual invoices (24 months)', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue({
+          id: 'sub-row-1',
+          userId: 'user-1',
+          stripeSubscriptionId: 'sub_123',
+          affiliateCodeId: 'code-1',
+        } as never);
+
+        await service.handleInvoiceSucceeded({
+          ...baseInvoice,
+          amount_paid: 29000,
+          lines: priceLine(29000, 'year'),
+        } as unknown as Stripe.Invoice);
+
+        expect(
+          conversionProcessorMock.creditAffiliateCommission
+        ).toHaveBeenCalledWith(
+          expect.objectContaining({ grossRevenueUsd: 290, interval: 'year' })
+        );
       });
 
       it('clears the attribution once creditAffiliateCommission reports capReached', async () => {

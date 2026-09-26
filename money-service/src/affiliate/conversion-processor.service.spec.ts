@@ -314,6 +314,7 @@ describe('ConversionProcessorService', () => {
         userId: 'user-1',
         grossRevenueUsd: 29,
         stripeInvoiceId: 'inv-1',
+        interval: 'month',
       });
 
       expect(result).toEqual({ processed: false, reason: 'CODE_NOT_FOUND' });
@@ -337,6 +338,7 @@ describe('ConversionProcessorService', () => {
         userId: 'user-1',
         grossRevenueUsd: 29,
         stripeInvoiceId: 'inv-1',
+        interval: 'month',
       });
 
       expect(result).toEqual({
@@ -372,6 +374,7 @@ describe('ConversionProcessorService', () => {
         subscriptionId: 'sub_123',
         grossRevenueUsd: 29,
         stripeInvoiceId: 'inv-1',
+        interval: 'month',
       });
 
       expect(prismaMock.affiliateCode.update).not.toHaveBeenCalled();
@@ -422,6 +425,7 @@ describe('ConversionProcessorService', () => {
         userId: 'user-1',
         grossRevenueUsd: 290, // yearly renewal amount, not the $29 default
         stripeInvoiceId: 'inv-1',
+        interval: 'year',
       });
 
       expect(affiliateConfigMock.getBasePriceUsd).not.toHaveBeenCalled();
@@ -458,6 +462,7 @@ describe('ConversionProcessorService', () => {
         userId: 'user-1',
         grossRevenueUsd: 29,
         stripeInvoiceId: 'inv-2',
+        interval: 'month',
       });
 
       // No discount on a renewal -> full $29 net, 20% commission -> $5.80
@@ -503,6 +508,7 @@ describe('ConversionProcessorService', () => {
         userId: 'user-1',
         grossRevenueUsd: 29,
         stripeInvoiceId: 'inv-24',
+        interval: 'month',
       });
 
       expect(result.processed).toBe(true);
@@ -530,6 +536,105 @@ describe('ConversionProcessorService', () => {
         userId: 'user-1',
         grossRevenueUsd: 29,
         stripeInvoiceId: 'inv-25',
+        interval: 'month',
+      });
+
+      expect(result).toEqual({
+        processed: false,
+        reason: 'CAP_REACHED',
+        capReached: true,
+      });
+      expect(prismaMock.commission.create).not.toHaveBeenCalled();
+    });
+    it('keeps crediting a monthly subscription after 2 cycles (24-month cap = 24 monthly invoices)', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        code: 'AFF10',
+        affiliateProfileId: 'aff-1',
+        discountPercent: 20,
+        commissionPercent: 20,
+        affiliateProfile: { id: 'aff-1', userId: 'affiliate-user-1' },
+      } as never);
+      prismaMock.commission.findMany.mockResolvedValue([
+        { stripeInvoiceId: 'inv-1' },
+      ] as never);
+      prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
+        (cb as (tx: unknown) => unknown)(prismaMock)
+      );
+      prismaMock.commission.create.mockResolvedValue({
+        id: 'commission-m2',
+      } as never);
+      prismaMock.affiliateProfile.update.mockResolvedValue({
+        totalEarnings: 10,
+      } as never);
+
+      const result = await service.creditAffiliateCommission({
+        affiliateCodeId: 'code-1',
+        userId: 'user-1',
+        grossRevenueUsd: 29,
+        stripeInvoiceId: 'inv-2',
+        interval: 'month',
+      });
+
+      expect(result.processed).toBe(true);
+      expect(result.capReached).toBe(false);
+    });
+
+    it('reports capReached on the 2nd annual invoice (24-month cap = 2 annual invoices)', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        code: 'AFF10',
+        affiliateProfileId: 'aff-1',
+        discountPercent: 20,
+        commissionPercent: 20,
+        affiliateProfile: { id: 'aff-1', userId: 'affiliate-user-1' },
+      } as never);
+      // 1 prior annual cycle -> this invoice is cycle 2, the annual cap.
+      prismaMock.commission.findMany.mockResolvedValue([
+        { stripeInvoiceId: 'inv-y1' },
+      ] as never);
+      prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
+        (cb as (tx: unknown) => unknown)(prismaMock)
+      );
+      prismaMock.commission.create.mockResolvedValue({
+        id: 'commission-y2',
+      } as never);
+      prismaMock.affiliateProfile.update.mockResolvedValue({
+        totalEarnings: 100,
+      } as never);
+
+      const result = await service.creditAffiliateCommission({
+        affiliateCodeId: 'code-1',
+        userId: 'user-1',
+        grossRevenueUsd: 290,
+        stripeInvoiceId: 'inv-y2',
+        interval: 'year',
+      });
+
+      expect(result.processed).toBe(true);
+      expect(result.capReached).toBe(true);
+    });
+
+    it('credits nothing on a 3rd annual invoice -- the 24-month cap was reached', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        code: 'AFF10',
+        affiliateProfileId: 'aff-1',
+        discountPercent: 20,
+        commissionPercent: 20,
+        affiliateProfile: { id: 'aff-1', userId: 'affiliate-user-1' },
+      } as never);
+      prismaMock.commission.findMany.mockResolvedValue([
+        { stripeInvoiceId: 'inv-y1' },
+        { stripeInvoiceId: 'inv-y2' },
+      ] as never);
+
+      const result = await service.creditAffiliateCommission({
+        affiliateCodeId: 'code-1',
+        userId: 'user-1',
+        grossRevenueUsd: 290,
+        stripeInvoiceId: 'inv-y3',
+        interval: 'year',
       });
 
       expect(result).toEqual({

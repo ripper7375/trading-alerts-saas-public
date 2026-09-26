@@ -23,16 +23,17 @@
 
 import { unstable_cache } from 'next/cache';
 
-import { getBasePriceUsd } from '@/lib/affiliate/db';
 import { prisma } from '@/lib/db/prisma';
 import { monthLabel, quarterLabel, growthPct, round2 } from './date-windows';
+import { getProMrr } from './mrr';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONSTANTS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-// MRR is estimated as PRO users x the admin's SystemConfig PRO price, the
-// same estimate as the `/api/admin/analytics` root endpoint.
+// MRR weights each PRO user by billing interval (monthly price, or annual
+// price / 12) at the SystemConfig prices -- see ./mrr, shared with the
+// `/api/admin/analytics` root endpoint.
 
 export type RevenueTimeframe = '6M' | '12M' | 'YTD' | 'ALL';
 
@@ -249,8 +250,7 @@ async function fetchRevenueAnalytics(
   const currentMonth = monthlyTrailing[0] ?? null;
   const currentQuarter = quarterlyTrailing[0] ?? null;
   const currentMonthSales = currentMonth?.revenueUsd ?? 0;
-  const mrr = proUsers * (await getBasePriceUsd());
-  const arr = mrr * 12;
+  const { mrr, arr } = await getProMrr(proUsers);
   const arppu = proUsers > 0 ? round2(currentMonthSales / proUsers) : 0;
 
   return {

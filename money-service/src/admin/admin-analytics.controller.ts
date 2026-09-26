@@ -29,6 +29,8 @@ import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { getProMrr } from './admin-mrr';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -82,10 +84,13 @@ export class AdminAnalyticsController {
         totalUsers > 0 ? (freeUsers / totalUsers) * 100 : 0;
       const proPercentage = totalUsers > 0 ? (proUsers / totalUsers) * 100 : 0;
 
-      // Estimate: PRO users x the admin's SystemConfig PRO price
-      const proMonthlyPrice = await this.affiliateConfig.getBasePriceUsd();
-      const mrr = proUsers * proMonthlyPrice;
-      const arr = mrr * 12;
+      // Each PRO user at their billing interval's SystemConfig price
+      // (monthly price, or annual price / 12)
+      const { mrr, arr, monthlyPriceUsd } = await getProMrr(
+        this.prisma,
+        this.affiliateConfig,
+        proUsers
+      );
 
       const conversionRate = totalUsers > 0 ? (proUsers / totalUsers) * 100 : 0;
 
@@ -113,7 +118,7 @@ export class AdminAnalyticsController {
           mrr,
           arr,
           conversionRate: Math.round(conversionRate * 100) / 100,
-          pricePerUser: proMonthlyPrice,
+          pricePerUser: monthlyPriceUsd,
         },
         growth: {
           newUsersThisMonth,

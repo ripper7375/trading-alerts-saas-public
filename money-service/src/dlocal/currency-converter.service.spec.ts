@@ -1,8 +1,8 @@
 /**
  * Currency Converter Service Tests (Session 4A-9, File 6/10, File 9/10)
  *
- * Ported from __tests__/lib/dlocal/currency-converter.test.ts -- assertions
- * unchanged (parity oracle), only the import path changed.
+ * Ported from __tests__/lib/dlocal/currency-converter.test.ts. The fallback
+ * rates now equal the Next app's display rates (../fx/usd-fallback-rates.ts).
  */
 import {
   convertUSDToLocal,
@@ -10,6 +10,8 @@ import {
   clearExchangeRateCache,
   getFallbackRate,
 } from './currency-converter.service';
+import { FALLBACK_USD_RATES } from '../fx/usd-fallback-rates';
+
 import type { DLocalCurrency } from './dlocal.types';
 
 const mockFetch = jest.fn();
@@ -179,7 +181,12 @@ describe('Currency Converter Service', () => {
   describe('getFallbackRate', () => {
     it('should return fallback rate for INR', () => {
       const rate = getFallbackRate('INR');
-      expect(rate).toBe(83.12);
+      expect(rate).toBe(83.5);
+    });
+
+    it('uses the same fallback rates as the Next app displays (FALLBACK_USD_RATES)', () => {
+      expect(getFallbackRate('THB')).toBe(FALLBACK_USD_RATES['THB']);
+      expect(getFallbackRate('THB')).toBe(35.0);
     });
 
     it('should return fallback rate for AED', () => {

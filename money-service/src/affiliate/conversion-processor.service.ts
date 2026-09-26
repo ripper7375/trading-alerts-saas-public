@@ -29,7 +29,10 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
-import { AFFILIATE_CONFIG } from './affiliate.constants';
+import {
+  getMaxCommissionCycles,
+  type CommissionBillingInterval,
+} from './affiliate.constants';
 import { AffiliateConfigService } from './affiliate-config.service';
 import { calculateFullBreakdown } from './commission-calculator';
 
@@ -95,10 +98,13 @@ export interface CreditInput {
   /** The Stripe invoice this billing cycle's commission is for -- per-cycle
    * idempotency key (recurring-commission follow-up). */
   stripeInvoiceId: string;
+  /** Billing interval of this invoice -- sets the cycle cap (24 monthly or
+   * 2 annual invoices, i.e. MAX_RECURRING_COMMISSION_MONTHS). */
+  interval: CommissionBillingInterval;
 }
 
 export interface CreditResult extends ConversionResult {
-  /** True once MAX_RECURRING_COMMISSION_CYCLES has been reached on this
+  /** True once getMaxCommissionCycles(interval) has been reached on this
    * code -- callers use this to clear Subscription.affiliateCodeId. */
   capReached?: boolean;
 }
@@ -267,7 +273,8 @@ export class ConversionProcessorService {
    * invoice, not just the first (recurring-commission follow-up).
    *
    * Cycle 1 (the original discounted signup) applies the code's
-   * discountPercent; cycles 2..MAX_RECURRING_COMMISSION_CYCLES pay
+   * discountPercent; cycles 2..getMaxCommissionCycles(interval) (24
+   * monthly or 2 annual invoices, i.e. 24 months of lifetime) pay
    * commission on the FULL, undiscounted price (the Stripe coupon is
    * `duration: 'once'`, so only the affiliate's commission recurs, not the
    * customer's discount). Idempotent per invoice, not per code: a
@@ -302,7 +309,7 @@ export class ConversionProcessorService {
     }
 
     const cycleNumber = priorCommissions.length + 1;
-    const maxCycles = AFFILIATE_CONFIG.MAX_RECURRING_COMMISSION_CYCLES;
+    const maxCycles = getMaxCommissionCycles(input.interval);
 
     if (cycleNumber > maxCycles) {
       return { processed: false, reason: 'CAP_REACHED', capReached: true };
