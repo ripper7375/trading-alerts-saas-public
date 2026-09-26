@@ -14,10 +14,11 @@
  */
 
 import { Check, Clock, Star } from 'lucide-react';
-import type { PlanType } from '@/types/dlocal';
+import type { DLocalCurrency, PlanType } from '@/types/dlocal';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { cn } from '@/lib/utils';
 import { useLocale } from '@/lib/context/locale-context';
+import { formatCurrencyAmount } from '@/lib/country-config';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -34,6 +35,12 @@ interface PlanSelectorProps {
   showThreeDayPlan: boolean;
   /** Whether the selector is disabled */
   disabled?: boolean;
+  /**
+   * Currency the plan is charged in (the dLocal country's). Prices then show
+   * in it rather than the display currency, so the cards agree with the
+   * total: Thailand with English (UK) chosen showed £ cards over a ฿ total.
+   */
+  currency?: DLocalCurrency;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -46,8 +53,22 @@ export function PlanSelector({
   canUseThreeDayPlan,
   showThreeDayPlan,
   disabled = false,
+  currency,
 }: PlanSelectorProps): React.ReactElement {
-  const { t, formatCurrency } = useLocale();
+  const {
+    t,
+    formatCurrency: formatDisplayCurrency,
+    language,
+    usdRates,
+  } = useLocale();
+  const formatCurrency = (amountInUSD: number): string =>
+    currency
+      ? formatCurrencyAmount(amountInUSD, {
+          currency,
+          language,
+          rates: usdRates?.rates,
+        })
+      : formatDisplayCurrency(amountInUSD);
   // Get dynamic prices from SystemConfig
   const { regularPrice, threeDayPrice, annualPrice, annualSavingsPercent } =
     useAffiliateConfig();

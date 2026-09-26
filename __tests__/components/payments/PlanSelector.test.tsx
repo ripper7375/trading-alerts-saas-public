@@ -95,6 +95,17 @@ describe('PlanSelector', () => {
       expect(screen.getByText(/£1\.55/)).toBeInTheDocument();
     });
 
+    // Davin's /checkout screenshot: Thailand selected with English (UK) as the
+    // language showed £ plan cards over a ฿ total.
+    it('shows prices in the charged currency when one is given', () => {
+      render(<PlanSelector {...defaultProps} currency="THB" />);
+
+      // Fixed THB rate 35: 29 -> 1,015 (>= 1000, no decimals), 240 -> 8,400.
+      expect(screen.getByText(/THB\s1,015/)).toBeInTheDocument();
+      expect(screen.getByText(/THB\s8,400/)).toBeInTheDocument();
+      expect(screen.queryByText(/£/)).not.toBeInTheDocument();
+    });
+
     it('should not render 3-day plan when showThreeDayPlan is false', () => {
       render(<PlanSelector {...defaultProps} showThreeDayPlan={false} />);
 
