@@ -1,0 +1,4507 @@
+---
+type: Concept/SessionHistory
+status: archived
+period: 2026-09-01..2026-09-26
+source: CLAUDE.md lines 53-4757 (September-dated blocks)
+tags: [history, sessions, 2026-09]
+---
+
+# Session history — September 2026
+
+Blocks are verbatim copies from the pre-OKF `CLAUDE.md` (backup: `CLAUDE-480KB-PRE-OKF-BACKUP.md`, sha256 `ad804d40…68a1ef`, also in git history before this refactor). Each `<!-- CLAUDE.md Lx-Ly -->` comment gives the original line range. Order is the original file order (newest first, with some out-of-order ad-hoc entries).
+
+Back to [history index](./index.md).
+
+<!-- CLAUDE.md L53-L63 -->
+
+> **Same day (2026-09-26), follow-up to Davin's two screenshots — currency mixing fixed. Branch
+> `fix/no-country-language-currency`, tested by Davin, merged to `main` by PR, DEPLOYED to production.** (1) `/pricing`: Thai → Chinese via the navbar language picker kept
+> THB. zh/zh-TW/es/pt have no country, so a language change replaced nothing; now they take USD
+> (`currencyForLanguage()` in `lib/i18n/locale-resolver.ts`, used by `LocaleProvider`, the Settings
+> page and `resolvePreferences()`). (2) `/checkout`: Thailand + English (UK) showed £ plan cards over
+> a ฿ total; `PlanSelector` now takes the dLocal country's `currency`, so the dLocal card is all in
+> the charged currency. Also `AED` added to `/api/payments/dlocal/convert`'s allowlist.
+> **Verified:** `tsc`/ESLint clean; `test:ci` **247/247 · 3178/3178** (+6 tests); mutation 5/5 failing
+> tests; live `/pricing` ฿968.02 → US$29.00, survives reload. **Not seen live:** checkout (sign-in).
+> Accounts: 16-language manifest §11, SystemConfig manifest §11.
+
+<!-- CLAUDE.md L64-L118 -->
+
+> **Same session (2026-09-26) — SystemConfig figures are no longer hardcoded: the admin's price
+> is now what customers pay. Merged to `main` via PR #471, DEPLOYED to production (Vercel & Railway).
+> Money change, approved by Davin in chat (Stripe option (a), dLocal, codes per month, displays and emails).** Davin
+> worried that configurable figures (price, % discount, % commission) bypassed SystemConfig. An
+> audit confirmed it: **the admin Base Price changed displays but not charges.** dLocal charged
+> a fixed `PRICING.MONTHLY_USD`/`THREE_DAY_USD`; Stripe charged `STRIPE_PRO_PRICE_ID`'s own
+> amount; registration and both monthly jobs handed out a fixed 15 codes; `/docs` promised 30%
+> commission (20% configured); checkout, `/pricing` (env `NEXT_PUBLIC_PRO_PRICE_MONTHLY`) and the
+> upgrade pop-up showed fixed or second-source prices; emails said "$29/month or $290/year";
+> both Stripe webhooks stored `amountUsd` 29/290 and read "paid ≥ $280" as yearly.
+> **Done (both the Next app and money-service where mirrored):** Stripe checkout builds the line
+> item from the SystemConfig price (`buildProLineItem`: the Stripe Price as-is when it matches,
+> else an inline price on the same product/interval/tax behaviour; existing subscribers keep
+> theirs); dLocal charges `getBasePriceUsd()`/`getThreeDayPriceUsd()`; webhooks store the charged
+> price and read interval/price from the invoice line (new `invoice-plan.ts`); codes per month
+> from SystemConfig; displays via `useAffiliateConfig()`; `/pricing` annual toggle removed (no
+> annual plan is sold); emails take the price; admin MRR uses the SystemConfig price;
+> `calculateStandardSale` takes its rates as parameters. Dictionaries: 12 placeholder keys
+> (`{percent}`/`{price}`/`{count}`) replace text with 30%/20%/$49/15 on `/docs` and 4 affiliate
+> pages (template-literal `t()` keys never matched the dictionary at the real 20%); 29 unused
+> wrong-figure entries deleted from all 17. New guard `__tests__/lib/systemconfig-figures-guard.test.ts`.
+> **Verified:** `tsc` clean in both; full `test:ci` **245/245 · 3153/3153**; money-service
+> **63/63 · 627/627**; mutation **9/9** killed (restores byte-exact); live `next dev`: `/docs`
+> shows "20%", `/pricing` monthly only (£22.62 = $29), no console errors. Status table:
+> `docs/SYSTEMCONFIG-USAGE-GUIDE.md` top section. **Not verified:** a real Stripe/dLocal checkout
+> after an admin price change (needs a signed-in test on staging).
+> **Then, same day: a complete annual plan (Davin asked).** New SystemConfig key
+> `affiliate_annual_price` (default $290), editable at `/admin/settings/affiliate`. Stripe:
+> `billingPeriod: 'yearly'` on `/api/checkout` → inline yearly price on the same product, metadata
+> read by the webhook; dLocal: `planType: 'YEARLY'`, 365 days (no migration: `planType` is a string).
+> `/pricing` Monthly/Annual toggle back (computed saving, `?billing=yearly`), checkout card and
+> plan selector offer Annual, Settings → Billing shows each subscriber's own price and "/year",
+> receipts and invoice list name the plan, payment-failed email quotes the subscriber's period.
+> 14 new keys in all 17 dictionaries. **Verified:** `tsc` clean in both; `test:ci`
+> **246/246 · 3163/3163**; money-service **63/63 · 632/632**; mutation **15/15**; live `/pricing`
+> annual view and landing card. **Full account (both parts):**
+> `davintrade-systemconfig/systemconfig-fix-manifest-work-completion.md`; language side in the
+> 16-language manifest §9. **For Davin:** affiliate codes apply to the annual plan (discount on the
+> first year, commission on the amount collected) — manifest D6; no monthly↔annual switch for an
+> existing subscriber; admin MRR still counts annual subscribers at the monthly price.
+> **Then, same day: local prices at the live rate (Davin chose option 1).** Displays converted USD
+> at fixed rates (GBP 0.78) while dLocal charged at the live exchangerate-api.com rate. New
+> `lib/fx/usd-rates.ts`: one hourly table shared by the dLocal charge (`fresh: true`, never an
+> expired rate) and every display (root layout → `LocaleProvider`, refreshed from new public
+> `GET /api/fx/rates`; server pages pass `rates` to `formatCurrencyAmount`). Fixed rates are only
+> the fallback. `/pricing` and checkout now say the local price is approximate and name the USD card
+> charge (`pricing.approx_note`, `checkout.card_charged_usd`, all 17 dictionaries). `jest.setup.js`
+> mocks the rate module globally; suites testing real conversion opt out with `jest.unmock`.
+> **Verified:** `tsc` clean; `test:ci` **247/247 · 3172/3172**; mutation 3/3 (the stale-rate-charge
+> mutant survived first, so a test was added); live: `/api/fx/rates` `live`, `/pricing` £21.90 at
+> GBP 0.755 with the note (monthly and annual), Thai ฿968.02 with the Thai note. **Open:**
+> money-service's dLocal converter keeps its own cache (same source, can be up to an hour apart);
+> fallback rates differ between display and dLocal during an outage; the landing card has no note;
+> checkout's note not seen live (needs sign-in). Manifest §10; 16-language manifest §10; policy §4.
+
+<!-- CLAUDE.md L119-L145 -->
+
+> **Round 3 (2026-09-26) — every public, auth and FREE/PRO page is fully translated in all 16
+> languages, enforced by a test. Same branch `fix/16-language-localization-reaudit`, committed and pushed 2026-09-26,
+> NOT deployed.** Davin's Vercel-preview screenshots showed `/admin` in English with Japanese chosen
+> (only the support button was Japanese). **Cause:** `ja.json` held English copies of the admin keys;
+> Thai had real translations. Not the language switch. Davin then set the scope:
+>
+> - **Compulsory:** public marketing, auth, FREE/PRO user pages, every language and locale format.
+> - **Encouraged:** affiliate pages. **Not required:** admin pages (internal).
+>
+> **Done:** `compulsoryPages()` in `scripts/i18n-translation-coverage.js` (70 files, 270 with
+> imports). Text that bypassed `t()` wired: zod validation messages on the auth forms, payment,
+> country and currency names, `/status` components, tab titles (new `lib/i18n/server-metadata.ts`),
+> the HRMA/SMMA window, error pages (`global-error.tsx` reads the cookie itself), chat widget.
+> English-only formatting fixed: blog/changelog dates, the account-deletion countdown (`date-fns` →
+> `Intl` units), alert fallback names. Every compulsory key translated in all 15 non-English
+> languages (~1,130 keys each in the 10 Tier-2 languages; zh-TW via OpenCC). New
+> `scripts/i18n-identical-ok.json`; new guard `__tests__/lib/i18n/compulsory-translation-coverage.test.ts`.
+> Also removed a wrong "$49/mo" from a canned chat reply (PRO is $29).
+> **Verified:** `tsc`/ESLint/Prettier clean; full `test:ci` **244/244 · 3139/3139**; mutation 4/4
+> killed; live Japanese `/login`, `/status`, `/blog` on `next dev`. Workbook regraded: everything below
+> Pass is admin (38) or affiliate (12). **Full account:** manifest §8 of
+> `davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`.
+> **Open:** affiliate translation (optional, ~270 keys/language); client pages paint English briefly
+> before a lazily loaded dictionary arrives (§6 item 6); translations are not native-reviewed.
+> **Rule for new UI:** adding text to a compulsory page means a real translation in all 17
+> dictionaries, or the guard test fails (policy, top note).
+
+<!-- CLAUDE.md L146-L165 -->
+
+> **Same session, round 2 (2026-09-25) — language and format changes now reach server-rendered parts
+> without a refresh. Same branch (`e8350262`, `b64cc305`, docs), pushed, NOT merged, NOT deployed.** Davin's `/admin` screenshots showed a Thai page body
+> with a Korean sidebar and header until he refreshed. **Cause (reproduced on `/academy` first):**
+> Server Components render locale from cookies that the browser only updated for the next request, and
+> the Next.js client router reuses cached layouts without asking the server. 26 files render locale on
+> the server (the root, admin, affiliate-dashboard and BI layouts, and about 20 pages).
+> **Fix:** new `app/actions/locale.ts` Server Action (re-validates, writes the cookies);
+> `LocaleProvider` calls it whenever `serverRenderKey()` changes. Setting cookies in a Server Action
+> re-renders the current route and clears the client's cached routes. A client scan found one more stale
+> label, the currency-index chart's canvas band titles, which now redraw on a language change.
+> **Verified:** `tsc`/ESLint clean; full `test:ci` **243/243 · 3123/3123**; mutation 4/4 killed.
+> Live on `next dev`, no reload in any case:
+>
+> - `/academy` English → Thai (heading and tab title)
+> - back-navigation to a cached page showed the new language
+> - `/status` timestamp `25/09/2026 10:03` → `09/25/2026 5:03 AM`
+>
+> **Documented:** policy Failure mode F. **Account:** 16-language manifest §7; open items 17–19 are in
+> its §6. **Not verified:** the signed-in `/admin` flow itself.
+
+<!-- CLAUDE.md L166-L194 -->
+
+> **Ad-hoc session (2026-09-25) — final audit of language and locale, then fixes. Branch
+> `fix/16-language-localization-reaudit`, pushed, NOT merged, NOT deployed. No migration.** Davin asked for an audit across the locale-format manifest, the
+> 16-language remediation manifest (Antigravity's work, committed together with these fixes) and the policy, then
+> for every recommendation to be implemented. **Full account:** §0 of
+> `davintrade-16-language-localization-remediation/16-language-localization-remediation-manifest-work-completion.md`.
+> The locale-format work on `main` held up. The 16-language work had four problems, now fixed:
+>
+> 1. **Script injection.** Its SSR fix passed any `davintrade-locale` cookie through as the language,
+>    and `app/layout.tsx` wrote it unescaped into an inline script. Reproduced on `next dev`. Now only
+>    codes in `lib/i18n/languages.ts` are accepted (resolver and `LocaleProvider`), and the script
+>    JSON-encodes its values.
+> 2. **Truncated text.** Its extractor cut 4 fallbacks at an apostrophe (e.g. `admin.view_as.subtitle`
+>    became "Open any affiliate") and reworded 4 payment messages, in all 17 dictionaries. Restored and
+>    retranslated.
+> 3. **Tests.** Full `test:ci` was 240/242 suites; its manifest ran 7 suites.
+> 4. **The "100% Pass" matrix measured key presence.** Tier-2 dictionaries hold English copies, and
+>    about a quarter of their used keys are translated. The new `scripts/i18n-translation-coverage.js`
+>    regraded the workbook: fr/ko/zh/zh-TW pass 91 of 101 pages, th 88, Tier-2 12–15.
+>
+> Also: Hindi added to the picker (the India header set it, and Settings showed blank) and as column X;
+> `dir="rtl"` is now server-rendered for ar/ur.
+> **Verified:** `tsc`/ESLint clean; full `test:ci` **242/242 · 3110/3110**; mutation 5/5 killed, restores
+> byte-exact; live `curl` and browser checks on `next dev`.
+> **Open:** 16 items, all listed in the manifest's §6. The main ones: Tier-2 translation;
+> `not-found.tsx` is English in fr/ko/zh/zh-TW; the landing page's currency-index tooltips are English
+> in French; 11 view-as and chat keys exist in no dictionary; `global-error.tsx` is hardcoded English.
+> **Gotcha:** this checkout is CRLF while Prettier expects LF, so `prettier --check` fails on every file.
+> Use `--end-of-line auto` to see real formatting issues.
+
+<!-- CLAUDE.md L195-L232 -->
+
+> **Same session, round 3 — every place that shows a time, date or price now uses the user's own
+> timezone, date format, time format and currency. Branch `fix/currency-display-rate` pushed, NOT
+> merged, NOT deployed.** **Full account of all three rounds:**
+> `davintrade-language-and-locale-format-fix/language-and-locale-format-fix-manifest-work-completion.md`. Davin asked to make
+> sure all four apply throughout the app. The Settings page already stored them, but an audit found
+> several places that never read them:
+>
+> - **Every chart axis and crosshair printed UTC.** lightweight-charts prints timestamps as UTC,
+>   and none of the 5 charts set formatters. New `components/charts/use-chart-time-options.ts`
+>   formats labels only (data and tick positions stay UTC, so drawings, markers and alerts are
+>   untouched). It is wired into trading-chart, relative-strength, hrma-smma modal,
+>   currency-index-comparison and xaux-usdx.
+> - **`formatDate()` used the browser's clock, not the chosen timezone.** New shared
+>   `lib/i18n/format-datetime.ts` (`formatDateInZone`/`TimeInZone`/`DateTimeInZone`) now backs
+>   `formatDate`, `formatTimestamp` and the new `formatDateTime`, in the client context and in
+>   Server Components.
+> - **~20 files formatted dates themselves** (`toLocaleDateString('en-US')`, `date-fns` `PPp`,
+>   `lib/utils` `formatDate`). Converted: Alerts, Security login history and activity, Account
+>   deletion, affiliate payouts, checkout return, the status page, and 13 admin pages or components.
+> - **Server pages lacked the date/time format.** A new `davintrade-formats` cookie (`DMY.24h`) joins
+>   the currency and timezone cookies.
+> - **4 hardcoded `$` prices:** the Settings overview PRO price, the dashboard upgrade prompt (6
+>   dictionaries also embedded `$` around `{price}`), the affiliate register payout minimum (now
+>   `formatCurrency`, as on the affiliate dashboard), and admin user-detail earnings; plus the admin
+>   P&L `${price}` label.
+>
+> **Deliberately left:** checkout's "≈ $x USD" (the real charge); money-service/admin USD
+> config values; emails, PDF receipts and `session-tracker` (sent or stored, no viewer preferences);
+> admin analytics month buckets.
+> **Verified:** `tsc`/ESLint/Prettier clean. Full `test:ci` **242/242 · 3099/3099**, run in local
+> time **and** with `TZ=UTC`, as CI uses. Mutation 3/4 killed; the 4th was a control with no test.
+> The chart-labels mutant first survived, because a preference change after mount re-applied the
+> labels; the test now pins stable preferences. A real lightweight-charts chart on a throwaway route
+> (deleted): London → Tokyo moved the axis 9h and the crosshair read the next day; MDY + 12h gave
+> `12/26/2024 8:00 AM`; no console errors.
+> **Gotcha:** Windows intermittently refuses writes (`OSError 22`, Prettier `UNKNOWN`) to files that
+> are open elsewhere. A mutation harness must retry the write and verify the restore.
+
+<!-- CLAUDE.md L233-L257 -->
+
+> **Same session, round 2 — Language & Region now works as Davin's annotated screenshot describes.
+> Same branch, NOT pushed.** The rules: the header's country (GB by default) sets the language; the
+> language sets date format, time format and currency, each of which the user can still change; the
+> **timezone is detected from the IP** (Vercel `x-vercel-ip-timezone`, then `cf-timezone`, then the
+> browser's zone locally) and never follows a country or language. Picking a timezone pins it
+> (`timezoneSetByUser`), and "Use detected timezone" unpins it.
+> **Found:** the Settings page loaded its form from the DB, which nothing else reads, while the
+> header wrote the live locale, so the two could disagree and a save would undo a header switch.
+> The page now edits the live locale (no GET), and the DB is only written on Save.
+> **Server rendering:** Server Components only saw the language cookie, so Thai + GBP still showed
+> THB there. New `davintrade-currency` and `davintrade-timezone` cookies feed `resolvePreferences()`
+> through one shared `resolveRequestPreferences()` (layout and `getServerLocalePreferences()`).
+> **Removed CNY/AUD/CAD** (Davin: the rates were unrealistic). A stored one now falls back to the
+> language's currency, and the formatter shows plain USD for any code without a rate.
+> **Existing users:** a stored timezone that equals the country's default is treated as automatic;
+> any other value is kept as the user's own.
+> **Verified:** `tsc`/ESLint/Prettier clean; full `test:ci` **240/240 · 3084/3084** (+2 suites, +19
+> tests). Mutation 3/3 killed; the first survived until a user-pinned-timezone test was added. Live
+> `next dev` (throwaway route, deleted): a fresh visitor gets GB/en-GB/GBP/DMY/24h with the timezone
+> detected as Asia/Bangkok; the header's Thailand updates the page to Thai/THB with the timezone
+> unchanged; English (US) on the page sets MDY/12h/USD; the SSR HTML with th + GBP cookies renders
+> £22.62. **Not verified:** the Vercel IP header in production, and a signed-in Save.
+> **Note:** a first-time visitor whose IP resolves to a supported country still gets that country
+> (existing ipapi lookup); GB applies when there is no match. That lookup failed locally.
+
+<!-- CLAUDE.md L258-L282 -->
+
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — display currency now converts at its own
+> rate, and choosing a language suggests its currency. Branch `fix/currency-display-rate`
+> (`1461c3fb`), NOT pushed, NOT merged. No migration.** Davin asked two questions about
+> Settings → Language & Region (does Thai default to THB, and does Thai + GBP show GBP everywhere?).
+> The answer to both was no. **Real bug:** `formatCurrency()` took the **symbol** from
+> `preferences.currency` but the **rate** from `preferences.countryCode`, so Thai + GBP showed a baht
+> amount with a pound sign: **$29 → "£1,015" instead of "£22.62"**. The same happened in the 5 Server
+> Components that format USD (the 4 admin BI dashboards and affiliate payouts). A 2026-09-01 comment
+> had kept the split on purpose as "original behavior"; it was the bug.
+> **Fix:** the rate now comes from the currency (`CURRENCY_USD_RATES` / `exchangeRateForCurrency()`
+> in `lib/country-config.ts`). `formatCurrencyAmount` no longer takes an `exchangeRate` argument, so
+> the symbol and the rate cannot disagree. The Settings page suggests the language's currency when a
+> language is chosen (only when exactly one country uses that language, e.g. Thai → THB; en-US, used
+> by US/NG/ZA, keeps the current currency), and the user can still override it. THB, INR, NGN, PKR,
+> VND, IDR, ZAR and TRY were added to the dropdown.
+> **⚠ Approximate rates:** CNY 7.1, AUD 1.52, CAD 1.38 are approximations with no dated source (no
+> country uses them); before this change they were converted with the country's rate.
+> **Verified:** `tsc`/ESLint/Prettier clean; 2 new suites/10 tests; full `test:ci` **238/238 ·
+> 3065/3065** (236/3055 + exactly these). Live `next dev` via a throwaway route (deleted): picking
+> Thai switches the real dropdown to THB; a stored Thai/TH/GBP preference renders £22.62; no console
+> errors other than the expected signed-out 401s. **Not verified:** a signed-in Save on
+> `davintrade.app`. **Gotcha:** never use `git stash` here. The desktop app's `.git/index.lock`
+> polling made `stash push` fail silently, and the following `pop` then tried an unrelated
+> 2026-09-12 lint-staged backup. It aborted, so nothing was lost.
+
+<!-- CLAUDE.md L283-L312 -->
+
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — admin read-only "view as user" for
+> customer support: a FREE or PRO user's Billing, Login History (Security) and Security Activity.
+> Code complete and verified, on branch `feat/admin-view-as-user` (`e5f087fb` read path,
+> `50e6916c` UI, plus docs commits). **Tested signed-in by Davin 2026-09-24, merged to `main` by PR.**
+> NOT deployed. No migration.** **Full account:** `davintrade-admin-view-as-user/admin-view-as-user-manifest-work-completion.md`.
+> Modelled on the affiliate view-as. Entry: a **View as user** button on `/admin/users` rows and
+> on `/admin/users/[id]` (disabled for admins), which opens `/settings/billing` under a banner
+> (Switch user / Exit view). The nav shows only Security and Billing; every other settings page
+> is replaced by a notice, because it would show the admin's own account.
+> **Two conditions before any route serves another user** (`lib/admin/user-view-as.ts`): a 2h
+> httpOnly cookie bound to the admin's id and naming a non-admin user, **and** a
+> `?view_as=user` opt-in that only the three settings pages add. Every other request ignores
+> the cookie, so an open view can't leak into `/alerts` or the header. An opt-in without a valid
+> view returns 403, never the admin's own data. 9 GET routes changed; the 6 that proxy to
+> operation-service skip the proxy in view mode (it authenticates as the admin). **Writes still act
+> on the session user (the admin),** so the pages hide Cancel Plan, 2FA buttons, alert switches
+> and Mark read: they could never reach the customer, but would change the admin's own account.
+> **Verified:** `tsc`/ESLint/Prettier clean; full `test:ci` **236/236 · 3055/3055** twice
+> (232/3008 + 4 suites/47 tests); mutation **9/9** killed, restores byte-exact; live `next dev`
+> signed out: admin API and all 9 routes 401; UI via a throwaway route (deleted).
+> **Found:** my own `user-detail.test.tsx` wrapper leaked LocaleProvider's real geo-IP fetch and
+> crashed other suites at random (L40 again); fixed by seeding the locale. Pre-existing: the
+> floating Support Centre button overflows 375px on every page (seen on untouched `/pricing`).
+> **Verified by Davin:** the signed-in admin click-through, on real data. **Davin's call:** the full preferences
+> object in view mode is fine (not personal data; useful for support and marketing).
+> **Gotcha:** the desktop app's background `git status` polling holds `.git/index.lock`, which
+> made lint-staged's backup step fail repeatedly; waiting ~2s for the lock to stay free before
+> `git commit` got through. ~40 files still list as `M` after an over-broad prettier run, but
+> their blob hashes equal HEAD (stale stat only); they commit as nothing.
+
+<!-- CLAUDE.md L313-L366 -->
+
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — billing history: dLocal PDF receipts,
+> an "amounts may differ" notice, and the full history instead of 12 rows. Code complete and
+> verified, on branch `feat/billing-receipts-and-history` (`725a3781` backend, `82294af8` UI,
+> `1ad896a0` CSS, plus a docs commit). Pushed, NOT merged, NOT deployed. No migration.**
+> **Full account:** `davintrade-bill-receipts-and-history/bill-receipts-and-history-manifest-work-completion.md`.
+> This entry is the index. Davin asked for three things on `/settings/billing`.
+>
+> 1. **dLocal receipts.** dLocal issues no invoice PDF, so dLocal rows had nothing to download.
+>    New `GET /api/invoices/[id]/receipt` renders a receipt in Stripe's layout: receipt and
+>    invoice numbers, seller and bill-to, "INR X paid on DATE", line items, subtotal, discount,
+>    total, amount paid, and the rate dLocal applied. Built with `pdf-lib` (new dependency, pure
+>    JS, standard fonts, no font files). The route returns 404 unless the payment is the caller's
+>    own completed dLocal payment. Numbers are derived from the payment, so they are stable and
+>    need no migration; they are receipts, **not** sequential tax invoices. The seller block comes
+>    from optional `BILLING_SELLER_NAME/ADDRESS/TAX_ID`, because the repo records no legal entity
+>    or address. Standard fonts only encode Latin-1, so amounts use ISO codes and a Thai or Arabic
+>    name is left off (the email line stays).
+> 2. **Amount differences.** The table used to show only a figure converted into the display
+>    currency, so it disagreed with the PDF. Now the bold figure is the exact charge in its own
+>    currency, an "≈" line shows the indicative conversion, and a "Why amounts may differ" note
+>    explains card FX, dLocal conversion and rounding. The plan card also says its price is an
+>    approximation. `ar` and `th` translations were added (the only dictionaries with `billing.*`
+>    keys).
+> 3. **Full history.** Stripe is fetched with cursor pagination, capped at 1000. The page shows
+>    12 rows, then Load More and Show all. FREE users who have past invoices now see the section,
+>    so receipts stay reachable after cancelling.
+>
+> **Real bugs found and fixed:**
+>
+> - `app/globals.css` hid `td a[target='_blank']` everywhere (a TradingView-logo rule copied from
+>   the seed in 9-1). That means the invoice **View/PDF buttons were never visible in production**,
+>   for Stripe users too. The rule is now scoped to `.tv-lightweight-charts`, and the chart logo
+>   is still hidden by `a[href*='tradingview']`.
+> - dLocal rows showed the gross `amountUSD`, which ignored affiliate discounts.
+> - Non-USD Stripe amounts were converted a second time.
+> - Stripe zero-decimal currencies were divided by 100.
+> - Two billing tests had encoded the bug by expecting a EUR invoice to render as "$34.51". They
+>   now expect "€34.51".
+>
+> **Verified:**
+>
+> - `tsc`, ESLint and Prettier are clean.
+> - Two new suites and five new page tests. Full `test:ci` gives **232/232 · 3008/3008**
+>   (230/2983 + 2/25).
+> - Mutation 5/5 killed, each restore byte-exact.
+> - Sample PDFs were rendered and inspected.
+> - Live `next dev` through throwaway routes (deleted): the list, notice, paging, visible
+>   buttons, and a PDF served through the Turbopack bundle. The receipt and invoices APIs return
+>   401 when signed out.
+>
+> **Not verified:** a signed-in click-through, and a real dLocal payment. **Gotcha:** this shell
+> collapses `\\` to `\`, so escapes written through Bash or Python heredocs get corrupted; make
+> regex and escape edits with the Edit tool.
+
+<!-- CLAUDE.md L367-L395 -->
+
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — the 8 CI checks that failed on every
+> PR now pass. PR #467, merged.** The same 8 checks (api-tests, both TypeScript checks, Unit &
+> Component Tests, Run Tests, Test Summary, ESLint Security Check, Security Check Summary) had
+> failed on #465, #466 and `main`. There were three causes:
+>
+> 1. `@trading-alerts/types` is consumed from its gitignored `dist/`, which only `prebuild`
+>    built. That gave 141 TS errors, all "Cannot find module", and most failing suites. The root
+>    `postinstall` now builds it.
+> 2. `lint` ran `next lint`, which Next 16 removed. It now runs ESLint on `app components lib src
+hooks types middleware.ts` (0 errors).
+> 3. **db-push drift:** 7 tables, 2 enums and 4 `User` 2FA columns were never created by any
+>    migration, so a fresh `migrate deploy` failed at `20260904120000_default_theme_light`. The
+>    fix is guarded, idempotent `20260904110000_backfill_untracked_tables`, with DDL from
+>    `prisma migrate diff`.
+>
+> **Verified:** on a disposable Postgres 16 all 28 migrations replay, the result diffs clean
+> against both schemas, and re-applying the backfill to a populated DB is a no-op. A fresh
+> worktree plus `pnpm install --frozen-lockfile` passes type-check, lint and `test:ci`
+> **230/230 · 2983/2983**. PR CI: **24/24 pass**, including Integration Tests and the Production
+> Build Check, which used to be skipped.
+> **⚠ Production:** the backfill is dated before already-applied migrations, so production lists
+> it as pending. Applying it is a no-op that only records history. Run `prisma migrate status`
+> first, since `deploy` applies _every_ pending migration. `check-production-migrations.yml` and
+> `deploy.yml` were already failing on `main` for other reasons, were not among the 8, and were
+> not investigated.
+> **Local gotcha:** `prisma.config.ts` loads `.env.local` with `override: true`, so `DIRECT_URL`
+> beats any `DATABASE_URL` you pass. The replay used a throwaway config with a hardcoded
+> container URL (deleted afterwards).
+
+<!-- CLAUDE.md L396-L425 -->
+
+> **Ad-hoc session (2026-09-24, phase/session unchanged) — admin read-only "view as affiliate",
+> plus a full page load after login. Code complete and verified, on branch
+> `feat/admin-view-as-affiliate` (4 commits, pushed, NOT merged, NOT deployed). No migration.**
+> **Full account:** `davintrade-admin-view-as-affiliate/admin-view-as-affiliate-manifest-work-completion.md`.
+> Davin asked whether Admin = Admin + PRO + Affiliate. Answer: Admin + PRO only
+> (`isAffiliate: false` in `auth-options.ts`). Making the admin a real affiliate was advised
+> against (commissions and payouts to the admin, polluted affiliate metrics). He chose a
+> read-only view of any affiliate's dashboard instead.
+> **Built:** `lib/affiliate/view-as.ts` (2h httpOnly cookie bound to the admin's user id and a
+> profile id; honoured only for ADMIN; fails closed; strips `paymentDetails`; never auto-creates
+> a profile). `/api/admin/affiliates/view-as` does search (name, email, code), start and stop.
+> The picker is at `/admin/affiliates/view-as` (header menu and admin sidebar). The 6 affiliate
+> GET routes and the payouts page serve the viewed affiliate and **skip the money-service proxy**,
+> which authenticates as the caller. Every write route still needs `requireAffiliate()`, so an
+> admin write gets 403. Payout settings (bank details), profile editing and download counters are
+> excluded from the view. No admin audit table exists, so start/stop go to server logs
+> (`[admin-view-as]`).
+> **Found while verifying:** `middleware.ts` sent every admin on `/affiliate/*` to `/admin`, which
+> would have blocked the feature in production. `/affiliate/dashboard*` is now exempt (tested).
+> **Login bug:** after sign-in the header showed "Trader" / "Trader Account" with no Admin
+> Control. next-auth 4.24's `getSession()` only notifies other tabs, so `router.push` kept the
+> pre-login `SessionProvider`. Login and 2FA now use a full load (`lib/auth/post-login-navigation.ts`).
+> **Verified:** `tsc`/ESLint clean; full `test:ci` **230/230 · 2983/2983** (227/2951 + 3 suites and
+> 32 tests); mutation 5/5 killed, each restore byte-exact. Live `next dev`: signed-out API gives
+> 401 (403 cross-origin) and both pages redirect to login. A throwaway route (deleted) confirmed
+> picker search, the start request, banner, nav and no overflow at 375px. The dev server 404'd
+> every route until `.next/dev` was cleared (stale cache).
+> **Not verified:** a signed-in admin click-through (the Executor never enters credentials).
+> New strings use `t(key, fallback)`, English only, no dictionary entries added.
+
+<!-- CLAUDE.md L426-L452 -->
+
+> **Ad-hoc session (2026-09-23, phase/session unchanged) — Disbursement payout settings:
+> `/admin/disbursement/settings` built end to end (DECISION-LOG **F83**), plus monthly payouts
+> (**F84**). Code complete and verified, on branch `feat/disbursement-payout-settings`
+> (11 commits, NOT pushed, NOT deployed). No migration.** Davin supplied
+> `davintrade-disbursement-payout-settings-stack/DavinTrade-Architecture-Design-Disbursement-Payout-Settings.md`.
+> **Full account:** that folder's `feasibility-assessment.md` and
+> `disbursement-payout-settings-manifest-work-completion.md`. This entry is the index.
+> **Phase 0 verdict: feasible with adjustments A1–A7. No stop.** The spec missed 3 admin readers
+> of `AFFILIATE_CONFIG.MINIMUM_PAYOUT` and `PayoutCalculator`'s own eligibility check; both are
+> now routed through the settings readers. Env vars are **per service**: the page can only show
+> the **Vercel** `DISBURSEMENT_ENABLED`/`DISBURSEMENT_PROVIDER`, so G3/G4 must be checked on
+> Railway directly.
+> **Built:** payout on/off, minimum, max batch size and the approval window as `SystemConfig`
+> rows, read uncached by twin readers (`lib/disbursement/settings.ts` ↔ money-service
+> `disbursement-settings.constants.ts`, whose SHARED block a parity test diffs byte for byte).
+> The pause gates every money-moving entry point (cron, execute, Wise prepare/complete/fund,
+> batches, pay) with 409 `DISBURSEMENTS_PAUSED`. The cron splits batches by max batch size.
+> The payout cron is `0 2 1 * *`, plus a new daily `approve-matured-commissions`. The public
+> `/api/config/affiliate` gains `minimumPayoutUsd` only. `/admin/disbursement/config` is now a
+> redirect and its placeholder API is deleted. money-service's global exception filter now
+> passes a `code` field through.
+> **Verified:** root `test:ci` **227/227 · 2951/2951**; money-service **63/63 · 621/621**; `tsc`
+> clean in both; ESLint 0 warnings on the Next files (money-service has no ESLint setup);
+> page checked live via a throwaway route (deleted).
+> **⚠ Not done:** `davintrade-ui-page.xlsx` rows 97/19. The file was write-locked, so the values
+> are in the manifest §5.
+
+<!-- CLAUDE.md L453-L522 -->
+
+> **Ad-hoc session (2026-09-22, phase/session unchanged) — Stack C 15th indicator:
+> `S-R-AutoCalibration_v2_29` onboarded end to end as source `sr2_levels`, `market_data`
+> 95 → 103 (`sr_9..sr_16`). Code complete and verified. NOT committed, migration authored and
+> NOT applied, nothing deployed.** Davin supplied `CLAUDE_CODE_15TH_INDICATOR_INTEGRATION_PROMPT.md`
+> and the indicator + spec in `mq5/`. **Full account:**
+> `backend-stack-c/.../v2_29_data_pipeline_architecture/integrating-15th-Indicator-in-stack-c-manifest-work-completion.md`.
+> This entry is the index.
+> **The prompt predated the 2026-09-20 work, and two of its assumptions were wrong:** (1) it
+> recommended excluding the statistic file, but `sr_levels` had been re-enrolled 09-20, so
+> enrolling the 15th needed no new column and adds no new rollout constraint. (2) It did not know
+> the `market_data_point_in_time` lane exists. **Both went to Davin via `AskUserQuestion`; he took
+> the recommendation on each:** enroll statistics (enum 11 → 12), and snapshot `sr_9..sr_16`
+> (69 → 77, since the 15th inherits the 14th's re-bucketing look-ahead). One migration,
+> `20260922000000_add_market_data_v6_sr2_levels`, adds 8 nullable columns to each table,
+> byte-identical to `prisma migrate diff`.
+> **Found and fixed:** the point-in-time generator labelled columns by name prefix, which would
+> file `sr_9..sr_16` under `sr_levels`; the existing 69 columns still render byte-identically.
+> Both Prisma schemas carried the generated PIT doc comment **twice** (a pre-existing stray
+> partial copy, removed by regeneration, comment-only).
+> **⚠ A real deployment hazard, guarded:** the gitignored `DEPLOY_TO_CONTABO_VPS_READY/` package
+> ships only the two `.py` files, but only `sqlite_schema_v6_xauusd.sql` creates
+> `raw_sr2_levels`. A new collector beside the old schema would crash-loop (`no such table`
+> inside `run_cycle()`). New `assert_staging_tables()` in `open_db()` refuses to start and names
+> the file. **The VPS step is now THREE files.** That package predates this change and was left
+> untouched.
+> **Flagged, not changed:** `indicator_configs` is keyed by `config_hash` alone, so identical
+> parameter blocks share a row. That already happens for `resistance`/`support` (measured,
+> `12a7d85e8bf6`) and will for `sr_levels`/`sr2_levels`. The 15th's **defaults are identical to
+> the 14th's**, so until it gets its own window `sr_9..sr_16` duplicate `sr_1..sr_8`.
+> `v_validation_keys` is an operator diagnostic, not the validator: `validate_cycle()` reads each
+> staging table via `PER_BAR_SOURCES`.
+> **Verified:**
+>
+> - new `test_sr2_levels_source.py` **36/36**, with header, prefix and stat labels read from the
+>   `.mq5`, real files through `run_cycle()`, and a 95-column deployed DB brought to 103 by
+>   `open_db()`;
+> - **mutation 14/14 killed** (13 Python + 1 TS), every restore byte-exact by sha256;
+> - live `--once` cycle with the freshness guard on promoted 103 columns;
+> - the real payload validates against the regenerated `MarketDataDto` (an unknown `sr_17` is
+>   rejected), and the real stats element validates as `sr2_levels`;
+> - all other Python suites green; `railway-gateway` `tsc` clean, unit **6/6·93/93**, e2e
+>   **4/4·43/43**; monolith `tsc` clean, `test:ci` **220/220·2881/2881** (zero drift).
+>
+> **⚠ Pre-existing, not caused here:** `test_extended_statistics.py` fails 15 checks both
+> **before** and after this session. Its gitignored `engine-1-5-new/` fixtures were re-captured
+> after the test pinned their values; needs re-pinning.
+> **⚠ Rollout order, same as the 14th:** migration → `railway-gateway` → VPS (3 files) → attach
+> the `.ex5` on A+B **before** restarting the collector (a missing `S_R_Levels_*.txt` rejects
+> every cycle).
+> **Flagged:** this file is **430 KB**, over four times the ~100 KB archival gate. Deliberately
+> not archived as a side effect of a feature session.
+> **Artifacts:** in `v2_29_data_pipeline_architecture/`:
+>
+> - code: `export_collector_validator_v2.py`, `sqlite_schema_v6_xauusd.sql`,
+>   `backfill_worker_api_gateway_v5.py`, both `gateway_contract_*.schema.json`,
+>   `generate_point_in_time_schema.py`, `migrate_sqlite_add_sr2_columns.sql` (new)
+> - tests: `test_sr2_levels_source.py` (new), `test_sr_levels_source.py`,
+>   `test_economic_events.py`, `test_statistics_schema_sync.py`, `test_extended_statistics.py`
+> - docs: the blueprint, `ARCHITECTURE-SUMMARY-FOR-DECK.md`,
+>   `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`, `Export Data from MQL5 indicators.txt`, the
+>   manifest (new)
+>
+> Elsewhere: both `schema.prisma`, `prisma/migrations/20260922000000_add_market_data_v6_sr2_levels/`
+> (new, unapplied), `railway-gateway/src/gateway/dto/{market-data,indicator-statistic}.dto.ts`
+> (regenerated), `railway-gateway/src/worker/point-in-time-snapshot.ts`,
+> `railway-gateway/{test/dto-contract.spec.ts, README.md}`,
+> `types/{indicator.ts, prisma-stubs.d.ts}`, `docs/migration-orders/migration-stack-analysis.md`,
+> this file. Davin's own uncommitted edits to the 14th indicator's `.mq5`/`.ex5` and the
+> `engine-1-5/` deletions were left untouched.
+
+<!-- CLAUDE.md L523-L567 -->
+
+> **Ad-hoc session (2026-09-18, same day, phase/session unchanged) — landing-features.tsx
+> translation gap, CLOSED SUCCESSFUL, committed and pushed (`84b72453`).** Direct follow-on to
+> the same-day public-marketing-chrome session below — Davin supplied two more annotated
+> screenshots of `davintrade.app`, this time in Traditional Chinese and Thai, showing the "AI
+> Pattern Recognition"/"Sub-500ms Breach Alerts"/"Multi-Model Confluence"/"Risk & Order
+> Calculator" feature cards still rendering entirely in English on the Chinese page while the
+> identical cards were correctly translated on the Thai page, and asked why the inconsistency
+> exists.
+> **Root cause: a genuine blind spot in the prior session's own extraction tooling, not a
+> content gap.** `components/landing/landing-features.tsx` stores each card's title/description/
+> badge in a `features` array and renders them via `t(item.title)`/`t(item.badge)`/
+> `t(item.description)` — a dynamic property reference, not a literal string passed directly to
+> `t()`. The 2026-09-18 marketing-chrome session's regex-based key extractor only matches
+> literal `t('...')` calls (`docs/policies/08-locale-i18n-compliance.md` §5 Step 2's own script),
+> so even though `landing-features.tsx` was correctly named in that session's file list, the
+> script only ever saw the section's 3 static strings (eyebrow badge, heading, subhead) — it was
+> structurally blind to the 12 keys inside the 4 cards (4 × title/description/badge). Those 12
+> keys were therefore never flagged as missing and never translated for the 5 "actively
+> maintained" newer dictionaries (`fr`/`ko`/`zh`/`zh-TW`/`ar`).
+> **Why Thai rendered correctly while Chinese didn't:** `th.json` already had these exact 12
+> keys from an earlier, unrelated, broader translation pass (Thai is one of the older "legacy"
+> dictionaries with ~2,636 keys, predating this whole session sequence) — a coincidence of
+> earlier coverage, not evidence the 2026-09-18 session actually reached this file's dynamic
+> content.
+> **Confirmed, not assumed, that the blind spot is isolated to this one file:** grepped every
+> other file in the 2026-09-18 session's scope (navbar, footer, hero, pricing card,
+> tier-comparison table, ticker tape) for the same `t(\w+\.\w+)` shape — zero other matches, all
+> of them use only literal `t('...')` calls.
+> **Fixed:** translated the 12 keys (4 cards × title/description/badge) into `fr`/`ko`/`zh`/
+> `zh-TW`/`ar`; `th`/`en-US`/`en-GB` already had them, left untouched. `docs/policies/
+08-locale-i18n-compliance.md` §5 Step 2 already documented this general failure class in
+> principle ("keys referenced via a variable... the regex can't resolve these") — strengthened it
+> with this concrete confirmed instance and a mechanical grep pattern
+> (`t\(\s*[a-zA-Z_]\w*\.[a-zA-Z_]`) so a future audit can catch this shape without relying on
+> remembering to "walk it by hand," plus a new §8 verification-log row.
+> **Verified:** `npx tsc --noEmit` clean; JSON validity checked directly on all 5 edited
+> dictionary files; `git diff --stat` confirmed additive-only (14 insertions/~1 line-ending
+> change per file, from appending to the end of each JSON object). No test suite run needed —
+> pure dictionary-data changes, no source/test file touched.
+> **Not verified live in a browser** — needs Davin's own click-through on `davintrade.app` in
+> Traditional Chinese (and ideally `fr`/`ko`/`zh`/`ar` too) to confirm the 4 cards now render
+> translated.
+> **Artifacts:** `lib/i18n/dictionaries/{fr,ko,zh,zh-TW,ar}.json`, `docs/policies/
+08-locale-i18n-compliance.md` (§5 Step 2 strengthened + §8 log row), this file.
+
+<!-- CLAUDE.md L568-L624 -->
+
+> **Ad-hoc session (2026-09-18, same day, phase/session unchanged) — public marketing chrome:
+> full translation coverage, CLOSED SUCCESSFUL, committed and pushed (`d9c1efd0`).** Direct
+> follow-on to the same-day locale/i18n audit below — Davin supplied three annotated
+> screenshots of `davintrade.app` in Korean, Japanese, and Thai, showing the top navbar
+> (Features/Pricing/Docs/Blog/Academy/Affiliates/EconNews/More) rendering partly or entirely in
+> English while the hero tagline below it rendered correctly, and asked for the root cause plus
+> an assessment of how widespread the pattern was.
+> **Two distinct root causes, not one.** (1) `marketing-navbar.tsx`'s labels all use the bare-
+> literal-as-key `t()` convention (`t('Features')`, `t('Academy')`, etc., no fallback arg) —
+> `fr`/`ko`/`zh`/`zh-TW` had **zero** of the navbar's 18 keys, matching a gap this file's own
+> 2026-09-04 language-modal entry had already found and explicitly left open ("MarketingNavbar
+> was never in scope for the 18-batch locale audit's public-marketing-chrome batch"). The
+> Korean screenshot is exactly that still-open gap. (2) `th`/`ja`/`de`/`es`/`pt`/`hi`/`vi`/
+> `id`/`tr`/`ur` already had the _older_ nav labels translated, but were missing exactly
+> `Academy`, `EconNews`, and `Language` — because those three items were added to the navbar in
+> _later_ sessions (Academy: 2026-08-31; EconNews + Language: 2026-09-04), after those ten
+> dictionaries had already been populated. Nothing in this repo's locale tooling re-checks an
+> already-"done" dictionary when a new key lands in a component it partially covers, so the gap
+> was silent and structural, not a one-off oversight — the Japanese and Thai screenshots are
+> this second mechanism, confirmed by checking each dictionary's own `Gold Trade` entry (every
+> dictionary that has one maps it to itself, confirming that string is a deliberate brand-style
+> identity mapping, not a translation gap, which ruled out a third hypothesis before it was
+> chased).
+> **Scoped, not assumed, before writing any translation.** Extracted every `t()` key (both the
+> bare-literal and dotted-with-fallback conventions) from the full public marketing surface —
+> navbar, footer, hero, features, pricing card, tier-comparison table, ticker tape, and the
+> theme-toggle button — **109 distinct keys total**, then checked all 17 dictionaries directly
+> rather than trusting the navbar-only hypothesis the screenshots suggested. Found **548 missing
+> entries** in total, `ar` alone missing 85 of 109 — far beyond the navbar Davin had actually
+> screenshotted. Presented the full breakdown and asked Davin to choose remediation scope via
+> `AskUserQuestion` (navbar-only vs. the 8 actively-maintained languages vs. full 17-language
+> coverage); **he chose full coverage, all 17 languages.**
+> **Built:** curated, professional translations for all 548 missing entries across all 17
+> dictionaries, following conventions already established elsewhere in this file's history —
+> `DavinTrade`, ticker symbols (`XAUUSD`/`XAUX`/`USDX`), and `PRO`/`FREE` tier names stay in
+> Latin script; `Gold Trade` stays as an identity mapping everywhere (confirmed brand-style, not
+> translatable copy); `Workbench` genuinely translates/transliterates per-language (confirmed by
+> the pre-existing `AI Workbench` entries in `de`/`es`/`ja`/`th`, e.g. `AIワークベンチ`,
+> `KI-Workbench`). Several Korean, Japanese, and Thai strings were matched verbatim against text
+> already visible in Davin's own screenshots (e.g. Korean `알림 발생 시간`, `다중 모델 감독`,
+> `신호 컨플루언스 비율`; Japanese `会話型定量SaaS`, `機能`, `料金`; Thai's hero tagline) to keep
+> terminology internally consistent with what's already shipped and correct, rather than
+> re-deriving a possibly-different phrasing from scratch.
+> **Verified:** a fresh coverage re-extraction shows **0/109 missing across all 17
+> dictionaries**; `npx tsc --noEmit` clean; full `npm run test:ci` **220/220 suites, 2881/2881
+> tests**, zero regressions (translation-only JSON changes; confirmed no test in the repo asserts
+> an exact dictionary key count, which would have gone stale). JSON validity checked for all 17
+> files directly (`JSON.parse` clean), and every diff confirmed minimal/append-only via
+> `git diff --stat` (no pre-existing key was reordered or altered) before committing.
+> **Not verified live in a browser** — same static-audit scope as the earlier session today;
+> needs Davin's own click-through on `davintrade.app` in Korean/Japanese/Thai (and ideally the
+> other 14 languages) to confirm the navbar, footer, hero, and pricing card all render fully
+> translated now. Translation quality caveat, same as every dictionary this repo has shipped:
+> good-faith professional translations, not reviewed by a native-speaking linguist per language.
+> **Artifacts:** `lib/i18n/dictionaries/{en-US,en-GB,fr,ko,zh,zh-TW,ar,th,de,es,ja,pt,hi,vi,id,
+tr,ur}.json` (548 new entries across all 17), this file.
+
+<!-- CLAUDE.md L625-L731 -->
+
+> **Ad-hoc session (2026-09-18, same day, phase/session unchanged) — locale/i18n compliance
+> audit and remediation pass, CLOSED SUCCESSFUL, committed and pushed.** Davin asked for a
+> comprehensive audit against `docs/policies/08-locale-i18n-compliance.md` across all
+> un-wired or partially-wired frontend surfaces, since several recently-built pages/components
+> (chiefly the Currency Index PRO stack and the chart drawing toolbar) and the newer
+> zh-TW/fr/ko/ar/th locale work had not gone through that document's own audit procedure.
+> **Since the working tree was clean (no meaningful `git diff` against a base branch), the
+> audit ran against live code directly** — §5's Step 1/3 grep patterns across the whole
+> `app/`/`components/` tree, cross-referenced against `useLocale`/`getServerLanguage`/
+> `getDictionary` call sites — rather than a diff-scoped pass, per the document's own "audit
+> everything before closing a session that adds UI" framing.
+> **Found 18 genuinely non-compliant files, all confirmed by reading each one directly before
+> fixing anything** (several other flagged-by-grep files, e.g. `PriceDisplay.tsx`'s non-USD
+> `toLocaleString`, `currency-index-hero-widget.tsx`'s deliberately-unconverted index value,
+> and every admin-analytics percentage display, were checked and confirmed already correct
+> per §2.C/§4 rather than false-positived into the fix list):
+> **Failure Mode A, zero locale wiring (9 files, the Currency Index PRO cluster)** —
+> `top5-screener-card.tsx`, `dashboard-table-m5.tsx`, `analysis-table-m15.tsx`,
+> `trading-advisory-banner.tsx`, `indicator-settings-modal.tsx`, `chart-control-header.tsx`,
+> `relative-strength-chart.tsx`, `high-impact-news-tooltip.tsx`, and
+> `pro-currency-index-cockpit.tsx` itself — every label, badge, and even the
+> Overbought/Oversold/Extreme titles drawn on the lightweight-charts canvas via
+> `createPriceLine()` were hardcoded English with no `useLocale()` call anywhere in the
+> cluster. Wired all nine through `t()`, using the `labelKey`-map pattern from §2.C for the
+> confluence/zone/crossover/spread enum badges instead of rendering the raw value.
+> **A real, load-bearing bug found while doing this, not left in:** adding `t` to the
+> corridor-price-line effect's own dependency array doubled the price lines on first mount —
+> `t`'s identity changes when `LocaleProvider` reconciles `localStorage` after the initial
+> SSR-preferences render, re-firing the effect a second time before the first batch of lines
+> was ever removed. Caught by the existing `relative-strength-chart.test.tsx` failing, not by
+> inspection; fixed by excluding `t` from that effect's deps with an explanatory comment (the
+> 30s corridor refresh already carries any mid-session language change).
+> **The drawing toolbar (`Toolbar.tsx`)** had the same zero-wiring gap for every button's
+> aria-label/title (Select, the 6 tool names, Edit style, Alerts, Add price alert, the PRO
+> upsell hint, Delete selected). `TOOL_DEFINITIONS[tool].label` in the tool registry
+> (`./tools/index.ts`) was deliberately left English at its source — that module has no
+> locale-hook context and Toolbar is its only rendering consumer (confirmed via search) — with
+> the translation applied at render time via a `DrawingType`-keyed lookup in `Toolbar.tsx`
+> itself.
+> **Two files already called `useLocale()`/`getServerLanguage()` elsewhere but still bypassed
+> the shared formatters for specific figures — the §2.C "never write a local ad-hoc
+> formatCurrency/formatDate" anti-pattern, found in `components/payments/PlanSelector.tsx`
+> (hardcoded `$${threeDayPrice.toFixed(2)}`), `components/auth/register-form.tsx` (a discount
+> price split across two literal `t()` fallback strings with a bare `$` embedded in each), and
+> `components/notifications/notification-list.tsx` (a local `formatDate` shadowing the real
+> one, hardcoded to `toLocaleDateString('en-US', ...)` for the >6-day-old fallback).**
+> **Six admin affiliate pages had the identical local-ad-hoc-formatter gap, at larger scale** —
+> `app/admin/affiliates/page.tsx`,
+> `app/admin/affiliates/reports/{sales-performance,profit-loss,commission-owings,
+code-inventory}/page.tsx`, and `app/admin/settings/affiliate/page.tsx` each defined their own
+> `formatCurrency`/`formatDate` (`` `$${amount.toLocaleString('en-US', ...)}` ``,
+> `toLocaleDateString('en-US', ...)`) despite already having `useLocale()` in scope for every
+> surrounding label. Deleted all 8 local helpers; call sites now use the shared
+> `formatCurrency()`/`formatDate()`/`formatTimestamp()` (the settings page combined the latter
+> two, since its own local formatter included a time-of-day the shared `formatDate()` alone
+> doesn't).
+> **58 new dotted keys, all with literal English fallbacks (so `en-US`/`en-GB` render correctly
+> whether or not the key is added), given curated real translations in the 8
+> actively-maintained dictionaries** (`en-US`, `en-GB`, `fr`, `ko`, `zh`, `zh-TW`, `ar`, `th`) —
+> matching the curated-partial-coverage precedent from the 2026-08-30 UAE/Arabic session; the
+> 9 legacy dictionaries (`de`/`es`/`ja`/`hi`/`vi`/`id`/`tr`/`ur`/`pt`) were left untouched and
+> degrade safely to the English fallback, per §2.C.
+> **Two pre-existing tests broke on the new `useLocale()` calls** (`LESSONS-LEARNED.md` L40) —
+> `trading-advisory-banner.test.tsx` and `__tests__/drawing/toolbar.test.tsx` rendered their
+> components with no `LocaleProvider` ancestor; both fixed with the established
+> render()-wrapper + seeded-`localStorage` pattern. `PlanSelector.test.tsx`'s own price
+> assertions (`/\$29\.00/`, `/\$1\.99/`) were updated to the real GBP-converted output
+> (`formatCurrency()` converts the seeded locale's default GB/GBP preference at its 0.78
+> exchange rate) rather than loosened — a locale-driven format change is a finding to fix, not
+> a regression to route around, per §5 Step 4.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean on every changed file (one
+> pre-existing, unrelated `react-hooks/exhaustive-deps` warning on `register-form.tsx`,
+> confirmed untouched by this session); full `npm run test:ci` **220/220 suites, 2881/2881
+> tests**, run three times across the session (before, immediately after the Toolbar fix, and
+> again after all 5 commits' own pre-commit `eslint --fix`/`prettier --write` hooks ran) —
+> zero regressions each time.
+> **Deliberately left as-is, not silently skipped:** admin-analytics percentage displays
+> (`toFixed(2)%` for deltas/shares/growth rates across `components/admin/analytics/*` and the
+> `app/admin/dashboards/*` pages) — these are not currency and match this repo's own
+> already-audited, consistent convention; re-formatting dozens of already-shipped, tested
+> percentage displays for decimal-separator localization would have been unbounded scope creep
+> beyond the confirmed gaps this pass targeted. `PriceDisplay.tsx`'s non-USD
+> `Intl`-equivalent `toLocaleString('en-US', ...)` formatting is the sanctioned §4 exception
+> (a genuinely non-USD, already-converted dLocal figure) and was left untouched.
+> **Not verified live in a browser** — this was a static audit-and-remediation pass (grep,
+> direct file reads, `tsc`/`eslint`/`jest`), matching the scope Davin asked for; needs his own
+> click-through on `/pro/currency-index`, `/pro/currency-index/compare`'s drawing toolbar, and
+> the 6 admin affiliate report pages in a non-English locale to see the translations render,
+> same "Executor never enters credentials" boundary as every authenticated surface in this
+> file's history.
+> **Committed and pushed in 5 batches, one per logical group, per `EXECUTOR-PROTOCOL.md` §2:**
+> `d0612789` (Currency Index PRO cluster), `6ad8bcff` (payments/auth formatter fixes),
+> `e588282a` (admin affiliate reports), `b8f93db1` (drawing toolbar), `e03685e8` (dictionary
+> translations).
+> **Artifacts:** `components/currency-index-pro/{tables/{top5-screener-card,dashboard-table-m5,
+analysis-table-m15,trading-advisory-banner}.tsx, chart/{indicator-settings-modal,
+chart-control-header,relative-strength-chart,high-impact-news-tooltip}.tsx,
+pro-currency-index-cockpit.tsx}`, `components/charts/drawing/Toolbar.tsx`,
+> `components/payments/PlanSelector.tsx`, `components/auth/register-form.tsx`,
+> `components/notifications/notification-list.tsx`, `app/admin/affiliates/page.tsx`,
+> `app/admin/affiliates/reports/{sales-performance,profit-loss,commission-owings,
+code-inventory}/page.tsx`, `app/admin/settings/affiliate/page.tsx`,
+> `__tests__/components/currency-index-pro/{trading-advisory-banner,
+relative-strength-chart}.test.tsx`, `__tests__/components/payments/PlanSelector.test.tsx`,
+> `__tests__/drawing/toolbar.test.tsx`, `lib/i18n/dictionaries/{en-US,en-GB,fr,ko,zh,zh-TW,ar,
+th}.json`, this file.
+
+<!-- CLAUDE.md L732-L864 -->
+
+> **Ad-hoc session (2026-09-18, phase/session unchanged) — Frozen Baseline (Pillar 1) and the
+> event-driven Centroid Watchdog (Pillar 2) built end to end from
+> `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`. Code complete and
+> verified; NOT deployed and NOT compiled.** Davin supplied the spec and asked for a feasibility
+> and edge-case assessment first, then implementation in its own §6.3 build order. Per
+> `EXECUTOR-PROTOCOL.md` §6. **Full account:**
+> `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/
+frozen-baseline-and-centroid-watchdog-manifest-work-completion.md`; the spec's own new §8 holds
+> the deviation table. This entry is the index.
+> **Both pillars are feasible, but nine of the spec's own claims did not survive contact with the
+> live code**, each resolved in favour of the code per §0. Three would have shipped a broken
+> feature rather than a rough one. **(1) The trigger was inverted.** §5.1.4 reads
+> `centroids[centroid_count-1]` as "latest"; the array is sorted **descending** by `bar_index`
+> (`if(centroids[j].bar_index < centroids[j+1].bar_index) swap`), so that is the **oldest**
+> centroid — as written the watchdog would never fire on a new centroid forming and would instead
+> fire when an ancient one dropped out of the 3000-bar window. **(2) The LOEDT sign was
+> backwards.** Live code sets `g_stat_loedt_offset = min_below_intercept - base_c`, which is
+> **negative**, and `[EDT CHANNEL]` exports that negative number; §3.1/§5.1.3 then subtract it,
+> which draws the lower band **above** the baseline and exports `loedt > base_fl` — read
+> downstream as a support level above price. Confirmed numerically, not by reading. **(3) The
+> debounce did not debounce.** §5.2's code counts wall-clock seconds and **never removes a
+> candidate that vanishes**, so a flickering centroid — the exact thing the feature exists to
+> filter — still confirms after 600s, and a Friday-evening candidate "matures" over a weekend in
+> which no bar closed. Also: `centroids[]` is local to the clustering routine so §5.1.4's snippet
+> cannot see it; frozen mode as specced would push an **all-NULL** `indicator_statistics` row
+> every cycle (those buffers are written only inside the bypassed routine), silently regressing a
+> shipped append-only capability; `OnCalculate` blanks the forming bar every tick so the
+> projection cannot sit behind `math_update_due`; `InpFrozenIntercept` had to become
+> `InpFrozenAnchorPrice` (the price at the anchor, not the regression's `c`, which is the price at
+> bar index 0 and thousands of dollars away); and the watchdog's state had to be persisted,
+> seeded and keyed by `(source, timeframe, ts)` or **every service restart would cry wolf** and a
+> bare timestamp key would collide across 7 sources × 2 timeframes.
+> **One spec item is not a defect but a constraint, and is worth recording:** §5.3 wants the
+> promote script to switch the terminal into frozen mode. **MetaTrader exposes no supported way
+> for an outside process to change a running indicator's inputs.** Automating the claim would be
+> the worst outcome available here — the script reports success, the admin believes the terminal
+> is frozen, and it repaints for weeks. So `generate_frozen_preset.py` writes the `.set` files and
+> `--verify` re-reads the terminal's own exports to prove a human loaded them; `promote_terminal.bat`
+> now refuses to promote quietly to a terminal that is not FROZEN.
+> **Built:** `[CENTROIDS_DETAIL]` + `[FROZEN_SNAPSHOT]` export blocks and `ENUM_PROJECTION_MODE` +
+> `ProjectFrozenChannel()` + an `OnInit` pre-flight across all 7 centroid `.mq5` (applied by
+> anchored script with every anchor asserted unique in every file first — an edit landing in 6 of
+> 7 is worse than none, since the 7th would be silently unwatched); `centroid_watchdog.py` (704
+> lines, read-only, own NSSM service, no DB handle); `generate_frozen_preset.py`;
+> `install_centroid_watchdog_service.bat`; `promote_terminal.bat` menu `[4]`/`[5]` + pre-flight;
+> 6 `Frozen *` labels into `STAT_CONFIG_LABELS` so **a promotion mints a new `config_hash`** and
+> `indicator_configs` becomes a free permanent append-only record of it (the `Snapshot *` keys are
+> deliberately excluded — they drift every cycle and would mint a hash each time).
+> **Three additions beyond the spec, without which the feature is not trustworthy:** centroid-drift
+> matching (§4.3 names "ΔT ≤ 1 bar" but nothing implements it; a centre of mass moves, so treating
+> each reported position as new resets the debounce every poll and **nothing ever confirms**);
+> standby-staleness detection (a dead standby's frozen export is indistinguishable from a quiet
+> market — the same silent class the collector's own stale-export guard exists for); and alert
+> coalescing (7 variants × 2 timeframes = 14 messages for one market event).
+> **⚠ A COMPILE FAILURE MY VERIFICATION DID NOT CATCH, found by Davin in MetaEditor: 5 of the 7
+> did not build.** Recorded because the gap is instructive, not incidental. Every static check I
+> ran passed and every one was beside the point — they verified the **insertion points** (anchors
+> unique, braces balanced, blocks outside the certified routine) and **never asked whether the
+> identifiers the inserted code consumes are declared in the file it landed in.** I wrote
+> `ProjectFrozenChannel()` against the reference file the spec names (`BestFitNonMostRecentA`)
+> and treated the other six as structurally identical. **They are not identifier-uniform:** the
+> visual-lookback input is `InpCFLVisualLookback` in BestFit A/B but **`InpEDTVisualLookback`** in
+> the other 5; `g_stat_excluded` is not declared in CherryPick A/B or MostRecent; `g_stat_lambda`
+> is not declared in CherryPick B, MostRecent or NonRecent A/B. That is exactly why the two
+> BestFit files compiled and the other five did not — **the two that passed are the reference
+> implementation and its sibling.**
+> **Fixed two ways for two reasons:** the lookback input has no common name so it is per-file,
+> resolved by **reading each file's own declaration** rather than hard-coding a map (a map is the
+> same assumption that caused this); and `g_stat_excluded`/`g_stat_lambda` were dropped from **all
+> seven**, including the two that compiled — those variants have no such concept (CherryPick
+> excludes by a string-index array, MostRecent does not exclude, WLS lambda is BestFit-family),
+> both are declared `= 0` where they exist and MT5 re-runs `OnInit` on an input change, so omitting
+> the assignment leaves exactly the value it was setting. Declaring the missing globals was
+> rejected as inventing state to satisfy a line of code. The routine is byte-identical in all 7
+> again (one sha256, normalising only the lookback name).
+> **The lesson became a check, not a note:** new `verify_mq5_frozen_identifiers.py` resolves every
+> identifier the inserted regions reference against what each file declares, and **reproduces
+> MetaEditor's output exactly** — same files, same identifiers, matching counts. ⚠ **Its first
+> draft did not:** a permissive comma-declaration regex swallowed the RHS of `int drawStartIdx =
+rates_total - InpCFLVisualLookback;` and registered all three words as declarations, so the
+> checker silently absolved the one identifier it was written to catch while correctly flagging
+> the other two. **A verifier that agrees with you is worth less than one you have watched fail.**
+> **⚠ Binary state: the 5 failed compiles made MetaEditor DELETE their `.ex5`**, so CherryPick A/B,
+> MostRecent and NonRecent A/B have **no binary at all**; BestFit A/B have one but it predates the
+> fix. **All 7 need compiling.** The 5 were deliberately **not** restored from git — an old binary
+> deploys indicators without frozen mode and looks healthy doing it, whereas a missing one fails
+> loudly.
+> **Verified:** `py_compile` clean ×5; MQL5 static ×3 passes over all 7 (brace/paren balance vs
+> HEAD, decl-before-use, scope, arity, **certified clustering path still reachable and free of
+> every frozen-mode identifier**, plus the new identifier-resolution pass); frozen-projection maths with the formula **extracted from the
+> `.mq5` rather than retyped** — 13/13, including a check that the _rejected_ index-anchored design
+> genuinely fails (it moves the channel **72.60 USD** when 500 bars of history load, so the
+> time-anchor choice is load-bearing, not stylistic); `test_centroid_watchdog.py` **35/35**;
+> **mutation 8/8 killed**, restore byte-exact by sha256 and run unconditionally; watchdog e2e
+> 22/22 (real process, real files, state across process restarts); preset generator 22/22 (all the
+> interesting cases are refusals); `promote_terminal.bat` structural + `cmd` parse; collector
+> compatibility — every staging column and `config_hash` **unchanged** by both new sections.
+> **The one that matters most: a full promotion cycle through the REAL collector and REAL
+> `promote_cycle()` — frozen repaints 0 of 44 historical bars; dynamic repaints 44 of 44, largest
+> move 3.29 USD.** All 6 existing Python suites green, **112 tests, zero regressions**.
+> **Two of my own test expectations were wrong and were corrected rather than worked around:** a
+> "duplicate" alert was the M15 lane confirming on its own 3×-slower bar clock (correct; now
+> asserted explicitly), and a dropout fixture placed a new centroid one bar from a known one,
+> inside the drift-tolerance window — that suppression is deliberate (a known centroid's own
+> centre of mass drifts ~1 bar between polls; without it it re-alerts forever), so the ±1-bar
+> blind spot now has its own test rather than being quietly widened away.
+> **⚠ INERT UNTIL DAVIN ACTS — nothing about production has changed.** `InpProjectionMode`
+> defaults to `MODE_DYNAMIC_AUTOFIT`, the watchdog is not installed, no terminal is switched.
+> **All 7 centroid indicators MUST be (re)compiled in MetaEditor** — 5 have no `.ex5` at all and
+> BestFit A/B's predates the identifier fix. MQL5 cannot be compiled here, so **the fix itself has
+> never been compiled**; MetaEditor is still the first real test. Run
+> `verify_mq5_frozen_identifiers.py` before handing them over. The other 9 indicators are untouched and current.
+> **That staleness hides itself** (same class as the 2026-09-09/11 entries): a terminal on old
+> binaries validates cycles and promotes rows perfectly while both new blocks are simply absent —
+> confirm a fresh `_Statistic.txt` really contains `[FROZEN_SNAPSHOT]` before trusting a green
+> cycle. Full ordered procedure in blueprint §13 item 8 and runbook §8 (EN + TH).
+> **Scope stated rather than implied:** freezing covers the 7 variants' channel fields (~21 of the
+> ~56 drifting columns). `fractal_*`, `best_resistance`, `best_support` and the per-variant
+> `horiz_*_map`/`ssa`/`ema_ssa` still rewrite, and freezing from today does nothing about the
+> ~3000 bars already stored — `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` is now
+> **PARTLY ADDRESSED**, not resolved, and its §4 magnitude experiment has still never been run.
+> **Not committed** — per this file's established log-first-defer-commit pattern.
+> **Artifacts:** in `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/` — `centroid_watchdog.py` (new),
+> `test_centroid_watchdog.py` (new), `install_centroid_watchdog_service.bat` (new),
+> `verify_mq5_frozen_identifiers.py` (new),
+> `frozen-baseline-and-centroid-watchdog-manifest-work-completion.md` (new), all 7
+> `mq5/2EDTCentroidRegression*_v2_29.mq5`, `export_collector_validator_v2.py`,
+> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`, `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md`,
+> `ACTIVE-STANDBY-FROZEN-BASELINE-AND-CENTROID-ALERT-ARCHITECTURE.md`, and in
+> `active-standby-terminal-operation-for-admin/` — `generate_frozen_preset.py` (new),
+> `promote_terminal.bat`, `OPERATIONAL_RUNBOOK_EN.md`, `OPERATIONAL_RUNBOOK_TH.md`; plus this file.
+
+<!-- CLAUDE.md L865-L919 -->
+
+> **Ad-hoc session (2026-09-16, same day, phase/session unchanged) — workbench polish: one
+> correct grip per divider, and no crosshair at the drawing toolbar. Code complete, verified,
+> committed and pushed** (`24f67fc9`, plus this docs commit). Davin annotated a live
+> `/terminal` screenshot with three items.
+> **Items 2 and 3 were one root cause, and it had been silently live since the handle was
+> written.** react-resizable-panels puts `data-panel-group-direction` on the **handle**, so the
+> six direction-conditional classes on `components/ui/resizable.tsx`'s grip — written as plain
+> `data-[…]` variants on **child** elements — matched nothing. Both the box's size classes and
+> both icons' `hidden` classes were inert, so the box had **no size at all** and **both** grip
+> icons drew: the doubled-up pads Davin marked on all four dividers. The authors' intent was
+> already correct (hide the horizontal grip on a horizontal group, and vice versa); scoping the
+> variants to the handle with `group` is all it took. Now exactly one renders — **grip-vertical
+> in a 13.6×20 box on the column dividers** ("2 double vertical pads", item 2) and
+> **grip-horizontal in a 24×14 box on the M5/M15 row divider** ("2 horizontal pads", item 3),
+> both confirmed by computed `display` in a real browser, not by eye.
+> **Item 1 — the dashed vertical line — is the chart's own crosshair**, established by
+> elimination rather than reproduction: `trading-chart.tsx` sets
+> `crosshair.vertLine.style: 3` (LargeDashed) in `#758696`, `EventVerticalLine` is a **solid**
+> amber `fillRect`, and every other vertical line in the drawing engine is solid — nothing else
+> in the repo draws a dashed vertical line on hover. It would **not** reproduce locally: the
+> crosshair needs series data and the dev CSP blocks the `ws://localhost:5001` feed, so the
+> local chart is empty. **Four handlings were genuinely different work, so it went to Davin via
+> `AskUserQuestion`** rather than being guessed at; he took the recommendation — suppress it
+> around the toolbar, keeping the crosshair everywhere else (the seed prototype has one too, so
+> removing it outright would have been a regression).
+> **Built:** the toolbar floats over the chart as a **sibling** of the chart element, so hovering
+> a tool button already cleared the crosshair — it was the **gutter** around it that was still
+> live chart surface, which is why reaching for a tool flashed a full-height dashed line up the
+> toolbar's own column. `Toolbar.tsx`'s three layout branches now sit inside one transparent
+> padded wrapper (`pl-2 pt-2 pr-4 pb-4`); **padding is inside an element's hit area**, so that
+> gutter stops being chart. The frame does not move: the buffer carries the `left-2 top-2`
+> offset the frame used to apply itself — verified as **exactly 8,8 from the chart in all three
+> layouts** (`stacked`/`split`/`grid`).
+> **Verified live** (throwaway preview route carrying both a vertical and a horizontal panel
+> group, deleted — clean tree): both grips by computed `display` and box size; the toolbar's
+> unchanged offset; `elementFromPoint` showing the gutter **left of, below and right of** the
+> toolbar now resolving to the buffer while plain chart area still resolves to the chart; and —
+> the part that stands in for the un-reproducible crosshair — **the chart element receives the
+> `mouseleave` that lightweight-charts clears the crosshair on** when the pointer crosses into
+> the buffer. Both grips checked in dark mode.
+> **Verified:** `tsc`/ESLint/Prettier clean; new `__tests__/components/ui/resizable.test.tsx`
+> (6) + 4 hover-buffer tests on the existing toolbar suite. jsdom does not run Tailwind, so
+> these assert the **variant is group-scoped** rather than reading `display` back — deliberately,
+> since that is precisely the thing that was wrong and the thing no rendered-output check would
+> have caught. **Mutation 4/4 killed** (bare `data-` variants → 4 fail; `group` dropped → 2;
+> buffer removed → 4; buffer's bottom/right padding dropped → 3), restores byte-exact by sha256.
+> Full `test:ci` **220/220 · 2881/2881** (219/2871 + exactly this session's 1 suite/10 tests,
+> zero regressions).
+> **Not verified:** the crosshair itself was never seen painting or clearing — it needs live
+> candles. The mechanism is verified instead, and it is the same one the toolbar has always
+> relied on. Worth a look on `davintrade.app` once deployed.
+> **Artifacts:** `components/ui/resizable.tsx`, `components/charts/drawing/Toolbar.tsx`,
+> `__tests__/components/ui/resizable.test.tsx` (new), `__tests__/drawing/toolbar.test.tsx`,
+> this file.
+
+<!-- CLAUDE.md L920-L984 -->
+
+> **Ad-hoc session (2026-09-16, same day, phase/session unchanged) — workbench chart panel:
+> the M5/M15 divider is now drag-resizable. Code complete, verified, committed and pushed**
+> (`89cdd10a`, plus this docs commit). Davin supplied two annotated screenshots — the seed at
+> `trading-conversational-ai-ui-pages.vercel.app/terminal` where the band between the two charts
+> drags, and `davintrade.app/terminal` where it does not — and asked for the feature in the real
+> codebase.
+> **Root cause (read before editing, per `EXECUTOR-PROTOCOL.md` §0):** the seed's
+> `components/trading-chart.tsx` wraps its two canvases in a vertical `ResizablePanelGroup`
+> (50/50, `minSize` 20) with a `withHandle` divider; the real
+> `components/charts/mtf-stacked-charts.tsx` was a `flex-col gap-2` computing
+> `perChart = available/2 − CHROME` — so the gap was inert by construction. `components/ui/
+resizable.tsx` already supports `direction="vertical"` with `cursor-row-resize`, so no new
+> primitive was needed.
+> **Built:** the flex column replaced by a vertical group with a labelled divider; `onLayout`
+> feeds the divider position back into both canvas heights, so the charts follow the drag
+> instead of staying at their mount-time height — the same failure class the 2026-09-14 entry
+> records for the horizontal panels' collapse-without-resize. Pure maths in the new
+> `components/charts/mtf-split-layout.ts` (divider position → two canvas heights; minimum pane
+> capped at 50%, since **both** panes carry it and a larger value could never be satisfied by
+> both at once). `/terminal` and `/free` both get it via `TradingWorkspace`.
+> **Two pre-existing bugs found by measuring the live layout rather than trusting the constant,
+> both fixed:** (1) the M15 label strip carries `MtfToggle` and the M5 strip does not, so the two
+> charts had genuinely different chrome (**65.6px vs 83.2px**) while the code subtracted a single
+> `CHROME_PER_CHART`; the strip is now fixed-height (`h-9`) in `trading-chart.tsx`, which makes
+> the chrome one number rather than one per timeframe — the robust fix, since a per-timeframe
+> constant would break the moment the toggle moved. (2) That constant was **44px against an
+> actual ~66px**, so the lower chart's root overflowed its pane by ~18px and was **clipped** —
+> visible in Davin's own production screenshot, where the M15 toolbar runs off the bottom of the
+> viewport. Re-measured and pinned at **86px** (strip 36 + `space-y-4` 16 + card `p-4`/border 34),
+> rounded **up** deliberately: the box is clipped, so an underestimate does not overflow visibly,
+> it silently cuts the lower chart. Both roots now sit 1–3px **inside** their panes at every
+> split tried. Also dropped the handle's `my-1`, so the divider's footprint is the 10px the
+> maths reserves rather than 18px.
+> **Verified live** (throwaway unauthenticated preview route mirroring the chart panel's own box,
+> deleted after — clean `git status`): drag down 50/50 → 64.6/35.4 with canvases 376→360/376→160;
+> drag up the mirror; **both stops clamp at the 246px minimum pane with no overflow** (−0.1 to
+> −2.7px); a 1400×1000 → 1024×620 window resize recomputes both canvases 376 → 186 and preserves
+> the split; the M5 Overlay toggle stays on M15 only; the drawing toolbar's own
+> `toolbarLayout()` re-flows correctly at the new heights; zero panel-library warnings and zero
+> chart/panel console errors (the `ws://localhost:5001` CSP block and the unauthenticated 401s
+> are pre-existing local-dev gaps, confirmed unrelated).
+> **A harness quirk worth recording, because it looked exactly like a bug for a while:**
+> `ResizeObserver` and `requestAnimationFrame` **do not fire while the Browser pane is hidden**
+> (`document.hidden === true`), so the charts appeared frozen at a stale measurement and a
+> freshly-attached observer never even received its mandatory initial callback. Fronting the pane
+> and forcing a paint with a screenshot resolved it. A measurement taken through that pane is
+> only trustworthy once `document.hidden` is `false` — checking it is cheaper than re-deriving
+> the bug.
+> **Verified:** `tsc`/ESLint/Prettier clean; new `mtf-split-layout.test.ts` (15 tests) + 6
+> divider tests on the existing suite; **mutation 5/5 killed** (ignore `onLayout` → 1 fail;
+> remove the divider → 6; underestimate the chrome → 2; drop the 50% cap → 2; don't reserve the
+> divider's own footprint → 7), restores verified **byte-exact by sha256** and run
+> unconditionally. The chrome constant is pinned by a deliberate literal rather than re-derived
+> from itself — the first draft's assertions subtracted the constant from both sides, so a wrong
+> value cancelled out and the mutant **survived**; worth remembering, since a self-consistent
+> test of a measured constant proves nothing about the measurement. Full `test:ci` **219/219 ·
+> 2871/2871** (218/2850 + exactly this session's 1 suite/21 tests, zero regressions).
+> **Not verified:** authenticated click-through on `davintrade.app` — the usual boundary. The
+> split is deliberately **session-local**, matching the horizontal panels, which are not
+> persisted either; `autoSaveId` would add it in one prop if Davin wants it.
+> **Artifacts:** `components/charts/{mtf-stacked-charts.tsx, mtf-split-layout.ts (new),
+trading-chart.tsx}`, `__tests__/components/charts/{mtf-split-layout.test.ts (new),
+mtf-stacked-charts.test.tsx}`, `lib/i18n/dictionaries/{en-US,en-GB}.json` (1 identity key each),
+> this file.
+
+<!-- CLAUDE.md L985-L1095 -->
+
+> **Ad-hoc session (2026-09-16, phase/session unchanged) — Stack C 14th indicator:
+> `SupportAndResistantAutoCalibration_v2_29` onboarded end to end, `market_data` 87 → 95
+> columns (`sr_1`..`sr_8`). Code complete and verified; migration authored, NOT applied.**
+> Davin supplied `ARCHITECTURE_DESIGN_14TH_INDICATOR_SUPPORT_AND_RESISTANCE.md` and asked for a
+> feasibility review plus the pipeline implementation. Planned via plan mode with three parallel
+> Explore passes (Python/SQLite, downstream TS/Prisma, the MQL5 source) before any edit, per
+> `EXECUTOR-PROTOCOL.md` §0's "live code wins".
+> **The MQL5 half of the doc is accurate** — filename, the 12-column bare TSV header,
+> empty-string nulls and the statistic block all verified against the live `.mq5`, and its
+> timestamp already uses the fixed `TimeTradeServer()`-rounded form rather than the
+> `TimeCurrent()` bug corrected across the other 13 on 2026-09-09. **Three of its pipeline
+> claims did not survive contact with the live code, each a production failure as written:**
+> (1) **§6.1 is false** — `migrate_raw_tables()` skips absent tables and its docstring says it
+> never touches `market_data`; `CREATE TABLE IF NOT EXISTS market_data` is a no-op on a deployed
+> `xauusd.db`. So the 8 columns had **no** automatic path and `promote_cycle()` would raise
+> `OperationalError`, uncaught in `run_cycle()` — a collector crash-loop, not a degradation.
+> (2) **§4.2.3 is a no-op AND harmful** — `STAT_SOURCES` is a derived blacklist, so adding the
+> source auto-enrolls it; the SR statistic vocabulary (Q25/Q75, IQR, Optimal Step) matches almost
+> nothing in `STAT_FIELDS`, and the stats contract pins `source` to a **closed 10-value enum**
+> while that POST is **batched** — one element would 400 the whole request and quarantine all
+> ~22 snapshots that cycle. A regression to a working lane. (3) **§4.5 under-scopes**: 10 files,
+> not 1, because the contract JSON generates the DTO and `schema-sync.spec.ts` diffs both Prisma
+> schemas order-sensitively.
+> **Three decisions escalated via `AskUserQuestion`; Davin took the recommendation on two and
+> went further on the third:** defer SR statistics capture (explicit `STAT_SOURCES` exclusion);
+> ship **both** an automatic `migrate_market_data()` **and** a hand-run
+> `migrate_sqlite_add_sr_columns.sql`; and **full** `PER_BAR_SOURCES` enrollment as the doc
+> intends — accepting that a missing or stale `SR_Levels_*.txt` rejects the entire price cycle,
+> now demonstrated live rather than assumed.
+> **⚠ ROLLOUT ORDER IS LOAD-BEARING.** Apply the Postgres migration **before** `railway-gateway`
+> deploys (it auto-deploys from `main`). The contract sets `additionalProperties: false`, the
+> NestJS pipe sets `forbidNonWhitelisted: true`, and the push worker's 400 handler quarantines a
+> row **and stamps `synced_at`** — so rows posted to an un-migrated gateway are permanently
+> marked synced, recoverable only by hand via `replay_quarantine.py`. The reverse order merely
+> 5xxs and retries. Full order: migration → gateway → VPS.
+> **A real capture turned up late and upgraded the verification.** An initial search found no
+> `SR_Levels_*` anywhere (the `Glob` timed out and a `find` was inconclusive); a `git grep` sweep
+> at the end found **two genuine captures** in `excel-calculation/` (~500 bars each, Feb 2026).
+> Both headers match the `SOURCES` registry **byte for byte**, 1001 rows parse with zero key
+> anomalies, and the documented semantics hold on real data: supports strictly below close,
+> resistances strictly above, nearest-first, **0 violations**. Better still, one capture carries a
+> **constant 298s sub-bar phase on all 500 rows** — the documented `TimeCurrent()` signature —
+> and the collector's defensive grid snap repaired every one, so that belt-and-braces path is now
+> proven on real data instead of trusted from a comment. Also confirms unresolved slots are
+> **common**, not theoretical (`sr_8` populated on only 86 of 501 bars), which validates keeping
+> every `sr_*` optional and nullable. Four golden tests now pin this, skipping (not failing) if
+> the captures move.
+> **Built:** `raw_sr_levels` + 8 `market_data` columns + the `v_validation_keys` branch (with a
+> `DROP VIEW` first — `CREATE VIEW IF NOT EXISTS` is a silent no-op on a deployed DB, so the view
+> would otherwise never refresh); `SOURCES['sr_levels']`, `sr_1..sr_8` added **explicitly** to
+> `PRICE_LEVEL_COLUMNS` (a numeric slot name matches no suffix rule, so an inactive `0.00` would
+> otherwise reach the alert engine as a $0.00 price); the `STAT_SOURCES` exclusion; the new
+> additive-only `migrate_market_data()` wired into `open_db()`; worker contract 87 → 95; the
+> contract JSON; regenerated DTO; both Prisma schemas; `types/indicator.ts`;
+> `types/prisma-stubs.d.ts`; and `20260916000000_add_market_data_v6_sr_levels`.
+> **Verified:** SQLite ↔ worker ↔ contract JSON agree at **95** three ways, including via the
+> pipeline's own `verify_schema_contract()` drift guard. New `test_sr_levels_source.py`
+> **28 tests**; `test_economic_events.py`'s column assertion 87 → 95; **mutation 5/5 killed**
+> (drop `sr_*` from the price guard → 3 fail; neuter `migrate_market_data()` → 3; unwire it from
+> `open_db()` → 1; re-enroll in `STAT_SOURCES` → 1; strip the DDL → 8), restores verified
+> **byte-exact by sha256** and run unconditionally. All 4 pre-existing Python suites green.
+> **Live `--once` dry run** against a synthetic 14-file export dir: 14 sources staged, cycle
+> validated, 20 bars promoted, the `0.00` sentinel NULL in every row, and a payload built from a
+> real promoted row carrying exactly **95** fields with `sr_3`/`sr_4` as JSON `null`. Negative
+> case confirmed: with `SR_Levels_*.txt` removed the cycle is rejected after 3 attempts.
+> railway-gateway `tsc` clean, **5/5·68/68** unit, **4/4·43/43** e2e (e2e passing untouched is
+> what proves the controller/validator/processor are genuinely field-agnostic). Monolith `tsc` +
+> `eslint` clean, full `test:ci` **218/218·2850/2850**. Prisma `migrate diff` confirms the hand-authored
+> migration's 8 `DOUBLE PRECISION` columns match Prisma's own generated DDL.
+> **Not verified:** no disposable-Postgres container rehearsal — Docker Desktop would not come
+> up (same recurring gap); acceptable here since the migration is 8 nullable `ADD COLUMN`s
+> touching no existing row, cross-checked against `migrate diff`.
+> **⚠ Needs Davin, in this order:** apply the migration to production
+> (`maglev.proxy.rlwy.net:58290`, via `prisma.production.config.ts`; run `prisma migrate status`
+> first) → merge/deploy railway-gateway → attach the `.ex5` to XAUUSD M5+M15 and widen the VPS
+> SQLite (either the script, or just restart the collector). **Decommission the predecessor
+> `SupportAndResistant_v2_29.mq5` first if attached anywhere** — it defaults to the same
+> `InpExportFileName = "SR_Levels"`, so both would truncate each other's export at `:59` with two
+> different statistic schemas.
+> **Flagged, not fixed (indicator-side):** the export is 3001 rows not 3000 (inclusive loop, 3000
+> closed + the forming bar); `ExportSRData(bool is_backfill)` never reads its parameter so the
+> "Backfill" button equals "Export"; the early return on unchanged `rates_total` makes the
+> intra-bar trigger unreachable; `sr_*` are hardcoded to 2 decimals while `close` uses `_Digits`;
+> the statistic file uses ASCII hyphens where the other ten use an em dash (moot while stats are
+> deferred). **And a look-ahead note worth recording:** `ArrayLevels` is resolved once from the
+> fixed window then re-bucketed against every exported bar's close, so a historical bar carries
+> today's level set — same class as `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` documents
+> for the centroids, and stronger. Fine for a live snapshot; invalid for backtesting.
+> **The legacy EA was deliberately left at 87 fields** — its own `CREATE TABLE`/JSON really do
+> carry 87, it is not in the v6 flow, and _adding_ an indicator cannot break its `OnInit` (unlike
+> the 2026-09-03 rename). Its comments now say so rather than carrying a number that would be
+> false. `operation-service` likewise unchanged: a narrow 21-column channel mirror that carries no
+> `best_resistance`/`best_support` either.
+> **Not committed** — per this file's established log-first-defer-commit pattern.
+> **Artifacts:** in `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/` — `sqlite_schema_v6_xauusd.sql`,
+> `export_collector_validator_v2.py`, `backfill_worker_api_gateway_v5.py`,
+> `gateway_contract_market_data.schema.json`, `migrate_sqlite_add_sr_columns.sql` (new),
+> `test_sr_levels_source.py` (new), `test_economic_events.py`,
+> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`, `ARCHITECTURE-SUMMARY-FOR-DECK.md`,
+> `ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md`,
+> `ARCHITECTURE_DESIGN_14TH_INDICATOR_SUPPORT_AND_RESISTANCE.md`,
+> `data-split-between-mql5-and-python/Export Data from MQL5 indicators.txt`,
+> `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5`; plus `railway-gateway/{prisma/schema.prisma,
+src/gateway/dto/market-data.dto.ts, test/dto-contract.spec.ts, README.md}`,
+> `prisma/market-data/schema.prisma`,
+> `prisma/migrations/20260916000000_add_market_data_v6_sr_levels/migration.sql` (new,
+> authored/unapplied), `types/{indicator.ts, prisma-stubs.d.ts}`,
+> `operation-service/prisma/schema.prisma`, `docs/migration-orders/migration-stack-analysis.md`,
+> this file.
+
+<!-- CLAUDE.md L1096-L1099 -->
+
+> **Full account of this session's three rounds (workbench collapse, chart resize + toolbar fit, PRO
+> page header buttons):** `davintrade-frontend-ui-fix/frontend-ui-fix-1-manifest-work-completion.md`.
+> The three entries below are the index.
+
+<!-- CLAUDE.md L1100-L1111 -->
+
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — PRO currency index page headers: "AI
+> Workbench" + "28-Pair Screener" buttons. Done, verified, committed and pushed.** Davin's two
+> annotated screenshots. New shared `components/currency-index-pro/pro-page-nav.tsx` (amber buttons;
+> `/terminal` = the marketing footer's existing "AI Workbench", `/pro/currency-index` = the sidebar's
+> existing "28-Pair Screener"; `aria-current="page"` on the page you're on). `/pro/currency-index/
+compare`: the "← 28-pair relative-strength screener" text link removed, buttons top-right above
+> M5/M15. `/pro/currency-index`: buttons before Compare indices / Settings. Dictionaries: the removed
+> link's key swapped for the nav's `PRO pages` label (en-US/en-GB, the only two holding it). Verified:
+> tsc/ESLint/Prettier clean; +1 suite/+3 tests; full `test:ci` **218/218·2850/2850**; live `next dev`
+> via a throwaway route (deleted): both headers match the mockups at 1600px, correct hrefs, no
+> overflow at 390px. Not verified: authenticated PRO click-through on `davintrade.app`.
+
+<!-- CLAUDE.md L1112-L1164 -->
+
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — `/terminal` + `/free` workbench: sidebar
+> and panel collapse fixed. Code complete, verified, committed and pushed** (`fac6ffa8`, plus this
+> docs commit).
+> Davin's 6 annotated screenshots: sidebar collapse didn't narrow it; after a manual drag-narrow,
+> expand didn't widen it; collapsing the AI Analyst left "no button" to reopen it.
+> **Root cause (reproduced live before any edit, 1600px):** the collapse buttons only flipped what a
+> panel _rendered_, never its size. Sidebar: icon column inside a panel still **251px**; its
+> `isCollapsed` state and the dragged width were two unsynced sources of truth. AI Analyst / Market
+> Comments were **conditionally unmounted**, and react-resizable-panels 2.1.9 then rebuilds the layout
+> from the remaining `defaultSize`s (16/38/22 → 100): sidebar **251→333px**, comments 345→457, manual
+> sizes lost; the reopen button moved to an easy-to-miss bar above the workspace. Seed prototype has
+> the identical bug (ported faithfully).
+> **Fix:** both pages now render one shared `components/workspace/trading-workspace.tsx` (the two were
+> line-for-line copies). All 4 panels stay mounted; the 3 side panels are `collapsible` with
+> **pixel-exact** rails (sidebar 64px, others 44px, converted from the measured group width, since the
+> library only speaks %); the group layout is the single source of truth (buttons call `setLayout`,
+> a drag past min collapses, `onCollapse`/`onExpand` drive the content). Freed space goes to the
+> chart only; reopen restores the pre-collapse width, **including the width before a drag** (captured
+> via the handle's `onDragging`, else the drag's pass through minSize would be restored). Collapsed
+> AI Analyst / Comments show an in-place full-height rail button (`collapsed-panel-rail.tsx`, reusing
+> the `Show AI Analyst`/`Show Comments` keys); the top bar is gone. Pure maths in `panel-layout.ts`.
+> Also in `chat-sidebar.tsx`, now visible because the rail is really 64px: the collapsed FREE "Upgrade
+> to PRO" CTA is icon-only (the overflow flagged in the 2026-09-13 entry below), management icons
+> centred (stray `mr-2`), icon-only items get `title`/`aria-label`.
+> **Verified:** tsc/ESLint/Prettier clean; 2 new suites/24 tests (panel maths + workspace wiring with
+> stubbed children); **mutation 3/3 killed** (old state-only toggle fails 4, no collapse sync fails 4,
+> space-to-neighbour fails 3), restored byte-exact by sha256; full `test:ci` **216/216·2833/2833**
+> (214/2809 + exactly these 2/24). Live `next dev` on a throwaway unauthenticated route (deleted):
+> all 6 screenshot steps (64/44px rails, chart-only redistribution, exact restore), real mouse drag
+> → rail + icon content, expand after drag → 251px, window resize 1600→1100 keeps rails at 64/44px,
+> FREE rail has no overflow, FREE upgrade modal opens, no panel-library warnings.
+> **Not verified:** dark mode visually (a hand-set guest cookie didn't flip the chrome; rail reuses the
+> panel headers' own token + `dark:` classes); authenticated click-through on `davintrade.app`.
+> **Artifacts:** `components/workspace/{trading-workspace.tsx, collapsed-panel-rail.tsx,
+panel-layout.ts}` (new), `app/terminal/terminal-workspace.tsx`, `app/free/free-workspace.tsx`,
+> `components/chat-sidebar.tsx`, `__tests__/components/workspace/{panel-layout.test.ts,
+trading-workspace.test.tsx}` (new), this file.
+> **Same-day follow-up (Davin's production screenshot after deploy): the chart inside didn't follow.**
+> (1) `TradingChart` resized only on window `resize`, so a panel collapse/drag (window unchanged) left
+> the canvas at its mount width; it now uses a `ResizeObserver` on its own block container (width
+> comes from the parent, never the canvas, so no loop). Pre-existing for handle drags; collapse made
+> it obvious. (2) The drawing toolbar is a fixed ~460px column; a stacked M5/M15 pane is ~375px on a
+> 1024px-tall screen, so it ran onto the M15 label (visible in Davin's very first screenshot too).
+> `Toolbar` now takes the chart height (`toolbarLayout()`): one column when it fits, tools|actions
+> side by side (286px) when that fits, else an N-row grid. Verified: 2000×1024 all-collapsed canvas
+> 1752/1753px, toolbar split fits; tall window stacked, measured **459px = the formula**; 680px window
+> grid 6×2, all 11 buttons inside, 10px clear. Tests +1 suite/+14 (toolbar layout; chart container
+> resize); mutation 3/3 (window-only resize fails 4, always-stacked fails 8, separator miscount fails
+> 1), restored byte-exact; full `test:ci` **217/217·2847/2847**. Files: `components/charts/
+{trading-chart.tsx, drawing/Toolbar.tsx, drawing/DrawingLayer.tsx}`, `__tests__/drawing/toolbar.test.tsx`
+> (new), `__tests__/components/charts/trading-chart.test.tsx`. The production chart's
+> "websocket error" is the live feed connection, unrelated.
+
+<!-- CLAUDE.md L1165-L1176 -->
+
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index Comparison PRO: the same
+> index may now be chosen in both Index A and Index B. Code complete, verified, committed and pushed**
+> (`05684359`, plus this docs commit; full suite 214/214·2809/2809).
+> Davin's screenshot (`mutually-exclusive-rule-removal.png`) asked to drop the rule that greyed out
+> the other picker's index, e.g. to put HRMA on XAUX (A) and ZigZag on XAUX (B). **Full account:**
+> manifest §12. The API already de-duplicated `?indices=XAUX,XAUX` (existing test), so it's
+> client-only: pickers fully enabled; the request de-duplicates so the index is fetched once; the
+> labels that would collide gain the slot letter ("XAUX (A)"/"XAUX (B)") in legend groups, rebase
+> sliders and price-scale titles (`ChartSlot.label`); one definition card. Workspace test +2 (opens the
+> real Radix Select in jsdom), both mutations killed, tsc/ESLint clean; live `next dev` confirmed the
+> enabled options, the labels, a single `indices=XAUX` request and the chart titles by screenshot.
+
+<!-- CLAUDE.md L1177-L1216 -->
+
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index PRO
+> (`/pro/currency-index`): hide/show each of the 8 currency lines independently. Code complete,
+> verified, committed and pushed** (`48b18e71` chart + host series, `6e176dd9` legend toggles,
+> plus this docs commit). Davin's annotated screenshot:
+> 8 lines make the chart messy. **Full account:** `davintrade-currency-index-pro-plan/
+currency-index-pro-stack-manifest-work-completion.md` §8.
+> **Built:** an eye toggle (`aria-pressed`) on each legend chip; the chip body still opens the
+> HRMA/SMMA detail modal (existing entry point kept); Show all / Hide all; hidden chips dashed,
+> dimmed, struck through, value still shown. Hidden set in `localStorage`
+> (`davintrade:currency-index-pro:hidden-lines`), not the DB, so no schema change or migration.
+> **Real bug prevented, found in the lightweight-charts 5.2.0 source before building:** the corridor
+> price lines and news markers hung off the USD series, and a price line is skipped when its series
+> is `visible: false`, so hiding USD would have silently removed the Overbought/Oversold bands. They
+> now live on a never-hidden, stroke-less host series excluded from autoscale (the comparison
+> chart's technique).
+> **Verified:** tsc/ESLint/Prettier clean; 3 new suites/19 tests; mutation 2/2 caught (corridor back
+> on USD fails 1, no visibility effect fails 2), restored byte-exact; full `test:ci` **213/213·2802/2802** (210/2783 + exactly these 3/19). Live
+> `next dev` via a throwaway unauthenticated route with synthetic data (deleted): lines hide with the
+> scale refit and corridor + news marker intact with USD hidden, reload persistence, detail modal
+> from a hidden chip, Hide/Show all, dark mode, 375px. **Not verified:** authenticated PRO
+> click-through on real data.
+> **Artifacts:** `components/currency-index-pro/{hooks/use-hidden-currency-lines.ts (new),
+chart/currency-legend-strip.tsx, chart/relative-strength-chart.tsx, pro-currency-index-cockpit.tsx}`,
+> `lib/i18n/dictionaries/{en-US,en-GB}.json` (7 identity keys), 3 new test files under
+> `__tests__/components/currency-index-pro/`, the manifest above, this file.
+> **Same-day follow-up (manifest §9): HRMA/SMMA in the detail window.** They are not on the main
+> chart; the per-currency HRMA × SMMA window now has show/hide chips (kept for the page visit). Its
+> bands, BUY/SELL marker and warm-up line moved off HRMA onto a never-hidden host carrying the HRMA
+> values, kept IN autoscale (a range-less source also loses the marker's margins in LWC 5.2). Lines
+> were fixed blue/orange, i.e. USD's and EUR's slot hues; both now take the inspected currency's hue,
+> solid vs dashed. **Deviation from what I told Davin** ("two colors not used by any currency"): all 8
+> documented categorical slots are currencies and the dataviz skill forbids undocumented hexes, so
+> sharing the entity hue (the comparison page's validated scheme) is the compliant form. Validator:
+> JPY vs amber bands, GBP/AUD vs BUY green, EUR/NZD vs SELL red clash; those marks are all labelled.
+> Also fixed a latent portal-ordering gap (repaint effect now keyed on `container`). Verified: tsc/
+> ESLint/Prettier clean, new suite 5 tests, mutation 5/5, full `test:ci` **214/214·2807/2807** (213/2802 + exactly 1/5), live EUR/JPY
+> windows via a throwaway route (deleted). Committed and pushed as `4bea36bc` plus a docs commit;
+> the manifest's status, files, tests, live-verification, open-checklist and git-history sections
+> were brought up to date with §8–§9 in the same docs commit.
+
+<!-- CLAUDE.md L1217-L1247 -->
+
+> **Ad-hoc session (2026-09-14, phase/session unchanged) — Currency Index Comparison PRO Round 4:
+> ZigZag and Z-score candles ("MC") on `/pro/currency-index/compare`, plus a No Plot plot type.
+> Code complete, verified, committed and pushed (`e78bd83a` ports + tests, `faee6e1e` UI, `57710520`
+> per-index chip fix, plus docs commits).** Davin supplied an annotated screenshot and pointed at the
+> two golden-certified Python ports (`zigzag_metrics.py`, `zscore_candle.py`). **Full account:**
+> `davintrade-currency-index-comparison-pro-stack/currency-index-comparison-pro-manifest-work-completion.md`
+> §10; this entry is the index.
+> **Reading the sources first changed the job.** `zigzag_metrics.py` is only the derived-metrics
+> layer: pivot detection was never ported, so `lib/currency-index-comparison/zigzag.ts` ports it from
+> `ZigZagExportv43_v2_29.mq5`. **In v43, Deviation and Back Step never affect the pivots**
+> (`xInpDeviation` is read only by the uncalled `ValidateZigZagPoint()`, `xInpBackstep` only in
+> `OnInit`). Four decisions went to Davin via `AskUserQuestion`, and he took each recommendation:
+> port v43 exactly (Depth slider, Deviation 5 / Back Step 3 shown fixed with the reason); both
+> indices with one chip each (**reversed same day** after Davin reviewed the live page: ZigZag and MC
+> chips are now per index, beside each index's HRMA/SMMA, manifest §10.6); show the segment class; and, after the validator showed **no passing
+> hue pair** for the originally approved Large/Extreme highlight colors, class by **line weight**
+> (1/2/4px) in the slot hue. MC: green up / magenta down by hue, Large = 60% surface tint + full
+> outline, Extreme = full body, all validated with the dataviz script (one WARN, green vs gold CVD 6.9,
+> relieved by labels and mark shape). `zscore-candle.ts` follows the MQL5 start index `length`, not
+> the Python port's `length − 1`.
+> **Verified:** a new permanent `golden-mt5.test.ts` runs the shipped TypeScript against the real
+> 3000-bar MT5 exports: Z-score class **500/500 on M5 and M15**, ZigZag pivots **identical, none
+> extra**, segment class all match. Mutation **8/8 killed** (restore byte-exact by sha256). tsc/ESLint
+> clean; `test:ci` **209/209·2775/2775** (205/2744 + exactly this round's 4 suites/31 tests). Live `next dev` on a throwaway route with synthetic candles (deleted): No Plot, OHLC + MC,
+> ZigZag weights, chips, dark-mode colors via canvas pixels. The window stopped painting partway
+> through, so the light-mode repaint and slider repaint were not seen live.
+> **Resolved (follow-up ad-hoc):** `components/ui/slider.tsx` now passes `aria-label` / `aria-labelledby`
+> to `SliderPrimitive.Thumb` (accessible name on `role="slider"`, Root free of duplicate labels).
+> Unit test added (`__tests__/components/ui/slider.test.tsx`), workspace test updated to query
+> `getByRole('slider', { name })`. All clean: `tsc --noEmit`, ESLint, `test:ci` **210/210·2783/2783**.
+
+<!-- CLAUDE.md L1248-L1306 -->
+
+> **Ad-hoc session (2026-09-13, same day, phase/session unchanged) — Currency Index Comparison
+> PRO: `/pro/currency-index/compare` + "Upgrade to PRO" on `/xaux-vs-usdx`, with genuine index
+> OHLC added to Lane 4. Code complete and verified. Migration NOT applied, VPS
+> engine NOT redeployed.** Davin supplied an annotated screenshot plus
+> `davintrade-currency-index-comparison-pro-stack/` (per-index `*_H1_{Open,High,Low,Close,OHLC,HA}.mq5`
+> and the HRMA/SMMA `.mq5` files). **Full account:** that folder's
+> `currency-index-comparison-pro-manifest-work-completion.md`; this entry is the index.
+> **Three decisions escalated via `AskUserQuestion`, all answered with the recommendation:** (1)
+> Lane 4 stores one value per M5 bar (the close), so candles needed **genuine OHLC through the
+> pipeline** rather than fake wickless candles; (2) the daily reset-to-100 sawtooth breaks HA and
+> HRMA/SMMA across 3000 bars, so sessions are **chained into one continuous series, anchored on the
+> latest session** (today's values equal the widget/screener; display-only); (3) a **new page**,
+> not a section of the existing 28-pair screener.
+> **Built:** engine computes index O/H/L with the `*_H1_High/Low.mq5` direct/inverse rule applied to
+> each index's net per-symbol exponent (derived from the value formula's own tables; outbox
+> self-migrates); contract fields `open/high/low` **optional**; DTO regenerated; processor stores
+> NULL when absent; both Prisma models + migration `20260913120000_add_currency_gold_index_ohlc`
+> (byte-identical to `prisma migrate diff`); `lib/currency-index-comparison/{series,indicators,queries}.ts`
+> (chaining, clock-aligned M15, HA port, HRMA on typical / SMMA on close per the `.mq5` defaults);
+> PRO-gated `GET /api/market/currency-index-pro/comparison` (DB tier re-check, Redis per
+> index+tf); the page (9 indices, any 2, Line/OHLC/HA, M5/M15, period sliders, per-line hide chips,
+> rebase, drawing tools on a hidden host series so drawings survive plot-type switches, no
+> watermark; slot palette validated with the dataviz validator in both modes); upgrade card
+> (signed out → `/login?callbackUrl=`, FREE → `ProUpgradeModal`, PRO → page, labelled "Open PRO
+> Chart").
+> **Real bugs found:** the Free page's `isM15CloseBar()` rejected every real XAUX bar (01:01 anchor
+> vs 5-minute grid; its test used an impossible 01:11 fixture). Fixed, and the corrected tests fail
+> 2/6 on the old code. A candle's price label went colorless on rising (hollow) bars. And a
+> mutation showed the engine's invariant tests passed with the High/Low rule flipped (the clamp
+> masked it); they're now strict, and the flipped rule fails 3.
+> **Verified:** Python 13/13; gateway 5/5·68/68 unit, 4/4·43/43 e2e; monolith tsc/ESLint clean,
+> `test:ci` **203/203·2705/2705** (198/2657 + exactly this session's 5 suites/48 tests). Live
+> `next dev`: card placement, signed-out routing, PRO URL → `/login`, API → 401; the PRO workspace was
+> exercised through a throwaway unauthenticated preview route with synthetic candles (deleted,
+> clean tree), covering all three plot types, toggles, rebase, index swap/None, drawing persistence,
+> and both themes.
+> **⚠ ROLLOUT ORDER:** apply the migration **before** `railway-gateway` deploys. The processor's
+> upsert returns the full row and fails without the columns, and railway-gateway **auto-deploys on
+> push to `main`**. Then redeploy the VPS engine. Authenticated FREE/PRO click-through still needs
+> Davin.
+> **Round 2, same day (Davin's follow-ups): committed + pushed.** He kept both judgment calls
+> ("Open PRO Chart" label for PRO users; the screener's "Compare indices" link) and asked for the
+> three flagged items plus a new feature. All four are done:
+> (3) Free chart dark gold `#eda100` → validated `#c98500`.
+> (4) `callbackUrl` is honoured after sign-in through new `lib/auth/safe-callback-url.ts`, which
+> accepts same-site relative paths only (absolute, `//`, backslash, scheme, control-character and
+> auth-page-loop values all rejected). Wired into the login form, carried through 2FA (appended
+> only when present), and into Google/X sign-in.
+> (5) `'/pro/'` added to middleware `PROTECTED_PREFIXES`, so signed-out PRO visits keep their
+> return address; the trailing slash stops `/pricing`-style paths being gated.
+> (6) New `components/sidebar/pro-feature-links.tsx` in `chat-sidebar.tsx` above PNG Download:
+> "28-Pair Screener" and "Currency Index Comparison PRO". On `/free` they're frosted glass with a
+> padlock and "Upgrade to PRO" (→ `/pricing`).
+> Verified: `test:ci` **205/205·2744/2744** (+2 suites/39 tests); live middleware redirect; real
+> sidebar in PRO/FREE/collapsed and both themes via a throwaway route (deleted).
+> Pre-existing, not changed: the collapsed FREE sidebar's old "Upgrade to PRO" CTA overflows its
+> 64px rail. **The migration is still unapplied**: pushing deploys railway-gateway, which is harmless
+> only while no Lane 4 writes exist, so apply it before the VPS engine runs.
+
+<!-- CLAUDE.md L1307-L1377 -->
+
+> **Ad-hoc session (2026-09-13, same day, phase/session unchanged) — Currency & Gold Index Stack
+> ("Lane 4"): XAUX (Gold Index) formula corrected from a misleading single-asset rebase to the
+> genuine 5-currency geometric basket.** Davin caught this directly in chat: "current XAUX (Gold
+> Index) that was used in calculation in this stack is misleading. It is literally just rebased
+> calculation of XAUUSD, not genuine calculation of XAUX" — and supplied the authoritative ground
+> truth, `mql5-indicators/interesting-indicators/currency-and-gold-index/XAUX.mq5`, which defines
+> XAUX as an equal-weighted (0.20 each) geometric basket of **gold priced in 5 currencies** (XAUUSD,
+> XAUEUR, XAUJPY, XAUGBP, XAUAUD via `CalculateXAUX()`/`TranslateToGoldPairs()`) — not the single-
+> asset `XAUUSD(t)/XAUUSD(inception)*100` ratio the 2026-09-11 Phase 1 session had shipped, which is
+> mathematically incapable of ever diverging from USD-denominated gold.
+> **Root cause: the original architecture spec doc contradicted itself, and the wrong half got
+> implemented.** §5.2 (the formula section actually read while building Phase 1) specified the
+> simple rebase; §8 (the tooltip-copy dictionary) separately described XAUX as measuring gold
+> "against an equally weighted basket of the world's 8 major currencies (G8)" — itself also wrong
+> (8 currencies, not 5; and currencies rather than gold-priced-in-currencies), but at least
+> gesturing at a real basket. Phase 1's engine implemented §5.2's formula; Phase 4's tooltip copy
+> (`lib/currency-gold-indices/metadata.ts`) copied §8's basket-description text verbatim — creating
+> a real, user-visible mismatch between marketing copy and math that neither `tsc` nor any test
+> could catch, since both were internally self-consistent with the wrong formula they each
+> individually described. `XAUX.mq5` had not yet been supplied to this stack when Phase 1 shipped.
+> **Fix, three files, math/copy only, zero schema or API shape changes:**
+> `currency_gold_index_engine.py` — replaced the single-symbol rebase with new `gold_leg_rate()`/
+> `xaux_value()` functions, a line-for-line port of `TranslateToGoldPairs()`/`CalculateXAUX()`:
+> XAUEUR/XAUGBP/XAUAUD = XAUUSD divided by the respective USD-quoted FX pair; XAUJPY = XAUUSD
+> multiplied by USDJPY (JPY's inverted quoting convention means multiplication does the same job
+> division does for the other three). Rebased to 100.00 at gold's own 01:01 session open using the
+> exact same ratio-based construction `index_value()` already used for the 8 currency indices (no
+> persisted normalization constant — see that function's own docstring). **No new input file
+> needed** — the 4 FX legs (EURUSD/USDJPY/GBPUSD/AUDUSD) were already read as part of `FX_PAIRS` for
+> the currency indices, confirmed before writing any code. `gateway_contract_currency_gold_indices
+.schema.json`'s `index_name`/`value` field descriptions corrected to describe the 5-currency
+> basket instead of "simple ratio, no basket." `lib/currency-gold-indices/metadata.ts`'s XAUX
+> `definition` corrected to name the actual 5 currencies (USD/EUR/JPY/GBP/AUD); its `tradingEdge`
+> copy was left essentially as-is since it was already describing what a _correct_ basket should
+> do — false under the old formula (XAUX could never diverge from XAUUSD by construction), now
+> actually true.
+> **Blast radius confirmed zero outside these 3 files, checked not assumed:** the downstream
+> "Currency Index PRO Plan" feature (a separate later feature built on this lane's
+> `CurrencyGoldIndex` table) has its own `lib/currency-index-pro/pairs.ts` and
+> `DailyCurrencyIndexMetrics` Prisma model docstrings both explicitly stating "never XAUX, which
+> has its own unrelated 01:01 rollover and isn't part of the PRO screener" — confirmed via direct
+> read of both files, not assumed from the docstring alone. No PRO Plan code, schema, or test
+> touches XAUX in any way. `prisma/market-data/schema.prisma`'s `CurrencyGoldIndex` model docstring
+> ("...+ rebased gold index XAUX") was read and correctly left as-is — "rebased" there describes
+> the shared 100.00-at-session-open normalization every index gets (true for all 9, unchanged by
+> this fix), not the specific single-asset formula that was the actual bug.
+> **Verified:** new throwaway verification script (this stack's established no-pytest-infra
+> pattern) — **9/9 checks passed**, including `gold_leg_rate()` matching `TranslateToGoldPairs()`
+> for all 5 legs against fixture rates; `xaux_value()` self-consistency (exactly 100.00 at its own
+> inception); a hand-computed multi-currency move cross-checked independently; **a regression guard
+> proving the new basket value genuinely diverges from the old buggy value for the same inputs**
+> (101.755319 vs. 102.000000); and a collapse-case check confirming that when only XAUUSD moves and
+> every FX leg is unchanged, the basket correctly reduces to the same answer the old formula gave —
+> proving the fix generalizes the old formula rather than replacing it with something incompatible.
+> `python -m py_compile` clean; gateway contract JSON re-validated well-formed; monolith
+> `npx tsc --noEmit` clean; `npx eslint lib/currency-gold-indices/metadata.ts` clean; full
+> `npm run test:ci` **196/196 suites, 2636/2636 tests** — exact match to this stack's most recent
+> known baseline, zero regressions (no test in the repo pinned the old, now-corrected tooltip copy).
+> **Not done, deliberately:** no live browser check — this is a copy/math-only change with no UI
+> structural change, and the widget currently renders nothing regardless (no live VPS data yet, per
+> Lane 4's own still-open Phase 5 physical VPS items). No formula re-verification against real MT5
+> data either — same boundary as every prior Lane 4 session; Phase 1's own 38-check verification and
+> this session's 9-check verification are both against synthetic fixtures.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for Davin's
+> review of this entry before it becomes a commit.
+> **Artifacts:** `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/{currency_gold_index_engine.py,
+gateway_contract_currency_gold_indices.schema.json}`, `lib/currency-gold-indices/metadata.ts`,
+> `davintrade-currency-index-stack/currency-index-manifest-work-completion.md` (§1.5 added), this
+> file.
+
+<!-- CLAUDE.md L1378-L1391 -->
+
+> **Ad-hoc session (2026-09-13, phase/session unchanged) — Active / Hot-Standby MT5 Terminal:
+> Admin Promotion Tooling, Dual-Language Runbooks & Blueprint §8.1 Cleanup.** Per Davin's request
+> in chat, packaged the active/hot-standby promotion workflow into a dedicated operational directory
+> `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/active-standby-terminal-operation-for-admin/`.
+> Built `promote_terminal.bat` (automated 1-click promotion switcher with administrative elevation
+> check, pre-flight target directory existence check, PowerShell-based freshness check of newest `.txt`
+> export (<15m), complete parameter replacement via `nssm set`, service restart, and live tail log
+> rendering). Authored detailed dual-language runbooks (`OPERATIONAL_RUNBOOK_TH.md` and
+> `OPERATIONAL_RUNBOOK_EN.md`) covering the 3-terminal topology (A/B/S), 4 preconditions, progressive
+> repaint timeline, standby discipline rule, and rollback procedures. Resolved §8.1's stale
+> `+ the 4 calc .py` reference in `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`. Updated
+> `active-standby-terminal-manifest-work-completion.md` reflecting completed tooling, cleaned blueprint,
+> and tracked executive summary deck (`0540eeaa`). All 9 stale-export guard tests passing.
+
+<!-- CLAUDE.md L1392-L1508 -->
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Active / Hot-Standby MT5
+> Terminal architecture: design document written, then Parts 1 and 2 built and verified. Part 3
+> (the physical terminals) is Davin's and is not done.** Davin opened by proposing a Blue-Green
+> Deployment strategy for Stack C (with the standard load-balancer diagram), motivated by the
+> real need to retune EDT indicator configurations continuously as markets form new centroids.
+> Per `EXECUTOR-PROTOCOL.md` §6. Grounded in live-code reads throughout, not the diagram.
+> **The first assessment was half wrong and Davin corrected it, which is worth recording
+> because the correction is the design.** Blue-green as drawn does not map — Stack C is a
+> _producer_ with no inbound traffic, so there is no load balancer to flip; and the real problem
+> is not downtime (there is none today) but **mutation without provenance**: because the
+> centroid/SSA window re-anchors to the live bar each pass, retuning on the production terminal
+> silently rewrites ~3000 bars of history in place with no record. That part held. But the
+> initial answer then assumed both terminals would push simultaneously and built an elaborate
+> symbol-namespacing design around the `(symbol, timeframe, timestamp)` upsert key to keep two
+> live writers apart. **Davin's own framing was simpler and correct: only one terminal ever
+> feeds the collector; the other is a standby that pushes nothing.** Since the collector takes a
+> single `--export-dir`, the standby's files simply sit on disk ignored, the comparison happens
+> visually in MetaTrader, and the database is never involved — so none of the namespacing was
+> needed. **In that alternating form it genuinely is blue-green**, with `--export-dir` as the
+> load balancer; the earlier rejection of the pattern was wrong and is retracted. Davin also
+> settled the vocabulary (**"standby", not "working silently"**) and it was refined to **hot
+> standby**, since a cold one is precisely the failure mode below — the word states the
+> requirement.
+> **The finding that actually changed the design, found while writing the doc rather than
+> after:** the export directory is a **shared bus with four consumers**, not the price lane's
+> private input — price (13 indicators × M5/M15), fit statistics (10 `_Statistic.txt`), the
+> economic calendar, and the currency & gold index engine. That last one runs as a separate
+> service with its own SQLite file and its own `CGI_EXPORT_DIR`, which **defaults to the same
+> path** (`currency_gold_index_engine.py:83`). So a standby carrying only the 13 EDT indicators
+> would **silently stop economic-calendar capture** — `stage_economic_events()` returns `(0, 0)`
+> when the file is absent, best-effort by design so a calendar failure can never reject a price
+> row. Correct for its purpose; it also means no error anywhere. Resolved by recommending a
+> **three-terminal topology** (A/B alternate with 26 EDT attachments + the parameterless
+> calendar exporter; a static terminal S carries the 8 currency-index OHLCV exporters and never
+> alternates) — which decouples Lane 4 for **zero code change**, since `CGI_EXPORT_DIR` is
+> already an independent variable on an independent service. Only the genuinely tunable surface
+> alternates.
+> **Part 1 — the stale-export guard, a real gap in live code, not a hypothetical.**
+> `validate_cycle`'s completeness check was **relative only** (`export_collector_validator_v2.py`
+> :708-719): it verified all per-bar sources agreed with _each other_ on the newest bar, never
+> that the bar was current. A directory frozen by a shut-down terminal is stale in every source
+> by the _same_ amount, so the sources agree perfectly and **the cycle validated clean** —
+> collector logs success, push worker drains, nothing rejected, while the newest bar stops
+> advancing and the alert engine's `findFirst({ orderBy: { timestamp: 'desc' } })` keeps
+> evaluating a frozen bar. It looks like a quiet market. Added an absolute freshness assertion
+> rejecting the cycle when the newest bar lags the scheduled slot by more than
+> `MAX_BAR_LAG_MULTIPLIER × TF_SECONDS[tf]` (2× → 600s M5 / 1800s M15), through the existing
+> `log_failure()` path so it reaches `validation_failures`/`rejected_rows.jsonl` like any other
+> rejection. Placed as a sibling of the relative check rather than nested under it, so a
+> directory that is both stale and internally inconsistent reports both reasons. **`cycle_time`
+> is now a REQUIRED `validate_cycle` parameter** — deliberately not defaulted to `None`, since a
+> silent "skip the check" path is exactly how this guard would stop running unnoticed after some
+> future refactor; the one existing call site was updated in the same change. **Threshold chosen
+> with the arithmetic written down, not picked:** a legitimate cycle already lags (the collector
+> runs every 300s against a 900s M15 bar, plus up to 195s of retries), giving worst honest cases
+> of ~495s M5 / ~1095s M15 against limits of 600/1800. The M5 margin is a deliberate 105s —
+> erring tight because a false rejection self-heals on the next cycle whereas a missed detection
+> is silent. The looser `TF_SECONDS + 600` alternative was tabled in the design doc for Davin to
+> overrule; he did not.
+> **Mutation-checked, and the harness could not leave the file modified.** New
+> `test_stale_export_guard.py` (9 tests, matching this stack's established no-pytest-infra
+> standalone pattern). Disabling the comparison fails **4 of 9**, including the load-bearing
+> `test_uniformly_stale_directory_is_rejected` with the exact expected message — proving the
+> tests exercise the guard rather than passing incidentally. The 5 that still pass are correct to
+> (fresh/boundary/worst-legitimate/flag-skip/required-param). Restore was verified **byte-exact
+> via sha256 before and after**, and the restore ran unconditionally rather than only on success
+> — per this file's own recorded lesson that a crashed mutation harness leaving the target
+> modified is a genuinely dangerous failure mode. Staged rows are built by introspecting
+> `PRAGMA table_info` rather than hard-coding columns, since these staging tables have already
+> gained columns twice (the best*fit_a/b split, the MQL5-only refactor).
+> **Part 2 — the promote runbook** (`docs/runbooks/mt5-terminal-promote.md`, following the
+> existing `rotate-postgres-credentials.md` convention): four preconditions, the two `nssm`
+> commands, how to verify the collector is reading the terminal you intended, what users see,
+> rollback, the standby-discipline rule, and a ranked gotchas section. Two things stated plainly
+> rather than glossed: the promote is **not instantaneous** (~6000 rows re-push at 500/30s ≈ 5–6
+> minutes, and because selection is oldest-first the chart repaints left-to-right with the
+> newest bars changing **last**), and **rollback is another forward switch, not a restore** —
+> the intermediate values are overwritten and unrecoverable. Blueprint updated: §0.5 (3 new
+> reference rows), §8.1 (three-terminal topology replacing the single-terminal line), §8.3
+> (standby parity + the calendar-on-both requirement + terminal S), §12 item 10 (the staleness
+> gap, recorded as BUILT), §13 item 6 (the physical build as remaining work).
+> **Verified:** `python -m py_compile` clean; module imports clean; new suite **9/9**; both
+> existing suites green (`test_economic_events.py`, `test_push_economic_events.py`); schema
+> unchanged at **87 `market_data` columns**; the only other `validate_cycle` in the repo is
+> `v2_28_data_pipeline_architecture/export_collector_validator_v1.py` — the legacy v2.28
+> collector, not in the v6 flow, correctly untouched. Collector diff is **+46/−2**.
+> **Not done, and not a development task: Part 3.** Terminals A/B/S do not exist — attaching
+> charts, setting anchors and compiling all need the VPS console, the same boundary as every
+> MT5-side item in this stack's history. **Nothing shipped this session has been exercised
+> against a real promote**; the guard is unit-tested against synthetic stale directories only.
+> The first promote should be rehearsed during a market close with the rollback path confirmed
+> before it is needed. Flagged in the runbook's own header, not left implicit.
+> **Flagged, not fixed (pre-existing, inside a block that was edited):** §8.1's directory listing
+> still says `collector/ ... + the 4 calc .py`, stale since the calc stack was parked 2026-09-09.
+> Left alone to keep the diff honest to scope; worth a line on whoever next edits §8.
+> **One observation raised for Davin/the Advisor to judge, deliberately not acted on:** the
+> BLOCKED banner on `DAVINTRADE_DECISION_LAYER_BLUEPRINT.md` blocks §3.1 on the grounds that
+> drift re-scoring needs parameters other than those compiled into the `.mq5` — but §3.1 as
+> written re-scores **the currently active config**, which \_is* the compiled one, and its
+> substrate (`indicator_statistics`) has existed and been live since 2026-09-09. On that reading
+> drift _detection_ is unblocked today while only §3.2's `top_alternative_preview` genuinely is
+> not. Stated as a reading to confirm, not a settled correction, since it narrows a blocker that
+> file states categorically.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry first. Note an untracked
+> `ACTIVE-STANDBY-TERMINAL-Executive-Summary.pptx` also appeared in the pipeline folder during
+> the session — Davin's own Cowork output from the design doc, not this session's artifact.
+> **Artifacts:** `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/{ACTIVE-STANDBY-TERMINAL-ARCHITECTURE.md (new),
+test_stale_export_guard.py (new), export_collector_validator_v2.py,
+DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md,
+active-standby-terminal-manifest-work-completion.md (new)}`,
+> `docs/runbooks/mt5-terminal-promote.md` (new), this file. Committed and pushed as
+> `08df516a` (guard + tests), `98a84e89` (design doc, runbook, blueprint), `f6df4685`
+> (manifest + this entry) and one follow-up rename commit; the pre-push hook's own full
+> monolith run on `f6df4685` was **196/196 suites, 2636/2636 tests**, zero regressions.
+
+<!-- CLAUDE.md L1509-L1549 -->
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan:
+> production database migration applied, and the full test-suite claim re-verified fresh by the
+> Executor, not taken on trust.** Davin reported directly in chat that he (1) applied
+> `prisma/migrations/20260912000000_add_currency_index_pro_tables/migration.sql` to Railway
+> Production Postgres, and (2) ran the full test suite with 100% passing — "Monolith: 73 tests +
+> Gateway: 67 tests" — and asked for both to be verified before this file is updated.
+> **The test claim was independently re-run, not copied from the report:** `railway-gateway`'s
+> `npm test` reproduced **5/5 suites, 67/67 tests**, exact match. The monolith's currency-index-pro
+> -scoped files (`__tests__/lib/currency-index-pro/**`, all 4
+> `__tests__/api/currency-index-pro-*.test.ts`, `__tests__/components/currency-index-pro/**`) were
+> run directly and reproduced **9/9 suites, 73/73 tests**, exact match to Davin's own count — so
+> "73" and "67" are the feature-scoped counts, not the repo-wide ones. A full `npm run test:ci` was
+> also run fresh: **196/196 suites, 2636/2636 tests**, identical to Phase 5's own close baseline —
+> zero regressions anywhere in the repo from either the migration or any prior phase's code.
+> **The migration claim is recorded on Davin's report, not independently verified by the
+> Executor** — this environment holds no Railway Production Postgres credentials, and per this
+> file's own standing rule the Executor never applies (or queries) a live production migration
+> itself; every prior "Davin applied it" entry in this file's history (2026-09-01, 2026-09-09,
+> 2026-09-11) is written the same way. **One thing worth Davin confirming, since it has bitten this
+> exact repo four separate times before (see `Waiting on`):** `prisma migrate deploy` applies
+> _every_ pending migration in history order, not just the one intended — if any other migration
+> was sitting unapplied ahead of this one, it went in too. Worth a quick `prisma migrate status`
+> check to confirm only the expected migration(s) landed, the same way several 2026-09-09 entries
+> in this file caught unrelated pending migrations riding along.
+> **What this closes:** §5.2 ("Apply the database migration") of
+> `davintrade-currency-index-pro-plan/currency-index-pro-stack-manifest-work-completion.md` — the
+> 4 new tables (`daily_currency_index_metrics`, `daily_volatility_corridors`,
+> `currency_index_signals`, `user_currency_index_preferences`) now exist in production, so Phase 2's
+> endpoints (`screener`/`chart`/`detail`/`preferences`) can serve real signals data instead of 500ing
+> against a missing table.
+> **What this does NOT close:** §5.3's Lane 4 VPS blocker is untouched — `currency_gold_indices`
+> (this feature's sole upstream data source) still has zero real rows in production until the 2
+> remaining physical VPS steps happen (attaching the exporter to 8 MT5 charts, registering the
+> currency-index engine as a Windows service, per Lane 4's own manifest §5.1). Every endpoint in
+> this feature will correctly return empty/neutral data until then, by the same "absent row is the
+> honest rendering" design Lane 4 itself follows — this is expected, not a regression from applying
+> the migration.
+> **Not committed** — Davin asked to verify and update this file, not to commit; left for his
+> review, per this file's own established log-first-defer-commit pattern.
+> **Artifacts:** this file. (No source files changed this entry — verification only.)
+
+<!-- CLAUDE.md L1550-L1640 -->
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan
+> Phase 5 of 5 (final phase), CLOSED SUCCESSFUL: every spec §12 acceptance item that does not
+> require a live VPS deployment, verified and turned into permanent regression tests; one real
+> bug found and fixed along the way.** Direct continuation of the same-day Phase 1–4 sessions.
+> Per `EXECUTOR-PROTOCOL.md` §6.
+> **The reframe that made this a real session, not "blocked, nothing to do":** the spec's own
+> §11/§12 assumes a live VPS deployment (real captured MT5 exports, a real 20-day history) that
+> does not exist for this new Lane 4 extension — the currency-index engine has never been
+> deployed, matching Lane 4's own still-open Phase 5 item. But most of the 7-item checklist
+> doesn't actually need live data; it needs the _code_ proven correct, which is checkable today
+> against synthetic data and the MQL5 source itself. Planned via `EnterPlanMode`, mapping each
+> checklist item individually rather than declaring the whole phase blocked.
+> **V1 (Dynamic Corridor Accuracy vs. "Python pandas"):** pandas isn't installed in this
+> environment (checked: Python 3.11.9 + numpy, no pandas) — used numpy instead, mathematically
+> equivalent for a mean/sample-stddev computation (`pandas.Series.std()` delegates to the same
+> `ddof=1` primitive). New `scratch/v1_corridor_crosscheck.py` (gitignored, kept for future
+> re-runs — same precedent as the R2 session's `scratch/verify-r2.ts`) independently computes
+> μ/σ for a deterministic synthetic 8-currency × 20-day (160-point) dataset; the exact reference
+> numbers are now hard-coded into a new permanent test in `railway-gateway/test/
+currency-index-corridor-math.spec.ts`, asserting `computeVolatilityCorridor` matches within
+> 1e-9 — far tighter than the spec's own 0.001% bar.
+> **A real bug found and fixed while building the V3 test, not a false alarm:**
+> `analysisTableM15.currentPct` was reading the raw M5 `latest` bar (the same variable
+> `dashboardTableM5` uses), not the M15-sampled series' own latest bar — meaning the displayed
+> percentage could visually disagree with the zone badge shown right next to it in the same row
+> (the badge WAS correctly M15-derived; only the raw number next to it wasn't). Caught by a new
+> test in `__tests__/api/currency-index-pro-screener.test.ts` feeding 4 M5 bars spanning past
+> one M15 boundary and asserting the two tables read genuinely different bars from the same raw
+> data (spec V3: Dual Timeframe Integrity) — the test failed against the original code (`0.4`
+> instead of the expected `0.3`), confirming it was a real defect, not a bad assertion. Fixed to
+> read `latestSignalBar?.changePct` (falling back to the M5 value only in the first few minutes
+> of a session, before any M15 bar exists yet). `indexStates.changePct` (the spread-delta
+> gauge's own M5 real-time value) and `scorePairs()`'s resulting `divergenceSpread` were
+> deliberately left M5-based — that's the spec's own explicit intent for the "jackpot meter"
+> ("meant to reflect the current instant, not a noise-reduced one"), not the same defect class.
+> **V2/V6 already fully covered, no new work:** `pairs.test.ts`'s `resolvePairAction` tests
+> already use the spec's own §6.1 worked examples (JPYX Overbought → BUY USDJPY/EURJPY/GBPJPY)
+> and its "weights a Double Confluence pair at 4x baseline" test already covers V6.
+> **V5 (Reactivity, spec's own "<5ms"/"<16ms 60fps"):** previously asserted from Big-O reasoning
+> alone. New `__tests__/lib/currency-index-pro/performance.test.ts` benchmarks the exact what-if
+> recompute the HRMA/SMMA modal's sliders run on every tick (`computeHrma`+`computeSmma`+
+> `classifyZone`+`detectStageBSignal` over a full 96-bar day, 200 iterations with varying
+> periods) via `performance.now()`. **Measured: 0.0158ms/call** — over 300x inside the 5ms bar,
+> turning a claim into a permanently regression-tested number.
+> **V4 (News Timeline Alignment) and V7 (Advisory Banner):** V4 is a code-review confirmation,
+> not a new test — `HighImpactNewsTooltip`/`EventVerticalLine` pass `event.eventTime` straight
+> through with zero transformation, so there's no room for this plan's own code to introduce a
+> misalignment; the actual MT5-to-UTC conversion accuracy belongs to the already-verified
+> economic-events pipeline (2026-09-09 session), out of this phase's scope to re-litigate. V7
+> got one minimal new render test (`__tests__/components/currency-index-pro/
+trading-advisory-banner.test.tsx`) pinning that the disclaimer renders unconditionally, since
+> it's a named, explicit spec acceptance item that had zero dedicated coverage.
+> **"Backtest HRMA×SMMA against MQL5 indicator output" (§11 Phase 5 item 2):** no live captured
+> MQL5 runtime output exists for this new lane, but re-read `HRMA_Modified Buffers.mq5`/
+> `SMMA_Modified Buffers.mq5` directly line-by-line (not just the spec doc's paraphrase) against
+> `lib/currency-index-pro/math.ts`. Result: both `computeHrma` and `computeSmma` match the
+> actual `.mq5` source **exactly**, including the `i==0` seed special case and the recursive
+> update formulas. The one intentional difference: `computeSmma` returns `null` before its seed
+> point where the real indicator writes a literal `0.0` `PLOT_EMPTY_VALUE` placeholder — a
+> deliberate, already-documented improvement (never conflate "no value yet" with "value is
+> exactly zero"), not a math discrepancy. This is the strongest verification achievable without
+> a live VPS — the indicator's own source is the authoritative definition of correct output.
+> **"Verify MT5 server-time alignment... with news release timestamps" (§11 Phase 5 item 1):**
+> no new alignment logic exists in this plan to verify — it entirely reuses the existing,
+> already-live-verified economic-events query layer. Noted as inherited correctness.
+> **Verified:** `npx tsc --noEmit`/`npx eslint` clean on both projects (railway-gateway's own
+> pre-existing, already-documented "no ESLint config at all" gap reproduces on the new test file
+> too, confirmed unrelated); railway-gateway `npm test` **5/5 suites, 67/67 tests**; full
+> monolith `npm run test:ci` **196/196 suites, 2636/2636 tests** (194/2633 baseline + this
+> session's own 2 new suites/3 new tests + the V1 cross-check added to an existing suite, zero
+> regressions elsewhere). No browser check needed — this phase shipped no UI.
+> **Explicitly NOT done, staying flagged for Davin — unchanged from Lane 4's own still-open
+> Phase 5 item:** a genuine end-to-end backtest against real captured MT5 HRMA/SMMA runtime
+> output, a real 20-day corridor history, and live news-marker-to-real-event alignment on the
+> actual chart. All of it is gated on the currency-index VPS engine actually being deployed —
+> this session closes every checklist item that doesn't depend on that, it does not remove the
+> blocker itself.
+> **This closes all 5 phases of the Currency Index PRO Plan** (backend: schema + aggregator +
+> HRMA/SMMA/confluence engine + 4 REST endpoints; frontend: chart + news markers + header
+> controls + HRMA/SMMA detail modal with instant what-if sliders + screener tables + settings
+> modal + disclaimer banner; this session's verification pass) — modulo the live-VPS items
+> flagged above and in each prior phase's own entry.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry (and all 5 phases) before any of it becomes a commit.
+> **Artifacts:** `scratch/v1_corridor_crosscheck.py` (new, gitignored),
+> `railway-gateway/test/currency-index-corridor-math.spec.ts`,
+> `app/api/market/currency-index-pro/screener/route.ts` (the `currentPct` bug fix),
+> `__tests__/api/currency-index-pro-screener.test.ts`,
+> `__tests__/lib/currency-index-pro/performance.test.ts` (new),
+> `__tests__/components/currency-index-pro/trading-advisory-banner.test.tsx` (new), this file.
+
+<!-- CLAUDE.md L1641-L1722 -->
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan
+> Phase 4 of 5 (and final frontend phase), CLOSED SUCCESSFUL: the screener/analysis tables,
+> the Top-5 ranked card, the mandatory risk disclaimer, and the global indicator-settings
+> modal, all live in a real browser.** Direct continuation of the same-day Phase 1–3 sessions.
+> Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode` with a targeted live-code check
+> before writing anything, per §0's "live code wins" rule.
+> **One real gap found before planning further:** spec §6.3/§9 wants a "View Chart" quick
+> action opening the respective pair's interactive candlestick modal on every Top-5/Analysis
+> row. This app has **no OHLCV data for arbitrary FX pairs at all** — the only live candlestick
+> pipeline is XAUUSD (Lane 1's own alert pipeline), and Lane 4's own Phase 1 entry already
+> flagged `forex_ohlcv_m5` (raw per-pair storage) as "deliberately not built," reserved for a
+> future 32-pair screener. Building real per-pair OHLCV ingestion is far outside "tables +
+> settings + banner." **Resolved by reusing an existing, proven pattern in this exact
+> codebase** rather than fabricating data or building a pipeline: `components/landing/
+ticker-tape.tsx` already embeds TradingView widgets as a plain `<iframe src="https://
+www.tradingview-widget.com/embed-widget/...">` for FX symbols (`ICMARKETS:EURUSD` etc.) —
+> CSP already allows `tradingview-widget.com`/`*.tradingview.com` in `frame-src`
+> (`next.config.js`, confirmed before building, zero config changes needed). The new
+> `PairChartModal` reuses this exact technique (TradingView's Advanced Chart widget) for the
+> clicked pair. One simplification vs. ticker-tape's own dual-iframe light/dark trick: that
+> trick exists specifically so a **never-unmounting** landing-page strip survives a theme
+> change without re-initializing (its own header comment documents real, hard-won bugs from
+> every other approach tried); this modal remounts fresh every open by nature (same
+> Dialog-portal lifecycle as `HrmaSmmaDetailModal`), so "a fresh embed on a fresh page load is
+> reliable" (ticker-tape's own conclusion) is satisfied trivially — one iframe, theme baked in
+> at mount time, no dual-iframe needed.
+> **A second, evidence-based design correction, made while wiring the settings modal's OB/OS
+> override into the main chart:** the spec's corridor always draws two tiers (Tier 1
+> strike-zone, Tier 2 "extreme" = mean + 1σ). A custom override only ever supplies a single
+> OB/OS value — there is no statistical basis for a second "extreme" tier once the user has
+> manually overridden the corridor, since that tier is fundamentally a computed
+> mean+standard-deviation quantity. Synthesizing one from the override (e.g. override × some
+> arbitrary multiplier) would be a fabricated number, not a real "extreme" reading — the exact
+> class of mistake this repo's own history already declined for the D5 gauge dials and the
+> screener's `dashboardTableM5.momentum` field. `RelativeStrengthChart`'s `corridorOverride`
+> prop takes `extremeZonePct: number | null`; `null` draws ONLY the Tier 1 lines, confirmed
+> live (see below) — the "Extreme" line labels correctly vanish the instant Auto Zones is
+> switched off.
+> **Frontend-only phase, no new API routes** — everything shown already comes from `/screener`
+> and `/preferences` (both built Phase 2; `/preferences` had zero UI consumers until now).
+> **What shipped:** `tables/{dashboard-table-m5,analysis-table-m15,top5-screener-card,
+trading-advisory-banner}.tsx` (plain semantic `<table>`s -- no shared `Table` UI primitive
+> exists in this repo, confirmed via search, so these match this app's existing border/
+> muted-foreground Tailwind conventions directly rather than inventing a one-off shared
+> component for two consumers); `chart/{pair-chart-modal,indicator-settings-modal}.tsx` (new);
+> `hooks/use-currency-index-preferences.ts` (new — fetch-once GET, instant local update +
+> ~500ms-debounced PUT, mirroring `useMtfPreference.ts`'s own "optimistic write" spirit,
+> extended with debouncing since this modal has several sliders that can all move in one
+> sitting, unlike that one's single boolean toggle). The analysis table's currency labels and
+> the legend strip both call the SAME `onSelectCurrency` prop into the SAME
+> `HrmaSmmaDetailModal` — two entry points, one modal, confirmed live. `preferredTf` (declared
+> in the `UserCurrencyIndexPreference` model since Phase 1, never wired to anything) now
+> actually drives the M5/M15 toggle's initial value and is persisted back when the user
+> switches it manually.
+> **Verified:** `npx tsc --noEmit`/`npx eslint` clean (0 warnings); no new pure-logic complex
+> enough to warrant a dedicated unit test (the corridor-override merge is a one-line ternary);
+> full `npm run test:ci` **194/194 suites, 2633/2633 tests** — unchanged from the Phase 3
+> baseline, zero regressions, as expected for a phase that added no new testable logic outside
+> component wiring. **Live-verified in a real browser** via the same throwaway-preview
+> technique (deleted after, clean `git status`): the disclaimer banner and Settings button
+> render at the top; the Top-5 card's "🔍 View Chart" opened a **real, live TradingView
+> EURJPY candlestick chart** (genuine OHLC/volume data, not a fixture) within ~4s; both new
+> tables rendered with correct sign-colored values and zone badges; clicking "EUR" inside the
+> Analysis Table opened the same detail modal the legend strip opens; toggling Auto Zones off
+> in Settings instantly redrew the main chart's corridor to the override value (+1.30%/-1.30%)
+> with the Extreme lines correctly disappearing, all while the Settings modal was still open;
+> and the console confirmed the debounced PUT fired exactly once per settled change (one call
+> after 10 arrow-key presses on a slider, not ten).
+> **Not done, needs Phase 5 or Davin:** Phase 5 (live verification against real MT5 data) stays
+> blocked on the same still-open Lane 4 item flagged since Phase 1. The TradingView "View
+> Chart" embed was verified with a real, live pair (EURJPY) but obviously shows real EURJPY
+> price action, not anything derived from this app's own (still-unpopulated) Lane 4 data —
+> that's expected and correct, not a gap. Mobile-viewport click-through not screenshotted this
+> session, same flag as Phase 3's own note.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry before it becomes a commit.
+> **Artifacts:** `components/currency-index-pro/tables/**` (new),
+> `components/currency-index-pro/chart/{pair-chart-modal,indicator-settings-modal}.tsx` (new),
+> `components/currency-index-pro/hooks/use-currency-index-preferences.ts` (new),
+> `components/currency-index-pro/chart/relative-strength-chart.tsx` (corridorOverride prop),
+> `components/currency-index-pro/pro-currency-index-cockpit.tsx`, this file.
+
+<!-- CLAUDE.md L1723-L1859 -->
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan
+> Phase 3 of 5, CLOSED SUCCESSFUL: the relative-strength chart, news markers, header controls,
+> and (folded in at Davin's explicit request) a per-currency HRMA/SMMA detail modal, live in a
+> real browser.** Direct continuation of the same-day Phase 1/2 sessions. Davin asked, after
+> the Phase 2 close-out, whether a per-currency modal chart plotting the actual HRMA/SMMA lines
+> was feasible so a user could visually verify a `CONFIRMED_BUY`/`CONFIRMED_SELL` badge instead
+> of trusting it blindly; confirmed feasible and, on his instruction, folded into this phase
+> rather than deferred. Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode` with two
+> parallel Explore passes (chart/marker conventions; PRO-page/hook/modal conventions) before any
+> code was written, per §0's "live code wins" rule.
+> **A foundational finding from the Explore passes, not assumed from memory:** `lightweight-charts`
+> is v5 (`createChart`, `addSeries(LineSeries, ...)`, `ISeriesPrimitive`/`attachPrimitive`,
+> `createSeriesMarkers`), and a vertical-line primitive for chart markers already exists —
+> `components/charts/drawing/EventVerticalLine.ts` + `useEventMarkers.ts`, built for the terminal's
+> own high-impact-news overlay — reused as-is for both the main chart's real news markers AND
+> (styled differently) the detail modal's warm-up-boundary marker, rather than forked or
+> reimplemented. `PriceLine`/`createPriceLine()` had zero prior usage anywhere in this codebase —
+> confirmed via search — so the corridor threshold bands are this app's first use of that (a
+> standard, documented v5 API, not a risky new pattern). PRO-gating for a real page (not just an
+> API route) is page-level, not layout-level (`app/terminal/layout.tsx` only checks
+> authentication; `app/terminal/page.tsx` itself checks tier) — mirrored exactly for the new
+> `/pro/currency-index` route, redirecting a non-PRO viewer to `/pricing` (matching
+> `MtfToggle.tsx`'s own upsell-click destination, since there's no FREE-tier equivalent page to
+> redirect to instead, unlike `/terminal` -> `/free`).
+> **Colors chosen by loading the `dataviz` skill first, not picked ad hoc:** the 8-currency
+> palette (`lib/currency-index-pro/colors.ts`) is the skill's own validated default 8-slot
+> categorical theme (fixed hue order, never cycled) — this repo has no pre-existing brand
+> categorical palette to substitute. Re-validated with the skill's own `validate_palette.js`
+> against this app's REAL chart surfaces (`#ffffff`/`#0a0e17`, from `trading-chart.tsx`'s own
+> `chartChromeColors()`), not the skill's generic default surface — both light and dark passed
+> every hard gate; light mode carries a contrast WARN on 3 slots (aqua/yellow/magenta), resolved
+> per the skill's own "relief rule" by giving every line a visible `title`/`lastValueVisible`
+> label on the chart itself, so identity never rests on hue alone.
+> **A real, live-reproduced bug found and fixed during browser verification, not shipped
+> undiscovered:** the first draft of the detail modal's chart silently never rendered — 0
+> `<canvas>` elements, confirmed via direct DOM inspection, no console error. Root cause: the
+> modal's chart container `<div>` sits inside a Radix `DialogContent`, which mounts through a
+> portal; a plain `useRef` + `useEffect(..., [open])` can fire before that portal has actually
+> attached the div to the DOM, so `containerRef.current` was still `null` when the effect ran,
+> and since the effect's only dependency (`open`) had already fired for that transition, it never
+> got a second chance to retry. Fixed by switching to a state-backed callback ref
+> (`useState<HTMLDivElement | null>` set via the `ref` prop directly) and keying the creation
+> effect on `[open, container]` instead of `[open]` alone — the callback ref fires exactly when
+> the portal actually attaches the node, regardless of timing relative to the `open` prop.
+> Re-verified live afterward: 7 canvases, HRMA/SMMA lines, corridor bands, the confirmed-cross
+> marker, and the warm-up boundary line all rendering correctly.
+> **Two small backend refactors made in passing, both real DRY fixes, not scope creep:**
+> (1) `buildSignalSeries()` (HRMA/SMMA/zone-per-bar) was previously private to `screener/route.ts`
+> alone; extracted into `lib/currency-index-pro/signals.ts` as `FullSignalBar`-returning so the
+> new `detail/route.ts` (needed for the modal) reuses the exact same computation rather than a
+> second copy that could drift. (2) the 8-G8-currency array was independently hardcoded in THREE
+> places (`chart/route.ts`, `screener/route.ts`, and now `detail/route.ts` would have made four) —
+> consolidated into `ALL_CURRENCIES`/`indexNameForCurrency()` in `lib/currency-index-pro/pairs.ts`,
+> the single source of truth, updated in all three existing call sites plus the new one.
+> **What shipped:** the new `GET /api/market/currency-index-pro/detail?currency=` route (one
+> currency's full M15 series + corridor + `minBarsForSignal` + latest signal — a deliberately
+> separate, on-demand endpoint rather than folding a full per-bar series into the 30s-polled
+> `/screener`, which every open cockpit would otherwise pay for); `app/pro/currency-index/
+{layout,page}.tsx`; `components/currency-index-pro/` in full (`pro-currency-index-cockpit.tsx`,
+> `chart/{relative-strength-chart,chart-control-header,currency-legend-strip,
+hrma-smma-detail-modal,high-impact-news-tooltip}.tsx`, `hooks/{use-currency-index-chart,
+use-currency-index-screener,use-currency-index-detail,use-session-countdown}.ts`). The news
+> hover tooltip (spec §7.2's own requirement) uses the chart's live `subscribeCrosshairMove()`
+> position rather than a coordinate cached once and left to drift under panning/zooming.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean (0 warnings) on every new/changed
+> file; new `__tests__/api/currency-index-pro-detail.test.ts` (7 tests, mirroring the other 3
+> routes' exact PRO-gate structure) + 5 new `buildSignalSeries` tests in `signals.test.ts`; full
+> `npm run test:ci` **194/194 suites, 2632/2632 tests** (193/2620 baseline + this session's own
+> 1 suite/12 tests, zero regressions). **Live-verified in a real browser** (Turbopack `next dev`):
+> the unauthenticated redirect chain (`/pro/currency-index` -> `/login`) confirmed directly; since
+> the Executor never enters credentials, full data rendering was verified via a throwaway,
+> unauthenticated preview page (`app/dev-currency-index-preview/page.tsx`, placed outside
+> `app/pro/` specifically to route around its layout's own auth gate — the same established
+> technique as the 2026-09-03 timezone-dropdown session's `dev-tz-preview` route) that rendered
+> the REAL, unmodified `ProCurrencyIndexCockpit` component tree with `window.fetch` patched
+> client-side (that file only) to resolve the 3 API URLs to synthetic fixture data — no
+> production route, auth, or hook code was ever modified. Confirmed: the 8-line chart with
+> correct per-currency colors and live-value labels; corridor threshold bands with correct
+> Overbought/Oversold/Extreme labels; one news marker at its correct x-position; the currency
+> legend strip's sign-colored values; the M5/M15 toggle switching state and re-fetching; and,
+> after the callback-ref fix, the detail modal's HRMA/SMMA lines, corridor bands, the "SELL"
+> confirmed-cross marker, and the warm-up caption all rendering correctly for a fixture EUR
+> `CONFIRMED_SELL` scenario. Deleted immediately after verification, confirmed via a clean
+> `git status` (only `next-env.d.ts`'s own expected dev-server auto-regen remained alongside the
+> real artifacts). **Not verified live:** reactive dark-mode re-theming of the two new chart
+> components -- both call the same `useChartAppearance()` hook and follow the same
+> `applyOptions()`-on-change pattern `trading-chart.tsx` already uses and has itself been
+> live-verified for previously, but faking a real theme change in this session's own
+> unauthenticated preview would have needed either real auth or temporarily instrumenting
+> `AppearanceProvider`, both out of scope for this check; OS-level dark-mode emulation
+> (`prefers-color-scheme`) confirmed to correctly have NO effect on this app's own theme (it
+> reads an explicit stored preference, not the OS media query), which is expected, established
+> behavior, not a new finding.
+> **A same-day follow-up, Davin's own idea: instant client-side "what-if" HRMA/SMMA period
+> sliders in the detail modal.** Asked whether a user could drag the HRMA/SMMA period and see the
+> lines update instantly for genuine what-if analysis. Feasible with zero new server round-trips
+> because `/detail`'s response already carries every bar's raw `changePct`, and
+> `computeHrma`/`computeSmma`/`classifyZone`/`detectStageBSignal` are pure, client-safe functions
+> (no Prisma, no server-only imports) -- the SAME functions the route itself calls. Added two
+> `Slider`s (the existing `components/ui/slider.tsx`, mirroring `app/affiliate/page.tsx`'s own
+> real usage) using `onValueChange` (continuous, not `onValueCommit`) so the recompute is
+> genuinely instant on every tick, not just on release -- cheap enough (~100 data points) that no
+> debouncing is needed. The recompute redraws the HRMA/SMMA lines AND re-evaluates the confirmed-
+> cross marker and the "reliable from bar N" caption together, so a user can see whether a
+> DIFFERENT period would or wouldn't have confirmed a signal, not just watch the lines wiggle.
+> **Deliberately session-local, not a silent preference write:** the sliders start at the user's
+> real saved `hrmaPeriod`/`smmaPeriod` (added to `/detail`'s response specifically for this,
+> since re-deriving it client-side would need a redundant `/preferences` fetch) and reset to that
+> saved value every time the modal is freshly opened -- exploring 76 for EUR must not silently
+> change what the screener table uses elsewhere. A "Save as my default" button (shown only once
+> the sliders actually differ from the saved values) commits the explored periods via the
+> `/preferences` PUT route already built in Phase 2 but unused by any UI until now.
+> **Verified:** `npx tsc --noEmit`/`npx eslint` clean; extended `__tests__/api/
+currency-index-pro-detail.test.ts` with a test pinning the new `hrmaPeriod`/`smmaPeriod`
+> echo-back fields (8/8 in that file now); full `npm run test:ci` clean, zero regressions.
+> **Live-verified in a real browser** via the same throwaway-preview technique (deleted after,
+> clean `git status`): dragging the HRMA slider from 36 to 76 instantly redrew the HRMA line with
+> a visibly different, less-converged shape, the caption correctly switched to "Still warming up
+> -- needs 76 bars (has 60)", the "Save as my default" button appeared exactly when the value
+> diverged from the saved default, and clicking it sent the exact expected
+> `{"hrmaPeriod":76,"smmaPeriod":13}` payload to the preferences route.
+> **Not done, needs Phase 4 or Davin:** Phase 4 (screener/analysis tables, settings modal,
+> disclaimer banner) -- `useCurrencyIndexScreener()` and the detail modal's own
+> `onSelectCurrency` entry point are already built this phase specifically so Phase 4 can reuse
+> both rather than rebuilding either. Phase 5 (live verification against real MT5 data) stays
+> blocked on the same still-open Lane 4 item flagged in this file's own Phase 1 entry. Mobile-
+> viewport click-through was not screenshotted this session (the CSS is responsive by
+> construction -- flex-wrap layouts throughout -- but not specifically checked at a narrow
+> width).
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry before it becomes a commit.
+> **Artifacts:** `app/api/market/currency-index-pro/detail/route.ts` (new), `app/pro/
+currency-index/{layout,page}.tsx` (new), `components/currency-index-pro/**` (new, listed above),
+> `lib/currency-index-pro/{colors.ts (new), signals.ts, pairs.ts}`, `app/api/market/
+currency-index-pro/{chart,screener}/route.ts`, `__tests__/api/currency-index-pro-detail.test.ts`
+> (new), `__tests__/lib/currency-index-pro/signals.test.ts`, this file.
+
+<!-- CLAUDE.md L1860-L1969 -->
+
+> **Ad-hoc session (2026-09-12, same day, phase/session unchanged) — Currency Index PRO Plan
+> Phase 2 of 5, CLOSED SUCCESSFUL: the HRMA/SMMA signal engine, the 28-pair confluence
+> screener, and 3 REST endpoints — all served from the monolith, not the Railway gateway.**
+> Direct continuation of the same-day Phase 1 session — Davin asked to proceed with Phase 2.
+> Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode`, grounded in live-code reads
+> rather than the spec's own §9 architecture, per §0's "live code wins" rule.
+> **A foundational architecture correction, found before writing anything:** the spec says
+> "All endpoints are hosted on the Railway NestJS Gateway under `/api/v1/market-indices/pro`."
+> Grepping every controller in `railway-gateway/src/gateway/*.controller.ts` +
+> `health.controller.ts` found exactly **6 routes total** — 4 API-key-authenticated MT5-
+> ingestion `@Post()`s and 2 ops `@Get()`s (`health`, `queue/stats`) — **zero** session-
+> authenticated, user-facing GET routes, and no NextAuth capability at all. Every existing
+> user-facing market-data read (`economic-events`, `indicator-statistics`,
+> `currency-gold-indices`) is served from the monolith's own `app/api/market/*`, gating with
+> `getServerSession`/`hasPermission`. Phase 2's 3 endpoints were built there instead — there is
+> no other place in this codebase that can check a session or a PRO tier.
+> **Five more corrections, all evidence-based, made before or during implementation:**
+> (1) **No OHLC resampling** — `currency_gold_indices` stores one point value per 5-min bar
+> (Phase 1 finding), so "M15" is just picking the bar that closes each 15-minute window
+> (`(bar_time - session_open_bar_time) % 900 === 600`), not the spec's OHLC-aggregation math,
+> which describes raw FX candles. (2) **HRMA/SMMA reset daily, never roll across the
+> session boundary** — every index rebases to exactly 100.00 at its own session open, so a
+> recursive smoother spanning that boundary would treat the artificial reset as a real price
+> move; both indicators are computed only over the current session's own bars so far,
+> consistent with the whole feature's "8-Horse Race, reset daily" framing (spec §2.1) rather
+> than an arbitrary technical constraint — meaning HRMA/SMMA are genuinely unreliable in the
+> first ~9 hours of a trading day (36 M15 bars), an accepted, flagged cold-start limitation.
+> (3) **No `CurrencyIndexSignal` persistence this phase** — the model exists (Phase 1) for
+> exactly this, but wiring a periodic gateway cron now would duplicate the exact computation
+> between a persistence job and the real-time read path, for a benefit (a historical signal
+> audit trail) nothing yet consumes; signals are computed fresh per request instead, guarded by
+> a `private, max-age=30` Cache-Control header, matching `indicator-statistics`'s own
+> established "session+PRO gating already bounds volume, no Redis needed" precedent.
+> (4) **Dropped `dashboardTableM5.momentum`** — the spec's own illustrative response includes
+> it, but no formula for "momentum" exists anywhere in the spec or the codebase; fabricating
+> one would repeat the exact mistake this repo's own history already declined for the D5 gauge
+> dials ("no formulas exist... building would mean fabricating what they measure").
+> (5) **Zone thresholds always use the system `DailyVolatilityCorridor`, never a user's
+> `customObPct`/`customOsPct` override** — per Phase 1's own model comment and spec §3.3, the
+> override is a 0ms client-side re-color (Phase 3), not a second server-computed corridor.
+> HRMA/SMMA _periods_, however, genuinely change the underlying line, so those ARE read
+> per-user from `UserCurrencyIndexPreference` (built in Phase 1 for exactly this).
+> **A quoting-direction mistake caught during test-writing, not left in the shipped code:**
+> while transcribing spec §6.1's worked example into a test, first wrote "JPYX Oversold -> BUY
+> USDJPY/EURJPY/GBPJPY" (mirroring an earlier misreading of my own from the plan draft) before
+> re-deriving the invariant from first principles (a weakening quote currency raises the
+> base/quote ratio, so an OVERBOUGHT quote — not oversold — is what triggers BUY) and finding
+> the spec's own text actually says **Overbought** JPY there. `resolvePairAction()`'s
+> implementation was correct throughout; only my own paraphrase (first in the plan file, caught
+> before it reached a test assertion) had the two transposed. Fixed before the test was
+> written, not after a failure — `__tests__/lib/currency-index-pro/pairs.test.ts` pins all 4 of
+> the spec's own base/quote x overbought/oversold worked examples explicitly, not just the one
+> that was initially miswritten.
+> **A `noUncheckedIndexedAccess` cleanup, not a logic change:** the monolith's stricter
+> tsconfig setting (which `railway-gateway`'s own Phase-1-session tsconfig doesn't share) flagged
+> every array-index read in the first draft of `math.ts`/`signals.ts`/`screener/route.ts` as
+> possibly-`undefined`. Rewrote `computeHrma`/`computeSmma` to use running scalars instead of
+> reading back through the output array (cleaner and avoids the warning at its root, not just
+> silencing it), and added `as T` casts only where an index is provably in-bounds from a
+> preceding length check, each with a comment saying why.
+> **A same-day follow-up, prompted by Davin asking how HRMA/SMMA can be meaningful with
+> insufficient history at the start of a day — a genuine gap in the first draft, not just a
+> documentation clarification.** The original `detectStageBSignal()` gated only on SMMA's own
+> null-based warm-up (13 bars by default) — but HRMA is mathematically defined from bar 1
+> onward (no null), so a cross could confirm as early as bar 13 even though HRMA's own
+> 36-period smoothing hasn't converged by then; that cross is noise, not a real reversal, and
+> Stage B's whole purpose is to filter noise out, not relabel it as "confirmed." Added a second,
+> independent `minBarsForSignal` gate to `detectStageBSignal()` (`lib/currency-index-pro/
+signals.ts`), wired from the screener route as `max(hrmaPeriod, smmaPeriod)` — tied to the
+> user's own configured periods rather than an arbitrary constant, so a custom period still gets
+> a correctly-scaled warm-up. With the defaults (36/13) this pushes the earliest possible Stage B
+> signal from ~3h15m into a trading day to ~9h — a real, recurring, EVERY-day characteristic of
+> the "reset to 0 at 00:00" design (not a one-time Lane 4 bootstrap issue, since the underlying
+> series has no continuity across days to carry a smoother's state through). Two new tests pin
+> the gate directly (suppresses an otherwise-confirmed cross below the threshold; allows one
+> exactly at it) plus confirm it's additive to, not a replacement for, the existing SMMA-null
+> check. Flagged, not built this session: whether the UI (Phase 3/4) should visibly mark a
+> currency as "warming up" during that window, separate from just showing no signal.
+> **What shipped:** `lib/currency-index-pro/{math,signals,pairs,queries}.ts` (M15 sampling,
+> HRMA/SMMA, Stage A/B zone+signal classification, the 28-pair confluence scorer with the
+> quoting invariant, and the Prisma read layer against both `marketPrisma` and the default
+> non-market `prisma` client); `getHighImpactEventsForDay()` added to the existing
+> `lib/economic-events/queries.ts` (a pure date-range variant of `getUpcomingHighImpactEvents`,
+> which only returns _future_ events — the chart needs the whole day, past markers included);
+> a new `currency_index_pro` PRO permission + `requireCurrencyIndexPro` export in
+> `lib/auth/permissions.ts`; 3 new routes under `app/api/market/currency-index-pro/
+{chart,screener,preferences}/route.ts`, each copying `indicator-statistics`'s exact PRO-gate
+> pattern (session check, then `hasPermission()` with a DB tier re-check fallback so a user who
+> just upgraded isn't refused).
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean on every new/changed file (both
+> before and after the same-day warm-up-gate follow-up); new test files **57/57 tests** across
+> 6 new suites (`__tests__/lib/currency-index-pro/{math,signals,pairs}.test.ts` pure-function
+> tests, incl. the 2 `minBarsForSignal` gate tests added same-day; `__tests__/api/
+currency-index-pro-{chart,screener,preferences}.test.ts` mirroring `indicator-statistics.test.ts`'s
+> exact 401/200-fresh-token/200-stale-token-DB-confirms/403/private-cache structure); full
+> `npm run test:ci` **193/193 suites, 2620/2620 tests** (187/2563 baseline + this session's own
+> 6 suites/57 tests, zero regressions elsewhere, re-confirmed after the follow-up fix).
+> **Not done, needs Phase 3 or Davin:** Phase 3 (frontend chart + news markers UI), Phase 4
+> (screener tables/settings modal UI), Phase 5 (live verification against real MT5 data —
+> blocked on the same still-open Lane 4 item Phase 1's own entry already flags). No dev-server/
+> browser check was run this session — Phase 2 ships no UI, so there is nothing in a browser
+> yet to verify; Phase 3 is where that check first applies.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry before it becomes a commit.
+> **Artifacts:** `lib/currency-index-pro/{math,signals,pairs,queries}.ts` (new),
+> `lib/economic-events/queries.ts`, `lib/auth/permissions.ts`, `app/api/market/
+currency-index-pro/{chart,screener,preferences}/route.ts` (new), `__tests__/lib/
+currency-index-pro/{math,signals,pairs}.test.ts` (new), `__tests__/api/
+currency-index-pro-{chart,screener,preferences}.test.ts` (new), this file.
+
+<!-- CLAUDE.md L1970-L2072 -->
+
+> **Ad-hoc session (2026-09-12, phase/session unchanged) — Currency Index PRO Plan Phase 1 of
+> 5, CLOSED SUCCESSFUL: database foundation + the "00:00 MT5 midnight cron" (corridor
+> aggregator), built as an idempotent event-driven tick rather than a wall-clock cron.**
+> Davin supplied a comprehensive architecture doc
+> (`davintrade-currency-index-pro-plan/COMPREHENSIVE_ARCHITECTURE_DESIGN_CURRENCY_INDEX_PRO_PLAN.md`)
+> for a PRO-gated 28-pair relative-strength screener built on top of the already-live Lane 4
+> Currency & Gold Index Stack, asked for a feasibility assessment + phase breakdown, then to
+> proceed with Phase 1. Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode`, grounded in
+> direct reads of live schema/code rather than the spec's own illustrative examples, per §0's
+> "live code wins" rule.
+> **Three real corrections found and fixed, all evidence-based:** (1) the spec's own code block
+> placed all 4 new models in `prisma/market-data/schema.prisma`, but a grep of that file found
+> **zero** models with a `userId`/`user_id` field anywhere — every per-user table (`User`,
+> `UserPreferences`, `UserAppearance`) lives in `prisma/non-market-data/schema.prisma` with a real
+> `@relation`. Moved `UserCurrencyIndexPreference` (the one new model with a user reference) there
+> instead, camelCase fields matching that file's own convention, with a genuine FK to `User`. (2)
+> The spec's §8 intro names a `market_indices_m5` table that doesn't exist — Lane 4's real table
+> is `currency_gold_indices` (`CurrencyGoldIndex`: one **point value** per 5-minute bar per index,
+> no OHLC), confirmed by reading `lib/currency-gold-indices/queries.ts` directly. (3) The spec's
+> "nightly cron running at 00:00:15 MT5 server time" would require porting Eightcap's US-DST
+> offset logic into TypeScript — that logic already lives in exactly one place by design
+> (`currency_gold_index_engine.py` on the VPS), which stamps every row with
+> `session_open_bar_time` specifically so no downstream reader ever has to re-derive the boundary
+> itself. Built instead as a `@Cron(EVERY_5_MINUTES)` tick that asks the data "has a new session
+> opened since I last finalized one?" by reading `session_open_bar_time` directly — a missed tick
+> or worker restart just catches up next time, and zero new DST math exists anywhere in this repo.
+> **Also corrected during implementation, found via the same schema-consistency check, not asked
+> for by name:** the spec's own model code used `DateTime @db.Date` for both new `date` fields and
+> `@db.VarChar(N)` sizing on 3 string fields — grepping the rest of `prisma/market-data/schema.prisma`
+> found **zero** other business-timestamp fields using `DateTime` (every one of `bar_time`,
+> `event_time`, `captured_at` etc. is `Int` unix UTC) and **zero** other `@db.VarChar` usage
+> anywhere in the file. Switched both `date` fields to `Int` (storing that day's own
+> `session_open_bar_time`, the same natural key already used everywhere else) and dropped the
+> VarChar sizing, matching the schema's own established, consistent convention rather than
+> introducing a new style for just these 3 fields.
+> **What shipped:** `DailyCurrencyIndexMetrics`, `DailyVolatilityCorridor`, `CurrencyIndexSignal`
+> (declared now, populated starting Phase 2 — no writer exists yet) in
+> `prisma/market-data/schema.prisma`; `UserCurrencyIndexPreference` in
+> `prisma/non-market-data/schema.prisma` (+ the reverse relation on `User`); one hand-authored
+> migration covering all 4 tables (this repo's two schema files share one physical database and
+> one migration history per `LESSONS-LEARNED.md` L24, so one migration correctly spans both files).
+> **The hand-authored SQL was cross-checked against Prisma's own generated DDL**
+> (`prisma migrate diff --from-empty --to-schema=<file> --script`) for both schema files — table
+> names, columns, defaults, index names, and the `user_currency_index_preferences` FK constraint
+> name all matched byte-for-byte, the strongest available verification given Docker Desktop's
+> Linux engine would not come up in this environment (same recurring gap this file's history
+> already documents).
+> **The aggregator** (`railway-gateway/src/worker/currency-index-corridor-aggregator.service.ts`)
+> is a plain `@Injectable()` worker-side provider (not a queue consumer), reading `CurrencyGoldIndex`
+> and writing the two new market-data-schema tables via this service's own `PrismaService` — both
+> new models were mirrored into `railway-gateway/prisma/schema.prisma` too (byte-identical bodies,
+> matching `CurrencyGoldIndex`'s own established mirroring precedent), since this is the process
+> that actually reads/writes them. `CurrencyIndexSignal` was deliberately **not** mirrored there —
+> nothing in this service reads or writes it yet. All math (day-summary peak/low/close, the pooled
+> mu_basket/sigma_basket formula) lives in a separate pure-function module
+> (`currency-index-corridor-math.ts`) with zero Prisma/I/O, so the spec's Section 3.2 formulas could
+> be unit-tested directly against hand-computed examples independent of the service's own
+> orchestration/idempotency logic.
+> **A real dependency landmine found and fixed before it could break CI, not after:**
+> `@nestjs/schedule`'s latest release line (`npm install` resolved `^12.0.1`) is **ESM-only**
+> (`"type": "module"` in its own `package.json`) and fails Jest immediately with `SyntaxError:
+Unexpected token 'export'` under this repo's CJS `ts-jest` setup — the moment the aggregator
+> service (which imports it) is pulled into any test file, including the untouched existing e2e
+> specs that boot the whole `AppModule`. Pinned to `@nestjs/schedule@6.1.3` instead — the last CJS
+> release, with `peerDependencies` (`@nestjs/common ^10 || ^11`) matching this service's own
+> `^11.2.3` exactly. Confirmed CJS via `require('@nestjs/schedule/package.json').type ===
+undefined` before moving on.
+> **Bootstrap/edge cases handled explicitly, each covered by its own test:** zero prior closed
+> days (Lane 4's very first day) skips both finalization and corridor computation rather than
+> dividing by zero; an index with zero bars on a given day is skipped rather than fabricating a
+> row; a corridor pool of exactly 1 point returns `std_dev: 0` rather than `NaN`; `peak_low_pct`
+> is read from the actual bars given (never a hardcoded 0), so a real data gap at the exact
+> session-open bar degrades to "best available data" rather than fabricating a phantom reference
+> point — and a monotonically-rising day still correctly reports `peak_low_pct: 0` because the
+> session's own opening bar (`change_pct === 0` by construction) is always one of the bars in the
+> window, not because of any special-cased floor.
+> **Verified:** both schema files `npx prisma validate` clean; `railway-gateway` `npx tsc --noEmit`
+> clean, full `npm test` **5/5 suites, 66/66 tests** (63 baseline + this session's own 2 new
+> suites/14 tests, zero regressions), full `npm run test:e2e` **4/4 suites, 40/40 tests** unaffected
+> (confirming `ScheduleModule.forRoot()` needs no explicit test override, unlike Bull queues — the
+> `@Cron` tick never fires during a fast Jest run and has no external I/O to reach at teardown),
+> `npm run build` clean, exit 0; monolith `npx tsc --noEmit` clean, full `npm run test:ci`
+> **187/187 suites, 2563/2563 tests** — exact match to the Lane 4 Phase 3/4 session's own close
+> baseline, zero drift, as expected since no monolith source file was touched this phase (schema +
+> migration only).
+> **Not done, needs Phase 2 or Davin:** Phase 2 (NestJS gateway HRMA/SMMA calc services + REST
+> endpoints — one open design question flagged for that session: `currency_gold_indices` stores
+> one value per 5-min bar, not OHLC, so "M5→M15 resampling" for indices means picking every 3rd
+> sample, not the spec's OHLC-aggregation math, which applies to raw FX candles); Phase 3 (chart
+> UI); Phase 4 (screener tables/settings modal); Phase 5 (live verification, gated on real MT5
+> data flowing through Lane 4 same as that stack's own still-open Phase 5 items). The migration is
+> **authored, not applied** — per this repo's unbroken standing rule that the Executor never
+> applies a migration to a live database; needs Davin.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry before it becomes a commit.
+> **Artifacts:** `prisma/market-data/schema.prisma`, `prisma/non-market-data/schema.prisma`,
+> `prisma/migrations/20260912000000_add_currency_index_pro_tables/migration.sql` (new,
+> authored/unapplied), `railway-gateway/prisma/schema.prisma`, `railway-gateway/src/app.module.ts`,
+> `railway-gateway/src/worker/{worker.module.ts,currency-index-corridor-aggregator.service.ts (new),
+currency-index-corridor-math.ts (new)}`, `railway-gateway/test/currency-index-corridor-{math,
+aggregator.service}.spec.ts` (new), `railway-gateway/package.json`/`package-lock.json`
+> (`@nestjs/schedule@6.1.3`, new), this file.
+
+<!-- CLAUDE.md L2073-L2157 -->
+
+> **Ad-hoc session (2026-09-11, same day, phase/session unchanged) — Currency & Gold Index
+> Stack ("Lane 4") Phases 3 and 4 of 5, CLOSED SUCCESSFUL: Redis cache + public API route,
+> then the full landing-page Hero widget, live-verified in a real browser.** Direct continuation
+> of the same-day Phase 1/2 sessions — Davin asked to proceed with each phase in turn. Per
+> `EXECUTOR-PROTOCOL.md` §6.
+> **Phase 3 — two deliberate corrections to the spec doc's own illustrative example, both
+> evidence-based, not spec-literal:** (1) dropped the spec's `"name": "Gold Index"` field from
+> the API response — baking an English-only display name into a public API response would
+> violate this repo's own strongly-enforced locale/i18n policy (`docs/policies/
+08-locale-i18n-compliance.md`); that mapping belongs in the frontend via `t()`, like every
+> other translated label in this app, not in the wire payload. (2) Used this app's actual
+> established route convention (`/api/market/currency-gold-indices`, `{indices}` wrapper) instead
+> of the spec's illustrative `/api/v1/public/market-indices/today`, which matches no real
+> convention anywhere in this codebase (that prefix belongs to `railway-gateway`'s own URL
+> scheme, not the Next.js monolith's).
+> **Reused rather than duplicated:** found an existing `lib/cache/cache-manager.ts` utility
+> (`getCache`/`setCache`, already used for price/indicator/session caching) before writing any
+> raw Redis calls — extended it with a Lane 4 section rather than hand-rolling cache-aside logic
+> a second time. This is the first genuinely public, unauthenticated route under `/api/market/*`;
+> every sibling (`economic-events`, `indicator-statistics`) is session+PRO gated and therefore
+> never needed a real cache, only an HTTP `Cache-Control` header — confirmed by reading both
+> before building this one.
+> **A real bug in my own new test file, caught before it could mask a future regression:**
+> `getCurrencyGoldIndexSnapshots()` calls `findMany` once or twice depending on whether the
+> first result is empty (an early-return path market-data/economic-events' own single-call
+> query functions never needed). `jest.clearAllMocks()` only clears call history, not queued
+> `mockResolvedValueOnce()` values, so a test that queued two but consumed only one leaked its
+> second value into the next test — passing by coincidence only because every test happened to
+> queue byte-identical fixture values. Fixed by switching to `jest.resetAllMocks()` in both
+> `beforeEach` blocks, with the failure mode documented in a comment so it isn't reintroduced.
+> **Phase 4 — built the widget, wired it into `components/landing/landing-hero.tsx`** right after
+> the CTA button row (architecture doc §7.1's own placement), reusing precedent everywhere one
+> existed: the spec's own `FloatingSparkline` code (kept close to as-given — already
+> zero-dependency and well-designed), this app's `cn()`/shadcn conventions for a new
+> `components/ui/tooltip.tsx` (no Tooltip primitive existed yet), and the established
+> literal-English-string-as-`t()`-key convention for all 27 new display-name/definition/
+> trading-edge strings (`lib/currency-gold-indices/metadata.ts`), identity-mapped into
+> `en-US.json`/`en-GB.json` only, matching the EconNews session's own precedent for
+> not-yet-translated marketing copy.
+> **SWR used deliberately, not by default** — every other data hook in this app
+> (`useContainmentRates`, `useUpcomingEvents`) uses plain `fetch`+`useEffect`+`setInterval`, but
+> this is the one route that is genuinely public and real-cached, where SWR's revalidate-on-focus
+> and dedup semantics are an actual fit rather than overkill for a per-session PRO panel.
+> **A real risk caught and fixed before it could break an existing suite, not after:**
+> `__tests__/components/landing/landing-and-auth-navigation.test.tsx` renders `<LandingHero>`
+> directly, and `jest.setup.js` polyfills `global.fetch` with `undici`'s real implementation (not
+> a stub) — so the new widget's unmocked SWR call would have attempted a genuine fetch to a
+> relative URL and rejected, the exact "fetch leaked past jsdom teardown, error surfaced in an
+> unrelated suite" failure class `LESSONS-LEARNED.md` already documents from the
+> `LocaleProvider` geo-IP incident. Mocked `useCurrencyGoldIndices` directly in that test file
+> before it could reproduce.
+> **Live-verified in a real browser (Turbopack `next dev`), not just unit tests:** confirmed the
+> genuine empty-state (`GET /api/market/currency-gold-indices` → `{"indices":[]}`, no live VPS
+> data yet) renders NOTHING on the landing page rather than a broken or placeholder card — the
+> same "absent row is the honest rendering" rule `containment-rate-strip.tsx` already follows.
+> Then temporarily injected 9 rows of mock data directly into the route handler (reverted
+> immediately after screenshotting, confirmed via a clean `git diff`, never committed) to confirm
+> the parts that only show up with real data: the 4-visible/scroll-for-5 container, the tooltip
+> (hovered AUDX, the full "AUD Index" definition + trading-edge copy rendered correctly), and
+> dark mode (toggled live, card background/text/sparkline colors all adapted correctly). The one
+> console warning present throughout (`allowTransparency` prop) was confirmed pre-existing and
+> unrelated — traced to `components/landing/ticker-tape.tsx`'s own TradingView embed, untouched
+> by this session.
+> **Verified:** `npx tsc --noEmit` clean across both phases; `npx eslint` clean on every new/
+> changed file; `npx prisma validate` clean on the monolith's own schema copy (edited
+> independently of `railway-gateway`'s in Phase 2); full `npm run test:ci` run **twice** — once
+> after Phase 3 (**185/185 suites, 2550/2550 tests**, +1 suite/+13 tests over the Phase 2
+> baseline) and again after Phase 4 (**187/187 suites, 2563/2563 tests**, +2 suites/+13 tests) —
+> zero regressions either time.
+> **Not done, needs Phase 5 or Davin:** live-VPS end-to-end verification (needs the physical
+> deployment steps flagged since Phase 1 — attaching the exporter to 8 charts, registering the
+> NSSM service, applying the Postgres migration); the PRO 32-pair screener roadmap item (spec
+> §9, explicitly out of scope, needs `forex_ohlcv_m5` which was deliberately not built); and a
+> genuine mobile-viewport click-through (the widget's CSS is responsive by construction — a plain
+> flex/scroll list — but was not specifically screenshotted at a narrow viewport this session).
+> **Not committed** — per this file's established log-first-defer-commit pattern.
+> **Artifacts (Phases 3+4):** `lib/cache/cache-manager.ts`, `lib/currency-gold-indices/
+{queries.ts,metadata.ts}` (new), `app/api/market/currency-gold-indices/route.ts` (new),
+> `__tests__/api/currency-gold-indices.test.ts` (new); `components/market/
+{floating-sparkline.tsx,useCurrencyGoldIndices.ts,currency-index-hero-widget.tsx}` (new),
+> `components/ui/tooltip.tsx` (new), `components/landing/landing-hero.tsx`,
+> `__tests__/components/market/{floating-sparkline.test.tsx,currency-index-hero-widget.test.tsx}`
+> (new), `__tests__/components/landing/landing-and-auth-navigation.test.tsx`,
+> `lib/i18n/dictionaries/{en-US,en-GB}.json` (27 new identity-mapped keys), this file.
+
+<!-- CLAUDE.md L2158-L2231 -->
+
+> **Ad-hoc session (2026-09-11, same day, phase/session unchanged) — Currency & Gold Index
+> Stack ("Lane 4") Phase 2 of 5, CLOSED SUCCESSFUL: the NestJS gateway endpoint + Postgres
+> schema.** Direct continuation of the same-day Phase 1 session — Davin asked to proceed with
+> Phase 2. Per `EXECUTOR-PROTOCOL.md` §6. Built the closest available precedent's exact shape
+> (the `indicator_statistics` lane — array-POST, own Bull queue, own processor, own table),
+> confirmed against its own real source files rather than reconstructed from memory: read
+> `gateway.module.ts`/`worker.module.ts`/`indicator-statistics.controller.ts`/`.processor.ts`,
+> the DTO generator script, both Prisma schema files, and — new for this phase — the test
+> precedents (`schema-sync.spec.ts`, `dto-contract.spec.ts`, all 3 existing `*.e2e-spec.ts`
+> files, the `indicator_statistics` migration's own SQL) before writing anything.
+> **A genuine pre-existing bug found and fixed in shared infrastructure, not routed around:**
+> `generate-market-data-dto.js`'s import-collection step —
+> `used.add(d.replace(/^@/, '').replace(/\(.*$/, ''))` — silently failed to strip a decorator
+> whose argument list wraps onto multiple lines (`wrapList()`'s own long-enum-array path),
+> because `.` doesn't match `\n` without the `s` flag. `IsIn` then dropped from the generated
+> import line whenever it was the ONLY enum decorator in a schema and its own list needed
+> wrapping. This new lane's `currency-gold-index.dto.ts` (9-item `index_name` enum, nothing
+> else uses `@IsIn`) is the first schema to actually expose it — every prior schema with a
+> wrapped `@IsIn(...)` (`indicator-statistic.dto.ts`'s 10-item `source` enum) also happened to
+> have an earlier single-line `@IsIn(...)` on some other field, which seeded the clean name into
+> the dedup `Set` first and masked the bug. Fixed by extracting the decorator name directly
+> (`d.match(/^@(\w+)/)[1]`) instead of a two-step strip; re-ran the generator and confirmed the
+> 3 pre-existing DTOs regenerate byte-identical (`git diff --stat` empty) while the new one now
+> correctly imports `IsIn`. Added a regression-guard test for this specific failure mode to the
+> new `CurrencyGoldIndexDto contract` block in `dto-contract.spec.ts`.
+> **Prisma:** `CurrencyGoldIndex` model added to both schema files (byte-identical body, per the
+> established convention `schema-sync.spec.ts` enforces) — one row per `(index_name, bar_time)`,
+> deliberately **not** modeled as an append-only revision stream like
+> `IndicatorStatistic`/`EconomicEvent`: each bar's value is a deterministic, stateless
+> recomputation (see `currency_gold_index_engine.py`'s `index_value()`), so a given key has
+> exactly one correct value and the gateway upserts in place. Migration
+> `20260911120000_add_currency_gold_indices` authored (one new table, nothing existing touched)
+> but **not applied** — same standing rule as every prior migration in this file's history.
+> Docker unavailable in this environment for a disposable-Postgres dry run (same gap the
+> 2026-09-09 `indicator_statistics` session hit); acceptable here for the same reason that
+> session gave — purely additive DDL mirroring already-proven patterns from that exact
+> migration, touching no existing row.
+> **`railway-gateway`:** 4th isolated Bull queue (`currency-gold-indices-sync`) in both
+> `gateway.module.ts` and `worker.module.ts`; `CurrencyGoldIndicesController` (`POST /api/v1/
+currency-gold-indices`, array body via `ParseArrayPipe` with explicit
+> `whitelist`/`forbidNonWhitelisted` — the same real gap the indicator-statistics controller's
+> own comment documents, since `ParseArrayPipe` builds its own internal `ValidationPipe` and
+> doesn't inherit the global one) and `CurrencyGoldIndicesProcessor` (concurrency 1, upserts on
+> the natural key, unlike the append-only lanes' always-insert). Idempotency key:
+> `${index_name}_${bar_time}`.
+> **Verified:** `npx tsc --noEmit` clean (after `npx prisma generate` picked up the new model —
+> the first run correctly failed with "Property 'currencyGoldIndex' does not exist" until
+> regenerated); `npx prisma validate` clean on the monolith's own copy of the schema too, edited
+> independently of railway-gateway's; full `npm test` **3/3 suites, 52/52 tests**; full
+> `npm run test:e2e` **4/4 suites, 40/40 tests** (12 new for the new lane, the other 3 suites'
+> counts unchanged — each needed only the new queue-mock override added to its `beforeAll`, per
+> the established "every registered queue must be overridden or Bull reaches for Redis at
+> teardown" rule). `railway-gateway`'s own `npm run lint`/`npx eslint` reproduces the
+> pre-existing `LESSONS-LEARNED.md` L38 break (confirmed the root cause this time, not just the
+> symptom: the package has **no ESLint config file of its own at all**, so ESLint 9's flat-config
+> mode matches zero files there regardless of what changes) — unrelated to this session,
+> `tsc --noEmit` is the real static gate here and it's clean.
+> **Not built this session, needs Phase 3+ or Davin:** the Redis cache-aside layer, the public
+> `GET` route, and the frontend widget (Phases 3–4); attaching the exporter to VPS charts and
+> applying the migration (needs Davin, unchanged from Phase 1's own note); any live push from
+> the actual engine through this endpoint (the engine's own push attempts still fail closed until
+> a real deployment exists — this session only proves the endpoint accepts a well-formed batch
+> in a mocked test harness, not a live round trip).
+> **Not committed** — per this file's established log-first-defer-commit pattern.
+> **Artifacts:** `prisma/market-data/schema.prisma`, `railway-gateway/prisma/schema.prisma`,
+> `prisma/migrations/20260911120000_add_currency_gold_indices/migration.sql` (new, authored/
+> unapplied), `railway-gateway/scripts/generate-market-data-dto.js` (bug fix + new target),
+> `railway-gateway/src/gateway/{gateway.module.ts,currency-gold-indices.controller.ts (new),
+dto/currency-gold-index.dto.ts (new, generated)}`, `railway-gateway/src/worker/
+{worker.module.ts,currency-gold-indices.processor.ts (new)}`,
+> `railway-gateway/test/{schema-sync.spec.ts,dto-contract.spec.ts,currency-gold-indices.e2e-spec.ts
+(new),market-data.e2e-spec.ts,indicator-statistics.e2e-spec.ts,economic-events.e2e-spec.ts}`,
+> this file.
+
+<!-- CLAUDE.md L2232-L2326 -->
+
+> **Ad-hoc session (2026-09-11, same day, phase/session unchanged) — Currency & Gold Index
+> Stack ("Lane 4") Phase 1 of 5, CLOSED SUCCESSFUL: the VPS math engine authored and
+> verified.** Davin asked to review and implement the new stack per a comprehensive design doc
+> he supplied (`davintrade-currency-index-stack/COMPREHENSIVE_ARCHITECTURE_DESIGN_CURRENCY_AND_GOLD_INDEX_STACK.md`),
+> with an explicit instruction to evaluate feasibility, present an execution plan, and proceed
+> with Phase 1. Per `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode`, scoped to Phase 1
+> only (the VPS-side math engine), per this file's own one-session-one-verifiable-unit
+> discipline — Phases 2–5 (NestJS gateway, Postgres, Redis cache, frontend widget) are
+> follow-on sessions.
+> **All 8 currency-index MQL5 formulas verified byte-exact against ground truth before writing
+> any code**, not assumed from the doc's own Formula Matrix — read `USDX/EURX/GBPX/JPYX/CADX/
+AUDX/NZDX/CHFX.mq5` directly (`mql5-indicators/interesting-indicators/currency-and-gold-index/`)
+> and confirmed every `MathPow()` exponent sign, including the trickier inverse-quote
+> conventions (CADX/CHFX use `1/rate`). `EURX.mq5` was initially missing from the folder
+> listing; Davin supplied it directly mid-session and it too verified exact (all-positive
+> exponents, as predicted — EUR is base currency in all 7 of its pairs).
+> **One architecture decision escalated to Davin before writing code, via `AskUserQuestion`:**
+> where should the 9 index values actually be calculated? Recommended, and Davin confirmed, a
+> **new standalone Python engine** rather than 9 new/rewritten MQL5 indicator EAs — the formula
+> is a simple deterministic closed-form geometric product with no regression/window-fitting
+> ambiguity, unlike the centroid/EDT math that was deliberately pulled out of Python on
+> 2026-09-09 after real certification-drift bugs; those bugs were specific to fitting ambiguity
+> this formula doesn't have.
+> **A second isolation decision, not spec-literal, made from live-code evidence:** the engine
+> is a **fully separate OS process** — own script, own NSSM service, own SQLite file
+> (`currency_gold_indices.db`, never `xauusd.db`), own 8 independent `OHLCV_{SYMBOL}_M5.txt`
+> input files (7 FX pairs + a dedicated XAUUSD export, deliberately NOT reusing the alert
+> pipeline's own XAUUSD export) — rather than integrating into `export_collector_validator_v2.py`
+> the way `indicator_statistics`/`economic_events` share that process via isolated try/except
+> stages. This sidesteps a real, previously-hit hazard in this exact repo: a read-only consumer
+> pointed at a writer's database path caused a schema-landmine incident on 2026-09-11 (the
+> `MT5Renderer` fixture-database entry earlier this same file). Zero shared process, zero shared
+> database file, zero shared source file — the strongest available guarantee that Lane 4 can
+> never block or delay Lane 1 (XAUUSD alerts).
+> **The spec doc's own §3.3 Output File Contract was found stale and NOT trusted** — the live,
+> already-compiled `ohlcvexportlightweight_v2_29.mq5` (reused unchanged, attached to 8 new
+> charts, zero new MQL5 authoring needed) writes header `ohlcv_timestamp\tohlcv_symbol\t
+ohlcv_timeframe\tohlcv_close\tohlcv_open\tohlcv_high\tohlcv_low\tohlcv_volume`, not the
+> doc's claimed `timestamp\topen\thigh\tlow\tclose\tvolume` — confirmed by reading the exporter
+> source directly and cross-checking against `export_collector_validator_v2.py`'s own parser,
+> which expects the same real format.
+> **A design simplification found while implementing, not in the original plan:** since every
+> index is rebased to exactly 100.00 at its own session-open bar by construction, `change_pct`
+> is always exactly `value - 100.00` — no separate "previousClose" ever needs to be tracked or
+> looked up. Also added `session_open_bar_time` to every row (a deliberate addition beyond the
+> spec's literal schema) so the engine — which alone has ground truth of the documented
+> Eightcap UTC-offset rule — is the only place in the whole stack that ever has to reason about
+> DST, avoiding the exact class of bug the 2026-09-09 `timestamp_adj` fix was for.
+> **`install_services.bat` deliberately NOT touched, and NOT appended to as originally
+> planned** — a closer read of that file (and this file's own 2026-09-11 entry flagging it)
+> confirmed batch files don't stop on error: re-running the whole script to pick up an appended
+> block would also re-execute the existing `nssm set MT5PushWorker AppEnvironmentExtra
+BACKFILL_API_KEY=...` line with the CONFIG block's own placeholder values, silently
+> overwriting the live push worker's real credentials. Built a wholly separate
+> `install_currency_gold_index_engine_service.bat` instead — a strictly safer implementation of
+> the same "never risk the existing services" intent than the append-only block originally
+> planned, since it cannot be run in a way that touches `MT5Collector`/`MT5PushWorker`/
+> `MT5Renderer`/`MT5Relay` at all.
+> **Verified, no live VPS access available:** `python -m py_compile` clean;
+> `python -m json.tool` equivalent load confirms the new gateway-contract schema is valid JSON
+> with all 9 `index_name` enum values present; a throwaway verification script (this stack's
+> own established no-pytest-infra pattern) — **38/38 checks passed**, covering: all 4
+> structurally-distinct sign patterns (USDX/EURX/JPYX/CHFX) independently re-derived by hand and
+> compared against the engine's own output (not just re-running its formula table); every index
+> self-verifies to exactly 100.00 at its own inception bar; the cross-rate triangulation function
+> against all three of the doc's own worked examples (EURJPY/EURGBP/AUDCAD); the Eightcap
+> US-DST offset function against the real 2026 transition dates (March 8 / November 1) plus
+> both sides of each transition; session-open boundary arithmetic in both winter (UTC+2) and
+> summer (UTC+3) offsets; file parsing against a synthetic fixture matching the live exporter's
+> real header; a full `compute_cycle()` run producing all 9 rows with correct independent
+> session boundaries for FX vs. gold; and outbox idempotency (`INSERT OR IGNORE` never re-opens
+> an already-synced row). `git status` confirmed zero changes to any existing pipeline file
+> (`export_collector_validator_v2.py`, `backfill_worker_api_gateway_v5.py`,
+> `sqlite_schema_v6_xauusd.sql`, `install_services.bat`, `xauusd.db`) — only new files added.
+> **Not built this session, needs Davin or later phases:** attaching the exporter to 8 new VPS
+> charts and registering the new NSSM service (no VPS/MetaEditor access, same boundary as every
+> prior session); any live-data verification; Phase 2 (NestJS gateway endpoint, DTO, Prisma
+> migration for `market_indices_m5`), Phase 3 (Redis cache + public API route), Phase 4
+> (frontend `FloatingSparkline`/`CurrencyIndexHeroWidget` + Hero-section integration), Phase 5
+> (end-to-end verification). Until Phase 2 ships the endpoint, every push attempt from the new
+> engine fails closed and logs a warning by design — rows accumulate with `synced_at IS NULL`
+> and drain automatically once the endpoint exists, the same "outbox absorbs downtime" behavior
+> every other lane already relies on.
+> **Also deliberately deferred, not forgotten:** `forex_ohlcv_m5` (raw per-pair storage from the
+> spec's §6.1) — the landing-page widget only needs the 9 computed index values; raw-pair
+> storage is listed in the spec purely as future substrate for the roadmap's PRO 32-pair
+> screener (§9), out of scope for a landing-page widget session.
+> **Not committed** — per this file's established log-first-defer-commit pattern; left for
+> Davin's review of this entry and the plan file before it becomes a commit.
+> **Artifacts:** `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/
+v2_29_data_pipeline_architecture/{currency_gold_index_engine.py,
+gateway_contract_currency_gold_indices.schema.json,
+install_currency_gold_index_engine_service.bat}` (all new), this file. Plan file:
+> `merry-sprouting-platypus.md` (Claude Code plan-mode artifact, not in the repo).
+
+<!-- CLAUDE.md L2327-L2349 -->
+
+> **Ad-hoc session (2026-09-11, phase/session unchanged) — CLOSED SUCCESSFUL, React bumped
+> 19.2.3 → 19.3.0.** Davin asked directly in chat, prompted by the React 19.3 blog post
+> (`react.dev/blog/2026/09/09/react-19-3`). Per `EXECUTOR-PROTOCOL.md` §6. A minor version with
+> no breaking changes (stable `<ViewTransition>`/Fragment Refs, new `react-dom` `browser()`
+> SSR-opt-out API, Trusted Types passthrough, `<Context>` renderable directly from Server
+> Components, plus bug fixes) — nothing in it is adopted by this session, just the version bump.
+> **One real blocker surfaced and escalated before touching anything:** `package.json`'s
+> `overrides` block pins `react`/`react-dom` to `^19.2.1` alongside actual security pins
+> (`node-forge`/`jose`/`ajv`) — this repo's own Security Override Policy non-negotiable says
+> never to modify `overrides`/`pnpm.overrides` outside a dedicated PR, and bumping `dependencies`
+> alone would leave that override silently forcing resolution back to 19.2.x. Escalated via
+> `AskUserQuestion` rather than deciding unilaterally; Davin chose to update the override in
+> lockstep with the dependency bump. `frontend/` and the rest of `seed-code/` (SEPARATE_STACK,
+> do-not-touch per §5) were left untouched — only `seed-code/trading-conversational-ai-ui` is a
+> real pnpm-workspace member, and its own `^19.2.1` range already accepts 19.3.0 with no edit
+> needed.
+> **Verified:** `pnpm install` resolved cleanly (pre-existing peer-dependency warnings on
+> `@testing-library/react`/`lucide-react`/`bullmq` unchanged, not new); `npx tsc --noEmit` clean;
+> full `npm run test:ci` **184/184 suites, 2537/2537 tests** — exact match to the prior baseline,
+> zero regressions; `npm run build` clean, exit 0, full route manifest present.
+> **Artifacts:** `package.json` (`dependencies.react`/`react-dom` + `overrides.react`/`react-dom`
+> → `^19.3.0`), `pnpm-lock.yaml`, this file.
+
+<!-- CLAUDE.md L2350-L2419 -->
+
+> **Ad-hoc session (2026-09-11, phase/session unchanged) — CLOSED SUCCESSFUL, four small
+> frontend slices shipped from `davintrade-stack-d-and-e/FRONTEND-UI-REVISION-RECOMMENDATIONS.md`,
+> each independently verified and committed.** Davin asked for an implementation plan covering
+> everything from that doc "that could possibly be implemented today," in priority order, with a
+> go/no-go call on each. Per `EXECUTOR-PROTOCOL.md` §6 (direct chat instruction). Planned via
+> `EnterPlanMode`, grounded in three parallel Explore passes against live code (economic-events data
+> layer, `indicator_statistics`/PRO-gating patterns, chart-primitive/alert-type feasibility) rather
+> than restating the doc's own recommendations — plan approved, then executed the same session.
+> **One doc blocker was already resolved by the time this ran, not by this session:** the
+> economic-events lane the doc gated everything on was confirmed live in production per the
+> 2026-09-10/11 entries below (545 events, banner rendering on `davintrade.app`), so §3's items were
+> never actually blocked here.
+> **What shipped, in priority order, one commit each:** (1) `/econ-news` source footnote —
+> TradingView's calendar and the terminal's own MT5-sourced one can disagree; named the source so a
+> visitor isn't left thinking one is wrong. (2) Expandable economic-events list — the route already
+> returned up to 10 events; `useUpcomingEvent` (renamed `useUpcomingEvents`) only ever kept index 0.
+> **No backend change needed at all** — re-checking the route during planning found it already
+> serves the full list; the fix was purely the hook + an inline expand row on
+> `session-status-banner.tsx` (not an absolute popover — the parent card is `overflow-hidden` for
+> its rounded corners and would clip one). (3) Chart event markers — vertical lines at upcoming
+> HIGH-impact event times on both M5/M15 panes, via a new `lightweight-charts` v5 series primitive
+> (`EventVerticalLine`, `attachPrimitive`/`detachPrimitive`) adapted from the vendored plugin example
+> at `seed-code/lightweight-charts/plugin-examples/`. Reuses the banner's own
+> `XAU_RELEVANT_CURRENCIES` default rather than inventing a second "what's relevant" filter, and is
+> gated client-side on `isPro` purely to skip a request the route would 403 anyway. (4) Containment
+> Rate panel — the first-ever frontend consumer of `indicator_statistics` (confirmed zero consumers
+> via repo-wide grep both before and during planning). Ships **only** `containment_rate`, a raw
+> already-computed percentage — deliberately not a composite "quality score," since R², Bar Coverage
+> and Baseline Symmetry each carry an unresolved formula problem per the doc's own §2.3 (contradictory
+> bands, an off-by-5 table, R² measured negative in real captured data, an asymmetry-penalty question
+> that may be measuring the wrong thing). The query layer mirrors `lib/economic-events/queries.ts`'s
+> distinct-on-append-only-key collapse exactly; the route mirrors `/api/market/economic-events`'s
+> PRO-gate line for line.
+> **A real type-resolution problem found and solved, not routed around:** the vendored vertical-line
+> plugin imports `CanvasRenderingTarget2D` from `fancy-canvas` directly — a transitive dependency of
+> `lightweight-charts` only, not a direct one of this app, and not hoisted to the top-level
+> `node_modules/` under this workspace's pnpm layout (confirmed via `Glob`, not assumed). A direct
+> import would have been unresolvable from application code. Solved by deriving the type instead —
+> `Parameters<IPrimitivePaneRenderer['draw']>[0]` — which needs no import of `fancy-canvas` by name;
+> `lightweight-charts`' own `.d.ts` still resolves it correctly via pnpm's per-package `node_modules`
+> when `tsc` type-checks the derived type. `tsc --noEmit` confirmed clean.
+> **Two NO-GO calls, both matching the doc's own recommendation on inspection, not just restated:**
+> pre-event alerts (§3.2) — a genuinely new evaluation primitive; no time-based/scheduled alert type
+> exists anywhere (both existing types are keyed off live price ticks, one polled, one Redis-pushed),
+> so it would need a new scheduler in `operation-service/src/alert-engine/`, a new market-data Prisma
+> client wired into that service, a dedup/fired-state mechanism, and real design decisions (which
+> minutes-before options, global vs per-alert) — a legitimate scope for its own session, not a slot
+> in a 5-item day. D5 gauge dials (§4) — no formulas exist anywhere in the repo for any of the 3
+> dials; building would mean fabricating what they measure.
+> **Verified per item before each commit** (`tsc --noEmit` + `eslint` on changed files + the item's
+> own new/updated tests), and once at the end for the whole session: full `npm run test:ci`
+> **184/184 suites, 2537/2537 tests** — up from the prior 181/2513 baseline by exactly the 3 new
+> suites/24 new tests this session added, zero regressions elsewhere. Also live-checked in a real
+> browser: `next dev` compiled the full `/terminal` module graph (including the two new chart-marker
+> files) with zero errors, and the unauthenticated redirect to `/login` behaved correctly.
+> **Not verified by the Executor, flagged rather than assumed:** full authenticated click-through of
+> all four features against real PRO-gated data on `/terminal` — same "Executor never enters
+> credentials" boundary as every other authenticated surface in this file's history. The Containment
+> Rate panel specifically has one open data question: whether the VPS has emitted a fresh capture
+> with the `[EDT CHANNEL]` fields populated since the 2026-09-11 indicator recompile — the panel
+> degrades to rendering nothing if not, so this is a "will it show anything yet" question, not a
+> correctness risk.
+> **Artifacts:** `app/(marketing)/econ-news/page.tsx`; `components/market-sessions/
+useUpcomingEvents.ts` (renamed from `useUpcomingEvent.ts`), `session-status-banner.tsx`,
+> `useContainmentRates.ts` (new), `containment-rate-strip.tsx` (new); `components/charts/
+trading-chart.tsx`, `drawing/EventVerticalLine.ts` (new), `drawing/useEventMarkers.ts` (new);
+> `lib/indicator-statistics/queries.ts` (new); `app/api/market/indicator-statistics/route.ts` (new);
+> `components/market-comments-panel.tsx`; 5 test files (3 new, 2 updated); this file. 4 commits,
+> `49a6f28d`..`79e05eb3`, all on `main`, none pushed to `origin` yet this session.
+
+<!-- CLAUDE.md L2420-L2432 -->
+
+> **STANDING INSTRUCTION (Davin, 2026-07-22, NARROWED 2026-07-24 — still in force
+> until Davin lifts it further):** chain-length-one originally read as "webhooks cut
+> over FIRST (both providers), before 4A-7 or any Slice 4 work." **Davin confirmed
+> live, 2026-07-24, that this narrows to dLocal-cutover-first**: with dLocal now
+> CUT-OVER (Session 4A-5, see Current below), 4A-7/Slice 4 work is unblocked — it does
+> NOT need to wait for RiseWorks. RiseWorks's own cutover (`4A-5-RW`) trails
+> independently, gated on RiseWorks replying with webhook/API settings (see Waiting on).
+> **Session 4A-3 (below) was an explicit, scoped exception Davin asked for directly in
+> chat — Slice 1 (crons) cutover, independent of this question — not itself a lifting
+> of the standing instruction.** With dLocal cut over too, Slice 3/4 BUILD work (4A-7
+> onward) may now proceed; RiseWorks-specific work stays gated on `4A-5-RW`'s own entry
+> criteria.
+
+<!-- CLAUDE.md L2433-L2445 -->
+
+> **⚠ STANDING FACT (Davin, 2026-09-11) — the VPS is VULTR. "Contabo" is a legacy name.**
+> This file, the pipeline blueprint and the folder `backend-stack-c/1_EA-and-backfill-worker-on-
+**contabo**-vps/` all say "Contabo VPS". **That is historical** — the project began there. The
+> **active deployment target is a Vultr Windows Server 2022 x64 instance**, and every deployment
+> instruction written for "the Contabo VPS" applies to it unchanged. **Do NOT rename the folder**
+> — Davin's explicit call: the path is referenced across a large body of historical migration
+> orders and decision records, and renaming breaks those for no functional gain. Read `contabo` in
+> any path as "the production Windows VPS", nothing more. Full note, including the two operational
+> consequences that follow from Vultr specifically (hourly billing, and a
+> **snapshot-and-destroy** workflow rather than keep-alive — so `xauusd.db` is a replay buffer, not
+> an archive, and an **unsynced outbox row is the one thing a destroy genuinely loses**), is in
+> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` §8.
+
+<!-- CLAUDE.md L2446-L2559 -->
+
+> **Ad-hoc session (2026-09-11, phase/session unchanged) — CLOSED SUCCESSFUL, the Cloudflare R2
+> chart-render path DEPLOYED and verified end to end: private bucket → VPS `MT5Renderer` →
+> presigned download → PRO/FREE entitlement, live on `davintrade.app`.** Davin opened with the
+> paste-able prompt from `R2-CHART-STORAGE-ARCHITECTURE-AND-DEPLOYMENT.md` §9 verbatim. Per
+> `EXECUTOR-PROTOCOL.md` §6. **A deployment session, not a build session — zero tracked source
+> files changed.** T1/T2/T3 are Cloudflare- and VPS-side and were Davin's; the Executor wrote T4
+> (the verification script) and drove T5. This closes the `Waiting on` item that had been the top
+> blocking entry since 2026-09-10.
+> **Step Zero worked exactly as that doc intended, and the technique is worth reusing.** The first
+> action was an observation, not a plan: six `BUILT` + `no` for credentials, which routes to
+> "deployment, not implementation" in one command. The largest risk in that document — a session
+> reading it as greenfield and recreating `lib/storage/r2.ts` or the download route from scratch,
+> silently discarding tested code on `main` — never arose. Two things did the work: the §0.0
+> command ordering _observe before propose_, and §9's framing pre-authorising the session to stop
+> and contradict the brief if reality disagreed.
+> **⚠ THE FINDING THAT MATTERS — the specified public-access check would have passed on a PUBLIC
+> bucket.** T4 step 5 as written asks that the object's "unsigned public URL returns 401/403, not
+> 200". But **R2's S3 API is never anonymous**: an unsigned GET against
+> `<account>.r2.cloudflarestorage.com` is refused whatever the bucket's public setting is. So the
+> check as specified is vacuous — it produces confidence without evidence, which is worse than no
+> check on the one setting the entire delivery design rests on (§2.2). Public read on R2 is exposed
+> through a _different_ hostname: the managed `pub-<hash>.r2.dev` domain, or a connected custom
+> domain, neither of which is guessable. Rewrote check 5 as three parts: **5a** the S3-endpoint
+> probe, relabelled in the script itself as `(necessary, NOT sufficient)` so it cannot be
+> skim-read later as an all-clear; **5b** a real fetch through a public hostname if
+> `R2_PUBLIC_BASE_URL` is supplied; **5c** the Cloudflare API (`domains/managed` + `domains/custom`)
+> if `CF_API_TOKEN` is supplied. When neither 5b nor 5c can run the script reports **UNPROVEN**,
+> never PASS. **Consequence to carry forward: bucket privacy is currently dashboard-confirmed by
+> Davin (r2.dev disabled, no custom domain), NOT script-proven**, so Definition-of-Done item 1's
+> literal wording is not met — see the `Waiting on` entry for how to close it.
+> **5c was also hardened against a subtler version of the same failure.** As first written it read
+> `managed?.result?.enabled === true`, so any change in Cloudflare's response shape would have made
+> `enabled` `undefined` and reported **PASS** — an API change silently becoming false assurance.
+> It now requires `success === true` and `typeof enabled === 'boolean'` before trusting a negative,
+> and degrades to UNPROVEN otherwise.
+> **Two bugs in my own verification script, both found by Davin running it, both worth recording
+> because the next person writing one will hit them.** (a) I asserted **path-style** S3 addressing;
+> the AWS SDK defaults to **virtual-hosted**, so the bucket is a host prefix and the key is the
+> whole path — `davintrade-renders.<account>.r2.cloudflarestorage.com/xauusd/…` with the app
+> entirely correct and my assertion wrong. The script now accepts either and names which style it
+> saw. (b) **R2 answers a missing `Authorization` header with `400 InvalidArgument`, not the
+> S3-standard 401/403.** Refused either way; only a 2xx is a finding. Both were reported as FAIL
+> against a correct setup, which is the right direction for a check to err, but both were mine.
+> **A third design point, decided before the script was run rather than patched afterwards:** the
+> doc has step 3 PUT _and delete_ a probe object, then step 5 test public access. Deleting
+> immediately leaves step 5 testing a key that does not exist — and **a missing object on a public
+> bucket returns 404, which reads exactly like "private"**. The probe is held alive through checks
+> 4–5 and deleted in a `finally`. A public-access check is only sound against an object known to
+> be present.
+> **⚠ A live-pipeline hazard found in `install_services.bat`, flagged and routed around rather
+> than triggered.** T3 step 4 offers "run `install_services.bat`, **or** register just this
+> service". Running it wholesale on a live VPS would have been destructive: batch files do not stop
+> on error, so although `nssm install MT5PushWorker` fails harmlessly for an existing service, the
+> next line still executes — `nssm set MT5PushWorker AppEnvironmentExtra BACKFILL_API_KEY=%…%
+API_GATEWAY_URL=%…%` — overwriting the running push worker's real credentials with the file's
+> literal `PUT_REAL_KEY_HERE` / `PUT_REAL_RAILWAY_GATEWAY_URL_HERE` placeholders, breaking
+> ingestion at its next restart. It would also erase the only copy of `API_GATEWAY_URL`, which is
+> precisely the value the still-open "which gateway does the VPS push worker target?" question
+> below depends on. Same exposure for `MT5Collector`. **Registering `MT5Renderer` alone should be
+> the only documented option**; a background task has been raised to make the script per-service
+> and idempotent.
+> **⚠ The fixture-at-the-collector's-database-path incident — created, diagnosed and cleaned up
+> within the session.** With no real `xauusd.db` data available (the `.ex5` rebuild is still
+> outstanding), a synthetic fixture was built at `C:\Scripts\database\xauusd.db` — which is the
+> path `MT5Collector` is installed with (`--db %ROOT%\database\xauusd.db`) and `MT5PushWorker`
+> drains. **Nothing was destroyed, and that is evidence rather than hope:** `build_fixture_db()`
+> issues a plain `CREATE TABLE market_data` with no `IF NOT EXISTS` and never deletes the target
+> file, so against a real database it would have died with `table market_data already exists`; it
+> succeeded, so the file had no `market_data` table. **Synthetic prices could not have reached
+> production either:** the fixture has no `synced_at` column and the push worker's first statement
+> is `SELECT COUNT(*) FROM market_data WHERE synced_at IS NULL`, so the drain fails closed.
+> **The real hazard was a delayed one, and is the part worth remembering:** the collector's own
+> `CREATE TABLE IF NOT EXISTS market_data (…)` no-ops against a wrong-shaped table, after which
+> `promote_cycle()`'s 87-column `INSERT OR REPLACE` fails with `no such column` — so **no cycle
+> could ever promote** while that file sat there. Nothing is flowing today, which is exactly what
+> would have made it dangerous: it would have surfaced weeks later as "the pipeline broke after the
+> indicator rebuild" with no visible link back. Resolved: fixture rebuilt at
+> `C:\Scripts\renderer\fixture.db`, `MTF_DB_PATH` repointed via `AppEnvironmentExtra` (which
+> replaces the whole set, so all four `R2_*` values must be repeated), service restarted, and the
+> pipeline path cleared so the collector recreates the real schema itself.
+> **General rule this produced: a renderer, a test harness or any read-only consumer must never be
+> pointed at a writer's database path**, even to read, because the failure mode is a schema
+> landmine rather than an error.
+> **Verified.** T4 script against the live bucket: **10 PASS / 0 FAIL / 0 PENDING / 2 UNPROVEN**,
+> with 4c going 404 → **206** and both objects **1 minute old** — the strongest single proof, since
+> it exercises render → upload → `chartObjectKey()` → presigned fetch in one line. Unauthenticated
+> `GET /api/chart/download` on production returns **401 `{"error":"Authentication required"}`**,
+> checked by the Executor directly; note the apex 308s to `www` at the edge, so the check must
+> follow the redirect. That 401 also proves an ordering the mocked tests assert but cannot show:
+> **the auth gate short-circuits before any storage work** — with R2 unconfigured a reversed order
+> would have returned 503. `npx tsc --noEmit` and `npx eslint` clean; full monolith `npm run
+test:ci` **181/181 suites · 2513/2513 tests**, exit 0 — **note this is NOT the "176 suites / 2445
+> tests" the R2 doc's own §0.4 and §11 state**; that baseline predates the 2026-09-10
+> economic-events session which took it to 181/2513. No drift from the current baseline, as
+> expected for a session that changed no tracked file; the doc has been corrected.
+> **Not verified by the Executor, per the standing rule that it never enters credentials:** every
+> authenticated T5 check. Davin confirmed all four in a real browser with screenshots — PRO with
+> the toggle OFF downloads `standard` titled "M5 overlay OFF"; ON downloads `overlay` titled "M15
+> channel + M5 channel OVERLAID (PRO)" with the M5 channel on the lower panel; the 307 → presigned
+> private-bucket redirect; and FREE showing a locked toggle with a PRO badge and a PRO-locked
+> Download button.
+> **⚠ The renders are SYNTHETIC until the `.ex5` rebuild lands** — seeded fixture, bars dated around
+> **9 June 2026**. T5's checks remain valid regardless because they test entitlement and variant
+> selection, not prices, but a June-dated axis on a downloaded PNG is the fixture, not a bug.
+> **Artifacts:** `scratch/verify-r2.ts` (new; **untracked and gitignored by `.gitignore:190`**, and
+> deliberately credential-free — it reads env/`.env.local` and redacts presigned URLs before
+> printing, since the query string carries the Access Key ID. ⚠ `scratch/` is **not** in
+> `tsconfig.json`'s exclude list while `include` is `**/*.ts`, so this file is inside
+> `tsc --noEmit`'s scope and therefore inside the pre-push hook's — it must stay type-clean or it
+> blocks pushes. It is kept rather than deleted because re-running it is how bucket privacy gets
+> re-checked after any change; delete it freely). `R2-CHART-STORAGE-ARCHITECTURE-AND-DEPLOYMENT.md`
+> (stale test baseline corrected), this file. Both doc edits uncommitted, per this file's
+> log-first-defer-commit pattern.
+
+<!-- CLAUDE.md L2560-L2709 -->
+
+> **Ad-hoc session (2026-09-10, phase/session unchanged) — CLOSED SUCCESSFUL, Market Session
+> clock + High-Impact News/Event countdown, and the complete economic-events lane behind it,
+> MT5 → SQLite → gateway → PostgreSQL → API → panel → Stack D Pillar 8.** Started as Davin asking
+> which of two options to build the `/terminal` right-panel countdown from (read the TradingView
+> widget, or build in `davintrade-news-stack/`), and grew one approved step at a time into the
+> whole lane. Per `EXECUTOR-PROTOCOL.md` §6. **Full detail lives in
+> `davintrade-news-stack/market-session-and-high-impact-news-manifest-work-completion.md`; this
+> entry is the index, not a substitute.** 11 commits `05f41a45`..`7620e037`, pushed to
+> `origin/main`. 38 files, 4,943 insertions, 29 deletions.
+> **The recommendation, and why Option 1 was rejected on evidence rather than preference:**
+> `components/calendar/economic-calendar-widget.tsx` injects a **cross-origin iframe** from
+> `www.tradingview-widget.com` — config flows in, nothing flows out, and there is no data API
+> behind the widget. So it can drive neither a countdown (no timestamp reaches the page) nor the
+> LLM warnings (nothing exists server-side), and scraping it would breach TradingView's terms. It
+> remains the public browse surface at `/econ-news`, untouched. Option 2 was recommended **but
+> scoped down**: `davintrade-news-stack/` is not a scraper, it wraps **MT5's own calendar API**,
+> already running on the terminal that runs the 13 indicators — no vendor, no API key, no cost.
+> Replicating the full pipeline blueprint would have been wrong (that machine exists for
+> high-volume positionally-validated per-bar data; news is ~15k rows/yr, event-keyed), so a thin
+> lane was built instead.
+> **⚠ STEP ZERO FIRST — the check that could have invalidated everything, run before any design.**
+> `davintrade-news-stack/step-zero-calendar-availability-check/CalendarAvailabilityCheck.mq5`, a
+> read-only probe deliberately NOT including the vendor library so a failure would be unambiguous
+> and it could run before that library's licensing question was settled. **GO** on Eightcap-Demo
+> build 6182: 333 events/8 days, **333/333** event and country lookups resolved, 25 HIGH-impact,
+> server-side currency filtering functional, countdown computable. Its highest-value section was
+> the clock: this stack shipped a two-year timestamp bug because an offset was _assumed_, so the
+> probe **measured** server-vs-GMT (exactly +3) and cross-checked it against two real releases
+> rather than trusting it — US PPI `15:30` server = 12:30 UTC (published 08:30 ET ✓), ECB `15:15`
+> = 12:15 UTC (announced 14:15 CEST ✓). That is what proved `MqlCalendarValue.time` is server time.
+> **What shipped, in order.** (1) **Session clock** — `lib/market-sessions/sessions.ts`, pure and
+> dependency-free; all zone maths through IANA + `Intl`, never fixed offsets (Sydney's DST runs
+> _opposite_ to London's, so one constant is wrong half the year somewhere), and a session is open
+> only when the **market itself** is open — without that gate Tokyo shows trading at 10:00 JST on a
+> Saturday. (2) **Append-only contract** — SQLite outbox, JSON contract, both Prisma models
+> byte-identical, migration authored/unapplied. (3) **MQL5 exporter EA**, deliberately dumb: full
+> snapshot every cycle, no change detection. (4) **Collector parser** — where the append-only
+> decision actually lives. (5) **Batched push drain.** (6) **Gateway** controller/queue/processor
+> with a **generated** DTO. (7) **API route + the news row.** (8) **Stack D Pillar 8.**
+> **⚠ The finding that started the thread, now closed:** `STACK-D-...-V2.md`'s Report 1 has always
+> promised "High-Impact Economic News Warnings & Market Risk Factors" while the retrieval engine
+> had **7 pillars and none of them was news**. A model asked to warn about news it cannot see
+> either omits the section or invents one, and a fabricated NFP time shown to a trader sizing a
+> position is a real harm. Promoted to **8 pillars** across all 8 reference sites (each replacement
+> asserted unique, so a missed site fails loudly rather than half-renaming the doc). **Stack D is
+> NOT built** — no `app/api/ai`, no orchestrator, it is Phase 12 and unstarted — so this is
+> specification plus one tested module, not a wiring change. Pillar 8's **retrieval half is already
+> live**: `getUpcomingHighImpactEvents()` serves `/api/market/economic-events` and the banner today.
+> **Five decisions worth carrying forward, each against a real alternative.** _Append-only, not
+> upsert_ — this **reverses my own earlier recommendation**; a forecast is revised and an actual
+> published only AFTER the event, and the asymmetry decides it (current state is one `DISTINCT ON`
+> from append-only history; history is gone forever from an upserted row). _Change detection in the
+> collector, not the exporter_ — not bookkeeping: 333 rows × 96 cycles/day is ~**12M rows/year** of
+> byte-identical repeats against ~**15k** with it. _Ids as strings everywhere_ — MQL5 `ulong` and
+> JSON has no 64-bit integer; the probe never printed their magnitude (a real gap in it), so rather
+> than gamble, `ULONG_MAX` was proven to round-trip losslessly as text. _Batched push_ —
+> `market_data`'s one-POST-per-row shape is already under-provisioned for its own volume
+> (`PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md`), so a 333-row first sync is 2 requests, not 333.
+> _A `.txt` export, not direct SQLite_ — MQL5 can write SQLite, but the Python collector is the
+> only writer of `xauusd.db` and a second writer buys lock contention for nothing (blueprint §3.3).
+> **⚠ Missing is never zero, enforced and tested at every layer.** `LONG_MIN` upstream means _not
+> published_, and for forecasts that is the COMMON case — measured at 12 of 23 upcoming HIGH events,
+> because rate decisions, votes and speeches structurally have none. Coercing to `0` both fabricates
+> a zero forecast for an ECB decision **and** makes a genuine `0.0` publication look unchanged so it
+> is never recorded — two opposite fabrications from one line.
+> **Mutation-tested throughout, because every failure mode in this lane is silent** (full table in
+> the manifest §7): disabling collector change detection turns an expected 3 rows into **192**;
+> coercing empty to `0` fails 5 tests incl. `pre-release actual was overwritten`; breaking batching
+> gives `120 requests for 120 rows`; removing the 400 guard gives `poison rows left unstamped ->
+outbox wedged`; removing `ParseArrayPipe`'s explicit `whitelist`/`forbidNonWhitelisted` gives
+> `rejects an unknown field with 400, not a silent 200` (the real gap previously found on
+> `indicator-statistics`). **Two mutation attempts initially proved the WRONG thing** and are
+> recorded because the shape recurs: the session-clock guards turned out to be a mutually redundant
+> pair (either alone removable, both not — documented in place so neither is "simplified" away), and
+> the first poison-guard mutation silently hit the **success** path because both paths carry
+> byte-identical stamping blocks — it failed three tests and looked convincing while proving nothing.
+> **A passing mutation check is only as good as the mutation landing where you think it did.**
+> **Verified:** monolith `test:ci` **181/181 · 2513/2513** (from 176/2445); railway-gateway
+> **3/3 · 43/43** unit (from 31) and **3/3 · 28/28** e2e (from 2/17); collector **14/14** and push
+> **13/13** standalone Python (this stack has no pytest config and pytest is not installed, so both
+> files run with no infrastructure); `tsc`/`eslint` clean throughout. **Collector and push changes
+> are additions-only** (+159/−0 and +99/−0), so the `market_data` path is provably untouched.
+> The migration was diffed against `prisma migrate diff` output — **identical**. The API route was
+> hit live with the migration **UNAPPLIED** and returned **401, not 500**, proving the auth gate
+> short-circuits before any database work — an ordering the mocked tests assert but cannot show.
+> **Three of my own mistakes, recorded because the next reader will hit the same shapes.** (a) I
+> reported 12 DST checks passing "in Chrome's ICU". They had not — React had never hydrated (no
+> fibers on `document.body`), so they ran during SSR on **Node's** ICU. Cause was my own workaround:
+> the browser pane force-upgrades `localhost` to https, so I used `127.0.0.1`, which Next's dev
+> server blocks as a cross-origin dev request; chunks 403'd, hydration never happened. Fixed with a
+> temporary `allowedDevOrigins` (reverted, diff empty) and genuinely re-run. (b) I shipped the banner
+> **ungated**; Davin corrected it with the seed's `/free` screenshot, whose lock copy names "Session
+> Countdowns" explicitly. The error was not the monetization opinion but **treating a settled design
+> decision as an open question** and defaulting against it. (c) A mutation script crashed on a
+> console-encoding error and **left the target file mutated** — caught from the on-disk diff notice
+> and restored, but a crashed mutation harness that leaves the target modified is a genuinely
+> dangerous failure mode.
+> **Two Jest findings that cost real time and will recur:** a `jest.mock` factory must not reference
+> out-of-scope variables or babel-jest declines to hoist it — the mock then registers _after_ the
+> imports and the **real Prisma client ran, attempting a genuine TLS connection**; and `jest` must
+> come from the injected global, not `@jest/globals`, because a hoisted factory runs while an
+> imported binding is still in TDZ and `jest.fn()` inside it yields nothing usable. Also incidental:
+> `prisma migrate diff --to-schema-datamodel` was **removed** in Prisma 7.9.1, renamed `--to-schema`.
+> **⚠ THREE OPERATOR STEPS COMPLETED & LIVE-VERIFIED IN PRODUCTION (2026-09-11):**
+> (1) **All 13 indicators + `EconomicCalendarExport_v2_29.mq5` compiled in MetaEditor** with 0 errors
+> on Windows Server 2022 x64 VPS (`149.28.148.144`). Attached to live charts and actively exporting
+> per-minute indicator timeseries and 15-minute `EconomicCalendar.txt` (~90 KB).
+> (2) **Migration `20260910120000_add_economic_events` applied** directly to production Railway
+> PostgreSQL (`maglev.proxy.rlwy.net:58290`).
+> (3) **VPS deployment complete**: `MT5Collector`, `MT5PushWorker`, and `MT5Renderer` services running
+> under NSSM; startup shortcut installed.
+> **Two runtime findings resolved:**
+> (a) Collector decoupled (`70a79a06`): `stage_economic_events()` moved to the top of `run_cycle()`,
+> so economic events stage independently of **price timeseries completeness** — a missing or late
+> indicator export can no longer block calendar capture. **Correction (2026-09-11, verified in
+> source): this does NOT extend to forex market hours, as first recorded here.**
+> `run_cycle_with_retries()` still returns on `is_market_open_xauusd()` **before** `run_cycle()` is
+> ever called, so `stage_economic_events()` does not run while the market is shut — calendar
+> capture pauses ~49h each weekend (Fri 17:00 ET → Sun 17:00 ET). **Accepted, not a defect to
+> chase:** releases are weekday events, the UI reads PostgreSQL which retains everything already
+> pushed, and the only real loss is weekend _forecast revisions_ — which on an append-only table
+> means those intermediate observations simply never existed, rather than being overwritten. Moving
+> the call above the gate would make the collector open a cycle on weekends purely for the
+> calendar, which costs more than it buys.
+> (b) Railway Gateway Express 100 KB payload constraint (`3cbc3534`): Pushing 250-row batches (~250 KB)
+> returned `HTTP 413 Payload Too Large`. Capped `EVENT_MAX_ROWS_PER_CYCLE = 120` in the push worker
+> and added loop draining so outboxes drain cleanly within seconds without exceeding 100 KB.
+> **Verified end-to-end in production:** 545 live events pushed to Postgres and rendered live on
+> `davintrade.app/terminal` with active Tokyo session clock and real-time news countdown. Zero console errors.
+> Authenticated `/terminal` click-through confirmed by Davin with screenshots.
+> Note: `lib/economic-events/prompt-context.ts` has **no runtime caller** until Stack D Session 12-2, which
+> is stated in the file itself rather than hidden.
+> **Licensing, checked and currently moot:** `davintrade-news-stack/base.mqh` is © Omega Joctan, an
+> MQL5 Market seller. **Nothing shipped depends on it** — the probe and the exporter both use only
+> native MQL5 calls, deliberately. It becomes live only if `provider_sqlite.mqh` is ever adopted,
+> which the `.txt`-export decision makes unnecessary.
+> **Artifacts:** `davintrade-news-stack/{market-session-and-high-impact-news-manifest-work-completion.md,
+step-zero-calendar-availability-check/CalendarAvailabilityCheck.mq5}`; Stack C —
+> `mq5/EconomicCalendarExport_v2_29.mq5`, `gateway_contract_economic_events.schema.json`,
+> `sqlite_schema_v6_xauusd.sql`, `export_collector_validator_v2.py`,
+> `backfill_worker_api_gateway_v5.py`, `test_economic_events.py`, `test_push_economic_events.py`,
+> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` (§0.1 + new §5.5); gateway —
+> `src/gateway/{economic-events.controller,dto/economic-event.dto}.ts`,
+> `src/worker/economic-events.processor.ts`, both modules, `scripts/generate-market-data-dto.js`,
+> `prisma/schema.prisma`, 4 test files; monolith — `lib/market-sessions/sessions.ts`,
+> `lib/economic-events/{queries,prompt-context}.ts`, `components/market-sessions/{session-status-banner.tsx,
+useUpcomingEvent.ts}`, `app/api/market/economic-events/route.ts`, `components/market-comments-panel.tsx`,
+> `prisma/market-data/schema.prisma` + migration, 2 dictionaries, 5 new test files;
+> `STACK-D-CONVERSATIONAL-AI-CHART-ANALYSIS-ARCHITECTURE-V2.md`, this file.
+
+<!-- CLAUDE.md L2710-L2820 -->
+
+> **Ad-hoc session (2026-09-10, phase/session unchanged) — CLOSED SUCCESSFUL, the chart-render
+> chain end to end: `mtf_render` rewritten 3-panel → 2-panel, PRO-gated delivery to private R2,
+> the monolith terminal brought to the matching dual-stacked layout, and the overlay toggle
+> persisted so the download follows it.** Started as "explain me this codebase" pointed at
+> `v2_29_multi-timeframe-visualisation/` and grew, one approved plan at a time, into the whole
+> render→deliver→display path. Per `EXECUTOR-PROTOCOL.md` §6 (direct chat instructions, outside
+> the Session-14-x numbering). **Four plan docs and four completion manifests live in that folder
+> and carry the full detail; this entry is the index, not a substitute.**
+> **⚠ The headline finding, because it reframes what "the renderer worked" meant:** the module was
+> not merely outdated, it was **broken against the live schema**. `data_source.py` still listed
+> `best_fit` and built SQL by f-string interpolation, so every call against a real `xauusd.db`
+> raised `no such column: best_fit_uoedt` after the 2026-09-03 split. It went unnoticed because
+> `fixture.py` fabricated its _own_ `best_fit_*` columns — **the suite was validating the fixture
+> against itself, not against the contract**, and stayed green while the module could not read a
+> real database. Both halves are closed: an explicit column registry (`overlays.py`, no
+> interpolation) and a fixture built _from_ that registry, plus a test that parses the real
+> `sqlite_schema_v6_xauusd.sql`. That test was deliberately run against the old names first, to
+> prove it detects the defect rather than passing vacuously — it did, and the parser independently
+> recovered exactly **87 columns**, matching the blueprint.
+> **What shipped, in order.** (1) **Renderer** — 3 side-by-side panels (A=M5, B=M15, C=M15, with B
+> and C identical and matching nothing shipped) → **2 stacked**, M5 above M15 on one shared clock
+> window; 6 stale variants → **10 overlays** across the 7 centroids + `fractal_edt` +
+> resistance/support; two variants per cycle (`overlay`/`standard`) so the PRO M5-on-M15
+> entitlement is expressed in the artifact itself; 3 tests → **17**. (2) **`3-Panel` → `2-Panel`**
+> across ~30 live sites — the string was already ported into the monolith and translated, and
+> because this codebase uses the literal English string as the dictionary _key_, each rename moved
+> a key plus a differently-worded value in 12–16 dictionaries. (3) **The pricing claim** dropped
+> the count entirely (`Read-Only Multi-Timeframe Terminal`) rather than correcting it to 2, so the
+> public page no longer depends on a layout decision that has now changed twice. (4) **Delivery**
+> — private R2 + ~60s presigned URLs, a `requireChartDownload()` gate, `GET /api/chart/download`,
+> and an `MT5Renderer` NSSM service that renders both variants from one snapshot and prunes at 48h.
+> (5) **Dual-stacked layout** in `/terminal` and `/free`. (6) **Toggle persistence** to
+> `UserPreferences.m5OnM15`. (7) **The still-forming candle** marked rather than dropped.
+> **Four decisions worth carrying forward, each made against a real alternative.** _Private R2, not
+> public CDN_ — object names are deterministic, so Stack D §9's public bucket would have made the
+> gate cosmetic; egress still leaves R2, only authorization moved. _The gate re-checks the
+> database_ — `checkFeatureAccess` reads the JWT only, so a user who had **just paid for PRO**
+> would have been refused a feature they bought; `requireAffiliate` already solves this and the fix
+> mirrors it, scoped to this one gate. _Compose two `TradingChart` instances rather than port the
+> seed's 856-line dual-chart component_ — the monolith's version carries the reactive theme fix,
+> live sockets and the drawing layer that the seed lacks, and the seed reads theme via
+> next-themes' `useTheme()`, which this app no longer keeps in sync. _Mark the forming bar, don't
+> drop it_ — this **reverses** the plan's own earlier recommendation: dropping makes the render a
+> bar-period stale, so the screen would show a candle the download does not, which is the exact
+> divergence the rest of the work closed.
+> **⚠ Two mistakes of mine, recorded because the next reader will hit the same shapes.** (a) I
+> reported that the `M5 on M15` toggle **did not exist in the monolith**. It does —
+> `components/charts/mtf/MtfToggle.tsx` + `useMtfOverlay.ts`, PRO-gated, and named in this file's
+> own 2026-09-03 entry, which I had already read. I had grepped for `isM5OnM15`, the _seed's_
+> variable name, and reported the absence of a string as the absence of a capability. Same shape
+> as the `best_fit` bug: trusting a name over the concept. Corrected in `c06063c5`; the design was
+> unaffected, because `mtfEnabled` was still unpersisted and so still unreadable server-side.
+> (b) A test I added leaked a floating `LocaleProvider` geo-IP `fetch()` past jsdom teardown, and
+> the resulting error surfaced inside **`login-form.test.tsx`** — an unrelated auth suite. I was
+> wrong twice on the way to finding it: first "deterministic, so a real regression" (a third run
+> passed), then "passes in isolation, so a pre-existing flake" (removing only my file restored
+> 174/174). **"Passes in isolation, fails in the suite" is evidence of a leak, never of
+> innocence.** The fix was one line, already written down three lines above where I was reading, in
+> `trading-chart.test.tsx`'s own `beforeEach` citing `LESSONS-LEARNED.md` L40.
+> **Two mirrors caught, both the drift class this repo keeps hitting.** `operation-service` carries
+> its own copy of the preferences Zod schema, interface **and** defaults object — adding `m5OnM15`
+> only to the monolith would have silently stripped it from any update routed there; `tsc` caught
+> the third copy after the first two were done by hand. And the R2 object name now exists in
+> **three** places across two languages (renderer `DEFAULT_OUT`, VPS worker, `chartObjectKey()`),
+> where drift would surface as a **404 on download rather than an error** — pinned by a test that
+> parses the renderer's own `__main__.py`.
+> **Verified:** monolith `test:ci` **176/176 suites · 2445/2445 tests** (from a 171/2416 baseline);
+> `operation-service` **43/43 · 401/401**; `railway-gateway` untouched; `tsc`/`eslint` clean
+> throughout; module pytest **17/17**; zero jsdom teardown leaks, confirmed across repeated runs.
+> Every rendered PNG was inspected directly, and the download route was hit against a real
+> `next dev` with **no R2 credentials set** — returning **401, not 503**, which proves the
+> entitlement check short-circuits before any storage work, an ordering guarantee the mocked tests
+> assert but cannot demonstrate.
+> **⚠ Built but INERT — nothing in the download path functions yet.** It needs a **private** R2
+> bucket and credentials, which only Davin can create; until then `/api/chart/download` returns
+> **503** and `MT5Renderer` will not start. **Do not enable public read** — that alone collapses
+> the reasoning behind the whole design. Also unverified, and flagged rather than skipped: no
+> render has ever been drawn from a real `xauusd.db`; the R2 round trip has only run against a
+> mocked S3 client; both workspaces sit behind auth so the layout, the **two-WebSockets-per-viewer**
+> count and the FREE-tier locked toggle all need Davin's own click-through; and jsdom's
+> `ResizeObserver` is a no-op stub, so the pane-sizing maths has no meaningful coverage.
+> **Deliberately not done.** The shared-socket refactor was reviewed and **declined**, with a
+> checkable trigger recorded instead (peak concurrent connections and open fds against `ulimit -n`
+> on the Flask host, once the feed is live) — it cannot be measured today, since `/terminal` showed
+> `Disconnected` and the VPS still has not run a green cycle with the recompiled `.ex5`. Also:
+> `parseChartVariant()`/`DEFAULT_CHART_VARIANT` were **deleted** once `?variant=` was dropped —
+> they had no production callers and were kept alive only by their own tests, which is the worst
+> state for dead code because it reads as exercised.
+> **Flagged, not fixed (pre-existing, worse than last time):** this file is now **219 KB**, up from
+> the 144.7 KB flagged on 2026-09-04 and more than twice `EXECUTOR-PROTOCOL.md` §0's ~100 KB gate.
+> The bulk is ad-hoc blockquotes, not the numbered Session-14-x rotation §3's archival procedure
+> targets, and several remain referenced by open `Waiting on` items — so a correct pass means
+> judging which are genuinely closed. Still a deliberate Advisor/Davin call, not a side effect of a
+> feature session, but it is drifting further each time.
+> **Artifacts:** in `v2_29_multi-timeframe-visualisation/` — `mtf_render/{overlays,data_source,
+renderer,fixture,__main__,__init__}.py`, `mtf_render_upload_worker.py`, `test_mtf_render.py`,
+> plus `MTF-RENDER-MODIFICATION-PLAN.md`, `MTF-RENDER-DELIVERY-AND-GATING-PLAN.md`,
+> `MTF-DUAL-STACKED-LAYOUT-PLAN.md` and four `*-MANIFEST-WORK-COMPLETION.md`. Monolith:
+> `lib/storage/{r2,chart-keys}.ts`, `lib/preferences/{defaults,server-preferences}.ts`,
+> `lib/auth/permissions.ts`, `app/api/chart/download/route.ts`, `app/api/user/preferences/route.ts`,
+> `components/charts/{trading-chart,mtf-stacked-charts}.tsx`, `components/charts/mtf/
+useMtfPreference.ts`, `components/chat-sidebar.tsx`, `components/landing/landing-pricing.tsx`,
+> 16 dictionaries, both workspaces, 4 new test files. Also `operation-service/src/users/
+users.schemas.ts`, `install_services.bat`, `STACK-D-CONVERSATIONAL-AI-CHART-ANALYSIS-ARCHITECTURE-V2.md`,
+> `.env.example`, and — at Davin's explicit direction, overriding the read-only convention in
+> non-negotiable #4/#5 — `seed-code/trading-conversational-ai-ui-pages-increment/` (pricing string
+>
+> - the Vision Render label). New deps: `@aws-sdk/client-s3`, `@aws-sdk/s3-request-presigner`
+>   (monolith), `boto3` (VPS, documented not installed). **18 commits**, `7221c268`..`bb914bf3`, all
+>   pushed to `origin/main`; `68b3513a` in that range is Davin's own, not this session's.
+
+<!-- CLAUDE.md L2821-L2895 -->
+
+> **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, public
+> dark/light theme toggle on the marketing navbar:** Davin asked directly in chat (with a
+> screenshot of the live landing page annotating the exact spot, next to the "เข้าสู่ระบบ"/Log In
+> button) for a "theme switching (dark/light) toggle" as a shortcut to Settings → Appearance, so
+> a visitor doesn't have to log in and find that page just to flip the theme. Per
+> `EXECUTOR-PROTOCOL.md` §6 (fully-specified chat instruction with an annotated screenshot).
+> **Checked live code before building anything, per §0:** `AppearanceProvider`
+> (`components/providers/appearance-provider.tsx`) is already mounted once at the true root
+> (`app/providers.tsx` → `client-providers.tsx`), so `useAppearance()`/`useChartAppearance()`
+> already reach every marketing page (confirmed by the EconNews session's own prior use). More
+> importantly, `saveAppearanceAction` (`app/actions/appearance.ts`) was read directly and
+> confirmed **guest-safe by design** — unlike `PUT /api/user/preferences` (401 for anonymous,
+> the reason the earlier Language modal stayed session-local-only), it always writes the
+> `davintrade-appearance` cookie first and only additionally upserts the DB row when a session
+> exists. So unlike the Language/Country quick-switchers, this toggle can call the real save
+> action and get **genuine persistence across a reload for anonymous visitors too**, not just a
+> same-tab-session convenience — confirmed live, not assumed.
+> **New `components/marketing/theme-toggle-button.tsx`:** a Moon/Sun icon button (mirrors the
+> Settings → Appearance page's own icon convention) reading `resolvedTheme` from
+> `useAppearance()`, calling `updateSettings({ theme: next })` for the instant reactive DOM flip
+> plus `saveSettings({ theme: next })` for persistence, one click, no separate Save step (same
+> "shortcut" spirit as the Language modal). Wired into `MarketingNavbar` exactly where Davin's
+> screenshot pointed — the right-side CTA cluster before the Log In button on desktop, and beside
+> the hamburger button on mobile (always visible, not buried inside the drawer).
+> **A real, load-bearing bug found and fixed, not routed around:** writing the toggle's
+> single-click "update, then immediately save" handler reproduced a genuine stale-closure race in
+> `AppearanceProvider.saveSettings()` — it closes over the `settings` state from the render in
+> which it was created, but `updateSettings()` only _schedules_ a state update, it doesn't apply
+> it synchronously. Calling both in the same handler (`updateSettings(x); await saveSettings()`)
+> therefore persisted the value from **before** the change, not after — caught by this session's
+> own new test (`toHaveBeenCalledWith(..., '"theme":"dark"')` received `"theme":"light"`
+> instead), not eyeballed. **Fixed at the source, not papered over in the caller:**
+> `saveSettings()` now takes an optional `overrides?: Partial<AppearanceSettings>` and merges it
+> in before persisting, so a caller can hand it the intended value directly instead of trusting a
+> same-tick state read. A **repo-wide grep for other `saveSettings()` call sites** (this file's
+> own established sweep habit) turned up a second, pre-existing, real victim of the identical
+> pattern: `app/(auth)/welcome/page.tsx`'s onboarding accent-color picker
+> (`handleSelectAccent`) — `updateSettings({ accent }); void saveSettings();` — meaning a new
+> user's chosen onboarding accent color has been silently persisting the PREVIOUS accent to the
+> database, not the one they just clicked, since that flow was built. Fixed the same way
+> (`saveSettings({ accent })`). `app/settings/appearance/page.tsx`'s own `handleSave` was checked
+> and does NOT have this bug — its update and save are two separate user actions across a render
+> boundary (pick a theme, THEN click "Apply" later), so `saveSettings()`'s no-args default (now
+> unchanged in behavior) always sees the already-committed state there.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean (0 errors/warnings) on all 6
+> changed/new source files; new `__tests__/components/marketing/theme-toggle-button.test.tsx`
+> (3/3, including the test that caught the stale-closure bug above) + the two pre-existing test
+> files that render `MarketingNavbar` directly (`landing-and-auth-navigation.test.tsx`,
+> `public-pages.test.tsx`) updated to wrap `AppearanceProvider` alongside `LocaleProvider`
+> (`LESSONS-LEARNED.md` L40 — a component newly reaching a provider's hook breaks any pre-existing
+> test that renders it without that provider) — both green, plus every other test file touching
+> `AppearanceProvider`/`saveAppearanceAction` (`appearance.test.ts`, `trading-chart.test.tsx`,
+> `economic-calendar-widget.test.tsx`, the Settings → Appearance page test) re-run clean, 53/53
+> across all 7 files; full monolith `npm run test:ci` **170/170 suites, 2407/2407 tests**, zero
+> regressions; `npm run build` clean, exit 0.
+> **Live-verified in a real browser, not left as a "needs Davin's pass" item** — unlike almost
+> every other entry in this file's history, this feature needed no authentication to reach, so it
+> was fully click-through-verified end to end: desktop toggle click instantly re-themed the
+> entire landing page (background, nav, cards, chart mock) with zero console errors; a full page
+> reload afterward confirmed the dark choice survived for the anonymous session (the guest cookie
+> path proven live, not just read in source); mobile viewport (375px) showed the toggle
+> correctly positioned beside the hamburger button, and a direct-dispatch click (the
+> `computer`-tool's coordinate/ref clicks were unreliable while the Browser pane was backgrounded
+> in this environment — an automation-harness quirk, confirmed unrelated to the app by the
+> successful desktop test and by DOM state before/after) confirmed the mobile instance of the
+> same shared component toggles correctly too.
+> **Not committed** — Davin was not asked this session whether to commit; left for his review of
+> this entry first, per this file's own established log-first-defer-commit pattern.
+> **Artifacts:** `components/marketing/theme-toggle-button.tsx` (new),
+> `components/providers/appearance-provider.tsx` (`saveSettings()` override-param fix),
+> `components/marketing/marketing-navbar.tsx`, `app/(auth)/welcome/page.tsx` (second stale-closure
+> instance fixed), `__tests__/components/marketing/theme-toggle-button.test.tsx` (new),
+> `__tests__/components/landing/landing-and-auth-navigation.test.tsx`,
+> `__tests__/pages/marketing/public-pages.test.tsx`, this file.
+
+<!-- CLAUDE.md L2896-L2973 -->
+
+> **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, landing-page
+> "Language" modal:** Davin asked directly in chat (with a screenshot of the live landing
+> page annotating where to add it) for a public, unauthenticated language switcher on the
+> marketing site — a "Language" nav item that opens a modal offering the exact same language
+> list as Settings → Language & Region, so a first-time visitor never has to find their way
+> into an authenticated settings page just to read the site in their own language. Per
+> `EXECUTOR-PROTOCOL.md` §6 (fully-specified chat instruction).
+> **Refactored the language list to a single source of truth rather than duplicating it:**
+> new `lib/i18n/languages.ts` exports `SUPPORTED_LANGUAGES` (the same 11-entry code/name/flag
+> list `app/settings/language/page.tsx` already had inline); the Settings page now imports it
+> instead of declaring its own copy, so the two surfaces can never drift apart.
+> **New `components/marketing/language-selector-modal.tsx`:** a shadcn `Dialog` listing every
+> `SUPPORTED_LANGUAGES` entry; clicking one calls `setLocalePreferences({ language: code })`
+> from `useLocale()` and closes immediately — no separate "Save" step. Deliberately mirrors
+> `app-header.tsx`'s existing "Quick Country Switcher" pattern (client-side-only, via
+> `LocaleProvider`'s own localStorage+cookie persistence) rather than `settings/language`'s
+> `PUT /api/user/preferences` round trip — that endpoint requires auth (401 for anonymous
+> visitors, confirmed by reading `app/api/user/preferences/route.ts` directly), and the header's
+> country switcher already established that an ambient locale-quick-toggle on this codebase is
+> expected to be session-local-only, not a profile write. `MarketingNavbar` gained a "Language"
+> button (Globe icon) positioned first in both the desktop nav and the mobile drawer, per
+> Davin's screenshot, opening the modal.
+> **Checked, not assumed, before adding any translation keys:** grepped `fr.json`/`ko.json`/
+> `zh.json`/`zh-TW.json` for the navbar's own existing labels (`Features`/`Pricing`/`Docs`/
+> `Affiliates`) and confirmed none of them are translated in those four dictionaries either —
+> `MarketingNavbar` was never in scope for the 18-batch locale audit's public-marketing-chrome
+> batch. Left the new "Language" button key untranslated in those four to match its siblings
+> exactly (adding just one translated label next to five untranslated ones would have been a
+> worse, inconsistent state) — it falls back to the English word "Language", same graceful
+> degradation as every other nav label there today. `es`/`de`/`pt`/`ja`/`hi`/`id`/`tr`/`ur`/`vi`
+> (the older 2268-key dictionaries, never touched by any documented locale session) were
+> correctly left alone entirely, consistent with that same precedent.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean on all 5 changed/new files; new
+> `__tests__/components/marketing/language-selector-modal.test.tsx` (4/4, `LocaleProvider`
+> shadow-render wrapper per `LESSONS-LEARNED.md` L40) + `__tests__/pages/marketing/
+public-pages.test.tsx` (13/13, unaffected) both green; full monolith `npm run test:ci`
+> **168/168 suites, 2397/2397 tests** (167/2393 baseline +1 suite/+4 tests, zero regressions);
+> `npm run build` clean, exit 0, `/econ-news`/`/settings/language`/`/` all present in the route
+> manifest.
+> **Live browser verification blocked by environment, not attempted around:** another chat
+> session already had `next dev` running against this same repo's shared `.next/` directory —
+> the exact Windows file-lock contention this file's 2026-08-31 Academy ad-hoc session already
+> documented (`netstat` confirmed only port 3000 had a real listening socket; this session's own
+> `autoPort`-assigned attempts never bound). Did not force a `next build`/kill the other
+> session's server to work around it, same restraint that session applied. Fell back to the
+> production build as the strongest available non-interactive check instead. Flagged below, not
+> silently skipped — needs Davin's own click-through.
+> **Committed and pushed same day** on Davin's explicit request — `5e241e7c`, `main` ->
+> `origin/main` (pre-push hook re-ran type-check + full `test:ci` clean before pushing).
+> **Same-day follow-up (still 2026-09-04, phase/session unchanged):** Davin asked to add the
+> languages already reachable via the header's "Select Country & Region" dropdown but missing
+> from the language list — named 7 country codes (NG, PK, VN, ID, TH, ZA, TR) — and, now that
+> the list is growing, to alphabetize the modal. **Checked `lib/country-config.ts` before adding
+> anything, rather than assuming 7 new languages were needed:** NG and ZA both already map to
+> `language: 'en-US'` (already in the list) — only PK(`ur`)/VN(`vi`)/ID(`id`)/TH(`th`)/TR(`tr`)
+> were genuinely missing. Confirmed real, non-empty dictionaries already exist on disk for all 5
+> (`ur.json`/`vi.json`/`id.json`/`tr.json` at 2268 keys each, `th.json` at 2636 — the same
+> "legacy" dictionary tier `es`/`de`/`pt`/`ja` already sit in) before wiring them in — added to
+> `SUPPORTED_LANGUAGES` with native-script names matching the `fr`/`ko`/`zh`/`ar` entries'
+> existing convention (e.g. `Urdu (اردو)`), flags taken directly from each language's matching
+> `country-config.ts` entry. `locale-context.tsx` needed no change — its dictionary loader
+> already lazy-imports any `lib/i18n/dictionaries/${language}.json` generically. 16 languages
+> total now. **Alphabetizing scoped to the modal only, not the shared list or Settings' own
+> dropdown** — Davin's ask named "the modal" specifically, and Settings' `<Select>` isn't long
+> enough yet to need it; sorted a `useMemo`'d copy (`localeCompare` on `name`) inside
+> `LanguageSelectorModal`, leaving `SUPPORTED_LANGUAGES`' own insertion order (English variants
+> first) intact as the shared source of truth's canonical order.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean; `language-selector-modal.test.tsx`
+> (4/4 — its "renders every language" loop already covers the 5 new entries with no test change
+> needed) + `public-pages.test.tsx` (13/13) green; full monolith `npm run test:ci` **168/168
+> suites, 2397/2397 tests**, zero regressions; `npm run build` clean, exit 0. **Live browser
+> verification blocked by the same environment constraint as the first round** — another
+> session's `next dev` still held port 3000/the shared `.next/` directory at the time this
+> follow-up ran; not forced around, same restraint as before. Needs Davin's own click-through
+> once a dev server is free (already tracked in Waiting on).
+> **Artifacts:** `lib/i18n/languages.ts`, `components/marketing/language-selector-modal.tsx`,
+> this file.
+
+<!-- CLAUDE.md L2974-L3052 -->
+
+> **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, public
+> "EconNews" Economic Calendar page via TradingView widget:** Davin gave a fully-specified
+> chat task order (with a screenshot of the live landing-page nav) to add a public,
+> unauthenticated `/econ-news` route embedding TradingView's `embed-widget-events.js`
+> Economic Calendar, plus a new "EconNews" nav-tab between Affiliates and More
+> (desktop + mobile drawer) and a footer link. Per `EXECUTOR-PROTOCOL.md` §6.
+> **One real correction to the task order's own reference code, found by checking live code
+> before writing anything (§0's "live code wins"):** the order's widget-theme-sync sample used
+> `next-themes`' `useTheme()` — but per this same file's 2026-09-04 Theme Mode session
+> immediately below, `AppearanceProvider` now owns the app's actual `.dark`/`.light` DOM class
+> directly and next-themes' own `theme`/`resolvedTheme` is no longer kept in sync with it. Using
+> `useTheme()` here would have silently never matched the real app theme. Built
+> `components/calendar/economic-calendar-widget.tsx` to read `resolvedTheme` from
+> `useChartAppearance()` instead — the same source `trading-chart.tsx` already uses,
+> confirmed working live.
+> **Built:** `app/(marketing)/econ-news/page.tsx` (client component: hero, impact/region
+> filter toolbar, calendar card), `components/calendar/economic-calendar-widget.tsx` (script
+> injection + cleanup + TradingView attribution, all wired through `useLocale()`'s `t()`),
+> CSP additions in `next.config.js` (`s3.tradingview.com` script-src,
+> `www.tradingview-widget.com`/`*.tradingview.com` frame-src, `*.tradingview.com` img-src/
+> connect-src), nav + footer + mobile-drawer links, ~15 new `en-US.json` keys (identity
+> mapping, degrades safely per the locale-compliance doc's partial-coverage precedent — not
+> translated into the other 12 dictionaries this session, matching that precedent), and
+> `__tests__/components/economic-calendar-widget.test.tsx` (3 tests: container+attribution
+> render, filter config passthrough, clean unmount — wraps `LocaleProvider`+`AppearanceProvider`
+> per `LESSONS-LEARNED.md` L40, same shadow-render pattern as `trading-chart.test.tsx`).
+> **A genuine, reproducible dev-only console error found and root-caused, not dismissed:**
+> `next dev` (Turbopack, this repo's `reactStrictMode: true`) reliably threw `Uncaught
+TypeError: Cannot read properties of null (reading 'querySelector')` after the widget
+> rendered correctly — traced to Strict Mode's dev-only mount→cleanup→mount double-invoke
+> racing the async `embed-widget-events.js`'s own internal DOM lookup (a vanilla external
+> script injecting into a container React's cleanup can tear down mid-flight). **Confirmed,
+> not assumed, that this is dev-only and does not reach production:** built (`npm run build`,
+> clean, `/econ-news` present in the route list) and ran a real `next start` on an isolated
+> port, loaded `/econ-news` in a fresh tab — zero console errors, widget rendered correctly
+> with live event data, and the "High Impact Only" filter toggle (which tears down and
+> re-creates the script/iframe) also re-rendered cleanly with zero errors. Not logged as a new
+> `LESSONS-LEARNED.md` entry (file is at its 40-entry cap, same constraint every recent session
+> has hit) — flagged here as a candidate for the Advisor's next consolidation pass: "an external
+> vanilla-script-embed widget (TradingView, or any similar iframe-injecting SDK) can throw a
+> real but harmless console error under React Strict Mode's dev-only double-invoke; verify
+> against a real production build before treating it as a functional bug."
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean (0 errors/warnings) on all 5
+> changed/new source files; targeted `economic-calendar-widget.test.tsx` +
+> `public-pages.test.tsx` **16/16**; full monolith `npm run test:ci` **167/167 suites,
+> 2393/2393 tests** (166/2390 baseline +1 suite/+3 tests, zero regressions); `npm run build`
+> clean, exit 0, `/econ-news` in the static route manifest. **Live-verified in a real browser
+> against both `next dev` and a real `next start` production server:** desktop nav shows
+> "EconNews" between Affiliates and More exactly per Davin's screenshot; mobile drawer (375px
+> viewport) shows it directly under Affiliates; footer "Product" column shows "Economic
+> Calendar"; the widget itself renders real TradingView event data, correctly dark-themed
+> (matching this app's `DEFAULT_APPEARANCE_SETTINGS.theme = 'dark'` default for anonymous
+> visitors), with the impact/region filters correctly re-rendering it. Route confirmed reachable
+> with zero auth prompt or redirect (not in `middleware.ts`'s `PROTECTED_PREFIXES`, and
+> `(marketing)/layout.tsx` has no server-side auth gate — matches `LESSONS-LEARNED.md` L17's
+> two-independent-gates warning, both checked, neither applies here).
+> **Not verified, flagged rather than assumed:** actual light-mode rendering of the widget —
+> anonymous visitors always get `resolvedTheme: 'dark'` (no public toggle on this page; Theme
+> Mode lives behind Settings → Appearance, an authenticated-only surface the Executor cannot
+> click through per this file's own standing rule). The mechanism itself is proven sound
+> (identical `useChartAppearance()` source already confirmed working for `/terminal`'s chart in
+> the 2026-09-04 session immediately below), but the actual light-mode pixels on `/econ-news`
+> specifically have not been eyeballed. Needs Davin's own pass once he's logged in and switches
+> Theme Mode to Light, on the widget's own live re-render.
+> **Flagged, not fixed (pre-existing, not caused by this session):** this file
+> (`CLAUDE.md`) is **144.7 KB**, above `EXECUTOR-PROTOCOL.md` §0's ~100 KB size gate and larger
+> than when the 2026-09-03 session flagged it at 121 KB — same reasoning as that session applies
+> again: the bulk is ad-hoc-session blockquotes, not the numbered Session-14-x Current/Previous
+> rotation §3's archival procedure actually targets, and several entries are still directly
+> referenced by open `Waiting on` items. Attempting a consolidation pass as a side effect of this
+> narrowly-scoped feature session risked mangling a large, carefully-written record for no
+> benefit to the task actually asked for; flagged again for a deliberate future pass.
+> **Artifacts:** `app/(marketing)/econ-news/page.tsx` (new), `components/calendar/
+economic-calendar-widget.tsx` (new), `__tests__/components/economic-calendar-widget.test.tsx`
+> (new), `next.config.js`, `components/marketing/marketing-navbar.tsx`, `components/marketing/
+marketing-footer.tsx`, `lib/i18n/dictionaries/en-US.json`, this file. Not committed — Davin
+> was not asked this session whether to commit; left for his review of this entry first, per
+> this file's own established log-first-defer-commit pattern.
+
+<!-- CLAUDE.md L3053-L3171 -->
+
+> **Ad-hoc session (2026-09-04, phase/session unchanged) — CLOSED SUCCESSFUL, Light Clean Mode
+> (Theme Mode) never visually applying, plus the trading chart never following it either:** Davin
+> reported live, with a screenshot of `davintrade.app/settings/appearance`, that selecting "Light
+> Clean Mode" moved the checkmark but every page/component/element stayed rendered dark; after the
+> first fix below shipped, reported "still not working at all," and separately, once the underlying
+> mechanism was genuinely fixed, flagged with a screenshot of `/terminal` that the trading chart's
+> canvas background and the drawing-tool overlay stayed dark regardless of Theme Mode. Three
+> distinct root causes found and fixed across the session, documented in the order they were
+> actually found (a straight-line summary would understate how much reproduction work each one
+> took) — full detail in `davintrade-appearance-stack/theme-mode-fix-manifest-work-completion.md`.
+> **Root cause 1 — duplicate `AppearanceProvider`, found via live reproduction, not guessed from
+> reading code alone:** `app/settings/layout.tsx` and 6 more top-level route layouts
+> (`dashboard`/`admin`/`notifications`/`alerts`/`free`/`terminal`) each independently wrapped their
+> children in their **own** `<AppearanceProvider initialSettings={appearance}>`, nested inside the
+> single global one `app/providers.tsx` → `client-providers.tsx` already mounts at the root.
+> `useAppearance()` under one of these 7 layouts resolved to the nearest (inner, duplicate)
+> provider, so picking "Light" correctly flipped the INNER provider's `settings.theme` and called
+> next-themes' `setTheme('light')` — but the OUTER (root) provider, still holding its own stale
+> value, re-rendered on every `next-themes` context change (both providers call `useTheme()`) and
+> its `useEffect(() => setTheme(settings.theme), [settings.theme, setTheme])` re-fired whenever
+> `setTheme`'s identity changed, immediately calling `setTheme('dark')` again — confirmed live via
+> a temporary throwaway route (`app/dev-theme-preview/page.tsx`, deleted after use, never
+> committed) showing `settings.theme` reading `'light'` while next-themes' own `theme` stayed stuck
+> on `'dark'`. This is why the bug was site-wide — all 7 duplicated layouts cover essentially every
+> authenticated route. **Fix (`2daacc59`):** removed the redundant nested `<AppearanceProvider>`
+> from all 7 layouts, leaving each layout's own `getServerAppearance()`/`data-accent`/chart-CSS-var
+> SSR untouched.
+> **Root cause 2 — next-themes' own cross-tab `storage` listener overriding a correct value, found
+> only because Davin's "still not working at all" refused to accept the first fix as sufficient:**
+> re-reproduced live on `davintrade.app` post-deploy and traced it with a `MutationObserver` +
+> patched `Storage.prototype.setItem` — the class was flipping dark→light→dark→light several times
+> within milliseconds of a single click before settling on the wrong value. `next-themes`
+> (`node_modules/.pnpm/next-themes@0.4.6/.../dist/index.mjs`, read directly rather than guessed
+> from memory) keeps a `window` `'storage'` event listener that unconditionally trusts ANY external
+> write to its storage key and immediately re-applies it (`r.newValue ? n(r.newValue) : ...`) — a
+> real multi-tab trading-terminal session (dashboard/alerts/settings each in their own tab), or any
+> other agent writing the same `localStorage` key, can silently override the DB-backed, per-user
+> choice moments after it's set. **Confirmed the mechanism directly, not just inferred it:**
+> dispatched a synthetic `StorageEvent` (single, then a 20x rapid burst) at a page holding the
+> correct theme — before the fix this reliably flipped the class; after the fix (below) it held
+> rock solid through the full burst. **Fix (`95c51af4`):** `AppearanceProvider` now applies the
+> `.dark`/`.light` class to `<html>` directly (`applyThemeToDOM()`, a `useLayoutEffect` keyed only
+> on `settings.theme`, no longer routed through next-themes' `setTheme()`) and registers its own
+> `'storage'` listener that re-asserts the correct value if anything external changes the key
+> afterward — next-themes' `<ThemeProvider>` stays mounted (harmless, no other code in this app
+> reads its `theme`/`resolvedTheme`) but no longer owns the DOM class for this app's own
+> AppearanceProvider-driven pages. Two throwaway diagnostic commits (`802ec582`, `f92793c1`, adding
+> `window.__themeDebug`/`window.__earlyTrace` instrumentation) were pushed and deployed to gather
+> hard evidence before landing this fix, then cleanly reverted (`dc177afd`, `f2daed0b`) once
+> diagnosed — net diff on `app/layout.tsx` across the session is zero.
+> **A genuine investigative dead end, recorded so a future session doesn't re-walk it:** the
+> storage-event oscillation was first reproduced via the Claude-in-Chrome browser-automation
+> extension and, for a while, suspected to be an artifact of that extension rather than a real app
+> bug — a clean, non-instrumented sandboxed browser showed zero oscillation on the same page. That
+> theory was WRONG (or at best incomplete): a genuine multi-tab session hitting the same
+> `next-themes` cross-tab listener would reproduce the identical failure with no extension
+> involved at all, which is exactly what the fix now guards against regardless of source.
+> **Root cause 3 — the trading chart and its drawing-tool overlays never read appearance state at
+> all:** `components/charts/trading-chart.tsx`'s `createChart()` call hardcoded a fixed dark
+> TradingView-style palette (`background:'#1e222d'`, `textColor:'#d1d4dc'`, etc.) and hardcoded
+> candle colors (`upColor:'#26a69a'`) — `useChartAppearance()` already existed in
+> `appearance-provider.tsx` for exactly this purpose (and is used correctly by the SEED codebase's
+> own `trading-chart.tsx`) but was never imported here. Also found via a repo-wide grep once the
+> canvas fix was underway: `components/charts/drawing/{Toolbar,AlertsPanel,StyleEditor}.tsx` — the
+> tool-palette/alerts-panel/color-picker overlays that sit directly on top of the chart — used the
+> same hardcoded dark palette with zero light-mode pairing. **Fix (`b0dcd1d6`):** added
+> `resolvedTheme` to `AppearanceProvider`'s context/`useChartAppearance()` (computed the same way
+> `applyThemeToDOM` resolves `'system'`, since the chart needs an actual light/dark value, and
+> next-themes' own `useTheme()` is no longer kept in sync per root cause 2's fix); `trading-chart.
+tsx` now reads `chartUpColor`/`chartDownColor`/`gridOpacityDecimal`/`resolvedTheme` and reactively
+> re-applies them via `chart.applyOptions()`/`series.applyOptions()` (no full chart teardown) in a
+> new effect separate from the mount-once chart-creation effect; the three drawing-overlay files
+> got the standard light-default/`dark:`-pairing already used elsewhere in this codebase, dark mode
+> kept pixel-for-pixel via `dark:` preserving every original hex value. `StyleEditor.tsx`'s one
+> instance used the app's own `border-border` token instead of a bespoke pairing, since it renders
+> inside a `Dialog` (already theme-aware) rather than floating directly on the chart canvas.
+> **A real, pre-existing test breakage found and fixed as a direct consequence, not a new bug
+> introduced carelessly:** `__tests__/components/charts/trading-chart.test.tsx` broke immediately
+> (`useAppearance must be used within an AppearanceProvider`) the moment `TradingChart` started
+> calling `useChartAppearance()` — fixed the same way `LocaleProvider` was already added to this
+> exact file's shadow `render()` wrapper for the identical reason (`LESSONS-LEARNED.md` L40
+> pattern, recurring). A second, distinct breakage followed once the wrapper was fixed: the file's
+> own `lightweight-charts` mock's series object had `setData`/`setMarkers` but no `applyOptions`,
+> which the new reactive-update effect calls — added `mockSeriesApplyOptions` to the mock. Fix +
+> both test corrections landed as `c5d752bc`, run standalone first (**19/19** passed) before the
+> full suite.
+> **Verified, not assumed, for all three fixes:** `npx tsc --noEmit` and `npx eslint` clean at every
+> step; full monolith `npm run test:ci` **166/166 suites, 2390/2390 tests** after the final commit
+> — zero regressions across the whole session. **Live production verification on the real
+> authenticated PRO account (`davintrade.app`, not a throwaway route), after each deploy actually
+> confirmed live via `vercel inspect`/the Vercel dashboard (not assumed from a `git push` alone —
+> this repo's own L3-adjacent lesson):** clicked Dark ⇄ Light repeatedly on the real `/settings/
+appearance` page — instant, correct, no revert; dispatched the synthetic-`StorageEvent`
+> single-and-20x-burst test directly against the live production page and confirmed self-heal;
+> navigated to the real `/terminal` page and confirmed the chart canvas, candle colors, and drawing
+> toolbar all correctly render dark, then correctly switch to light after Settings → Appearance →
+> Apply and a fresh navigation (confirming DB persistence too, not just the in-session client
+> state). One genuine self-inflicted false alarm during this verification, recorded so it isn't
+> mistaken for a real bug later: "Apply Appearance Settings" appeared not to persist across a few
+> attempts — traced to the on-screen button having scrolled to a different position than the
+> screenshot-derived click coordinates being used (a browser-automation targeting issue, confirmed
+> by comparing the click coordinate against the button's live `getBoundingClientRect()`, then
+> confirmed fixed via a direct DOM `.click()` producing a real `POST /settings/appearance` 200 and
+> the theme correctly surviving a fresh reload) — not a persistence bug in `saveAppearanceAction`/
+> `getServerAppearance` at all.
+> **Committed and pushed, all 6 net commits live on `origin/main`:** `2daacc59` (duplicate-provider
+> fix), `95c51af4` (AppearanceProvider owns the DOM class + self-heal), `b0dcd1d6` (chart +
+> drawing-overlay theme-awareness), `c5d752bc` (test fixes) — plus `802ec582`/`f92793c1` and their
+> reverts `dc177afd`/`f2daed0b` (throwaway diagnostics, net zero, left in history rather than
+> squashed since this repo's convention is never to rewrite pushed history).
+> **Artifacts:** `app/settings/layout.tsx`, `app/dashboard/layout.tsx`, `app/admin/layout.tsx`,
+> `app/notifications/layout.tsx`, `app/alerts/layout.tsx`, `app/free/layout.tsx`, `app/terminal/
+layout.tsx`, `app/layout.tsx` (net zero, diagnostic add+revert), `components/providers/
+appearance-provider.tsx`, `components/charts/trading-chart.tsx`, `components/charts/drawing/
+{Toolbar,AlertsPanel,StyleEditor}.tsx`, `__tests__/components/charts/trading-chart.test.tsx`,
+> `davintrade-appearance-stack/theme-mode-fix-manifest-work-completion.md` (new), this file. 13
+> net-changed source/test files (per `git diff --stat` across the session), all committed and
+> pushed.
+
+<!-- CLAUDE.md L3172-L3301 -->
+
+> **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, propagate the
+> `best_fit_a`/`best_fit_b` split downstream of the gateway contract (3 services):** follow-on
+> to the Stack C ad-hoc session immediately below, which split `best_fit` into `best_fit_a`/
+> `best_fit_b` at the MQL5/collector/gateway-contract layer and grew `market_data` from 79 to
+> 87 fields, but explicitly left everything downstream of `gateway_contract_market_data.schema
+.json` untouched. Davin asked directly in chat to propagate that split through the root
+> Next.js monolith, `railway-gateway/`, and `operation-service/` — the three separately-
+> deployed services that mirror this schema — per `EXECUTOR-PROTOCOL.md` §6.
+> **Read the blueprint's §0.4/§3.4 and this file + `EXECUTOR-PROTOCOL.md` first, per Davin's own
+> instruction, before touching anything.** Confirmed live (not assumed from the task's own
+> description) that `gateway_contract_market_data.schema.json` already carried the 87-field
+> shape (`best_fit_a_*`/`best_fit_b_*` blocks, positioned before `cherry_a`, matching its
+> sibling formatting) before starting.
+> **Root monolith:** `prisma/market-data/schema.prisma`'s `MarketDataV6` model — the 8
+> `best_fit_*` fields split into `best_fit_a_*`/`best_fit_b_*` (16 fields), same block style as
+> the existing `cherry_a`/`cherry_b` pair. **`market_data_v6` is a LIVE production table**, so
+> the new migration (`prisma/migrations/20260903000000_split_best_fit_variant/migration.sql`)
+> is a lossless `ALTER TABLE ... RENAME COLUMN` of the 8 existing `best_fit_*` columns to
+> `best_fit_a_*` (existing history becomes valid `best_fit_a` data, since `best_fit_a` is
+> config-identical to the old `best_fit`), followed by `ADD COLUMN` for the 8 new nullable
+> `best_fit_b_*` columns — authored, **not applied to any real database**, per this repo's
+> established boundary (see history throughout this file). `types/indicator.ts`'s
+> `CENTROID_VARIANTS`/`CentroidVariant`/`MarketDataV6` interface got the same split plus its
+> "79 fields"/"Six variants" header comments updated to 87/seven. `app/api/market-data/channel/
+route.ts` and `components/charts/mtf/useMtfOverlay.ts` had their `variant` default flipped
+> `'best_fit'` → `'best_fit_a'` (preserves existing behavior exactly, since `best_fit_a` **is**
+> the old `best_fit`) — the rest of both files is already generic/parametrized by variant name.
+> **A repo-wide grep sweep (not just the task's own named-file list) caught two more real
+> spots the targeted checklist didn't name:** `types/prisma-stubs.d.ts` — a fallback ambient
+> `@prisma/client` type-stub file ("allows TypeScript compilation when Prisma client cannot be
+> generated") that independently duplicates the same 79-field `MarketDataV6` interface and would
+> have silently drifted from the real generated client had it been left alone — split the same
+> way. `railway-gateway/scripts/seed_local_xauusd_db.py` — a local-e2e-harness seed script that
+> `INSERT`s a synthetic row using the **old** `best_fit_*` SQLite column names; since
+> `backend-stack-c`'s `sqlite_schema_v6_xauusd.sql` (out of scope, already updated by the prior
+> session) now defines `best_fit_a_*`/`best_fit_b_*` instead, this script would have thrown
+> "no such column" the next time anyone ran it — fixed to `best_fit_a_*`, a real latent bug this
+> sweep caught before it bit anyone, not a stylistic cleanup.
+> **`railway-gateway/`:** `prisma/schema.prisma`'s `MarketDataV6` model updated to be
+> **byte-for-byte identical** to the monolith's model body (diffed the two model bodies directly
+> after editing — confirmed identical, not eyeballed) — `test/schema-sync.spec.ts` enforces this
+> via structural diff. DTO regenerated via `npm run generate:dto` (mechanical, reads the already-
+> updated gateway contract schema; the file's own header says never hand-edit it) — confirmed 87
+> fields in the regenerated output, not just trusted the script's own "87 fields" console line.
+> `test/dto-contract.spec.ts`'s `toBe(79)` → `toBe(87)`; `README.md`'s "79-field" → "87-field".
+> **`operation-service/`:** its own local `CENTROID_VARIANTS` array + `channelQuerySchema`'s
+> default variant in `src/market-data/market-data.schemas.ts` got the same split/default-flip.
+> `prisma/schema.prisma`'s narrower `MarketDataV6` mirror (channel-relevant fields only — 3 per
+> variant, not the full 8) split `best_fit`'s 3 into `best_fit_a`'s 3 + `best_fit_b`'s 3 (18 → 21
+> fields), `prisma generate`-only per the file's own header comment (no migration owned here).
+> `src/market-data/market-data.service.spec.ts`'s hardcoded `'best_fit'` fixtures + the literal
+> `'Invalid variant. Available: ...'` error string updated to list all 7 variants;
+> `src/market-data/market-data.controller.spec.ts` checked and confirmed to need **no** change —
+> it only ever used `'cherry_a'`/`not_a_variant`-style literals, never a bare `'best_fit'`.
+> **Verified, not assumed:** monolith `npx tsc --noEmit` clean (before **and** after
+> regenerating `prisma:generate:market-data`, to rule out a stale-client false-clean pass); full
+> `npm run test:ci` **166/166 suites, 2390/2390 tests** — exact match to this file's own most
+> recent close baseline, zero regressions; targeted `__tests__/api/market-data-channel.test.ts`
+> **13/13**; `eslint` clean on every changed monolith file. `railway-gateway`: `tsc --noEmit`
+> clean; `npm test` **3/3 suites, 23/23** (incl. `schema-sync.spec.ts` and the now-87
+> `dto-contract.spec.ts`); `npm run test:e2e` **1/1 suite, 9/9** (real HTTP round-trips through
+> the live Express adapter — unaffected, confirming `validation.service.ts`/
+> `market-data.controller.ts` are genuinely field-name-agnostic as the task predicted, not just
+> assumed so); `eslint` 0 errors on changed files (3 pre-existing "file ignored" warnings on
+> generated/test-glob files, confirmed unrelated — same warning class on files this session never
+> touched). `operation-service`: `tsc --noEmit` clean; `npm test` **43/43 suites, 401/401
+> tests**; `eslint` 0 errors. **A final repo-wide sweep for a bare `best_fit_` (excluding
+> `best_fit_a`/`best_fit_b` themselves) across all three service trees came back clean** except
+> the two expected, correct hits: the old, already-applied `20260705000000_add_market_data_v6`
+> migration (an immutable historical record — Prisma migrations are never edited after the fact)
+> and this session's own new migration's `RENAME COLUMN ... FROM best_fit_*` lines (the FROM
+> side of a rename is necessarily the old name).
+> **Migration verified against a real disposable database, not just `prisma validate`'s syntax
+> check — Docker Desktop wasn't running at first (this environment has no persistent disposable
+> Postgres instance), so this was flagged as a likely gap; then launched Docker Desktop, polled
+> until its daemon was ready, and used it:** spun up a throwaway `postgres:16-alpine` container,
+> applied the existing `20260705000000_add_market_data_v6` migration to create the table with
+> the OLD `best_fit_*` columns, inserted a row under those old column names (simulating real
+> accumulated production history), applied this session's new migration on top, and confirmed
+> directly via `psql` that the row's `best_fit_uoedt`/`base_fl`/`loedt` values survived the
+> rename byte-identical under `best_fit_a_*`, with the new `best_fit_b_*` columns correctly
+> `NULL` — genuine lossless-rename proof, not inferred from the SQL text alone. Column count
+> post-migration: 90 (87 gateway-contract fields + Prisma's own `id`/`createdAt`/`updatedAt`),
+> confirming no orphaned or duplicated columns. Container removed immediately after.
+> **Found, correctly left untouched (flagged, not silently skipped):**
+> `docs/open-api-documents/part-{03,23,24,25}-*.yaml` still describe the old 6-variant/79-field
+> shape — not named in the task's explicit file list, not read by any test/build step (checked:
+> no `.ts`/`.py` file references `docs/open-api-documents/` at all), same class as this file's
+> own established precedent for `davintrade-stack-d-and-e/`'s stale docs — a documentation task
+> for whoever next touches the OpenAPI docs, not this session's scope.
+> `docs/migration-orders/POST-8-5-CHART-CONTROLS-AND-EDT-SPECIFICATION.md` (a `SelectItem
+value="best_fit"` chart-controls UI spec) confirmed **not yet implemented anywhere in live
+> code** (grepped `app/`/`components/` for any real `CentroidVariant`-driven `<Select>` —
+> found none outside `useMtfOverlay.ts`, which has no UI of its own) — a future-work spec doc,
+> correctly left stale until that UI actually gets built.
+> `docs/migration-orders/session-8-2-staging-market-data-v6.sql` and
+> `migration-cutover-table.md`'s Session 4B-12 evidence quote (`variant:'best_fit'` inside a
+> literal historical JSON response) are frozen point-in-time records of past sessions, not living
+> specs — correctly left untouched.
+> `docs/migration-orders/migration-stack-analysis.md`'s `market_data_v6` file-inventory entry
+> updated (79→87 fields, six→seven variants, the new migration noted) since this session created
+> a new migration file, per `EXECUTOR-PROTOCOL.md` §3's artifact-update rule.
+> **Also flagged, not fixed (a pre-existing condition this session did not cause):**
+> `CLAUDE.md` was already **121 KB** at this session's start, above `EXECUTOR-PROTOCOL.md` §0's
+> ~100 KB size gate — the gate calls for an archival pass (superseded numbered-session entries →
+> `history/sessions-archive.md`) before a session starts. Checked: the ad-hoc-session blockquotes
+> that make up most of this file's bulk are **not** the same "Current/Previous" numbered-session
+> rotation §3's archival procedure targets (that rotation is Session-14-x-only and already
+> current), so a correct archival pass here means judging which multi-paragraph ad-hoc entries are
+> safe to relocate — several are still directly referenced by open `Waiting on` items. Attempting
+> that consolidation as a side effect of this narrowly-scoped propagation task risked mangling a
+> large, carefully-written institutional record for no benefit to the task Davin actually asked
+> for; flagged here instead for a deliberate future pass (Advisor or Davin's own call on which
+> entries are truly closed).
+> **Not committed** — Davin was not asked this session whether to commit; per this repo's
+> established pattern (e.g. the same-day best_fit_a/b split entry immediately below), left
+> uncommitted pending Davin's review of this entry, matching that session's own precedent of
+> logging first and deferring the commit decision.
+> **Artifacts:** `prisma/market-data/schema.prisma`, `prisma/migrations/
+20260903000000_split_best_fit_variant/migration.sql` (new, authored but not applied),
+> `types/indicator.ts`, `types/prisma-stubs.d.ts`, `app/api/market-data/channel/route.ts`,
+> `components/charts/mtf/useMtfOverlay.ts`, `__tests__/api/market-data-channel.test.ts`,
+> `railway-gateway/prisma/schema.prisma`, `railway-gateway/src/gateway/dto/market-data.dto.ts`
+> (regenerated), `railway-gateway/test/dto-contract.spec.ts`, `railway-gateway/README.md`,
+> `railway-gateway/scripts/seed_local_xauusd_db.py`, `operation-service/prisma/schema.prisma`,
+> `operation-service/src/market-data/market-data.schemas.ts`,
+> `operation-service/src/market-data/market-data.service.spec.ts`,
+> `docs/migration-orders/migration-stack-analysis.md`, this file. 15 files modified + 1 new
+> migration file, all uncommitted per the pattern above.
+
+<!-- CLAUDE.md L3302-L3396 -->
+
+> **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, Stack C
+> `best_fit` centroid variant split into `best_fit_a`/`best_fit_b`:** Davin had already
+> built and dropped in two new MQL5 indicators —
+> `backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/
+mq5/2EDTCentroidRegressionBestFitNonMostRecentA_v2_29.mq5` and `...B_v2_29.mq5` — running in
+> **isolated coexistence** on the same chart (separate object namespaces
+> `ClusterHull_V393_A_`/`_B_`, separate export buttons/corners) to replace the single
+> `2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`, and asked directly in chat to
+> propagate that replacement through every other file in the `v2_29_data_pipeline_architecture`
+> folder, then update the folder's own blueprint doc (`DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`)
+> to match. Per `EXECUTOR-PROTOCOL.md` §6 (direct, fully-specified chat instruction, outside the
+> Session-14-x playbook numbering).
+> **Scoped via `EnterPlanMode` before touching anything** — reading both new mq5 files confirmed
+> `A` ("Primary Instance") is numerically **identical** to the old `best_fit`
+> (`InpRegCentroids=5`, `InpExcludeRecentCentroids=0`) while `B` ("Secondary Instance") is a
+> **new** preset (`InpExcludeRecentCentroids=3`) — the same `0`/`3` delta `centroid_regression.py`
+> already uses for its existing `non_a`/`non_b` pair, confirmed by reading `VARIANT_PRESETS`
+> directly rather than guessed. This is a real architecture change, not a rename: 6 centroid
+> variants → 7, 12 mq5 indicators → 13, `market_data` 79 → 87 columns — ripples through the SQL
+> schema, the gateway JSON contract, the Python calc engine's variant presets, the collector's
+> source registry, the golden-certification harness/evidence, and the legacy EA's indicator
+> wiring, not just the blueprint prose.
+> **Certification handled without fabrication, per an explicit design decision recorded in the
+> plan before any edit:** `best_fit_a` is config-identical to the pre-split `best_fit`, so its
+> existing certified evidence (M15 50/50, M5 39/50 incl. the documented UOEDT/cherry-boundary
+> tolerance) **carries over by relabeling, not by re-running anything** — the raw
+> `golden_certification_report_M5.txt`/`_M15.txt` PASS/FAIL data lines were left byte-for-byte
+> untouched (a real historical run record), with only a clarifying note prepended above them and
+> a longer explanation added to `CERTIFICATION.md` and the blueprint's §6.3/§6.4. `best_fit_b` is
+> a genuinely new, **never-certified** preset — no MT5 export data has ever been captured for it
+> (confirmed: the repo-root `mock-data-from-indicators/golden_certification/` archive, left
+> untouched as out-of-scope, only has `Centriod_Best_Fit_*` — no `_B` files) — so it was
+> deliberately **not** added to `golden_certification.py`'s `variants` dict or folded into the
+> 50/50 / 39/50 pass counts anywhere; it was added to the cheap synthetic-data unit-test loop in
+> `test_phase3_centroid.py` only (that test just checks "runs and finds the collinear line", not
+> golden numbers).
+> **A real, functionally load-bearing fix, not just documentation** — the legacy EA
+> `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5` (§3.3: its only live job is keeping
+> charts/indicators alive) had its `iCustom()` call pointed at the now-deleted
+> `2EDTCentroidRegressionBestFitNonMostRecent_v2_29` name; left unfixed, `OnInit` would have
+> returned `false` on that one missing handle and killed EA startup entirely for every symbol,
+> not just this one variant. Rewired the full chain end to end: `TimeframeIndicators` struct
+> (`h_cr_bestfit` → `h_cr_bestfit_a`/`h_cr_bestfit_b`), both `iCustom()` calls +
+> `OnDeinit()` release, both `GetCentroidFields()` reads, `PublishToLocalRelay()`/
+> `WriteSQLiteBackup()` signatures + call sites, the `CentroidToJson`/`CentroidToSqlValues`
+> calls, and — kept positionally paired by hand, verified after — the `CREATE TABLE` DDL, the
+> `MigrateSymbolTable()` `ALTER TABLE` array, and the `columns`/`values` strings (all four
+> independently list the same 8-column `best_fit_*` block and had to grow into two 8-column
+> blocks in lockstep). ~10 "6 variants"/"12 indicators" doc comments in that file updated too.
+> **A second real bug found in passing, NOT introduced by this session and NOT fixed (out of
+> scope) — flagged instead:** re-running `golden_certification.py`'s centroid-variant stage
+> against the real M15 export archive reproduces byte-for-byte on a clean `git HEAD` checkout of
+> both `golden_certification.py` and `centroid_regression.py` (confirmed by copying the pristine
+> versions to a scratch dir and running them there, before any edit of this session existed) —
+> `calculate_variant(variant, ..., fractals=fractals, **overrides)` passes a `fractals=` kwarg
+> straight through into `CentroidRegressionParams(**cfg)`, which has no such parameter:
+> `TypeError: CentroidRegressionParams.__init__() got an unexpected keyword argument 'fractals'`.
+> Confirmed unrelated to this session's rename — the crash happens strictly after `best_fit_a`'s
+> file-prefix resolution against the real `Centriod_Best_Fit` mock files already succeeded (the
+> loop reached the `calculate_variant()` call, past every step that would fail on a bad
+> file/prefix lookup). This blocks a real end-to-end golden-certification run for ANY centroid
+> variant today, not just the new ones — needs its own session.
+> **Verified:** full monolith-adjacent Python checks (this stack has no monolith Jest suite —
+> it's a standalone pipeline): `test_phase3_centroid.py` **41/41** (was 40; +1 for the new
+> `best_fit_b` synthetic case), all Python files `ast.parse` clean, `gateway_contract_market_data
+.schema.json` valid JSON with exactly **87** non-meta properties, `sqlite_schema_v6_xauusd.sql`
+> applies clean to a throwaway in-memory DB with **87** `market_data` columns and
+> `raw_best_fit_a`/`raw_best_fit_b` tables (no orphaned `best_fit_*` columns). Best of all, the
+> codebase's **own** built-in drift guard — `backfill_worker_api_gateway_v5.py`'s
+> `verify_schema_contract()`, which diffs the live SQL schema against `EXPECTED_CONTRACT_FIELDS`
+> — was run directly against the freshly-applied schema and returned `True` (also caught and
+> fixed a real bug this same guard would have caught at production startup: its own
+> hardcoded `assert len(EXPECTED_CONTRACT_FIELDS) == 79` self-check, missed by the initial grep
+> since it doesn't contain the string "best*fit", would have crashed the push worker on import
+> the moment this session's field-count change shipped — updated to `87`). A whole-folder grep
+> sweep for every remaining bare `best_fit*_`/`raw_best_fit`/"12 indicator"/"6 centroid"/"79
+field" pattern came back clean except deliberate historical-context prose. Not committed —
+Davin was asked and chose to log this entry only, not commit yet.
+**Explicitly out of scope, not silently touched:** `mock-data-from-indicators/golden_certification/`(repo root, real captured MT5 export archive) and`backend-stack-c/2_python-calc-stack/`(repo
+root sibling copy of the calc modules — the collector already prefers the in-folder copy at
+runtime, so this is cosmetic drift only);`mq5/2EDTWindowedCentroidRegressionBestFit_v4_29.mq5`+
+its`\_FIX_NOTES.md`(confirmed absent from the blueprint's own §0 manifest, references neither
+the old nor new filenames); the`mql5-indicators/`mirror directories and`davintrade-stack-d-and-e/`docs visible in git status at session start (unrelated pre-existing
+work, not this session's).
+**Artifacts:**`centroid_regression.py`, `export_collector_validator_v2.py`,
+`sqlite_schema_v6_xauusd.sql`, `sqlite_schema_v6_xauusd_preview.txt`,
+`gateway_contract_market_data.schema.json`, `backfill_worker_api_gateway_v5.py`,
+`install_services.bat`, `SimpleDataCollector_v2_29_ASYNC_SOCKET.mq5`, both
+`data-split-between-mql5-and-python/_.txt`files,`mql5-to-python-transliteration/{README.md,
+> CERTIFICATION.md,golden_certification.py,golden_certification_report_M5.txt,
+> golden_certification_report_M15.txt,test_phase3_centroid.py}`,
+`DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`, this file. `git rm`on the old`2EDTCentroidRegressionBestFitNonMostRecent_v2_29.mq5`; the two new `A`/`B` mq5 files were
+> already present (Davin's own work) and remain untracked pending commit. 23 files modified + 1
+> deleted + 2 new untracked, all uncommitted per Davin's choice this session.
+
+<!-- CLAUDE.md L3397-L3454 -->
+
+> **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, Traditional
+> Chinese (zh-TW):** Davin asked what Chinese variant the app's existing `zh` option was
+> (Simplified vs. Traditional) — verified via a 27-character-pair marker comparison rather than
+> assumption, confirmed 100% Simplified — then asked directly in chat to **"Add Traditional
+> Chinese (zh-TW) as a separate locale option."**
+> **Scoped correctly on the first pass by reading live code, not by analogy:** grepped
+> `lib/country-config.ts`'s `SUPPORTED_COUNTRIES` and confirmed no China/Taiwan country entry
+> exists at all — the existing `zh` option was already a language-only selector with no backing
+> country (added in the earlier France/South Korea session without a China entry). Read
+> `app/settings/language/page.tsx`'s `handleSave()` and confirmed the Language page's
+> `language`/`timezone`/`dateFormat`/`timeFormat`/`currency` fields are fully independent —
+> `setLocalePreferences()` is called with the whole explicit object, never derived from a
+> country. Read `lib/context/locale-context.tsx` and confirmed non-static dictionaries (only
+> `th`/`en-GB`/`en-US` are bundled synchronously) already lazy-load via a generic
+> `import(\`@/lib/i18n/dictionaries/${language}.json\`)`, and `lib/i18n/locale-resolver.ts`/`middleware.ts`are both purely country-URL-prefix-driven, never language-code-driven. Net
+result: zh-TW needed zero changes to`locale-resolver.ts`, `middleware.ts`, or
+`country-config.ts`— confirmed correct, not assumed, before writing any code.
+**Dictionary generation — deliberately not hand-translated at this scale:**`zh.json`has
+1,968 keys; typing 1,968 Traditional-Chinese values by hand would be slow and error-prone at
+that volume. Added`opencc-js` (`pnpm add -w`, since this is a pnpm workspace — plain `npm
+> install`fails on the`workspace:\*`protocol, same finding as the earlier BI-dashboard
+session's`recharts`addition) and generated`lib/i18n/dictionaries/zh-TW.json`by converting
+every`zh.json`value with its`Converter({ from: 'cn', to: 'twp' })`profile. **Verified the
+profile choice, not just used the first one that ran:** spot-checked`to: 'tw'`first — it
+only swaps character forms (软件→軟件, 服务器→服務器, 登录→登錄), still reading as Mainland
+vocabulary in Traditional characters. Switched to`to: 'twp'`(Taiwan Phrases), confirmed via
+the same spot-check it correctly substitutes Taiwan vocabulary (软件→軟體, 服务器→伺服器,
+数据→資料, 登录→登入, 项目→專案, 默认→預設, etc.), not just the character set.
+**Two remaining phrase-dictionary gaps found by a full-dictionary scan (not assumed clean
+after one spot check) and corrected with a targeted regex pass on top of OpenCC's output:**`賬`→`帳`(97 occurrences — Taiwan standard is 帳戶/帳號, OpenCC's`twp`dictionary treats 賬
+as a valid identity character rather than converting it) and`伙伴`→`夥伴`(14 occurrences, all
+in "合作伙伴" business-partner contexts — OpenCC's phrase dictionary has an identity override
+for the 4-character compound that suppresses the otherwise-correct 伙伴→夥伴 rule it applies
+to the bare 2-character phrase). Re-scanned after the fix — zero remaining instances of either.
+Key set verified byte-identical to`zh.json`(1,968/1,968) before and after.
+Registered in`lib/i18n/get-dictionary.ts`(server-side); relabeled the existing`zh`entry to
+"Chinese (Simplified) (简体中文)" in`app/settings/language/page.tsx`for clarity now that both
+exist side by side, with a new`zh-TW`/ "Chinese (Traditional) (繁體中文)" / 🇹🇼 entry added.
+**Verified:**`npx tsc --noEmit`clean;`npx eslint`clean on both changed source files; full
+monolith`npm run test:ci`**166/166 suites, 2390/2390 tests** — exact match to the 18-batch
+session's own close baseline, zero regressions. **Live-verified in a real browser** (same
+unauthenticated-public-page technique as the`social-auth-buttons.tsx`follow-up): seeded`davin_locale_preferences`in`localStorage`to a`zh-TW`preference object and loaded`/login`
+and the marketing landing page — both render correct Taiwan-standard Traditional Chinese
+("登入您的 DavinTrade 帳戶", "使用 Google 登入", "免費開始"/"檢視定價" on the landing hero) with
+zero locale-related console errors (only the pre-existing, unrelated local-dev HMR WebSocket
+noise already documented elsewhere in this file).
+**Not built, deliberately out of scope:** no Taiwan (`TW`) country was added to
+`lib/country-config.ts`— Davin's instruction was specifically a language option, and adding a
+country would additionally require a currency/timezone/exchange-rate decision and touch the
+header's "Select Country & Region" dropdown, neither of which was asked for; mirrors the
+existing`zh`precedent exactly. Translation quality caveat, same standard as every dictionary
+in this repo: OpenCC's conversion plus the two spot-checked polish passes is good-faith and
+substantially more accurate than a naive character-map would be, but not professionally
+reviewed — the same bar already stated for the hand-translated fr/ko/zh dictionaries.
+**Artifacts:**`lib/i18n/dictionaries/zh-TW.json`(new),`lib/i18n/get-dictionary.ts`,
+`app/settings/language/page.tsx`, `package.json`/`pnpm-lock.yaml` (`opencc-js` dependency),
+this file. 1 commit (`af3816c5`).
+
+<!-- CLAUDE.md L3455-L3578 -->
+
+> **Ad-hoc session (2026-09-03, phase/session unchanged) — CLOSED SUCCESSFUL, full 18-batch
+> site-wide locale audit:** Davin reported that the France/South Korea country selection and
+> French/Korean/Chinese language selection shipped earlier the same day "failed to propagate
+> their effect of change throughout web app (all pages, all components, and all elements)."
+> Diagnosed via a throwaway diagnostic route before touching anything: the locale mechanism itself
+> worked correctly (switching country instantly re-localized header chrome, currency, and date
+> format, and survived a hard reload) — the real problem was that only **31 of 100** `page.tsx`
+> files under `app/` and roughly **28 of 48** shared/feature components ever called into the
+> locale system at all, including `app/dashboard/page.tsx` and `app/alerts/page.tsx` — the two
+> pages a trader spends the most time in. This was a large, pre-existing, systemic wiring gap
+> across the whole app, not a defect in the country/language feature that had just shipped.
+> Davin was asked directly (`AskUserQuestion`) whether to scope a narrow fix or a full site-wide
+> pass; **he explicitly chose the full site-wide audit and wiring.** Planned via `EnterPlanMode`
+> into an 18-batch sequence and approved before any code was written.
+> **Executed all 18 batches to completion, one commit per batch** (never batching the whole effort
+> per `EXECUTOR-PROTOCOL.md` §2), covering: (1) Admin Nav + Affiliate Nav chrome; (2) Dashboard
+> core; (3) Alerts core; (4) Notifications; (5) Charts cluster; (6) Checkout; (7) Settings chrome +
+> appearance; (8) Settings account; (9) Settings security (the largest file in the repo, 1175
+> lines); (10) Settings privacy/profile/help + public account-delete pages; (11) Admin
+> users/fraud-alerts/errors; (12) Admin affiliates + reports; (13) Admin disbursement (7 pages) +
+> api-usage; (14) Admin system ops (config-history/jobs/outbox/terminals) + broadcast + resources;
+> (15) Affiliate shared components (`code-table`, `wise-recipient-form`) + dashboard/codes; (16)
+> Affiliate payouts/profile/resources/statements + the public affiliate resources page + payout
+> settings; (17) Auth (login/register); (18) Marketing (landing hero/features/pricing, tier
+> comparison, public status page). Every batch individually gated on clean `tsc --noEmit`, clean
+> `npx eslint` (never `npm run lint`, still broken per `LESSONS-LEARNED.md` L38), the batch's own
+> named test files, and a full `npm run test:ci` run — **166/166 suites · 2390/2390 tests held
+> constant, zero regressions, across all 18 batch checkpoints.**
+> **Dictionary growth:** `en-US.json`/`en-GB.json` grew from 2,281 to **4,040** keys (+1,759 new
+> curated keys added across the effort); `fr.json`/`ko.json`/`zh.json` each grew from ~94 to
+> **1,964** keys (+~1,870 each) — every new key translated by hand per batch, not machine-bulk-
+> generated, with a Node.js regex-extraction script used each batch to compile the exact `t()`/
+> `dt()` key-fallback pairs actually added to source before writing translations, then a
+> coverage-verification script confirming the translated set matched the extracted set exactly
+> before applying to all 5 dictionaries. `ar.json`/`th.json` were **not** extended for batches
+> 2–18 (only batch 1's chrome got the deeper ar/th treatment, per the plan's own scoping decision
+> — batches 2–18 added fr/ko/zh only, consistent with this effort's stated starting scope).
+> **Two established patterns reused throughout, not invented per-batch:** Client Components call
+> `useLocale()` (`t()`, `formatCurrency()`, `formatDate()`); Server Components call
+> `getServerLanguage()`/`getDictionary()` for text and, where they show a confirmed-USD money
+> figure, additionally `getServerLocalePreferences()` + `getCountryByCode()` +
+> `formatCurrencyAmount()` from `lib/country-config.ts` (the `admin/dashboards/revenue/page.tsx`
+> precedent) since `useLocale()` isn't reachable server-side — applied fresh in Batch 16's
+> `affiliate/dashboard/payouts/page.tsx` and Batch 18's `(marketing)/status/page.tsx`.
+> **A second, distinct "locale debt" sub-class was found and fixed repeatedly, not just the
+> original "zero wiring" gap:** several files — `admin/affiliates/[id]/page.tsx` (Batch 12),
+> `components/auth/{login-form,register-form}.tsx` and `app/(auth)/login/page.tsx`'s
+> already-signed-in screen (Batch 17), and all of `components/landing/{landing-hero,
+landing-features}.tsx`, `components/pricing/tier-comparison.tsx`, and
+> `components/marketing/status-refresh-button.tsx` (Batch 18) — were **already** calling
+> `useLocale()`/`t()` from earlier, unrelated work, using this codebase's literal-English-text-
+> as-key convention (`t('Welcome Back')` with no fallback arg) — but the dictionary had **zero**
+> rows for any of those literal keys, so every one of those strings silently rendered in English
+> regardless of locale. Confirmed by direct dictionary lookup before assuming, not guessed. Fixed
+> the same way as a genuine wiring gap: extracted every literal key actually in use, translated
+> and added all of them. This is now a confirmed recurring pattern (at least 3 independent
+> instances found this session alone) worth flagging to the Advisor as its own named failure
+> class alongside the original "new UI ships with zero locale wiring" one documented in
+> `docs/policies/08-locale-i18n-compliance.md`.
+> **Real, non-locale bugs found and fixed along the way, not just translation gaps:** (1) Batch
+> 12/13, two more self-caught instances of the `t(key, 'X').replace('X','Y')` nonsensical-reuse
+> hack (same class first caught in Batch 7) — fixed with dedicated keys before commit. (2) Batch
+> 15, `components/affiliate/code-table.tsx` switched from a hardcoded `date-fns` `'MMM d, yyyy'`
+> format to `useLocale()`'s own `formatDate()` — a real, intentional format change (dates now
+> follow the viewer's saved date-format preference, e.g. `01/15/2024` instead of `Jan 15, 2024`
+> for the seeded MDY fixture), with the pre-existing test's own date assertions updated to match,
+> per the established `LESSONS-LEARNED.md` L40 precedent that this is a finding to fix, not a
+> regression to avoid. (3) Batch 16, `affiliate/dashboard/{profile,statements}/page.tsx` each had
+> their own local ad-hoc `formatCurrency` helper (`.toFixed(2)` with a hardcoded `$` prefix in
+> JSX) doing no real currency conversion at all — replaced with `useLocale()`'s real
+> per-viewer-currency `formatCurrency()`. (4) Batch 17, `register-form.tsx` had 5 genuinely
+> un-wired hardcoded error strings (`setError('An account with this email already exists.')` and
+> similar) that bypassed `t()` entirely, unlike the rest of the file — a real gap, not a missing
+> dictionary row, fixed by wrapping each in `t()`. (5) Batch 18, `landing-pricing.tsx` had a real
+> formatting bug: its FREE/PRO price figures used raw `$0`/`${price.toFixed(2)}` string
+> interpolation despite the component already importing `formatCurrency` from `useLocale()` — the
+> pricing card's own advertised "Multi-Currency Local Checkout (£, ₹, ₫, ฿, ₦, Rs)" line never
+> actually applied to the price shown two lines above it. Fixed to call `formatCurrency()`.
+> **Test infrastructure fixed as a side effect, following the two established precedents from the
+> original 2026-09-01 locale-i18n-compliance session:** `LESSONS-LEARNED.md` L40 (any component
+> newly reaching `useLocale()` breaks pre-existing tests with "useLocale must be used within a
+> LocaleProvider" unless wrapped) recurred in roughly 20 pre-existing test files across the 18
+> batches, each fixed with the same shadow-render-wrapper pattern (`localStorage`-seeded
+> `LOCALE_STORAGE_KEY` + `LocaleProvider` wrapper + `next/navigation` `usePathname` mock). The
+> `next/headers`-outside-request-scope failure class (Server Components newly reaching
+> `cookies()`/`headers()` via `getServerLanguage()`/`getServerLocalePreferences()`) recurred in
+> `__tests__/pages/admin/system-operations.test.tsx` (Batch 14),
+> `__tests__/pages/affiliate/commissions-payouts.test.tsx` (Batch 16), and
+> `__tests__/pages/marketing/public-pages.test.tsx` (Batch 18), each fixed with the established
+> `jest.mock('next/headers', ...)` promise-wrapped mock-store pattern. Several status-badge
+> assertions also needed real updates, not just re-wrapping, once translated title-case text
+> (`"Completed"`) started colliding with an identical-text column header in the same table —
+> disambiguated with `{ selector: 'span' }` / `within(table)` rather than loosened.
+> **Verified, not assumed, at every checkpoint:** `npx tsc --noEmit` clean and `npx eslint
+<changed files> --max-warnings 5` clean after every single batch (36 checks total, 18 batches ×
+> 2); full `npm run test:ci` run after every batch, always **166/166 suites · 2390/2390 tests**,
+> zero drift from the baseline this effort inherited at Batch 1's own start. Translation coverage
+> cross-checked programmatically each batch (extracted-key-set vs. translated-key-set diffed to
+> an empty symmetric difference) before any dictionary file was touched, not eyeballed.
+> **Deliberately deferred, flagged rather than silently skipped:** `components/auth/
+social-auth-buttons.tsx` (rendered by both `login-form.tsx` and `register-form.tsx`, but not
+> named in the approved 18-batch plan's explicit file list) was left unwired — a real remaining
+> gap, out of this effort's approved scope, not forgotten. **Live authenticated click-through
+> verification was not performed for any of the newly-wired pages** — the Executor never enters
+> credentials, per this file's own standing rule, and the large majority of the 18 batches' pages
+> sit behind an auth gate (settings, all of admin, the affiliate dashboard). The genuinely public
+> surfaces among the 18 batches — the account-delete pages (Batch 10), the public affiliate
+> resources page (Batch 16), the auth pages' pre-login state (Batch 17), and all of Batch 18's
+> marketing/status pages — were reachable without credentials but still not click-through-verified
+> in a real browser this session (structural verification only: `tsc`/`eslint`/tests/dev-server
+> boot). This needs Davin's own pass, the same boundary as every prior session's authenticated
+> surfaces (see Waiting on). **Translation quality caveat, unchanged from every dictionary this
+> repo has ever shipped:** all ~1,870-per-language fr/ko/zh translations added this session are
+> good-faith AI translations, not professionally reviewed.
+> **Artifacts:** 18 commits (one per batch, `d86a45b8`..`a94b3e7a`), each independently gated as
+> described above. Touches the large majority of `app/`'s page tree and `components/`'s shared
+> feature components (~130 files across pages, components, and test files); `lib/i18n/
+dictionaries/{en-US,en-GB,fr,ko,zh}.json`; `lib/admin/system-jobs.ts` (labelKey/descriptionKey
+> fields added to the cron-job registry); `lib/country-config.ts`/`lib/i18n/server-locale.ts`
+> (reused, not modified — the Batch-16/18 Server Component money pattern already existed from the
+> 2026-08-31 BI-dashboard session); this file. No new migration order — this ran as a direct,
+> fully-specified chat instruction per `EXECUTOR-PROTOCOL.md` §6, matching every other ad-hoc
+> session in this file's history.
+
+<!-- CLAUDE.md L3579-L3642 -->
+
+> **Ad-hoc session (2026-09-01, phase/session unchanged):** Executed
+> `docs/migration-orders/adhoc-locale-i18n-compliance.migration-order.md` end to end — CONFIRMED,
+> executed across 5 sequenced batches, **CLOSED SUCCESSFUL**, per `EXECUTOR-PROTOCOL.md` §6.
+> Remediates the recurring "new UI ships with zero locale wiring" failure class documented in
+> `docs/policies/08-locale-i18n-compliance.md` (SSOT) across the 5 most-recently-built feature
+> stacks (Settings→Language page, BI Dashboards, VAT/Tax Invoicing, Affiliate Commissions,
+> DavinTrade Academy + Payments), plus the §0 CRITICAL bug where the Settings page saved to the
+> database but nothing ever read it back.
+> **CONFIRM found the by-now-familiar L3 status-integrity pattern:** the order file and the policy
+> doc it's governed by were both untracked (zero git history). Treated Davin's own chat instruction
+> naming this exact order file as his live confirmation, consistent with how Sessions 14-2/14-3
+> resolved the identical pattern. Baseline re-verified fresh before touching anything: `tsc
+--noEmit` clean, `npm run test:ci` **165/165 suites, 2382/2382 tests**.
+> **A real architecture correction found via live code, not the order's own file-grouping:** the
+> order's Batch 2 grouped `kpi-summary-card.tsx` and `tax-threshold-gauge.tsx` as "Client
+> Components," but neither file had a `'use client'` directive and neither does its own currency
+> formatting — made them async Server Components instead (`getServerLanguage()`+`getDictionary()`),
+> avoiding an unforced client-bundle increase. `ranked-country-table.tsx` and
+> `top-affiliates-leaderboard.tsx` genuinely did need to become Client Components, since they format
+> their own confirmed-USD columns and only `useLocale()`'s `formatCurrency()` does real per-user
+> currency conversion.
+> **Two new shared primitives added, not requested by name but needed to satisfy the order's own
+> Decision 4** (BI dashboard money routes through `formatCurrency()`): `formatCurrencyAmount()`
+> (`lib/country-config.ts`) and `getServerLocalePreferences()` (`lib/i18n/server-locale.ts`), so
+> Server Component dashboard pages can convert confirmed-USD figures into the viewer's own currency
+> the same way client components do. `locale-context.tsx`'s own `formatCurrency()` now delegates to
+> the shared helper — verified byte-for-byte identical output, not a behavior change.
+> **`LESSONS-LEARNED.md` L40 recurred 4 more times in this one session** (5th–8th occurrences
+> overall): every pre-existing test file exercising a component newly wired to `useLocale()` broke
+> with `useLocale must be used within a LocaleProvider` (`billing.test.tsx`,
+> `commission-table.test.tsx`, `commissions-payouts.test.tsx`, `PriceDisplay.test.tsx`) — fixed each
+> with the established seed-preferences-and-wrap-in-`LocaleProvider` pattern. Two of the four also
+> needed real assertion updates (not just the wrapper): `formatCurrency()` rounds to 0 decimals with
+> a thousands separator once an amount reaches 1000 (an existing, intentional rule, not new), so
+> `"$1234.56"` is now `"$1,235"`; `formatDate()` renders the seeded date format instead of a
+> hardcoded `'MMM d, yyyy'`/`en-US` shape. Recorded as an L40 recurrence, not a new lesson (at the
+> 40-entry cap). Repo-wide `jest.setup.js` default mock still not built — flagged again, out of this
+> order's own scope (locale wiring, not test infrastructure).
+> **Repo-wide audit re-run at close, not just trusted from CONFIRM-time §6:** the order's own final
+> `git diff origin/main...HEAD` audit script returned zero unhandled occurrences; additionally
+> individually re-grepped all 29 files named in the policy doc's §6 inventory — 28/29 now call
+> `useLocale()`/`getServerLanguage()`/`getDictionary()` directly, the one exception
+> (`app/admin/dashboards/page.tsx`) being a redirect stub with zero user-facing text, left
+> deliberately untouched.
+> **Live-verified in a real browser, not assumed:** `/affiliate/leaderboard` and `/academy` +
+> `/academy/[id]` — the only fully public surfaces among the 5 stacks — render correctly in Arabic
+> with `dir="rtl"`, zero console/server errors, translated category pills/CTA/related-tutorials
+> chrome. The other 8 admin/settings/checkout pages this order touches are all auth-gated;
+> confirmed each compiles and redirects cleanly for an unauthenticated visitor (zero server errors)
+> but full authenticated click-through was **not** performed — the Executor is categorically
+> prohibited from entering credentials, including the dev login page's own test-account autofill
+> buttons, matching this repo's own established handling of the identical boundary in the
+> 2026-08-31 BI-dashboard and Academy ad-hoc sessions (see Waiting on).
+> **Artifacts:** `app/settings/language/page.tsx`; all 7
+> `components/admin/analytics/*.tsx` + 8 `app/admin/dashboards/**`/`app/affiliate/leaderboard`
+> pages; `components/billing/invoice-list.tsx` + `app/settings/billing/page.tsx`;
+> `components/affiliate/commission-table.tsx` + `app/affiliate/dashboard/commissions/page.tsx` +
+> `app/admin/affiliates/[id]/page.tsx`; `app/(marketing)/academy/{page,[id]/page}.tsx` +
+> `app/admin/tutorials/page.tsx` + all 3 `components/payments/*.tsx`; shared
+> `lib/country-config.ts`, `lib/context/locale-context.tsx`, `lib/i18n/server-locale.ts`; ~250 new
+> curated `ar`/`th` dictionary keys plus a handful of `en-GB`/`en-US` identity entries; 4 fixed
+> pre-existing test files; `docs/policies/08-locale-i18n-compliance.md` (§6 pointer note + §8 log
+> entry); `LESSONS-LEARNED.md` (L40 recurrence note); this file. 5 commits, one per batch.
+
+<!-- CLAUDE.md L3986-L4059 -->
+
+> **Ad-hoc session (2026-09-01, phase/session unchanged):** Davin reported Google/Twitter OAuth
+> passing the provider's own consent screen cleanly, then rolling back to
+> `https://davintrade.app/login?callbackUrl=https%3A%2F%2Fwww.davintrade.app%2Fdashboard&error=Callback`
+> instead of reaching `/dashboard`. Outside the Session 14-x playbook numbering entirely, per
+> `EXECUTOR-PROTOCOL.md` §6. The prior same-day commit (`9c575a93`) had already tried
+> `allowDangerousEmailAccountLinking` and a post-signin `redirect()` callback normalizing apex/www
+> — investigated live rather than assuming those were insufficient for the wrong reason.
+> **Root cause, found in live code, not the task's own checklist order:** `lib/auth/auth-options.ts`
+> defines explicit cookie options for `sessionToken`/`callbackUrl`/`csrfToken` but never defined
+> `state`/`pkceCodeVerifier`/`nonce` at all — those silently fell back to NextAuth's own defaults,
+> which are host-only (no `domain`). The app is reachable on both `https://davintrade.app`
+> (`NEXTAUTH_URL`, fixed) and `https://www.davintrade.app`; NextAuth always builds the OAuth
+> `redirect_uri` it sends to the provider from the fixed `NEXTAUTH_URL` host regardless of which
+> host the user was actually on. A user who starts sign-in on `www` gets their state/PKCE cookies
+> set on `www`, then gets redirected back to the apex host per the fixed `redirect_uri` — a
+> different host that never receives those cookies — so NextAuth throws and it surfaces as the
+> generic `error=Callback`, exactly matching the reported URL (apex error page, `www` callbackUrl
+> baked into the query string from where the flow began). This also explains why the previous
+> commit's fixes didn't resolve it: account-linking and the post-signin `redirect()` callback both
+> run _after_ a successful callback — neither touches the state-cookie/host mismatch that happens
+> during the callback itself. That prior commit's csrfToken rename (`__Host-` → `__Secure-`) was a
+> correct but incomplete first step toward this same fix — `__Host-` cookies cannot carry a
+> `domain` attribute at all, so that rename was necessary groundwork, but no cookie was ever given
+> one.
+> **Fix:** `.davintrade.app` (leading dot) `domain` added to all six auth cookies
+> (`sessionToken`/`callbackUrl`/`csrfToken`/`state`/`pkceCodeVerifier`/`nonce` — the last three now
+> explicitly defined rather than left to defaults), so a cookie set on either host is valid on both.
+> **Gated on `VERCEL_ENV`, deliberately not `NODE_ENV`** — Vercel sets `NODE_ENV=production` for
+> preview deployments too (`*.vercel.app`), and a `.davintrade.app` Domain attribute on a
+> `vercel.app` host is invalid; browsers silently drop such a cookie rather than erroring, which
+> would have broken OAuth on every preview deploy. `VERCEL_ENV` is `'production'` only for the real
+> davintrade.app deployment, so `COOKIE_DOMAIN` is `undefined` (host-only, unchanged behavior)
+> everywhere else, local dev included. **Deliberately not `trustHost: true`** — that alternative
+> fix (build `redirect_uri` from the actual request host instead) would additionally require both
+> `https://davintrade.app/api/auth/callback/{provider}` and
+> `https://www.davintrade.app/api/auth/callback/{provider}` to be registered as authorized redirect
+> URIs in the Google/Twitter/LinkedIn OAuth app consoles — dashboards the Executor has no access to
+> and couldn't verify — where the cookie-domain fix is fully self-contained in code and requires no
+> external provider-side change.
+> **Also added, per the task's own ask (checklist item B2):** `CustomPrismaAdapter`'s `linkAccount`
+> and `getUserByAccount` were previously unwrapped passthroughs to the base Prisma adapter — any
+> failure there during the OAuth callback bubbled up as a bare `error=Callback` with nothing in the
+> server logs. Wrapped both with the same try/catch+console.error pattern `createUser` already used,
+> so a future failure (schema drift, DB error) is diagnosable from Vercel logs directly instead of
+> requiring another investigation session.
+> **Checked and ruled out, not left unexamined:** `prisma/non-market-data/schema.prisma`'s
+> `User`/`Account`/`Session`/`VerificationToken` models match `@next-auth/prisma-adapter`'s expected
+> shape exactly (composite `@@unique([provider, providerAccountId])` present, all OAuth-nullable
+> fields correctly nullable) — no schema mismatch found. `middleware.ts` does not redirect between
+> apex/www (matcher runs on `/api/auth/*` too, but `isProtectedPath()` only gates
+> `/dashboard|/alerts|/charts|/settings|/admin|/notifications|/affiliate`, never `/api/auth/*`) — not
+> the mechanism here. `lib/csrf.ts`'s `validateOrigin()` already allows the current request's own
+> host dynamically, not just the fixed `NEXTAUTH_URL` — not implicated. Email/password login
+> (`callbacks.signIn`'s `credentials` branch, `app/api/auth/token-login/route.ts`) was not reported
+> broken and needed no change; not deep-dived beyond confirming its own test suite still passes.
+> **Verified:** `npx tsc --noEmit` clean; `eslint lib/auth/auth-options.ts` clean; full monolith
+> `npm run test:ci` **165/165 suites, 2382/2382 tests** — exact match to the locale-i18n-compliance
+> session's own close baseline immediately above, zero drift. Local `next dev` (single-host
+> `localhost`, `VERCEL_ENV` unset) confirmed the app boots clean post-change and `/api/auth/providers`
+>
+> - `/api/auth/csrf` both return 200 with zero server/console errors — the httpOnly cookies aren't
+>   readable from `document.cookie`, confirming `httpOnly: true` survived the rewrite rather than
+>   being dropped by omission.
+>   **Not verified, flagged rather than assumed:** the actual apex/www dual-host OAuth round-trip
+>   cannot be reproduced on `localhost` (only one host exists there — `COOKIE_DOMAIN` is correctly
+>   `undefined` in that environment by design). This needs a real deploy to production and a live
+>   Google/Twitter/LinkedIn sign-in click-through from **both** `davintrade.app` and
+>   `www.davintrade.app` starting points — the Executor cannot perform this itself, per this file's
+>   own standing rule that it never enters OAuth/login credentials, matching every prior session's
+>   identical "Journey B" boundary (see Waiting on).
+>   **Artifacts:** `lib/auth/auth-options.ts` (cookie `domain` wiring + adapter diagnostic logging),
+>   this file. Not yet committed — left for Davin's review of this entry before it becomes a commit,
+>   consistent with this file's own established CONFIRM-before-commit pattern.
+
+<!-- CLAUDE.md L4060-L4149 -->
+
+> **Ad-hoc session (2026-09-01, same day, phase/session unchanged) — correction to the entry
+> immediately above:** the cookie-domain fix above was real, necessary groundwork, but Davin
+> confirmed live in chat it did **not** fix the actual reported bug — `error=Callback` persisted
+> after that fix deployed. **Live production testing (browser-driven, stopping short of entering
+> any credentials) found the actual mechanism was entirely different from what the prior entry
+> diagnosed:** navigating to the apex domain 308-redirects to `www.davintrade.app` at the Vercel/DNS
+> edge, before any application code runs — the whole OAuth round trip (initiation, Google's
+> `redirect_uri`, the callback) happens on one consistent host every time. The apex/www split
+> never actually occurs in practice; that half of the prior diagnosis was wrong.
+> **The real root cause, surfaced only once Davin pulled the actual Vercel runtime logs** (the
+> `[OAuth]`/`[SignIn]` diagnostic logging added in the entry above): `PrismaClientKnownRequestError
+P2022 — The column User.profile does not exist in the current database`, thrown by
+> `getUserByAccount`'s very first `prisma.account.findUnique({ include: { user: true } })` call —
+> every single OAuth sign-in died there, before ever reaching adapter linking logic, `signIn`, or
+> `jwt`. **`User.profile` (`Json?`, added for the Session 11-3 AI Token Metering feature) was never
+> captured in any tracked Prisma migration** — it was applied directly to some database via
+> `db push`/manual SQL outside migration history at some point, so `prisma migrate deploy` alone
+> could never have caught this either; there was nothing in `prisma/migrations/` to deploy.
+> **A second, deeper untracked-drift layer found while investigating, not assumed:** replaying all
+> 14 (at the time) tracked migrations from empty into a disposable shadow database (created and
+> dropped on the same Postgres server, zero real data touched) failed partway through
+> `20260831061759_add_tutorial_videos` — `type "MarketingAssetStatus" does not exist`. That enum,
+> its sibling `MarketingAssetCategory`, and the entire `MarketingAsset` table (the Marketing
+> Resources / Media Kit feature) were **also** never captured in any migration — same drift class,
+> earlier and separate incident. Confirmed directly against a database where the feature is known
+> live and working (read-only introspection) to get the exact column/index shape before writing
+> anything.
+> **⚠ NOTE (2026-09-09): the "third finding" below is CONFIRMED CORRECT — twice re-litigated,
+> twice re-confirmed.** A same-day attempt to overturn it (claiming the Railway project name was a
+> misnomer and `turntable` was really production) was **wrong and has been retracted**; see the
+> `Waiting on` section. Verified from the Railway dashboard: production's `railway-gateway` uses
+> `postgres.railway.internal` — the `trading-alerts` `Postgres` service, public proxy
+> `maglev.proxy.rlwy.net:58290` — while `.env.local` points at `turntable.proxy.rlwy.net:55082`, a
+> different database. One clarification to the wording below: `postgres.railway.internal` is not a
+> distinct instance from `maglev`; it is the same service's private address, which is simply
+> unresolvable from outside Railway.
+>
+> **A third finding, load-bearing for the whole session, not merely academic:** the "railway"
+> Postgres this Executor could reach via the repo's own `.env.local` turned out to be a **separate
+> Railway project literally named "postgre for staging"** — not production at all. Discovered only
+> because Davin screenshotted the Railway dashboard directly; every check this session ran against
+> that connection (schema structure, `migrate status`, the shadow-DB replay) was accurate about
+> _that_ database but told us nothing about production's actual state. Production lives in the
+> "trading-alerts" Railway project instead, and its `DATABASE_URL` there is Railway's **internal**
+> address (`postgres.railway.internal`) — unreachable from outside Railway's network entirely
+> (Vercel included), so Vercel's own copy must run through `DATABASE_PUBLIC_URL` / the project's
+> `pgbouncer` service instead. Also found live, not assumed: `vercel env pull` cannot retrieve
+> `DATABASE_URL`/`DIRECT_URL` at all once a Vercel env var is marked Sensitive — the CLI writes a
+> `[SENSITIVE]` placeholder instead of the real value, by design, permanently. Davin retrieved the
+> real production connection string directly from Railway's own dashboard instead (Railway, not
+> Vercel, is the value's actual source of truth) and pasted it only into a local, gitignored
+> `.env.production.local` — never into this chat.
+> **Both migrations applied directly to production** via `prisma migrate deploy`, run by Davin from
+> his own machine against a throwaway `prisma.production-check.config.ts` (pointed at
+> `.env.production.local` specifically, since the repo's real `prisma.config.ts` loads `.env.local`
+> with `override: true` and would otherwise silently substitute the staging credential for whatever
+> was set beforehand) — six migrations total applied cleanly in one pass:
+> `vat_tax_invoicing_stack`, `commission_clawback_link`, `commission_recurring_invoice_id`,
+> `backfill_marketing_assets`, `add_tutorial_videos`, `add_user_profile_column`. The first three
+> were pre-existing, unrelated pending migrations discovered as a side effect of finally checking
+> production's real status (dating back to 2026-08-29) — each independently reviewed for
+> safety (self-contained `CREATE TABLE`, or nullable-column `ALTER TABLE` on an existing table, no
+> external dependencies) before deploying rather than trusting migration count alone.
+> **Verified after deploy, not assumed:** `prisma migrate status` against production reports "up to
+> date"; Davin confirmed live, in his own browser, that both Google and Twitter/X sign-in now work
+> end to end. This Executor independently re-checked `/affiliate/leaderboard` and `/academy` (the
+> latter reads the now-created `TutorialVideo` table) — both render live data, zero console/server
+> errors, confirming the six-migration deploy caused no regression elsewhere.
+> **Lesson harvested:** no new lesson promoted (file's own 40-entry cap) — worth flagging to the
+> Advisor for a future consolidation pass regardless: this session found _three_ separate instances
+> of the same failure class (`db push` bypassing migration tracking, leaving a database durably
+> ahead of `prisma/migrations/`) across three unrelated features (AI Token Metering, Marketing
+> Resources, and whatever produced the staging/production project split itself), plus confirmation
+> that `prisma migrate status`/`deploy` give zero warning about this specific class of drift — they
+> only compare against tracked history, never against what the live schema actually contains. A
+> repo-wide audit (introspect every environment's real schema, diff against `schema.prisma` directly
+> rather than via migration history) would proactively catch further instances of exactly this
+> pattern before they reach a live-production incident like today's.
+> **Cleaned up, not left lying around:** the disposable shadow database, all throwaway diagnostic
+> scripts, `prisma.production-check.config.ts`, and `.env.production.local` (the file holding the
+> real production connection string) were all deleted from disk once the fix was confirmed working
+> — nothing with production credentials was left behind, committed, or ever appeared in this
+> session's own chat transcript.
+> **Artifacts:** `lib/auth/auth-options.ts` (unchanged from the entry above — kept, since the
+> apex/www cookie-domain sharing is still correct hardening even though it wasn't the active cause
+> here), `prisma/migrations/20260830020000_backfill_marketing_assets/migration.sql` (new),
+> `prisma/migrations/20260901062245_add_user_profile_column/migration.sql` (from the entry above,
+> now confirmed as the actual fix), this file. Both migrations committed and pushed
+> (`de40dc05`, `b5d34b7c`).
+
+<!-- CLAUDE.md L4150-L4208 -->
+
+> **Ad-hoc session (2026-09-01, same day, phase/session unchanged):** Davin reported a follow-on
+> bug found while verifying the OAuth fix above — the `/login` "Already Signed In" screen's Sign
+> Out button rolled back to the same screen no matter how many times it was clicked, and asked
+> whether the other `FIXED_TEST_ACCOUNTS` (pro-test, admin-test, affiliate-test, etc.) had the same
+> problem. Outside the Session 14-x playbook numbering entirely, per `EXECUTOR-PROTOCOL.md` §6.
+> **Two compounding, distinct bugs found via live DevTools evidence Davin captured (Network +
+> Application tabs), not guessed:**
+>
+> 1. `app/(auth)/login/page.tsx` and `app/(auth)/verify-2fa/page.tsx`'s "already signed in" Sign Out
+>    buttons only ever called `next-auth/react`'s `signOut()` — every other sign-out call site in
+>    the app (`app-header.tsx`, `chat-sidebar.tsx`, `affiliate-nav.tsx`) already additionally calls
+>    `/api/auth/token-logout` (bridge-aware, gated on `isAuthBridgeEnabled()` — confirmed live and
+>    active in production, per Session 4B-21's own cutover). `signOut()` alone leaves the
+>    operation-service refresh-token cookie untouched, and — the actual cause of the "rolls back to
+>    the same screen" symptom — it can only clear a cookie matching its _current_ config's exact
+>    `Domain` scope. Any session cookie set before this same day's earlier `Domain=.davintrade.app`
+>    fix was host-only (no `Domain` attribute) — a browser treats that as a genuinely different
+>    cookie from the new domain-scoped one, so `signOut()` correctly cleared the new cookie every
+>    time while the pre-existing host-only one (still cryptographically valid for up to 30 days)
+>    kept getting sent and read as an active session. Davin's own Application-tab screenshot showed
+>    both `__Secure-next-auth.session-token` rows side by side, one per `Domain` — direct
+>    confirmation, not inference. Fixed by bringing both screens in line with the established
+>    bridge-aware pattern already used everywhere else.
+> 2. **A second, pre-existing bug found only because fix #1 required actually reading
+>    `token-logout/route.ts` closely:** it cleared cookies via `cookieStore.delete(name)`, which
+>    Next.js's `ResponseCookies.delete()` builds without a `Secure` attribute (confirmed by reading
+>    `next/dist/compiled/@edge-runtime/cookies/index.js` directly — `delete()` → `set()` →
+>    `normalizeCookie()` only defaults `path`, nothing else). Both `SESSION_COOKIE_NAME` and
+>    `REFRESH_COOKIE_NAME` are `__Secure-`-prefixed in production, and per the cookie-prefix spec a
+>    browser silently rejects an _entire_ Set-Cookie header for a `__Secure-`-prefixed name if
+>    `Secure` is missing — meaning this route's cookie clearing has never actually taken effect in
+>    production, for any user, since it was created (Session 3-3). The server-side operation-service
+>    revocation call still worked correctly (a separate code path, unaffected), so leaked refresh
+>    tokens were never reusable — but the cookies themselves lingered client-side indefinitely.
+>    Switched to `.set()` using the already-existing `tokenCookieOptions()` helper (the same one
+>    that correctly set these cookies in the first place), rather than inventing new options inline.
+>    **Verified:** `npx tsc --noEmit` clean; `eslint` clean on all four changed files; the existing
+>    `__tests__/api/auth/token-logout.test.ts` suite updated (its 3 affected tests asserted
+>    `cookieStore.delete` was called — now assert `.set()` with the correct clearing options) and
+>    passes 4/4; full monolith `npm run test:ci` **165/165 suites, 2382/2382 tests** — zero
+>    regressions. Local `next dev` confirmed `/login` still renders clean with zero console/server
+>    errors post-change. **Not verified by the Executor** — the actual authenticated click-through
+>    (does Sign Out now redirect to a genuinely logged-out `/login` for a real session): the Executor
+>    never enters credentials, so this needs Davin's own confirmation post-deploy, same boundary as
+>    every other authenticated flow in this file's history. Davin's existing session will still carry
+>    the orphaned host-only cookie until the _first_ post-deploy Sign Out click (which will now
+>    correctly clear it) or a manual browser cookie clear — flagged directly to Davin, not silently
+>    assumed fixed retroactively.
+>    **A drive-by non-finding, verified rather than assumed:** while reading `app/(auth)/login/page.tsx`
+>    for this fix, a line that appeared as `'\admin'` (backslash) in this Executor's own earlier
+>    conversation-transcript read of the file looked like a real bug (would resolve to a bare `admin`
+>    string) — re-reading the file directly showed the actual bytes were always `'/admin'` (forward
+>    slash); the backslash was a display artifact in how the tool rendered that earlier read, not
+>    something in the file. No fix applied; noted here only so a future session doesn't rediscover the
+>    same false lead.
+>    **Artifacts:** `app/(auth)/login/page.tsx`, `app/(auth)/verify-2fa/page.tsx`,
+>    `app/api/auth/token-logout/route.ts`, `__tests__/api/auth/token-logout.test.ts`, this file.
+>    Committed and pushed (`946880ab`).
+
+<!-- CLAUDE.md L4209-L4272 -->
+
+> **Ad-hoc session (2026-09-03, phase/session unchanged):** Davin requested 2 new
+> countries/regions (France `FR`/`fr`, South Korea `KR`/`kr`) in the header's "Select Country &
+> Region" dropdown, and 3 new display languages (French `fr`, Korean `ko`, Chinese `zh`) on
+> `/settings/language`, via a fully-specified task order given directly in chat. Outside the
+> Session 14-x playbook numbering entirely, per `EXECUTOR-PROTOCOL.md` §6.
+> **Verified against live code before executing, per §0** — the order's own plan matched the
+> live tree closely: `app/settings/language/page.tsx`'s `languages` array carried a comment
+> ("`fr` and `zh` removed: no backing dictionary... would silently degrade to English forever")
+> confirming this order directly closes the exact gap `docs/policies/08-locale-i18n-compliance.md`
+> §0 already documented. `middleware.ts`'s country-prefix routing and the header dropdown
+> (`app-header.tsx`) both read `SUPPORTED_COUNTRIES`/its derived prefixes dynamically, and the
+> client `LocaleProvider` lazy-loads any non-bundled dictionary via `import()` keyed by language
+> code — none of those three needed a direct code change once `lib/country-config.ts` and the new
+> dictionary files existed.
+> **Correctly left untouched, confirmed via live grep before assuming otherwise:** `lib/dlocal/
+constants.ts`'s own `DLOCAL_SUPPORTED_COUNTRIES` (9 countries, payment-provider-specific) is a
+> completely separate list from `lib/country-config.ts`'s general locale `SUPPORTED_COUNTRIES` —
+> dLocal does not support France or South Korea, and this order never asked for payment-provider
+> changes, so `lib/dlocal/**`, `components/payments/CountrySelector.tsx`, and `app/checkout/
+page.tsx` were deliberately not touched (would be a money-adjacent change needing its own
+> explicit sign-off per `CLAUDE.md` non-negotiable #5).
+> **A real test-fixture bug found and fixed, not just the order's own asked-for mock update:**
+> `__tests__/api/user.test.ts`'s "should return 400 for an unsupported countryCode" test used the
+> literal `'FR'` as its example of an unsupported code — now genuinely supported, that request
+> correctly started returning 200, failing the old assertion. Swapped the literal to `'XX'`
+> (already this repo's convention for an unrecognized/placeholder ISO code). A repo-wide grep for
+> stray `'FR'`/`'KR'` literals elsewhere in `__tests__/` found only this one collision;
+> `dlocal-payment-flow.test.ts`'s own `'FR'` (asserting dLocal correctly rejects it) is unaffected
+> since dLocal's own supported-country list wasn't touched.
+> **Verified:** `npx tsc --noEmit` clean on both the monolith and `operation-service` (the schema
+> mirror). `npx eslint` clean on every changed file (`next lint`/`npm run lint` still broken per
+> `LESSONS-LEARNED.md` L38). Targeted `__tests__/api/user.test.ts` +
+> `__tests__/lib/geo/detect-country.test.ts` **52/52** (the latter is generic ISO-header detection,
+> unrelated to `SUPPORTED_COUNTRIES` and unaffected either way — run per the order's own ask).
+> Full monolith `npm run test:ci` **165/165 suites, 2382/2382 tests** — exact match to the
+> locale-i18n-compliance session's own close baseline, zero regressions.
+> **Live-verified structurally, not visually — same boundary as every prior session's
+> authenticated surfaces:** a local Turbopack `next dev` booted clean with no build/import errors
+> from the 3 new dictionary JSON files (a malformed one would fail the build immediately). Every
+> route reachable without a session — including `/free`, unexpectedly, which is not in
+> `middleware.ts`'s `PROTECTED_PREFIXES` list but still redirects to `/login`, meaning it has its
+> own independent auth gate somewhere the same way `app/(dashboard)/layout.tsx` does per
+> `LESSONS-LEARNED.md` L17 — bounced to `/login`, so the header's country dropdown and
+> `/settings/language` (both auth-gated) could not be visually click-through-verified; the console
+> errors observed on the login page itself (Google Fonts fetch failures, `/api/auth/session`
+> 404s) are pre-existing local-dev-environment gaps, confirmed unrelated by inspection, not caused
+> by this session. A stray `tsc` run against `.next/dev/types/routes.d.ts` while the dev server
+> was still live and actively regenerating that file produced a wall of parse errors — confirmed
+> as a build-artifact race (not a real code issue) by stopping the server, clearing
+> `.next/dev/types/`, and re-running clean.
+> **Not built, deliberately:** `docs/policies/08-locale-i18n-compliance.md`'s own §0 prose (which
+> narrates the exact `fr`/`zh`-no-dictionary gap this session closes) was left unedited — a
+> documentation-maintenance pass beyond this order's explicit scope, flagged here instead.
+> **Lesson harvested:** no new lesson added (`LESSONS-LEARNED.md` still at its 40-entry cap,
+> nothing here rose above an already-covered `L22`-family pattern: a value used in a test as
+> "the unsupported example" going stale the moment the supported set changes).
+> **Artifacts:** `lib/country-config.ts`, `lib/preferences/defaults.ts`, `lib/preferences/
+geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/users.schemas.ts`
+> (commit `9dbd6f03`); new `lib/i18n/dictionaries/{fr,ko,zh}.json` + `lib/i18n/get-dictionary.ts`
+> registration + France/South Korea keys added to `en-US.json`/`en-GB.json`/`ar.json` (commit
+> `03b7f675`); `app/settings/language/page.tsx` (commit `a5f3b03b`); `__tests__/api/user.test.ts`
+> (commit `61f0ac5d`); this file. 4 commits, one per logical group, per
+> `EXECUTOR-PROTOCOL.md` §2's "never batch a whole session into one commit."
+
+<!-- CLAUDE.md L4273-L4327 -->
+
+> **Ad-hoc session (2026-09-03, phase/session unchanged):** Davin requested (a fully-specified
+> task order given directly in chat) upgrading `/settings/language`'s Timezone dropdown from a
+> hardcoded 13-entry regional list to an "All Round Clock" dropdown covering every standard GMT
+> offset from `-12:00` to `+14:00`, standardized `(GMT ±HH:MM) Region/City` labels, and free-text
+> search by city/country/GMT offset. Outside the Session 14-x playbook numbering entirely, per
+> `EXECUTOR-PROTOCOL.md` §6.
+> **New `lib/utils/timezones.ts`:** `getAllTimezones()` prefers `Intl.supportedValuesOf('timeZone')`
+> (live-verified in a real browser — resolves 419 real IANA identifiers) with a ~90-zone curated
+> fallback (every standard offset `-12:00`..`+14:00`) for environments lacking that API; sorted by
+> offset then alphabetically by identifier, exactly per spec. `tsconfig.json`'s `lib` is pinned to
+> `ES2020` (no `ES2022.Intl`), so referencing `Intl.supportedValuesOf` needed an `Intl as unknown as
+{...}` cast to satisfy `tsc` — a real compiler finding, not a style choice. 100% backward-compatible
+> with stored preferences by construction: every legacy value (`America/New_York`, `Asia/Dubai`,
+> `Asia/Seoul`, etc.) is a real IANA identifier already present in the full ICU list.
+> **A real architectural risk checked before shipping the order's literal JSX, not assumed safe:**
+> the order's own Step 2 nests a raw `<input>` inside `components/ui/select.tsx`'s
+> `<SelectContent>` — that component wraps `@radix-ui/react-select` (confirmed by reading it
+> directly), not a `cmdk`-based combobox, and Radix `Select.Content` owns its own keyboard-driven
+> typeahead/roving-focus — a well-known conflict source for an embedded search input. The order's
+> own `onKeyDown`/`onClick` `stopPropagation()` calls anticipated exactly this risk; rather than
+> trust that the mitigation works, live-verified it in a real browser via a temporary,
+> non-authenticated throwaway route (`app/dev-tz-preview/page.tsx`, deliberately placed outside
+> `app/settings/` to route around its `layout.tsx`'s own server-side `getServerSession`+`redirect`
+> gate — the exact mechanism `LESSONS-LEARNED.md` L17 documents — deleted immediately after use,
+> never committed): the dropdown opens, typing "Dubai" filters live from 419 entries to the one
+> match with the dropdown staying open (no typeahead hijack), typing a raw offset string (`+05:30`)
+> correctly filters by `gmtPrefix` too, clicking a filtered result selects it and updates the
+> trigger label, and reopening the dropdown resets the search box. No deviation from the order's
+> JSX was needed — confirmed working, not assumed.
+> **Verified:** `npx tsc --noEmit` clean; `npx eslint` clean on all changed/new files; new
+> `__tests__/lib/utils/timezones.test.ts` **8/8** (offset formatting incl. half/quarter-hour zones,
+> chronological + alphabetical sort, financial-hub presence, zero duplicates, empty/invalid-input
+> fallback); `__tests__/api/user.test.ts` **26/26** unaffected; full monolith `npm run test:ci`
+> **166/166 suites, 2390/2390 tests** (165→166 suites, 2382→2390 tests — exactly this session's 1
+> new suite/8 new tests, zero regressions elsewhere), exact match to the France/Korea session's own
+> close baseline plus this session's own additions.
+> **Live-verified structurally for the real page too, not just the throwaway route:** local
+> Turbopack `next dev` compiles `app/settings/language/page.tsx` with zero build errors from the
+> new `lib/utils/timezones.ts` import; `GET /settings/language` cleanly redirects an unauthenticated
+> visitor to `/login?callbackUrl=%2Fsettings%2Flanguage` (200), zero server errors — same
+> `app/settings/layout.tsx` auth gate as every other settings page in this file's history.
+> **Authenticated click-through not performed** — same "Executor never enters credentials" boundary
+> as every prior session; flagged below.
+> **Not touched, deliberately:** `docs/policies/08-locale-i18n-compliance.md` — this order only
+> changes the timezone list, not the language/currency arrays or `handleSave()`'s locale-write
+> path, both already fixed in the 2026-09-01 locale-i18n-compliance session.
+> **Lesson harvested:** no new lesson added (`LESSONS-LEARNED.md` still at its 40-entry cap) —
+> nothing here rose above an already-covered pattern (L17's route-group/layout-auth-gate mechanism,
+> applied here for a new purpose: verifying a third-party UI primitive's real interaction behavior
+> in a live browser, not working around test infrastructure).
+> **Artifacts:** `lib/utils/timezones.ts` (new), `app/settings/language/page.tsx`,
+> `__tests__/lib/utils/timezones.test.ts` (new), `next-env.d.ts` (Next.js dev-server auto-regen,
+> per this file's own "This is NOT the Next.js you know" note), this file. 2 commits (utility+test,
+> then page wiring), plus this docs commit.
+
+<!-- CLAUDE.md L4328-L4434 -->
+
+> **Ad-hoc session (2026-09-09, same day, phase/session unchanged) — CLOSED SUCCESSFUL,
+> append-only statistic capture built end to end, MT5 → SQLite → gateway → PostgreSQL:** Davin
+> asked to "scope the append-only statistic capture table," noting explicitly that it "should be a
+> complete modification of entire data pipeline starting from MT5 to PostgreSQL," then approved the
+> scope with "proceed with implementation." Directly closes blueprint §12 item 9, flagged as
+> not-built by the entry immediately below. Scope doc written first and now serves as the design
+> record: `STATISTIC-CAPTURE-SCOPE.md`.
+> **The one design decision everything else follows from:** `market_data` is keyed by _which bar_,
+> so re-pushing a bar overwrites — mutable by design, correct for charting. `indicator_statistics`
+> is keyed by `(symbol, timeframe, source, captured_at)` — _which fit, and when it was observed_ —
+> so a new observation can never collide with an old one. **Append-only is enforced by the key, not
+> by a trigger.** A correction is a new row with a later `captured_at`, never an update. That is
+> what makes the series point-in-time honest, and it is why capture had to start now rather than
+> when the decision layer wants it: R², MSE, variance ratio, skew/kurtosis, containment, window
+> size and touch counts exist **only** in the `_Statistic.txt` files, exist nowhere in
+> `market_data`, and **cannot be honestly reconstructed after the fact** — recomputing them later
+> would inherit the look-ahead contamination documented the same day.
+> **Built across every layer, deliberately isolated from `market_data` at each one** — its own
+> staging table, outbox, HTTP route, Bull queue, processor and reject file, so a failure in this
+> stream can never delay or reject price data: `sqlite_schema_v6_xauusd.sql` (new
+> `indicator_statistics` outbox, 37 columns, + a 7-day synced-only retention trigger so the VPS
+> stays bounded — append-only belongs in Postgres, the VPS keeps only a replay buffer);
+> `export_collector_validator_v2.py` (`parse_statistic_file()`/`stage_statistics()`, hooked into
+> `run_cycle()` inside a try/except so no statistics failure can reject a cycle);
+> `gateway_contract_indicator_statistics.schema.json` (new); the DTO generator **generalized** to
+> emit both DTOs from a `TARGETS` array rather than forked; both Prisma schemas (new
+> `IndicatorStatistic` + `IndicatorConfig`, kept byte-identical, verified programmatically);
+> a new gateway controller + processor; `backfill_worker_api_gateway_v5.py` (a second, independent
+> drain loop).
+> **Configuration is deduplicated rather than repeated:** indicator parameters are compiled into
+> the `.mq5` and change only on redeploy, so storing them on every row would repeat an identical
+> blob ~1M times a year. They are SHA-256 hashed into `indicator_configs` instead — which turns the
+> storage saving into a **feature**: a new `config_hash` appearing _is_ the "someone reconfigured
+> this indicator" signal. Verified that an unchanged config yields a stable hash across cycles, so
+> the signal is real rather than noise.
+> **Three genuine bugs found by the verification, not after it:** (1) **a security-relevant
+> validation gap** — a test caught that an unknown field on the new batched endpoint returned 200
+> instead of 400, because `ParseArrayPipe` builds its **own internal** `ValidationPipe` and does
+> **not** inherit the global one configured in `main.ts`; without `whitelist`/`forbidNonWhitelisted`
+> passed explicitly, an unknown field is silently accepted and reaches Prisma as an unknown column.
+> Fixed and covered by a test. (2) Adding a second Bull queue broke `market-data.e2e-spec.ts` — all
+> 9 tests passed but the suite failed in teardown, because the new queue genuinely tried to reach
+> Redis; fixed with the matching `getQueueToken` override. (3) My own generalization of the DTO
+> generator introduced a stray blank line before the closing brace, changing the **existing**
+> market-data DTO's output — caught by diffing the regenerated file rather than trusting the
+> script's own success line, and fixed so the only remaining diff was the intended one.
+> **A fourth found during final verification, in my own design:** the Prisma models declared both
+> `@@unique([symbol, timeframe, source, captured_at])` and `@@index(...)` on the **identical**
+> column list. Postgres backs a unique constraint with a btree index on exactly those columns, so
+> the second was pure duplicated write cost — on a table designed to grow ~1M rows/year and never
+> be updated. Removed from both schemas and the migration SQL.
+> **Verified, not assumed.** **Append-only proof:** two consecutive cycles with one source's R²
+> deliberately changed in between → 20 rows not 10, the first cycle's value **unchanged**, the
+> second recorded as a separate row; re-staging the same `captured_at` is idempotent (still 20), so
+> a push retry cannot duplicate. **Isolation proof:** with the statistics endpoint dead,
+> `push_statistics()` swallows the failure, returns 0, and leaves rows unsynced for retry —
+> nothing lost, nothing raised into the `market_data` drain. **Parser** verified against the real
+> captured files in `mock-data-from-indicators/golden_certification/m5_statistic/` — those pre-date
+> the new blocks, so those fields correctly parse to `None` rather than `0` (the distinction that
+> matters: a `0.0` R² is a real value, a missing one is not) — plus a synthetic new-format file
+> carrying the FILE*ANSI-mangled em-dash header. **Payload shape** checked against the contract
+> from real staged rows. **Schema:** `indicator_statistics` 37 columns, `market_data` still exactly
+> **87**, and every column the collector writes exists in the table (diffed against
+> `PRAGMA table_info`, so it cannot drift). **Regression, all at baseline, zero drift:** monolith
+> `tsc` clean + `test:ci` **171/171 · 2416/2416**; railway-gateway `tsc` clean, **3/3 · 31/31** unit
+> (`schema-sync.spec.ts` extended 3 → 11 tests, now asserting an explicit append-only invariant: the
+> unique key must include `captured_at` and the model must have no `@updatedAt`) and **2/2 · 17/17**
+> e2e; operation-service **43/43 · 401/401**.
+> **Not verified, flagged rather than skipped silently:** the migration was **not** run against a
+> disposable Postgres container — Docker Desktop's Linux engine would not come up healthy in this
+> environment (the named pipe answered; the backend did not, across ~15 minutes of polling). Unlike
+> the 2026-09-03 `best_fit` **rename**, which genuinely needed a container to prove losslessness
+> against real rows, this migration is two `CREATE TABLE`s touching nothing existing, so the risk it
+> would have caught is close to nil. Also unverified: a live MT5 → Postgres round trip, which is
+> gated on Davin's MetaEditor rebuild (already required for the timestamp fix).
+> **Migration applied by Davin, same day**, via `npx prisma migrate deploy` — `indicator_statistics`
+> and `indicator_configs` now exist. Because `migrate deploy` applies \_every* pending migration in
+> history order rather than a chosen one, two others went in with it:
+> `20260909000000_market_data_v6_provenance_not_null` (the one carrying a pre-flight caution — no
+> harm, its clean apply proves there were no NULL rows, since `SET NOT NULL` fails loudly
+> otherwise) and the unrelated `20260904120000_default_theme_light`.
+> **A false alarm I raised and then closed, worth recording because it is the third time this repo
+> has produced it:** the run resolved `DATABASE_URL` to `turntable.proxy.rlwy.net:55082`, which the
+> 2026-09-01 entry above describes as a "postgre for staging" project — so I flagged that
+> production might be unmigrated. Davin corrected it directly ("'Postgre for staging' is not used.
+> This codebase always uses 'trading-alerts' project"), and checking rather than just accepting
+> that turned up the actual reconciliation: the project **name** is a misnomer, `turntable` really
+> is the database this codebase uses (`prisma migrate status`: 19 migrations, up to date), and the
+> production-_sounding_ `trading-alerts` project's own Postgres holds no `market_data` table at all
+> (`DECISION-LOG.md` F3, case (b), verified by direct query 2026-07-18). The 2026-09-01 entry's
+> inference was wrong and now carries a correction banner. Full write-up under Waiting on.
+> **Committed and pushed** on Davin's explicit request after he applied the migration and asked for
+> the blueprint + deck-summary docs to be brought up to date.
+> **Artifacts:** `sqlite_schema_v6_xauusd.sql`, `export_collector_validator_v2.py`,
+> `backfill_worker_api_gateway_v5.py`, `gateway_contract_indicator_statistics.schema.json` (new),
+> `STATISTIC-CAPTURE-SCOPE.md` (new), `railway-gateway/scripts/generate-market-data-dto.js`,
+> `railway-gateway/src/gateway/dto/indicator-statistic.dto.ts` (new, generated),
+> `railway-gateway/src/gateway/indicator-statistics.controller.ts` (new),
+> `railway-gateway/src/worker/indicator-statistics.processor.ts` (new),
+> `railway-gateway/src/app.module.ts`, `railway-gateway/test/schema-sync.spec.ts`,
+> `railway-gateway/test/indicator-statistics.e2e-spec.ts` (new),
+> `railway-gateway/test/market-data.e2e-spec.ts`, `prisma/market-data/schema.prisma`,
+> `railway-gateway/prisma/schema.prisma`,
+> `prisma/migrations/20260909120000_add_indicator_statistics/migration.sql` (new,
+> authored/unapplied), `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` (§12 item 9 → BUILT, §13 item
+> 5 added), this file.
+
+<!-- CLAUDE.md L4435-L4506 -->
+
+> **Ad-hoc session (2026-09-09, same day, phase/session unchanged) — CLOSED SUCCESSFUL, EDT
+> Quality Metrics Suite: statistical-data additions to 10 MQL5 indicators:** Davin noticed the
+> `_Statistic.txt` companion files have never been consumed downstream and asked whether to pipe
+> them through or recompute the statistics in Python at the destination. **Recommended capturing
+> them**, on the grounds that recomputing later inherits the look-ahead contamination documented
+> the same day (stored per-bar values are refitted with future data) _and_ would require reviving
+> the just-parked Python calc stack, whereas a statistic file captured at export time is a
+> truthful point-in-time record. Davin then asked to close the indicator-side gaps.
+> **Checked the real files before agreeing to his plan, which changed it substantially.** Davin's
+> premise was that `2EDTFractalBestFitv5` needed "at least slope and bar coverage" and that
+> "R-square, MSE, kurtosis, var ratio might not be calculable because it does not use a regression
+> approach." Reading the actual statistic files showed both halves were wrong: **slope was already
+> there** (`Raw Slope (b)`, plus window timestamps for coverage and `UOEDT`/`LOEDT Offset` for
+> symmetry), and **R²/MSE/skew/kurtosis/var-ratio are residual statistics** — properties of
+> `close − line(bar)` — so they are computable for _any_ resolved line regardless of how it was
+> derived. Only `[MODEL A; CROSSINGS]` has no Fractal analogue. Conversely a **mirror-image gap**
+> was found that Davin's plan missed: the 7 centroid statistic files have MODEL A/B but **no EDT
+> channel geometry at all**, and `SingleBestResistance/Supportv3` have **no MODEL B either**. So
+> the job was 10 files, not 1.
+> **Implemented:** 7 centroids gained an `[EDT CHANNEL]` block (baseline-relative `UOEDT`/`LOEDT
+Offset` matching Fractal's existing convention, plus `Containment Sample (n)`/`Count`/`Rate`);
+> `2EDTFractalBestFitv5` gained `[MODEL B; CLOSE PRICE]` + the same `[EDT CHANNEL]`;
+> `SingleBestResistance/Supportv3` gained `[MODEL B; CLOSE PRICE]` only (single lines, not
+> channels — no containment or symmetry possible). Every statistic file now carries a comparable
+> field set. The new MODEL B math is a **line-for-line port of the centroid indicators' own
+> existing residual code**, not new math.
+> **Two real implementation hazards caught by reading rather than assuming:** (1) the centroid
+> indicators use `ArraySetAsSeries(..., false)` (index 0 = oldest) while Fractal/Resistance/Support
+> use `ArraySetAsSeries(..., true)` (index 0 = newest) — opposite conventions, so the collection
+> loops had to be written per-file rather than copy-pasted; getting this wrong would have silently
+> reversed the Var Ratio's early-half/late-half comparison. (2) The stats were computed into
+> **indicator buffers** in the centroids; replicating that in Fractal would have meant raising
+> `indicator_buffers`, a needless compile risk — so the new helpers compute everything in local
+> variables inside the stat writers instead, touching no buffer declarations.
+> **Advisor's EDT Quality Metrics spec reviewed, four concrete problems flagged** (not
+> implemented — the scoring formulas were deliberately left out of MQL5, see below): its Bar
+> Coverage formula contradicts its own bands (`(60−30)/150 = 20%`, table says 50%); its EDT Fitness
+> bands are off by 5 points (1.8 and 2.6 give 80%, table says 85%); **R² is negative in the real
+> data** (−0.0936 crossings / −0.1221 close in an actual export), which `max(0, …)` clamps to 0%,
+> and it may be _structurally_ negative since these lines are fitted to centroids/touches and then
+> scored against closes they never tried to fit — so the distribution needs checking before it
+> carries 40–60% of a quality score; and penalising channel asymmetry may be wrong, since EDT is
+> constructed from outermost qualifying touches and asymmetry can be a true reading. **Suggested
+> `Containment Rate` as a better-founded primary metric** — it has no structural bias, is directly
+> interpretable, and the decision-layer blueprint already names EDT containment as a fitness input.
+> That is why containment was added to the indicators while the scoring formulas were not.
+> **Architectural recommendation made and followed:** raw statistics belong in MQL5 (only MT5 has
+> the residuals and the fitting window); **scoring formulas belong downstream**, because the
+> weights and thresholds are tuning parameters — baking them into `.mq5` means recompiling 13
+> indicators and redeploying to the VPS for every weight change, whereas downstream they are pure
+> arithmetic on already-exported numbers and need no Python calc stack.
+> **Verified — statically only, since MQL5 cannot be compiled here:** all 10 files got their new
+> block exactly once; brace balance unchanged versus `git HEAD` in every file (delta 0); no
+> variable-name collisions (new identifiers appear only in the inserted blocks, and Fractal's
+> `edt_n`/`edt_in` live in two separate function scopes); helper functions declared before their
+> call sites (593 < 662, 450 < 510); call arity matches signatures exactly (8/8, 6/6, 6/6).
+> **⚠ NOT COMPILED — Davin must build all 13 in MetaEditor and check for errors.** These changes
+> ride along with the timestamp-fix recompile that was already required, so it remains one
+> MetaEditor pass rather than three.
+> **Flagged, not built:** the statistic files are still consumed by nothing — the collector reads
+> only the timeseries exports, so each is overwritten every minute and read by nobody. Capturing
+> them needs a new **append-only** table keyed by `(symbol, timeframe, source, captured_at)`;
+> append-only is what makes it point-in-time honest, unlike `market_data`. Recorded as blueprint
+> §12 item 9 and below under Waiting on. Deliberately not scoped this session — Davin asked for the
+> indicator changes only. **Superseded same day — Davin then asked for exactly this, and it was
+> scoped and built end to end; see the entry immediately above.**
+> **Not committed** — per this file's log-first-defer-commit pattern.
+> **Artifacts:** all 7 `mq5/2EDTCentroidRegression*_v2_29.mq5`, `mq5/2EDTFractalBestFitv5_v2_29.mq5`,
+> `mq5/SingleBestResistanceLinev3_v2_29.mq5`, `mq5/SingleBestSupportLinev3_v2_29.mq5`,
+> `DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md` (§5.1 statistic-file inventory, §12 item 9), this
+> file.
+
+<!-- CLAUDE.md L4507-L4610 -->
+
+> **Ad-hoc session (2026-09-09, phase/session unchanged) — CLOSED SUCCESSFUL, remove the
+> MT5↔Python calculation split: MQL5 becomes the single source of every `market_data` value,
+> plus the `timestamp_adj` root cause found and fixed at source:** immediate follow-on to the
+> field-consistency audit below, in the same day. After that audit surfaced that the Python calc
+> stack's centroid EDT stage was using the wrong fractal source and its certification could not
+> run, Davin decided to **remove the calculation split entirely** — all 87 fields computed by the
+> 13 MQL5 indicators and passed through to the downstream stacks — and asked additionally to
+> archive the old work with a document for future development, to verify the 13 `.mq5` filenames
+> against every downstream reference, and to re-examine the timestamp issue. Per
+> `EXECUTOR-PROTOCOL.md` §6. Planned via `EnterPlanMode`; three decisions confirmed with Davin
+> before building (MQL5 edit scope, `calculated_at` disposition, Decision-Layer handling).
+> **Both premises verified against live code before any edit, per §0, not taken from the brief:**
+> (1) the 13 indicators **already export all 83 data fields** — the centroid exports carry
+> `Base_FL`/`UOEDT`/`LOEDT`, Fractal its 3, Resistance/Support theirs, ZigZag all 9 metrics,
+> ZScore all 3 body fields; confirmed against both the `.mq5` header strings and real captured
+> `.txt` files. The collector simply never parsed them (the blueprint's own §12.4 had noted the
+> exports were never slimmed). (2) **nothing downstream changes** — `market_data` stays at 87
+> columns with identical names/types, so `gateway_contract_market_data.schema.json`, both Prisma
+> schemas, the generated DTO, `operation-service` and Postgres were all left untouched, and no
+> migration was needed. Only the _source_ of the values changed.
+> **THE TIMESTAMP FINDING — a one-line MQL5 bug, not the missing "conversion stack" the blueprint
+> had listed as its #1 production gate for two years.** All 13 indicators computed
+> `gmt_offset = TimeCurrent() - TimeGMT()`. `TimeCurrent()` returns the **last tick's** time, not
+> the clock, so the offset silently absorbs "seconds since the last tick"; computed once per
+> export and subtracted from every bar time, it stamps that lag on **every row** as a constant
+> sub-bar phase. Proven with real data, not reasoned: measured phases in the golden archive
+> (`%300`) are ohlcv 206, cherry*a 240, cherry_b 288, fractal 189, non_a 43, non_b 81, best_fit 4,
+> most_recent 7, resistance 9, support 51, zscore 94, zigzag 76 — one constant per file, differing
+> exactly as "how quiet was the market when I clicked export" predicts; the newer `engine-1-5`
+> captures taken during an active session show only 2–3s. And the data is provably coherent
+> underneath: aligned by sequence, **every** per-bar source's closes match OHLCV 100%
+> (3000/3000, 1899/1899, 1440/1440, 500/500) — only the timestamps were wrong. Fixed at all 16
+> sites across the 13 files to `TimeTradeServer()` rounded to the hour (server offsets are always
+> whole hours). Also **reproduced the failure end-to-end**: running the collector against the raw
+> archive rejects the cycle with close spreads of 7.88–14.11, exactly as predicted.
+> **A second, separate MQL5 bug found and fixed with it:** `ZigZagExportv43` wrote its
+> "unconfirmed live pivot" row with `TimeGMT()` — the export wall clock — as the timestamp, so
+> that row could never sit on the bar grid and never matched an OHLCV bar. Now uses the current
+> forming bar's `iTime`, set correctly in both the live-chart and file-data-source branches.
+> **Archived, not deleted** (`git mv`, full history preserved) into
+> `calculation-split-between-mt5-and-python-PENDING-PROJECT/`: the 4 calc modules, the whole
+> `mql5-to-python-transliteration/` certification harness and evidence, and the original "Python
+> stacks calculation.txt" mandate — plus a new `CALCULATION-SPLIT-ARCHITECTURE-PENDING.md`
+> covering the architecture and its business rationale, what was built, the honest verified state
+> (non-centroid sections genuinely certified; centroid section unreproducible), **the two open
+> bugs to fix before any revival**, what parking it costs, and how to restore it.
+> **The one real capability given up, surfaced by checking rather than assumed:** arbitrary-
+> parameter recomputation, and the statistics substrate (R², MSE, variance-ratio, skew/kurtosis)
+> which exists only in the `_Statistic.txt` companions and never in `market_data`.
+> `v2_29_davintrade_decision_layer/DAVINTRADE_DECISION_LAYER_BLUEPRINT.md` §2/§3/§8
+> (`param_search`, `fitness_scorer`, drift re-scoring) is built entirely on those, and its §8
+> build order **starts** with `fitness_scorer` — so a BLOCKED banner was added at its top naming
+> the dependency and the two routes to unblock. Davin chose this handling explicitly.
+> **Collector rewritten:** `SOURCES` extended to parse every exported column (with the real,
+> non-uniform header names — `Title_Case` line values vs `lower_snake` admin columns, unprefixed
+> zigzag metrics, and a file prefix that differs from the column prefix on every source);
+> `calculate_stage()` and the 4 calc imports deleted; `promote_cycle()` rewritten as a straight
+> copy driven by a `market_data_column()` mapping derived from `SOURCES` itself, so a column added
+> to the registry automatically reaches `market_data` under the right name. `_price_or_none()`
+> (added earlier the same day) removed as obsolete — those columns are now parsed, so the existing
+> parse-time `PRICE_LEVEL_COLUMNS` guard covers them by name, and it correctly does *not* touch
+> `body_size`, `slope`, `price_change` or `pct_change`, all of which are legitimately zero.
+> **A real deployment hazard caught and handled, not left to bite on the VPS:** the schema file is
+> all `CREATE TABLE IF NOT EXISTS`, which silently does nothing for an existing database — so the
+> VPS's `xauusd.db` would have kept the old staging shape and quietly staged NULL for every new
+> column. Added `migrate_raw_tables()`: idempotent `ALTER TABLE ADD COLUMN` driven by `SOURCES`
+> itself, staging tables only, `market_data` never touched. Tested against a database built from
+> the *pre-change* schema with real staged data in it — 38 columns added, existing row values
+> preserved byte-for-byte, second run a no-op.
+> **Verified end-to-end against real captured MQL5 exports, not synthetic data.** The golden
+> archive was captured by clicking each indicator's export button in turn over ~26 minutes, so its
+> files carry both the phase bug and whole-bar window offsets; since every source's closes were
+> proven to match OHLCV 100% by sequence, a fixture was built by re-stamping rows onto the OHLCV
+> spine's true bar times (simulating 13 correctly-timestamped simultaneous exports — **no value
+> altered or invented, only the timestamp column**). Result: cycle validated, **3000 bars
+> promoted**, and a field-by-field comparison of the promoted rows against the source `.txt` files
+> gave **192,024 comparisons, 0 mismatches, all 79 data columns covered** (the other 4 are the
+> positional validation keys, checked by `validate_cycle()` itself). Independently cross-read the
+> same values straight out of the raw files to confirm — `Non_A_Base_FL=4099.00227`,
+> `UOEDT=4194.70235`, `body_size=0.35770`, zigzag `slope=47.1695`/`category=LH` — all exact.
+> **Filename matching (Davin's explicit ask) — all 13 verified programmatically, all match.**
+> Recorded as a table in the audit doc. Two harmless quirks confirmed rather than assumed:
+> `Centriod*`is a genuine typo in the two best-fit prefixes but it is the typo MetaTrader
+actually writes, so the collector must match it; and ZigZag's`InpExportFileName = "ZigZag.txt"`is dead config — the real filename is built directly at line 385 and matches the collector's`ZigZag`prefix.
+**Verified:**`python -m py*compile`clean on all 4 pipeline scripts; schema applies clean with`market_data`still exactly **87 columns** and 13`raw*_`tables; every staged column proven to
+map to a real`market_data`column; the push worker's own`verify_schema_contract()`returns
+True against the freshly-promoted database and a real POST payload built from a promoted row has
+exactly the 87 contract fields (no missing, no extra);`railway-gateway` `tsc`clean,`npm test`**3/3 suites 23/23** (incl.`schema-sync`/`dto-contract`), `test:e2e`**1/1 suite 9/9**; full
+monolith`npm run test:ci`**171/171 suites, 2416/2416 tests** — unchanged baseline, zero
+regressions, as expected since no downstream file was touched.
+**⚠ NEEDS DAVIN — the MQL5 fixes are inert until acted on:** all 13 indicators must be
+**recompiled in MetaEditor and the`.ex5`redeployed to the VPS terminal**; this Executor can
+edit`.mq5`but cannot produce`.ex5`. Until then the exports still carry the phase bug. The
+collector + schema also need deploying to the VPS, after which `migrate_raw_tables()`widens the
+existing`xauusd.db`on first start. Tracked below under Waiting on.
+**Not committed** — per this file's established log-first-defer-commit pattern.
+**Artifacts:**`export_collector_validator_v2.py`(CALCULATE removed, SOURCES extended,`migrate_raw_tables()`/`market_data_column()`added),`sqlite_schema_v6_xauusd.sql`(38 staging
+columns + comment rewrite), all 13`mq5/_.mq5`(16 gmt_offset sites + the ZigZag pivot fix),`calculation-split-between-mt5-and-python-PENDING-PROJECT/`(new — 4 calc modules + the
+transliteration folder moved in via`git mv`, plus the new architecture doc),
+`DATA_COLLECTION_PIPELINE_BLUEPRINT_v2_29.md`(§0/§1/§2/§3/§5/§6/§7/§12/§13/Appendix A),`DAVINTRADE_DECISION_LAYER_BLUEPRINT.md`(BLOCKED banner),`install_services.bat`,
+`backfill_worker_api_gateway_v5.py`(docstring),`data-split-between-mql5-and-python/Export Data
+> from MQL5 indicators.txt`(now the full contract),`FIELD-CONSISTENCY-AUDIT-v2_29.md`
+> (superseded-in-part banner + the new §10 filename table), this file.
+
+<!-- CLAUDE.md L4611-L4712 -->
+
+> **Ad-hoc session (2026-09-09, phase/session unchanged) — CLOSED SUCCESSFUL (with one major
+> finding escalated, not fixed), end-to-end field name/type/nullability consistency audit of all
+> 87 `market_data_v6` fields, MQL5 → SQLite → Railway Gateway → Prisma/Postgres:** Davin gave a
+> fully-specified chat task order (his own Excel modeling sheet had surfaced several naming
+> conventions across the pipeline layers) asking for a field-by-field trace from every MQL5
+> indicator's export through the collector, SQLite, the gateway JSON contract, and all three
+> TypeScript/Prisma layers, per `EXECUTOR-PROTOCOL.md` §6 — same class as the 2026-09-03
+> `best_fit_a`/`best_fit_b` split and 2026-09-08 ingestion-guard sessions this one explicitly
+> extends. Planned via `EnterPlanMode`: three parallel Explore passes read every file in scope
+> (all 13 `.mq5` indicators + the legacy EA, every real captured export header, the full Python
+> collector/calc-stack/SQLite/gateway-JSON layer, and all three TypeScript/Prisma layers) before
+> any edit, per §0's "live code wins" rule.
+> **Headline result: field naming is almost entirely correct end-to-end already.** Every source's
+> "export-filename-prefix ≠ column-header-prefix" pattern is by design and
+> `export_collector_validator_v2.py`'s `SOURCES` dict already handles it correctly for all 13
+> sources, not just `best_fit_a` (the only one a prior session had reason to check) — confirmed
+> against real captured `.txt` headers in `davintrade-stack-d-and-e/engine-1-5/` and
+> `mock-data-from-indicators/golden_certification/`, not just the collector's own code.
+> **Three small, genuine fixes made, all verified, all uncommitted pending Davin's review:**
+> (1) `cycle_id`/`collected_at` were `NOT NULL` in `sqlite_schema_v6_xauusd.sql` (and always
+> populated by `promote_cycle()`) but nullable in `gateway_contract_market_data.schema.json` and
+> both Prisma schemas — tightened end to end (JSON contract → regenerated railway-gateway DTO via
+> its existing `npm run generate:dto` → both Prisma schemas, kept byte-identical → `types/
+indicator.ts`/`types/prisma-stubs.d.ts`) plus an **authored-but-unapplied** migration
+> (`prisma/migrations/20260909000000_market_data_v6_provenance_not_null/migration.sql`) setting
+> both `NOT NULL` on the live Postgres table — its own header comment tells Davin to confirm zero
+> existing NULL rows before applying, since unlike the 2026-09-03 rename a `SET NOT NULL` isn't
+> unconditionally lossless. (2) The 2026-09-08 null-guard only reaches MQL5-_parsed_ price-level
+> columns; it never reached the 26 columns Python itself _computes_ in `calculate_stage()`
+> (`best_resistance`/`best_support`/`fractal_best_fl`/`_uoedt`/`_loedt` + all 21
+> `{variant}_base_fl`/`_uoedt`/`_loedt`), which were written unconditionally with no sentinel
+> coercion — added a `_price_or_none(v)` helper and applied it at all 8 assignment sites in
+> `calculate_stage()`; verified via a throwaway script (5 cases, all passed), discarded after use
+> per this stack's own established no-persisted-pytest-for-the-collector precedent.
+> (3) `types/prisma-stubs.d.ts`'s `MarketDataV6.createdAt`/`updatedAt` typed `Date`-only vs.
+> `types/indicator.ts`'s `Date | string` (the one actually used at runtime) — aligned.
+> **One incidental fix, needed to actually perform this session's own required verification, not
+> a field-naming fix:** `test_phase1_golden.py`'s `MOCK_DIR = Path(__file__).resolve().parents[2]`
+> resolved one level too shallow (into `1_EA-and-backfill-worker-on-contabo-vps/mock-data-from-
+indicators/...` instead of the real repo-root `mock-data-from-indicators/`) — reproduced the
+> resulting `FileNotFoundError` directly in both Bash and PowerShell (ruling out an environment
+> quirk) before fixing to `parents[4]`; re-ran clean, 23/23. This test had apparently never
+> actually run its zigzag-golden section as committed, undermining part of the blueprint's own
+> "93/93 passing" claim.
+> **MAJOR FINDING — escalated, NOT fixed:** ran `golden_certification.py` directly against the
+> real M5 and M15 export archives myself. Z-score/ZigZag/lines sections all pass cleanly (20/20
+> each), then it crashes on the very first centroid variant: `TypeError:
+CentroidRegressionParams.__init__() got an unexpected keyword argument 'fractals'`.
+> `golden_certification.py` deliberately builds a `fractals` list from the real captured
+> `{variant}_horiz_high_map`/`_horiz_low_map` columns and passes `fractals=fractals` into
+> `calculate_variant()` — matching `CERTIFICATION.md`'s own documented "Production rule" that the
+> centroid EDT stage must use the staged horiz-map fractals, not self-detected ones ("self-detected
+> fractals were tested and are worse — they break best*fit"). But `centroid_regression.py`'s
+> `calculate()`/`calculate_variant()` has **never** (full `git log`, both files, since their first
+> commit 2026-06-13) had a `fractals` parameter — `calculate()` unconditionally self-detects
+> fractals from raw OHLCV `highs`/`lows`. **Production is wired the identical self-detecting way**:
+> `export_collector_validator_v2.py`'s `calculate_stage()` calls `calculate_variant(variant,
+crossings, closes, highs, lows)` with `highs`/`lows` = raw `raw_ohlcv` arrays and no fractals
+> override — confirmed by reading the exact call site directly, not inferred. **Net effect: the
+> "CERTIFIED" M15 50/50 / M5 39/50 verdict for all 7 centroid variants' Base_FL/UOEDT/LOEDT figures
+> is stale, unreproducible evidence against the code as it exists in this repo today, and the EDT
+> values currently computed and pushed to production for every centroid variant may not be the
+> ones that were actually certified.** This is a correctness question about certified trading math,
+> not a naming/type/nullability issue — fixing it (restoring fractal-injection support and wiring
+> the staged columns through, needing a full re-certification run afterward, or formally revising
+> `CERTIFICATION.md`'s own "Production rule" to accept self-detected fractals) is a substantial,
+> Davin-judgment decision squarely outside this audit's scope. **`calculate()`/`calculate_stage()`'s
+> fractal source was not touched this session** — full detail and both empirical repro logs in
+> `FIELD-CONSISTENCY-AUDIT-v2_29.md` §5; tracked below under Waiting on.
+> **Also flagged, not fixed (low value / needs data this Executor doesn't have):** no real captured
+> export exists anywhere for the *current* `best_fit_a`/`best_fit_b` split naming (only the
+> pre-split legacy `Centriod_Best_Fit` archive) — needs a live MT5 capture; `zigzag_category` is an
+> unconstrained `TEXT` in SQLite vs. a closed 6-value enum in the JSON contract (JSON is stricter,
+> not wrong — Python is already exhaustive over those 6 codes; a matching SQLite CHECK would need a
+> nontrivial table-rebuild migration on a live VPS file-DB for marginal value); `calculated_at`'s
+> SQL comment ("NULL = calc stage skipped") doesn't match actual behavior (`promote_cycle()` always
+> stamps it) — cosmetic, not fixed; blueprint Appendix A's "93/93 passing" is now stale by one test
+> (94/94, after the 2026-09-03 session's own `best_fit_b` synthetic-test addition) — trivial, not
+> fixed as part of this audit's stated deliverables.
+> **Verified:** monolith `npx tsc --noEmit` clean; `npx eslint` clean on both changed TS files
+> (`types/indicator.ts`, `types/prisma-stubs.d.ts`); full monolith `npm run test:ci` **171/171
+> suites, 2416/2416 tests** — exact match to this file's own most recent baseline, zero
+> regressions. `railway-gateway`: `npx tsc --noEmit` clean; `npm test` **3/3 suites, 23/23**
+> (incl. `schema-sync.spec.ts` confirming the two Prisma model bodies stayed byte-identical, and
+> `dto-contract.spec.ts` confirming the regenerated DTO's 87-field set); `npm run test:e2e` **1/1
+> suite, 9/9** (real HTTP round-trips, unaffected). `operation-service` (unaffected baseline, no
+> files changed): `tsc` clean, `npm test` **43/43 suites, 401/401 tests**. Python: `py_compile`
+> clean on `export_collector_validator_v2.py`; `test_phase1_golden.py` **23/23** (post path-fix),
+> `test_phase2_lines.py` **30/30**, `test_phase3_centroid.py` **41/41** (40 blueprint baseline +1
+> for the already-existing `best_fit_b` synthetic case); `sqlite_schema_v6_xauusd.sql` applied
+> clean to a throwaway in-memory DB — confirmed 87 `market_data` columns, 13 `raw*\*`tables.`golden_certification.py`re-run for both M5 and M15 with the fix in place — identical crash
+point/evidence as documented above (the fix doesn't touch this path;`golden_certification.py`calls`centroid_regression.py`directly, never through`calculate_stage()`/`promote_cycle()`).
+**Not committed** — per this task's own explicit instruction and this file's established
+log-first-defer-commit pattern; left for Davin's review of this entry first.
+**Artifacts:** `gateway_contract_market_data.schema.json`, `railway-gateway/src/gateway/dto/
+> market-data.dto.ts`(regenerated),`prisma/market-data/schema.prisma`, `railway-gateway/prisma/
+> schema.prisma`, `prisma/migrations/20260909000000_market_data_v6_provenance_not_null/
+> migration.sql`(new, authored/unapplied),`types/indicator.ts`, `types/prisma-stubs.d.ts`,
+`export_collector_validator_v2.py`, `mql5-to-python-transliteration/test_phase1_golden.py`,
+`backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/
+> FIELD-CONSISTENCY-AUDIT-v2_29.md` (new), this file.
+
+<!-- CLAUDE.md L4713-L4757 -->
+
+> **Ad-hoc session (2026-09-08, phase/session unchanged) — CLOSED SUCCESSFUL, ingestion safety
+> guard coercing inactive 0.0 price levels to NULL in Stack C's export collector:** Davin gave a
+> fully-specified chat task order (exact code diffs, a module-scope `PRICE_LEVEL_COLUMNS` set,
+> the `parse_export_file()` guard, two `calculate_stage()` defensive filters, and a full
+> verification script) to fix a real data-integrity gap in `backend-stack-c/1_EA-and-backfill-
+worker-on-contabo-vps/v2_29_data_pipeline_architecture/export_collector_validator_v2.py`. MQL5
+> exports an inactive/uninitialized price buffer as `0.0`, not `EMPTY_VALUE` — for XAUUSD
+> ($2,000-$3,000+ range) a $0.00 "price" is never valid data, and `sqlite_schema_v6_xauusd.sql`
+> (line 39) already mandates empty export fields be stored as NULL, not 0. Left unguarded, a
+> `0.0` SSA crossing point feeds `centroid_regression.py`'s OLS regression and skews `base_fl`/
+> `uoedt`/`loedt` toward zero; a `0.0` `horiz_high_map`/`horiz_low_map` renders as a phantom
+> support/resistance line at $0.00; a `0.0` ZigZag `current_point` reads as a real swing pivot.
+> Per this repo's established pattern of direct, fully-specified ad-hoc chat instructions on
+> this SEPARATE*STACK code (`EXECUTOR-PROTOCOL.md` §5/§6 — `backend-stack-c/` is out of scope
+> for the microservices migration itself, not off-limits to direct chat-ordered fixes, matching
+> the 2026-09-03 best_fit_a/b split sessions' own precedent) — no money/auth/secrets involved,
+> so no escalation needed.
+> **Implemented exactly as specified:** new module-scope `PRICE_LEVEL_COLUMNS`/
+> `PRICE_LEVEL_SUFFIXES` constants; `parse_export_file()`'s `real`-column branch now coerces
+> `<= 0.0` to `None` for any column in that set or matching an `_map`/`_point`/`_fl`/`_edt`/
+> `_ssa`/`_resistance`/`_support` suffix, leaving `int` columns (`crossing`) untouched since `0`
+> is a valid "no cross" flag, not missing data; `calculate_stage()` got matching defensive
+> filters on the `raw_zigzag` pivot query (`current_point > 0.0`) and the SSA crossings list
+> comprehension (`ssa > 0.0`), guarding staged/historical rows that might still carry a `0.0`
+> from before this fix shipped.
+> **A real bug found in the task's own verification script, not routed around:** the given
+> inline test's sample export header used the `Centriod_Best_Fit_A*`filename-prefix convention
+for the`horiz*high_map`/`ssa`/`crossing`/etc. columns, but `SOURCES['best_fit_a']['columns']`(confirmed live by printing the real registry) actually expects the`Best_Fit_A*`prefix for
+those specific columns — the two differ only for that source's per-column headers, not its
+filename. With the original header text every one of those columns resolved to`idx=None`in`col*idx`, so `v`was always`''`and every assertion passed or failed for the wrong reason
+(trivially`None`regardless of the fix, and`crossing`failed outright since`int`+empty also
+maps to `None`, not `0`). Fixed the test's header line to the real `Best_Fit_A*_`convention
+before re-running — no source file was touched to make this pass, only the throwaway
+verification script.
+**Verified:**`python -m py_compile`clean; the corrected inline property test passed all 6
+assertions (empty-tab →`None`, `0.00000` price map/`ssa`→`None`, `crossing=0`stays integer`0`not`None`, valid `2355.50`parses as float,`crossing=1`stays integer`1`); `git diff`reviewed and confirmed as exactly the four intended changes, nothing else touched. No dev
+server/browser verification applicable — this is a headless Python ingestion script with no
+UI surface.
+**Committed and pushed same session, on Davin's explicit request:**`e50d126c`, `main`->`origin/main`; pre-push hook re-ran the full monolith `test:ci`clean (**171/171 suites,
+2416/2416 tests**) before pushing — confirms this Stack C change carries zero blast radius
+into the Next.js monolith's own test surface, as expected for a SEPARATE_STACK file.
+**Deliberately out of scope, not touched:** the rest of`git status`'s pre-existing dirty tree
+at session start (several other `backend-stack-c/mq5/_.mq5`files, deleted`mql5-indicators/`mirrors, and untracked`davintrade-stack-d-and-e/`/`davintrade-fr-sk-chinese-support-stack/`material) — unrelated prior in-progress work, not this session's; only`export_collector_validator_v2.py`was staged and committed.
+**Artifacts:**`export_collector_validator_v2.py`, this file. 1 commit.

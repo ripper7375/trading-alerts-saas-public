@@ -192,3 +192,7 @@ staging-credentials.txt
 !.env.example
 !.env.production.local.example
 scratch/
+
+# Claude Code ephemeral worktrees & local backups
+.claude/worktrees/
+CLAUDE*-BACKUP*.md

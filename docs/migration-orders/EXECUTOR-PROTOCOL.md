@@ -35,12 +35,15 @@ The full rule is `00-SKELETON-AND-RULES.md` §1.0. What it means for you, concre
 
 ## 1. Session OPEN (do this before anything else, every session)
 
-0. **Size gate (before anything else):** check the byte size of `CLAUDE.md` and
-   `DECISION-LOG.md`. If either exceeds its target (**CLAUDE.md > ~100 KB** or
-   **DECISION-LOG.md > ~50 KB**), run the matching archival pass from §3.3 **right now**,
+0. **Size gate (before anything else):** check `CLAUDE.md`, `.claude/state/current-state.md`
+   and `DECISION-LOG.md`. If any exceeds its target (**CLAUDE.md > 5 KB / 150 lines** — it is a
+   router only; **current-state.md > 2 sessions**; **DECISION-LOG.md > ~50 KB**), run the
+   matching archival pass from §3.3 **right now**,
    before proceeding to step 1. The session does not start until active files are at
    target size — this prevents the archival backlog from compounding across sessions.
-1. Read `CLAUDE.md` (root) → identify current phase/session and the current order file.
+1. Read `CLAUDE.md` (root, a lean router) and `.claude/state/current-state.md` → identify
+   current phase/session and the current order file. Load other `.claude/` concept files only
+   when the task needs them (`.claude/index.md` catalogs them).
    Then read `docs/migration-orders/MASTER-ROADMAP-PHASES-7-15.md` — from Phase 7 onward it
    is the sequencing authority (run order, entry criteria, flags F65–F74).
    Then read `docs/migration-orders/LESSONS-LEARNED.md` (short, Tier-1) — these are the
@@ -74,7 +77,7 @@ The full rule is `00-SKELETON-AND-RULES.md` §1.0. What it means for you, concre
 - Commit per order step (`migrate(<slice>): <what>`); never batch a whole session into one
   commit. Validation: `npm run validate` (types, lint, format, policy) still works — use it
   on monolith-side changes; NestJS services use their own `lint + test` scripts.
-- If blocked: write the blocker into CLAUDE.md ("Waiting on"), leave the codebase green
+- If blocked: write the blocker into `.claude/state/waiting-on.md`, leave the codebase green
   (revert uncommitted half-work), end the session cleanly.
 
 ## 3. Session CLOSE (in this exact order)
@@ -83,13 +86,15 @@ The full rule is `00-SKELETON-AND-RULES.md` §1.0. What it means for you, concre
    session isn't done (see abort rule above).
 2. **Deviations:** finalize the order's Deviations section.
 3. **Update the artifacts** (this is the handoff — the Advisor plans ONLY from these):
-   - `CLAUDE.md` state block: current session done, what next, waiting-on, flag changes.
-     **Session-history hygiene (do this every session):** `CLAUDE.md` must keep only
-     **Current** and **Previous** (the two most recent sessions). When writing a new
-     Current entry, demote the old Current to Previous and mark all older entries with
-     `_(superseded-by-above, retained for context)_`. Then move every entry carrying
-     that marker to `docs/migration-orders/history/sessions-archive.md` (append at top,
-     most recent first). This keeps `CLAUDE.md` small enough for fast session-OPEN reads.
+   - `.claude/state/current-state.md`: current session done, what next, flag changes;
+     blockers in `.claude/state/waiting-on.md`. **Never write session state into `CLAUDE.md`**
+     (since 2026-09-26 it is a lean router; the old state block is archived under
+     `.claude/state/history/`).
+     **Session-history hygiene (do this every session):** `current-state.md` keeps at most
+     **two** session entries. When adding a third, move the oldest, verbatim, to the top of
+     `.claude/state/history/YYYY-MM-sessions.md` and index it in `history/index.md` — full
+     procedure in `.claude/protocols/session-lifecycle.md`. (Entries archived before
+     2026-08-30 remain in `docs/migration-orders/history/sessions-archive.md`.)
    - `DECISION-LOG.md`: any flag touched (evidence + resolution or progress note).
      **Decision-log hygiene:** keep only the register table and OPEN flag entries in
      `DECISION-LOG.md`. After resolving a flag, move its full resolution entry to
@@ -127,7 +132,8 @@ The full rule is `00-SKELETON-AND-RULES.md` §1.0. What it means for you, concre
   generated clients under `lib/api/generated/`). No longer do-not-touch. Its `stackA`/`stackB`
   exports stay frozen and `@deprecated` until Session 7-3 decides their fate.
 - Change-frozen (CC-F) slices — bugfixes only, mirrored to old AND new implementations.
-- `package.json` overrides on feature branches (Security Override Policy in CLAUDE.md).
+- `package.json` overrides on feature branches (Security Override Policy in
+  `.claude/rules/security-overrides.md`).
 - `railway-gateway/` ingest path — must never blip; touched only where an order says so
   (Phase 8.2).
 - SEPARATE_STACK code (`backend-stack-c/`, `mt5-service/`, `frontend/` mirror) — out of
@@ -152,7 +158,7 @@ The full rule is `00-SKELETON-AND-RULES.md` §1.0. What it means for you, concre
   checks and approved that specific PR. Never merge on green alone.
 - **Ad-hoc sessions** (incidents, repairs outside the playbook numbering — like the
   2026-07-12 git audit) are permitted but follow the SAME open/close rituals and artifact
-  updates; label them clearly in CLAUDE.md and note "phase/session unchanged."
+  updates; label them clearly in `.claude/state/current-state.md` and note "phase/session unchanged."
 
 ## 7. Escalation to Davin — always, immediately, for:
 

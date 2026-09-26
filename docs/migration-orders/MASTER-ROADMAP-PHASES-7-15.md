@@ -489,7 +489,8 @@ Sessions 8-3/8-4/8-5, **amended**:
   §7 escalation list, the do-not-touch list, session-history hygiene, lesson harvesting.
 - **PD1 stays in force.** Orders arrive with `Decisions taken`; the Executor decides from live
   code and asks; when plan and live code disagree, live code wins.
-- Every new phase still updates the same four artifacts at close: `CLAUDE.md`, `DECISION-LOG.md`,
+- Every new phase still updates the same four artifacts at close: `.claude/state/current-state.md` (was `CLAUDE.md` until
+  2026-09-26), `DECISION-LOG.md`,
   `migration-cutover-table.md` (when a route/slice moves), `migration-stack-analysis.md` (when
   files are created/moved/deleted).
 - **Cutover-table scope is unchanged:** traffic-carrying slices with a real rollback mechanism.

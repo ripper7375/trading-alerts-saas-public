@@ -25,7 +25,7 @@ _(pick the block that applies; delete the other)_
 2. Davin approves. (No approval, no flip. His question ritual: "what's the rollback?")
 3. Flip: <exact mechanism — env flag / webhook URL / scheduler>.
 4. Monitor <error rate, latency, queue depth> for <duration>. Green?
-5. Record: cutover table row, CLAUDE.md. Freeze stays until retire.
+5. Record: cutover table row, `.claude/state/current-state.md`. Freeze stays until retire.
 
 - **Rollback:** <exact reverse action — pre-verified in staging on <date>>
 
@@ -34,7 +34,7 @@ _(pick the block that applies; delete the other)_
 1. Confirm stability precondition met (<e.g. slice stable since <date>>).
 2. Delete: <exact file list — nothing more>. Full test suite after.
 3. Walk the phase-exit criteria from the plan, one by one, evidence per item.
-4. Record: cutover table, CLAUDE.md, Decision Log; propose next phase's entry check.
+4. Record: cutover table, `.claude/state/current-state.md`, Decision Log; propose next phase's entry check.
 
 - **Rollback:** git revert of the deletion commit (deletions are the easy rollback).
 

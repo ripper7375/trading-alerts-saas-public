@@ -50,17 +50,18 @@ explain · any §7 item. **When the Advisor's plan and the live code disagree, l
 the Executor reports the conflict, and the plan is revised to match reality, never the reverse.
 
 **Neither role edits the other's artifacts.** The Advisor owns `*.migration-order.md`. The
-Executor owns `CLAUDE.md`, `DECISION-LOG.md`, `migration-cutover-table.md` and
+Executor owns `.claude/state/` (current-state, waiting-on, history — `CLAUDE.md` is only a router
+since 2026-09-26), `DECISION-LOG.md`, `migration-cutover-table.md` and
 `migration-stack-analysis.md`, written at session CLOSE (`EXECUTOR-PROTOCOL.md` §3). If the
 Advisor believes one of those needs changing, it says so in the DRAFT and lets the Executor do it.
 
 **Order status lifecycle:** `PRE-DRAFT → DRAFT → APPROVED → CONFIRMED → executed`
 
-1. **End of session N (Executor):** fill this session's **Deviations**, update CLAUDE.md,
+1. **End of session N (Executor):** fill this session's **Deviations**, update `.claude/state/current-state.md`,
    then write `<session>-<slug>.migration-order.md` for session N+1 with status `PRE-DRAFT`
    — raw facts: what changed, surprises, candidate steps. **Artifacts are the only channel**
    to the Advisor (it never sees the session transcript) — an empty Deviations section or
-   stale CLAUDE.md starves the next plan.
+   stale `.claude/state/current-state.md` starves the next plan.
 2. **Between sessions (Advisor):** Davin prompts Antigravity with the PRE-DRAFT; it
    produces the authoritative `DRAFT` — correct template variant, skeleton as minimum
    required content, strategy context (plan, flags, playbook, file inventory) applied.
@@ -146,7 +147,7 @@ the NOT-free list.
 - Keep orders to ~1–2 pages. Ceremony proportional to work: a cutover order is ~10 lines.
 - Ground every file reference in the live codebase at CONFIRM time (paths + line counts).
 - Old `docs/build-orders/part-XX.md` docs are background for _why_; never copy their steps.
-- Every order ends updating: CLAUDE.md, Decision Log (if flags), cutover table (if routes),
+- Every order ends updating: `.claude/state/current-state.md`, Decision Log (if flags), cutover table (if routes),
   and `migration-stack-analysis.md` entries (if the session created/moved/deleted files) —
   the Executor maintains the inventory the Advisor plans from; full regeneration only at 8.6.
 - **Playbook maintenance is the Advisor's job, event-driven not per-session:** the playbook

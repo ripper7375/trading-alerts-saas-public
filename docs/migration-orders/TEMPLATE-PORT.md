@@ -55,7 +55,7 @@ tests last, ported with assertions UNCHANGED — they are the parity oracle)_
 
 ## Retire (after cutover proves stable)
 
-- [ ] Delete SOURCE files; update cutover table; CLAUDE.md; affected
+- [ ] Delete SOURCE files; update cutover table; `.claude/state/current-state.md`; affected
       `migration-stack-analysis.md` entries (ported files leave the monolith's BACKEND list)
 
 ## Deviations
