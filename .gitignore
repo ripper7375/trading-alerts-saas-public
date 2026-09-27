@@ -196,3 +196,5 @@ scratch/
 # Claude Code ephemeral worktrees & local backups
 .claude/worktrees/
 CLAUDE*-BACKUP*.md
+# In-flight multi-step checklist (per checkout; see .claude/protocols/session-lifecycle.md)
+.claude/state/active-tasks.md

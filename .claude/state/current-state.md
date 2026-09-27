@@ -1,7 +1,7 @@
 ---
 type: Concept/AgentState
 status: active
-updated_at: 2026-09-26
+updated_at: 2026-09-27
 last_numbered_session: '14-3 (CLOSED SUCCESSFUL 2026-08-30) — Phase 14 complete'
 next_numbered_session: '12-0 (Phase 12, Stack D) — blocked on the handover-prompt re-draft, see waiting-on.md'
 git_branch: main
@@ -28,6 +28,10 @@ Every entry older than these two is in [history](./history/index.md).
 - **Status correction (2026-09-26, OKF refactor):** round 5 below says "NOT committed, NOT
   deployed". It has since been committed and merged to `main` via PR #474 (`31c2e8d4`).
   Deployment was not verified during the refactor.
+- **OKF fine-tuning for Opus 5.5 (2026-09-27, docs only):** non-negotiable 8 (settled answers),
+  `active-tasks.md` checklist + action-first close entry in
+  [session-lifecycle](../protocols/session-lifecycle.md), new
+  [subagent-orchestration](../protocols/subagent-orchestration.md); `tsc`/lint clean.
 - **Open follow-ups:** see [waiting-on.md](./waiting-on.md). Database traps:
   [database-traps.md](../architecture/database-traps.md).
 

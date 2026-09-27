@@ -9,10 +9,12 @@
 **Do NOT read the whole `.claude/` tree at session start.** This router plus
 `.claude/rules/non-negotiables.md` (auto-loaded) is your standing context.
 
-1. At session start read **only** [.claude/state/current-state.md](.claude/state/current-state.md).
+1. At session start read **only** [.claude/state/current-state.md](.claude/state/current-state.md),
+   plus `.claude/state/active-tasks.md` if it exists (an unfinished checklist — resume it).
 2. Read other files **only when the task touches their domain** — use the matrix in §3.
 3. Before re-investigating a bug or decision, Grep [.claude/state/history/](.claude/state/history/index.md);
    it is probably already written up.
+4. Earlier settled decisions stay settled; focus on the active turn (non-negotiable 8).
 
 ## 2. State and session close
 
@@ -26,7 +28,10 @@
 ## 3. Navigation matrix (task trigger → file)
 
 - **Any task (binding, auto-loaded):** [rules/non-negotiables.md](.claude/rules/non-negotiables.md) —
-  CONFIRMED orders only, one verifiable unit, artifacts, scope, escalate money/auth, verify, live code wins.
+  CONFIRMED orders only, one verifiable unit, artifacts, scope, escalate money/auth, verify, live code wins,
+  settled answers stay settled.
+- **Task with 3+ steps:** keep the checklist in `.claude/state/active-tasks.md` ([session-lifecycle](.claude/protocols/session-lifecycle.md) §Track).
+- **Parallel subagents (only when Davin asks):** [protocols/subagent-orchestration.md](.claude/protocols/subagent-orchestration.md)
 - **`package.json` / dependencies:** [rules/security-overrides.md](.claude/rules/security-overrides.md)
 - **UI, text, prices, dates:** [rules/i18n-compliance.md](.claude/rules/i18n-compliance.md)
 - **Schema, migrations, DB queries:** [architecture/database-traps.md](.claude/architecture/database-traps.md)

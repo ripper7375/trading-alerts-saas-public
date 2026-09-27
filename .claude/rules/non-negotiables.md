@@ -34,6 +34,11 @@ tags: [governance, safety, verification, escalation]
    choice on preference — but always re-open it on evidence: when the plan and the live code
    disagree, live code wins.** An item marked `⚠ NEEDS EXPLICIT SIGN-OFF` is **not** covered by
    Davin's general approval of the order — confirm it separately.
+8. **Settled answers stay settled.** A decision, diagnosis or plan agreed earlier in the session
+   is resolved: spend each new turn on the task in front of you, not on re-arguing it. It re-opens
+   only when Davin questions it or new evidence contradicts it (live code, runtime state, a
+   failing check — rule 7). This never skips verification (rule 6): re-running checks is not
+   re-litigating.
 
 Also binding everywhere: never modify `overrides`/`pnpm.overrides` in `package.json` outside a
 dedicated PR on `main` (details: `.claude/rules/security-overrides.md`). Never commit or push
