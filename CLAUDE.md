@@ -37,6 +37,10 @@
 - **Schema, migrations, DB queries:** [architecture/database-traps.md](.claude/architecture/database-traps.md)
 - **Deploys, VPS, Stack C, R2:** [architecture/infrastructure.md](.claude/architecture/infrastructure.md)
 - **Numbered migration session, scope:** [architecture/microservices-cutover.md](.claude/architecture/microservices-cutover.md)
+- **Stack D (conversational AI, MCDs, Reports 1 and 2):** [docs/STACK-D-ARCHITECTURE.md](docs/STACK-D-ARCHITECTURE.md) is
+  canonical, with decisions in `docs/adr/`. MCDs follow [docs/MCD-DEVELOPMENT-STANDARD.md](docs/MCD-DEVELOPMENT-STANDARD.md)
+  and [the walkthrough](docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md). The earlier documents in
+  `davintrade-stack-d-and-e/archive/` are superseded.
 - **Tooling misbehaves (git, Jest, dev server):** [architecture/environment-gotchas.md](.claude/architecture/environment-gotchas.md)
 - **Before declaring done:** [protocols/verification-checklist.md](.claude/protocols/verification-checklist.md)
 - **Past sessions, old decisions:** [state/history/index.md](.claude/state/history/index.md)

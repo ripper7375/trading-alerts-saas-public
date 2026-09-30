@@ -1,3 +1,8 @@
+> **SUPERSEDED on 30 September 2026.** The canonical Stack D architecture is
+> [`docs/STACK-D-ARCHITECTURE.md`](../../docs/STACK-D-ARCHITECTURE.md), with every decision in
+> [`docs/adr/`](../../docs/adr/README.md). This file is kept for history. Where it disagrees with the
+> canonical document, the canonical document wins.
+
 # Stack D — Conversational AI for Chart Analysis Architecture Framework (V2)
 
 **Document Version:** 2.4.0  

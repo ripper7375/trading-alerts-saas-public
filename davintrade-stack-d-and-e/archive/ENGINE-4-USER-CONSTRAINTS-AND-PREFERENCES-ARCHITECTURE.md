@@ -1,3 +1,8 @@
+> **SUPERSEDED on 30 September 2026.** The canonical Stack D architecture is
+> [`docs/STACK-D-ARCHITECTURE.md`](../../docs/STACK-D-ARCHITECTURE.md), with every decision in
+> [`docs/adr/`](../../docs/adr/README.md). This file is kept for history. Where it disagrees with the
+> canonical document, the canonical document wins.
+
 # Engine 4: User Constraints & Preferences Architecture Design
 
 **Document Version:** 1.8.0  

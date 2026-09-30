@@ -1,3 +1,8 @@
+> **SUPERSEDED on 30 September 2026.** The canonical Stack D architecture is
+> [`docs/STACK-D-ARCHITECTURE.md`](../../docs/STACK-D-ARCHITECTURE.md), with every decision in
+> [`docs/adr/`](../../docs/adr/README.md). This file is kept for history. Where it disagrees with the
+> canonical document, the canonical document wins.
+
 # DavinTrade Architecture Plan: Engine 1.5A, 1.5B, and 1.5C
 
 **Document Version:** 1.1.0 (Iterative Refinement Draft)  
@@ -171,7 +176,7 @@ To evaluate trend bias without price-scale distortion across historical gold reg
 - $-30.0^\circ \le \text{Angle} \le -10.0^\circ$: `MODERATE_BEARISH`
 - $\text{Angle} < -30.0^\circ$: `STRONG_BEARISH`
 
-_(Raw Slope $b$ is retained for projecting future price levels: $P_{t+k} = P_t + b \cdot k$)._
+_(Raw Slope $b$ is retained for projecting future price levels: $P_{t+k} = P*t + b \cdot k$).*
 
 ---
 
