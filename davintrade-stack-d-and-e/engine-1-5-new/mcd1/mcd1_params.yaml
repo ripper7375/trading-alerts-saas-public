@@ -1,7 +1,7 @@
 # MCD1 parameters (standard Appendix C.3). Changing a value is a version change (standard section 14).
 # Every threshold in mcd1.md section 6 appears here once. Approved by Davin on 1 October 2026 (spec questions Q1 to Q5).
 mcd_id: MCD1
-evaluator_version: 2.0.0
+evaluator_version: 2.0.1
 parameters:
   sideways_angle_deg:
     value: 5.0
@@ -21,8 +21,13 @@ parameters:
   min_micro_window_bars:
     value: 96
     unit: closed M15 bars
-    boundary: 'N_micro is never below value; also the N_micro used when containment_n and visual_window_bars are both missing'
+    boundary: 'N_micro is never below value; also the N_micro used when containment_n and visual_window_bars are both missing. The channel must hold N_micro closed bars: T_EDT - t_edt_open_bar_rows below N_micro is INVALID + INSUFFICIENT_BARS (the window is not shortened)'
     why: '24 hours, one full trading day of M15; filters false breakouts from 2 to 3 hours of news (pre-retrofit MCD1)'
+  t_edt_open_bar_rows:
+    value: 1
+    unit: rows
+    boundary: 'The channel holds T_EDT - value closed M15 bars; it must hold at least N_micro of them. With no T_EDT it is not checked'
+    why: 'T_EDT counts the rows on which the channel exists, and the last of them is the still-open bar (7 of 7 real channels), so on closed bars the channel has T_EDT - 1 rows; same name and value as MCD3 (task P7, 2026-10-01). Whether the fit window includes the open bar is open (waiting-on)'
   sustained_breach_pct:
     value: 80.0
     unit: percent of N_micro

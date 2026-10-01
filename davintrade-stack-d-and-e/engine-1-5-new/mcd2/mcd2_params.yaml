@@ -1,7 +1,7 @@
 # MCD2 parameters (standard Appendix C.3). Changing a value is a version change (standard section 14).
 # Every threshold in mcd2.md section 6 appears here once.
 mcd_id: MCD2
-evaluator_version: 2.0.0
+evaluator_version: 2.0.1
 parameters:
   sideways_angle_deg:
     value: 5.0
@@ -16,13 +16,18 @@ parameters:
   min_window_bars:
     value: 48
     unit: closed M5 bars
-    boundary: 'N_window is never below value: N_window = max(value, min(T_EDT, max_window_bars))'
-    why: '4 hours of M5 (pre-retrofit floor)'
+    boundary: 'A minimum, not a window length: a channel with N_window = min(T_EDT - t_edt_open_bar_rows, max_window_bars) below value is INVALID + INSUFFICIENT_BARS'
+    why: '4 hours of M5 (pre-retrofit floor); from 2.0.1 it no longer lengthens a short window past the channel (task P7)'
   max_window_bars:
     value: 288
     unit: closed M5 bars
-    boundary: 'N_window is never above value; also the T_EDT fallback when containment_n, visual_window_bars and window_bars are all null'
+    boundary: 'N_window is never above value; also the N_window used when containment_n, visual_window_bars and window_bars are all null'
     why: '24 hours of M5 (architecture 2.5: statistics over min(T_EDT, 288))'
+  t_edt_open_bar_rows:
+    value: 1
+    unit: rows
+    boundary: 'N_window = min(T_EDT - value, max_window_bars) closed M5 bars; with no T_EDT it is not subtracted'
+    why: 'T_EDT counts the rows on which the channel exists, and the last of them is the still-open bar (7 of 7 real channels), so on closed bars the channel has T_EDT - 1 rows; same name and value as MCD3 (task P7, 2026-10-01). Whether the fit window includes the open bar is open (waiting-on)'
   max_abs_regression_angle_deg:
     value: 90.0
     unit: degrees

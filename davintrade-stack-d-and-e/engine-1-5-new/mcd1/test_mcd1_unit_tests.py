@@ -1,4 +1,4 @@
-"""Unit tests for MCD1 2.0.0 (standard section 12: T1 to T13; T14 is for derived MCDs only).
+"""Unit tests for MCD1 2.0.1 (standard section 12: T1 to T13; T14 is for derived MCDs only).
 
 Run from ``davintrade-stack-d-and-e/engine-1-5-new/``::
 
@@ -217,6 +217,21 @@ def with_params(**changes) -> Params:
     return dataclasses.replace(PARAMS, values={**PARAMS.values, **changes})
 
 
+def with_channel_rows(inputs: CycleInputs, t_edt: int) -> CycleInputs:
+    """A real-shaped short channel (task P7): ``containment_n`` is ``t_edt`` and the active indicator's channel columns
+    exist only on the newest ``t_edt - 1`` closed bars (the last of the ``t_edt`` rows is the still-open bar), null
+    before. Every real channel in the replicas has this shape."""
+    columns = set(channel_columns(inputs.active_indicator["M15"]).values())
+    keep = max(t_edt - 1, 0)
+
+    def edit(bars):
+        for bar in bars[: max(len(bars) - keep, 0)]:
+            for column in columns:
+                bar[column] = None
+
+    return with_stat(with_bars(inputs, edit), containment_n=t_edt)
+
+
 def run(inputs: CycleInputs, params: Params = PARAMS) -> dict:
     return ev.evaluate(inputs, params, {})
 
@@ -311,6 +326,7 @@ class RegisterTests(unittest.TestCase):
                 "min_containment_rate": 50.0,
                 "micro_window_pct": 5.0,
                 "min_micro_window_bars": 96,
+                "t_edt_open_bar_rows": 1,
                 "sustained_breach_pct": 80.0,
                 "max_abs_regression_angle_deg": 90.0,
                 "channel_position_decimals": 4,
@@ -643,6 +659,73 @@ class BoundaryTests(unittest.TestCase):
 
 
 # --------------------------------------------------------------------------- T3: one test per pre-flight failure
+
+
+class ShortChannelTests(unittest.TestCase):
+    """Task P7 (PATCH 2.0.1): the channel must hold ``N_micro`` closed bars. ``T_EDT`` counts the rows on which the channel
+    exists and the last of them is the still-open bar, so a real channel has ``T_EDT - 1`` closed rows. 2.0.0 applied the
+    floor of 96 even to a channel of 96 rows or fewer (``T_EDT`` 96 or less): the window reached before the channel,
+    met a null and ended INVALID + DISCONTINUITY. Now it ends INVALID + INSUFFICIENT_BARS; nothing else changes."""
+
+    def assert_invalid(self, out, reasons):
+        self.assertEqual((out["status"], out["status_reasons"]), ("INVALID", reasons))
+        self.assertEqual(schema_errors(out), [])
+        self.assertEqual((out["state_code"], out["bias"], out["levels"], out["details"]), (None, None, [], {}))
+
+    def test_a_real_channel_of_at_least_96_closed_bars_is_read_as_before(self):
+        for indicator in ("non_b", "best_fit_a"):
+            for t_edt in (97, 98, 120, 500, 1808):
+                with self.subTest(indicator=indicator, t_edt=t_edt):
+                    out = run(with_channel_rows(synth(indicator=indicator, t_edt=t_edt), t_edt))
+                    self.assertEqual((out["status"], out["status_reasons"]), ("VALID", []))
+                    self.assertEqual(out["details"]["n_micro"], expected_n(t_edt))
+                    self.assertEqual(schema_errors(out), [])
+
+    def test_a_channel_under_96_closed_bars_is_not_read(self):
+        for t_edt in (96, 95, 50, 2, 1, 0, -5):
+            with self.subTest(t_edt=t_edt):
+                self.assert_invalid(run(with_channel_rows(synth(t_edt=t_edt), t_edt)), ["INSUFFICIENT_BARS"])
+
+    def test_the_parameter_t_edt_open_bar_rows_moves_the_boundary(self):
+        short = with_channel_rows(synth(t_edt=96), 96)  # the channel has 95 closed bars
+        self.assert_invalid(run(short, with_params(t_edt_open_bar_rows=1)), ["INSUFFICIENT_BARS"])
+        self.assert_invalid(run(short, with_params(t_edt_open_bar_rows=0)), ["DISCONTINUITY"])  # 96 rows said, 95 exist: the window meets a null
+        two = with_params(t_edt_open_bar_rows=2)
+        self.assert_invalid(run(with_channel_rows(synth(t_edt=97), 97), two), ["INSUFFICIENT_BARS"])
+        self.assertEqual(run(with_channel_rows(synth(t_edt=98), 98), two)["details"]["n_micro"], 96)
+
+    def test_the_channel_must_hold_n_micro_whatever_sets_it(self):
+        floor = with_params(min_micro_window_bars=150)
+        self.assert_invalid(run(with_channel_rows(synth(t_edt=150, bars=200), 150), floor), ["INSUFFICIENT_BARS"])
+        self.assertEqual(run(with_channel_rows(synth(t_edt=151, bars=200), 151), floor)["details"]["n_micro"], 150)
+        self.assertEqual(run(with_channel_rows(synth(t_edt=300, bars=300), 300), with_params(micro_window_pct=99.0))["details"]["n_micro"], 297)
+        self.assert_invalid(run(with_channel_rows(synth(t_edt=300, bars=300), 300), with_params(micro_window_pct=100.0)), ["INSUFFICIENT_BARS"])
+
+    def test_a_missing_t_edt_is_not_a_short_channel(self):
+        out = run(with_stat(synth(), containment_n=DROP, visual_window_bars=DROP))
+        self.assertEqual((out["status"], out["details"]["n_micro"]), ("VALID", 96))
+
+    def test_the_short_channel_check_comes_before_the_bar_checks_and_after_the_statistics(self):
+        short = with_channel_rows(synth(t_edt=50), 50)
+        self.assert_invalid(run(with_bars(short, lambda bars: bars[-5].update({"close": None}))), ["INSUFFICIENT_BARS"])
+        self.assert_invalid(run(with_stat(short, containment_rate=49.99)), ["CONTAINMENT_LOW"])
+        long_enough = with_channel_rows(synth(t_edt=200), 200)
+        self.assert_invalid(run(with_bars(long_enough, lambda bars: bars[-50].update({"non_b_ssa": None}))), ["DISCONTINUITY"])
+
+    def test_the_stored_real_cycles_cut_to_the_shortest_readable_channel_read_the_same(self):
+        for name, indicator in (("v1", "non_b"), ("v4", "non_a")):  # the real cycles whose own N_micro is 96 (T_EDT 1808 and 968)
+            with self.subTest(workbook=name, indicator=indicator):
+                base = with_indicator(stored_inputs(name), indicator)
+                full = run(base)
+                self.assertEqual(full["details"]["n_micro"], 96)
+                self.assertEqual(run(with_channel_rows(base, 97)), full)  # 96 rows: nothing in the output depends on T_EDT but N_micro
+                self.assert_invalid(run(with_channel_rows(base, 96)), ["INSUFFICIENT_BARS"])
+
+    def test_tier3_reads_exactly_the_bars_of_the_channel(self):
+        short = with_channel_rows(synth(t_edt=97), 97)  # 96 rows: the window is the whole channel
+        inverted = with_bars(short, lambda bars: bars[-96].update({"non_b_uoedt": 3900.0}))
+        self.assert_invalid(run(inverted), ["SANITY_FAILED"])
+        self.assertEqual(run(with_bars(short, lambda bars: bars[-97].update({"non_b_uoedt": 3900.0})))["status"], "VALID")  # no channel there
 
 
 class PreflightTests(unittest.TestCase):

@@ -1,7 +1,7 @@
 # MCD2 registry entry and state register (standard Appendix C.2). Approved by Davin on 2026-10-01 (spec and plan); built in task P3.
 mcd_id: MCD2
 name: M5 trend and corridor deviation
-evaluator_version: 2.0.0
+evaluator_version: 2.0.1
 kind: independent # gate | independent | derived
 timeframes: [M5]
 depends_on: []

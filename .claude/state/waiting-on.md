@@ -19,9 +19,8 @@ to [history/resolved-waiting-on.md](./history/resolved-waiting-on.md).
 
 Quick index (newest first):
 
-- MCD kit: forming bar inside the statistics fit windows (unverified; new evidence 2026-10-01) · MCD2 and MCD1
-  window one bar too long for short channels (open, simulated; **deferred by Davin until after the MCD3 stage-3 sign-off, which he granted on 2026-10-01: next task**) ·
-  kit writes absolute workbook paths into fixture sources
+- MCD kit: forming bar inside the statistics fit windows (unverified; new evidence 2026-10-01) · kit writes absolute
+  workbook paths into fixture sources
 - Shared FX rates `REDIS_URL` · SystemConfig pricing deploy + test · Language & locale open items ·
   Disbursement payout go-live (G1–G4) · 15th indicator rollout order
 - Chart-render: 2 unverified items · Socket-refactor trigger (decided: don't yet)
@@ -50,17 +49,6 @@ Quick index (newest first):
   includes the forming bar. That settles the window, not the fit price: whether the fit used the forming bar's
   price still needs the MQL5 source. Hand-off:
   [2026-10-01-0703-mcd3-p2.md](../../docs/handoffs/2026-10-01-0703-mcd3-p2.md) §7 item 1.
-
-- **MCD2 and MCD1 windows reach one bar before a short channel (2026-10-01) — simulated, open, not fixed.** The
-  committed MCD2 reads `max(48, min(T_EDT, 288))` closed M5 bars. Because `T_EDT` counts the forming bar (item above),
-  an M5 channel with `T_EDT` 49 to 288 has only `T_EDT − 1` closed bars with a channel, so MCD2's tier 2 reads a null
-  and ends INVALID + `DISCONTINUITY`; MCD1 does the same at `T_EDT` ≤ 96 (its window floor). Simulated on the v1
-  bundle (`T_EDT` 289 and above VALID; 288 and below INVALID); **no replica triggers it** (smallest real `T_EDT`
-  is 314, the v3 fractal), but live fractal channels can be short, and MCD3 would then see
-  `UPSTREAM_UNAVAILABLE:MCD2`. MCD3's window is `T_EDT − 1` and is not affected. The fix is a PATCH to MCD2 and
-  MCD1 (window = `min(T_EDT − 1, cap)`, no fixture changes): task P7, Davin's call. Hand-off:
-  [2026-10-01-0703-mcd3-p2.md](../../docs/handoffs/2026-10-01-0703-mcd3-p2.md) §7 item 2. **Davin deferred the P7 patch until after
-  the MCD3 stage-3 sign-off (2026-10-01); he granted that sign-off the same day, so the patch is now the next task.** A background-task chip for it was offered and left open.
 
 - **The kit writes an absolute workbook path into `<slot>.source.md` (2026-10-01, MCD3 task P3).** For a workbook outside
   `engine-1-5-new/` (v3 and v4, as for MCD1 and MCD2) the committed fixture files carry a `D:/SaaS Project/...` path; the

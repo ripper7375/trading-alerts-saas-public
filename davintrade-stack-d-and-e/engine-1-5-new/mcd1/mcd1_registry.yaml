@@ -3,7 +3,7 @@
 # SIDEWAYS NEUTRAL); a break follows the break direction (above UOEDT LONG, below LOEDT SHORT), for all three trends.
 mcd_id: MCD1
 name: M15 primary trend and micro regime
-evaluator_version: 2.0.0
+evaluator_version: 2.0.1
 kind: independent # gate | independent | derived
 timeframes: [M15]
 depends_on: []

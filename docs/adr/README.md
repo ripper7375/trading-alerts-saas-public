@@ -3,8 +3,8 @@
 One file per decision. The architecture itself is in [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md); these files record what was decided, the alternative not chosen, and why.
 
 - **Settled:** decided by Davin. **Proposed:** adopted provisionally, awaiting confirmation (ADR-015).
-- Numbers 001–082 belong to the Stack D series. To change a decision, add a new file that names the one it replaces and mark the old one "Superseded by ADR-nnn".
-- 001–007 were made before the section series; 008–081 come from the seven section decks (`davintrade-stack-d-and-e/STACK-D-REVISED-ARCHITECTURE-01…07`); 082 came after.
+- Numbers 001–083 belong to the Stack D series. To change a decision, add a new file that names the one it replaces and mark the old one "Superseded by ADR-nnn".
+- 001–007 were made before the section series; 008–081 come from the seven section decks (`davintrade-stack-d-and-e/STACK-D-REVISED-ARCHITECTURE-01…07`); 082 and 083 came after.
 - "File A" to "file I" and "the review" in these entries are the earlier documents, now in
   [`davintrade-stack-d-and-e/archive/`](../../davintrade-stack-d-and-e/archive/):
 
@@ -103,3 +103,4 @@ One file per decision. The architecture itself is in [STACK-D-ARCHITECTURE.md](.
 | 080 | [Operations dashboard and alerts](080-operations-dashboard-and-alerts.md)                                                           | 7 · Platform & governance       | Settled  | 2026-09-30 |
 | 081 | [Safety texts in all 16 languages](081-safety-texts-in-all-16-languages.md)                                                         | 7 · Platform & governance       | Settled  | 2026-09-30 |
 | 082 | [MCD development standard](082-mcd-development-standard.md)                                                                         | 2 · Sensors (MCDs)              | Settled  | 2026-09-30 |
+| 083 | [MCD1 and MCD2 windows count the channel's closed bars](083-mcd1-and-mcd2-windows-count-the-channels-closed-bars.md)                | 2 · Sensors (MCDs)              | Proposed | 2026-10-01 |

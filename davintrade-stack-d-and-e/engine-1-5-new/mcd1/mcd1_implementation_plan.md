@@ -1,7 +1,7 @@
 # MCD1 implementation plan: retrofit to evaluator 2.0.0
 
 Status: Approved (Davin, 1 October 2026, together with `mcd1.md` and decision D6) · Built in task P3 on 1 October
-2026 (§9) · Next: an independent check, task P6, in a fresh session · Follows: [standard](../../../docs/MCD-DEVELOPMENT-STANDARD.md),
+2026 (§9); patched to 2.0.1 in task P7 (§10) · Next: an independent check, task P6, in a fresh session · Follows: [standard](../../../docs/MCD-DEVELOPMENT-STANDARD.md),
 [walkthrough Part C0 and C2](../../../docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md)
 
 This plan is steps R1 to R4. It lists each change, the tests that prove it, the fixtures, and the expected
@@ -229,3 +229,15 @@ beyond this plan, so that nothing is a surprise:
   Davin granted the stage-3 sign-off. See manifest §3 and `docs/handoffs/2026-10-01-0628-mcd1-p6.md`.
 - **Not done here, by design:** committing (done after the sign-off, by explicit path); moving the three
   tier helpers shared with MCD2 into the kit (§7); stages 4 to 7.
+
+## 10. Patch 2.0.1 (task P7, 1 October 2026)
+
+The channel must hold `N_micro` closed bars (`concept.md`, "Change 2026-10-01"; spec §3 and §6). Davin confirmed the PATCH on 1 October 2026.
+
+- **Change:** `T_EDT − t_edt_open_bar_rows ≥ N_micro` (parameter `t_edt_open_bar_rows` = 1), else INVALID + `INSUFFICIENT_BARS`; the window is not shortened
+  below 96; with no `T_EDT` nothing is checked. `N_micro` is unchanged. 2.0.0 applied the floor of 96 to a channel of 96 rows or fewer
+  and ended INVALID + `DISCONTINUITY`. Nothing becomes VALID that was INVALID.
+- **Files:** `mcd1_evaluator.py` (`_t_edt`, `_channel_rows`, `_tier2`, version), `mcd1_params.yaml` and `mcd1_registry.yaml`, `mcd1.md`, the tests,
+  the manifest, the stored `evaluator_version` label in the fixture envelopes and `mcd1_output.json`.
+- **Tests:** eight new in `ShortChannelTests`; no old test changed except the register test's parameter list; 113 in all.
+- **Not changed:** `N_micro`, states, levels, thresholds, `details` fields, the envelope, every real reading (the smallest `T_EDT` in a fixture is 500).

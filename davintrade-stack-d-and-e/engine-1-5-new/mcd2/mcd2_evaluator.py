@@ -1,4 +1,4 @@
-"""MCD2: M5 trend and corridor deviation. Evaluator 2.0.0.
+"""MCD2: M5 trend and corridor deviation. Evaluator 2.0.1.
 
 Retrofit of the certified pre-retrofit MCD2 (kept in ``legacy/``). Specification: ``mcd2.md``.
 Parameters: ``mcd2_params.yaml``. State register and templates: ``mcd2_registry.yaml``.
@@ -31,7 +31,7 @@ from mcd_common.cycle_inputs import (
 )
 
 MCD_ID = "MCD2"
-EVALUATOR_VERSION = "2.0.0"
+EVALUATOR_VERSION = "2.0.1"
 TF = "M5"
 TIMEFRAMES = (TF,)
 
@@ -80,12 +80,18 @@ def _price(value: float) -> str:
 
 
 def _window_bars(row: Mapping[str, Any], params: Params) -> int:
-    """``N_window = max(min_window_bars, min(T_EDT, max_window_bars))`` closed M5 bars (spec sections 3 and 6).
+    """``N_window = min(T_EDT - t_edt_open_bar_rows, max_window_bars)`` closed M5 bars (spec sections 3 and 6).
 
-    ``T_EDT`` is the first of ``T_EDT_FIELDS`` that is a number; with none, ``max_window_bars``.
+    ``T_EDT`` is the first of ``T_EDT_FIELDS`` that is a number. It counts the rows on which the channel exists and
+    the last of them is the still-open bar, so on closed bars the channel has ``T_EDT - 1`` rows and the window
+    never reaches before it. With no ``T_EDT`` there is nothing to subtract: ``max_window_bars``. A window below
+    ``min_window_bars`` is returned as it is; tier 2 stops it (INVALID + INSUFFICIENT_BARS).
     """
-    horizon = next((row[name] for name in T_EDT_FIELDS if is_number(row.get(name))), params["max_window_bars"])
-    return max(int(params["min_window_bars"]), min(int(horizon), int(params["max_window_bars"])))
+    cap = int(params["max_window_bars"])
+    horizon = next((row[name] for name in T_EDT_FIELDS if is_number(row.get(name))), None)
+    if horizon is None:
+        return cap
+    return min(int(horizon) - int(params["t_edt_open_bar_rows"]), cap)
 
 
 def _statistics_row(inputs: CycleInputs) -> Mapping[str, Any]:
@@ -111,12 +117,16 @@ def _tier4(params: Params) -> pf.Check:
 
 
 def _tier2(params: Params) -> pf.Check:
-    """Enough closed bars, ascending, and every column MCD2 reads is a number, over ``N_window`` bars."""
+    """A channel of at least ``min_window_bars`` closed bars; enough closed bars, ascending, and every column MCD2
+    reads is a number, over ``N_window`` bars."""
 
     def check(inputs: CycleInputs) -> pf.CheckResult:
         indicator = inputs.active_indicator[TF]
         columns = ("timestamp", "close", *dict.fromkeys(channel_columns(indicator).values()))
         window = _window_bars(_statistics_row(inputs), params)
+        floor = int(params["min_window_bars"])
+        if window < floor:  # a channel shorter than the floor is not read; the window is not stretched past it
+            return pf.CheckResult(rc.INVALID, (rc.INSUFFICIENT_BARS,), {"timeframe": TF, "channel_bars": window, "needed": floor})
         return pf.bars_check({TF: window}, {TF: columns})(inputs)
 
     return check

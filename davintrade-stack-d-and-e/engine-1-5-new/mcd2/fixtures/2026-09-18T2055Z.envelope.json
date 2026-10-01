@@ -1,7 +1,7 @@
 {
   "schema_version": "mcd-output/1",
   "mcd_id": "MCD2",
-  "evaluator_version": "2.0.0",
+  "evaluator_version": "2.0.1",
   "cycle_slot": "2026-09-18T20:55Z",
   "last_closed_bar": {
     "M5": "2026-09-18T20:50Z"

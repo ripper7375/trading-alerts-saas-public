@@ -1,13 +1,13 @@
-# MCD2 manifest: work completion (retrofit 2.0.0)
+# MCD2 manifest: work completion (retrofit 2.0.0, patched to 2.0.1)
 
-|                       |                                                                                                                                                                             |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **MCD**               | MCD2: M5 trend and corridor deviation · independent · M5                                                                                                                    |
-| **Evaluator version** | **2.0.0** (MAJOR: the output shape changed from the pre-retrofit evaluator, which had no version)                                                                           |
-| **Stage**             | 3 (build) done on 1 October 2026 by task P3, checked by task P6 and signed off by Davin the same day. Flag `off`. Registry status in architecture §2.13: `Retrofit (2.0.0)` |
-| **Built on**          | The shared kit `mcd_common/` (Step 0, 215 tests), standard 1.0.3, walkthrough Part C0 steps R5 to R10                                                                       |
-| **Specification**     | [mcd2.md](mcd2.md) (approved by Davin, 1 October 2026) · [plan](mcd2_implementation_plan.md) · [concept](concept.md)                                                        |
-| **Next**              | Stages 4 to 7 when the sensor worker, synthesis and the knowledge build exist                                                                                               |
+|                       |                                                                                                                                                                                                                                                            |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MCD**               | MCD2: M5 trend and corridor deviation · independent · M5                                                                                                                                                                                                   |
+| **Evaluator version** | **2.0.1** (PATCH of 2.0.0, task P7, 1 October 2026: the window counts the channel's closed bars; 2.0.0 was the MAJOR retrofit, the output shape changed from the pre-retrofit evaluator, which had no version)                                             |
+| **Stage**             | 3 (build) done on 1 October 2026 by task P3, checked by task P6 and signed off by Davin the same day. Patched to 2.0.1 by task P7 on 1 October 2026 (Davin confirmed the PATCH; §9). Flag `off`. Registry status in architecture §2.13: `Retrofit (2.0.1)` |
+| **Built on**          | The shared kit `mcd_common/` (Step 0, 215 tests), standard 1.0.3, walkthrough Part C0 steps R5 to R10                                                                                                                                                      |
+| **Specification**     | [mcd2.md](mcd2.md) (approved by Davin, 1 October 2026) · [plan](mcd2_implementation_plan.md) · [concept](concept.md)                                                                                                                                       |
+| **Next**              | Stages 4 to 7 when the sensor worker, synthesis and the knowledge build exist                                                                                                                                                                              |
 
 ## 1. What was built
 
@@ -25,19 +25,19 @@ words; two regime words renamed (D5); output is envelope `mcd-output/1`. The cha
 
 All in `davintrade-stack-d-and-e/engine-1-5-new/mcd2/` unless stated.
 
-| Path                                  | Purpose                                                                                                               |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `mcd2.md`                             | Specification (14 sections), approved                                                                                 |
-| `mcd2_implementation_plan.md`         | R4 plan, approved; the R1 baseline and the expected legacy to new mapping                                             |
-| `concept.md`, `concept/`              | Readback of Davin's two boards (confirmed 1 Oct 2026) and the board images                                            |
-| `mcd2_registry.yaml`                  | Registry entry, state register (nine states) and the nine commentary templates                                        |
-| `mcd2_params.yaml`                    | Six parameters with value, unit, boundary, why                                                                        |
-| `mcd2_evaluator.py`                   | The evaluator. Imports the standard library, `decimal` and four kit modules only                                      |
-| `test_mcd2_unit_tests.py`             | 93 tests (§3). Also holds `write_fixtures()`, the recipe that regenerates the fixtures                                |
-| `fixtures/`                           | Per slot: `<slot>.inputs.json` (the bundle), `.envelope.json` (the expected output), `.source.md` (workbook, SHA-256) |
-| `mcd2_output.json`                    | The envelope of the v1 cycle (identical to `fixtures/2026-09-18T2055Z.envelope.json`)                                 |
-| `legacy/`                             | Pre-retrofit evaluator, tests and output; read-only history. One path line differs in the test copy                   |
-| `docs/STACK-D-ARCHITECTURE.md` (repo) | §2.13 MCD2 row notes 2.0.0; §2.5 and §3.4 use the renamed regime words (Q7)                                           |
+| Path                                  | Purpose                                                                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `mcd2.md`                             | Specification (14 sections), approved                                                                                  |
+| `mcd2_implementation_plan.md`         | R4 plan, approved; the R1 baseline and the expected legacy to new mapping                                              |
+| `concept.md`, `concept/`              | Readback of Davin's two boards (confirmed 1 Oct 2026) and the board images                                             |
+| `mcd2_registry.yaml`                  | Registry entry, state register (nine states) and the nine commentary templates                                         |
+| `mcd2_params.yaml`                    | Seven parameters with value, unit, boundary, why                                                                       |
+| `mcd2_evaluator.py`                   | The evaluator. Imports the standard library, `decimal` and four kit modules only                                       |
+| `test_mcd2_unit_tests.py`             | 102 tests (§3). Also holds `write_fixtures()`, the recipe that regenerates the fixtures                                |
+| `fixtures/`                           | Per slot: `<slot>.inputs.json` (the bundle), `.envelope.json` (the expected output), `.source.md` (workbook, SHA-256)  |
+| `mcd2_output.json`                    | The envelope of the v1 cycle (identical to `fixtures/2026-09-18T2055Z.envelope.json`)                                  |
+| `legacy/`                             | Pre-retrofit evaluator, tests and output; read-only history. One path line differs in the test copy                    |
+| `docs/STACK-D-ARCHITECTURE.md` (repo) | §2.13 MCD2 row notes 2.0.1; §2.5 window cell is `min(T_EDT − 1, 288)`; §2.5 and §3.4 use the renamed regime words (Q7) |
 
 ## 3. Test results
 
@@ -45,12 +45,12 @@ From `davintrade-stack-d-and-e/engine-1-5-new/`, Python 3.11.9, `unittest`, 1 Oc
 
 | Command                                                                     | Result                                     |
 | --------------------------------------------------------------------------- | ------------------------------------------ |
-| `python -m unittest discover -s mcd2`                                       | **93 OK, 0 skipped**, about 10 s           |
+| `python -m unittest discover -s mcd2`                                       | **102 OK, 0 skipped**, about 10 s          |
 | `python -m unittest discover -s mcd_common/tests -t .` (the kit, unchanged) | **215 OK**                                 |
 | Legacy tests, from `mcd2/legacy/`                                           | 13 OK (the pre-retrofit baseline, plan §6) |
 | `npx prettier --check` on the Markdown and YAML files of this folder        | Clean                                      |
 
-The 93 tests: register and parameters (5), states T1 (9), metric (3), boundaries T2 (8), pre-flight T3 (17),
+The 102 tests: register and parameters (5), states T1 (9), metric (3), boundaries T2 (8), short channels P7 (9), pre-flight T3 (17),
 legacy cases (5), real cycles T13 (4), shared checks T4 to T8, T10, T12 on four real cycles (28), never throws (2),
 output T8, T9, T11, T12 and rounding (7), purity and folder layout (3), fixture provenance (2).
 
@@ -68,6 +68,16 @@ tier 3 reading a malformed forming bar). The evaluator was right in each case. T
 just outside it; UOEDT equal to LOEDT at a window bar that is not the last; an inverted forming bar appended). On a scratch copy the four
 mutants (window one bar short, one bar long, `>=`, raw bars instead of closed bars) are each killed by it. No change to the evaluator, the
 version or any output.
+
+**Patch 2.0.1 (task P7, 1 October 2026).** The window is `min(T_EDT − 1, 288)` closed M5 bars and a channel under 48 closed bars is
+INVALID + `INSUFFICIENT_BARS` (spec §3, §6; `concept.md`, "Change 2026-10-01"). Re-run: MCD2 **102 OK** (93 before: nine new tests in
+`ShortChannelTests`; three old tests pinned the old formula on synthetic bundles and were edited: `test_the_window_is_the_channel_length_between_48_and_288_bars`,
+`test_the_bar_count_must_reach_the_window` and the 100 and 60 cases of `test_t_edt_falls_back_in_order_and_ends_at_288`; the register test lists the new
+parameter); the kit **215 OK**, MCD1 **113 OK**, MCD3 **134 OK** (1 opt-in skip) and its opt-in scan of the 12 real pairings OK, the three legacy suites
+**13 OK** each. **Mutation pass on the new logic** (scratch run on the repo files, restored after each mutant): 8 mutants of the window and floor code (the old
+window, a hard-coded 1, `<=` against `<`, the floor never applied, the fallback off by one, `max` for the cap, the floor and the cap hard-coded) **8 of 8 killed**.
+No fixture output changes except the stored `evaluator_version` label (`2.0.0` to `2.0.1`) in the four fixture envelopes, `mcd2_output.json` and MCD3's
+stored upstream readings (the MCD3 T14 test requires them to equal the live output); every real `T_EDT` is 314 or more, so window, state and numbers are the same.
 
 ## 4. Legacy baseline (step R1)
 
@@ -153,12 +163,12 @@ inside the corridor, between LOEDT 4350.16 and UOEDT 4384.23 (channel position 0
 | A17 | Precedence rung proposed; rule rows proposed (not applied)                        | Pass                    | Spec §9: rungs confirmed by Davin (Q6); no new rule rows proposed; the two renamed words updated in the draft table, architecture §3.4 (Q7)                                                                                                                      |
 | A18 | Dispatch-matrix intents, tags, playbook and foundations chunks ready              | Pending, stage 6        | The content is listed in spec §10; the files need the knowledge build (architecture §4.6)                                                                                                                                                                        |
 | A19 | Reason texts and new glossary terms in all 16 languages                           | Pending, stage 6        | Reason codes MCD2 can emit are listed in spec §10                                                                                                                                                                                                                |
-| A20 | Parameters in `mcdN_params.yaml` with rationale                                   | Pass                    | `mcd2_params.yaml` loads through `Params.from_yaml` (the kit refuses a parameter without value, unit, boundary and why); the six names equal spec §6                                                                                                             |
-| A21 | Tests T1 to T14 pass (T14 for derived MCDs)                                       | Pass                    | 93 OK; T14 not applicable                                                                                                                                                                                                                                        |
+| A20 | Parameters in `mcdN_params.yaml` with rationale                                   | Pass                    | `mcd2_params.yaml` loads through `Params.from_yaml` (the kit refuses a parameter without value, unit, boundary and why); the seven names equal spec §6                                                                                                           |
+| A21 | Tests T1 to T14 pass (T14 for derived MCDs)                                       | Pass                    | 102 OK; T14 not applicable                                                                                                                                                                                                                                       |
 | A22 | Envelope ≤ 600 tokens; evaluation ≤ 1 s                                           | Pass                    | `OutputTests.test_t12_*` (largest 359 tokens, `o200k_base`), `_Shared.test_t12_size_and_r15_time` (four cycles); §6 above                                                                                                                                        |
 | A23 | Shadow period passed; point-in-time replay done; statistics stored                | Pending, stages 4 and 5 | Needs the sensor worker and `market_data_point_in_time`                                                                                                                                                                                                          |
 | A24 | Added to golden scenarios and the labelled question set                           | Pending, stages 4 to 7  | Needs synthesis and the knowledge build                                                                                                                                                                                                                          |
-| A25 | Registry row added to the architecture; decision entry written                    | Pending, stage 7        | Row exists and notes 2.0.0 (status `Retrofit`); the decision entry is written at go-live                                                                                                                                                                         |
+| A25 | Registry row added to the architecture; decision entry written                    | Pending, stage 7        | Row exists and notes 2.0.1 (status `Retrofit`); the decision entry is written at go-live                                                                                                                                                                         |
 | A26 | Folder matches §11.1: same file names, `concept.md` confirmed, nothing extra      | Pass                    | `PurityTests.test_the_folder_matches_the_standard_layout`; `concept.md` confirmed by Davin 1 Oct 2026; `__pycache__/` is git-ignored                                                                                                                             |
 
 ## 8. Open questions
@@ -175,10 +185,11 @@ None for the build. Carried forward:
 
 ## 9. Decisions Davin made during the work
 
-| Date       | Decision                                                                                                                                                                                                                                                                        |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-09-30 | D3: tier-1 meaning (a mismatch is an empty set indicator while another has data; populated candidates are informational). Built into the kit                                                                                                                                    |
-| 2026-10-01 | D4 English specification. D5: `DIP_VALUE_BUY_OPPORTUNITY` to `UPTREND_DIP_BELOW_CORRIDOR`, `RALLY_VALUE_SELL_OPPORTUNITY` to `DOWNTREND_RALLY_ABOVE_CORRIDOR`. D6: UP LONG, DOWN SHORT, SIDEWAYS NEUTRAL                                                                        |
-| 2026-10-01 | Specification and plan approved; board readback confirmed                                                                                                                                                                                                                       |
-| 2026-10-01 | Q1 to Q7 approved as recommended: Close for the fractal; fallback 288; window statistics dropped; tier 3 on every window bar; angle bound 90; rungs (Day Trader trendlines and channels, Scalper primary structure); architecture word updates in P3                            |
-| 2026-10-01 | Task P6 found no failing line of A1 to A26 and three test gaps (H1 to H3). Davin: stage-3 sign-off for MCD2 granted; H1 to H3 closed with one test; standard PATCHed to 1.0.3 (`flag: 'off'` in Appendix C.2); walkthrough C1 reads "Renamed (D5)"; sub-cent wording left as-is |
+| Date       | Decision                                                                                                                                                                                                                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-30 | D3: tier-1 meaning (a mismatch is an empty set indicator while another has data; populated candidates are informational). Built into the kit                                                                                                                                                      |
+| 2026-10-01 | D4 English specification. D5: `DIP_VALUE_BUY_OPPORTUNITY` to `UPTREND_DIP_BELOW_CORRIDOR`, `RALLY_VALUE_SELL_OPPORTUNITY` to `DOWNTREND_RALLY_ABOVE_CORRIDOR`. D6: UP LONG, DOWN SHORT, SIDEWAYS NEUTRAL                                                                                          |
+| 2026-10-01 | Specification and plan approved; board readback confirmed                                                                                                                                                                                                                                         |
+| 2026-10-01 | Q1 to Q7 approved as recommended: Close for the fractal; fallback 288; window statistics dropped; tier 3 on every window bar; angle bound 90; rungs (Day Trader trendlines and channels, Scalper primary structure); architecture word updates in P3                                              |
+| 2026-10-01 | Task P6 found no failing line of A1 to A26 and three test gaps (H1 to H3). Davin: stage-3 sign-off for MCD2 granted; H1 to H3 closed with one test; standard PATCHed to 1.0.3 (`flag: 'off'` in Appendix C.2); walkthrough C1 reads "Renamed (D5)"; sub-cent wording left as-is                   |
+| 2026-10-01 | Task P7: Davin confirmed the PATCH classification (evaluator 2.0.1) and asked to proceed. Questions Q1 to Q5 of `concept.md` were not answered one by one; built as recommended (the floor of 48 kept as a minimum, parameter `t_edt_open_bar_rows`, one decision entry draft, MCD3 note wording) |

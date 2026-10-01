@@ -165,7 +165,7 @@ not carried over (`concept.md` §10a, row 9).
 
 Expected legacy → new mapping:
 
-| Legacy `discrete_state_code`, `tactical_bias`              | New state, bias (D6 proposal)                   | Note                                                                       |
+| Legacy `discrete_state_code`, `tactical_bias`              | New state, bias (Approved)                      | Note                                                                       |
 | ---------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------- |
 | `MCD3_BULL_VALUE`, `HIGH_CONVICTION_BUY_DIP`               | `MCD3_BULL_VALUE`, LONG                         | The code is kept; the pre-retrofit words are gone                          |
 | `MCD3_BULL_MID`, `HOLD_BULLISH_TREND_RUNNER`               | `MCD3_BULL_MID`, LONG                           |                                                                            |
@@ -200,7 +200,7 @@ P3 must report any state that differs from legacy and is not in this section.
 - **`.claude/state/waiting-on.md`** (written in P2): new evidence for the open "fit window includes the open bar" item
   (band columns on exactly `T_EDT` rows ending at the forming bar, seven of seven channels), and a new item: the
   committed MCD2 ends INVALID + `DISCONTINUITY` on an M5 channel with `T_EDT` ≤ 288, and MCD1 on an M15 channel with
-  `T_EDT` ≤ 96 (simulated on v1; no replica has such a channel). Not fixed here: a change to MCD2 or MCD1 is task P7.
+  `T_EDT` ≤ 96 (simulated on v1; no replica has such a channel). Not fixed here; fixed afterwards in task P7 (MCD2 and MCD1 2.0.1, 1 October 2026).
 - **Duplicate levels** (decision D7): the zone builder (build step 4) must count one channel level once.
 - **Kit helpers:** MCD3 adds its own tier-2 and tier-3 helpers on top of the kit (the third evaluator to do so, after
   MCD1 and MCD2). Moving the shared ones into the kit is a kit change for Davin to schedule.

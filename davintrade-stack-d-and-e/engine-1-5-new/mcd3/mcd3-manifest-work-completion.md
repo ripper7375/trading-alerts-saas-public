@@ -1,13 +1,13 @@
 # MCD3 manifest and work completion: evaluator 2.0.0
 
-|                        |                                                                                                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **MCD**                | MCD3, consolidated trend and EDT stochastic (derived: reads MCD1 and MCD2)                                                                                                          |
-| **Version**            | `evaluator_version` 2.0.0 (MAJOR: the output shape, the states' failure handling, bias, levels and dependencies change; standard §14)                                               |
-| **Status**             | **Stage 3 built 1 October 2026 (task P3), checked independently by task P6 the same day, signed off by Davin on 1 October 2026.** Flag `off`; registry status `Retrofit (2.0.0)`    |
-| **Spec and plan**      | [mcd3.md](mcd3.md) and [mcd3_implementation_plan.md](mcd3_implementation_plan.md), approved by Davin on 1 October 2026                                                              |
-| **Standard**           | [MCD-DEVELOPMENT-STANDARD.md](../../../docs/MCD-DEVELOPMENT-STANDARD.md) 1.0.4                                                                                                      |
-| **Decisions of Davin** | D10 option A, D6 as in the registry, D7 six levels, Q1 to Q9 as recommended (1 October 2026); P7 patch for MCD2 and MCD1 deferred; A22 ceiling of 670 tokens; stage-3 sign-off (§8) |
+|                        |                                                                                                                                                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MCD**                | MCD3, consolidated trend and EDT stochastic (derived: reads MCD1 and MCD2)                                                                                                                                                |
+| **Version**            | `evaluator_version` 2.0.0 (MAJOR: the output shape, the states' failure handling, bias, levels and dependencies change; standard §14)                                                                                     |
+| **Status**             | **Stage 3 built 1 October 2026 (task P3), checked independently by task P6 the same day, signed off by Davin on 1 October 2026.** Flag `off`; registry status `Retrofit (2.0.0)`                                          |
+| **Spec and plan**      | [mcd3.md](mcd3.md) and [mcd3_implementation_plan.md](mcd3_implementation_plan.md), approved by Davin on 1 October 2026                                                                                                    |
+| **Standard**           | [MCD-DEVELOPMENT-STANDARD.md](../../../docs/MCD-DEVELOPMENT-STANDARD.md) 1.0.4                                                                                                                                            |
+| **Decisions of Davin** | D10 option A, D6 as in the registry, D7 six levels, Q1 to Q9 as recommended (1 October 2026); P7 patch for MCD2 and MCD1 deferred, then done as 2.0.1 on 1 October 2026; A22 ceiling of 670 tokens; stage-3 sign-off (§8) |
 
 ## 1. What was built
 

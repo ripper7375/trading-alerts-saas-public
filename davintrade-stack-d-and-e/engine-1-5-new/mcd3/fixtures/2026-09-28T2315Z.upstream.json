@@ -2,7 +2,7 @@
   "MCD1": {
     "schema_version": "mcd-output/1",
     "mcd_id": "MCD1",
-    "evaluator_version": "2.0.0",
+    "evaluator_version": "2.0.1",
     "cycle_slot": "2026-09-28T23:15Z",
     "last_closed_bar": {
       "M15": "2026-09-28T23:00Z"
@@ -59,7 +59,7 @@
   "MCD2": {
     "schema_version": "mcd-output/1",
     "mcd_id": "MCD2",
-    "evaluator_version": "2.0.0",
+    "evaluator_version": "2.0.1",
     "cycle_slot": "2026-09-28T23:15Z",
     "last_closed_bar": {
       "M5": "2026-09-28T23:10Z"

@@ -1,6 +1,6 @@
 # MCD2 implementation plan: retrofit to evaluator 2.0.0
 
-Status: Approved (Davin, 1 October 2026, together with `mcd2.md`; built in task P3) ·
+Status: Approved (Davin, 1 October 2026, together with `mcd2.md`; built in task P3; patched to 2.0.1 in task P7, §10) ·
 Next task: P3 (build) · Follows: [standard](../../../docs/MCD-DEVELOPMENT-STANDARD.md),
 [walkthrough Part C0 and C1](../../../docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md)
 
@@ -177,3 +177,15 @@ fields are gone from the output; all wording.
   or openpyxl.
 - The manifest carries Appendix A with evidence; the architecture §2.13 row notes 2.0.0; a hand-off report
   is written.
+
+## 10. Patch 2.0.1 (task P7, 1 October 2026)
+
+The window now counts the channel's closed bars (`concept.md`, "Change 2026-10-01"; spec §3 and §6). Davin confirmed the PATCH on 1 October 2026.
+
+- **Change:** `N_window = min(T_EDT − t_edt_open_bar_rows, max_window_bars)` (parameter `t_edt_open_bar_rows` = 1); a channel with fewer than
+  `min_window_bars` (48) closed bars is INVALID + `INSUFFICIENT_BARS`; with no `T_EDT` the window is 288 as before. 2.0.0 read
+  `max(48, min(T_EDT, 288))` bars, one more than the channel has, and ended INVALID + `DISCONTINUITY` for `T_EDT` 288 or less.
+- **Files:** `mcd2_evaluator.py` (`_window_bars`, `_tier2`, version), `mcd2_params.yaml` and `mcd2_registry.yaml` (version, the new parameter and the
+  boundary text), `mcd2.md`, the tests, the manifest, the stored `evaluator_version` label in the fixture envelopes and `mcd2_output.json`.
+- **Tests:** nine new in `ShortChannelTests`; three old ones that pinned the old formula on synthetic bundles edited (manifest §3); 102 in all.
+- **Not changed:** states, levels, thresholds, `details` fields, the envelope, every real reading (the smallest `T_EDT` in a fixture is 314).

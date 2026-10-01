@@ -326,7 +326,8 @@ Standard §12, T1 to T14 (T14 applies: MCD3 is derived). Detail and the mapping 
 Not questions, recorded for the reader: (a) the statistics' fit windows may include the still-open bar
 (unverified, `.claude/state/waiting-on.md`); the `T_EDT` finding in §3 is new evidence for it, not a proof, and it
 must be settled before certification. (b) The board's rule that more than one active indicator is invalid is
-covered by the setting and decision D3 (`concept.md` §10a, row 11). (c) The committed MCD2 ends as INVALID +
-`DISCONTINUITY` on an M5 channel with `T_EDT` ≤ 288 (its window reaches one bar before the channel); no replica
-triggers it (the smallest real `T_EDT` is 314) and it is outside this task, but a MCD2 INVALID reaches MCD3 as
-`UPSTREAM_UNAVAILABLE:MCD2` (hand-off §7).
+covered by the setting and decision D3 (`concept.md` §10a, row 11). (c) MCD2 and MCD1 ended as INVALID +
+`DISCONTINUITY` on a short channel (M5 `T_EDT` ≤ 288, M15 `T_EDT` ≤ 96: their windows reached before the channel), and
+an MCD2 INVALID reached MCD3 as `UPSTREAM_UNAVAILABLE:MCD2` (hand-off §7). Fixed in the 2.0.1 PATCH of both (task P7,
+1 October 2026); MCD3's own window has been `T_EDT − 1` from the start. No replica triggered it (the smallest real
+`T_EDT` is 314 on M5).

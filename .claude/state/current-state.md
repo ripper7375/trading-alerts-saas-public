@@ -39,7 +39,7 @@ Every entry older than these two is in [history](./history/index.md).
   checked by P6, signed off by Davin and committed (`ecbb3f94`).** **MCD1 is retrofitted to evaluator 2.0.0
   (spec, plan, D6 and Q1 to Q7 approved by Davin; 105 tests), checked by P6 (no A line fails; F1 to F3 closed
   by one test and one alignment), signed off by Davin and committed ("Retrofit MCD1: evaluator 2.0.0, tests,
-  fixtures, manifest (Stage 3 sign-off)").** Both stay flag `off`, registry status `Retrofit (2.0.0)`. **MCD3 is retrofitted to evaluator 2.0.0** (spec, plan, D10 option A, D6, D7 and Q1 to Q9 approved by Davin; 134 tests; fixtures v1, v4 and v3 with stored upstream; standard 1.0.4), checked by P6 (A22 over 600 decided by Davin: a ceiling of 670 tokens for this derived sensor; seven test gaps closed by seven tests), signed off by Davin and committed ("Retrofit MCD3: evaluator 2.0.0, tests, fixtures, manifest (Stage 3 sign-off)"). Flag `off`, registry status `Retrofit (2.0.0)`. **MCD1, MCD2 and MCD3 are all retrofitted, checked, signed off and committed.** Next: the deferred **P7** for the MCD2 and MCD1 short-channel window (unblocked now), then MCD0 (Part D, content in walkthrough C4). The pre-commit prettier hook must not touch canonical JSON:
+  fixtures, manifest (Stage 3 sign-off)").** Both stay flag `off`, registry status `Retrofit (2.0.0)`. **MCD3 is retrofitted to evaluator 2.0.0** (spec, plan, D10 option A, D6, D7 and Q1 to Q9 approved by Davin; 134 tests; fixtures v1, v4 and v3 with stored upstream; standard 1.0.4), checked by P6 (A22 over 600 decided by Davin: a ceiling of 670 tokens for this derived sensor; seven test gaps closed by seven tests), signed off by Davin and committed ("Retrofit MCD3: evaluator 2.0.0, tests, fixtures, manifest (Stage 3 sign-off)"). Flag `off`, registry status `Retrofit (2.0.0)`. **MCD1, MCD2 and MCD3 are all retrofitted, checked, signed off and committed.** **MCD2 and MCD1 are patched to 2.0.1 (task P7: the window counts the channel's closed bars; committed; ADR-083 drafted, Proposed).** Next: an optional fresh P6 check of the two patched MCDs, then MCD0 (Part D, content in walkthrough C4). The pre-commit prettier hook must not touch canonical JSON:
   `.prettierignore` excludes the MCD fixtures and outputs (gotchas file).
   Hand-offs: [P1](../../docs/handoffs/2026-09-30-1448-p1-kit.md),
   [P6](../../docs/handoffs/2026-10-01-0015-p6-kit.md),
@@ -54,58 +54,59 @@ Every entry older than these two is in [history](./history/index.md).
   [P6 MCD1](../../docs/handoffs/2026-10-01-0628-mcd1-p6.md),
   [P2 MCD3](../../docs/handoffs/2026-10-01-0703-mcd3-p2.md),
   [P3 MCD3](../../docs/handoffs/2026-10-01-0859-mcd3-p3.md),
-  [P6 MCD3](../../docs/handoffs/2026-10-01-1407-mcd3-p6.md).
+  [P6 MCD3](../../docs/handoffs/2026-10-01-1407-mcd3-p6.md),
+  [P7 (a) MCD2 and MCD1](../../docs/handoffs/2026-10-01-1435-p7a-mcd2-mcd1.md),
+  [P7 (b) MCD2 and MCD1](../../docs/handoffs/2026-10-01-1453-p7b-mcd2-mcd1.md).
 - **Open follow-ups:** see [waiting-on.md](./waiting-on.md). Database traps:
   [database-traps.md](../architecture/database-traps.md).
 
 ## Latest sessions (verbatim)
 
-<!-- session 2026-10-01 mcd3-p6 -->
+<!-- session 2026-10-01 p7b-mcd2-mcd1 -->
 
-> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, committed by explicit path ("Retrofit MCD3: evaluator 2.0.0, tests,
-> fixtures, manifest (Stage 3 sign-off)"; the hash is in `git log`), NOT pushed. MCD task P6 for MCD3, a fresh independent check, then
-> Davin's stage-3 sign-off and the wrap-up he asked for: one A line failed (A22, envelope over 600 tokens) and Davin decided it (ceiling of
-> 670 tokens for this derived sensor); seven test gaps found by the check's own mutation pass are closed. MCD3 is retrofitted, checked,
-> signed off and committed: MCD1, MCD2 and MCD3 are done.**
-> **Needs from Davin:** (1) next work: the deferred **P7** for the MCD2 and MCD1 short-channel window (a PATCH, now unblocked;
-> [waiting-on](./waiting-on.md)); then **MCD0** (Part D with the C4 content; its open questions (a) to (f) are his); (2) nothing else is
-> open from this session. `active-tasks.md` was deleted (every item done).
-> **Changed & verified:** seven new tests and a T12 ceiling test in `engine-1-5-new/mcd3/test_mcd3_unit_tests.py` (134 tests; each of the
-> seven kills the mutant that had survived; the ceiling test runs all ten states with every candidate populated, RETUNING and two upstream
-> cautions against 670); `mcd3.md` ("(Approved)" in the §12 worked example, §11 and §13 on the ceiling and the new cases); the manifest (A22 "Pass
-> (Approved by Davin: derived dual-horizon ceiling <= 670 tokens)", a P6 paragraph, counts, §8 rows) and the plan; the hand-off
-> ([P6 MCD3](../../docs/handoffs/2026-10-01-1407-mcd3-p6.md)) and these state files. From `engine-1-5-new/`: `python -m unittest discover -s mcd3`
-> **134 OK** (1 opt-in skip; the opt-in full scan of all 12 real pairings OK), the kit **215 OK**, MCD1 **105 OK**, MCD2 **93 OK**, legacy **13 OK**;
-> Prettier clean. The check itself: a clean-room oracle fuzz on 24,000 bundles (0 differences), its own mutation pass (477 mutants; the 10
-> non-equivalent survivors, in 7 groups, are the gaps; all killed now), the schema taken from the standard's Appendix B, its own banned-word
-> scan, token sizes re-derived (515, 550, 587; 607 and 611; 656 worst case with every candidate populated; MCD1 392 and MCD2 386 in the same
-> case, so the three-sensor worst case is about 1,430 of 2,000). The test run after the commit (the hook left the fixtures untouched) is in
-> the terminal report, not in a file.
-> **Unconfirmed / found:** `details.populated_candidates` is the cost driver of the envelope size (up to 13 names on live data, about 40
-> tokens); the statistics fit windows may include the still-open bar (inherited; [waiting-on](./waiting-on.md)); the kit writes absolute
-> workbook paths into `.source.md` for v3 and v4 (open, [waiting-on](./waiting-on.md)); `mcd3_implementation_plan.md` line 168 still says
-> "(D6 proposal)" in a column header (left as it is: Davin named only `mcd3.md`). Not run: `test:ci`, `tsc`, lint, build (no app code touched).
-> The oldest entry (MCD3 P2) was rotated into `history/2026-10-sessions.md`.
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, committed by explicit path ("Patch MCD2 and MCD1 to 2.0.1: window
+> counts the channel's closed bars (task P7)"; the hash is in `git log`), NOT pushed. MCD task P7 part (b) for MCD2 and MCD1 after
+> Davin confirmed the PATCH (evaluator 2.0.1): MCD2's window is `min(T_EDT - 1, 288)` and a channel under 48 closed bars is INVALID +
+> `INSUFFICIENT_BARS`; MCD1 requires the channel to hold `N_micro` closed bars (`T_EDT - 1 >= N_micro`), same reason code; no real
+> reading changes.**
+> **Needs from Davin:** (1) nothing blocks. Q1 to Q5 of the concept sections were not answered one by one, so the build follows the
+> recommended answers (floors kept as minimums, parameter `t_edt_open_bar_rows` = 1, ADR-083 drafted, MCD3 note wording): say if any
+> should change; (2) settle **ADR-083** (status Proposed); (3) optionally a fresh **P6 check** of the two patched MCDs (a short one);
+> (4) next work: **MCD0** (Part D with the C4 content; its open questions (a) to (f) are his). `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** both evaluators, params, registries, specs, plans, manifests and `concept.md` sections of MCD1 and MCD2;
+> `MCD2` 93 to **102** tests and `MCD1` 105 to **113** (`ShortChannelTests`; three MCD2 tests that pinned the old formula edited, MCD1
+> only its register test); `evaluator_version` label `2.0.0` to `2.0.1` in nine stored JSON files (MCD1 and MCD2 fixture envelopes and
+> outputs, MCD3's three `upstream.json`: MCD3 T14 needs them equal to the live output); architecture §2.5 and §2.13; ADR-083 and its
+> index row; two MCD3 notes (wording); the `waiting-on.md` item moved to resolved; hand-off
+> ([P7 (b)](../../docs/handoffs/2026-10-01-1453-p7b-mcd2-mcd1.md)). From `engine-1-5-new/`: MCD2 **102 OK**, MCD1 **113 OK**, MCD3
+> **134 OK** (1 opt-in skip; the opt-in scan of the 12 real pairings OK), the kit **215 OK**, legacy **13 OK** each; pyflakes and Prettier
+> clean. Own mutation pass on the new logic: 14 of 14 killed. The test run after the commit is in the terminal report, not in a file.
+> **Unconfirmed / found:** with the floors kept, MCD1 changes only a reason code (`DISCONTINUITY` to `INSUFFICIENT_BARS`) and MCD2 gains
+> VALID readings for `T_EDT` 49 to 288. The fit-window question stays open ([waiting-on](./waiting-on.md)); the parameter makes a
+> different answer a one-value change. The "T_EDT helper" is now in three evaluators (a kit change for Davin to schedule). Not run:
+> `test:ci`, `tsc`, lint, build (no app code touched). The oldest entry (MCD3 P6) was rotated into `history/2026-10-sessions.md`.
 
-<!-- session 2026-10-01 mcd3-p3 -->
+<!-- session 2026-10-01 p7a-mcd2-mcd1 -->
 
-> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed (HEAD `dde1420e` is Davin's). MCD task P3 for MCD3
-> (steps R5 to R10): evaluator 2.0.0 built on the kit with Davin's D10 option A, D6, D7 and Q1 to Q9; 127 tests pass; manifest,
-> fixtures, architecture and standard records written. Flag `off`, registry status `Retrofit (2.0.0)`.**
-> **Needs from Davin:** (1) a decision on the **envelope size**: the real CAUTIONARY readings are **607 and 611 tokens**, over the
-> standard's 600 ("should"); the plain real ones pass (515, 550, 587). Options: accept; shorten templates T01 to T07 (about 35
-> tokens); drop the two trend words from `details` (about 15); (2) a fresh session for **P6 on MCD3** (ask it to run its own mutation
-> pass), then his stage-3 sign-off; (3) what to commit (this session's files; the P2 files are in `dde1420e`); (4) after the sign-off:
-> the deferred **P7** for the MCD2 and MCD1 short-channel window (a task chip is open). `active-tasks.md` was deleted (every item done).
-> **Changed & verified:** in `engine-1-5-new/mcd3/`: `mcd3_evaluator.py`, `test_mcd3_unit_tests.py`, `fixtures/` (v1, v4, v3: inputs,
-> upstream, envelope, source), `mcd3_output.json`, the manifest, approval lines in the spec, concept, plan, params and registry; plus
-> `mcd_common/fixtures/settings_v3.yaml`, architecture §2.5 and §2.13, standard **1.0.4** (PATCH: `<slot>.upstream.json`) and walkthrough
-> B3; [the hand-off](../../docs/handoffs/2026-10-01-0859-mcd3-p3.md). From `engine-1-5-new/`: `python -m unittest discover -s mcd3`
-> **127 OK** (1 opt-in skip); the opt-in scan of all 12 real pairings OK; kit **215 OK**, MCD1 **105 OK**, MCD2 **93 OK**, legacy **13 OK**;
-> Prettier and pyflakes clean. Equivalence: ten synthetic scenarios equal to the pre-retrofit evaluator; all 12 real pairings keep their state
-> (v3 is a real `MCD3_BEAR_BOTTOM`, 973 of 1037 bars nested). Own mutation pass: 90 mutants, 7 test gaps closed, 3 equivalent.
-> **Unconfirmed / found:** real envelopes are larger than the P2 estimate (587, not 533: real prices and two 64-character hashes). The
-> kit writes an absolute workbook path into `<slot>.source.md` (v3 and v4 as for MCD1 and MCD2). Replica v3 is now tracked (Davin's
-> commit; the blob's SHA-256 matches the fixture). The fit-window question stays open; the MCD2 and MCD1 short-channel window is deferred
-> by Davin. Not run: `test:ci`, `tsc`, lint, build (no app code touched). The oldest entry (MCD1 P6) was rotated into
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed (HEAD `6599c74f` is Davin's). MCD task P7 part (a) for
+> MCD2 and MCD1, the short-channel window: the "Change 2026-10-01" section is written in `mcd2/concept.md` and `mcd1/concept.md`
+> (PATCH, evaluator 2.0.1, no fixture output moves) and the work STOPS for Davin's confirmation. Also the cosmetic edit on line 168 of
+> the MCD3 plan ("(D6 proposal)" to "(Approved)").**
+> **Needs from Davin:** (1) confirm the two Change sections and answer **Q1 first: keep the 48-bar (MCD2) and 96-bar (MCD1) floors as
+> minimums** (INVALID + `INSUFFICIENT_BARS` for a shorter channel; recommended), because `min(T_EDT - 1, cap)` applied literally drops
+> them (a channel of 30 closed M5 bars would read VALID over 29 bars); (2) Q2 to Q5 in the sections, each with a recommendation:
+> `t_edt_open_bar_rows` as a parameter, PATCH not MINOR (three MCD2 tests pin the old formula), one decision entry (ADR-083) for both,
+> and the wording of two MCD3 notes; (3) what to commit. Then **P7 (b)** (spec, parameters, registry, evaluator, tests, version 2.0.1,
+> manifests, architecture §2.5 and §2.13, the draft decision entry, the suites, a fresh P6), then MCD0. `active-tasks.md` is left in
+> place with the STOP and part (b) open.
+> **Changed & verified:** the two `concept.md` files (84 and 76 added lines, none removed) and one line of
+> `mcd3/mcd3_implementation_plan.md`; the hand-off ([P7 (a)](../../docs/handoffs/2026-10-01-1435-p7a-mcd2-mcd1.md)) and these state
+> files. No evaluator, test, spec, registry, parameter, fixture or output was touched. Prettier clean, LF, no Thai. A scratch probe
+> (nothing in the repo): the fixtures' `T_EDT` are 314 or more on M5 and 500 or more on M15, so no fixture output moves; the committed
+> MCD2 reads INVALID + `DISCONTINUITY` at `T_EDT` 288 and below, MCD1 at 96 and below (as the waiting-on item said). Not run: the test
+> suites (no code touched), `test:ci`, `tsc`, lint, build.
+> **Unconfirmed / found:** with the floors kept, the MCD1 patch changes only a reason code (`DISCONTINUITY` to `INSUFFICIENT_BARS`);
+> MCD2 gains VALID readings for `T_EDT` 49 to 288. MCD3 reads only the upstream status, trend and angle, so the MCD1 reason-code
+> change is invisible to it. The fit-window question stays open ([waiting-on](./waiting-on.md)); the patch does not depend on it. The
+> "T_EDT helper" now exists in three evaluators (a kit change for Davin to schedule). The oldest entry (MCD3 P3) was rotated into
 > `history/2026-10-sessions.md`.

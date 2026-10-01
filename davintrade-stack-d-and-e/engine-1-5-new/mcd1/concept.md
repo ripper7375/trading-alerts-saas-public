@@ -147,3 +147,81 @@ MCD1 has no board, so the comparison is between the old specification, the old p
 
 Everything that needs an answer before the specification is final is in `mcd1.md` section 14 (decision D6 and
 questions Q1 to Q7) and in the decisions list of the implementation plan.
+
+## Change 2026-10-01
+
+Written in task P7 (a) on 1 October 2026. **Status: the PATCH classification was confirmed by Davin on 1 October 2026 and the
+change was built in task P7 (b) the same day (evaluator 2.0.1).** Questions Q1 to Q5 below were not answered one by one: the build
+follows the recommended answers, and Davin may still change them. (The "What else it touches" table below was written before the build; its
+"Action in P7 (b)" column is what was done.) Source images: none new (MCD1 has no
+board). This change comes from a finding in the MCD3 retrofit (hand-off
+[2026-10-01-0703-mcd3-p2](../../../docs/handoffs/2026-10-01-0703-mcd3-p2.md) §7 item 2, recorded in
+[waiting-on](../../../.claude/state/waiting-on.md)) and from Davin's description: adjust the channel window for short
+channels. The same change is written for MCD2 in `mcd2/concept.md`, with the evidence and the full list of what it
+touches; both go in one patch.
+
+### Evidence
+
+The band columns (UOEDT, baseline, LOEDT) exist on exactly `T_EDT` rows ending at the still-open bar, on 7 of 7 real
+channels in replicas v1 and v4 (M15 `non_b` 1808 and 2035, `non_a` 968). On closed bars (rule 2) a channel therefore
+has `T_EDT − 1` rows. MCD1 needs `N_micro = max(96, 5% of T_EDT)` closed M15 bars with a number in every column. For
+`T_EDT` of 97 or more `N_micro` is at most `T_EDT − 1`, so nothing is wrong. For `T_EDT` of 96 or less the floor of 96
+reaches before the channel, meets a null and ends INVALID + `DISCONTINUITY`. Re-run on 1 October 2026 on the v1
+bundle (`non_b`) with the bands removed beyond `T_EDT − 1` rows: `T_EDT` 97 and above is VALID with `N_micro` 96; 96
+and below is INVALID + `DISCONTINUITY`. No replica or fixture triggers it (the smallest M15 `T_EDT` in any fixture of
+MCD1, MCD2 or MCD3 is 500).
+
+### Rules changed
+
+MCD1 has no cap on the window: the target `max(96, 5% of T_EDT)` takes the place of the cap in `min(T_EDT − 1, cap)`.
+
+| Rule                                                                             | Before                                                              | After                                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R5 Micro window                                                                  | `N_micro = max(96, 5% of T_EDT rounded half up)` closed M15 bars    | **Unchanged value.** For `T_EDT` of 97 or more the formula gives the same number as `min(T_EDT − 1, max(96, 5% of T_EDT))`. The channel's length is now checked against it (R13)                        |
+| R13 Channel length (new)                                                         | None: the floor of 96 was applied even where the channel is shorter | **Added:** the channel must hold at least `N_micro` closed bars, `T_EDT − 1 ≥ N_micro`. With `T_EDT` of 96 or less it does not: INVALID + `INSUFFICIENT_BARS` (Q1). The 1 is `t_edt_open_bar_rows` (Q2) |
+| `T_EDT` unknown (`containment_n` and `visual_window_bars` both missing)          | `N_micro` = 96                                                      | Unchanged. With no `T_EDT` there is nothing to subtract (spec Q2, carried over)                                                                                                                         |
+| The 80% sustained share, the ±5° band, containment ≥ 50%, CP 0 and 1, tier order | as in §3 and the spec                                               | Unchanged                                                                                                                                                                                               |
+
+Resulting behaviour on a real channel (bands on `T_EDT − 1` closed rows), with the recommended answer to Q1:
+
+| `T_EDT`    | Before                       | After                         |
+| ---------- | ---------------------------- | ----------------------------- |
+| 96 or less | INVALID + `DISCONTINUITY`    | INVALID + `INSUFFICIENT_BARS` |
+| 97 or more | VALID, `N_micro` by the rule | The same                      |
+
+**With the recommended answer the change to MCD1 is small:** only the reason code of a reading that is INVALID
+before and after. Nothing becomes VALID. Not changed: the nine states and their codes, regime words, bias, levels,
+thresholds, `N_micro` and the `details` fields, the closed-bar rule, the envelope, every stored fixture envelope and
+`mcd1_output.json`.
+
+### Classification
+
+**PATCH: evaluator version 2.0.0 to 2.0.1** (standard §14), as Davin classed it. No state, meaning, level or
+dependency changes and no threshold value changes. **Zero existing fixture outputs change:** every M15 channel in the
+fixtures has `T_EDT` of 500 or more, so `N_micro` is the same before and after. There are no golden scenarios yet
+(synthesis is not built). No existing MCD1 test uses a `T_EDT` of 96 or less (the smallest is 545), so all 105 tests
+pass unchanged, as §14 asks of a PATCH (built: the register test only gained the new parameter in its list); eight new tests cover the short channel. A PATCH does not start a new
+statistics series.
+
+### What else it touches
+
+| Item                                               | Effect                                                                                                                                                                                                                                      | Action in P7 (b)                                                                                 |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| MCD3 (`depends_on` MCD1 and MCD2)                  | Its stored `upstream.json` readings do not change. With the recommended Q1 an MCD1 reading is INVALID before and after, so MCD3 still ends `UPSTREAM_UNAVAILABLE:MCD1` (it reads the status, the trend and the angle, not the reason codes) | Re-run the MCD3 suite (134 tests and the opt-in scan of the 12 real pairings). No review (PATCH) |
+| Synthesis rule rows that name MCD1's states        | None: no state is added, renamed or removed (draft table, architecture §3.4)                                                                                                                                                                | Nothing to review                                                                                |
+| Golden scenarios                                   | None exist yet                                                                                                                                                                                                                              | Run them when they exist; nothing should move                                                    |
+| `mcd1.md`                                          | §3 window and tier 2 rows, §6 window length and the parameter table, §13 test list, the new short-channel case                                                                                                                              | Edit; note the change in the status line                                                         |
+| `mcd1_params.yaml`, `mcd1_registry.yaml`           | New parameter `t_edt_open_bar_rows` (1); the `min_micro_window_bars` boundary text; `evaluator_version` 2.0.1                                                                                                                               | Edit                                                                                             |
+| `mcd1_evaluator.py` and its tests                  | `_n_micro` and the tier 2 check; new tests                                                                                                                                                                                                  | Edit; a fresh P6 check afterwards                                                                |
+| `mcd1_implementation_plan.md`, manifest            | Version, a change record, test counts                                                                                                                                                                                                       | Edit                                                                                             |
+| Architecture §2.5 (MCD1 window cell) and §2.13 row | "N_micro = max(96, 5% of T_EDT), closed bars" is stated there; the row's version reads 2.0.0                                                                                                                                                | Edit both, 2.0.1                                                                                 |
+| Decision entry                                     | One entry for MCD1 and MCD2 together (MCD2's Q4)                                                                                                                                                                                            | Draft as ADR-083                                                                                 |
+
+### Questions for Davin
+
+Q2 to Q5 of `mcd2/concept.md` apply here with the same recommended answers (the parameter `t_edt_open_bar_rows`; PATCH;
+one decision entry; the wording of the two MCD3 notes). One answer each covers both MCDs.
+
+| #   | Question                                                                                                                                                                                                                                                                                                                                                                                                                                              | Recommended          |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| Q1  | **The floor of 96.** The spec says the micro window is "never fewer than 96 bars": 24 hours of M15, so that 2 to 3 hours of news cannot pass for a breakout. Applying `min(T_EDT − 1, …)` alone would let a channel of 50 closed bars give a VALID reading over 49 bars (re-run today). Keep 96 as a minimum (a channel with fewer than 96 closed bars is not read: INVALID + `INSUFFICIENT_BARS`), or let the window shrink to the channel's length? | Keep 96 as a minimum |

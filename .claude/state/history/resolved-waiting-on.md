@@ -216,3 +216,25 @@ FIELD-CONSISTENCY-AUDIT-v2_29.md` §5. Not something this Executor can resolve u
   >   tokens and are mandated; six levels about 132; the commentary about 124; `details` about 77. Options for Davin, none
   >   applied: accept; shorten templates T01 to T07 (about 35 tokens); drop the two trend words from `details` (about 15).
   >   Manifest `mcd3-manifest-work-completion.md` A22 and §7; pinned below 650 by a test.
+
+<!-- moved from waiting-on.md on 2026-10-01 (task P7) -->
+
+- **RESOLVED 2026-10-01 (task P7, MCD2 and MCD1 2.0.1; hand-off [2026-10-01-1453-p7b-mcd2-mcd1.md](../../../docs/handoffs/2026-10-01-1453-p7b-mcd2-mcd1.md)).**
+  MCD2's window is now `min(T_EDT − 1, 288)` closed bars and a channel under 48 closed bars is INVALID + `INSUFFICIENT_BARS`; MCD1 requires the
+  channel to hold `N_micro` closed bars (`T_EDT − 1 ≥ N_micro`, else INVALID + `INSUFFICIENT_BARS`). Parameter `t_edt_open_bar_rows` = 1; decision entry
+  ADR-083 (Proposed). The item, verbatim as it stood:
+
+  > - **MCD2 and MCD1 windows reach one bar before a short channel (2026-10-01) — simulated, open, not fixed.** The
+  >   committed MCD2 reads `max(48, min(T_EDT, 288))` closed M5 bars. Because `T_EDT` counts the forming bar (item above),
+  >   an M5 channel with `T_EDT` 49 to 288 has only `T_EDT − 1` closed bars with a channel, so MCD2's tier 2 reads a null
+  >   and ends INVALID + `DISCONTINUITY`; MCD1 does the same at `T_EDT` ≤ 96 (its window floor). Simulated on the v1
+  >   bundle (`T_EDT` 289 and above VALID; 288 and below INVALID); **no replica triggers it** (smallest real `T_EDT`
+  >   is 314, the v3 fractal), but live fractal channels can be short, and MCD3 would then see
+  >   `UPSTREAM_UNAVAILABLE:MCD2`. MCD3's window is `T_EDT − 1` and is not affected. The fix is a PATCH to MCD2 and
+  >   MCD1 (window = `min(T_EDT − 1, cap)`, no fixture changes): task P7, Davin's call. Hand-off:
+  >   [2026-10-01-0703-mcd3-p2.md](../../../docs/handoffs/2026-10-01-0703-mcd3-p2.md) §7 item 2. **Davin deferred the P7 patch until after
+  >   the MCD3 stage-3 sign-off (2026-10-01); he granted that sign-off the same day, so the patch is now the next task.** A background-task chip for it was offered and left open.
+  >   **Part (a) of P7 is written (2026-10-01):** a "Change 2026-10-01" section in `mcd2/concept.md` and `mcd1/concept.md` (PATCH, 2.0.1;
+  >   no fixture output moves; fixtures' smallest `T_EDT` is 314 on M5 and 500 on M15). It waits for Davin's confirmation, with one question
+  >   first: `min(T_EDT − 1, cap)` applied literally also drops the 48-bar (MCD2) and 96-bar (MCD1) floors, so the sections keep them as
+  >   minimums (INVALID + `INSUFFICIENT_BARS`). Hand-off: [2026-10-01-1435-p7a-mcd2-mcd1.md](../../../docs/handoffs/2026-10-01-1435-p7a-mcd2-mcd1.md).

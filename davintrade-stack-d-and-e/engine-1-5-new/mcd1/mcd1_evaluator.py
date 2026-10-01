@@ -1,4 +1,4 @@
-"""MCD1: M15 primary trend and micro regime. Evaluator 2.0.0.
+"""MCD1: M15 primary trend and micro regime. Evaluator 2.0.1.
 
 Retrofit of the certified pre-retrofit MCD1 (kept in ``legacy/``). Specification: ``mcd1.md``.
 Parameters: ``mcd1_params.yaml``. State register and templates: ``mcd1_registry.yaml``.
@@ -32,7 +32,7 @@ from mcd_common.cycle_inputs import (
 )
 
 MCD_ID = "MCD1"
-EVALUATOR_VERSION = "2.0.0"
+EVALUATOR_VERSION = "2.0.1"
 TF = "M15"
 TIMEFRAMES = (TF,)
 
@@ -81,19 +81,31 @@ def _price(value: float) -> str:
     return f"{env.round2(value):.2f}"
 
 
+def _t_edt(row: Mapping[str, Any]) -> int | None:
+    """``T_EDT``: the first of ``T_EDT_FIELDS`` that is a number, or ``None`` (Q2)."""
+    horizon = next((row[name] for name in T_EDT_FIELDS if is_number(row.get(name))), None)
+    return None if horizon is None else int(horizon)
+
+
 def _n_micro(row: Mapping[str, Any], params: Params) -> int:
     """``N_micro = max(min_micro_window_bars, micro_window_pct % of T_EDT rounded half up)`` closed M15 bars.
 
-    ``T_EDT`` is the first of ``T_EDT_FIELDS`` that is a number; with none, ``N_micro`` is the floor
-    (Q2). The percentage is taken in exact decimal arithmetic, so 5% of 1,930 is 96.5 and rounds to 97
-    (Q3), where Python's ``round()`` would give the even number 96.
+    With no ``T_EDT``, ``N_micro`` is the floor (Q2). The percentage is taken in exact decimal arithmetic, so 5% of
+    1,930 is 96.5 and rounds to 97 (Q3), where Python's ``round()`` would give the even number 96.
     """
     floor = int(params["min_micro_window_bars"])
-    horizon = next((row[name] for name in T_EDT_FIELDS if is_number(row.get(name))), None)
+    horizon = _t_edt(row)
     if horizon is None:
         return floor
-    share = Decimal(repr(float(params["micro_window_pct"]))) * int(horizon) / 100
+    share = Decimal(repr(float(params["micro_window_pct"]))) * horizon / 100
     return max(floor, int(share.quantize(Decimal(1), rounding=ROUND_HALF_UP)))
+
+
+def _channel_rows(row: Mapping[str, Any], params: Params) -> int | None:
+    """``T_EDT - t_edt_open_bar_rows``: the closed M15 bars on which the channel exists (the last of the ``T_EDT``
+    rows is the still-open bar). ``None`` with no ``T_EDT``: there is nothing to check (Q2)."""
+    horizon = _t_edt(row)
+    return None if horizon is None else horizon - int(params["t_edt_open_bar_rows"])
 
 
 def _sustained(count: int, n_micro: int, params: Params) -> bool:
@@ -124,12 +136,17 @@ def _tier4(params: Params) -> pf.Check:
 
 
 def _tier2(params: Params) -> pf.Check:
-    """At least ``N_micro`` closed bars, ascending, and every column MCD1 reads is a number, over the newest ``N_micro``."""
+    """A channel of at least ``N_micro`` closed bars; at least ``N_micro`` closed bars, ascending, and every column
+    MCD1 reads is a number, over the newest ``N_micro``."""
 
     def check(inputs: CycleInputs) -> pf.CheckResult:
         indicator = inputs.active_indicator[TF]
         columns = ("timestamp", "close", *dict.fromkeys(channel_columns(indicator).values()))
-        window = _n_micro(_statistics_row(inputs), params)
+        row = _statistics_row(inputs)
+        window = _n_micro(row, params)
+        rows = _channel_rows(row, params)
+        if rows is not None and rows < window:  # a channel shorter than the window is not read; the window is not shortened
+            return pf.CheckResult(rc.INVALID, (rc.INSUFFICIENT_BARS,), {"timeframe": TF, "channel_bars": rows, "needed": window})
         return pf.bars_check({TF: window}, {TF: columns})(inputs)
 
     return check

@@ -1,13 +1,13 @@
-# MCD1 manifest: work completion (retrofit 2.0.0)
+# MCD1 manifest: work completion (retrofit 2.0.0, patched to 2.0.1)
 
-|                       |                                                                                                                                                                                                                                                             |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **MCD**               | MCD1: M15 primary trend and micro regime · independent · M15                                                                                                                                                                                                |
-| **Evaluator version** | **2.0.0** (MAJOR: the output shape changed from the pre-retrofit evaluator, which had no version)                                                                                                                                                           |
-| **Stage**             | 3 (build) done on 1 October 2026 by task P3. **Independent check (task P6) done the same day (findings F1 to F3, all closed); Davin granted the stage-3 sign-off on 1 October 2026.** Flag `off`. Registry status in architecture §2.13: `Retrofit (2.0.0)` |
-| **Built on**          | The shared kit `mcd_common/` (Step 0, 215 tests), standard 1.0.3, walkthrough Part C0 steps R5 to R10                                                                                                                                                       |
-| **Specification**     | [mcd1.md](mcd1.md) (approved by Davin, 1 October 2026) · [plan](mcd1_implementation_plan.md) · [concept](concept.md) (readback confirmed 1 October 2026)                                                                                                    |
-| **Next**              | Stages 4 to 7 when the sensor worker, synthesis and the knowledge build exist; the next retrofit is MCD3 (task P2, needs D7 and D10)                                                                                                                        |
+|                       |                                                                                                                                                                                                                                                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **MCD**               | MCD1: M15 primary trend and micro regime · independent · M15                                                                                                                                                                                                                                                                               |
+| **Evaluator version** | **2.0.1** (PATCH of 2.0.0, task P7, 1 October 2026: the channel must hold `N_micro` closed bars; 2.0.0 was the MAJOR retrofit, the output shape changed from the pre-retrofit evaluator, which had no version)                                                                                                                             |
+| **Stage**             | 3 (build) done on 1 October 2026 by task P3. **Independent check (task P6) done the same day (findings F1 to F3, all closed); Davin granted the stage-3 sign-off on 1 October 2026.** Patched to 2.0.1 by task P7 on 1 October 2026 (Davin confirmed the PATCH; §9). Flag `off`. Registry status in architecture §2.13: `Retrofit (2.0.1)` |
+| **Built on**          | The shared kit `mcd_common/` (Step 0, 215 tests), standard 1.0.3, walkthrough Part C0 steps R5 to R10                                                                                                                                                                                                                                      |
+| **Specification**     | [mcd1.md](mcd1.md) (approved by Davin, 1 October 2026) · [plan](mcd1_implementation_plan.md) · [concept](concept.md) (readback confirmed 1 October 2026)                                                                                                                                                                                   |
+| **Next**              | Stages 4 to 7 when the sensor worker, synthesis and the knowledge build exist; the next retrofit is MCD3 (task P2, needs D7 and D10)                                                                                                                                                                                                       |
 
 ## 1. What was built
 
@@ -30,19 +30,19 @@ envelope `mcd-output/1`. The change list is plan §1.
 
 All in `davintrade-stack-d-and-e/engine-1-5-new/mcd1/` unless stated.
 
-| Path                                  | Purpose                                                                                                               |
-| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| `mcd1.md`                             | Specification (14 sections), approved                                                                                 |
-| `mcd1_implementation_plan.md`         | R4 plan, approved; the R1 baseline (§6), the expected legacy to new mapping, and the build result (§9)                |
-| `concept.md`                          | Readback of the pre-retrofit specification (MCD1 has no board), confirmed                                             |
-| `mcd1_registry.yaml`                  | Registry entry, state register (nine states, bias per D6) and the nine commentary templates                           |
-| `mcd1_params.yaml`                    | Seven parameters with value, unit, boundary, why                                                                      |
-| `mcd1_evaluator.py`                   | The evaluator. Imports the standard library, `decimal` and four kit modules only                                      |
-| `test_mcd1_unit_tests.py`             | 105 tests (§3). Also holds `write_fixtures()`, the recipe that regenerates the fixtures                               |
-| `fixtures/`                           | Per slot: `<slot>.inputs.json` (the bundle), `.envelope.json` (the expected output), `.source.md` (workbook, SHA-256) |
-| `mcd1_output.json`                    | The envelope of the v1 cycle (identical to `fixtures/2026-09-18T2055Z.envelope.json`)                                 |
-| `legacy/`                             | Pre-retrofit evaluator, tests and output; read-only history. One path line differs in the test copy                   |
-| `docs/STACK-D-ARCHITECTURE.md` (repo) | §2.13 MCD1 row notes 2.0.0 and its levels; §2.5 no longer says "(baseline to add)" (Q7)                               |
+| Path                                  | Purpose                                                                                                                            |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `mcd1.md`                             | Specification (14 sections), approved                                                                                              |
+| `mcd1_implementation_plan.md`         | R4 plan, approved; the R1 baseline (§6), the expected legacy to new mapping, and the build result (§9)                             |
+| `concept.md`                          | Readback of the pre-retrofit specification (MCD1 has no board), confirmed                                                          |
+| `mcd1_registry.yaml`                  | Registry entry, state register (nine states, bias per D6) and the nine commentary templates                                        |
+| `mcd1_params.yaml`                    | Eight parameters with value, unit, boundary, why                                                                                   |
+| `mcd1_evaluator.py`                   | The evaluator. Imports the standard library, `decimal` and four kit modules only                                                   |
+| `test_mcd1_unit_tests.py`             | 113 tests (§3). Also holds `write_fixtures()`, the recipe that regenerates the fixtures                                            |
+| `fixtures/`                           | Per slot: `<slot>.inputs.json` (the bundle), `.envelope.json` (the expected output), `.source.md` (workbook, SHA-256)              |
+| `mcd1_output.json`                    | The envelope of the v1 cycle (identical to `fixtures/2026-09-18T2055Z.envelope.json`)                                              |
+| `legacy/`                             | Pre-retrofit evaluator, tests and output; read-only history. One path line differs in the test copy                                |
+| `docs/STACK-D-ARCHITECTURE.md` (repo) | §2.13 MCD1 row notes 2.0.1 and its levels; §2.5 window cell notes the channel length; §2.5 no longer says "(baseline to add)" (Q7) |
 
 `concept/` does not exist: MCD1 has no board and git cannot hold an empty folder (standard §11.1 allows an empty
 `concept/`; `PurityTests.test_the_folder_matches_the_standard_layout` allows its absence).
@@ -53,14 +53,14 @@ From `davintrade-stack-d-and-e/engine-1-5-new/`, Python 3.11.9, `unittest`, 1 Oc
 
 | Command                                                                     | Result                                  |
 | --------------------------------------------------------------------------- | --------------------------------------- |
-| `python -m unittest discover -s mcd1`                                       | **105 OK, 0 skipped**, about 10 s       |
+| `python -m unittest discover -s mcd1`                                       | **113 OK, 0 skipped**, about 10 s       |
 | `python -m unittest discover -s mcd2`                                       | 93 OK (MCD2, unchanged)                 |
 | `python -m unittest discover -s mcd_common/tests -t .` (the kit, unchanged) | **215 OK**                              |
 | Legacy tests, from `mcd1/legacy/` and `mcd2/legacy/`                        | 13 OK each (the pre-retrofit baselines) |
 | `npx prettier --check` on the Markdown and YAML files of this folder        | Clean                                   |
 
-The 105 tests: register and parameters (5), states T1 (9 states plus inside count, placement and same-slope
-independence: 12), metric and candidates (3), boundaries T2 (17), pre-flight T3 (18), rule 1 at the five- and
+The 113 tests: register and parameters (5), states T1 (9 states plus inside count, placement and same-slope
+independence: 12), metric and candidates (3), boundaries T2 (17), short channels P7 (8), pre-flight T3 (18), rule 1 at the five- and
 ten-minute slots (1), legacy cases (9), real cycles T13 (5), shared checks T4 to T8, T10, T12 on three real cycles
 (21), never throws (2), output T8, T9, T11, T12 and rounding (7), purity and folder layout (3), fixture provenance (2).
 
@@ -90,6 +90,15 @@ registry; the spec now matches the registry (bias, regime, summaries and templat
 reference written from spec §5 to §7 agreed with the evaluator on 220,000 random bundles, and moving each of the
 seven parameter values by one step is caught by the behavioural tests (the one exception, 80.0 to 79.9, changes no
 reading for a window of 150 bars or fewer). Report: `docs/handoffs/2026-10-01-0628-mcd1-p6.md`.
+
+**Patch 2.0.1 (task P7, 1 October 2026).** The channel must hold `N_micro` closed bars: `T_EDT − 1 ≥ N_micro`, else INVALID +
+`INSUFFICIENT_BARS`, where 2.0.0 ended INVALID + `DISCONTINUITY` for `T_EDT` 96 or less (spec §3, §6; `concept.md`, "Change 2026-10-01"). `N_micro`
+is unchanged and nothing becomes VALID that was INVALID. Re-run: MCD1 **113 OK** (105 before: eight new tests in `ShortChannelTests`; **no old test
+changed**, except that the register test lists the new parameter); the kit **215 OK**, MCD2 **102 OK**, MCD3 **134 OK** (1 opt-in skip) and its opt-in scan of
+the 12 real pairings OK, the three legacy suites **13 OK** each. **Mutation pass on the new logic** (scratch run on the repo files, restored after each mutant):
+6 mutants (`<=` against `<`, the check against the constant 96, the old channel length, a hard-coded 1, the check never applied, a missing `T_EDT` read as too
+short) **6 of 6 killed**. No fixture output changes except the stored `evaluator_version` label (`2.0.0` to `2.0.1`) in the two fixture envelopes,
+`mcd1_output.json` and MCD3's stored upstream readings (the MCD3 T14 test requires them to equal the live output); every real `T_EDT` is 500 or more.
 
 ## 4. Legacy baseline (step R1)
 
@@ -184,12 +193,12 @@ the SHA-256).
 | A17 | Precedence rung proposed; rule rows proposed (not applied)                        | Pass                    | Spec §9: rungs confirmed by Davin (Q6); no new rule rows proposed; the bias note for the draft rule 2 is recorded there                                                                                                                                                                                               |
 | A18 | Dispatch-matrix intents, tags, playbook and foundations chunks ready              | Pending, stage 6        | The content is listed in spec §10; the files need the knowledge build (architecture §4.6)                                                                                                                                                                                                                             |
 | A19 | Reason texts and new glossary terms in all 16 languages                           | Pending, stage 6        | Reason codes MCD1 can emit are listed in spec §10                                                                                                                                                                                                                                                                     |
-| A20 | Parameters in `mcdN_params.yaml` with rationale                                   | Pass                    | `mcd1_params.yaml` loads through `Params.from_yaml` (the kit refuses a parameter without value, unit, boundary and why); the seven names and values equal spec §6 (`RegisterTests`)                                                                                                                                   |
-| A21 | Tests T1 to T14 pass (T14 for derived MCDs)                                       | Pass                    | 105 OK; T14 not applicable                                                                                                                                                                                                                                                                                            |
+| A20 | Parameters in `mcdN_params.yaml` with rationale                                   | Pass                    | `mcd1_params.yaml` loads through `Params.from_yaml` (the kit refuses a parameter without value, unit, boundary and why); the eight names and values equal spec §6 (`RegisterTests`)                                                                                                                                   |
+| A21 | Tests T1 to T14 pass (T14 for derived MCDs)                                       | Pass                    | 113 OK; T14 not applicable                                                                                                                                                                                                                                                                                            |
 | A22 | Envelope ≤ 600 tokens; evaluation ≤ 1 s                                           | Pass                    | `OutputTests.test_t12_*` (largest 367 tokens, `o200k_base`), `_Shared.test_t12_size_and_r15_time` (three cycles); §6 above                                                                                                                                                                                            |
 | A23 | Shadow period passed; point-in-time replay done; statistics stored                | Pending, stages 4 and 5 | Needs the sensor worker and `market_data_point_in_time`                                                                                                                                                                                                                                                               |
 | A24 | Added to golden scenarios and the labelled question set                           | Pending, stages 4 to 7  | Needs synthesis and the knowledge build                                                                                                                                                                                                                                                                               |
-| A25 | Registry row added to the architecture; decision entry written                    | Pending, stage 7        | Row exists and notes 2.0.0 (status `Retrofit (2.0.0)`); the decision entry is written at go-live                                                                                                                                                                                                                      |
+| A25 | Registry row added to the architecture; decision entry written                    | Pending, stage 7        | Row exists and notes 2.0.1 (status `Retrofit (2.0.1)`); the decision entry is written at go-live                                                                                                                                                                                                                      |
 | A26 | Folder matches §11.1: same file names, `concept.md` confirmed, nothing extra      | Pass                    | `PurityTests.test_the_folder_matches_the_standard_layout` (`concept/` absent by design, see §2); `concept.md` confirmed by Davin 1 Oct 2026; `__pycache__/` is git-ignored                                                                                                                                            |
 
 ## 8. Open questions
@@ -222,3 +231,4 @@ None for the build. Carried forward:
 | 2026-10-01 | D6 bias per state: inside the corridor the bias follows the macro trend (UP LONG, DOWN SHORT, SIDEWAYS NEUTRAL); a break follows the break direction (above UOEDT LONG, below LOEDT SHORT) for all trends                                                                                                         |
 | 2026-10-01 | Q1 to Q7 approved as recommended: Close as the metric; `T_EDT` fallback 96; `N_micro` rounds half up; tier 3 on every window bar; angle bound 90; rungs (Day Trader primary structure, Scalper trendlines and channels); architecture §2.13 and §2.5 documentation edits in P3                                    |
 | 2026-10-01 | Stage-3 sign-off for MCD1 after the independent check (task P6). Wrap-up instructions: close F1 and F2 with one test, align the four `meaning` sentences of `mcd1.md` §7 to the registry (F3), write the architecture §2.5 "States" cell for MCD1 (nine codes plus five regime statuses), commit by explicit path |
+| 2026-10-01 | Task P7: Davin confirmed the PATCH classification (evaluator 2.0.1) and asked to proceed. Questions Q1 to Q5 of `concept.md` were not answered one by one; built as recommended (the floor of 96 kept as a minimum, parameter `t_edt_open_bar_rows`, one decision entry draft, MCD3 note wording)                 |
