@@ -2,7 +2,7 @@
 
 |            |                                                                                                                                                     |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status** | Version 1.2, 30 September 2026 (adds the design-folder review, §9)                                                                                  |
+| **Status** | Version 1.3, 30 September 2026 (§8: one fixed message from Davin; carrying items forward; the commit prompt)                                        |
 | **For**    | The advisor agent (Antigravity). Davin starts an advisor session with the prompt in [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md) §7 |
 | **Owner**  | Davin                                                                                                                                               |
 
@@ -13,7 +13,8 @@ M15. The builder is Claude Code. You have two jobs:
    Davin brings it to you. Help him decide quickly and correctly, and give him the exact reply to
    send back to Claude Code (sections 3–6).
 2. **Next prompts.** Every Claude Code session ends with a hand-off report in `docs/handoffs/`. Davin
-   gives it to you, and you write the prompt for the next Claude Code session (section 8).
+   asks you to read the newest one, and you write the prompt for the next Claude Code session
+   (section 8).
 
 ---
 
@@ -119,7 +120,7 @@ history. The six design folders in `seed-code/txtai/` are background only until 
 
 ## 6. Answer format
 
-```markdown
+```text
 **Issue:** one line
 **Where:** build step or task card · MCD · files involved
 **Already settled?** yes (cite) / no / documents conflict (cite both)
@@ -147,17 +148,39 @@ D; walkthrough Part 0.3). Then wait for his first issue or hand-off report.
 
 ---
 
-## 8. Writing the next prompt from a hand-off report
+## 8. After each Claude Code session: the next prompt
 
-1. **Read the report** and check it against the files: the tests it lists exist and the files it
-   names were changed (git log, read-only commands). Point out anything missing, for example tests
-   not run, a "Done when" item claimed without evidence, or migrations written but not applied.
-2. **Follow the order of work** in the manual ("The overall order"). The next piece of work is the
-   report's unfinished part if there is one; otherwise session B for the finished task; otherwise the
-   next row of the order. If Davin asks for something out of order, say what it depends on and what
-   could break, then follow his decision.
-3. **Decisions first.** If the report lists decisions for Davin, set them out as in section 6 and
-   write the prompt only after he has answered, including his answers in it.
+Davin's message to you is always the same, with nothing to fill in:
+
+```text
+Read the newest hand-off report in docs/handoffs/ and write the next prompt, as your brief describes.
+```
+
+He may add one line about something that happened outside the reports (for example he committed
+himself, or changed a decision). Everything else you work out from the reports and the files:
+
+1. **Read the reports.** Read the newest report, plus any earlier report for the same task you have
+   not yet gone through (a session B report follows a session A report; a commit update follows
+   both). Check them against the files: the tests they list exist, the files they name were changed,
+   and the state they claim matches `git status` and `git log`. Point out anything missing, for
+   example tests not run, a "Done when" item claimed without evidence, or migrations written but not
+   applied.
+2. **Go through every item the reports raise:** the "Decisions needed" section and the "Problems and
+   surprises" section, one by one. For each, say whether it is settled (cite), Davin's call now, Davin's
+   call later (name the task or stage when it becomes due, and have the next prompt ask Claude Code to
+   record it, for example as an open item in architecture Appendix D), or the builder's call. Set out
+   the ones due now as in section 6, and write the prompt only after Davin has answered them.
+3. **Decide what comes next,** taking the first that applies:
+   - the report's unfinished part;
+   - session A finished a task: session B for it;
+   - session B reported failures: the reply for session A ("Fix these: …"; you may add advice), and
+     afterwards session B again in a new session;
+   - session B passed and the work is not committed: the commit prompt for session A (step 5);
+   - otherwise the next row of the manual's overall order.
+
+   If Davin asks for something out of order, say what it depends on and what could break, then
+   follow his decision.
+
 4. **Write the prompt** in English, in the pattern the manual uses:
 
    ```text
@@ -165,15 +188,34 @@ D; walkthrough Part 0.3). Then wait for his first issue or hand-off report.
    <the "Read …" line the manual uses for this kind of work>
    <the task line>, continuing from docs/handoffs/<report file name>.
    <Davin's decisions, if any, in one line>
+   <one line per carried-forward item, if any>
    ```
 
    For a build step, the task line is "Follow it as session A, for build step N (chapter X, name),
    part k"; for MCD work it is the task card, for example "do task P3 for MCD2". A check is always a
-   new session B and does not continue from a report.
+   new session B: use the manual's session B prompt without "continuing from", so the check does not
+   start from the builder's own account.
 
-5. **Keep sessions small.** If the remaining work looks too large for one session, split it into
+   **Carry forward** each item from step 2 that the next task touches, as one line telling the
+   session what to check or keep in mind. Example: a report found that the fit statistics may include
+   the still-open bar, and the next task retrofits MCD2, which uses them, so the prompt adds: "Before
+   your STOP, read the MQL5 source (read-only) and report whether the statistics MCD2 uses are fitted
+   with the still-open bar (Appendix D open item)." Add only what that task needs.
+
+5. **The commit prompt** (session B passed). It goes to session A and asks it to:
+   - record Davin's answers to anything the reports left open, and make any small document fixes the
+     reports or you found;
+   - commit by explicit path only, never `git add -A` (the working tree may hold unrelated changes),
+     including test data the tests read and leaving out caches, `__pycache__/` and `~$` lock files;
+   - re-run the tests and `git status` after the commit, because the pre-commit hook runs Prettier on
+     staged files and can change them;
+   - put the commit hash in its hand-off report.
+
+   If nothing is open, the prompt is simply "Commit this work."
+
+6. **Keep sessions small.** If the remaining work looks too large for one session, split it into
    parts in your prompt and say which part this session does.
-6. **Before build step 4,** check architecture Appendix D: if the design-folder review (section 9) has
+7. **Before build step 4,** check architecture Appendix D: if the design-folder review (section 9) has
    not been done, remind Davin and offer to do it first.
 
 ---

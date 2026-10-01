@@ -1,0 +1,115 @@
+Regression Centroids (Box B): 7
+Excluded Centroids: 0
+Math Search Window (Bars): 3000
+Visual EDT Window (Bars): 1134
+Observation Window (Box B Bars): 1095
+Total 171 Crossings (n): 101
+Timeframe (Sec): 300
+Raw Slope (b): -0.16322
+Regression Angle: -20.94
+Anchored Y-Int: 4169.96953
+
+[MODEL A; CROSSINGS]
+Sample (n): 101
+R-Square: 0.6876
+MSE: 1158.2011
+Var Ratio: 9.82
+Skewness: 0.50
+Kurtosis: 2.57
+
+[MODEL B; CLOSE PRICE]
+Sample (n): 1095
+R-Square: 0.6883
+MSE: 1091.3110
+Var Ratio: 10.71
+Skewness: 0.56
+Kurtosis: 2.62
+
+[EDT CHANNEL]
+UOEDT Offset: 79.00278
+LOEDT Offset: -73.41304
+Containment Sample (n): 1134
+Containment Count: 1134
+Containment Rate: 100.00
+
+[FIT WINDOW]
+Window Start TS (UTC): 1790106600
+Window End TS (UTC): 1790637300
+Window Bars: 1134
+Observation Bars: 1095
+Visual Window Bars: 1134
+Math Window Bars: 3000
+Bars Available: 100006
+Leftmost Bar Index: 98872
+Line Span Bars: 1134
+Baseline Coverage (n): 1134
+Baseline Coverage Rate: 100.00
+Centroids Used: 7
+Crossings In Window (n): 104
+First Crossing TS (UTC): 1790106600
+Last Crossing TS (UTC): 1790636700
+
+[PRICE CONTEXT]
+Live Close: 4124.46
+Baseline Value: 4169.96953
+UOEDT Value: 4248.97230
+LOEDT Value: 4096.55649
+Distance To Baseline: -45.50953
+Distance To UOEDT: 124.51230
+Distance To LOEDT: 27.90351
+Channel Position: 0.1831
+Window High: 4369.44
+Window Low: 4110.92
+Window Range: 258.52000
+
+[CHANNEL GEOMETRY]
+Channel Width: 152.41582
+Channel Asymmetry: 0.0367
+Above UOEDT Count: 0
+Below LOEDT Count: 0
+Max Excursion Above: 
+Max Excursion Below: 
+
+[RESIDUAL DIAGNOSTICS; CROSSINGS]
+Sample (n): 104
+Mean Residual: -0.64211
+MAE: 27.84942
+Residual StdDev: 34.81521
+Max Abs Residual: 73.78207
+Durbin-Watson: 0.1384
+
+[RESIDUAL DIAGNOSTICS; CLOSE PRICE]
+Sample (n): 1134
+Mean Residual: -1.29820
+MAE: 27.09725
+Residual StdDev: 33.75125
+Max Abs Residual: 77.39955
+Durbin-Watson: 0.0088
+
+[FROZEN_SNAPSHOT]
+Projection Mode: DYNAMIC
+Server UTC Offset (Sec): 10800
+Snapshot Anchor TS (Server): 1790648100
+Snapshot Anchor TS (UTC): 1790637300
+Snapshot Slope (b): -0.16322175
+Snapshot Anchor Price: 4169.96953
+Snapshot UOEDT Offset: 79.00278
+Snapshot LOEDT Offset: -73.41304
+Frozen Anchor TS (Server): 0
+Frozen Slope (b): 0.00000000
+Frozen Anchor Price: 0.00000
+Frozen UOEDT Offset: 0.00000
+Frozen LOEDT Offset: 0.00000
+Bars Since Anchor: 
+
+[CENTROIDS_DETAIL]
+Live Bar TS (UTC): 1790637300
+Centroid Count: 15
+Centroid Exported (n): 15
+Centroid Timestamps (UTC): 1790617800,1790359800,1790281500,1790230200,1790192400,1790158800,1790117700,1790086800,1790047500,1790012100,1789975200,1789686300,1789664700,1789570800,1789538700
+Centroid Prices: 4134.73,4290.55,4271.62,4282.29,4287.06,4316.08,4363.99,4335.83,4345.43,4349.36,4353.72,4344.40,4360.66,4349.95,4327.59
+Centroid Points: 5,6,9,5,12,7,6,5,5,6,6,8,5,6,9
+Latest Centroid TS (UTC): 1790617800
+Latest Centroid Price: 4134.73
+Latest Centroid Points: 5
+

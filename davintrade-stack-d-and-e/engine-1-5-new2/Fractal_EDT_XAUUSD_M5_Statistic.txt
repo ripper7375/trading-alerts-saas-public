@@ -1,0 +1,93 @@
+[FRACTAL BEST-FIT - PARAMETERS]
+Window Start TS (UTC): 1790239800
+Window End TS (UTC): 1790549400
+Fractal Bars: 35
+Timeframe (Sec): 300
+Min Touches: 3
+Require Both Sides: true
+Max Line Angle: 3.0000
+Tolerance Type: PERCENT
+Tolerance Percent: 5.0000
+Tolerance ATR Multiplier: 1.0000
+LOEDT Min Touches: 2
+UOEDT Min Touches: 2
+
+[FRACTAL BEST-FIT - RESOLVED LINE]
+Solution Found: true
+Line Origin TS (UTC): 1790245800
+Best FL Touches: 15
+Raw Slope (b): 0.13905263
+Regression Angle: 18.01
+Anchored Y-Int: 4303.09021
+UOEDT Offset: 36.37842
+LOEDT Offset: -34.00779
+
+[MODEL B; CLOSE PRICE]
+Sample (n): 423
+R-Square: -0.3368
+MSE: 249.5514
+Var Ratio: 3.62
+Skewness: -0.82
+Kurtosis: 3.74
+
+[EDT CHANNEL]
+UOEDT Offset: 36.37842
+LOEDT Offset: -34.00779
+Containment Sample (n): 423
+Containment Count: 407
+Containment Rate: 96.22
+
+[FIT WINDOW]
+Window Start TS (UTC): 1790239800
+Window End TS (UTC): 1790549400
+Window Bars: 423
+Observation Bars: 423
+Visual Window Bars: 423
+Math Window Bars: 100002
+Bars Available: 100002
+Leftmost Bar Index: 422
+Line Span Bars: 423
+Baseline Coverage (n): 423
+Baseline Coverage Rate: 100.00
+Centroids Used: 
+Crossings In Window (n): 
+First Crossing TS (UTC): 
+Last Crossing TS (UTC): 
+
+[PRICE CONTEXT]
+Live Close: 4260.31
+Baseline Value: 4303.09021
+UOEDT Value: 4339.46863
+LOEDT Value: 4269.08242
+Distance To Baseline: -42.78021
+Distance To UOEDT: 79.15863
+Distance To LOEDT: -8.77242
+Channel Position: -0.1246
+Window High: 4315.73
+Window Low: 4244.41
+Window Range: 71.32000
+
+[CHANNEL GEOMETRY]
+Channel Width: 70.38621
+Channel Asymmetry: 0.0337
+Above UOEDT Count: 0
+Below LOEDT Count: 16
+Max Excursion Above: 
+Max Excursion Below: 8.84189
+
+[RESIDUAL DIAGNOSTICS; CROSSINGS]
+Sample (n): 
+Mean Residual: 
+MAE: 
+Residual StdDev: 
+Max Abs Residual: 
+Durbin-Watson: 
+
+[RESIDUAL DIAGNOSTICS; CLOSE PRICE]
+Sample (n): 423
+Mean Residual: 3.87942
+MAE: 12.70303
+Residual StdDev: 15.33157
+Max Abs Residual: 42.84968
+Durbin-Watson: 0.0414
+

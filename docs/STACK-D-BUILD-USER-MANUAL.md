@@ -2,7 +2,7 @@
 
 |             |                                                                                                                                                                                                                                                                                                                                                                                |
 | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**  | Version 1.3, 30 September 2026 (design-folder review before build step 4)                                                                                                                                                                                                                                                                                                      |
+| **Status**  | Version 1.4, 30 September 2026 (one fixed message to the advisor after every session)                                                                                                                                                                                                                                                                                          |
 | **For**     | Davin. What you do, what you decide, and the prompt you paste at each step                                                                                                                                                                                                                                                                                                     |
 | **Not for** | The agent. Its instructions are in [STACK-D-ARCHITECTURE.md](STACK-D-ARCHITECTURE.md) §7.10 (build steps), [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md) (MCD task cards), [MCD-DEVELOPMENT-STANDARD.md](MCD-DEVELOPMENT-STANDARD.md) (MCD rules) and [STACK-D-ADVISOR-BRIEF.md](STACK-D-ADVISOR-BRIEF.md) (the advisor's instructions) |
 
@@ -35,8 +35,9 @@
   "confirmed" for a concept readback). It continues in the same session.
 - **When session B finds failures**, copy its list into session A ("Fix these: …"), then run session B
   again in another new session.
-- **When session B passes**, commit: in session A, write "Commit this work." The agent commits only
-  when you ask, so each passed check becomes a point you can return to.
+- **When session B passes**, commit in session A, with the commit prompt the advisor gives you ("Commit
+  this work." when nothing is open). The agent commits only when you ask, so each passed check becomes
+  a point you can return to.
 - **Database migrations**: the agent writes them as files; you apply them to production.
 - Replace anything in `<angle brackets>` before pasting.
 
@@ -46,16 +47,25 @@ Large work is split into parts, one session each; nothing is done "in one go". E
 session ends by writing a **hand-off report** in `docs/handoffs/` (what it did, what it tested, what
 is left, what it needs from you). Then:
 
-1. Give the report to your advisor in Antigravity:
+1. Send your advisor in Antigravity this message. It is always the same, with nothing to fill in:
 
    ```text
-   Here is Claude Code's hand-off report: docs/handoffs/<file name>
-   Write the prompt for the next Claude Code session, as your brief describes.
+   Read the newest hand-off report in docs/handoffs/ and write the next prompt, as your brief describes.
    ```
 
-2. The advisor checks the report, tells you if a decision is needed first, and gives you the next
-   prompt, following the order of work below.
-3. Paste that prompt into a **new** Claude Code session.
+   Add one line only if something happened outside the reports, for example you committed yourself
+   or changed a decision.
+
+2. The advisor checks the report against the files and goes through every decision and surprise in
+   it with you. Items that matter for the next task become extra lines in the prompt; items for later
+   are recorded so they are not lost.
+3. It gives you one of these, following the order of work below:
+   - the session B prompt, when session A has finished;
+   - a reply for session A with the fixes, when session B found failures;
+   - the commit prompt for session A, when session B passed;
+   - the prompt for the next piece of work.
+4. Paste it where the advisor says: session A for fixes and the commit, a **new** Claude Code session
+   for everything else.
 
 The prompts in Sections 0–6 start each piece of work; the advisor writes the prompts that continue
 it. Each session reads only the part of the architecture its step needs, not the whole document.
@@ -609,8 +619,8 @@ Claude Code stopped during <build step 3 / task P3 for MCD2 / …> with this:
 Advise me as your brief describes.
 ```
 
-**After every Claude Code session**, give the advisor the hand-off report (see "Between sessions"
-at the top) and it writes the next prompt.
+**After every Claude Code session**, send the advisor the fixed message in "Between sessions" at the
+top, and it writes the next prompt.
 
 The advisor answers with what is settled, the options, its recommendation, which parts are your call,
 and a reply in English. Paste that reply into Claude Code's session A. If the advice changes a

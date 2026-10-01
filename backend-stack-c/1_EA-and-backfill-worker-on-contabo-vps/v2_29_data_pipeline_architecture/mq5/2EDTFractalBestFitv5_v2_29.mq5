@@ -65,7 +65,7 @@ input color             InpEDTColor = clrMagenta;
 
 input string            Sep4 = "===== Tolerance Settings =====";
 input ENUM_TOLERANCE_TYPE InpToleranceType = TOLERANCE_PERCENT;
-input double            InpTolerancePercent = 0.50;
+input double            InpTolerancePercent = 5.00;
 input double            InpToleranceATRMultiplier = 1.0;
 input int               InpATRPeriod = 12;
 

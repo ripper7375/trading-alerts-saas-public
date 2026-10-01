@@ -1,0 +1,93 @@
+[FRACTAL BEST-FIT - PARAMETERS]
+Window Start TS (UTC): 1790325300
+Window End TS (UTC): 1790604300
+Fractal Bars: 35
+Timeframe (Sec): 300
+Min Touches: 3
+Require Both Sides: true
+Max Line Angle: 3.0000
+Tolerance Type: PERCENT
+Tolerance Percent: 3.0000
+Tolerance ATR Multiplier: 1.0000
+LOEDT Min Touches: 2
+UOEDT Min Touches: 2
+
+[FRACTAL BEST-FIT - RESOLVED LINE]
+Solution Found: true
+Line Origin TS (UTC): 1790334600
+Best FL Touches: 6
+Raw Slope (b): -0.49886207
+Regression Angle: -49.73
+Anchored Y-Int: 4159.58617
+UOEDT Offset: 29.41076
+LOEDT Offset: -49.33676
+
+[MODEL B; CLOSE PRICE]
+Sample (n): 314
+R-Square: 0.8344
+MSE: 565.0074
+Var Ratio: 0.38
+Skewness: 0.36
+Kurtosis: 2.20
+
+[EDT CHANNEL]
+UOEDT Offset: 29.41076
+LOEDT Offset: -49.33676
+Containment Sample (n): 314
+Containment Count: 312
+Containment Rate: 99.36
+
+[FIT WINDOW]
+Window Start TS (UTC): 1790325300
+Window End TS (UTC): 1790604300
+Window Bars: 314
+Observation Bars: 314
+Visual Window Bars: 314
+Math Window Bars: 100001
+Bars Available: 100001
+Leftmost Bar Index: 313
+Line Span Bars: 314
+Baseline Coverage (n): 314
+Baseline Coverage Rate: 100.00
+Centroids Used: 
+Crossings In Window (n): 
+First Crossing TS (UTC): 
+Last Crossing TS (UTC): 
+
+[PRICE CONTEXT]
+Live Close: 4140.09
+Baseline Value: 4159.58617
+UOEDT Value: 4188.99693
+LOEDT Value: 4110.24941
+Distance To Baseline: -19.49617
+Distance To UOEDT: 48.90693
+Distance To LOEDT: 29.84059
+Channel Position: 0.3789
+Window High: 4315.73
+Window Low: 4136.48
+Window Range: 179.25000
+
+[CHANNEL GEOMETRY]
+Channel Width: 78.74752
+Channel Asymmetry: -0.2530
+Above UOEDT Count: 0
+Below LOEDT Count: 2
+Max Excursion Above: 
+Max Excursion Below: 0.47772
+
+[RESIDUAL DIAGNOSTICS; CROSSINGS]
+Sample (n): 
+Mean Residual: 
+MAE: 
+Residual StdDev: 
+Max Abs Residual: 
+Durbin-Watson: 
+
+[RESIDUAL DIAGNOSTICS; CLOSE PRICE]
+Sample (n): 314
+Mean Residual: -12.03493
+MAE: 20.92256
+Residual StdDev: 20.53071
+Max Abs Residual: 49.81448
+Durbin-Watson: 0.0218
+

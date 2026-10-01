@@ -1,0 +1,93 @@
+[FRACTAL BEST-FIT - PARAMETERS]
+Window Start TS (UTC): 1790325300
+Window End TS (UTC): 1790604300
+Fractal Bars: 35
+Timeframe (Sec): 300
+Min Touches: 3
+Require Both Sides: true
+Max Line Angle: 3.0000
+Tolerance Type: PERCENT
+Tolerance Percent: 3.0000
+Tolerance ATR Multiplier: 1.0000
+LOEDT Min Touches: 2
+UOEDT Min Touches: 2
+
+[FRACTAL BEST-FIT - RESOLVED LINE]
+Solution Found: true
+Line Origin TS (UTC): 1790334600
+Best FL Touches: 6
+Raw Slope (b): -0.49886207
+Regression Angle: -49.89
+Anchored Y-Int: 4111.69541
+UOEDT Offset: 29.41076
+LOEDT Offset: -49.33676
+
+[MODEL B; CLOSE PRICE]
+Sample (n): 410
+R-Square: 0.8866
+MSE: 493.1802
+Var Ratio: 0.84
+Skewness: 0.19
+Kurtosis: 2.23
+
+[EDT CHANNEL]
+UOEDT Offset: 29.41076
+LOEDT Offset: -49.33676
+Containment Sample (n): 410
+Containment Count: 408
+Containment Rate: 99.51
+
+[FIT WINDOW]
+Window Start TS (UTC): 1790325300
+Window End TS (UTC): 1790604300
+Window Bars: 410
+Observation Bars: 410
+Visual Window Bars: 410
+Math Window Bars: 100006
+Bars Available: 100006
+Leftmost Bar Index: 409
+Line Span Bars: 410
+Baseline Coverage (n): 410
+Baseline Coverage Rate: 100.00
+Centroids Used: 
+Crossings In Window (n): 
+First Crossing TS (UTC): 
+Last Crossing TS (UTC): 
+
+[PRICE CONTEXT]
+Live Close: 4124.47
+Baseline Value: 4111.69541
+UOEDT Value: 4141.10617
+LOEDT Value: 4062.35866
+Distance To Baseline: 12.77459
+Distance To UOEDT: 16.63617
+Distance To LOEDT: 62.11134
+Channel Position: 0.7887
+Window High: 4315.73
+Window Low: 4110.92
+Window Range: 204.81000
+
+[CHANNEL GEOMETRY]
+Channel Width: 78.74752
+Channel Asymmetry: -0.2530
+Above UOEDT Count: 0
+Below LOEDT Count: 2
+Max Excursion Above: 
+Max Excursion Below: 0.47772
+
+[RESIDUAL DIAGNOSTICS; CROSSINGS]
+Sample (n): 
+Mean Residual: 
+MAE: 
+Residual StdDev: 
+Max Abs Residual: 
+Durbin-Watson: 
+
+[RESIDUAL DIAGNOSTICS; CLOSE PRICE]
+Sample (n): 410
+Mean Residual: -11.02522
+MAE: 18.71291
+Residual StdDev: 19.30112
+Max Abs Residual: 49.81448
+Durbin-Watson: 0.0251
+

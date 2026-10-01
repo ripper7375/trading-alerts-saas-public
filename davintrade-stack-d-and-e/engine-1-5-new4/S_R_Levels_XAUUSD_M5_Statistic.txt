@@ -1,0 +1,34 @@
+[SUPPORT-RESISTANCE AUTO-CALIBRATION - PARAMETERS]
+Calculation Mode: Freedman-Diaconis IQR (Auto-Calibrated)
+Window Mode: Fixed Window
+Window Start TS (UTC): 1790238600
+Window End TS (UTC): 1790348700
+Window Bars: 356
+Max Window Bars: 3000
+Timeframe (Sec): 300
+Fractals Sample (N): 83
+Q25 (25th percentile): 4264.41
+Q75 (75th percentile): 4283.11
+IQR: 18.71
+Optimal Step: 8.58
+Min Touches Filter: 1
+Highest High: 4315.73
+Lowest Low: 4244.41
+Window Range: 71.32
+Live Close: 4124.47
+
+[SUPPORT-RESISTANCE AUTO-CALIBRATION - RESOLVED LEVELS]
+Total Macro Clusters: 9
+Pipeline 1:1 Slots: 8 (sr_9..sr_16)
+sr_9 (Support 1): NULL
+sr_10 (Support 2): NULL
+sr_11 (Support 3): NULL
+sr_12 (Support 4): NULL
+sr_13 (Resistance 1): 4248.55
+sr_14 (Resistance 2): 4257.39
+sr_15 (Resistance 3): 4265.75
+sr_16 (Resistance 4): 4274.12
+Nearest Resistance: 4248.55
+Nearest Support: 
+Distance to Resistance: 12407
+Distance to Support: 

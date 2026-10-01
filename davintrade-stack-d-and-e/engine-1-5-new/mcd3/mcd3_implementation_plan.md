@@ -1,372 +1,220 @@
-# MCD3 Implementation Plan: Consolidated Trend and EDT Stochastic Evaluator
-
-_(Standard Stochastic Formulation, Dual-Timeframe 4-Tier Pre-Flight Quality Gate, and Multi-Horizon Interpretation Blueprint)_
-
-**Module Name:** `mcd3_evaluator.py`  
-**Test Suite:** `test_mcd3_unit_tests.py`  
-**Target Asset:** `XAUUSD`  
-**Target Timeframes:** Dual-Timeframe Multi-Horizon: `M15` (Macro Horizon) & `M5` (Micro Horizon)  
-**Architecture Layer:** DavinTrade Stack D — Engine 1.5A Discrete State Evaluator  
-**Primary Deliverables Directory:** `davintrade-stack-d-and-e/engine-1-5-new/mcd3/`  
-**Author:** Antigravity (Pair Programming Partner)  
-**Date:** September 21, 2026  
-**Status:** Approved for Implementation
-
----
-
-## 1. Executive Summary & Core Mandate
-
-`MCD3` is the third discrete state evaluator module of **DavinTrade Stack D (Engine 1.5A)**. Derived directly from the core principles established in `xauusd-m5-and-m15.png` and calibrated with the trader-intuitive **Standard Stochastic Formula**, `MCD3` resolves two fundamental multi-horizon market structure questions:
-
-1. **"Does a Consolidated Trend currently exist between M15 and M5?"**  
-   A Consolidated Trend is a strongly confirmed, multi-horizon market structure where Gold price is proven to be tenaciously governed by the unified trend across both time horizons.
-2. **"If a Consolidated Trend exists, what is the EDT Stochastic position on the M15 corridor?"**  
-   If the 3 strict conditions of Consolidated Trend are fulfilled, the **Standard EDT Stochastic** is calculated to pinpoint the exact normalized position ($0\% \dots 100\%$) of Gold price within the M15 corridor. If any condition is violated, a Consolidated Trend does NOT exist, and the EDT Stochastic is strictly **UNAVAILABLE** (`null`).
-
-```mermaid
-flowchart TD
-    subgraph Inputs["Dual-Timeframe Input Layer"]
-        M15Sheet["market_data_v6_M15<br>(Active Centroid out of 7)"]
-        M5Sheet["market_data_v6_M5<br>(Active EDT Indicator out of 8)"]
-        StatsSheet["indicator_statistics<br>(M15 & M5 Snapshots)"]
-    end
-
-    subgraph PreFlight["4-Tier Dual-Timeframe Pre-Flight Gate"]
-        T1["Tier 1: Exactly 1 Active on M15 (7 Candidates)<br>Exactly 1 Active on M5 (8 Candidates)"]
-        T2["Tier 2: Dual-Timeframe Continuity & Non-Null Monotonicity"]
-        T3["Tier 3: Channel Boundary Sanity (UOEDT > LOEDT on both TFs)"]
-        T4["Tier 4: Statistics Ingestion & Angle Validation (CR >= 50%)"]
-    end
-
-    subgraph CondGates["The 3 Strict Consolidated Trend Conditions"]
-        C1{"Condition 1: Trend Alignment?<br>M15 Trend == M5 Trend?"}
-        C2{"Condition 2: Historical Corridor Nesting?<br>M5 Corridor inside M15 Corridor >= 75% of M5 span?"}
-        C3{"Condition 3: Current Bar Corridor Engulfment?<br>M5 Corridor inside M15 Corridor at latest bar?"}
-    end
-
-    subgraph OutputBranch["State Resolution & Stochastic Execution"]
-        AllPass["CONSOLIDATED TREND CONFIRMED<br>(BULLISH / BEARISH / SIDEWAYS)"]
-        CalcStoch["Compute Standard EDT Stochastic:<br>[(M15 SSA - M15 LOEDT) / (M15 UOEDT - M15 LOEDT)] * 100"]
-        FailAny["NON_CONSOLIDATED<br>(Trend Conflict / Corridor Overflow / Bar Escape)"]
-        NoStoch["EDT Stochastic is UNAVAILABLE (null)"]
-    end
-
-    Inputs --> PreFlight --> C1
-    C1 -- Yes --> C2
-    C2 -- Yes --> C3
-    C3 -- Yes --> AllPass --> CalcStoch
-    C1 -- No --> FailAny --> NoStoch
-    C2 -- No --> FailAny
-    C3 -- No --> FailAny
-```
-
----
-
-## 2. Upstream Indicator Constraints & Dual Candidate Isolation
-
-To ensure absolute mathematical integrity, MCD3 enforces the proven candidate pools and Single Active Indicator rules from MCD1 and MCD2:
-
-### A. M15 Indicator Pool (Strictly the 7 Centroid Variants from MCD1)
-
-Permitted candidates on M15:
-
-1. `best_fit_a` (`best_fit_a_ssa`, `best_fit_a_uoedt`, `best_fit_a_loedt`, `best_fit_a_base_fl`)
-2. `best_fit_b` (`best_fit_b_ssa`, `best_fit_b_uoedt`, `best_fit_b_loedt`, `best_fit_b_base_fl`)
-3. `cherry_a` (`cherry_a_ssa`, `cherry_a_uoedt`, `cherry_a_loedt`, `cherry_a_base_fl`)
-4. `cherry_b` (`cherry_b_ssa`, `cherry_b_uoedt`, `cherry_b_loedt`, `cherry_b_base_fl`)
-5. `most_recent` (`most_recent_ssa`, `most_recent_uoedt`, `most_recent_loedt`, `most_recent_base_fl`)
-6. `non_a` (`non_a_ssa`, `non_a_uoedt`, `non_a_loedt`, `non_a_base_fl`)
-7. `non_b` (`non_b_ssa`, `non_b_uoedt`, `non_b_loedt`, `non_b_base_fl`)
-
-- **Production Rule:** Strictly **1 active indicator** out of these 7. If 0 or $>1$ active indicators exist on M15 in production, the evaluator raises `MCD3ValidationError` or flags status as `INVALID`.
-
-### B. M5 Indicator Pool (Strictly the 8 EDT Indicators from MCD2)
-
-Permitted candidates on M5:
-
-1. `best_fit_a` (`best_fit_a_ssa`, `best_fit_a_uoedt`, `best_fit_a_loedt`, `best_fit_a_base_fl`)
-2. `best_fit_b` (`best_fit_b_ssa`, `best_fit_b_uoedt`, `best_fit_b_loedt`, `best_fit_b_base_fl`)
-3. `cherry_a` (`cherry_a_ssa`, `cherry_a_uoedt`, `cherry_a_loedt`, `cherry_a_base_fl`)
-4. `cherry_b` (`cherry_b_ssa`, `cherry_b_uoedt`, `cherry_b_loedt`, `cherry_b_base_fl`)
-5. `most_recent` (`most_recent_ssa`, `most_recent_uoedt`, `most_recent_loedt`, `most_recent_base_fl`)
-6. `non_a` (`non_a_ssa`, `non_a_uoedt`, `non_a_loedt`, `non_a_base_fl`)
-7. `non_b` (`non_b_ssa`, `non_b_uoedt`, `non_b_loedt`, `non_b_base_fl`)
-8. **`fractal`** (`fractal_best_fl`, `fractal_uoedt`, `fractal_loedt`, `close`) _(mapped to `source == 'fractal_edt'` in `indicator_statistics`)_
-
-- **Production Rule:** Strictly **1 active indicator** out of these 8. If 0 or $>1$ active indicators exist on M5 in production, the evaluator raises `MCD3ValidationError` or flags status as `INVALID`.
-
-_(Developer test overrides `m15_target_indicator` and `m5_target_indicator` are supported to allow isolated testing against multi-indicator mock workbooks)._
-
----
-
-## 3. 4-Tier Dual-Timeframe Pre-Flight Quality Gate (Validation)
-
-```mermaid
-flowchart TD
-    Start(["Inputs: market_data_v6_M15 + market_data_v6_M5 + indicator_statistics"]) --> T1{"Tier 1: Candidates Scanned<br>M15 Active == 1 (out of 7)?<br>M5 Active == 1 (out of 8)?"}
-    T1 -- No --> Fail1["FAIL: INVALID (Multiple or Zero Active)"]
-    T1 -- Yes --> T4{"Tier 4: Statistics Ingested for both?<br>CR >= 50% on M15 and M5?"}
-    T4 -- No --> Fail4["FAIL: Missing Stats or Compromised Channel"]
-    T4 -- Yes --> T2{"Tier 2: Dual Time-Series Continuity?<br>Ascending Timestamps & Non-Null?"}
-    T2 -- No --> Fail2["FAIL: Time-Series Discontinuity"]
-    T2 -- Yes --> T3{"Tier 3: Channel Sanity Gate?<br>UOEDT > LOEDT on both TFs?"}
-    T3 -- No --> Fail3["FAIL: Corrupt Channel Geometry"]
-    T3 -- Yes --> EvalEngine["Proceed to MCD3 Core Calculation & Synthesis"]
-
-    Fail1 --> OutInvalid["trend_state = INVALID<br>regime_status = UNCERTAIN<br>validation.status = FAIL"]
-    Fail2 --> OutInvalid
-    Fail3 --> OutInvalid
-    Fail4 --> OutInvalid
-```
-
-### Detailed Validation Rules:
-
-1. **Tier 1 (Candidate Isolation & Single Active Rule):**
-   - **M15:** Scans 7 Centroids. Enforces exactly 1 active indicator having valid data for $\ge 96$ bars.
-   - **M5:** Scans 8 EDT indicators (7 Centroids + `fractal`). Enforces exactly 1 active indicator having valid data for $\ge 48$ bars.
-   - Any violation triggers `validation.status = FAIL`.
-2. **Tier 2 (Dual Time-Series Continuity & Non-Null Monotonicity):**
-   - Asserts monotonic timestamps on M15 ($t_i > t_{i-1}$, step $= 900\text{s}$) and M5 ($t_i > t_{i-1}$, step $= 300\text{s}$).
-   - Validates that historical price, SSA, UOEDT, and LOEDT contain zero NaN/null values.
-   - Verifies chronological time range overlap between M15 and M5.
-3. **Tier 3 (Dual Channel Boundary Sanity):**
-   - Asserts $\text{UOEDT}_i > \text{LOEDT}_i$ on every evaluated bar for both M15 and M5.
-   - Asserts positive non-zero corridor width $(\text{UOEDT}_i - \text{LOEDT}_i) > 0$.
-4. **Tier 4 (Dual Statistics Ingestion & Channel Quality Integrity):**
-   - Ingests latest statistics from `indicator_statistics` for both active indicators (`symbol='XAUUSD'`).
-   - Asserts `containment_rate >= 50.0%` for both timeframes.
-   - Ingests regression angles ($\theta$) and EDT time horizons ($T_{\text{EDT}}$).
-
----
-
-## 4. Mathematical Formulation & The 3 Strict Conditions (Calculation)
-
-### Condition 1: Trend Direction Alignment
-
-The primary trend of M15 and M5 must share the exact same directional classification:
-$$\text{trend\_alignment} = (\text{m15\_trend} == \text{m5\_trend})$$
-
-Where trend classification on each timeframe is derived from `regression_angle` ($\theta$) with the standard $\pm 5.0^\circ$ deadband:
-
-$$
-\text{trend}(\theta) = \begin{cases}
-\text{UPTREND} & \text{if } \theta > +5.0^\circ \\
-\text{DOWNTREND} & \text{if } \theta < -5.0^\circ \\
-\text{SIDEWAYS} & \text{if } |\theta| \le 5.0^\circ
-\end{cases}
-$$
-
-- If both are `UPTREND` $\implies$ `BULLISH_ALIGNED` (Condition 1 = TRUE).
-- If both are `DOWNTREND` $\implies$ `BEARISH_ALIGNED` (Condition 1 = TRUE).
-- If both are `SIDEWAYS` $\implies$ `SIDEWAYS_ALIGNED` (Condition 1 = TRUE).
-- If they differ $\implies$ `MISALIGNED` (Condition 1 = FALSE).
-
----
-
-### Condition 2: Historical Multi-Horizon Corridor Nesting ($\ge 75.0\%$ of M5 EDT Length)
-
-The M5 EDT corridor must reside within the M15 EDT corridor for at least **75.0%** of the M5 EDT Time Horizon length ($T_{\text{EDT, M5}}$ bars, read from `containment_n` of the active M5 indicator):
-
-#### Timestamp Synchronization Strategy:
-
-- M5 bars advance at 5-minute (300-second) intervals; M15 bars advance at 15-minute (900-second) intervals.
-- For each M5 bar at timestamp $t_i$ ($i = 0 \dots T_{\text{EDT, M5}} - 1$), the corresponding active M15 corridor is determined via backward as-of timestamp matching:
-  $$\text{M15\_Bar}(t_i) = \max \big\{ \text{M15 bar at timestamp } t_{\text{M15}} \;\big|\; t_{\text{M15}} \le t_i \big\}$$
-
-#### Nesting Evaluation:
-
-At each M5 bar $t_i$, the M5 corridor is nested inside M15 if and only if:
-$$\text{is\_nested}(t_i) = \Big( \text{M5\_LOEDT}(t_i) \ge \text{M15\_LOEDT}(t_i) \Big) \;\land\; \Big( \text{M5\_UOEDT}(t_i) \le \text{M15\_UOEDT}(t_i) \Big)$$
-
-The historical nesting percentage is:
-$$\text{Corridor Nesting Rate} = \frac{\sum_{i=0}^{T_{\text{EDT, M5}} - 1} \mathbb{I}(\text{is\_nested}(t_i))}{T_{\text{EDT, M5}}} \times 100\%$$
-
-$$\text{Condition 2} = (\text{Corridor Nesting Rate} \ge 75.0\%)$$
-
----
-
-### Condition 3: Current Bar Complete Corridor Engulfment (Instantaneous Bar 0)
-
-At the latest (current) bar, the M5 corridor must be **completely engulfed inside** the M15 corridor:
-$$\text{Condition 3} = \Big( \text{M5\_LOEDT}_{\text{curr}} \ge \text{M15\_LOEDT}_{\text{curr}} \Big) \;\land\; \Big( \text{M5\_UOEDT}_{\text{curr}} \le \text{M15\_UOEDT}_{\text{curr}} \Big)$$
-
----
-
-### Consolidated Trend State Synthesis:
-
-$$\text{is\_consolidated\_trend} = \text{Condition 1} \;\land\; \text{Condition 2} \;\land\; \text{Condition 3}$$
-
-- If `is_consolidated_trend == True`:
-  - If both `UPTREND` $\implies$ **`BULLISH_CONSOLIDATED`**
-  - If both `DOWNTREND` $\implies$ **`BEARISH_CONSOLIDATED`**
-  - If both `SIDEWAYS` $\implies$ **`SIDEWAYS_CONSOLIDATED`**
-- If `is_consolidated_trend == False`:
-  - State is **`NON_CONSOLIDATED`**
-
----
-
-### Formula for Standard EDT Stochastic (Conditional Execution):
-
-$$
-\text{EDT Stochastic} = \begin{cases}
-\left[ \dfrac{\text{M15 SSA}_{\text{current}} - \text{M15 LOEDT}_{\text{current}}}{\text{M15 UOEDT}_{\text{current}} - \text{M15 LOEDT}_{\text{current}}} \right] \times 100 & \text{if } \text{is\_consolidated\_trend} == \text{True} \\
-\text{None (Unavailable)} & \text{if } \text{is\_consolidated\_trend} == \text{False}
-\end{cases}
-$$
-
-#### Intuitive Standard Stochastic Scale:
-
-- **$0.0\%$ (LOEDT Floor):** Price/SSA is resting at the absolute lower support floor of the M15 corridor (Oversold / Deep Value Zone).
-- **$50.0\%$ (Corridor Midpoint):** Price/SSA is resting at the exact equilibrium center of the M15 corridor.
-- **$100.0\%$ (UOEDT Ceiling):** Price/SSA is resting at the absolute upper resistance ceiling of the M15 corridor (Overbought / Climax Zone).
-
----
-
-## 5. Discrete State Synthesis Matrix (Interpretation)
-
-The evaluation results are structured into **3 logical groups**:
-
-### Group 1: Consolidated Trend Confirmed (All 3 Conditions Passed)
-
-_Standard EDT Stochastic is calculated ($0\% \dots 100\%$):_
-
-#### 🟢 Category A: Bullish Consolidated Trend (M15 Uptrend + M5 Uptrend)
-
-| Discrete State Code   | Stochastic Zone                                | `regime_status`                    | Market Implication & Tactical Edge                                                                                              |
-| :-------------------- | :--------------------------------------------- | :--------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
-| **`MCD3_BULL_VALUE`** | Value / Oversold ($\le 20.0\%$)                | `BULLISH_CONSOLIDATED_VALUE_ZONE`  | **Prime Buy Dip Opportunity:** Macro uptrend firmly intact. M15 SSA pulled back near LOEDT floor. Highest edge Buy entry point. |
-| **`MCD3_BULL_MID`**   | Equilibrium ($20.0\% < \text{Stoch} < 80.0\%$) | `BULLISH_CONSOLIDATED_EQUILIBRIUM` | **Sweet Spot Continuation:** Uptrend progressing stably through corridor center. Hold long positions.                           |
-| **`MCD3_BULL_TOP`**   | Overbought ($\ge 80.0\%$)                      | `BULLISH_CONSOLIDATED_OVERBOUGHT`  | **Caution / Take Profit:** SSA testing UOEDT ceiling. High risk of pullback; do not chase Buy orders.                           |
-
-#### 🔴 Category B: Bearish Consolidated Trend (M15 Downtrend + M5 Downtrend)
-
-| Discrete State Code     | Stochastic Zone                                | `regime_status`                     | Market Implication & Tactical Edge                                                                                                  |
-| :---------------------- | :--------------------------------------------- | :---------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------- |
-| **`MCD3_BEAR_PREMIUM`** | Premium / Overbought ($\ge 80.0\%$)            | `BEARISH_CONSOLIDATED_PREMIUM_ZONE` | **Prime Sell Rally Opportunity:** Macro downtrend firmly intact. M15 SSA rallied near UOEDT ceiling. Highest edge Sell entry point. |
-| **`MCD3_BEAR_MID`**     | Equilibrium ($20.0\% < \text{Stoch} < 80.0\%$) | `BEARISH_CONSOLIDATED_EQUILIBRIUM`  | **Sweet Spot Continuation:** Downtrend progressing stably through corridor center. Hold short positions.                            |
-| **`MCD3_BEAR_BOTTOM`**  | Oversold ($\le 20.0\%$)                        | `BEARISH_CONSOLIDATED_OVERSOLD`     | **Caution / Take Profit:** SSA testing LOEDT floor. High risk of technical bounce; do not chase Sell orders.                        |
-
-#### 🟡 Category C: Sideways Consolidated Trend (M15 Sideways + M5 Sideways)
-
-| Discrete State Code             | Stochastic Zone                              | `regime_status`                     | Market Implication & Tactical Edge             |
-| :------------------------------ | :------------------------------------------- | :---------------------------------- | :--------------------------------------------- | ------ | ------------------------------------------------------------------------------------- |
-| **`MCD3_SIDEWAYS_EQUILIBRIUM`** | In Corridor ($0 \le \text{Stoch} \le 100\%$) | `SIDEWAYS_CONSOLIDATED_EQUILIBRIUM` | **Range Trading:** Both horizons horizontal ($ | \theta | \le 5.0^\circ$). M5 corridor nested inside M15. Mean reversion within channel bounds. |
-
----
-
-### Group 2: Non-Consolidated Trend (Condition 1, 2, or 3 Failed)
-
-_EDT Stochastic is strictly **`null` (Unavailable)** to prevent misleading signals:_
-
-| Discrete State Code                        | Failed Condition   | `regime_status`                 | Market Implication                                                                                                                                            |
-| :----------------------------------------- | :----------------- | :------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **`MCD3_NON_CONSOLIDATED_TREND_CONFLICT`** | Condition 1 Failed | `TREND_MISALIGNMENT`            | **Trend Conflict:** M15 and M5 slopes diverge (e.g. M15 Downtrend vs M5 Uptrend). Market horizons battling; unified structure absent.                         |
-| **`MCD3_NON_CONSOLIDATED_OVERFLOW`**       | Condition 2 Failed | `INSUFFICIENT_CORRIDOR_NESTING` | **Insufficient Historical Nesting:** Slopes aligned, but M5 corridor historical nesting inside M15 corridor $< 75\%$. M5 volatility overflows macro corridor. |
-| **`MCD3_NON_CONSOLIDATED_ESCAPE`**         | Condition 3 Failed | `CURRENT_CORRIDOR_ESCAPE`       | **Current Bar Breach:** Slopes aligned and nesting $\ge 75\%$, but latest M5 corridor breaches outside M15 corridor boundaries.                               |
-
----
-
-### Group 3: Data Pipeline Violation (`INVALID`)
-
-| Discrete State Code | Failure Source      | `regime_status` | System Action                                                                                                                                        |
-| :------------------ | :------------------ | :-------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`MCD3_INVALID`**  | Pre-Flight Tier 1-4 | `UNCERTAIN`     | **Data Pipeline Anomaly:** Multiple active indicators, discontinuous timestamps, inverted bands, or low containment rate ($< 50\%$). Aborts cleanly. |
-
----
-
-## 6. Canonical English Commentary Templates (Zero-Hallucination)
-
-- **`NON_CONSOLIDATED_TREND_CONFLICT`**:  
-  `"XAUUSD multi-timeframe structure is NON_CONSOLIDATED due to trend conflict: M15 slope is {m15_trend} ({m15_angle:.2f}°) while M5 slope is {m5_trend} (+{m5_angle:.2f}°). Because the 3 strict conditions are not satisfied, a Consolidated Trend does not exist and EDT Stochastic is UNAVAILABLE."`
-- **`NON_CONSOLIDATED_OVERFLOW`**:  
-  `"XAUUSD multi-timeframe trends are aligned ({m15_trend}), but historical M5 corridor nesting within M15 corridor is {nesting_pct:.1f}%, which fails the strict 75.0% threshold requirement ({contained_bars}/{total_bars} bars). A Consolidated Trend cannot be confirmed and EDT Stochastic is UNAVAILABLE."`
-- **`NON_CONSOLIDATED_ESCAPE`**:  
-  `"XAUUSD multi-timeframe trends are aligned ({m15_trend}) with {nesting_pct:.1f}% historical nesting, but the M5 corridor on the current bar extends outside the M15 corridor boundaries (M5: [{m5_lo:.2f}, {m5_uo:.2f}] vs M15: [{m15_lo:.2f}, {m15_uo:.2f}]). A Consolidated Trend is not active and EDT Stochastic is UNAVAILABLE."`
-- **`BULLISH_CONSOLIDATED_VALUE_ZONE`**:  
-  `"XAUUSD has confirmed a BULLISH_CONSOLIDATED_TREND: M15 and M5 slopes are both UPTREND (+{m15_angle:.2f}° / +{m5_angle:.2f}°), M5 corridor nesting within M15 corridor is {nesting_pct:.1f}% (>= 75.0% threshold), and current M5 corridor is totally engulfed inside M15 corridor. Gold price is strongly confirmed to be under persistent bullish channel governance. Standard EDT Stochastic is {stoch:.2f}% (Oversold / Value Dip Zone near LOEDT)."`
-- **`BULLISH_CONSOLIDATED_EQUILIBRIUM`**:  
-  `"XAUUSD has confirmed a BULLISH_CONSOLIDATED_TREND: M15 and M5 slopes are both UPTREND (+{m15_angle:.2f}° / +{m5_angle:.2f}°), M5 corridor nesting within M15 corridor is {nesting_pct:.1f}% (>= 75.0% threshold), and current M5 corridor is totally engulfed inside M15 corridor. Gold price is strongly confirmed to be under persistent bullish channel governance. Standard EDT Stochastic is {stoch:.2f}% (Equilibrium Sweet Spot)."`
-- **`BEARISH_CONSOLIDATED_PREMIUM_ZONE`**:  
-  `"XAUUSD has confirmed a BEARISH_CONSOLIDATED_TREND: M15 and M5 slopes are both DOWNTREND ({m15_angle:.2f}° / {m5_angle:.2f}°), M5 corridor nesting within M15 corridor is {nesting_pct:.1f}% (>= 75.0% threshold), and current M5 corridor is totally engulfed inside M15 corridor. Gold price is strongly confirmed to be under persistent bearish channel governance. Standard EDT Stochastic is {stoch:.2f}% (Premium / Short Opportunity Zone near UOEDT)."`
-
----
-
-## 7. DavinTrade Stack D JSONB Output Specification
-
-```json
-{
-  "symbol": "XAUUSD",
-  "timeframe": "M15_M5",
-  "timestamp": "2026-09-20T23:55:00Z",
-  "evaluator_version": "1.0.0",
-  "module": "MCD3_CONSOLIDATED_TREND_AND_EDT_STOCHASTIC",
-  "validation": {
-    "status": "PASS",
-    "tier1_active_indicators": {
-      "m15": ["non_b"],
-      "m5": ["best_fit_a"]
-    },
-    "tier2_continuity": "PASS",
-    "tier3_sanity": "PASS",
-    "tier4_statistics": "PASS"
-  },
-  "m15_metrics": {
-    "active_indicator": "non_b",
-    "trend_state": "DOWNTREND",
-    "regression_angle": -29.72,
-    "current_close": 4377.99,
-    "current_ssa": 4377.33,
-    "current_uoedt": 4443.37,
-    "current_loedt": 4350.59,
-    "containment_rate": 81.38,
-    "edt_horizon_n": 336
-  },
-  "m5_metrics": {
-    "active_indicator": "best_fit_a",
-    "trend_state": "UPTREND",
-    "regression_angle": 6.94,
-    "current_close": 4377.99,
-    "current_ssa": 4377.33,
-    "current_uoedt": 4384.28,
-    "current_loedt": 4350.22,
-    "containment_rate": 55.76,
-    "edt_horizon_n": 755
-  },
-  "consolidated_trend_conditions": {
-    "condition_1_trend_aligned": false,
-    "condition_2_historical_nesting_passed": false,
-    "condition_2_nesting_rate_pct": 20.53,
-    "condition_2_contained_bars": 155,
-    "condition_2_total_bars": 755,
-    "condition_3_current_bar_engulfed": false
-  },
-  "evaluation": {
-    "is_consolidated_trend": false,
-    "consolidated_trend_state": "NON_CONSOLIDATED",
-    "edt_stochastic": null,
-    "stochastic_zone": "UNAVAILABLE",
-    "regime_status": "TREND_MISALIGNMENT",
-    "discrete_state_code": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
-    "tactical_bias": "NEUTRAL_STAND_ASIDE"
-  },
-  "commentary": "XAUUSD multi-timeframe structure is NON_CONSOLIDATED due to trend conflict: M15 slope is DOWNTREND (-29.72°) while M5 slope is UPTREND (+6.94°). Because the 3 strict conditions are not satisfied, a Consolidated Trend does not exist and EDT Stochastic is UNAVAILABLE."
-}
-```
-
----
-
-## 8. Comprehensive Unit Test Plan (`test_mcd3_unit_tests.py`)
-
-1. `test_01_real_data_execution_non_consolidated`: Validates real execution on `market_data_v6_replicated.xlsx` (`non_b` on M15 + `best_fit_a` on M5). Verifies all 3 conditions fail, `is_consolidated_trend == False`, and `edt_stochastic is None`.
-2. `test_02_synthetic_bullish_consolidated_value_zone`: Tests Bullish Consolidated with Stochastic $\le 20\%$ (near LOEDT).
-3. `test_03_synthetic_bullish_consolidated_equilibrium`: Tests Bullish Consolidated with Stochastic in $20\% \dots 80\%$.
-4. `test_04_synthetic_bullish_consolidated_overbought`: Tests Bullish Consolidated with Stochastic $\ge 80\%$ (near UOEDT).
-5. `test_05_synthetic_bearish_consolidated_premium`: Tests Bearish Consolidated with Stochastic $\ge 80\%$ (near UOEDT).
-6. `test_06_synthetic_bearish_consolidated_equilibrium`: Tests Bearish Consolidated in equilibrium.
-7. `test_07_synthetic_bearish_consolidated_oversold`: Tests Bearish Consolidated with Stochastic $\le 20\%$ (near LOEDT).
-8. `test_08_synthetic_sideways_consolidated`: Tests Sideways Consolidated.
-9. `test_09_condition1_trend_conflict_failure`: Verifies Condition 1 failure triggers `NON_CONSOLIDATED_TREND_CONFLICT` and `edt_stochastic == None`.
-10. `test_10_condition2_insufficient_nesting_failure`: Verifies nesting rate $< 75\%$ triggers `NON_CONSOLIDATED_OVERFLOW`.
-11. `test_11_condition3_current_bar_escape_failure`: Verifies current bar escape triggers `NON_CONSOLIDATED_ESCAPE`.
-12. `test_12_tier1_strict_multi_indicator_error`: Verifies multiple indicators on either TF triggers `INVALID`.
-13. `test_13_tier3_and_tier4_channel_and_stats_failures`: Verifies corrupt channel geometry and low containment rate handling.
+# MCD3 implementation plan: retrofit to evaluator 2.0.0
+
+Status: Draft (written in task P2 on 1 October 2026; awaiting Davin's approval together with `mcd3.md`, decisions D10, D6 and D7, and questions Q1 to Q9) · Next: task P3, only after the approval and the answers · Follows: [standard](../../../docs/MCD-DEVELOPMENT-STANDARD.md),
+[walkthrough Part C0 and C3](../../../docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md)
+
+This plan is steps R1 to R4. It lists each change, the tests that prove it, the fixtures, and the expected
+difference from the pre-retrofit evaluator. Nothing in P2 touched the evaluator, the tests or the manifest at
+the top of the folder; the pre-retrofit plan that stood here is kept in git history and its content lives on in
+`legacy/` and `mcd3.md`.
+
+## 1. What changes from the pre-retrofit MCD3
+
+| #   | Area                 | Pre-retrofit (`legacy/`)                                                                                                                | Retrofit 2.0.0                                                                                                                                          |
+| --- | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Input                | Reads a workbook with openpyxl, both sheets, still-open bars included                                                                   | `evaluate(inputs, params, upstream)` on a `CycleInputs`; closed bars only through `closed_bars`                                                         |
+| 2   | Dependencies         | None; recomputes everything                                                                                                             | `depends_on: [MCD1, MCD2]`; reads their same-cycle envelopes; `UPSTREAM_*` reasons (ADR-021)                                                            |
+| 3   | Trend words          | Recomputes ±5° from `regression_angle` of the two statistics rows                                                                       | `details.trend_direction` of MCD1 (M15) and MCD2 (M5); angles for the commentary come from their `details`                                              |
+| 4   | Active indicator     | Detects populated candidates; zero or more than one means INVALID (overrides in the constructor)                                        | The setting per timeframe; others populated beside it go to `details.populated_candidates`; no override in the evaluator (D3)                           |
+| 5   | Statistics rows      | First row matching symbol, timeframe and source                                                                                         | The row at `stats_slot[tf]` for the active source on each timeframe; none gives STALE + `NO_STATS_AT_SLOT`                                              |
+| 6   | Containment          | ≥ 50% on both timeframes; a missing rate is INVALID                                                                                     | Tier 4, both timeframes: below 50% INVALID + `CONTAINMENT_LOW`; missing or not a number INVALID + `SANITY_FAILED`                                       |
+| 7   | Pre-flight order     | Tier 1, tier 4, tiers 2 and 3 together; any failure raises and is caught into `MCD3_INVALID`                                            | Cycle, tier 1, tier 4, tier 2, tier 3, upstream, through `run_preflight`; failures are statuses with reason codes                                       |
+| 8   | Tier 2               | Skips rows with a null value; non-ascending time is an error; floors 96 (M15) and 48 (M5) valid bars; M15 to M5 time-overlap check      | `N_nest` closed M5 bars ascending and numeric (`DISCONTINUITY`, `INSUFFICIENT_BARS`); M5 floor 48 kept; the 96 floor and the overlap check dropped (Q4) |
+| 9   | Tier 3               | UOEDT > LOEDT on every populated bar of both buffers                                                                                    | UOEDT > LOEDT on every window M5 bar, every used M15 bar, both last bars; channel width > 0 (Q3)                                                        |
+| 10  | Nesting window       | The last `min(containment_n, populated rows)` rows, still-open bar included; silent defaults 755 and 1808 when the field is missing     | `N_nest = T_EDT − 1` closed M5 bars (spec §3, Q1); a missing `T_EDT` is INVALID + `SANITY_FAILED` (Q2)                                                  |
+| 11  | M15 bar of an M5 bar | Backward as-of match on the populated M15 rows; unmatched bars count as not nested                                                      | Backward as-of match on the closed M15 bars; a bar whose M15 bar has no band counts as not nested; a missing M15 bar is INVALID (Q3)                    |
+| 12  | Condition 2 test     | Percentage as a float, `>= 75.0`                                                                                                        | Exact integer test `nested × 100 ≥ 75 × N_nest`                                                                                                         |
+| 13  | Condition 3          | The last row of each sheet (the still-open bars), by row                                                                                | The last closed M5 bar against the last closed M15 bar (its as-of match)                                                                                |
+| 14  | Stochastic           | `(SSA − LOEDT) ÷ (UOEDT − LOEDT) × 100`, rounded to 2 decimals, zones decided on the rounded value, `50.0` if the width is not positive | Number per decision D10; zones decided on the unrounded position; the zero-width fallback is unreachable (tier 3) and removed; never clipped (Q6)       |
+| 15  | State codes          | Ten plus `MCD3_INVALID` and `MCD3_UNKNOWN`                                                                                              | Ten codes; failure is a status (INVALID or STALE) with a reason code, no state                                                                          |
+| 16  | Bias                 | `tactical_bias` strings (`HIGH_CONVICTION_BUY_DIP`, `CAUTION_TAKE_PROFIT_SELL`, …)                                                      | `bias` per state, decision D6 (mapping in §6)                                                                                                           |
+| 17  | Wording              | "Prime Buy Dip Opportunity", "Hold long positions", "strongly confirmed", percentages                                                   | Ten templates T01 to T10 (counts, prices, angles, the stochastic number), summary lines S01 to S10 (≤ 80 characters, no prices)                         |
+| 18  | Output               | Own shape (11 keys, `evaluator_version` 1.0.0, a wall-clock `timestamp` in the INVALID payload)                                         | Envelope `mcd-output/1`; `details` per spec §11; six levels (D7); no wall-clock time                                                                    |
+| 19  | Constants            | In the evaluator, with the v1 values as hidden defaults                                                                                 | In `mcd3_params.yaml` (seven parameters)                                                                                                                |
+| 20  | Specification        | English; header says "Certified"; stochastic orientation differs from the board                                                         | `mcd3.md` rewritten into the 14 sections; status Draft until approved                                                                                   |
+
+Unchanged: the two candidate lists, the 75% share, the 20 / 80 zones, the as-of match of an M5 bar to an M15
+bar, edges counted as inside, the three conditions and the order in which the failure states are chosen, the ten
+states and their regime words, the 50% containment floor, the M5 floor of 48 bars.
+
+## 2. Decisions
+
+| Item     | Status                                                                                                                                                                     |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D3       | Settled 30 September 2026 (tier-1 meaning), built into the kit                                                                                                             |
+| D4       | English for every specification: settled by walkthrough A1; `mcd3.md` and `concept.md` are English                                                                         |
+| D10      | **Open, no default** (Davin's formula). Only `details.edt_stochastic` and one parenthesis in T01 to T07 depend on it (spec §6). **P3 does not start until it is answered** |
+| D6       | **Open**: starting points of walkthrough C3 are in the registry, marked as not yet approved. P3 uses them only if Davin confirms them, or his answers                      |
+| D7       | **Open**: six levels proposed; the zone builder must count a duplicate price once (spec §8)                                                                                |
+| Q1 to Q9 | Open, each with a recommendation in spec §14. P3 uses the recommendations if Davin approves without comment, except D10, which has no default                              |
+
+## 3. Tests (T1 to T14)
+
+Written in `test_mcd3_unit_tests.py`, from synthetic bundles (small, in memory) and the stored fixtures. Upstream
+envelopes for synthetic bundles are built with the kit's `envelope.valid` (and its status variants), not by running
+MCD1 and MCD2, so each test controls exactly what it feeds.
+
+| #   | Test                            | What it proves in MCD3                                                                                                                                                                                                                                                                                           |
+| --- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | One test per state (ten)        | Every state in the register is reachable; the register equals `mcd3_registry.yaml` (codes, regime words, bias, summaries, templates)                                                                                                                                                                             |
+| T2  | Boundary tests                  | Nesting 74 / 75 / 76 of 100 and 565 / 566 of 754; position 19.99 / 20 / 20.01 and 79.99 / 80 / 80.01; edges equal to and a hair beyond the M15 edges (latest bar and a window bar); containment 49.99 / 50 / 50.01 on each timeframe; `T_EDT` 48 / 49 / 50; a window equal to and one above the closed bars held |
+| T3  | One test per pre-flight failure | Each check of spec §5 gives its status and reason code, for each timeframe or upstream id where it applies, and the check order holds                                                                                                                                                                            |
+| T4  | Forming bar                     | An open bar appended on M5, on M15 and on both changes nothing (shared check)                                                                                                                                                                                                                                    |
+| T5  | Wrong-slot statistics           | A row from another slot on either timeframe gives STALE (shared check)                                                                                                                                                                                                                                           |
+| T6  | Setting                         | No setting on either timeframe is INVALID; a detection mismatch is CAUTIONARY; two populated candidates stay VALID (D3) (shared check plus own)                                                                                                                                                                  |
+| T7  | Determinism                     | Two runs and a rebuilt bundle give byte-identical JSON (shared check)                                                                                                                                                                                                                                            |
+| T8  | Schema                          | Output validates against `mcd-output/1` (shared check, on every state and every status)                                                                                                                                                                                                                          |
+| T9  | Replay                          | Each stored `<slot>.inputs.json` with its `<slot>.upstream.json` reproduces its `<slot>.envelope.json` byte for byte (own loop; the kit's `check_replay` takes one upstream for all slots)                                                                                                                       |
+| T10 | Never throws                    | Corrupted bundles and corrupted upstream envelopes give INVALID or STALE with Appendix D codes (shared check plus own)                                                                                                                                                                                           |
+| T11 | Wording                         | Codes, regime words, templates, rendered texts and summaries are clean (shared check)                                                                                                                                                                                                                            |
+| T12 | Size                            | The largest envelope (estimated 533 tokens) stays within 600; one evaluation within 1 s                                                                                                                                                                                                                          |
+| T13 | Real data                       | The v1 and v4 cycles (and v3 if Q7) from the stored fixtures give the expected state (§5); a scan over the other pairings when the workbooks are present                                                                                                                                                         |
+| T14 | Derived only                    | Changing MCD1's trend, then MCD2's, in the upstream reading changes MCD3's state in the same cycle; the stored upstream equals what the committed MCD1 and MCD2 evaluators give on the same cycle                                                                                                                |
+
+Mapping of the 13 pre-retrofit tests (each stays as a case, re-expressed as a bundle):
+
+| Legacy test                                                 | New case                                                                                                                                         |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 01 real data, non-consolidated (v1)                         | T13 on v1, and the T1 case for `MCD3_NON_CONSOLIDATED_TREND_CONFLICT`                                                                            |
+| 02 to 08 the seven consolidated states                      | T1, seven cases (the same positions 10, 50, 90 and the same angles, the corridor 4300 to 4400)                                                   |
+| 09 condition 1 fails                                        | T1 conflict and T2                                                                                                                               |
+| 10 condition 2 fails (50% nested)                           | T1 overflow and T2 boundaries                                                                                                                    |
+| 11 condition 3 fails (latest M5 upper edge 4410 above 4400) | T1 escape and T2 boundaries                                                                                                                      |
+| 12 tier 1: several indicators, none                         | T6: no setting is INVALID + `NO_SETTING`; **several populated candidates are now VALID** (a documented change, D3), real v1 and v4 are the proof |
+| 13 tier 3 inverted channel, tier 4 low containment          | T3: `SANITY_FAILED` and `CONTAINMENT_LOW` (and the other checks)                                                                                 |
+
+The legacy synthetic builder (constant channels, 100 M15 and 300 M5 bars) becomes a bundle builder whose M5 channel
+exists on `T_EDT − 1` closed bars, so the synthetic cases obey the same rule as the real data.
+
+## 4. Files P3 will create or change (in `engine-1-5-new/mcd3/` unless stated)
+
+| Path                                                                       | Purpose                                                                                                                                                                |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mcd3_evaluator.py` (rewritten)                                            | The evaluator on the kit: standard library, the kit and pure maths only; tier helpers on top of the kit (as MCD2); `never_throws`; the upstream consistency check (Q5) |
+| `test_mcd3_unit_tests.py` (rewritten)                                      | T1 to T14 and the 13 legacy cases                                                                                                                                      |
+| `fixtures/` (new)                                                          | Per slot `<slot>.inputs.json`, `<slot>.upstream.json` (Q7), `<slot>.envelope.json`, `<slot>.source.md`; v1 and v4, and v3 if Q7                                        |
+| `mcd3_output.json` (rewritten)                                             | The v1 envelope                                                                                                                                                        |
+| `mcd3-manifest-work-completion.md` (rewritten)                             | Appendix A with evidence, the baseline and equivalence tables (§6), the real envelopes, decisions with dates                                                           |
+| `mcd3_params.yaml`, `mcd3_registry.yaml`, `mcd3.md`, `concept.md`          | Approval lines; D6 and D10 applied; any answer to Q1 to Q9 written in                                                                                                  |
+| `docs/STACK-D-ARCHITECTURE.md` §2.13 and §2.5                              | Q9: MCD3 version 2.0.0 and Levels per D7; `MCD3_INVALID` removed from the states; the window as `T_EDT − 1` closed M5 bars (docs only)                                 |
+| `docs/MCD-DEVELOPMENT-STANDARD.md` §11.1 and walkthrough B3 rule 2 (if Q7) | PATCH 1.0.4: a derived MCD's fixtures also hold `<slot>.upstream.json`                                                                                                 |
+| `mcd_common/fixtures/settings_v3.yaml` (if Q7)                             | Data only: M15 `non_b`, M5 `cherry_a` for replica v3                                                                                                                   |
+| `docs/handoffs/`, `.claude/state/`                                         | Hand-off and state files                                                                                                                                               |
+
+Not touched: the kit's code, MCD1, MCD2, `seed-code/`, any app code. `.prettierignore` already excludes
+`mcd*/fixtures/*.json` and `mcd*/mcd*_output.json`, so the hook leaves the canonical JSON alone.
+
+## 5. Fixtures and expected readings
+
+Expected states come from a scratch run of the rules in `mcd3.md` §6 on the kit's closed-bar view, with the upstream
+readings from the committed MCD1 and MCD2 evaluators (task P2; not a test, the P3 tests will prove them).
+
+| Fixture slot                        | Setting (M15 + M5)     | MCD1 / MCD2 trend (angle)       | `N_nest`, nested (share) | C1 / C2 / C3 | Expected MCD3 state                                    |
+| ----------------------------------- | ---------------------- | ------------------------------- | ------------------------ | ------------ | ------------------------------------------------------ |
+| v1 `2026-09-18T20:55Z`              | `non_b` + `best_fit_a` | DOWN (−29.72°) / UP (+6.94°)    | 754, 0 (0.00)            | F / F / F    | `MCD3_NON_CONSOLIDATED_TREND_CONFLICT`                 |
+| v4 `2026-09-28T23:15Z`              | `non_b` + `cherry_a`   | DOWN (−20.98°) / DOWN (−20.94°) | 1133, 483 (42.63)        | T / F / F    | `MCD3_NON_CONSOLIDATED_OVERFLOW`                       |
+| v3 `2026-09-28T14:15Z` (only if Q7) | `non_b` + `cherry_a`   | DOWN (−15.61°) / DOWN (−11.01°) | 1037, 973 (93.83)        | T / T / T    | `MCD3_BEAR_BOTTOM`, stochastic −1.02 (A) or 101.02 (B) |
+
+All other real pairings in the five replica batches, closed-bar view against the pre-retrofit run (every state is
+unchanged; the nesting denominator drops by one because the open bar is excluded):
+
+| Workbook | M15 + M5             | MCD1 / MCD2 trend | New: nested of `N_nest` (share) | C1 / C2 / C3 | State              | Pre-retrofit: nested of total (share), state       |
+| -------- | -------------------- | ----------------- | ------------------------------- | ------------ | ------------------ | -------------------------------------------------- |
+| v1       | `non_b` + `fractal`  | DOWN / UP         | 0 of 335 (0.00)                 | F / F / F    | TREND_CONFLICT     | 0 of 336, TREND_CONFLICT                           |
+| v4       | `non_b` + `fractal`  | DOWN / DOWN       | 283 of 409 (69.19)              | T / F / F    | OVERFLOW           | 283 of 410 (69.02), OVERFLOW                       |
+| v4       | `non_a` + `cherry_a` | SIDEWAYS / DOWN   | 77 of 1133 (6.80)               | F / F / F    | TREND_CONFLICT     | 77 of 1134 (6.79), TREND_CONFLICT                  |
+| v4       | `non_a` + `fractal`  | SIDEWAYS / DOWN   | 68 of 409 (16.63)               | F / F / F    | TREND_CONFLICT     | 68 of 410 (16.59), TREND_CONFLICT                  |
+| v2       | `non_b` + `cherry_a` | DOWN / DOWN       | 811 of 1689 (48.02)             | T / F / F    | OVERFLOW           | 811 of 1690 (47.99), OVERFLOW                      |
+| v2       | `non_b` + `fractal`  | DOWN / UP         | 328 of 422 (77.73)              | F / T / F    | TREND_CONFLICT     | 328 of 423 (77.54), TREND_CONFLICT                 |
+| v3       | `non_b` + `cherry_a` | DOWN / DOWN       | 973 of 1037 (93.83)             | T / T / T    | **BEAR_BOTTOM**    | 974 of 1038 (93.83), BEAR_BOTTOM, stochastic −2.74 |
+| v3       | `non_b` + `fractal`  | DOWN / DOWN       | 228 of 313 (72.84)              | T / F / F    | OVERFLOW (near 75) | 228 of 314 (72.61), OVERFLOW                       |
+| v3       | `non_a` + `cherry_a` | DOWN / DOWN       | 0 of 1037 (0.00)                | T / F / F    | OVERFLOW           | 0 of 1038, OVERFLOW                                |
+| v3       | `non_a` + `fractal`  | DOWN / DOWN       | 30 of 313 (9.58)                | T / F / F    | OVERFLOW           | 30 of 314 (9.55), OVERFLOW                         |
+
+What the replicas do not give: **no real example of `MCD3_NON_CONSOLIDATED_ESCAPE`** (conditions 1 and 2 true, 3
+false) and none of the six other consolidated states. The seven consolidated states other than `MCD3_BEAR_BOTTOM`
+and the escape state are tested with synthetic bundles. v2 `non_b` + `fractal` shows condition 2 true with
+condition 1 false: the state follows the first failed condition (1).
+
+## 6. Legacy baseline (step R1) and the expected legacy → new mapping
+
+**R1 done.** `legacy/` holds byte-identical copies of the evaluator and `mcd3_output.json` (SHA-256 checked) and the
+tests with one line edited (the workbook path gets one more `..`). The 13 legacy tests pass from `legacy/`. The
+board image was moved into `concept/` (it was already renamed in the working tree; the content is byte-identical to the
+committed `xauusd-m5-and-m15.png`, so git records a rename). `legacy/mcd3_evaluator.py` was **not** run as a script
+(it writes `mcd3_output.json` next to itself); only its class and the tests were used.
+
+Legacy results (override = the constructor's target indicator; the legacy code has no setting):
+
+| Workbook | Override (M15 / M5)    | Legacy result                                                                                                                                                                  |
+| -------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| v1       | none                   | `MCD3_INVALID`: tier 1, M5 has two populated candidates (`best_fit_a`, `fractal`)                                                                                              |
+| v1       | M5 `best_fit_a`        | TREND_CONFLICT: M15 `non_b` −29.72° DOWN (containment 73.95, horizon 1808), M5 `best_fit_a` +6.94° UP (55.76, 755), nesting 0 of 755, condition 3 false (the certified output) |
+| v1       | `non_b` / `best_fit_a` | The same                                                                                                                                                                       |
+| v1       | `non_b` / `fractal`    | TREND_CONFLICT: M5 `fractal` +10.61° UP (64.88), horizon 336, nesting 0 of 336                                                                                                 |
+| v1       | `non_b` / none         | `MCD3_INVALID` (M5 two candidates)                                                                                                                                             |
+| v1       | `non_a` / `best_fit_a` | `MCD3_INVALID`: `non_a` has no data on v1                                                                                                                                      |
+| v4       | none, or M5 only       | `MCD3_INVALID`: tier 1, M15 has two populated candidates (`non_a`, `non_b`)                                                                                                    |
+| v4       | `non_b` / `cherry_a`   | OVERFLOW: M15 −20.98° DOWN (93.17, horizon 2035), M5 −20.94° DOWN (100.0, 1134), nesting 483 of 1134 (42.59), condition 3 false                                                |
+| v4       | `non_a` / `cherry_a`   | TREND_CONFLICT: M15 `non_a` −0.56° SIDEWAYS (91.01, 968), nesting 77 of 1134 (6.79)                                                                                            |
+| v4       | `non_b` / `fractal`    | OVERFLOW: M5 `fractal` −49.89° DOWN (99.51, 410), nesting 283 of 410 (69.02)                                                                                                   |
+| v4       | `non_a` / `fractal`    | TREND_CONFLICT: 68 of 410 (16.59)                                                                                                                                              |
+
+The §7 sample output of the pre-retrofit plan (nesting 20.53%, 155 of 755, M15 horizon 336) matches no real run and is
+not carried over (`concept.md` §10a, row 9).
+
+Expected legacy → new mapping:
+
+| Legacy `discrete_state_code`, `tactical_bias`              | New state, bias (D6 proposal)                   | Note                                                                       |
+| ---------------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------------------- |
+| `MCD3_BULL_VALUE`, `HIGH_CONVICTION_BUY_DIP`               | `MCD3_BULL_VALUE`, LONG                         | The code is kept; the pre-retrofit words are gone                          |
+| `MCD3_BULL_MID`, `HOLD_BULLISH_TREND_RUNNER`               | `MCD3_BULL_MID`, LONG                           |                                                                            |
+| `MCD3_BULL_TOP`, `CAUTION_TAKE_PROFIT_BUY`                 | `MCD3_BULL_TOP`, NEUTRAL                        |                                                                            |
+| `MCD3_BEAR_PREMIUM`, `HIGH_CONVICTION_SELL_RALLY`          | `MCD3_BEAR_PREMIUM`, SHORT                      |                                                                            |
+| `MCD3_BEAR_MID`, `HOLD_BEARISH_TREND_RUNNER`               | `MCD3_BEAR_MID`, SHORT                          |                                                                            |
+| `MCD3_BEAR_BOTTOM`, `CAUTION_TAKE_PROFIT_SELL`             | `MCD3_BEAR_BOTTOM`, NEUTRAL                     |                                                                            |
+| `MCD3_SIDEWAYS_EQUILIBRIUM`, `RANGE_BOUND_MEAN_REVERSION`  | `MCD3_SIDEWAYS_EQUILIBRIUM`, NEUTRAL            |                                                                            |
+| The three `MCD3_NON_CONSOLIDATED_*`, `NEUTRAL_STAND_ASIDE` | Same three codes, STAND_ASIDE                   |                                                                            |
+| `MCD3_INVALID` (any pre-flight failure)                    | No state: status INVALID or STALE + reason code | Missing statistics row: INVALID before, **STALE** + `NO_STATS_AT_SLOT` now |
+| `MCD3_UNKNOWN`                                             | Unreachable: removed                            | It was only the initial value of a variable                                |
+
+Intended differences from the pre-retrofit run, all expected and none a surprise to P3:
+
+1. The nesting denominator drops by one (the open bar is excluded): 0 of 755 becomes 0 of 754.
+2. The M15 SSA is the last closed bar's, not the open bar's: v3 `MCD3_BEAR_BOTTOM` goes from −2.74 to −1.02, the same state.
+3. Two populated candidates on one timeframe no longer end the reading (D3): v1 without an override and v4 without an override are now VALID readings.
+4. The zone is decided on the unrounded position; it differs from the pre-retrofit rounded test only when the position is within 0.005 of 20 or 80.
+5. A missing statistics row is STALE, not INVALID; low containment, inverted channels and so on keep INVALID with their reason codes.
+6. Everything about wording, bias, output shape and levels (§1).
+
+P3 must report any state that differs from legacy and is not in this section.
+
+## 7. Records and follow-ups
+
+- **If Q7 is approved:** standard PATCH 1.0.4 (`<slot>.upstream.json` for derived MCDs) and one sentence in walkthrough B3
+  rule 2; `mcd_common/fixtures/settings_v3.yaml`; replica v3 must be tracked in git (Davin commits the workbook) before
+  the fixture's `source.md` can point to it.
+- **Architecture §2.13 and §2.5** (Q9): MCD3 version 2.0.0 (status stays `Retrofit`), Levels per D7, `MCD3_INVALID`
+  out of the states, the window as `T_EDT − 1` closed M5 bars. The §3.7 worked example still shows the level
+  prices of the still-open bar (4384.28 and so on); MCD1's and MCD2's retrofits did not change it and P3 will not.
+- **`.claude/state/waiting-on.md`** (written in P2): new evidence for the open "fit window includes the open bar" item
+  (band columns on exactly `T_EDT` rows ending at the forming bar, seven of seven channels), and a new item: the
+  committed MCD2 ends INVALID + `DISCONTINUITY` on an M5 channel with `T_EDT` ≤ 288, and MCD1 on an M15 channel with
+  `T_EDT` ≤ 96 (simulated on v1; no replica has such a channel). Not fixed here: a change to MCD2 or MCD1 is task P7.
+- **Duplicate levels** (decision D7): the zone builder (build step 4) must count one channel level once.
+- **Kit helpers:** MCD3 adds its own tier-2 and tier-3 helpers on top of the kit (the third evaluator to do so, after
+  MCD1 and MCD2). Moving the shared ones into the kit is a kit change for Davin to schedule.
+- **Inherited and unverified:** the statistics' fit windows may include the still-open bar. MCD3 reads
+  `containment_rate` and `T_EDT` from those rows (not the angles); settle it before certification (stage 5).
+
+## 8. P3 is done when
+
+1. Davin has approved `mcd3.md` and this plan and answered D10, D6, D7 and Q1 to Q9 (or approved the recommendations).
+2. `python -m unittest discover -s mcd3` passes from `engine-1-5-new/`; the kit's 215 tests, MCD1's, MCD2's and the
+   13 legacy tests still pass.
+3. The v1 and v4 (and v3, if Q7) fixtures replay byte for byte (T9); the envelope is valid, at most 600 tokens and
+   evaluates in at most 1 s (T12).
+4. The equivalence table of §6 is filled with real numbers; any state that differs from legacy and is not listed is reported.
+5. The manifest carries Appendix A with evidence (A18, A19, A23, A24, A25 "pending, stage 4 to 7"), the baseline and
+   equivalence tables, and the decisions with dates; architecture §2.13 and §2.5 carry the version note (Q9).
+6. `evaluator_version` is 2.0.0; nothing is committed or pushed unless Davin says so; a fresh P6 session checks the work.

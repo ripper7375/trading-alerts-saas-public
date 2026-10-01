@@ -12,6 +12,33 @@ Entries rotated out of `current-state.md` by [session-lifecycle](../../protocols
 
 Back to [history index](./index.md).
 
+<!-- session 2026-10-01 mcd1-p3 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed. MCD task P3 for MCD1
+> (steps R5 to R10): evaluator 2.0.0 built on the kit with Davin's D6 bias and Q1 to Q7; 104 tests pass;
+> manifest, fixtures and the architecture records written. Flag `off`, registry status `Retrofit (2.0.0)`.**
+> **Needs from Davin:** (1) a fresh session for **P6 on MCD1** (an independent check; the first mutation pass
+> left two test gaps, now closed, so ask it to run its own), then his stage-3 sign-off; (2) what to commit and
+> when ([the hand-off](../../../docs/handoffs/2026-10-01-0544-mcd1-p3.md) §6a: the MCD1 folder, the architecture
+> doc, two hand-offs and the state files are uncommitted); (3) optional: the architecture §2.5 "States" cell for
+> MCD1 still lists the five regime words (§6b); (4) next work after P6: **P2 for MCD3** (needs D7 and D10).
+> `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** in `engine-1-5-new/mcd1/`: `mcd1_evaluator.py`, `test_mcd1_unit_tests.py`,
+> `fixtures/` (new), `mcd1_output.json`, the manifest, the registry (D6 applied), approvals in the spec, plan,
+> parameters and concept; architecture §2.13 (2.0.0, Levels) and §2.5 (baseline). From `engine-1-5-new/`:
+> `python -m unittest discover -s mcd1` **104 OK**; MCD2 **93 OK**; the kit **215 OK**; the legacy tests **13 OK**
+> each (the `legacy/` evaluator and output are byte-identical to `HEAD`). Mutation pass on a scratch copy: 57 of 57
+> killed (two survived the first pass: no test had a window bar closing exactly on a band; closed with a test).
+> The three real cycles keep their legacy state (`MCD1_DOWN_UPPER_BREAKOUT`, `MCD1_DOWN_IN_CORRIDOR`,
+> `MCD1_SIDEWAYS_LOWER_BREAKDOWN`); legacy and new side by side, every difference explained. Largest envelope 367
+> tokens, evaluation about 2.5 ms. Pyflakes and Prettier clean.
+> **Unconfirmed / found:** the statistics fit windows may include the still-open bar (inherited, see
+> [waiting-on](../waiting-on.md); MCD1 reads the same three fields and `N_micro` depends on `containment_n`); six of
+> nine states are tested with synthetic bundles only (replica batches v2 and v3 not scanned); under D6 two
+> same-slope break states take the bias of the break, while the draft synthesis rule 2 reads them as "against the
+> spike" (synthesis decides; for the rules review). Not run: `test:ci`, `tsc`, lint, build (no app code touched).
+> The oldest entry (MCD2 P6) was rotated into `history/2026-10-sessions.md`.
+
 <!-- session 2026-10-01 mcd1-p2 -->
 
 > **Ad-hoc session (2026-10-01, phase/session unchanged), `main`. (1) MCD2 closed and committed

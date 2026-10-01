@@ -1,3 +1,7 @@
+> **Reference, still current for column and indicator definitions (30 September 2026).**
+> Stack D architecture decisions live in [`docs/STACK-D-ARCHITECTURE.md`](../docs/STACK-D-ARCHITECTURE.md)
+> and [`docs/adr/`](../docs/adr/README.md); where they touch this file, they win.
+
 # DavinTrade Architecture Reference: 103 Columns in `market_data_v6` & MQL5 Indicator Suite (15 Indicators)
 
 **Document Version:** 1.5.0  
