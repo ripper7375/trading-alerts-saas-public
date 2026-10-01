@@ -285,6 +285,7 @@ and produces the same `CycleInputs`; evaluators do not change (R4, [ADR-020](adr
 | ------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **v1** `engine-1-5-new/market_data_v6_replicated.xlsx`              | `2026-09-18T20:55Z` | Regression fixture for MCD1–3 (the architecture's example cycle and the certified outputs come from it); T13 for every MCD                                                                                                                 |
 | **v4** `davintrade-stack-d-and-e/market_data_v6_replicated_v4.xlsx` | `2026-09-28T23:15Z` | Second real cycle: two populated M15 indicators (proves the setting resolves what detection could not; under D3 the reading stays VALID) and a different market (M5 `cherry_a` and M15 `non_b` both slope about −21°; M15 `non_a` is flat) |
+| **v3** `davintrade-stack-d-and-e/market_data_v6_replicated_v3.xlsx` | `2026-09-28T14:15Z` | MCD3 fixture (Davin, 1 October 2026): the only real consolidated trend (`MCD3_BEAR_BOTTOM`, M15 `non_b` + M5 `cherry_a`) and a real `MCD1_DOWN_LOWER_BREAKDOWN`                                                                            |
 | Newer replicas                                                      | their own slot      | Add as further fixtures; never replace an existing one                                                                                                                                                                                     |
 
 Rules:
@@ -293,7 +294,9 @@ Rules:
    file (`…_v5.xlsx`) with its own generator script, as the replica prompt template already does.
 2. **Record the fixture.** Each MCD's `fixtures/` folder holds, per slot, `<slot>.inputs.json` (the
    bundle the provider produced), `<slot>.envelope.json` (the expected output) and `<slot>.source.md`
-   (the workbook's path and SHA-256). `<slot>` has no colon, because Windows forbids it in file
+   (the workbook's path and SHA-256). A derived MCD (MCD3) also holds `<slot>.upstream.json`, the
+   same-cycle envelopes of the MCDs it reads, because T9 replays JSON only (standard 1.0.4).
+   `<slot>` has no colon, because Windows forbids it in file
    names: `2026-09-18T2055Z.inputs.json`. Replay test T9 reads the JSON, not the workbook.
 3. **Synthetic cases** for T1–T3 are built as small in-memory bundles in the test file, not as extra
    workbooks.

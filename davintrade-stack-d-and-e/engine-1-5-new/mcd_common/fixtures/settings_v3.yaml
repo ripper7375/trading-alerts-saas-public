@@ -1,0 +1,10 @@
+# Active-indicator setting for the v3 replica workbook (test data; same pattern as decision D2).
+# Added for MCD3 on 2026-10-01 (decision Q7, Davin): replica v3 is the only replica with a real consolidated trend
+# (MCD3_BEAR_BOTTOM) and a real MCD1_DOWN_LOWER_BREAKDOWN. In live running the setting decides.
+workbook: ../market_data_v6_replicated_v3.xlsx # relative to davintrade-stack-d-and-e/engine-1-5-new/
+slot: '2026-09-28T14:15Z'
+effective_from: '2026-09-28T14:15Z'
+active_indicator:
+  M5: cherry_a
+  M15: non_b
+note: 'M15 non_a is also populated (populated_candidates, decision D3). Fractal EDT is populated on M5.'

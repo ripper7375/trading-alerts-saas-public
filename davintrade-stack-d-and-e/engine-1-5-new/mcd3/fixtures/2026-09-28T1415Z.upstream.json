@@ -1,0 +1,115 @@
+{
+  "MCD1": {
+    "schema_version": "mcd-output/1",
+    "mcd_id": "MCD1",
+    "evaluator_version": "2.0.0",
+    "cycle_slot": "2026-09-28T14:15Z",
+    "last_closed_bar": {
+      "M15": "2026-09-28T14:00Z"
+    },
+    "active_indicator": {
+      "M15": "non_b"
+    },
+    "config_hash": {
+      "non_b": "e4606383683cbd29c053c1bfd9848007732c57581131207478f2de570afdf868"
+    },
+    "status": "VALID",
+    "status_reasons": [],
+    "state_code": "MCD1_DOWN_LOWER_BREAKDOWN",
+    "regime_status": "BREAKOUT_SAME_SLOPE",
+    "bias": "SHORT",
+    "levels": [
+      {
+        "name": "UOEDT",
+        "tf": "M15",
+        "price": 4331.53,
+        "role": "resistance"
+      },
+      {
+        "name": "baseline",
+        "tf": "M15",
+        "price": 4252.81,
+        "role": "mid"
+      },
+      {
+        "name": "LOEDT",
+        "tf": "M15",
+        "price": 4148.18,
+        "role": "support"
+      }
+    ],
+    "depends_on": [],
+    "summary_line": "M15 downtrend, latest close below the corridor",
+    "commentary": "The M15 channel slopes down (-15.61\u00b0). The latest closed bar closed 9.40 below LOEDT 4148.18 (channel position -0.0513); 11 of the last 96 closed bars closed below LOEDT.",
+    "details": {
+      "channel_position": -0.0513,
+      "containment_rate": 99.22,
+      "lower_breach_count": 11,
+      "n_micro": 96,
+      "populated_candidates": {
+        "M15": [
+          "non_a"
+        ]
+      },
+      "regression_angle_deg": -15.61,
+      "trend_direction": "DOWN",
+      "upper_breach_count": 0
+    }
+  },
+  "MCD2": {
+    "schema_version": "mcd-output/1",
+    "mcd_id": "MCD2",
+    "evaluator_version": "2.0.0",
+    "cycle_slot": "2026-09-28T14:15Z",
+    "last_closed_bar": {
+      "M5": "2026-09-28T14:10Z"
+    },
+    "active_indicator": {
+      "M5": "cherry_a"
+    },
+    "config_hash": {
+      "cherry_a": "072eaf426c9f9c25a1a214447a823e4309cfbe263c997934b7c074e91bc60619"
+    },
+    "status": "VALID",
+    "status_reasons": [],
+    "state_code": "MCD2_DOWN_LOWER_BREAKDOWN",
+    "regime_status": "LOWER_OVEREXTENSION_REVERSION",
+    "bias": "SHORT",
+    "levels": [
+      {
+        "name": "UOEDT",
+        "tf": "M5",
+        "price": 4289.67,
+        "role": "resistance"
+      },
+      {
+        "name": "baseline",
+        "tf": "M5",
+        "price": 4246.41,
+        "role": "mid"
+      },
+      {
+        "name": "LOEDT",
+        "tf": "M5",
+        "price": 4194.62,
+        "role": "support"
+      }
+    ],
+    "depends_on": [],
+    "summary_line": "M5 downtrend, below the corridor",
+    "commentary": "The M5 SSA is 49.03 below LOEDT 4194.62 while the channel slopes down (-11.01\u00b0).",
+    "details": {
+      "channel_position": -0.5159,
+      "containment_rate": 86.61,
+      "populated_candidates": {
+        "M5": [
+          "fractal"
+        ]
+      },
+      "regression_angle_deg": -11.01,
+      "reversion_setup": true,
+      "trend_direction": "DOWN",
+      "window_bars": 288
+    }
+  }
+}

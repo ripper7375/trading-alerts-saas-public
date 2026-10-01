@@ -194,3 +194,25 @@ FIELD-CONSISTENCY-AUDIT-v2_29.md` §5. Not something this Executor can resolve u
   Davin confirmed live, in his own browser, that both Google and Twitter/X sign-in now work.
   **LinkedIn was never actually tested** (Davin's original report and every live check this session
   ran only covered Google/Twitter/X) — flagged in case it still needs its own confirmation pass.
+
+<!-- waiting-on.md, resolved 2026-10-01 -->
+
+- **RESOLVED 2026-10-01 — replica v3 is tracked.** The MCD3 fixture for replica v3 (the only real consolidated trend) names
+  `market_data_v6_replicated_v3.xlsx` by SHA-256; Davin committed the workbook (with v2, v4 and the replica batches) in `dde1420e`
+  "01102026_15:20". The committed blob's SHA-256 (`cce23cda…0bffd`) equals the one in `fixtures/2026-09-28T1415Z.source.md`; the v4
+  and v1 hashes match too. Original item, text as it stood:
+  - **MCD3 fixtures need replica v3 tracked (2026-10-01).** `market_data_v6_replicated_v3.xlsx` (2 MB) and `_v2.xlsx` are
+    untracked; the v3 fixture (the only real consolidated trend) names it by SHA-256 in `fixtures/2026-09-28T1415Z.source.md`.
+    Until Davin commits it, the provenance and equivalence tests skip the v3 parts in a fresh checkout. The kit also writes an
+    absolute `D:/...` workbook path into `<slot>.source.md` for a workbook outside the engine folder (v3 and v4, as for MCD1 and
+    MCD2); the SHA-256 is what matters.
+
+<!-- session 2026-10-01 mcd3-p6 -->
+
+- **RESOLVED 2026-10-01 — MCD3 envelope size: Davin approved a ceiling of 670 tokens (A22).** Moved here from `waiting-on.md`. The independent check (task P6) added that with the candidates of live data (every variant populated, architecture review A3) the seven consolidated states are 624 to 632 tokens even when VALID and the worst case is 656 (two upstream cautions and RETUNING); MCD1 (392) and MCD2 (386) stay far below, so the three-sensor worst case is about 1,430 of 2,000 (ADR-048). The manifest A22 reads "Pass (Approved by Davin: derived dual-horizon ceiling <= 670 tokens)" and two `test_t12_*` tests pin the ceiling. The original item, verbatim:
+
+  > - **MCD3 envelope size (2026-10-01, task P3): the real CAUTIONARY readings are 607 and 611 tokens, over the standard's
+  >   600 ("should").** The plain real envelopes pass (515, 550, 587). Two 64-character `config_hash` values cost about 72
+  >   tokens and are mandated; six levels about 132; the commentary about 124; `details` about 77. Options for Davin, none
+  >   applied: accept; shorten templates T01 to T07 (about 35 tokens); drop the two trend words from `details` (about 15).
+  >   Manifest `mcd3-manifest-work-completion.md` A22 and §7; pinned below 650 by a test.

@@ -1,6 +1,6 @@
 # MCD3 implementation plan: retrofit to evaluator 2.0.0
 
-Status: Draft (written in task P2 on 1 October 2026; awaiting Davin's approval together with `mcd3.md`, decisions D10, D6 and D7, and questions Q1 to Q9) · Next: task P3, only after the approval and the answers · Follows: [standard](../../../docs/MCD-DEVELOPMENT-STANDARD.md),
+Status: Approved (Davin, 1 October 2026, together with `mcd3.md`; D10 option A, D6 and D7 as proposed, Q1 to Q9 as recommended) · Built in task P3 on 1 October 2026 (§9) · Independent check (task P6) done and stage 3 signed off by Davin, 1 October 2026 · Follows: [standard](../../../docs/MCD-DEVELOPMENT-STANDARD.md),
 [walkthrough Part C0 and C3](../../../docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md)
 
 This plan is steps R1 to R4. It lists each change, the tests that prove it, the fixtures, and the expected
@@ -39,14 +39,14 @@ states and their regime words, the 50% containment floor, the M5 floor of 48 bar
 
 ## 2. Decisions
 
-| Item     | Status                                                                                                                                                                     |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D3       | Settled 30 September 2026 (tier-1 meaning), built into the kit                                                                                                             |
-| D4       | English for every specification: settled by walkthrough A1; `mcd3.md` and `concept.md` are English                                                                         |
-| D10      | **Open, no default** (Davin's formula). Only `details.edt_stochastic` and one parenthesis in T01 to T07 depend on it (spec §6). **P3 does not start until it is answered** |
-| D6       | **Open**: starting points of walkthrough C3 are in the registry, marked as not yet approved. P3 uses them only if Davin confirms them, or his answers                      |
-| D7       | **Open**: six levels proposed; the zone builder must count a duplicate price once (spec §8)                                                                                |
-| Q1 to Q9 | Open, each with a recommendation in spec §14. P3 uses the recommendations if Davin approves without comment, except D10, which has no default                              |
+| Item     | Status                                                                                                                                                                           |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D3       | Settled 30 September 2026 (tier-1 meaning), built into the kit                                                                                                                   |
+| D4       | English for every specification: settled by walkthrough A1; `mcd3.md` and `concept.md` are English                                                                               |
+| D10      | **Settled (Davin, 1 October 2026): option A**, 0 at LOEDT and 100 at UOEDT, the pre-retrofit formula                                                                             |
+| D6       | **Settled (Davin, 1 October 2026)**: the walkthrough C3 starting points, as in the registry                                                                                      |
+| D7       | **Settled (Davin, 1 October 2026)**: six levels; the zone builder must count a duplicate price once (spec §8)                                                                    |
+| Q1 to Q9 | **Settled (Davin, 1 October 2026): approved as recommended**, including Q1 (window `T_EDT − 1`), Q7 (`<slot>.upstream.json` and the replica v3 slot) and Q9 (architecture edits) |
 
 ## 3. Tests (T1 to T14)
 
@@ -67,7 +67,7 @@ MCD1 and MCD2, so each test controls exactly what it feeds.
 | T9  | Replay                          | Each stored `<slot>.inputs.json` with its `<slot>.upstream.json` reproduces its `<slot>.envelope.json` byte for byte (own loop; the kit's `check_replay` takes one upstream for all slots)                                                                                                                       |
 | T10 | Never throws                    | Corrupted bundles and corrupted upstream envelopes give INVALID or STALE with Appendix D codes (shared check plus own)                                                                                                                                                                                           |
 | T11 | Wording                         | Codes, regime words, templates, rendered texts and summaries are clean (shared check)                                                                                                                                                                                                                            |
-| T12 | Size                            | The largest envelope (estimated 533 tokens) stays within 600; one evaluation within 1 s                                                                                                                                                                                                                          |
+| T12 | Size                            | The plain real envelopes (515, 550 and 587 tokens) and the synthetic ones stay within 600; one evaluation within 1 s. The real CAUTIONARY variants (607 and 611) and the worst case with live candidates (656) stay within the ceiling of 670 that Davin approved (manifest A22; §9)                             |
 | T13 | Real data                       | The v1 and v4 cycles (and v3 if Q7) from the stored fixtures give the expected state (§5); a scan over the other pairings when the workbooks are present                                                                                                                                                         |
 | T14 | Derived only                    | Changing MCD1's trend, then MCD2's, in the upstream reading changes MCD3's state in the same cycle; the stored upstream equals what the committed MCD1 and MCD2 evaluators give on the same cycle                                                                                                                |
 
@@ -218,3 +218,26 @@ P3 must report any state that differs from legacy and is not in this section.
 5. The manifest carries Appendix A with evidence (A18, A19, A23, A24, A25 "pending, stage 4 to 7"), the baseline and
    equivalence tables, and the decisions with dates; architecture §2.13 and §2.5 carry the version note (Q9).
 6. `evaluator_version` is 2.0.0; nothing is committed or pushed unless Davin says so; a fresh P6 session checks the work.
+
+## 9. Build result (task P3, 1 October 2026)
+
+Built as planned. `mcd3_evaluator.py` (about 400 lines), `test_mcd3_unit_tests.py` (127 tests; the 13 legacy scenarios kept as cases), three fixture slots (v1, v4, v3) with their stored upstream
+readings, `mcd3_output.json`, the manifest with Appendix A, architecture §2.5 and §2.13, standard 1.0.4 and walkthrough B3. Evidence and numbers: `mcd3-manifest-work-completion.md`.
+
+| P3 exit condition (§8)                                                | Result                                                                                                                                                                      |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Approval and answers                                               | Done on 1 October 2026 (§2)                                                                                                                                                 |
+| 2. MCD3 tests pass; kit, MCD1, MCD2 and legacy suites still pass      | 127 OK (1 opt-in skip); kit 215, MCD1 105, MCD2 93, legacy 13                                                                                                               |
+| 3. Fixtures replay byte for byte; envelope valid, ≤ 600 tokens, ≤ 1 s | Replay OK (T9, three slots). Valid. Plain real envelopes 515, 550, 587 tokens; **real CAUTIONARY variants 607 and 611 (Davin approved a ceiling of 670, A22)**; 16 to 24 ms |
+| 4. Equivalence table filled with real numbers                         | Manifest §4: ten synthetic scenarios equal; 12 real pairings, every state unchanged                                                                                         |
+| 5. Manifest with Appendix A; architecture version note                | Done; A18, A19, A23, A24 pending (stage 4 to 7), A25 row done and the decision entry pending                                                                                |
+| 6. Version 2.0.0; nothing committed; fresh P6 session                 | Done; nothing committed or pushed; P6 is the next task                                                                                                                      |
+
+**Differences from the plan, all small.** (a) The envelope is larger than the stand-in estimate (533) because real prices and two 64-character hashes cost more tokens: 587 for the real consolidated reading.
+(b) The evaluator's `evaluate` wraps the kit's `never_throws` so that an `EVALUATOR_ERROR` envelope still declares `depends_on` (the kit's wrapper declares none). (c) The tests add a clean-room
+reference sweep (400 random cycles) and a scratch mutation pass (90 mutants; the gaps it found are closed). (d) Evaluation on a full 3,000-bar bundle is 68 to 95 ms (the trimmed fixtures 16 to 24 ms),
+because `closed_bars` filters each timeframe several times; within budget, not optimised. **No state differs from the pre-retrofit one that is not listed in §6.**
+
+**Task P6 and the stage-3 sign-off (1 October 2026).** A fresh session checked A1 to A26 line by line, reproduced the numbers, fuzzed the evaluator against a clean-room restatement of the spec (24,000 bundles, no difference) and ran its own mutation pass
+(477 mutants). Result: A22 over 600 in the real CAUTIONARY case and, with the candidates of live data, up to 656 (Davin decided a ceiling of 670); seven test gaps, closed by seven tests (134 tests now); one wording fix in `mcd3.md`. Davin signed off stage 3.
+Details: [the hand-off](../../../docs/handoffs/2026-10-01-1407-mcd3-p6.md).

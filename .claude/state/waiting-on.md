@@ -20,7 +20,8 @@ to [history/resolved-waiting-on.md](./history/resolved-waiting-on.md).
 Quick index (newest first):
 
 - MCD kit: forming bar inside the statistics fit windows (unverified; new evidence 2026-10-01) · MCD2 and MCD1
-  window one bar too long for short channels (open, simulated)
+  window one bar too long for short channels (open, simulated; **deferred by Davin until after the MCD3 stage-3 sign-off, which he granted on 2026-10-01: next task**) ·
+  kit writes absolute workbook paths into fixture sources
 - Shared FX rates `REDIS_URL` · SystemConfig pricing deploy + test · Language & locale open items ·
   Disbursement payout go-live (G1–G4) · 15th indicator rollout order
 - Chart-render: 2 unverified items · Socket-refactor trigger (decided: don't yet)
@@ -42,7 +43,7 @@ Quick index (newest first):
   [2026-09-30-1448-p1-kit.md](../../docs/handoffs/2026-09-30-1448-p1-kit.md) §7.
   Readers of those fit fields so far: MCD2 (`regression_angle`, `containment_rate`, `containment_n`;
   committed) and MCD1 (the same three, and `N_micro` depends on `containment_n`; evaluator 2.0.0, built in P3, checked by P6 and signed off on 2026-10-01, committed the same day).
-  MCD3 will read `containment_rate` and `containment_n` (the M5 `T_EDT`), not the angle.
+  MCD3 reads `containment_rate` and `containment_n` (the M5 `T_EDT`), not the angle (evaluator 2.0.0, signed off and committed 2026-10-01).
   **New evidence (2026-10-01, MCD3 task P2):** the band columns (UOEDT, LOEDT, baseline) are populated on exactly
   `T_EDT` rows ending at the still-open bar, on 7 of 7 real channels in replicas v1 and v4 (M5 `best_fit_a` 755,
   `fractal` 336, `cherry_a` 1134, `fractal` 410; M15 `non_b` 1808 and 2035, `non_a` 968), so the channel window
@@ -58,7 +59,12 @@ Quick index (newest first):
   is 314, the v3 fractal), but live fractal channels can be short, and MCD3 would then see
   `UPSTREAM_UNAVAILABLE:MCD2`. MCD3's window is `T_EDT − 1` and is not affected. The fix is a PATCH to MCD2 and
   MCD1 (window = `min(T_EDT − 1, cap)`, no fixture changes): task P7, Davin's call. Hand-off:
-  [2026-10-01-0703-mcd3-p2.md](../../docs/handoffs/2026-10-01-0703-mcd3-p2.md) §7 item 2.
+  [2026-10-01-0703-mcd3-p2.md](../../docs/handoffs/2026-10-01-0703-mcd3-p2.md) §7 item 2. **Davin deferred the P7 patch until after
+  the MCD3 stage-3 sign-off (2026-10-01); he granted that sign-off the same day, so the patch is now the next task.** A background-task chip for it was offered and left open.
+
+- **The kit writes an absolute workbook path into `<slot>.source.md` (2026-10-01, MCD3 task P3).** For a workbook outside
+  `engine-1-5-new/` (v3 and v4, as for MCD1 and MCD2) the committed fixture files carry a `D:/SaaS Project/...` path; the
+  SHA-256 is what matters. A kit change (`render_source_md` could use a relative path) for Davin to schedule.
 
 <!-- CLAUDE.md L4896-L4901 -->
 

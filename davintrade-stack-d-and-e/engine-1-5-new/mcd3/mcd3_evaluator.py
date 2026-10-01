@@ -1,1166 +1,398 @@
-"""
-MCD3: Consolidated Trend and EDT Stochastic Evaluator (XAUUSD - M15 & M5)
-DavinTrade Stack D - Engine 1.5A Module
+"""MCD3: Consolidated trend and EDT stochastic. Evaluator 2.0.0.
 
-Core Mandate:
-1. Determine whether a strongly confirmed Consolidated Trend exists between M15 (macro) and M5 (micro):
-   - Condition 1 (Trend Alignment): M15 trend direction == M5 trend direction (UPTREND, DOWNTREND, or SIDEWAYS, +/- 5.0° deadband).
-   - Condition 2 (Historical Corridor Nesting): M5 EDT corridor [LOEDT, UOEDT] nested inside M15 EDT corridor
-     for at least 75.0% of M5 EDT Time Horizon length (T_EDT, M5 bars).
-   - Condition 3 (Current Bar Corridor Engulfment): M5 corridor completely engulfed within M15 corridor at Bar 0.
-2. If all 3 conditions are satisfied -> Consolidated Trend confirmed.
-   Calculate the Standard EDT Stochastic:
-       EDT Stochastic = [(M15 SSA current - M15 LOEDT current) / (M15 UOEDT current - M15 LOEDT current)] * 100
-   Intuitive Trader Scale:
-       - 0.0% (LOEDT Floor): Price/SSA resting at lower support floor (Oversold / Deep Value Zone).
-       - 50.0% (Corridor Midpoint): Price/SSA resting at equilibrium center.
-       - 100.0% (UOEDT Ceiling): Price/SSA resting at upper resistance ceiling (Overbought / Climax Zone).
-3. If any condition fails -> NON_CONSOLIDATED.
-   EDT Stochastic is strictly UNAVAILABLE (null) to protect traders from erroneous execution.
+Retrofit of the certified pre-retrofit MCD3 (kept in ``legacy/``). Specification: ``mcd3.md``.
+Parameters: ``mcd3_params.yaml``. State register and templates: ``mcd3_registry.yaml``.
 
-4-Tier Pre-Flight Quality Gate Architecture:
-- Tier 1: Candidate Isolation & Single Active Indicator Rule (M15: strictly 1 of 7 Centroids; M5: strictly 1 of 8 EDT indicators).
-- Tier 2: Dual-Timeframe Time-Series Continuity & Non-Null Monotonicity.
-- Tier 3: Dual Channel Boundary Sanity Gate (UOEDT > LOEDT on both timeframes for all evaluated bars).
-- Tier 4: Dual Statistics Ingestion Verification (symbol=XAUUSD, containment_rate >= 50.0% on both horizons).
+``evaluate(inputs, params, upstream) -> envelope`` is a pure function of the kit's frozen input
+bundle and of the same-cycle readings of MCD1 and MCD2 (standard section 11.2, rules R4 and R8): no
+file, database, network, clock, randomness, environment variable or model call. It never raises (R7):
+``never_throws`` turns any error into INVALID + ``EVALUATOR_ERROR``. It reads closed bars only (R1),
+the statistics rows at the slot (R2) and the active indicators from the setting (R3).
 
-10 Discrete State Synthesis Matrix + System Error:
-- Group 1: Consolidated Trend Confirmed (7 States across Bullish / Bearish / Sideways Stochastic Zones)
-- Group 2: Non-Consolidated Trend (3 Diagnostic Failure States: Trend Conflict, Insufficient Nesting, Current Escape)
-- Group 3: Data Pipeline Violation (MCD3_INVALID)
+Question: do the active M15 and M5 channels agree in direction, is the M5 corridor nested inside the
+M15 corridor (over the M5 channel's horizon and on the latest bar), and, if they form a consolidated
+trend, where does the M15 SSA sit in the M15 corridor? MCD3 is derived: the two trend words come from
+MCD1 and MCD2 (ADR-021), never from a second reading of the statistics.
 """
 
-import os
-import sys
-import json
+from __future__ import annotations
+
 import bisect
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional, Tuple
-import openpyxl
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Any, Mapping, Sequence
+
+from mcd_common import envelope as env
+from mcd_common import preflight as pf
+from mcd_common import reason_codes as rc
+from mcd_common.cycle_inputs import (
+    CycleInputs,
+    Params,
+    channel_columns,
+    closed_bars,
+    is_number,
+    statistics_source,
+)
+
+MCD_ID = "MCD3"
+EVALUATOR_VERSION = "2.0.0"
+M15 = "M15"
+M5 = "M5"
+TIMEFRAMES = (M15, M5)  # the order the per-timeframe checks run in (spec section 5)
+UPSTREAM = ("MCD1", "MCD2")  # the order the upstream readings are checked in; ``depends_on``
+UPSTREAM_TIMEFRAME = {"MCD1": M15, "MCD2": M5}
+TRENDS = ("UP", "DOWN", "SIDEWAYS")
+
+# Statistics fields that give T_EDT of the M5 channel, in order of preference (spec section 3).
+T_EDT_FIELDS = ("containment_n", "visual_window_bars", "window_bars")
+
+# State register: code -> (bias, regime_status, summary_line, commentary template id). Bias is
+# decision D6 (Davin, 1 October 2026). Kept equal to mcd3_registry.yaml by a test.
+STATES: Mapping[str, tuple[str, str, str, str]] = {
+    "MCD3_BULL_VALUE": ("LONG", "BULLISH_CONSOLIDATED_VALUE_ZONE", "Consolidated uptrend, lower zone of the M15 corridor", "MCD3_T01"),
+    "MCD3_BULL_MID": ("LONG", "BULLISH_CONSOLIDATED_EQUILIBRIUM", "Consolidated uptrend, middle zone of the M15 corridor", "MCD3_T02"),
+    "MCD3_BULL_TOP": ("NEUTRAL", "BULLISH_CONSOLIDATED_OVERBOUGHT", "Consolidated uptrend, upper zone of the M15 corridor", "MCD3_T03"),
+    "MCD3_BEAR_PREMIUM": ("SHORT", "BEARISH_CONSOLIDATED_PREMIUM_ZONE", "Consolidated downtrend, upper zone of the M15 corridor", "MCD3_T04"),
+    "MCD3_BEAR_MID": ("SHORT", "BEARISH_CONSOLIDATED_EQUILIBRIUM", "Consolidated downtrend, middle zone of the M15 corridor", "MCD3_T05"),
+    "MCD3_BEAR_BOTTOM": ("NEUTRAL", "BEARISH_CONSOLIDATED_OVERSOLD", "Consolidated downtrend, lower zone of the M15 corridor", "MCD3_T06"),
+    "MCD3_SIDEWAYS_EQUILIBRIUM": ("NEUTRAL", "SIDEWAYS_CONSOLIDATED_EQUILIBRIUM", "Consolidated sideways, M5 corridor inside the M15 corridor", "MCD3_T07"),
+    "MCD3_NON_CONSOLIDATED_TREND_CONFLICT": ("STAND_ASIDE", "TREND_MISALIGNMENT", "M15 and M5 trends differ, no consolidated trend", "MCD3_T08"),
+    "MCD3_NON_CONSOLIDATED_OVERFLOW": ("STAND_ASIDE", "INSUFFICIENT_CORRIDOR_NESTING", "Trends agree, M5 corridor often outside the M15 corridor", "MCD3_T09"),
+    "MCD3_NON_CONSOLIDATED_ESCAPE": ("STAND_ASIDE", "CURRENT_CORRIDOR_ESCAPE", "Trends agree, latest M5 corridor beyond the M15 corridor", "MCD3_T10"),
+}
+
+# Consolidated states: (trend, zone of the position) -> state. Sideways has one state for any position.
+CONSOLIDATED_STATE: Mapping[tuple[str, str], str] = {
+    ("UP", "LOWER"): "MCD3_BULL_VALUE",
+    ("UP", "MIDDLE"): "MCD3_BULL_MID",
+    ("UP", "UPPER"): "MCD3_BULL_TOP",
+    ("DOWN", "UPPER"): "MCD3_BEAR_PREMIUM",
+    ("DOWN", "MIDDLE"): "MCD3_BEAR_MID",
+    ("DOWN", "LOWER"): "MCD3_BEAR_BOTTOM",
+}
+SIDEWAYS_STATE = "MCD3_SIDEWAYS_EQUILIBRIUM"
+CONFLICT_STATE = "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+OVERFLOW_STATE = "MCD3_NON_CONSOLIDATED_OVERFLOW"
+ESCAPE_STATE = "MCD3_NON_CONSOLIDATED_ESCAPE"
+
+# Commentary templates (counts, prices, angles and the stochastic number only; no forecast, probability,
+# advice or percent sign). Decision D10 option A: "(0 at LOEDT, 100 at UOEDT)". Kept equal to the registry by a test.
+_NESTED = (
+    "{nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor "
+    "[{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. "
+    "The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT)"
+)
+TEMPLATES: Mapping[str, str] = {
+    "MCD3_T01": "Both channels slope up (M15 {m15_angle}°, M5 {m5_angle}°). " + _NESTED + ", in the lower zone.",
+    "MCD3_T02": "Both channels slope up (M15 {m15_angle}°, M5 {m5_angle}°). " + _NESTED + ", in the middle zone.",
+    "MCD3_T03": "Both channels slope up (M15 {m15_angle}°, M5 {m5_angle}°). " + _NESTED + ", in the upper zone.",
+    "MCD3_T04": "Both channels slope down (M15 {m15_angle}°, M5 {m5_angle}°). " + _NESTED + ", in the upper zone.",
+    "MCD3_T05": "Both channels slope down (M15 {m15_angle}°, M5 {m5_angle}°). " + _NESTED + ", in the middle zone.",
+    "MCD3_T06": "Both channels slope down (M15 {m15_angle}°, M5 {m5_angle}°). " + _NESTED + ", in the lower zone.",
+    "MCD3_T07": "Both channels are flat (M15 {m15_angle}°, M5 {m5_angle}°). " + _NESTED + ".",
+    "MCD3_T08": "The M15 channel {m15_phrase} ({m15_angle}°) while the M5 channel {m5_phrase} ({m5_angle}°), so the two timeframes do not form a consolidated trend and no EDT stochastic is given.",
+    "MCD3_T09": "Both channels {both_phrase} (M15 {m15_angle}°, M5 {m5_angle}°), but only {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, which is fewer than three quarters, so there is no consolidated trend and no EDT stochastic is given.",
+    "MCD3_T10": "Both channels {both_phrase} (M15 {m15_angle}°, M5 {m5_angle}°) and {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, but the latest M5 corridor [{m5_loedt}, {m5_uoedt}] extends beyond the M15 corridor [{m15_loedt}, {m15_uoedt}], so there is no consolidated trend and no EDT stochastic is given.",
+}
+
+_SLOPE_PHRASE = {"UP": "slopes up", "DOWN": "slopes down", "SIDEWAYS": "is flat"}  # one channel: "The M15 channel ..."
+_BOTH_PHRASE = {"UP": "slope up", "DOWN": "slope down", "SIDEWAYS": "are flat"}  # both channels: "Both channels ..."
+
+
+# --------------------------------------------------------------------------- small helpers
+
+
+def _round_half_up(value: float, decimals: int) -> float:
+    """Round half up on the shortest decimal form of ``value``. Output only (standard section 11.2)."""
+    rounded = float(Decimal(repr(float(value))).quantize(Decimal(1).scaleb(-decimals), rounding=ROUND_HALF_UP))
+    return 0.0 if rounded == 0 else rounded
+
+
+def _price(value: float) -> str:
+    return f"{env.round2(value):.2f}"
+
+
+def _statistics_row(inputs: CycleInputs, timeframe: str) -> Mapping[str, Any]:
+    return inputs.statistics[(timeframe, statistics_source(inputs.active_indicator[timeframe]))]
+
+
+def _t_edt(row: Mapping[str, Any]) -> int | None:
+    """``T_EDT`` of the M5 channel: the first of ``T_EDT_FIELDS`` that is a number, else ``None`` (spec section 3)."""
+    for name in T_EDT_FIELDS:
+        value = row.get(name)
+        if is_number(value):
+            return int(value)
+    return None
 
-# Ensure UTF-8 output on Windows console
-if sys.stdout and hasattr(sys.stdout, "reconfigure"):
-    try:
-        sys.stdout.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
-if sys.stderr and hasattr(sys.stderr, "reconfigure"):
-    try:
-        sys.stderr.reconfigure(encoding="utf-8")
-    except Exception:
-        pass
 
-# Candidate pools for M15 and M5
-M15_CANDIDATE_INDICATORS = [
-    "best_fit_a",
-    "best_fit_b",
-    "cherry_a",
-    "cherry_b",
-    "most_recent",
-    "non_a",
-    "non_b",
-]
+def _nesting_bars(inputs: CycleInputs, params: Params) -> int:
+    """``N_nest = T_EDT - t_edt_open_bar_rows`` closed M5 bars (spec section 3, decision Q1)."""
+    t_edt = _t_edt(_statistics_row(inputs, M5))
+    assert t_edt is not None  # tier 4 has already ended a reading without one
+    return t_edt - int(params["t_edt_open_bar_rows"])
 
-M5_CANDIDATE_INDICATORS = [
-    "best_fit_a",
-    "best_fit_b",
-    "cherry_a",
-    "cherry_b",
-    "most_recent",
-    "non_a",
-    "non_b",
-    "fractal",
-]
 
-# Configurable Calibration Constants
-DEFAULT_SIDEWAYS_ANGLE_THRESHOLD = 5.0      # Deadband threshold in degrees (+/- 5.0°)
-DEFAULT_MIN_CONTAINMENT_THRESHOLD = 50.0    # Corridor statistical integrity gate (%)
-DEFAULT_MIN_NESTING_RATE_THRESHOLD = 75.0   # Minimum historical corridor nesting rate (%)
-DEFAULT_M15_MIN_WINDOW_FLOOR = 96           # Minimum M15 bars floor: 96 bars (24 hours)
-DEFAULT_M5_MIN_WINDOW_FLOOR = 48            # Minimum M5 bars floor: 48 bars (4 hours)
-DEFAULT_STOCHASTIC_VALUE_THRESHOLD = 20.0   # Oversold / Value Dip Zone ceiling (%)
-DEFAULT_STOCHASTIC_OVERBOUGHT_THRESHOLD = 80.0  # Overbought / Premium Zone floor (%)
-DEFAULT_SYMBOL = "XAUUSD"
+def _m15_start(m15_bars: Sequence[Mapping[str, Any]], oldest_open: float) -> int | None:
+    """Index of the closed M15 bar that holds a bar opened at ``oldest_open``: the last one opened at or before it."""
+    start = None
+    for index, bar in enumerate(m15_bars):
+        if bar["timestamp"] <= oldest_open:
+            start = index
+    return start
 
 
-class MCD3ValidationError(Exception):
-    """Custom exception for MCD3 dual-timeframe 4-tier validation failures."""
-    pass
+def _matches(window: Sequence[Mapping[str, Any]], span: Sequence[Mapping[str, Any]]) -> list[int]:
+    """For each M5 window bar, the index into ``span`` of its M15 bar: the closed M15 bar with the greatest open
+    time at or before it (spec section 3). ``span`` is ascending (tier 2) and starts at or before the first bar."""
+    stamps = [bar["timestamp"] for bar in span]
+    return [bisect.bisect_right(stamps, bar["timestamp"]) - 1 for bar in window]
 
 
-class MCD3ConsolidatedTrendEvaluator:
-    """
-    Evaluator for MCD3: Consolidated Trend and EDT Stochastic (XAUUSD - M15 & M5).
-    """
+def _fail(status: str, *codes: str, **details: Any) -> pf.CheckResult:
+    return pf.CheckResult(status, tuple(codes), details)
 
-    def __init__(
-        self,
-        excel_path: str,
-        m15_target_indicator: Optional[str] = None,
-        m5_target_indicator: Optional[str] = None,
-        sideways_threshold: float = DEFAULT_SIDEWAYS_ANGLE_THRESHOLD,
-        min_nesting_threshold: float = DEFAULT_MIN_NESTING_RATE_THRESHOLD,
-        min_containment_threshold: float = DEFAULT_MIN_CONTAINMENT_THRESHOLD,
-        m15_min_window_floor: int = DEFAULT_M15_MIN_WINDOW_FLOOR,
-        m5_min_window_floor: int = DEFAULT_M5_MIN_WINDOW_FLOOR,
-        stochastic_value_threshold: float = DEFAULT_STOCHASTIC_VALUE_THRESHOLD,
-        stochastic_overbought_threshold: float = DEFAULT_STOCHASTIC_OVERBOUGHT_THRESHOLD,
-        symbol: str = DEFAULT_SYMBOL,
-    ):
-        self.excel_path = os.path.abspath(excel_path)
-        self.m15_target_indicator = m15_target_indicator.strip().lower() if m15_target_indicator else None
-        self.m5_target_indicator = m5_target_indicator.strip().lower() if m5_target_indicator else None
-        self.sideways_threshold = sideways_threshold
-        self.min_nesting_threshold = min_nesting_threshold
-        self.min_containment_threshold = min_containment_threshold
-        self.m15_min_window_floor = m15_min_window_floor
-        self.m5_min_window_floor = m5_min_window_floor
-        self.stochastic_value_threshold = stochastic_value_threshold
-        self.stochastic_overbought_threshold = stochastic_overbought_threshold
-        self.symbol = symbol
 
-        self.wb: Optional[openpyxl.Workbook] = None
-        self.m15_sheet = None
-        self.m5_sheet = None
-        self.stat_sheet = None
+# --------------------------------------------------------------------------- pre-flight content
 
-        self.validation_errors: List[str] = []
-        self.validation_warnings: List[str] = []
-        self.validation_checks: Dict[str, Any] = {}
 
-    def load_workbook(self) -> None:
-        """Load Excel workbook in read-only mode for high performance."""
-        if not os.path.exists(self.excel_path):
-            raise FileNotFoundError(f"Excel workbook not found at: {self.excel_path}")
+def _tier4(params: Params) -> pf.Check:
+    """The kit's statistics check on M15 then M5 (row at the slot, containment), plus: the M5 row has a ``T_EDT``."""
+    base = pf.statistics_check(TIMEFRAMES, min_containment=params["min_containment_rate"])
 
-        try:
-            self.wb = openpyxl.load_workbook(self.excel_path, data_only=True, read_only=True)
-        except Exception as e:
-            raise MCD3ValidationError(f"Failed to open Excel workbook: {str(e)}")
-
-        sheet_names = self.wb.sheetnames
-        m15_sheet_name = "market_data_v6_M15"
-        m5_sheet_name = "market_data_v6_M5"
-
-        if m15_sheet_name not in sheet_names:
-            raise MCD3ValidationError(
-                f"Required sheet '{m15_sheet_name}' not found. Available sheets: {sheet_names}"
-            )
-        if m5_sheet_name not in sheet_names:
-            raise MCD3ValidationError(
-                f"Required sheet '{m5_sheet_name}' not found. Available sheets: {sheet_names}"
-            )
-        if "indicator_statistics" not in sheet_names:
-            raise MCD3ValidationError(
-                f"Required sheet 'indicator_statistics' not found. Available sheets: {sheet_names}"
-            )
-
-        self.m15_sheet = self.wb[m15_sheet_name]
-        self.m5_sheet = self.wb[m5_sheet_name]
-        self.stat_sheet = self.wb["indicator_statistics"]
-
-    def close(self) -> None:
-        """Close Excel workbook to release Windows file handles."""
-        if self.wb is not None:
-            try:
-                self.wb.close()
-            except Exception:
-                pass
-            self.wb = None
-
-    def _get_sheet_headers_and_rows(self, sheet) -> Tuple[Dict[str, int], List[List[Any]]]:
-        """Extract header column map and rows from an openpyxl sheet."""
-        rows_iter = sheet.iter_rows(values_only=True)
-        try:
-            header_row = next(rows_iter)
-        except StopIteration:
-            return {}, []
-
-        headers = {str(name).strip(): col_idx for col_idx, name in enumerate(header_row) if name is not None}
-        data_rows = [list(r) for r in rows_iter if any(v is not None for v in r)]
-        return headers, data_rows
-
-    def validate_tier1_m15(
-        self, headers: Dict[str, int], rows: List[List[Any]]
-    ) -> Tuple[str, int]:
-        """
-        Tier 1 Validation for M15: Candidate Isolation & Single Active Indicator Rule.
-        Scans strictly the 7 Centroid Candidates on M15.
-        Enforces exactly 1 active indicator in production mode.
-        """
-        total_bars = len(rows)
-        self.validation_checks["m15_total_bars"] = total_bars
-
-        if total_bars < self.m15_min_window_floor:
-            err = (
-                f"Tier 1 Validation Failed on M15: Insufficient bar data in market_data_v6_M15. "
-                f"Found {total_bars} bars, but minimum floor requires {self.m15_min_window_floor} bars."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        detected_active: List[str] = []
-        indicator_coverage: Dict[str, int] = {}
-        indicator_last_row_indices: Dict[str, int] = {}
-
-        for ind in M15_CANDIDATE_INDICATORS:
-            ssa_col = f"{ind}_ssa"
-            uoedt_col = f"{ind}_uoedt"
-            loedt_col = f"{ind}_loedt"
-
-            if ssa_col not in headers or uoedt_col not in headers or loedt_col not in headers:
-                indicator_coverage[ind] = 0
-                continue
-
-            ssa_idx = headers[ssa_col]
-            uoedt_idx = headers[uoedt_col]
-            loedt_idx = headers[loedt_col]
-
-            populated_indices = [
-                i
-                for i, r in enumerate(rows)
-                if r[ssa_idx] is not None
-                and r[uoedt_idx] is not None
-                and r[loedt_idx] is not None
-                and isinstance(r[ssa_idx], (int, float))
-                and isinstance(r[uoedt_idx], (int, float))
-                and isinstance(r[loedt_idx], (int, float))
-                and r[ssa_idx] > 0
-            ]
-
-            count = len(populated_indices)
-            indicator_coverage[ind] = count
-            if count >= self.m15_min_window_floor:
-                detected_active.append(ind)
-                indicator_last_row_indices[ind] = populated_indices[-1]
-            elif count > 0:
-                self.validation_warnings.append(
-                    f"Insufficient bar coverage for M15 '{ind}': found {count} bars, minimum floor is {self.m15_min_window_floor}."
-                )
-
-        self.validation_checks["m15_candidate_coverage"] = indicator_coverage
-        self.validation_checks["m15_active_detected"] = detected_active
-
-        # If a target indicator was explicitly specified (for test isolation)
-        if self.m15_target_indicator is not None:
-            if self.m15_target_indicator not in M15_CANDIDATE_INDICATORS:
-                err = (
-                    f"Tier 1 Validation Failed: Specified m15_target_indicator '{self.m15_target_indicator}' "
-                    f"is not in permitted M15 candidates: {M15_CANDIDATE_INDICATORS}"
-                )
-                self.validation_errors.append(err)
-                raise MCD3ValidationError(err)
-
-            if self.m15_target_indicator not in detected_active:
-                err = (
-                    f"Tier 1 Validation Failed: Specified m15_target_indicator '{self.m15_target_indicator}' "
-                    f"has insufficient data ({indicator_coverage.get(self.m15_target_indicator, 0)} bars)."
-                )
-                self.validation_errors.append(err)
-                raise MCD3ValidationError(err)
-
-            return self.m15_target_indicator, indicator_last_row_indices[self.m15_target_indicator]
-
-        # Production Mode: Exactly 1 active indicator
-        if len(detected_active) == 0:
-            err = (
-                "Tier 1 Validation Failed on M15: No active Centroid indicator detected with valid data "
-                f"covering at least {self.m15_min_window_floor} bars on M15."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        if len(detected_active) > 1:
-            err = (
-                f"Tier 1 Validation Failed on M15: Multiple active indicators detected on M15: {detected_active}. "
-                "Production safety mandate requires strictly 1 active indicator."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        active_ind = detected_active[0]
-        return active_ind, indicator_last_row_indices[active_ind]
-
-    def validate_tier1_m5(
-        self, headers: Dict[str, int], rows: List[List[Any]]
-    ) -> Tuple[str, int]:
-        """
-        Tier 1 Validation for M5: Candidate Isolation & Single Active Indicator Rule.
-        Scans strictly the 8 Candidate EDT Indicators on M5.
-        Enforces exactly 1 active indicator in production mode.
-        """
-        total_bars = len(rows)
-        self.validation_checks["m5_total_bars"] = total_bars
-
-        if total_bars < self.m5_min_window_floor:
-            err = (
-                f"Tier 1 Validation Failed on M5: Insufficient bar data in market_data_v6_M5. "
-                f"Found {total_bars} bars, but minimum floor requires {self.m5_min_window_floor} bars."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        detected_active: List[str] = []
-        indicator_coverage: Dict[str, int] = {}
-        indicator_last_row_indices: Dict[str, int] = {}
-
-        for ind in M5_CANDIDATE_INDICATORS:
-            if ind == "fractal":
-                fl_col = "fractal_best_fl"
-                uoedt_col = "fractal_uoedt"
-                loedt_col = "fractal_loedt"
-                close_col = "close"
-
-                if fl_col not in headers or uoedt_col not in headers or loedt_col not in headers:
-                    indicator_coverage[ind] = 0
-                    continue
-
-                fl_idx = headers[fl_col]
-                uoedt_idx = headers[uoedt_col]
-                loedt_idx = headers[loedt_col]
-                close_idx = headers.get(close_col, -1)
-
-                populated_indices = [
-                    i
-                    for i, r in enumerate(rows)
-                    if r[fl_idx] is not None
-                    and r[uoedt_idx] is not None
-                    and r[loedt_idx] is not None
-                    and (close_idx == -1 or r[close_idx] is not None)
-                    and isinstance(r[fl_idx], (int, float))
-                    and isinstance(r[uoedt_idx], (int, float))
-                    and isinstance(r[loedt_idx], (int, float))
-                    and r[uoedt_idx] > 0
-                ]
-            else:
-                ssa_col = f"{ind}_ssa"
-                uoedt_col = f"{ind}_uoedt"
-                loedt_col = f"{ind}_loedt"
-
-                if ssa_col not in headers or uoedt_col not in headers or loedt_col not in headers:
-                    indicator_coverage[ind] = 0
-                    continue
-
-                ssa_idx = headers[ssa_col]
-                uoedt_idx = headers[uoedt_col]
-                loedt_idx = headers[loedt_col]
-
-                populated_indices = [
-                    i
-                    for i, r in enumerate(rows)
-                    if r[ssa_idx] is not None
-                    and r[uoedt_idx] is not None
-                    and r[loedt_idx] is not None
-                    and isinstance(r[ssa_idx], (int, float))
-                    and isinstance(r[uoedt_idx], (int, float))
-                    and isinstance(r[loedt_idx], (int, float))
-                    and r[ssa_idx] > 0
-                ]
-
-            count = len(populated_indices)
-            indicator_coverage[ind] = count
-            if count >= self.m5_min_window_floor:
-                detected_active.append(ind)
-                indicator_last_row_indices[ind] = populated_indices[-1]
-            elif count > 0:
-                self.validation_warnings.append(
-                    f"Insufficient bar coverage for M5 '{ind}': found {count} bars, minimum floor is {self.m5_min_window_floor}."
-                )
-
-        self.validation_checks["m5_candidate_coverage"] = indicator_coverage
-        self.validation_checks["m5_active_detected"] = detected_active
-
-        # If a target indicator was explicitly specified (for test isolation)
-        if self.m5_target_indicator is not None:
-            if self.m5_target_indicator not in M5_CANDIDATE_INDICATORS:
-                err = (
-                    f"Tier 1 Validation Failed: Specified m5_target_indicator '{self.m5_target_indicator}' "
-                    f"is not in permitted M5 candidates: {M5_CANDIDATE_INDICATORS}"
-                )
-                self.validation_errors.append(err)
-                raise MCD3ValidationError(err)
-
-            if self.m5_target_indicator not in detected_active:
-                err = (
-                    f"Tier 1 Validation Failed: Specified m5_target_indicator '{self.m5_target_indicator}' "
-                    f"has insufficient data ({indicator_coverage.get(self.m5_target_indicator, 0)} bars)."
-                )
-                self.validation_errors.append(err)
-                raise MCD3ValidationError(err)
-
-            return self.m5_target_indicator, indicator_last_row_indices[self.m5_target_indicator]
-
-        # Production Mode: Exactly 1 active indicator
-        if len(detected_active) == 0:
-            err = (
-                "Tier 1 Validation Failed on M5: No active EDT indicator detected with valid data "
-                f"covering at least {self.m5_min_window_floor} bars on M5."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        if len(detected_active) > 1:
-            err = (
-                f"Tier 1 Validation Failed on M5: Multiple active indicators detected on M5: {detected_active}. "
-                "Production safety mandate requires strictly 1 active indicator."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        active_ind = detected_active[0]
-        return active_ind, indicator_last_row_indices[active_ind]
-
-    def validate_tier4_statistics(
-        self,
-        stat_headers: Dict[str, int],
-        stat_rows: List[List[Any]],
-        m15_active: str,
-        m5_active: str,
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """
-        Tier 4 Validation: Dual Statistics Ingestion & Channel Quality Integrity.
-        Queries indicator_statistics for symbol='XAUUSD' on both M15 and M5.
-        Asserts containment_rate >= 50.0% for both active indicators.
-        """
-        required_cols = ["symbol", "timeframe", "source", "regression_angle", "containment_rate"]
-        for col in required_cols:
-            if col not in stat_headers:
-                err = f"Tier 4 Validation Failed: Required column '{col}' missing from indicator_statistics."
-                self.validation_errors.append(err)
-                raise MCD3ValidationError(err)
-
-        sym_idx = stat_headers["symbol"]
-        tf_idx = stat_headers["timeframe"]
-        src_idx = stat_headers["source"]
-        angle_idx = stat_headers["regression_angle"]
-        cr_idx = stat_headers["containment_rate"]
-        n_idx = stat_headers.get("containment_n", -1)
-
-        # 1. Ingest M15 stats
-        m15_stat_row = None
-        for r in stat_rows:
-            if (
-                r[sym_idx] == self.symbol
-                and str(r[tf_idx]).strip().upper() == "M15"
-                and str(r[src_idx]).strip().lower() == m15_active
-            ):
-                m15_stat_row = r
-                break
-
-        if m15_stat_row is None:
-            err = (
-                f"Tier 4 Validation Failed on M15: No statistics record found in indicator_statistics "
-                f"for symbol='{self.symbol}', timeframe='M15', source='{m15_active}'."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        m15_angle = m15_stat_row[angle_idx]
-        m15_cr = m15_stat_row[cr_idx]
-        m15_n = m15_stat_row[n_idx] if n_idx != -1 else None
-
-        if m15_angle is None or not isinstance(m15_angle, (int, float)):
-            err = f"Tier 4 Validation Failed: Invalid regression_angle for M15 '{m15_active}': {m15_angle}"
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        if m15_cr is None or not isinstance(m15_cr, (int, float)):
-            err = f"Tier 4 Validation Failed: Invalid containment_rate for M15 '{m15_active}': {m15_cr}"
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        if m15_cr < self.min_containment_threshold:
-            err = (
-                f"Tier 4 Validation Failed on M15: Containment rate for '{m15_active}' is {m15_cr:.2f}%, "
-                f"which is below the minimum threshold of {self.min_containment_threshold}%."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        # 2. Ingest M5 stats (fractal maps to 'fractal_edt' in stats)
-        m5_expected_source = "fractal_edt" if m5_active == "fractal" else m5_active
-        m5_stat_row = None
-        for r in stat_rows:
-            if (
-                r[sym_idx] == self.symbol
-                and str(r[tf_idx]).strip().upper() == "M5"
-                and str(r[src_idx]).strip().lower() == m5_expected_source
-            ):
-                m5_stat_row = r
-                break
-
-        if m5_stat_row is None:
-            err = (
-                f"Tier 4 Validation Failed on M5: No statistics record found in indicator_statistics "
-                f"for symbol='{self.symbol}', timeframe='M5', source='{m5_expected_source}'."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        m5_angle = m5_stat_row[angle_idx]
-        m5_cr = m5_stat_row[cr_idx]
-        m5_n = m5_stat_row[n_idx] if n_idx != -1 else None
-
-        if m5_angle is None or not isinstance(m5_angle, (int, float)):
-            err = f"Tier 4 Validation Failed: Invalid regression_angle for M5 '{m5_active}': {m5_angle}"
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        if m5_cr is None or not isinstance(m5_cr, (int, float)):
-            err = f"Tier 4 Validation Failed: Invalid containment_rate for M5 '{m5_active}': {m5_cr}"
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        if m5_cr < self.min_containment_threshold:
-            err = (
-                f"Tier 4 Validation Failed on M5: Containment rate for '{m5_active}' is {m5_cr:.2f}%, "
-                f"which is below the minimum threshold of {self.min_containment_threshold}%."
-            )
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        m15_metrics = {
-            "source": m15_active,
-            "regression_angle": float(m15_angle),
-            "containment_rate": float(m15_cr),
-            "containment_n": int(m15_n) if m15_n is not None else 1808,
-        }
-
-        m5_metrics = {
-            "source": m5_active,
-            "regression_angle": float(m5_angle),
-            "containment_rate": float(m5_cr),
-            "containment_n": int(m5_n) if m5_n is not None else 755,
-        }
-
-        return m15_metrics, m5_metrics
-
-    def validate_tier2_and_tier3_continuity_and_sanity(
-        self,
-        m15_headers: Dict[str, int],
-        m15_rows: List[List[Any]],
-        m15_active: str,
-        m5_headers: Dict[str, int],
-        m5_rows: List[List[Any]],
-        m5_active: str,
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """
-        Tier 2 Validation: Dual Time-Series Continuity & Non-Null Monotonicity.
-        Tier 3 Validation: Dual Channel Boundary Sanity Gate (UOEDT > LOEDT on both horizons).
-        Returns filtered, validated candle objects for M15 and M5.
-        """
-        # --- M15 Validation ---
-        m15_ts_idx = m15_headers.get("timestamp", -1)
-        m15_close_idx = m15_headers.get("close", -1)
-        m15_ssa_idx = m15_headers.get(f"{m15_active}_ssa", -1)
-        m15_uoedt_idx = m15_headers.get(f"{m15_active}_uoedt", -1)
-        m15_loedt_idx = m15_headers.get(f"{m15_active}_loedt", -1)
-
-        if min(m15_ts_idx, m15_close_idx, m15_ssa_idx, m15_uoedt_idx, m15_loedt_idx) < 0:
-            err = "Tier 2 Validation Failed on M15: Missing required column indices in M15 header."
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        m15_bars: List[Dict[str, Any]] = []
-        prev_ts = None
-        for i, r in enumerate(m15_rows):
-            ts = r[m15_ts_idx]
-            close = r[m15_close_idx]
-            ssa = r[m15_ssa_idx]
-            uoedt = r[m15_uoedt_idx]
-            loedt = r[m15_loedt_idx]
-
-            # Skip unpopulated initial bars if any
-            if ssa is None or uoedt is None or loedt is None:
-                continue
-
-            if not isinstance(ts, (int, float)) or not isinstance(close, (int, float)):
-                continue
-
-            # Tier 2 Monotonicity
-            if prev_ts is not None and ts <= prev_ts:
-                err = f"Tier 2 Validation Failed on M15: Timestamp non-monotonic at bar {i}: {ts} <= {prev_ts}."
-                self.validation_errors.append(err)
-                raise MCD3ValidationError(err)
-            prev_ts = ts
-
-            # Tier 3 Channel Sanity
-            if uoedt <= loedt:
-                err = f"Tier 3 Validation Failed on M15: Channel inverted or zero-width at bar {i}: UOEDT={uoedt} <= LOEDT={loedt}."
-                self.validation_errors.append(err)
-                raise MCD3ValidationError(err)
-
-            m15_bars.append({
-                "index": i,
-                "timestamp": int(ts),
-                "close": float(close),
-                "ssa": float(ssa),
-                "uoedt": float(uoedt),
-                "loedt": float(loedt),
-            })
-
-        if len(m15_bars) < self.m15_min_window_floor:
-            err = f"Tier 2 Validation Failed on M15: Valid bar count {len(m15_bars)} < {self.m15_min_window_floor}."
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        # --- M5 Validation ---
-        m5_ts_idx = m5_headers.get("timestamp", -1)
-        m5_close_idx = m5_headers.get("close", -1)
-        if m5_active == "fractal":
-            m5_val_idx = m5_close_idx  # Fractal uses close
-            m5_uoedt_idx = m5_headers.get("fractal_uoedt", -1)
-            m5_loedt_idx = m5_headers.get("fractal_loedt", -1)
-        else:
-            m5_val_idx = m5_headers.get(f"{m5_active}_ssa", -1)
-            m5_uoedt_idx = m5_headers.get(f"{m5_active}_uoedt", -1)
-            m5_loedt_idx = m5_headers.get(f"{m5_active}_loedt", -1)
-
-        if min(m5_ts_idx, m5_close_idx, m5_val_idx, m5_uoedt_idx, m5_loedt_idx) < 0:
-            err = "Tier 2 Validation Failed on M5: Missing required column indices in M5 header."
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        m5_bars: List[Dict[str, Any]] = []
-        prev_ts = None
-        for i, r in enumerate(m5_rows):
-            ts = r[m5_ts_idx]
-            close = r[m5_close_idx]
-            val = r[m5_val_idx]
-            uoedt = r[m5_uoedt_idx]
-            loedt = r[m5_loedt_idx]
-
-            if val is None or uoedt is None or loedt is None:
-                continue
-
-            if not isinstance(ts, (int, float)) or not isinstance(close, (int, float)):
-                continue
-
-            # Tier 2 Monotonicity
-            if prev_ts is not None and ts <= prev_ts:
-                err = f"Tier 2 Validation Failed on M5: Timestamp non-monotonic at bar {i}: {ts} <= {prev_ts}."
-                self.validation_errors.append(err)
-                raise MCD3ValidationError(err)
-            prev_ts = ts
-
-            # Tier 3 Channel Sanity
-            if uoedt <= loedt:
-                err = f"Tier 3 Validation Failed on M5: Channel inverted or zero-width at bar {i}: UOEDT={uoedt} <= LOEDT={loedt}."
-                self.validation_errors.append(err)
-                raise MCD3ValidationError(err)
-
-            m5_bars.append({
-                "index": i,
-                "timestamp": int(ts),
-                "close": float(close),
-                "value": float(val),
-                "uoedt": float(uoedt),
-                "loedt": float(loedt),
-            })
-
-        if len(m5_bars) < self.m5_min_window_floor:
-            err = f"Tier 2 Validation Failed on M5: Valid bar count {len(m5_bars)} < {self.m5_min_window_floor}."
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        # Check chronological overlap between M15 and M5
-        if m5_bars[-1]["timestamp"] < m15_bars[0]["timestamp"] or m15_bars[-1]["timestamp"] < m5_bars[0]["timestamp"]:
-            err = "Tier 2 Validation Failed: No chronological time overlap between M15 and M5 datasets."
-            self.validation_errors.append(err)
-            raise MCD3ValidationError(err)
-
-        return m15_bars, m5_bars
-
-    def classify_trend(self, angle: float) -> str:
-        """Classify trend direction from linear regression angle using deadband threshold."""
-        if angle > self.sideways_threshold:
-            return "UPTREND"
-        elif angle < -self.sideways_threshold:
-            return "DOWNTREND"
-        else:
-            return "SIDEWAYS"
-
-    def evaluate(self) -> Dict[str, Any]:
-        """
-        Execute full MCD3 evaluation pipeline across both M15 and M5 horizons.
-        Returns standard DavinTrade Stack D JSONB payload.
-        """
-        try:
-            self.load_workbook()
-            m15_headers, m15_rows = self._get_sheet_headers_and_rows(self.m15_sheet)
-            m5_headers, m5_rows = self._get_sheet_headers_and_rows(self.m5_sheet)
-            stat_headers, stat_rows = self._get_sheet_headers_and_rows(self.stat_sheet)
-            self.close()
-
-            # Tier 1 Validation
-            m15_active, _ = self.validate_tier1_m15(m15_headers, m15_rows)
-            m5_active, _ = self.validate_tier1_m5(m5_headers, m5_rows)
-
-            # Tier 4 Validation (Statistics)
-            m15_stats, m5_stats = self.validate_tier4_statistics(
-                stat_headers, stat_rows, m15_active, m5_active
-            )
-
-            # Tier 2 & Tier 3 Validation (Continuity & Sanity)
-            m15_bars, m5_bars = self.validate_tier2_and_tier3_continuity_and_sanity(
-                m15_headers, m15_rows, m15_active, m5_headers, m5_rows, m5_active
-            )
-
-        except Exception as e:
-            self.close()
-            # Pre-flight validation failure -> emit INVALID state safely
-            return self._build_invalid_payload(str(e))
-
-        # --- MCD3 Core Calculations ---
-        # 1. Condition 1: Trend Alignment
-        m15_angle = m15_stats["regression_angle"]
-        m5_angle = m5_stats["regression_angle"]
-        m15_trend = self.classify_trend(m15_angle)
-        m5_trend = self.classify_trend(m5_angle)
-
-        condition_1_trend_aligned = (m15_trend == m5_trend)
-
-        # 2. Condition 2: Historical Corridor Nesting (T_EDT, M5 bars)
-        # Build sorted list of M15 timestamps for backward as-of lookup
-        m15_timestamps = [b["timestamp"] for b in m15_bars]
-        m5_horizon_n = m5_stats["containment_n"]
-
-        # Evaluate over the last min(m5_horizon_n, len(m5_bars)) bars
-        eval_span = min(m5_horizon_n, len(m5_bars))
-        eval_m5_bars = m5_bars[-eval_span:]
-
-        contained_bars = 0
-        total_eval_bars = len(eval_m5_bars)
-
-        for m5_b in eval_m5_bars:
-            t_m5 = m5_b["timestamp"]
-            idx = bisect.bisect_right(m15_timestamps, t_m5) - 1
-            if idx >= 0:
-                m15_b = m15_bars[idx]
-                # Check if M5 corridor is nested inside M15 corridor
-                if m5_b["loedt"] >= m15_b["loedt"] and m5_b["uoedt"] <= m15_b["uoedt"]:
-                    contained_bars += 1
-
-        nesting_rate_pct = (contained_bars / total_eval_bars * 100.0) if total_eval_bars > 0 else 0.0
-        condition_2_historical_nesting_passed = (nesting_rate_pct >= self.min_nesting_threshold)
-
-        # 3. Condition 3: Current Bar Complete Corridor Engulfment (Bar 0)
-        latest_m5 = m5_bars[-1]
-        latest_m15 = m15_bars[-1]
-
-        condition_3_current_bar_engulfed = (
-            latest_m5["loedt"] >= latest_m15["loedt"]
-            and latest_m5["uoedt"] <= latest_m15["uoedt"]
-        )
-
-        # Consolidated Trend Flag
-        is_consolidated_trend = (
-            condition_1_trend_aligned
-            and condition_2_historical_nesting_passed
-            and condition_3_current_bar_engulfed
-        )
-
-        # Consolidated Trend State Name
-        if is_consolidated_trend:
-            if m15_trend == "UPTREND":
-                consolidated_trend_state = "BULLISH_CONSOLIDATED"
-            elif m15_trend == "DOWNTREND":
-                consolidated_trend_state = "BEARISH_CONSOLIDATED"
-            else:
-                consolidated_trend_state = "SIDEWAYS_CONSOLIDATED"
-        else:
-            consolidated_trend_state = "NON_CONSOLIDATED"
-
-        # 4. Standard EDT Stochastic (Conditional Execution)
-        edt_stochastic: Optional[float] = None
-        stochastic_zone = "UNAVAILABLE"
-        regime_status = "UNCERTAIN"
-        discrete_state_code = "MCD3_UNKNOWN"
-        tactical_bias = "NEUTRAL_STAND_ASIDE"
-
-        if is_consolidated_trend:
-            # Standard EDT Stochastic: [(M15 SSA curr - M15 LOEDT curr) / (M15 UOEDT curr - M15 LOEDT curr)] * 100
-            m15_corridor_width = latest_m15["uoedt"] - latest_m15["loedt"]
-            if m15_corridor_width > 0:
-                raw_stoch = ((latest_m15["ssa"] - latest_m15["loedt"]) / m15_corridor_width) * 100.0
-                edt_stochastic = round(raw_stoch, 2)
-            else:
-                edt_stochastic = 50.0
-
-            # State Synthesis across the 7 Consolidated States
-            if consolidated_trend_state == "BULLISH_CONSOLIDATED":
-                if edt_stochastic <= self.stochastic_value_threshold:
-                    stochastic_zone = "VALUE_ZONE"
-                    regime_status = "BULLISH_CONSOLIDATED_VALUE_ZONE"
-                    discrete_state_code = "MCD3_BULL_VALUE"
-                    tactical_bias = "HIGH_CONVICTION_BUY_DIP"
-                elif edt_stochastic >= self.stochastic_overbought_threshold:
-                    stochastic_zone = "OVERBOUGHT_ZONE"
-                    regime_status = "BULLISH_CONSOLIDATED_OVERBOUGHT"
-                    discrete_state_code = "MCD3_BULL_TOP"
-                    tactical_bias = "CAUTION_TAKE_PROFIT_BUY"
-                else:
-                    stochastic_zone = "EQUILIBRIUM"
-                    regime_status = "BULLISH_CONSOLIDATED_EQUILIBRIUM"
-                    discrete_state_code = "MCD3_BULL_MID"
-                    tactical_bias = "HOLD_BULLISH_TREND_RUNNER"
-
-            elif consolidated_trend_state == "BEARISH_CONSOLIDATED":
-                if edt_stochastic >= self.stochastic_overbought_threshold:
-                    stochastic_zone = "PREMIUM_ZONE"
-                    regime_status = "BEARISH_CONSOLIDATED_PREMIUM_ZONE"
-                    discrete_state_code = "MCD3_BEAR_PREMIUM"
-                    tactical_bias = "HIGH_CONVICTION_SELL_RALLY"
-                elif edt_stochastic <= self.stochastic_value_threshold:
-                    stochastic_zone = "OVERSOLD_ZONE"
-                    regime_status = "BEARISH_CONSOLIDATED_OVERSOLD"
-                    discrete_state_code = "MCD3_BEAR_BOTTOM"
-                    tactical_bias = "CAUTION_TAKE_PROFIT_SELL"
-                else:
-                    stochastic_zone = "EQUILIBRIUM"
-                    regime_status = "BEARISH_CONSOLIDATED_EQUILIBRIUM"
-                    discrete_state_code = "MCD3_BEAR_MID"
-                    tactical_bias = "HOLD_BEARISH_TREND_RUNNER"
-
-            else:  # SIDEWAYS_CONSOLIDATED
-                stochastic_zone = "IN_CORRIDOR"
-                regime_status = "SIDEWAYS_CONSOLIDATED_EQUILIBRIUM"
-                discrete_state_code = "MCD3_SIDEWAYS_EQUILIBRIUM"
-                tactical_bias = "RANGE_BOUND_MEAN_REVERSION"
-
-        else:
-            # Non-Consolidated: Stochastic strictly null; isolate failure cause
-            edt_stochastic = None
-            stochastic_zone = "UNAVAILABLE"
-            tactical_bias = "NEUTRAL_STAND_ASIDE"
-
-            if not condition_1_trend_aligned:
-                regime_status = "TREND_MISALIGNMENT"
-                discrete_state_code = "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
-            elif not condition_2_historical_nesting_passed:
-                regime_status = "INSUFFICIENT_CORRIDOR_NESTING"
-                discrete_state_code = "MCD3_NON_CONSOLIDATED_OVERFLOW"
-            else:  # condition 3 failed
-                regime_status = "CURRENT_CORRIDOR_ESCAPE"
-                discrete_state_code = "MCD3_NON_CONSOLIDATED_ESCAPE"
-
-        # 5. Zero-Hallucination Canonical English Commentary
-        commentary = self._generate_canonical_commentary(
-            discrete_state_code=discrete_state_code,
-            m15_trend=m15_trend,
-            m15_angle=m15_angle,
-            m5_trend=m5_trend,
-            m5_angle=m5_angle,
-            nesting_pct=nesting_rate_pct,
-            contained_bars=contained_bars,
-            total_bars=total_eval_bars,
-            stoch=edt_stochastic,
-            latest_m5=latest_m5,
-            latest_m15=latest_m15,
-        )
-
-        # Convert latest bar timestamp to ISO UTC string
-        try:
-            iso_timestamp = datetime.fromtimestamp(latest_m5["timestamp"], tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-        except Exception:
-            iso_timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-        # Build production JSONB payload
-        output_payload: Dict[str, Any] = {
-            "symbol": self.symbol,
-            "timeframe": "M15_M5",
-            "timestamp": iso_timestamp,
-            "evaluator_version": "1.0.0",
-            "module": "MCD3_CONSOLIDATED_TREND_AND_EDT_STOCHASTIC",
-            "validation": {
-                "status": "PASS",
-                "tier1_active_indicators": {
-                    "m15": [m15_active],
-                    "m5": [m5_active],
-                },
-                "tier2_continuity": "PASS",
-                "tier3_sanity": "PASS",
-                "tier4_statistics": "PASS",
-                "warnings": self.validation_warnings,
-            },
-            "m15_metrics": {
-                "active_indicator": m15_active,
-                "trend_state": m15_trend,
-                "regression_angle": round(m15_angle, 2),
-                "current_close": round(latest_m15["close"], 2),
-                "current_ssa": round(latest_m15["ssa"], 2),
-                "current_uoedt": round(latest_m15["uoedt"], 2),
-                "current_loedt": round(latest_m15["loedt"], 2),
-                "containment_rate": round(m15_stats["containment_rate"], 2),
-                "edt_horizon_n": m15_stats["containment_n"],
-            },
-            "m5_metrics": {
-                "active_indicator": m5_active,
-                "trend_state": m5_trend,
-                "regression_angle": round(m5_angle, 2),
-                "current_close": round(latest_m5["close"], 2),
-                "current_ssa_or_close": round(latest_m5["value"], 2),
-                "current_uoedt": round(latest_m5["uoedt"], 2),
-                "current_loedt": round(latest_m5["loedt"], 2),
-                "containment_rate": round(m5_stats["containment_rate"], 2),
-                "edt_horizon_n": m5_stats["containment_n"],
-            },
-            "consolidated_trend_conditions": {
-                "condition_1_trend_aligned": condition_1_trend_aligned,
-                "condition_2_historical_nesting_passed": condition_2_historical_nesting_passed,
-                "condition_2_nesting_rate_pct": round(nesting_rate_pct, 2),
-                "condition_2_contained_bars": contained_bars,
-                "condition_2_total_bars": total_eval_bars,
-                "condition_3_current_bar_engulfed": condition_3_current_bar_engulfed,
-            },
-            "evaluation": {
-                "is_consolidated_trend": is_consolidated_trend,
-                "consolidated_trend_state": consolidated_trend_state,
-                "edt_stochastic": edt_stochastic,
-                "stochastic_zone": stochastic_zone,
-                "regime_status": regime_status,
-                "discrete_state_code": discrete_state_code,
-                "tactical_bias": tactical_bias,
-            },
-            "commentary": commentary,
-        }
-
-        return output_payload
-
-    def _generate_canonical_commentary(
-        self,
-        discrete_state_code: str,
-        m15_trend: str,
-        m15_angle: float,
-        m5_trend: str,
-        m5_angle: float,
-        nesting_pct: float,
-        contained_bars: int,
-        total_bars: int,
-        stoch: Optional[float],
-        latest_m5: Dict[str, Any],
-        latest_m15: Dict[str, Any],
-    ) -> str:
-        """Format zero-hallucination canonical English commentary from strict templates."""
-        m15_sign = "+" if m15_angle > 0 else ""
-        m5_sign = "+" if m5_angle > 0 else ""
-
-        if discrete_state_code == "MCD3_NON_CONSOLIDATED_TREND_CONFLICT":
-            return (
-                f"XAUUSD multi-timeframe structure is NON_CONSOLIDATED due to trend conflict: "
-                f"M15 slope is {m15_trend} ({m15_sign}{m15_angle:.2f}°) while M5 slope is {m5_trend} "
-                f"({m5_sign}{m5_angle:.2f}°). Because the 3 strict conditions are not satisfied, "
-                f"a Consolidated Trend does not exist and EDT Stochastic is UNAVAILABLE."
-            )
-        elif discrete_state_code == "MCD3_NON_CONSOLIDATED_OVERFLOW":
-            return (
-                f"XAUUSD multi-timeframe trends are aligned ({m15_trend}), but historical M5 corridor "
-                f"nesting within M15 corridor is {nesting_pct:.1f}%, which fails the strict 75.0% threshold requirement "
-                f"({contained_bars}/{total_bars} bars). A Consolidated Trend cannot be confirmed and EDT Stochastic is UNAVAILABLE."
-            )
-        elif discrete_state_code == "MCD3_NON_CONSOLIDATED_ESCAPE":
-            return (
-                f"XAUUSD multi-timeframe trends are aligned ({m15_trend}) with {nesting_pct:.1f}% historical nesting, "
-                f"but the M5 corridor on the current bar extends outside the M15 corridor boundaries "
-                f"(M5: [{latest_m5['loedt']:.2f}, {latest_m5['uoedt']:.2f}] vs M15: [{latest_m15['loedt']:.2f}, {latest_m15['uoedt']:.2f}]). "
-                f"A Consolidated Trend is not active and EDT Stochastic is UNAVAILABLE."
-            )
-        elif discrete_state_code == "MCD3_BULL_VALUE":
-            stoch_val = stoch if stoch is not None else 0.0
-            return (
-                f"XAUUSD has confirmed a BULLISH_CONSOLIDATED_TREND: M15 and M5 slopes are both UPTREND "
-                f"({m15_sign}{m15_angle:.2f}° / {m5_sign}{m5_angle:.2f}°), M5 corridor nesting within M15 corridor is "
-                f"{nesting_pct:.1f}% (>= 75.0% threshold), and current M5 corridor is totally engulfed inside M15 corridor. "
-                f"Gold price is strongly confirmed to be under persistent bullish channel governance. "
-                f"Standard EDT Stochastic is {stoch_val:.2f}% (Oversold / Value Dip Zone near LOEDT)."
-            )
-        elif discrete_state_code == "MCD3_BULL_MID":
-            stoch_val = stoch if stoch is not None else 50.0
-            return (
-                f"XAUUSD has confirmed a BULLISH_CONSOLIDATED_TREND: M15 and M5 slopes are both UPTREND "
-                f"({m15_sign}{m15_angle:.2f}° / {m5_sign}{m5_angle:.2f}°), M5 corridor nesting within M15 corridor is "
-                f"{nesting_pct:.1f}% (>= 75.0% threshold), and current M5 corridor is totally engulfed inside M15 corridor. "
-                f"Gold price is strongly confirmed to be under persistent bullish channel governance. "
-                f"Standard EDT Stochastic is {stoch_val:.2f}% (Equilibrium Sweet Spot)."
-            )
-        elif discrete_state_code == "MCD3_BULL_TOP":
-            stoch_val = stoch if stoch is not None else 100.0
-            return (
-                f"XAUUSD has confirmed a BULLISH_CONSOLIDATED_TREND: M15 and M5 slopes are both UPTREND "
-                f"({m15_sign}{m15_angle:.2f}° / {m5_sign}{m5_angle:.2f}°), M5 corridor nesting within M15 corridor is "
-                f"{nesting_pct:.1f}% (>= 75.0% threshold), and current M5 corridor is totally engulfed inside M15 corridor. "
-                f"Gold price is strongly confirmed to be under persistent bullish channel governance. "
-                f"Standard EDT Stochastic is {stoch_val:.2f}% (Overbought / Climax Zone near UOEDT)."
-            )
-        elif discrete_state_code == "MCD3_BEAR_PREMIUM":
-            stoch_val = stoch if stoch is not None else 100.0
-            return (
-                f"XAUUSD has confirmed a BEARISH_CONSOLIDATED_TREND: M15 and M5 slopes are both DOWNTREND "
-                f"({m15_sign}{m15_angle:.2f}° / {m5_sign}{m5_angle:.2f}°), M5 corridor nesting within M15 corridor is "
-                f"{nesting_pct:.1f}% (>= 75.0% threshold), and current M5 corridor is totally engulfed inside M15 corridor. "
-                f"Gold price is strongly confirmed to be under persistent bearish channel governance. "
-                f"Standard EDT Stochastic is {stoch_val:.2f}% (Premium / Short Opportunity Zone near UOEDT)."
-            )
-        elif discrete_state_code == "MCD3_BEAR_MID":
-            stoch_val = stoch if stoch is not None else 50.0
-            return (
-                f"XAUUSD has confirmed a BEARISH_CONSOLIDATED_TREND: M15 and M5 slopes are both DOWNTREND "
-                f"({m15_sign}{m15_angle:.2f}° / {m5_sign}{m5_angle:.2f}°), M5 corridor nesting within M15 corridor is "
-                f"{nesting_pct:.1f}% (>= 75.0% threshold), and current M5 corridor is totally engulfed inside M15 corridor. "
-                f"Gold price is strongly confirmed to be under persistent bearish channel governance. "
-                f"Standard EDT Stochastic is {stoch_val:.2f}% (Equilibrium Sweet Spot)."
-            )
-        elif discrete_state_code == "MCD3_BEAR_BOTTOM":
-            stoch_val = stoch if stoch is not None else 0.0
-            return (
-                f"XAUUSD has confirmed a BEARISH_CONSOLIDATED_TREND: M15 and M5 slopes are both DOWNTREND "
-                f"({m15_sign}{m15_angle:.2f}° / {m5_sign}{m5_angle:.2f}°), M5 corridor nesting within M15 corridor is "
-                f"{nesting_pct:.1f}% (>= 75.0% threshold), and current M5 corridor is totally engulfed inside M15 corridor. "
-                f"Gold price is strongly confirmed to be under persistent bearish channel governance. "
-                f"Standard EDT Stochastic is {stoch_val:.2f}% (Oversold / Floor Caution Zone near LOEDT)."
-            )
-        elif discrete_state_code == "MCD3_SIDEWAYS_EQUILIBRIUM":
-            stoch_val = stoch if stoch is not None else 50.0
-            return (
-                f"XAUUSD has confirmed a SIDEWAYS_CONSOLIDATED_TREND: M15 and M5 slopes are both horizontal SIDEWAYS "
-                f"({m15_sign}{m15_angle:.2f}° / {m5_sign}{m5_angle:.2f}°), M5 corridor nesting within M15 corridor is "
-                f"{nesting_pct:.1f}%, and current M5 corridor is engulfed inside M15 corridor. "
-                f"Standard EDT Stochastic is {stoch_val:.2f}% (Range Equilibrium)."
-            )
-        else:
-            return (
-                f"XAUUSD multi-timeframe state is {discrete_state_code}. Evaluator executed cleanly."
-            )
-
-    def _build_invalid_payload(self, error_message: str) -> Dict[str, Any]:
-        """Build safe INVALID payload complying with DavinTrade Stack D standard."""
-        return {
-            "symbol": self.symbol,
-            "timeframe": "M15_M5",
-            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "evaluator_version": "1.0.0",
-            "module": "MCD3_CONSOLIDATED_TREND_AND_EDT_STOCHASTIC",
-            "validation": {
-                "status": "FAIL",
-                "tier1_active_indicators": {
-                    "m15": self.validation_checks.get("m15_active_detected", []),
-                    "m5": self.validation_checks.get("m5_active_detected", []),
-                },
-                "errors": self.validation_errors + [error_message],
-                "warnings": self.validation_warnings,
-            },
-            "m15_metrics": None,
-            "m5_metrics": None,
-            "consolidated_trend_conditions": {
-                "condition_1_trend_aligned": False,
-                "condition_2_historical_nesting_passed": False,
-                "condition_2_nesting_rate_pct": 0.0,
-                "condition_2_contained_bars": 0,
-                "condition_2_total_bars": 0,
-                "condition_3_current_bar_engulfed": False,
-            },
-            "evaluation": {
-                "is_consolidated_trend": False,
-                "consolidated_trend_state": "INVALID",
-                "edt_stochastic": None,
-                "stochastic_zone": "UNAVAILABLE",
-                "regime_status": "UNCERTAIN",
-                "discrete_state_code": "MCD3_INVALID",
-                "tactical_bias": "NEUTRAL_STAND_ASIDE",
-            },
-            "commentary": f"MCD3 evaluation aborted due to pre-flight validation failure: {error_message}",
-        }
-
-    def run_cli(self, output_path: Optional[str] = None) -> Dict[str, Any]:
-        """Run CLI evaluation, display formatted summary, and optionally save JSON."""
-        print("=" * 80)
-        print(" DavinTrade Stack D | Engine 1.5A Module")
-        print(" MCD3: Consolidated Trend and EDT Stochastic Evaluator (XAUUSD - M15 & M5)")
-        print("=" * 80)
-        print(f" Excel Workbook: {self.excel_path}")
-        print(f" Target M15 Indicator Override: {self.m15_target_indicator or 'None (Strict Production Mode)'}")
-        print(f" Target M5 Indicator Override:  {self.m5_target_indicator or 'None (Strict Production Mode)'}")
-        print("-" * 80)
-
-        result = self.evaluate()
-
-        val = result["validation"]
-        eval_res = result["evaluation"]
-        conds = result["consolidated_trend_conditions"]
-
-        print(f" Validation Status:        {val['status']}")
-        if val["status"] == "FAIL":
-            print(f" Validation Errors:        {val.get('errors')}")
-            print(f" Discrete State Code:      {eval_res['discrete_state_code']}")
-            print(f" Commentary:               {result['commentary']}")
-        else:
-            m15 = result["m15_metrics"]
-            m5 = result["m5_metrics"]
-            print(f" M15 Active Indicator:     {m15['active_indicator']} ({m15['trend_state']} @ {m15['regression_angle']}°)")
-            print(f" M5 Active Indicator:      {m5['active_indicator']} ({m5['trend_state']} @ {m5['regression_angle']}°)")
-            print(f" Condition 1 (Aligned):    {conds['condition_1_trend_aligned']}")
-            print(f" Condition 2 (Nesting):    {conds['condition_2_historical_nesting_passed']} ({conds['condition_2_nesting_rate_pct']}% - {conds['condition_2_contained_bars']}/{conds['condition_2_total_bars']} bars)")
-            print(f" Condition 3 (Engulfment): {conds['condition_3_current_bar_engulfed']}")
-            print(f" Consolidated Trend:       {eval_res['is_consolidated_trend']} ({eval_res['consolidated_trend_state']})")
-            print(f" EDT Stochastic:           {eval_res['edt_stochastic'] if eval_res['edt_stochastic'] is not None else 'UNAVAILABLE (null)'}")
-            print(f" Stochastic Zone:          {eval_res['stochastic_zone']}")
-            print(f" Regime Status:            {eval_res['regime_status']}")
-            print(f" Discrete State Code:      {eval_res['discrete_state_code']}")
-            print(f" Tactical Bias:            {eval_res['tactical_bias']}")
-            print("-" * 80)
-            print(f" Commentary: {result['commentary']}")
-
-        print("=" * 80)
-
-        if output_path:
-            out_file = os.path.abspath(output_path)
-            os.makedirs(os.path.dirname(out_file), exist_ok=True)
-            with open(out_file, "w", encoding="utf-8") as f:
-                json.dump(result, f, indent=2, ensure_ascii=False)
-            print(f" JSONB payload saved successfully to: {out_file}\n")
-
+    def check(inputs: CycleInputs) -> pf.CheckResult:
+        result = base(inputs)
+        if result.status != pf.PASS:
+            return result
+        if _t_edt(_statistics_row(inputs, M5)) is None:
+            return _fail(rc.INVALID, rc.SANITY_FAILED, timeframe=M5, missing="T_EDT")
         return result
 
+    return check
 
-if __name__ == "__main__":
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    default_excel = os.path.abspath(os.path.join(base_dir, "..", "market_data_v6_replicated.xlsx"))
-    default_output = os.path.abspath(os.path.join(base_dir, "mcd3_output.json"))
 
-    # Support CLI arguments: [excel_path] [output_path] [--m15-ind NAME] [--m5-ind NAME]
-    excel_arg = default_excel
-    output_arg = default_output
-    m15_ind_arg = None
-    m5_ind_arg = None
+def _tier2(params: Params) -> pf.Check:
+    """M5: ``N_nest`` at the floor, enough closed bars, ascending, UOEDT and LOEDT numbers. M15: a closed bar at or
+    before the window start, ascending from there, the last closed bar complete. Older M15 bars may have no band."""
 
-    args = sys.argv[1:]
-    i = 0
-    pos_args = []
-    while i < len(args):
-        if args[i] == "--m15-ind" and i + 1 < len(args):
-            m15_ind_arg = args[i + 1]
-            i += 2
-        elif args[i] == "--m5-ind" and i + 1 < len(args):
-            m5_ind_arg = args[i + 1]
-            i += 2
-        elif args[i] in ("--output", "-o") and i + 1 < len(args):
-            output_arg = args[i + 1]
-            i += 2
-        elif args[i] in ("--excel", "-e") and i + 1 < len(args):
-            excel_arg = args[i + 1]
-            i += 2
-        else:
-            pos_args.append(args[i])
-            i += 1
+    def check(inputs: CycleInputs) -> pf.CheckResult:
+        nest = _nesting_bars(inputs, params)
+        floor = int(params["min_nesting_window_bars"])
+        if nest < floor:
+            return _fail(rc.INVALID, rc.INSUFFICIENT_BARS, timeframe=M5, nesting_window=nest, needed=floor)
+        cols5 = channel_columns(inputs.active_indicator[M5])
+        result = pf.bars_check({M5: nest}, {M5: ("timestamp", cols5["upper"], cols5["lower"])})(inputs)
+        if result.status != pf.PASS:
+            return result
+        last5 = closed_bars(inputs, M5)[-1]
+        if not is_number(last5.get(cols5["baseline"])):
+            return _fail(rc.INVALID, rc.DISCONTINUITY, timeframe=M5, problem="null", column=cols5["baseline"])
 
-    if len(pos_args) >= 1:
-        excel_arg = pos_args[0]
-    if len(pos_args) >= 2:
-        output_arg = pos_args[1]
+        if any(not is_number(bar.get("timestamp")) for bar in inputs.bars.get(M15, ())):
+            return _fail(rc.INVALID, rc.DISCONTINUITY, timeframe=M15, problem="timestamp")
+        m15 = closed_bars(inputs, M15)
+        window = closed_bars(inputs, M5)[-nest:]
+        start = _m15_start(m15, window[0]["timestamp"])
+        if start is None:
+            return _fail(rc.INVALID, rc.INSUFFICIENT_BARS, timeframe=M15, problem="no_bar_at_or_before_the_window_start")
+        span = m15[start:]
+        stamps = [bar["timestamp"] for bar in span]
+        if any(later <= earlier for earlier, later in zip(stamps, stamps[1:])):
+            return _fail(rc.INVALID, rc.DISCONTINUITY, timeframe=M15, problem="order")
+        cols15 = channel_columns(inputs.active_indicator[M15])
+        bad = [c for c in (cols15["fit"], cols15["upper"], cols15["lower"], cols15["baseline"]) if not is_number(span[-1].get(c))]
+        if bad:
+            return _fail(rc.INVALID, rc.DISCONTINUITY, timeframe=M15, problem="null", column=bad[0])
+        return pf.CheckResult(pf.PASS)
 
-    evaluator = MCD3ConsolidatedTrendEvaluator(
-        excel_path=excel_arg,
-        m15_target_indicator=m15_ind_arg,
-        m5_target_indicator=m5_ind_arg,
+    return check
+
+
+def _tier3(params: Params) -> pf.Check:
+    """The kit's sanity check (last closed bar of each timeframe, channel width), plus UOEDT > LOEDT on every window
+    M5 bar and on every M15 bar that carries a band and is the M15 bar of a window bar."""
+    base = pf.sanity_check(TIMEFRAMES)
+
+    def check(inputs: CycleInputs) -> pf.CheckResult:
+        result = base(inputs)
+        if result.status != pf.PASS:
+            return result
+        nest = _nesting_bars(inputs, params)
+        cols5 = channel_columns(inputs.active_indicator[M5])
+        cols15 = channel_columns(inputs.active_indicator[M15])
+        window = closed_bars(inputs, M5)[-nest:]
+        for bar in window:
+            if not bar[cols5["upper"]] > bar[cols5["lower"]]:
+                return _fail(rc.INVALID, rc.SANITY_FAILED, timeframe=M5, problem="uoedt_not_above_loedt_in_window")
+        m15 = closed_bars(inputs, M15)
+        span = m15[_m15_start(m15, window[0]["timestamp"]):]
+        for index in sorted(set(_matches(window, span))):
+            upper, lower = span[index].get(cols15["upper"]), span[index].get(cols15["lower"])
+            if is_number(upper) and is_number(lower) and not upper > lower:
+                return _fail(rc.INVALID, rc.SANITY_FAILED, timeframe=M15, problem="uoedt_not_above_loedt_in_span")
+        return result
+
+    return check
+
+
+def _upstream_problem(inputs: CycleInputs, mcd_id: str, envelope: Mapping[str, Any]) -> bool:
+    """True when a VALID or CAUTIONARY upstream reading cannot be used (decision Q5): it was not made for this cycle
+    or for the active indicator of its timeframe, or its trend word or angle is unreadable."""
+    timeframe = UPSTREAM_TIMEFRAME[mcd_id]
+    active = envelope.get("active_indicator")
+    details = envelope.get("details")
+    return not (
+        envelope.get("cycle_slot") == inputs.cycle_slot
+        and isinstance(active, Mapping)
+        and active.get(timeframe) == inputs.active_indicator.get(timeframe)
+        and isinstance(details, Mapping)
+        and details.get("trend_direction") in TRENDS
+        and is_number(details.get("regression_angle_deg"))
     )
-    evaluator.run_cli(output_path=output_arg)
+
+
+def _upstream(upstream: Any) -> pf.Check:
+    """MCD1 then MCD2. The kit's status rules (INVALID or missing, STALE, CAUTIONARY) for each, then the consistency
+    rule above; CAUTIONARY reasons of the earlier one stay in front of a later stop."""
+    readings: Mapping[str, Any] = upstream if isinstance(upstream, Mapping) else {}
+
+    def check(inputs: CycleInputs) -> pf.CheckResult:
+        cautions: list[str] = []
+        for mcd_id in UPSTREAM:
+            result = pf.upstream_check((mcd_id,), readings)(inputs)
+            if result.status in (rc.INVALID, rc.STALE):
+                return pf.CheckResult(result.status, tuple(cautions) + result.reasons)
+            cautions.extend(result.reasons)
+            if _upstream_problem(inputs, mcd_id, readings[mcd_id]):
+                return pf.CheckResult(rc.INVALID, tuple(cautions) + (rc.upstream_unavailable(mcd_id),))
+        if cautions:
+            return pf.CheckResult(rc.CAUTIONARY, tuple(cautions))
+        return pf.CheckResult(pf.PASS)
+
+    return check
+
+
+# --------------------------------------------------------------------------- the reading
+
+
+def _evaluate(inputs: CycleInputs, params: Params, upstream: Mapping[str, Any]) -> dict[str, Any]:
+    outcome = pf.run_preflight(
+        inputs,
+        tier1=pf.indicator_check(TIMEFRAMES),
+        tier4=_tier4(params),
+        tier2=_tier2(params),
+        tier3=_tier3(params),
+        upstream=_upstream(upstream),
+    )
+    context = env.reading_context(inputs, TIMEFRAMES)
+    if outcome.stop:
+        return env.unavailable(
+            outcome.status, MCD_ID, EVALUATOR_VERSION, inputs.cycle_slot, list(outcome.reasons),
+            depends_on=list(UPSTREAM), **context,
+        )
+
+    ind15, ind5 = inputs.active_indicator[M15], inputs.active_indicator[M5]
+    cols15, cols5 = channel_columns(ind15), channel_columns(ind5)
+    m15 = closed_bars(inputs, M15)
+    m5 = closed_bars(inputs, M5)
+    nest = _nesting_bars(inputs, params)
+    window = m5[-nest:]
+    span = m15[_m15_start(m15, window[0]["timestamp"]):]
+    last5, last15 = m5[-1], m15[-1]  # the last closed bars (rule 2); the M15 bar of the last M5 bar is the last one
+
+    # Condition 1: the trend words of MCD1 (M15) and MCD2 (M5) agree.
+    details1, details2 = upstream["MCD1"]["details"], upstream["MCD2"]["details"]
+    trend15, trend5 = details1["trend_direction"], details2["trend_direction"]
+    aligned = trend15 == trend5
+
+    # Condition 2: the M5 corridor is inside the M15 corridor of its M15 bar on enough window bars. A bar whose M15 bar
+    # has no band yet is not nested. Exact integer test.
+    nested = 0
+    for bar, index in zip(window, _matches(window, span)):
+        upper15, lower15 = span[index].get(cols15["upper"]), span[index].get(cols15["lower"])
+        if is_number(upper15) and is_number(lower15) and bar[cols5["lower"]] >= lower15 and bar[cols5["upper"]] <= upper15:
+            nested += 1
+    nesting_met = nested * 100 >= params["nesting_min_share"] * nest
+
+    # Condition 3: on the last closed bars.
+    upper15, lower15 = float(last15[cols15["upper"]]), float(last15[cols15["lower"]])
+    upper5, lower5 = float(last5[cols5["upper"]]), float(last5[cols5["lower"]])
+    engulfed = lower5 >= lower15 and upper5 <= upper15
+
+    consolidated = aligned and nesting_met and engulfed
+    ssa15 = float(last15[cols15["fit"]])
+    angle15, angle5 = float(details1["regression_angle_deg"]), float(details2["regression_angle_deg"])
+
+    stochastic: float | None = None
+    place = ""
+    if consolidated:
+        # Position from LOEDT, 0 to 100 inside the corridor, not clipped; decision D10 option A reports it as is.
+        position = (ssa15 - lower15) * 100.0 / (upper15 - lower15)
+        if trend15 == "SIDEWAYS":
+            state = SIDEWAYS_STATE
+        else:
+            zone = "LOWER" if position <= params["lower_zone_max_position"] else "UPPER" if position >= params["upper_zone_min_position"] else "MIDDLE"
+            state = CONSOLIDATED_STATE[(trend15, zone)]
+        stochastic = _round_half_up(position, int(params["stochastic_decimals"]))
+        place = "above UOEDT" if ssa15 > upper15 else "below LOEDT" if ssa15 < lower15 else "inside the M15 corridor"
+    elif not aligned:
+        state = CONFLICT_STATE
+    elif not nesting_met:
+        state = OVERFLOW_STATE
+    else:
+        state = ESCAPE_STATE
+
+    bias, regime, summary, template_id = STATES[state]
+    commentary = TEMPLATES[template_id].format(
+        m15_angle=f"{env.round2(angle15):+.2f}",
+        m5_angle=f"{env.round2(angle5):+.2f}",
+        nested=nested,
+        n=nest,
+        m5_loedt=_price(lower5),
+        m5_uoedt=_price(upper5),
+        m15_loedt=_price(lower15),
+        m15_uoedt=_price(upper15),
+        m15_ssa=_price(ssa15),
+        ssa_place=place,
+        stoch="" if stochastic is None else f"{stochastic:.{int(params['stochastic_decimals'])}f}",
+        m15_phrase=_SLOPE_PHRASE[trend15],
+        m5_phrase=_SLOPE_PHRASE[trend5],
+        both_phrase=_BOTH_PHRASE[trend15],
+    )
+    details = {
+        "m15_trend_direction": trend15,
+        "m5_trend_direction": trend5,
+        "trends_aligned": aligned,
+        "nesting_window_bars": nest,
+        "nested_bars": nested,
+        "nesting_met": nesting_met,
+        "current_bar_engulfed": engulfed,
+        "edt_stochastic": stochastic,
+        "populated_candidates": outcome.details.get("populated_candidates", {}),
+    }
+    levels = [
+        {"name": "UOEDT", "tf": M15, "price": upper15, "role": "resistance"},
+        {"name": "baseline", "tf": M15, "price": float(last15[cols15["baseline"]]), "role": "mid"},
+        {"name": "LOEDT", "tf": M15, "price": lower15, "role": "support"},
+        {"name": "UOEDT", "tf": M5, "price": upper5, "role": "resistance"},
+        {"name": "baseline", "tf": M5, "price": float(last5[cols5["baseline"]]), "role": "mid"},
+        {"name": "LOEDT", "tf": M5, "price": lower5, "role": "support"},
+    ]
+    reading = dict(
+        state_code=state, bias=bias, summary_line=summary, commentary=commentary, levels=levels,
+        regime_status=regime, details=details, depends_on=list(UPSTREAM), **context,
+    )
+    if outcome.status == rc.CAUTIONARY:
+        return env.cautionary(MCD_ID, EVALUATOR_VERSION, inputs.cycle_slot, list(outcome.reasons), **reading)
+    return env.valid(MCD_ID, EVALUATOR_VERSION, inputs.cycle_slot, **reading)
+
+
+_guarded = env.never_throws(MCD_ID, EVALUATOR_VERSION)(_evaluate)
+
+
+def evaluate(inputs: CycleInputs, params: Params, upstream: Mapping[str, Any]) -> dict[str, Any]:
+    """One envelope per cycle, always (INVALID and STALE included). ``upstream`` holds the same-cycle envelopes of
+    MCD1 and MCD2 (``{"MCD1": ..., "MCD2": ...}``). An error inside the evaluator ends as INVALID + ``EVALUATOR_ERROR``,
+    which still declares the dependencies."""
+    result = _guarded(inputs, params, upstream)
+    if result["status_reasons"] == [rc.EVALUATOR_ERROR]:
+        result = {**result, "depends_on": list(UPSTREAM)}
+    return result

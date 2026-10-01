@@ -1,0 +1,113 @@
+{
+  "MCD1": {
+    "schema_version": "mcd-output/1",
+    "mcd_id": "MCD1",
+    "evaluator_version": "2.0.0",
+    "cycle_slot": "2026-09-18T20:55Z",
+    "last_closed_bar": {
+      "M15": "2026-09-18T20:30Z"
+    },
+    "active_indicator": {
+      "M15": "non_b"
+    },
+    "config_hash": {
+      "non_b": "dbae8aa6616e612fc7b618fb038a117ba986f1fd7c15f6e6520dab210bbd65cd"
+    },
+    "status": "VALID",
+    "status_reasons": [],
+    "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+    "regime_status": "COUNTER_TREND_EXPANSION",
+    "bias": "LONG",
+    "levels": [
+      {
+        "name": "UOEDT",
+        "tf": "M15",
+        "price": 4279.46,
+        "role": "resistance"
+      },
+      {
+        "name": "baseline",
+        "tf": "M15",
+        "price": 4214.17,
+        "role": "mid"
+      },
+      {
+        "name": "LOEDT",
+        "tf": "M15",
+        "price": 4126.24,
+        "role": "support"
+      }
+    ],
+    "depends_on": [],
+    "summary_line": "M15 downtrend, sustained close above the corridor",
+    "commentary": "The M15 channel slopes down (-29.72\u00b0). The latest closed bar closed 101.47 above UOEDT 4279.46 (channel position 1.6622); 96 of the last 96 closed bars closed above UOEDT.",
+    "details": {
+      "channel_position": 1.6622,
+      "containment_rate": 73.95,
+      "lower_breach_count": 0,
+      "n_micro": 96,
+      "populated_candidates": {
+        "M15": []
+      },
+      "regression_angle_deg": -29.72,
+      "trend_direction": "DOWN",
+      "upper_breach_count": 96
+    }
+  },
+  "MCD2": {
+    "schema_version": "mcd-output/1",
+    "mcd_id": "MCD2",
+    "evaluator_version": "2.0.0",
+    "cycle_slot": "2026-09-18T20:55Z",
+    "last_closed_bar": {
+      "M5": "2026-09-18T20:50Z"
+    },
+    "active_indicator": {
+      "M5": "best_fit_a"
+    },
+    "config_hash": {
+      "best_fit_a": "d78ed3ba68428d82572684105f89b8a0f822dcee9fa0eb8f909f3fb7b9d1d398"
+    },
+    "status": "VALID",
+    "status_reasons": [],
+    "state_code": "MCD2_UP_IN_CORRIDOR",
+    "regime_status": "TREND_ALIGNED_CONTINUATION",
+    "bias": "LONG",
+    "levels": [
+      {
+        "name": "UOEDT",
+        "tf": "M5",
+        "price": 4384.23,
+        "role": "resistance"
+      },
+      {
+        "name": "baseline",
+        "tf": "M5",
+        "price": 4367.2,
+        "role": "mid"
+      },
+      {
+        "name": "LOEDT",
+        "tf": "M5",
+        "price": 4350.16,
+        "role": "support"
+      }
+    ],
+    "depends_on": [],
+    "summary_line": "M5 uptrend, inside the corridor",
+    "commentary": "The M5 SSA is inside the corridor, between LOEDT 4350.16 and UOEDT 4384.23 (channel position 0.8192), while the channel slopes up (+6.94\u00b0).",
+    "details": {
+      "channel_position": 0.8192,
+      "containment_rate": 55.76,
+      "populated_candidates": {
+        "M5": [
+          "fractal"
+        ]
+      },
+      "regression_angle_deg": 6.94,
+      "reversion_setup": false,
+      "trend_direction": "UP",
+      "window_bars": 288
+    }
+  }
+}

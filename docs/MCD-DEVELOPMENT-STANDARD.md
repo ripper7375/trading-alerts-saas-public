@@ -2,7 +2,7 @@
 
 |                  |                                                                                                                                                                                                                                                                         |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**       | Settled ([ADR-082](adr/082-mcd-development-standard.md), approved by Davin 30 September 2026). Version 1.0.3, 1 October 2026 (Appendix C.2: `flag` quoted, PATCH)                                                                                                       |
+| **Status**       | Settled ([ADR-082](adr/082-mcd-development-standard.md), approved by Davin 30 September 2026). Version 1.0.4, 1 October 2026 (§11.1: a derived MCD's fixtures also hold `<slot>.upstream.json`, PATCH)                                                                  |
 | **Owner**        | Davin (topics, specs and go-live approvals)                                                                                                                                                                                                                             |
 | **Applies to**   | Every Market Condition Description sensor: MCD0 (quality gate), MCD1–MCD3 (examples, to retrofit), MCD4–MCD15 (to be defined)                                                                                                                                           |
 | **Walkthrough**  | [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md): the order of work for retrofitting MCD0–MCD3 and creating new MCDs, and the agent's task cards. Davin's prompts: [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md)     |
@@ -403,6 +403,8 @@ engine-1-5-new/                       in davintrade-stack-d-and-e/ (not archive/
     ├── test_mcdN_unit_tests.py       test suite (§12)
     ├── fixtures/                     per test slot: <slot>.inputs.json, <slot>.envelope.json,
     │                                 <slot>.source.md (workbook path and SHA-256)                     [new]
+    │                                 derived MCDs also: <slot>.upstream.json (the same-cycle
+    │                                 envelopes of the MCDs it reads, so replay needs no other MCD)    [new]
     ├── mcdN_output.json              envelope from one real cycle
     ├── mcdN-manifest-work-completion.md  hand-off manifest, including Appendix A
     └── legacy/                       MCD1–MCD3 only: the pre-retrofit evaluator, tests and output,
@@ -446,22 +448,22 @@ def evaluate(inputs: CycleInputs, params: Params, upstream: dict[str, Envelope])
 
 The 13-test discipline of MCD1–MCD3 stays and is extended. Every MCD **must** have:
 
-| #   | Test                            | Proves                                                                              |
-| --- | ------------------------------- | ----------------------------------------------------------------------------------- |
-| T1  | One test per state              | Every state in the register is reachable (§7.1)                                     |
-| T2  | Boundary tests                  | Each threshold just below, at and just above its value                              |
-| T3  | One test per pre-flight failure | Correct status and reason code for each check (§6)                                  |
-| T4  | Forming bar                     | Appending an open bar to the fixture changes nothing (R1)                           |
-| T5  | Wrong-slot statistics           | A statistics row from another slot gives STALE (R2)                                 |
-| T6  | Setting                         | No setting → INVALID; detection mismatch → CAUTIONARY (R3)                          |
-| T7  | Determinism                     | Two runs on the same bundle give byte-identical JSON (R4)                           |
-| T8  | Schema                          | Output validates against `mcd-output/1` (Appendix B) (R5)                           |
-| T9  | Replay                          | The stored fixture reproduces its expected envelope (arch §2.2)                     |
-| T10 | Never throws                    | A corrupted bundle gives INVALID or STALE with an Appendix D code, no raise (R7)    |
-| T11 | Wording                         | No banned word in codes or templates; no `%` in summary or commentary (R9)          |
-| T12 | Size                            | The largest envelope stays within the token budget (R15)                            |
-| T13 | Real data                       | One cycle from the fixture data gives the expected state                            |
-| T14 | Derived only                    | Changing an upstream reading changes this MCD's reading in the same cycle (ADR-021) |
+| #   | Test                            | Proves                                                                                                        |
+| --- | ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| T1  | One test per state              | Every state in the register is reachable (§7.1)                                                               |
+| T2  | Boundary tests                  | Each threshold just below, at and just above its value                                                        |
+| T3  | One test per pre-flight failure | Correct status and reason code for each check (§6)                                                            |
+| T4  | Forming bar                     | Appending an open bar to the fixture changes nothing (R1)                                                     |
+| T5  | Wrong-slot statistics           | A statistics row from another slot gives STALE (R2)                                                           |
+| T6  | Setting                         | No setting → INVALID; detection mismatch → CAUTIONARY (R3)                                                    |
+| T7  | Determinism                     | Two runs on the same bundle give byte-identical JSON (R4)                                                     |
+| T8  | Schema                          | Output validates against `mcd-output/1` (Appendix B) (R5)                                                     |
+| T9  | Replay                          | The stored fixture (with its stored upstream, for a derived MCD) reproduces its expected envelope (arch §2.2) |
+| T10 | Never throws                    | A corrupted bundle gives INVALID or STALE with an Appendix D code, no raise (R7)                              |
+| T11 | Wording                         | No banned word in codes or templates; no `%` in summary or commentary (R9)                                    |
+| T12 | Size                            | The largest envelope stays within the token budget (R15)                                                      |
+| T13 | Real data                       | One cycle from the fixture data gives the expected state                                                      |
+| T14 | Derived only                    | Changing an upstream reading changes this MCD's reading in the same cycle (ADR-021)                           |
 
 T10 accepts any INVALID or STALE reading whose reason codes are all in Appendix D: `EVALUATOR_ERROR` when
 the evaluator catches the error itself (§11.2), or the code of the pre-flight check that caught the

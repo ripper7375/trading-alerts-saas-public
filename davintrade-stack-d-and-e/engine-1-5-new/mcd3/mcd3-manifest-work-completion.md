@@ -1,207 +1,177 @@
-# MCD3 MANIFEST & WORK COMPLETION SPECIFICATION
+# MCD3 manifest and work completion: evaluator 2.0.0
 
-**Module Name:** `mcd3_evaluator.py`  
-**Test Suite:** `test_mcd3_unit_tests.py`  
-**MCD ID:** `MCD3`  
-**Description:** Consolidated Trend and EDT Stochastic Evaluator (Dual-Horizon Trend Alignment & Corridor Nesting)  
-**Target Asset:** `XAUUSD`  
-**Target Timeframes:** Dual-Timeframe Multi-Horizon: `M15` (Macro) & `M5` (Micro)  
-**Target Architecture:** DavinTrade Stack D — Engine 1.5A (Discrete State Machine & Quality Gate)  
-**Primary Consumer:** Claude Code (Stack D Master Builder & Code Auditor) / DavinTrade Ingestion Pipeline  
-**Document Status:** `CERTIFIED & VERIFIED (100% PASS - 13/13 UNIT TESTS)`  
-**Timestamp:** `2026-09-21 10:55:00 UTC` (Epoch: `1789962900`)
+|                        |                                                                                                                                                                                     |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MCD**                | MCD3, consolidated trend and EDT stochastic (derived: reads MCD1 and MCD2)                                                                                                          |
+| **Version**            | `evaluator_version` 2.0.0 (MAJOR: the output shape, the states' failure handling, bias, levels and dependencies change; standard §14)                                               |
+| **Status**             | **Stage 3 built 1 October 2026 (task P3), checked independently by task P6 the same day, signed off by Davin on 1 October 2026.** Flag `off`; registry status `Retrofit (2.0.0)`    |
+| **Spec and plan**      | [mcd3.md](mcd3.md) and [mcd3_implementation_plan.md](mcd3_implementation_plan.md), approved by Davin on 1 October 2026                                                              |
+| **Standard**           | [MCD-DEVELOPMENT-STANDARD.md](../../../docs/MCD-DEVELOPMENT-STANDARD.md) 1.0.4                                                                                                      |
+| **Decisions of Davin** | D10 option A, D6 as in the registry, D7 six levels, Q1 to Q9 as recommended (1 October 2026); P7 patch for MCD2 and MCD1 deferred; A22 ceiling of 670 tokens; stage-3 sign-off (§8) |
 
----
+## 1. What was built
 
-## 1. Executive Summary & Core Mandate
+The retrofit of the pre-retrofit MCD3 (kept read-only in `legacy/`) as `evaluate(inputs, params, upstream) -> envelope` on the
+shared kit `mcd_common`. A pure function of a frozen bundle and of the same-cycle readings of MCD1 and MCD2: closed bars only,
+the statistics rows at the slot, the active indicators from the setting, the trend words from the upstream readings. It
+reports the three conditions of a consolidated trend (trend alignment, nesting of the M5 corridor inside the M15 corridor over
+`T_EDT − 1` closed M5 bars, engulfment on the latest bar) and, for a consolidated trend, the EDT stochastic (0 at LOEDT, 100 at
+UOEDT, not clipped). Ten states, six levels (UOEDT, baseline, LOEDT on M15 and on M5), failure as a status with a reason code.
 
-`MCD3` is the third certified discrete state evaluator of **Stack D (Engine 1.5A)**. Derived directly from the core principles established in `xauusd-m5-and-m15.png` and updated with the trader-intuitive **Standard Stochastic Formula**, `MCD3` resolves two fundamental multi-horizon market structure questions:
+## 2. Files
 
-1. **"Does a Consolidated Trend currently exist between M15 and M5?"**  
-   A Consolidated Trend is a strongly confirmed, multi-horizon market structure where Gold price is proven to be tenaciously governed by the unified trend across both time horizons.
-2. **"If a Consolidated Trend exists, what is the EDT Stochastic position on the M15 corridor?"**  
-   If the 3 strict conditions of Consolidated Trend are fulfilled, the **Standard EDT Stochastic** is calculated to pinpoint the exact normalized position ($0\% \dots 100\%$) of Gold price within the M15 corridor. If any condition is violated, a Consolidated Trend does NOT exist, and the EDT Stochastic is strictly **UNAVAILABLE** (`null`).
+Under `davintrade-stack-d-and-e/engine-1-5-new/mcd3/` unless stated.
 
-### Core Engineering Upgrades in this Release:
+| Path                                                            | Purpose                                                                                                                                  |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `mcd3_evaluator.py`                                             | The evaluator (standard library, `bisect`, `decimal`, and the kit only)                                                                  |
+| `test_mcd3_unit_tests.py`                                       | 134 tests: T1 to T14, the 13 legacy scenarios, the equivalence run against `legacy/`, a randomised reference sweep, fixture generation   |
+| `mcd3_params.yaml`, `mcd3_registry.yaml`                        | Seven parameters with value, unit, boundary and why; the registry entry, ten states and ten templates                                    |
+| `mcd3.md`, `concept.md`, `mcd3_implementation_plan.md`          | Specification (14 sections), board readback, plan; all approved                                                                          |
+| `fixtures/<slot>.{inputs,upstream,envelope}.json`, `.source.md` | Three real slots (v1, v4, v3): the bundle MCD3 reads, the stored upstream readings, the expected envelope, the workbook path and SHA-256 |
+| `mcd3_output.json`                                              | The v1 envelope (identical to `fixtures/2026-09-18T2055Z.envelope.json`)                                                                 |
+| `concept/mcd3-xauusd-m5-and-m15.png`                            | Davin's concept board                                                                                                                    |
+| `legacy/`                                                       | The pre-retrofit evaluator, tests and output (read-only history; the tests have one path line edited)                                    |
+| `mcd_common/fixtures/settings_v3.yaml` (kit data)               | The active-indicator setting for replica v3 (Q7)                                                                                         |
+| `docs/STACK-D-ARCHITECTURE.md` §2.5, §2.13                      | MCD3 row: version 2.0.0, levels with the baseline, window `T_EDT − 1`, `MCD3_INVALID` removed (Q9)                                       |
+| `docs/MCD-DEVELOPMENT-STANDARD.md`, walkthrough B3              | Standard 1.0.4 (PATCH): a derived MCD's fixtures also hold `<slot>.upstream.json` (Q7)                                                   |
 
-1. **Dual Candidate Isolation Mandate:**
-   - M15: Strictly 1 active indicator out of the 7 Centroid variants from MCD1.
-   - M5: Strictly 1 active indicator out of the 8 EDT indicators from MCD2 (7 Centroids + `fractal`).
-   - Production mode strictly enforces `len(active) == 1` on each timeframe; any violation triggers `MCD3_INVALID`.
-2. **The 3 Strict Conditions of Consolidated Trend:**
-   - **Condition 1 (Trend Alignment):** M15 trend direction == M5 trend direction ($\pm 5.0^\circ$ deadband).
-   - **Condition 2 (Historical Corridor Nesting):** M5 EDT corridor nested within M15 corridor for $\ge 75.0\%$ of M5 EDT Time Horizon ($T_{\text{EDT, M5}}$ bars).
-   - **Condition 3 (Current Bar Complete Corridor Engulfment):** M5 corridor completely engulfed within M15 corridor at Bar 0.
-3. **Standard EDT Stochastic Formulation:**
-   $$\text{EDT Stochastic} = \left[ \frac{\text{M15 SSA}_{\text{current}} - \text{M15 LOEDT}_{\text{current}}}{\text{M15 UOEDT}_{\text{current}} - \text{M15 LOEDT}_{\text{current}}} \right] \times 100$$
-   - $0.0\%$ at LOEDT (Oversold / Deep Value Zone)
-   - $50.0\%$ at Corridor Center (Equilibrium)
-   - $100.0\%$ at UOEDT (Overbought / Climax Ceiling)
-4. **Conditional Execution Gate:** If `is_consolidated_trend == False`, EDT Stochastic is strictly `null` (Unavailable) to protect traders from erroneous execution.
-5. **Zero-Hallucination Canonical English:** Deterministic parameterized templates ensure 100% mathematical auditability.
+## 3. Test results
 
----
+From `davintrade-stack-d-and-e/engine-1-5-new/`, Python 3.11.9, `unittest`, 1 October 2026.
 
-## 2. Upstream Data Contract & Input Dependencies
+| Command                                                                       | Result                                                                |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `python -m unittest discover -s mcd3`                                         | **134 tests, OK** (1 skipped: the opt-in full scan below), about 41 s |
+| `MCD3_FULL_SCAN=1 python -m unittest mcd3.test_mcd3_unit_tests.FullScanTests` | **OK**: all 12 real pairings of the five replica batches (about 66 s) |
+| `python -m unittest discover -s mcd_common/tests -t .`                        | 215 OK (kit unchanged)                                                |
+| `python -m unittest discover -s mcd1` and `-s mcd2`                           | 105 OK and 93 OK (unchanged)                                          |
+| `python -m unittest test_mcd3_unit_tests` from `mcd3/legacy/`                 | 13 OK (history copy)                                                  |
+| `python -m pyflakes` on the evaluator and the tests                           | Clean                                                                 |
 
-`MCD3` consumes data from three sheets in [market_data_v6_replicated.xlsx](file:///d:/SaaS%20Project/trading-alerts-saas-public/davintrade-stack-d-and-e/engine-1-5-new/market_data_v6_replicated.xlsx):
+Test classes: `RegisterTests` 5, `StateTests` 15, `BoundaryTests` 13, `NestingTests` 9, `PreflightTests` 23, `UpstreamTests` 13, `LegacyCases` 3,
+`EquivalenceTests` 3, `RealCycleTests` 4, `SharedV1`, `SharedV4`, `SharedV3` 7 each, `NeverThrowsTests` 3, `ReferenceSweepTests` 1 (400 random
+cycles against a plain restatement of spec §6), `OutputTests` 12, `PurityTests` 4, `FixtureProvenanceTests` 4, `FullScanTests` 1 (opt-in).
 
-### A. Macro Time-Series: `market_data_v6_M15`
+**Mutation pass on a scratch mirror** (not in the repo): 90 mutants of the evaluator in three batches, one change each. Ten survived at first. **Seven were test gaps** and each is now
+killed by a named test: the as-of start when the oldest window bar opens exactly on an M15 bar; the SSA place at exactly UOEDT and at exactly LOEDT; the order of the M15 and M5 statistics checks;
+two M15 bars with the same open time; an inverted M15 bar that no window bar maps to; half-up rounding of a price tie. **Three are equivalent mutants**: swapping the order of the two zone
+tests (they cannot both hold), reading `trend15` for `trend5` (equal in every consolidated trend), and a change that only acts for `T_EDT` above 10,000.
 
-- **Cadence:** 900-second bar boundaries.
-- **Permitted Candidates (7 Centroids):** `best_fit_a`, `best_fit_b`, `cherry_a`, `cherry_b`, `most_recent`, `non_a`, `non_b`.
-- **Fields Ingested:** `timestamp`, `close`, `{active}_ssa`, `{active}_uoedt`, `{active}_loedt`.
+**Independent check (task P6, a fresh session, 1 October 2026).** It re-ran every suite, searched the evaluator and the kit functions it calls for file, clock, random, network and print use (none), validated the output and all fixture envelopes
+against the schema taken from the standard's Appendix B, scanned every code, template and rendered commentary for banned and advice words (none), fuzzed the evaluator against a clean-room restatement of the spec (24,000 random bundles, no difference,
+all ten states reached) and ran its own mutation pass (477 mutants: 457 killed; 8 equivalent; 2 controls; **10 survivors in 7 groups were test gaps**, the evaluator being right in each). Findings: A22 over 600 (decided by Davin, §5 and §8) and the seven test gaps,
+now closed by seven tests that each kill their mutant: the M5 stream lagging the M15 stream; an M15 bar with only UOEDT missing; equal bands on a matched older M15 bar; an inverted M15 bar that only the oldest window bar maps to; the reason order when MCD1 is
+CAUTIONARY and MCD2 is unreadable; a stochastic that rounds to -0.00 or 1.00; the upper zone edge between 79.99 and 80. Hand-off: [2026-10-01-1407-mcd3-p6.md](../../../docs/handoffs/2026-10-01-1407-mcd3-p6.md).
 
-### B. Micro Time-Series: `market_data_v6_M5`
+## 4. The equivalence with the pre-retrofit evaluator (step R7)
 
-- **Cadence:** 300-second bar boundaries.
-- **Permitted Candidates (8 EDT Indicators):** 7 Centroids + `fractal`.
-- **Fields Ingested:** `timestamp`, `close`, `{active}_ssa` (or `close` for fractal), `{active}_uoedt`, `{active}_loedt`.
+The pre-retrofit evaluator and the new one are run side by side by `EquivalenceTests` (the ten synthetic scenarios and the two failure scenarios, rebuilt from the same arrays; the
+three fixture cycles against the workbooks) and by the opt-in full scan (all twelve real pairings).
 
-### C. Statistics Store: `indicator_statistics`
+| Legacy state, `tactical_bias`                                     | New state, bias (D6)                                                                   | Test                                                                            |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `MCD3_BULL_VALUE`, `HIGH_CONVICTION_BUY_DIP`                      | `MCD3_BULL_VALUE`, LONG                                                                | `StateTests.test_02`, `EquivalenceTests`                                        |
+| `MCD3_BULL_MID`, `HOLD_BULLISH_TREND_RUNNER`                      | `MCD3_BULL_MID`, LONG                                                                  | `test_03`, `EquivalenceTests`                                                   |
+| `MCD3_BULL_TOP`, `CAUTION_TAKE_PROFIT_BUY`                        | `MCD3_BULL_TOP`, NEUTRAL                                                               | `test_04`, `EquivalenceTests`                                                   |
+| `MCD3_BEAR_PREMIUM`, `HIGH_CONVICTION_SELL_RALLY`                 | `MCD3_BEAR_PREMIUM`, SHORT                                                             | `test_05`, `EquivalenceTests`                                                   |
+| `MCD3_BEAR_MID`, `HOLD_BEARISH_TREND_RUNNER`                      | `MCD3_BEAR_MID`, SHORT                                                                 | `test_06`, `EquivalenceTests`                                                   |
+| `MCD3_BEAR_BOTTOM`, `CAUTION_TAKE_PROFIT_SELL`                    | `MCD3_BEAR_BOTTOM`, NEUTRAL                                                            | `test_07`, `EquivalenceTests`                                                   |
+| `MCD3_SIDEWAYS_EQUILIBRIUM`, `RANGE_BOUND_MEAN_REVERSION`         | `MCD3_SIDEWAYS_EQUILIBRIUM`, NEUTRAL                                                   | `test_08`, `EquivalenceTests`                                                   |
+| `MCD3_NON_CONSOLIDATED_TREND_CONFLICT`, `NEUTRAL_STAND_ASIDE`     | same code, STAND_ASIDE                                                                 | `test_09`, `EquivalenceTests`                                                   |
+| `MCD3_NON_CONSOLIDATED_OVERFLOW`, `NEUTRAL_STAND_ASIDE`           | same code, STAND_ASIDE                                                                 | `test_10`, `EquivalenceTests`                                                   |
+| `MCD3_NON_CONSOLIDATED_ESCAPE`, `NEUTRAL_STAND_ASIDE`             | same code, STAND_ASIDE                                                                 | `test_11`, `EquivalenceTests`                                                   |
+| `MCD3_INVALID` (inverted channel, low containment, no statistics) | no state: INVALID `SANITY_FAILED`, INVALID `CONTAINMENT_LOW`, STALE `NO_STATS_AT_SLOT` | `LegacyCases.test_legacy_13`, `EquivalenceTests.test_the_two_failure_scenarios` |
+| `MCD3_INVALID` (two populated candidates; legacy scenario 12)     | **VALID reading** (decision D3); no setting is INVALID `NO_SETTING`                    | `LegacyCases.test_legacy_12`                                                    |
 
-- **Filter:** `symbol == 'XAUUSD'` for M15 and M5 records.
-- **Fields Ingested:** `regression_angle`, `containment_rate` ($\ge 50\%$), `containment_n` ($T_{\text{EDT}}$).
+In the ten synthetic scenarios the state, the regime word, the stochastic value, the three conditions, the nested count and the window size are **equal** in both evaluators.
 
----
+Real pairings (closed-bar view against the pre-retrofit run on the still-open bars; every state is unchanged):
 
-## 3. 4-Tier Comprehensive Pre-Flight Validation
+| Workbook | M15 + M5               | MCD1 / MCD2 trend | New: nested of N (share) | C1 / C2 / C3 | New state       | Pre-retrofit: nested of total (share) | Pre-retrofit state | Stochastic new / pre-retrofit |
+| -------- | ---------------------- | ----------------- | ------------------------ | ------------ | --------------- | ------------------------------------- | ------------------ | ----------------------------- |
+| v1       | `non_b` + `best_fit_a` | DOWN / UP         | 0 of 754 (0.00)          | F / F / F    | TREND_CONFLICT  | 0 of 755 (0.0)                        | TREND_CONFLICT     | none / none                   |
+| v1       | `non_b` + `fractal`    | DOWN / UP         | 0 of 335 (0.00)          | F / F / F    | TREND_CONFLICT  | 0 of 336 (0.0)                        | TREND_CONFLICT     | none / none                   |
+| v4       | `non_b` + `cherry_a`   | DOWN / DOWN       | 483 of 1133 (42.63)      | T / F / F    | OVERFLOW        | 483 of 1134 (42.59)                   | OVERFLOW           | none / none                   |
+| v4       | `non_b` + `fractal`    | DOWN / DOWN       | 283 of 409 (69.19)       | T / F / F    | OVERFLOW        | 283 of 410 (69.02)                    | OVERFLOW           | none / none                   |
+| v4       | `non_a` + `cherry_a`   | SIDEWAYS / DOWN   | 77 of 1133 (6.80)        | F / F / F    | TREND_CONFLICT  | 77 of 1134 (6.79)                     | TREND_CONFLICT     | none / none                   |
+| v4       | `non_a` + `fractal`    | SIDEWAYS / DOWN   | 68 of 409 (16.63)        | F / F / F    | TREND_CONFLICT  | 68 of 410 (16.59)                     | TREND_CONFLICT     | none / none                   |
+| v2       | `non_b` + `cherry_a`   | DOWN / DOWN       | 811 of 1689 (48.02)      | T / F / F    | OVERFLOW        | 811 of 1690 (47.99)                   | OVERFLOW           | none / none                   |
+| v2       | `non_b` + `fractal`    | DOWN / UP         | 328 of 422 (77.73)       | F / T / F    | TREND_CONFLICT  | 328 of 423 (77.54)                    | TREND_CONFLICT     | none / none                   |
+| v3       | `non_b` + `cherry_a`   | DOWN / DOWN       | 973 of 1037 (93.83)      | T / T / T    | **BEAR_BOTTOM** | 974 of 1038 (93.83)                   | BEAR_BOTTOM        | −1.02 / −2.74                 |
+| v3       | `non_b` + `fractal`    | DOWN / DOWN       | 228 of 313 (72.84)       | T / F / F    | OVERFLOW        | 228 of 314 (72.61)                    | OVERFLOW           | none / none                   |
+| v3       | `non_a` + `cherry_a`   | DOWN / DOWN       | 0 of 1037 (0.00)         | T / F / F    | OVERFLOW        | 0 of 1038 (0.0)                       | OVERFLOW           | none / none                   |
+| v3       | `non_a` + `fractal`    | DOWN / DOWN       | 30 of 313 (9.58)         | T / F / F    | OVERFLOW        | 30 of 314 (9.55)                      | OVERFLOW           | none / none                   |
 
-```mermaid
-flowchart TD
-    Start(["Input: market_data_v6_M15 + market_data_v6_M5 + indicator_statistics"]) --> T1{"Tier 1: Candidates Scanned<br>M15 Active == 1 (out of 7)?<br>M5 Active == 1 (out of 8)?"}
-    T1 -- No (0 or >1) --> Fail1["FAIL: INVALID (Multiple or Zero Active)"]
-    T1 -- Yes (Exactly 1) --> T4{"Tier 4: Statistics Ingested for both?<br>CR >= 50% on M15 and M5?"}
-    T4 -- No --> Fail4["FAIL: Missing Stats or Compromised Channel"]
-    T4 -- Yes --> T2{"Tier 2: Dual Time-Series Continuity?<br>Ascending Timestamps & Non-Null?"}
-    T2 -- No --> Fail2["FAIL: Time-Series Discontinuity"]
-    T2 -- Yes --> T3{"Tier 3: Channel Boundary Sanity?<br>UOEDT > LOEDT on both TFs?"}
-    T3 -- No --> Fail3["FAIL: Corrupt Channel Geometry"]
-    T3 -- Yes --> EvalEngine["Proceed to MCD3 Core Calculation & Synthesis"]
+Intended differences, all in the plan §6 and none a surprise: (1) the nesting window is one bar shorter (the forming bar is the channel's last row, spec §3); (2) the M15 SSA
+is the last closed bar's (v3: −2.74 became −1.02, the same state); (3) two populated candidates on a timeframe no longer end the reading (D3); (4) the zone is decided on the unrounded position;
+(5) a missing statistics row is STALE, not INVALID; (6) wording, bias, output shape and levels. **No state differs from the pre-retrofit one that is not in this list.**
 
-    Fail1 --> OutInvalid["trend_state = INVALID<br>regime_status = UNCERTAIN<br>validation.status = FAIL"]
-    Fail2 --> OutInvalid
-    Fail3 --> OutInvalid
-    Fail4 --> OutInvalid
-```
+## 5. Real-cycle envelopes (step R8)
 
----
+Measured with the kit's `o200k_base` tokenizer and `time_evaluation`. Trimmed bundle = what the fixture holds (MCD3's columns, the newest `N_nest` M5 bars and the M15 bars from the one holding the oldest);
+full bundle = all 3,000 bars of both timeframes with every column.
 
-## 4. Mathematical Formulation & The 3 Strict Conditions
+| Slot (setting)                                  | State                                  | Status | Tokens  | Evaluation, trimmed | Evaluation, full bundle |
+| ----------------------------------------------- | -------------------------------------- | ------ | ------- | ------------------- | ----------------------- |
+| v1 `2026-09-18T20:55Z` (`non_b` + `best_fit_a`) | `MCD3_NON_CONSOLIDATED_TREND_CONFLICT` | VALID  | 515     | 16 ms               | 68 ms                   |
+| v4 `2026-09-28T23:15Z` (`non_b` + `cherry_a`)   | `MCD3_NON_CONSOLIDATED_OVERFLOW`       | VALID  | 550     | 24 ms               | 95 ms                   |
+| v3 `2026-09-28T14:15Z` (`non_b` + `cherry_a`)   | `MCD3_BEAR_BOTTOM`                     | VALID  | **587** | 21 ms               | 71 ms                   |
 
-### Condition 1: Trend Direction Alignment
+The ten synthetic states measure 443 to 524 tokens; a synthetic CAUTIONARY consolidated reading 545. All envelopes validate against `mcd-output/1`. **A22, decided by Davin on 1 October 2026:** with real prices and two 64-character `config_hash` values (about 72 tokens, mandated by the envelope), the real consolidated reading measures 587 and the real CAUTIONARY variants with two upstream cautions measure **607** (with `RETUNING` 611). With the candidates of live data (every variant populated, architecture review A3, so `details.populated_candidates` names 6 + 7) the seven consolidated states measure 624 to 632 when VALID and no state exceeds **656** with two upstream cautions and `RETUNING` (task P6). Davin approved a ceiling of **670 tokens** for this derived dual-horizon sensor (six levels, two config hashes, cautionary reasons) instead of the standard's 600 ("should", §5); the three-sensor total stays well under the 2,000-token cap of Chapter 5 (ADR-048): about 1,430 even with every candidate populated for all three sensors and RETUNING (MCD1 392, MCD2 386, MCD3 656; task P6). `test_t12_the_plain_real_envelopes_pass_600_and_the_real_cautionary_variants_stay_within_the_derived_ceiling` and `test_t12_the_derived_ceiling_holds_for_every_state_with_the_candidates_of_live_data` pin the ceiling; spec §11 states why MCD3 departs from 600.
 
-$$\text{trend\_alignment} = (\text{m15\_trend} == \text{m5\_trend})$$
+## 6. Standard Appendix A
 
-$$
-\text{trend}(\theta) = \begin{cases}
-\text{UPTREND} & \text{if } \theta > +5.0^\circ \\
-\text{DOWNTREND} & \text{if } \theta < -5.0^\circ \\
-\text{SIDEWAYS} & \text{if } |\theta| \le 5.0^\circ
-\end{cases}
-$$
+| #   | Check                                                                                         | Status                                                               | Evidence                                                                                                                                                                                                                                                                                 |
+| --- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | Spec has all 14 sections and is approved by Davin                                             | Pass                                                                 | `mcd3.md` §1 to §14; approved 1 October 2026 (status line)                                                                                                                                                                                                                               |
+| A2  | Implementation plan approved before coding                                                    | Pass                                                                 | `mcd3_implementation_plan.md`, approved 1 October 2026; this build is dated after                                                                                                                                                                                                        |
+| A3  | Reads only the input bundle; no database, file, network, clock, randomness or model calls     | Pass                                                                 | `PurityTests` (imports only `bisect`, `decimal`, `typing` and four kit modules; no `open`, `print`, `now`, `time`, `environ`, `random`; no other MCD's code, no override)                                                                                                                |
+| A4  | Closed bars only; forming bar and last price never used                                       | Pass                                                                 | `NestingTests.test_the_forming_m5_and_m15_bars_are_never_read`; shared T4 on `SharedV1`, `SharedV4`, `SharedV3` (both timeframes)                                                                                                                                                        |
+| A5  | Statistics looked up by slot and active source; no match → STALE                              | Pass                                                                 | `PreflightTests.test_tier4_no_row_and_a_row_from_another_slot_on_each_timeframe`; shared T5 ×3                                                                                                                                                                                           |
+| A6  | Active indicator from the setting; mismatch → CAUTIONARY                                      | Pass                                                                 | `PreflightTests.test_tier1_*`; shared T6 ×3; `StateTests.test_every_candidate_can_be_the_active_indicator_on_each_timeframe` (7 × 8 pairings)                                                                                                                                            |
+| A7  | Output validates against `mcd-output/1`; no extra top-level fields                            | Pass                                                                 | `OutputTests.test_t8_*`; shared T8 ×3; `RealCycleTests.test_the_real_cycles`                                                                                                                                                                                                             |
+| A8  | Pre-flight order cycle → 1 → 4 → 2 → 3 → upstream; reason codes from Appendix D               | Pass                                                                 | `PreflightTests.test_the_first_failing_check_decides`, `test_tier4_the_m15_row_is_checked_before_the_m5_row`, `UpstreamTests.test_upstream_reasons_keep_their_order_*`; shared T10 checks `rc.is_known`                                                                                  |
+| A9  | Never throws; errors → INVALID + `EVALUATOR_ERROR`                                            | Pass                                                                 | `NeverThrowsTests` (an error inside, corrupted upstream readings); shared T10 ×3                                                                                                                                                                                                         |
+| A10 | State register exhaustive and exclusive; codes follow §7.1                                    | Pass                                                                 | `RegisterTests`; `ReferenceSweepTests` reaches all ten states on 400 random cycles and agrees with a plain restatement of the rules; codes pass `wording.check_code(mcd_id="MCD3")` (≤ 48 characters)                                                                                    |
+| A11 | Bias set per state; gates NEUTRAL; `null` when INVALID or STALE                               | Pass (not a gate)                                                    | `RegisterTests.test_the_register_has_ten_states_and_bias_follows_d6`; `PreflightTests.expect` asserts `bias` is `null` and `levels` is empty on every INVALID and STALE                                                                                                                  |
+| A12 | No banned words, probabilities or unmeasured numbers                                          | Pass                                                                 | `OutputTests.test_t11_*` (codes, regime words, templates, summaries, all ten rendered commentaries, state meanings); the legacy words are what the check rejects                                                                                                                         |
+| A13 | Summary ≤ 80 characters, no prices; commentary from templates                                 | Pass                                                                 | Summaries 47 to 58 characters (`wording.check_summary_line`); commentary rendered from `TEMPLATES`, equal to the registry (`RegisterTests.test_the_evaluator_register_equals_the_registry_file`)                                                                                         |
+| A14 | Levels named, per timeframe, 2 decimals; zone width defined                                   | Pass                                                                 | `RealCycleTests` (six levels, names, `tf`, roles, prices); `OutputTests.test_numbers_are_rounded_*`; zone width in `mcd3.md` §8                                                                                                                                                          |
+| A15 | `depends_on` complete; derived MCD modifies, does not re-vote                                 | Pass                                                                 | `depends_on` is `["MCD1","MCD2"]` in every envelope including INVALID, STALE and `EVALUATOR_ERROR` (`PreflightTests.expect`, `NeverThrowsTests`); `UpstreamTests.test_t14_*`; spec §9 (modifier)                                                                                         |
+| A16 | `uses_channel` declared if it is a channel MCD                                                | Pass                                                                 | `mcd3_registry.yaml` `uses_channel: [M5, M15]`; `RegisterTests.test_registry_and_params_describe_this_evaluator`                                                                                                                                                                         |
+| A17 | Precedence rung proposed; rule rows proposed (not applied)                                    | Pass                                                                 | Registry `rung`: oscillators for both (Q8, confirmed by Davin); spec §9 proposes no rule rows, none applied                                                                                                                                                                              |
+| A18 | Dispatch-matrix intents, tags, playbook and foundations chunks ready                          | Pending, stage 6                                                     | Outlines in spec §10; the chunks wait for the knowledge build                                                                                                                                                                                                                            |
+| A19 | Reason texts and new glossary terms in all 16 languages                                       | Pending, stage 6                                                     | Terms and the 15 reason codes listed in spec §10                                                                                                                                                                                                                                         |
+| A20 | Parameters in `mcd3_params.yaml` with rationale                                               | Pass                                                                 | Seven parameters with value, unit, boundary and why (`Params.from_yaml` rejects an entry without them); spec §6 table equals the file (checked by script)                                                                                                                                |
+| A21 | Tests T1–T14 pass (T14 for derived MCDs)                                                      | Pass                                                                 | §3: 134 tests OK. T1 `StateTests`; T2 `BoundaryTests`; T3 `PreflightTests`, `UpstreamTests`; T4 to T8, T10, T12 shared ×3; T9 `OutputTests.test_t9_*`; T11 `OutputTests`; T13 `RealCycleTests`; T14 `UpstreamTests.test_t14_*` and `FixtureProvenanceTests.test_t14_*`                   |
+| A22 | Envelope ≤ 600 tokens; evaluation ≤ 1 s                                                       | Pass (Approved by Davin: derived dual-horizon ceiling <= 670 tokens) | §5: the plain real envelopes 515, 550, 587; evaluation 16 to 24 ms (68 to 95 ms on a full bundle). The real CAUTIONARY variants measure 607 and 611 and the worst case with live candidates 656 (§5); all within the ceiling of 670 that Davin approved on 1 October 2026 (`test_t12_*`) |
+| A23 | Shadow period passed; point-in-time replay done; statistics stored                            | Pending, stage 4 and 5                                               | Needs the sensor worker and point-in-time history                                                                                                                                                                                                                                        |
+| A24 | Added to golden scenarios and the labelled question set                                       | Pending, stage 6 and 7                                               | Needs synthesis and the knowledge build                                                                                                                                                                                                                                                  |
+| A25 | Registry row added to the architecture; decision entry written                                | Row done; entry pending, stage 7                                     | Architecture §2.13 row: version 2.0.0, status `Retrofit (2.0.0)`; §2.5 updated (Q9). The decision entry "MCD3 goes live" is written at stage 7                                                                                                                                           |
+| A26 | Folder matches §11.1: same file names, `concept.md` confirmed, nothing extra at the top level | Pass                                                                 | `PurityTests.test_the_folder_matches_the_standard_layout` (top level, `legacy/`, `concept/`, and the four files per fixture slot); `concept.md` confirmed by Davin on 1 October 2026                                                                                                     |
 
-### Condition 2: Historical Multi-Horizon Corridor Nesting ($\ge 75.0\%$)
+## 7. Open questions and follow-ups
 
-Timestamp lookup via backward as-of search: $\text{M15\_Bar}(t_i) = \max \{ t_{\text{M15}} \le t_i \}$.
-$$\text{is\_nested}(t_i) = (\text{M5\_LOEDT}_i \ge \text{M15\_LOEDT}_i) \land (\text{M5\_UOEDT}_i \le \text{M15\_UOEDT}_i)$$
-$$\text{Condition 2} = \left( \frac{\sum_{i=0}^{T_{\text{EDT, M5}} - 1} \mathbb{I}(\text{is\_nested}(t_i))}{T_{\text{EDT, M5}}} \times 100\% \ge 75.0\% \right)$$
+1. **Envelope size (A22): closed.** Davin approved a ceiling of 670 tokens for MCD3 on 1 October 2026 (§5, §8). The cost drivers, if a later change needs room: `details.populated_candidates` (up to 13 names on live data, about 40 tokens), two 64-character hashes (about 72), six levels (about 132), the commentary (about 124).
+2. **Replica v3 is committed** (Davin; `git ls-files` lists it with v4) and its SHA-256 equals the one in `fixtures/2026-09-28T1415Z.source.md`, so `FixtureProvenanceTests` and `EquivalenceTests` run the v3 parts in a fresh checkout.
+3. **The kit writes an absolute workbook path** into `<slot>.source.md` for a workbook outside the engine folder (v3 and v4, as in MCD1 and MCD2); the SHA-256 is what matters. A kit change for Davin to schedule.
+4. **Short-channel window of MCD2 and MCD1** (a latent defect, simulated, no replica triggers it): deferred by Davin until after the MCD3 stage-3 sign-off (granted 1 October 2026, so it is the next task); recorded in `.claude/state/waiting-on.md`. MCD3's window (`T_EDT − 1`) is not affected.
+5. **Inherited and unverified:** the statistics' fit windows may include the still-open bar (`.claude/state/waiting-on.md`); MCD3 reads `containment_rate` and `T_EDT` from those rows. Settle it before certification (stage 5).
+6. **Duplicate levels** (D7): the same prices as MCD1 and MCD2; the zone builder (build step 4) must count one channel level once.
+7. **Third copy of tier helpers** on top of the kit (after MCD1 and MCD2); moving them into the kit is a kit change.
+8. **Evaluation time** is 68 to 95 ms on a full 3,000-bar bundle (about 4 times the trimmed one, because `closed_bars` filters each timeframe several times); within the 1 s budget. Not optimised.
 
-### Condition 3: Current Bar Complete Corridor Engulfment (Bar 0)
+## 8. Decisions made during the work, with dates
 
-$$\text{Condition 3} = (\text{M5\_LOEDT}_{\text{curr}} \ge \text{M15\_LOEDT}_{\text{curr}}) \land (\text{M5\_UOEDT}_{\text{curr}} \le \text{M15\_UOEDT}_{\text{curr}})$$
-
-### Consolidated Trend Flag:
-
-$$\text{is\_consolidated\_trend} = \text{Condition 1} \land \text{Condition 2} \land \text{Condition 3}$$
-
-### Standard EDT Stochastic Formula:
-
-$$
-\text{EDT Stochastic} = \begin{cases}
-\left[ \dfrac{\text{M15 SSA}_{\text{current}} - \text{M15 LOEDT}_{\text{current}}}{\text{M15 UOEDT}_{\text{current}} - \text{M15 LOEDT}_{\text{current}}} \right] \times 100 & \text{if } \text{is\_consolidated\_trend} == \text{True} \\
-\text{None (Unavailable)} & \text{if } \text{is\_consolidated\_trend} == \text{False}
-\end{cases}
-$$
-
----
-
-## 5. Discrete State Synthesis Matrix (10 Discrete States + Invalid)
-
-### Group 1: Consolidated Trend Confirmed (All 3 Conditions Passed)
-
-_Standard EDT Stochastic calculated ($0\% \dots 100\%$):_
-
-#### 🟢 Category A: Bullish Consolidated Trend (M15 Uptrend + M5 Uptrend)
-
-| Discrete State Code   | Stochastic Zone                                | `regime_status`                    | Tactical Bias & Market Implication                                                                                 |
-| :-------------------- | :--------------------------------------------- | :--------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
-| **`MCD3_BULL_VALUE`** | Value / Oversold ($\le 20.0\%$)                | `BULLISH_CONSOLIDATED_VALUE_ZONE`  | **HIGH_CONVICTION_BUY_DIP:** Macro uptrend firmly intact. M15 SSA resting near LOEDT floor. Prime Buy entry point. |
-| **`MCD3_BULL_MID`**   | Equilibrium ($20.0\% < \text{Stoch} < 80.0\%$) | `BULLISH_CONSOLIDATED_EQUILIBRIUM` | **HOLD_BULLISH_TREND_RUNNER:** Uptrend progressing stably through corridor center.                                 |
-| **`MCD3_BULL_TOP`**   | Overbought ($\ge 80.0\%$)                      | `BULLISH_CONSOLIDATED_OVERBOUGHT`  | **CAUTION_TAKE_PROFIT_BUY:** SSA testing UOEDT ceiling. High risk of pullback; do not chase.                       |
-
-#### 🔴 Category B: Bearish Consolidated Trend (M15 Downtrend + M5 Downtrend)
-
-| Discrete State Code     | Stochastic Zone                                | `regime_status`                     | Tactical Bias & Market Implication                                                                                         |
-| :---------------------- | :--------------------------------------------- | :---------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
-| **`MCD3_BEAR_PREMIUM`** | Premium / Overbought ($\ge 80.0\%$)            | `BEARISH_CONSOLIDATED_PREMIUM_ZONE` | **HIGH_CONVICTION_SELL_RALLY:** Macro downtrend firmly intact. M15 SSA rallied near UOEDT ceiling. Prime Sell entry point. |
-| **`MCD3_BEAR_MID`**     | Equilibrium ($20.0\% < \text{Stoch} < 80.0\%$) | `BEARISH_CONSOLIDATED_EQUILIBRIUM`  | **HOLD_BEARISH_TREND_RUNNER:** Downtrend progressing stably through corridor center.                                       |
-| **`MCD3_BEAR_BOTTOM`**  | Oversold ($\le 20.0\%$)                        | `BEARISH_CONSOLIDATED_OVERSOLD`     | **CAUTION_TAKE_PROFIT_SELL:** SSA testing LOEDT floor. High risk of technical bounce; do not chase.                        |
-
-#### 🟡 Category C: Sideways Consolidated Trend (M15 Sideways + M5 Sideways)
-
-| Discrete State Code             | Stochastic Zone                              | `regime_status`                     | Tactical Bias & Market Implication                                                              |
-| :------------------------------ | :------------------------------------------- | :---------------------------------- | :---------------------------------------------------------------------------------------------- |
-| **`MCD3_SIDEWAYS_EQUILIBRIUM`** | In Corridor ($0 \le \text{Stoch} \le 100\%$) | `SIDEWAYS_CONSOLIDATED_EQUILIBRIUM` | **RANGE_BOUND_MEAN_REVERSION:** Both horizons horizontal. Mean reversion within channel bounds. |
-
----
-
-### Group 2: Non-Consolidated Trend (Condition 1, 2, or 3 Failed)
-
-_EDT Stochastic is strictly **`null` (Unavailable)**:_
-
-| Discrete State Code                        | Failed Condition   | `regime_status`                 | Tactical Bias         |
-| :----------------------------------------- | :----------------- | :------------------------------ | :-------------------- |
-| **`MCD3_NON_CONSOLIDATED_TREND_CONFLICT`** | Condition 1 Failed | `TREND_MISALIGNMENT`            | `NEUTRAL_STAND_ASIDE` |
-| **`MCD3_NON_CONSOLIDATED_OVERFLOW`**       | Condition 2 Failed | `INSUFFICIENT_CORRIDOR_NESTING` | `NEUTRAL_STAND_ASIDE` |
-| **`MCD3_NON_CONSOLIDATED_ESCAPE`**         | Condition 3 Failed | `CURRENT_CORRIDOR_ESCAPE`       | `NEUTRAL_STAND_ASIDE` |
-
----
-
-### Group 3: Data Pipeline Violation (`INVALID`)
-
-| Discrete State Code | Failure Source      | `regime_status` | Tactical Bias         |
-| :------------------ | :------------------ | :-------------- | :-------------------- |
-| **`MCD3_INVALID`**  | Pre-Flight Tier 1-4 | `UNCERTAIN`     | `NEUTRAL_STAND_ASIDE` |
-
----
-
-## 6. Deliverables Inventory & Test Audit Trail
-
-All 6 production-grade deliverables are located in:
-`davintrade-stack-d-and-e/engine-1-5-new/mcd3/`
-
-| Filename                                                                                                                                                               | Type            | Size   | Status         | Verification Check                                    |
-| :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------- | :----- | :------------- | :---------------------------------------------------- |
-| [mcd3_implementation_plan.md](file:///d:/SaaS%20Project/trading-alerts-saas-public/davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_implementation_plan.md)           | Markdown        | ~12 KB | Approved       | Implementation blueprint in English                   |
-| [mcd3_evaluator.py](file:///d:/SaaS%20Project/trading-alerts-saas-public/davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_evaluator.py)                               | Python Source   | ~34 KB | Production     | Zero-dependency, pure openpyxl, Windows-safe          |
-| [test_mcd3_unit_tests.py](file:///d:/SaaS%20Project/trading-alerts-saas-public/davintrade-stack-d-and-e/engine-1-5-new/mcd3/test_mcd3_unit_tests.py)                   | Unit Test Suite | ~18 KB | **13/13 PASS** | 100% Pass Rate across all 13 test cases               |
-| [mcd3_output.json](file:///d:/SaaS%20Project/trading-alerts-saas-public/davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_output.json)                                 | JSONB Payload   | ~2 KB  | Certified      | Real-world output on `market_data_v6_replicated.xlsx` |
-| [mcd3.md](file:///d:/SaaS%20Project/trading-alerts-saas-public/davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md)                                                   | Specification   | ~10 KB | Complete       | Technical architecture & mathematical derivation      |
-| [mcd3-manifest-work-completion.md](file:///d:/SaaS%20Project/trading-alerts-saas-public/davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3-manifest-work-completion.md) | Audit Manifest  | ~10 KB | Certified      | Formal hand-off specification                         |
-
-### Unit Test Execution Output:
-
-```
-Ran 13 tests in 6.661s
-
-OK
-```
-
----
-
-## 7. Downstream Integration Guide for Claude Code
-
-> [!NOTE]
-> **Strict Modular Isolation Mandate:**
-> Per project directives, `MCD3` is implemented as an autonomous, self-contained discrete evaluator. Multi-MCD cross-synthesis and LLM trading recommendation rules will be formally orchestrated in the upcoming **Master Synthesis Phase** (Engine 1.5B/1.5C) after all individual MCD modules are complete. Refer to `MCD-SYNTHESIS-SCENARIOS-AND-LLM-TRADING-RECOMMENDATIONS-SEED-IDEA.md` for strategic context.
+| Date           | Decision                                                                                                                                                                                                                                                                                |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 October 2026 | Concept readback confirmed; replica v1 is an acceptable stand-in for the board's situation                                                                                                                                                                                              |
+| 1 October 2026 | D10: option A, `(M15 SSA − M15 LOEDT) ÷ (M15 UOEDT − M15 LOEDT) × 100` (0 at LOEDT, 100 at UOEDT)                                                                                                                                                                                       |
+| 1 October 2026 | D6: bias per state: BULL_VALUE and BULL_MID LONG; BULL_TOP NEUTRAL; BEAR_PREMIUM and BEAR_MID SHORT; BEAR_BOTTOM and SIDEWAYS_EQUILIBRIUM NEUTRAL; the three non-consolidated states STAND_ASIDE                                                                                        |
+| 1 October 2026 | D7: six levels, UOEDT, baseline and LOEDT on M15 and on M5                                                                                                                                                                                                                              |
+| 1 October 2026 | Q1 to Q9 as recommended: window `T_EDT − 1`; no hidden horizon; M5 bars without an M15 band are not nested; legacy checks dropped; upstream consistency kept; stochastic not clipped; `<slot>.upstream.json` and replica v3 as a fixture; rungs; architecture edits                     |
+| 1 October 2026 | The P7 patch for the MCD2 and MCD1 short-channel window is deferred until after the MCD3 stage-3 sign-off                                                                                                                                                                               |
+| 1 October 2026 | A22: a ceiling of 670 tokens for MCD3, a derived dual-horizon sensor with six levels, two config hashes and cautionary reasons; the three-sensor total stays well under the 2,000-token cap (ADR-048). A22 reads "Pass (Approved by Davin: derived dual-horizon ceiling <= 670 tokens)" |
+| 1 October 2026 | Task P6 findings closed: the seven test gaps by seven tests; `(D6 proposal)` replaced by `(Approved)` in the `mcd3.md` §12 worked example (lines 254 and 265 before the edit)                                                                                                           |
+| 1 October 2026 | Stage-3 sign-off for MCD3 (flag stays `off`, registry status `Retrofit (2.0.0)`)                                                                                                                                                                                                        |

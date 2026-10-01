@@ -1,0 +1,85 @@
+{
+  "schema_version": "mcd-output/1",
+  "mcd_id": "MCD3",
+  "evaluator_version": "2.0.0",
+  "cycle_slot": "2026-09-28T23:15Z",
+  "last_closed_bar": {
+    "M15": "2026-09-28T23:00Z",
+    "M5": "2026-09-28T23:10Z"
+  },
+  "active_indicator": {
+    "M15": "non_b",
+    "M5": "cherry_a"
+  },
+  "config_hash": {
+    "cherry_a": "85bea24b4b98f5e89eceaf1f6341a6a960e16d9546a3d7fb12de99d1f7a6c345",
+    "non_b": "9efbdd7cc2a7866c5f7f6fa76d78a3282823f0c6b034c4f85659be74bdcd84c3"
+  },
+  "status": "VALID",
+  "status_reasons": [],
+  "state_code": "MCD3_NON_CONSOLIDATED_OVERFLOW",
+  "regime_status": "INSUFFICIENT_CORRIDOR_NESTING",
+  "bias": "STAND_ASIDE",
+  "levels": [
+    {
+      "name": "UOEDT",
+      "tf": "M15",
+      "price": 4307.72,
+      "role": "resistance"
+    },
+    {
+      "name": "baseline",
+      "tf": "M15",
+      "price": 4214.0,
+      "role": "mid"
+    },
+    {
+      "name": "LOEDT",
+      "tf": "M15",
+      "price": 4103.45,
+      "role": "support"
+    },
+    {
+      "name": "UOEDT",
+      "tf": "M5",
+      "price": 4249.14,
+      "role": "resistance"
+    },
+    {
+      "name": "baseline",
+      "tf": "M5",
+      "price": 4170.13,
+      "role": "mid"
+    },
+    {
+      "name": "LOEDT",
+      "tf": "M5",
+      "price": 4096.72,
+      "role": "support"
+    }
+  ],
+  "depends_on": [
+    "MCD1",
+    "MCD2"
+  ],
+  "summary_line": "Trends agree, M5 corridor often outside the M15 corridor",
+  "commentary": "Both channels slope down (M15 -20.98\u00b0, M5 -20.94\u00b0), but only 483 of 1133 closed M5 bars have their corridor inside the M15 corridor, which is fewer than three quarters, so there is no consolidated trend and no EDT stochastic is given.",
+  "details": {
+    "current_bar_engulfed": false,
+    "edt_stochastic": null,
+    "m15_trend_direction": "DOWN",
+    "m5_trend_direction": "DOWN",
+    "nested_bars": 483,
+    "nesting_met": false,
+    "nesting_window_bars": 1133,
+    "populated_candidates": {
+      "M15": [
+        "non_a"
+      ],
+      "M5": [
+        "fractal"
+      ]
+    },
+    "trends_aligned": true
+  }
+}

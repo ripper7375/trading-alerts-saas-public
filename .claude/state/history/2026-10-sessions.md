@@ -12,6 +12,57 @@ Entries rotated out of `current-state.md` by [session-lifecycle](../../protocols
 
 Back to [history index](./index.md).
 
+<!-- session 2026-10-01 mcd3-p2 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed (the index holds one staged rename: the MCD3
+> board image). MCD task P2 for MCD3 (steps R1 to R4): concept readback, English spec, parameters, registry and plan written;
+> stopped at the STOP. P3 has not started and cannot start before D10. Flag `off`; registry status stays `Retrofit`.**
+> **Needs from Davin:** (1) **D10**, which EDT stochastic formula is intended (the board reads 0 at UOEDT; the spec and code
+> read 0 at LOEDT; only the reported number changes; no default); (2) **D6** (bias per state; the registry holds the walkthrough
+> starting points, unapproved) and **D7** (six levels; the zone builder must count a duplicate price once); (3) questions Q1 to
+> Q9 of [the spec §14](../../../davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md) with recommendations, and the readback of
+> `concept.md` (the board's two times match no replica; is v1 an acceptable stand-in?); (4) approval of `mcd3.md` and the plan,
+> then **P3 for MCD3**; (5) what to commit (the MCD3 P2 files, and replica v3 if Q7); (6) optional: a **P7** task for the MCD2
+> and MCD1 short-channel window (below). `active-tasks.md` was left in place (the STOP item is open).
+> **Changed & verified:** in `engine-1-5-new/mcd3/`: `legacy/` (evaluator and output byte-identical, tests with one path line
+> edited), the board in `concept/` (staged rename), `concept.md`, `mcd3.md`, `mcd3_params.yaml`, `mcd3_registry.yaml`,
+> `mcd3_implementation_plan.md`; [the hand-off](../../../docs/handoffs/2026-10-01-0703-mcd3-p2.md). From `engine-1-5-new/`:
+> legacy **13 OK** from `legacy/`, kit **215 OK**, MCD1 **105 OK**, MCD2 **93 OK**; params and registry load with the kit,
+> wording clean, the spec tables equal the YAML, Prettier clean. All 12 real pairings in replicas v1 to v4 keep their legacy
+> state on closed bars; one is a **real consolidated trend** (v3, `MCD3_BEAR_BOTTOM`, 973 of 1037 bars nested). Largest
+> envelope estimated at 533 of 600 tokens.
+> **Unconfirmed / found:** `T_EDT` counts the forming bar (the band columns exist on exactly `T_EDT` rows ending at the open
+> bar, 7 of 7 real channels), so MCD3's window is `T_EDT − 1`; new evidence for the open fit-window item in
+> [waiting-on](../waiting-on.md). The committed MCD2 ends INVALID + `DISCONTINUITY` for an M5 channel with `T_EDT` ≤ 288
+> (MCD1 at ≤ 96), simulated; no replica triggers it (smallest real `T_EDT` 314); not fixed. Not run: `test:ci`, `tsc`, lint,
+> build (no app code touched). The oldest entry (MCD1 P3) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 mcd1-p6 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, committed by explicit path ("Retrofit MCD1:
+> evaluator 2.0.0, tests, fixtures, manifest (Stage 3 sign-off)"; the hash is in `git log`), NOT pushed. MCD task P6
+> for MCD1, a fresh independent check: no line of A1 to A26 fails (20 pass, A15 not applicable, 5 not yet due);
+> three low findings F1 to F3, all closed after Davin granted the stage-3 sign-off. MCD1 is retrofitted, checked,
+> signed off and committed.**
+> **Needs from Davin:** (1) next work: **P2 for MCD3** (it stops for D7, the levels, and D10, the direction of the EDT
+> stochastic); (2) optional: add replica v3 as an MCD1 fixture slot (a real `MCD1_DOWN_LOWER_BREAKDOWN`;
+> [the hand-off](../../../docs/handoffs/2026-10-01-0628-mcd1-p6.md) §6a); (3) nothing else is open from this session.
+> `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** F1 and F2: one test in `engine-1-5-new/mcd1/test_mcd1_unit_tests.py` (105 tests; it kills
+> the two mutants that had survived); F3: four `meaning` sentences in `mcd1.md` §7 now equal the registry's;
+> architecture §2.5, MCD1 "States" cell: nine codes plus five regime statuses; the manifest and plan updated; the
+> hand-off and these state files written. From `engine-1-5-new/`: `python -m unittest discover -s mcd1` **105 OK**,
+> MCD2 **93 OK**, the kit **215 OK**, the legacy tests **13 OK** each; Prettier clean. The check itself: its own
+> mutation pass (424 mutants, 399 killed, 23 of the 25 survivors equivalent), a clean-room reference fuzzed on 220,000
+> bundles (0 differences), every number of the manifest reproduced (365, 356 and 367 tokens; the legacy files equal
+> HEAD), the schema taken from the standard's Appendix B, its own banned-word regex. The test run after the commit
+> (the hook left the fixtures untouched) is in the terminal report, not in a file.
+> **Unconfirmed / found:** the statistics fit windows may include the still-open bar (inherited; see
+> [waiting-on](../waiting-on.md)); five of nine states have synthetic examples only (replica v3 gives a real
+> `MCD1_DOWN_LOWER_BREAKDOWN`, not yet a fixture); a break under half a cent reads "0.00 above UOEDT" (left as it is,
+> as for MCD2). Not run: `test:ci`, `tsc`, lint, build (no app code touched). The oldest entry (MCD1 P2) was rotated
+> into `history/2026-10-sessions.md`.
+
 <!-- session 2026-10-01 mcd1-p3 -->
 
 > **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed. MCD task P3 for MCD1

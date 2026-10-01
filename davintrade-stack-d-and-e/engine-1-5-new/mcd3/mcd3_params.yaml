@@ -1,4 +1,4 @@
-# MCD3 parameters (standard Appendix C.3). Draft written in task P2, awaiting Davin's approval of mcd3.md.
+# MCD3 parameters (standard Appendix C.3). Approved by Davin on 1 October 2026 (spec and plan); built in task P3.
 # Changing a value is a version change (standard section 14). Every threshold in mcd3.md section 6 appears here once.
 # The ±5 degree trend band is not here on purpose: MCD3 reads the trend words from MCD1 and MCD2 (ADR-021), so the
 # band lives in mcd1_params.yaml and mcd2_params.yaml and is not applied a second time.

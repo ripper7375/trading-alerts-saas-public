@@ -1,4 +1,4 @@
-# MCD3 registry entry and state register (standard Appendix C.2). Draft written in task P2; awaiting Davin's approval.
+# MCD3 registry entry and state register (standard Appendix C.2). Approved by Davin on 1 October 2026 (spec and plan); built in task P3.
 mcd_id: MCD3
 name: Consolidated trend and EDT stochastic
 evaluator_version: 2.0.0
@@ -6,17 +6,16 @@ kind: derived # gate | independent | derived
 timeframes: [M15, M5]
 depends_on: [MCD1, MCD2]
 uses_channel: [M5, M15] # timeframes on which MCD0 defects make this MCD CAUTIONARY
-rung: # proposals; Davin decides (standard 9.3, spec question Q8). MCD3 modifies, it does not vote.
+rung: # Davin confirmed on 1 October 2026 (standard 9.3, spec question Q8). MCD3 modifies, it does not vote.
   DAY_TRADER: oscillators
   SCALPER: oscillators
 flag: 'off' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
 spec: engine-1-5-new/mcd3/mcd3.md
 params: engine-1-5-new/mcd3/mcd3_params.yaml
-# Bias is decision D6 (Davin's to confirm). The values below are the STARTING POINTS of walkthrough C3, not yet
-# approved: bull value and bull mid LONG; bear premium and bear mid SHORT; bull top, bear bottom and the sideways
+# Bias is decision D6 (Davin, 1 October 2026: the walkthrough C3 starting points): bull value and bull mid LONG; bear premium and bear mid SHORT; bull top, bear bottom and the sideways
 # state NEUTRAL; the three non-consolidated states STAND_ASIDE (these always reach the prompt in full, ADR-041).
-# Levels are decision D7 (proposed): UOEDT, baseline, LOEDT on both M15 and M5, from the last closed bars.
-# The reported stochastic number depends on decision D10; the zones and states below do not (spec section 6).
+# Levels are decision D7 (Davin, 1 October 2026): UOEDT, baseline, LOEDT on both M15 and M5, from the last closed bars.
+# Decision D10 (Davin, 1 October 2026) is option A: the stochastic is 0 at LOEDT and 100 at UOEDT; the zones do not depend on it.
 states:
   - code: MCD3_BULL_VALUE
     meaning: The M15 and M5 channels both slope up and are nested, and the M15 SSA is in the lower zone of the M15 corridor.
@@ -93,8 +92,7 @@ states:
 # integers; prices and {m15_ssa} have 2 decimals; {stoch} has 2 decimals and is not clipped to 0 to 100. {ssa_place} is
 # one of three fixed phrases: "inside the M15 corridor", "above UOEDT" or "below LOEDT". {both_phrase} is "slope up",
 # "slope down" or "are flat". {m15_phrase} and {m5_phrase} are "slopes up", "slopes down" or "is flat".
-# The parenthesis "(0 at LOEDT, 100 at UOEDT)" is the text for decision D10 option A; option B reads
-# "(0 at UOEDT, 100 at LOEDT)". Nothing else in the templates depends on D10.
+# The parenthesis "(0 at LOEDT, 100 at UOEDT)" is decision D10 option A (Davin, 1 October 2026).
 commentary_templates:
   MCD3_T01: 'Both channels slope up (M15 {m15_angle}°, M5 {m5_angle}°). {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor [{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT), in the lower zone.'
   MCD3_T02: 'Both channels slope up (M15 {m15_angle}°, M5 {m5_angle}°). {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor [{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT), in the middle zone.'

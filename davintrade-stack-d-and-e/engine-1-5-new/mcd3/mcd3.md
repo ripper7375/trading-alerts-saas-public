@@ -1,11 +1,9 @@
 # MCD3: Consolidated trend and EDT stochastic
 
-Status: Draft (written in task P2 on 1 October 2026; awaiting Davin's approval) · Version: 2.0.0 · Kind: derived · Timeframe(s): M15 + M5
+Status: Approved (Davin, 1 October 2026; built in task P3) · Version: 2.0.0 · Kind: derived · Timeframe(s): M15 + M5
 
 Retrofit of the certified pre-retrofit MCD3 (kept in `legacy/`). The domain logic is carried over; the changes
-are listed in `mcd3_implementation_plan.md` §1. The board is read back in `concept.md`. Decisions applied:
-D3 (tier-1 meaning, built into the kit), D4 (English). **Open, Davin's: D10 (stochastic direction), D6 (bias per
-state), D7 (levels)**, with questions Q1 to Q9, all in §14.
+are listed in `mcd3_implementation_plan.md` §1. The board is read back in `concept.md`. Decisions applied: D3 (tier-1 meaning, built into the kit), D4 (English), and Davin's answers of 1 October 2026: **D10 option A** (0 at LOEDT, 100 at UOEDT), **D6** (the bias of §7), **D7** (six levels), and **Q1 to Q9 as recommended**, all in §14.
 
 ## 1. Question and purpose
 
@@ -121,8 +119,7 @@ or above 100 when the M15 SSA is outside the M15 corridor (Q6). **The zones are 
 | Zones, states, bias, levels, thresholds (20, 80), `details` other fields | Same                                            | Same                                                             |
 | Corrected in the other document                                          | The board (an image, so a note in `concept.md`) | `mcd3.md`, plan, manifest wording and the code's comments        |
 
-The registry and templates in this draft use option A, because the pre-retrofit evaluator and its tests do. If
-Davin chooses B, only the row above changes.
+**Davin chose option A on 1 October 2026 (D10).** The registry and templates use it, as the pre-retrofit evaluator and its tests do; the board's formula is noted in `concept.md` (§10a row 1) as the mirror image.
 
 **State** (§7): consolidated → trend (both the same) × zone; sideways has one state for any `P`. Not
 consolidated → the first failed condition in the order 1, 2, 3.
@@ -139,9 +136,7 @@ consolidated → the first failed condition in the order 1, 2, 3.
 
 ## 7. State register
 
-Exhaustive and exclusive: every VALID or CAUTIONARY evaluation maps to exactly one of ten states. **The bias
-column is the walkthrough C3 starting point, not yet approved (decision D6).** All states contribute the six
-levels of §8 (decision D7, proposed). Machine-readable copy with the template texts: `mcd3_registry.yaml`.
+Exhaustive and exclusive: every VALID or CAUTIONARY evaluation maps to exactly one of ten states. **The bias column is decision D6, approved by Davin on 1 October 2026 (the walkthrough C3 starting points).** All states contribute the six levels of §8 (decision D7, approved). Machine-readable copy with the template texts: `mcd3_registry.yaml`.
 
 | State code                             | Condition result                           | `regime_status`                     | Bias (D6)   | Meaning (market description, not advice)                                                                      | Summary / commentary |
 | -------------------------------------- | ------------------------------------------ | ----------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- | -------------------- |
@@ -175,7 +170,7 @@ and not clipped; `{ssa_place}` is one of three fixed phrases: "inside the M15 co
 
 ## 8. Levels
 
-Decision D7 (proposed: the walkthrough recommendation and standard §8, which says a channel MCD outputs UOEDT,
+Decision D7 (approved by Davin on 1 October 2026: the walkthrough recommendation and standard §8, which says a channel MCD outputs UOEDT,
 baseline and LOEDT for each timeframe it reads).
 
 | Name       | `tf` | Computed from the last closed bar of that timeframe | Role         |
@@ -240,8 +235,7 @@ All of this is stage 6 work and waits for the sensor worker, synthesis and the k
 | `populated_candidates` | object         | `{"M15": [names], "M5": [names]}`: other candidates with a value on the last closed bar (informational)                       |
 
 The upstream angles are not repeated here (the commentary quotes them and MCD1 and MCD2 carry them), and
-"consolidated" is the state itself. INVALID and STALE readings carry an empty `details`. Size is the tightest of the
-three retrofitted MCDs: the largest envelope is estimated at 533 of 600 tokens (six levels, longest commentary).
+"consolidated" is the state itself. INVALID and STALE readings carry an empty `details`. Size is the tightest of the three retrofitted MCDs, and MCD3 departs from the standard's 600-token "should" (§5) on purpose: Davin approved a ceiling of **670 tokens** on 1 October 2026 (manifest A22) for a derived sensor that carries six levels, two 64-character `config_hash` values and up to two upstream cautions. Measured with real prices: the real consolidated reading (replica v3) is 587 tokens, its CAUTIONARY variants with two upstream cautions are 607 and 611, and with the candidates of live data (every variant populated, so `populated_candidates` names 6 + 7) the largest of the ten states is 656 (task P6).
 
 ## 12. Worked example
 
@@ -256,7 +250,7 @@ VALID `MCD1_DOWN_UPPER_BREAKOUT`, trend DOWN (−29.72°); MCD2 VALID `MCD2_UP_I
 | Condition 1         | DOWN against UP: **false**                                                                                                                                              |
 | Condition 2         | 0 of 754 closed M5 bars nested (0.00): **false**                                                                                                                        |
 | Condition 3         | M5 [4350.16, 4384.23] against M15 [4126.24, 4279.46]: **false**                                                                                                         |
-| State, regime, bias | `MCD3_NON_CONSOLIDATED_TREND_CONFLICT` · `TREND_MISALIGNMENT` · STAND_ASIDE (D6 proposal) · `edt_stochastic` null                                                       |
+| State, regime, bias | `MCD3_NON_CONSOLIDATED_TREND_CONFLICT` · `TREND_MISALIGNMENT` · STAND_ASIDE (Approved) · `edt_stochastic` null                                                          |
 | Levels              | M15: UOEDT 4279.46 (resistance), baseline 4214.17 (mid), LOEDT 4126.24 (support) · M5: UOEDT 4384.23, baseline 4367.20, LOEDT 4350.16                                   |
 | Summary             | "M15 and M5 trends differ, no consolidated trend"                                                                                                                       |
 | Commentary (T08)    | "The M15 channel slopes down (-29.72°) while the M5 channel slopes up (+6.94°), so the two timeframes do not form a consolidated trend and no EDT stochastic is given." |
@@ -264,11 +258,10 @@ VALID `MCD1_DOWN_UPPER_BREAKOUT`, trend DOWN (−29.72°); MCD2 VALID `MCD2_UP_I
 The pre-retrofit run on the still-open bars gave the same state (nesting 0 of 755). This is the situation the
 concept board shows (M15 `non-b` down, M5 `best-fit-a` up).
 
-**A real consolidated trend: replica v3, slot `2026-09-28T14:15Z`, M15 = `non_b`, M5 = `cherry_a`** (not yet a
-fixture, Q7). MCD1 VALID `MCD1_DOWN_LOWER_BREAKDOWN`, trend DOWN (−15.61°); MCD2 VALID `MCD2_DOWN_LOWER_BREAKDOWN`,
+**A real consolidated trend: replica v3, slot `2026-09-28T14:15Z`, M15 = `non_b`, M5 = `cherry_a`** (a fixture, Q7). MCD1 VALID `MCD1_DOWN_LOWER_BREAKDOWN`, trend DOWN (−15.61°); MCD2 VALID `MCD2_DOWN_LOWER_BREAKDOWN`,
 trend DOWN (−11.01°). `T_EDT` 1038, so `N_nest = 1037`; 973 nested (93.83) ≥ 75: condition 2 true. M5 [4194.62,
 4289.67] inside M15 [4148.18, 4331.53]: condition 3 true. M15 SSA 4146.30, so `P = −1.02`: the SSA is **below LOEDT**
-and in the lower zone. State `MCD3_BEAR_BOTTOM` · `BEARISH_CONSOLIDATED_OVERSOLD` · NEUTRAL (D6 proposal).
+and in the lower zone. State `MCD3_BEAR_BOTTOM` · `BEARISH_CONSOLIDATED_OVERSOLD` · NEUTRAL (Approved).
 `edt_stochastic` is −1.02 under D10 option A and 101.02 under option B. Commentary (T06, option A): "Both channels
 slope down (M15 -15.61°, M5 -11.01°). 973 of 1037 closed M5 bars have their corridor inside the M15 corridor, and the
 latest M5 corridor [4194.62, 4289.67] is inside the M15 corridor [4148.18, 4331.53]. The M15 SSA 4146.30 is below
@@ -293,17 +286,22 @@ Standard §12, T1 to T14 (T14 applies: MCD3 is derived). Detail and the mapping 
   `UPSTREAM_STALE` and `UPSTREAM_CAUTIONARY` for each of MCD1 and MCD2, an upstream from another cycle or
   indicator, an unreadable trend; and the check order.
 - T4 to T8, T10 to T12: the kit's shared checks (forming bar on both timeframes, wrong-slot statistics, setting,
-  determinism, schema, corrupted bundle, wording, size).
+  determinism, schema, corrupted bundle, wording, size). T12 also holds the ceiling of 670 tokens (§11) for all ten states
+  with every candidate populated, RETUNING and two upstream cautions.
 - T9: replay of the stored fixtures with their stored upstream envelopes (Q7). T13: the real cycles (v1 and v4,
   and v3 if Q7 is approved).
 - T14: changing MCD1's trend (or MCD2's) in the upstream reading changes MCD3's state in the same cycle; and the
   stored upstream envelopes equal what the committed MCD1 and MCD2 evaluators give on the same cycle.
 - Also: an M15 channel younger than the M5 window (those bars are not nested); a window bar whose M15 bar is the last
-  closed M15 bar at :05 and :10.
+  closed M15 bar at :05 and :10; an M5 stream that lags the M15 stream (the current corridor is still the last closed M15
+  bar); an M15 bar with only one band value; equal bands, or an inverted band, on the M15 bar that only the oldest window
+  bar maps to; a stochastic that rounds to -0.00 or to 1.00; the upper zone edge between 79.99 and 80 (task P6).
 
 ## 14. Open questions
 
 ### Decisions that are Davin's
+
+**Answered by Davin on 1 October 2026:** D10 = option A; D6 = the bias of §7; D7 = the six levels; Q1 to Q9 approved as recommended (last column). The tables keep each question as it was asked.
 
 | #   | Decision                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Default if you approve without comment                                                      |
 | --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
