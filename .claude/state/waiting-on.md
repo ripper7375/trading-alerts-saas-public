@@ -20,7 +20,7 @@ to [history/resolved-waiting-on.md](./history/resolved-waiting-on.md).
 Quick index (newest first):
 
 - MCD kit: forming bar inside the statistics fit windows (unverified; new evidence 2026-10-01) · kit writes absolute
-  workbook paths into fixture sources
+  workbook paths into fixture sources · kit passes a non-string `config_hash` into the envelope (P6 finding F1)
 - Shared FX rates `REDIS_URL` · SystemConfig pricing deploy + test · Language & locale open items ·
   Disbursement payout go-live (G1–G4) · 15th indicator rollout order
 - Chart-render: 2 unverified items · Socket-refactor trigger (decided: don't yet)
@@ -43,6 +43,9 @@ Quick index (newest first):
   Readers of those fit fields so far: MCD2 (`regression_angle`, `containment_rate`, `containment_n`;
   committed) and MCD1 (the same three, and `N_micro` depends on `containment_n`; evaluator 2.0.0, built in P3, checked by P6 and signed off on 2026-10-01, committed the same day).
   MCD3 reads `containment_rate` and `containment_n` (the M5 `T_EDT`), not the angle (evaluator 2.0.0, signed off and committed 2026-10-01).
+  MCD0 (evaluator 1.0.0, built in task P5, checked by P6, signed off by Davin and committed 2026-10-01) reads the fit descriptors themselves (R², MSE,
+  skew, the offsets, `window_span_bars`, `regression_angle` for the flat test), so a forming-bar fit would reach its
+  verdicts too; coverage already subtracts the open bar: [mcd0.md](../../davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md).
   **New evidence (2026-10-01, MCD3 task P2):** the band columns (UOEDT, LOEDT, baseline) are populated on exactly
   `T_EDT` rows ending at the still-open bar, on 7 of 7 real channels in replicas v1 and v4 (M5 `best_fit_a` 755,
   `fractal` 336, `cherry_a` 1134, `fractal` 410; M15 `non_b` 1808 and 2035, `non_a` 968), so the channel window
@@ -51,8 +54,20 @@ Quick index (newest first):
   [2026-10-01-0703-mcd3-p2.md](../../docs/handoffs/2026-10-01-0703-mcd3-p2.md) §7 item 1.
 
 - **The kit writes an absolute workbook path into `<slot>.source.md` (2026-10-01, MCD3 task P3).** For a workbook outside
-  `engine-1-5-new/` (v3 and v4, as for MCD1 and MCD2) the committed fixture files carry a `D:/SaaS Project/...` path; the
+  `engine-1-5-new/` (v3 and v4, as for MCD1, MCD2 and MCD0) the fixture files carry a `D:/SaaS Project/...` path; the
   SHA-256 is what matters. A kit change (`render_source_md` could use a relative path) for Davin to schedule.
+
+- **Kit hardening: a non-string `config_hash` is copied into the envelope (2026-10-01, MCD0 task P6, finding F1).**
+  `reading_context` in `mcd_common/envelope.py` (the `used = {...}` line) copies `inputs.config_hash[source]` into the envelope's
+  `config_hash` with no type check, and the shared T10 corruptions (`corrupted_bundles` in `mcd_common/testing.py`) never touch
+  `config_hash`. A `None`, number, boolean, list, mapping, `bytes`, NaN or object therefore gives a VALID envelope that breaks
+  `mcd-output/1`; `bytes`, NaN and objects cannot even be serialised, so the worker could not store the row. Shown on MCD0 (random
+  corruption of about 23,000 bundles: 661 hits, all this) and on MCD2 (a `None`, `7` and `b"x"`); MCD1 and MCD3 call the same
+  function. MCD0 now guards it itself (tier 3: INVALID + `SANITY_FAILED`, and only string hashes are written). **A kit change for
+  Davin to schedule:** make `reading_context` keep string hashes only, add a `config_hash` corruption to the shared T10, and then
+  give MCD1 to MCD3 the same tier-3 check or rely on the kit. Related, lower: `Params.from_yaml` accepts a non-finite value
+  (`.inf`), which would give a non-finite `coverage` in MCD0's `details`. Hand-off:
+  [2026-10-01-1650-mcd0-p6.md](../../docs/handoffs/2026-10-01-1650-mcd0-p6.md).
 
 <!-- CLAUDE.md L4896-L4901 -->
 

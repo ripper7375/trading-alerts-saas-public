@@ -103,4 +103,4 @@ One file per decision. The architecture itself is in [STACK-D-ARCHITECTURE.md](.
 | 080 | [Operations dashboard and alerts](080-operations-dashboard-and-alerts.md)                                                           | 7 · Platform & governance       | Settled  | 2026-09-30 |
 | 081 | [Safety texts in all 16 languages](081-safety-texts-in-all-16-languages.md)                                                         | 7 · Platform & governance       | Settled  | 2026-09-30 |
 | 082 | [MCD development standard](082-mcd-development-standard.md)                                                                         | 2 · Sensors (MCDs)              | Settled  | 2026-09-30 |
-| 083 | [MCD1 and MCD2 windows count the channel's closed bars](083-mcd1-and-mcd2-windows-count-the-channels-closed-bars.md)                | 2 · Sensors (MCDs)              | Proposed | 2026-10-01 |
+| 083 | [MCD1 and MCD2 windows count the channel's closed bars](083-mcd1-and-mcd2-windows-count-the-channels-closed-bars.md)                | 2 · Sensors (MCDs)              | Settled  | 2026-10-01 |

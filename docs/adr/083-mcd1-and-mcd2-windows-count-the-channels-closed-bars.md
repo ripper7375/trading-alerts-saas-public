@@ -1,6 +1,6 @@
 # ADR-083: MCD1 and MCD2 windows count the channel's closed bars
 
-- **Status:** Proposed (drafted in task P7, 2026-10-01; Davin confirmed the PATCH classification, and the answers to Q1 to Q5 of the concept section follow the builder's recommendations until he settles them)
+- **Status:** Settled (approved by Davin, 2026-10-01; drafted in task P7; he confirmed the PATCH classification and approved the answers to Q1 to Q5 of the concept sections as built)
 - **Date:** 2026-10-01
 - **Section:** 2 · Sensors (MCDs)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §2.5, §2.13; [MCD-DEVELOPMENT-STANDARD.md](../MCD-DEVELOPMENT-STANDARD.md) §14

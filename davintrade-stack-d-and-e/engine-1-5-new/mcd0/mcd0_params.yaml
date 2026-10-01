@@ -1,0 +1,66 @@
+# MCD0 parameters (standard Appendix C.3). Changing a value is a version change (standard section 14).
+# Every threshold in mcd0.md section 6 appears here once. The thresholds are starting values: the shadow period measures
+# MCD0's flag rate, and a change needs a new decision entry and a MINOR version (concept R10, ADR-019).
+mcd_id: MCD0
+evaluator_version: 1.0.0
+parameters:
+  min_coverage_bars:
+    value: 60
+    unit: closed bars
+    boundary: '>= value passes the COVERAGE pillar (coverage = window_span_bars - t_edt_open_bar_rows)'
+    why: 'File C pillar 1: N_span >= 60, which is at least 5 hours of M5 and 15 hours of M15 (walkthrough C4, architecture 2.4)'
+  t_edt_open_bar_rows:
+    value: 1
+    unit: rows
+    boundary: 'coverage in closed bars = window_span_bars - value'
+    why: 'window_span_bars counts from the leftmost evaluated bar to the live bar inclusive (schema.prisma), so the still-open bar is one of its rows; same name and value as MCD1 to MCD3 (ADR-083); Davin, 2026-10-01, question (a). Whether the fit window includes the open bar is open (waiting-on)'
+  min_r2_model_a:
+    value: 0.70
+    unit: R-squared
+    boundary: '>= value passes R2_A'
+    why: 'ADR-019 and architecture 2.4: Model A (SSA crossings) R-squared at least 0.70'
+  min_r2_model_b:
+    value: 0.65
+    unit: R-squared
+    boundary: '>= value passes R2_B'
+    why: 'ADR-019 and architecture 2.4: Model B (close price) R-squared at least 0.65'
+  flat_angle_deg:
+    value: 5.0
+    unit: degrees
+    boundary: 'abs(regression_angle) <= value: the active channel is flat and the R-squared pillar (both models) is not applied; above value it is applied'
+    why: 'A flat channel explains almost no variance by slope, whichever indicator draws it; the same +-5 degree band as SIDEWAYS in MCD1 to MCD3; Davin, 2026-10-01, question (d)'
+  min_fit_ratio:
+    value: 1.50
+    unit: ratio
+    boundary: '>= value passes the FIT pillar of a model (below it: over-fitted, wicks breach)'
+    why: 'File C pillar 3, architecture 2.4: fit ratio 1.50 to 3.20; each model uses its own MSE (Davin, 2026-10-01, question (b))'
+  max_fit_ratio:
+    value: 3.20
+    unit: ratio
+    boundary: '<= value passes the FIT pillar of a model (above it: under-fitted, too loose)'
+    why: 'File C pillar 3, architecture 2.4: fit ratio 1.50 to 3.20'
+  min_geo_ratio:
+    value: 0.60
+    unit: ratio
+    boundary: '>= value passes the GEO pillar'
+    why: 'File C pillar 4, architecture 2.4: geo ratio 0.60 to 1.65; kept although the schema calls asymmetry "reported, never penalised" (Davin, 2026-10-01, question (c); measure the flag rate in shadow)'
+  max_geo_ratio:
+    value: 1.65
+    unit: ratio
+    boundary: '<= value passes the GEO pillar'
+    why: 'File C pillar 4, architecture 2.4: geo ratio 0.60 to 1.65'
+  max_abs_skew:
+    value: 1.50
+    unit: skewness
+    boundary: 'abs(skew) <= value passes the SKEW pillar of a model'
+    why: 'File C pillar 4, architecture 2.4: absolute skew at most 1.50; each model uses its own skew (spec question Q2)'
+  ratio_decimals:
+    value: 4
+    unit: decimals
+    boundary: 'Output rounding only (R-squared, fit ratio, geo ratio in details); every verdict is decided on the unrounded values'
+    why: 'The verdicts sit close to their boundaries on real data (R-squared 0.6876 against 0.70), so two decimals would hide the reason'
+  statistic_decimals:
+    value: 2
+    unit: decimals
+    boundary: 'Output rounding only (skew, variance ratio, kurtosis in details)'
+    why: 'The indicator stores these at two decimals'

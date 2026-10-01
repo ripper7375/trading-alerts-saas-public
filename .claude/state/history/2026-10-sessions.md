@@ -12,6 +12,105 @@ Entries rotated out of `current-state.md` by [session-lifecycle](../../protocols
 
 Back to [history index](./index.md).
 
+<!-- session 2026-10-01 mcd0-p4b -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed (HEAD `4ae42610` is Davin's Next.js security update). MCD
+> task P4 part (b) for MCD0 after Davin confirmed `mcd0/concept.md` and answered (a) to (k): `mcd0.md`, `mcd0_registry.yaml`,
+> `mcd0_params.yaml` (12 parameters) and `mcd0_implementation_plan.md` are written and the work STOPS at the second STOP for his approval.
+> No code.**
+> **Needs from Davin:** (1) approve or correct the four files and answer spec Q1 to Q5: `last_closed_bar` is `{}`; each model's own skew;
+> variance ratio and kurtosis never required; empty rung and no rule rows; **Q5, the trimmed envelope**: the first layout measured 660
+> tokens worst case (582 for the real v1 reading) against the 600 budget, so the spec drops `verdict`, `source` and the angle from `details`
+> and names the criterion, not the model, in commentary (555 tokens, 561 with RETUNING); the alternative is a higher ceiling for MCD0, as
+> for MCD3; (2) then the architecture §2.13 MCD0 row goes from `To build` to `Draft` and P5 follows (evaluator, tests T1 to T13, fixtures
+> v1, v3 and v4, manifest); `active-tasks.md` is left in place with STOP 2 and P5 open; (3) commit only after P5 is built and verified
+> (decision (k)); `package.json` and `pnpm-lock.yaml` were committed by him in `4ae42610`, so nothing is left to exclude.
+> **Changed & verified:** new `mcd0/mcd0.md`, `mcd0_registry.yaml`, `mcd0_params.yaml`, `mcd0_implementation_plan.md`; `mcd0/concept.md`
+> (confirmed, and §11 holds his answers); the hand-off ([P4 (b) MCD0](../../../docs/handoffs/2026-10-01-1536-mcd0-p4b.md)) and these state
+> files. Scratch (nothing in the repo): the expected reading of every real channel row with the decisions applied (eight real cases, four
+> `MCD0_M5_M15_DEFECT` and four `MCD0_M5_DEFECT`); token counts of hand-built envelopes with the kit's counter; a consistency check (the 12
+> parameters in spec §6 equal the parameters file loaded through the kit; the registry and the rendered commentary pass the kit's wording
+> check). Prettier clean, LF, no Thai. MCD0 has no code, test, fixture or manifest yet, so no suite was run; not run: `test:ci`, `tsc`, lint,
+> build.
+> **Unconfirmed / found:** the 600-token budget decides the layout (the mandatory part is about 230 tokens, the two `config_hash` entries
+> about 90); the margin is about 40 and P5's T12 must confirm it on the built evaluator; no real M5 channel qualifies, so
+> `MCD0_ALL_QUALIFIED` and `MCD0_M15_DEFECT` are synthetic only; the fit-window question reaches MCD0 ([waiting-on](../waiting-on.md)); the
+> shared T6 and T10 are overridden in MCD0's tests because it reads no bars (no kit change). The oldest entry (P7 (b)) was rotated into
+> `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 mcd0-p4a -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed (HEAD `dfb17331`). ADR-083 settled (Proposed to Settled) and
+> Q1 to Q5 of the MCD2 and MCD1 2.0.1 patch recorded as approved as built; then MCD task P4 part (a) for MCD0: `mcd0/concept.md` (a readback
+> of walkthrough Part C4; MCD0 has no board) is written and the work STOPS for Davin to confirm it and answer its open questions.**
+> **Needs from Davin:** (1) confirm or correct `mcd0/concept.md`; (2) answer questions (a) to (f) of walkthrough C4 (decision D8) and (g) to (j)
+> found while reading (concept §10, each with a recommendation; (a) to (f) are the build user manual §3 suggestions: `window_span_bars` counted
+> in closed bars, each model's own MSE, keep the geo gate, skip R² on a flat channel, Model A not applicable for the fractal EDT, variance
+> ratio and kurtosis as values in `details`; (g) to (j): tier 1 without bars, one unreadable timeframe makes the whole reading STALE or INVALID,
+> sanity checks for MSE and offsets, no containment test); (3) then P4 part (b): `mcd0.md`, registry, parameters and the plan (a second STOP),
+> and after his approval P5; `active-tasks.md` is left in place with both STOPs open; (4) what to commit: the ADR-083 and manifest edits and
+> `mcd0/` are uncommitted, and `package.json` and `pnpm-lock.yaml` show a Next.js 16.3.3 to 16.3.8 bump (including `overrides`) that is not from
+> this session and should stay out of it.
+> **Changed & verified:** `docs/adr/083-…md` and its row in `docs/adr/README.md` (Settled); one row in §9 of the MCD2 and MCD1 manifests; new
+> `mcd0/concept.md` (176 lines); the hand-off ([P4 (a) MCD0](../../../docs/handoffs/2026-10-01-1519-mcd0-p4a.md)) and these state files. A scratch
+> probe (nothing in the repo) computed the four pillars on the 11 real channel rows of the stored fixtures (v1, v3, v4): the literal thresholds
+> flag all six active-channel readings (only R² and the fit ratio fail), `channel_width` equals `uoedt_offset - loedt_offset` on all 11, and the
+> two MSE readings never differ in verdict on the 8 rows with Model A values. Prettier clean, LF, no Thai on every edited Markdown file. No
+> evaluator, test, fixture, spec, registry or parameter was touched, so no suite was run; not run: `test:ci`, `tsc`, lint, build.
+> **Unconfirmed / found:** `window_span_bars` counts through the still-open bar (closed bars are one fewer, the ADR-083 fact), and MCD0 becomes a
+> new reader of the fit fields whose forming-bar question is still open ([waiting-on](../waiting-on.md), now lists MCD0); the kit's tier-1
+> cross-check and the shared T6 need bars, which C4 says MCD0 does not read (question (g)); no real M5 channel qualifies, so two of the four
+> states need synthetic bundles. The oldest entry (P7 (a)) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 p7b-mcd2-mcd1 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, committed by explicit path ("Patch MCD2 and MCD1 to 2.0.1: window
+> counts the channel's closed bars (task P7)"; the hash is in `git log`), NOT pushed. MCD task P7 part (b) for MCD2 and MCD1 after
+> Davin confirmed the PATCH (evaluator 2.0.1): MCD2's window is `min(T_EDT - 1, 288)` and a channel under 48 closed bars is INVALID +
+> `INSUFFICIENT_BARS`; MCD1 requires the channel to hold `N_micro` closed bars (`T_EDT - 1 >= N_micro`), same reason code; no real
+> reading changes.**
+> **Needs from Davin:** (1) nothing blocks. Q1 to Q5 of the concept sections were not answered one by one, so the build follows the
+> recommended answers (floors kept as minimums, parameter `t_edt_open_bar_rows` = 1, ADR-083 drafted, MCD3 note wording): say if any
+> should change; (2) settle **ADR-083** (status Proposed); (3) optionally a fresh **P6 check** of the two patched MCDs (a short one);
+> (4) next work: **MCD0** (Part D with the C4 content; its open questions (a) to (f) are his). `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** both evaluators, params, registries, specs, plans, manifests and `concept.md` sections of MCD1 and MCD2;
+> `MCD2` 93 to **102** tests and `MCD1` 105 to **113** (`ShortChannelTests`; three MCD2 tests that pinned the old formula edited, MCD1
+> only its register test); `evaluator_version` label `2.0.0` to `2.0.1` in nine stored JSON files (MCD1 and MCD2 fixture envelopes and
+> outputs, MCD3's three `upstream.json`: MCD3 T14 needs them equal to the live output); architecture §2.5 and §2.13; ADR-083 and its
+> index row; two MCD3 notes (wording); the `waiting-on.md` item moved to resolved; hand-off
+> ([P7 (b)](../../../docs/handoffs/2026-10-01-1453-p7b-mcd2-mcd1.md)). From `engine-1-5-new/`: MCD2 **102 OK**, MCD1 **113 OK**, MCD3
+> **134 OK** (1 opt-in skip; the opt-in scan of the 12 real pairings OK), the kit **215 OK**, legacy **13 OK** each; pyflakes and Prettier
+> clean. Own mutation pass on the new logic: 14 of 14 killed. The test run after the commit is in the terminal report, not in a file.
+> **Unconfirmed / found:** with the floors kept, MCD1 changes only a reason code (`DISCONTINUITY` to `INSUFFICIENT_BARS`) and MCD2 gains
+> VALID readings for `T_EDT` 49 to 288. The fit-window question stays open ([waiting-on](../waiting-on.md)); the parameter makes a
+> different answer a one-value change. The "T_EDT helper" is now in three evaluators (a kit change for Davin to schedule). Not run:
+> `test:ci`, `tsc`, lint, build (no app code touched). The oldest entry (MCD3 P6) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 p7a-mcd2-mcd1 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed (HEAD `6599c74f` is Davin's). MCD task P7 part (a) for
+> MCD2 and MCD1, the short-channel window: the "Change 2026-10-01" section is written in `mcd2/concept.md` and `mcd1/concept.md`
+> (PATCH, evaluator 2.0.1, no fixture output moves) and the work STOPS for Davin's confirmation. Also the cosmetic edit on line 168 of
+> the MCD3 plan ("(D6 proposal)" to "(Approved)").**
+> **Needs from Davin:** (1) confirm the two Change sections and answer **Q1 first: keep the 48-bar (MCD2) and 96-bar (MCD1) floors as
+> minimums** (INVALID + `INSUFFICIENT_BARS` for a shorter channel; recommended), because `min(T_EDT - 1, cap)` applied literally drops
+> them (a channel of 30 closed M5 bars would read VALID over 29 bars); (2) Q2 to Q5 in the sections, each with a recommendation:
+> `t_edt_open_bar_rows` as a parameter, PATCH not MINOR (three MCD2 tests pin the old formula), one decision entry (ADR-083) for both,
+> and the wording of two MCD3 notes; (3) what to commit. Then **P7 (b)** (spec, parameters, registry, evaluator, tests, version 2.0.1,
+> manifests, architecture §2.5 and §2.13, the draft decision entry, the suites, a fresh P6), then MCD0. `active-tasks.md` is left in
+> place with the STOP and part (b) open.
+> **Changed & verified:** the two `concept.md` files (84 and 76 added lines, none removed) and one line of
+> `mcd3/mcd3_implementation_plan.md`; the hand-off ([P7 (a)](../../../docs/handoffs/2026-10-01-1435-p7a-mcd2-mcd1.md)) and these state
+> files. No evaluator, test, spec, registry, parameter, fixture or output was touched. Prettier clean, LF, no Thai. A scratch probe
+> (nothing in the repo): the fixtures' `T_EDT` are 314 or more on M5 and 500 or more on M15, so no fixture output moves; the committed
+> MCD2 reads INVALID + `DISCONTINUITY` at `T_EDT` 288 and below, MCD1 at 96 and below (as the waiting-on item said). Not run: the test
+> suites (no code touched), `test:ci`, `tsc`, lint, build.
+> **Unconfirmed / found:** with the floors kept, the MCD1 patch changes only a reason code (`DISCONTINUITY` to `INSUFFICIENT_BARS`);
+> MCD2 gains VALID readings for `T_EDT` 49 to 288. MCD3 reads only the upstream status, trend and angle, so the MCD1 reason-code
+> change is invisible to it. The fit-window question stays open ([waiting-on](../waiting-on.md)); the patch does not depend on it. The
+> "T_EDT helper" now exists in three evaluators (a kit change for Davin to schedule). The oldest entry (MCD3 P3) was rotated into
+> `history/2026-10-sessions.md`.
+
 <!-- session 2026-10-01 mcd3-p6 -->
 
 > **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, committed by explicit path ("Retrofit MCD3: evaluator 2.0.0, tests,

@@ -1,0 +1,71 @@
+{
+  "schema_version": "mcd-output/1",
+  "mcd_id": "MCD0",
+  "evaluator_version": "1.0.0",
+  "cycle_slot": "2026-09-28T23:15Z",
+  "last_closed_bar": {},
+  "active_indicator": {
+    "M15": "non_b",
+    "M5": "cherry_a"
+  },
+  "config_hash": {
+    "cherry_a": "85bea24b4b98f5e89eceaf1f6341a6a960e16d9546a3d7fb12de99d1f7a6c345",
+    "non_b": "9efbdd7cc2a7866c5f7f6fa76d78a3282823f0c6b034c4f85659be74bdcd84c3"
+  },
+  "status": "VALID",
+  "status_reasons": [],
+  "state_code": "MCD0_M5_M15_DEFECT",
+  "regime_status": null,
+  "bias": "NEUTRAL",
+  "levels": [],
+  "depends_on": [],
+  "summary_line": "M5 and M15 channel fits each miss a criterion",
+  "commentary": "The M5 channel (cherry_a) misses fit criteria: R2. The M15 channel (non_b) misses fit criteria: R2.",
+  "details": {
+    "M15": {
+      "coverage": 2034,
+      "failed": [
+        "R2_A",
+        "R2_B"
+      ],
+      "geo_ratio": 0.8478,
+      "model_a": {
+        "fit_ratio": 1.6009,
+        "kurtosis": 2.89,
+        "r2": 0.4047,
+        "skew": -0.44,
+        "var_ratio": 0.75
+      },
+      "model_b": {
+        "fit_ratio": 1.5058,
+        "kurtosis": 2.83,
+        "r2": 0.1744,
+        "skew": -0.44,
+        "var_ratio": 0.76
+      },
+      "skipped": []
+    },
+    "M5": {
+      "coverage": 1133,
+      "failed": [
+        "R2_A"
+      ],
+      "geo_ratio": 1.0761,
+      "model_a": {
+        "fit_ratio": 2.2393,
+        "kurtosis": 2.57,
+        "r2": 0.6876,
+        "skew": 0.5,
+        "var_ratio": 9.82
+      },
+      "model_b": {
+        "fit_ratio": 2.3069,
+        "kurtosis": 2.62,
+        "r2": 0.6883,
+        "skew": 0.56,
+        "var_ratio": 10.71
+      },
+      "skipped": []
+    }
+  }
+}

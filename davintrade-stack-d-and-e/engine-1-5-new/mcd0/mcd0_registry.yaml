@@ -1,0 +1,65 @@
+# MCD0 registry entry and state register (standard Appendix C.2). Approved by Davin on 2026-10-01 (spec and plan); built in task P5.
+mcd_id: MCD0
+name: Channel fit quality gate
+evaluator_version: 1.0.0
+kind: gate # gate | independent | derived
+timeframes: [M5, M15]
+depends_on: []
+uses_channel: [] # a gate is not itself marked; the worker marks the channel MCDs through THEIR uses_channel (standard 9.2)
+rung: {} # a gate has no rung: it is not a voter and never enters the precedence ladder (architecture 2.13 shows a dash)
+flag: 'off' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
+spec: engine-1-5-new/mcd0/mcd0.md
+params: engine-1-5-new/mcd0/mcd0_params.yaml
+# Bias is NEUTRAL in every state (a gate has no direction, standard 7.2). No levels, no regime word.
+# Each timeframe is judged on the four pillars of walkthrough C4; a timeframe is a defect when any applied pillar fails.
+states:
+  - code: MCD0_ALL_QUALIFIED
+    meaning: The active M5 channel and the active M15 channel meet every fit criterion.
+    bias: NEUTRAL
+    regime_status: null
+    levels: []
+    summary: 'M5 and M15 channel fit meets every criterion'
+    commentary: MCD0_T01
+  - code: MCD0_M5_DEFECT
+    meaning: The active M5 channel misses at least one fit criterion and the active M15 channel meets every one.
+    bias: NEUTRAL
+    regime_status: null
+    levels: []
+    summary: 'M5 channel fit misses a criterion, M15 meets all'
+    commentary: MCD0_T02
+  - code: MCD0_M15_DEFECT
+    meaning: The active M15 channel misses at least one fit criterion and the active M5 channel meets every one.
+    bias: NEUTRAL
+    regime_status: null
+    levels: []
+    summary: 'M15 channel fit misses a criterion, M5 meets all'
+    commentary: MCD0_T03
+  - code: MCD0_M5_M15_DEFECT
+    meaning: Both the active M5 channel and the active M15 channel miss at least one fit criterion.
+    bias: NEUTRAL
+    regime_status: null
+    levels: []
+    summary: 'M5 and M15 channel fits each miss a criterion'
+    commentary: MCD0_T04
+# Pillar ids, in the order they are listed in details, with the word each contributes to commentary. COVERAGE and GEO
+# belong to the channel; the others belong to a model (A = SSA crossings, B = close price). Commentary names the
+# criterion, not the model (the two models of one criterion share a word), to stay inside the 600-token budget; the model
+# is in details.failed.
+pillar_order: [COVERAGE, R2_A, R2_B, FIT_A, FIT_B, GEO, SKEW_A, SKEW_B]
+pillar_labels:
+  COVERAGE: 'coverage'
+  R2_A: 'R2'
+  R2_B: 'R2'
+  FIT_A: 'fit ratio'
+  FIT_B: 'fit ratio'
+  GEO: 'geo ratio'
+  SKEW_A: 'skew'
+  SKEW_B: 'skew'
+# Commentary templates. {m5_indicator} and {m15_indicator} are the settings' values (for example best_fit_a, non_b,
+# fractal). {m5_failed} and {m15_failed} are the distinct labels above of the failed pillars of that timeframe, in
+# pillar_order, joined by ", ".
+commentary_templates:
+  MCD0_T01: 'The M5 channel ({m5_indicator}) and the M15 channel ({m15_indicator}) meet every fit criterion.'
+  MCD0_T02: 'The M5 channel ({m5_indicator}) misses fit criteria: {m5_failed}. The M15 channel ({m15_indicator}) meets every fit criterion.'
+  MCD0_T03: 'The M15 channel ({m15_indicator}) misses fit criteria: {m15_failed}. The M5 channel ({m5_indicator}) meets every fit criterion.'
+  MCD0_T04: 'The M5 channel ({m5_indicator}) misses fit criteria: {m5_failed}. The M15 channel ({m15_indicator}) misses fit criteria: {m15_failed}.'
