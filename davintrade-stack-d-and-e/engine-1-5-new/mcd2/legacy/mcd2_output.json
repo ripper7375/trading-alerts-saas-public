@@ -1,0 +1,104 @@
+{
+  "mcd_id": "MCD2",
+  "name": "M5 Defined Trend and Breakout Implication",
+  "symbol": "XAUUSD",
+  "timeframe": "M5",
+  "evaluated_at": "2026-09-20 23:00:46 UTC",
+  "evaluated_epoch": 1789945246,
+  "parameters": {
+    "sideways_angle_threshold_degrees": 5.0,
+    "min_containment_threshold": 50.0,
+    "min_window_floor": 48,
+    "max_window_bars": 288,
+    "target_indicator_override": "best_fit_a"
+  },
+  "validation": {
+    "status": "PASS",
+    "errors": [],
+    "warnings": [],
+    "checks": {
+      "total_bars_available": 3000,
+      "candidate_indicator_coverage": {
+        "best_fit_a": 755,
+        "best_fit_b": 0,
+        "cherry_a": 0,
+        "cherry_b": 0,
+        "most_recent": 0,
+        "non_a": 0,
+        "non_b": 0,
+        "fractal": 336
+      },
+      "active_indicators_detected": ["best_fit_a", "fractal"],
+      "indicator_statistics_record": {
+        "source": "best_fit_a",
+        "captured_at": 1789764900,
+        "live_bar_ts": 1789764900,
+        "regression_angle": 6.94,
+        "containment_rate": 55.76,
+        "edt_time_horizon": 755,
+        "channel_position_stat": 0.8153,
+        "raw_slope": 0.05268,
+        "anchored_y_int": 4367.24834,
+        "channel_width_stat": 34.06454,
+        "total_matching_snapshots": 1
+      },
+      "edt_time_horizon": 755,
+      "evaluation_window_bars": 288,
+      "evaluation_start_bar_index": 2714,
+      "evaluation_end_bar_index": 3001
+    }
+  },
+  "active_indicator": "best_fit_a",
+  "trend_structure": {
+    "regression_angle": 6.94,
+    "raw_slope": 0.05268,
+    "containment_rate_pct": 55.76,
+    "edt_time_horizon": 755,
+    "is_corridor_valid": true,
+    "trend_direction": "UPTREND",
+    "provenance": {
+      "source": "best_fit_a",
+      "captured_at": 1789764900,
+      "live_bar_ts": 1789764900
+    }
+  },
+  "corridor_dynamics": {
+    "metric_used": "SSA",
+    "latest_bar": {
+      "timestamp": 1789764900,
+      "close": 4377.99,
+      "metric_value": 4377.32850409,
+      "uoedt": 4384.28061,
+      "loedt": 4350.21607,
+      "baseline": 4367.24834,
+      "channel_width": 34.0645399999994,
+      "channel_position": 0.7959,
+      "channel_position_close": 0.8153,
+      "corridor_state": "IN_CORRIDOR"
+    },
+    "window_statistics": {
+      "window_bars": 288,
+      "metric_evaluated": "SSA",
+      "contained_bar_count": 199,
+      "contained_pct": 69.1,
+      "upper_breach_count": 89,
+      "upper_breach_pct": 30.9,
+      "lower_breach_count": 0,
+      "lower_breach_pct": 0.0,
+      "max_excursion_above": 20.26,
+      "max_excursion_below": 0.0
+    }
+  },
+  "synthesis": {
+    "primary_trend": "UPTREND",
+    "corridor_state": "IN_CORRIDOR",
+    "regime_status": "TREND_ALIGNED_CONTINUATION",
+    "discrete_state_code": "MCD2_UP_IN_CORRIDOR",
+    "mean_reversion_probability": "LOW",
+    "trend_continuation_risk": "LOW",
+    "description": "Price fluctuates normally inside upward channel bands. Healthy uptrend continuation."
+  },
+  "trend_state": "UPTREND",
+  "regime_status": "TREND_ALIGNED_CONTINUATION",
+  "commentary": "XAUUSD M5 trend is UPTREND (+6.94°) with SSA safely within the EDT corridor (channel_position=0.7959). Deviation remains moderate without high mean reversion pressure, confirming healthy trend continuation."
+}

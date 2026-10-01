@@ -30,6 +30,11 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   above (found in the 2026-10-01 P6 re-check, `docs/handoffs/2026-10-01-0156-p6-recheck-kit.md` G4).
 - `scratch/` is gitignored but inside `tsc`'s scope (`tsconfig` includes `**/*.ts`), so a
   type error there blocks the pre-push hook.
+- **A repo-wide `find -mmin` takes more than two minutes here** and the harness moves it to the
+  background. Name the folders you need, or use `git status` (found in the 2026-10-01 MCD2 P6 check,
+  `docs/handoffs/2026-10-01-0430-mcd2-p6.md` §8).
+- **Python scripts that print `°` or `θ` crash on the Windows console** (`UnicodeEncodeError`, cp1252);
+  MCD commentary contains `°`. Run them with `PYTHONIOENCODING=utf-8` (same hand-off, §8).
 
 ## Tests
 
@@ -58,3 +63,20 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   a harmless dev-only error. Confirm against `next build && next start` before calling it a bug.
 - Authenticated pages cannot be verified by the Executor (it never enters credentials). Use a
   throwaway unauthenticated route outside the gated layout, delete it after, and say so.
+
+## YAML registry files
+
+- PyYAML (YAML 1.1) reads an unquoted `off`, `on`, `yes` and `no` as booleans. Quote them in
+  MCD registry and parameter files (`flag: 'off'`); the standard's Appendix C.2 template quotes it
+  since version 1.0.3 (`docs/handoffs/2026-10-01-0410-mcd2-p3.md` §7).
+
+## Pre-commit hook and generated files
+
+- The pre-commit hook (`lint-staged`) runs `prettier --write` on every staged `.json`, `.md` and
+  `.yaml` file and puts the result in the commit and the working tree. A generated file that tests
+  compare byte for byte is rewritten by it: the MCD fixtures (`.inputs.json` is one line, about 80 KB)
+  came out as 3,700 lines and T9 failed on the committed state (2026-10-01, MCD2 commit). The MCD
+  fixtures and `mcd*_output.json` are now in `.prettierignore`. Any other generated file a test
+  compares byte for byte needs the same entry, and a test run after the commit, not only before it.
+- `git stash list` holds 17 old "lint-staged automatic backup" stashes (3 to 5 weeks old, not from a
+  current run). Do not drop them without Davin's say.

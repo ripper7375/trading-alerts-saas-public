@@ -2,7 +2,7 @@
 
 |                  |                                                                                                                                                                                                                                                                         |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**       | Settled ([ADR-082](adr/082-mcd-development-standard.md), approved by Davin 30 September 2026). Version 1.0.2, 1 October 2026 (§6 and §12: unknown `data_status`, PATCH)                                                                                                 |
+| **Status**       | Settled ([ADR-082](adr/082-mcd-development-standard.md), approved by Davin 30 September 2026). Version 1.0.3, 1 October 2026 (Appendix C.2: `flag` quoted, PATCH)                                                                                                       |
 | **Owner**        | Davin (topics, specs and go-live approvals)                                                                                                                                                                                                                             |
 | **Applies to**   | Every Market Condition Description sensor: MCD0 (quality gate), MCD1–MCD3 (examples, to retrofit), MCD4–MCD15 (to be defined)                                                                                                                                           |
 | **Walkthrough**  | [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md): the order of work for retrofitting MCD0–MCD3 and creating new MCDs, and the agent's task cards. Davin's prompts: [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md)     |
@@ -740,7 +740,7 @@ uses_channel: [M5] # timeframes on which MCD0 defects make this MCD CAUTIONARY
 rung: # per trader type; values: primary_structure | support_resistance | trendlines_channels | oscillators
   DAY_TRADER: trendlines_channels
   SCALPER: primary_structure
-flag: off # off | shadow | live
+flag: 'off' # off | shadow | live (quote it: an unquoted off is the boolean false in YAML 1.1)
 spec: engine-1-5-new/mcd2/mcd2.md
 params: engine-1-5-new/mcd2/mcd2_params.yaml
 states:

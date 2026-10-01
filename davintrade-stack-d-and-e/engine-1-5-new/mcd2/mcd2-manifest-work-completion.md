@@ -1,184 +1,184 @@
-# MCD2 MANIFEST & WORK COMPLETION SPECIFICATION
+# MCD2 manifest: work completion (retrofit 2.0.0)
 
-**Module Name:** `mcd2_evaluator.py`  
-**Test Suite:** `test_mcd2_unit_tests.py`  
-**MCD ID:** `MCD2`  
-**Description:** M5 Defined Trend and Breakout Implication Evaluator (SSA Corridor Deviation & Mean Reversion)  
-**Target Asset:** `XAUUSD`  
-**Target Timeframe:** `M5`  
-**Target Architecture:** DavinTrade Stack D — Engine 1.5A (Discrete State Machine & Quality Gate)  
-**Primary Consumer:** Claude Code (Stack D Master Builder & Code Auditor) / DavinTrade Ingestion Pipeline  
-**Document Status:** `CERTIFIED & VERIFIED (100% PASS - 13/13 UNIT TESTS)`  
-**Timestamp:** `2026-09-21 06:05:00 UTC` (Epoch: `1789945500`)
+|                       |                                                                                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MCD**               | MCD2: M5 trend and corridor deviation · independent · M5                                                                                                                    |
+| **Evaluator version** | **2.0.0** (MAJOR: the output shape changed from the pre-retrofit evaluator, which had no version)                                                                           |
+| **Stage**             | 3 (build) done on 1 October 2026 by task P3, checked by task P6 and signed off by Davin the same day. Flag `off`. Registry status in architecture §2.13: `Retrofit (2.0.0)` |
+| **Built on**          | The shared kit `mcd_common/` (Step 0, 215 tests), standard 1.0.3, walkthrough Part C0 steps R5 to R10                                                                       |
+| **Specification**     | [mcd2.md](mcd2.md) (approved by Davin, 1 October 2026) · [plan](mcd2_implementation_plan.md) · [concept](concept.md)                                                        |
+| **Next**              | Stages 4 to 7 when the sensor worker, synthesis and the knowledge build exist                                                                                               |
 
----
+## 1. What was built
 
-## 1. Executive Summary & Core Mandate
+`evaluate(inputs, params, upstream) -> envelope`: a pure function on the kit's frozen input bundle that answers
+one question per cycle: which way the active M5 EDT channel slopes (UP, DOWN, SIDEWAYS on a ±5° band), and where
+the last **closed** M5 bar's SSA (Close, for the fractal EDT) sits against the corridor between LOEDT and UOEDT.
+Nine states (trend × inside, above, below), a bias by trend (decision D6), the three M5 levels, a summary line
+and a location-only commentary from nine templates. Failure is a status with a reason code, never a state.
 
-`MCD2` is the second certified discrete state evaluator of **Stack D (Engine 1.5A)**. Building on the universal engineering standard established by `MCD1`, `MCD2` implements the dedicated core principles for **M5 Defined Trend and Breakout Implication**:
+Compared with the pre-retrofit MCD2 (`legacy/`): closed bars instead of the forming bar; the setting instead of
+detection; statistics at the slot; containment checked in tier 4; no probability, advice or `UNIDENTIFIED`
+words; two regime words renamed (D5); output is envelope `mcd-output/1`. The change list is plan §1.
 
-> **"Determine the defined intraday trend direction of Gold (XAUUSD) on M5 from the active EDT indicator's linear regression angle, evaluate immediate corridor deviation using smoothed SSA (for Centroids) or Close price (for Fractal), and synthesize these into deterministic zero-hallucination discrete states capturing Mean Reversion probability and trend continuation risk."**
+## 2. Files
 
-### Core Engineering Upgrades in this Release:
+All in `davintrade-stack-d-and-e/engine-1-5-new/mcd2/` unless stated.
 
-1. **8 Candidate EDT Indicators on M5:** Expands the candidate pool from MCD1's 7 Centroid variants to include **`fractal`** (`2EDTFractalBestFitv5_v2_29.mq5`), strictly mapping to `source == 'fractal_edt'` in `indicator_statistics`.
-2. **Strict Single Active Indicator Gate:** Enforces that exactly 1 indicator can be active on M5 in production. Multiple active indicators are strictly flagged as **`INVALID`**. (A developer override `target_indicator` is provided for testing each indicator on multi-indicator mockups).
-3. **SSA-Based Deviation Metric for Centroids:** Eliminates high-frequency candlestick noise by evaluating corridor position using **`SSA`** (`{ind}_ssa`) rather than raw close price. Fractal evaluates using `close` as no SSA buffer exists.
-4. **Mean Reversion Breakout Mechanics:** Implements the core principle that an SSA breach of `UOEDT` or `LOEDT` on M5 represents an **abnormal elastic deviation** with a **high probability of Mean Reversion back into the corridor**, but **LOW risk of disrupting the underlying M5 trend**.
-5. **9-State Synthesis Matrix:** Integrates M5 Trend (`UPTREND`, `DOWNTREND`, `SIDEWAYS`) with Corridor Position (`IN_CORRIDOR`, `UPPER_BREAKOUT`, `LOWER_BREAKDOWN`) to provide actionable tactical insights (`DIP_VALUE_BUY_OPPORTUNITY`, `RALLY_VALUE_SELL_OPPORTUNITY`, `UPPER_OVEREXTENSION_REVERSION`, etc.).
-6. **Zero-Hallucination Canonical English:** Deterministic string formatting ensures zero LLM drift and 100% mathematical auditability.
+| Path                                  | Purpose                                                                                                               |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `mcd2.md`                             | Specification (14 sections), approved                                                                                 |
+| `mcd2_implementation_plan.md`         | R4 plan, approved; the R1 baseline and the expected legacy to new mapping                                             |
+| `concept.md`, `concept/`              | Readback of Davin's two boards (confirmed 1 Oct 2026) and the board images                                            |
+| `mcd2_registry.yaml`                  | Registry entry, state register (nine states) and the nine commentary templates                                        |
+| `mcd2_params.yaml`                    | Six parameters with value, unit, boundary, why                                                                        |
+| `mcd2_evaluator.py`                   | The evaluator. Imports the standard library, `decimal` and four kit modules only                                      |
+| `test_mcd2_unit_tests.py`             | 93 tests (§3). Also holds `write_fixtures()`, the recipe that regenerates the fixtures                                |
+| `fixtures/`                           | Per slot: `<slot>.inputs.json` (the bundle), `.envelope.json` (the expected output), `.source.md` (workbook, SHA-256) |
+| `mcd2_output.json`                    | The envelope of the v1 cycle (identical to `fixtures/2026-09-18T2055Z.envelope.json`)                                 |
+| `legacy/`                             | Pre-retrofit evaluator, tests and output; read-only history. One path line differs in the test copy                   |
+| `docs/STACK-D-ARCHITECTURE.md` (repo) | §2.13 MCD2 row notes 2.0.0; §2.5 and §3.4 use the renamed regime words (Q7)                                           |
 
----
+## 3. Test results
 
-## 2. Upstream Data Contract & Input Dependencies
+From `davintrade-stack-d-and-e/engine-1-5-new/`, Python 3.11.9, `unittest`, 1 October 2026:
 
-`MCD2` consumes data from two primary sheets in [market_data_v6_replicated.xlsx](file:///d:/SaaS%20Project/trading-alerts-saas-public/davintrade-stack-d-and-e/engine-1-5-new/market_data_v6_replicated.xlsx):
+| Command                                                                     | Result                                     |
+| --------------------------------------------------------------------------- | ------------------------------------------ |
+| `python -m unittest discover -s mcd2`                                       | **93 OK, 0 skipped**, about 10 s           |
+| `python -m unittest discover -s mcd_common/tests -t .` (the kit, unchanged) | **215 OK**                                 |
+| Legacy tests, from `mcd2/legacy/`                                           | 13 OK (the pre-retrofit baseline, plan §6) |
+| `npx prettier --check` on the Markdown and YAML files of this folder        | Clean                                      |
 
-### A. Time-Series Spine: `market_data_v6_M5`
+The 93 tests: register and parameters (5), states T1 (9), metric (3), boundaries T2 (8), pre-flight T3 (17),
+legacy cases (5), real cycles T13 (4), shared checks T4 to T8, T10, T12 on four real cycles (28), never throws (2),
+output T8, T9, T11, T12 and rounding (7), purity and folder layout (3), fixture provenance (2).
 
-- **Cadence:** 300-second bar boundaries (M5).
-- **Candidate Pool (8 Indicators):**
-  1. `best_fit_a` (`best_fit_a_ssa`, `best_fit_a_uoedt`, `best_fit_a_loedt`, `best_fit_a_base_fl`)
-  2. `best_fit_b` (`best_fit_b_ssa`, `best_fit_b_uoedt`, `best_fit_b_loedt`, `best_fit_b_base_fl`)
-  3. `cherry_a` (`cherry_a_ssa`, `cherry_a_uoedt`, `cherry_a_loedt`, `cherry_a_base_fl`)
-  4. `cherry_b` (`cherry_b_ssa`, `cherry_b_uoedt`, `cherry_b_loedt`, `cherry_b_base_fl`)
-  5. `most_recent` (`most_recent_ssa`, `most_recent_uoedt`, `most_recent_loedt`, `most_recent_base_fl`)
-  6. `non_a` (`non_a_ssa`, `non_a_uoedt`, `non_a_loedt`, `non_a_base_fl`)
-  7. `non_b` (`non_b_ssa`, `non_b_uoedt`, `non_b_loedt`, `non_b_base_fl`)
-  8. `fractal` (`fractal_best_fl`, `fractal_uoedt`, `fractal_loedt`, `close`)
-- **Spine Fields Ingested:** `timestamp`, `close`, `{active}_ssa`, `{active}_uoedt`, `{active}_loedt`.
+**Mutation pass** (scratch copy of the kit and this folder; the repo was not touched): 28 mutations of the evaluator (the two edges of the corridor and of the trend band, the closed-bar cut, the metric for
+centroid and fractal, the bias, window cap and floor, the tier-3 window check, the angle bound and its check, the
+reversion flag, populated candidates, output rounding and its half-up mode, the T_EDT order, tier 1, the containment
+floor, summary and regime words, `never_throws`, the CAUTIONARY branch, a wall-clock call). The first pass killed 27 and one
+survived (rounding of the angle in `details`: no test used an angle with more than two decimals). The test
+`OutputTests.test_numbers_are_rounded_to_two_decimals_at_output_only` was added and now kills it: **28 of 28 killed**.
 
-### B. Statistical Snapshot Store: `indicator_statistics`
+**Independent check (task P6, 1 October 2026)**: no line of A1 to A26 failed; the reviewer's own pass of 40 mutants left 4 alive, which were
+three test gaps, H1 to H3, all in the tier-3 window checks (the window start, the strict `>` on a window bar other than the last, and
+tier 3 reading a malformed forming bar). The evaluator was right in each case. They are closed by one test,
+`PreflightTests.test_tier3_window_edges_strict_inequality_and_a_malformed_forming_bar` (an inverted bar at the first bar of the window and
+just outside it; UOEDT equal to LOEDT at a window bar that is not the last; an inverted forming bar appended). On a scratch copy the four
+mutants (window one bar short, one bar long, `>=`, raw bars instead of closed bars) are each killed by it. No change to the evaluator, the
+version or any output.
 
-- **Table Design:** Append-Only Immutable Snapshot log.
-- **Selection Filter:** `symbol == 'XAUUSD' AND timeframe == 'M5' AND source == stat_source`  
-  _(where `stat_source = 'fractal_edt'` when active indicator is `'fractal'`, otherwise `stat_source = active_indicator`)._
-- **Resolution Rule:** `ORDER BY captured_at DESC LIMIT 1`.
-- **Fields Extracted:** `regression_angle`, `containment_rate`, `containment_n` (or `window_bars`), `raw_slope`, `anchored_y_int`, `channel_width`, `captured_at`, `live_bar_ts`.
+## 4. Legacy baseline (step R1)
 
----
+Pre-retrofit evaluator on the frozen workbooks (it reads the forming bar, the one opening at the slot):
 
-## 3. 4-Tier Comprehensive Pre-Flight Validation
+| Workbook · override | Legacy result                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| v1 · none           | FAIL, `trend_state` INVALID: multiple active indicators (`best_fit_a`, `fractal`)  |
+| v1 · `best_fit_a`   | PASS `MCD2_UP_IN_CORRIDOR`, θ 6.94, containment 55.76, `T_EDT` 755, CP 0.7959      |
+| v1 · `fractal`      | PASS `MCD2_UP_IN_CORRIDOR`, θ 10.61, containment 64.88, `T_EDT` 336, CP 0.0960     |
+| v1 · the other six  | FAIL INVALID: no data (0 bars)                                                     |
+| v4 · none           | FAIL INVALID: multiple active indicators (`cherry_a`, `fractal`)                   |
+| v4 · `cherry_a`     | PASS `MCD2_DOWN_IN_CORRIDOR`, θ −20.94, containment 100.0, `T_EDT` 1134, CP 0.1846 |
+| v4 · `fractal`      | PASS `MCD2_DOWN_IN_CORRIDOR`, θ −49.89, containment 99.51, `T_EDT` 410, CP 0.7887  |
+| v4 · the other six  | FAIL INVALID: no data (0 bars)                                                     |
 
-```mermaid
-flowchart TD
-    Start(["Input: market_data_v6_M5 + indicator_statistics"]) --> T1{"Tier 1: 8 Candidates Scanned<br>Active Indicators == 1?"}
-    T1 -- No (0 or >1) --> Fail1["FAIL: INVALID (Multiple or Zero Active)"]
-    T1 -- Yes (Exactly 1) --> T4{"Tier 4: Statistics Ingested?<br>source=active, tf=M5, CR >= 50%?"}
-    T4 -- No --> Fail4["FAIL: Missing Stats or Compromised Channel"]
-    T4 -- Yes --> T2{"Tier 2: M5 Continuity & Monotonicity?<br>Bars >= N_window, Timestamps Ascending?"}
-    T2 -- No --> Fail2["FAIL: Insufficient Bars or Timestamp Discontinuity"]
-    T2 -- Yes --> T3{"Tier 3: Channel Boundary Sanity?<br>UOEDT > LOEDT on all evaluated bars?"}
-    T3 -- No --> Fail3["FAIL: Corrupt Channel Geometry"]
-    T3 -- Yes --> EvalEngine["Proceed to MCD2 Core Calculation & Synthesis"]
+## 5. Equivalence table (step R7)
 
-    Fail1 --> OutInvalid["trend_state = INVALID<br>regime_status = UNCERTAIN<br>validation.status = FAIL"]
-    Fail2 --> OutInvalid
-    Fail3 --> OutInvalid
-    Fail4 --> OutInvalid
-```
+Legacy and new run side by side (scratch script, 1 October 2026). "Same state" means the state code is equal and
+the regime word is equal after the D5 renames. Every row is explained; none is unexplained.
 
-1. **Tier 1 (Candidate Isolation & Single Active Rule):**
-   - Scans 8 candidate EDT indicators.
-   - Enforces that exactly 1 indicator has populated data $\ge 48$ bars.
-   - If 0 or $>1$ active indicators exist without override, fails with `MCD2ValidationError: Multiple active EDT indicators detected on M5`.
-2. **Tier 2 (M5 Continuity & Monotonicity Check):**
-   - Extracts $N_{\text{window}} = \min(T_{\text{EDT}}, 288)$ bars ending at the latest bar.
-   - Validates monotonic timestamp ordering ($t_i > t_{i-1}$) and checks for non-null numeric values.
-3. **Tier 3 (Channel Boundary Sanity Gate):**
-   - Verifies that $\text{UOEDT}_i > \text{LOEDT}_i$ on every bar $i \in [1 \dots N_{\text{window}}]$.
-4. **Tier 4 (Statistics Ingestion Verification):**
-   - Matches record in `indicator_statistics` by `symbol='XAUUSD'`, `timeframe='M5'`, and `source=stat_source`.
-   - Validates that `containment_rate >= 50.0%`. (If $< 50\%$, marks `is_corridor_valid = False` and sets `trend_state = UNIDENTIFIED`).
+| Case                              | Legacy                                                                       | New                                                                              | Same state | Why it differs                                               |
+| --------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| Real v1 `best_fit_a`              | `MCD2_UP_IN_CORRIDOR`, CP 0.7959                                             | `MCD2_UP_IN_CORRIDOR`, LONG, CP 0.8192                                           | yes        | Last closed bar (20:50) instead of the forming bar (20:55)   |
+| Real v1 `fractal`                 | `MCD2_UP_IN_CORRIDOR`, CP 0.0960                                             | `MCD2_UP_IN_CORRIDOR`, LONG, CP 0.1065                                           | yes        | Same                                                         |
+| Real v4 `cherry_a`                | `MCD2_DOWN_IN_CORRIDOR`, CP 0.1846                                           | `MCD2_DOWN_IN_CORRIDOR`, SHORT, CP 0.1753                                        | yes        | Same                                                         |
+| Real v4 `fractal`                 | `MCD2_DOWN_IN_CORRIDOR`, CP 0.7887                                           | `MCD2_DOWN_IN_CORRIDOR`, SHORT, CP 0.7932                                        | yes        | Same                                                         |
+| Legacy 10, v1 and v4, no override | INVALID: multiple active indicators                                          | VALID, `populated_candidates` lists the other candidate                          | n/a        | Setting decides, populated candidates are informational (D3) |
+| Legacy 03 UP + inside             | `MCD2_UP_IN_CORRIDOR` / `TREND_ALIGNED_CONTINUATION`                         | same state and regime, LONG                                                      | yes        | Bias added (D6)                                              |
+| Legacy 04 UP + above              | `MCD2_UP_UPPER_BREAKOUT` / `UPPER_OVEREXTENSION_REVERSION`                   | same, LONG, `reversion_setup` true                                               | yes        | `mean_reversion_probability` HIGH became `reversion_setup`   |
+| Legacy 05 UP + below              | `MCD2_UP_LOWER_BREAKDOWN` / `DIP_VALUE_BUY_OPPORTUNITY`                      | `MCD2_UP_LOWER_BREAKDOWN` / `UPTREND_DIP_BELOW_CORRIDOR`, LONG                   | yes        | D5 rename                                                    |
+| Legacy 06 DOWN + inside           | `MCD2_DOWN_IN_CORRIDOR` / `TREND_ALIGNED_CONTINUATION`                       | same, SHORT                                                                      | yes        | Bias (D6)                                                    |
+| Legacy 07 DOWN + below            | `MCD2_DOWN_LOWER_BREAKDOWN` / `LOWER_OVEREXTENSION_REVERSION`                | same, SHORT, `reversion_setup` true                                              | yes        | Flag                                                         |
+| Legacy 08 DOWN + above            | `MCD2_DOWN_UPPER_BREAKOUT` / `RALLY_VALUE_SELL_OPPORTUNITY`                  | `MCD2_DOWN_UPPER_BREAKOUT` / `DOWNTREND_RALLY_ABOVE_CORRIDOR`, SHORT             | yes        | D5 rename                                                    |
+| Legacy 09a, 09b, 09c SIDEWAYS     | `RANGE_EQUILIBRIUM`, `RANGE_RESISTANCE_REVERSION`, `RANGE_SUPPORT_REVERSION` | same three states and regime words, NEUTRAL                                      | yes        | Bias (D6); flag on 09b and 09c                               |
+| Legacy 11 zero active indicators  | `MCD2ValidationError` (no active indicator)                                  | INVALID + `DISCONTINUITY` (the set indicator has no data); `NO_SETTING` if unset | n/a        | Failure is a status with a reason code                       |
+| Legacy 12 inverted channel        | `MCD2ValidationError` (corrupt channel boundary)                             | INVALID + `SANITY_FAILED`                                                        | n/a        | Same                                                         |
+| Legacy 13a missing statistics row | `MCD2ValidationError` (no matching record)                                   | STALE + `NO_STATS_AT_SLOT`                                                       | n/a        | Same                                                         |
+| Legacy 13b containment below 50%  | state `MCD2_UNIDENTIFIED`, `trend_state` UNIDENTIFIED                        | INVALID + `CONTAINMENT_LOW` (no state)                                           | n/a        | Walkthrough C1: one failure status                           |
 
----
+Other intended differences (plan §6): the corridor is decided on unrounded prices (legacy used a CP already rounded to
+4 decimals; the two differ only within 0.00005 of a band, tested in `BoundaryTests`); the window statistics,
+`raw_slope`, `anchored_y_int` and provenance fields are gone from the output (Q3); all wording.
 
-## 4. Mathematical Formulation & Discrete State Matrix
+## 6. Real-cycle envelopes (step R8)
 
-### A. M5 Trend Direction Classification ($\theta_{\text{reg}}$ Deadband $\pm 5.0^\circ$)
+Four real cycles, each read through the stored fixture bundle. All VALID, schema errors none. Tokens are
+`o200k_base`; time is the slowest of 20 runs.
 
-$$
-\text{trend\_direction} = \begin{cases}
-\text{UPTREND} & \text{if } \theta_{\text{reg}} > +5.0^\circ \\
-\text{DOWNTREND} & \text{if } \theta_{\text{reg}} < -5.0^\circ \\
-\text{SIDEWAYS} & \text{if } |\theta_{\text{reg}}| \le 5.0^\circ
-\end{cases}
-$$
+| Workbook · setting | Slot · last closed bar                | State                   | CP     | Window | Populated beside | Tokens | Time   |
+| ------------------ | ------------------------------------- | ----------------------- | ------ | ------ | ---------------- | ------ | ------ |
+| v1 · `best_fit_a`  | 2026-09-18T20:55Z · 2026-09-18T20:50Z | `MCD2_UP_IN_CORRIDOR`   | 0.8192 | 288    | `fractal`        | 355    | 5.5 ms |
+| v1 · `fractal`     | same                                  | `MCD2_UP_IN_CORRIDOR`   | 0.1065 | 288    | `best_fit_a`     | 355    | 8.7 ms |
+| v4 · `cherry_a`    | 2026-09-28T23:15Z · 2026-09-28T23:10Z | `MCD2_DOWN_IN_CORRIDOR` | 0.1753 | 288    | `fractal`        | 359    | 5.4 ms |
+| v4 · `fractal`     | same                                  | `MCD2_DOWN_IN_CORRIDOR` | 0.7932 | 288    | `cherry_a`       | 353    | 7.7 ms |
 
-### B. Corridor Deviation Metric ($\text{CP}$)
+The largest envelope measured is 359 tokens (budget 600); one evaluation takes under 10 ms (budget 1 s).
+`mcd2_output.json` is the first row (v1 · `best_fit_a`): VALID, `MCD2_UP_IN_CORRIDOR`, `TREND_ALIGNED_CONTINUATION`, LONG,
+levels UOEDT 4384.23, baseline 4367.20, LOEDT 4350.16, summary "M5 uptrend, inside the corridor", commentary "The M5 SSA is
+inside the corridor, between LOEDT 4350.16 and UOEDT 4384.23 (channel position 0.8192), while the channel slopes up
+(+6.94°)." Fixtures are frozen: a workbook is never regenerated in place (`FixtureProvenanceTests` checks the SHA-256).
 
-- **For Centroids:** $\text{CP}_{\text{SSA}} = \frac{\text{SSA} - \text{LOEDT}}{\text{UOEDT} - \text{LOEDT}}$
-- **For Fractal:** $\text{CP}_{\text{Close}} = \frac{\text{Close} - \text{LOEDT}}{\text{UOEDT} - \text{LOEDT}}$
+## 7. Standard Appendix A
 
-### C. 9-State Discrete Synthesis Matrix
+| #   | Check                                                                             | Status                  | Evidence                                                                                                                                                                                                                                                         |
+| --- | --------------------------------------------------------------------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | Spec has all 14 sections and is approved by Davin                                 | Pass                    | `mcd2.md` §1 to §14; approved 1 Oct 2026 (§9 of this manifest)                                                                                                                                                                                                   |
+| A2  | Implementation plan approved before coding                                        | Pass                    | `mcd2_implementation_plan.md`; approved 1 Oct 2026, before P3 started                                                                                                                                                                                            |
+| A3  | Reads only the input bundle; no database, file, network, clock, randomness, model | Pass                    | `PurityTests` (imports allowed list; no file, clock, randomness, environment or print names); mutation "uses wall clock" killed                                                                                                                                  |
+| A4  | Closed bars only; forming bar and last price never used                           | Pass                    | `_Shared.test_t4_forming_bar_is_ignored` on four cycles; `RealCycleTests.test_the_stored_bundles_hold_closed_bars_only`; mutation "reads forming bar" killed; for tier 3, `PreflightTests.test_tier3_window_edges_...` (a malformed forming bar changes nothing) |
+| A5  | Statistics by slot and active source; no match is STALE                           | Pass                    | `_Shared.test_t5_wrong_slot_statistics_are_stale` (four cycles); `PreflightTests.test_tier4_no_row_and_a_row_from_another_slot`                                                                                                                                  |
+| A6  | Active indicator from the setting; mismatch is CAUTIONARY                         | Pass                    | `_Shared.test_t6_setting_and_detection_mismatch`; `PreflightTests.test_tier1_*`. The mismatch check is CAUTIONARY and continues; the reading then ends STALE or INVALID with `DETECTION_MISMATCH` kept first (spec §5)                                           |
+| A7  | Output validates against `mcd-output/1`; no extra top-level field                 | Pass                    | `OutputTests.test_t8_*`, `_Shared.test_t8_schema`, every `assert_reading` and state test calls `schema_errors`                                                                                                                                                   |
+| A8  | Pre-flight order cycle, 1, 4, 2, 3; reason codes from Appendix D                  | Pass                    | `PreflightTests.test_the_first_failing_check_decides` (four orderings); the envelope builders reject any code outside Appendix D                                                                                                                                 |
+| A9  | Never throws; errors become INVALID + `EVALUATOR_ERROR`                           | Pass                    | `_Shared.test_t10_corrupted_bundle_never_throws` (nine corruptions, four cycles); `NeverThrowsTests.test_t10_an_error_inside_the_evaluator_...`; mutation "never_throws removed" killed                                                                          |
+| A10 | State register exhaustive and exclusive; codes follow §7.1                        | Pass                    | `RegisterTests` (nine states = trend × corridor; sweep over 63 inputs reaches all nine and matches an independent classifier); codes ≤ 29 characters                                                                                                             |
+| A11 | Bias per state; null when INVALID or STALE                                        | Pass                    | `RegisterTests.test_the_register_is_exhaustive_and_exclusive_and_bias_follows_d6`; `PreflightTests.assert_reading` (state, bias, levels, details empty)                                                                                                          |
+| A12 | No banned words, probabilities or unmeasured numbers                              | Pass                    | `OutputTests.test_t11_*` (codes, regime words, templates, summaries, rendered commentary, meanings); the old wording is rejected by the same check                                                                                                               |
+| A13 | Summary ≤ 80 characters, no prices; commentary from templates                     | Pass                    | T11 summary check (longest summary 33 characters); `StateTests` compare each commentary with its literal template output                                                                                                                                         |
+| A14 | Levels named, per timeframe, 2 decimals; zone width defined                       | Pass                    | `StateTests.assert_state` (names, `tf` M5, prices, roles); zone width is 10% of `U − L` of the same bar (spec §8, ADR-031); the zone builder is Section 3                                                                                                        |
+| A15 | `depends_on` complete; a derived MCD modifies, does not re-vote                   | Not applicable          | Independent: `depends_on` is `[]` (`StateTests`); T14 is for derived MCDs                                                                                                                                                                                        |
+| A16 | `uses_channel` declared if it is a channel MCD                                    | Pass                    | `mcd2_registry.yaml` `uses_channel: [M5]`; `RegisterTests.test_registry_and_params_describe_this_evaluator`                                                                                                                                                      |
+| A17 | Precedence rung proposed; rule rows proposed (not applied)                        | Pass                    | Spec §9: rungs confirmed by Davin (Q6); no new rule rows proposed; the two renamed words updated in the draft table, architecture §3.4 (Q7)                                                                                                                      |
+| A18 | Dispatch-matrix intents, tags, playbook and foundations chunks ready              | Pending, stage 6        | The content is listed in spec §10; the files need the knowledge build (architecture §4.6)                                                                                                                                                                        |
+| A19 | Reason texts and new glossary terms in all 16 languages                           | Pending, stage 6        | Reason codes MCD2 can emit are listed in spec §10                                                                                                                                                                                                                |
+| A20 | Parameters in `mcdN_params.yaml` with rationale                                   | Pass                    | `mcd2_params.yaml` loads through `Params.from_yaml` (the kit refuses a parameter without value, unit, boundary and why); the six names equal spec §6                                                                                                             |
+| A21 | Tests T1 to T14 pass (T14 for derived MCDs)                                       | Pass                    | 93 OK; T14 not applicable                                                                                                                                                                                                                                        |
+| A22 | Envelope ≤ 600 tokens; evaluation ≤ 1 s                                           | Pass                    | `OutputTests.test_t12_*` (largest 359 tokens, `o200k_base`), `_Shared.test_t12_size_and_r15_time` (four cycles); §6 above                                                                                                                                        |
+| A23 | Shadow period passed; point-in-time replay done; statistics stored                | Pending, stages 4 and 5 | Needs the sensor worker and `market_data_point_in_time`                                                                                                                                                                                                          |
+| A24 | Added to golden scenarios and the labelled question set                           | Pending, stages 4 to 7  | Needs synthesis and the knowledge build                                                                                                                                                                                                                          |
+| A25 | Registry row added to the architecture; decision entry written                    | Pending, stage 7        | Row exists and notes 2.0.0 (status `Retrofit`); the decision entry is written at go-live                                                                                                                                                                         |
+| A26 | Folder matches §11.1: same file names, `concept.md` confirmed, nothing extra      | Pass                    | `PurityTests.test_the_folder_matches_the_standard_layout`; `concept.md` confirmed by Davin 1 Oct 2026; `__pycache__/` is git-ignored                                                                                                                             |
 
-| M5 Trend      | Corridor State    | Regime Status                   | Discrete State Code             | Reversion Prob | Trend Risk | Description                                                                                                              |
-| :------------ | :---------------- | :------------------------------ | :------------------------------ | :------------: | :--------: | :----------------------------------------------------------------------------------------------------------------------- |
-| **UPTREND**   | `IN_CORRIDOR`     | `TREND_ALIGNED_CONTINUATION`    | `MCD2_UP_IN_CORRIDOR`           |      LOW       |    LOW     | Healthy uptrend continuation inside channel bands.                                                                       |
-| **UPTREND**   | `UPPER_BREAKOUT`  | `UPPER_OVEREXTENSION_REVERSION` | `MCD2_UP_UPPER_BREAKOUT`        |      HIGH      |    LOW     | Abnormal bullish deviation. High probability of Mean Reversion down into corridor; low risk to macro uptrend.            |
-| **UPTREND**   | `LOWER_BREAKDOWN` | `DIP_VALUE_BUY_OPPORTUNITY`     | `MCD2_UP_LOWER_BREAKDOWN`       |      HIGH      |    LOW     | Bullish trend pullback dipping below LOEDT. Prime buy-the-dip opportunity aligned with uptrend.                          |
-| **DOWNTREND** | `IN_CORRIDOR`     | `TREND_ALIGNED_CONTINUATION`    | `MCD2_DOWN_IN_CORRIDOR`         |      LOW       |    LOW     | Orderly downtrend continuation inside channel bands.                                                                     |
-| **DOWNTREND** | `LOWER_BREAKDOWN` | `LOWER_OVEREXTENSION_REVERSION` | `MCD2_DOWN_LOWER_BREAKDOWN`     |      HIGH      |    LOW     | Abnormal bearish deviation. High probability of upward Mean Reversion bounce into corridor; low risk to macro downtrend. |
-| **DOWNTREND** | `UPPER_BREAKOUT`  | `RALLY_VALUE_SELL_OPPORTUNITY`  | `MCD2_DOWN_UPPER_BREAKOUT`      |      HIGH      |    LOW     | Bearish trend bounce popping above UOEDT. Prime sell-the-rally opportunity aligned with downtrend.                       |
-| **SIDEWAYS**  | `IN_CORRIDOR`     | `RANGE_EQUILIBRIUM`             | `MCD2_SIDEWAYS_IN_CORRIDOR`     |      LOW       |    LOW     | Balanced horizontal consolidation. Minimal directional deviation.                                                        |
-| **SIDEWAYS**  | `UPPER_BREAKOUT`  | `RANGE_RESISTANCE_REVERSION`    | `MCD2_SIDEWAYS_UPPER_BREAKOUT`  |      HIGH      |    LOW     | Range high breakout. High probability of downward mean reversion back to baseline.                                       |
-| **SIDEWAYS**  | `LOWER_BREAKDOWN` | `RANGE_SUPPORT_REVERSION`       | `MCD2_SIDEWAYS_LOWER_BREAKDOWN` |      HIGH      |    LOW     | Range low breakdown. High probability of upward mean reversion back to baseline.                                         |
+## 8. Open questions
 
----
+None for the build. Carried forward:
 
-## 5. Certified Verification & Test Results (13/13 Pass)
+- **Statistics fit windows and the forming bar** (`.claude/state/waiting-on.md`, MCD kit item): `regression_angle` and
+  `containment_rate`, which MCD2 reads, may be fitted with the still-open bar. Settle it before certification (stage 5).
+- **Standard Appendix C.2 template (resolved):** `flag: off` is read as the boolean `false` by YAML 1.1 parsers such as PyYAML.
+  `mcd2_registry.yaml` quotes it (`'off'`); the standard's template does too since version 1.0.3.
+- **Sub-cent wording (decided, left as-is):** a breakout under half a cent reads "0.00 above UOEDT"; accurate under the two-decimal rule.
+- **All four real cycles are `IN_CORRIDOR`:** the six outside-corridor states and the three sideways states are covered
+  by synthetic tests only. The untracked replica batches v2 and v3 were not scanned for a real example.
 
-Executing the comprehensive test suite:
+## 9. Decisions Davin made during the work
 
-```powershell
-python -m unittest davintrade-stack-d-and-e/engine-1-5-new/mcd2/test_mcd2_unit_tests.py
-```
-
-**Results:**
-
-```
-.............
-----------------------------------------------------------------------
-Ran 13 tests in 2.595s
-
-OK
-```
-
-### Coverage Audit:
-
-- `test_01_real_data_execution_best_fit_a`: PASS (Verifies `best_fit_a` on M5: angle $+6.94^\circ$, SSA CP $0.7959$, `MCD2_UP_IN_CORRIDOR`).
-- `test_02_real_data_execution_fractal`: PASS (Verifies `fractal` on M5: angle $+10.61^\circ$, Close CP $0.0960$, `MCD2_UP_IN_CORRIDOR`).
-- `test_03_synthetic_uptrend_in_corridor`: PASS (`TREND_ALIGNED_CONTINUATION`).
-- `test_04_synthetic_uptrend_upper_overextension`: PASS (`UPPER_OVEREXTENSION_REVERSION`).
-- `test_05_synthetic_uptrend_dip_value_opportunity`: PASS (`DIP_VALUE_BUY_OPPORTUNITY`).
-- `test_06_synthetic_downtrend_in_corridor`: PASS (`TREND_ALIGNED_CONTINUATION`).
-- `test_07_synthetic_downtrend_lower_overextension`: PASS (`LOWER_OVEREXTENSION_REVERSION`).
-- `test_08_synthetic_downtrend_rally_short_opportunity`: PASS (`RALLY_VALUE_SELL_OPPORTUNITY`).
-- `test_09_synthetic_sideways_states`: PASS (`RANGE_EQUILIBRIUM`, `RANGE_RESISTANCE_REVERSION`, `RANGE_SUPPORT_REVERSION`).
-- `test_10_tier1_strict_production_multi_indicator_failure`: PASS (Strict auto-detection flags multiple indicators as `INVALID`).
-- `test_11_tier1_zero_active_indicator_error`: PASS (Zero indicators raises error).
-- `test_12_tier3_corrupt_channel_error`: PASS (Inverted UOEDT/LOEDT rejected).
-- `test_13_tier4_missing_stat_record_and_compromised_corridor`: PASS (Missing stat or CR < 50% handled cleanly).
-
----
-
-## 6. Deliverables Manifest Checklist
-
-| Deliverable           | File Path                               |   Status   | Verification Checksum / Details                                                |
-| :-------------------- | :-------------------------------------- | :--------: | :----------------------------------------------------------------------------- |
-| **Python Evaluator**  | `mcd2/mcd2_evaluator.py`                | `VERIFIED` | Production evaluator class `MCD2M5TrendEvaluator` with 4-tier pre-flight gate. |
-| **Unit Test Suite**   | `mcd2/test_mcd2_unit_tests.py`          | `VERIFIED` | 13/13 unit tests passing (100% coverage across real & synthetic tests).        |
-| **Production JSONB**  | `mcd2/mcd2_output.json`                 | `VERIFIED` | Certified execution payload for `best_fit_a` on M5.                            |
-| **Architecture Spec** | `mcd2/mcd2.md`                          | `VERIFIED` | Full technical specification and decision matrix.                              |
-| **Hand-Off Manifest** | `mcd2/mcd2-manifest-work-completion.md` | `VERIFIED` | Official work completion audit for Claude Code.                                |
-
----
-
-## 7. Modular Isolation & Master Synthesis Roadmap
-
-> [!IMPORTANT]
-> **ARCHITECTURAL BOUNDARY & SYNTHESIS DECOUPLING:**
->
-> - `MCD2` is designed strictly as an **independent, self-contained discrete state evaluator** focused solely on its own market dimension: **M5 Defined Trend and Corridor Deviation / Mean Reversion Implication**.
-> - **No premature pairwise synthesis:** The synthesis of multiple MCDs (`MCD1`, `MCD2`, `MCD3`, `MCD4`, `MCD5`...) into multi-dimensional market scenarios and holistic Gold trend forecasting is the core proprietary intellectual property of DavinTrade.
-> - This multi-MCD scenario modeling will be governed comprehensively under the upcoming **Master Synthesis Plan (Stack D Engine 1.5B Storyline & Engine 1.5C Weighted Confluence Scoring)**, which will be designed and directed by the User once the individual MCD building blocks are completed.
+| Date       | Decision                                                                                                                                                                                                                                                                        |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-30 | D3: tier-1 meaning (a mismatch is an empty set indicator while another has data; populated candidates are informational). Built into the kit                                                                                                                                    |
+| 2026-10-01 | D4 English specification. D5: `DIP_VALUE_BUY_OPPORTUNITY` to `UPTREND_DIP_BELOW_CORRIDOR`, `RALLY_VALUE_SELL_OPPORTUNITY` to `DOWNTREND_RALLY_ABOVE_CORRIDOR`. D6: UP LONG, DOWN SHORT, SIDEWAYS NEUTRAL                                                                        |
+| 2026-10-01 | Specification and plan approved; board readback confirmed                                                                                                                                                                                                                       |
+| 2026-10-01 | Q1 to Q7 approved as recommended: Close for the fractal; fallback 288; window statistics dropped; tier 3 on every window bar; angle bound 90; rungs (Day Trader trendlines and channels, Scalper primary structure); architecture word updates in P3                            |
+| 2026-10-01 | Task P6 found no failing line of A1 to A26 and three test gaps (H1 to H3). Davin: stage-3 sign-off for MCD2 granted; H1 to H3 closed with one test; standard PATCHed to 1.0.3 (`flag: 'off'` in Appendix C.2); walkthrough C1 reads "Renamed (D5)"; sub-cent wording left as-is |

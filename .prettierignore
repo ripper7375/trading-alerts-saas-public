@@ -3,3 +3,8 @@ riseworks/**/*.yaml
 riseworks/**/*.yml
 riseworks/**/*.md
 pnpm-lock.yaml
+
+# MCD fixtures and outputs are canonical JSON written by mcd_common (fixed key order, one-line bundles).
+# Replay tests compare them byte for byte (standard T9), so prettier must not reformat them.
+davintrade-stack-d-and-e/engine-1-5-new/mcd*/fixtures/*.json
+davintrade-stack-d-and-e/engine-1-5-new/mcd*/mcd*_output.json

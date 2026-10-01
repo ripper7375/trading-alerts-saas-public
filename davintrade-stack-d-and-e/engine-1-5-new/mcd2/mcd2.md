@@ -1,165 +1,256 @@
-# MCD2 Specification: M5 Defined Trend and Breakout Implication Evaluator
+# MCD2: M5 trend and corridor deviation
 
-**DavinTrade Architecture:** Stack D — Engine 1.5A Module  
-**Asset:** `XAUUSD` | **Timeframe:** `M5`  
-**Evaluation Framework:** M5 Linear Regression Trend + SSA-Based Corridor Deviation & Mean Reversion Dynamics  
-**Status:** Certified & Production-Ready (13/13 Unit Tests Passing - 100% Pass)  
-**Last Updated:** 2026-09-21 (Derived directly from MCD2 Core Principles and Gold Standard Blueprint)
+Status: Approved (Davin, 1 October 2026; built in task P3) · Version: 2.0.0 · Kind: independent · Timeframe(s): M5
 
----
+Retrofit of the certified pre-retrofit MCD2 (kept in `legacy/`). The domain logic is carried over; the
+changes are listed in `mcd2_implementation_plan.md` §1. The board is read back in `concept.md`.
+Decisions applied: D3 (tier-1 meaning, built into the kit), D4 (English), D5 (two regime words renamed),
+D6 (bias by trend). D7 is MCD3's and does not apply.
 
-## 1. วัตถุประสงค์และหน้าที่หลัก (Core Mandate)
+## 1. Question and purpose
 
-**MCD2** ทำหน้าที่หาคำตอบเชิงคณิตศาสตร์และพฤติกรรมตลาดบน Timeframe **M5** ว่า:
+**Question:** On M5, which way does the active EDT channel slope, and where does the last closed bar's SSA
+line (the Close, for the fractal EDT) sit relative to that channel's corridor, the band between LOEDT and
+UOEDT?
 
-> **"ณ ปัจจุบัน แนวโน้มราคาระยะสั้น (Defined Intraday Trend) ของ XAUUSD บน M5 เป็นเทรนอะไร และตำแหน่งความเบี่ยงเบนของราคา/SSA ในกรอบ Corridor (UOEDT/LOEDT) มีนัยสำคัญต่อโอกาสการเกิด Mean Reversion หรือไม่?"**
+**Purpose:** M5 direction context and deviation from the M5 channel. It supplies the M5 trend that MCD3
+reads, the M5 levels (UOEDT, baseline, LOEDT) that entry zones are built from, and a neutral flag
+(`reversion_setup`) when the metric is outside the corridor. It is the primary-timeframe sensor for
+Scalpers (architecture §3.3). It does not decide the trade direction; synthesis does (ADR-025).
 
-### ความแตกต่างเชิงกระบวนทัศน์ระหว่าง MCD1 (M15) และ MCD2 (M5):
+## 2. Kind and horizon
 
-| มิติทางสถาปัตยกรรม                   | **MCD1 (M15 Primary Trend)**                                                                                                                                                                                         | **MCD2 (M5 Defined Trend & Implication)**                                                                                                                                                                                                                                                                                                 |
-| :----------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Timeframe เป้าหมาย**               | `M15` (แท่งละ 15 นาที / 900 วินาที)                                                                                                                                                                                  | `M5` (แท่งละ 5 นาที / 300 วินาที)                                                                                                                                                                                                                                                                                                         |
-| **Candidate Indicators**             | **7 Centroid Variants เท่านั้น** (ไม่รวม Fractal)                                                                                                                                                                    | **8 EDT Indicators** (7 Centroids + เพิ่ม **`fractal`**)                                                                                                                                                                                                                                                                                  |
-| **Metric วัดตำแหน่งในกรอบ**          | ราคา `close` ของแท่งเทียน                                                                                                                                                                                            | **`SSA` (Singular Spectrum Analysis)** สำหรับ Centroids; **`close`** สำหรับ Fractal                                                                                                                                                                                                                                                       |
-| **นัยสำคัญเมื่อหลุดกรอบ (Breakout)** | **การกลับตัวเชิงโครงสร้าง (Structural Reversal):**<br>• หลุดกรอบสวนเทรน $\ge 80\%$ ข้าม 96 แท่ง = เปลี่ยนโครงสร้าง (`COUNTER_TREND_EXPANSION`)<br>• หลุดกรอบทิศเดียวกับเทรน = จบคลื่น Climax (`BREAKOUT_SAME_SLOPE`) | **ความเบี่ยงเบนผิดปกติและการเกิด Mean Reversion:**<br>• การที่ SSA หลุดกรอบ UOEDT/LOEDT คือ **Abnormal Deviation**<br>• มีโอกาสสูงมากที่จะเกิด **Mean Reversion กลับเข้ากรอบ**<br>• มี **ความเสี่ยงต่ำ** ที่จะทำลายแนวโน้มหลักของเทรน M5<br>• เป็นโอกาสทองในการเปิด Position Buy/Sell เพื่อทำกำไรจากการดึงกลับเข้ากรอบตามสมมติฐานเทรนเดิม |
-| **กฎ Single Active Indicator**       | Active ได้เพียง 1 ตัวเท่านั้น (0 หรือ >1 = `INVALID`)                                                                                                                                                                | Active ได้เพียง 1 ตัวเท่านั้น (0 หรือ >1 = `INVALID`)                                                                                                                                                                                                                                                                                     |
+- Kind: **independent**. It reads market data only and runs in parallel with the other independent MCDs.
+- Horizons its states are measured on: Scalper 2 h (primary), Day Trader 12 h (architecture §2.8).
 
----
+## 3. Inputs
 
-## 2. ขอบเขต Indicator บน M5 (8 Candidate EDT Indicators)
+| Input       | Detail                                                                                                                                                                                                                                                                                       |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Timeframe   | M5 only. Closed bars, counted back from the last closed M5 bar (rule 2, ADR-011). The forming bar is never read                                                                                                                                                                              |
+| Bar columns | `timestamp`, `close`, and for the active indicator: centroid `{ind}_ssa`, `{ind}_uoedt`, `{ind}_loedt`, `{ind}_base_fl`; fractal `fractal_best_fl`, `fractal_uoedt`, `fractal_loedt`. Candidate columns of the other indicators are read only to fill `populated_candidates`                 |
+| Statistics  | The `indicator_statistics` row for `("M5", source)` captured at `stats_slot["M5"]`. `source` is the active indicator, with `fractal` read as `fractal_edt`. Fields: `regression_angle`, `containment_rate`, `containment_n` (else `visual_window_bars`, else `window_bars`), `channel_width` |
+| Upstream    | None                                                                                                                                                                                                                                                                                         |
+| Other       | `active_indicator["M5"]` (the setting), `config_hash[source]`, cycle data status and `retuning` flag                                                                                                                                                                                         |
+| **Window**  | `T_EDT` is the first of `containment_n`, `visual_window_bars`, `window_bars` that is a number; if none is, `max_window_bars`. **`N_window = max(min_window_bars, min(T_EDT, max_window_bars))` closed M5 bars** ending at the last closed bar. At most 288, inside the 3,000-bar buffer      |
 
-ตามกฎความปลอดภัยของระบบ DavinTrade แอดมินผู้คุมระบบสามารถเปิดใช้งาน Indicator บน M5 ได้ **เพียง 1 ตัวจาก 8 ตัวนี้เท่านั้น** (Single Active Indicator Rule):
+The statistics fields that describe the forming bar or the last price (`live_bar_ts`, `live_close`,
+`baseline_value`, `uoedt_value`, `loedt_value`, `dist_to_*`, `channel_position`, `sr_nearest_*`,
+`sr_dist_*_pts`) are not in the bundle and are not used. Prices come from the last closed bar.
 
-1. `best_fit_a` (`best_fit_a_ssa`, `best_fit_a_uoedt`, `best_fit_a_loedt`, `best_fit_a_base_fl`)
-2. `best_fit_b` (`best_fit_b_ssa`, `best_fit_b_uoedt`, `best_fit_b_loedt`, `best_fit_b_base_fl`)
-3. `cherry_a` (`cherry_a_ssa`, `cherry_a_uoedt`, `cherry_a_loedt`, `cherry_a_base_fl`)
-4. `cherry_b` (`cherry_b_ssa`, `cherry_b_uoedt`, `cherry_b_loedt`, `cherry_b_base_fl`)
-5. `most_recent` (`most_recent_ssa`, `most_recent_uoedt`, `most_recent_loedt`, `most_recent_base_fl`)
-6. `non_a` (`non_a_ssa`, `non_a_uoedt`, `non_a_loedt`, `non_a_base_fl`)
-7. `non_b` (`non_b_ssa`, `non_b_uoedt`, `non_b_loedt`, `non_b_base_fl`)
-8. **`fractal`** (`fractal_best_fl`, `fractal_uoedt`, `fractal_loedt`, `close`) _(จับคู่กับ `source == 'fractal_edt'` ใน `indicator_statistics`)_
+## 4. Active-indicator use
 
-> [!NOTE]
-> ในระบบ Live Production จริง หากพบ Indicator Active มากกว่า 1 ตัว ถือว่าข้อมูลทับซ้อนและจัดเป็น **`INVALID`** ทันที ส่วนตัวเลือก `target_indicator` มีไว้เพื่อแยกทดสอบตัวชี้วัดในสภาพแวดล้อม Development/Mockup เท่านั้น
+Reads the setting for **M5** only. The eight candidates are `best_fit_a`, `best_fit_b`, `cherry_a`,
+`cherry_b`, `most_recent`, `non_a`, `non_b` and `fractal`; any one of them can be active, so the code
+assumes none in particular. The setting is never inferred from which columns hold data (rule 6, ADR-010).
+Detection only cross-checks it (§5, tier 1). A target override exists in tests only.
 
----
+## 5. Pre-flight checks
 
-## 3. ระบบการตรวจสอบข้อมูล 4 ชั้น (4-Tier Comprehensive Pre-Flight Validation)
+Order fixed by the standard: cycle, tier 1, tier 4, tier 2, tier 3. The first failing check decides and
+later checks do not run. CAUTIONARY results continue and keep their reason in front of any later one.
 
-ก่อนเริ่มคำนวณ `mcd2_evaluator.py` จะรันด่านตรวจ Pre-Flight ทั้งหมด 4 ชั้น หากพบความผิดปกติจะ Fail ทันที และออกผลลัพธ์เป็น `trend_state = INVALID`:
+| Check               | What it tests                                                                                                                                                                                                                                      | Failure → status + reason code                                                                                                                                                        |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cycle               | `data_status` is FRESH, DELAYED, STALE or MARKET_CLOSED; RETUNING flag                                                                                                                                                                             | Unknown value: INVALID + `SANITY_FAILED` · STALE: STALE + `DATA_STALE` · RETUNING: CAUTIONARY + `RETUNING` (continues)                                                                |
+| Tier 1 · Indicator  | A setting exists for M5 and is one of the eight candidates. The set indicator has a value on the last closed bar. Other candidates populated beside a populated set indicator are listed in `details.populated_candidates` and change nothing (D3) | No setting or not a candidate: INVALID + `NO_SETTING` · set indicator empty on the last closed bar while another candidate has a value: CAUTIONARY + `DETECTION_MISMATCH` (continues) |
+| Tier 4 · Statistics | A row for the active source at the slot. `containment_rate` is a number and ≥ `min_containment_rate`. `regression_angle` is a number                                                                                                               | No row or wrong slot: STALE + `NO_STATS_AT_SLOT` · containment below the floor: INVALID + `CONTAINMENT_LOW` · containment or angle missing or not a number: INVALID + `SANITY_FAILED` |
+| Tier 2 · Continuity | At least `N_window` closed M5 bars. Over the newest `N_window` bars the timestamps strictly ascend and every column the MCD reads (`timestamp`, `close`, the active indicator's channel columns) is a number                                       | Too few: INVALID + `INSUFFICIENT_BARS` · out of order, missing or null: INVALID + `DISCONTINUITY`                                                                                     |
+| Tier 3 · Sanity     | UOEDT > LOEDT on **every** bar of the window; `channel_width` in the statistics row is > 0 when present; \|`regression_angle`\| ≤ `max_abs_regression_angle_deg`                                                                                   | INVALID + `SANITY_FAILED`                                                                                                                                                             |
+| Upstream            | None (independent)                                                                                                                                                                                                                                 | —                                                                                                                                                                                     |
+| MCD0 inheritance    | Applied by the worker (`uses_channel: [M5]`)                                                                                                                                                                                                       | CAUTIONARY + `MCD0_DEFECT_M5`                                                                                                                                                         |
+| Unexpected error    | Any exception inside the evaluator                                                                                                                                                                                                                 | INVALID + `EVALUATOR_ERROR`, logged                                                                                                                                                   |
 
-```mermaid
-flowchart TD
-    Start(["Input: market_data_v6_M5 + indicator_statistics"]) --> T1{"Tier 1: สแกน 8 Candidates<br>Active Indicators == 1?"}
-    T1 -- ไม่ใช่ (0 หรือ >1) --> Fail1["FAIL: INVALID (Multiple/Zero Active)"]
-    T1 -- ใช่ (มี 1 ตัวพอดี) --> T4{"Tier 4: ตรวจสอบสถิติ<br>source=active, CR >= 50%?"}
-    T4 -- ไม่ผ่าน --> Fail4["FAIL: Missing Stats or Compromised Channel"]
-    T4 -- ผ่าน --> T2{"Tier 2: M5 Data Continuity?<br>Bars >= N_window, Timestamps เรียงลำดับ?"}
-    T2 -- ไม่ผ่าน --> Fail2["FAIL: ข้อมูลไม่ต่อเนื่องหรือ Timestamp ข้าม"]
-    T2 -- ผ่าน --> T3{"Tier 3: Channel Sanity Gate?<br>UOEDT > LOEDT ทุกแท่งที่ประเมิน?"}
-    T3 -- ไม่ผ่าน --> Fail3["FAIL: กรอบราคาบิดเบี้ยวหรือกลับด้าน"]
-    T3 -- ผ่าน --> Engine["เข้าสู่กระบวนการคำนวณและสังเคราะห์ Discrete State"]
-```
+After a `DETECTION_MISMATCH` the later checks usually end the reading as STALE (no statistics for the
+set indicator) or INVALID (no bars), and the reason tells the operator that the setting looks wrong.
 
-- **Tier 1 (Candidate Isolation & Single Active Rule):** สแกนทั้ง 8 Candidate Indicators ต้องมีข้อมูลครบถ้วน $\ge 48$ แท่ง เพียง 1 ตัวเท่านั้น
-- **Tier 2 (M5 Continuity & Monotonicity Check):** ตรวจสอบว่า Timestamp เรียงจากอดีตไปปัจจุบัน ($t_i > t_{i-1}$) และตัวเลขค่าราคา/อินดิเคเตอร์ไม่เป็น Null หรือค่าลบ
-- **Tier 3 (Channel Sanity Gate):** ตรวจสอบว่า $\text{UOEDT}_i > \text{LOEDT}_i$ ในทุกๆ แท่งเทียนที่นำมาประเมิน (ป้องกันปัญหา Band กลับด้านหรือความกว้างเป็น 0)
-- **Tier 4 (Statistics Ingestion Verification):** ดึงแถวข้อมูลล่าสุดจาก `indicator_statistics` ที่ตรงกับ `symbol='XAUUSD'`, `timeframe='M5'`, และ `source=active_indicator` ตรวจสอบความถูกต้องของมุมองศาและยืนยันว่า `containment_rate >= 50.0%` (หากต่ำกว่า 50% จะถือว่ากรอบเสียสภาพ)
+## 6. Calculation
 
----
+Symbols: θ = `regression_angle` (degrees, signed, from the statistics row); m = the metric on the last
+closed bar (SSA for the seven centroid indicators, Close for the fractal EDT); U, L, B = UOEDT, LOEDT and
+baseline on the last closed bar (all USD per ounce). Everything is computed in full precision and rounded
+at output only.
 
-## 4. สูตรการคำนวณและเกณฑ์การตัดสิน (Formulation & Matrix)
+**Trend direction** (parameter `sideways_angle_deg`):
 
-### A. การจำแนกทิศทางเทรน M5 (M5 Defined Trend Direction)
+- `UP` when θ > +5.0°
+- `DOWN` when θ < −5.0°
+- `SIDEWAYS` when |θ| ≤ 5.0° (the boundaries ±5.0 are SIDEWAYS)
 
-ประเมินจากมุมองศา Regression Angle ($\theta_{\text{reg}}$) จาก `indicator_statistics` ภายใต้ Deadband Threshold $\pm 5.0^\circ$:
+**Corridor position:**
 
-$$
-\text{m5\_trend\_state} = \begin{cases}
-\text{UPTREND} & \text{เมื่อ } \theta_{\text{reg}} > +5.0^\circ \\
-\text{DOWNTREND} & \text{เมื่อ } \theta_{\text{reg}} < -5.0^\circ \\
-\text{SIDEWAYS} & \text{เมื่อ } |\theta_{\text{reg}}| \le 5.0^\circ
-\end{cases}
-$$
+- Channel position `CP = (m − L) ÷ (U − L)`; reported with 4 decimals (`channel_position_decimals`).
+- `UPPER_BREAKOUT` when m > U (same as CP > 1)
+- `LOWER_BREAKDOWN` when m < L (same as CP < 0)
+- `IN_CORRIDOR` when L ≤ m ≤ U (both edges are inside)
 
-### B. การวัดตำแหน่งในกรอบราคา (Channel Position Metric)
+The comparison uses the prices m, U and L, not the rounded CP. The corridor edges are the channel's own
+bands, so they are not parameters.
 
-- **สำหรับ Centroid Indicators (7 Variants):** คำนวณจาก **`SSA`** เพื่อตัด Noise ความผันผวนของราคาแท่งเทียน:
-  $$\text{CP}_{\text{SSA}} = \frac{\text{SSA} - \text{LOEDT}}{\text{UOEDT} - \text{LOEDT}}$$
-- **สำหรับ Fractal Indicator:** คำนวณจากราคา **`Close`** เนื่องจาก Fractal ไม่มีบัฟเฟอร์ SSA:
-  $$\text{CP}_{\text{Close}} = \frac{\text{Close} - \text{fractal\_loedt}}{\text{fractal\_uoedt} - \text{fractal\_loedt}}$$
+**State** = trend direction × corridor position (§7).
 
-### C. การจำแนกสถานะในกรอบราคา (Corridor State)
+| Parameter                      | Value | Unit           | Boundary                                                           | Rationale                                                                                        |
+| ------------------------------ | ----- | -------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `sideways_angle_deg`           | 5.0   | degrees        | \|θ\| ≤ value is SIDEWAYS; θ > value is UP; θ < −value is DOWN     | ±5° trend band used by MCD1 to MCD3; architecture §2.6 keeps it                                  |
+| `min_containment_rate`         | 50.0  | percent        | ≥ value passes tier 4                                              | Channel counted as intact at 50% containment (architecture §2.4)                                 |
+| `min_window_bars`              | 48    | closed M5 bars | `N_window` is never below value                                    | 4 hours of M5 (pre-retrofit floor)                                                               |
+| `max_window_bars`              | 288   | closed M5 bars | `N_window` is never above value; also the fallback `T_EDT`         | 24 hours of M5 (architecture §2.5: statistics over `min(T_EDT, 288)`)                            |
+| `max_abs_regression_angle_deg` | 90.0  | degrees        | \|θ\| ≤ value passes tier 3                                        | A regression angle beyond ±90° is not possible (named in the pre-retrofit plan, not in its code) |
+| `channel_position_decimals`    | 4     | decimals       | Output rounding only; the state is decided on the unrounded prices | Pre-retrofit output precision (0.7959 in the certified example)                                  |
 
-- **`UPPER_BREAKOUT`**: $\text{CP} > 1.0$ (ค่า SSA ทะลุเกินขอบบน UOEDT) $\longrightarrow$ เกิดการเบี่ยงเบนเชิงบวกสูงผิดปกติ (Abnormal Upward Deviation) โอกาสเกิด **Mean Reversion ดึงกลับลงสู่กรอบสูงมาก**
-- **`LOWER_BREAKDOWN`**: $\text{CP} < 0.0$ (ค่า SSA หลุดต่ำกว่าขอบล่าง LOEDT) $\longrightarrow$ เกิดการเบี่ยงเบนเชิงลบสูงผิดปกติ (Abnormal Downward Deviation) โอกาสเกิด **Mean Reversion ดีดตัวกลับขึ้นสู่กรอบสูงมาก**
-- **`IN_CORRIDOR`**: $0.0 \le \text{CP} \le 1.0$ (ค่า SSA วิ่งอยู่ในกรอบปกติ) $\longrightarrow$ ระดับความเบี่ยงเบนปกติ โอกาสเกิด Mean Reversion ต่ำ ราคาดำเนินไปตามแนวโน้มเดิมอย่างราบรื่น
+## 7. State register
 
-### D. การสังเคราะห์ผลลัพธ์ 9 สถานะ (Synthesis Decision Matrix)
+Exhaustive and exclusive: every VALID or CAUTIONARY evaluation maps to exactly one of nine states.
+Bias is decision D6: UP states LONG, DOWN states SHORT, SIDEWAYS states NEUTRAL. All states contribute
+the three M5 levels. Machine-readable copy with the template texts: `mcd2_registry.yaml`.
 
-| M5 Trend ($\theta$) | Corridor State ($\text{CP}$) | Synthesis `regime_status`           | Discrete State Code             | คำอธิบายทางพฤติกรรมตลาดและโอกาสทางกลยุทธ์                                                                                                                                                      |
-| :------------------ | :--------------------------- | :---------------------------------- | :------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`UPTREND`**       | `IN_CORRIDOR`                | **`TREND_ALIGNED_CONTINUATION`**    | `MCD2_UP_IN_CORRIDOR`           | ราคาและ SSA แกว่งตัวในกรอบขาขึ้นปกติ ความเบี่ยงเบนต่ำ เทรนด์ขาขึ้นดำเนินต่อไป                                                                                                                  |
-| **`UPTREND`**       | `UPPER_BREAKOUT`             | **`UPPER_OVEREXTENSION_REVERSION`** | `MCD2_UP_UPPER_BREAKOUT`        | **Abnormal Bullish Deviation:** SSA พุ่งทะลุ UOEDT โอกาสเกิด Mean Reversion ดึงกลับลงเข้ากรอบสูง โดยมีความเสี่ยงต่ำต่อเทรนด์ขาขึ้นหลัก (จังหวะ Take Profit ฝั่ง Buy หรือดัก Short สวนระยะสั้น) |
-| **`UPTREND`**       | `LOWER_BREAKDOWN`            | **`DIP_VALUE_BUY_OPPORTUNITY`**     | `MCD2_UP_LOWER_BREAKDOWN`       | **Prime Buy Opportunity:** SSA ย่อตัวหลุดกรอบล่าง LOEDT ในช่วงขาขึ้น เป็นการเบี่ยงเบนผิดปกติ จังหวะทองในการเข้าช้อนซื้อ (Buy the Dip) เพื่อกินรอบดีดตัวกลับเข้ากรอบตามเทรนด์ใหญ่               |
-| **`DOWNTREND`**     | `IN_CORRIDOR`                | **`TREND_ALIGNED_CONTINUATION`**    | `MCD2_DOWN_IN_CORRIDOR`         | ราคาและ SSA เคลื่อนตัวลงตามกรอบขาลงปกติ ความเบี่ยงเบนปานกลาง เทรนด์ขาลงดำเนินต่อไป                                                                                                             |
-| **`DOWNTREND`**     | `LOWER_BREAKDOWN`            | **`LOWER_OVEREXTENSION_REVERSION`** | `MCD2_DOWN_LOWER_BREAKDOWN`     | **Abnormal Bearish Deviation:** SSA ร่วงหลุด LOEDT โอกาสเกิด Mean Reversion ดีดกลับขึ้นเข้ากรอบสูง โดยมีความเสี่ยงต่ำต่อเทรนด์ขาลงหลัก (จังหวะ Take Profit ฝั่ง Sell หรือดัก Long สวนระยะสั้น) |
-| **`DOWNTREND`**     | `UPPER_BREAKOUT`             | **`RALLY_VALUE_SELL_OPPORTUNITY`**  | `MCD2_DOWN_UPPER_BREAKOUT`      | **Prime Sell Opportunity:** SSA เด้งทะลุกรอบบน UOEDT ในช่วงขาลง เป็นการเบี่ยงเบนผิดปกติ จังหวะทองในการดักขาย (Sell the Rally) เพื่อกินรอบทุบกลับเข้ากรอบตามเทรนด์ใหญ่                          |
-| **`SIDEWAYS`**      | `IN_CORRIDOR`                | **`RANGE_EQUILIBRIUM`**             | `MCD2_SIDEWAYS_IN_CORRIDOR`     | ตลาดไซด์เวย์สมดุล ราคาแกว่งตัวใกล้เส้นกึ่งกลาง ความเบี่ยงเบนต่ำ                                                                                                                                |
-| **`SIDEWAYS`**      | `UPPER_BREAKOUT`             | **`RANGE_RESISTANCE_REVERSION`**    | `MCD2_SIDEWAYS_UPPER_BREAKOUT`  | SSA ชนและทะลุกรอบบนในตลาดไซด์เวย์ โอกาสสูงที่จะเกิด Mean Reversion กดราคากลับลงสู่จุดสมดุล                                                                                                     |
-| **`SIDEWAYS`**      | `LOWER_BREAKDOWN`            | **`RANGE_SUPPORT_REVERSION`**       | `MCD2_SIDEWAYS_LOWER_BREAKDOWN` | SSA หลุดกรอบล่างในตลาดไซด์เวย์ โอกาสสูงที่จะเกิด Mean Reversion ดันราคากลับขึ้นสู่จุดสมดุล                                                                                                     |
+| State code                      | Trend / corridor       | `regime_status`                  | Bias    | Meaning (market description, not advice)                                                                         | Summary / commentary |
+| ------------------------------- | ---------------------- | -------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------- | -------------------- |
+| `MCD2_UP_IN_CORRIDOR`           | UP · inside            | `TREND_ALIGNED_CONTINUATION`     | LONG    | The M5 channel slopes up and the metric is inside the corridor                                                   | S01 / T01            |
+| `MCD2_UP_UPPER_BREAKOUT`        | UP · above UOEDT       | `UPPER_OVEREXTENSION_REVERSION`  | LONG    | The M5 channel slopes up and the metric is above UOEDT, beyond the corridor in the direction of the slope        | S02 / T02            |
+| `MCD2_UP_LOWER_BREAKDOWN`       | UP · below LOEDT       | `UPTREND_DIP_BELOW_CORRIDOR`     | LONG    | The M5 channel slopes up and the metric is below LOEDT, beyond the corridor against the direction of the slope   | S03 / T03            |
+| `MCD2_DOWN_IN_CORRIDOR`         | DOWN · inside          | `TREND_ALIGNED_CONTINUATION`     | SHORT   | The M5 channel slopes down and the metric is inside the corridor                                                 | S04 / T04            |
+| `MCD2_DOWN_LOWER_BREAKDOWN`     | DOWN · below LOEDT     | `LOWER_OVEREXTENSION_REVERSION`  | SHORT   | The M5 channel slopes down and the metric is below LOEDT, beyond the corridor in the direction of the slope      | S05 / T05            |
+| `MCD2_DOWN_UPPER_BREAKOUT`      | DOWN · above UOEDT     | `DOWNTREND_RALLY_ABOVE_CORRIDOR` | SHORT   | The M5 channel slopes down and the metric is above UOEDT, beyond the corridor against the direction of the slope | S06 / T06            |
+| `MCD2_SIDEWAYS_IN_CORRIDOR`     | SIDEWAYS · inside      | `RANGE_EQUILIBRIUM`              | NEUTRAL | The M5 channel is flat and the metric is inside the corridor                                                     | S07 / T07            |
+| `MCD2_SIDEWAYS_UPPER_BREAKOUT`  | SIDEWAYS · above UOEDT | `RANGE_RESISTANCE_REVERSION`     | NEUTRAL | The M5 channel is flat and the metric is above UOEDT                                                             | S08 / T08            |
+| `MCD2_SIDEWAYS_LOWER_BREAKDOWN` | SIDEWAYS · below LOEDT | `RANGE_SUPPORT_REVERSION`        | NEUTRAL | The M5 channel is flat and the metric is below LOEDT                                                             | S09 / T09            |
 
----
+Regime words kept from the pre-retrofit register: `TREND_ALIGNED_CONTINUATION`,
+`UPPER_OVEREXTENSION_REVERSION`, `LOWER_OVEREXTENSION_REVERSION`, `RANGE_EQUILIBRIUM`,
+`RANGE_RESISTANCE_REVERSION`, `RANGE_SUPPORT_REVERSION`. Renamed by D5: `DIP_VALUE_BUY_OPPORTUNITY` →
+`UPTREND_DIP_BELOW_CORRIDOR` and `RALLY_VALUE_SELL_OPPORTUNITY` → `DOWNTREND_RALLY_ABOVE_CORRIDOR`
+(location words, no advice). The two new words go into `tags.yaml` when it exists (architecture §4.6, build step 6).
 
-## 5. ผลลัพธ์จากการประเมินชุดข้อมูลจริง (`market_data_v6_replicated.xlsx`)
+**Summary lines** (≤ 80 characters, no prices): `S01` "M5 uptrend, inside the corridor" · `S02` "M5 uptrend, above the corridor" · `S03` "M5 uptrend, below the corridor" · `S04` to `S06` the same with "downtrend" · `S07` to `S09` the same with "sideways". Pattern: `M5 {trend_word}, {inside|above|below} the corridor`.
 
-### A. กรณีประเมิน `best_fit_a` (ตัวแทนหลัก Centroid Indicator)
+**Commentary templates** (location only; no forecast, probability or advice; prices and distances with 2
+decimals, `angle` signed with 2 decimals, `cp` with 4; `metric_name` is `SSA`, or `Close` for the fractal EDT):
 
-- **Active Indicator:** `best_fit_a`
-- **Regression Angle:** $+6.94^\circ$ ($\longrightarrow$ M5 Trend: **`UPTREND`**)
-- **Containment Rate:** $55.76\%$ (ผ่านเกณฑ์ $\ge 50\%$)
-- **EDT Time Horizon:** $755$ bars
-- **Evaluation Window:** $288$ bars (24 ชั่วโมงเต็มของ M5)
-- **Latest Bar Close:** $4377.99$ USD
-- **Latest Bar SSA:** $4377.33$ USD
-- **UOEDT / LOEDT:** $4384.28$ / $4350.22$ USD (Channel Width = $34.06$ USD)
-- **Channel Position (SSA):** $0.7959$ ($\longrightarrow$ Corridor State: **`IN_CORRIDOR`**)
-- **Channel Position (Close):** $0.8153$
-- **Discrete State:** `MCD2_UP_IN_CORRIDOR`
-- **Regime Status:** `TREND_ALIGNED_CONTINUATION`
-- **Canonical Commentary:**
-  > _"XAUUSD M5 trend is UPTREND (+6.94°) with SSA safely within the EDT corridor (channel_position=0.7959). Deviation remains moderate without high mean reversion pressure, confirming healthy trend continuation."_
+| Id  | Template                                                                                                                                                  |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T01 | `The M5 {metric_name} is inside the corridor, between LOEDT {loedt} and UOEDT {uoedt} (channel position {cp}), while the channel slopes up ({angle}°).`   |
+| T02 | `The M5 {metric_name} is {dist} above UOEDT {uoedt} while the channel slopes up ({angle}°).`                                                              |
+| T03 | `The M5 {metric_name} is {dist} below LOEDT {loedt} while the channel slopes up ({angle}°).`                                                              |
+| T04 | `The M5 {metric_name} is inside the corridor, between LOEDT {loedt} and UOEDT {uoedt} (channel position {cp}), while the channel slopes down ({angle}°).` |
+| T05 | `The M5 {metric_name} is {dist} below LOEDT {loedt} while the channel slopes down ({angle}°).`                                                            |
+| T06 | `The M5 {metric_name} is {dist} above UOEDT {uoedt} while the channel slopes down ({angle}°).`                                                            |
+| T07 | `The M5 {metric_name} is inside the corridor, between LOEDT {loedt} and UOEDT {uoedt} (channel position {cp}), while the channel is flat ({angle}°).`     |
+| T08 | `The M5 {metric_name} is {dist} above UOEDT {uoedt} while the channel is flat ({angle}°).`                                                                |
+| T09 | `The M5 {metric_name} is {dist} below LOEDT {loedt} while the channel is flat ({angle}°).`                                                                |
 
-### B. กรณีประเมิน `fractal` (ตัวแทน Fractal Best-Fit Flip Line)
+`dist` is `m − U` (above) or `L − m` (below), always positive. The legacy commentary "…with SSA safely
+within the EDT corridor…" is replaced by T01, T04 and T07 (location only; "safely" is a banned word, §7.4).
 
-- **Active Indicator:** `fractal` (จับคู่กับ `fractal_edt` ใน `indicator_statistics`)
-- **Regression Angle:** $+10.61^\circ$ ($\longrightarrow$ M5 Trend: **`UPTREND`**)
-- **Containment Rate:** $64.88\%$ (ผ่านเกณฑ์ $\ge 50\%$)
-- **EDT Time Horizon:** $336$ bars
-- **Latest Bar Close:** $4377.99$ USD
-- **UOEDT / LOEDT:** $4412.60$ / $4374.32$ USD
-- **Channel Position (Close):** $0.0960$ ($\longrightarrow$ Corridor State: **`IN_CORRIDOR`** ใกล้ LOEDT)
-- **Discrete State:** `MCD2_UP_IN_CORRIDOR`
-- **Regime Status:** `TREND_ALIGNED_CONTINUATION`
-- **Canonical Commentary:**
-  > _"XAUUSD M5 trend is UPTREND (+10.61°) with Close safely within the EDT corridor (channel_position=0.0960). Deviation remains moderate without high mean reversion pressure, confirming healthy trend continuation."_
+## 8. Levels
 
----
+| Name       | `tf` | Computed from the last closed M5 bar                | Role         |
+| ---------- | ---- | --------------------------------------------------- | ------------ |
+| `UOEDT`    | M5   | centroid `{ind}_uoedt`; fractal `fractal_uoedt`     | `resistance` |
+| `baseline` | M5   | centroid `{ind}_base_fl`; fractal `fractal_best_fl` | `mid`        |
+| `LOEDT`    | M5   | centroid `{ind}_loedt`; fractal `fractal_loedt`     | `support`    |
 
-## 6. การทดสอบและการรับรองคุณภาพ (Unit Test Certification)
+Prices are rounded to 2 decimals at output. All nine states contribute all three levels; INVALID and STALE
+readings contribute none. **Zone width:** 10% of the active M5 channel's width, `U − L` on the same bar
+(the default, standard §8; ADR-031).
 
-ชุดทดสอบ `test_mcd2_unit_tests.py` ครอบคลุมการทดสอบ 13 กรณีและผ่านการรับรอง **100% PASS**:
+## 9. Synthesis role
 
-1. `test_01_real_data_execution_best_fit_a`: ตรวจสอบผลลัพธ์ข้อมูลจริง `best_fit_a`
-2. `test_02_real_data_execution_fractal`: ตรวจสอบผลลัพธ์ข้อมูลจริง `fractal`
-3. `test_03_synthetic_uptrend_in_corridor`: ตรวจสอบสถานะ Uptrend In-Corridor
-4. `test_04_synthetic_uptrend_upper_overextension`: ตรวจสอบสถานะ Bullish Overextension (Mean Reversion trigger)
-5. `test_05_synthetic_uptrend_dip_value_opportunity`: ตรวจสอบสถานะ Buy the Dip Opportunity
-6. `test_06_synthetic_downtrend_in_corridor`: ตรวจสอบสถานะ Downtrend In-Corridor
-7. `test_07_synthetic_downtrend_lower_overextension`: ตรวจสอบสถานะ Bearish Overextension (Mean Reversion trigger)
-8. `test_08_synthetic_downtrend_rally_short_opportunity`: ตรวจสอบสถานะ Sell the Rally Opportunity
-9. `test_09_synthetic_sideways_states`: ตรวจสอบสภาวะ Sideways ครบทั้ง 3 กรณี
-10. `test_10_tier1_strict_production_multi_indicator_failure`: ตรวจสอบการปฏิเสธกรณีพบ Indicator มากกว่า 1 ตัว
-11. `test_11_tier1_zero_active_indicator_error`: ตรวจสอบการปฏิเสธกรณีไม่พบ Active Indicator
-12. `test_12_tier3_corrupt_channel_error`: ตรวจสอบการจับข้อผิดพลาดกรอบราคาบิดเบี้ยว (UOEDT <= LOEDT)
-13. `test_13_tier4_missing_stat_record_and_compromised_corridor`: ตรวจสอบกรณีสถิติหายหรือ Containment Rate ต่ำกว่า 50%
+- **Voter**, not modifier. Independent MCDs vote; MCD3 modifies.
+- **Proposed rung** (Davin decides, §9.3): Scalper = primary-timeframe structure; Day Trader = trendlines
+  and channels (the timing channel). This matches architecture §2.13.
+- **Rule rows:** none are proposed here. The draft rules table in architecture §3.4 already has MCD2 rows
+  (rules 1, 2, 3, 3s and 4). After D5 its rows 3 and 3s name `DIP_VALUE_BUY` and `RALLY_VALUE_SELL`; they
+  should read `UPTREND_DIP_BELOW_CORRIDOR` and `DOWNTREND_RALLY_ABOVE_CORRIDOR`. Rule content is Davin's
+  (ADR-026) and changes there are made when synthesis is built (build step 4).
+- **Note on bias:** D6 gives the sensor's own bias by trend direction in all three states of a trend.
+  In `MCD2_UP_UPPER_BREAKOUT` and `MCD2_DOWN_LOWER_BREAKDOWN` the draft rule 2 reads the same regime word as
+  "bias against the spike", so the synthesis result there differs from the sensor's bias. Synthesis decides
+  the final direction (ADR-025), so this is allowed.
+- **Data problems:** if MCD2 is not VALID or CAUTIONARY, the Scalper result is STAND_ASIDE with a data reason
+  (architecture §3.3, mechanic 1). That is synthesis's job, not MCD2's.
+
+## 10. Routing and knowledge
+
+| Item                    | Content                                                                                                                                                                                                                                                                                                                     |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Dispatch-matrix intents | **Direction** (as the primary sensor for Scalpers), **Entry timing** (when its levels supplied the zones), **Exit / targets** (levels on the target side), **Explain** (the terms UOEDT, LOEDT, corridor, SSA, channel position)                                                                                            |
+| `tags.yaml`             | `MCD2`; the nine state codes; the regime words of §7 (two new); level names `UOEDT`, `baseline`, `LOEDT`                                                                                                                                                                                                                    |
+| Playbook chunk (D2)     | Front-matter `mcd_id: MCD2`, `state_codes` (nine), `timeframe: M5`, `version: 2.0.0`. Sections: what it measures; the nine states; how to read an outside-corridor reading (the board's principle in words, marked provisional until `state_statistics` reach n ≥ 30); centroid versus fractal metric; what it does not say |
+| Foundations chunk (D1)  | The M5 channel, UOEDT / baseline / LOEDT, SSA, channel position, trend band                                                                                                                                                                                                                                                 |
+| Glossary                | Corridor, channel position, outside-corridor reading (all 16 languages)                                                                                                                                                                                                                                                     |
+| Reason texts            | `DATA_STALE`, `RETUNING`, `NO_SETTING`, `DETECTION_MISMATCH`, `NO_STATS_AT_SLOT`, `CONTAINMENT_LOW`, `INSUFFICIENT_BARS`, `DISCONTINUITY`, `SANITY_FAILED`, `EVALUATOR_ERROR`, `MCD0_DEFECT_M5` (all 16 languages)                                                                                                          |
+| Labelled questions      | M5-direction and M5-timing questions in all 16 languages (build step 6)                                                                                                                                                                                                                                                     |
+
+All of this is stage 6 work and waits for the sensor worker, synthesis and the knowledge build.
+
+## 11. `details` contents
+
+| Field                  | Type    | Meaning                                                                                                                       |
+| ---------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `trend_direction`      | string  | `UP`, `DOWN` or `SIDEWAYS` (standard §7.3). MCD3 reads it                                                                     |
+| `regression_angle_deg` | number  | θ, 2 decimals, signed                                                                                                         |
+| `channel_position`     | number  | CP on the last closed bar, 4 decimals; below 0 or above 1 means outside the corridor                                          |
+| `window_bars`          | integer | `N_window` in closed M5 bars                                                                                                  |
+| `containment_rate`     | number  | The statistics row's containment rate, 2 decimals, in percent                                                                 |
+| `reversion_setup`      | boolean | True in the six outside-corridor states, false in the three inside states. A neutral flag until `state_statistics` measure it |
+| `populated_candidates` | object  | `{"M5": [names]}`: other candidates with a value on the last closed bar (the fractal EDT on most cycles). Informational       |
+
+INVALID and STALE readings carry an empty `details`. Size stays far below the 600-token budget.
+
+## 12. Worked example
+
+**Slot `2026-09-18T20:55Z` (v1 replica), setting M5 = `best_fit_a`.** Last closed M5 bar 2026-09-18T20:50Z
+(the 20:55 bar is still forming). Statistics row for `best_fit_a` captured at the slot: θ = 6.94°,
+containment 55.76% (≥ 50, passes), `containment_n` 755, so `N_window = 288`. On the last closed bar SSA
+4378.0693, UOEDT 4384.2279, baseline 4367.1957, LOEDT 4350.1634, so CP = 0.8192.
+
+| Step                | Result                                                                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pre-flight          | All pass. The fractal EDT is populated too: `populated_candidates = {"M5": ["fractal"]}`, status stays VALID (D3)                             |
+| Trend, corridor     | θ > 5 → UP; LOEDT ≤ SSA ≤ UOEDT → IN_CORRIDOR                                                                                                 |
+| State, regime, bias | `MCD2_UP_IN_CORRIDOR` · `TREND_ALIGNED_CONTINUATION` · LONG · `reversion_setup` false                                                         |
+| Levels (M5)         | UOEDT 4384.23 (resistance) · baseline 4367.20 (mid) · LOEDT 4350.16 (support)                                                                 |
+| Summary             | "M5 uptrend, inside the corridor"                                                                                                             |
+| Commentary (T01)    | "The M5 SSA is inside the corridor, between LOEDT 4350.16 and UOEDT 4384.23 (channel position 0.8192), while the channel slopes up (+6.94°)." |
+
+The pre-retrofit run on the still-open 20:55 bar gave CP 0.7959 and the same state. The other three real
+cycles (v1 `fractal`: CP 0.1065; v4 `cherry_a`: θ −20.94°, CP 0.1753; v4 `fractal`: θ −49.89°, CP 0.7932)
+also keep their pre-retrofit state: `MCD2_UP_IN_CORRIDOR` for v1, `MCD2_DOWN_IN_CORRIDOR` for v4.
+
+## 13. Tests
+
+Standard §12, T1 to T13 (T14 is for derived MCDs and does not apply). Detail and the mapping of the 13
+pre-retrofit tests: `mcd2_implementation_plan.md` §3.
+
+- T1: one test per state (nine), each from a synthetic bundle.
+- T2: boundaries just below, at and just above: θ = ±5.0 (SIDEWAYS at and inside, UP and DOWN beyond);
+  m = L and m = U (inside) and a hair beyond each (outside); containment 49.99 / 50.0 / 50.01;
+  `T_EDT` 47 / 48 / 49 and 287 / 288 / 289; |θ| 90 / 90.01.
+- T3: one test per pre-flight failure: `SANITY_FAILED` (unknown `data_status`, missing containment or
+  angle, inverted channel on an old window bar, impossible angle), `DATA_STALE`, `RETUNING`, `NO_SETTING`,
+  `DETECTION_MISMATCH`, `NO_STATS_AT_SLOT`, `CONTAINMENT_LOW`, `INSUFFICIENT_BARS`, `DISCONTINUITY`.
+- T4 to T8, T10 to T12: the kit's shared checks (forming bar, wrong-slot statistics, setting, determinism,
+  schema, corrupted bundle, wording, size).
+- T9: replay of the stored fixtures. T13: the real cycles (v1 and v4, each with its centroid indicator and
+  the fractal).
+
+## 14. Open questions
+
+Answered by Davin on 1 October 2026: **Q1 to Q6 approved as recommended** (third column). Q7, the
+architecture word updates, is in the implementation plan and was approved too.
+
+| #   | Question                                                                                                                                                                                                                                                                                                                                                                                                                                 | Recommendation                                            |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| Q1  | **Fractal metric.** The board gives the SSA as the metric and is silent on the fractal EDT, which has no SSA. The pre-retrofit code uses the Close of the bar for it. Keep?                                                                                                                                                                                                                                                              | Keep Close                                                |
+| Q2  | **Window fallback.** If `containment_n`, `visual_window_bars` and `window_bars` are all null, the pre-retrofit code silently uses 288. `containment_n` and `containment_rate` sit in the same `[EDT CHANNEL]` block of the statistics row, so a row without a horizon will usually lack the rate too, and tier 4 stops it (missing `containment_rate` → INVALID). Keep the fallback or make a missing horizon INVALID + `SANITY_FAILED`? | Keep the fallback (carried over; practically unreachable) |
+| Q3  | **Window statistics dropped.** The pre-retrofit output counted bars above, below and inside the corridor over the window and the largest excursions. They never changed a state, and walkthrough C1 does not list them in `details`. Confirm they are dropped (the window still drives tiers 2 and 3).                                                                                                                                   | Drop                                                      |
+| Q4  | **Tier 3 scope.** Pre-retrofit: UOEDT > LOEDT on every bar of the window. The kit's helper checks the last closed bar only. This spec keeps every bar. Confirm.                                                                                                                                                                                                                                                                          | Keep every bar                                            |
+| Q5  | **Angle bound.** The pre-retrofit plan (not its code) required \|θ\| ≤ 90. This spec adds it as a tier-3 check (`max_abs_regression_angle_deg`). Keep?                                                                                                                                                                                                                                                                                   | Keep                                                      |
+| Q6  | **Rungs.** Proposed: Scalper primary structure, Day Trader trendlines and channels (§9). Confirm or change.                                                                                                                                                                                                                                                                                                                              | Confirm                                                   |
+
+Not questions, recorded for the reader: (a) the statistics' fit windows may include the still-open bar
+(unverified, tracked in `.claude/state/waiting-on.md`; MCD2 reads `regression_angle` and
+`containment_rate` from those fits, so the item is inherited and must be settled before certification);
+(b) the board's rule "more than one indicator is invalid" is covered by the setting and decision D3
+(`concept.md` §10a, row 1).

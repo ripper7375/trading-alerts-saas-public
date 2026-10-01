@@ -23,10 +23,13 @@ before commit of the OKF refactor).
 
 ## October 2026 — [2026-10-sessions.md](./2026-10-sessions.md)
 
-| Orig. lines | Entry                                                                                                                                                                                                  |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| —           | Ad-hoc session (2026-10-01, phase/session unchanged) — the six P6 findings F1 to F6 on the shared kit `mcd_common/` fixed with Davin's choices for F4 and F5, 211 tests. On `main`, NOT committed…     |
-| —           | Ad-hoc session (2026-10-01, phase/session unchanged) — MCD task P6 on the shared kit `mcd_common/`: Part B2 and P1 "Done when" hold, 192 tests, six small findings F1 to F6. On `main`, NOT committed… |
+| Orig. lines | Entry                                                                                                                                                                                                               |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| —           | Ad-hoc session (2026-10-01, phase/session unchanged) — MCD task P2 for MCD2 (steps R1 to R4): concept readback, English spec, parameters, registry and plan written; stopped at the STOP. On `main`, NOT committed… |
+| —           | Ad-hoc session (2026-10-01, phase/session unchanged) — Step 0 closed: G1 to G3 on the kit fixed (215 tests), standard 1.0.2, committed as "Step 0: shared MCD kit (mcd_common)".                                    |
+| —           | Ad-hoc session (2026-10-01, phase/session unchanged) — MCD task P6 re-check of the kit: the six fixes hold, 211 tests, four small findings G1 to G4. On `main`, NOT committed…                                      |
+| —           | Ad-hoc session (2026-10-01, phase/session unchanged) — the six P6 findings F1 to F6 on the shared kit `mcd_common/` fixed with Davin's choices for F4 and F5, 211 tests. On `main`, NOT committed…                  |
+| —           | Ad-hoc session (2026-10-01, phase/session unchanged) — MCD task P6 on the shared kit `mcd_common/`: Part B2 and P1 "Done when" hold, 192 tests, six small findings F1 to F6. On `main`, NOT committed…              |
 
 ## September 2026 — [2026-09-sessions.md](./2026-09-sessions.md)
 

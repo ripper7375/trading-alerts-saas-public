@@ -12,6 +12,73 @@ Entries rotated out of `current-state.md` by [session-lifecycle](../../protocols
 
 Back to [history index](./index.md).
 
+<!-- session 2026-10-01 mcd2-p2 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed. MCD task P2 for MCD2
+> (steps R1 to R4): concept readback, English spec, parameters, registry and implementation plan are
+> written; stopped at the STOP. P3 (build) is not started.**
+> **Needs from Davin:** (1) approve `mcd2.md` and the plan, and answer Q1 to Q7 ([the hand-off](../../../docs/handoffs/2026-10-01-0343-mcd2-p2.md)
+> §6; recommendations are the P3 defaults); (2) check the English readback of the two Thai boards
+> (`concept.md` §3), which the builder translated; (3) then **P3 for MCD2**; (4) commit when ready (two
+> staged board renames; the rest of the work is untracked or modified).
+> **Changed & verified:** in `engine-1-5-new/mcd2/`: `legacy/` (byte-identical evaluator, tests, output; one
+> path line edited in the test copy), `concept/` (two images, `git mv`), new `concept.md`,
+> `mcd2_params.yaml`, `mcd2_registry.yaml`, rewritten `mcd2.md` and `mcd2_implementation_plan.md`.
+> Legacy tests **13 OK** from `legacy/`; kit suite **215 OK** (unchanged); params load through the kit,
+> nine states and D6 bias checked, `wording` checks clean on codes, regime words, templates and summaries;
+> spec §6 and the params file list the same six parameters; Prettier clean. Closed-bar readings on all
+> four real cycles keep the legacy state (v1 and v4, centroid and fractal).
+> **Unconfirmed / found:** all four real cycles are `IN_CORRIDOR`, so the other states are synthetic
+> only (the untracked replica batches v2/v3 were not scanned); the statistics fit windows may include the
+> still-open bar (inherited, see [waiting-on](../waiting-on.md)); architecture §2.5 and §3.4 still name the
+> old regime words (Q7). Not run: `test:ci`, `tsc`, lint, build (no app code touched). The oldest entry (the
+> P6 re-check) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 mcd-step0-g1-g3-commit -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, committed as "Step 0: shared MCD kit
+> (mcd_common)" (hash in `git log`), not pushed. G1 to G3 on the kit are fixed with four new tests (215
+> pass, 211 before); standard PATCHed to 1.0.2 for the unknown `data_status`; derived words stay allowed.**
+> **Needs from Davin:** (1) the commit left out, on purpose, the Stack C `.mq5`/`.ex5` change
+> (`InpTolerancePercent` 0.50 to 5.00, not made by this session), the two Advisor docs, the v2 to v4
+> generators and raw exports, the other replica batches and the `.pptx` files: say which to commit
+> ([the hand-off](../../../docs/handoffs/2026-10-01-0220-step0-kit-commit.md) §6 and §7); (2) G4 (the wrong
+> "CRLF" sentence in the fix hand-off) was not in the order and is unchanged; (3) next work: **P2 for
+> MCD2** (needs D4 to D7 at its STOP).
+> **Changed & verified:** four tests (G1 in `test_shared_checks.py`, G2a and G2b in
+> `test_cycle_inputs.py`, G3 in `test_wording_and_budget.py`); a two-line comment in `wording.py`;
+> standard §6 and §12 (version 1.0.2); the `market_data_v6_replicated_v4.xlsx` fixture is now committed
+> because the kit's tests read it. From `engine-1-5-new/`: `python -m unittest discover -s mcd_common/tests
+-t .` **215 OK, 0 skipped**. The five mutants that survived the re-check (G1 twice, G2a, G2b, G3) are
+> all killed now, kit restored by bytes. Standard is Prettier-clean; new table cells fit the old widths.
+> **Unconfirmed / found:** the forming bar inside the statistics fit windows is still unverified (MQL5
+> source not checked, see [waiting-on](../waiting-on.md)). Not run: `test:ci`, `tsc`, lint, build (no app
+> code touched). The oldest entry (the F1 to F6 fixes) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 mcd-p6-recheck-kit -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed. MCD task P6 on the
+> shared kit `mcd_common/`, a fresh re-check of the lines changed for F1 to F6: all six fixes hold,
+> 211 tests pass and the kit is unchanged. Four small findings G1 to G4 (three test gaps, one wrong
+> sentence in the fix hand-off), none blocks P2.**
+> **Needs from Davin:** (1) whether to fix G1 to G4 before P2 (recommended: one very short builder step
+> for G1 to G3, about four small tests); (2) still open from the fix hand-off: whether derived words
+> (`PROBABLE`, `LIKELY`, `SAFETY`) are banned too, and whether to PATCH standard §6 and the §12 T10 row
+> for the unknown-status failure; (3) read [the hand-off](../../../docs/handoffs/2026-10-01-0156-p6-recheck-kit.md)
+> §4.3 and §6; (4) next work: **P2 for MCD2** (needs D4 to D7 at its STOP); (5) commit when ready
+> (`mcd_common/` and `docs/handoffs/` are untracked).
+> **Changed & verified:** nothing in the kit (read-only check); only the hand-off, this entry, and the
+> oldest entry rotated into the new `history/2026-10-sessions.md`. From `engine-1-5-new/`:
+> `python -m unittest discover -s mcd_common/tests -t .` **211 OK, 0 skipped**. Own probes, 57 checks, all
+> pass: F1 to F5, and the P1 "Done when" and Part B2 items on both workbooks and the standard's text.
+> Own mutation pass on a scratch copy: 34 mutations on the changed lines, 29 killed, 5 survived (1
+> equivalent; the other 4 are G1 to G3).
+> **Unconfirmed / found:** G4: the fix hand-off says the kit files are CRLF; measured with Python they
+> are LF only, with no mixed endings (do not check line endings with `grep` in Git Bash). The forming bar
+> inside the statistics fit windows is still unverified (MQL5 source not checked, see
+> [waiting-on](../waiting-on.md)). MCD2's legacy commentary "safely within the EDT corridor" now fails
+> T11 (for P2). Not run: `test:ci`, `tsc`, lint, build (no app code touched).
+
 <!-- session 2026-10-01 mcd-p6-fixes-kit -->
 
 > **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed. The six P6 findings

@@ -2,55 +2,55 @@
   "schema_version": "mcd-output/1",
   "mcd_id": "MCD2",
   "evaluator_version": "2.0.0",
-  "cycle_slot": "2026-09-18T20:55Z",
+  "cycle_slot": "2026-09-28T23:15Z",
   "last_closed_bar": {
-    "M5": "2026-09-18T20:50Z"
+    "M5": "2026-09-28T23:10Z"
   },
   "active_indicator": {
-    "M5": "best_fit_a"
+    "M5": "cherry_a"
   },
   "config_hash": {
-    "best_fit_a": "d78ed3ba68428d82572684105f89b8a0f822dcee9fa0eb8f909f3fb7b9d1d398"
+    "cherry_a": "85bea24b4b98f5e89eceaf1f6341a6a960e16d9546a3d7fb12de99d1f7a6c345"
   },
   "status": "VALID",
   "status_reasons": [],
-  "state_code": "MCD2_UP_IN_CORRIDOR",
+  "state_code": "MCD2_DOWN_IN_CORRIDOR",
   "regime_status": "TREND_ALIGNED_CONTINUATION",
-  "bias": "LONG",
+  "bias": "SHORT",
   "levels": [
     {
       "name": "UOEDT",
       "tf": "M5",
-      "price": 4384.23,
+      "price": 4249.14,
       "role": "resistance"
     },
     {
       "name": "baseline",
       "tf": "M5",
-      "price": 4367.2,
+      "price": 4170.13,
       "role": "mid"
     },
     {
       "name": "LOEDT",
       "tf": "M5",
-      "price": 4350.16,
+      "price": 4096.72,
       "role": "support"
     }
   ],
   "depends_on": [],
-  "summary_line": "M5 uptrend, inside the corridor",
-  "commentary": "The M5 SSA is inside the corridor, between LOEDT 4350.16 and UOEDT 4384.23 (channel position 0.8192), while the channel slopes up (+6.94\u00b0).",
+  "summary_line": "M5 downtrend, inside the corridor",
+  "commentary": "The M5 SSA is inside the corridor, between LOEDT 4096.72 and UOEDT 4249.14 (channel position 0.1753), while the channel slopes down (-20.94\u00b0).",
   "details": {
-    "channel_position": 0.8192,
-    "containment_rate": 55.76,
+    "channel_position": 0.1753,
+    "containment_rate": 100.0,
     "populated_candidates": {
       "M5": [
         "fractal"
       ]
     },
-    "regression_angle_deg": 6.94,
+    "regression_angle_deg": -20.94,
     "reversion_setup": false,
-    "trend_direction": "UP",
+    "trend_direction": "DOWN",
     "window_bars": 288
   }
 }
