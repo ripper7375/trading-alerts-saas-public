@@ -39,6 +39,8 @@ Quick index (newest first):
   live-bar prices, not this. Check the MQL5 source (`backend-stack-c/…/mq5/`) before certification
   (walkthrough stage 5), and ask the Stack C side if it is true. Hand-off:
   [2026-09-30-1448-p1-kit.md](../../docs/handoffs/2026-09-30-1448-p1-kit.md) §7.
+  Readers of those fit fields so far: MCD2 (`regression_angle`, `containment_rate`, `containment_n`;
+  committed) and MCD1 (the same three, and `N_micro` depends on `containment_n`; evaluator 2.0.0, built in P3, checked by P6 and signed off on 2026-10-01, committed the same day).
 
 <!-- CLAUDE.md L4896-L4901 -->
 

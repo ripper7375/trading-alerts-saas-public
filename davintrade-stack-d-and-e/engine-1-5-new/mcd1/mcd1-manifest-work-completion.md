@@ -1,264 +1,224 @@
-# MCD1 MANIFEST & WORK COMPLETION SPECIFICATION (DUAL-HORIZON UPGRADE)
+# MCD1 manifest: work completion (retrofit 2.0.0)
 
-**Module Name:** `mcd1_evaluator.py`  
-**Test Suite:** `test_mcd1_unit_tests.py`  
-**MCD ID:** `MCD1`  
-**Description:** M15 Primary Trend Direction Evaluator (Dual-Horizon Framework)  
-**Target Asset:** `XAUUSD`  
-**Target Timeframe:** `M15`  
-**Target Architecture:** DavinTrade Stack D — Engine 1.5A (Discrete State Machine & Quality Gate)  
-**Primary Consumer:** Claude Code (Stack D Master Builder & Code Auditor) / DavinTrade Ingestion Pipeline  
-**Document Status:** `CERTIFIED & VERIFIED (100% PASS - 13/13 UNIT TESTS)`  
-**Timestamp:** `2026-09-20 12:15:00 UTC` (Epoch: `1789906500`)
+|                       |                                                                                                                                                                                                                                                             |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **MCD**               | MCD1: M15 primary trend and micro regime · independent · M15                                                                                                                                                                                                |
+| **Evaluator version** | **2.0.0** (MAJOR: the output shape changed from the pre-retrofit evaluator, which had no version)                                                                                                                                                           |
+| **Stage**             | 3 (build) done on 1 October 2026 by task P3. **Independent check (task P6) done the same day (findings F1 to F3, all closed); Davin granted the stage-3 sign-off on 1 October 2026.** Flag `off`. Registry status in architecture §2.13: `Retrofit (2.0.0)` |
+| **Built on**          | The shared kit `mcd_common/` (Step 0, 215 tests), standard 1.0.3, walkthrough Part C0 steps R5 to R10                                                                                                                                                       |
+| **Specification**     | [mcd1.md](mcd1.md) (approved by Davin, 1 October 2026) · [plan](mcd1_implementation_plan.md) · [concept](concept.md) (readback confirmed 1 October 2026)                                                                                                    |
+| **Next**              | Stages 4 to 7 when the sensor worker, synthesis and the knowledge build exist; the next retrofit is MCD3 (task P2, needs D7 and D10)                                                                                                                        |
 
----
+## 1. What was built
 
-## 1. Executive Summary & Purpose
+`evaluate(inputs, params, upstream) -> envelope`: a pure function on the kit's frozen input bundle that answers one
+question per cycle: which way the active M15 EDT channel slopes (UP, DOWN, SIDEWAYS on a ±5° band, from the
+statistics row at the slot), and what the last `N_micro` **closed** M15 bars did against that channel's corridor
+between LOEDT and UOEDT (the bar's Close is the metric). `N_micro` is 5% of `T_EDT` rounded half up, never below 96.
+A same-slope break fires on the latest closed bar alone (ADR-023); a counter-trend or sideways break also needs 80%
+of the window outside on that side. Nine states (trend × inside, upper break, lower break), a bias per state
+(decision D6), the three M15 levels, a summary line and a counts-and-location commentary from nine templates.
+Failure is a status with a reason code, never a state.
 
-`MCD1` is the foundational discrete state evaluator of **Stack D (Engine 1.5A)**. Following the architectural review and database schema upgrade (98 columns in `MarketDataV6` and 88 columns in `IndicatorStatistic`), `MCD1` has been refactored from a rigid 54-bar fixed window to a mathematically coherent **Dual-Horizon Framework**:
+Compared with the pre-retrofit MCD1 (`legacy/`): closed bars instead of the forming bar; the setting instead of
+detection (two populated indicators are no longer a failure, D3); statistics at the slot; containment checked in
+tier 4 and a compromised corridor is INVALID + `CONTAINMENT_LOW`, never `UNIDENTIFIED`; non-ascending timestamps
+are `DISCONTINUITY`; no probability, forecast or percentage wording; the M15 baseline level is new; the output is
+envelope `mcd-output/1`. The change list is plan §1.
 
-> **"Determine the primary structural trend direction of Gold (XAUUSD) on the macro-execution timeframe (M15) across the full EDT Time Horizon, evaluate immediate price action across a dynamic micro window of at least 5.0% of the channel span (with a strict minimum floor of 96 bars = 1 full trading day), and synthesize these into zero-hallucination, deterministic JSONB qualitative commentary in canonical English."**
+## 2. Files
 
-### Core Upgrades in this Release:
+All in `davintrade-stack-d-and-e/engine-1-5-new/mcd1/` unless stated.
 
-1. **Scope Restriction to 7 Centroid Variants for M15:** Strictly isolates `best_fit_a`, `best_fit_b`, `cherry_a`, `cherry_b`, `most_recent`, `non_a`, and `non_b`. Strictly excludes non-centroid M5 or single-line indicators (`fractal_edt`, `resistance`, `support`, `sr_levels`).
-2. **Single Active Indicator Rule:** Enforces that exactly 1 centroid indicator can be active on M15.
-3. **Macro Structure Horizon:** Evaluates structural integrity using the **EDT Time Horizon** ($T_{\text{EDT}}$ from `containment_n` in `indicator_statistics`), **`containment_rate`** ($\ge 50\%$), and **`regression_angle`** ($\pm 5.0^\circ$ deadband). Omitted `baseline_coverage_*` as redundant since `containment_rate` already governs channel integrity.
-4. **Dynamic Micro Window ($N_{\text{micro}}$):**
-   $$N_{\text{micro}} = \max(96,\; \text{round}(T_{\text{EDT}} \times 0.05))$$
-   Enforces a strict minimum floor of **96 bars (24 hours / 1 full trading day)** to filter out false breakouts from temporary 2–3 hour news wicks.
-5. **Asymmetric Breakout Logic (Climax vs Reversal):**
-   - **`BREAKOUT_SAME_SLOPE` (Prompt Climax Trigger):** Triggers promptly upon latest bar breach in the same direction of macro slope (massive dump/pump) without waiting for 96 bars / 80%, capturing explosive moves with high probability of immediate **V-shape price reversal**.
-   - **`COUNTER_TREND_EXPANSION` (Structural Reversal):** Requires $\ge 80.0\%$ sustained breach across the micro window ($N_{\text{micro}}$ bars) to confirm genuine structural trend reversal and filter false pullbacks.
-6. **Synthesis Decision Matrix:** Produces rich qualitative states:
-   - `TREND_ALIGNED_CONTINUATION`: Healthy trend continuation within bands.
-   - `BREAKOUT_SAME_SLOPE`: Price breaking out in the same direction of macro slope (massive dump/pump with high probability of soon V-shape price reversal).
-   - `COUNTER_TREND_EXPANSION`: Price breaking out against macro slope (sustained counter-trend buying/selling with high probability of structural trend reversal).
-   - `CONSOLIDATION` / `RANGE_EXPANSION`: Sideways macro dynamics.
+| Path                                  | Purpose                                                                                                               |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `mcd1.md`                             | Specification (14 sections), approved                                                                                 |
+| `mcd1_implementation_plan.md`         | R4 plan, approved; the R1 baseline (§6), the expected legacy to new mapping, and the build result (§9)                |
+| `concept.md`                          | Readback of the pre-retrofit specification (MCD1 has no board), confirmed                                             |
+| `mcd1_registry.yaml`                  | Registry entry, state register (nine states, bias per D6) and the nine commentary templates                           |
+| `mcd1_params.yaml`                    | Seven parameters with value, unit, boundary, why                                                                      |
+| `mcd1_evaluator.py`                   | The evaluator. Imports the standard library, `decimal` and four kit modules only                                      |
+| `test_mcd1_unit_tests.py`             | 105 tests (§3). Also holds `write_fixtures()`, the recipe that regenerates the fixtures                               |
+| `fixtures/`                           | Per slot: `<slot>.inputs.json` (the bundle), `.envelope.json` (the expected output), `.source.md` (workbook, SHA-256) |
+| `mcd1_output.json`                    | The envelope of the v1 cycle (identical to `fixtures/2026-09-18T2055Z.envelope.json`)                                 |
+| `legacy/`                             | Pre-retrofit evaluator, tests and output; read-only history. One path line differs in the test copy                   |
+| `docs/STACK-D-ARCHITECTURE.md` (repo) | §2.13 MCD1 row notes 2.0.0 and its levels; §2.5 no longer says "(baseline to add)" (Q7)                               |
 
----
+`concept/` does not exist: MCD1 has no board and git cannot hold an empty folder (standard §11.1 allows an empty
+`concept/`; `PurityTests.test_the_folder_matches_the_standard_layout` allows its absence).
 
-## 2. Upstream Data Contract & Input Dependencies
+## 3. Test results
 
-`MCD1` consumes data from two primary sheets in [market_data_v6_replicated.xlsx](file:///d:/SaaS%20Project/trading-alerts-saas-public/davintrade-stack-d-and-e/engine-1-5-new/market_data_v6_replicated.xlsx):
+From `davintrade-stack-d-and-e/engine-1-5-new/`, Python 3.11.9, `unittest`, 1 October 2026:
 
-### A. Primary Time-Series Spine: `market_data_v6_M15`
+| Command                                                                     | Result                                  |
+| --------------------------------------------------------------------------- | --------------------------------------- |
+| `python -m unittest discover -s mcd1`                                       | **105 OK, 0 skipped**, about 10 s       |
+| `python -m unittest discover -s mcd2`                                       | 93 OK (MCD2, unchanged)                 |
+| `python -m unittest discover -s mcd_common/tests -t .` (the kit, unchanged) | **215 OK**                              |
+| Legacy tests, from `mcd1/legacy/` and `mcd2/legacy/`                        | 13 OK each (the pre-retrofit baselines) |
+| `npx prettier --check` on the Markdown and YAML files of this folder        | Clean                                   |
 
-- **Lookback Requirement:** Dynamically determined $N_{\text{micro}} = \max(96, \text{round}(T_{\text{EDT}} \times 0.05))$ bars (guaranteed $\ge 96$ bars).
-- **Candidate Centroid Pool (Strictly 7 Variants):**
-  1. `best_fit_a` (`best_fit_a_ssa`, `best_fit_a_uoedt`, `best_fit_a_loedt`)
-  2. `best_fit_b` (`best_fit_b_ssa`, `best_fit_b_uoedt`, `best_fit_b_loedt`)
-  3. `cherry_a` (`cherry_a_ssa`, `cherry_a_uoedt`, `cherry_a_loedt`)
-  4. `cherry_b` (`cherry_b_ssa`, `cherry_b_uoedt`, `cherry_b_loedt`)
-  5. `most_recent` (`most_recent_ssa`, `most_recent_uoedt`, `most_recent_loedt`)
-  6. `non_a` (`non_a_ssa`, `non_a_uoedt`, `non_a_loedt`)
-  7. `non_b` (`non_b_ssa`, `non_b_uoedt`, `non_b_loedt`)
-- **Spine Fields Used:** `timestamp`, `close`, `<active_ind>_ssa`, `<active_ind>_uoedt`, `<active_ind>_loedt`.
+The 105 tests: register and parameters (5), states T1 (9 states plus inside count, placement and same-slope
+independence: 12), metric and candidates (3), boundaries T2 (17), pre-flight T3 (18), rule 1 at the five- and
+ten-minute slots (1), legacy cases (9), real cycles T13 (5), shared checks T4 to T8, T10, T12 on three real cycles
+(21), never throws (2), output T8, T9, T11, T12 and rounding (7), purity and folder layout (3), fixture provenance (2).
 
-### B. Statistical Snapshot Store: `indicator_statistics`
+**Mutation pass** (scratch copy of the kit and this folder; the repo was not touched; the script is in the session
+scratchpad): 57 mutations of the evaluator: the two edges of the trend band, of the corridor and of the window
+counts (latest bar and every window bar), the inclusive sustained test and its percentage, the rounding mode and
+floor of `N_micro`, the `T_EDT` field order and the fallback, the window start and end, the closed-bar cut, the
+metric (Close, not SSA), the levels, six bias and regime entries, every branch of the micro regime for each trend,
+the inside count, the distance, the channel position decimals and rounding, the CAUTIONARY branch, populated
+candidates, the reading context, `never_throws`, tier 1, tier 2 (constant window), tier 3 (last bar only, strict `>`,
+raw bars, window one short and one long, the angle bound and its check), tier 4 (angle check, containment floor), a
+wall-clock import and a file read. **First pass: 55 killed, 2 survived**, both on the same gap: no test had a window
+bar that closes exactly on UOEDT or LOEDT (it must count as inside; the mutants used `>=` and `<=` in the counts).
+The test `BoundaryTests.test_a_window_bar_that_closes_exactly_on_a_band_is_inside_and_not_counted` was added and
+kills both: **57 of 57 killed**. The evaluator was right in each case; only a test was missing.
 
-- **Table Design:** Append-Only Immutable Snapshot log.
-- **Selection Filter:** `symbol == 'XAUUSD' AND timeframe == 'M15' AND source == <active_indicator>`.
-- **Resolution Rule:** `ORDER BY captured_at DESC LIMIT 1` (Takes the latest snapshot; never overwrites past cycles).
-- **Fields Extracted:**
-  - `containment_n` (or `visual_window_bars`): Interpreted as **`EDT Time Horizon`** ($T_{\text{EDT}}$).
-  - `containment_rate`: Validated against `min_containment_threshold` ($\ge 50.0\%$).
-  - `regression_angle`: Linear slope angle in degrees $\in [-90.0^\circ, +90.0^\circ]$.
-  - `channel_position`: Ratio $\frac{\text{close} - \text{LOEDT}}{\text{UOEDT} - \text{LOEDT}}$.
-  - `captured_at`, `live_bar_ts`, `raw_slope`.
+**Independent check (task P6, a fresh session, 1 October 2026).** No line of A1 to A26 failed. The checker's own
+mutation pass (424 mutants generated from the evaluator's syntax tree, on a scratch copy; the provenance tests left
+out because they never call the evaluator) left 25 alive: 23 equivalent (annotation tuples, `Decimal(1)` against
+`Decimal(0)` or `Decimal(2)` in `quantize`, diagnostic strings in tier-3 and tier-4 results that nothing reads, one
+dead branch) and two real test gaps. **F1:** nothing pinned the commentary distance for a break under 1.00 (a floor of
+1.00 on `{dist}` passed every test). **F2:** nothing pinned the negative-zero guard on the channel position (without it
+the commentary reads "channel position -0.0000"; the test compared with `== 0.0`, which `-0.0` also satisfies). Both
+are closed by `BoundaryTests.test_a_small_break_is_written_as_it_is_and_a_hair_below_loedt_is_never_a_negative_zero`
+(105 tests); it kills both mutants. **F3:** four `meaning` sentences in `mcd1.md` §7 differed in wording from the
+registry; the spec now matches the registry (bias, regime, summaries and templates already matched). A clean-room
+reference written from spec §5 to §7 agreed with the evaluator on 220,000 random bundles, and moving each of the
+seven parameter values by one step is caught by the behavioural tests (the one exception, 80.0 to 79.9, changes no
+reading for a window of 150 bars or fewer). Report: `docs/handoffs/2026-10-01-0628-mcd1-p6.md`.
 
----
+## 4. Legacy baseline (step R1)
 
-## 3. 4-Tier Comprehensive Pre-Flight Validation
+Run before any change, and recorded in full in plan §6. The pre-retrofit evaluator reads the forming bar (the M15
+bar opening at the slot's quarter hour). MCD1 has no override switch, so the "set" rows restrict the module's
+candidate list to one indicator in a scratch script; the legacy files were not changed:
 
-```mermaid
-flowchart TD
-    Start(["Input: market_data_v6_M15 + indicator_statistics"]) --> T1{"Tier 1: 7 Candidates Scanned<br>Active Indicators == 1?"}
-    T1 -- No --> Fail1["FAIL: 0 or >1 active indicators"]
-    T1 -- Yes --> T4{"Tier 4: Statistics Ingested?<br>CR >= 50% & Angle valid?"}
-    T4 -- No --> Fail4["FAIL: Missing stat record or invalid angle"]
-    T4 -- Yes --> T2{"Tier 2: M15 Continuity?<br>Bars >= N_micro, Timestamps ascending?"}
-    T2 -- No --> Fail2["FAIL: Insufficient bars or non-monotonic"]
-    T2 -- Yes --> T3{"Tier 3: Channel Sanity?<br>UOEDT > LOEDT on all N_micro bars?"}
-    T3 -- No --> Fail3["FAIL: Corrupt channel boundaries"]
-    T3 -- Yes --> Eval["Proceed to Dual-Horizon Synthesis & JSONB Generation"]
+| Workbook · override | Legacy result                                                                                                                          |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| v1 · none           | PASS `non_b`, `DOWNTREND` · `COUNTER_TREND_EXPANSION`: θ −29.72, containment 73.95, `T_EDT` 1808, `N_micro` 96, CP 1.6447, 96 above    |
+| v1 · `non_b`        | Same                                                                                                                                   |
+| v1 · the other six  | FAIL `UNIDENTIFIED`: no active centroid indicator                                                                                      |
+| v4 · none           | FAIL `UNIDENTIFIED`: multiple active indicators (`non_a`, `non_b`)                                                                     |
+| v4 · `non_b`        | PASS `DOWNTREND` · `TREND_ALIGNED_CONTINUATION`: θ −20.98, containment 93.17, `T_EDT` 2035, `N_micro` 102, CP 0.1037, 0 above, 0 below |
+| v4 · `non_a`        | PASS `SIDEWAYS` · `RANGE_EXPANSION` (lower breakdown): θ −0.56, containment 91.01, `T_EDT` 968, `N_micro` 96, CP −0.6524, 87 below     |
+| v4 · the other five | FAIL `UNIDENTIFIED`: no active centroid indicator                                                                                      |
 
-    Fail1 --> OutUnidentified["trend_state = UNIDENTIFIED<br>regime_status = UNCERTAIN"]
-    Fail2 --> OutUnidentified
-    Fail3 --> OutUnidentified
-    Fail4 --> OutUnidentified
-```
+## 5. Equivalence table (step R7)
 
-1. **Tier 1 (Candidate Isolation & Single Active Rule):**
-   - Scans only the 7 Centroid Variants.
-   - Enforces that exactly 1 indicator has populated data ($\ge 96$ bars). Fails if 0 or $>1$ active indicators exist.
-2. **Tier 2 (M15 Continuity & Data Availability):**
-   - Verifies that at least $N_{\text{micro}}$ valid bars exist prior to the last computed bar.
-   - Verifies monotonic timestamp ordering and non-null numeric values.
-3. **Tier 3 (Channel Sanity Gate):**
-   - Checks that $\text{UOEDT}_i > \text{LOEDT}_i$ on every bar $i \in [1 \dots N_{\text{micro}}]$.
-4. **Tier 4 (Statistics Ingestion Verification):**
-   - Matches record in `indicator_statistics` by `symbol`, `timeframe`, and `active_indicator`.
-   - Validates that `containment_rate >= 50.0%`. (If $< 50\%$, flags corridor integrity as `COMPROMISED`).
+Legacy and new run side by side (scratch script, 1 October 2026; only the legacy class is called, so
+`legacy/mcd1_output.json` is untouched). "Same state" means the state code is the legacy trend plus micro regime
+under the plan §6 mapping, and the regime word is equal (none was renamed). Every row is explained; none is
+unexplained.
 
----
+| Case                                   | Legacy                                                              | New                                                                                                                | Same state | Why it differs                                                              |
+| -------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ---------- | --------------------------------------------------------------------------- |
+| Real v1 `non_b`                        | `DOWNTREND` · `COUNTER_TREND_EXPANSION`, CP 1.6447, 96 above        | `MCD1_DOWN_UPPER_BREAKOUT`, LONG, CP 1.6622, 96 above                                                              | yes        | Last closed bar (20:30) instead of the forming bar (20:45); bias added (D6) |
+| Real v4 `non_b`                        | `DOWNTREND` · `TREND_ALIGNED_CONTINUATION`, CP 0.1037               | `MCD1_DOWN_IN_CORRIDOR`, SHORT, CP 0.1071                                                                          | yes        | Same                                                                        |
+| Real v4 `non_a`                        | `SIDEWAYS` · `RANGE_EXPANSION`, CP −0.6524, 87 below                | `MCD1_SIDEWAYS_LOWER_BREAKDOWN`, SHORT, CP −0.6473, 86 below                                                       | yes        | Same; one fewer bar below because the window ends one bar earlier           |
+| v1 and v4, no override                 | v1 PASS as above; v4 FAIL `UNIDENTIFIED` (two populated indicators) | v1 and v4 VALID; v4 lists `non_a` in `populated_candidates`                                                        | n/a        | The setting decides, populated candidates are informational (D3)            |
+| Legacy 03 UP + inside                  | `TREND_ALIGNED_CONTINUATION`                                        | `MCD1_UP_IN_CORRIDOR`, LONG                                                                                        | yes        | Bias added (D6)                                                             |
+| Legacy 05 UP + above                   | `BREAKOUT_SAME_SLOPE`                                               | `MCD1_UP_UPPER_BREAKOUT`, LONG                                                                                     | yes        | Bias added                                                                  |
+| Legacy 06 UP + below, sustained        | `COUNTER_TREND_EXPANSION`                                           | `MCD1_UP_LOWER_BREAKDOWN`, SHORT                                                                                   | yes        | Bias added                                                                  |
+| DOWN + inside                          | `TREND_ALIGNED_CONTINUATION`                                        | `MCD1_DOWN_IN_CORRIDOR`, SHORT                                                                                     | yes        | Bias added                                                                  |
+| Legacy 04 DOWN + below                 | `BREAKOUT_SAME_SLOPE`                                               | `MCD1_DOWN_LOWER_BREAKDOWN`, SHORT                                                                                 | yes        | Bias added                                                                  |
+| DOWN + above, sustained                | `COUNTER_TREND_EXPANSION`                                           | `MCD1_DOWN_UPPER_BREAKOUT`, LONG                                                                                   | yes        | Bias added                                                                  |
+| Legacy 07 SIDEWAYS, three combos       | `CONSOLIDATION`, `RANGE_EXPANSION`, `RANGE_EXPANSION`               | `MCD1_SIDEWAYS_IN_CORRIDOR` NEUTRAL; `_UPPER_BREAKOUT` LONG; `_LOWER_BREAKDOWN` SHORT                              | yes        | The two `RANGE_EXPANSION` cases split by the side of the break; bias added  |
+| Legacy 08 two active indicators        | FAIL, `UNIDENTIFIED`                                                | VALID, `populated_candidates` lists the other candidate                                                            | n/a        | D3                                                                          |
+| Legacy 09 zero active indicators       | FAIL, `UNIDENTIFIED`                                                | CAUTIONARY `DETECTION_MISMATCH` then STALE + `NO_STATS_AT_SLOT`; INVALID + `DISCONTINUITY` if nothing is populated | n/a        | Failure is a status with reason codes                                       |
+| Legacy 10 UOEDT ≤ LOEDT                | FAIL                                                                | INVALID + `SANITY_FAILED`                                                                                          | n/a        | Same                                                                        |
+| Legacy 11 containment 35.5%            | PASS with trend `UNIDENTIFIED`, regime `UNCERTAIN`                  | INVALID + `CONTAINMENT_LOW`, no state                                                                              | n/a        | Walkthrough C2: one failure status                                          |
+| Legacy 12 80% share, 80 and 50 of 96   | `UPPER_BREAKOUT` (counter-trend) and `IN_CORRIDOR`                  | `MCD1_DOWN_UPPER_BREAKOUT` and `MCD1_DOWN_IN_CORRIDOR`                                                             | yes        | None; the share test is now exact integer arithmetic                        |
+| Legacy 13 same-slope on the latest bar | `LOWER_BREAKDOWN` with 3 bars, `UPPER_BREAKOUT` with 2 bars         | `MCD1_DOWN_LOWER_BREAKDOWN` and `MCD1_UP_UPPER_BREAKOUT`                                                           | yes        | None (ADR-023); the "V-shape" wording is gone                               |
 
-## 4. Synthesis Decision Matrix & Output States
+Other intended differences (plan §6): the state is decided on unrounded prices and exact counts, which differs from
+the legacy rounded channel position only when Close is within 0.00005 of a band (tested in `BoundaryTests`);
+`N_micro` rounds half up, which differs from Python `round()` only when 5% of `T_EDT` is exactly x.5 with x even
+(`T_EDT` 1,930 gives 97, was 96; tested); the per-side percentages, `contained_bar_count`, `channel_position_stat`,
+`raw_slope` and the provenance block are gone from the output; all wording. **No state differs from legacy that the
+plan did not list.**
 
-Combining Macro Trend Direction ($\theta$) and Micro Corridor Regime ($CP$):
+## 6. Real-cycle envelopes (step R8)
 
-| Macro Trend     | Micro Regime      | Synthesis `regime_status`        | Description & Market Dynamics                                                                                                                |
-| :-------------- | :---------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
-| **`UPTREND`**   | `IN_CORRIDOR`     | **`TREND_ALIGNED_CONTINUATION`** | Price fluctuates normally inside upward channel bands. Healthy uptrend continuation.                                                         |
-| **`DOWNTREND`** | `IN_CORRIDOR`     | **`TREND_ALIGNED_CONTINUATION`** | Price fluctuates normally inside downward channel bands. Healthy downtrend continuation.                                                     |
-| **`UPTREND`**   | `UPPER_BREAKOUT`  | **`BREAKOUT_SAME_SLOPE`**        | Price breaking out upward in the same direction of macro slope. Shows massive pump with high probability of soon price reversal.             |
-| **`DOWNTREND`** | `LOWER_BREAKDOWN` | **`BREAKOUT_SAME_SLOPE`**        | Price breaking out downward in the same direction of macro slope. Shows massive dump with high probability of soon price reversal.           |
-| **`UPTREND`**   | `LOWER_BREAKDOWN` | **`COUNTER_TREND_EXPANSION`**    | Price breaking out downward against macro uptrend slope. Sustained counter-trend selling with high probability of structural trend reversal. |
-| **`DOWNTREND`** | `UPPER_BREAKOUT`  | **`COUNTER_TREND_EXPANSION`**    | Price breaking out upward against macro downtrend slope. Sustained counter-trend buying with high probability of structural trend reversal.  |
-| **`SIDEWAYS`**  | `IN_CORRIDOR`     | **`CONSOLIDATION`**              | Price moving sideways within normal horizontal corridor.                                                                                     |
-| **`SIDEWAYS`**  | `UPPER_BREAKOUT`  | **`RANGE_EXPANSION`**            | Price breaking out upward from sideways range. Bullish expansion out of consolidation.                                                       |
-| **`SIDEWAYS`**  | `LOWER_BREAKDOWN` | **`RANGE_EXPANSION`**            | Price breaking out downward from sideways range. Bearish expansion out of consolidation.                                                     |
+Three real cycles, each read through the stored fixture bundle. All VALID, schema errors none. Tokens are
+`o200k_base`; time is the slowest of 5 runs.
 
----
+| Workbook · setting | Slot · last closed bar                | State                           | CP      | `N_micro` | Above / below | Populated beside | Tokens | Time   |
+| ------------------ | ------------------------------------- | ------------------------------- | ------- | --------- | ------------- | ---------------- | ------ | ------ |
+| v1 · `non_b`       | 2026-09-18T20:55Z · 2026-09-18T20:30Z | `MCD1_DOWN_UPPER_BREAKOUT`      | 1.6622  | 96        | 96 / 0        | none             | 365    | 2.5 ms |
+| v4 · `non_b`       | 2026-09-28T23:15Z · 2026-09-28T23:00Z | `MCD1_DOWN_IN_CORRIDOR`         | 0.1071  | 102       | 0 / 0         | `non_a`          | 356    | 2.5 ms |
+| v4 · `non_a`       | same                                  | `MCD1_SIDEWAYS_LOWER_BREAKDOWN` | −0.6473 | 96        | 0 / 86        | `non_b`          | 367    | 2.4 ms |
 
-## 5. Live Production Execution & Output Contract
+The largest envelope measured is 367 tokens (budget 600); the largest synthetic one is 337 (a CAUTIONARY reading);
+one evaluation takes about 2.5 ms (budget 1 s). `mcd1_output.json` is the first row: VALID,
+`MCD1_DOWN_UPPER_BREAKOUT`, `COUNTER_TREND_EXPANSION`, LONG, levels UOEDT 4279.46, baseline 4214.17, LOEDT 4126.24,
+summary "M15 downtrend, sustained close above the corridor", commentary "The M15 channel slopes down (-29.72°). The
+latest closed bar closed 101.47 above UOEDT 4279.46 (channel position 1.6622); 96 of the last 96 closed bars closed
+above UOEDT." Three of the nine states have a real example, each on a different cycle; the other six are covered by
+synthetic bundles. Fixtures are frozen: a workbook is never regenerated in place (`FixtureProvenanceTests` checks
+the SHA-256).
 
-Executing `python mcd1_evaluator.py` against `market_data_v6_replicated.xlsx` yields:
+## 7. Standard Appendix A
 
-```json
-{
-  "mcd_id": "MCD1",
-  "name": "M15 Primary Trend Direction",
-  "symbol": "XAUUSD",
-  "timeframe": "M15",
-  "evaluated_at": "2026-09-20 11:59:01 UTC",
-  "evaluated_epoch": 1789905541,
-  "parameters": {
-    "micro_lookback_pct": 5.0,
-    "min_micro_floor": 96,
-    "micro_breach_threshold_pct": 80.0,
-    "min_containment_threshold": 50.0,
-    "sideways_angle_threshold_degrees": 5.0
-  },
-  "validation": {
-    "status": "PASS",
-    "errors": [],
-    "warnings": [],
-    "checks": {
-      "total_bars_available": 3000,
-      "candidate_indicator_coverage": {
-        "best_fit_a": 0,
-        "best_fit_b": 0,
-        "cherry_a": 0,
-        "cherry_b": 0,
-        "most_recent": 0,
-        "non_a": 0,
-        "non_b": 1808
-      },
-      "active_indicators_detected": ["non_b"],
-      "indicator_statistics_record": {
-        "source": "non_b",
-        "captured_at": 1789764900,
-        "live_bar_ts": 1789764300,
-        "regression_angle": -29.72,
-        "containment_rate": 73.95,
-        "edt_time_horizon": 1808,
-        "channel_position_stat": 1.6447,
-        "raw_slope": -0.25452,
-        "total_matching_snapshots": 1
-      },
-      "edt_time_horizon": 1808,
-      "dynamic_micro_window_bars": 96,
-      "evaluation_start_bar_index": 2906,
-      "evaluation_end_bar_index": 3001
-    }
-  },
-  "active_indicator": "non_b",
-  "macro_structure": {
-    "edt_time_horizon": 1808,
-    "regression_angle": -29.72,
-    "containment_rate_pct": 73.95,
-    "channel_position_stat": 1.6447,
-    "is_corridor_valid": true,
-    "macro_trend": "DOWNTREND",
-    "provenance": {
-      "source": "non_b",
-      "captured_at": 1789764900,
-      "live_bar_ts": 1789764300,
-      "raw_slope": -0.25452
-    }
-  },
-  "micro_regime": {
-    "window_bars": 96,
-    "channel_position_latest": 1.6447,
-    "regime": "UPPER_BREAKOUT",
-    "contained_bar_count": 0,
-    "upper_breach_count": 96,
-    "upper_breach_pct": 100.0,
-    "lower_breach_count": 0,
-    "lower_breach_pct": 0.0,
-    "breach_threshold_pct": 80.0,
-    "containment_rate_pct": 0.0,
-    "latest_bar": {
-      "timestamp": 1789764300,
-      "close": 4377.99,
-      "ssa": 4380.76289794,
-      "uoedt": 4279.20888,
-      "loedt": 4125.9876,
-      "channel_position": 1.6447,
-      "breach_type": "UPPER_BREACH"
-    }
-  },
-  "synthesis": {
-    "primary_trend": "DOWNTREND",
-    "regime_status": "COUNTER_TREND_EXPANSION",
-    "description": "Price breaking out upward against macro downtrend slope. Sustained counter-trend buying with high probability of structural trend reversal."
-  },
-  "trend_state": "DOWNTREND",
-  "regime_status": "COUNTER_TREND_EXPANSION",
-  "commentary": "XAUUSD M15 macro slope is DOWNTREND (-29.72°), yet recent micro price action has breached above the UOEDT corridor (channel_position=1.6447 > 1.0) sustained over the past 96 bars (1 day: 96/96 bars = 100.0% >= 80.0% threshold). This demonstrates persistent counter-trend buying expansion with high probability of structural reversal."
-}
-```
+| #   | Check                                                                             | Status                  | Evidence                                                                                                                                                                                                                                                                                                              |
+| --- | --------------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A1  | Spec has all 14 sections and is approved by Davin                                 | Pass                    | `mcd1.md` §1 to §14; approved 1 Oct 2026 (§9 of this manifest)                                                                                                                                                                                                                                                        |
+| A2  | Implementation plan approved before coding                                        | Pass                    | `mcd1_implementation_plan.md`; approved 1 Oct 2026, before P3 started                                                                                                                                                                                                                                                 |
+| A3  | Reads only the input bundle; no database, file, network, clock, randomness, model | Pass                    | `PurityTests` (imports allowed list; no file, clock, randomness, environment or print names); mutations "a wall-clock import" and "file read" killed                                                                                                                                                                  |
+| A4  | Closed bars only; forming bar and last price never used                           | Pass                    | `_Shared.test_t4_forming_bar_is_ignored` on three cycles; `RealCycleTests.test_the_stored_bundles_hold_closed_bars_only`; mutation "window reads raw bars" killed; `PreflightTests.test_tier3_window_edges_...` (a malformed forming bar changes nothing)                                                             |
+| A5  | Statistics by slot and active source; no match is STALE                           | Pass                    | `_Shared.test_t5_wrong_slot_statistics_are_stale` (three cycles); `PreflightTests.test_tier4_no_row_and_a_row_from_another_slot` (including a row stamped with the export slot)                                                                                                                                       |
+| A6  | Active indicator from the setting; mismatch is CAUTIONARY                         | Pass                    | `_Shared.test_t6_setting_and_detection_mismatch`; `PreflightTests.test_tier1_*`; `MetricTests` (all seven candidates; the fractal EDT and the single lines are not candidates). The mismatch check is CAUTIONARY and continues; the reading then ends STALE or INVALID with `DETECTION_MISMATCH` kept first (spec §5) |
+| A7  | Output validates against `mcd-output/1`; no extra top-level field                 | Pass                    | `OutputTests.test_t8_*`, `_Shared.test_t8_schema`, every `assert_reading` and state test calls `schema_errors`                                                                                                                                                                                                        |
+| A8  | Pre-flight order cycle, 1, 4, 2, 3; reason codes from Appendix D                  | Pass                    | `PreflightTests.test_the_first_failing_check_decides` (four orderings); the envelope builders reject any code outside Appendix D                                                                                                                                                                                      |
+| A9  | Never throws; errors become INVALID + `EVALUATOR_ERROR`                           | Pass                    | `_Shared.test_t10_corrupted_bundle_never_throws` (nine corruptions, three cycles); `NeverThrowsTests.test_t10_an_error_inside_the_evaluator_...`; mutation "never_throws removed" killed                                                                                                                              |
+| A10 | State register exhaustive and exclusive; codes follow §7.1                        | Pass                    | `RegisterTests` (nine states = trend × micro regime; a sweep over 378 inputs reaches all nine and matches an independent classifier); codes ≤ 29 characters                                                                                                                                                           |
+| A11 | Bias per state; null when INVALID or STALE                                        | Pass                    | `RegisterTests.test_the_register_is_exhaustive_and_exclusive_and_bias_follows_d6` (no `DAVIN` left); `PreflightTests.assert_reading` (state, bias, levels, details empty)                                                                                                                                             |
+| A12 | No banned words, probabilities or unmeasured numbers                              | Pass                    | `OutputTests.test_t11_*` (codes, regime words, templates, summaries, rendered commentary, meanings); the legacy wording is rejected by the same check                                                                                                                                                                 |
+| A13 | Summary ≤ 80 characters, no prices; commentary from templates                     | Pass                    | T11 summary check (longest summary 49 characters); `StateTests` compare each commentary with its literal template output                                                                                                                                                                                              |
+| A14 | Levels named, per timeframe, 2 decimals; zone width defined                       | Pass                    | `StateTests.assert_state` (names, `tf` M15, prices, roles); zone width is 10% of `U − L` of the same bar (spec §8, ADR-031); the zone builder is Section 3                                                                                                                                                            |
+| A15 | `depends_on` complete; a derived MCD modifies, does not re-vote                   | Not applicable          | Independent: `depends_on` is `[]` (`StateTests`); T14 is for derived MCDs                                                                                                                                                                                                                                             |
+| A16 | `uses_channel` declared if it is a channel MCD                                    | Pass                    | `mcd1_registry.yaml` `uses_channel: [M15]`; `RegisterTests.test_registry_and_params_describe_this_evaluator`                                                                                                                                                                                                          |
+| A17 | Precedence rung proposed; rule rows proposed (not applied)                        | Pass                    | Spec §9: rungs confirmed by Davin (Q6); no new rule rows proposed; the bias note for the draft rule 2 is recorded there                                                                                                                                                                                               |
+| A18 | Dispatch-matrix intents, tags, playbook and foundations chunks ready              | Pending, stage 6        | The content is listed in spec §10; the files need the knowledge build (architecture §4.6)                                                                                                                                                                                                                             |
+| A19 | Reason texts and new glossary terms in all 16 languages                           | Pending, stage 6        | Reason codes MCD1 can emit are listed in spec §10                                                                                                                                                                                                                                                                     |
+| A20 | Parameters in `mcdN_params.yaml` with rationale                                   | Pass                    | `mcd1_params.yaml` loads through `Params.from_yaml` (the kit refuses a parameter without value, unit, boundary and why); the seven names and values equal spec §6 (`RegisterTests`)                                                                                                                                   |
+| A21 | Tests T1 to T14 pass (T14 for derived MCDs)                                       | Pass                    | 105 OK; T14 not applicable                                                                                                                                                                                                                                                                                            |
+| A22 | Envelope ≤ 600 tokens; evaluation ≤ 1 s                                           | Pass                    | `OutputTests.test_t12_*` (largest 367 tokens, `o200k_base`), `_Shared.test_t12_size_and_r15_time` (three cycles); §6 above                                                                                                                                                                                            |
+| A23 | Shadow period passed; point-in-time replay done; statistics stored                | Pending, stages 4 and 5 | Needs the sensor worker and `market_data_point_in_time`                                                                                                                                                                                                                                                               |
+| A24 | Added to golden scenarios and the labelled question set                           | Pending, stages 4 to 7  | Needs synthesis and the knowledge build                                                                                                                                                                                                                                                                               |
+| A25 | Registry row added to the architecture; decision entry written                    | Pending, stage 7        | Row exists and notes 2.0.0 (status `Retrofit (2.0.0)`); the decision entry is written at go-live                                                                                                                                                                                                                      |
+| A26 | Folder matches §11.1: same file names, `concept.md` confirmed, nothing extra      | Pass                    | `PurityTests.test_the_folder_matches_the_standard_layout` (`concept/` absent by design, see §2); `concept.md` confirmed by Davin 1 Oct 2026; `__pycache__/` is git-ignored                                                                                                                                            |
 
----
+## 8. Open questions
 
-## 6. Test Suite & Validation Evidence
+None for the build. Carried forward:
 
-Automated test suite `test_mcd1_unit_tests.py` validates 13 critical test cases:
+- **Statistics fit windows and the forming bar** (`.claude/state/waiting-on.md`, MCD kit item): `regression_angle`,
+  `containment_rate` and `containment_n`, which MCD1 reads (and `N_micro` with them), may be fitted with the
+  still-open bar. Settle it before certification (stage 5). It does not change the closed-bar reading of prices.
+- **Five of nine states have synthetic examples only.** The fixtures give `MCD1_DOWN_UPPER_BREAKOUT`,
+  `MCD1_DOWN_IN_CORRIDOR` and `MCD1_SIDEWAYS_LOWER_BREAKDOWN`. The independent check also ran the untracked replica
+  batches v2 and v3 (every M15 candidate with a statistics row): no error, and v3 (`non_a` and `non_b`) gives a real
+  `MCD1_DOWN_LOWER_BREAKDOWN`. v3 is not a fixture yet.
+- **Sub-cent wording:** a break under half a cent reads "0.00 above UOEDT" (accurate under the two-decimal rule;
+  Davin left the same wording as it is for MCD2).
+- **Shared tier helpers:** the three helpers MCD2 added on top of the kit (angle is a number, window-wide channel sanity,
+  a `required_columns` override for `bars_check`) are now written in two evaluators. Moving them into the kit is a kit
+  change with its own review, best done after MCD3 when there are three copies (plan §7).
+- **Draft rule 2 and the bias** (spec §9): under D6 the sensor bias in the two same-slope break states follows the
+  break, while the draft rule 2 reads the same regime word as "bias against the spike". Synthesis decides; recorded
+  for the rules review (task P8).
 
-```
-test_01_real_data_execution_counter_trend_expansion (__main__.TestMCD1DualHorizonLogic.test_01_real_data_execution_counter_trend_expansion) ... ok
-test_02_dynamic_micro_window_floor_and_percentage (__main__.TestMCD1DualHorizonLogic.test_02_dynamic_micro_window_floor_and_percentage) ... ok
-test_03_synthetic_trend_aligned_continuation_uptrend (__main__.TestMCD1DualHorizonLogic.test_03_synthetic_trend_aligned_continuation_uptrend) ... ok
-test_04_synthetic_breakout_same_slope_massive_dump (__main__.TestMCD1DualHorizonLogic.test_04_synthetic_breakout_same_slope_massive_dump) ... ok
-test_05_synthetic_breakout_same_slope_massive_pump (__main__.TestMCD1DualHorizonLogic.test_05_synthetic_breakout_same_slope_massive_pump) ... ok
-test_06_synthetic_counter_trend_expansion_uptrend (__main__.TestMCD1DualHorizonLogic.test_06_synthetic_counter_trend_expansion_uptrend) ... ok
-test_07_synthetic_sideways_consolidation_and_expansion (__main__.TestMCD1DualHorizonLogic.test_07_synthetic_sideways_consolidation_and_expansion) ... ok
-test_08_tier1_validation_multiple_active_indicators (__main__.TestMCD1DualHorizonLogic.test_08_tier1_validation_multiple_active_indicators) ... ok
-test_09_tier1_validation_no_active_indicator (__main__.TestMCD1DualHorizonLogic.test_09_tier1_validation_no_active_indicator) ... ok
-test_10_tier3_validation_corrupt_channel_boundaries (__main__.TestMCD1DualHorizonLogic.test_10_tier3_validation_corrupt_channel_boundaries) ... ok
-test_11_tier4_compromised_corridor_containment_threshold (__main__.TestMCD1DualHorizonLogic.test_11_tier4_compromised_corridor_containment_threshold) ... ok
-test_12_micro_breach_threshold_80pct_filtering (__main__.TestMCD1DualHorizonLogic.test_12_micro_breach_threshold_80pct_filtering) ... ok
-test_13_same_slope_v_shape_prompt_trigger (__main__.TestMCD1DualHorizonLogic.test_13_same_slope_v_shape_prompt_trigger) ... ok
+## 9. Decisions Davin made during the work
 
-----------------------------------------------------------------------
-Ran 13 tests in 0.951s
-
-OK (100% PASS)
-```
-
----
-
-## 7. Claude Code Integration & Audit Sign-Off
-
-For Claude Code / Master Builder assembling Stack D:
-
-- [x] **File Path:** `davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_evaluator.py`
-- [x] **Executable Entry Point:** `evaluator = MCD1PrimaryTrendEvaluator(excel_path=...)` -> `evaluator.evaluate()`
-- [x] **Zero Hallucination:** 100% deterministic mathematical evaluation. No external network dependencies.
-- [x] **Timeframe Confinement:** Operates strictly on `M15`.
-- [x] **Centroid Isolation:** Candidate pool restricted strictly to 7 centroid variants.
-- [x] **Dynamic Micro Window:** Calculated as $\ge 5\%$ of EDT Time Horizon with a 96-bar (1 day) floor.
-- [x] **Climax vs. Reversal Asymmetry:** Prompt trigger for same-slope climax breakout (V-shape reversal detection) vs. $\ge 80.0\%$ sustained breach across micro window for counter-trend structural expansion.
-- [x] **JSONB Canonical Output:** Ready for direct ingestion into `davin_report_1_market_data_analysis`.
-- [x] **Test Suite Verified:** `python test_mcd1_unit_tests.py` (13/13 passing).
+| Date       | Decision                                                                                                                                                                                                                                                                                                          |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-30 | D3: tier-1 meaning (a mismatch is an empty set indicator while another has data; populated candidates are informational). Built into the kit                                                                                                                                                                      |
+| 2026-10-01 | D4 English specification                                                                                                                                                                                                                                                                                          |
+| 2026-10-01 | Specification and plan approved; concept readback confirmed                                                                                                                                                                                                                                                       |
+| 2026-10-01 | D6 bias per state: inside the corridor the bias follows the macro trend (UP LONG, DOWN SHORT, SIDEWAYS NEUTRAL); a break follows the break direction (above UOEDT LONG, below LOEDT SHORT) for all trends                                                                                                         |
+| 2026-10-01 | Q1 to Q7 approved as recommended: Close as the metric; `T_EDT` fallback 96; `N_micro` rounds half up; tier 3 on every window bar; angle bound 90; rungs (Day Trader primary structure, Scalper trendlines and channels); architecture §2.13 and §2.5 documentation edits in P3                                    |
+| 2026-10-01 | Stage-3 sign-off for MCD1 after the independent check (task P6). Wrap-up instructions: close F1 and F2 with one test, align the four `meaning` sentences of `mcd1.md` §7 to the registry (F3), write the architecture §2.5 "States" cell for MCD1 (nine codes plus five regime statuses), commit by explicit path |

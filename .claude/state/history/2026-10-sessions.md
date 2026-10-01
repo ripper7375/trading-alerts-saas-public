@@ -12,6 +12,81 @@ Entries rotated out of `current-state.md` by [session-lifecycle](../../protocols
 
 Back to [history index](./index.md).
 
+<!-- session 2026-10-01 mcd1-p2 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`. (1) MCD2 closed and committed
+> (`ecbb3f94`, "Retrofit MCD2: evaluator 2.0.0, tests, fixtures, manifest (Stage 3 sign-off)"). (2) MCD task P2
+> for MCD1 (steps R1 to R4): concept readback, English spec, parameters, registry and plan written; stopped at
+> the STOP. P3 is not started and the MCD1 files are NOT committed.**
+> **Needs from Davin:** (1) answer [the hand-off](../../../docs/handoffs/2026-10-01-0457-mcd1-p2.md) §6, **D6
+> first** (bias per MCD1 state: no default, the registry holds `DAVIN` for six states), then Q1 to Q7, check the
+> English readback (`concept.md`), and approve `mcd1.md` and the plan; (2) say when to commit the MCD1 P2 files;
+> (3) keep or change the five lines added to the repo-wide `.prettierignore` (in the MCD2 commit); (4) then **P3
+> for MCD1**. `active-tasks.md` is left in place with the STOP item open.
+> **Changed & verified:** MCD2: one test for H1 to H3 (93 tests; the four tier-3 mutants die on a scratch
+> mirror), standard 1.0.3 (`flag: 'off'` in Appendix C.2), walkthrough C1 "Renamed (D5)", manifest at 93 tests
+> with the sign-off, committed by explicit path (31 files). MCD1, in `engine-1-5-new/mcd1/`: `legacy/`
+> (byte-identical evaluator and output; one path line edited in the test copy), new `concept.md`,
+> `mcd1_params.yaml`, `mcd1_registry.yaml`, rewritten `mcd1.md` and `mcd1_implementation_plan.md`. From
+> `engine-1-5-new/`: `python -m unittest discover -s mcd2` **93 OK** (also on the committed tree); the kit
+> **215 OK**; the legacy tests **13 OK** for MCD1 and MCD2. Params load through the kit; nine states, wording
+> checks, spec against registry and params all clean; Prettier clean. Closed-bar readings keep the legacy
+> state on all three real cycles (v1 `non_b`: `MCD1_DOWN_UPPER_BREAKOUT`; v4 `non_b`: `MCD1_DOWN_IN_CORRIDOR`;
+> v4 `non_a`: `MCD1_SIDEWAYS_LOWER_BREAKDOWN`), so three of nine states have real examples.
+> **Unconfirmed / found:** the pre-commit hook (`lint-staged` + prettier) reformatted the one-line canonical
+> JSON fixtures of the first MCD2 commit and broke two replay tests on the committed tree; fixed with
+> `.prettierignore` entries, regenerated files and an amend of the local commit (details: hand-off §7, gotchas
+> file). The forming bar inside the statistics fit windows is still unverified ([waiting-on](../waiting-on.md));
+> MCD1 reads the same fields. 17 old `lint-staged automatic backup` stashes sit in `git stash list` (not from
+> this session, untouched). Not run: `test:ci`, `tsc`, lint, build (no app code touched). The oldest entry
+> (MCD2 P3) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 mcd2-p6 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed. MCD task P6 for MCD2: a
+> fresh independent check of the retrofit (evaluator 2.0.0) against its manifest. No line of A1 to A26
+> fails (20 pass, A15 not applicable, 5 not yet due); three low test-gap findings H1 to H3. Nothing in the
+> MCD2 folder or the kit was changed.**
+> **Needs from Davin:** (1) answer [the hand-off](../../../docs/handoffs/2026-10-01-0430-mcd2-p6.md) §7: sign off
+> stage 3 for MCD2 (I would not hold it for H1 to H3) and say whether to add the one short test for H1 to H3;
+> (2) the three items still open from the P3 hand-off §6: PATCH the standard to 1.0.3 for `flag: 'off'`, what
+> and when to commit, walkthrough C1 "Proposed renames"; (3) next work: **P2 for MCD1** (needs D6 at its STOP).
+> **Changed & verified:** nothing in the MCD2 folder, the kit, the standard or the architecture; this report,
+> the state entries and two gotchas. From `engine-1-5-new/`: `python -m unittest discover -s mcd2` **92 OK, 0
+> skipped**; the kit **215 OK**; the 13 legacy tests OK (from `mcd2/legacy/`). Legacy evaluator and output are
+> byte-identical to HEAD; the manifest's legacy baseline, tokens (355, 355, 359, 353), time and SHA-256 values
+> all reproduce; output and fixtures validate against the schema taken from the standard; no banned word in any
+> code, template or summary; Prettier clean. Own mutation pass on a scratch mirror: 40 mutants, 36 killed; the 4
+> survivors are the three gaps H1 to H3 (tier-3 window edges, strict `>` on older bars, raw bars in tier 3);
+> direct probes show the evaluator is right in each case.
+> **Unconfirmed / found:** a breakout under half a cent reads "0.00 above UOEDT" (accurate, may read oddly;
+> hand-off §5); the forming bar inside the statistics fit windows is still unverified ([waiting-on](../waiting-on.md));
+> six states are still tested with synthetic bundles only (replica batches v2 and v3 not scanned); an
+> unstaged rename of the MCD3 board image is in the tree (not this work). Not run: `test:ci`, `tsc`, lint,
+> build (no app code touched). The oldest entry (MCD2 P2) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 mcd2-p3 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed. MCD task P3 for MCD2
+> (steps R5 to R10): evaluator 2.0.0 built on the kit; 92 tests pass; manifest, fixtures and the
+> architecture records written. Flag `off`, registry status `Retrofit (2.0.0)`.**
+> **Needs from Davin:** (1) a fresh session for **P6 on MCD2**, then **P2 for MCD1**; (2) the standard's
+> Appendix C.2 shows `flag: off`, which YAML loads as `false`: PATCH it to 1.0.3? ([the hand-off](../../../docs/handoffs/2026-10-01-0410-mcd2-p3.md)
+> §6a); (3) what to commit and when (§6b: P2 and P3 left the MCD2 folder, the architecture doc,
+> `docs/handoffs/` and `.claude/state/` uncommitted, plus two staged image renames); (4) optional: walkthrough
+> C1 still says "Proposed renames" (§6c).
+> **Changed & verified:** `mcd2_evaluator.py`, `test_mcd2_unit_tests.py`, `fixtures/`, `mcd2_output.json`,
+> the manifest, the registry (`flag` quoted), approvals in the spec, plan and concept; architecture §2.13
+> (2.0.0), §2.5 and §3.4 (renamed regime words). From `engine-1-5-new/`: `python -m unittest discover -s mcd2`
+> **92 OK**; the kit **215 OK** (untouched); the 13 legacy tests OK. Mutation pass on a scratch copy: 28 of 28
+> killed (one survivor closed with a test). Largest envelope 359 tokens, evaluation about 9 ms.
+> Legacy and new side by side: the four real cycles and all nine states keep their state, every difference
+> explained. Prettier clean.
+> **Unconfirmed / found:** the statistics fit windows may include the still-open bar (inherited, see
+> [waiting-on](../waiting-on.md)); all four real cycles are `IN_CORRIDOR`, so six states are synthetic only
+> (the untracked replica batches v2/v3 were not scanned). Not run: `test:ci`, `tsc`, lint, build (no app code
+> touched). The oldest entry (Step 0 commit) was rotated into `history/2026-10-sessions.md`.
+
 <!-- session 2026-10-01 mcd2-p2 -->
 
 > **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed. MCD task P2 for MCD2

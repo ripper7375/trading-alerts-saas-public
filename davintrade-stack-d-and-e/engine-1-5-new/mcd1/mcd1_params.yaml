@@ -1,0 +1,40 @@
+# MCD1 parameters (standard Appendix C.3). Changing a value is a version change (standard section 14).
+# Every threshold in mcd1.md section 6 appears here once. Approved by Davin on 1 October 2026 (spec questions Q1 to Q5).
+mcd_id: MCD1
+evaluator_version: 2.0.0
+parameters:
+  sideways_angle_deg:
+    value: 5.0
+    unit: degrees
+    boundary: 'abs(angle) <= value is SIDEWAYS; angle > value is UP; angle < -value is DOWN'
+    why: '±5° trend band used by MCD1 to MCD3; architecture 2.6 keeps it'
+  min_containment_rate:
+    value: 50.0
+    unit: percent
+    boundary: '>= value passes tier 4; below value is INVALID + CONTAINMENT_LOW'
+    why: 'Channel counted as intact at 50% containment (architecture 2.4)'
+  micro_window_pct:
+    value: 5.0
+    unit: percent of T_EDT
+    boundary: 'N_micro = max(min_micro_window_bars, round half up of value% of T_EDT), in exact integer arithmetic'
+    why: 'The recent behaviour is judged over at least 5% of the channel length (pre-retrofit MCD1, architecture 2.5)'
+  min_micro_window_bars:
+    value: 96
+    unit: closed M15 bars
+    boundary: 'N_micro is never below value; also the N_micro used when containment_n and visual_window_bars are both missing'
+    why: '24 hours, one full trading day of M15; filters false breakouts from 2 to 3 hours of news (pre-retrofit MCD1)'
+  sustained_breach_pct:
+    value: 80.0
+    unit: percent of N_micro
+    boundary: 'sustained when 100 * breach_count >= value * N_micro (inclusive, exact integer test); 77 of 96 passes, 76 of 96 does not'
+    why: 'A counter-trend or sideways break counts only when most of the window is outside the corridor (pre-retrofit MCD1, architecture 2.5)'
+  max_abs_regression_angle_deg:
+    value: 90.0
+    unit: degrees
+    boundary: 'abs(angle) <= value passes tier 3; above value is INVALID + SANITY_FAILED'
+    why: 'A regression angle beyond +-90 degrees is not possible (named in the pre-retrofit plan, not in its code; spec question Q5)'
+  channel_position_decimals:
+    value: 4
+    unit: decimals
+    boundary: 'Output rounding only; the state is decided on the unrounded prices and counts'
+    why: 'Pre-retrofit output precision (1.6447 in the certified example)'
