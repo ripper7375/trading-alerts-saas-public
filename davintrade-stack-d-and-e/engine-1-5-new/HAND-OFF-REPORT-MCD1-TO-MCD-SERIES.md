@@ -1,3 +1,8 @@
+> **SUPERSEDED for engineering on 2026-09-30.** MCDs are built to
+> [`docs/MCD-DEVELOPMENT-STANDARD.md`](../../docs/MCD-DEVELOPMENT-STANDARD.md), in the order given by
+> [`docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md`](../../docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md).
+> This report is kept for history; its rule that each MCD's topic is Davin's still applies.
+
 # DAVINTRADE STACK D — ENGINE 1.5A
 
 # MCD SERIES HAND-OFF & CONTINUATION REPORT (MCD1 ➔ MCD2, MCD3, MCD4, MCD5, ...)

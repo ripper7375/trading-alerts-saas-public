@@ -1,0 +1,8 @@
+# Active-indicator setting for the v4 replica workbook (test data; decision D2, Davin, 2026-09-30).
+workbook: ../market_data_v6_replicated_v4.xlsx # relative to davintrade-stack-d-and-e/engine-1-5-new/
+slot: '2026-09-28T23:15Z'
+effective_from: '2026-09-28T23:15Z'
+active_indicator:
+  M5: cherry_a
+  M15: non_b
+note: 'M15 non_a is also populated (populated_candidates, decision D3). Fractal EDT is populated on M5.'

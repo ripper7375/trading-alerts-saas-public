@@ -1,13 +1,13 @@
 # MCD Retrofit and Creation Walkthrough
 
-|              |                                                                                                                                                                                        |
-| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**   | Working guide. Version 2.0, 30 September 2026 (agent instructions only; Davin's steps and prompts moved to the build user manual)                                                      |
-| **Audience** | The agent (Antigravity or Claude Code). Davin's side of the work, including the prompts he pastes, is in [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md)                  |
-| **Owner**    | Davin (every approval named below is his)                                                                                                                                              |
-| **Follows**  | [MCD-DEVELOPMENT-STANDARD.md](MCD-DEVELOPMENT-STANDARD.md) (proposed, [ADR-082](adr/082-mcd-development-standard.md)) and [STACK-D-ARCHITECTURE.md](STACK-D-ARCHITECTURE.md) chapter 2 |
-| **Replaces** | `engine-1-5-new/prompt-to-antigravity-in-creating-mcd.md` and the workflow in §6 of `engine-1-5-new/HAND-OFF-REPORT-MCD1-TO-MCD-SERIES.md`                                             |
-| **Language** | English. Every file an MCD session writes is in English (§A1)                                                                                                                          |
+|              |                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Status**   | Working guide. Version 2.0, 30 September 2026 (agent instructions only; Davin's steps and prompts moved to the build user manual)                                                     |
+| **Audience** | The agent (Antigravity or Claude Code). Davin's side of the work, including the prompts he pastes, is in [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md)                 |
+| **Owner**    | Davin (every approval named below is his)                                                                                                                                             |
+| **Follows**  | [MCD-DEVELOPMENT-STANDARD.md](MCD-DEVELOPMENT-STANDARD.md) (Settled, [ADR-082](adr/082-mcd-development-standard.md)) and [STACK-D-ARCHITECTURE.md](STACK-D-ARCHITECTURE.md) chapter 2 |
+| **Replaces** | `engine-1-5-new/prompt-to-antigravity-in-creating-mcd.md` and the workflow in §6 of `engine-1-5-new/HAND-OFF-REPORT-MCD1-TO-MCD-SERIES.md`                                            |
+| **Language** | English. Every file an MCD session writes is in English (§A1)                                                                                                                         |
 
 The standard says **what** an MCD must satisfy. This walkthrough says **in which order to do the work**,
 for two paths:
@@ -246,6 +246,10 @@ class CycleInputs:
     config_hash: Mapping[str, str]                 # per statistics source, from indicator_configs
     channel_mode: Mapping[str, str]                # per source: "dynamic" | "frozen" (arch §1.6)
 ```
+
+Final field list, approved 30 September 2026 and built in task P1: the nine fields above plus
+`stats_slot` (per timeframe, ISO 8601 UTC: the slot where that timeframe was last collected).
+Standard §4 and `mcd_common/cycle_inputs.py` are authoritative.
 
 Rules the fixture provider enforces (so evaluators cannot break them):
 

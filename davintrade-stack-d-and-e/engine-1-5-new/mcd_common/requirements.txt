@@ -1,0 +1,6 @@
+# Pinned versions the kit was built and tested with (Python 3.11).
+# tiktoken: budget.py counts envelope tokens with o200k_base (walkthrough Part B2, decision E2).
+openpyxl==3.1.5
+PyYAML==6.0.2
+jsonschema==4.25.0
+tiktoken==0.10.0

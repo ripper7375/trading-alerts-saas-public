@@ -1,6 +1,6 @@
 # ADR-082: MCD development standard
 
-- **Status:** Proposed (awaiting Davin's approval)
+- **Status:** Settled (approved by Davin, 2026-09-30)
 - **Date:** 2026-09-30
 - **Section:** 2 · Sensors (MCDs)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §2.9, §2.13; [MCD-DEVELOPMENT-STANDARD.md](../MCD-DEVELOPMENT-STANDARD.md)
@@ -28,7 +28,7 @@ architecture's rules on closed bars, slots, the envelope and the status scale.
 ## Note
 
 Once approved, add a banner to `engine-1-5-new/HAND-OFF-REPORT-MCD1-TO-MCD-SERIES.md` pointing to the
-standard, as was done for the nine superseded documents.
+standard, as was done for the nine superseded documents. Done on 2026-09-30.
 
 ## Changing this decision
 

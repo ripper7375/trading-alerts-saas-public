@@ -2,7 +2,7 @@
 
 |                  |                                                                                                                                                                                                                                                                         |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**       | Proposed ([ADR-082](adr/082-mcd-development-standard.md)). Version 1.0, 30 September 2026                                                                                                                                                                               |
+| **Status**       | Settled ([ADR-082](adr/082-mcd-development-standard.md), approved by Davin 30 September 2026). Version 1.0.2, 1 October 2026 (§6 and §12: unknown `data_status`, PATCH)                                                                                                 |
 | **Owner**        | Davin (topics, specs and go-live approvals)                                                                                                                                                                                                                             |
 | **Applies to**   | Every Market Condition Description sensor: MCD0 (quality gate), MCD1–MCD3 (examples, to retrofit), MCD4–MCD15 (to be defined)                                                                                                                                           |
 | **Walkthrough**  | [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md): the order of work for retrofitting MCD0–MCD3 and creating new MCDs, and the agent's task cards. Davin's prompts: [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md)     |
@@ -22,8 +22,8 @@ decides **what** Stack D does; this standard decides **how an MCD must be built 
 - Every **must** cites where it comes from: a decision (`ADR-nnn`), an architecture section
   (`arch §n.n`, meaning STACK-D-ARCHITECTURE.md) or a Section 1 rule (`rule n`, arch §1.3). A bare `§n` refers to this standard.
 - Items marked **[new]** are conventions this standard adds so that fifteen sensors built at different
-  times stay consistent (naming, reason codes, file layout, versioning, budgets). They become binding
-  when ADR-082 is approved; until then treat them as the recommended default.
+  times stay consistent (naming, reason codes, file layout, versioning, budgets). They are binding:
+  ADR-082 was approved by Davin on 30 September 2026.
 - Example values come from the 18 Sep 20:55 example cycle (test data), as in the architecture.
 
 ## Contents
@@ -153,6 +153,36 @@ test fixture.
 | Live vs certification    | Live runs read `market_data_v6`; certification replays read `market_data_point_in_time` (`snapshot_age_bars = 1`). **Same evaluator code**, different bundle provider | ADR-020         |
 | Excel replica            | Test fixture only                                                                                                                                                     | arch §2.5       |
 
+**`CycleInputs` fields** (fixed when Davin approved the kit plan on 30 September 2026; **PATCH** note,
+version 1.0.1). The bundle is a frozen dataclass and every mapping in it is read-only after
+construction. Implemented in `davintrade-stack-d-and-e/engine-1-5-new/mcd_common/cycle_inputs.py`.
+
+| Field              | Type                              | Meaning                                                                                                                                                                                                               |
+| ------------------ | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `symbol`           | str                               | `"XAUUSD"`                                                                                                                                                                                                            |
+| `cycle_slot`       | str                               | The cycle, ISO 8601 UTC, e.g. `"2026-09-18T20:55Z"` (rule 1)                                                                                                                                                          |
+| `data_status`      | str                               | `FRESH` · `DELAYED` · `STALE` · `MARKET_CLOSED` (rule 7)                                                                                                                                                              |
+| `retuning`         | bool                              | A promote is in progress (rule 9)                                                                                                                                                                                     |
+| `bars`             | `{timeframe: tuple of bars}`      | Closed bars only, ascending; keys are `market_data_v6` column names (rule 2). Read through `closed_bars(inputs, tf)`, which also drops any bar not closed at the slot                                                 |
+| `statistics`       | `{(timeframe, source): row}`      | The `indicator_statistics` row captured at `stats_slot[timeframe]`, live-bar fields removed; a missing key means no row at the slot (rule 5)                                                                          |
+| `stats_slot`       | `{timeframe: ISO 8601 UTC slot}`  | **Added by decision E1.** The slot where each timeframe was last collected: M5 every 5 minutes, M15 on :00, :15, :30 and :45. Tier 4 needs `captured_at == stats_slot[tf]`; no match gives STALE + `NO_STATS_AT_SLOT` |
+| `active_indicator` | `{timeframe: indicator}`          | The setting per timeframe (rule 6)                                                                                                                                                                                    |
+| `config_hash`      | `{source: hash}`                  | From `indicator_configs`                                                                                                                                                                                              |
+| `channel_mode`     | `{source: "dynamic" or "frozen"}` | Architecture §1.6                                                                                                                                                                                                     |
+
+Rules that come with the fields:
+
+- **Strict slot rule; the tolerance lives in one place.** The PostgreSQL provider and every evaluator
+  use the strict rule above. Only the Excel fixture provider tolerates a replica workbook that
+  stamps each row with its export slot: it accepts a row when `captured_at` equals the export slot
+  **and** `live_bar_ts` equals `stats_slot[tf]`, records it as captured at `stats_slot[tf]`, and drops
+  any other row (which then gives STALE). The reason is written in each fixture's `<slot>.source.md`
+  (decision E1).
+- **No live-bar fields in the bundle.** Statistics fields that describe the forming bar
+  (`live_bar_ts`, `live_close`, `baseline_value`, `uoedt_value`, `loedt_value`, `dist_to_*`,
+  `channel_position`) or are measured from the last price (`sr_nearest_*`, `sr_dist_*_pts`) are
+  removed. Evaluators use the fit descriptors and take prices from the last closed bar.
+
 Window sizing: the spec states the maximum window. It **must** fit inside the 3,000-bar buffer; if a
 cycle has fewer closed bars than the window needs, the result is INVALID with `INSUFFICIENT_BARS`.
 
@@ -205,7 +235,7 @@ The first failing check decides the status; later checks do not run.
 
 | Check                   | Typical content                                                         | On failure → status + reason                                                                                                          |
 | ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Cycle                   | Data status, RETUNING flag                                              | STALE + `DATA_STALE` · CAUTIONARY + `RETUNING` (calculation continues)                                                                |
+| Cycle                   | Data status is one of the four values; RETUNING flag                    | STALE + `DATA_STALE` · CAUTIONARY + `RETUNING` (continues) · INVALID + `SANITY_FAILED` for an unknown `data_status` **[new]**         |
 | Tier 1 · Indicator      | Setting present for every timeframe read; detection agrees              | INVALID + `NO_SETTING` · CAUTIONARY + `DETECTION_MISMATCH` (continues)                                                                |
 | Tier 4 · Statistics     | Row at the slot for the active source; containment ≥ 50% (channel MCDs) | STALE + `NO_STATS_AT_SLOT` · INVALID + `CONTAINMENT_LOW`                                                                              |
 | Tier 2 · Continuity     | Enough closed bars; ascending; no nulls                                 | INVALID + `INSUFFICIENT_BARS` / `DISCONTINUITY`                                                                                       |
@@ -213,6 +243,10 @@ The first failing check decides the status; later checks do not run.
 | Upstream (derived only) | Required upstream readings usable                                       | CAUTIONARY + `UPSTREAM_CAUTIONARY:<id>` (continues) · INVALID + `UPSTREAM_UNAVAILABLE:<id>` · STALE + `UPSTREAM_STALE:<id>` **[new]** |
 | MCD0 inheritance        | Applied by the worker, not the MCD (§9.2)                               | CAUTIONARY + `MCD0_DEFECT_<TF>`                                                                                                       |
 | Unexpected error        | Any exception inside the evaluator                                      | INVALID + `EVALUATOR_ERROR`, error logged **[new]**                                                                                   |
+
+A `data_status` outside the four values in §4 is a provider fault. It is the first thing the cycle
+check tests, before STALE and RETUNING, so a cycle is never evaluated as if it were fresh: the reading is
+INVALID + `SANITY_FAILED` (no new reason code).
 
 CAUTIONARY readings keep their state, bias and levels; each reason is shown to traders (translated,
 §10) and makes Section 6 pre-set half the risk (ADR-061). INVALID and STALE readings are saved but
@@ -423,11 +457,15 @@ The 13-test discipline of MCD1–MCD3 stays and is extended. Every MCD **must** 
 | T7  | Determinism                     | Two runs on the same bundle give byte-identical JSON (R4)                           |
 | T8  | Schema                          | Output validates against `mcd-output/1` (Appendix B) (R5)                           |
 | T9  | Replay                          | The stored fixture reproduces its expected envelope (arch §2.2)                     |
-| T10 | Never throws                    | A corrupted bundle yields INVALID + `EVALUATOR_ERROR` (R7)                          |
+| T10 | Never throws                    | A corrupted bundle gives INVALID or STALE with an Appendix D code, no raise (R7)    |
 | T11 | Wording                         | No banned word in codes or templates; no `%` in summary or commentary (R9)          |
 | T12 | Size                            | The largest envelope stays within the token budget (R15)                            |
 | T13 | Real data                       | One cycle from the fixture data gives the expected state                            |
 | T14 | Derived only                    | Changing an upstream reading changes this MCD's reading in the same cycle (ADR-021) |
+
+T10 accepts any INVALID or STALE reading whose reason codes are all in Appendix D: `EVALUATOR_ERROR` when
+the evaluator catches the error itself (§11.2), or the code of the pre-flight check that caught the
+corruption first. An unknown `data_status` is one such case: INVALID + `SANITY_FAILED` (§6).
 
 Before go-live the MCD also joins the golden scenarios (ADR-079) and the labelled question set
 (ADR-044), and its states are replayed on point-in-time history (arch §2.8).

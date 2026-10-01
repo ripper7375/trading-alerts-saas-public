@@ -1,3 +1,9 @@
+> **SUPERSEDED for engineering on 2026-09-30.** MCDs are built to
+> [`docs/MCD-DEVELOPMENT-STANDARD.md`](../../docs/MCD-DEVELOPMENT-STANDARD.md), in the order given by
+> [`docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md`](../../docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md).
+> Davin's prompts now live in [`docs/STACK-D-BUILD-USER-MANUAL.md`](../../docs/STACK-D-BUILD-USER-MANUAL.md).
+> This prompt is kept for history.
+
 สวัสดีครับ Antigravity! ผมต้องการให้คุณช่วยพัฒนาโมดูลถัดไปของ DavinTrade Stack D (Engine 1.5A)
 โดยเราได้ทำโมดูล MCD1 เสร็จสมบูรณ์แล้วใน session ก่อนหน้า และได้จัดทำ Hand-Off Report ไว้เรียบร้อย
 

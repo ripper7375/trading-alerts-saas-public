@@ -1,7 +1,7 @@
 ---
 type: Concept/AgentState
 status: active
-updated_at: 2026-09-27
+updated_at: 2026-10-01
 last_numbered_session: '14-3 (CLOSED SUCCESSFUL 2026-08-30) — Phase 14 complete'
 next_numbered_session: '12-0 (Phase 12, Stack D) — blocked on the handover-prompt re-draft, see waiting-on.md'
 git_branch: main
@@ -25,55 +25,68 @@ Every entry older than these two is in [history](./history/index.md).
   ad-hoc session ("phase/session unchanged"). Next numbered work is **Phase 12 / Session 12-0**
   (`docs/migration-orders/12-0-decisions-and-contracts.migration-order.md`), gated on the
   Advisor re-drafting the Phase 12 handover prompt (see [waiting-on](./waiting-on.md)).
-- **Status correction (2026-09-26, OKF refactor):** round 5 below says "NOT committed, NOT
+- **Status correction (2026-09-26, OKF refactor):** round 5 (now in [history](./history/2026-09-sessions.md)) says "NOT committed, NOT
   deployed". It has since been committed and merged to `main` via PR #474 (`31c2e8d4`).
   Deployment was not verified during the refactor.
 - **OKF fine-tuning for Opus 5.5 (2026-09-27, docs only):** non-negotiable 8 (settled answers),
   `active-tasks.md` checklist + action-first close entry in
   [session-lifecycle](../protocols/session-lifecycle.md), new
   [subagent-orchestration](../protocols/subagent-orchestration.md); `tsc`/lint clean.
+- **MCD kit (2026-10-01):** Step 0 is committed ("Step 0: shared MCD kit (mcd_common)"). P6 findings F1
+  to F6 and the re-check findings G1 to G3 are fixed (215 tests); standard 1.0.2 documents the unknown
+  `data_status` (INVALID + `SANITY_FAILED`); derived words stay allowed. G4 (a wrong sentence in the fix
+  hand-off) is open. Next: P2 (MCD2 retrofit, needs D4 to D7 at its STOP).
+  Hand-offs: [P1](../../docs/handoffs/2026-09-30-1448-p1-kit.md),
+  [P6](../../docs/handoffs/2026-10-01-0015-p6-kit.md),
+  [P6 fixes](../../docs/handoffs/2026-10-01-0040-p6-fixes-kit.md),
+  [P6 re-check](../../docs/handoffs/2026-10-01-0156-p6-recheck-kit.md),
+  [Step 0 commit](../../docs/handoffs/2026-10-01-0220-step0-kit-commit.md).
 - **Open follow-ups:** see [waiting-on.md](./waiting-on.md). Database traps:
   [database-traps.md](../architecture/database-traps.md).
 
 ## Latest sessions (verbatim)
 
-<!-- CLAUDE.md L16-L36 -->
+<!-- session 2026-10-01 mcd-step0-g1-g3-commit -->
 
-> **Same day (2026-09-26), round 5: the landing hero image and the page theme no longer disagree. On
-> `main`, NOT committed, NOT deployed.** Davin's screenshots showed a dark page with the light hero
-> artwork until a refresh. **Cause:** next-themes' `<ThemeProvider>` was still mounted in
-> `app/providers.tsx`. Its theme was seeded from `localStorage['davintrade-theme']`, and its passive
-> effect re-applied that value to `<html>` after AppearanceProvider's layout effect had applied the
-> server value (DB, else the `davintrade-appearance` cookie). The root layout's inline script also
-> preferred localStorage. So a stale value painted the page while `resolvedTheme` (hero image,
-> charts) followed the server. Examples: the old dark default, or another account on the same
-> browser. **Fix:** next-themes unmounted. The inline script paints only `?theme=` or the server
-> theme ('system' resolved). AppearanceProvider's `storage` listener is removed, since two tabs on
-> different themes would re-write the key back and forth, and so is its localStorage write.
-> `ThemeSync` (`?theme=`) now goes through `updateSettings`.
-> **Verified:** `tsc`/ESLint clean; `test:ci` **251/251 · 3213/3213** (new
-> `__tests__/app/providers-theme.test.tsx`); mutation (next-themes restored) fails with
-> `Expected "light" / Received "dark"`, restore byte-exact; live `next dev`: stale `dark` in
-> localStorage with the server on light gives a light page and light images; the toggle switches
-> both; the saved choice survives a reload over the opposite localStorage value. **Seen, not
-> fixed:** `/` hydration mismatch when the `davintrade-locale` cookie is `zh` (server hero text
-> English, client Chinese), which is the locale system, not theme. `components/theme-toggle.tsx`
-> still imports next-themes but nothing imports it.
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, committed as "Step 0: shared MCD kit
+> (mcd_common)" (hash in `git log`), not pushed. G1 to G3 on the kit are fixed with four new tests (215
+> pass, 211 before); standard PATCHed to 1.0.2 for the unknown `data_status`; derived words stay allowed.**
+> **Needs from Davin:** (1) the commit left out, on purpose, the Stack C `.mq5`/`.ex5` change
+> (`InpTolerancePercent` 0.50 to 5.00, not made by this session), the two Advisor docs, the v2 to v4
+> generators and raw exports, the other replica batches and the `.pptx` files: say which to commit
+> ([the hand-off](../../docs/handoffs/2026-10-01-0220-step0-kit-commit.md) §6 and §7); (2) G4 (the wrong
+> "CRLF" sentence in the fix hand-off) was not in the order and is unchanged; (3) next work: **P2 for
+> MCD2** (needs D4 to D7 at its STOP).
+> **Changed & verified:** four tests (G1 in `test_shared_checks.py`, G2a and G2b in
+> `test_cycle_inputs.py`, G3 in `test_wording_and_budget.py`); a two-line comment in `wording.py`;
+> standard §6 and §12 (version 1.0.2); the `market_data_v6_replicated_v4.xlsx` fixture is now committed
+> because the kit's tests read it. From `engine-1-5-new/`: `python -m unittest discover -s mcd_common/tests
+-t .` **215 OK, 0 skipped**. The five mutants that survived the re-check (G1 twice, G2a, G2b, G3) are
+> all killed now, kit restored by bytes. Standard is Prettier-clean; new table cells fit the old widths.
+> **Unconfirmed / found:** the forming bar inside the statistics fit windows is still unverified (MQL5
+> source not checked, see [waiting-on](./waiting-on.md)). Not run: `test:ci`, `tsc`, lint, build (no app
+> code touched). The oldest entry (the F1 to F6 fixes) was rotated into `history/2026-10-sessions.md`.
 
-<!-- CLAUDE.md L37-L52 -->
+<!-- session 2026-10-01 mcd-p6-recheck-kit -->
 
-> **Same day (2026-09-26), round 4 — commission cap in months, interval-aware MRR, one exchange-rate
-> table. Branch `fix/commission-cap-mrr-fx-rates`, committed as `a0b87b73`, merged to `main` via PR #473,
-> DEPLOYED to production (Vercel & Railway). Money change, done on Davin's explicit chat order.**
-> (1) The recurring affiliate commission cap is now 24 **months**:
-> `MAX_RECURRING_COMMISSION_MONTHS` + `getMaxCommissionCycles(interval)` = 24 monthly or 2 annual
-> invoices (was 24 invoices = 24 years on the annual plan); the Stripe webhook passes the invoice
-> interval in both apps. (2) Admin MRR = monthly PRO × base price + annual PRO (`planType`
-> `YEARLY`) × annual price ÷ 12, via `lib/admin/analytics/mrr.ts` / money-service `admin-mrr.ts`.
-> (3) Both apps share the USD rate table in Redis (`fx:usd_rates`, 1 h, read first, written on
-> fetch, 500 ms timeout, optional); fallback rates unified to `CURRENCY_USD_RATES` (dLocal THB
-> 35.25 → 35.0 etc.), guarded by `__tests__/lib/fx/usd-rates-parity.test.ts`.
-> **Verified & Live:** `tsc` clean both; `test:ci` **250/250 · 3211/3211**; money-service **66/66 ·
-> 650/650**; mutation **11/11**. Vercel `REDIS_URL` set to Railway Redis public proxy
-> (`shuttle.proxy.rlwy.net:43928`). Live `/api/fx/rates` returns `"source": "live"`, and `fx:usd_rates`
-> key verified populated in Railway Redis. Account: SystemConfig manifest §12.
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed. MCD task P6 on the
+> shared kit `mcd_common/`, a fresh re-check of the lines changed for F1 to F6: all six fixes hold,
+> 211 tests pass and the kit is unchanged. Four small findings G1 to G4 (three test gaps, one wrong
+> sentence in the fix hand-off), none blocks P2.**
+> **Needs from Davin:** (1) whether to fix G1 to G4 before P2 (recommended: one very short builder step
+> for G1 to G3, about four small tests); (2) still open from the fix hand-off: whether derived words
+> (`PROBABLE`, `LIKELY`, `SAFETY`) are banned too, and whether to PATCH standard §6 and the §12 T10 row
+> for the unknown-status failure; (3) read [the hand-off](../../docs/handoffs/2026-10-01-0156-p6-recheck-kit.md)
+> §4.3 and §6; (4) next work: **P2 for MCD2** (needs D4 to D7 at its STOP); (5) commit when ready
+> (`mcd_common/` and `docs/handoffs/` are untracked).
+> **Changed & verified:** nothing in the kit (read-only check); only the hand-off, this entry, and the
+> oldest entry rotated into the new `history/2026-10-sessions.md`. From `engine-1-5-new/`:
+> `python -m unittest discover -s mcd_common/tests -t .` **211 OK, 0 skipped**. Own probes, 57 checks, all
+> pass: F1 to F5, and the P1 "Done when" and Part B2 items on both workbooks and the standard's text.
+> Own mutation pass on a scratch copy: 34 mutations on the changed lines, 29 killed, 5 survived (1
+> equivalent; the other 4 are G1 to G3).
+> **Unconfirmed / found:** G4: the fix hand-off says the kit files are CRLF; measured with Python they
+> are LF only, with no mixed endings (do not check line endings with `grep` in Git Bash). The forming bar
+> inside the statistics fit windows is still unverified (MQL5 source not checked, see
+> [waiting-on](./waiting-on.md)). MCD2's legacy commentary "safely within the EDT corridor" now fails
+> T11 (for P2). Not run: `test:ci`, `tsc`, lint, build (no app code touched).

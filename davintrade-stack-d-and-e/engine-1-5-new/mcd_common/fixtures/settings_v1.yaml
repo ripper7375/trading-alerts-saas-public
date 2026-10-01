@@ -1,0 +1,10 @@
+# Active-indicator setting for the v1 replica workbook (test data; decision D2, Davin, 2026-09-30).
+# In live running the setting decides and can be any candidate (7 centroid variants on M15,
+# 8 EDT indicators on M5), so no MCD may assume these.
+workbook: market_data_v6_replicated.xlsx # relative to davintrade-stack-d-and-e/engine-1-5-new/
+slot: '2026-09-18T20:55Z'
+effective_from: '2026-09-18T20:55Z'
+active_indicator:
+  M5: best_fit_a
+  M15: non_b
+note: 'As certified for MCD1-MCD3. The fractal EDT is also populated on M5 (populated_candidates, decision D3).'

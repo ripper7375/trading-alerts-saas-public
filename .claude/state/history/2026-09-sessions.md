@@ -1,7 +1,7 @@
 ---
 type: Concept/SessionHistory
 status: archived
-period: 2026-09-01..2026-09-26
+period: 2026-09-01..2026-09-30
 source: CLAUDE.md lines 53-4757 (September-dated blocks)
 tags: [history, sessions, 2026-09]
 ---
@@ -11,6 +11,70 @@ tags: [history, sessions, 2026-09]
 Blocks are verbatim copies from the pre-OKF `CLAUDE.md` (backup: `CLAUDE-480KB-PRE-OKF-BACKUP.md`, sha256 `ad804d40…68a1ef`, also in git history before this refactor). Each `<!-- CLAUDE.md Lx-Ly -->` comment gives the original line range. Order is the original file order (newest first, with some out-of-order ad-hoc entries).
 
 Back to [history index](./index.md).
+
+<!-- session 2026-09-30 mcd-p1-shared-kit -->
+
+> **Ad-hoc session (2026-09-30, phase/session unchanged), `main`, NOT committed. MCD task P1 done:
+> the shared kit `davintrade-stack-d-and-e/engine-1-5-new/mcd_common/` is built and tested, and
+> ADR-082 (MCD development standard) is Settled.**
+> **Needs from Davin:** (1) read [the hand-off](../../docs/handoffs/2026-09-30-1448-p1-kit.md) §6, nine
+> choices (a–i) where the documents were silent: E1 taken literally, only data status `STALE` stops
+> the cycle check, earlier CAUTIONARY reasons kept when a later check stops the reading, and more;
+> (2) commit when ready (nothing is committed; `mcd_common/` is untracked); (3) next work: a fresh
+> session for **task P6 on the kit**, then **P2 for MCD2**, which needs D4–D7 at its STOP.
+> **Changed & verified:** new `mcd_common/` (8 modules, schema file, 2 settings fixtures, pinned
+> requirements, README, 192 tests). ADR-082, `docs/adr/README.md` and the standard's header Settled;
+> standard §4 has the final `CycleInputs` field list (v1.0.1, PATCH); Part B1 banners and the English
+> usage note done; the architecture's open-items row for ADR-082 removed. From
+> `engine-1-5-new/`: `python -m unittest discover -s mcd_common/tests -t .` **192 OK, 0 skipped**;
+> mutation pass on the kit **17/17 killed**, kit restored byte-exact; `o200k_base` fetched once
+> (3.6 MB, hash-verified) into the git-ignored `mcd_common/.tiktoken_cache/`; provider cuts v1 at M5
+> 20:50 and M15 20:30, no live-bar fields in the bundle, schema rejects an extra top-level field.
+> **Unconfirmed / found:** the statistics fit windows appear to end at the still-open bar
+> (`window_end_ts == live_bar_ts` in v1 and v4; not checked against the MQL5 source; see
+> [waiting-on](./waiting-on.md)). v4 `M15 sr_levels` has `window_end_ts` after the slot. Not run:
+> `test:ci`, `tsc`, lint, build (no app code changed).
+
+<!-- CLAUDE.md L16-L36 -->
+
+> **Same day (2026-09-26), round 5: the landing hero image and the page theme no longer disagree. On
+> `main`, NOT committed, NOT deployed.** Davin's screenshots showed a dark page with the light hero
+> artwork until a refresh. **Cause:** next-themes' `<ThemeProvider>` was still mounted in
+> `app/providers.tsx`. Its theme was seeded from `localStorage['davintrade-theme']`, and its passive
+> effect re-applied that value to `<html>` after AppearanceProvider's layout effect had applied the
+> server value (DB, else the `davintrade-appearance` cookie). The root layout's inline script also
+> preferred localStorage. So a stale value painted the page while `resolvedTheme` (hero image,
+> charts) followed the server. Examples: the old dark default, or another account on the same
+> browser. **Fix:** next-themes unmounted. The inline script paints only `?theme=` or the server
+> theme ('system' resolved). AppearanceProvider's `storage` listener is removed, since two tabs on
+> different themes would re-write the key back and forth, and so is its localStorage write.
+> `ThemeSync` (`?theme=`) now goes through `updateSettings`.
+> **Verified:** `tsc`/ESLint clean; `test:ci` **251/251 · 3213/3213** (new
+> `__tests__/app/providers-theme.test.tsx`); mutation (next-themes restored) fails with
+> `Expected "light" / Received "dark"`, restore byte-exact; live `next dev`: stale `dark` in
+> localStorage with the server on light gives a light page and light images; the toggle switches
+> both; the saved choice survives a reload over the opposite localStorage value. **Seen, not
+> fixed:** `/` hydration mismatch when the `davintrade-locale` cookie is `zh` (server hero text
+> English, client Chinese), which is the locale system, not theme. `components/theme-toggle.tsx`
+> still imports next-themes but nothing imports it.
+
+<!-- CLAUDE.md L37-L52 -->
+
+> **Same day (2026-09-26), round 4 — commission cap in months, interval-aware MRR, one exchange-rate
+> table. Branch `fix/commission-cap-mrr-fx-rates`, committed as `a0b87b73`, merged to `main` via PR #473,
+> DEPLOYED to production (Vercel & Railway). Money change, done on Davin's explicit chat order.**
+> (1) The recurring affiliate commission cap is now 24 **months**:
+> `MAX_RECURRING_COMMISSION_MONTHS` + `getMaxCommissionCycles(interval)` = 24 monthly or 2 annual
+> invoices (was 24 invoices = 24 years on the annual plan); the Stripe webhook passes the invoice
+> interval in both apps. (2) Admin MRR = monthly PRO × base price + annual PRO (`planType`
+> `YEARLY`) × annual price ÷ 12, via `lib/admin/analytics/mrr.ts` / money-service `admin-mrr.ts`.
+> (3) Both apps share the USD rate table in Redis (`fx:usd_rates`, 1 h, read first, written on
+> fetch, 500 ms timeout, optional); fallback rates unified to `CURRENCY_USD_RATES` (dLocal THB
+> 35.25 → 35.0 etc.), guarded by `__tests__/lib/fx/usd-rates-parity.test.ts`.
+> **Verified & Live:** `tsc` clean both; `test:ci` **250/250 · 3211/3211**; money-service **66/66 ·
+> 650/650**; mutation **11/11**. Vercel `REDIS_URL` set to Railway Redis public proxy
+> (`shuttle.proxy.rlwy.net:43928`). Live `/api/fx/rates` returns `"source": "live"`, and `fx:usd_rates`
+> key verified populated in Railway Redis. Account: SystemConfig manifest §12.
 
 <!-- CLAUDE.md L53-L63 -->
 

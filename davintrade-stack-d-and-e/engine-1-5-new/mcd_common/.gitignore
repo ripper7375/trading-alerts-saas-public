@@ -1,0 +1,3 @@
+# tiktoken downloads o200k_base here once (budget.py --fetch); never commit it.
+.tiktoken_cache/
+__pycache__/

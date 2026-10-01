@@ -4,8 +4,8 @@
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**          | Canonical. Version 1.0, 30 September 2026                                                                                                                                                                                                                           |
 | **Owner**           | Davin (approver of every change)                                                                                                                                                                                                                                    |
-| **Decisions**       | [`docs/adr/`](adr/README.md): entries 001–082, all settled except [ADR-015](adr/015-retuning-during-a-promote.md) and [ADR-082](adr/082-mcd-development-standard.md) (proposed)                                                                                     |
-| **Building an MCD** | [MCD-DEVELOPMENT-STANDARD.md](MCD-DEVELOPMENT-STANDARD.md) (proposed, ADR-082), in the order given by [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md); the MCD registry is §2.13                                               |
+| **Decisions**       | [`docs/adr/`](adr/README.md): entries 001–082, all settled except [ADR-015](adr/015-retuning-during-a-promote.md) (proposed)                                                                                                                                        |
+| **Building an MCD** | [MCD-DEVELOPMENT-STANDARD.md](MCD-DEVELOPMENT-STANDARD.md) (ADR-082), in the order given by [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md); the MCD registry is §2.13                                                         |
 | **For Davin**       | [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md): the build steps from his side, with the prompt to paste for each                                                                                                                                      |
 | **Built from**      | The eight decks `STACK-D-REVISED-ARCHITECTURE-00` to `-07` in `davintrade-stack-d-and-e/`, and the review [`STACK-D-ARCHITECTURE-REVIEW-AND-RECOMMENDATIONS.md`](../davintrade-stack-d-and-e/archive/STACK-D-ARCHITECTURE-REVIEW-AND-RECOMMENDATIONS.md) (archived) |
 | **Supersedes**      | The eight earlier Stack D documents, now in [`davintrade-stack-d-and-e/archive/`](../davintrade-stack-d-and-e/archive/), and the 103-column reference for architecture questions only (see [Appendix C](#appendix-c--superseded-documents))                         |
@@ -487,7 +487,7 @@ Candidate topics from data no MCD reads yet (topics stay Davin's to define): sup
 lines; `best_fit_a` vs `best_fit_b` divergence; economic-event proximity; currency & gold index
 (terminal S); frozen-fit drift.
 
-How to build one: [MCD-DEVELOPMENT-STANDARD.md](MCD-DEVELOPMENT-STANDARD.md) (proposed, [ADR-082]).
+How to build one: [MCD-DEVELOPMENT-STANDARD.md](MCD-DEVELOPMENT-STANDARD.md) ([ADR-082]).
 Its Appendix A is the compliance checklist every MCD manifest carries. The order of work for MCD0–MCD3
 and for new MCDs, and the agent's task cards, are in [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md); Davin's prompts are in
 [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md).
@@ -523,7 +523,7 @@ Levels reach Section 6 through Section 3's zones, not directly.
 [ADR-016] worker on Railway · [ADR-017] envelope v1 · [ADR-018] MCD0 · [ADR-019] R² per model ·
 [ADR-020] live vs certification history · [ADR-021] MCD3 reads MCD1/MCD2 · [ADR-022] n ≥ 30 ·
 [ADR-023] MCD1 breakout on the latest bar · [ADR-024] neutral state names · [ADR-082] MCD
-development standard (proposed).
+development standard.
 
 ### 2.13 MCD registry
 
@@ -1959,7 +1959,6 @@ folder is reference code (§4.6).
 | First real, measured cycle; confirm the ADR-012 thresholds                                                 | Executor                    | §1.8                |
 | Write the rules table content (the draft is a starting point)                                              | Davin                       | §3.4                |
 | Approve each knowledge domain before its first build                                                       | Davin                       | §4.6                |
-| Approve or amend the MCD development standard (ADR-082); then add a banner to the MCD hand-off report      | Davin                       | §2.9, §2.13         |
 | Set the model-spend share for the Pro quota; publish tier amounts after measurement                        | Davin                       | §7.3                |
 | Counsel review: wording guide, disclaimers, consent wording, retention figures, privacy notice             | Davin + counsel             | §5.9, §6.11, §7.5   |
 | Capture golden scenarios from live cycles once the pipeline runs                                           | Executor, approved by Davin | §7.7                |

@@ -2,7 +2,7 @@
 type: Concept/BlockersAndTraps
 status: active
 severity: high
-updated_at: 2026-09-26
+updated_at: 2026-09-30
 tags: [blockers, deploys, migrations, verification, stack-c, stack-d]
 related_docs:
   - ../architecture/database-traps.md
@@ -19,6 +19,7 @@ to [history/resolved-waiting-on.md](./history/resolved-waiting-on.md).
 
 Quick index (newest first):
 
+- MCD kit: forming bar inside the statistics fit windows (unverified)
 - Shared FX rates `REDIS_URL` · SystemConfig pricing deploy + test · Language & locale open items ·
   Disbursement payout go-live (G1–G4) · 15th indicator rollout order
 - Chart-render: 2 unverified items · Socket-refactor trigger (decided: don't yet)
@@ -27,6 +28,17 @@ Quick index (newest first):
 - Push-worker throughput · Look-ahead bias in historical indicator values · Decision Layer BLOCKED
 - Many "authenticated click-through not yet confirmed" items (Executor never enters credentials)
 - Phase 12 handover re-draft · Journey B chat check · `/help` + `/about` 404 · `rag_dual_memory` tables missing
+
+<!-- session 2026-09-30 mcd-p1-shared-kit -->
+
+- **MCD kit (2026-09-30): the statistics fit windows may include the still-open bar — UNVERIFIED.**
+  In both replica workbooks `window_end_ts` equals `live_bar_ts` for the centroid sources (v1 M5
+  `best_fit_a` 20:55, M15 `non_b` 20:45; v4 `cherry_a`, `non_a`, `non_b` 23:15), so
+  `regression_angle`, `containment_rate`, R² and the offsets may have been fitted with the forming
+  bar, while ADR-011 and rule 2 keep that bar out of sensors. The kit (`mcd_common`) removes the
+  live-bar prices, not this. Check the MQL5 source (`backend-stack-c/…/mq5/`) before certification
+  (walkthrough stage 5), and ask the Stack C side if it is true. Hand-off:
+  [2026-09-30-1448-p1-kit.md](../../docs/handoffs/2026-09-30-1448-p1-kit.md) §7.
 
 <!-- CLAUDE.md L4896-L4901 -->
 

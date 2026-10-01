@@ -1,7 +1,7 @@
 ---
 type: Concept/EnvironmentGotchas
 status: active
-updated_at: 2026-09-26
+updated_at: 2026-10-01
 source: "'Gotcha' notes scattered through CLAUDE.md session logs 2026-08-30..09-26 (search state/history/ for the full story)"
 tags: [windows, git, shell, jest, browser, tooling]
 related_docs:
@@ -24,6 +24,10 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   `prettier --check --end-of-line auto`. After an over-broad Prettier run, files can list as `M`
   with blob hashes equal to HEAD (stale stat only).
 - The Bash tool collapses `\\` to `\`; make regex/escape edits with the Edit tool, not heredocs.
+- **Check line endings with Python, not `grep` in Git Bash:** `grep -c $'\r$'` reported every line as
+  CRLF for files that are LF only. Use `path.read_bytes().count(b"\r\n")`. Files written by tools in
+  this checkout (the MCD kit and docs, `.claude/state/`) are LF only on disk despite the CRLF note
+  above (found in the 2026-10-01 P6 re-check, `docs/handoffs/2026-10-01-0156-p6-recheck-kit.md` G4).
 - `scratch/` is gitignored but inside `tsc`'s scope (`tsconfig` includes `**/*.ts`), so a
   type error there blocks the pre-push hook.
 
