@@ -1,0 +1,4245 @@
+[
+  {
+    "label": "the sender's own manifest [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "repush_rows_unsent zero [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 0,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "repush_rows_unsent absent [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "repush_rows_unsent a float [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 1.5,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "repush_rows_unsent a string [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": "0",
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "schema missing [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "schema version 2 [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/2",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "wrong symbol [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "EURUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "slot off the boundary [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765201,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "slot negative [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": -300,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "slot a float [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200.5,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "slot a string [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": "1789765200",
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "terminal missing [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "terminal empty [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "built_at missing [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "backlog negative [refresh]",
+    "manifest": {
+      "backlog_rows": -1,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "repush negative [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": -1,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "M5 missing [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "timeframes empty [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {}
+    },
+    "valid": false
+  },
+  {
+    "label": "timeframes not an object [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": []
+    },
+    "valid": false
+  },
+  {
+    "label": "unknown timeframe [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M30": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "attempts missing [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "attempts zero [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 0,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "attempts a string [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": "2",
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "attempts a float [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 1.5,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "collection cycle id zero [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 0,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "bar_count zero [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 0,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "export_mtime missing [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "export_mtime a string [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": "2026-09-18T21:00:00Z",
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "export_mtime negative [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": -1,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "newest_bar_ts missing [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "oldest_bar_ts missing [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "quarantined negative [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": -1,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "statistics_count missing [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "config_hashes empty [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {},
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "hash too short [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "abc"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "hash upper case [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "hash not hex [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "hash a number [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": 7
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "unknown source [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "made_up": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "mode lower case [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "frozen"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "unknown mode [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "STANDBY"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "source_modes empty [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {},
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "extra top-level field [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "extra": 1,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "extra timeframe field [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "extra": 1,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "body is an array [refresh]",
+    "manifest": [
+      {
+        "backlog_rows": 6000,
+        "built_at": 1789765260,
+        "mt5_terminal": "MT5-A",
+        "repush_rows_unsent": 5997,
+        "schema": "cycle-manifest/1",
+        "slot": 1789765200,
+        "symbol": "XAUUSD",
+        "timeframes": {
+          "M15": {
+            "attempts": 1,
+            "bar_count": 97,
+            "collection_cycle_id": 3,
+            "config_hashes": {
+              "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+              "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+              "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+            },
+            "export_mtime": 1789765199,
+            "newest_bar_ts": 1789765200,
+            "oldest_bar_ts": 1789678800,
+            "quarantined_rows": 0,
+            "source_modes": {
+              "best_fit_a": "DYNAMIC",
+              "non_b": "FROZEN"
+            },
+            "started_at": 1789765205,
+            "statistics_count": 3,
+            "validated_at": 1789765225
+          },
+          "M5": {
+            "attempts": 2,
+            "bar_count": 289,
+            "collection_cycle_id": 2,
+            "config_hashes": {
+              "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+              "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+              "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+            },
+            "export_mtime": 1789765199,
+            "newest_bar_ts": 1789765200,
+            "oldest_bar_ts": 1789678800,
+            "quarantined_rows": 0,
+            "source_modes": {
+              "best_fit_a": "DYNAMIC",
+              "non_b": "FROZEN"
+            },
+            "started_at": 1789765205,
+            "statistics_count": 3,
+            "validated_at": 1789765290
+          }
+        }
+      }
+    ],
+    "valid": false
+  },
+  {
+    "label": "body is a string [refresh]",
+    "manifest": "cycle-manifest/1",
+    "valid": false
+  },
+  {
+    "label": "body is null [refresh]",
+    "manifest": null,
+    "valid": false
+  },
+  {
+    "label": "body is empty [refresh]",
+    "manifest": {},
+    "valid": false
+  },
+  {
+    "label": "M15 attempts zero [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 0,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "M15 present and valid [refresh]",
+    "manifest": {
+      "backlog_rows": 6000,
+      "built_at": 1789765260,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 5997,
+      "schema": "cycle-manifest/1",
+      "slot": 1789765200,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M15": {
+          "attempts": 1,
+          "bar_count": 97,
+          "collection_cycle_id": 3,
+          "config_hashes": {
+            "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+            "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+            "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765225
+        },
+        "M5": {
+          "attempts": 2,
+          "bar_count": 289,
+          "collection_cycle_id": 2,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789765199,
+          "newest_bar_ts": 1789765200,
+          "oldest_bar_ts": 1789678800,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789765205,
+          "statistics_count": 3,
+          "validated_at": 1789765290
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "the sender's own manifest [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "repush_rows_unsent zero [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 0,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "repush_rows_unsent absent [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "repush_rows_unsent a float [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 1.5,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "repush_rows_unsent a string [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": "0",
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "schema missing [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "schema version 2 [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/2",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "wrong symbol [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "EURUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "slot off the boundary [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764901,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "slot negative [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": -300,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "slot a float [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900.5,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "slot a string [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": "1789764900",
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "terminal missing [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "terminal empty [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "built_at missing [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "backlog negative [plain]",
+    "manifest": {
+      "backlog_rows": -1,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "repush negative [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": -1,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "M5 missing [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {}
+    },
+    "valid": false
+  },
+  {
+    "label": "timeframes empty [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {}
+    },
+    "valid": false
+  },
+  {
+    "label": "timeframes not an object [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": []
+    },
+    "valid": false
+  },
+  {
+    "label": "unknown timeframe [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M30": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        },
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "attempts missing [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "attempts zero [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 0,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "attempts a string [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": "2",
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "attempts a float [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1.5,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "collection cycle id zero [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 0,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "bar_count zero [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 0,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "export_mtime missing [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "export_mtime a string [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": "2026-09-18T21:00:00Z",
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "export_mtime negative [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": -1,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "newest_bar_ts missing [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "oldest_bar_ts missing [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "quarantined negative [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": -1,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "statistics_count missing [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "config_hashes empty [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {},
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "hash too short [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "abc"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "hash upper case [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "hash not hex [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "hash a number [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": 7
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "unknown source [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "made_up": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "mode lower case [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "frozen"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "unknown mode [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "STANDBY"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "source_modes empty [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {},
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "label": "extra top-level field [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "extra": 1,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "extra timeframe field [plain]",
+    "manifest": {
+      "backlog_rows": 3000,
+      "built_at": 1789764960,
+      "mt5_terminal": "MT5-A",
+      "repush_rows_unsent": 2998,
+      "schema": "cycle-manifest/1",
+      "slot": 1789764900,
+      "symbol": "XAUUSD",
+      "timeframes": {
+        "M5": {
+          "attempts": 1,
+          "bar_count": 289,
+          "collection_cycle_id": 1,
+          "config_hashes": {
+            "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+            "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+            "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+          },
+          "export_mtime": 1789764899,
+          "extra": 1,
+          "newest_bar_ts": 1789764900,
+          "oldest_bar_ts": 1789678500,
+          "quarantined_rows": 0,
+          "source_modes": {
+            "best_fit_a": "DYNAMIC",
+            "non_b": "FROZEN"
+          },
+          "started_at": 1789764905,
+          "statistics_count": 3,
+          "validated_at": 1789764925
+        }
+      }
+    },
+    "valid": false
+  },
+  {
+    "label": "body is an array [plain]",
+    "manifest": [
+      {
+        "backlog_rows": 3000,
+        "built_at": 1789764960,
+        "mt5_terminal": "MT5-A",
+        "repush_rows_unsent": 2998,
+        "schema": "cycle-manifest/1",
+        "slot": 1789764900,
+        "symbol": "XAUUSD",
+        "timeframes": {
+          "M5": {
+            "attempts": 1,
+            "bar_count": 289,
+            "collection_cycle_id": 1,
+            "config_hashes": {
+              "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+              "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+              "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+            },
+            "export_mtime": 1789764899,
+            "newest_bar_ts": 1789764900,
+            "oldest_bar_ts": 1789678500,
+            "quarantined_rows": 0,
+            "source_modes": {
+              "best_fit_a": "DYNAMIC",
+              "non_b": "FROZEN"
+            },
+            "started_at": 1789764905,
+            "statistics_count": 3,
+            "validated_at": 1789764925
+          }
+        }
+      }
+    ],
+    "valid": false
+  },
+  {
+    "label": "body is a string [plain]",
+    "manifest": "cycle-manifest/1",
+    "valid": false
+  },
+  {
+    "label": "body is null [plain]",
+    "manifest": null,
+    "valid": false
+  },
+  {
+    "label": "body is empty [plain]",
+    "manifest": {},
+    "valid": false
+  }
+]

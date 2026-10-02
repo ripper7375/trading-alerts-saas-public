@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trading-alerts-saas/v6/gateway_contract_cycle_manifest.schema.json",
+  "title": "POST /api/v1/cycle-manifest: the manifest of one 5-minute cycle (v6 pipeline, XAUUSD)",
+  "description": "Contract between the push worker (backfill_worker_api_gateway_v5.py) and the API Gateway for the CYCLE MANIFEST (STACK-D-ARCHITECTURE.md section 1.4 item 2; ADR-009, ADR-013). After the newest bars of a slot have been pushed to /api/v1/market-data and acknowledged, the push worker sends ONE manifest for that slot. The gateway checks it against what landed, writes one market_cycles row per slot and queues the sensor job. The request body is ONE object (not an array). The gateway MUST be idempotent on (symbol, slot): the worker retries until it is acknowledged, so the same manifest can arrive more than once, and a repeat must neither create a second market_cycles row nor queue a second job. It must answer such a repeat 200, not 400: a 400 makes the worker quarantine the manifest and never send it again. Any other failure (404, 5xx, timeout) is retried and never loses the manifest. The sender builds the manifest once and re-sends it unchanged, so a repeat is byte-identical.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "symbol",
+    "slot",
+    "mt5_terminal",
+    "built_at",
+    "backlog_rows",
+    "timeframes"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "cycle-manifest/1",
+      "description": "Contract version. A breaking change to this file changes the string, so a gateway can refuse a manifest it does not understand."
+    },
+    "symbol": {
+      "type": "string",
+      "const": "XAUUSD"
+    },
+    "slot": {
+      "type": "integer",
+      "minimum": 0,
+      "multipleOf": 300,
+      "description": "The cycle key (rule 1, ADR-008): the 5-minute slot in unix UTC seconds, e.g. 1789764900 for the 20:55 slot of 18 Sep 2026. The collection cycle's own cycle_time. Maps to market_cycles.slot."
+    },
+    "mt5_terminal": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Which MT5 terminal's export directory the cycle was read from, e.g. 'MT5-A' (the folder that holds MQL5 in C:/MT5-A/MQL5/Files), or the whole directory when it does not follow that layout. NOT the sender id that the other lanes send as terminal_id ('push_worker_v5'). A change from the previous cycle is how a promote is noticed (ADR-015). Maps to market_cycles.terminal_id."
+    },
+    "built_at": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "When the push worker built the manifest, unix UTC seconds, VPS clock. Informational: the gateway records its own clock as the arrival time."
+    },
+    "backlog_rows": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "market_data rows still unsent at the moment the manifest was built, i.e. what is queued behind this cycle's newest bars. Large after a promote (about 6,000 rows are re-pushed) and the ordinary backlog of a collector that re-queues the whole window every cycle. Maps to market_cycles.backlog_rows."
+    },
+    "repush_rows_unsent": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "OPTIONAL (a sender older than build step 2 part 9 omits it). Of backlog_rows, the historical rows still unsent: those whose open time is before slot - 300, which is what a promote's re-push leaves queued behind the cycle's newest bars (the newest bars went out first, as the priority set). An OPERATIONAL DIAGNOSTIC since build step 2 part 10 (ADR-015, Option A): the gateway no longer reads it to end RETUNING, because the collector re-queues the whole window every cycle, so on the real pipeline this is thousands in every manifest and never 0. The gateway counts the window itself (the M5 rows of the 3,000-bar window whose cycle_id is older than the promote cycle's). ABSENT means the sender does not measure it. Maps to market_cycles.repush_rows_unsent."
+    },
+    "timeframes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["M5"],
+      "description": "One entry per timeframe the slot collected. M5 is collected on every slot. M15 only on :00 :15 :30 :45, so it is ABSENT on the other slots, and absent on a refresh slot whose M15 cycle failed (the gateway knows from the slot which it is).",
+      "properties": {
+        "M5": { "$ref": "#/$defs/timeframeCycle" },
+        "M15": { "$ref": "#/$defs/timeframeCycle" }
+      }
+    }
+  },
+  "$defs": {
+    "sourceName": {
+      "type": "string",
+      "enum": [
+        "best_fit_a",
+        "best_fit_b",
+        "cherry_a",
+        "cherry_b",
+        "most_recent",
+        "non_a",
+        "non_b",
+        "fractal_edt",
+        "resistance",
+        "support",
+        "sr_levels",
+        "sr2_levels"
+      ]
+    },
+    "timeframeCycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "collection_cycle_id",
+        "attempts",
+        "started_at",
+        "validated_at",
+        "export_mtime",
+        "bar_count",
+        "oldest_bar_ts",
+        "newest_bar_ts",
+        "quarantined_rows",
+        "statistics_count",
+        "config_hashes",
+        "source_modes"
+      ],
+      "properties": {
+        "collection_cycle_id": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "The collector's cycle_id of the attempt that validated. Provenance only (ADR-008): the slot is the key. Equals the cycle_id carried by the rows of this cycle in market_data. Maps to market_cycles.m5_collection_cycle_id / m15_collection_cycle_id."
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many collection attempts the cycle needed for this timeframe: 1 is first try, up to 3 (65 s apart). It decides the ready deadline the gateway applies: 2 minutes after the slot for 1, 4 minutes for more (ADR-012). The cycle's attempts in market_cycles is the larger of the two timeframes."
+        },
+        "started_at": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "When the FIRST attempt for this slot and timeframe started, unix UTC seconds, VPS clock (not the validating attempt's own start). Maps to market_cycles.collector_started_at (the M5 value)."
+        },
+        "validated_at": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "When the validating attempt passed validation and was promoted, unix UTC seconds, VPS clock. Maps to market_cycles.collector_validated_at (the M5 value)."
+        },
+        "export_mtime": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Modification time of this timeframe's OHLCV export file at the moment the collector read it, unix UTC seconds. This is the cycle's export time. It is deliberately NOT the 'Export Time:' line inside an export: that line is MT5's TimeCurrent(), the last tick's broker server time, which is neither UTC nor the moment of writing. Together with newest_bar_ts it shows whether the newest row was exported before or after the slot boundary. Maps to market_cycles.m5_export_at / m15_export_at."
+        },
+        "bar_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "How many market_data rows of this timeframe the sender pushed FIRST for the slot (the priority set): the newest 288 closed M5 bars or 96 closed M15 bars (rule 4) plus the newest row if it is not closed yet. At most 289 for M5 and 97 for M15. Every one of them was acknowledged or rejected with a 400 before the manifest was sent, so the gateway should find bar_count rows with a timestamp from oldest_bar_ts to newest_bar_ts, less any quarantined_rows. Maps to market_cycles.m5_bar_count / m15_bar_count."
+        },
+        "oldest_bar_ts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Open time of the oldest bar in the priority set, unix UTC seconds."
+        },
+        "newest_bar_ts": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Open time of the newest bar in the export the cycle was collected from, unix UTC seconds, recorded as found. It may be the bar that just opened (a stub) or the bar that is about to close, which of the two is what the first real cycles are meant to show, so it is NOT interpreted here. The closed-bar rule (rule 2) is applied by the reader from the slot. Maps to market_cycles.m5_newest_bar_ts / m15_newest_bar_ts."
+        },
+        "quarantined_rows": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Priority rows the gateway rejected with a 400 and the worker quarantined, so they will NOT be found at the gateway. Diagnostic: counted by the running worker process, so it can under-report after a restart. The landed count is the real check."
+        },
+        "statistics_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "indicator_statistics snapshots staged for this slot and timeframe (rule 5: statistics are keyed by the slot they were captured at). Up to 12 per timeframe. They travel on their own lane, so the gateway may check them later than the bars; 0 means none were staged and a sensor will find no statistics at the slot."
+        },
+        "config_hashes": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/sourceName" },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "description": "config_hash of each source's statistics snapshot at this slot (sha256 of the normalised parameter block). A hash that differs from the previous cycle's means the indicator was reconfigured, which is how a promote shows up. Keyed by source, one object per timeframe, because the same source can be configured differently on the M5 and the M15 chart. Maps into market_cycles.config_hashes as { timeframe: { source: hash } }."
+        },
+        "source_modes": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/sourceName" },
+          "additionalProperties": {
+            "type": "string",
+            "enum": ["DYNAMIC", "FROZEN"]
+          },
+          "description": "Projection mode of each source that reports one: DYNAMIC (live refitting) or FROZEN (projecting an approved line). Only the 7 centroid indicators have a mode; the others are simply absent here. Maps into market_cycles.source_modes as { timeframe: { source: mode } }."
+        }
+      }
+    }
+  },
+  "x-gateway-requirements": [
+    "Idempotent on (symbol, slot): a repeat is answered 200 and changes nothing.",
+    "Answer 400 only for a body that does not match this contract. A 400 is final: the worker quarantines the manifest and stamps it sent.",
+    "Check the manifest against what landed in market_data_v6 per timeframe: bar_count rows with a timestamp from oldest_bar_ts to newest_bar_ts, less quarantined_rows. The manifest is sent after the bars were acknowledged, but they are processed by a queue, so queue this check behind the row jobs (market-data-sync has concurrency 1) rather than reading the table on arrival.",
+    "slot must be the current or a recent slot; a manifest for a slot far in the past is stale and may be recorded as INCOMPLETE or ignored. The worker abandons a manifest it could not deliver within an hour.",
+    "Write one market_cycles row per slot with attempts = the larger of the timeframes' attempts, then queue the sensor job keyed by the slot exactly once (ADR-009)."
+  ]
+}

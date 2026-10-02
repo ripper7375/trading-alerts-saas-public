@@ -1,0 +1,32 @@
+{
+  "backlog_rows": 3000,
+  "built_at": 1789764960,
+  "mt5_terminal": "MT5-A",
+  "repush_rows_unsent": 2998,
+  "schema": "cycle-manifest/1",
+  "slot": 1789764900,
+  "symbol": "XAUUSD",
+  "timeframes": {
+    "M5": {
+      "attempts": 1,
+      "bar_count": 289,
+      "collection_cycle_id": 1,
+      "config_hashes": {
+        "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+        "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+        "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+      },
+      "export_mtime": 1789764899,
+      "newest_bar_ts": 1789764900,
+      "oldest_bar_ts": 1789678500,
+      "quarantined_rows": 0,
+      "source_modes": {
+        "best_fit_a": "DYNAMIC",
+        "non_b": "FROZEN"
+      },
+      "started_at": 1789764905,
+      "statistics_count": 3,
+      "validated_at": 1789764925
+    }
+  }
+}

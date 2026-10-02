@@ -10,25 +10,57 @@ import { Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MarketDataDto } from '../gateway/dto/market-data.dto';
 import { buildSnapshot } from './point-in-time-snapshot';
+import {
+  CycleManifestJobData,
+  CycleManifestService,
+} from './cycle-manifest.service';
+import {
+  CYCLE_MANIFEST_JOB,
+  MARKET_DATA_JOB,
+  MARKET_DATA_QUEUE,
+} from './cycle-queues';
 
-@Processor('market-data-sync')
+@Processor(MARKET_DATA_QUEUE)
 export class MarketDataProcessor {
   private readonly logger = new Logger(MarketDataProcessor.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cycleManifests: CycleManifestService
+  ) {}
 
   // Concurrency of 1 is deliberate: at this pipeline's volume there is no
   // throughput reason to process jobs in parallel, and doing so only adds a
   // class of ordering bugs (e.g. an M15 row processed before the M5 row it
   // depends on) that a single worker avoids by construction.
   //
-  // The name MUST match the job name the controller enqueues
-  // (`queue.add('process', ...)` in market-data.controller.ts). An unnamed
-  // @Process() only handles unnamed jobs — named jobs would sit in the queue
-  // failing with "Missing process handler for job type process" while the
-  // gateway still returns 200 "queued" (found in the 2026-07-05 system audit).
-  @Process({ name: 'process', concurrency: 1 })
-  async process(job: Job<MarketDataDto>): Promise<{ success: true }> {
+  // The cycle manifest (ADR-009) now travels in this same queue, and the same
+  // guarantee is what makes it correct: a manifest job runs only after the row
+  // jobs queued before it have finished. Bull starts ONE processing loop per
+  // `process()` call and SUMS them across named handlers, so a second named
+  // handler for the manifest would have meant two loops and a manifest running
+  // alongside a row. Hence a single wildcard handler that dispatches on the job
+  // name: the lookup is `handlers[job.name] || handlers['*']`.
+  //
+  // This replaces the earlier name-matching rule (`@Process({ name: 'process' })`
+  // had to equal the name the controller enqueues, or jobs failed with "Missing
+  // process handler for job type process" while the gateway still answered 200,
+  // the 2026-07-05 audit finding). A wildcard has no name to get wrong, so an
+  // unknown job name is now refused here, loudly, rather than treated as a row.
+  @Process({ name: '*', concurrency: 1 })
+  async process(job: Job): Promise<unknown> {
+    if (job.name === CYCLE_MANIFEST_JOB) {
+      return this.cycleManifests.handle(job as Job<CycleManifestJobData>);
+    }
+    if (job.name === MARKET_DATA_JOB) {
+      return this.processRow(job as Job<MarketDataDto>);
+    }
+    throw new Error(`Unknown job type "${job.name}" on ${MARKET_DATA_QUEUE}`);
+  }
+
+  private async processRow(
+    job: Job<MarketDataDto>
+  ): Promise<{ success: true }> {
     const data = job.data;
     const { symbol, timeframe, timestamp } = data;
 

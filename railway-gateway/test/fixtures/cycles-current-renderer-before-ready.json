@@ -1,0 +1,52 @@
+{
+  "contract": "cycles-current/1",
+  "now": 1789560020,
+  "cycle": {
+    "slot": 1789559700,
+    "status": "FRESH",
+    "attempts": 1,
+    "retuning": false,
+    "closedBarsDigest": null,
+    "checkReason": null,
+    "timings": {
+      "readyAt": 1789559763,
+      "manifestReceivedAt": 1789559761,
+      "slotToReadySec": 63,
+      "gatewaySec": 2,
+      "collectorStartedAt": 1789559705,
+      "collectorValidatedAt": 1789559720,
+      "m5ExportAt": 1789559699,
+      "m15ExportAt": null
+    }
+  },
+  "dataStatus": {
+    "status": "FRESH",
+    "reason": "AWAITING_CURRENT_CYCLE",
+    "dataAsOfSlot": 1789559700,
+    "secondsSinceReady": 257
+  },
+  "activeIndicators": {
+    "resolvedAtSlot": 1789560000,
+    "basis": "REQUESTED_SLOT",
+    "byTimeframe": {
+      "M5": {
+        "settingId": "setting_0001",
+        "timeframe": "M5",
+        "source": "cherry_a",
+        "effectiveSlot": 1789560000,
+        "setBy": "admin@example.test",
+        "reason": "rehearsal",
+        "createdAt": 1790000001
+      },
+      "M15": {
+        "settingId": "seed_active_indicator_m15_non_b",
+        "timeframe": "M15",
+        "source": "non_b",
+        "effectiveSlot": 0,
+        "setBy": "migration",
+        "reason": "ADR-010 starting value",
+        "createdAt": 1700000000
+      }
+    }
+  }
+}

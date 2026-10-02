@@ -82,6 +82,12 @@ describe('CurrencyGoldIndicesController (e2e)', () => {
       // in teardown while every test still passes.
       .overrideProvider(getQueueToken('currency-gold-indices-sync'))
       .useValue(queueMock)
+      // Fifth queue (the cycle-ready signal, build step 2 part 4) -- same reason.
+      .overrideProvider(getQueueToken('cycle-ready'))
+      .useValue(queueMock)
+      // The symbol-specs queue (build step 2 part 8) -- same reason.
+      .overrideProvider(getQueueToken('symbol-specs-sync'))
+      .useValue(queueMock)
       .overrideProvider(getQueueToken('market-data-sync'))
       .useValue(queueMock)
       .overrideProvider(getQueueToken('indicator-statistics-sync'))

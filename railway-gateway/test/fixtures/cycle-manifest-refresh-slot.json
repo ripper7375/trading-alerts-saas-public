@@ -1,0 +1,53 @@
+{
+  "backlog_rows": 6000,
+  "built_at": 1789765260,
+  "mt5_terminal": "MT5-A",
+  "repush_rows_unsent": 5997,
+  "schema": "cycle-manifest/1",
+  "slot": 1789765200,
+  "symbol": "XAUUSD",
+  "timeframes": {
+    "M15": {
+      "attempts": 1,
+      "bar_count": 97,
+      "collection_cycle_id": 3,
+      "config_hashes": {
+        "best_fit_a": "94dfdd714ff1c4076b922355c78fdcd5f4df3ec6f16cee5c6b7ac3b557bcbc85",
+        "non_b": "57bfc05f615522c349e3cbfb0c87cc3ea15b605dc06912691d923728873ae8de",
+        "sr_levels": "5bddef2269483970427046ab0db8f1325104005955aab11679f32d364dc0d6d9"
+      },
+      "export_mtime": 1789765199,
+      "newest_bar_ts": 1789765200,
+      "oldest_bar_ts": 1789678800,
+      "quarantined_rows": 0,
+      "source_modes": {
+        "best_fit_a": "DYNAMIC",
+        "non_b": "FROZEN"
+      },
+      "started_at": 1789765205,
+      "statistics_count": 3,
+      "validated_at": 1789765225
+    },
+    "M5": {
+      "attempts": 2,
+      "bar_count": 289,
+      "collection_cycle_id": 2,
+      "config_hashes": {
+        "best_fit_a": "987f8982ab67bde7bf530621602e163c262de1567e9c1a8044c57582d7d7d58e",
+        "non_b": "2a506cc346ae31895ed8a05963f1f3b93c75fe09157e703258fd118c56485045",
+        "sr_levels": "81215a31444b2671f1fbee2b88c35cf989c30f9c93f227eb3391e6742aecaf38"
+      },
+      "export_mtime": 1789765199,
+      "newest_bar_ts": 1789765200,
+      "oldest_bar_ts": 1789678800,
+      "quarantined_rows": 0,
+      "source_modes": {
+        "best_fit_a": "DYNAMIC",
+        "non_b": "FROZEN"
+      },
+      "started_at": 1789765205,
+      "statistics_count": 3,
+      "validated_at": 1789765290
+    }
+  }
+}

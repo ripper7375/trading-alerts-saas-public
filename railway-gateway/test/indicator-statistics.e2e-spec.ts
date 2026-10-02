@@ -81,6 +81,12 @@ describe('IndicatorStatisticsController (e2e)', () => {
       // Fourth queue (Lane 4: currency & gold indices) -- same reason.
       .overrideProvider(getQueueToken('currency-gold-indices-sync'))
       .useValue(queueMock)
+      // Fifth queue (the cycle-ready signal, build step 2 part 4) -- same reason.
+      .overrideProvider(getQueueToken('cycle-ready'))
+      .useValue(queueMock)
+      // The symbol-specs queue (build step 2 part 8) -- same reason.
+      .overrideProvider(getQueueToken('symbol-specs-sync'))
+      .useValue(queueMock)
       .overrideProvider(PrismaService)
       .useValue({
         $queryRaw: jest.fn().mockResolvedValue([{ '?column?': 1 }]),

@@ -80,6 +80,11 @@ describe.each([
   ['IndicatorConfig', 'indicator_configs'],
   ['EconomicEvent', 'economic_events'],
   ['CurrencyGoldIndex', 'currency_gold_indices'],
+  // Stack D chapter 1 (build step 2, part 2).
+  ['MarketCycle', 'market_cycles'],
+  ['ActiveIndicatorSetting', 'active_indicator_settings'],
+  ['SymbolSpec', 'symbol_specs'],
+  ['CycleEvent', 'cycle_events'],
 ])(
   '%s schema drift (railway-gateway vs. monolith source of truth)',
   (model, table) => {
@@ -192,5 +197,139 @@ describe('CurrencyGoldIndex upsert-key invariant', () => {
 
   it('is keyed on exactly (index_name, bar_time)', () => {
     expect(normalizeFields(body)).toContain('@@unique([index_name, bar_time])');
+  });
+});
+
+/**
+ * Stack D chapter 1 tables (docs/STACK-D-ARCHITECTURE.md section 1, build step 2
+ * part 2). Four places must say the same thing about each table: the monolith
+ * schema (which owns the migration), the gateway's mirror, the migration SQL and
+ * the type stubs. The first pair is covered by the drift block above; this block
+ * covers the other two, and pins the keys that carry the rules.
+ */
+const MIGRATION_PATH = path.join(
+  __dirname,
+  '../../prisma/migrations/20261002000000_add_cycle_pipeline_tables/migration.sql'
+);
+const STUBS_PATH = path.join(__dirname, '../../types/prisma-stubs.d.ts');
+
+/** Scalar field names of a model body, in declaration order. */
+function fieldNames(modelBody: string): string[] {
+  return normalizeFields(modelBody)
+    .filter((line) => !line.startsWith('@@'))
+    .map((line) => line.split(' ')[0]);
+}
+
+function stubInterfaceFields(stubs: string, name: string): string[] {
+  const match = stubs.match(
+    new RegExp(`export interface ${name} \\{([\\s\\S]*?)\\n  \\}`)
+  );
+  if (!match) throw new Error(`stub interface ${name} not found`);
+  return match[1]
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('//'))
+    .map((line) => line.split(':')[0]);
+}
+
+function createTableColumns(sql: string, table: string): string[] {
+  const match = sql.match(
+    new RegExp(`CREATE TABLE "${table}" \\(([\\s\\S]*?)\\n\\);`)
+  );
+  if (!match) throw new Error(`CREATE TABLE "${table}" not found`);
+  return match[1]
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith('"'))
+    .map((line) => line.split('"')[1]);
+}
+
+describe.each([
+  ['MarketCycle', 'market_cycles'],
+  ['ActiveIndicatorSetting', 'active_indicator_settings'],
+  ['SymbolSpec', 'symbol_specs'],
+  ['CycleEvent', 'cycle_events'],
+])('%s agrees with its migration and its type stub', (model, table) => {
+  const source = fs.readFileSync(SOURCE_OF_TRUTH_SCHEMA_PATH, 'utf-8');
+  const sql = fs.readFileSync(MIGRATION_PATH, 'utf-8');
+  const stubs = fs.readFileSync(STUBS_PATH, 'utf-8');
+  const schemaFields = fieldNames(extractModelBody(source, model));
+
+  it('has the same columns, in the same order, in the migration', () => {
+    expect(createTableColumns(sql, table)).toEqual(schemaFields);
+  });
+
+  it('has the same fields in the type stub', () => {
+    expect([...stubInterfaceFields(stubs, model)].sort()).toEqual(
+      [...schemaFields].sort()
+    );
+  });
+
+  it('has a delegate on the stub client', () => {
+    const delegate = model.charAt(0).toLowerCase() + model.slice(1);
+    expect(stubs).toContain(`${delegate}: ModelDelegate<${model}>;`);
+  });
+});
+
+describe('Stack D chapter 1 table invariants', () => {
+  const source = fs.readFileSync(SOURCE_OF_TRUTH_SCHEMA_PATH, 'utf-8');
+  const body = (model: string) =>
+    normalizeFields(extractModelBody(source, model));
+
+  it('market_cycles: one row per (symbol, slot), and attempts is required', () => {
+    // The unique key is what makes a re-delivered manifest a no-op. `attempts`
+    // is an input of the ready deadline (2 minutes, or 4 after a retry), so a
+    // cycle without it could not be given a status.
+    expect(body('MarketCycle')).toContain('@@unique([symbol, slot])');
+    expect(body('MarketCycle')).toContain('attempts Int');
+    expect(body('MarketCycle')).toContain('data_status String?');
+    expect(body('MarketCycle')).toContain('retuning Boolean @default(false)');
+  });
+
+  it('market_cycles is updated in place (PENDING to READY), so it has updatedAt', () => {
+    expect(body('MarketCycle')).toContain('updatedAt DateTime @updatedAt');
+  });
+
+  it.each(['ActiveIndicatorSetting', 'SymbolSpec', 'CycleEvent'])(
+    '%s is append-only: it has no updatedAt',
+    (model) => {
+      // Declarations only: the models' own comments say "No @updatedAt".
+      expect(body(model).join('\n')).not.toMatch(/@updatedAt/);
+    }
+  );
+
+  it('active_indicator_settings has no unique key, so a not-yet-effective entry can be superseded', () => {
+    expect(body('ActiveIndicatorSetting').join('\n')).not.toMatch(/@@?unique/);
+  });
+
+  it('symbol_specs: a re-delivered capture is a no-op and a version is unique per symbol', () => {
+    expect(body('SymbolSpec')).toContain('@@unique([symbol, captured_at])');
+    expect(body('SymbolSpec')).toContain('@@unique([symbol, version])');
+  });
+
+  it('cycle_events: the producer-chosen dedupe_key is unique', () => {
+    expect(body('CycleEvent')).toContain('dedupe_key String @unique');
+  });
+});
+
+describe('the migration that creates them', () => {
+  const sql = fs.readFileSync(MIGRATION_PATH, 'utf-8');
+
+  it('is additive only: it creates tables and indexes and changes nothing that exists', () => {
+    expect(sql.match(/^CREATE TABLE /gm)).toHaveLength(4);
+    expect(sql).not.toMatch(
+      /^\s*(ALTER TABLE|DROP|TRUNCATE|DELETE|UPDATE)\b/im
+    );
+  });
+
+  it('seeds the ADR-010 starting values at slot 0 and nothing else', () => {
+    expect(sql.match(/^INSERT INTO /gm)).toHaveLength(1);
+    expect(sql).toContain(
+      "('seed_active_indicator_m15_non_b', 'M15', 'non_b', 0, 'migration', 'ADR-010 starting value')"
+    );
+    expect(sql).toContain(
+      "('seed_active_indicator_m5_best_fit_a', 'M5', 'best_fit_a', 0, 'migration', 'ADR-010 starting value')"
+    );
+    expect(sql).toContain('ON CONFLICT ("id") DO NOTHING');
   });
 });
