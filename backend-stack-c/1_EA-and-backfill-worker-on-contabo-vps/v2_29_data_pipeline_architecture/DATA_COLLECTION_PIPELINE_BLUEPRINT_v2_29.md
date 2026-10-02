@@ -66,6 +66,8 @@ not part of the deployment.
 | `backfill_worker_api_gateway_v5.py`            | Push worker: `market_data WHERE synced_at IS NULL` → gateway      | §5.4  |
 | `gateway_contract_market_data.schema.json`     | JSON-Schema of the POST body the gateway must accept              | §9    |
 | `gateway_contract_economic_events.schema.json` | JSON-Schema for the append-only economic-events stream            | §5.5  |
+| `mq5/SymbolSpecsExport_v2_29.mq5`              | **EA**: exports the broker's symbol figures (contract size, ...)  | §5.7  |
+| `gateway_contract_symbol_specs.schema.json`    | JSON-Schema for the append-only broker symbol-specs stream        | §5.7  |
 | `centroid_watchdog.py`                         | **Read-only** standby watcher: alerts on a confirmed new centroid | §5.6  |
 | `install_services.bat`                         | Windows/NSSM installer for the VPS services                       | §8.2  |
 | `install_centroid_watchdog_service.bat`        | Separate NSSM installer for the watchdog (never touches §8.2's)   | §5.6  |
@@ -534,6 +536,23 @@ Drains the `market_data` outbox to the gateway.
   deletes** (`market_data` is permanent).
 - 400 → quarantine + stamp `synced_at` so a poison row can't block the outbox;
   replay with `replay_quarantine.py` (§10.2).
+- **Cycle manifest and the re-push count (build step 2 parts 3 and 9).** After a
+  slot's newest bars the worker sends one manifest
+  (`gateway_contract_cycle_manifest.schema.json`). It carries `backlog_rows` (every
+  row still unsent) and `repush_rows_unsent` (of those, the historical ones: open
+  time before `slot - 300`), both read by ONE statement (`unsent_counts`) so the
+  second can never exceed the first. **Since build step 2 part 10 (Option A,
+  ADR-015) this count is an operational diagnostic and the gateway does not read
+  it:** the gateway ends RETUNING by counting, in `market_data_v6`, the M5 rows of
+  the 3,000-bar window whose `cycle_id` is older than the promote cycle's.
+  **Trap, and the reason:** `promote_cycle()` re-queues the whole window every
+  cycle, and the manifest is built right after the cycle's newest bars are sent, so
+  at that moment the historical backlog is the whole window (about 2,700 M5 rows and
+  more), not 0, with or without a promote. Do not alarm on a large value. It only
+  reaches 0 when the collector stops re-queueing unchanged bars
+  (`PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md`, fix 3);
+  `test_the_collectors_full_requeue_leaves_the_whole_window_unsent_at_manifest_time`
+  pins this and fails when the collector changes.
 - Connection pooling, exponential backoff, `Retry-After`, graceful shutdown,
   rotating logs. Deploy as the `MT5PushWorker` NSSM service (§8.2).
 
@@ -728,6 +747,80 @@ The anchor is written in **both** server and UTC form. Everything else this
 stack exports is UTC, but `InpFrozenAnchorTime` is compared against MT5's own
 server-time bar array — a promote script reading only the UTC form would shift
 the anchor by the broker offset (2–3 hours, i.e. 24–36 M5 bars).
+
+---
+
+### 5.7 Broker symbol specs — `mq5/SymbolSpecsExport_v2_29.mq5`
+
+A **fourth, fully independent lane** (build step 2 part 8; ADR-066,
+`docs/STACK-D-ARCHITECTURE.md` §6.9): the broker's own figures for XAUUSD, which
+Engine 4 needs to size a lot and to apply the spread. Same shape as §5.5 — its own
+exporter, outbox table (`symbol_specs`), contract
+(`gateway_contract_symbol_specs.schema.json`), endpoint (`POST /api/v1/symbol-specs`),
+queue and quarantine file (`rejected_symbol_specs.jsonl`) — so a failure here can
+never delay or reject price data.
+
+**Status: built and tested in Python and TypeScript; the `.mq5` is NOT compiled.**
+MQL5 compiles only in MetaEditor, so the exporter has been checked by reading and
+by source-level tests of what it must contain, never run.
+
+**Source.** `SymbolInfoDouble/Integer` on the chart's symbol: `SYMBOL_TRADE_CONTRACT_SIZE`,
+`SYMBOL_VOLUME_MIN/_STEP/_MAX`, `SYMBOL_TRADE_TICK_SIZE`, `SYMBOL_SWAP_LONG/_SHORT`,
+`SYMBOL_SPREAD`, and three the architecture table does not list but cannot be read
+without: `SYMBOL_POINT` (a spread in points is not a price without it), `SYMBOL_DIGITS`
+and `SYMBOL_SWAP_MODE` (swap means points, money or percent according to it).
+Commission is **not** here: MT5 does not expose it per symbol, and it stays the
+trader's own input.
+
+**An EA, not a script**, because the typical spread needs samples over time. Attach to
+**one XAUUSD chart on each of terminals A and B** (see
+`docs/runbooks/mt5-terminal-promote.md`). It writes `SymbolSpecs_XAUUSD.txt`: a header
+and one data row, tab-separated, ASCII, by temp file and rename.
+
+**Four decisions worth knowing:**
+
+| Decision                                                         | Why                                                                                                                                                                                                                              |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `typical_spread` is the **median** of `SYMBOL_SPREAD` samples    | Section 6.9 says median, not a single reading. One sample per minute over a rolling 24 h window; a sample is taken only while the last quote is under 2 minutes old, so a closed market adds nothing. No export until 30 samples |
+| `captured_at` is **UTC** from `TimeTradeServer() − offset`       | Not raw `TimeCurrent()`: that is the last tick's _server_ time, hours off and stalled on a quiet market — the trap of §7.1 and of §5.5's times                                                                                   |
+| The chart must be XAUUSD (`StringFind(_Symbol, InpSymbol) == 0`) | Figures read from the wrong chart (EURUSD: contract size 100000) would be stored as gold's and used to size a lot. The exporter refuses to start; the collector also refuses any row whose symbol is not XAUUSD                  |
+| Anything doubtful **leaves the previous file in place**          | A figure that cannot be read, is not finite, or is implausible (contract size 0, `volume_max < volume_min`) is never exported as a zero                                                                                          |
+
+**Collector side — `stage_symbol_specs()`.** Strict parse by column name (every figure
+required; an empty field is a refusal, never a zero). A row is appended when there is
+none yet, when a **contract figure** changed, or when the newest row is a day old (the
+daily refresh). A wandering `typical_spread` alone appends nothing, or the table would
+gain a row every cycle. Only a strictly newer observation can append, so re-reading the
+same file (it runs on every cycle) and an older file from a standby terminal are both
+no-ops. `terminal_id` is the terminal's folder name (`C:/MT5-A/MQL5/Files` gives
+`MT5-A`), the same label the cycle manifest uses. In `run_cycle()` it sits beside the
+calendar, in its own try/except, before any price file is read.
+
+**Push side — `push_symbol_specs()`.** The fourth drain, after prices, statistics and the
+calendar on both branches of the main loop, isolated like its siblings: every exception
+swallowed, 400 quarantined and stamped, anything else (404 from a gateway without the
+endpoint, 429, 401/403, 5xx, network) retried with `send_attempts` and `last_error`
+saying why and `synced_at` never stamped. Oldest observation first, at most 20 per
+request.
+
+**Gateway.** `SymbolSpecsController` validates (hand-written DTO, kept equal to the
+contract by a test that runs one corpus through both) and queues one job per element on
+`symbol-specs-sync`, keyed `<symbol>_<captured_at>`. `SymbolSpecsProcessor` writes
+append-only with a per-symbol `version` (the highest held + 1, in the order rows are
+recorded), idempotent on `(symbol, captured_at)`. `SymbolSpecsService.getLatestSymbolSpec`
+returns the newest by `captured_at`. Nothing imports that reader yet (Section 6 will).
+
+**Tests** (standalone, like §5.5): `test_symbol_specs.py` (collector, the table, parity
+with the exporter and the contract), `test_push_symbol_specs.py` (the lane); gateway
+`symbol-specs-contract.spec.ts`, `symbol-specs.processor.spec.ts`,
+`symbol-specs.service.spec.ts`, `symbol-specs.e2e-spec.ts`.
+
+**First live check** (after Davin compiles, attaches and deploys): the Experts log says
+`SymbolSpecsExport: ... written`, `SymbolSpecs_XAUUSD.txt` exists in `MQL5\Files`, and
+`SELECT * FROM symbol_specs ORDER BY id DESC LIMIT 3` on `xauusd.db` shows a row with
+`terminal_id` = the terminal's folder and the contract size, lot step and swaps your
+broker publishes for XAUUSD (compare them with the symbol's Specification window); a
+minute later the push worker log says `Pushed 1 symbol spec(s)` and `synced_at` is set.
 
 ---
 
@@ -1112,8 +1205,8 @@ fully cleared.
    moved on 100 % of bars.
 
    **Freezing covers 21 of the 69 drifting columns** (7 variants × base*fl/uoedt/
-   loedt). `*_ssa`/`*_ema_ssa`/`*_crossing` stay dynamic in frozen mode — the SSA
-   decomposition runs \_before* the mode branch — so a **signal flag still flips
+   loedt). `*\_ssa`/`_\_ema_ssa`/`_\_crossing` stay dynamic in frozen mode — the SSA
+   decomposition runs \_before\* the mode branch — so a **signal flag still flips
    retroactively on a frozen terminal.** Worth doing; not the fix.
 
    **BUILT in response (2026-09-20), not deployed:** a point-in-time snapshot
@@ -1175,220 +1268,220 @@ LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
 
 ## 13. Remaining Work to Production Cutover
 
-1. ⚠ **Recompile the 10 statistic-emitting indicators in MetaEditor, then redeploy
-   all 13 `.ex5` to the VPS terminal.** **Gating** for a green end-to-end run.
-   **The binaries on disk are one build behind, in a way that hides itself.** All
-   13 `.ex5` were compiled 2026-09-09 ~13:45, which **does** include the timestamp
-   fixes (§7.1, sources edited 12:03) — that part is built. But the EDT Quality
-   Metrics blocks were added at 14:52–14:54, _after_ that compile, to the 10
-   statistic-emitting files (7 centroids + fractal + resistance + support). Those
-   10 binaries therefore carry the timestamp fix but **not** the statistic blocks.
-   The other 3 (ZigZag, OHLCV, Z-Score) emit no statistics and are correctly
-   current.
-   **Why this needs calling out rather than just noting:** deploying as-is would
-   look like success — timestamps correct, cycles validating, and
-   `indicator_statistics` rows actually being created — but every new field would
-   be NULL, because the old-format `_Statistic.txt` files simply don't contain
-   them. The parser handles that correctly (missing reads as NULL, never as 0),
-   which is exactly why nothing would error. Verify by checking that a fresh
-   `_Statistic.txt` contains an `[EDT CHANNEL]` section before deploying.
+1.  ⚠ **Recompile the 10 statistic-emitting indicators in MetaEditor, then redeploy
+    all 13 `.ex5` to the VPS terminal.** **Gating** for a green end-to-end run.
+    **The binaries on disk are one build behind, in a way that hides itself.** All
+    13 `.ex5` were compiled 2026-09-09 ~13:45, which **does** include the timestamp
+    fixes (§7.1, sources edited 12:03) — that part is built. But the EDT Quality
+    Metrics blocks were added at 14:52–14:54, _after_ that compile, to the 10
+    statistic-emitting files (7 centroids + fractal + resistance + support). Those
+    10 binaries therefore carry the timestamp fix but **not** the statistic blocks.
+    The other 3 (ZigZag, OHLCV, Z-Score) emit no statistics and are correctly
+    current.
+    **Why this needs calling out rather than just noting:** deploying as-is would
+    look like success — timestamps correct, cycles validating, and
+    `indicator_statistics` rows actually being created — but every new field would
+    be NULL, because the old-format `_Statistic.txt` files simply don't contain
+    them. The parser handles that correctly (missing reads as NULL, never as 0),
+    which is exactly why nothing would error. Verify by checking that a fresh
+    `_Statistic.txt` contains an `[EDT CHANNEL]` section before deploying.
 
-   **Updated 2026-09-20 — the same hazard, one round further on.** The
-   enrichment pass added five more sections to all 8 channel-emitting `.mq5`
-   files, so the binaries must be rebuilt again. The staleness still hides
-   itself for exactly the same reason: rows are created, the cycle validates,
-   and the 40 new columns are simply NULL. The check is now **stronger and
-   cheaper** — a fresh `_Statistic.txt` must contain the line
-   `[RESIDUAL DIAGNOSTICS; CLOSE PRICE]`. If it does, the binary is current for
-   both the 2026-09-09 and the 2026-09-20 additions; if `[EDT CHANNEL]` is
-   present but that line is not, the terminal is on a 2026-09-11-era build.
-   That single line works for **10** of the 11 files. The eleventh,
-   `SR_Levels_*_Statistic.txt`, keeps its own shape by design -- check it for
-   `Max Window Bars` instead, which only the rebuilt binary writes. Run
-   `verify_mq5_frozen_identifiers.py` (now covering all 10 uniform files)
-   before handing anything to MetaEditor.
+    **Updated 2026-09-20 — the same hazard, one round further on.** The
+    enrichment pass added five more sections to all 8 channel-emitting `.mq5`
+    files, so the binaries must be rebuilt again. The staleness still hides
+    itself for exactly the same reason: rows are created, the cycle validates,
+    and the 40 new columns are simply NULL. The check is now **stronger and
+    cheaper** — a fresh `_Statistic.txt` must contain the line
+    `[RESIDUAL DIAGNOSTICS; CLOSE PRICE]`. If it does, the binary is current for
+    both the 2026-09-09 and the 2026-09-20 additions; if `[EDT CHANNEL]` is
+    present but that line is not, the terminal is on a 2026-09-11-era build.
+    That single line works for **10** of the 11 files. The eleventh,
+    `SR_Levels_*_Statistic.txt`, keeps its own shape by design -- check it for
+    `Max Window Bars` instead, which only the rebuilt binary writes. Run
+    `verify_mq5_frozen_identifiers.py` (now covering all 10 uniform files)
+    before handing anything to MetaEditor.
 
-2. **Gateway migration** — implement the §9 contract (nullable field set,
-   idempotent upsert).
-3. **Windowed-anchor handling** — operational re-anchoring procedure or a
-   rolling-window indicator change.
-4. **Restart the collector on the VPS** after deploying the updated
-   `export_collector_validator_v2.py` + `sqlite_schema_v6_xauusd.sql`. Its
-   `migrate_raw_tables()` will add the new staging columns to the existing
-   `xauusd.db` on first start (§5.2); `market_data` is untouched. The same
-   restart also creates the `indicator_statistics` outbox (§12 item 9).
-5. ✅ **`20260909120000_add_indicator_statistics` — APPLIED TO PRODUCTION
-   2026-09-09**, together with the three other migrations that were pending
-   there (`20260903000000_split_best_fit_variant`,
-   `20260904120000_default_theme_light`,
-   `20260909000000_market_data_v6_provenance_not_null`).
-   **Production is `maglev.proxy.rlwy.net:58290`** — the `trading-alerts`
-   project's `Postgres` service, which `railway-gateway` reaches privately at
-   `postgres.railway.internal`. Confirmed from the Railway dashboard and by the
-   data itself (39 app tables, 7 months of real activity, the `User.profile`
-   column from the 2026-09-01 OAuth fix). The `.env.local` database
-   (`turntable...:55082`) is a **staging clone** — full app schema, `market_data_v6`
-   present but empty. Apply migrations with `prisma.production.config.ts`, which
-   refuses to run against it.
-   **A prerequisite had to be handled first:** production had **never** had
-   `market_data_v6`. `20260705000000_add_market_data_v6` was recorded applied with
-   `steps=0` — marked applied without executing — so `migrate deploy` would have
-   skipped it and then failed on the `best_fit` rename against a non-existent
-   table. Resolved by running that migration's SQL directly
-   (`prisma db execute --file ...`), which made the recorded state true without
-   editing migration history.
-   **Verified after applying:** `market_data_v6` 90 columns (`best_fit_a` ×8,
-   `best_fit_b` ×8), `cycle_id`/`collected_at` both `NOT NULL`,
-   `indicator_statistics` + `indicator_configs` created, 19 migrations recorded
-   with 0 failed, and the live application data unchanged.
-   **The corollary worth stating plainly: the v6 pipeline has never written a row
-   to PostgreSQL.** The gateway was pointed at a database that had no
-   `market_data_v6` in it. That is consistent with everything else — the queue
-   showing `completed 0` for days, the `.ex5` never redeployed, the timestamp bug
-   unresolved until 2026-09-09. The remaining work in this section is what stands
-   between the pipeline and its first real row.
+2.  **Gateway migration** — implement the §9 contract (nullable field set,
+    idempotent upsert).
+3.  **Windowed-anchor handling** — operational re-anchoring procedure or a
+    rolling-window indicator change.
+4.  **Restart the collector on the VPS** after deploying the updated
+    `export_collector_validator_v2.py` + `sqlite_schema_v6_xauusd.sql`. Its
+    `migrate_raw_tables()` will add the new staging columns to the existing
+    `xauusd.db` on first start (§5.2); `market_data` is untouched. The same
+    restart also creates the `indicator_statistics` outbox (§12 item 9).
+5.  ✅ **`20260909120000_add_indicator_statistics` — APPLIED TO PRODUCTION
+    2026-09-09**, together with the three other migrations that were pending
+    there (`20260903000000_split_best_fit_variant`,
+    `20260904120000_default_theme_light`,
+    `20260909000000_market_data_v6_provenance_not_null`).
+    **Production is `maglev.proxy.rlwy.net:58290`** — the `trading-alerts`
+    project's `Postgres` service, which `railway-gateway` reaches privately at
+    `postgres.railway.internal`. Confirmed from the Railway dashboard and by the
+    data itself (39 app tables, 7 months of real activity, the `User.profile`
+    column from the 2026-09-01 OAuth fix). The `.env.local` database
+    (`turntable...:55082`) is a **staging clone** — full app schema, `market_data_v6`
+    present but empty. Apply migrations with `prisma.production.config.ts`, which
+    refuses to run against it.
+    **A prerequisite had to be handled first:** production had **never** had
+    `market_data_v6`. `20260705000000_add_market_data_v6` was recorded applied with
+    `steps=0` — marked applied without executing — so `migrate deploy` would have
+    skipped it and then failed on the `best_fit` rename against a non-existent
+    table. Resolved by running that migration's SQL directly
+    (`prisma db execute --file ...`), which made the recorded state true without
+    editing migration history.
+    **Verified after applying:** `market_data_v6` 90 columns (`best_fit_a` ×8,
+    `best_fit_b` ×8), `cycle_id`/`collected_at` both `NOT NULL`,
+    `indicator_statistics` + `indicator_configs` created, 19 migrations recorded
+    with 0 failed, and the live application data unchanged.
+    **The corollary worth stating plainly: the v6 pipeline has never written a row
+    to PostgreSQL.** The gateway was pointed at a database that had no
+    `market_data_v6` in it. That is consistent with everything else — the queue
+    showing `completed 0` for days, the `.ex5` never redeployed, the timestamp bug
+    unresolved until 2026-09-09. The remaining work in this section is what stands
+    between the pipeline and its first real row.
 
-6. **Build the standby and static terminals (§8.1), then rehearse one promote.**
-   Not pipeline-blocking — the current single-terminal setup keeps working
-   unchanged — but it is what makes indicator retuning safe, and it is the only
-   part of that design a development session cannot do (attaching charts, setting
-   anchors and compiling all need the VPS console). The code guard (§12 item 10)
-   and the procedure (`docs/runbooks/mt5-terminal-promote.md`) both shipped
-   2026-09-12 and are inert until the terminals exist. **Rehearse the first
-   promote during a market close**, and confirm the rollback path before it is
-   needed in anger.
+6.  **Build the standby and static terminals (§8.1), then rehearse one promote.**
+    Not pipeline-blocking — the current single-terminal setup keeps working
+    unchanged — but it is what makes indicator retuning safe, and it is the only
+    part of that design a development session cannot do (attaching charts, setting
+    anchors and compiling all need the VPS console). The code guard (§12 item 10)
+    and the procedure (`docs/runbooks/mt5-terminal-promote.md`) both shipped
+    2026-09-12 and are inert until the terminals exist. **Rehearse the first
+    promote during a market close**, and confirm the rollback path before it is
+    needed in anger.
 
-7. **Deploy the 14th indicator (`SupportAndResistantAutoCalibration_v2_29`).**
-   The pipeline side shipped 2026-09-16 and is tested end to end against
-   synthetic exports; the physical steps are Davin's, and the ORDER matters.
+7.  **Deploy the 14th indicator (`SupportAndResistantAutoCalibration_v2_29`).**
+    The pipeline side shipped 2026-09-16 and is tested end to end against
+    synthetic exports; the physical steps are Davin's, and the ORDER matters.
 
-   **a. Apply `20260916000000_add_market_data_v6_sr_levels` to production
-   Postgres FIRST, before merging to `main`.** `railway-gateway` auto-deploys
-   from `main`, the contract sets `additionalProperties: false`, and the push
-   worker's 400 handler quarantines a row **and stamps `synced_at`** — so rows
-   posted to a gateway that predates the columns are permanently marked synced
-   and recoverable only by hand via `replay_quarantine.py`. The reverse order
-   is harmless: a gateway ahead of Postgres just 5xxs and the worker retries.
+    **a. Apply `20260916000000_add_market_data_v6_sr_levels` to production
+    Postgres FIRST, before merging to `main`.** `railway-gateway` auto-deploys
+    from `main`, the contract sets `additionalProperties: false`, and the push
+    worker's 400 handler quarantines a row **and stamps `synced_at`** — so rows
+    posted to a gateway that predates the columns are permanently marked synced
+    and recoverable only by hand via `replay_quarantine.py`. The reverse order
+    is harmless: a gateway ahead of Postgres just 5xxs and the worker retries.
 
-   **b. Attach the `.ex5` to XAUUSD M5 and M15** (and identically to the
-   standby terminal when it exists — §8.1's parity rule). The binary is
-   compiled and current (2026-09-16, newer than its source). ⚠ **Decommission
-   the predecessor `SupportAndResistant_v2_29.mq5` first if it is attached
-   anywhere:** it defaults to the same `InpExportFileName = "SR_Levels"`, so
-   both would write the same `SR_Levels_XAUUSD_{TF}.txt` and truncate each
-   other at `:59`, producing non-deterministic content with two different
-   statistic-file schemas.
+    **b. Attach the `.ex5` to XAUUSD M5 and M15** (and identically to the
+    standby terminal when it exists — §8.1's parity rule). The binary is
+    compiled and current (2026-09-16, newer than its source). ⚠ **Decommission
+    the predecessor `SupportAndResistant_v2_29.mq5` first if it is attached
+    anywhere:** it defaults to the same `InpExportFileName = "SR_Levels"`, so
+    both would write the same `SR_Levels_XAUUSD_{TF}.txt` and truncate each
+    other at `:59`, producing non-deterministic content with two different
+    statistic-file schemas.
 
-   **c. Widen the VPS SQLite `market_data`** — either run
-   `migrate_sqlite_add_sr_columns.sql` by hand, or simply restart the
-   collector, whose new `migrate_market_data()` does it automatically on boot.
-   Either is safe; both is safe.
+    **c. Widen the VPS SQLite `market_data`** — either run
+    `migrate_sqlite_add_sr_columns.sql` by hand, or simply restart the
+    collector, whose new `migrate_market_data()` does it automatically on boot.
+    Either is safe; both is safe.
 
-   **⚠ No real capture of this indicator's export exists anywhere in the
-   repo.** The parser is verified against the `.mq5` source and synthetic
-   fixtures only. Diff a first real `SR_Levels_XAUUSD_M5.txt` against the
-   `SOURCES['sr_levels']` header list before trusting a green cycle.
+    **⚠ No real capture of this indicator's export exists anywhere in the
+    repo.** The parser is verified against the `.mq5` source and synthetic
+    fixtures only. Diff a first real `SR_Levels_XAUUSD_M5.txt` against the
+    `SOURCES['sr_levels']` header list before trusting a green cycle.
 
-8. **Turn on the frozen baseline and the Centroid Watchdog (§5.6).** Everything
-   below is code-complete, tested and committed; **none of it changes production
-   behaviour until these physical steps happen**, because `InpProjectionMode`
-   defaults to `MODE_DYNAMIC_AUTOFIT` and the watchdog is not installed.
+8.  **Turn on the frozen baseline and the Centroid Watchdog (§5.6).** Everything
+    below is code-complete, tested and committed; **none of it changes production
+    behaviour until these physical steps happen**, because `InpProjectionMode`
+    defaults to `MODE_DYNAMIC_AUTOFIT` and the watchdog is not installed.
 
-   **a. Recompile all 7 centroid indicators in MetaEditor and redeploy the
-   `.ex5`.** Gating for everything else in this item.
-   ⚠ **A first attempt failed on 5 of the 7** — the frozen routine was written
-   against the reference variant and the seven are not identifier-uniform
-   (`InpCFLVisualLookback` vs `InpEDTVisualLookback`; `g_stat_excluded` and
-   `g_stat_lambda` are not declared everywhere). Fixed, and now guarded by
-   `verify_mq5_frozen_identifiers.py` — **run it before handing these to
-   MetaEditor again.** Those failed compiles deleted 5 `.ex5`, so CherryPick A/B,
-   MostRecent and NonRecent A/B have **no binary at all** right now; they were
-   deliberately not restored from git, because an old binary deploys indicators
-   without frozen mode and looks healthy doing it. Until then the terminals
-   emit no `[CENTROIDS_DETAIL]` and no `[FROZEN_SNAPSHOT]`, the watchdog
-   correctly logs "pre-upgrade file" and refuses to reason about them, and
-   `generate_frozen_preset.py` correctly refuses to build a preset.
-   ⚠ **This is the same self-hiding staleness as item 1.** A terminal running
-   old binaries looks entirely healthy — cycles validate, rows promote, nothing
-   errors — while the two new blocks are simply absent. **Confirm a fresh
-   `_Statistic.txt` actually contains `[FROZEN_SNAPSHOT]` before trusting a
-   green cycle.**
+    **a. Recompile all 7 centroid indicators in MetaEditor and redeploy the
+    `.ex5`.** Gating for everything else in this item.
+    ⚠ **A first attempt failed on 5 of the 7** — the frozen routine was written
+    against the reference variant and the seven are not identifier-uniform
+    (`InpCFLVisualLookback` vs `InpEDTVisualLookback`; `g_stat_excluded` and
+    `g_stat_lambda` are not declared everywhere). Fixed, and now guarded by
+    `verify_mq5_frozen_identifiers.py` — **run it before handing these to
+    MetaEditor again.** Those failed compiles deleted 5 `.ex5`, so CherryPick A/B,
+    MostRecent and NonRecent A/B have **no binary at all** right now; they were
+    deliberately not restored from git, because an old binary deploys indicators
+    without frozen mode and looks healthy doing it. Until then the terminals
+    emit no `[CENTROIDS_DETAIL]` and no `[FROZEN_SNAPSHOT]`, the watchdog
+    correctly logs "pre-upgrade file" and refuses to reason about them, and
+    `generate_frozen_preset.py` correctly refuses to build a preset.
+    ⚠ **This is the same self-hiding staleness as item 1.** A terminal running
+    old binaries looks entirely healthy — cycles validate, rows promote, nothing
+    errors — while the two new blocks are simply absent. **Confirm a fresh
+    `_Statistic.txt` actually contains `[FROZEN_SNAPSHOT]` before trusting a
+    green cycle.**
 
-   **b. Install the watchdog** with `install_centroid_watchdog_service.bat`
-   (deliberately a separate script — running `install_services.bat` wholesale on
-   a live VPS overwrites the push worker's real credentials with placeholders;
-   see §8.2). Set `WATCHDOG_STANDBY_DIR` to the terminal being TUNED and
-   `WATCHDOG_ACTIVE_DIR` to the one FEEDING production. With no webhook set it
-   runs in log-only mode and loses nothing — every alert is written to
-   `centroid_watchdog.log` in full. **Expected on first start: 14 "seeded"
-   lines and no alert.** That is correct, not a fault.
+    **b. Install the watchdog** with `install_centroid_watchdog_service.bat`
+    (deliberately a separate script — running `install_services.bat` wholesale on
+    a live VPS overwrites the push worker's real credentials with placeholders;
+    see §8.2). Set `WATCHDOG_STANDBY_DIR` to the terminal being TUNED and
+    `WATCHDOG_ACTIVE_DIR` to the one FEEDING production. With no webhook set it
+    runs in log-only mode and loses nothing — every alert is written to
+    `centroid_watchdog.log` in full. **Expected on first start: 14 "seeded"
+    lines and no alert.** That is correct, not a fault.
 
-   ⚠ **Swap both paths on every promote**, and note that
-   `AppEnvironmentExtra` **replaces the whole variable set** — every variable
-   must be repeated, not just the two that changed. Left unswapped, the watchdog
-   keeps watching the terminal that is now frozen and will never see another
-   centroid: silently, because a frozen terminal reports zero centroids and that
-   is indistinguishable from a quiet market.
+    ⚠ **Swap both paths on every promote**, and note that
+    `AppEnvironmentExtra` **replaces the whole variable set** — every variable
+    must be repeated, not just the two that changed. Left unswapped, the watchdog
+    keeps watching the terminal that is now frozen and will never see another
+    centroid: silently, because a frozen terminal reports zero centroids and that
+    is indistinguishable from a quiet market.
 
-   **c. Freeze the ACTIVE terminal — the step that actually closes §12 item 8.**
-   Order matters, and it is enforced by `promote_terminal.bat`'s new pre-flight:
-   1. `promote_terminal.bat` → **[4]** generates `*_FROZEN.set` from the
-      terminal being promoted.
-   2. **Load each preset by hand in MetaTrader** (right-click the indicator →
-      Properties → Inputs → Load). ⚠ **This cannot be scripted.** MetaTrader
-      exposes no way for an outside process to change a running indicator's
-      inputs, and pretending otherwise would be the worst failure available
-      here: the script reports success, the administrator believes the terminal
-      is frozen, and it goes on repainting ~3000 bars for as long as nobody
-      checks.
-   3. → **[5]** verifies the terminal genuinely reports `FROZEN`. **Do not skip
-      this.** Loading a preset is the step most likely to be half-done, and
-      without the check the failure is invisible.
-   4. Only then → **[1]/[2]** to point the collector at it.
-   5. Load `DAVINTRADE_DYNAMIC.set` into the terminal being demoted, so the new
-      hot standby starts hunting for the next regime.
+    **c. Freeze the ACTIVE terminal — the step that actually closes §12 item 8.**
+    Order matters, and it is enforced by `promote_terminal.bat`'s new pre-flight:
+    1. `promote_terminal.bat` → **[4]** generates `*_FROZEN.set` from the
+       terminal being promoted.
+    2. **Load each preset by hand in MetaTrader** (right-click the indicator →
+       Properties → Inputs → Load). ⚠ **This cannot be scripted.** MetaTrader
+       exposes no way for an outside process to change a running indicator's
+       inputs, and pretending otherwise would be the worst failure available
+       here: the script reports success, the administrator believes the terminal
+       is frozen, and it goes on repainting ~3000 bars for as long as nobody
+       checks.
+    3. → **[5]** verifies the terminal genuinely reports `FROZEN`. **Do not skip
+       this.** Loading a preset is the step most likely to be half-done, and
+       without the check the failure is invisible.
+    4. Only then → **[1]/[2]** to point the collector at it.
+    5. Load `DAVINTRADE_DYNAMIC.set` into the terminal being demoted, so the new
+       hot standby starts hunting for the next regime.
 
-   **d. Rehearse it once during a market close**, alongside item 6's promote
-   rehearsal. Nothing in this item has ever run against a live MT5 terminal;
-   verification so far is synthetic exports driven through the real collector,
-   the real watchdog process and the real preset generator.
+    **d. Rehearse it once during a market close**, alongside item 6's promote
+    rehearsal. Nothing in this item has ever run against a live MT5 terminal;
+    verification so far is synthetic exports driven through the real collector,
+    the real watchdog process and the real preset generator.
 
-   ~~**Statistics capture is deliberately NOT part of this.**~~ **Superseded
-   2026-09-20 — `sr_levels` IS now enrolled in `STAT_SOURCES`.** The reasoning
-   that excluded it (its `_Statistic.txt` records Freedman-Diaconis calibration,
-   not regression fit quality, so almost none of its labels existed in
-   `STAT_FIELDS`) was true then and is not now: ten `sr_*` columns exist for
-   exactly that vocabulary, and the `source` enum in
-   `gateway_contract_indicator_statistics.schema.json` has been widened to 11 to
-   match. **⚠ The enum is still CLOSED and the POST is still BATCHED, so the
-   gateway must be deployed before the VPS starts sending this source** —
-   otherwise one element 400s the whole request and every other snapshot in it is
-   quarantined _and_ stamped `synced_at`.
+    ~~**Statistics capture is deliberately NOT part of this.**~~ **Superseded
+    2026-09-20 — `sr_levels` IS now enrolled in `STAT_SOURCES`.** The reasoning
+    that excluded it (its `_Statistic.txt` records Freedman-Diaconis calibration,
+    not regression fit quality, so almost none of its labels existed in
+    `STAT_FIELDS`) was true then and is not now: ten `sr_*` columns exist for
+    exactly that vocabulary, and the `source` enum in
+    `gateway_contract_indicator_statistics.schema.json` has been widened to 11 to
+    match. **⚠ The enum is still CLOSED and the POST is still BATCHED, so the
+    gateway must be deployed before the VPS starts sending this source** —
+    otherwise one element 400s the whole request and every other snapshot in it is
+    quarantined _and_ stamped `synced_at`.
 
-9. ⚠ **Deploy the point-in-time snapshot lane (§12 item 8).** Closes the
-   look-ahead-bias gap for the 69 drifting columns from the moment it is live.
-   **ORDER IS LOAD-BEARING:**
-   1. Apply `prisma/migrations/20260920000000_add_market_data_point_in_time/`
-      to production (`maglev.proxy.rlwy.net:58290`). Run `prisma migrate status`
-      first — `migrate deploy` applies **every** pending migration in history
-      order, not just the intended one. A single additive `CREATE TABLE`;
-      verified byte-identical to `prisma migrate diff`'s own output.
-   2. **Then** let `railway-gateway` deploy — it auto-deploys from `main`.
+9.  ⚠ **Deploy the point-in-time snapshot lane (§12 item 8).** Closes the
+    look-ahead-bias gap for the 69 drifting columns from the moment it is live.
+    **ORDER IS LOAD-BEARING:**
+    1. Apply `prisma/migrations/20260920000000_add_market_data_point_in_time/`
+       to production (`maglev.proxy.rlwy.net:58290`). Run `prisma migrate status`
+       first — `migrate deploy` applies **every** pending migration in history
+       order, not just the intended one. A single additive `CREATE TABLE`;
+       verified byte-identical to `prisma migrate diff`'s own output.
+    2. **Then** let `railway-gateway` deploy — it auto-deploys from `main`.
 
-   Reversing the order corrupts nothing (the snapshot write is wrapped and
-   cannot fail the `market_data` upsert; it logs a warning and continues) but
-   **every bar missed in between is gone for good** — the honest value exists
-   exactly once, and there is no backfill for it.
+    Reversing the order corrupts nothing (the snapshot write is wrapped and
+    cannot fail the `market_data` upsert; it logs a warning and continues) but
+    **every bar missed in between is gone for good** — the honest value exists
+    exactly once, and there is no backfill for it.
 
-   **Nothing on the VPS changes.** No new SQLite table, no new outbox, no
-   collector edit, no `.ex5` rebuild. The 95-field wire contract is untouched:
-   the snapshot is derived server-side from the same payload the gateway already
-   receives.
+    **Nothing on the VPS changes.** No new SQLite table, no new outbox, no
+    collector edit, no `.ex5` rebuild. The 95-field wire contract is untouched:
+    the snapshot is derived server-side from the same payload the gateway already
+    receives.
 
-   **Then tell the consumers.** Backtests, walk-forward validation and the
-   Decision Layer's `fitness_scorer` must read `market_data_point_in_time` with
-   `snapshot_age_bars = 1`, never `market_data_v6` history. Ready-to-use queries:
-   `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` §9.
+    **Then tell the consumers.** Backtests, walk-forward validation and the
+    Decision Layer's `fitness_scorer` must read `market_data_point_in_time` with
+    `snapshot_age_bars = 1`, never `market_data_v6` history. Ready-to-use queries:
+    `HISTORICAL-VALUES-LOOK-AHEAD-BIAS-OPEN-ISSUE.md` §9.
 
 10. ⚠ **Deploy the 15th indicator (`S-R-AutoCalibration_v2_29`).** The
     pipeline side shipped 2026-09-22 and is tested end to end (36 tests, every
@@ -1396,42 +1489,43 @@ LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
     physical steps are Davin's, and **the ORDER is item 7's, for the same
     reasons:**
 
-    **a. Apply `20260922000000_add_market_data_v6_sr2_levels` to production
-    Postgres FIRST** (`prisma migrate status` first — `migrate deploy` applies
-    every pending migration). Eight nullable columns on `market_data_v6` **and**
-    eight on `market_data_point_in_time`; byte-identical to `prisma migrate
-diff`'s own output.
+        **a. Apply `20260922000000_add_market_data_v6_sr2_levels` to production
+        Postgres FIRST** (`prisma migrate status` first — `migrate deploy` applies
+        every pending migration). Eight nullable columns on `market_data_v6` **and**
+        eight on `market_data_point_in_time`; byte-identical to `prisma migrate
 
-    **b. Then let `railway-gateway` deploy** (auto-deploys from `main`). It then
-    accepts 103 fields and the `sr2_levels` statistics source, and snapshots 77
-    columns. Sending the VPS change first would 400 **every** `market_data` row
-    (quarantined **and** stamped `synced_at`) and every statistics **batch**.
+    diff`'s own output.
 
-    **c. Deploy the VPS side — THREE files, not two:**
-    `export_collector_validator_v2.py`, `backfill_worker_api_gateway_v5.py`
-    **and `sqlite_schema_v6_xauusd.sql`** beside the collector. Only the schema
-    file creates `raw_sr2_levels`; the migrate functions widen tables that
-    already exist. A collector started beside a stale schema file now refuses
-    to start with a message naming the file (`assert_staging_tables()`) instead
-    of crash-looping on the first cycle. `market_data` widens itself on start
-    (`migrate_market_data()`), or run `migrate_sqlite_add_sr2_columns.sql` by
-    hand first. ⚠ The local `DEPLOY_TO_CONTABO_VPS_READY/` package (gitignored)
-    **predates this change** and carries only the two `.py` files.
+        **b. Then let `railway-gateway` deploy** (auto-deploys from `main`). It then
+        accepts 103 fields and the `sr2_levels` statistics source, and snapshots 77
+        columns. Sending the VPS change first would 400 **every** `market_data` row
+        (quarantined **and** stamped `synced_at`) and every statistics **batch**.
 
-    **d. Attach the `.ex5` to XAUUSD M5 and M15, on A and B identically,
-    BEFORE restarting the collector.** Once the updated collector runs, a
-    missing `S_R_Levels_XAUUSD_{TF}.txt` rejects **every** cycle (full
-    `PER_BAR_SOURCES` enrolment, as for the 14th).
+        **c. Deploy the VPS side — THREE files, not two:**
+        `export_collector_validator_v2.py`, `backfill_worker_api_gateway_v5.py`
+        **and `sqlite_schema_v6_xauusd.sql`** beside the collector. Only the schema
+        file creates `raw_sr2_levels`; the migrate functions widen tables that
+        already exist. A collector started beside a stale schema file now refuses
+        to start with a message naming the file (`assert_staging_tables()`) instead
+        of crash-looping on the first cycle. `market_data` widens itself on start
+        (`migrate_market_data()`), or run `migrate_sqlite_add_sr2_columns.sql` by
+        hand first. ⚠ The local `DEPLOY_TO_CONTABO_VPS_READY/` package (gitignored)
+        **predates this change** and carries only the two `.py` files.
 
-    **e. Give it its own window.** ⚠ Its defaults (`InpStartDateTime`,
-    `InpEndDateTime`, window mode, touches) are **identical to the 14th's**, so
-    out of the box `sr_9..sr_16` reproduce `sr_1..sr_8` exactly. The second
-    instance only adds information once its anchors differ.
+        **d. Attach the `.ex5` to XAUUSD M5 and M15, on A and B identically,
+        BEFORE restarting the collector.** Once the updated collector runs, a
+        missing `S_R_Levels_XAUUSD_{TF}.txt` rejects **every** cycle (full
+        `PER_BAR_SOURCES` enrolment, as for the 14th).
 
-    **⚠ No real capture of this indicator exists yet.** The parser is verified
-    against the `.mq5` source, synthetic fixtures, and the 14th's real captures
-    relabelled. Diff a first real `S_R_Levels_XAUUSD_M5.txt` header against
-    `SOURCES['sr2_levels']` before trusting a green cycle.
+        **e. Give it its own window.** ⚠ Its defaults (`InpStartDateTime`,
+        `InpEndDateTime`, window mode, touches) are **identical to the 14th's**, so
+        out of the box `sr_9..sr_16` reproduce `sr_1..sr_8` exactly. The second
+        instance only adds information once its anchors differ.
+
+        **⚠ No real capture of this indicator exists yet.** The parser is verified
+        against the `.mq5` source, synthetic fixtures, and the 14th's real captures
+        relabelled. Diff a first real `S_R_Levels_XAUUSD_M5.txt` header against
+        `SOURCES['sr2_levels']` before trusting a green cycle.
 
 Deferred product features (separate workstreams, not pipeline-blocking):
 trendline image rendering + statistical scoring/advice; parameter-revision

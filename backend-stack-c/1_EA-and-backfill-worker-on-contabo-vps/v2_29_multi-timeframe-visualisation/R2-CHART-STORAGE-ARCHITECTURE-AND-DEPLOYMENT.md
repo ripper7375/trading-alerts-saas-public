@@ -142,9 +142,11 @@ worker, or an NSSM entry. Do not add a `?variant=` parameter — it was removed 
 │        │                             │      │                              │
 │        ▼                             │      │  xauusd/                     │
 │  MT5Renderer  (NSSM service)         │      │    …_m5_m15_overlay.png      │
-│    every 300s:                       │      │    …_m5_m15_standard.png     │
-│      render BOTH variants ───────────┼─PUT─►│                              │
-│      (one DB read, temp dir)         │      └──────────┬───────────────────┘
+│    per NEW validated M5 slot:        │      │    …_m5_m15_standard.png     │
+│      active indicator ← gateway      │      │    each with its STAMP in    │
+│      render BOTH variants, verified  │      │    object metadata (§6.4)    │
+│      (one DB read, temp dir) ────────┼─PUT─►│                              │
+│      upload only if ALL are good     │      └──────────┬───────────────────┘
 │      prune objects older than 48h    │                 │ presigned GET only
 └──────────────────────────────────────┘                 │ (~60s TTL)
                                                          │
@@ -153,7 +155,8 @@ worker, or an NSSM entry. Do not add a `?variant=` parameter — it was removed 
 │    1. requireChartDownload()      → 401 / 403                              │
 │    2. getM5OnM15Preference(id)    → 'overlay' | 'standard'                 │
 │    3. getSignedChartUrl(variant)  → ~60s URL                               │
-│    4. 307 redirect                                                         │
+│    4. getChartStamp(variant)      → HEAD; X-Chart-* headers (never a gate) │
+│    5. 307 redirect                                                         │
 │                                                                            │
 │  chat-sidebar: <a href="/api/chart/download">   (PRO)                      │
 │                <a href="/pricing">              (FREE)                     │
@@ -194,8 +197,9 @@ existed to close.
 
 ### 2.5 Retention
 
-The worker prunes objects older than **48 hours** on every cycle, and never prunes the two keys it
-just wrote. §5.2 offers an R2-native lifecycle rule as a more robust alternative.
+The worker prunes objects older than **48 hours** after every successful publish, and never prunes
+the two keys it just wrote. A prune that fails is logged and does not fail the publish. §5.2 offers
+an R2-native lifecycle rule as a more robust alternative.
 
 ---
 
@@ -284,25 +288,38 @@ Then **redeploy** — Vercel does not apply new variables to a running deploymen
    ```bat
    nssm install MT5Renderer "C:\Python311\python.exe" "C:\Scripts\renderer\mtf_render_upload_worker.py"
    nssm set MT5Renderer AppDirectory "C:\Scripts\renderer"
-   nssm set MT5Renderer AppEnvironmentExtra R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET=davintrade-renders MTF_DB_PATH=C:\Scripts\database\xauusd.db
+   nssm set MT5Renderer AppEnvironmentExtra R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET=davintrade-renders MTF_DB_PATH=C:\Scripts\database\xauusd.db API_GATEWAY_URL=... BACKFILL_API_KEY=...
    nssm set MT5Renderer AppStdout "C:\Scripts\logs\renderer.log"
    nssm set MT5Renderer AppStderr "C:\Scripts\logs\renderer.err.log"
    nssm set MT5Renderer AppExit Default Restart
    nssm set MT5Renderer Start SERVICE_AUTO_START
    nssm start MT5Renderer
    ```
-5. Tail `C:\Scripts\logs\renderer.log`. A healthy start logs the bucket, the DB path, the overlay
-   set, the interval and retention, then `uploaded xauusd/... (N bytes)` twice per cycle.
+5. Tail `C:\Scripts\logs\renderer.log`. A healthy start logs the bucket, the DB path, the default
+   overlay set, the gateway (or `not configured`), the poll, retry and retention, then
+   `uploaded xauusd/... (N bytes) slot S, overlay M5 x / M15 y (setting)` twice per new validated slot.
 
 **The VPS needs four `R2_*` vars, not five** — `R2_SIGNED_URL_TTL_SECONDS` is monolith-only.
+
+**Deploy order (rule 8).** The renderer asks the gateway for the setting AT the slot it renders
+(`GET /api/v1/cycles/current?slot=S`). Deploy the gateway that has `?slot=` **before** copying the
+renderer files. A renderer in front of an older gateway still works: it sees that the answer is not
+for its slot, uses `RENDER_OVERLAYS`, and says so in the stamp (`overlay-source: default`).
+
+`API_GATEWAY_URL` and `BACKFILL_API_KEY` are the same two values `MT5PushWorker` already has (the
+renderer also reads `API_KEY` if `BACKFILL_API_KEY` is empty). Left unset, or left at the push
+worker's placeholder values, the renderer runs on `RENDER_OVERLAYS` alone.
+
 Optional worker tuning, all with sane defaults, so omit unless you mean it:
 
-| Var                      | Default                     | Meaning                                                                                     |
-| ------------------------ | --------------------------- | ------------------------------------------------------------------------------------------- |
-| `MTF_DB_PATH`            | `C:\Scripts\data\xauusd.db` | ⚠ Check this — `install_services.bat` uses `%ROOT%\database\xauusd.db`. Set it explicitly. |
-| `RENDER_INTERVAL_SEC`    | `300`                       | Matches the M5 cadence                                                                      |
-| `RENDER_RETENTION_HOURS` | `48`                        |                                                                                             |
-| `RENDER_OVERLAYS`        | `best_fit_a`                | Any of the 10 registry keys, comma-separated                                                |
+| Var                          | Default                     | Meaning                                                                                                 |
+| ---------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `MTF_DB_PATH`                | `C:\Scripts\data\xauusd.db` | ⚠ Check this — `install_services.bat` uses `%ROOT%\database\xauusd.db`. Set it explicitly.             |
+| `RENDER_POLL_SEC`            | `10`                        | How often to look for a new validated M5 slot (replaces `RENDER_INTERVAL_SEC`, which is no longer read) |
+| `RENDER_RETRY_SEC`           | `30`                        | Wait before retrying a slot whose render or upload failed                                               |
+| `RENDER_GATEWAY_TIMEOUT_SEC` | `5`                         | How long to wait for the gateway before falling back to `RENDER_OVERLAYS`                               |
+| `RENDER_RETENTION_HOURS`     | `48`                        |                                                                                                         |
+| `RENDER_OVERLAYS`            | `best_fit_a`                | Fallback for BOTH timeframes when the gateway cannot say. Any of the 10 registry keys, comma-separated  |
 
 ### T4 — Verification script (Claude Code)
 
@@ -343,16 +360,18 @@ Checks 4–6 are the entitlement working end to end; 7 can be run without creden
 
 ### 5.1 Symptom → cause
 
-| Symptom                                                                  | Likely cause                                                                                                                    |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| `503 {"error":"Chart downloads are not configured on this environment"}` | An `R2_*` var missing in Vercel, or set but not redeployed. **This is the expected response today**, before T1–T2.              |
-| `401`                                                                    | Not signed in. Correct behaviour.                                                                                               |
-| `403 PRO subscription required`                                          | FREE tier. Correct behaviour — including for a genuinely-FREE user whose DB row confirms it.                                    |
-| Redirect works, then the presigned URL **404s**                          | The object is not there: `MT5Renderer` has not run, or is uploading under a different key. Compare against §6.2.                |
-| Presigned URL returns **403 SignatureDoesNotMatch**                      | Wrong secret, or wrong account id in the endpoint.                                                                              |
-| Worker logs `missing R2 credentials`                                     | `AppEnvironmentExtra` not applied. NSSM does **not** pick up variable changes without a service restart.                        |
-| Worker logs `render failed (exit N)`                                     | The renderer subprocess failed — check its stderr in the log. Usually a missing Python dependency or an unreadable `xauusd.db`. |
-| Uploads succeed but downloads 404                                        | Bucket name mismatch between VPS and Vercel.                                                                                    |
+| Symptom                                                                  | Likely cause                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `503 {"error":"Chart downloads are not configured on this environment"}` | An `R2_*` var missing in Vercel, or set but not redeployed. **This is the expected response today**, before T1–T2.                                                                                             |
+| `401`                                                                    | Not signed in. Correct behaviour.                                                                                                                                                                              |
+| `403 PRO subscription required`                                          | FREE tier. Correct behaviour — including for a genuinely-FREE user whose DB row confirms it.                                                                                                                   |
+| Redirect works, then the presigned URL **404s**                          | The object is not there: `MT5Renderer` has not run, or is uploading under a different key. Compare against §6.2.                                                                                               |
+| Presigned URL returns **403 SignatureDoesNotMatch**                      | Wrong secret, or wrong account id in the endpoint.                                                                                                                                                             |
+| Worker logs `missing R2 credentials`                                     | `AppEnvironmentExtra` not applied. NSSM does **not** pick up variable changes without a service restart.                                                                                                       |
+| Worker logs `render of slot S failed (exit N)`                           | The renderer subprocess failed — check its stderr in the log. Usually a missing Python dependency or an unreadable `xauusd.db`. The objects in R2 are untouched; the slot is retried after `RENDER_RETRY_SEC`. |
+| Worker logs `... it does not support ?slot= yet; using RENDER_OVERLAYS`  | The gateway in front of the renderer predates `?slot=`. Deploy the gateway first (see T3). Images are stamped `overlay-source: default`.                                                                       |
+| Worker logs `slot S failed, the last good image is kept`                 | A render or upload failed for slot S. Nothing was replaced (or only the objects already uploaded were); the next poll retries.                                                                                 |
+| Uploads succeed but downloads 404                                        | Bucket name mismatch between VPS and Vercel.                                                                                                                                                                   |
 
 ### 5.2 The prune loop is the weakest part
 
@@ -366,11 +385,18 @@ which bounds the damage.
 retention to the storage layer where it cannot be affected by worker state, and lets `prune()` be
 deleted. Requires Davin to add the rule; the code change is small.
 
-### 5.3 There is no last-known-good fallback
+### 5.3 The last good image is kept
 
-If the renderer stops and the window empties, Download returns a 404 through the presigned URL. The
-route surfaces it rather than pretending. Acceptable for a live-chart artifact, but worth knowing
-so an empty bucket is not mistaken for a code bug.
+The two keys are overwritten only after BOTH variants have been rendered and checked (each file a
+complete PNG). If a render fails, the renderer exits non-zero, a file is missing or truncated, or
+the gateway is slow, nothing is uploaded and the objects already in R2 stay exactly as they were;
+Download keeps serving the last good pair, labelled with its own stamp (so a caller can see it is
+from an earlier slot). An S3 PUT is atomic, so even a failed upload leaves the previous object whole;
+the pair can be briefly mixed (one new, one old) if the second PUT fails, and each object still
+carries its own, true stamp.
+
+Only if the renderer has NEVER produced an image does Download 404 through the presigned URL; the
+route surfaces it rather than pretending, so an empty bucket is not mistaken for a code bug.
 
 ---
 
@@ -378,17 +404,23 @@ so an empty bucket is not mistaken for a code bug.
 
 ### 6.1 Environment variables
 
-| Name                        | Vercel | VPS | Default                                             | Notes                   |
-| --------------------------- | ------ | --- | --------------------------------------------------- | ----------------------- |
-| `R2_ACCOUNT_ID`             | ✅     | ✅  | —                                                   | Required                |
-| `R2_ACCESS_KEY_ID`          | ✅     | ✅  | —                                                   | Required                |
-| `R2_SECRET_ACCESS_KEY`      | ✅     | ✅  | —                                                   | Required, Sensitive     |
-| `R2_BUCKET`                 | ✅     | ✅  | `davintrade-renders` on VPS; **required** on Vercel | Must match              |
-| `R2_SIGNED_URL_TTL_SECONDS` | ✅     | ✗   | `60`                                                | Monolith only           |
-| `MTF_DB_PATH`               | ✗      | ✅  | `C:\Scripts\data\xauusd.db`                         | Set explicitly — see T3 |
-| `RENDER_INTERVAL_SEC`       | ✗      | ✅  | `300`                                               |                         |
-| `RENDER_RETENTION_HOURS`    | ✗      | ✅  | `48`                                                |                         |
-| `RENDER_OVERLAYS`           | ✗      | ✅  | `best_fit_a`                                        |                         |
+| Name                         | Vercel | VPS | Default                                             | Notes                     |
+| ---------------------------- | ------ | --- | --------------------------------------------------- | ------------------------- |
+| `R2_ACCOUNT_ID`              | ✅     | ✅  | —                                                   | Required                  |
+| `R2_ACCESS_KEY_ID`           | ✅     | ✅  | —                                                   | Required                  |
+| `R2_SECRET_ACCESS_KEY`       | ✅     | ✅  | —                                                   | Required, Sensitive       |
+| `R2_BUCKET`                  | ✅     | ✅  | `davintrade-renders` on VPS; **required** on Vercel | Must match                |
+| `R2_SIGNED_URL_TTL_SECONDS`  | ✅     | ✗   | `60`                                                | Monolith only             |
+| `MTF_DB_PATH`                | ✗      | ✅  | `C:\Scripts\data\xauusd.db`                         | Set explicitly — see T3   |
+| `API_GATEWAY_URL`            | ✗      | ✅  | — (unset: `RENDER_OVERLAYS` only)                   | Same as MT5PushWorker     |
+| `BACKFILL_API_KEY`           | ✗      | ✅  | — (`API_KEY` is read if empty)                      | Same as MT5PushWorker     |
+| `RENDER_POLL_SEC`            | ✗      | ✅  | `10`                                                |                           |
+| `RENDER_RETRY_SEC`           | ✗      | ✅  | `30`                                                |                           |
+| `RENDER_GATEWAY_TIMEOUT_SEC` | ✗      | ✅  | `5`                                                 |                           |
+| `RENDER_RETENTION_HOURS`     | ✗      | ✅  | `48`                                                |                           |
+| `RENDER_OVERLAYS`            | ✗      | ✅  | `best_fit_a`                                        | Fallback, both timeframes |
+
+`RENDER_INTERVAL_SEC` (the old fixed 300 s sleep) is retired: the renderer is driven by the cycle.
 
 ### 6.2 Object keys — three copies that must agree
 
@@ -406,8 +438,34 @@ This name exists in **three places, in two languages, with nothing linking them 
 | `lib/storage/chart-keys.ts`   | `chartObjectKey()`                     |
 
 ⚠ **Drift here surfaces as a 404 on download, not an error.** `__tests__/lib/storage/
-r2-chart-keys.test.ts` parses the renderer's `__main__.py` directly and pins the TypeScript key
-against it. If you change the name, change all three and re-run that test.
+r2-chart-keys.test.ts` parses the renderer's `__main__.py` AND the upload worker's `KEY_PREFIX` /
+`OUT_STEM` directly and pins the TypeScript key against both. If you change the name, change all
+three and re-run that test.
+
+### 6.4 The chart stamp (rule 8, ADR-014)
+
+Every image says which cycle it belongs to, twice: in its **title** (so a person or a vision model
+reading the picture sees it) and in its **R2 object metadata** (so code can check it without
+downloading the image).
+
+| Metadata key      | Value                                                                                       |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| `cycle-slot`      | The cycle's slot: unix UTC seconds, a multiple of 300 (`collection_cycles.cycle_time`)      |
+| `last-closed-bar` | `slot − 300`: open time of the newest M5 bar closed at the slot                             |
+| `overlay`         | The channel drawn on M5 (and overlaid on M15 in the `overlay` variant), or the default list |
+| `variant`         | `overlay` or `standard`                                                                     |
+| `rendered-at`     | When the image was drawn, unix UTC seconds                                                  |
+| `overlay-m15`     | The channel the M15 panel carries as its own (extra to the five agreed keys)                |
+| `overlay-source`  | `setting` (from the gateway, for this slot) or `default` (fell back to `RENDER_OVERLAYS`)   |
+
+The keys are written by `mtf_render/stamp.py` and read by `parseChartStamp()` in
+`lib/storage/chart-keys.ts`; a test on each side pins the names. `getChartStamp(variant)` in
+`lib/storage/r2.ts` reads them with a HEAD request. The download route puts them on its 307 as
+`X-Chart-Slot`, `X-Chart-Last-Closed-Bar`, `X-Chart-Overlay`, `X-Chart-Variant`,
+`X-Chart-Rendered-At` (and `X-Chart-Overlay-M15`, `X-Chart-Overlay-Source`). The headers are
+information, never a gate: an image with no stamp, or a stamp that could not be read, is still served.
+`chartMatchesCycle(stamp, cycleSlot)` is what a prompt builder calls to keep an image from another
+slot out of the prompt (`NO_CHART_STAMP`, `CHART_SLOT_MISMATCH: ...`).
 
 ### 6.3 Endpoint
 
