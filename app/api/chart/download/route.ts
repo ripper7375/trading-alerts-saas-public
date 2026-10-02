@@ -19,6 +19,14 @@
  * function memory-flat, while the short TTL means a shared link stops working
  * in about a minute.
  *
+ * STAMP (rule 8, ADR-014). The renderer writes the cycle slot, the last closed bar,
+ * the indicators and the variant into the object's metadata; this route reads them
+ * back (HeadObject) and puts them on the redirect as `X-Chart-*` headers, so a caller
+ * can tell which cycle the image it is about to fetch belongs to. It is information,
+ * never a gate: the last good image is served whether or not it has a stamp (an image
+ * from before stamping) and whether or not the stamp could be read (R2 slow, a
+ * transient error). Entitlement and error handling are exactly as they were.
+ *
  * @module app/api/chart/download/route
  */
 
@@ -26,7 +34,8 @@ import { NextResponse } from 'next/server';
 
 import { requireChartDownload } from '@/lib/auth/permissions';
 import { getM5OnM15Preference } from '@/lib/preferences/server-preferences';
-import { getSignedChartUrl } from '@/lib/storage/r2';
+import { chartStampHeaders, type ChartStamp } from '@/lib/storage/chart-keys';
+import { getChartStamp, getSignedChartUrl } from '@/lib/storage/r2';
 
 export async function GET(): Promise<NextResponse> {
   try {
@@ -36,7 +45,26 @@ export async function GET(): Promise<NextResponse> {
     const variant = m5OnM15 ? 'overlay' : 'standard';
 
     const signedUrl = await getSignedChartUrl(variant);
-    return NextResponse.redirect(signedUrl, { status: 307 });
+
+    // After signing, so a missing R2 configuration is still reported by the signing
+    // call (503) exactly as before; a failure HERE only costs the headers.
+    let stamp: ChartStamp | null = null;
+    try {
+      stamp = await getChartStamp(variant);
+    } catch (stampError) {
+      console.warn(
+        '[Chart Download] could not read the chart stamp:',
+        stampError
+      );
+    }
+
+    const response = NextResponse.redirect(signedUrl, { status: 307 });
+    if (stamp) {
+      for (const [name, value] of Object.entries(chartStampHeaders(stamp))) {
+        response.headers.set(name, value);
+      }
+    }
+    return response;
   } catch (error) {
     if (error instanceof Error) {
       const message = error.message;

@@ -19,10 +19,19 @@
  * @module lib/storage/r2
  */
 
-import { GetObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  GetObjectCommand,
+  HeadObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
-import { chartObjectKey, type ChartVariant } from './chart-keys';
+import {
+  chartObjectKey,
+  parseChartStamp,
+  type ChartStamp,
+  type ChartVariant,
+} from './chart-keys';
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -76,4 +85,48 @@ export async function getSignedChartUrl(
   return getSignedUrl(getClient(), command, {
     expiresIn: signedUrlTtlSeconds(),
   });
+}
+
+/** The SDK's "no such object" in all the shapes it takes (HEAD has no body, so no error code). */
+function isObjectNotFound(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const e = error as {
+    name?: string;
+    Code?: string;
+    $metadata?: { httpStatusCode?: number };
+  };
+  return (
+    e.name === 'NotFound' ||
+    e.name === 'NoSuchKey' ||
+    e.Code === 'NoSuchKey' ||
+    e.$metadata?.httpStatusCode === 404
+  );
+}
+
+/**
+ * The stamp of the render stored for a variant (rule 8, ADR-014): which cycle slot it
+ * was drawn for, its last closed bar, the indicators it shows and its variant, read from
+ * the object's metadata with a HEAD request (no image bytes move).
+ *
+ * `null` when the object does not exist (the renderer has not run yet) and when its
+ * metadata is missing or cannot be trusted (an image from before stamping, or a
+ * corrupt one): both mean "no stamp", and the caller still serves the image. Any other
+ * failure (credentials, network, R2 down) is thrown, not hidden as "no stamp", so the
+ * caller can tell "this image has no stamp" from "I could not look".
+ */
+export async function getChartStamp(
+  variant: ChartVariant
+): Promise<ChartStamp | null> {
+  const command = new HeadObjectCommand({
+    Bucket: requireEnv('R2_BUCKET'),
+    Key: chartObjectKey(variant),
+  });
+
+  try {
+    const head = await getClient().send(command);
+    return parseChartStamp(head.Metadata, variant);
+  } catch (error) {
+    if (isObjectNotFound(error)) return null;
+    throw error;
+  }
 }

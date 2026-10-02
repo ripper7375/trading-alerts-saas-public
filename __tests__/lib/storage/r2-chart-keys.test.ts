@@ -38,6 +38,38 @@ describe('chart object keys', () => {
   });
 });
 
+const UPLOAD_WORKER = path.join(
+  process.cwd(),
+  'backend-stack-c',
+  '1_EA-and-backfill-worker-on-contabo-vps',
+  'v2_29_multi-timeframe-visualisation',
+  'mtf_render_upload_worker.py'
+);
+
+describe('parity with the upload worker (the third place the name appears)', () => {
+  const source = readFileSync(UPLOAD_WORKER, 'utf-8');
+  const constant = (name: string) =>
+    (source.match(new RegExp(`^${name}\\s*=\\s*'([^']+)'`, 'm')) ?? [])[1];
+
+  it('uses the same key prefix and file stem the monolith builds its keys from', () => {
+    expect(constant('KEY_PREFIX')).toBe('xauusd');
+    expect(constant('OUT_STEM')).toBe('mtf_render_xauusd_m5_m15');
+    for (const variant of CHART_VARIANTS) {
+      expect(chartObjectKey(variant)).toBe(
+        `${constant('KEY_PREFIX')}/${constant('OUT_STEM')}_${variant}.png`
+      );
+    }
+  });
+
+  it('builds its object key the same way (prefix / stem _ variant .png)', () => {
+    expect(source).toContain("return f'{KEY_PREFIX}/{OUT_STEM}_{variant}.png'");
+  });
+
+  it('passes the stamp to R2 as object metadata', () => {
+    expect(source).toContain("'Metadata': stamps[variant].object_metadata()");
+  });
+});
+
 describe('parity with the renderer', () => {
   it("matches the renderer's own output filenames", () => {
     const source = readFileSync(RENDERER_MAIN, 'utf-8');
