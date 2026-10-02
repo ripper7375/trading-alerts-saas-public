@@ -24,7 +24,7 @@ are deliberate rather than cosmetic:
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Sequence
+from typing import Optional, Sequence
 
 import matplotlib
 
@@ -34,6 +34,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
 from .data_source import ChartData, Overlay  # noqa: E402
+from .stamp import RenderStamp  # noqa: E402
 
 _UP_COLOR = "#26a269"  # bullish candle
 _DOWN_COLOR = "#c01c28"  # bearish candle
@@ -207,11 +208,16 @@ def render_combined(
     panels: dict[str, ChartData],
     out_path: str,
     overlays: Sequence[str] | str = "",
+    stamp: Optional[RenderStamp] = None,
 ) -> str:
     """Render the M5 and M15 panels stacked into one PNG; return `out_path`.
 
     Upper = XAUUSD M5 with its own channel. Lower = XAUUSD M15 with its own
     channel, plus the M5 channel when the panels were built with ``m5_overlay``.
+
+    With a `stamp` the title says which cycle the image belongs to (slot, last
+    closed bar, indicators, variant); see :mod:`mtf_render.stamp`. Without one the
+    title is the unstamped one it always was.
     """
     fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True,
                              constrained_layout=True)
@@ -231,15 +237,26 @@ def render_combined(
     # render of the overlay variant is still the overlay variant, and the
     # filename it is written to says so.
     variant = "overlay" if lower.m5_overlay_requested else "standard"
-    rendered_at = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
-    fig.suptitle(
-        f"DavinTrade - XAUUSD Multi-Timeframe  ·  overlays: {overlay_text}"
-        f"  ·  variant: {variant}  ·  rendered {rendered_at}"
-        f"\nrightmost candle on each panel is STILL FORMING (dashed, hollow)"
-        f" — not a completed bar",
-        fontsize=12,
-        fontweight="bold",
-    )
+    if stamp is not None:
+        # A stamp that disagrees with the picture would be a lie in the title and in
+        # the object metadata: refuse to draw it rather than ship it.
+        if stamp.variant != variant:
+            raise ValueError(
+                f"the stamp says variant {stamp.variant!r} but the panels are the {variant!r} variant"
+            )
+        newest_m5 = (
+            int(upper.candles["timestamp"].iloc[-1]) if not upper.candles.empty else None
+        )
+        title = stamp.title(newest_m5_bar=newest_m5)
+    else:
+        rendered_at = datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+        title = (
+            f"DavinTrade - XAUUSD Multi-Timeframe  ·  overlays: {overlay_text}"
+            f"  ·  variant: {variant}  ·  rendered {rendered_at}"
+            f"\nrightmost candle on each panel is STILL FORMING (dashed, hollow)"
+            f" — not a completed bar"
+        )
+    fig.suptitle(title, fontsize=12, fontweight="bold")
 
     fig.savefig(out_path, dpi=120)
     plt.close(fig)

@@ -123,11 +123,15 @@ def _read_timeframe(
     specs: Sequence[OverlaySpec],
     limit: Optional[int] = None,
     ts_range: Optional[tuple[int, int]] = None,
+    max_ts: Optional[int] = None,
 ) -> pd.DataFrame:
     """Read candles plus the requested overlay columns for one timeframe.
 
     Exactly one of `limit` (most recent N bars) or `ts_range` (an inclusive
     window) should be given; `ts_range` is how D1 constrains the M15 panel.
+
+    `max_ts` caps the newest bar read (an inclusive open time): the render is then
+    "as of" a slot, and a row a later cycle has written since is not in the picture.
     """
     overlay_cols = _select_columns(specs)
     select_cols = ", ".join(("timestamp", *_OHLCV_COLS, *overlay_cols))
@@ -137,6 +141,9 @@ def _read_timeframe(
     if ts_range is not None:
         where += " AND timestamp BETWEEN ? AND ?"
         params.extend(ts_range)
+    if max_ts is not None:
+        where += " AND timestamp <= ?"
+        params.append(max_ts)
 
     # Pull the most recent `limit` bars, then flip back to oldest-first to plot.
     order = "DESC" if limit else "ASC"
@@ -173,18 +180,23 @@ def build_panels(
     m15: pd.DataFrame,
     specs: Sequence[OverlaySpec],
     m5_overlay: bool = True,
+    m15_specs: Optional[Sequence[OverlaySpec]] = None,
 ) -> dict[str, ChartData]:
     """Assemble the two panels from raw M5 and M15 frames.
 
     Split out from :func:`load_market_data` so the fixture and tests can build
     panels from in-memory frames without a SQLite round-trip.
 
+    `specs` are the overlays of the M5 panel (and the M5 channel overlaid on the M15
+    panel); `m15_specs` are the M15 panel's own, and default to `specs`. The active
+    indicator is one per timeframe (rule 6), so the two can differ.
+
     Returns a dict keyed ``"M5"`` (upper) and ``"M15"`` (lower).
     """
     candle_cols = ["timestamp", *_OHLCV_COLS]
 
     m5_own = _extract_overlays(m5, specs, _M5)
-    m15_own = _extract_overlays(m15, specs, _M15)
+    m15_own = _extract_overlays(m15, m15_specs if m15_specs is not None else specs, _M15)
 
     upper = ChartData(
         timeframe=_M5,
@@ -208,24 +220,35 @@ def load_market_data(
     overlays: Iterable[str] | str = DEFAULT_OVERLAY_KEYS,
     limit: Optional[int] = 200,
     m5_overlay: bool = True,
+    as_of_slot: Optional[int] = None,
+    m15_overlays: Optional[Iterable[str] | str] = None,
 ) -> dict[str, ChartData]:
     """Load the two chart panels from an ``xauusd.db``.
 
     `limit` bounds the **M5** panel; the M15 panel is then clipped to the same
     clock window (D1). `m5_overlay` selects the D2 variant.
+
+    `as_of_slot` draws the picture AS OF a cycle: no bar opened after the slot is
+    read (the bar that opens AT the slot, still forming, is). Without it the newest
+    rows win, whatever cycle wrote them. `m15_overlays` gives the M15 panel its own
+    overlay set (the active indicator is one per timeframe); `overlays` is the M5
+    panel's and the default for both.
     """
     specs = resolve(overlays)
+    m15_specs = resolve(m15_overlays) if m15_overlays else specs
 
     conn = sqlite3.connect(db_path)
     try:
-        m5 = _read_timeframe(conn, _M5, specs, limit=limit)
+        m5 = _read_timeframe(conn, _M5, specs, limit=limit, max_ts=as_of_slot)
 
         # D1: constrain M15 to the M5 panel's window rather than its own bar count.
         ts_range: Optional[tuple[int, int]] = None
         if not m5.empty:
             ts_range = (int(m5["timestamp"].min()), int(m5["timestamp"].max()))
-        m15 = _read_timeframe(conn, _M15, specs, ts_range=ts_range)
+        m15 = _read_timeframe(
+            conn, _M15, m15_specs, ts_range=ts_range, max_ts=as_of_slot
+        )
     finally:
         conn.close()
 
-    return build_panels(m5, m15, specs, m5_overlay=m5_overlay)
+    return build_panels(m5, m15, specs, m5_overlay=m5_overlay, m15_specs=m15_specs)

@@ -73,8 +73,16 @@ CREATE TABLE IF NOT EXISTS collection_cycles (
                     CHECK (status IN ('collecting', 'validating', 'validated', 'rejected')),
     sources_received INTEGER NOT NULL DEFAULT 0,      -- 0..15 export files ingested
     rejected_reason TEXT,
-    created_at      INTEGER NOT NULL,
-    validated_at    INTEGER,
+    created_at      INTEGER NOT NULL,                 -- when THIS attempt started (one row per attempt)
+    validated_at    INTEGER,                          -- when this attempt passed validation and was promoted
+    -- Facts the cycle manifest reports (build step 2 part 3, ADR-009). Stamped on
+    -- the attempt that validated; NULL on a rejected attempt and on any cycle
+    -- collected by a collector that predates them (migrate_cycles_table adds the
+    -- columns to an existing database).
+    export_dir      TEXT,                             -- the MT5 terminal's export directory the cycle was read from
+    export_mtime    INTEGER,                          -- OHLCV export file's modification time (unix UTC), read just before parsing
+    newest_bar_ts   INTEGER,                          -- open time of the newest bar in that export (still-open or about-to-close, as found)
+    finished_at     INTEGER,                          -- the collector is done with the cycle (statistics staged); the manifest waits for it
     UNIQUE (cycle_time, timeframe, attempt)
 );
 
@@ -856,3 +864,87 @@ BEGIN
     WHERE synced_at IS NOT NULL
       AND captured_at < NEW.captured_at - 604800;
 END;
+
+-- ============================================================================
+-- 7. CYCLE MANIFEST OUTBOX (build step 2 part 3; ADR-009, ADR-013)
+-- ============================================================================
+-- After a slot's newest bars have been pushed, the push worker sends ONE short
+-- manifest for the slot: collection cycle ids, attempts, timings, the export
+-- file's modification time, bar counts and the newest bar's open time. The
+-- gateway checks it against what landed, writes market_cycles and queues the
+-- sensor job. Contract: gateway_contract_cycle_manifest.schema.json.
+--
+-- The manifest is BUILT ONCE and stored here, so a retry sends the identical
+-- payload and a restart cannot change what a slot said about itself. Like the
+-- other outboxes it has its own endpoint and its own failure handling: a
+-- gateway that does not know the endpoint yet (404) or is down must never delay
+-- price rows, and a failed send NEVER stamps synced_at.
+--
+-- RETENTION differs from the other outboxes on purpose. There, an unsynced row
+-- is never deleted because the data exists nowhere else. A manifest has no
+-- value once its slot is stale (the worker stops sending after
+-- MANIFEST_MAX_AGE_SEC), so everything older than 7 days goes, synced or not.
+CREATE TABLE IF NOT EXISTS cycle_manifests (
+    slot            INTEGER PRIMARY KEY,              -- cycle slot (unix UTC, a multiple of 300)
+    payload         TEXT    NOT NULL,                 -- the manifest as JSON, built once
+    created_at      INTEGER NOT NULL,                 -- when the worker built it
+    synced_at       INTEGER,                          -- NULL = the gateway has not acknowledged it
+    send_attempts   INTEGER NOT NULL DEFAULT 0,
+    last_error      TEXT                              -- the last failed send, for the operator
+);
+
+CREATE INDEX IF NOT EXISTS idx_cycle_manifests_unsynced
+    ON cycle_manifests (slot) WHERE synced_at IS NULL;
+
+CREATE TRIGGER IF NOT EXISTS trg_cycle_manifests_prune
+AFTER INSERT ON cycle_manifests
+BEGIN
+    DELETE FROM cycle_manifests WHERE slot < NEW.slot - 604800;
+END;
+
+-- ============================================================================
+-- 8. SYMBOL SPECS OUTBOX (build step 2 part 8; ADR-066, STACK-D section 6.9)
+-- ============================================================================
+-- The broker's figures for the symbol (contract size, volume limits, tick size,
+-- typical spread, swaps), read from the MT5 terminal by SymbolSpecsExport_v2_29.mq5
+-- and ingested by the collector's stage_symbol_specs(). Engine 4 sizes a lot and
+-- applies the spread from them. Contract: gateway_contract_symbol_specs.schema.json.
+--
+-- APPEND-ONLY. A row is added when a CONTRACT figure changed, or when the newest
+-- row is a day old (the daily refresh, which carries the then-current typical
+-- spread); an unchanged snapshot adds nothing. The gateway assigns the per-symbol
+-- version; this table has none.
+--
+-- A fourth push lane, isolated like the others: its own endpoint
+-- (/api/v1/symbol-specs), quarantine file and failure handling, so a failure here
+-- can never delay price rows. A 400 quarantines the row and stamps synced_at; any
+-- other failure is retried and counted in send_attempts and last_error.
+--
+-- NO retention trigger. The table gains about one row a day, and the collector
+-- needs the NEWEST row (synced or not) to tell whether a snapshot is news.
+--
+-- terminal_id is the MT5 terminal the figures were read from (the folder that
+-- holds its MQL5 directory), not the push worker's sender id.
+CREATE TABLE IF NOT EXISTS symbol_specs (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    terminal_id     TEXT    NOT NULL,
+    symbol          TEXT    NOT NULL,
+    captured_at     INTEGER NOT NULL,   -- unix UTC; when the exporter read the terminal
+    contract_size   REAL    NOT NULL,   -- SYMBOL_TRADE_CONTRACT_SIZE
+    volume_min      REAL    NOT NULL,   -- SYMBOL_VOLUME_MIN
+    volume_step     REAL    NOT NULL,   -- SYMBOL_VOLUME_STEP
+    volume_max      REAL    NOT NULL,   -- SYMBOL_VOLUME_MAX
+    tick_size       REAL    NOT NULL,   -- SYMBOL_TRADE_TICK_SIZE
+    typical_spread  REAL    NOT NULL,   -- median SYMBOL_SPREAD, in points
+    swap_long       REAL    NOT NULL,   -- SYMBOL_SWAP_LONG
+    swap_short      REAL    NOT NULL,   -- SYMBOL_SWAP_SHORT
+    point           REAL    NOT NULL,   -- SYMBOL_POINT
+    digits          INTEGER NOT NULL,   -- SYMBOL_DIGITS
+    swap_mode       INTEGER NOT NULL,   -- SYMBOL_SWAP_MODE, the raw enum value
+    synced_at       INTEGER,            -- NULL = the gateway has not acknowledged it
+    send_attempts   INTEGER NOT NULL DEFAULT 0,
+    last_error      TEXT                -- the last failed send, for the operator
+);
+
+CREATE INDEX IF NOT EXISTS idx_symbol_specs_unsynced
+    ON symbol_specs (id) WHERE synced_at IS NULL;

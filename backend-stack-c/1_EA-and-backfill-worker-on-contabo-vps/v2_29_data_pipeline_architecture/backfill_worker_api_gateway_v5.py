@@ -16,6 +16,31 @@ v5 redesign (from v4):
   (with a log marker) so a poison row cannot block the outbox; the JSONL
   preserves it for replay after a gateway fix.
 
+Build step 2 part 3 (ADR-013, ADR-009), in place, same file name so the NSSM
+service needs no change:
+- NEWEST BARS FIRST. Each pass sends the latest validated slot's priority set
+  (its newest 288 closed M5 and 96 closed M15 bars plus each timeframe's newest
+  row, at most 386 rows) before anything else, then the cycle MANIFEST, then the
+  backlog oldest-first with what is left of the 500-row budget. See push_cycle().
+- The manifest (gateway_contract_cycle_manifest.schema.json) is built once into
+  the cycle_manifests outbox and sent only after the priority rows have gone
+  through. A failed send (404 from a gateway that lacks the endpoint, 5xx,
+  timeout) is retried and never stamped or quarantined; only a 400 is.
+- Against a database the new collector has not widened yet, the priority and
+  manifest lanes switch off and prices flow exactly as before.
+
+Build step 2 part 8 (ADR-066): a FOURTH lane, push_symbol_specs(), drains the
+symbol_specs outbox (the broker's contract size, volume limits, tick size, typical
+spread and swaps) to /api/v1/symbol-specs after prices, statistics and the economic
+calendar. Isolated like they are: it swallows its own failures, so it cannot delay
+price rows.
+
+Build step 2 part 9 (ADR-015): the manifest also carries repush_rows_unsent, the
+unsent rows older than the cycle's newest bars. Since build step 2 part 10
+(Option A) it is an operational diagnostic only: the gateway ends RETUNING by
+counting the window itself, because this count cannot reach 0 while the collector
+re-queues the whole window every cycle. See unsent_counts().
+
 Kept from v4: connection pooling + retry session, exponential backoff,
 Retry-After handling, graceful shutdown, rotating logs, health checks.
 """
@@ -26,10 +51,11 @@ import os
 import signal
 import sqlite3
 import time
+from dataclasses import dataclass, field
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
-from typing import Tuple
+from typing import Dict, List, Optional, Tuple
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -154,6 +180,21 @@ def open_db() -> sqlite3.Connection:
 def unsynced_count(conn) -> int:
     return conn.execute(
         "SELECT COUNT(*) FROM market_data WHERE synced_at IS NULL").fetchone()[0]
+
+
+def unsent_counts(conn, slot: int) -> Tuple[int, int]:
+    """(rows unsent, of those the historical ones) for a cycle's manifest.
+
+    "Historical" is a row older than the cycle's newest bars: open time before
+    slot - SLOT_SECONDS. That is the backlog a promote's re-push leaves queued
+    behind the cycle (ADR-015); the newest bars themselves went out as the
+    priority set before the manifest was built. ONE statement, so both numbers
+    come from the same snapshot even while the collector is writing: the second
+    can never exceed the first (the contract says it is "of backlog_rows").
+    """
+    return tuple(conn.execute(
+        "SELECT COUNT(*), COALESCE(SUM(timestamp < ?), 0) FROM market_data WHERE synced_at IS NULL",
+        (slot - SLOT_SECONDS,)).fetchone())
 
 
 def verify_schema_contract(conn) -> bool:
@@ -386,6 +427,124 @@ def push_economic_events(session: requests.Session, conn) -> int:
         return 0
 
 
+# ---- the symbol specs lane (build step 2 part 8; ADR-066, STACK-D section 6.9) ----
+# The broker's figures for the symbol, appended to the symbol_specs outbox by the
+# collector (about one row a day, plus one when a contract figure changes). The
+# contract is gateway_contract_symbol_specs.schema.json: these are exactly its
+# fields. terminal_id is the MT5 terminal the figures were read from, taken from
+# the row, NOT this worker's TERMINAL_ID.
+SPEC_COLUMNS = [
+    'terminal_id', 'symbol', 'captured_at', 'contract_size', 'volume_min',
+    'volume_step', 'volume_max', 'tick_size', 'typical_spread', 'swap_long',
+    'swap_short', 'point', 'digits', 'swap_mode',
+]
+SPECS_ENDPOINT = '/api/v1/symbol-specs'
+# A day yields one row, so a batch is normally one. The cap bounds the blast
+# radius of a 400 (the whole batch is quarantined, as in the other lanes).
+SPEC_MAX_ROWS_PER_CYCLE = 20
+REJECTED_SPECS_FILE = DB_PATH.parent / 'rejected_symbol_specs.jsonl'
+
+_symbol_specs_table_warned = False
+
+
+def symbol_specs_table_available(conn) -> bool:
+    """True when the symbol_specs outbox exists. The collector creates it from
+    sqlite_schema_v6_xauusd.sql, so a database the new collector has not opened
+    yet lacks it: the lane then idles, and says so once instead of every pass."""
+    global _symbol_specs_table_warned
+    ok = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' "
+                      "AND name = 'symbol_specs'").fetchone() is not None
+    if not ok and not _symbol_specs_table_warned:
+        logger.warning("⚠️ symbol_specs table is missing: the symbol specs lane is OFF. Deploy the "
+                       "matching sqlite_schema_v6_xauusd.sql beside the collector and restart it "
+                       "(the collector creates the table when it starts)")
+        _symbol_specs_table_warned = True
+    return ok
+
+
+def _symbol_specs_failed(conn, ids: List[int], error: str) -> None:
+    """Record a failed send. Never stamps synced_at: a row the gateway has not
+    acknowledged must be sent again."""
+    conn.executemany("UPDATE symbol_specs SET send_attempts = send_attempts + 1, last_error = ? "
+                     "WHERE id = ?", [(error[:300], i) for i in ids])
+    conn.commit()
+    logger.warning(f"⚠️ Symbol specs not delivered ({error}) — will retry")
+
+
+def push_symbol_specs(session: requests.Session, conn) -> int:
+    """Drain the symbol_specs outbox to the gateway. Best-effort.
+
+    The FOURTH lane, isolated exactly like the statistics and economic-events
+    lanes: its own table, endpoint and quarantine file, and every exception
+    swallowed here so it can never delay or fail price ingestion. A return of 0
+    means "nothing to do" or "not delivered", never a reason to back the
+    market_data loop off.
+
+    Oldest observation first, so the gateway, which numbers the versions in the
+    order it records them, numbers them in the order they were observed.
+
+      200/201  acknowledged: synced_at is stamped.
+      400      the body is one the contract refuses and resending cannot fix:
+               quarantine to rejected_symbol_specs.jsonl AND stamp synced_at, so
+               one bad row cannot wedge the outbox (the file keeps it for replay).
+      any other status (404 from a gateway without the endpoint, 429, 401/403,
+               5xx) or a network error: retried; send_attempts and last_error say
+               why, synced_at is never stamped.
+
+    Returns the number of rows acknowledged.
+    """
+    try:
+        if not symbol_specs_table_available(conn):
+            return 0
+        rows = conn.execute(
+            f"SELECT id, {', '.join(SPEC_COLUMNS)} FROM symbol_specs "
+            f"WHERE synced_at IS NULL ORDER BY captured_at ASC, id ASC LIMIT ?",
+            (SPEC_MAX_ROWS_PER_CYCLE,)).fetchall()
+        if not rows:
+            return 0
+
+        ids = [r[0] for r in rows]
+        payload = [dict(zip(SPEC_COLUMNS, r[1:])) for r in rows]
+
+        try:
+            resp = session.post(f'{API_GATEWAY_URL}{SPECS_ENDPOINT}',
+                                json=payload, timeout=HTTP_TIMEOUT_SEC)
+        except Exception as e:                                  # noqa: BLE001
+            _symbol_specs_failed(conn, ids, f"network error: {e}")
+            return 0
+
+        if resp.status_code in (200, 201):
+            now = int(time.time())
+            conn.executemany("UPDATE symbol_specs SET synced_at = ?, last_error = NULL WHERE id = ?",
+                             [(now, i) for i in ids])
+            conn.commit()
+            logger.info(f"🧮 Pushed {len(payload)} symbol spec(s)")
+            return len(payload)
+
+        if resp.status_code == 400:
+            try:
+                with open(REJECTED_SPECS_FILE, 'a', encoding='utf-8') as f:
+                    for i in payload:
+                        f.write(json.dumps({'quarantined_at': datetime.now().isoformat(),
+                                            'gateway_error': resp.text[:500],
+                                            'row': i}, default=str) + '\n')
+            except OSError as e:
+                logger.error(f"❌ Failed to quarantine rejected symbol specs: {e}")
+            now = int(time.time())
+            conn.executemany("UPDATE symbol_specs SET synced_at = ?, last_error = ? WHERE id = ?",
+                             [(now, 'rejected 400: ' + resp.text[:200], i) for i in ids])
+            conn.commit()
+            logger.warning(f"⚠️ Gateway rejected {len(payload)} symbol spec(s) — quarantined")
+            return 0
+
+        _symbol_specs_failed(conn, ids, f"HTTP {resp.status_code}")
+        return 0
+    except Exception as e:                                      # noqa: BLE001
+        # Never propagate: the market_data drain must be unaffected.
+        logger.warning(f"⚠️ Symbol specs push skipped: {e}")
+        return 0
+
+
 def quarantine_row(data: dict, error_msg: str) -> None:
     try:
         with open(REJECTED_ROWS_FILE, 'a', encoding='utf-8') as f:
@@ -395,38 +554,206 @@ def quarantine_row(data: dict, error_msg: str) -> None:
         logger.error(f"❌ Failed to quarantine rejected row: {e}")
 
 
-def push_batch(session: requests.Session, conn) -> Tuple[int, int, bool]:
-    """Push up to MAX_ROWS_PER_CYCLE unsynced market_data rows (oldest first).
-    Returns (pushed, quarantined, rate_limited)."""
-    rows = conn.execute(
-        "SELECT * FROM market_data WHERE synced_at IS NULL "
-        "ORDER BY timestamp ASC LIMIT ?", (MAX_ROWS_PER_CYCLE,)).fetchall()
-    pushed = quarantined = 0
-    rate_limited = False
+# ============================================================
+# CYCLE PRIORITY AND MANIFEST (ADR-013, ADR-009; build step 2 part 3)
+# ============================================================
+# The collector re-queues EVERY in-window row each cycle (promote_cycle()'s
+# INSERT OR REPLACE clears synced_at), so about 6,000 rows are unsent at any
+# moment and a cycle's newest bars used to queue behind them oldest-first.
+# push_cycle() sends the slot's newest bars first, then a short manifest that
+# says what was sent, then the backlog oldest-first with what is left of the
+# row budget. Oldest-first backlog is kept on purpose: it drains the stragglers
+# that scrolled out of MT5's window while unsynced, which is what stops SQLite
+# growing (PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md).
+SYMBOL = 'XAUUSD'
+SLOT_SECONDS = 300
+TF_SECONDS = {'M5': 300, 'M15': 900}
+TIMEFRAME_ORDER = ('M5', 'M15')
 
+# Rule 4 (STACK-D-ARCHITECTURE.md section 1.3): "1 day of OHLC" is the last 288
+# closed M5 bars and 96 closed M15 bars. The same 288 is the most a sensor
+# window reads (a channel MCD reads min(T_EDT - 1, 288) closed M5 bars, ADR-083),
+# so the priority set covers everything the first sensors and the prompt need.
+# Plus each timeframe's newest row when it is not closed yet: 289 + 97 = 386
+# rows, inside the 500-row budget.
+PRIORITY_CLOSED_BARS = {'M5': 288, 'M15': 96}
+
+COLLECTOR_MAX_ATTEMPTS = 3        # export_collector_validator_v2.MAX_ATTEMPTS_PER_CYCLE (a test pins the two together)
+M15_SETTLE_SEC = 240              # how long a refresh slot waits for its M15 cycle before the manifest goes without it
+MANIFEST_SCHEMA = 'cycle-manifest/1'
+MANIFEST_ENDPOINT = '/api/v1/cycle-manifest'
+MANIFEST_MAX_AGE_SEC = 3600       # a manifest older than this is not worth sending any more
+MANIFEST_MAX_PER_ITERATION = 3
+REJECTED_MANIFESTS_FILE = DB_PATH.parent / 'rejected_manifests.jsonl'
+
+# collection_cycles columns the manifest needs; absent on a database the new
+# collector has not widened yet (see migrate_cycles_table in the collector).
+CYCLE_FACT_COLUMNS = frozenset({'export_dir', 'export_mtime', 'newest_bar_ts', 'finished_at'})
+
+_cycle_facts_warned = False
+# Priority rows the gateway rejected with a 400, per (slot, timeframe). Diagnostic
+# only and process-local: after a restart it under-reports, and the gateway's own
+# landed-row count is the real check.
+_priority_quarantined: Dict[Tuple[int, str], int] = {}
+
+
+def _fetch_dicts(conn, sql: str, params=()) -> List[dict]:
+    """Rows as dicts whatever the connection's row_factory is."""
+    cur = conn.execute(sql, params)
+    names = [d[0] for d in cur.description]
+    return [dict(zip(names, row)) for row in cur.fetchall()]
+
+
+def cycle_facts_available(conn) -> bool:
+    """True when the collector has widened collection_cycles for the manifest.
+
+    A new push worker can meet an old collector's database. In that case the
+    worker must keep pushing prices exactly as before instead of failing on a
+    missing column, so the priority and manifest lanes simply switch off.
+    """
+    global _cycle_facts_warned
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(collection_cycles)")}
+    ok = CYCLE_FACT_COLUMNS <= cols
+    if not ok and not _cycle_facts_warned:
+        logger.warning("⚠️ collection_cycles lacks the manifest columns "
+                       f"({sorted(CYCLE_FACT_COLUMNS - cols)}): newest-first priority and the "
+                       "cycle manifest are OFF until the collector is updated and restarted")
+        _cycle_facts_warned = True
+    return ok
+
+
+_manifest_table_warned = False
+
+
+def manifest_table_available(conn) -> bool:
+    """True when the manifest outbox exists. The collector creates it from
+    sqlite_schema_v6_xauusd.sql, so a collector deployed WITHOUT the matching
+    schema file leaves it missing: the manifest lane then switches off, and that
+    is said once, loudly, instead of failing silently."""
+    global _manifest_table_warned
+    ok = conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' "
+                      "AND name = 'cycle_manifests'").fetchone() is not None
+    if not ok and not _manifest_table_warned:
+        logger.warning("⚠️ cycle_manifests table is missing: the cycle manifest is OFF. Deploy the "
+                       "matching sqlite_schema_v6_xauusd.sql beside the collector and restart it "
+                       "(the collector creates the table when it starts)")
+        _manifest_table_warned = True
+    return ok
+
+
+_CYCLE_COLUMNS = ("cycle_id, cycle_time, timeframe, attempt, created_at, validated_at, "
+                  "export_dir, export_mtime, newest_bar_ts, finished_at")
+
+
+def validated_cycle(conn, timeframe: str, slot: Optional[int] = None) -> Optional[dict]:
+    """The newest validated collection cycle of a timeframe, or the one at `slot`."""
+    if slot is None:
+        rows = _fetch_dicts(
+            conn, f"SELECT {_CYCLE_COLUMNS} FROM collection_cycles "
+                  "WHERE timeframe = ? AND status = 'validated' "
+                  "ORDER BY cycle_time DESC, attempt DESC LIMIT 1", (timeframe,))
+    else:
+        rows = _fetch_dicts(
+            conn, f"SELECT {_CYCLE_COLUMNS} FROM collection_cycles "
+                  "WHERE timeframe = ? AND status = 'validated' AND cycle_time = ? "
+                  "ORDER BY attempt DESC LIMIT 1", (timeframe, slot))
+    return rows[0] if rows else None
+
+
+def latest_validated_slot(conn) -> Optional[int]:
+    """The slot of the newest validated M5 cycle (M5 is collected on every slot)."""
+    cycle = validated_cycle(conn, 'M5')
+    return cycle['cycle_time'] if cycle else None
+
+
+def priority_window(conn, timeframe: str, slot: int, newest_bar_ts: Optional[int]) -> List[int]:
+    """Open times of the rows a slot must land FIRST, newest first.
+
+    The newest PRIORITY_CLOSED_BARS bars that are closed at the slot (rule 2:
+    open time + period at or before the slot), preceded by the newest row if it
+    is not closed yet. Bounded above by the cycle's own newest bar so a later
+    cycle's rows can never leak into an earlier slot's window. Closed-ness is
+    judged against the SLOT, not the wall clock, so the answer for a slot does
+    not change as time passes.
+    """
+    period = TF_SECONDS[timeframe]
+    upper = newest_bar_ts if newest_bar_ts is not None else 2 ** 62
+    newest_open = [r[0] for r in conn.execute(
+        "SELECT timestamp FROM market_data WHERE timeframe = ? AND timestamp <= ? "
+        "AND timestamp + ? > ? ORDER BY timestamp DESC LIMIT 1",
+        (timeframe, upper, period, slot))]
+    closed = [r[0] for r in conn.execute(
+        "SELECT timestamp FROM market_data WHERE timeframe = ? AND timestamp <= ? "
+        "AND timestamp + ? <= ? ORDER BY timestamp DESC LIMIT ?",
+        (timeframe, upper, period, slot, PRIORITY_CLOSED_BARS[timeframe]))]
+    return newest_open + closed
+
+
+def priority_rows(conn, slot: int) -> List[dict]:
+    """The UNSYNCED rows of the slot's priority set, newest first across both
+    timeframes (ties: M5 first). A timeframe with no validated cycle at the slot
+    contributes nothing: M15 on the slots that do not refresh it."""
+    rows: List[dict] = []
+    for tf in TIMEFRAME_ORDER:
+        cycle = validated_cycle(conn, tf, slot)
+        if cycle is None:
+            continue
+        stamps = priority_window(conn, tf, slot, cycle['newest_bar_ts'])
+        if not stamps:
+            continue
+        marks = ','.join('?' * len(stamps))
+        rows += _fetch_dicts(
+            conn, "SELECT * FROM market_data WHERE timeframe = ? AND synced_at IS NULL "
+                  f"AND timestamp IN ({marks})", [tf, *stamps])
+    rows.sort(key=lambda r: (-r['timestamp'], TIMEFRAME_ORDER.index(r['timeframe'])))
+    return rows
+
+
+@dataclass
+class SendResult:
+    attempted: int = 0
+    pushed: int = 0
+    quarantined: List[Tuple[str, int]] = field(default_factory=list)   # (timeframe, timestamp)
+    rate_limited: bool = False
+    stopped: bool = False        # the loop ended early: network, 429, auth, other error or shutdown
+
+
+def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
+    """POST rows one by one, in the order given, stamping synced_at on 200/201.
+
+    The behaviour push_batch always had, factored out so the priority rows and
+    the backlog share one implementation: 400 -> quarantine AND stamp (a poison
+    row must not block the outbox), 429 -> stop and flag, 401/403 or any other
+    status or a network error -> stop, nothing stamped.
+    """
+    result = SendResult()
     for row in rows:
         if shutdown_requested:
+            result.stopped = True
             break
-        data = {k: row[k] for k in row.keys() if k != 'synced_at'}
+        data = {k: v for k, v in row.items() if k != 'synced_at'}
         data['terminal_id'] = TERMINAL_ID
+        result.attempted += 1
 
         try:
             resp = session.post(f'{API_GATEWAY_URL}/api/v1/market-data',
                                 json=data, timeout=HTTP_TIMEOUT_SEC)
         except (requests.Timeout, requests.ConnectionError) as e:
             logger.error(f"❌ Network error: {e}")
+            result.stopped = True
             break
 
         if resp.status_code in (200, 201):
             conn.execute("UPDATE market_data SET synced_at = ? WHERE timestamp = ? AND timeframe = ?",
                          (int(time.time()), row['timestamp'], row['timeframe']))
-            pushed += 1
-            if pushed % 50 == 0:
+            result.pushed += 1
+            if result.pushed % 50 == 0:
                 conn.commit()
         elif resp.status_code == 429:
             retry_after = resp.headers.get('Retry-After')
             logger.warning(f"⚠️ Rate limited{f', Retry-After: {retry_after}s' if retry_after else ''}")
-            rate_limited = True
+            result.rate_limited = True
+            result.stopped = True
             break
         elif resp.status_code == 400:
             try:
@@ -439,18 +766,309 @@ def push_batch(session: requests.Session, conn) -> Tuple[int, int, bool]:
             # the quarantine file preserves it for replay after a fix
             conn.execute("UPDATE market_data SET synced_at = ? WHERE timestamp = ? AND timeframe = ?",
                          (int(time.time()), row['timestamp'], row['timeframe']))
-            quarantined += 1
+            result.quarantined.append((row['timeframe'], row['timestamp']))
         elif resp.status_code in (401, 403):
             logger.error("❌ CRITICAL: Authentication failed (check BACKFILL_API_KEY)")
+            result.stopped = True
             break
         else:
             logger.error(f"❌ Gateway error: HTTP {resp.status_code}")
+            result.stopped = True
             break
 
         time.sleep(INTER_ROW_DELAY_SEC)
 
     conn.commit()
-    return pushed, quarantined, rate_limited
+    return result
+
+
+def push_batch(session: requests.Session, conn, limit: Optional[int] = None) -> Tuple[int, int, bool]:
+    """Push up to `limit` (default MAX_ROWS_PER_CYCLE) unsynced market_data rows,
+    OLDEST first: the backlog drain. Returns (pushed, quarantined, rate_limited)."""
+    limit = MAX_ROWS_PER_CYCLE if limit is None else limit
+    rows = _fetch_dicts(
+        conn, "SELECT * FROM market_data WHERE synced_at IS NULL "
+              "ORDER BY timestamp ASC, timeframe ASC LIMIT ?", (limit,))
+    result = _send_rows(session, conn, rows)
+    return result.pushed, len(result.quarantined), result.rate_limited
+
+
+# ---- the manifest ------------------------------------------------------------
+def terminal_label(export_dir: Optional[str]) -> str:
+    """The MT5 terminal an export directory belongs to: the folder that holds
+    MQL5 (C:/MT5-A/MQL5/Files -> 'MT5-A'), else the whole directory. Only
+    sameness matters (a change from the previous cycle is how a promote is
+    noticed), so a layout this does not recognise still compares correctly."""
+    if not export_dir:
+        return 'unknown'
+    normalised = str(export_dir).replace('\\', '/').rstrip('/')
+    parts = [p for p in normalised.split('/') if p]
+    for i, part in enumerate(parts):
+        if part.upper() == 'MQL5' and i > 0:
+            return parts[i - 1]
+    return normalised
+
+
+def _projection_mode(config_params) -> Optional[str]:
+    """DYNAMIC or FROZEN from a statistics row's config JSON, else None (only the
+    seven centroid indicators have a mode)."""
+    try:
+        mode = json.loads(config_params).get('Projection Mode')
+    except (TypeError, ValueError, AttributeError):
+        return None
+    return mode.upper() if isinstance(mode, str) and mode.upper() in ('DYNAMIC', 'FROZEN') else None
+
+
+def _note_quarantined(slot: int, quarantined: List[Tuple[str, int]]) -> None:
+    for tf, _ts in quarantined:
+        _priority_quarantined[(slot, tf)] = _priority_quarantined.get((slot, tf), 0) + 1
+    for key in [k for k in _priority_quarantined if k[0] < slot - 86400]:
+        del _priority_quarantined[key]
+
+
+def m15_settled(conn, slot: int, now: int) -> bool:
+    """Has the M15 half of this slot finished, one way or the other?
+
+    M15 is collected only on :00 :15 :30 :45, right after M5, and may retry for
+    up to about 200 s. The manifest for a refresh slot waits for it so it can say
+    what M15 did, but not forever: after M15_SETTLE_SEC it goes without M15
+    (absent means "did not refresh" and the gateway knows the slot).
+    """
+    if slot % TF_SECONDS['M15'] != 0:
+        return True
+    cycle = validated_cycle(conn, 'M15', slot)
+    if cycle is not None and cycle['finished_at'] is not None:
+        return True
+    if cycle is None:
+        last = conn.execute(
+            "SELECT attempt, status FROM collection_cycles "
+            "WHERE cycle_time = ? AND timeframe = 'M15' ORDER BY attempt DESC LIMIT 1",
+            (slot,)).fetchone()
+        if last is not None and last[1] == 'rejected' and last[0] >= COLLECTOR_MAX_ATTEMPTS:
+            return True                                   # every attempt used: nothing more is coming
+    return now >= slot + M15_SETTLE_SEC
+
+
+def build_manifest(conn, slot: int, now: int) -> Optional[dict]:
+    """The manifest for one slot, from what the collector recorded and what is in
+    market_data and indicator_statistics. None if it cannot honestly be built
+    (no finished M5 cycle, or the export file's modification time is unknown).
+
+    Every value here is a fact read from the database, never a guess: an
+    unknown export time is a reason to send no manifest, because a manifest is
+    the instrument that measures the pipeline and a made-up time would lie to it.
+    """
+    timeframes: Dict[str, dict] = {}
+    export_dir = None
+    for tf in TIMEFRAME_ORDER:
+        cycle = validated_cycle(conn, tf, slot)
+        if cycle is None or cycle['finished_at'] is None:
+            continue
+        if cycle['export_mtime'] is None or cycle['newest_bar_ts'] is None:
+            logger.error(f"❌ No {tf} section in the manifest for slot {slot}: cycle "
+                         f"{cycle['cycle_id']} has no export time or newest bar recorded")
+            continue
+        window = priority_window(conn, tf, slot, cycle['newest_bar_ts'])
+        if not window:
+            continue
+        first_started = conn.execute(
+            "SELECT MIN(created_at) FROM collection_cycles WHERE cycle_time = ? AND timeframe = ?",
+            (slot, tf)).fetchone()[0]
+        stats = conn.execute(
+            "SELECT source, config_hash, config_params FROM indicator_statistics "
+            "WHERE captured_at = ? AND timeframe = ? ORDER BY source", (slot, tf)).fetchall()
+        hashes: Dict[str, str] = {}
+        modes: Dict[str, str] = {}
+        for source, config_hash, config_params in stats:
+            hashes[source] = config_hash
+            mode = _projection_mode(config_params)
+            if mode:
+                modes[source] = mode
+        timeframes[tf] = {
+            'collection_cycle_id': cycle['cycle_id'],
+            'attempts': cycle['attempt'],
+            'started_at': first_started,
+            'validated_at': cycle['validated_at'],
+            'export_mtime': cycle['export_mtime'],
+            'bar_count': len(window),
+            'oldest_bar_ts': min(window),
+            'newest_bar_ts': cycle['newest_bar_ts'],
+            'quarantined_rows': _priority_quarantined.get((slot, tf), 0),
+            'statistics_count': len(stats),
+            'config_hashes': hashes,
+            'source_modes': modes,
+        }
+        if tf == 'M5':
+            export_dir = cycle['export_dir']
+    if 'M5' not in timeframes:
+        return None
+    backlog_rows, repush_rows_unsent = unsent_counts(conn, slot)
+    return {
+        'schema': MANIFEST_SCHEMA,
+        'symbol': SYMBOL,
+        'slot': slot,
+        'mt5_terminal': terminal_label(export_dir),
+        'built_at': now,
+        'backlog_rows': backlog_rows,
+        # Of those, the historical rows (a promote's re-push). The gateway reads
+        # 0 as "nothing left to re-push", then waits for one more verified
+        # manifest before RETUNING ends (ADR-015, build step 2 part 9).
+        'repush_rows_unsent': repush_rows_unsent,
+        'timeframes': timeframes,
+    }
+
+
+def queue_manifest(conn, now: int) -> bool:
+    """Build and store the manifest of the newest validated slot, once.
+
+    Only when everything the manifest promises has happened: the collector has
+    finished the slot (statistics staged), M15 has settled on a refresh slot, and
+    EVERY priority row has been acknowledged or quarantined. Superseded slots
+    get no manifest by design: the newest slot is the one that matters, and a
+    hole is an honest signal that the worker fell behind. Returns True when a
+    new manifest was stored.
+    """
+    slot = latest_validated_slot(conn)
+    if slot is None or now - slot > MANIFEST_MAX_AGE_SEC:
+        return False
+    if conn.execute("SELECT 1 FROM cycle_manifests WHERE slot = ?", (slot,)).fetchone():
+        return False
+    m5 = validated_cycle(conn, 'M5', slot)
+    if m5 is None or m5['finished_at'] is None or not m15_settled(conn, slot, now):
+        return False
+    if priority_rows(conn, slot):
+        return False                       # the newest bars have not all been sent yet
+    payload = build_manifest(conn, slot, now)
+    if payload is None:
+        return False
+    conn.execute("INSERT OR IGNORE INTO cycle_manifests (slot, payload, created_at) VALUES (?, ?, ?)",
+                 (slot, json.dumps(payload, sort_keys=True, separators=(',', ':')), now))
+    conn.commit()
+    sections = ', '.join(f"{tf} {t['bar_count']} bars" for tf, t in payload['timeframes'].items())
+    logger.info(f"🧾 Manifest built for slot {slot} ({sections})")
+    return True
+
+
+def _manifest_failed(conn, slot: int, error: str) -> None:
+    """Record a failed send. Never stamps synced_at: a manifest the gateway has
+    not acknowledged must be sent again."""
+    conn.execute("UPDATE cycle_manifests SET send_attempts = send_attempts + 1, last_error = ? "
+                 "WHERE slot = ?", (error[:300], slot))
+    conn.commit()
+    logger.warning(f"⚠️ Manifest for slot {slot} not delivered ({error}) — will retry")
+
+
+def send_manifests(session: requests.Session, conn, now: int) -> Tuple[int, str]:
+    """Send unacknowledged manifests, newest slot first.
+
+    Isolated like the statistics and events lanes: whatever happens here must
+    not delay price rows. A gateway that does not have the endpoint yet answers
+    404, and that is a retry, not a quarantine: only a 400 (a body the contract
+    rejects, which resending cannot fix) is quarantined and stamped.
+
+    Returns (acknowledged, status), status one of 'ok', 'retry', 'rate_limited'
+    and 'auth'; the caller stops the cycle on the last two.
+    """
+    rows = conn.execute(
+        "SELECT slot, payload FROM cycle_manifests WHERE synced_at IS NULL AND created_at >= ? "
+        "ORDER BY slot DESC LIMIT ?", (now - MANIFEST_MAX_AGE_SEC, MANIFEST_MAX_PER_ITERATION)).fetchall()
+    acknowledged = 0
+    for slot, payload in rows:
+        try:
+            resp = session.post(f'{API_GATEWAY_URL}{MANIFEST_ENDPOINT}',
+                                json=json.loads(payload), timeout=HTTP_TIMEOUT_SEC)
+        except requests.RequestException as e:
+            _manifest_failed(conn, slot, f"network error: {e}")
+            return acknowledged, 'retry'
+
+        if resp.status_code in (200, 201):
+            conn.execute("UPDATE cycle_manifests SET synced_at = ? WHERE slot = ?", (int(time.time()), slot))
+            conn.commit()
+            acknowledged += 1
+            logger.info(f"🧾 Manifest for slot {slot} acknowledged")
+        elif resp.status_code == 400:
+            try:
+                with open(REJECTED_MANIFESTS_FILE, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps({'quarantined_at': datetime.now().isoformat(),
+                                        'gateway_error': resp.text[:500],
+                                        'row': json.loads(payload)}, default=str) + '\n')
+            except OSError as e:
+                logger.error(f"❌ Failed to quarantine rejected manifest: {e}")
+            conn.execute("UPDATE cycle_manifests SET synced_at = ?, last_error = ? WHERE slot = ?",
+                         (int(time.time()), 'rejected 400: ' + resp.text[:200], slot))
+            conn.commit()
+            logger.warning(f"⚠️ Gateway rejected the manifest for slot {slot} — quarantined")
+        elif resp.status_code == 429:
+            _manifest_failed(conn, slot, 'HTTP 429')
+            return acknowledged, 'rate_limited'
+        elif resp.status_code in (401, 403):
+            _manifest_failed(conn, slot, f'HTTP {resp.status_code}')
+            logger.error("❌ CRITICAL: Authentication failed (check BACKFILL_API_KEY)")
+            return acknowledged, 'auth'
+        else:
+            _manifest_failed(conn, slot, f'HTTP {resp.status_code}')
+            return acknowledged, 'retry'
+    return acknowledged, 'ok'
+
+
+def manifest_work_pending(conn, now: int) -> bool:
+    """Is there a manifest still to build or to deliver? Keeps the main loop on
+    its short cadence instead of the 5-minute idle sleep while one is due."""
+    if not (cycle_facts_available(conn) and manifest_table_available(conn)):
+        return False
+    if conn.execute("SELECT 1 FROM cycle_manifests WHERE synced_at IS NULL AND created_at >= ? LIMIT 1",
+                    (now - MANIFEST_MAX_AGE_SEC,)).fetchone():
+        return True
+    slot = latest_validated_slot(conn)
+    return (slot is not None and now - slot <= MANIFEST_MAX_AGE_SEC and
+            conn.execute("SELECT 1 FROM cycle_manifests WHERE slot = ?", (slot,)).fetchone() is None)
+
+
+def push_cycle(session: requests.Session, conn, now: Optional[int] = None) -> Tuple[int, int, bool, int]:
+    """One pass of the price lane, in this order (ADR-013, ADR-009):
+
+      1. the newest slot's priority rows, newest first;
+      2. only if all of them went through: statistics, then the slot's manifest
+         is built and sent (a manifest never precedes the bars it describes);
+      3. the backlog, oldest first, with what is left of MAX_ROWS_PER_CYCLE.
+
+    A pass that stops early (network, rate limit, auth) pushes nothing behind the
+    failure: no manifest, no backlog. A manifest the gateway cannot take (404,
+    5xx) does NOT hold back the backlog: prices never wait for the manifest lane.
+
+    Returns (rows pushed, rows quarantined, rate limited, manifests acknowledged).
+    """
+    now = int(time.time()) if now is None else now
+    budget = MAX_ROWS_PER_CYCLE
+    pushed = quarantined = manifests = 0
+    rate_limited = False
+
+    if cycle_facts_available(conn):
+        slot = latest_validated_slot(conn)
+        if slot is not None:
+            result = _send_rows(session, conn, priority_rows(conn, slot)[:budget])
+            _note_quarantined(slot, result.quarantined)
+            pushed += result.pushed
+            quarantined += len(result.quarantined)
+            rate_limited = result.rate_limited
+            budget -= result.attempted
+            if result.stopped:
+                return pushed, quarantined, rate_limited, manifests
+
+            if manifest_table_available(conn):
+                push_statistics(session, conn)             # best effort, never raises
+                queue_manifest(conn, now)
+                acknowledged, status = send_manifests(session, conn, now)
+                manifests += acknowledged
+                if status in ('rate_limited', 'auth'):
+                    return pushed, quarantined, status == 'rate_limited', manifests
+
+    if budget > 0:
+        p, q, rl = push_batch(session, conn, limit=budget)
+        pushed += p
+        quarantined += q
+        rate_limited = rate_limited or rl
+    return pushed, quarantined, rate_limited, manifests
 
 
 def check_api_health(session, retries: int = 3) -> bool:
@@ -511,13 +1129,19 @@ def main():
             iteration += 1
             conn = open_db()
             backlog = unsynced_count(conn)
+            # An empty price outbox is not an idle worker while a manifest is
+            # still to build or deliver: stay on the short cadence for it.
+            manifest_due = manifest_work_pending(conn, int(time.time()))
 
-            if backlog == 0:
+            if backlog == 0 and not manifest_due:
                 logger.info("✅ Outbox empty — all market_data rows synced")
                 # Statistics still drain on an idle cycle — they are low volume
                 # and this is the least contended moment to send them.
                 push_statistics(session, conn)
                 while push_economic_events(session, conn) == EVENT_MAX_ROWS_PER_CYCLE:
+                    if shutdown_requested:
+                        break
+                while push_symbol_specs(session, conn) == SPEC_MAX_ROWS_PER_CYCLE:
                     if shutdown_requested:
                         break
                 conn.close()
@@ -527,8 +1151,11 @@ def main():
                 _interruptible_sleep(IDLE_SLEEP_SEC)
                 continue
 
-            logger.info(f"📋 {backlog} unsynced rows — pushing (≤{MAX_ROWS_PER_CYCLE}/cycle)")
-            pushed, quarantined, rate_limited = push_batch(session, conn)
+            logger.info(f"📋 {backlog} unsynced rows — pushing (≤{MAX_ROWS_PER_CYCLE}/cycle)"
+                        f"{' + manifest due' if manifest_due else ''}")
+            # Newest bars of the latest cycle first, then its manifest, then the
+            # backlog oldest-first (push_cycle).
+            pushed, quarantined, rate_limited, manifests = push_cycle(session, conn)
             # Statistics go AFTER market_data every cycle: price data has
             # priority for the connection, and push_statistics() swallows its
             # own failures so it cannot influence the backoff decision below.
@@ -539,11 +1166,18 @@ def main():
             while push_economic_events(session, conn) == EVENT_MAX_ROWS_PER_CYCLE:
                 if shutdown_requested:
                     break
+            # Symbol specs fourth (build step 2 part 8): prices, then telemetry,
+            # then the calendar, then the broker's figures. It swallows its own
+            # failures too, so it cannot influence the backoff decision below.
+            while push_symbol_specs(session, conn) == SPEC_MAX_ROWS_PER_CYCLE:
+                if shutdown_requested:
+                    break
             conn.close()
 
-            if pushed or quarantined:
+            if pushed or quarantined or manifests:
                 logger.info(f"✅ Pushed {pushed} rows"
-                            f"{f', quarantined {quarantined}' if quarantined else ''}")
+                            f"{f', quarantined {quarantined}' if quarantined else ''}"
+                            f"{f', {manifests} manifest(s)' if manifests else ''}")
                 consecutive_failures = 0
                 sleep_time = ACTIVE_SLEEP_SEC
             else:

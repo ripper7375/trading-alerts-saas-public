@@ -45,6 +45,7 @@ import argparse
 import hashlib
 import json
 import logging
+import math
 import sqlite3
 import sys
 import time
@@ -818,6 +819,199 @@ def stage_economic_events(conn, export_dir: Path) -> Tuple[int, int]:
     return (appended, unchanged)
 
 
+# ============================================================
+# SYMBOL SPECS (append-only, independent of the market_data cycle)
+# ============================================================
+# Source: SymbolSpecsExport_v2_29.mq5 (STACK-D-ARCHITECTURE.md section 6.9,
+# ADR-066), which writes the broker's CURRENT figures for the symbol to one
+# file every few minutes and, like the calendar exporter, does no change
+# detection. That decision lives here, where it is testable.
+#
+# A row is appended when
+#   * there is none yet, or
+#   * a CONTRACT figure differs from the newest row's, or
+#   * the newest row is a day old (the daily refresh).
+# typical_spread is deliberately NOT a trigger: it is a median that wanders by
+# a point or two, and appending on every wander would write a row every cycle.
+# The daily row carries the then-current value, which is what "typical" needs
+# (section 6.9: specs older than 7 days make Report 2 unavailable).
+#
+# Only a strictly NEWER observation can append. Re-reading the same file (this
+# runs on every cycle, M5 and M15) finds the newest row's captured_at equal and
+# does nothing; an older file (a standby terminal that stopped exporting
+# earlier) can never push a stale figure in behind a fresher one.
+SYMBOL_SPECS_FILE = f'SymbolSpecs_{SYMBOL}.txt'
+SYMBOL_SPECS_DAILY_SEC = 86400
+SYMBOL_SPECS_FUTURE_TOLERANCE_SEC = 600           # same tolerance as a manifest slot
+SYMBOL_SPECS_MAX_INT = 2147483647                 # the gateway's INTEGER columns
+
+# (column, type) as the exporter's header names them. Parsing is by NAME. The
+# names are the contract, shared with gateway_contract_symbol_specs.schema.json
+# and the symbol_specs table (terminal_id, which the exporter cannot know, is
+# added here).
+SYMBOL_SPECS_COLUMNS: List[Tuple[str, str]] = [
+    ('captured_at', 'int'), ('symbol', 'text'),
+    ('contract_size', 'real'), ('volume_min', 'real'), ('volume_step', 'real'),
+    ('volume_max', 'real'), ('tick_size', 'real'), ('typical_spread', 'real'),
+    ('swap_long', 'real'), ('swap_short', 'real'), ('point', 'real'),
+    ('digits', 'int'), ('swap_mode', 'int'),
+]
+
+# The figures whose change is news (everything but captured_at, symbol and the
+# wandering typical_spread).
+SYMBOL_SPECS_CONTRACT_COLUMNS = [
+    'contract_size', 'volume_min', 'volume_step', 'volume_max', 'tick_size',
+    'swap_long', 'swap_short', 'point', 'digits', 'swap_mode',
+]
+
+
+def terminal_label(export_dir) -> str:
+    """The MT5 terminal an export directory belongs to: the folder that holds
+    MQL5 (C:/MT5-A/MQL5/Files -> 'MT5-A'), else the whole directory.
+
+    The same function as terminal_label() in backfill_worker_api_gateway_v5.py,
+    which names the terminal in the cycle manifest (a test pins the two
+    together): a symbol_specs row and a manifest must call one terminal one name.
+    """
+    if not export_dir:
+        return 'unknown'
+    normalised = str(export_dir).replace('\\', '/').rstrip('/')
+    parts = [p for p in normalised.split('/') if p]
+    for i, part in enumerate(parts):
+        if part.upper() == 'MQL5' and i > 0:
+            return parts[i - 1]
+    return normalised
+
+
+def _symbol_specs_row(header: List[str], line: str) -> Optional[dict]:
+    """One data line as typed values, or None if any column is missing, empty,
+    not of its type, or not a finite number. STRICT, unlike the calendar parser:
+    there is no 'not published' here, every figure is required, and a missing
+    figure is never a zero (a contract size of 0 would size a lot at nothing).
+
+    An EMPTY field needs no check of its own: int('') and float('') raise
+    ValueError, which is a refusal below, and an empty symbol is not SYMBOL. (An
+    explicit check was tried and removed: a mutation run showed it could never be
+    the one that decides.)"""
+    parts = line.split('\t')
+    row: dict = {}
+    for col, typ in SYMBOL_SPECS_COLUMNS:
+        try:
+            raw = parts[header.index(col)].strip()
+        except (ValueError, IndexError):
+            return None
+        try:
+            if typ == 'int':
+                row[col] = int(raw)
+            elif typ == 'real':
+                row[col] = float(raw)
+                if not math.isfinite(row[col]):
+                    return None
+            else:
+                row[col] = raw
+        except ValueError:
+            return None
+    return row
+
+
+def _symbol_specs_problem(row: dict) -> Optional[str]:
+    """Why a typed snapshot cannot be trusted, or None. The same rules as the
+    exporter's own check and the gateway contract; this is the second line."""
+    if row['captured_at'] <= 0 or row['captured_at'] > SYMBOL_SPECS_MAX_INT:
+        return f"captured_at {row['captured_at']} is not a plausible unix time"
+    for col in ('contract_size', 'volume_min', 'volume_step', 'volume_max',
+                'tick_size', 'point'):
+        if row[col] <= 0:
+            return f'{col} {row[col]} is not positive'
+    if row['volume_max'] < row['volume_min']:
+        return f"volume_max {row['volume_max']} is below volume_min {row['volume_min']}"
+    if row['typical_spread'] < 0:
+        return f"typical_spread {row['typical_spread']} is negative"
+    for col in ('digits', 'swap_mode'):
+        if row[col] < 0 or row[col] > SYMBOL_SPECS_MAX_INT:
+            return f'{col} {row[col]} is out of range'
+    return None
+
+
+def parse_symbol_specs_file(path: Path) -> Optional[dict]:
+    """The snapshot for SYMBOL as a dict of the SYMBOL_SPECS_COLUMNS, or None when
+    the file cannot be used (and the reason is logged). Never raises on bad
+    content. Header-NAME based, like every other parser here.
+
+    A row for another symbol is skipped, not stored under this one: figures read
+    from the wrong chart (a contract size of 100000) must never reach Engine 4.
+    """
+    try:
+        with open(path, encoding='utf-8') as f:
+            lines = [ln.rstrip('\r\n') for ln in f]
+    except (OSError, UnicodeDecodeError) as e:
+        logger.warning(f"symbol specs: cannot read {path.name}: {e}")
+        return None
+    lines = [ln for ln in lines if ln.strip()]
+    if len(lines) < 2:
+        logger.warning(f"symbol specs: {path.name} has no data row")
+        return None
+
+    header = lines[0].split('\t')
+    typed = [r for r in (_symbol_specs_row(header, ln) for ln in lines[1:]) if r is not None]
+    if not typed:
+        logger.warning(f"symbol specs: {path.name} has no complete data row")
+        return None
+    for row in typed:
+        if row['symbol'] != SYMBOL:
+            continue
+        problem = _symbol_specs_problem(row)
+        if problem:
+            logger.warning(f"symbol specs: {path.name} refused: {problem}")
+            return None
+        return row
+    logger.warning(f"symbol specs: {path.name} holds no row for {SYMBOL} "
+                   f"(found {sorted({r['symbol'] for r in typed})})")
+    return None
+
+
+def stage_symbol_specs(conn, export_dir: Path, now: Optional[int] = None) -> str:
+    """Append the exporter's snapshot to symbol_specs if it is news.
+
+    Returns one of 'APPENDED', 'UNCHANGED' (nothing new), 'NOT_NEWER' (the file
+    is not newer than the newest row), 'NO_FILE' and 'REJECTED' (unusable file).
+    Best-effort by design, like the calendar and statistics lanes: nothing here
+    may reject a cycle or disturb the market_data path, and running it twice
+    against the same file appends nothing the second time.
+    """
+    path = export_dir / SYMBOL_SPECS_FILE
+    if not path.exists():
+        return 'NO_FILE'
+
+    snap = parse_symbol_specs_file(path)
+    if snap is None:
+        return 'REJECTED'
+
+    now = int(time.time()) if now is None else now
+    if snap['captured_at'] > now + SYMBOL_SPECS_FUTURE_TOLERANCE_SEC:
+        logger.warning(f"symbol specs: {path.name} is dated {snap['captured_at']}, more than "
+                       f"{SYMBOL_SPECS_FUTURE_TOLERANCE_SEC} s ahead of this clock ({now}) -- refused")
+        return 'REJECTED'
+
+    prior = conn.execute(
+        f"SELECT captured_at, {', '.join(SYMBOL_SPECS_CONTRACT_COLUMNS)} FROM symbol_specs "
+        f"WHERE symbol = ? ORDER BY captured_at DESC, id DESC LIMIT 1", (SYMBOL,)).fetchone()
+    if prior is not None:
+        if snap['captured_at'] <= prior[0]:
+            return 'NOT_NEWER'
+        current = tuple(snap[c] for c in SYMBOL_SPECS_CONTRACT_COLUMNS)
+        if tuple(prior[1:]) == current and snap['captured_at'] - prior[0] < SYMBOL_SPECS_DAILY_SEC:
+            return 'UNCHANGED'
+
+    row = dict(snap, terminal_id=terminal_label(export_dir))
+    cols = ['terminal_id'] + [c for c, _ in SYMBOL_SPECS_COLUMNS]
+    conn.execute(
+        f"INSERT INTO symbol_specs ({', '.join(cols)}) VALUES ({', '.join('?' * len(cols))})",
+        [row[c] for c in cols])
+    conn.commit()
+    return 'APPENDED'
+
+
 SQLITE_TYPE = {'real': 'REAL', 'int': 'INTEGER', 'text': 'TEXT'}
 
 
@@ -926,6 +1120,46 @@ def migrate_statistics_table(conn) -> int:
     return added
 
 
+# Facts the cycle manifest reports about a collection cycle (build step 2 part
+# 3). Kept beside the migration that adds them; the schema file's own CREATE
+# TABLE lists the same four for a fresh database.
+CYCLE_FACT_COLUMNS = [
+    ('export_dir', 'TEXT'),
+    ('export_mtime', 'INTEGER'),
+    ('newest_bar_ts', 'INTEGER'),
+    ('finished_at', 'INTEGER'),
+]
+
+
+def migrate_cycles_table(conn) -> int:
+    """Add the cycle-manifest fact columns to a collection_cycles table that
+    predates them -- the same CREATE TABLE IF NOT EXISTS gap that
+    migrate_raw_tables() and migrate_market_data() close.
+
+    It matters here for a quiet reason: stamp_cycle_facts() names these columns,
+    so on a deployed xauusd.db that was not widened it would raise
+    OperationalError inside run_cycle(), where nothing catches it, and the
+    collector would crash-loop on the first validated cycle.
+
+    ADDITIVE ONLY: ALTER TABLE ... ADD COLUMN and nothing else, so existing
+    cycles keep every value they have and simply read NULL for the new facts.
+    Idempotent.
+    """
+    existing = {r[1] for r in conn.execute("PRAGMA table_info(collection_cycles)")}
+    if not existing:
+        return 0                                  # table absent; the schema file creates it
+    added = 0
+    for col, typ in CYCLE_FACT_COLUMNS:
+        if col not in existing:
+            conn.execute(f"ALTER TABLE collection_cycles ADD COLUMN {col} {typ}")
+            logger.info(f"   schema migration: collection_cycles.{col} {typ} added")
+            existing.add(col)
+            added += 1
+    if added:
+        conn.commit()
+    return added
+
+
 def assert_staging_tables(conn) -> None:
     """Refuse to start if a SOURCES staging table does not exist.
 
@@ -960,6 +1194,7 @@ def open_db(db_path: str) -> sqlite3.Connection:
     migrate_raw_tables(conn)
     migrate_market_data(conn)
     migrate_statistics_table(conn)
+    migrate_cycles_table(conn)
     return conn
 
 
@@ -998,6 +1233,48 @@ def set_cycle_status(conn, cycle_id, status, sources_received, reason=None) -> N
         "rejected_reason = ?, validated_at = ? WHERE cycle_id = ?",
         (status, sources_received, reason,
          int(time.time()) if status == 'validated' else None, cycle_id))
+    conn.commit()
+
+
+def export_file_mtime(path: Path) -> Optional[int]:
+    """Whole-second modification time of an export file, unix UTC, or None.
+
+    This is the cycle's export time. NOT the "Export Time:" line some exports
+    carry in their header: that line is MT5's TimeCurrent(), the LAST TICK's
+    broker server time, which is neither UTC nor the moment of writing and lags
+    on a quiet market (the same reason the exporters stopped using TimeCurrent()
+    for their GMT offset). The file's mtime is the clock of the machine that
+    wrote it, and os.stat() reports it as a UTC epoch on Windows and Unix alike.
+    """
+    try:
+        return int(path.stat().st_mtime)
+    except OSError:
+        return None
+
+
+def stamp_cycle_facts(conn, cycle_id: int, export_dir, export_mtime: Optional[int],
+                      newest_bar_ts: Optional[int]) -> None:
+    """Record what the cycle manifest will report about this collection cycle.
+
+    Called on the attempt that is about to be marked validated, BEFORE the
+    status flips, so the push worker (which only reads validated cycles) can
+    never see a validated cycle without them.
+    """
+    conn.execute(
+        "UPDATE collection_cycles SET export_dir = ?, export_mtime = ?, newest_bar_ts = ? "
+        "WHERE cycle_id = ?", (str(export_dir), export_mtime, newest_bar_ts, cycle_id))
+    conn.commit()
+
+
+def mark_cycle_finished(conn, cycle_id: int) -> None:
+    """The collector is done with this cycle, statistics included.
+
+    The manifest waits for this marker: the statistics snapshots are staged
+    AFTER the cycle is marked validated, so without it a manifest built in that
+    gap would report zero snapshots for a slot that has them.
+    """
+    conn.execute("UPDATE collection_cycles SET finished_at = ? WHERE cycle_id = ?",
+                 (int(time.time()), cycle_id))
     conn.commit()
 
 
@@ -1198,13 +1475,31 @@ def run_cycle(conn, export_dir: Path, timeframe: str, cycle_time: int,
     except Exception as e:                                     # noqa: BLE001
         logger.warning(f"calendar capture skipped for cycle {cycle_id}: {e}")
 
+    # Broker symbol specs (build step 2 part 8). A FOURTH independent lane, with
+    # the same isolation as the calendar: its own exporter, table, contract and
+    # endpoint, staged before any price file is read, so a missing price file or
+    # a failed validation cannot block it and it cannot affect market_data. Like
+    # the calendar it is called on every cycle, and is a no-op unless the file
+    # holds news (stage_symbol_specs).
+    try:
+        if stage_symbol_specs(conn, export_dir) == 'APPENDED':
+            logger.info("   symbol specs  appended a new row")
+    except Exception as e:                                     # noqa: BLE001
+        logger.warning(f"symbol specs capture skipped for cycle {cycle_id}: {e}")
+
     sources_received = 0
     missing_files = []
+    ohlcv_mtime = None
     for source, spec in SOURCES.items():
         path = export_dir / f"{spec['prefix']}_{SYMBOL}_{timeframe}.txt"
         if not path.exists():
             missing_files.append(path.name)
             continue
+        if source == 'ohlcv':
+            # The spine's modification time, read immediately BEFORE the file is
+            # parsed so the time and the content it describes cannot straddle a
+            # rewrite. This is the cycle's "export time" (see export_file_mtime).
+            ohlcv_mtime = export_file_mtime(path)
         staged = stage_source(conn, cycle_id, source, parse_export_file(path, spec, timeframe))
         sources_received += 1
         logger.info(f"   {source:<12} {staged:>5} rows staged from {path.name}")
@@ -1228,6 +1523,14 @@ def run_cycle(conn, export_dir: Path, timeframe: str, cycle_time: int,
         return False
 
     promoted = promote_cycle(conn, cycle_id, timeframe)
+    # The manifest's facts, stamped BEFORE the status flips: the push worker only
+    # reads validated cycles, so it can never find one without them. The newest
+    # bar is recorded as found, never interpreted: whether it is a stub of the
+    # bar just opened or the bar about to close is exactly what the first real
+    # cycles are meant to show (waiting-on.md, 2026-10-02).
+    newest_bar_ts = conn.execute(
+        "SELECT MAX(timestamp_adj) FROM raw_ohlcv WHERE cycle_id = ?", (cycle_id,)).fetchone()[0]
+    stamp_cycle_facts(conn, cycle_id, export_dir, ohlcv_mtime, newest_bar_ts)
     set_cycle_status(conn, cycle_id, 'validated', sources_received)
     logger.info(f"✅ Cycle {cycle_id} validated — {promoted} bars promoted")
 
@@ -1251,6 +1554,9 @@ def run_cycle(conn, export_dir: Path, timeframe: str, cycle_time: int,
     except Exception as e:                                     # noqa: BLE001
         logger.warning(f"statistics capture skipped for cycle {cycle_id}: {e}")
 
+    # Done with this cycle, whether or not statistics were staged: the manifest
+    # reports what is there and the gateway decides what a missing lane means.
+    mark_cycle_finished(conn, cycle_id)
     return True
 
 

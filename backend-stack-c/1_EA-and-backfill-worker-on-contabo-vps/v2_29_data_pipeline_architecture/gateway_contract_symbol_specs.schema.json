@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trading-alerts-saas/v6/gateway_contract_symbol_specs.schema.json",
+  "title": "POST /api/v1/symbol-specs — one element of the request array (v6 pipeline)",
+  "description": "Contract between the push worker (backfill_worker_api_gateway_v5.py) and the API Gateway for the APPEND-ONLY broker symbol figures (STACK-D-ARCHITECTURE.md section 6.9, ADR-066), read from the MT5 terminal that runs the export indicators by SymbolSpecsExport_v2_29.mq5 and ingested by the collector. One JSON object = one observation of the broker's figures for one symbol at one moment. The request body is an ARRAY of these; a day normally yields ONE row, and a change of a contract figure yields another, so batches are tiny. This stream is entirely separate from market_data, indicator_statistics, the economic calendar and the cycle manifest: its own endpoint, queue and outbox, so a failure here can never delay or reject price data. The gateway assigns the per-symbol `version` (1, 2, 3, ...) itself, in the order it records the rows, and is idempotent on (symbol, captured_at): duplicate delivery is by design (push retries) and a repeat is acknowledged without a second row. Rows are never updated. Commission is not part of this contract: MT5 does not expose it per symbol and it stays the trader's own input (section 6.9). Engine 4 reads the newest row and records its version in the consent record. Units: `typical_spread` is in POINTS (a price only through `point`); `swap_long` and `swap_short` mean points, money or percent according to `swap_mode` (the raw SYMBOL_SWAP_MODE value).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "terminal_id",
+    "symbol",
+    "captured_at",
+    "contract_size",
+    "volume_min",
+    "volume_step",
+    "volume_max",
+    "tick_size",
+    "typical_spread",
+    "swap_long",
+    "swap_short",
+    "point",
+    "digits",
+    "swap_mode"
+  ],
+  "properties": {
+    "terminal_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The MT5 terminal the figures were read from: the folder that holds its MQL5 directory (C:/MT5-A/MQL5/Files gives 'MT5-A'), as the cycle manifest's mt5_terminal. NOT the sender id the other lanes carry in this field: here it says WHICH TERMINAL's broker connection the figures describe, because a promote can move the collector to a terminal on another account."
+    },
+    "symbol": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]{1,32}$",
+      "description": "The name the pipeline stores the symbol under ('XAUUSD'), as set by the exporter's InpSymbol input; not the broker's own spelling, which may carry a suffix. Letters, digits, '.', '_' and '-', 1 to 32 characters: it becomes part of a queue job id and a database key, so nothing else is allowed."
+    },
+    "captured_at": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647,
+      "description": "Unix seconds UTC at which the exporter read the terminal (server time converted with the hour-rounded server-to-GMT offset, never raw TimeCurrent()). Half of the idempotency key. The upper bound is the largest value the gateway's INTEGER column holds."
+    },
+    "contract_size": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "SYMBOL_TRADE_CONTRACT_SIZE: units of the instrument in one lot (ounces for XAUUSD). Engine 4 sizes a lot from it."
+    },
+    "volume_min": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "SYMBOL_VOLUME_MIN: the smallest order, in lots."
+    },
+    "volume_step": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "SYMBOL_VOLUME_STEP: the lot increment."
+    },
+    "volume_max": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "SYMBOL_VOLUME_MAX: the largest order, in lots. The exporter and the collector refuse a row with volume_max below volume_min; JSON Schema cannot compare two fields."
+    },
+    "tick_size": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "SYMBOL_TRADE_TICK_SIZE: the smallest price change, in price units."
+    },
+    "typical_spread": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Median of SYMBOL_SPREAD samples taken while quotes were live (the exporter's rolling window, 24 hours by default), in POINTS. Multiply by `point` for a price."
+    },
+    "swap_long": {
+      "type": "number",
+      "description": "SYMBOL_SWAP_LONG: the overnight swap of a long position, in the unit `swap_mode` names. May be negative (a cost) or positive."
+    },
+    "swap_short": {
+      "type": "number",
+      "description": "SYMBOL_SWAP_SHORT: the overnight swap of a short position, in the unit `swap_mode` names. May be negative or positive."
+    },
+    "point": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "description": "SYMBOL_POINT: the price of one point. Beyond the section 6.9 table: a spread in points is not a price without it."
+    },
+    "digits": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647,
+      "description": "SYMBOL_DIGITS: decimal places of the price. Beyond the section 6.9 table."
+    },
+    "swap_mode": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647,
+      "description": "SYMBOL_SWAP_MODE, the raw ENUM_SYMBOL_SWAP_MODE value (0 disabled, 1 points, 2 base-currency money, 3 interest, 4 margin-currency money, 5 deposit-currency money, 6 interest on current price, 7 interest on open price, 8 reopen at close price, 9 reopen at bid). Which unit swap_long and swap_short are in. Beyond the section 6.9 table."
+    }
+  }
+}
