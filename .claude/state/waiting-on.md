@@ -2,7 +2,7 @@
 type: Concept/BlockersAndTraps
 status: active
 severity: high
-updated_at: 2026-10-01
+updated_at: 2026-10-02
 tags: [blockers, deploys, migrations, verification, stack-c, stack-d]
 related_docs:
   - ../architecture/database-traps.md
@@ -19,7 +19,33 @@ to [history/resolved-waiting-on.md](./history/resolved-waiting-on.md).
 
 Quick index (newest first):
 
-- MCD kit: forming bar inside the statistics fit windows (unverified; new evidence 2026-10-01) · kit writes absolute
+- Build step 2 session B check (2026-10-02): no defect found; **build step 2 is committed locally (seven commits, not pushed), NOT deployed, the part 2 migration NOT applied** · OPEN, Davin:
+  **decision 1, how RETUNING ends (P1: with the real push worker it could last days, not hours; simulated, unmeasured)** · **P2, three stale statements, to be fixed after decision 1** · **F1 to F4, the "Done when" items
+  that wait on live evidence or on later build steps** · six gateway tests need the whole repo checkout ·
+  Build step 2 part 10 built (**Option A**: the gateway counts the window to end RETUNING; the `measure-cycles` kit; the deploy-order runbook; ADR-015 amended), NOT deployed, migration NOT applied ·
+  **build step 2 is complete in code (parts 1 to 10); committed locally later, see the entry above** · OPEN, Davin: (1) confirm the one-step reading of "followed by one verified manifest" (ADR-015 amendment; part 10 hand-off, decision 1) ·
+  (2) **a key of its own for writes, before the flag goes live** (part 6, decision 1) · (3) the part 7 and part 8 decisions · (4) the production and VPS checks, then deploy in the order of
+  `docs/runbooks/deploy-stack-d-step2.md` · (5) run the kit on real cycles, settle the newest-row question, confirm or replace the ADR-012 thresholds with a new decision ·
+  RETUNING can last as long as the push worker takes to re-send the window (unmeasured; the kit reports episode lengths) · the three renderer test files were not run in part 10 (their packages are not installed) ·
+  Build step 2 part 9 built (promote and RETUNING: sender `repush_rows_unsent`; gateway promote detection, `PROMOTE` / `RETUNE_COMPLETE` events, `retuning` on the ready job), NOT deployed, migration NOT applied ·
+  its open point (the sender's count can never reach 0) is RESOLVED by part 10, see [resolved](./history/resolved-waiting-on.md) · `cycle_events` comes from the part 2 migration: apply it before the gateway deploys ·
+  M15-only reconfigurations are not detected ·
+  Build step 2 part 8 built (the `symbol_specs` lane: MQL5 exporter, collector stage, 4th push lane, gateway endpoint + queue + processor + reader), NOT deployed, migration NOT applied · **the exporter is NOT compiled** (Davin's
+  MetaEditor) and must be attached to an XAUUSD chart on BOTH terminals A and B · the part 2 migration must be applied BEFORE the gateway deploys (a job for a missing table fails and the sender has already stamped the row) ·
+  deploy order migration, gateway, VPS files (the same three as part 3), then compile and attach · nothing imports `SymbolSpecsService` until Section 6 ·
+  Build step 2 part 7 built (chart stamp: the VPS renderer is driven by validated slots, resolves the active indicator per timeframe from the gateway AT the slot, stamps title and R2 metadata, keeps the last good
+  image; monolith `getChartStamp` + `chartMatchesCycle` + `X-Chart-*` headers; gateway `?slot=`), NOT deployed, no migration · deploy order gateway, then monolith, then VPS · renderer needs `API_GATEWAY_URL` and
+  `BACKFILL_API_KEY` in its NSSM environment · `chartMatchesCycle` has no caller until step 3 · not yet run against a real `xauusd.db` or real R2 ·
+  Build step 2 part 6 built (active-indicator setting: gateway resolver, audited setter, `GET /api/v1/cycles/current`; monolith channel route behind a flag, `useMtfOverlay`, admin route), NOT deployed,
+  flag OFF by default · needs a monolith key in the gateway's `API_KEYS` and two new monolith env names · the renderer and the sensor loader do not follow the setting yet ·
+  Build step 2 part 5 built (read side + the strengthened landed check), NOT deployed: readers not wired into `AppModule` yet; a `cycle-ready` consumer must retry on
+  `CYCLE_NOT_READY`; the labelled last price needs the newest-row answer below; `lib/indicator-statistics/queries.ts` is a known "latest available" read (reported, not changed) ·
+  Build step 2 part 4 built, NOT deployed, migration NOT applied (deploy order: migration, then gateway, then VPS; cycle-ready jobs have no consumer
+  until step 3; a manifest job that exhausts its retries leaves a PENDING row) ·
+  Build step 2 part 3 built, NOT deployed to the VPS (three files, restart order; manifests 404 until the gateway ships) ·
+  Build step 2: newest row at slot time may be the closing bar, not the new-bar stub (unverified) · production and VPS
+  checks Davin runs before the Part 2 migration is applied (four §0.5 items; also which gateway the push worker targets)
+- MCD kit: forming bar inside the statistics fit windows (unverified; new evidence 2026-10-02, carried for stage 5) · kit writes absolute
   workbook paths into fixture sources · kit passes a non-string `config_hash` into the envelope (P6 finding F1)
 - Shared FX rates `REDIS_URL` · SystemConfig pricing deploy + test · Language & locale open items ·
   Disbursement payout go-live (G1–G4) · 15th indicator rollout order
@@ -29,6 +55,192 @@ Quick index (newest first):
 - Push-worker throughput · Look-ahead bias in historical indicator values · Decision Layer BLOCKED
 - Many "authenticated click-through not yet confirmed" items (Executor never enters credentials)
 - Phase 12 handover re-draft · Journey B chat check · `/help` + `/about` 404 · `rag_dual_memory` tables missing
+
+<!-- session 2026-10-02 step2-session-b-and-commit -->
+
+- **Build step 2, session B check (2026-10-02) and the commit: no defect found in what was built; three things stay open and none blocks the deploy. Build step 2 (parts 1 to 10, the check, the state files) is
+  committed locally in seven commits by area, NOT pushed, NOT deployed; the part 2 migration is a file only and NOT applied.** This supersedes "nothing is committed" in the entries below. Check:
+  `docs/handoffs/2026-10-02-1548-step2-session-b-check.md`. Commit session hand-off (hashes): `docs/handoffs/`, `*-step2-commit.md`.
+  (1) **Decision 1, Davin's, OPEN: how RETUNING ends (session B's P1).** Option A (ADR-015, amended in part 10) ends RETUNING when the gateway counts no M5 row of the 3,000-bar window with a `cycle_id` below the
+  promote cycle's. Session B drove the unchanged `push_cycle` against the collector's real re-queue (every slot rewrites every bar; the worker re-sends the newest 386 rows first, then the OLDEST unsent rows), so the
+  middle of the window keeps its pre-promote `cycle_id` until it ages into the oldest part. Time until the window is clean, by the most rows the worker can send: **100 to 200 a minute about 10 trading days; 300 about 6;
+  400 about 4; 600 about half a day; 800 one slot.** This is a **simulation, NOT a measurement**: the real rate is unmeasured (the open throughput item puts it at 375 to 600 a minute, which is half a day to about five
+  days). The builder's tests do not see it because they re-push arbitrary amounts per cycle. Options: (a) keep Option A and measure first (session B's default; cost: below about 600 rows a minute every promote leaves
+  the sensors CAUTIONARY for days); (b) Option B from part 9's list: count only what the sensors read (the newest 288 M5 and 96 M15 closed bars and the statistics at the slot), which the promote cycle's priority push
+  already delivers, so RETUNING ends one verified manifest after the promote (older bars may still mix; the ADR says so); (c) make the push worker faster before relying on A. **Settle before step 3 wires the
+  `retuning` flag to CAUTIONARY in production;** it does not block the deploy. Sources: session B hand-off section 7 P1 (the table) and section 6 decision 1.
+  (2) **P2, three stale statements, to be fixed in a small builder session AFTER decision 1** (their text depends on the rule; deliberately not fixed in the commit session). Locations checked against the live files on
+  2026-10-02: (a) `backend-stack-c/.../backfill_worker_api_gateway_v5.py:913-915`: the comment says the gateway reads `repush_rows_unsent` as 0 and then waits for one more verified manifest; since Option A the gateway
+  does not read that field (the module docstring was updated, this comment was missed); (b) `docs/STACK-D-ARCHITECTURE.md:255-256`: "about 6,000 in-window rows re-push over 5–6 minutes, oldest first" (the window is
+  re-queued every cycle; P1 shows how long it takes); (c) "hours" in `docs/adr/015-retuning-during-a-promote.md:36` and `docs/runbooks/mt5-terminal-promote.md:191`: true at the fast end, about ten times too short at
+  the slow end. Part 9's Option A text also called RETUNING "independent of the worker's throughput": correct for the rule, not for its duration.
+  (3) **F1 to F4: "Done when" items of section 1.8 that wait on live evidence or on later build steps (none is a defect in what was built).** **F1** one real cycle, measured: the kit is right on its fixture, but no real
+  cycle has run anywhere (run `docs/runbooks/deploy-stack-d-step2.md` section 6.6; it also settles the newest-row question). **F2** the chart stamp, first half ("an image from another slot stays out of the prompt"):
+  `chartMatchesCycle` (`lib/storage/chart-keys.ts:163`) is called only by its own test; the prompt assembler that must call it does not exist yet (the plan says build step 7; the part 7 note above said step 3;
+  the second half, the last good image, is met: 118 renderer tests pass). **F3** a rehearsed promote visible end to end: only simulated (no second terminal; section 0.5 says "Not yet"), the gateway exposes the flag
+  but nothing reads it until step 3's loader, which maps `retuning` to CAUTIONARY (`mcd_common/preflight.py:139-140`), and P1's duration. **F4** the indicator switch in one slot: met for the setting, the gateway and
+  the renderer; MCD inputs need step 3's loader, and the UI follows the setting only when `ACTIVE_INDICATOR_FROM_GATEWAY=true` (off by default). After the first measured cycles, a new decision entry confirms or
+  replaces the ADR-012 thresholds; step 3 starts after live evidence is recorded (plan, decision 6).
+  (4) **Six gateway tests need the whole repo checkout.** In a copy of `railway-gateway/` alone, six pin-tests fail because they read the VPS collector, the migration SQL, the monolith or the docs from outside the
+  package (`data-status.spec.ts` x2, `cycle-slot.spec.ts` x1, `active-indicator.spec.ts` x3). Harmless for the Railway build (it runs no tests); a CI job that tests the package alone would go red.
+  Session B also confirmed `test_extended_statistics.py` fails the same 15 checks at HEAD (its sections 4 to 6 print SKIP without the captured exports, which is how a naive baseline passes) and that
+  `npm run build` at the repo root rewrites `next-env.d.ts` (keep it out of commits).
+
+<!-- session 2026-10-02 step2-part1 -->
+
+- **Build step 2 part 10 (2026-10-02): Option A, the measurement kit, the deploy-order runbook and the closing of build step 2 are BUILT, NOT DEPLOYED. The Part 2 migration is NOT applied. Nothing is committed.**
+  Pieces: (1) **Option A** (ADR-015 amended in place, STACK-D section 1.6 item 2): `railway-gateway/src/cycle/retuning.ts` and `CycleManifestService` end a RETUNING when the gateway counts no M5 row of the
+  window (`slot - 3000 * 300` to the slot) in `market_data_v6` with a `cycle_id` below the promote cycle's `m5_collection_cycle_id`, and the manifest that counts it is verified (READY); the promote cycle is
+  found through the latest `PROMOTE` event at or before the slot; `RETUNE_COMPLETE` now carries `promote_slot`, `promote_m5_collection_cycle_id`, `window_old_rows`, `window_from`, `window_to`, `verified_at_slot`;
+  `repush_rows_unsent` stays in the manifest and on the row as a diagnostic nothing reads. (2) **`measure-cycles`**: `railway-gateway/src/cycle/measure-cycles.ts` (pure, tested) and
+  `railway-gateway/scripts/measure-cycles.js` (plain JavaScript on purpose, see `environment-gotchas.md`): slot to ready, manifest ingestion, gateway time, newest-bar age by value, export lag, ADR-012 deadlines,
+  RETUNING episodes, status split; `--db` (one read-only SELECT, `DATABASE_URL`) or `--file`. (3) **`docs/runbooks/deploy-stack-d-step2.md`** (migration, gateway, monolith with the flag off, VPS files, verification, cutover)
+  and `docs/runbooks/mt5-terminal-promote.md` section 4 rewritten for Option A. Things to know:
+  (a) **How long RETUNING lasts is now the time the push worker takes to re-send the window**, not a fixed 5 to 6 minutes. The worker re-sends the oldest rows first every slot, so a worker slower than the window
+  leaves the middle of it old until it ages into the oldest part: hours, not minutes (a reading of the code, **unmeasured**; push-worker throughput is still open). The READY log line prints the count while RETUNING;
+  (b) the window is a time window: one bar wider than the collector's when the newest row is the stub (a row that just scrolled out can hold RETUNING one more cycle), narrower across a weekend, M5 only;
+  (c) it assumes collector cycle ids only grow (recreating `xauusd.db` restarts them) and that no row stays at an old `cycle_id` (a quarantined row would keep RETUNING on until it leaves the window);
+  (d) **the one-step reading of "followed by one verified manifest" is mine** (the manifest that counts 0 must itself be READY): Davin to confirm, the extra manifest costs a new column;
+  (e) the three renderer test files (`test_mtf_stamp.py`, `test_mtf_render_upload_worker.py`, `test_mtf_render.py`) were NOT run: their packages (matplotlib, pandas, pytest, boto3) are not installed and installing
+  them needs a download Davin has not approved; part 10 touched none of them; `test_extended_statistics.py` fails the same 15 checks as at HEAD;
+  (f) **nothing ran against production, the VPS or a deployed gateway**: the kit has run on a fixture only. Part 10 hand-off: `docs/handoffs/2026-10-02-1300-step2-part10.md`.
+- **Build step 2 part 9 (2026-10-02): promote and RETUNING are BUILT, NOT DEPLOYED, and the Part 2 migration is NOT applied. Its open point (the sender's re-push count cannot reach 0 on the real collector) is RESOLVED by part 10, Option A: see the next entry.**
+  Pieces: the sender's manifest carries `repush_rows_unsent` (`unsent_counts()` in `backfill_worker_api_gateway_v5.py`: unsent rows with open time before `slot - 300`, read with `backlog_rows` in one statement);
+  `railway-gateway/src/cycle/retuning.ts` (promote detection against the previous cycle: terminal, per-source `config_hash`, per-source mode; the RETUNING step; the event rows) and `CycleManifestService` (writes
+  `PROMOTE` and `RETUNE_COMPLETE` events keyed `XAUUSD_PROMOTE_<slot>` and `XAUUSD_RETUNE_COMPLETE_<slot>`, carries `market_cycles.retuning`, announces `CycleReadyJobData.retuning`).
+  **The open point (resolved by part 10, text in [resolved](./history/resolved-waiting-on.md)):** the sender's count is the whole window in every manifest and never 0, because `promote_cycle()` re-queues
+  the window every cycle. Part 10 stopped reading it: the gateway counts the window itself. `test_the_collectors_full_requeue_leaves_the_whole_window_unsent_at_manifest_time` still pins the fact and fails when
+  the collector changes. **Deploy order:** (1) the production and VPS checks, `prisma migrate status`, the Part 2 migration (it creates `cycle_events`; without it the first PROMOTE write fails and the
+  row stays PENDING); (2) `railway-gateway` (no new dependency, env name or queue); (3) `backfill_worker_api_gateway_v5.py` alone to the VPS and restart `MT5PushWorker` (the field is optional in the contract). Things to know:
+  (a) (superseded by part 10: the gateway no longer reads the sender's count, so a promote between the gateway deploy and the VPS file deploy is harmless);
+  (b) M15 is not compared (it is absent from the cycle before every refresh slot): an M15-only reconfiguration is not detected, a terminal switch or an M5 change is;
+  (c) a manifest that arrives behind a newer one gets its own flag and writes no events; `RETUNE_COMPLETE` is written just before the READY commit, so a job that exhausts its retries could leave a second one later;
+  (d) not run on a real `xauusd.db` or a deployed gateway; the first live check is in the hand-off (section 9). Part 9 hand-off: `docs/handoffs/2026-10-02-1134-step2-part9.md`.
+- **Build step 2 part 8 (2026-10-02): the `symbol_specs` lane is BUILT, NOT DEPLOYED, and the Part 2 migration is NOT applied.** Pieces: `mq5/SymbolSpecsExport_v2_29.mq5` (an EA, **never compiled**: MetaEditor is
+  Davin's), `symbol_specs` outbox in `sqlite_schema_v6_xauusd.sql`, `stage_symbol_specs()` in the collector, `push_symbol_specs()` as the 4th lane of the push worker, `gateway_contract_symbol_specs.schema.json`
+  (mirrored into `railway-gateway/src/symbol-specs/`), `POST /api/v1/symbol-specs`, queue `symbol-specs-sync`, `SymbolSpecsProcessor` (per-symbol `version`, idempotent on `(symbol, captured_at)`) and
+  `SymbolSpecsService.getLatestSymbolSpec`. **Deploy order:** (1) the production and VPS checks, `prisma migrate status`, then the Part 2 migration `20261002000000_add_cycle_pipeline_tables` (it creates `symbol_specs`;
+  **apply it before the gateway deploys**: the endpoint answers 200 on enqueue, so a job that then fails for a missing table is lost after its 3 attempts while the push worker has already stamped the row; the daily
+  refresh would record the figures again within 24 hours, but do not rely on it); (2) deploy `railway-gateway` (new queue and endpoint, no new dependency, no new env name; the same `API_KEYS` as the other lanes);
+  (3) copy `export_collector_validator_v2.py`, `sqlite_schema_v6_xauusd.sql` and `backfill_worker_api_gateway_v5.py` to the VPS (the same three as part 3; the schema file must sit beside the collector because the
+  collector creates `symbol_specs` from it), restart `MT5Collector` first, then `MT5PushWorker`; (4) compile `mq5/SymbolSpecsExport_v2_29.mq5` in MetaEditor and attach it to **one XAUUSD chart on terminal A and one on B**,
+  then wait about 30 minutes (it needs 30 spread samples taken while quotes are live). Any order of (3) and (4) is safe: the collector ignores a missing file, and a worker that meets a database without the table says so
+  once and idles the lane. A worker that runs before the gateway has the endpoint gets 404 on every pass (a retry, never a quarantine; `send_attempts` and `last_error` record it) and sends nothing else. Things to know:
+  (a) **Not compiled, not run on a terminal.** The first live check is in blueprint section 5.7: the Experts log line `SymbolSpecsExport: SymbolSpecs_XAUUSD.txt written, ...`, the file in `MQL5\Files`, a row in
+  `symbol_specs` on `xauusd.db` whose `terminal_id` is the terminal's folder name, then `Pushed 1 symbol spec(s)` in the push worker log. Compare the figures with the symbol's Specification window in MT5.
+  (b) **Both terminals need the exporter** (`docs/runbooks/mt5-terminal-promote.md` has the new bullet): promoting to one without it stops the refresh with no error, until the newest row is a week old and Report 2 is no
+  longer offered (section 6.9).
+  (c) **`typical_spread` is a median over a rolling 24 hours of one-per-minute samples, restarted whenever the EA restarts**; a spread change alone appends nothing, the daily row carries it. If you want a different window
+  or sampling, they are inputs (`InpWindowSamples`, `InpSampleSec`, `InpMinSamples`, `InpMaxQuoteAgeSec`).
+  (d) **`captured_at` is UTC from `TimeTradeServer()` minus the hour-rounded offset**, not raw `TimeCurrent()` (server time of the last tick), which the order literally named; see the part 8 hand-off, deviation 2.
+  (e) **`terminal_id` on this lane is the MT5 terminal's folder name** (`C:/MT5-A/MQL5/Files` gives `MT5-A`), not the push worker's sender id, which the other lanes carry in that field.
+  (f) **Nothing reads the table yet.** `SymbolSpecsService` is not imported anywhere; Section 6 (Engine 4) reads the newest row (by `captured_at`) and records its `version` in the consent record. The monolith cannot
+  import the gateway package: it will read the table through `marketPrisma` (the model is mirrored in `prisma/market-data/schema.prisma`) or ask for an endpoint, which is not built.
+  (g) **No `symbol_specs` line exists in the section 1.8 "Done when" list**; the evidence is this lane's own tests. Part 8 hand-off: `docs/handoffs/2026-10-02-1100-step2-part8.md`.
+- **Build step 2 part 7 (2026-10-02): the chart stamp and the last good image are BUILT, NOT DEPLOYED (no migration).** VPS: `mtf_render_upload_worker.py` polls `xauusd.db` for the newest validated M5 slot
+  (it no longer sleeps 300 s), asks the gateway for the active indicator of each timeframe AT that slot (`GET /api/v1/cycles/current?slot=S`, new and additive), falls back to `RENDER_OVERLAYS` and says so in the stamp,
+  renders both variants as of the slot into a temp directory, uploads ONLY if both are complete PNGs, with the stamp as R2 object metadata (`cycle-slot`, `last-closed-bar`, `overlay`, `variant`, `rendered-at`, plus
+  `overlay-m15`, `overlay-source`), and prints the same stamp in the image title. Monolith: `getChartStamp(variant)` (HEAD), `chartMatchesCycle(stamp, cycleSlot)`, `X-Chart-*` headers on the download 307.
+  **Deploy order:** (1) gateway (the `?slot=` parameter; additive, no migration); (2) monolith (safe in either order with the renderer: an image without a stamp is served exactly as before); (3) VPS: copy
+  `mtf_render_upload_worker.py` and the whole `mtf_render/` package (new `stamp.py`; `renderer.py`, `data_source.py`, `__main__.py` changed), add `API_GATEWAY_URL` and `BACKFILL_API_KEY` (the push worker's values)
+  to `nssm set MT5Renderer AppEnvironmentExtra` **together with the existing `R2_*` and `MTF_DB_PATH` entries (the command replaces the whole value)**, restart `MT5Renderer`. Without them the renderer still works on
+  `RENDER_OVERLAYS`. Things to know:
+  (a) **`chartMatchesCycle` has no caller yet.** The prompt builder (step 3) calls `getChartStamp(variant)` then `chartMatchesCycle(stamp, cycleSlot)` and keeps the image out of the prompt on `NO_CHART_STAMP` or
+  `CHART_SLOT_MISMATCH`. The `X-Chart-*` headers are for downloads and tools; a browser script cannot read headers of a followed redirect.
+  (b) **Not run against a real `xauusd.db` or a real R2 bucket.** Tests use a fixture database and a fake S3 client. First live check after deploy: the log line `uploaded ... slot S, overlay M5 x / M15 y (setting)`, then
+  a HEAD of `xauusd/mtf_render_xauusd_m5_m15_overlay.png` shows the five `x-amz-meta-*` keys, and `GET /api/chart/download` carries `X-Chart-Slot`.
+  (c) The newest-row question above is still open, so the title states the newest M5 candle actually drawn as a fact ("newest M5 candle opened ...") rather than assuming it is the last closed bar.
+  (d) Part 6's note (b) is now half answered: the renderer follows the setting once this is deployed; the sensor-input loader still does not (step 3).
+  Part 7 hand-off: `docs/handoffs/2026-10-02-<HHMM>-step2-part7.md`.
+- **Build step 2 part 6 (2026-10-02): the active-indicator setting is BUILT, NOT DEPLOYED, and the monolith side is behind a flag that is OFF.** Gateway: `ActiveIndicatorService`
+  (`resolveActiveIndicator(timeframe, slot)`, `resolveAll(slot)`, the audited setter that refuses non-future slots, the history), `GET /api/v1/cycles/current` (newest READY cycle, status, timings, and the settings in
+  force AT THAT CYCLE'S SLOT), `GET` and `POST /api/v1/active-indicator`. Monolith: `lib/active-indicator/` (client, flag, sources), `app/api/market-data/channel/route.ts` (resolves the indicator from the gateway
+  when `ACTIVE_INDICATOR_FROM_GATEWAY=true`, otherwise unchanged), `components/charts/mtf/useMtfOverlay.ts` (follows the route and refreshes 90 s after each slot), `app/api/admin/active-indicator/route.ts` (admin
+  only, no page). **Order to turn it on:** (1) the production and VPS checks and the part 2 migration (it seeds M15 `non_b` and M5 `best_fit_a`; without those rows the gateway answers "no setting" and the route answers 503);
+  (2) deploy the gateway; (3) add a key for the monolith to the gateway's `API_KEYS` and set `MARKET_GATEWAY_URL` and `MARKET_GATEWAY_API_KEY` in the monolith (names in `docs/secret-matrix.md`; values are yours, never in
+  the repo, never `NEXT_PUBLIC_`); (4) deploy the monolith (nothing changes while the flag is off); (5) set `ACTIVE_INDICATOR_FROM_GATEWAY=true`. Things to know:
+  (a) **The same key that reads can write.** The gateway has one `API_KEYS` list, shared with the VPS push worker, and `POST /api/v1/active-indicator` accepts any of them. Recommend a separate key list for the
+  write route before this goes live (the part 6 hand-off, decision 1).
+  (b) **The renderer and the sensor-input loader do not follow the setting yet.** The loader (step 3) will call `ActiveIndicatorService.resolveAll(cycleSlot)` in process; the VPS renderer (part 7) will call
+  `GET /api/v1/cycles/current`. Until part 7, the chart image served by `/api/chart/download` is rendered on the VPS with the renderer's own choice, so after a change the downloaded overlay can differ from the on-screen one.
+  (c) With `MIGRATE_MARKET_DATA_CHANNEL=true` the route resolves the setting first and forwards the indicator to operation-service, but operation-service does not know `fractal_edt`: with the fractal EDT active
+  that path answers 400. The flag defaults off; operation-service was not touched (out of scope).
+  (d) The setting is changed through the admin route only (no page): `POST /api/admin/active-indicator` with `{ timeframe, source, effectiveSlot, reason }` as a signed-in administrator; the author is taken from the session.
+  Part 6 hand-off: `docs/handoffs/2026-10-02-0536-step2-part6.md`.
+
+- **Build step 2 part 5 (2026-10-02): read side BUILT, NOT DEPLOYED; the landed check is stronger.** `railway-gateway/src/cycle/read/` (`CycleReaderService`,
+  `CycleReadModule`): `getClosedBars(timeframe, slot, n)`, `getOneDayOhlc(slot)`, `getStatisticsAtSlot(source, timeframe, slot)` and the READY-only accessors `getReadyCycle(slot)`,
+  `getNewestReadyCycle()`. The landed check now also requires the newest row of each timeframe to carry a `cycle_id` at or above the manifest's `collection_cycle_id`, so **a newest row the
+  gateway rejected (quarantined) leaves the cycle INCOMPLETE** (reason `NEWEST_ROW_NOT_CURRENT`), not READY with a hole. Things the next builder must know:
+  (a) **Not wired**: nothing imports `CycleReadModule` yet. The sensor worker (step 3) imports it; the monolith (Section 5, Next.js) cannot import from the gateway package, so step 5 must
+  either call gateway read endpoints (part 6's `GET /api/v1/cycles/current` is the natural start) or re-implement the readers over `marketPrisma` (two implementations to keep equal; not recommended).
+  (b) **The sensor worker must retry on `CYCLE_NOT_READY`**: the `cycle-ready` job is announced just before the row is marked READY (part 4, announce first), so a consumer can pick it up a moment early.
+  (c) **The labelled last price depends on the newest-row question below.** It is the close of the M5 row at the slot and is exposed only while that row is still the version this cycle wrote
+  (`lastPrice.status = OK`); once the next cycle rewrites it the answer is `UNAVAILABLE / NOT_THIS_CYCLES_PRICE`, and if the export ended before the new bar opened there is no row at all
+  (`FORMING_BAR_NOT_IN_TABLE`). If the VPS query shows the newest row is the bar about to close (not the new-bar stub), the price line needs another source: decide then, do not borrow the closed bar's close.
+  (d) **Known "latest available" read, reported and NOT changed:** `lib/indicator-statistics/queries.ts` (`getLatestContainmentRates`, `distinct` + `captured_at desc`, feeds the existing
+  market-sessions containment strip). It is the only offender in 694 scanned files; `test/no-latest-statistics.spec.ts` lists it and fails if it stops being true. Section 5 must read statistics through `getStatisticsAtSlot`.
+  (e) `legacy/` evaluators of the MCD kit (`mcd*/legacy/*_evaluator.py`) sort workbook rows by `captured_at` and take the newest; they are superseded archives (skipped by the guard), and the
+  retrofitted kit enforces the slot match itself (`mcd_common/cycle_inputs.py`). Part 5 hand-off: `docs/handoffs/2026-10-02-0446-step2-part5.md`.
+
+- **Build step 2 part 4 (2026-10-02): gateway side BUILT, NOT DEPLOYED, Part 2 migration NOT applied.** `POST /api/v1/cycle-manifest`
+  (API key, validated against a byte-identical copy of the Stack C contract kept inside `railway-gateway/src/cycle/`), a manifest job on
+  `market-data-sync`, the landed-row check, `market_cycles` writes and a `cycle-ready` job keyed `XAUUSD_<slot>`. **Deploy order matters,
+  in this order:** (1) the production and VPS checks below, then `prisma migrate status`, then apply
+  `20261002000000_add_cycle_pipeline_tables`; (2) deploy `railway-gateway` (it gains the dependency `ajv` 8.18.0; `postinstall` runs
+  `prisma generate`); (3) copy the part 3 files to the VPS. **A gateway deployed before the migration answers 200 to a manifest and then fails
+  the job** (`market_cycles` does not exist; 3 attempts), after which the sender has stamped the manifest delivered and it is lost. The
+  gateway before the VPS files is safe. Also: (a) **`cycle-ready` jobs have no consumer until build step 3**: they wait in Redis (about 288 a day,
+  small payloads; `removeOnComplete` never applies to a job that never runs), step 3's sensor worker must drain them; (b) **no watchdog**: a manifest job
+  that exhausts its 3 attempts (a database outage longer than the backoff) leaves its `market_cycles` row PENDING for good; part 5's read side must
+  select only READY rows when it looks for the newest ready cycle (`data-status.ts` takes a ready cycle as its input and never sees PENDING ones); (c) **three starting values are untuned**: re-check every 5 s,
+  give up on missing rows after 120 s, a 30 s grace for statistics before going READY without them (recorded as `STATISTICS_SHORTFALL` in
+  `check_detail`) (`railway-gateway/src/cycle/manifest-thresholds.ts`). Part 4 hand-off: `docs/handoffs/2026-10-02-0156-step2-part4.md`.
+
+- **Build step 2 part 3 (2026-10-02): sender side BUILT, NOT DEPLOYED to the VPS.** Davin copies three files from
+  `backend-stack-c/.../v2_29_data_pipeline_architecture/`: `export_collector_validator_v2.py`, `sqlite_schema_v6_xauusd.sql` and
+  `backfill_worker_api_gateway_v5.py` (the `DEPLOY_TO_CONTABO_VPS_READY/Python_Scripts` copies are older and that package has no
+  schema file; the schema file is required beside the collector because the collector creates the manifest outbox from it).
+  Restart `MT5Collector` first (it widens `xauusd.db` additively and creates `cycle_manifests`), then `MT5PushWorker`. Either order
+  is safe: a worker meeting an old database switches newest-first and the manifest off and says so once in its log. **Until
+  the gateway endpoint `/api/v1/cycle-manifest` (built in part 4, not yet deployed) is live, every manifest answers 404**: the worker retries each for an hour,
+  never quarantines it, and price rows are unaffected. Newest-first ordering takes effect as soon as the new collector has
+  validated one cycle. Part 3 hand-off: `docs/handoffs/2026-10-02-0101-step2-part3.md`.
+
+- **Build step 2 (2026-10-02): is the newest row at slot time the new-bar stub or the bar that is about to close? — UNVERIFIED.**
+  ADR-011 and §1.5 say the collector reads about 5 s after the boundary, so the newest row is a stub of the bar just
+  opened (the 20:55 bar at the 20:55 slot). The live code points the other way: the exporters fire at second 59 of every
+  minute (`InpExportSecond = 59`, `mq5/ohlcvexportlightweight_v2_29.mq5:35,110`), one second before a 5-minute boundary, so the
+  freshest export before the collector's read at slot + 5 s would end with the bar that opened five minutes earlier (20:50),
+  not yet closed by a second; and the collector's own stale-export guard treats a lag of about 300 s on M5 as normal
+  (`export_collector_validator_v2.py:75-81`, "worst legitimate lag ~495 s"). The only real sample (the 18 Sep example cycle,
+  `davintrade-stack-d-and-e/engine-1-5-new/OHLCV_XAUUSD_M5.txt`) ends with the 20:55 stub, so the evidence conflicts.
+  If the closing bar is the newest row, then rule 2's "closed" bar may be about 1 s short, rule 3's labelled price has no stub to
+  come from, and "replaying a slot returns the same closed bars" needs the digest (decision 8). **Settled by the first real
+  cycle.** Build step 2 part 3 (built 2026-10-02, not deployed) makes the collector stamp, on every validated cycle in
+  `collection_cycles`, `export_mtime` (the OHLCV export file's modification time: NOT the "Export Time:" header line, which is
+  the last tick's broker time) and `newest_bar_ts` (open time of the newest bar). Once the updated collector has run a few
+  cycles on the VPS, this read-only query on `C:\Scripts\database\xauusd.db` answers the question without the gateway:
+  `SELECT cycle_time, timeframe, attempt, export_mtime - cycle_time AS export_vs_slot_sec, cycle_time - newest_bar_ts AS slot_minus_newest_sec FROM collection_cycles WHERE status = 'validated' AND export_mtime IS NOT NULL ORDER BY cycle_time DESC LIMIT 30;`
+  Reading it for M5: `slot_minus_newest_sec` of **0** means the newest row is the stub of the bar that just opened (the document's
+  reading); **300** means it is the bar that closes at the slot, and a negative `export_vs_slot_sec` (the export was written before the
+  boundary) says it was exported before it closed. Options to
+  bring to Davin if it is real: read the :59 export at about slot + 65 s (inside the 2-minute ready threshold), or change
+  `InpExportSecond` (rebuild and redeploy of 13 indicators). Plan: `docs/handoffs/2026-10-01-2321-step2-plan.md` §2 finding 1.
+
+- **Build step 2 (2026-10-02): checks Davin runs before the Part 2 migration is applied (decisions 2 and 3, settled in the plan).**
+  Read-only; the Executor cannot reach production (`.env` is the staging clone). Parts 1 to 3 do not wait for these.
+  **The Part 2 migration is written and NOT applied:** `prisma/migrations/20261002000000_add_cycle_pipeline_tables/` (four additive
+  tables, no foreign keys, two seed rows; replayed and introspected clean on a local embedded Postgres). Apply it only after the checks
+  below, after `prisma migrate status`, and before any gateway deploy that writes these tables (parts 4, 6, 8, 9). It depends on none of
+  the other pending migrations, so it can be applied alone (`prisma db execute --file`, then `prisma migrate resolve --applied`).
+  (a) Point-in-time migration `20260920000000_add_market_data_point_in_time`: `SELECT to_regclass('public.market_data_point_in_time')`
+  and the last 8 rows of `_prisma_migrations`. (b) `indicator_statistics`: its column count, and whether
+  `market_data_v6.sr_9` exists (extended and `sr2` migrations are "authored, not applied"). (c) Timestamp fix: `.ex5` dates on
+  terminals A and B, and one fresh export's bar time against the chart. (d) Frozen-mode binaries: `.ex5` dates and the frozen
+  input on each of the 7 centroid indicators (all 7 `.mq5` sources contain `MODE_FROZEN_LINE`; the `.ex5` files are compressed,
+  so they cannot be inspected from here). (e) Which gateway the push worker targets: see the OPEN item further down. Record each
+  answer in `STACK-D-ARCHITECTURE.md` §0.5 and move this item to `history/resolved-waiting-on.md`.
 
 <!-- session 2026-09-30 mcd-p1-shared-kit -->
 
@@ -52,6 +264,13 @@ Quick index (newest first):
   includes the forming bar. That settles the window, not the fit price: whether the fit used the forming bar's
   price still needs the MQL5 source. Hand-off:
   [2026-10-01-0703-mcd3-p2.md](../../docs/handoffs/2026-10-01-0703-mcd3-p2.md) §7 item 1.
+  **New evidence (2026-10-02, build step 2 planning):** in `mq5/2EDTCentroidRegressionCherryPickA_v2_29.mq5:1997-2004` the SSA
+  input vector is `close[startIdx .. rates_total - 1]`, and index `rates_total - 1` is the forming bar, so `*_ssa` (every bar's
+  value, not only the newest) is computed with the forming bar's close. Only that one of the 7 centroid files was read; the
+  regression and statistics paths (lines 677-680, 994, 1059) also run to `rates_total - 1` but were not traced.
+  **Davin's decision (2026-10-02, build step 2 decision 5): carry this for stage 5 (certification), do not change the MQL5 now.**
+  Build step 2's "no still-open bar downstream" item is therefore shown on the read path only (closed-bar view, one-day OHLC,
+  statistics lookup by slot); the indicators' own fit is outside it.
 
 - **The kit writes an absolute workbook path into `<slot>.source.md` (2026-10-01, MCD3 task P3).** For a workbook outside
   `engine-1-5-new/` (v3 and v4, as for MCD1, MCD2 and MCD0) the fixture files carry a `D:/SaaS Project/...` path; the

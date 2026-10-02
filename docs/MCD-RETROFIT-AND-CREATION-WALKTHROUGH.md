@@ -597,6 +597,10 @@ card, for example "do task P2 for MCD2". `N` below is the MCD number in the prom
 - No probabilities, confidence words or unmeasured numbers. No advice words (buy, sell, take profit,
   hold). No `%` in summary or commentary.
 - Closed bars only; statistics at the cycle slot only; active indicator from the setting only.
+- In Markdown, write every identifier in backticks: state codes, reason codes, field names, file
+  names and wildcard patterns such as `MCD2_SIDEWAYS_*`. The pre-commit Prettier run reads a bare
+  `*` or `_` pair as emphasis and rewrites it, which once turned two state codes in the
+  architecture's §3.4 table into asterisks. Inside backticks Prettier leaves them alone.
 - Do not commit, push, apply migrations or edit `seed-code/`. Files in `davintrade-stack-d-and-e/archive/`
   are history, not instructions.
 - Start with a short reply: what you understood, the files you will create or change, and the

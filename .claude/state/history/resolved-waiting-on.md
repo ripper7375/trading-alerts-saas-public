@@ -238,3 +238,15 @@ FIELD-CONSISTENCY-AUDIT-v2_29.md` §5. Not something this Executor can resolve u
   >   no fixture output moves; fixtures' smallest `T_EDT` is 314 on M5 and 500 on M15). It waits for Davin's confirmation, with one question
   >   first: `min(T_EDT − 1, cap)` applied literally also drops the 48-bar (MCD2) and 96-bar (MCD1) floors, so the sections keep them as
   >   minimums (INVALID + `INSUFFICIENT_BARS`). Hand-off: [2026-10-01-1435-p7a-mcd2-mcd1.md](../../../docs/handoffs/2026-10-01-1435-p7a-mcd2-mcd1.md).
+
+<!-- session 2026-10-02 step2-part10 -->
+
+- **RESOLVED 2026-10-02 (build step 2 part 10) — how RETUNING can end on the real pipeline.** As it stood after part 9: _"The ordered definition of the re-push count can never reach 0 on the real
+  collector (it re-queues the whole window every cycle), so RETUNING would not end; Davin decides before step 3 reads the flag."_ The cause: `promote_cycle()` rewrites every bar of the window with
+  `INSERT OR REPLACE` and does not list `synced_at`, so after every cycle all of the roughly 3,000 M5 rows are unsent again, and the manifest is built right after the cycle's newest bars were sent. The sender's
+  `repush_rows_unsent` (unsent rows older than `slot - 300`) was therefore about 2,700 or more in every manifest, never 0, promote or not (pinned by
+  `test_the_collectors_full_requeue_leaves_the_whole_window_unsent_at_manifest_time`).
+  **Resolution:** Davin chose Option A in the part 10 order. The gateway counts, while a symbol is RETUNING, the M5 rows of the window (`slot - 3000 * 300` to the slot) in `market_data_v6` whose `cycle_id` is below the
+  promote cycle's `m5_collection_cycle_id`; at 0, the first manifest that is verified (READY) ends it and a `RETUNE_COMPLETE` event is written. The sender's field stays as a diagnostic. ADR-015 was amended in place
+  and STACK-D-ARCHITECTURE.md section 1.6 item 2 changed with it. Also gone with it: part 9's note that a sender without the count never ends a RETUNING, so a promote between the gateway deploy and the VPS file
+  deploy is harmless now. **Still open from it:** Davin to confirm the one-step reading of "followed by one verified manifest" (hand-off `2026-10-02-1300-step2-part10.md`, decision 1).

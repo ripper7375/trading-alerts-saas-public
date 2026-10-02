@@ -1,7 +1,7 @@
 ---
 type: Concept/AgentState
 status: active
-updated_at: 2026-10-01
+updated_at: 2026-10-02
 last_numbered_session: '14-3 (CLOSED SUCCESSFUL 2026-08-30) — Phase 14 complete'
 next_numbered_session: '12-0 (Phase 12, Stack D) — blocked on the handover-prompt re-draft, see waiting-on.md'
 git_branch: main
@@ -61,52 +61,66 @@ Every entry older than these two is in [history](./history/index.md).
   [P4 (b) MCD0](../../docs/handoffs/2026-10-01-1536-mcd0-p4b.md),
   [P5 MCD0](../../docs/handoffs/2026-10-01-1559-mcd0-p5.md),
   [P6 MCD0](../../docs/handoffs/2026-10-01-1650-mcd0-p6.md).
+- **Build step 2, Market data & chart (2026-10-02):** plan approved ([plan](../../docs/handoffs/2026-10-01-2321-step2-plan.md), ten parts); **all ten parts are built, checked by session B (no defect found; [check](../../docs/handoffs/2026-10-02-1548-step2-session-b-check.md)) and committed
+  locally in seven commits by area (not pushed); nothing deployed, the part 2 migration is a file only, not applied.**
+  (cycle core, [part 1](../../docs/handoffs/2026-10-01-2347-step2-part1.md); four tables as an unapplied migration, [part 2](../../docs/handoffs/2026-10-02-0010-step2-part2.md);
+  sender side, [part 3](../../docs/handoffs/2026-10-02-0101-step2-part3.md); gateway endpoint, processor and `cycle-ready` job, [part 4](../../docs/handoffs/2026-10-02-0156-step2-part4.md);
+  the strengthened landed check and the read side, [part 5](../../docs/handoffs/2026-10-02-0446-step2-part5.md); the active-indicator setting behind a flag that is off,
+  [part 6](../../docs/handoffs/2026-10-02-0536-step2-part6.md); the chart stamp, the cycle-driven renderer and the last good image,
+  [part 7](../../docs/handoffs/2026-10-02-0714-step2-part7.md); the `symbol_specs` lane (an MQL5 exporter that is NOT compiled),
+  [part 8](../../docs/handoffs/2026-10-02-1100-step2-part8.md); promote detection and RETUNING,
+  [part 9](../../docs/handoffs/2026-10-02-1134-step2-part9.md); **part 10: Option A (the gateway counts the window to end RETUNING, ADR-015 amended, part 9's open point resolved), the `measure-cycles` kit and the
+  deploy-order runbook** ([part 10](../../docs/handoffs/2026-10-02-1300-step2-part10.md)).) **Next:** Davin takes **decision 1, how RETUNING ends** (session B's P1: with the real push worker it could last days, not hours; see [waiting-on](./waiting-on.md)),
+  then a small builder session fixes the stale statements (P2). He also settles the other open points (the one-step reading of "followed by one verified manifest", a key of its own for
+  writes before the flag goes live, ADR-015 amended or superseded, the part 7 and 8 questions), runs the production and VPS checks, and deploys in the order of
+  [the runbook](../../docs/runbooks/deploy-stack-d-step2.md) (migration, gateway, monolith with the flag off, VPS files, then the exporter on terminals A and B), runs the kit on real cycles, and confirms or replaces
+  the ADR-012 thresholds with a new decision. Session B's F1 to F4 close with that live evidence. Build step 3 starts after live evidence is recorded ([waiting-on](./waiting-on.md)).
 - **Open follow-ups:** see [waiting-on.md](./waiting-on.md). Database traps:
   [database-traps.md](../architecture/database-traps.md).
 
 ## Latest sessions (verbatim)
 
-<!-- session 2026-10-01 mcd0-p6 -->
+<!-- session 2026-10-02 step2-session-b-and-commit -->
 
-> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, committed as "Build MCD0: evaluator 1.0.0, tests, fixtures, manifest (Stage 3
-> sign-off)" on top of `4ae42610` (Davin's Next.js security update); NOT pushed. MCD task P6 for MCD0 (a fresh independent check that changed
-> nothing), then, after Davin's stage-3 sign-off, the two findings closed and the wrap-up.**
-> **Needs from Davin:** (1) schedule the kit change for `config_hash` ([waiting-on](./waiting-on.md)): MCD1 to MCD3 still pass a non-string hash
-> through; (2) keep or revert the builder addition to F1 (a `config_hash` that is not a mapping is also INVALID + `SANITY_FAILED`); (3) push, when
-> he decides; (4) optionally a fresh P6 check of the MCD1 and MCD2 2.0.1 patch; nothing blocks. `active-tasks.md` was deleted (every item done).
-> **Changed & verified:** `mcd0_evaluator.py` (tier 3 rejects a non-string `config_hash` of an active source and a non-mapping `config_hash`;
-> `_evaluate` keeps only string hashes), `test_mcd0_unit_tests.py` (**124 tests**, +5: four for F1, one for F2), spec §5 and §13, plan §9, the
-> manifest, the hand-off ([P6 MCD0](../../docs/handoffs/2026-10-01-1650-mcd0-p6.md)), the kit item in `waiting-on.md` and these state files.
-> From `engine-1-5-new/`: MCD0 **124 OK**, MCD1 **113 OK**, MCD2 **102 OK**, MCD3 **134 OK** (1 opt-in skip), the kit **215 OK**; pyflakes and
-> Prettier clean; LF, no Thai. P6: no line of A1 to A26 failed except A7 and A9 for a non-string `config_hash` (F1, root cause in the shared kit)
-> and a test gap under A21 (F2, a zero statistic reported as 1.0 passed every test); a differential test of 150,000 cycles against an independent
-> spec §6 implementation found no mismatch; a fuzz of about 23,000 corrupted bundles raised nothing (661 schema-breaking envelopes, all F1);
-> mutation of the evaluator: 382 mutants with one real gap, and 403 after the fixes with none; 92 data-file mutants (7 prose survivors). The
-> evaluator stays at 1.0.0 (never live, no fixture output changes).
-> **Unconfirmed / found:** the envelope margin is **20 to 30 tokens** for realistic data, not 48 (other setting names and random hashes
-> tokenise longer; 600 is crossed only with seven-digit statistics); `Params.from_yaml` accepts `.inf` (kit item); five defensive `int()`
-> normalisations are untested (low); the shadow period must still measure the flag rate; the fit-window question reaches MCD0. Not run: the
-> legacy tests, `test:ci`, `tsc`, lint, build (no app code touched). The oldest entry (P4 (b)) was rotated into `history/2026-10-sessions.md`.
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, HEAD `8bc80b6c` when it began. Build step 2 (chapter 1): session B's open items recorded, the asterisk damage in architecture §3.4 fixed, and build
+> step 2 committed locally (Davin approved the commit) in seven commits by area: Prisma migration, Stack C and VPS, MQL5, gateway, monolith, Stack C documents, docs and state (in that order: each commit builds on the ones before it). NOT pushed, NOT deployed, the part 2 migration NOT applied (it is a file only).**
+> Session B ([check](../../docs/handoffs/2026-10-02-1548-step2-session-b-check.md)) found no defect in what was built; of the nine section 1.8 items, five are met on the evidence it produced (2, 3 on the read path, 5, 6, 8)
+> and four wait on something that does not exist yet (1, 4, 7, 9: F1 to F4).
+> **Needs from Davin:** (1) **decision 1: how RETUNING ends (session B's P1).** Simulated with the real push worker's code, Option A can leave a promote in RETUNING for about 10 trading days at 100 to 200 rows a minute
+> and half a day at 600 (one slot at 800), where the docs say "hours"; the real rate is unmeasured. Options: keep Option A and measure first; Option B (count only what the sensors read, so RETUNING ends one verified manifest
+> after the promote); or speed up the push worker first. It does not block the deploy; settle it before step 3 wires the `retuning` flag to CAUTIONARY in production. (2) **P2, the stale statements, wait for decision 1** and
+> a small builder session (their text depends on the rule; deliberately NOT fixed in this session): the comment at `backfill_worker_api_gateway_v5.py:913-915`, `docs/STACK-D-ARCHITECTURE.md:255-256` ("5–6 minutes"), and
+> "hours" in `docs/adr/015-retuning-during-a-promote.md:36` and `docs/runbooks/mt5-terminal-promote.md:191`. (3) **F1 to F4 wait on live evidence** (none is a defect): F1 a real cycle measured with the kit; F2 the chart
+> stamp's enforcement point (`chartMatchesCycle` has no caller until the prompt assembler); F3 a promote rehearsed end to end (a second terminal, step 3's loader reading `retuning`, and P1's duration); F4 the
+> indicator switch in one slot for MCD inputs and the UI (step 3's loader; the flag is off). (4) Still open from part 10: the one-step reading of "followed by one verified manifest", a key of its own for writes before
+> the flag goes live, ADR-015 amended or superseded, the part 7 and 8 questions, the production and VPS checks, then the deploy in the runbook's order. (5) Push, when he decides.
+> **Changed & verified:** `docs/STACK-D-ARCHITECTURE.md` section 3.4 rows 4 and 5 (the state codes are back in backticks; Prettier clean); a search of `docs/STACK-D-*.md`, `docs/MCD-*.md` and `docs/adr/` found no other
+> damage (`M\*` is escaped and renders correctly, left as is); walkthrough Part E2 now has the rule that identifiers in Markdown always go in backticks; this file and `waiting-on.md` (session B's items); the commits, made by
+> explicit path with no `git add -A`. The test re-run after the commits and the hashes are in this session's hand-off report (`docs/handoffs/`, named `*-step2-commit.md`; written after the commits, so not in them).
+> **Unconfirmed / found:** nothing ran against production, the VPS or a deployed gateway; the newest-row question (stub or closing bar) is still unverified; `test_extended_statistics.py` fails the same 15 checks at HEAD (not
+> step 2's); six gateway tests read files outside `railway-gateway/` (the whole checkout is needed; a CI job testing the package alone would go red); `npm run build` at the repo root rewrites `next-env.d.ts`, which was kept
+> out of the commits; the two other hand-offs session B names (`*-1320-antigravity-advisor-...`, `*-1435-step3-plan.md`) are not in this working tree, so nothing of them was committed; `davintrade-recent-works/stack-d.md`
+> has an unrelated uncommitted change (Davin's reading list), left alone. The oldest entry (part 9) was rotated into `history/2026-10-sessions.md`.
 
-<!-- session 2026-10-01 mcd0-p5 -->
+<!-- session 2026-10-02 step2-part10 -->
 
-> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed (HEAD `4ae42610`, Davin's Next.js security update). MCD task
-> P5 for MCD0 after Davin approved the spec, registry, parameters and plan and answered Q1 to Q5 (routing: Explain only): MCD0 is built at
-> evaluator 1.0.0, flag `off`: evaluator, 119 tests, fixtures for v1, v3 and v4, `mcd0_output.json` and the manifest; the architecture §2.13
-> row reads `Draft (1.0.0)`.**
-> **Needs from Davin:** (1) run **task P6 for MCD0** in a fresh session, then his stage-3 sign-off; (2) what to commit and when (decision (k):
-> after P5 is verified, which it now is): uncommitted are ADR-083 settled and its README row, two manifest rows, `mcd0/`, the architecture row,
-> three hand-offs and the state files (`package.json` and `pnpm-lock.yaml` were committed by him); (3) optionally a fresh P6 check of the MCD1 and
-> MCD2 2.0.1 patch; (4) nothing blocks. The half-up rounding helper now exists in MCD0 to MCD3 and the `T_EDT` helper in three evaluators (a kit
-> change for him to schedule). `active-tasks.md` was deleted (every item done).
-> **Changed & verified:** new in `mcd0/`: `mcd0_evaluator.py` (254 lines, no bar read), `test_mcd0_unit_tests.py` (**119 tests, all pass**),
-> `fixtures/` (v1, v3, v4: nine files), `mcd0_output.json`, `mcd0-manifest-work-completion.md` (Appendix A with evidence); status lines and the
-> routing row of the spec, plan and registry; `docs/STACK-D-ARCHITECTURE.md` §2.13; the hand-off ([P5 MCD0](../../docs/handoffs/2026-10-01-1559-mcd0-p5.md))
-> and these state files. From `engine-1-5-new/`: MCD0 **119 OK**, MCD1 **113 OK**, MCD2 **102 OK**, MCD3 **134 OK** (1 opt-in skip), the kit **215 OK**,
-> legacy **13 OK** each; pyflakes and Prettier clean; LF, no Thai. Largest envelope **552 tokens** (546 valid; budget 600, margin 48), one evaluation
-> under 1 ms. Own mutation pass on the verdict logic: **37 of 37 killed** (36 on the first pass; the survivor was a required-fields test that read
-> its list from the evaluator, now holding its own copy from spec §3). Not run: `test:ci`, `tsc`, lint, build (no app code touched).
-> **Unconfirmed / found:** every real reading is `MCD0_M5_M15_DEFECT` under the fixture settings (and `MCD0_M5_DEFECT` with M15 re-set to `non_a`);
-> `MCD0_ALL_QUALIFIED` and `MCD0_M15_DEFECT` are synthetic only, so the shadow period must measure the flag rate; the envelope margin of 48 tokens is
-> thin, so a new `details` field must re-measure; the fit-window question reaches MCD0 ([waiting-on](./waiting-on.md), updated); `<slot>.source.md` of
-> v3 and v4 carries an absolute workbook path (the open kit item). The oldest entry (P4 (a)) was rotated into `history/2026-10-sessions.md`.
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1), session A, part 10 of 10, the closing part: Option A for RETUNING (the gateway counts
+> the window; ADR-015 amended), the `measure-cycles` kit, the deploy-order runbook, and the closing verification. **Build step 2 is complete in code.** Built and tested locally; NOT deployed, the part 2 migration is NOT
+> applied, nothing committed. A throwaway embedded Postgres (local, created from the gateway's own schema, stopped and removed) ran the gated specs; no repo migration was run.**
+> **Needs from Davin:** (1) **confirm the one-step reading of "followed by one verified manifest"** (the manifest that counts 0 must itself be READY; mine, hand-off decision 1; the extra manifest costs a new column);
+> (2) **a key of its own for writes, before `ACTIVE_INDICATOR_FROM_GATEWAY=true`** (part 6); (3) ADR-015 amended in place or superseded by a new number; (4) the production and VPS checks (including which gateway the
+> push worker targets), a go for the deploy in the order of `docs/runbooks/deploy-stack-d-step2.md`, and commit and push when he decides; (5) optional: a column for the gateway's count so progress is SQL-visible; (6) approve
+> a scratch-venv install of matplotlib, pandas, pytest and boto3 so the three renderer test files can run; (7) after the first measured cycles, confirm or replace the ADR-012 thresholds with a new decision; the part 7
+> and 8 questions are still open. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** `railway-gateway/src/cycle/retuning.ts` and `src/worker/cycle-manifest.service.ts` (Option A: the window count, the promote lookup, the new `RETUNE_COMPLETE` detail), `src/cycle/measure-cycles.ts`
+> and `scripts/measure-cycles.js` (the kit; the script is plain JavaScript on purpose), tests `retuning.spec.ts` (35), `promote-retuning.spec.ts` (57), gated `promote-retuning.pg.spec.ts` (8), `measure-cycles.spec.ts` (77) with
+> `helpers/measure-world.ts` and a sample fixture; docs: `docs/runbooks/deploy-stack-d-step2.md` (new), `mt5-terminal-promote.md`, ADR-015, STACK-D 1.6, the contract's description of `repush_rows_unsent` (copy re-synced), blueprint 5.4,
+> schema comments; hand-off ([part 10](../../docs/handoffs/2026-10-02-1300-step2-part10.md)). `railway-gateway`: `tsc` clean, `npm test` **29 passed + 3 gated skipped / 836 + 26 skipped** (was 729 + 24), `npm run test:e2e` **7 / 139**
+> (unchanged), the gated specs **8 of 8 twice** (promote) and **7 of 7** (readers) on the throwaway Postgres, `npm run build` clean (`dist/main.js`, no `dist/src`); root: `type-check` clean, `lint` at its baseline (0 errors, 5 old
+> warnings), `npm run test:ci` **257 suites / 3,453 passed** (unchanged: no monolith file touched); Python: 12 of the 13 pipeline tests green (`test_extended_statistics.py` fails the same 15 checks as at HEAD), `test_cycle_manifest.py` 47.
+> **Mutation check: 74 of 74 Option A mutants killed; the kit's 94 of 94 killed on the final spec** (first pass 87 killed, 1 weak, 6 survived: six real test gaps, now closed).
+> **Unconfirmed / found:** the kit has run on a fixture only, nothing ran against production, the VPS or a deployed gateway; **how long RETUNING lasts is unmeasured** (a worker slower than the window leaves the middle of it old for hours,
+> by my reading of the code); the window bound is one bar wider than the collector's, which can hold RETUNING one more cycle (pinned by a test); the three renderer test files were NOT run (packages not installed, no download without
+> a say), and phase 1 of the parked calculation project cannot run (its mock data folder is missing); `scripts/**/*.ts` is in the gateway's tsconfig, so a `.ts` there would break `node dist/main` (a test guards it); `railway run`
+> gives a private database URL a laptop cannot reach; my first mutation harness read every mutant as a crash (cp1252), and killing it mid-mutant left `retuning.ts` mutated until I restored it from the backup (verified by sha256);
+> the harness now refuses to start if a source differs from its backup. The oldest entry (part 8) was rotated into `history/2026-10-sessions.md`.

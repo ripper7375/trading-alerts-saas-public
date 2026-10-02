@@ -153,9 +153,9 @@ The prompts for every step follow one pattern; only the last line changes.
 
 **What gets built:** the 5-minute cycles and their ready signal, data status (FRESH, DELAYED, STALE,
 MARKET CLOSED), the closed-bar view, `symbol_specs`, the stamped chart.
-**You decide:** confirm or replace ADR-015 (RETUNING during a promote); settle the four "documents
-disagree" items in architecture §0.5; after the first measured cycle, confirm the freshness
-thresholds (ADR-012). You apply the database migrations.
+**You decide:** settle the four "documents disagree" items in architecture §0.5; after the first
+measured cycle, confirm the freshness thresholds (ADR-012). ADR-015 (RETUNING during a promote) is
+settled (1 October 2026). You apply the database migrations.
 
 Session A:
 
@@ -643,7 +643,7 @@ build steps.
 | D7  | MCD3 levels                                                                    | MCD3 retrofit              | Keep, and add the two baselines                                 |
 | D8  | MCD0 questions (a)–(f)                                                         | Section 3                  | See Section 3                                                   |
 | D10 | MCD3 EDT Stochastic formula direction                                          | MCD3 retrofit              | State which one you intend                                      |
-| —   | ADR-015, the four §0.5 items, freshness thresholds                             | Build step 2               | —                                                               |
+| —   | The four §0.5 items, freshness thresholds (ADR-015 settled 1 Oct 2026)         | Build step 2               | —                                                               |
 | —   | Which parts of your six design folders to keep                                 | Before build step 4        | Your advisor recommends                                         |
 | —   | Rules table content, accepted rule rows, golden scenarios                      | Build step 4               | —                                                               |
 | —   | Knowledge areas and playbook chunks                                            | Build step 6               | —                                                               |

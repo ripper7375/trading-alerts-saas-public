@@ -19,16 +19,16 @@ draining throughout.
 
 Three MT5 terminals, and only two of them alternate:
 
-| Terminal       | Carries                                          | Alternates? |
-| -------------- | ------------------------------------------------ | ----------- |
-| **A** (EDT)    | 26 EDT indicator attachments + calendar exporter | Yes         |
-| **B** (EDT)    | 26 EDT indicator attachments + calendar exporter | Yes         |
-| **S** (static) | 8 × `OHLCV_{SYMBOL}_M5.txt` exporters            | **Never**   |
+| Terminal       | Carries                                                            | Alternates? |
+| -------------- | ------------------------------------------------------------------ | ----------- |
+| **A** (EDT)    | 26 EDT indicator attachments + calendar and symbol-specs exporters | Yes         |
+| **B** (EDT)    | 26 EDT indicator attachments + calendar and symbol-specs exporters | Yes         |
+| **S** (static) | 8 × `OHLCV_{SYMBOL}_M5.txt` exporters                              | **Never**   |
 
-**The export directory is a shared bus.** Four independent lanes read from an MT5
-terminal's `MQL5\Files` folder — price, fit statistics, the economic calendar, and the
-currency & gold index engine. This promote moves the first three (they are all read by
-`MT5Collector` from one `--export-dir`). It must **not** move the fourth.
+**The export directory is a shared bus.** Five independent lanes read from an MT5
+terminal's `MQL5\Files` folder — price, fit statistics, the economic calendar, the broker's
+symbol specs, and the currency & gold index engine. This promote moves the first four (they
+are all read by `MT5Collector` from one `--export-dir`). It must **not** move the fifth.
 
 `DavinTradeCurrencyIndexEngine` reads `CGI_EXPORT_DIR`, a separate variable on a separate
 service. **It points at terminal S permanently and is never changed by a promote.** If
@@ -103,6 +103,13 @@ Look for `Export collector v2 (v6 pipeline) — db=... exports=<dir> tfs=M5,M15`
 **Then, that cycles are validating.** Within ~5 minutes you should see a `📥 Cycle`
 line followed by a successful promotion, not a rejection.
 
+**Then, with the Step 2 gateway deployed, that the gateway noticed.** The first manifest
+from the new terminal produces a `PROMOTE` row in `cycle_events` (its `terminal_id` is the
+folder name of the terminal you promoted to) and the cycle is RETUNING (§4 has the queries).
+No `PROMOTE` row after two or three slots means either the Step 2 sender files are not
+on the VPS or the manifest is not reaching the gateway: check `MT5PushWorker`'s log for
+`manifest` lines.
+
 **The failure you are watching for** is a standby that was not actually running. Since
 2026-09-12 the collector rejects this rather than accepting it silently — the log shows:
 
@@ -128,10 +135,101 @@ On the next cycle, `promote_cycle`'s `INSERT OR REPLACE` resets `synced_at` on a
 in-window rows, so the entire window re-pushes at 500 rows per 30-second cycle —
 **roughly 5–6 minutes**.
 
-Row selection is **oldest-first**, so the chart repaints **left to right**: the oldest bars
-update first and **the newest bars at the right-hand edge change last**. No blank chart, no
-error state, no interruption — a progressive repaint that completes from the far edge
-inward.
+Row selection used to be **oldest-first**, so the chart repainted **left to right** with
+**the newest bars at the right-hand edge changing last**. With the build step 2 push worker
+deployed (part 3, `backfill_worker_api_gateway_v5.py`) each cycle sends its newest 288 M5
+and 96 M15 closed bars, and each timeframe's newest row, **first**, then the cycle manifest,
+and only then the rest of the window oldest-first. After a promote the bars the sensors
+read therefore change first, and the older bars repaint behind them. No blank chart, no
+error state, no interruption either way.
+
+### What the gateway records (build step 2 parts 9 and 10; built, not deployed)
+
+The first manifest after a promote names a different terminal or different `config_hash`es.
+The gateway then:
+
+- writes one `PROMOTE` row to `cycle_events`: the effective slot (the slot of that manifest),
+  the terminal, the hashes and projection modes, and what they were before;
+- marks the cycle **RETUNING** (`market_cycles.retuning`, and the same flag on the
+  `cycle-ready` job), which Section 2 reads as CAUTIONARY;
+- **ends it by counting the window itself** (ADR-015, Option A, chosen 2026-10-02): at every
+  cycle while RETUNING, it counts the M5 rows of the 3,000-bar window whose `cycle_id` is
+  older than the promote cycle's `m5_collection_cycle_id`. Every cycle rewrites its whole
+  window under its own cycle id, so a row older than the promote cycle still holds a
+  pre-promote value. When the count is 0 and that manifest passes the landed-row check
+  (state READY), the cycle is not RETUNING and a `RETUNE_COMPLETE` event is written (it names
+  the promote's slot and cycle id, the window it counted and the verified slot).
+
+The window is `slot - 3000 × 300` seconds up to the slot (M5 only). That is a time window, one
+bar wider than the collector's 3,000 bars when the newest row is the new-bar stub, and shorter
+than them across a weekend: it never counts a row the collector has stopped re-pushing, at the
+price of leaving the oldest bars of a window with a gap unchecked (the worker re-pushes those
+first). A row that has just scrolled out of the window can hold RETUNING for one more cycle,
+never longer. M15 rows are not counted.
+
+`repush_rows_unsent`, which the sender still puts in every manifest, is **a diagnostic only**:
+the collector re-queues the whole window every cycle, so it is thousands in every manifest and
+never 0. Do not alarm on it, and do not use it to judge a promote.
+
+**What the first minutes look like, in order (Step 2 pipeline):**
+
+1. `nssm set` / `nssm restart MT5Collector` (§2). The collector reads terminal B.
+2. The next cycle validates and `promote_cycle` rewrites every bar of the window under the new
+   collector cycle id and re-queues all of them (`synced_at` cleared).
+3. The push worker sends the **priority set** first (the newest 288 M5 bars, 96 M15 bars and
+   each timeframe's newest row), then the manifest: it names terminal B and the new hashes.
+4. The gateway sees the change: `PROMOTE` row, cycle RETUNING. The bars the sensors read
+   (the newest 288 M5 and 96 M15 closed bars) and the statistics at the slot are already
+   new-tuning at this point.
+5. The worker drains the older part of the window, oldest first. Each cycle the gateway
+   counts what is left; the cycle that finds none and verifies ends RETUNING.
+
+**How long that takes is not known.** It depends on how many rows per slot the worker really
+re-sends (`PUSH-WORKER-THROUGHPUT-OPEN-ISSUE.md`: demand about 800 rows/min against a capacity of
+375 to 600, unmeasured). The worker re-sends the OLDEST rows first every slot; if its
+capacity per slot is below the window, the middle of the window is re-sent only as it ages into
+the oldest part, and RETUNING can last hours instead of minutes. That is the honest answer: the
+window really is mixed in the meantime. The measurement kit (`docs/runbooks/deploy-stack-d-step2.md`,
+section 6) reports how long each RETUNING episode lasted.
+
+To see it, read-only:
+
+```sql
+-- the cycles, and the promote
+SELECT slot, retuning, terminal_id, repush_rows_unsent FROM market_cycles ORDER BY slot DESC LIMIT 20;
+SELECT event_type, effective_slot, terminal_id, detail FROM cycle_events ORDER BY effective_slot DESC;
+
+-- the promote cycle's id, then how many window rows still hold pre-promote values
+SELECT c.slot, c.m5_collection_cycle_id
+FROM cycle_events e JOIN market_cycles c ON c.symbol = e.symbol AND c.slot = e.effective_slot
+WHERE e.event_type = 'PROMOTE' ORDER BY e.effective_slot DESC LIMIT 1;
+
+SELECT count(*) FROM market_data_v6
+WHERE symbol = 'XAUUSD' AND timeframe = 'M5'
+  AND "timestamp" BETWEEN <slot> - 900000 AND <slot>      -- <slot>: the newest READY cycle's slot
+  AND cycle_id < <m5_collection_cycle_id of the promote>;
+```
+
+The gateway log says the same once per READY cycle while RETUNING: `Cycle XAUUSD <slot> READY
+(..., RETUNING, N pre-promote M5 bars left in the window)`.
+
+**If RETUNING does not end**, read the count over several cycles. Falling: the worker is
+slower than the window (see above), nothing is broken. Constant above 0 for hours: rows the
+collector no longer re-pushes sit inside the window. Look at those rows' `timestamp` and
+`cycle_id` against `xauusd.db`. Two assumptions Option A makes: collector cycle ids only grow
+(recreating `xauusd.db` restarts them at 1, which would misread every row as new), and the
+gateway is reached by the worker (a quarantined row, a 400, keeps its old `cycle_id`).
+
+**A promote and the deploy order.** The count needs nothing from the sender, so a promote
+between the gateway deploy and the VPS file deploy is harmless (it was not with the sender's
+count, which an old sender never sent). The `cycle_events` table must exist before the gateway
+is deployed, or the first `PROMOTE` write fails and the cycle stays PENDING (apply the
+`20261002000000_add_cycle_pipeline_tables` migration first; `deploy-stack-d-step2.md`).
+
+**Not detected:** a reconfiguration of the M15 indicators alone, with the terminal and the M5
+indicators untouched. M15 is collected only on :00 :15 :30 :45, so the cycle before a refresh
+slot never carries it and the gateway has nothing to compare it with. Every promote switches
+the terminal, so a real promote is never missed.
 
 ---
 
@@ -189,6 +287,16 @@ tuning target:
   to that terminal stops economic-calendar capture with **no error** —
   `stage_economic_events()` returns `(0, 0)` when the file is absent, by design, so that a
   calendar failure can never reject a price row.
+- **The symbol-specs exporter belongs on both A and B, on an XAUUSD chart** (build step 2
+  part 8; `mq5/SymbolSpecsExport_v2_29.mq5`). Same silent failure: `stage_symbol_specs()`
+  returns `'NO_FILE'` when `SymbolSpecs_XAUUSD.txt` is absent, by design, so promoting to a
+  terminal without it just stops the broker figures refreshing, with no error, until the
+  newest row is a week old and Report 2 is no longer offered. It also warms up for about 30
+  minutes after being attached (it needs 30 spread samples taken while quotes are live), so
+  attach it to the standby well before a promote, not at the moment of one. If A and B are
+  on different broker accounts, their figures can differ: the collector records the
+  terminal's folder name in `terminal_id`, and a changed contract figure after a promote is
+  appended as news.
 - **`CGI_EXPORT_DIR` is not part of the promote.** It points at terminal S. If the
   currency-index widget goes blank after a promote, someone pointed it at an alternating
   terminal.

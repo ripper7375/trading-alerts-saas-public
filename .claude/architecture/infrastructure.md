@@ -43,5 +43,8 @@ related_docs:
   from promoting any cycle.
 - `install_services.bat` must not be re-run wholesale on a live VPS: it re-sets service
   environments to placeholder credentials. Register one service at a time.
+- **Putting build step 2 live** (migration, gateway, monolith with the flag off, VPS files, the symbol-specs
+  exporter, verification, cutover) has one order: `docs/runbooks/deploy-stack-d-step2.md`. Nothing in it has
+  been run against production yet.
 - After an indicator rebuild, confirm a fresh `_Statistic.txt` contains `[EDT CHANNEL]` before
   trusting a green cycle — a stale `.ex5` fails silently (new fields just read as NULL).

@@ -12,6 +12,247 @@ Entries rotated out of `current-state.md` by [session-lifecycle](../../protocols
 
 Back to [history index](./index.md).
 
+<!-- session 2026-10-02 step2-part9 -->
+
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1), session A, part 9 of 10: promote and RETUNING (rule 9, ADR-015): the sender's
+> `repush_rows_unsent`, and in `railway-gateway/` promote detection, the RETUNING state machine, the `PROMOTE` and `RETUNE_COMPLETE` events and `retuning` on the `cycle-ready` job. Built and tested locally;
+> NOT deployed, the part 2 migration is NOT applied, nothing committed. A throwaway embedded Postgres (local, created from the gateway's own schema, then removed) ran the gated specs; no repo migration was run.**
+> **Needs from Davin:** (1) **how RETUNING can end on the real pipeline (hand-off, decision 1; it blocks step 3 reading the flag, not part 10).** The collector's `INSERT OR REPLACE` re-queues the whole window every cycle,
+> so the order's count (unsent rows older than `slot - 300`) is thousands in every manifest and never 0: a real promote would start RETUNING and nothing would end it. Built as ordered, pinned by a test, and four
+> options written up (recommend: the gateway counts window rows still carrying a pre-promote `cycle_id`); (2) confirm deviations 1 to 6 (hand-off section 2), above all that M15 is not compared (an M15-only
+> reconfiguration is not detected) and that "verified" is READY with the zero allowed from an unverified cycle; (3) the deploy order: production and VPS checks, then the part 2 migration (it creates `cycle_events`),
+> then the gateway, then `backfill_worker_api_gateway_v5.py` alone on the VPS; (4) still open from parts 6 to 8 (a key of its own for writes, the `?slot=` and stamp questions, the part 8 decisions); (5) a go for
+> part 10; (6) commit and push, when he decides. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** sender `backfill_worker_api_gateway_v5.py` (`unsent_counts`, `repush_rows_unsent` in `build_manifest`), the contract's description of the field (gateway copy re-synced), the four manifest
+> fixtures regenerated from the real sender; gateway: `src/cycle/retuning.ts` (new), `manifest-row.ts` (`manifestTuning`), `src/worker/cycle-manifest.service.ts`; tests `retuning.spec.ts`,
+> `promote-retuning.spec.ts`, gated `promote-retuning.pg.spec.ts`, helper `promote-world.ts`; blueprint §5.4, the promote runbook (§4 corrected); hand-off
+> ([part 9](../../../docs/handoffs/2026-10-02-1134-step2-part9.md)). `railway-gateway`: `tsc` clean, `npm test` **28 passed + 3 gated skipped / 729 + 24 skipped** (was 666 + 18), `npm run test:e2e` **7 / 139** (unchanged),
+> the gated specs **6 of 6 three times** (new) and **7 of 7** (readers) on the throwaway Postgres; root: `type-check` clean, `lint` at its baseline (0 errors, 5 old warnings), `npm run test:ci` **257 suites / 3,453 passed**
+> (unchanged: no monolith file touched); Python `test_cycle_manifest.py` **47** (was 39), the 11 other Stack C tests green. **Mutation check: 88 of 88 gateway and 15 of 15 Python mutants killed by a failing test**
+> (one survivor each found and closed by a test; one equivalent removed). 70 new tests (+6 gated).
+> **Unconfirmed / found:** nothing ran on a real `xauusd.db` or a deployed gateway; nothing reads `retuning` yet (the `cycle-ready` job has no consumer until step 3); a sender without the count never ends a RETUNING
+> (absent is not zero); a manifest that arrives behind a newer one writes no events; `RETUNE_COMPLETE` is written just before the READY commit (a job that then exhausts its retries could leave a second one later);
+> my first M15 rule (compare with the last M15 cycle) fired a second PROMOTE per real promote, found only by the full-sequence test, so M15 is compared with the previous cycle only; a gated spec that lands eight slots
+> timed out at Jest's 5 s and the next test's `beforeEach` then failed with a misleading foreign-key error (gotchas file). The oldest entry (part 7) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-02 step2-part8 -->
+
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1), session A, part 8 of 10: the `symbol_specs` lane (ADR-066, STACK-D §1.4 and §6.9): an MQL5
+> exporter, a collector stage, a fourth push lane, and in `railway-gateway/` a contract, DTO, endpoint, queue, processor and reader. Built and tested locally; NOT deployed, the part 2 migration is NOT applied, nothing
+> committed. **The exporter was never compiled** (MetaEditor is Davin's). A throwaway embedded Postgres (local, created from the gateway's own schema, then removed) ran one gated spec; no repo migration was run.**
+> **Needs from Davin:** (1) the deploy order: the production and VPS checks, then the part 2 migration, **before** the gateway (a job for a missing table is lost after 3 attempts while the sender has already stamped the
+> row), then the gateway, then the same three VPS files as part 3 (`MT5Collector` first, then `MT5PushWorker`), then **compile `mq5/SymbolSpecsExport_v2_29.mq5` and attach it to an XAUUSD chart on BOTH terminals A and B**
+> ([waiting-on](../waiting-on.md), blueprint 5.7, the promote runbook); (2) confirm the ten deviations from the order (hand-off section 2), above all the exporter's folder (`mq5/`), UTC `captured_at` instead of raw
+> `TimeCurrent()`, and `typical_spread` as a 24 h median; (3) the other part 8 decisions (hand-off section 7: the window, `point`/`digits`/`swap_mode` required, a `getSymbolSpecByVersion`, how Section 6 reads the table);
+> (4) still open from parts 6 and 7: a key of its own for writes, and the `?slot=`, extra stamp keys and title; (5) a go for part 9 (promote and RETUNING; ADR-015 is Settled); (6) commit and push, when he decides.
+> `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** `C/mq5/SymbolSpecsExport_v2_29.mq5`, `C/gateway_contract_symbol_specs.schema.json`, the `symbol_specs` table in `sqlite_schema_v6_xauusd.sql`, `stage_symbol_specs` / `parse_symbol_specs_file` /
+> `terminal_label` and a hook in `export_collector_validator_v2.py`, `push_symbol_specs` in `backfill_worker_api_gateway_v5.py`; gateway: `src/symbol-specs/` (keys, reader, module, contract mirror),
+> `symbol-spec.dto.ts` (hand-written: the generator emits no min/max), `symbol-specs.controller.ts`, `symbol-specs.processor.ts`, both modules, the new queue override in all 6 existing e2e specs; blueprint 5.7, the
+> promote runbook; hand-off ([part 8](../../../docs/handoffs/2026-10-02-1100-step2-part8.md)). `railway-gateway`: `tsc` clean, `npm test` **26 passed + 2 gated skipped / 666 + 18 skipped** (was 599 + 7), `npm run test:e2e`
+> **7 / 139** (was 6 / 112), the new gated spec **11 passed** on the throwaway Postgres (6 of 6 runs); root: `type-check` clean, `lint` at its baseline (0 errors, 5 old warnings), `npm run test:ci` **257 suites / 3,453
+> passed** (unchanged: no monolith file touched); Python `test_symbol_specs.py` 42 and `test_push_symbol_specs.py` 28 PASS, the 10 other Stack C tests green. **Mutation check: 109 of 109 gateway and 80 of 80 Python mutants
+> killed by a failing test.** 164 new tests (+11 gated).
+> **Unconfirmed / found:** the exporter has never run in MetaTrader (first live check: blueprint 5.7); nothing ran on a real `xauusd.db` or a deployed gateway; nothing imports `SymbolSpecsService` yet; **my first mutation
+> harness counted a timeout as a kill** (a mutant that leaves an un-mocked Bull queue hangs jest; fixed, all runs redone, gotchas file); `test_extended_statistics.py` fails 15 checks at HEAD too (not mine); the generated
+> DTOs do not enforce their schemas' `pattern`/`minimum`/`minLength` (reported, not changed); the embedded Postgres closes connections under 8 parallel writers (`P1017`), so the race tests use two. The oldest entry
+> (part 6) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-02 step2-part7 -->
+
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1), session A, part 7 of 10: the chart stamp and the last good image (rule 8, ADR-014):
+> the cycle-driven VPS renderer, the stamp in the image title and in R2 object metadata, the monolith's stamp helpers and the download route's `X-Chart-*` headers, and an additive `?slot=` on
+> `GET /api/v1/cycles/current` in `railway-gateway/`. Built and tested locally; NOT deployed, the part 2 migration is NOT applied, no database or bucket touched.**
+> **Needs from Davin:** (1) the deploy order of this part: the gateway (with `?slot=`), then the monolith, then the VPS files (`mtf_render_upload_worker.py` and the whole `mtf_render/` package), with `API_GATEWAY_URL` and
+> `BACKFILL_API_KEY` added to `MT5Renderer`'s NSSM environment together with the existing entries, and `MT5Renderer` restarted ([waiting-on](../waiting-on.md)); (2) confirm the `?slot=` parameter (hand-off decision 2: called
+> plainly the endpoint answers at the gateway's newest READY cycle, a minute behind the VPS, so the picture of slot S would use the setting of S - 300), the two extra metadata keys and headers (decision 3), and the
+> four-line title (decision 4); (3) still open from part 6, before anything goes live: **a key of its own for writes** (decision 1, an auth change, so his); (4) a go for part 8 (the `symbol_specs` lane);
+> (5) for his advisor: one stale "ADR-015, proposed" left at `docs/MCD-DEVELOPMENT-STANDARD.md:798`; (6) commit and push, when he decides. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** VPS folder `v2_29_multi-timeframe-visualisation/`: new `mtf_render/stamp.py`, `data_source.py` (read as of the slot, one indicator per timeframe), `renderer.py` (stamped title), `__main__.py` (flags),
+> `mtf_render_upload_worker.py` rewritten (polls `xauusd.db` for the newest validated M5 slot, resolves the indicators from the gateway for that slot with a clean fallback to `RENDER_OVERLAYS`, renders both variants to a temp
+> folder, uploads ONLY if every file is a complete PNG, stamps the R2 metadata, prunes at 48 h); monolith: `lib/storage/chart-keys.ts` (`ChartStamp`, `parseChartStamp`, `chartMatchesCycle`, `chartStampHeaders`),
+> `lib/storage/r2.ts` (`getChartStamp`), `app/api/chart/download/route.ts` (headers on the 307; an image with no or unreadable stamp is still served); gateway: `?slot=` with `basis: REQUESTED_SLOT` and a new contract fixture;
+> hand-off ([part 7](../../../docs/handoffs/2026-10-02-0714-step2-part7.md)). `railway-gateway`: `tsc` clean, `npm test` **23 passed + 1 gated skipped / 599 + 7 skipped** (was 577), `npm run test:e2e` **6 / 112** (was 96);
+> root: `type-check` clean, `lint` at its baseline (0 errors, 5 old warnings, none mine), `npm run test:ci` **257 suites / 3,453 passed** (was 255 / 3,357); renderer `pytest` (scratch venv) **118 passed** (was 17), with
+> all network access blocked; Prettier clean on every new file. **Mutation check: 176 mutants, 176 killed** (16 real gaps closed). 233 new tests.
+> **Unconfirmed / found:** not run against a real `xauusd.db` or a real R2 bucket (first live check: the `uploaded ... slot S` log line, the five `x-amz-meta-*` keys on a HEAD, `X-Chart-Slot` on a download);
+> `chartMatchesCycle` has no caller until a prompt builder exists (step 3 or later), so "an image from another slot stays out of the prompt" is only partly met; the newest-row question in waiting-on is still open, so the
+> title states the newest M5 candle actually drawn as a fact; a failing `prune` used to mark a good slot failed (fixed); a default argument bound at import defeated a test's patch (gotchas); the pair can be briefly
+> mixed if the second upload fails (each object keeps its own true stamp); `RENDER_INTERVAL_SEC` is retired. The oldest entry (part 5) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-02 step2-part6 -->
+
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1), session A, part 6 of 10: the active-indicator setting (rule 6, ADR-010) in
+> `railway-gateway/` and the monolith. Built and tested locally; NOT deployed, the part 2 migration is NOT applied, no database touched, and the monolith side is behind a flag that is OFF
+> (`ACTIVE_INDICATOR_FROM_GATEWAY`).**
+> **Needs from Davin:** (1) **a key of its own for writes before this goes live** (an auth change, so his): the setter shares the gateway's `API_KEYS` with the VPS push worker (hand-off decision 1; recommend a
+> separate list); (2) renderer option handling in part 7, not part 6 (decision 2, recommend); (3) the overlay's refresh cadence, one request per slot while shown (decision 3); (4) the deploy order, now with two new
+> monolith env names (`MARKET_GATEWAY_URL`, `MARKET_GATEWAY_API_KEY`, never `NEXT_PUBLIC_`), a monolith key in the gateway's `API_KEYS`, then the flag ([waiting-on](../waiting-on.md)); (5) a go for part 7;
+> (6) for his advisor: one stale "ADR-015, proposed" left at `docs/MCD-DEVELOPMENT-STANDARD.md:798`; (7) commit and push, when he decides. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** gateway: new `src/cycle/active-indicator/` (`ActiveIndicatorService`: `resolveActiveIndicator`, `resolveAll`, the append-only audited setter that refuses non-future slots, the history; the
+> `cycles-current/1` body builder), `GET /api/v1/cycles/current`, `GET` and `POST /api/v1/active-indicator`, `ReaderCycle` timing fields, contract fixtures `cycles-current-{before,after}-flip.json`; monolith: new
+> `lib/active-indicator/` (client with a strict contract parser, flag, sources), `app/api/market-data/channel/route.ts` (resolves the indicator from the gateway when the flag is on, also before forwarding to
+> operation-service; flag off unchanged, its 13 existing tests pass untouched), `useMtfOverlay` (follows the route, refreshes 90 s after each slot), `app/api/admin/active-indicator/route.ts` (existing `requireAdmin`,
+> author from the session, no page); hand-off ([part 6](../../../docs/handoffs/2026-10-02-0536-step2-part6.md)). `railway-gateway`: `tsc` clean, `npm test` **23 passed + 1 gated skipped / 577 + 7 skipped** (was 505),
+> `npm run test:e2e` **6 / 96** (was 5 / 67); root: `type-check` clean, `lint` at its baseline (0 errors, 5 old warnings, none mine), `npm run test:ci` **255 suites / 3,357 passed** (was 251 / 3,213), Prettier clean on every
+> new file. **Mutation check: 64 mutants, 64 killed** (one real gap closed). 247 new tests.
+> **Unconfirmed / found:** a setting effective from slot T flips every consumer when the CYCLE of slot T is READY (about a minute after T), because every consumer asks about its cycle's slot; the renderer (part 7) and the
+> sensor loader (step 3) do not follow the setting yet, so the downloaded chart image can differ from the screen after a change; operation-service's port of the channel route does not know `fractal_edt`
+> (only with `MIGRATE_MARKET_DATA_CHANNEL` on); a test found that `URLSearchParams.size` is missing in jsdom. Not run: anything deployed, the overlay in a browser (needs a PRO sign-in), a real Postgres for the settings
+> table. The oldest entry (part 4) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-02 step2-part5 -->
+
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1), session A, part 5 of 10: the strengthened landed check and the read
+> side in `railway-gateway/` (closed bars, one-day OHLC, statistics at the slot). Built and tested locally; NOT deployed, the part 2 migration is NOT applied, no production or staging database touched.**
+> **Needs from Davin:** (1) the deploy order is unchanged: the production and VPS checks, `prisma migrate status`, the part 2 migration, then the gateway, then the three VPS files ([waiting-on](../waiting-on.md));
+> (2) **before part 6, hand-off decision 1: where Section 5 reads from** (the monolith cannot import the gateway's readers: recommend the gateway exposes them over HTTP, starting with part 6's
+> `GET /api/v1/cycles/current`); (3) confirm decisions 2 to 4 of the hand-off (a statistics row that landed is returned even when the cycle recorded a shortfall for other sources: recommend keep; a newest row the
+> gateway rejected now leaves the cycle INCOMPLETE; `lib/indicator-statistics/queries.ts` left alone until step 5); (4) a go for part 6; (5) for his advisor: one stale "ADR-015, proposed" left at
+> `docs/MCD-DEVELOPMENT-STANDARD.md:798`; (6) commit and push, when he decides. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** the landed check now also requires the newest row's `cycle_id` at or above the manifest's `collection_cycle_id` (new reason `NEWEST_ROW_NOT_CURRENT`); new `src/cycle/read/`
+> (`CycleReaderService`: `getClosedBars`, `getOneDayOhlc`, `getStatisticsAtSlot`, `getReadyCycle`, `getNewestReadyCycle`; `ready-cycle.ts`; `read-types.ts`; `CycleReadModule`, not imported by `AppModule`) and
+> `src/cycle/closed-bars-query.ts` (the ONE closed-bars query, shared by the manifest service's digest and every reader); six new unit specs, a gated real-Postgres spec, the rule 5 guard
+> `no-latest-statistics.spec.ts` (scans 694 files); hand-off ([part 5](../../../docs/handoffs/2026-10-02-0446-step2-part5.md)). `railway-gateway`: `tsc` clean, `npm test` **21 suites passed + 1 gated skipped /
+> 505 tests + 7 skipped** (was 15 / 320), `npm run test:e2e` **5 / 67** (unchanged), Prettier clean on every new file (`test/validation.service.spec.ts` already failed it, untouched). **Mutation check: 61 mutants,
+> 61 killed** (four real test gaps found and closed). The real Prisma queries ran against a local embedded Postgres through the gated spec: **7 of 7**, and a negative control (READY filter removed) failed it 2 of 7; the instance was removed.
+> **Unconfirmed / found:** every reader answers STALE unless the cycle that collected the timeframe is READY (M15 at an M5-only slot: the quarter hour's cycle); the labelled last price is only offered while its row is
+> still the version this cycle wrote, and does not exist at all if the newest row turns out to be the closing bar (the VPS query in waiting-on settles it); the sensor worker must retry on `CYCLE_NOT_READY`; the readers do not check
+> for a hole inside a window; the guard found one offender, `lib/indicator-statistics/queries.ts` (reported, not changed); Jest here only finds specs under `test/`. Not run: anything deployed, a real cycle,
+> root `type-check` (no root file changed). The oldest entry (part 3) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-02 step2-part4 -->
+
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1), session A, part 4 of 10: the gateway side
+> in `railway-gateway/` (`POST /api/v1/cycle-manifest`, the landed-row check, `market_cycles`, the `cycle-ready` job). Built and tested locally; NOT deployed, the part 2 migration is NOT applied,
+> no production or staging database touched.**
+> **Needs from Davin:** (1) the deploy, **in this order**: the read-only production and VPS checks, `prisma migrate status`, apply `20261002000000_add_cycle_pipeline_tables`; then deploy `railway-gateway`
+> (a gateway before the migration answers 200 and loses the manifest); then the three part 3 files on the VPS ([waiting-on](.././waiting-on.md)); (2) decision 1 of the hand-off: make the landed check prove
+> "this cycle's rows" (the newest row's `cycle_id` at or above the manifest's `collection_cycle_id`), because as built an older copy of a row satisfies it (recommend adding, before the first real cycle);
+> (3) confirm the new direct dependency `ajv` 8.18.0 (pinned, already in the lockfile) and keeping the statistics policy (a 30 s grace, then READY with `STATISTICS_SHORTFALL` recorded; recommend keep);
+> (4) a go for part 5 (read side); (5) for his advisor: one stale "ADR-015, proposed" left at `docs/MCD-DEVELOPMENT-STANDARD.md:798`; (6) commit and push, when he decides. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** new `src/gateway/cycle-manifest.controller.ts`, `src/worker/{cycle-manifest.service,cycle-queues}.ts`, `src/cycle/{cycle-manifest.contract,manifest-decision,manifest-row,closed-bars-digest,windows,manifest-thresholds}.ts`
+> and a byte-identical in-package copy of the Stack C contract (`npm run sync:manifest-contract`, a test guards it); `MarketDataProcessor` now has ONE wildcard handler with concurrency 1 dispatching on the job name, so a manifest
+> runs after the rows queued before it; `package.json` (+`ajv`); one `cycle-ready` queue line in each of the four existing e2e specs; six new unit specs, one e2e spec, fixtures produced by the REAL push worker and a 96-case
+> verdict corpus from Python's `jsonschema`; hand-off ([part 4](../../../docs/handoffs/2026-10-02-0156-step2-part4.md)). `railway-gateway`: `tsc` clean, `npm test` **15 suites / 320 tests** (was 9 / 196),
+> `npm run test:e2e` **5 / 67** (was 4 / 43), Prettier clean on every new file (`test/validation.service.spec.ts` already failed it, untouched). **Mutation check: 65 mutants, 65 killed** (two real test gaps found and closed:
+> `attempts` from M5 only, and an in-memory table that ignored `orderBy`). The real Prisma queries were run once against a local embedded Postgres (ready path, digest recomputed with plain SQL, `skipDuplicates`,
+> the conditional update, the range count, JSON columns), then removed.
+> **Unconfirmed / found:** Bull adds concurrency across named handlers (a second named handler would mean a second loop), pinned by a spec against Bull's source; the landed check proves presence, not that this cycle's
+> upsert landed (decision 1); the digest's canonical form follows TypeScript number formatting (`2650`, not Python's `2650.0`), which a later replay must reproduce; a `cycle-ready` consumer (step 3) must not assume the row is
+> READY the instant it picks the job up; no watchdog for a PENDING row whose job exhausted its retries (harmless if part 5 reads only READY rows); `cycle-ready` jobs accumulate in Redis until step 3; the 386 serial row
+> requests may still be tight against the 2-minute deadline (part 10). Not run: anything deployed, a real cycle, root `type-check` (no root file changed). The oldest entry (part 2) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-02 step2-part3 -->
+
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1), session A, part 3 of 10: the sender side in
+> `backend-stack-c` (newest bars first plus the cycle manifest). Built and tested in the repository; NOT deployed to the VPS, no database touched.**
+> **Needs from Davin:** (1) deploy to the VPS: copy `export_collector_validator_v2.py`, `sqlite_schema_v6_xauusd.sql` (required) and `backfill_worker_api_gateway_v5.py`, restart `MT5Collector`
+> then `MT5PushWorker`, and after a few cycles run the read-only query in [waiting-on](.././waiting-on.md) to settle whether the newest row is the stub or the bar about to close (until part 4
+> ships the gateway endpoint the manifests answer 404 and are retried; prices are unaffected); (2) the production and VPS checks, then apply the part 2 migration before part 4 deploys; (3) a go
+> for part 4 (gateway endpoint); (4) low urgency: confirm that a slot superseded before its manifest was built gets none (hand-off §6; recommend keep); (5) for his advisor: one stale
+> "ADR-015, proposed" left at `docs/MCD-DEVELOPMENT-STANDARD.md:798`; (6) commit and push, when he decides. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** `backfill_worker_api_gateway_v5.py` (priority set of at most 386 rows newest first, then statistics and the manifest, then the backlog oldest-first within the 500-row
+> budget; manifest outbox and delivery), `export_collector_validator_v2.py` (stamps the OHLCV export file's mtime, the newest bar, the export directory and a finished marker; additive migration),
+> `sqlite_schema_v6_xauusd.sql`, new `gateway_contract_cycle_manifest.schema.json` (`cycle-manifest/1`), `cycle_test_support.py`, `test_push_priority_order.py`, `test_cycle_manifest.py`; comment-only
+> alignment of both Prisma schemas; hand-off ([part 3](../../../docs/handoffs/2026-10-02-0101-step2-part3.md)). **61 new tests pass (22 + 39)**; the 9 existing Stack C test files give the same results as
+> before; `py_compile` clean; `railway-gateway` 9 suites / 196 tests and e2e 4 / 43 unchanged, root `type-check` clean, the part 2 DDL still Prisma's verbatim output. Smoke run on a full 3,000-bar
+> world: 386 rows, 1 statistics batch, 1 manifest, 114 rows. **Mutation check: 57 mutants, 56 killed**, the survivor equivalent (two real test gaps found by it were closed).
+> **Unconfirmed / found:** `test_extended_statistics.py` already failed 15 checks before this work and still does (it compares real captured sample files); time to ready now includes sending 386 single-row
+> requests before the manifest, which may be tight against ADR-012's 2-minute deadline (part 10 measures); exports carry no "Export Time" line by default (`InpIncludeMetadata = false`), so the file's mtime is
+> the only export time; the collector is CRLF in the working tree; building a 6,000-row test world took 176 s until the pruning trigger was dropped from the fixtures. Not run: any gateway behaviour (part 4),
+> anything on the VPS. The oldest entry (part 1) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-02 step2-part2 -->
+
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1), session A, part 2 of 10: the four
+> additive tables (`market_cycles` with `attempts Int`, `active_indicator_settings`, `symbol_specs`, `cycle_events`) as schema, migration and mirrors.
+> The migration is written and NOT applied; no database was touched except a throwaway local one.**
+> **Needs from Davin:** (1) the read-only production and VPS checks, then apply `prisma/migrations/20261002000000_add_cycle_pipeline_tables` (after
+> `prisma migrate status`; it depends on no other pending migration, so it can be applied alone; steps in [waiting-on](.././waiting-on.md)); (2) confirm or
+> remove three `symbol_specs` columns beyond §6.9 (`point`, `digits`, `swap_mode`; recommended keep, hand-off §6); (3) a go for part 3 (sender side), which does
+> not need the migration applied; (4) for his advisor: one stale "ADR-015, proposed" left at `docs/MCD-DEVELOPMENT-STANDARD.md:798` (the build manual's two
+> lines were fixed this session); (5) commit and push, when he decides. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** four models appended to `prisma/market-data/schema.prisma` and, byte-identical, to `railway-gateway/prisma/schema.prisma`; new
+> `prisma/migrations/20261002000000_add_cycle_pipeline_tables/migration.sql` (Prisma's own DDL verbatim, 4 tables, 6 indexes, 2 seed rows); `types/prisma-stubs.d.ts`
+> (4 interfaces, 4 delegates); `railway-gateway/test/schema-sync.spec.ts` (22 to 56 tests); `docs/STACK-D-BUILD-USER-MANUAL.md` lines 156 and 646; `database-traps.md`,
+> `waiting-on.md`; the hand-off ([part 2](../../../docs/handoffs/2026-10-02-0010-step2-part2.md)). Both schemas validate; the DDL matches `migrate diff` and an independent
+> from-empty derivation; **replayed on an embedded Postgres: 11 of 11 checks pass and introspection against the schema is an empty migration** (a negative control
+> shows a diff). `railway-gateway`: `tsc` clean, `npm test` **9 suites / 196 tests** (was 162), `npm run test:e2e` **4 / 43** (unchanged); `schema-sync` mutation check
+> **14 of 14 killed**. Root: `npm run type-check` clean, ESLint on the stubs clean, `npm run test:ci` **251 suites / 3,213 tests**, identical to the baseline.
+> **Unconfirmed / found:** an MT5 export's "Export Time" line is `TimeCurrent()` (the last tick's broker server time), not UTC and not the write moment, so part 3 takes the
+> export time from the file's modification time; Docker's engine is not running here, so the replay used Prisma's embedded Postgres (PGlite), not a Postgres 16 server;
+> `prisma migrate diff` prints dotenv lines on stdout and `--from-url` is gone in Prisma 7 (both in `database-traps.md`); the stubs file never held the other market models
+> (pre-existing). Not run: any gateway behaviour (nothing imports the new models yet). The oldest entry (P6 MCD0) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-02 step2-part1 -->
+
+> **Ad-hoc session (2026-10-02, phase/session unchanged), `main`, NOT committed (HEAD `8bc80b6c`). Build step 2 (chapter 1, Market data & chart),
+> session A, part 1 of 10: the pure cycle core (slot, closed bar, market hours, data status) in `railway-gateway/src/cycle/`, and ADR-015 recorded
+> as Settled. Nothing is wired into the gateway: no deploy effect.**
+> **Needs from Davin:** (1) the read-only production and VPS checks before the Part 2 migration is applied: the four §0.5 items and which gateway the
+> push worker targets (exact checks in [waiting-on](../waiting-on.md), first two items); (2) a go for part 2 (migration files; `attempts` must be on
+> `market_cycles`) or part 3 (sender side), which do not depend on each other; (3) for his advisor: two stale "ADR-015 proposed" mentions left alone
+> (`docs/MCD-DEVELOPMENT-STANDARD.md:798`, `docs/STACK-D-BUILD-USER-MANUAL.md` lines 156 and 646); (4) commit and push, when he decides. Nothing else
+> blocks. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** new `src/cycle/{thresholds,slot,market-hours,data-status}.ts`, `test/{cycle-slot,market-hours,data-status}.spec.ts`,
+> `test/helpers/collector-constants.ts`, `test/fixtures/market-hours-parity.json`, `scripts/generate_market_hours_parity.py`; ADR-015, the ADR README and
+> the architecture (header, status words, rule 9, §1.6, §1.9, §5.3, §7, Appendix A and D); `waiting-on.md`, `environment-gotchas.md`; the plan and the
+> hand-off ([plan](../../../docs/handoffs/2026-10-01-2321-step2-plan.md), [part 1](../../../docs/handoffs/2026-10-01-2347-step2-part1.md)). In
+> `railway-gateway/`: `tsc` clean; `npm test` **9 suites / 162 tests** (baseline 6 / 93); `npm run test:e2e` **4 / 43** (unchanged); the Part 1 specs (69
+> tests) also pass under `TZ=UTC` and the host zone (UTC+7); the TypeScript gate agrees with the real Python gate at all 1,565 open/close flips and 6 DST
+> flips of 2025 to 2027; mutation check **36 of 36 killed** (one gap, a cycle ready exactly at its slot, closed by one test); Prettier clean.
+> **Unconfirmed / found:** the newest row at slot time may be the bar about to close, not the new-bar stub (exporters fire at second 59; Part 3 records
+> export time and newest bar; [waiting-on](../waiting-on.md)); the forming-bar SSA fit now has line-level evidence (`CherryPickA` 1997-2004), carried
+> for stage 5; `railway-gateway` has no working lint (gotchas file); the live status reads STALE for about 6 minutes after the market reopens (literal
+> rule 7) and DELAYED for up to 2 minutes before a retried cycle is stored FRESH; where the monolith gets the status function is open until step 7.
+> Not run: the monolith suites (no monolith code touched). The oldest entry (P5 MCD0) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 mcd0-p6 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, committed as "Build MCD0: evaluator 1.0.0, tests, fixtures, manifest (Stage 3
+> sign-off)" on top of `4ae42610` (Davin's Next.js security update); NOT pushed. MCD task P6 for MCD0 (a fresh independent check that changed
+> nothing), then, after Davin's stage-3 sign-off, the two findings closed and the wrap-up.**
+> **Needs from Davin:** (1) schedule the kit change for `config_hash` ([waiting-on](../waiting-on.md)): MCD1 to MCD3 still pass a non-string hash
+> through; (2) keep or revert the builder addition to F1 (a `config_hash` that is not a mapping is also INVALID + `SANITY_FAILED`); (3) push, when
+> he decides; (4) optionally a fresh P6 check of the MCD1 and MCD2 2.0.1 patch; nothing blocks. `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** `mcd0_evaluator.py` (tier 3 rejects a non-string `config_hash` of an active source and a non-mapping `config_hash`;
+> `_evaluate` keeps only string hashes), `test_mcd0_unit_tests.py` (**124 tests**, +5: four for F1, one for F2), spec §5 and §13, plan §9, the
+> manifest, the hand-off ([P6 MCD0](../../../docs/handoffs/2026-10-01-1650-mcd0-p6.md)), the kit item in `waiting-on.md` and these state files.
+> From `engine-1-5-new/`: MCD0 **124 OK**, MCD1 **113 OK**, MCD2 **102 OK**, MCD3 **134 OK** (1 opt-in skip), the kit **215 OK**; pyflakes and
+> Prettier clean; LF, no Thai. P6: no line of A1 to A26 failed except A7 and A9 for a non-string `config_hash` (F1, root cause in the shared kit)
+> and a test gap under A21 (F2, a zero statistic reported as 1.0 passed every test); a differential test of 150,000 cycles against an independent
+> spec §6 implementation found no mismatch; a fuzz of about 23,000 corrupted bundles raised nothing (661 schema-breaking envelopes, all F1);
+> mutation of the evaluator: 382 mutants with one real gap, and 403 after the fixes with none; 92 data-file mutants (7 prose survivors). The
+> evaluator stays at 1.0.0 (never live, no fixture output changes).
+> **Unconfirmed / found:** the envelope margin is **20 to 30 tokens** for realistic data, not 48 (other setting names and random hashes
+> tokenise longer; 600 is crossed only with seven-digit statistics); `Params.from_yaml` accepts `.inf` (kit item); five defensive `int()`
+> normalisations are untested (low); the shadow period must still measure the flag rate; the fit-window question reaches MCD0. Not run: the
+> legacy tests, `test:ci`, `tsc`, lint, build (no app code touched). The oldest entry (P4 (b)) was rotated into `history/2026-10-sessions.md`.
+
+<!-- session 2026-10-01 mcd0-p5 -->
+
+> **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed (HEAD `4ae42610`, Davin's Next.js security update). MCD task
+> P5 for MCD0 after Davin approved the spec, registry, parameters and plan and answered Q1 to Q5 (routing: Explain only): MCD0 is built at
+> evaluator 1.0.0, flag `off`: evaluator, 119 tests, fixtures for v1, v3 and v4, `mcd0_output.json` and the manifest; the architecture §2.13
+> row reads `Draft (1.0.0)`.**
+> **Needs from Davin:** (1) run **task P6 for MCD0** in a fresh session, then his stage-3 sign-off; (2) what to commit and when (decision (k):
+> after P5 is verified, which it now is): uncommitted are ADR-083 settled and its README row, two manifest rows, `mcd0/`, the architecture row,
+> three hand-offs and the state files (`package.json` and `pnpm-lock.yaml` were committed by him); (3) optionally a fresh P6 check of the MCD1 and
+> MCD2 2.0.1 patch; (4) nothing blocks. The half-up rounding helper now exists in MCD0 to MCD3 and the `T_EDT` helper in three evaluators (a kit
+> change for him to schedule). `active-tasks.md` was deleted (every item done).
+> **Changed & verified:** new in `mcd0/`: `mcd0_evaluator.py` (254 lines, no bar read), `test_mcd0_unit_tests.py` (**119 tests, all pass**),
+> `fixtures/` (v1, v3, v4: nine files), `mcd0_output.json`, `mcd0-manifest-work-completion.md` (Appendix A with evidence); status lines and the
+> routing row of the spec, plan and registry; `docs/STACK-D-ARCHITECTURE.md` §2.13; the hand-off ([P5 MCD0](../../../docs/handoffs/2026-10-01-1559-mcd0-p5.md))
+> and these state files. From `engine-1-5-new/`: MCD0 **119 OK**, MCD1 **113 OK**, MCD2 **102 OK**, MCD3 **134 OK** (1 opt-in skip), the kit **215 OK**,
+> legacy **13 OK** each; pyflakes and Prettier clean; LF, no Thai. Largest envelope **552 tokens** (546 valid; budget 600, margin 48), one evaluation
+> under 1 ms. Own mutation pass on the verdict logic: **37 of 37 killed** (36 on the first pass; the survivor was a required-fields test that read
+> its list from the evaluator, now holding its own copy from spec §3). Not run: `test:ci`, `tsc`, lint, build (no app code touched).
+> **Unconfirmed / found:** every real reading is `MCD0_M5_M15_DEFECT` under the fixture settings (and `MCD0_M5_DEFECT` with M15 re-set to `non_a`);
+> `MCD0_ALL_QUALIFIED` and `MCD0_M15_DEFECT` are synthetic only, so the shadow period must measure the flag rate; the envelope margin of 48 tokens is
+> thin, so a new `details` field must re-measure; the fit-window question reaches MCD0 ([waiting-on](../waiting-on.md), updated); `<slot>.source.md` of
+> v3 and v4 carries an absolute workbook path (the open kit item). The oldest entry (P4 (a)) was rotated into `history/2026-10-sessions.md`.
+
 <!-- session 2026-10-01 mcd0-p4b -->
 
 > **Ad-hoc session (2026-10-01, phase/session unchanged), `main`, NOT committed (HEAD `4ae42610` is Davin's Next.js security update). MCD

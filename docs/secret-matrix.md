@@ -148,6 +148,25 @@ Cataloged only because these names appear in in-scope files (`.env.example`, `do
 | `ADMIN_API_KEY`                  | Maintenance endpoints; read by `scripts/verify-sync-deployment.ts` | `.env.example` only (not in live `.env`/`.env.local`) |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Prisma seed script defaults                                        | `.env.example` only, commented out                    |
 
+## Market gateway (monolith to `railway-gateway`, build step 2 part 6, 2026-10-02) — names only, NOT set anywhere yet
+
+| Name                            | Consumed by                                                                                                                                                                                                                                                                                        | Found in                                                                                  |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `MARKET_GATEWAY_URL`            | Base URL of `railway-gateway`; read by `lib/active-indicator/gateway-client.ts` (server code only), used by the channel route and `app/api/admin/active-indicator/route.ts`                                                                                                                        | Not in any env file yet; set per environment when the flag below is turned on             |
+| `MARKET_GATEWAY_API_KEY`        | A **service** key sent as `Authorization: Bearer ...` to the gateway; it must be one of the gateway's `API_KEYS`. With the key the monolith can read the cycle endpoints and, through the admin route, write the active-indicator setting (see the part 6 hand-off on a key of its own for writes) | Not in any env file yet; **never** a `NEXT_PUBLIC_` variable, it must not reach a browser |
+| `ACTIVE_INDICATOR_FROM_GATEWAY` | Feature flag (not a secret): `true` makes `app/api/market-data/channel/route.ts` resolve the channel indicator from the gateway; anything else keeps the old behaviour (the request's `variant`, default `best_fit_a`)                                                                             | Not in any env file yet; default off                                                      |
+
+## Chart renderer on the VPS (`MT5Renderer`, build step 2 part 7, 2026-10-02) — names only
+
+Set with `nssm set MT5Renderer AppEnvironmentExtra ...` on the VPS (never in a repo file). The R2 names
+are in the R2 deployment document; the new ones for the cycle-driven renderer are:
+
+| Name                                                                                   | Consumed by                                                                                                                                                                                                        | Found in                                                  |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| `API_GATEWAY_URL`                                                                      | Gateway base URL; `mtf_render_upload_worker.py` asks `GET /api/v1/cycles/current?slot=S` for the active indicator at the slot it renders. The same value `MT5PushWorker` has. Unset: the renderer uses its default | VPS service environment only (NSSM); not in any repo file |
+| `BACKFILL_API_KEY` (or `API_KEY` if empty)                                             | A gateway API key (one of the gateway's `API_KEYS`; the same one `MT5PushWorker` uses), sent as `Authorization: Bearer ...`. The renderer only reads. **Secret**                                                   | VPS service environment only (NSSM); not in any repo file |
+| `RENDER_POLL_SEC`, `RENDER_RETRY_SEC`, `RENDER_GATEWAY_TIMEOUT_SEC`, `RENDER_OVERLAYS` | Worker tuning, not secrets (defaults 10, 30, 5, `best_fit_a`). `RENDER_INTERVAL_SEC` is retired                                                                                                                    | VPS service environment only; all optional                |
+
 ## Dev tooling (not consumed by application runtime)
 
 | Name                                 | Consumed by                                                                                                                                          | Found in                             |

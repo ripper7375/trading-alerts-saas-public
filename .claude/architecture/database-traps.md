@@ -38,6 +38,11 @@ Read before any schema change, migration, or query against a real database.
 - Market-data conventions: business timestamps are `Int` unix UTC, no `@db.VarChar`.
 - `prisma.config.ts` loads `.env.local` with `override: true`, so its `DIRECT_URL` beats any
   `DATABASE_URL` you pass on the command line. Production work uses `prisma.production.config.ts`.
+- **`market_data_v6.cycle_id` is the collector cycle that LAST wrote the row**, not the one that first saw the bar:
+  `promote_cycle()` rewrites every bar of the 3,000-bar window under each new cycle's id and the gateway's upsert
+  overwrites it. RETUNING (ADR-015, Option A) relies on this: a row with a `cycle_id` below the promote cycle's
+  `market_cycles.m5_collection_cycle_id` still holds pre-promote values. It also assumes collector ids only grow
+  (recreating `xauusd.db` restarts them at 1).
 
 ## Applying migrations
 
@@ -48,6 +53,18 @@ Read before any schema change, migration, or query against a real database.
 - Verify hand-written SQL against Prisma's own DDL:
   `prisma migrate diff --from-empty --to-schema <file> --script` (`--to-schema-datamodel` was
   removed in Prisma 7.9.1). When Docker Desktop is up, replay on a throwaway `postgres:16-alpine`.
+- **`prisma migrate diff --script` prints two dotenv "injected env" lines on stdout** in this repo, so a redirect into
+  a `.sql` file starts with them. Strip them before the output becomes a migration. `--from-url` no longer exists
+  (Prisma 7); use `--from-config-datasource` with a Prisma config.
+- **Verifying a migration without Docker:** `npx prisma dev --detach --name <x>` starts an embedded Postgres (use the
+  direct TCP URL it prints; the port can differ from `--db-port`). Run the SQL with `pg`, then
+  `prisma migrate diff --config <scratch config> --from-config-datasource --to-schema <schema> --script --exit-code`
+  (0 = no drift, 2 = drift). Stop it with `prisma dev stop <x>` and `prisma dev rm <x>`. Keep the scratch config
+  **outside the repo with only that local URL**: `prisma.config.ts` loads `.env.local`, whose `DIRECT_URL` is the staging
+  clone. Worked example: [step 2 part 2](../../docs/handoffs/2026-10-02-0010-step2-part2.md).
+  The same embedded Postgres runs the gateway's real-database spec (`railway-gateway/test/cycle-readers.pg.spec.ts`, gated on `CYCLE_PG_URL` and `CYCLE_PG_ALLOW_WIPE=yes`): create the tables
+  with `prisma migrate diff --from-empty --to-schema railway-gateway/prisma/schema.prisma --script` (strip the two dotenv lines), apply them with `pg`, run the spec, then stop and remove the instance.
+  The `prisma dev` TCP URL printed is `postgres://postgres:postgres@localhost:51214/template1` whatever `--port` you pass.
 - **Rollout order for market-data columns:** apply the migration **before** `railway-gateway`
   deploys (it auto-deploys from `main`). Its DTOs use `forbidNonWhitelisted`, and the push worker's
   400 handler quarantines a row **and stamps `synced_at`**, so rows sent to an un-migrated gateway
