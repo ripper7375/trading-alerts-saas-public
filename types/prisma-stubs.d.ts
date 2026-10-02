@@ -969,6 +969,84 @@ declare module '@prisma/client' {
     updatedAt: Date | string;
   }
 
+  // Stack D chapter 1 tables (build step 2, part 2; migration
+  // 20261002000000_add_cycle_pipeline_tables). Mirrors of the market-data
+  // schema's MarketCycle, ActiveIndicatorSetting, SymbolSpec and CycleEvent.
+  // Slots and other business timestamps are unix UTC seconds, like MarketDataV6.
+  export interface MarketCycle {
+    id: string;
+    symbol: string;
+    slot: number;
+    state: string;
+    data_status: string | null;
+    attempts: number;
+    manifest_received_at: number;
+    ready_at: number | null;
+    collector_started_at: number | null;
+    collector_validated_at: number | null;
+    m5_collection_cycle_id: number | null;
+    m15_collection_cycle_id: number | null;
+    m5_bar_count: number | null;
+    m15_bar_count: number | null;
+    m5_newest_bar_ts: number | null;
+    m15_newest_bar_ts: number | null;
+    m5_export_at: number | null;
+    m15_export_at: number | null;
+    check_detail: JsonValue | null;
+    terminal_id: string | null;
+    config_hashes: JsonValue | null;
+    source_modes: JsonValue | null;
+    retuning: boolean;
+    backlog_rows: number | null;
+    repush_rows_unsent: number | null;
+    closed_bars_digest: string | null;
+    createdAt: Date | string;
+    updatedAt: Date | string;
+  }
+
+  export interface ActiveIndicatorSetting {
+    id: string;
+    timeframe: string;
+    source: string;
+    effective_slot: number;
+    set_by: string;
+    reason: string | null;
+    createdAt: Date | string;
+  }
+
+  export interface SymbolSpec {
+    id: string;
+    terminal_id: string;
+    symbol: string;
+    version: number;
+    captured_at: number;
+    contract_size: number;
+    volume_min: number;
+    volume_step: number;
+    volume_max: number;
+    tick_size: number;
+    typical_spread: number;
+    swap_long: number;
+    swap_short: number;
+    point: number;
+    digits: number;
+    swap_mode: number;
+    createdAt: Date | string;
+  }
+
+  export interface CycleEvent {
+    id: string;
+    symbol: string;
+    event_type: string;
+    effective_slot: number;
+    dedupe_key: string;
+    terminal_id: string | null;
+    config_hashes: JsonValue | null;
+    source_modes: JsonValue | null;
+    detail: JsonValue | null;
+    createdAt: Date | string;
+  }
+
   // ============================================================
   // PRISMA NAMESPACE
   // ============================================================
@@ -1230,6 +1308,10 @@ declare module '@prisma/client' {
     loginHistory: ModelDelegate<LoginHistory>;
     securityAlert: ModelDelegate<SecurityAlert>;
     marketDataV6: ModelDelegate<MarketDataV6>;
+    marketCycle: ModelDelegate<MarketCycle>;
+    activeIndicatorSetting: ModelDelegate<ActiveIndicatorSetting>;
+    symbolSpec: ModelDelegate<SymbolSpec>;
+    cycleEvent: ModelDelegate<CycleEvent>;
   }
 }
 

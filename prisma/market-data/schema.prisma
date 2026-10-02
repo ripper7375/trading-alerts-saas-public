@@ -718,3 +718,196 @@ model CurrencyIndexSignal {
   @@index([bar_time, index_name])
   @@map("currency_index_signals")
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STACK D CHAPTER 1: CYCLES, ACTIVE INDICATOR, SYMBOL SPECS, CYCLE EVENTS
+// (build step 2, part 2; docs/STACK-D-ARCHITECTURE.md section 1)
+//
+// Four additive tables, written by railway-gateway (its own
+// prisma/schema.prisma mirrors them for `prisma generate` only; this schema
+// owns the migration, 20261002000000_add_cycle_pipeline_tables). Every business
+// timestamp is Int unix UTC, like the rest of this file. The rule for each
+// slot-valued column: a multiple of 300 (rule 1, ADR-008).
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// One row per 5-minute slot (rule 1, ADR-008): the cycle stamp the rest of
+/// Stack D reads. The push worker sends a manifest after the cycle's newest
+/// bars; the gateway checks it against what landed, writes this row and queues
+/// the Section 2 job keyed by the slot (ADR-009).
+///
+/// The row is written PENDING when the manifest arrives and moves to READY or
+/// INCOMPLETE once, so unlike the append-only tables it has an `updatedAt`.
+/// Only FRESH and DELAYED are ever stored in `data_status`: STALE and
+/// MARKET_CLOSED describe the absence of a cycle and are computed at read time
+/// (src/cycle/data-status.ts), never written.
+///
+/// `attempts` is an input of that computation, not a statistic: a cycle the
+/// collector had to retry gets a 4-minute ready deadline instead of 2 (ADR-012).
+model MarketCycle {
+  id String @id @default(cuid())
+
+  symbol String
+  slot   Int // unix UTC, a multiple of 300: the cycle key
+
+  state       String // PENDING | READY | INCOMPLETE
+  data_status String? // FRESH | DELAYED once READY; NULL before. Never STALE or MARKET_CLOSED
+  attempts    Int // collector attempts the cycle needed (the larger of M5 and M15); 1 is first try
+
+  // Timings. Gateway clock unless stated. ready_at - slot is the slot-to-ready
+  // time that section 1.8 asks to be measured; it is derived, not stored.
+  manifest_received_at   Int
+  ready_at               Int? // NULL until READY
+  collector_started_at   Int? // VPS clock: the first collection attempt of this slot (the M5 cycle's)
+  collector_validated_at Int? // VPS clock: the cycle passed validation and was promoted (the M5 cycle's)
+
+  // What the manifest declared, per timeframe. NULL on a slot that does not
+  // refresh that timeframe (M15 is collected only at :00 :15 :30 :45).
+  m5_collection_cycle_id  Int? // collector cycle_id, kept as provenance (ADR-008)
+  m15_collection_cycle_id Int?
+  m5_bar_count            Int?
+  m15_bar_count           Int?
+  // Open time of the newest row in the push. It may be the bar that is about to
+  // close rather than a stub of the new one: the first real cycles settle this
+  // (waiting-on.md, 2026-10-02), so it is recorded as found, not interpreted.
+  m5_newest_bar_ts        Int?
+  m15_newest_bar_ts       Int?
+  // When the MT5 export the cycle was collected from was written, as unix UTC.
+  // Take it from the file's modification time: the "Export Time" line inside an
+  // export is TimeCurrent(), the last tick's broker server time, which is not
+  // UTC and lags the write on a quiet market.
+  m5_export_at            Int?
+  m15_export_at           Int?
+  check_detail            Json? // expected versus landed counts and newest times when the check fails
+
+  // Which terminal and tuning produced the cycle (ADR-015). A change from the
+  // previous cycle is how a promote is noticed. terminal_id is the manifest's
+  // mt5_terminal (the MT5 terminal's folder, e.g. MT5-A), not the sender id.
+  // Keyed by timeframe first because the same source can be configured
+  // differently on the M5 and the M15 chart.
+  terminal_id   String?
+  config_hashes Json? // { "<timeframe>": { "<source>": "<config_hash>" } }
+  source_modes  Json? // { "<timeframe>": { "<source>": "DYNAMIC" | "FROZEN" } }, centroid sources only
+
+  // RETUNING: true from the promote's effective slot until the re-pushed window
+  // is complete, meaning the gateway counts no M5 row of the 3,000-bar window left
+  // from before the promote (cycle_id below the promote cycle's), and the manifest
+  // that counts it is verified (ADR-015, settled 2026-10-01; completion rule
+  // Option A, 2026-10-02).
+  retuning           Boolean @default(false)
+  backlog_rows       Int? // outbox rows unsent when the manifest was sent
+  repush_rows_unsent Int? // of those, rows queued by a promote's re-push; a diagnostic, the gateway does not read it
+
+  // SHA-256 of the closed-bar OHLC spine the cycle was declared ready on
+  // (replay scope, decided 2026-10-01). Indicator columns on closed bars are
+  // refit by later cycles and are deliberately not in it.
+  closed_bars_digest String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // One cycle per slot per symbol. A re-delivered manifest hits this key and
+  // must neither create a second row nor queue a second job.
+  @@unique([symbol, slot])
+  @@map("market_cycles")
+}
+
+/// The active channel indicator per timeframe (rule 6, ADR-010). APPEND-ONLY:
+/// a change is a NEW row, never an update or a delete, so the setting that held
+/// at any past slot can always be read back and a replay of that slot cannot
+/// change.
+///
+/// Resolution for (timeframe, slot): the row with the greatest `effective_slot`
+/// at or before the slot; among rows with the same `effective_slot` the latest
+/// `createdAt`, then the greatest `id`, wins (that is how a not-yet-effective
+/// entry is superseded). MCDs, the renderer and the UI all resolve through the
+/// one function so they switch on the same slot.
+///
+/// Enforced by the setter, not by this table: `effective_slot` must be later
+/// than the current slot, because a row added for a slot that has already passed
+/// would rewrite history. The migration seeds the ADR-010 starting values with
+/// `effective_slot` 0, so every slot resolves to something.
+model ActiveIndicatorSetting {
+  id String @id @default(cuid())
+
+  timeframe      String // M5 | M15
+  source         String // a channel indicator: best_fit_a | best_fit_b | cherry_a | cherry_b | most_recent | non_a | non_b | fractal_edt (validated by the setter)
+  effective_slot Int // unix UTC, a multiple of 300: applies to every slot at or after it
+  set_by         String // admin email or id; 'migration' for the starting values. A plain string, not a foreign key, so this table stays in the market-data schema
+  reason         String?
+
+  createdAt DateTime @default(now())
+
+  // No @updatedAt, deliberately: this table is never updated.
+  @@index([timeframe, effective_slot])
+  @@map("active_indicator_settings")
+}
+
+/// Broker figures for XAUUSD (ADR-066, section 6.9), read from the MT5 terminal
+/// that runs the export indicators, daily and whenever a value changes.
+/// APPEND-ONLY: Engine 4 records the `version` of the row it sized a lot with in
+/// the consent record, so that row has to stay as it was.
+///
+/// Two keys, two jobs. (symbol, captured_at) makes a re-delivered capture a
+/// no-op. (symbol, version) is a per-symbol counter assigned by the gateway on
+/// first insert. `commission` is not here: MT5 does not expose it and it is the
+/// trader's own input.
+model SymbolSpec {
+  id String @id @default(cuid())
+
+  terminal_id String
+  symbol      String
+  version     Int // per symbol, 1 upward, assigned by the gateway
+  captured_at Int // unix UTC, when the terminal was read
+
+  contract_size  Float // SYMBOL_TRADE_CONTRACT_SIZE
+  volume_min     Float // SYMBOL_VOLUME_MIN
+  volume_step    Float // SYMBOL_VOLUME_STEP
+  volume_max     Float // SYMBOL_VOLUME_MAX
+  tick_size      Float // SYMBOL_TRADE_TICK_SIZE
+  typical_spread Float // median SYMBOL_SPREAD, in points
+  swap_long      Float // SYMBOL_SWAP_LONG
+  swap_short     Float // SYMBOL_SWAP_SHORT
+
+  // Beyond the section 6.9 table: the units needed to read the figures above.
+  // A spread in points is not a price without SYMBOL_POINT, and a swap figure
+  // means points, currency or percent depending on SYMBOL_SWAP_MODE.
+  point     Float // SYMBOL_POINT: price per point
+  digits    Int // SYMBOL_DIGITS
+  swap_mode Int // SYMBOL_SWAP_MODE, the raw enum value
+
+  createdAt DateTime @default(now())
+
+  // No @updatedAt, deliberately: this table is never updated.
+  @@unique([symbol, captured_at])
+  @@unique([symbol, version])
+  @@map("symbol_specs")
+}
+
+/// Things that happen to the pipeline and that later sections read as events
+/// rather than as cycles. APPEND-ONLY. Build step 2 writes one type: PROMOTE
+/// (ADR-015): the collector switched to another terminal or tuning, recorded
+/// with its effective slot, the terminal, the `config_hash` per source and the
+/// mode. RETUNE_COMPLETE and WATCHDOG_ALERT are expected later; the type is a
+/// string for that reason.
+///
+/// `dedupe_key` is chosen by the producer so that noticing the same thing twice
+/// writes it once, for example `PROMOTE:XAUUSD:<slot>:<terminal>`.
+model CycleEvent {
+  id String @id @default(cuid())
+
+  symbol         String
+  event_type     String // PROMOTE (step 2); RETUNE_COMPLETE | WATCHDOG_ALERT later
+  effective_slot Int // unix UTC, a multiple of 300: the slot the event takes effect
+  dedupe_key     String @unique
+
+  terminal_id   String?
+  config_hashes Json? // { "<timeframe>": { "<source>": "<config_hash>" } }
+  source_modes  Json? // { "<timeframe>": { "<source>": "DYNAMIC" | "FROZEN" } }
+  detail        Json? // anything specific to the event type
+
+  createdAt DateTime @default(now())
+
+  // No @updatedAt, deliberately: this table is never updated.
+  @@index([symbol, event_type, effective_slot])
+  @@map("cycle_events")
+}
