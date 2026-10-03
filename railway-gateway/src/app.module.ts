@@ -8,6 +8,7 @@ import { GatewayModule } from './gateway/gateway.module';
 import { WorkerModule } from './worker/worker.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { SensorsModule } from './sensors/sensors.module';
 
 @Module({
   imports: [
@@ -45,6 +46,11 @@ import { PrismaModule } from './prisma/prisma.module';
     GatewayModule,
     WorkerModule,
     HealthModule,
+
+    // The sensor worker (build step 3 part 4): a consumer of the cycle-ready queue. A dynamic
+    // module that registers NOTHING unless SENSOR_WORKER_ENABLED is exactly `true`, so until
+    // phase B0 the gateway behaves as it did before it existed.
+    SensorsModule.register(),
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

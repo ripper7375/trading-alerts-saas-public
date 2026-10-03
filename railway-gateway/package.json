@@ -17,6 +17,7 @@
     "generate:dto": "node scripts/generate-market-data-dto.js",
     "sync:manifest-contract": "node scripts/sync-cycle-manifest-contract.js",
     "sync:symbol-specs-contract": "node scripts/sync-symbol-specs-contract.js",
+    "sync:mcd-output-schema": "node scripts/sync-mcd-output-schema.js",
     "prisma:generate": "prisma generate",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "test": "jest",

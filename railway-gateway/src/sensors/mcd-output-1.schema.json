@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcd-output/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mcd_id",
+    "evaluator_version",
+    "cycle_slot",
+    "last_closed_bar",
+    "active_indicator",
+    "config_hash",
+    "status",
+    "status_reasons",
+    "state_code",
+    "regime_status",
+    "bias",
+    "levels",
+    "depends_on",
+    "summary_line",
+    "commentary",
+    "details"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "mcd-output/1"
+    },
+    "mcd_id": {
+      "type": "string",
+      "pattern": "^MCD([0-9]|1[0-5])$"
+    },
+    "evaluator_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "cycle_slot": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-5][05]Z$"
+    },
+    "last_closed_bar": {
+      "type": "object",
+      "propertyNames": {
+        "enum": ["M5", "M15"]
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-5][05]Z$"
+      }
+    },
+    "active_indicator": {
+      "type": "object",
+      "propertyNames": {
+        "enum": ["M5", "M15"]
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "config_hash": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "enum": ["VALID", "CAUTIONARY", "INVALID", "STALE"]
+    },
+    "status_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+(:[A-Z0-9_]+)?$"
+      }
+    },
+    "state_code": {
+      "type": ["string", "null"],
+      "pattern": "^MCD([0-9]|1[0-5])_[A-Z0-9_]+$",
+      "maxLength": 48
+    },
+    "regime_status": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Z0-9_]+$"
+    },
+    "bias": {
+      "enum": ["LONG", "SHORT", "NEUTRAL", "STAND_ASIDE", null]
+    },
+    "levels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "tf", "price"],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "tf": {
+            "enum": ["M5", "M15"]
+          },
+          "price": {
+            "type": "number"
+          },
+          "role": {
+            "enum": ["support", "resistance", "mid"]
+          }
+        }
+      }
+    },
+    "depends_on": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^MCD([0-9]|1[0-5])$"
+      }
+    },
+    "summary_line": {
+      "type": "string",
+      "maxLength": 80
+    },
+    "commentary": {
+      "type": "string"
+    },
+    "details": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["VALID", "CAUTIONARY"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "state_code": {
+            "type": "string"
+          },
+          "bias": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["INVALID", "STALE"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "state_code": {
+            "const": null
+          },
+          "bias": {
+            "const": null
+          },
+          "levels": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["CAUTIONARY", "INVALID", "STALE"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "status_reasons": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}
