@@ -1,0 +1,106 @@
+# MCD3 registry entry and state register (standard Appendix C.2). Approved by Davin on 1 October 2026 (spec and plan); built in task P3.
+mcd_id: MCD3
+name: Consolidated trend and EDT stochastic
+evaluator_version: 2.0.0
+kind: derived # gate | independent | derived
+timeframes: [M15, M5]
+depends_on: [MCD1, MCD2]
+uses_channel: [M5, M15] # timeframes on which MCD0 defects make this MCD CAUTIONARY
+rung: # Davin confirmed on 1 October 2026 (standard 9.3, spec question Q8). MCD3 modifies, it does not vote.
+  DAY_TRADER: oscillators
+  SCALPER: oscillators
+flag: 'off' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
+spec: engine-1-5-new/mcd3/mcd3.md
+params: engine-1-5-new/mcd3/mcd3_params.yaml
+# Bias is decision D6 (Davin, 1 October 2026: the walkthrough C3 starting points): bull value and bull mid LONG; bear premium and bear mid SHORT; bull top, bear bottom and the sideways
+# state NEUTRAL; the three non-consolidated states STAND_ASIDE (these always reach the prompt in full, ADR-041).
+# Levels are decision D7 (Davin, 1 October 2026): UOEDT, baseline, LOEDT on both M15 and M5, from the last closed bars.
+# Decision D10 (Davin, 1 October 2026) is option A: the stochastic is 0 at LOEDT and 100 at UOEDT; the zones do not depend on it.
+states:
+  - code: MCD3_BULL_VALUE
+    meaning: The M15 and M5 channels both slope up and are nested, and the M15 SSA is in the lower zone of the M15 corridor.
+    bias: LONG
+    regime_status: BULLISH_CONSOLIDATED_VALUE_ZONE
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'Consolidated uptrend, lower zone of the M15 corridor'
+    commentary: MCD3_T01
+  - code: MCD3_BULL_MID
+    meaning: The M15 and M5 channels both slope up and are nested, and the M15 SSA is in the middle zone of the M15 corridor.
+    bias: LONG
+    regime_status: BULLISH_CONSOLIDATED_EQUILIBRIUM
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'Consolidated uptrend, middle zone of the M15 corridor'
+    commentary: MCD3_T02
+  - code: MCD3_BULL_TOP
+    meaning: The M15 and M5 channels both slope up and are nested, and the M15 SSA is in the upper zone of the M15 corridor.
+    bias: NEUTRAL
+    regime_status: BULLISH_CONSOLIDATED_OVERBOUGHT
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'Consolidated uptrend, upper zone of the M15 corridor'
+    commentary: MCD3_T03
+  - code: MCD3_BEAR_PREMIUM
+    meaning: The M15 and M5 channels both slope down and are nested, and the M15 SSA is in the upper zone of the M15 corridor.
+    bias: SHORT
+    regime_status: BEARISH_CONSOLIDATED_PREMIUM_ZONE
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'Consolidated downtrend, upper zone of the M15 corridor'
+    commentary: MCD3_T04
+  - code: MCD3_BEAR_MID
+    meaning: The M15 and M5 channels both slope down and are nested, and the M15 SSA is in the middle zone of the M15 corridor.
+    bias: SHORT
+    regime_status: BEARISH_CONSOLIDATED_EQUILIBRIUM
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'Consolidated downtrend, middle zone of the M15 corridor'
+    commentary: MCD3_T05
+  - code: MCD3_BEAR_BOTTOM
+    meaning: The M15 and M5 channels both slope down and are nested, and the M15 SSA is in the lower zone of the M15 corridor.
+    bias: NEUTRAL
+    regime_status: BEARISH_CONSOLIDATED_OVERSOLD
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'Consolidated downtrend, lower zone of the M15 corridor'
+    commentary: MCD3_T06
+  - code: MCD3_SIDEWAYS_EQUILIBRIUM
+    meaning: The M15 and M5 channels are both flat and nested.
+    bias: NEUTRAL
+    regime_status: SIDEWAYS_CONSOLIDATED_EQUILIBRIUM
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'Consolidated sideways, M5 corridor inside the M15 corridor'
+    commentary: MCD3_T07
+  - code: MCD3_NON_CONSOLIDATED_TREND_CONFLICT
+    meaning: The M15 and M5 channels slope in different directions, so there is no consolidated trend.
+    bias: STAND_ASIDE
+    regime_status: TREND_MISALIGNMENT
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 and M5 trends differ, no consolidated trend'
+    commentary: MCD3_T08
+  - code: MCD3_NON_CONSOLIDATED_OVERFLOW
+    meaning: The channels slope the same way, but the M5 corridor is inside the M15 corridor on too few of the window bars.
+    bias: STAND_ASIDE
+    regime_status: INSUFFICIENT_CORRIDOR_NESTING
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'Trends agree, M5 corridor often outside the M15 corridor'
+    commentary: MCD3_T09
+  - code: MCD3_NON_CONSOLIDATED_ESCAPE
+    meaning: The channels slope the same way and enough window bars are nested, but the latest M5 corridor extends beyond the M15 corridor.
+    bias: STAND_ASIDE
+    regime_status: CURRENT_CORRIDOR_ESCAPE
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'Trends agree, latest M5 corridor beyond the M15 corridor'
+    commentary: MCD3_T10
+# Commentary templates (location, counts and the stochastic number only; no forecast, probability, advice or percent sign).
+# Placeholders: {m15_angle} and {m5_angle} are signed with 2 decimals and come from MCD1 and MCD2; {nested} and {n} are
+# integers; prices and {m15_ssa} have 2 decimals; {stoch} has 2 decimals and is not clipped to 0 to 100. {ssa_place} is
+# one of three fixed phrases: "inside the M15 corridor", "above UOEDT" or "below LOEDT". {both_phrase} is "slope up",
+# "slope down" or "are flat". {m15_phrase} and {m5_phrase} are "slopes up", "slopes down" or "is flat".
+# The parenthesis "(0 at LOEDT, 100 at UOEDT)" is decision D10 option A (Davin, 1 October 2026).
+commentary_templates:
+  MCD3_T01: 'Both channels slope up (M15 {m15_angle}°, M5 {m5_angle}°). {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor [{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT), in the lower zone.'
+  MCD3_T02: 'Both channels slope up (M15 {m15_angle}°, M5 {m5_angle}°). {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor [{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT), in the middle zone.'
+  MCD3_T03: 'Both channels slope up (M15 {m15_angle}°, M5 {m5_angle}°). {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor [{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT), in the upper zone.'
+  MCD3_T04: 'Both channels slope down (M15 {m15_angle}°, M5 {m5_angle}°). {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor [{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT), in the upper zone.'
+  MCD3_T05: 'Both channels slope down (M15 {m15_angle}°, M5 {m5_angle}°). {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor [{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT), in the middle zone.'
+  MCD3_T06: 'Both channels slope down (M15 {m15_angle}°, M5 {m5_angle}°). {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor [{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT), in the lower zone.'
+  MCD3_T07: 'Both channels are flat (M15 {m15_angle}°, M5 {m5_angle}°). {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, and the latest M5 corridor [{m5_loedt}, {m5_uoedt}] is inside the M15 corridor [{m15_loedt}, {m15_uoedt}]. The M15 SSA {m15_ssa} is {ssa_place}; the EDT stochastic is {stoch} (0 at LOEDT, 100 at UOEDT).'
+  MCD3_T08: 'The M15 channel {m15_phrase} ({m15_angle}°) while the M5 channel {m5_phrase} ({m5_angle}°), so the two timeframes do not form a consolidated trend and no EDT stochastic is given.'
+  MCD3_T09: 'Both channels {both_phrase} (M15 {m15_angle}°, M5 {m5_angle}°), but only {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, which is fewer than three quarters, so there is no consolidated trend and no EDT stochastic is given.'
+  MCD3_T10: 'Both channels {both_phrase} (M15 {m15_angle}°, M5 {m5_angle}°) and {nested} of {n} closed M5 bars have their corridor inside the M15 corridor, but the latest M5 corridor [{m5_loedt}, {m5_uoedt}] extends beyond the M15 corridor [{m15_loedt}, {m15_uoedt}], so there is no consolidated trend and no EDT stochastic is given.'

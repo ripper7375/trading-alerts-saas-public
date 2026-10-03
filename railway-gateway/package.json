@@ -18,6 +18,8 @@
     "sync:manifest-contract": "node scripts/sync-cycle-manifest-contract.js",
     "sync:symbol-specs-contract": "node scripts/sync-symbol-specs-contract.js",
     "sync:mcd-output-schema": "node scripts/sync-mcd-output-schema.js",
+    "sync:sensor-kit": "node scripts/sync-sensor-kit.js",
+    "check:sensor-kit": "node scripts/sync-sensor-kit.js --check",
     "prisma:generate": "prisma generate",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "test": "jest",

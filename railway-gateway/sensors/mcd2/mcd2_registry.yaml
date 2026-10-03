@@ -1,0 +1,93 @@
+# MCD2 registry entry and state register (standard Appendix C.2). Approved by Davin on 2026-10-01 (spec and plan); built in task P3.
+mcd_id: MCD2
+name: M5 trend and corridor deviation
+evaluator_version: 2.0.1
+kind: independent # gate | independent | derived
+timeframes: [M5]
+depends_on: []
+uses_channel: [M5] # timeframes on which MCD0 defects make this MCD CAUTIONARY
+rung: # proposals; Davin decides (standard 9.3, spec question Q6)
+  DAY_TRADER: trendlines_channels
+  SCALPER: primary_structure
+flag: 'off' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
+spec: engine-1-5-new/mcd2/mcd2.md
+params: engine-1-5-new/mcd2/mcd2_params.yaml
+# Bias is decision D6 (Davin, 2026-10-01): UP states LONG, DOWN states SHORT, SIDEWAYS states NEUTRAL.
+# Regime words renamed by D5 (Davin, 2026-10-01): DIP_VALUE_BUY_OPPORTUNITY -> UPTREND_DIP_BELOW_CORRIDOR,
+# RALLY_VALUE_SELL_OPPORTUNITY -> DOWNTREND_RALLY_ABOVE_CORRIDOR.
+states:
+  - code: MCD2_UP_IN_CORRIDOR
+    meaning: The M5 channel slopes up and the metric is inside the corridor.
+    bias: LONG
+    regime_status: TREND_ALIGNED_CONTINUATION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M5 uptrend, inside the corridor'
+    commentary: MCD2_T01
+  - code: MCD2_UP_UPPER_BREAKOUT
+    meaning: The M5 channel slopes up and the metric is above UOEDT, beyond the corridor in the direction of the slope.
+    bias: LONG
+    regime_status: UPPER_OVEREXTENSION_REVERSION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M5 uptrend, above the corridor'
+    commentary: MCD2_T02
+  - code: MCD2_UP_LOWER_BREAKDOWN
+    meaning: The M5 channel slopes up and the metric is below LOEDT, beyond the corridor against the direction of the slope.
+    bias: LONG
+    regime_status: UPTREND_DIP_BELOW_CORRIDOR
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M5 uptrend, below the corridor'
+    commentary: MCD2_T03
+  - code: MCD2_DOWN_IN_CORRIDOR
+    meaning: The M5 channel slopes down and the metric is inside the corridor.
+    bias: SHORT
+    regime_status: TREND_ALIGNED_CONTINUATION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M5 downtrend, inside the corridor'
+    commentary: MCD2_T04
+  - code: MCD2_DOWN_LOWER_BREAKDOWN
+    meaning: The M5 channel slopes down and the metric is below LOEDT, beyond the corridor in the direction of the slope.
+    bias: SHORT
+    regime_status: LOWER_OVEREXTENSION_REVERSION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M5 downtrend, below the corridor'
+    commentary: MCD2_T05
+  - code: MCD2_DOWN_UPPER_BREAKOUT
+    meaning: The M5 channel slopes down and the metric is above UOEDT, beyond the corridor against the direction of the slope.
+    bias: SHORT
+    regime_status: DOWNTREND_RALLY_ABOVE_CORRIDOR
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M5 downtrend, above the corridor'
+    commentary: MCD2_T06
+  - code: MCD2_SIDEWAYS_IN_CORRIDOR
+    meaning: The M5 channel is flat and the metric is inside the corridor.
+    bias: NEUTRAL
+    regime_status: RANGE_EQUILIBRIUM
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M5 sideways, inside the corridor'
+    commentary: MCD2_T07
+  - code: MCD2_SIDEWAYS_UPPER_BREAKOUT
+    meaning: The M5 channel is flat and the metric is above UOEDT.
+    bias: NEUTRAL
+    regime_status: RANGE_RESISTANCE_REVERSION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M5 sideways, above the corridor'
+    commentary: MCD2_T08
+  - code: MCD2_SIDEWAYS_LOWER_BREAKDOWN
+    meaning: The M5 channel is flat and the metric is below LOEDT.
+    bias: NEUTRAL
+    regime_status: RANGE_SUPPORT_REVERSION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M5 sideways, below the corridor'
+    commentary: MCD2_T09
+# Commentary templates. {metric_name} is SSA, or Close for the fractal EDT. Prices and {dist} have 2 decimals,
+# {angle} is signed with 2 decimals, {cp} has 4 decimals. {dist} is m - UOEDT (above) or LOEDT - m (below).
+commentary_templates:
+  MCD2_T01: 'The M5 {metric_name} is inside the corridor, between LOEDT {loedt} and UOEDT {uoedt} (channel position {cp}), while the channel slopes up ({angle}°).'
+  MCD2_T02: 'The M5 {metric_name} is {dist} above UOEDT {uoedt} while the channel slopes up ({angle}°).'
+  MCD2_T03: 'The M5 {metric_name} is {dist} below LOEDT {loedt} while the channel slopes up ({angle}°).'
+  MCD2_T04: 'The M5 {metric_name} is inside the corridor, between LOEDT {loedt} and UOEDT {uoedt} (channel position {cp}), while the channel slopes down ({angle}°).'
+  MCD2_T05: 'The M5 {metric_name} is {dist} below LOEDT {loedt} while the channel slopes down ({angle}°).'
+  MCD2_T06: 'The M5 {metric_name} is {dist} above UOEDT {uoedt} while the channel slopes down ({angle}°).'
+  MCD2_T07: 'The M5 {metric_name} is inside the corridor, between LOEDT {loedt} and UOEDT {uoedt} (channel position {cp}), while the channel is flat ({angle}°).'
+  MCD2_T08: 'The M5 {metric_name} is {dist} above UOEDT {uoedt} while the channel is flat ({angle}°).'
+  MCD2_T09: 'The M5 {metric_name} is {dist} below LOEDT {loedt} while the channel is flat ({angle}°).'

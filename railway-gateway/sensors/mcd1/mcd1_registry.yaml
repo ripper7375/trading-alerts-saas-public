@@ -1,0 +1,93 @@
+# MCD1 registry entry and state register (standard Appendix C.2). Approved by Davin on 1 October 2026.
+# Bias is decision D6 (Davin, 1 October 2026): inside the corridor the bias follows the macro trend (UP LONG, DOWN SHORT,
+# SIDEWAYS NEUTRAL); a break follows the break direction (above UOEDT LONG, below LOEDT SHORT), for all three trends.
+mcd_id: MCD1
+name: M15 primary trend and micro regime
+evaluator_version: 2.0.1
+kind: independent # gate | independent | derived
+timeframes: [M15]
+depends_on: []
+uses_channel: [M15] # timeframes on which MCD0 defects make this MCD CAUTIONARY
+rung: # confirmed by Davin on 1 October 2026 (standard 9.3, spec question Q6)
+  DAY_TRADER: primary_structure
+  SCALPER: trendlines_channels
+flag: 'off' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
+spec: engine-1-5-new/mcd1/mcd1.md
+params: engine-1-5-new/mcd1/mcd1_params.yaml
+states:
+  - code: MCD1_UP_IN_CORRIDOR
+    meaning: The M15 channel slopes up and the latest closed bar is inside the corridor, or below it without a sustained break.
+    bias: LONG
+    regime_status: TREND_ALIGNED_CONTINUATION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 uptrend, no sustained break of the corridor'
+    commentary: MCD1_T01
+  - code: MCD1_UP_UPPER_BREAKOUT
+    meaning: The M15 channel slopes up and the latest closed bar is above UOEDT, beyond the corridor in the direction of the slope.
+    bias: LONG
+    regime_status: BREAKOUT_SAME_SLOPE
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 uptrend, latest close above the corridor'
+    commentary: MCD1_T02
+  - code: MCD1_UP_LOWER_BREAKDOWN
+    meaning: The M15 channel slopes up and the latest closed bar is below LOEDT with the sustained-break rule met, a break against the direction of the slope.
+    bias: SHORT
+    regime_status: COUNTER_TREND_EXPANSION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 uptrend, sustained close below the corridor'
+    commentary: MCD1_T03
+  - code: MCD1_DOWN_IN_CORRIDOR
+    meaning: The M15 channel slopes down and the latest closed bar is inside the corridor, or above it without a sustained break.
+    bias: SHORT
+    regime_status: TREND_ALIGNED_CONTINUATION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 downtrend, no sustained break of the corridor'
+    commentary: MCD1_T04
+  - code: MCD1_DOWN_LOWER_BREAKDOWN
+    meaning: The M15 channel slopes down and the latest closed bar is below LOEDT, beyond the corridor in the direction of the slope.
+    bias: SHORT
+    regime_status: BREAKOUT_SAME_SLOPE
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 downtrend, latest close below the corridor'
+    commentary: MCD1_T05
+  - code: MCD1_DOWN_UPPER_BREAKOUT
+    meaning: The M15 channel slopes down and the latest closed bar is above UOEDT with the sustained-break rule met, a break against the direction of the slope.
+    bias: LONG
+    regime_status: COUNTER_TREND_EXPANSION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 downtrend, sustained close above the corridor'
+    commentary: MCD1_T06
+  - code: MCD1_SIDEWAYS_IN_CORRIDOR
+    meaning: The M15 channel is flat and the latest closed bar is inside the corridor, or outside it without a sustained break.
+    bias: NEUTRAL
+    regime_status: CONSOLIDATION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 sideways, no sustained break of the corridor'
+    commentary: MCD1_T07
+  - code: MCD1_SIDEWAYS_UPPER_BREAKOUT
+    meaning: The M15 channel is flat and the latest closed bar is above UOEDT with the sustained-break rule met.
+    bias: LONG
+    regime_status: RANGE_EXPANSION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 sideways, sustained close above the corridor'
+    commentary: MCD1_T08
+  - code: MCD1_SIDEWAYS_LOWER_BREAKDOWN
+    meaning: The M15 channel is flat and the latest closed bar is below LOEDT with the sustained-break rule met.
+    bias: SHORT
+    regime_status: RANGE_EXPANSION
+    levels: [UOEDT, baseline, LOEDT]
+    summary: 'M15 sideways, sustained close below the corridor'
+    commentary: MCD1_T09
+# Commentary templates. All prices and {dist} have 2 decimals, {angle} is signed with 2 decimals, {cp} has 4 decimals.
+# {upper}, {lower} and {n_micro} are counts of closed M15 bars in the window; {inside} = {n_micro} - {upper} - {lower}.
+# {dist} is Close - UOEDT (above) or LOEDT - Close (below) on the latest closed bar, always positive.
+commentary_templates:
+  MCD1_T01: 'The M15 channel slopes up ({angle}°). {inside} of the last {n_micro} closed bars closed inside the corridor; the latest closed bar has channel position {cp}.'
+  MCD1_T02: 'The M15 channel slopes up ({angle}°). The latest closed bar closed {dist} above UOEDT {uoedt} (channel position {cp}); {upper} of the last {n_micro} closed bars closed above UOEDT.'
+  MCD1_T03: 'The M15 channel slopes up ({angle}°). The latest closed bar closed {dist} below LOEDT {loedt} (channel position {cp}); {lower} of the last {n_micro} closed bars closed below LOEDT.'
+  MCD1_T04: 'The M15 channel slopes down ({angle}°). {inside} of the last {n_micro} closed bars closed inside the corridor; the latest closed bar has channel position {cp}.'
+  MCD1_T05: 'The M15 channel slopes down ({angle}°). The latest closed bar closed {dist} below LOEDT {loedt} (channel position {cp}); {lower} of the last {n_micro} closed bars closed below LOEDT.'
+  MCD1_T06: 'The M15 channel slopes down ({angle}°). The latest closed bar closed {dist} above UOEDT {uoedt} (channel position {cp}); {upper} of the last {n_micro} closed bars closed above UOEDT.'
+  MCD1_T07: 'The M15 channel is flat ({angle}°). {inside} of the last {n_micro} closed bars closed inside the corridor; the latest closed bar has channel position {cp}.'
+  MCD1_T08: 'The M15 channel is flat ({angle}°). The latest closed bar closed {dist} above UOEDT {uoedt} (channel position {cp}); {upper} of the last {n_micro} closed bars closed above UOEDT.'
+  MCD1_T09: 'The M15 channel is flat ({angle}°). The latest closed bar closed {dist} below LOEDT {loedt} (channel position {cp}); {lower} of the last {n_micro} closed bars closed below LOEDT.'

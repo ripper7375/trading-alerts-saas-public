@@ -1,0 +1,42 @@
+# MCD3 parameters (standard Appendix C.3). Approved by Davin on 1 October 2026 (spec and plan); built in task P3.
+# Changing a value is a version change (standard section 14). Every threshold in mcd3.md section 6 appears here once.
+# The ±5 degree trend band is not here on purpose: MCD3 reads the trend words from MCD1 and MCD2 (ADR-021), so the
+# band lives in mcd1_params.yaml and mcd2_params.yaml and is not applied a second time.
+mcd_id: MCD3
+evaluator_version: 2.0.0
+parameters:
+  min_containment_rate:
+    value: 50.0
+    unit: percent
+    boundary: '>= value passes tier 4 on both M15 and M5; below value is INVALID + CONTAINMENT_LOW'
+    why: 'Channel counted as intact at 50% containment (architecture 2.4); the pre-retrofit tier 4 checked both timeframes'
+  nesting_min_share:
+    value: 75.0
+    unit: percent of the nesting window
+    boundary: 'nested bars * 100 >= value * N_nest passes condition 2 (exact integer test); below value is the state MCD3_NON_CONSOLIDATED_OVERFLOW'
+    why: 'Concept board rule: the M5 corridor inside the M15 corridor for at least 75% of the M5 EDT length'
+  min_nesting_window_bars:
+    value: 48
+    unit: closed M5 bars
+    boundary: 'N_nest >= value passes tier 2; N_nest below value is INVALID + INSUFFICIENT_BARS'
+    why: '4 hours of M5 (pre-retrofit M5 floor); a nesting share over fewer bars means little'
+  t_edt_open_bar_rows:
+    value: 1
+    unit: rows
+    boundary: 'N_nest = T_EDT - value (closed M5 bars)'
+    why: 'T_EDT counts the rows on which the channel exists and the last of them is the still-open bar (7 of 7 real channels on replicas v1 and v4); closed bars exclude it (rule 2). Revisit when the MQL5 check in waiting-on is done'
+  lower_zone_max_position:
+    value: 20.0
+    unit: index points (0 at LOEDT, 100 at UOEDT)
+    boundary: 'position <= value is the lower zone; value is inside the zone'
+    why: 'Pre-retrofit stochastic threshold 20 (architecture 2.5); written on the position so that decision D10 changes only the reported number'
+  upper_zone_min_position:
+    value: 80.0
+    unit: index points (0 at LOEDT, 100 at UOEDT)
+    boundary: 'position >= value is the upper zone; value is inside the zone; between the two values is the middle zone'
+    why: 'Pre-retrofit stochastic threshold 80 (architecture 2.5)'
+  stochastic_decimals:
+    value: 2
+    unit: decimals
+    boundary: 'Output rounding only (half up); the zone is decided on the unrounded position'
+    why: 'Pre-retrofit output precision (round to 2 decimals); the pre-retrofit code decided the zone on the rounded value, the retrofit does not (standard 11.2)'

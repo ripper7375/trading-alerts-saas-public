@@ -1,0 +1,57 @@
+# Checklist of MCD0 (architecture 2.9): nine items, each passed with its evidence or pending with what it waits for.
+# Items 1 to 6 allow the flag `shadow`; all nine allow `live` (Davin, plan question Q7, 2026-10-03).
+# Evidence files are repository-relative; a test checks that they exist.
+schema: mcd-checklist/1
+mcd_id: MCD0
+items:
+  - id: 1
+    name: Spec approved by Davin
+    status: passed
+    evidence: 'Spec sections 1 to 14 and the plan approved by Davin on 1 October 2026 (manifest A1, A2).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0-manifest-work-completion.md
+  - id: 2
+    name: Evaluator on the closed-bar view
+    status: passed
+    evidence: 'MCD0 reads the statistics row at the slot for the active source of M5 and of M15 and no bar at all, so the closed-bar rule has nothing to cut (manifest A4, A5).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0_evaluator.py
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0-manifest-work-completion.md
+  - id: 3
+    name: Tests (13-style suite, envelope and forming-bar case)
+    status: passed
+    evidence: '124 tests OK (T1 to T13; T14 is for derived MCDs; the shared T4 forming-bar case and T8 schema case are in the suite); re-run on 2026-10-03 (manifest A21).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd0/test_mcd0_unit_tests.py
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0-manifest-work-completion.md
+  - id: 4
+    name: State register entries (code, plain meaning, bias)
+    status: passed
+    evidence: 'Four states, each with code, meaning and bias NEUTRAL (a gate has no direction); no regime word (manifest A10, A11).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0_registry.yaml
+  - id: 5
+    name: Levels contributed (or none)
+    status: passed
+    evidence: 'None: a gate contributes no level, `levels` is empty in every state (spec section 8; manifest A14 not applicable).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0_registry.yaml
+  - id: 6
+    name: depends_on
+    status: passed
+    evidence: '`depends_on` is empty: a gate reads no other MCD (manifest A15 not applicable).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0_registry.yaml
+  - id: 7
+    name: Dispatch-matrix entry and playbook chunk
+    status: pending
+    waits_on: 'Build step 6 (intake and knowledge), manifest A18. Whether a gate needs a dispatch-matrix entry is for Davin to decide.'
+  - id: 8
+    name: Synthesis rows
+    status: pending
+    waits_on: 'Build step 4 (synthesis). MCD0 proposes no rule row because a gate is not a voter (manifest A17); whether it needs synthesis rows is for Davin to decide.'
+  - id: 9
+    name: Statistics measured
+    status: pending
+    waits_on: 'Build step 3 stages B3 (at least five trading days of shadow; the MCD0 flag rate first) and B4 (point-in-time replay into `state_statistics`), manifest A23.'
