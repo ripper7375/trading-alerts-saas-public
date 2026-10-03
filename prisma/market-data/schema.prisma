@@ -911,3 +911,175 @@ model CycleEvent {
   @@index([symbol, event_type, effective_slot])
   @@map("cycle_events")
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STACK D CHAPTER 2: SENSOR READINGS, CYCLE INPUTS, STATE STATISTICS
+// (build step 3, part 2; docs/STACK-D-ARCHITECTURE.md section 2)
+//
+// Three additive tables, written by railway-gateway's sensor worker (its own
+// prisma/schema.prisma mirrors them for `prisma generate` only; this schema
+// owns the migration, 20261003000000_add_sensor_tables). Business timestamps are
+// Int unix UTC, like the rest of this file, and a cycle slot is a multiple of 300
+// (rule 1, ADR-008). No foreign keys, as in chapter 1: a bundle ages out after 90
+// days while the readings made from it stay.
+//
+// Two rules are CHECK constraints in the migration, which Prisma cannot express
+// and its diff does not see: state_statistics holds no number below n = 30
+// (ADR-022), and mcd_outputs never holds a row whose flag is off.
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// One MCD's reading of one cycle (architecture 2.2 point 5): what the sensor
+/// worker saved for a symbol, a slot and an MCD, INVALID and STALE readings
+/// included. APPEND-ONLY: a row is never updated, and a cycle delivered twice
+/// writes nothing new (the unique key). It holds the readings of MCDs whose flag
+/// is `shadow` or `live`, never `off` (a CHECK in the migration); certification
+/// replay gets its own table later (ADR-020: two histories).
+///
+/// `envelope_json` is the canonical text of the envelope (mcd-output/1) exactly as
+/// the runner produced it: the record, and what `envelope_sha256` hashes.
+/// `envelope` is the same document as JSONB, for queries only. `status`,
+/// `state_code` and `bias` repeat envelope fields so a reader can filter without
+/// opening it.
+///
+/// Timings and the Python version describe the run, not the reading, so they live
+/// in columns and never inside the envelope: two runs of one bundle must give the
+/// same envelope byte for byte.
+///
+/// `evaluator_envelope_sha256` hashes the evaluator's own reading, before the
+/// worker marked it CAUTIONARY for an MCD0 defect (ADR-018). It equals
+/// `envelope_sha256` when the worker added nothing, that is when
+/// `inherited_reasons` is empty.
+model McdOutput {
+  id String @id @default(cuid())
+
+  symbol     String
+  cycle_slot Int // unix UTC, a multiple of 300: the cycle (rule 1). The envelope carries the same slot as ISO 8601 text
+  mcd_id     String // MCD0 to MCD15
+
+  flag              String // shadow | live: the MCD's flag when the row was written. Never off (CHECK in the migration)
+  evaluator_version String // MAJOR.MINOR.PATCH of the evaluator that read the cycle
+
+  status     String // VALID | CAUTIONARY | INVALID | STALE
+  state_code String? // NULL when status is INVALID or STALE: the envelope schema requires it
+  bias       String? // LONG | SHORT | NEUTRAL | STAND_ASIDE; NULL when status is INVALID or STALE
+
+  envelope_json String // the canonical envelope text, byte for byte
+  envelope      Json // the same document as JSONB
+
+  envelope_sha256           String // SHA-256 (hex) of envelope_json
+  evaluator_envelope_sha256 String // SHA-256 (hex) of the evaluator's reading before inheritance
+  inputs_sha256             String? // SHA-256 (hex) of the cycle's canonical bundle text; NULL only if the bundle could not be written as JSON
+
+  inherited_reasons String[] @default([]) // MCD0_DEFECT_<TF> codes the worker added to status_reasons, in order
+  guard_problems    String[] @default([]) // why the evaluator's reading was replaced by an INVALID one; empty when it was kept
+
+  // RETUNING (ADR-015). Observed: the READY market_cycles row said so. Applied:
+  // the worker told the sensors (SENSOR_RETUNING_ENFORCED), so the envelope shows
+  // it. Replay sends the stored bundle with enforcement equal to `applied`.
+  retuning_observed Boolean
+  retuning_applied  Boolean
+
+  runner_version String // mcd_worker's RUNNER_VERSION
+  python_version String // for example 3.11.9
+  duration_ms    Float // wall time of this MCD, milliseconds
+  evaluated_at   Int // unix UTC, the gateway's clock when the cycle was evaluated
+
+  created_at DateTime @default(now())
+
+  // No @updatedAt, deliberately: this table is never updated.
+  @@unique([symbol, cycle_slot, mcd_id])
+  @@map("mcd_outputs")
+}
+
+/// The exact inputs of one cycle's sensor run, frozen (build step 3, decision Q4;
+/// architecture 2.2 point 6). The channel columns the sensors read are refit by
+/// later cycles (ADR-020), so a cycle cannot be rebuilt from `market_data_v6` a
+/// week later; this row is what a replay of "a stored cycle" reads.
+///
+/// Written once, in the same transaction as the cycle's `mcd_outputs` rows. The
+/// first bundle of a slot is the one the readings were made from, so a cycle
+/// delivered twice never replaces it (the unique key). The only deletion is
+/// retention, 90 days from the cycle slot (`@@index([cycle_slot])` serves it).
+///
+/// `bundle_gz` is the bundle's canonical text (sorted keys, no spaces, UTF-8)
+/// compressed as `bundle_encoding` says. `inputs_sha256` is the SHA-256 of the TEXT,
+/// not of the compressed bytes, so it survives a change of compression; every
+/// `mcd_outputs` row of the cycle carries the same value. A bundle that cannot be
+/// written as JSON has no canonical text and gets no row here.
+model MarketCycleInput {
+  id String @id @default(cuid())
+
+  symbol     String
+  cycle_slot Int // unix UTC, a multiple of 300
+
+  bundle_gz       Bytes // the canonical bundle text, compressed
+  bundle_encoding String // gzip
+  bundle_bytes    Int // length of the canonical text in bytes, before compression: what a replay must get back
+  inputs_sha256   String // SHA-256 (hex) of the canonical text
+
+  // The bundle's own `retuning` field, copied out so the cycles of a promote can be
+  // found without decompressing. Whether the sensors were told is a property of the
+  // run: it sits on the mcd_outputs rows as `retuning_applied`.
+  retuning_observed Boolean
+
+  created_at DateTime @default(now())
+
+  // No @updatedAt, deliberately: this table is never updated.
+  @@unique([symbol, cycle_slot])
+  @@index([cycle_slot])
+  @@map("market_cycle_inputs")
+}
+
+/// Measured statistics per MCD state and horizon (architecture 2.8, A6): the only
+/// source of a number, or of a confidence word, in any prompt. One row per series,
+/// state and horizon, recomputed in place as the history grows, so unlike
+/// `mcd_outputs` it has an `updated_at`.
+///
+/// A series is one evaluator MAJOR.MINOR (`evaluator_version_series`, for example
+/// 2.0; a PATCH continues it) read over one set of source tunings
+/// (`config_hash_key`, the canonical JSON text of the envelope's `config_hash`
+/// object: sorted keys, no spaces). A new MINOR or a new tuning starts a new series
+/// and never rewrites an old one.
+///
+/// THE n >= 30 RULE (ADR-022). Below 30 the row holds `n` and no number: every
+/// measured column is NULL, enforced by the CHECK `state_statistics_n_gate` in
+/// the migration. A reader answers "provisional" and uses words only. At 30 or more
+/// a number is always read together with its `n`. Changing 30 is a new decision and
+/// a new migration.
+///
+/// The measured columns say WHAT is measured. The arithmetic (the reference price
+/// of a forward move, the horizon) is fixed in build step 3 part 6, and the share
+/// that reached the next opposing level before a structural stop needs levels and
+/// stops that build step 4 defines: it stays NULL until then.
+///
+/// `series_notes` states what is known to limit the series. Every series carries
+/// the forming-bar limitation (waiting-on.md: the fit may include the still-open
+/// bar) until certification settles it.
+model StateStatistic {
+  id String @id @default(cuid())
+
+  mcd_id                   String
+  evaluator_version_series String // MAJOR.MINOR
+  config_hash_key          String // canonical JSON text of the series' config_hash object
+  state_code               String
+  horizon_hours            Int // 2 (Scalper) or 12 (Day Trader)
+
+  n Int // occurrences of the state in the series' history that have an outcome at this horizon
+
+  // All NULL unless n >= 30 (CHECK state_statistics_n_gate). Units are the
+  // price's own; part 6 fixes the sign convention beside the arithmetic.
+  forward_move_median      Float?
+  forward_move_q1          Float?
+  forward_move_q3          Float?
+  opposing_level_rate      Float? // a fraction from 0 to 1, never a percentage
+  adverse_excursion_median Float?
+  adverse_excursion_q3     Float?
+
+  series_notes String
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@unique([mcd_id, evaluator_version_series, config_hash_key, state_code, horizon_hours], map: "state_statistics_series_key")
+  @@map("state_statistics")
+}

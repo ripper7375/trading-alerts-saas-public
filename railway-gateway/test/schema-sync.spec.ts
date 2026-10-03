@@ -85,6 +85,10 @@ describe.each([
   ['ActiveIndicatorSetting', 'active_indicator_settings'],
   ['SymbolSpec', 'symbol_specs'],
   ['CycleEvent', 'cycle_events'],
+  // Stack D chapter 2 (build step 3, part 2).
+  ['McdOutput', 'mcd_outputs'],
+  ['MarketCycleInput', 'market_cycle_inputs'],
+  ['StateStatistic', 'state_statistics'],
 ])(
   '%s schema drift (railway-gateway vs. monolith source of truth)',
   (model, table) => {
@@ -331,5 +335,259 @@ describe('the migration that creates them', () => {
       "('seed_active_indicator_m5_best_fit_a', 'M5', 'best_fit_a', 0, 'migration', 'ADR-010 starting value')"
     );
     expect(sql).toContain('ON CONFLICT ("id") DO NOTHING');
+  });
+});
+
+/**
+ * Stack D chapter 2 tables (docs/STACK-D-ARCHITECTURE.md section 2, build step 3
+ * part 2): mcd_outputs, market_cycle_inputs, state_statistics. The same four places
+ * must agree (monolith schema, gateway mirror, migration SQL, type stubs); the
+ * first pair is in the drift block above. Two rules are CHECK constraints that
+ * Prisma cannot see, so a column added to the model without the CHECK would
+ * slip past `prisma migrate diff`: the tests below compare the CHECKs with the
+ * model.
+ */
+const SENSOR_MIGRATION_PATH = path.join(
+  __dirname,
+  '../../prisma/migrations/20261003000000_add_sensor_tables/migration.sql'
+);
+
+/** The text between the parentheses of `ADD CONSTRAINT "<name>" CHECK (...)`. */
+function checkBody(sql: string, constraint: string): string {
+  const match = sql.match(
+    new RegExp(`ADD CONSTRAINT "${constraint}" CHECK \\(([\\s\\S]*?)\\n?\\);`)
+  );
+  if (!match) throw new Error(`CHECK "${constraint}" not found`);
+  return match[1];
+}
+
+/** Names of the declarations of a model whose normalized type is `type`. */
+function columnsOfType(modelBody: string, type: string): string[] {
+  return normalizeFields(modelBody)
+    .filter((line) => !line.startsWith('@@'))
+    .filter((line) => line.split(' ')[1] === type)
+    .map((line) => line.split(' ')[0]);
+}
+
+describe.each([
+  ['McdOutput', 'mcd_outputs'],
+  ['MarketCycleInput', 'market_cycle_inputs'],
+  ['StateStatistic', 'state_statistics'],
+])('%s agrees with its sensor migration and its type stub', (model, table) => {
+  const source = fs.readFileSync(SOURCE_OF_TRUTH_SCHEMA_PATH, 'utf-8');
+  const sql = fs.readFileSync(SENSOR_MIGRATION_PATH, 'utf-8');
+  const stubs = fs.readFileSync(STUBS_PATH, 'utf-8');
+  const schemaFields = fieldNames(extractModelBody(source, model));
+
+  it('has the same columns, in the same order, in the migration', () => {
+    expect(createTableColumns(sql, table)).toEqual(schemaFields);
+  });
+
+  it('has the same fields in the type stub', () => {
+    expect([...stubInterfaceFields(stubs, model)].sort()).toEqual(
+      [...schemaFields].sort()
+    );
+  });
+
+  it('has a delegate on the stub client', () => {
+    const delegate = model.charAt(0).toLowerCase() + model.slice(1);
+    expect(stubs).toContain(`${delegate}: ModelDelegate<${model}>;`);
+  });
+
+  it('types every stub field as the schema says (Bytes is Uint8Array, a list is an array, optional adds null)', () => {
+    expect(stubInterfaceTypes(stubs, model)).toEqual(
+      schemaTypesAsStubTypes(extractModelBody(source, model))
+    );
+  });
+});
+
+/** `name: type` of every field of a stub interface. */
+function stubInterfaceTypes(
+  stubs: string,
+  name: string
+): Record<string, string> {
+  const match = stubs.match(
+    new RegExp(`export interface ${name} \\{([\\s\\S]*?)\\n  \\}`)
+  );
+  if (!match) throw new Error(`stub interface ${name} not found`);
+  return Object.fromEntries(
+    match[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0 && !line.startsWith('//'))
+      .map((line) => {
+        const [field, ...rest] = line.split(':');
+        return [field, rest.join(':').trim().replace(/;$/, '')];
+      })
+  );
+}
+
+/** What each Prisma scalar is in the stubs. A list is an array; an optional field adds `| null`. */
+const STUB_TYPE: Record<string, string> = {
+  String: 'string',
+  Int: 'number',
+  Float: 'number',
+  Boolean: 'boolean',
+  DateTime: 'Date | string',
+  Json: 'JsonValue',
+  Bytes: 'Uint8Array',
+};
+
+function schemaTypesAsStubTypes(modelBody: string): Record<string, string> {
+  return Object.fromEntries(
+    normalizeFields(modelBody)
+      .filter((line) => !line.startsWith('@@'))
+      .map((line) => {
+        const [field, rawType] = line.split(' ');
+        const list = rawType.endsWith('[]');
+        const optional = rawType.endsWith('?');
+        const base = STUB_TYPE[rawType.replace(/(\[\]|\?)$/, '')];
+        if (base === undefined) throw new Error(`unmapped type ${rawType}`);
+        return [field, list ? `${base}[]` : optional ? `${base} | null` : base];
+      })
+  );
+}
+
+describe('Stack D chapter 2 table invariants', () => {
+  const source = fs.readFileSync(SOURCE_OF_TRUTH_SCHEMA_PATH, 'utf-8');
+  const rawBody = (model: string) => extractModelBody(source, model);
+  const body = (model: string) => normalizeFields(rawBody(model));
+
+  it('mcd_outputs: one row per (symbol, cycle_slot, mcd_id), so a re-delivered cycle writes nothing new', () => {
+    expect(body('McdOutput')).toContain(
+      '@@unique([symbol, cycle_slot, mcd_id])'
+    );
+  });
+
+  it('mcd_outputs: INVALID and STALE readings have no state and no bias, so both are nullable; the hashes of a reading are not', () => {
+    for (const nullable of ['state_code String?', 'bias String?']) {
+      expect(body('McdOutput')).toContain(nullable);
+    }
+    for (const required of [
+      'envelope_json String',
+      'envelope Json',
+      'envelope_sha256 String',
+      'evaluator_envelope_sha256 String',
+      'retuning_observed Boolean',
+      'retuning_applied Boolean',
+      'flag String',
+    ]) {
+      expect(body('McdOutput')).toContain(required);
+    }
+  });
+
+  it('mcd_outputs: the reason lists default to an empty array', () => {
+    expect(body('McdOutput')).toContain(
+      'inherited_reasons String[] @default([])'
+    );
+    expect(body('McdOutput')).toContain('guard_problems String[] @default([])');
+  });
+
+  it('market_cycle_inputs: one frozen bundle per (symbol, cycle_slot); an index on cycle_slot serves retention', () => {
+    expect(body('MarketCycleInput')).toContain(
+      '@@unique([symbol, cycle_slot])'
+    );
+    expect(body('MarketCycleInput')).toContain('@@index([cycle_slot])');
+    expect(body('MarketCycleInput')).toContain('bundle_gz Bytes');
+    expect(body('MarketCycleInput')).toContain('inputs_sha256 String');
+  });
+
+  it.each(['McdOutput', 'MarketCycleInput'])(
+    '%s is write-once: it has no updated_at',
+    (model) => {
+      // Declarations only: the models' own comments say "No @updatedAt".
+      expect(body(model).join('\n')).not.toMatch(/@updatedAt/);
+      expect(fieldNames(rawBody(model))).not.toContain('updated_at');
+    }
+  );
+
+  it('state_statistics: a series is (mcd, evaluator MAJOR.MINOR, config_hash_key, state, horizon), and it is updated in place', () => {
+    expect(body('StateStatistic')).toContain(
+      '@@unique([mcd_id, evaluator_version_series, config_hash_key, state_code, horizon_hours], map: "state_statistics_series_key")'
+    );
+    expect(body('StateStatistic')).toContain('updated_at DateTime @updatedAt');
+  });
+
+  it('state_statistics: n and the series notes are required', () => {
+    expect(body('StateStatistic')).toContain('n Int');
+    expect(body('StateStatistic')).toContain('series_notes String');
+  });
+});
+
+describe('the CHECK constraints of the sensor migration', () => {
+  const source = fs.readFileSync(SOURCE_OF_TRUTH_SCHEMA_PATH, 'utf-8');
+  const sql = fs.readFileSync(SENSOR_MIGRATION_PATH, 'utf-8');
+
+  it('state_statistics_n_gate: below n = 30 (ADR-022) every measured column is NULL', () => {
+    const check = checkBody(sql, 'state_statistics_n_gate');
+    expect(check).toMatch(/"n" >= 30\b/);
+    // Every nullable Float of the model is a measured column, and every column
+    // the CHECK names must be one. A measured column added to the model without
+    // the CHECK would let a number below n = 30 through and Prisma would not say so.
+    const measured = columnsOfType(
+      extractModelBody(source, 'StateStatistic'),
+      'Float?'
+    ).sort();
+    const gated = [...check.matchAll(/"(\w+)" IS NULL/g)]
+      .map((m) => m[1])
+      .sort();
+    expect(measured.length).toBeGreaterThanOrEqual(6);
+    expect(gated).toEqual(measured);
+  });
+
+  it('state_statistics_n_gate joins the measured columns with AND and the threshold with OR', () => {
+    const check = checkBody(sql, 'state_statistics_n_gate');
+    expect(check.match(/\bOR\b/g)).toHaveLength(1);
+    expect(check.match(/\bAND\b/g)).toHaveLength(
+      (check.match(/IS NULL/g) ?? []).length - 1
+    );
+  });
+
+  it('mcd_outputs_flag_is_shadow_or_live: a row for an MCD whose flag is off cannot exist', () => {
+    expect(checkBody(sql, 'mcd_outputs_flag_is_shadow_or_live').trim()).toBe(
+      "\"flag\" IN ('shadow', 'live')"
+    );
+  });
+
+  it('mcd_outputs_reason_lists_not_null: every TEXT[] column of the model is covered (Prisma leaves them nullable)', () => {
+    const lists = columnsOfType(
+      extractModelBody(source, 'McdOutput'),
+      'String[]'
+    ).sort();
+    const covered = [
+      ...checkBody(sql, 'mcd_outputs_reason_lists_not_null').matchAll(
+        /"(\w+)" IS NOT NULL/g
+      ),
+    ]
+      .map((m) => m[1])
+      .sort();
+    expect(lists).toEqual(['guard_problems', 'inherited_reasons']);
+    expect(covered).toEqual(lists);
+  });
+});
+
+describe('the migration that creates the sensor tables', () => {
+  const sql = fs.readFileSync(SENSOR_MIGRATION_PATH, 'utf-8');
+  const statements = sql.replace(/^--.*$/gm, '');
+
+  it('creates three tables and four indexes, and nothing else besides the three CHECKs', () => {
+    expect(statements.match(/^CREATE TABLE /gm)).toHaveLength(3);
+    expect(statements.match(/^CREATE (UNIQUE )?INDEX /gm)).toHaveLength(4);
+    expect(statements.match(/^ALTER TABLE /gm)).toHaveLength(3);
+    expect(
+      statements.match(/^ALTER TABLE .* ADD CONSTRAINT .* CHECK \(/gm)
+    ).toHaveLength(3);
+  });
+
+  it('is additive only: it drops, deletes, updates and seeds nothing, and has no foreign key', () => {
+    expect(statements).not.toMatch(
+      /^\s*(DROP|TRUNCATE|DELETE|UPDATE|INSERT)\b/im
+    );
+    expect(statements).not.toMatch(/\b(REFERENCES|FOREIGN KEY)\b/i);
+  });
+
+  it('is dated after the chapter 1 migration, so history order is unaffected', () => {
+    const dir = path.basename(path.dirname(SENSOR_MIGRATION_PATH));
+    expect(dir > '20261002000000_add_cycle_pipeline_tables').toBe(true);
   });
 });

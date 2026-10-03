@@ -1047,6 +1047,68 @@ declare module '@prisma/client' {
     createdAt: Date | string;
   }
 
+  // Stack D chapter 2 tables (build step 3, part 2; migration
+  // 20261003000000_add_sensor_tables). Mirrors of the market-data schema's
+  // McdOutput, MarketCycleInput and StateStatistic. Slots and other business
+  // timestamps are unix UTC seconds. Unlike the chapter 1 tables these keep the
+  // schema's snake_case `created_at` and `updated_at`.
+  export interface McdOutput {
+    id: string;
+    symbol: string;
+    cycle_slot: number;
+    mcd_id: string;
+    flag: string;
+    evaluator_version: string;
+    status: string;
+    state_code: string | null;
+    bias: string | null;
+    envelope_json: string;
+    envelope: JsonValue;
+    envelope_sha256: string;
+    evaluator_envelope_sha256: string;
+    inputs_sha256: string | null;
+    inherited_reasons: string[];
+    guard_problems: string[];
+    retuning_observed: boolean;
+    retuning_applied: boolean;
+    runner_version: string;
+    python_version: string;
+    duration_ms: number;
+    evaluated_at: number;
+    created_at: Date | string;
+  }
+
+  export interface MarketCycleInput {
+    id: string;
+    symbol: string;
+    cycle_slot: number;
+    bundle_gz: Uint8Array;
+    bundle_encoding: string;
+    bundle_bytes: number;
+    inputs_sha256: string;
+    retuning_observed: boolean;
+    created_at: Date | string;
+  }
+
+  export interface StateStatistic {
+    id: string;
+    mcd_id: string;
+    evaluator_version_series: string;
+    config_hash_key: string;
+    state_code: string;
+    horizon_hours: number;
+    n: number;
+    forward_move_median: number | null;
+    forward_move_q1: number | null;
+    forward_move_q3: number | null;
+    opposing_level_rate: number | null;
+    adverse_excursion_median: number | null;
+    adverse_excursion_q3: number | null;
+    series_notes: string;
+    created_at: Date | string;
+    updated_at: Date | string;
+  }
+
   // ============================================================
   // PRISMA NAMESPACE
   // ============================================================
@@ -1312,6 +1374,9 @@ declare module '@prisma/client' {
     activeIndicatorSetting: ModelDelegate<ActiveIndicatorSetting>;
     symbolSpec: ModelDelegate<SymbolSpec>;
     cycleEvent: ModelDelegate<CycleEvent>;
+    mcdOutput: ModelDelegate<McdOutput>;
+    marketCycleInput: ModelDelegate<MarketCycleInput>;
+    stateStatistic: ModelDelegate<StateStatistic>;
   }
 }
 
