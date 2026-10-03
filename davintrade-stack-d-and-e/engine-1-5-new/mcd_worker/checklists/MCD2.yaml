@@ -1,0 +1,58 @@
+# Checklist of MCD2 (architecture 2.9): nine items, each passed with its evidence or pending with what it waits for.
+# Items 1 to 6 allow the flag `shadow`; all nine allow `live` (Davin, plan question Q7, 2026-10-03).
+# Evidence files are repository-relative; a test checks that they exist.
+schema: mcd-checklist/1
+mcd_id: MCD2
+items:
+  - id: 1
+    name: Spec approved by Davin
+    status: passed
+    evidence: 'Spec sections 1 to 14 and the plan approved by Davin on 1 October 2026 (manifest A1, A2).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2-manifest-work-completion.md
+  - id: 2
+    name: Evaluator on the closed-bar view
+    status: passed
+    evidence: "Closed bars only through the kit; since 2.0.1 the window is the channel's closed bars, at most 288 (ADR-083); the forming bar is ignored (manifest A4)."
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_evaluator.py
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2-manifest-work-completion.md
+  - id: 3
+    name: Tests (13-style suite, envelope and forming-bar case)
+    status: passed
+    evidence: '102 tests OK (T1 to T13; T14 is for derived MCDs; the shared T4 forming-bar case and T8 schema case are in the suite); re-run on 2026-10-03 (manifest A21).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/test_mcd2_unit_tests.py
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2-manifest-work-completion.md
+  - id: 4
+    name: State register entries (code, plain meaning, bias)
+    status: passed
+    evidence: 'Nine states (trend by corridor position), each with code, meaning and bias following decision D6 (manifest A10, A11).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml
+  - id: 5
+    name: Levels contributed (or none)
+    status: passed
+    evidence: 'UOEDT, baseline and LOEDT of the M5 channel, from the last closed bar; zone width 10 percent of the channel (manifest A14).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md
+  - id: 6
+    name: depends_on
+    status: passed
+    evidence: '`depends_on` is empty: MCD2 is independent (manifest A15 not applicable). It declares `uses_channel: [M5]` so MCD0 defects reach it (manifest A16).'
+    files:
+      - davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml
+  - id: 7
+    name: Dispatch-matrix entry and playbook chunk
+    status: pending
+    waits_on: 'Build step 6 (intake and knowledge), manifest A18. The content is listed in spec section 10.'
+  - id: 8
+    name: Synthesis rows
+    status: pending
+    waits_on: "Build step 4 (synthesis): rows that name MCD2 states are Davin's to accept (manifest A17, A24)."
+  - id: 9
+    name: Statistics measured
+    status: pending
+    waits_on: 'Build step 3 stages B3 (shadow period) and B4 (point-in-time replay into `state_statistics`), manifest A23.'

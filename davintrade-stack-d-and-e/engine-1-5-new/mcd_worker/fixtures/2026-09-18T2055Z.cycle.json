@@ -1,0 +1,94 @@
+{
+  "schema_version": "mcd-cycle-result/1",
+  "runner_version": "1.0.0",
+  "symbol": "XAUUSD",
+  "cycle_slot": "2026-09-18T20:55Z",
+  "inputs_sha256": "247ef8e1e59dec868191fd41f0bcf7c41b1a75538edf9e501cd8b9c8e7bd9738",
+  "retuning": {
+    "observed": false,
+    "enforced": false,
+    "applied": false
+  },
+  "flags": {
+    "MCD0": "shadow",
+    "MCD1": "shadow",
+    "MCD2": "shadow",
+    "MCD3": "shadow"
+  },
+  "order": [
+    "MCD0",
+    "MCD1",
+    "MCD2",
+    "MCD3"
+  ],
+  "gate": {
+    "mcd_id": "MCD0",
+    "status": "VALID",
+    "state_code": "MCD0_M5_M15_DEFECT",
+    "defect_timeframes": [
+      "M5",
+      "M15"
+    ]
+  },
+  "results": [
+    {
+      "mcd_id": "MCD0",
+      "flag": "shadow",
+      "evaluator_version": "1.0.0",
+      "status": "VALID",
+      "state_code": "MCD0_M5_M15_DEFECT",
+      "bias": "NEUTRAL",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD0\",\"evaluator_version\":\"1.0.0\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"last_closed_bar\":{},\"active_indicator\":{\"M15\":\"non_b\",\"M5\":\"best_fit_a\"},\"config_hash\":{\"best_fit_a\":\"d78ed3ba68428d82572684105f89b8a0f822dcee9fa0eb8f909f3fb7b9d1d398\",\"non_b\":\"dbae8aa6616e612fc7b618fb038a117ba986f1fd7c15f6e6520dab210bbd65cd\"},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD0_M5_M15_DEFECT\",\"regime_status\":null,\"bias\":\"NEUTRAL\",\"levels\":[],\"depends_on\":[],\"summary_line\":\"M5 and M15 channel fits each miss a criterion\",\"commentary\":\"The M5 channel (best_fit_a) misses fit criteria: R2, fit ratio. The M15 channel (non_b) misses fit criteria: R2, fit ratio.\",\"details\":{\"M15\":{\"coverage\":1807,\"failed\":[\"R2_A\",\"FIT_A\",\"FIT_B\"],\"geo_ratio\":0.7425,\"model_a\":{\"fit_ratio\":1.2242,\"kurtosis\":4.07,\"r2\":0.6828,\"skew\":-1.33,\"var_ratio\":0.12},\"model_b\":{\"fit_ratio\":1.1369,\"kurtosis\":3.8,\"r2\":0.655,\"skew\":-1.28,\"var_ratio\":0.13},\"skipped\":[]},\"M5\":{\"coverage\":754,\"failed\":[\"R2_A\",\"R2_B\",\"FIT_A\",\"FIT_B\"],\"geo_ratio\":1.0,\"model_a\":{\"fit_ratio\":0.513,\"kurtosis\":2.48,\"r2\":-0.1016,\"skew\":-0.85,\"var_ratio\":0.32},\"model_b\":{\"fit_ratio\":0.5331,\"kurtosis\":2.5,\"r2\":-0.121,\"skew\":-0.79,\"var_ratio\":0.37},\"skipped\":[]}}}",
+      "envelope_sha256": "62100eb03d908e6d480d918b6faa6bea8e8ca6c7edfec6dc66d29417199ed0ec",
+      "evaluator_envelope_sha256": "62100eb03d908e6d480d918b6faa6bea8e8ca6c7edfec6dc66d29417199ed0ec",
+      "inherited_reasons": [],
+      "guard_problems": []
+    },
+    {
+      "mcd_id": "MCD1",
+      "flag": "shadow",
+      "evaluator_version": "2.0.1",
+      "status": "CAUTIONARY",
+      "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+      "bias": "LONG",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD1\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"last_closed_bar\":{\"M15\":\"2026-09-18T20:30Z\"},\"active_indicator\":{\"M15\":\"non_b\"},\"config_hash\":{\"non_b\":\"dbae8aa6616e612fc7b618fb038a117ba986f1fd7c15f6e6520dab210bbd65cd\"},\"status\":\"CAUTIONARY\",\"status_reasons\":[\"MCD0_DEFECT_M15\"],\"state_code\":\"MCD1_DOWN_UPPER_BREAKOUT\",\"regime_status\":\"COUNTER_TREND_EXPANSION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4279.46,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4214.17,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4126.24,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"M15 downtrend, sustained close above the corridor\",\"commentary\":\"The M15 channel slopes down (-29.72\\u00b0). The latest closed bar closed 101.47 above UOEDT 4279.46 (channel position 1.6622); 96 of the last 96 closed bars closed above UOEDT.\",\"details\":{\"channel_position\":1.6622,\"containment_rate\":73.95,\"lower_breach_count\":0,\"n_micro\":96,\"populated_candidates\":{\"M15\":[]},\"regression_angle_deg\":-29.72,\"trend_direction\":\"DOWN\",\"upper_breach_count\":96}}",
+      "envelope_sha256": "05c6264bb4486856a5a75b0358dce55c340122df7d1149706a0a398be938b705",
+      "evaluator_envelope_sha256": "b1ccd443efa50842652f58510bb5d8458f755df36c260a63559756368514e121",
+      "inherited_reasons": [
+        "MCD0_DEFECT_M15"
+      ],
+      "guard_problems": []
+    },
+    {
+      "mcd_id": "MCD2",
+      "flag": "shadow",
+      "evaluator_version": "2.0.1",
+      "status": "CAUTIONARY",
+      "state_code": "MCD2_UP_IN_CORRIDOR",
+      "bias": "LONG",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD2\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"last_closed_bar\":{\"M5\":\"2026-09-18T20:50Z\"},\"active_indicator\":{\"M5\":\"best_fit_a\"},\"config_hash\":{\"best_fit_a\":\"d78ed3ba68428d82572684105f89b8a0f822dcee9fa0eb8f909f3fb7b9d1d398\"},\"status\":\"CAUTIONARY\",\"status_reasons\":[\"MCD0_DEFECT_M5\"],\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4384.23,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4367.2,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4350.16,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"M5 uptrend, inside the corridor\",\"commentary\":\"The M5 SSA is inside the corridor, between LOEDT 4350.16 and UOEDT 4384.23 (channel position 0.8192), while the channel slopes up (+6.94\\u00b0).\",\"details\":{\"channel_position\":0.8192,\"containment_rate\":55.76,\"populated_candidates\":{\"M5\":[\"fractal\"]},\"regression_angle_deg\":6.94,\"reversion_setup\":false,\"trend_direction\":\"UP\",\"window_bars\":288}}",
+      "envelope_sha256": "050acdd7cb324e519248c967824ca97038c34f77b394c0aab63eddd97a8c4347",
+      "evaluator_envelope_sha256": "01b4b12cc0b6fd2a476762732a090175853259a13abfdd11dfef31da455f56d9",
+      "inherited_reasons": [
+        "MCD0_DEFECT_M5"
+      ],
+      "guard_problems": []
+    },
+    {
+      "mcd_id": "MCD3",
+      "flag": "shadow",
+      "evaluator_version": "2.0.0",
+      "status": "CAUTIONARY",
+      "state_code": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "bias": "STAND_ASIDE",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD3\",\"evaluator_version\":\"2.0.0\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"last_closed_bar\":{\"M15\":\"2026-09-18T20:30Z\",\"M5\":\"2026-09-18T20:50Z\"},\"active_indicator\":{\"M15\":\"non_b\",\"M5\":\"best_fit_a\"},\"config_hash\":{\"best_fit_a\":\"d78ed3ba68428d82572684105f89b8a0f822dcee9fa0eb8f909f3fb7b9d1d398\",\"non_b\":\"dbae8aa6616e612fc7b618fb038a117ba986f1fd7c15f6e6520dab210bbd65cd\"},\"status\":\"CAUTIONARY\",\"status_reasons\":[\"UPSTREAM_CAUTIONARY:MCD1\",\"UPSTREAM_CAUTIONARY:MCD2\",\"MCD0_DEFECT_M5\",\"MCD0_DEFECT_M15\"],\"state_code\":\"MCD3_NON_CONSOLIDATED_TREND_CONFLICT\",\"regime_status\":\"TREND_MISALIGNMENT\",\"bias\":\"STAND_ASIDE\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4279.46,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4214.17,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4126.24,\"role\":\"support\"},{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4384.23,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4367.2,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4350.16,\"role\":\"support\"}],\"depends_on\":[\"MCD1\",\"MCD2\"],\"summary_line\":\"M15 and M5 trends differ, no consolidated trend\",\"commentary\":\"The M15 channel slopes down (-29.72\\u00b0) while the M5 channel slopes up (+6.94\\u00b0), so the two timeframes do not form a consolidated trend and no EDT stochastic is given.\",\"details\":{\"current_bar_engulfed\":false,\"edt_stochastic\":null,\"m15_trend_direction\":\"DOWN\",\"m5_trend_direction\":\"UP\",\"nested_bars\":0,\"nesting_met\":false,\"nesting_window_bars\":754,\"populated_candidates\":{\"M15\":[],\"M5\":[\"fractal\"]},\"trends_aligned\":false}}",
+      "envelope_sha256": "131872b470035a33cf1d0212bf5004197850ab79a82ba13b53680f0f2c4e94d6",
+      "evaluator_envelope_sha256": "937586112bac19537c0235d6809eb7d2ab836eb20ba35c92f55ae773dea9ac54",
+      "inherited_reasons": [
+        "MCD0_DEFECT_M5",
+        "MCD0_DEFECT_M15"
+      ],
+      "guard_problems": []
+    }
+  ]
+}

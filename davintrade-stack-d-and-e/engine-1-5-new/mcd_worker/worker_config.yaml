@@ -1,0 +1,18 @@
+# Runtime flags of the sensor worker (build step 3, Davin's decision Q7, 2026-10-03).
+#
+# off     the MCD is not run
+# shadow  run and save every cycle; not on the sensor board, not in synthesis (needs checklist items 1 to 6)
+# live    run, save, and enter the board and synthesis (needs all nine items)
+#
+# A flag higher than its checklist allows (checklists/MCDn.yaml) stops the worker from starting, and so does an
+# MCD that is higher than an MCD it reads (a derived MCD against its dependencies, a channel MCD against MCD0).
+# The four registries carry the same flag in `mcdN_registry.yaml`; a test fails when the two differ.
+# Changing a flag is a commit that also records its evidence in the checklist.
+#
+# Quote the values: YAML 1.1 reads an unquoted off as the boolean false, and the worker refuses that.
+schema: mcd-worker-config/1
+flags:
+  MCD0: 'off'
+  MCD1: 'off'
+  MCD2: 'off'
+  MCD3: 'off'
