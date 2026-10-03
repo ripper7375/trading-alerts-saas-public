@@ -18,24 +18,24 @@ to `live`. Also how to switch each part off again.
 
 ## 0. What exists, what does not
 
-| Piece                                                       | State after Phase A                                                                                                                           |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Sensor worker (`railway-gateway/src/sensors/`)              | Built, tested, **off by default** (`SENSOR_WORKER_ENABLED` unset or anything but `true` registers nothing)                                    |
-| Migration `20261003000000_add_sensor_tables`                | A file. Verified on a scratch PostgreSQL 18.0 with zero drift. **Not applied anywhere**                                                       |
-| `scripts/replay-cycle.js`                                   | Built (part 5). Read only                                                                                                                     |
-| `scripts/measure-sensors.js`                                | Built (part 7). Read only. `--redis` was tested against a fake Redis only                                                                     |
-| `state_statistics` engine, writer, reader                   | Built (part 6)                                                                                                                                |
-| **`scripts/sync-sensor-kit.js`**                            | **Not built.** The plan named it, Davin settled "option (a), a Phase B task" (part 4, decision 6). §2.2 says what it must do. **B0 needs it** |
-| **Python 3.11, PyYAML and jsonschema in the Railway image** | **Not done.** `railway-gateway/nixpacks.toml` is a Node-only image today. §2.1                                                                |
-| **A command that runs the statistics engine**               | **Not built** (part 6, section 5). B4 needs one                                                                                               |
-| **Point-in-time replay of MCDs into `state_statistics`**    | **Not built.** What exists replays a STORED cycle; B4 needs a loader over `market_data_point_in_time`. §6                                     |
-| The forming-bar trace (Q12)                                 | **Done in part 7**, read only: the answer is in the forming-bar trace section of the part 7 hand-off. It needs no live data                   |
+| Piece                                                       | State after Phase A                                                                                                         |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Sensor worker (`railway-gateway/src/sensors/`)              | Built, tested, **off by default** (`SENSOR_WORKER_ENABLED` unset or anything but `true` registers nothing)                  |
+| Migration `20261003000000_add_sensor_tables`                | A file. Verified on a scratch PostgreSQL 18.0 with zero drift. **Not applied anywhere**                                     |
+| `scripts/replay-cycle.js`                                   | Built (part 5). Read only                                                                                                   |
+| `scripts/measure-sensors.js`                                | Built (part 7). Read only. `--redis` was tested against a fake Redis only                                                   |
+| `state_statistics` engine, writer, reader                   | Built (part 6)                                                                                                              |
+| `scripts/sync-sensor-kit.js`                                | **Built (2026-10-03):** `npm run sync:sensor-kit` / `check:sensor-kit`. 34 files, 252,181 bytes (§2.2)                      |
+| **Python 3.11, PyYAML and jsonschema in the Railway image** | **Not done.** `railway-gateway/nixpacks.toml` is a Node-only image today. §2.1                                              |
+| **A command that runs the statistics engine**               | **Not built** (part 6, section 5). B4 needs one                                                                             |
+| **Point-in-time replay of MCDs into `state_statistics`**    | **Not built.** What exists replays a STORED cycle; B4 needs a loader over `market_data_point_in_time`. §6                   |
+| The forming-bar trace (Q12)                                 | **Done in part 7**, read only: the answer is in the forming-bar trace section of the part 7 hand-off. It needs no live data |
 
 ## The order at a glance
 
 | #   | Step                                                  | What it proves                                                                                               | Waits on                                      |
 | --- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
-| B0  | Migration, image, kit copy, throwaway service         | The tables exist; Python and the engine run in the image; nothing consumes yet                               | Step 2 live evidence; `sync-sensor-kit.js`    |
+| B0  | Migration, image, kit copy, throwaway service         | The tables exist; Python and the engine run in the image; nothing consumes yet                               | Step 2 live evidence (script built)           |
 | B1  | Worker on with every MCD off; then one flag at a time | The loader works on production data; each MCD writes one row per cycle; a stored cycle replays byte for byte | B0                                            |
 | B2  | Live latency                                          | Per-MCD time against 1 s, the whole cycle against 30 s, on real cycles and the real database round trip      | B1                                            |
 | B3  | At least five trading days of shadow                  | The status mix, the MCD0 flag rate, no `EVALUATOR_ERROR`, nothing skipped by accident                        | B1, calendar time                             |
@@ -121,7 +121,7 @@ The gateway is one Nixpacks service, Node only (`railway-gateway/nixpacks.toml`)
 Do not edit `nixpacks.toml` on `main` until the throwaway service shows which one works: the gateway auto-deploys
 from `main` and carries the whole market-data ingest (step 2 plan, §5).
 
-### 2.2 `sync-sensor-kit.js` (to be built before B0)
+### 2.2 `sync-sensor-kit.js` (built)
 
 The engine lives under `davintrade-stack-d-and-e/engine-1-5-new/`, outside `railway-gateway/`, and Railway builds the
 gateway alone (Root Directory `railway-gateway`). The way across, settled by Davin in part 4 (decision 6, option (a)),
@@ -138,7 +138,7 @@ paths, into `railway-gateway/sensors/` and set `SENSOR_ENGINE_DIR` to that folde
 - `mcd_worker/`: `__init__.py`, `cli.py`, `cycle_runner.py`, `errors.py`, `flags.py`, `guards.py`,
   `inheritance.py`, `registry.py`, `worker_config.yaml` and `checklists/MCD0.yaml` to `MCD3.yaml`.
 
-**The evidence:** in Phase A these 34 files (251,497 bytes) were copied alone into an empty folder, and the three
+**The evidence:** in Phase A these 34 files (251,497 bytes; **the built copy of 2026-10-03 totals 252,181 bytes**) were copied alone into an empty folder, and the three
 stored cycles (v1 2026-09-18 20:55, v3 and v4 on 2026-09-28) were run from it with the imports of `openpyxl` and
 `tiktoken` made to fail: all 12 envelopes and the three inputs hashes came back **byte for byte equal** to the stored
 ones (0.75 to 1.3 s per cycle, including Python's start). The test fixtures (`mcd_worker/fixtures/`, about 1.5 MB) are
