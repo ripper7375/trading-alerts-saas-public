@@ -1,7 +1,7 @@
 ---
 type: Concept/TechnicalTraps
 severity: high
-updated_at: 2026-09-26
+updated_at: 2026-10-03
 source: "Distilled from CLAUDE.md '## Waiting on' and session logs 2026-09-01..09-26; details in state/history/"
 tags: [database, prisma, migrations, railway, postgres]
 related_docs:
@@ -65,10 +65,48 @@ Read before any schema change, migration, or query against a real database.
   The same embedded Postgres runs the gateway's real-database spec (`railway-gateway/test/cycle-readers.pg.spec.ts`, gated on `CYCLE_PG_URL` and `CYCLE_PG_ALLOW_WIPE=yes`): create the tables
   with `prisma migrate diff --from-empty --to-schema railway-gateway/prisma/schema.prisma --script` (strip the two dotenv lines), apply them with `pg`, run the spec, then stop and remove the instance.
   The `prisma dev` TCP URL printed is `postgres://postgres:postgres@localhost:51214/template1` whatever `--port` you pass.
+- **A real Postgres server without Docker** (build step 3 part 2, better evidence than the embedded engine): the installed
+  PostgreSQL 18 binaries (`C:\Program Files\PostgreSQL\18\bin`) can run a scratch cluster that has nothing to do with the
+  Windows service: `initdb -D <scratchpad>\pgdata -U postgres -A trust -E UTF8 --locale=C`, then start it with `Start-Process`
+  on `postgres.exe -D ... -p 55432 -c listen_addresses=127.0.0.1` (detached, hidden window), `psql -h 127.0.0.1 -p 55432 -U postgres -w`,
+  `pg_ctl ... stop -m fast` and delete the folder at the end. Never `pg_ctl start` through a tool pipe (see environment-gotchas).
+  Worked example and the gated spec that runs on it: [step 3 part 2](../../docs/handoffs/2026-10-03-0050-step3-part2.md).
+- **The gateway's own tables on that scratch server** (build step 3 part 3, the loader's gated spec `test/sensors-inputs.pg.spec.ts`): `prisma migrate diff --config <scratch config outside the repo> --from-empty --to-schema railway-gateway/prisma/schema.prisma --script`
+  prints a "Loaded Prisma config" banner and an update box before the SQL; keep the text from the first `-- CreateTable`, write it as ASCII (no BOM) and apply it with `psql -v ON_ERROR_STOP=1`. All 15 tables of the gateway schema come out, without the
+  hand-written CHECKs of the sensor migration. Run the spec with `CYCLE_PG_URL=postgres://postgres@127.0.0.1:55432/<db> CYCLE_PG_ALLOW_WIPE=yes`; it wipes the five tables it seeds.
+- **A scratch database that has the sensor CHECKs** (build step 3 part 4, `test/sensors-worker.pg.spec.ts`): take the `migrate diff` SQL above, DROP the three blocks that name `mcd_outputs`, `market_cycle_inputs` and `state_statistics` (a script splitting on the `-- CreateTable`,
+  `-- CreateIndex` and `-- AddForeignKey` headers), then apply `prisma/migrations/20261003000000_add_sensor_tables/migration.sql` itself, so the three tables and their CHECKs are exactly the migration's (`mcd_outputs_flag_is_shadow_or_live`,
+  `mcd_outputs_reason_lists_not_null`, `state_statistics_n_gate`). The worker spec wipes the seven tables it uses and creates one trigger (`sensor_test_boom`, a trigger that refuses a bundle row for the symbol `BOOM`) to show that a failing second statement rolls back the first.
+- **The sensor writer uses the ARRAY form of `$transaction([...])`**, not the interactive form: three statements (`mcdOutput.createMany`, `marketCycleInput.createMany`, `marketCycleInput.deleteMany`) in one transaction, which also works behind PgBouncer's transaction pooling. A unit-level fake must make
+  the operations lazy (they run only inside `$transaction`) or it cannot tell an atomic write from three separate ones (`test/helpers/sensors-worker-world.ts`).
+- **Replay reads the two sensor tables and nothing else** (build step 3 part 5, `src/sensors/replay.ts`, `scripts/replay-cycle.js --db`): two SELECTs per slot with a `select` (`market_cycle_inputs` by `(symbol, cycle_slot)`, `mcd_outputs` by the same two columns), so it works after `market_data_v6`
+  has been refit or emptied (the gated spec empties it first). Facts a replay of real rows will meet: bundles are deleted after 90 days and readings never are (`NO_STORED_BUNDLE`); a slot delivered again keeps its FIRST bundle (`skipDuplicates`), so a reading written later from changed data names
+  other inputs (`TAMPERED_BUNDLE`, `READINGS_NAME_OTHER_INPUTS`: the finding says so); readings of one slot made under different `retuning_applied` cannot be reproduced by one run (`MIXED_RETUNING`); a laptop reads production through `DATABASE_PUBLIC_URL`, never `railway run`'s private URL.
+- **The same statistics source is recorded under two `config_hash` values on M5 and M15 in real data** (replicas v3 and v4: `sr_levels` is `23691bbc…` on M5 and `c6f0b7f9…` on M15; in `market_cycles` the tuning is keyed by timeframe first because of this).
+  The MCD kit's bundle keys `config_hash` and `channel_mode` by source only (plan S5), so the sensor inputs loader (`railway-gateway/src/sensors/inputs/tuning.ts`) takes a source's value from the timeframe that USES it, carries an unused source only when both
+  charts agree, and refuses the cycle only when both timeframes USE the same source under two tunings (Q13). A future MCD that reads `sr_levels` per timeframe needs a timeframe-keyed hash in the kit (a MINOR change).
+- **Prisma cannot see CHECK constraints, and a `String[]` column is nullable.** A hand-written `ALTER TABLE ... ADD CONSTRAINT ... CHECK`
+  after Prisma's DDL does not show up as drift (`migrate diff` says "empty migration"), so nothing but a test notices a column added to the
+  model without the CHECK (`railway-gateway/test/schema-sync.spec.ts` compares the CHECK with the model for `state_statistics_n_gate` and
+  `mcd_outputs_reason_lists_not_null`). `TEXT[]` columns get no `NOT NULL` from Prisma, and adding one by hand IS drift: use a CHECK.
+  A unique key over several long column names needs an explicit `map: "..."` (Postgres cuts identifiers at 63 bytes).
+  To check drift on a database that holds only some tables, diff it against a subset schema (the real file's header plus its real new block).
 - **Rollout order for market-data columns:** apply the migration **before** `railway-gateway`
   deploys (it auto-deploys from `main`). Its DTOs use `forbidNonWhitelisted`, and the push worker's
   400 handler quarantines a row **and stamps `synced_at`**, so rows sent to an un-migrated gateway
   are lost to automatic retry.
+
+- **A Prisma `update` leaves an `undefined` field alone and a `null` clears it, and `state_statistics_n_gate` refuses a row left below n = 30 with a number in it** (build step 3 part 6). The writer
+  (`src/sensors/state-statistics.writer.ts`) therefore sends every figure on the update path, `null` included, so a series whose history shrinks (n 35 to 12) loses its numbers instead of failing the CHECK, and it always writes
+  `opposing_level_rate` as `null` (step 4 will change that). The writer never reads the table: `state-statistics.reader.ts` is the only reader, and `test/no-direct-state-statistics-reads.spec.ts` scans the code for any other
+  (the Prisma delegate `stateStatistic` and `state_statistics` in SQL; DDL is the migration's business). The gated `test/sensors-state-statistics.pg.spec.ts` needs only the sensor migration applied to an empty scratch database
+  (`psql -v ON_ERROR_STOP=1 -f prisma/migrations/20261003000000_add_sensor_tables/migration.sql`). The series key is built in TypeScript only (`state-statistics.series.ts`: `MAJOR.MINOR` of the evaluator, the sorted and unspaced
+  JSON of `config_hash`); the Python engine treats both as opaque text. DOUBLE PRECISION returns the same JavaScript number it was given (tested), and the engine computes in exact decimals (`Decimal(repr(x))`) and converts at the end.
+
+- **`mcd_outputs.evaluated_at` is when the worker STARTED the job, in whole seconds** (build step 3 part 7): `CycleReadyProcessor.handle` takes `nowSec` once at its start and writes it on every row, so a retried job carries the time of the attempt that succeeded and the database holds no completion time.
+  The kit (`scripts/measure-sensors.js`) therefore reports "signal to start" (`evaluated_at - market_cycles.ready_at`, about a second of resolution) exactly and "signal to done" as an estimate (start plus the job's wall time, or the MCDs' summed `duration_ms`). `duration_ms` is the wall time of one MCD inside the Python process; the first MCD of a cycle (MCD0) includes the one-time build of the schema validator.
+- **A plan-shape test must not ask the planner about whatever the table holds** (build step 3 part 7, `sensor-tables.pg.spec.ts`): the retention delete's use of `market_cycle_inputs_cycle_slot_idx` now takes the plan of the writer's own `DELETE` in a transaction that is always rolled back (an interactive Prisma `$transaction` rolls back when the callback throws), with the rival
+  unique index `(symbol, cycle_slot)` dropped inside it (PostgreSQL 18 can scan it without naming `symbol`: a skip scan) and `SET LOCAL enable_seqscan = off`, so the plan cannot depend on statistics or on the server's version, and it leaves the table, its indexes and its statistics untouched. A separate test reads `pg_indexes.indexdef`.
 
 ## Ledger ≠ reality (zero-step baseline rows)
 

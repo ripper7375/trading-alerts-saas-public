@@ -37,10 +37,13 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-stack-d-and-e\STACK-D-REVI
 
 ========================
 
-MCD retrofit and creation
+Stack D production
 
 D:\SaaS Project\trading-alerts-saas-public\docs\MCD-DEVELOPMENT-STANDARD.md
 D:\SaaS Project\trading-alerts-saas-public\docs\MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md
+D:\SaaS Project\trading-alerts-saas-public\docs\STACK-D-ARCHITECTURE.md
+D:\SaaS Project\trading-alerts-saas-public\docs\STACK-D-BUILD-USER-MANUAL.md
+D:\SaaS Project\trading-alerts-saas-public\docs\STACK-D-ADVISOR-BRIEF.md
 
 =========================
 

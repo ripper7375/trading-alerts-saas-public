@@ -250,3 +250,57 @@ FIELD-CONSISTENCY-AUDIT-v2_29.md` §5. Not something this Executor can resolve u
   promote cycle's `m5_collection_cycle_id`; at 0, the first manifest that is verified (READY) ends it and a `RETUNE_COMPLETE` event is written. The sender's field stays as a diagnostic. ADR-015 was amended in place
   and STACK-D-ARCHITECTURE.md section 1.6 item 2 changed with it. Also gone with it: part 9's note that a sender without the count never ends a RETUNING, so a promote between the gateway deploy and the VPS file
   deploy is harmless now. **Still open from it:** Davin to confirm the one-step reading of "followed by one verified manifest" (hand-off `2026-10-02-1300-step2-part10.md`, decision 1).
+
+<!-- build step 3 part 1 questions, settled 2026-10-03 -->
+
+- **RESOLVED 2026-10-03 (Davin) — build step 3 part 1 questions** (the Python cycle runner, `docs/handoffs/2026-10-02-2359-step3-part1.md` section 6): (1) a CAUTIONARY MCD0 marks nobody, option (a) as built: only a VALID MCD0 defect propagates
+  (`PROPAGATING_STATUSES` in `inheritance.py`); (2) both extra flag rules stay (no MCD above an MCD it reads, no channel MCD above MCD0); (3) a guard failure stays INVALID with `EVALUATOR_ERROR` (no new reason code);
+  (6) the bundle sizing is accepted: 1.1 to 1.7 GB compressed for 90 days (build step 3 part 2 measured 1.14 to 1.79 GB from the real fixtures). **Carried, still open:** (4) whether a gate needs checklist items 7 and 8 (so whether MCD0 can reach `live`):
+  Davin will formalise gate applicability in steps 4 and 6; (5) per-MCD rollback is a commit and a gateway deploy (flags in the committed `worker_config.yaml`); an optional env override is for part 4.
+
+<!-- build step 3 part 2 questions, settled 2026-10-03 -->
+
+- **RESOLVED 2026-10-03 (Davin) - build step 3 part 2 questions D1 to D6** (the sensor tables, `docs/handoffs/2026-10-03-0050-step3-part2.md` section 6), all approved as built: (D1) the table shapes (`cycle_slot` as unix seconds Int, snake_case
+  timestamps, `config_hash_key` as the canonical JSON string of the envelope's `config_hash`, all the audit and version columns kept); (D2) the JSONB copy of the envelope stays beside `envelope_json`; (D3) `mcd_outputs` has no retention (kept
+  indefinitely), and **part 4 owns the 90-day cleanup of `market_cycle_inputs`: delete where `cycle_slot < now - 90 days` after each cycle**; (D4) the six measured columns of `state_statistics` stay nullable behind the n >= 30 CHECK, and
+  `opposing_level_rate` stays NULL until step 4; (D5) append-only by key, not by trigger; (D6) the two extra CHECKs stay. The migration `20261003000000_add_sensor_tables` is therefore final as a file; it is still NOT applied (B0).
+
+<!-- build step 3 part 3 questions, settled 2026-10-03 -->
+
+- **RESOLVED 2026-10-03 (Davin) - build step 3 part 3 decisions** (the cycle inputs loader, `docs/handoffs/2026-10-03-0215-step3-part3.md` section 6): (1) the bundle carries the columns the evaluators read, not 33 on every bar (the last closed bar of each timeframe carries every candidate),
+  approved as built; (2) the M15 cover rule in `closed-channel.ts` stays; (3) **option (a)**: `mcd_worker/cli.py` and `cycle_runner.py` return `bundle_canonical_json` and the worker stores that exact Python-serialised text in `market_cycle_inputs.bundle_gz`
+  (built in part 4); (4) Q13 confirmed as built (refusal only when both timeframes USE the same source under two tunings); (5) the `closed_bars_digest` check is deferred to the Phase B live measurement. Decision 6 (M15 left out when its cycle is not READY) was not answered and stays as built.
+
+<!-- build step 3 part 4 decisions, resolved 2026-10-03 -->
+
+- **RESOLVED 2026-10-03 — Davin's decisions on the part 4 hand-off (build step 3, the sensor worker), as built.** (1) a skipped job is recorded in the job's return value and a log line, no table; (2) the reading of a cycle that cannot be loaded is STALE with the kit's `DATA_STALE`, no kit change; (3) and (4) the worker writes nothing when every MCD is off, and the retry window is 2 s then 6 s; (5) the three edits to `app.module.ts`, `package.json` and `.env.example` are confirmed; (6) the engine reaches the Railway image through the plan's `sync-sensor-kit.js` (a copy of the engine inside the gateway package), option (a), a Phase B task, nothing in part 5; (7) and (8) Ajv `strictTypes: false` stays and `runner_version` stays 1.0.0. The text of the open list, as the part 4 session left it:
+
+  Open then, all Davin's: (1) a skipped job is recorded in the job's return value (Bull keeps 100) and a log line, not a table; (2) a cycle that cannot be loaded gets STALE readings with the kit's `DATA_STALE`; (3) every MCD off writes nothing; (4) retry window 2 s then 6 s, then STALE; a READY row that
+  appears after the STALE rows are written is never evaluated; (5) confirm `app.module.ts`, the `sync:mcd-output-schema` script and `.env.example`; (6) engine in the Railway image; (7) Ajv `strictTypes: false` for the kit's schema, or a PATCH to the schema; (8) `runner_version` stays 1.0.0;
+  (9) `test/sensor-tables.pg.spec.ts` "the retention delete is served by the cycle_slot index" depends on planner statistics (fails on a table that has held rows, passes on a fresh one; the real cleanup uses the index on a populated table); (10) part 3's decision 6.
+  Items (9) and (10) were not addressed in his reply and stay open as built (see [waiting-on](../waiting-on.md)).
+
+<!-- build step 3 part 5 decisions and the plan's Q9 b answers, resolved 2026-10-03 -->
+
+- **RESOLVED 2026-10-03 (Davin) - build step 3 part 5 decisions (replay and determinism, `docs/handoffs/2026-10-03-0830-step3-part5.md` section 6), all confirmed as built.** (1) all six replay verdicts stay, including `STORED_READING_CORRUPT` and
+  `NOT_REPLAYABLE` with its cause; (2) a tampered bundle ends the replay before the Python runner starts; (3) to (6) the JSON round trip of the stored text, the temporary configuration that carries the stored flags, the fixture hash comparison and the
+  read-only `--db` stay as built; (7) part 4's carry-forwards: item 9 (the planner-dependent index-use test of part 2) is taken up in part 7, and item 10 (part 3's decision 6) stays as built, the M15 reading is left out, and the cycle STALE, when its cycle is
+  not READY. **Plan Q9 (b), the arithmetic of `state_statistics`, answered the same day:** the reference price is the close of the last closed M5 bar at the slot (`last_closed_bar.close`, the bar opened at T - 300); the forward move at the horizon H
+  (2 h = 24 M5 bars, 12 h = 144) is `P_horizon - P_ref` for LONG and NEUTRAL / STAND_ASIDE (raw), `P_ref - P_horizon` for SHORT, in USD per ounce; the spread is the first and third quartile beside the median; the adverse excursion, never negative, is
+  `max(0, P_ref - min(low))` for LONG, `max(0, max(high) - P_ref)` for SHORT and `max(|P_ref - min(low)|, |max(high) - P_ref|)` for NEUTRAL / STAND_ASIDE, over the bars of `[T, T + H]`; `opposing_level_rate` stays NULL until step 4 defines levels and stops
+  (part 2 D4). Built in part 6 (`mcd_worker/statistics/`).
+
+<!-- build step 3 part 6 decisions, resolved 2026-10-03 -->
+
+- **RESOLVED 2026-10-03 (Davin) - build step 3 part 6 decisions (`state_statistics` and the n >= 30 gate, `docs/handoffs/2026-10-03-1000-step3-part6.md` section 6), all confirmed as built.** (1) strict window integrity stays: an outcome needs every M5 bar of its window, so an occurrence whose window spans
+  a closure or a gap is left out of n and is never stretched; (2) ADR-022 stays as written: n counts cycle occurrences (not independent episodes); (3) the choice of which readings count as occurrences (CAUTIONARY readings, readings under enforced RETUNING) is DEFERRED to the B4
+  historical replay, to be decided on the real counts; (4) the Q9 (b) arithmetic is recorded in `docs/STACK-D-ARCHITECTURE.md` section 2.8 (done in part 7); (5) all the smaller builder's calls of hand-off section 6 stay as built (the `PROVISIONAL` reasons and words, `NO_HISTORY` for a series never seen,
+  one bias per state in a series, the golden rows under `mcd_worker/tests/data/`).
+
+<!-- session 2026-10-03 step3-phase-a-commit, resolved -->
+
+- **RESOLVED 2026-10-03 — session B's findings F1 to F5 on build step 3 Phase A** (check: `docs/handoffs/2026-10-03-1415-step3-session-b-check.md`; Davin's answers applied in `docs/handoffs/2026-10-03-1510-step3-commit.md`).
+  **F1** "a detection mismatch gives CAUTIONARY" was not met as written (the specs and tests end the reading STALE or INVALID): option (a), the words changed, not the MCDs: architecture 2.4 and 2.11 and standard T6 say CAUTIONARY is recorded at tier 1 and the checks continue; `sensors-worker.pg.spec.ts` has the scenario through the whole worker (STALE with `[DETECTION_MISMATCH, NO_STATS_AT_SLOT]`, on M5 and on M15); no MCD version change.
+  **F2** item 7 ("during a promote every sensor reports CAUTIONARY") holds only with `SENSOR_RETUNING_ENFORCED=true`: architecture 2.11 item 7 says enforcement defaults to false in production until the B5 promote rehearsal. **F3** "flag off until all nine items pass" was out of date: architecture 2.9 and 2.11 item 9, standard R14 and section 13 say `shadow` requires items 1 to 6 and `live` all nine (Q7).
+  **F4** runbook section 7 said a missing interpreter is retried three times: it is discarded at once (as is a refused configuration, exit 2); a crash, a timeout and a database failure are retried. **F5** `mcd_worker/guards.py` now also refuses "percent", "percentage" and the plural in free texts (whole words, any case).
+  Also resolved here: part 7's open item "the `DETECTION_MISMATCH` scenario through the worker is not in a spec" (it is, with F1).

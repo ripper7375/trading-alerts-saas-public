@@ -401,14 +401,19 @@ Every MCD returns the same envelope ([ADR-017]). Illustrative MCD2 values:
 
 Order kept from the MCD flowcharts: cycle check, then tier 1 → 4 → 2 → 3, and MCD0.
 
-| Check               | Tests                                                                                                                            | On failure                                                |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Cycle               | Data status and RETUNING (rules 7, 9)                                                                                            | STALE if data is stale · CAUTIONARY while RETUNING        |
-| Tier 1 · Indicator  | Active indicator from the setting; detection only cross-checks                                                                   | INVALID if no setting · CAUTIONARY if detection disagrees |
-| Tier 4 · Statistics | Row at the slot for the active source; containment ≥ 50%                                                                         | STALE if no row · INVALID if containment < 50%            |
-| Tier 2 · Continuity | Enough closed bars, ascending, no nulls                                                                                          | INVALID                                                   |
-| Tier 3 · Sanity     | UOEDT > LOEDT and channel width > 0                                                                                              | INVALID                                                   |
-| MCD0 · Quality      | Coverage ≥ 60 bars · R² (Model A ≥ 0.70, Model B ≥ 0.65) · fit ratio 1.50–3.20 · symmetry (geo ratio 0.60–1.65, \|skew\| ≤ 1.50) | CAUTIONARY for every channel MCD on that timeframe        |
+| Check               | Tests                                                                                                                            | On failure                                                                                            |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Cycle               | Data status and RETUNING (rules 7, 9)                                                                                            | STALE if data is stale · CAUTIONARY while RETUNING                                                    |
+| Tier 1 · Indicator  | Active indicator from the setting; detection only cross-checks                                                                   | INVALID if no setting · CAUTIONARY if detection disagrees, then a later tier ends it STALE or INVALID |
+| Tier 4 · Statistics | Row at the slot for the active source; containment ≥ 50%                                                                         | STALE if no row · INVALID if containment < 50%                                                        |
+| Tier 2 · Continuity | Enough closed bars, ascending, no nulls                                                                                          | INVALID                                                                                               |
+| Tier 3 · Sanity     | UOEDT > LOEDT and channel width > 0                                                                                              | INVALID                                                                                               |
+| MCD0 · Quality      | Coverage ≥ 60 bars · R² (Model A ≥ 0.70, Model B ≥ 0.65) · fit ratio 1.50–3.20 · symmetry (geo ratio 0.60–1.65, \|skew\| ≤ 1.50) | CAUTIONARY for every channel MCD on that timeframe                                                    |
+
+A detection mismatch is only **recorded** at tier 1: `DETECTION_MISMATCH` (CAUTIONARY) is the first of the reading's
+reasons and the checks go on. The status the reading ends with is the last word of the later tiers: for a setting that
+does not match the data it is STALE (`NO_STATS_AT_SLOT`, the set indicator has no statistics row at the slot) or INVALID
+(the set indicator's columns hold no values). The reason tells the operator that the setting looks wrong.
 
 | Status     | Default meaning downstream                                                |
 | ---------- | ------------------------------------------------------------------------- |
@@ -483,12 +488,37 @@ Rules: a number reaches a prompt only from this table and always with its n; bel
 state and horizon the state is "provisional" and gets words only ([ADR-022]); a new `config_hash`
 starts a new series; the table can later calibrate synthesis rules.
 
+**The arithmetic** (Davin, 3 October 2026, build step 3 plan Q9 b; built in `mcd_worker/statistics/`).
+It defines what ADR-022's "forward move" and "adverse excursion" are, so it is not a new decision.
+Prices are USD per ounce, and every figure is computed in exact decimals and rounded only when shown.
+
+| Term                | Definition                                                                                                                                                                                                                                                             |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Reference price     | `P_ref` = the close of the last closed M5 bar at the slot T: the bar opened at T − 300 (`last_closed_bar`)                                                                                                                                                             |
+| Horizon             | 2 h = 24 M5 bars, 12 h = 144 M5 bars. `P_horizon` = the close of the H-th closed M5 bar after the reference bar, the one that closes at T + H                                                                                                                          |
+| Forward move        | LONG `P_horizon − P_ref`; SHORT `P_ref − P_horizon` (positive is in favour of the bias); NEUTRAL and STAND_ASIDE the raw `P_horizon − P_ref`                                                                                                                           |
+| Spread              | The first and third quartile beside the median (linear interpolation between closest ranks)                                                                                                                                                                            |
+| Adverse excursion   | Never negative, over the H bars after the reference bar (the reference bar's own range is not in it). LONG `max(0, P_ref − min low)`; SHORT `max(0, max high − P_ref)`; NEUTRAL and STAND_ASIDE `max(abs(P_ref − min low), abs(max high − P_ref))`. Median and Q3 kept |
+| Next opposing level | `opposing_level_rate` stays NULL until build step 4 defines levels and stops                                                                                                                                                                                           |
+
+What the counts mean (Davin's decisions on the part 6 hand-off, all as built): **n counts cycle occurrences**
+(ADR-022 as written), not independent episodes, so 30 consecutive cycles in one state count as 30. An
+occurrence has an outcome only when **every** M5 bar from the reference bar to the horizon bar exists; a market
+closure or a hole in the history leaves it out of n and is never stretched to "the 24th bar later". Which readings
+count as occurrences (a CAUTIONARY reading, a reading made while RETUNING is enforced) is **not yet decided**: it
+is settled on the real counts at certification (build step 3, B4). A series is one evaluator MAJOR.MINOR over one
+set of source tunings (`config_hash`); every series carries the note `FORMING_BAR_FIT: UNVERIFIED` until the
+forming-bar question is closed. The one reader of the table is `state-statistics.reader.ts`, and a test fails
+when any other code reads it.
+
 ### 2.9 The checklist for MCD4–15 (A8)
 
-A new MCD's feature flag stays off until all nine items pass: spec approved by Davin; evaluator on
-the closed-bar view; tests (13-style suite + envelope + forming-bar case); state register entries
-(code, plain meaning, bias); levels contributed (or "none"); `depends_on`; a dispatch-matrix entry
-and playbook chunk (§4); synthesis rows (§3); statistics measured.
+A new MCD's feature flag stays `off` until items 1 to 6 pass, and `live` needs all nine: **`shadow` requires items 1 to 6;
+`live` requires all nine items** (Davin, build step 3 plan, decision Q7, 3 October 2026; items 7 to 9 cannot exist before
+the MCD has run in shadow). The items: (1) spec approved by Davin; (2) evaluator on
+the closed-bar view; (3) tests (13-style suite + envelope + forming-bar case); (4) state register entries
+(code, plain meaning, bias); (5) levels contributed (or "none"); (6) `depends_on`; (7) a dispatch-matrix entry
+and playbook chunk (§4); (8) synthesis rows (§3); (9) statistics measured.
 
 Candidate topics from data no MCD reads yet (topics stay Davin's to define): support & resistance
 `sr_1`–`sr_16`; ZigZag structure and wave Z-scores; candle-body Z-score; best support / resistance
@@ -519,12 +549,16 @@ Levels reach Section 6 through Section 3's zones, not directly.
 - MCD1–3 emit envelope v1 from the closed-bar view; every output validates against the schema.
 - One `mcd_outputs` row per MCD per cycle, including INVALID and STALE.
 - Replaying a stored cycle reproduces identical readings.
-- Tier 1 passes on live data via the setting; a detection mismatch gives CAUTIONARY.
+- Tier 1 passes on live data via the setting; a detection mismatch is recorded as CAUTIONARY at tier 1 and the checks
+  continue, so the reading ends STALE or INVALID at the later tiers, with `DETECTION_MISMATCH` first among its reasons.
 - An MCD0 defect makes that timeframe's channel MCDs CAUTIONARY, with the reason.
 - Changing MCD1's trend in a test changes MCD3's reading in the same cycle.
-- During a promote every sensor reports CAUTIONARY.
+- During a promote every sensor reports CAUTIONARY. The worker always reads and records RETUNING, but applies it to the
+  readings only when `SENSOR_RETUNING_ENFORCED=true`; **enforcement defaults to false in production until the B5 promote
+  rehearsal** (build step 3, Phase B; Davin's decision Q6), so under the shipped defaults this item is met on fixtures and
+  with enforcement switched on, and live only after B5.
 - No percentage or confidence word in any output unless it comes from `state_statistics`.
-- A new MCD's flag stays off until all nine checklist items pass.
+- A new MCD's flag stays off until items 1 to 6 of the checklist pass: `shadow` requires items 1 to 6, and `live` requires all nine items (decision Q7).
 
 ### 2.12 Decisions
 

@@ -1,7 +1,7 @@
 ---
 type: Concept/EnvironmentGotchas
 status: active
-updated_at: 2026-10-01
+updated_at: 2026-10-03
 source: "'Gotcha' notes scattered through CLAUDE.md session logs 2026-08-30..09-26 (search state/history/ for the full story)"
 tags: [windows, git, shell, jest, browser, tooling]
 related_docs:
@@ -121,6 +121,59 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   jest's `√` and box characters, and every mutant then reads as "crash" (build step 2 part 10). Also: killing a harness mid-mutant leaves the mutated source on disk. Keep ONE backup made before the first
   mutant, have the harness refuse to start when a source differs from it, and compare sha256 after any kill (this one did; the file was restored from the backup and re-checked).
 
+- **A scratch Postgres started with `pg_ctl start` inside a tool call hangs the call and then dies** (build step 3 part 2): the server
+  inherits the tool's output pipe, so the call never returns; when the tool task is stopped, the postmaster's console goes with it and every
+  child fails with `0xC0000142` (the log says "client backend ... was terminated by exception 0xC0000142" and the server shuts down). Start
+  `postgres.exe` with `Start-Process -WindowStyle Hidden -RedirectStandardError <file>` so it owns its console, poll `pg_isready`, and stop it
+  with `pg_ctl stop -m fast` or by PID. A `role "WiN" does not exist` FATAL in its log is only `pg_isready`'s default-user probe.
+- **Shell cwd drifts**: a `cd` inside one Bash call changes the primary working directory for later calls (it moved to `railway-gateway/` and to a fixtures
+  folder in one session). Use absolute paths or `git -C`. A subshell, `( cd <dir> && npx jest ... )`, does not move it (used throughout build step 3 part 3).
+- **`python -m mcd_worker.cli` runs nothing with the committed config**: `worker_config.yaml` has every MCD `off` (as it must until a person records evidence), so the result has `order: []` and `results: []`. A spec that wants readings passes `--config` with
+  an all-`shadow` file, which is how the stored `mcd_worker/fixtures/*.cycle.json` were made (`railway-gateway/test/helpers/kit-runner.ts` writes one outside the repo). The MCD0 to MCD3 suites are run as
+  `python -B -m unittest discover -s mcd0 -p "test_*_unit_tests.py"` from `engine-1-5-new/` (no `-t .`: the folders are not packages, and `-t .` fails with "Start directory is not importable").
+- **JavaScript and Python do not write a float the same way** (`0.00001` against `1e-05`, `4005` against `4005.0`, `1.2345678901234568e+20` against `123456789012345680000`), so a canonical bundle text made in TypeScript hashes differently from the runner's `inputs_sha256`
+  as soon as one number is small, large or integral. The three stored bundles happen to hold no such number (measured: the TypeScript hash equals the runner's on all three), live data may. The runner computes the hash from the parsed values, so SENDING a bundle from
+  JavaScript is safe (v1 gave the stored `inputs_sha256` after a database round trip); STORING the bundle text (`market_cycle_inputs.bundle_gz`, part 4) must use the text the runner hashed, not a TypeScript re-serialisation.
+  Since build step 3 part 4 the runner returns that text as `bundle_canonical_json` and the worker stores it (Davin's decision 3, option a); a spec shows `1e-05` in the stored text where `JSON.stringify` writes `0.00001`.
+- **Bull's exponential back-off is `(2^n - 1) x delay`, with `n` the attempts already made** (`node_modules/bull/lib/backoffs.js`), so `LANE_JOB_OPTIONS` (3 attempts, delay 2000) retries after 2 s and then 6 s, not 2 s and 4 s. Inside a
+  handler `job.attemptsMade` is the number of attempts BEFORE this one (0 on the first run; Bull increments it in `moveToFailed`), so "more attempts remain" is `attemptsMade + 1 < opts.attempts`. `job.discard()` stops further retries.
+  Without Redis (Docker is not running here) the consumer's retry logic is shown on a fake queue that follows those two rules; a real queue with Redis is not exercised before phase B.
+- **Ajv's `strict` mode refuses the kit's envelope schema on `strictTypes` only**: `mcd-output-1.schema.json` writes `maxItems` under `levels` with no sibling `type: "array"` (valid JSON Schema, read the same by Python's jsonschema). `EnvelopeValidator` sets
+  `strictTypes: false` and keeps the rest of `strict`; the kit owns the schema and the copy must stay byte for byte, so the parity corpus in `test/sensors-envelope-validator.spec.ts` is what holds Ajv to the same meaning.
+- **Booting a Bull consumer without Redis**: `Test.createTestingModule({ imports: [BullModule.forRoot(...), BullModule.registerQueue({ name }), <module under test>] }).overrideProvider(getQueueToken(name)).useValue(fakeQueue)`, then
+  `await moduleRef.init()`: the real explorer calls `fakeQueue.process(name, concurrency, handler)` and `fakeQueue.on('failed', ...)`, so a spec can count what a module registers (`test/sensors-disabled-consumes-nothing.spec.ts`). Provide `PrismaService` with a stand-in global module.
+- **A long heredoc to `python` through the Bash tool can arrive cut off (once at about 140 lines) and a `\\n` in it becomes a real newline**: an edit script failed with "unterminated triple-quoted string" and a mutant list lost its `\n` escapes. Write a script of any size with the Write tool and run the file;
+  patterns with a newline go in a normal Python string with `\n`, and a regular expression in a raw string.
+- **A mutation harness that restores the source from memory must not share the tree with an edit**: `mutate_worker.py` writes the original bytes back after every mutant, so an edit made to a mutated file during the run is lost (and the closing sha256 check stops the harness).
+  Leave `src/sensors/*.ts` alone until it ends. A mutant that does not compile is not a kill (the previous run's four, B17, C11, T12 and D10, were re-run as variants that compile).
+- **Waiting and process listing in the shell tools**: a foreground `sleep` (and PowerShell's `Start-Sleep`) is blocked: wait with a Monitor running `until <check>; do sleep 5; done`, or start the command with `run_in_background` and wait for its notification.
+  `tasklist /FI ...` in the Bash tool is read as a path (`C:/Program Files/Git/FI`): use `tasklist | grep -i <name>` or PowerShell's `Get-Process`. PowerShell 5.1 wraps a native command's stderr in a `NativeCommandError` (jest writes its summary to stderr):
+  run jest from the Bash tool in a subshell, `( cd <dir> && npx jest ... )`.
+- **`npm run lint` in `railway-gateway/` finds no files** ("No files matching the pattern"): the root ESLint configuration ignores the package and the package has none of its own. This was already so before build step 3; the gateway's checks are `tsc`, Jest and `prettier --check`.
+- **Python's `Path.write_text` writes CRLF on Windows** (build step 3 part 5): a patch script that read and wrote a LF file with `read_text` / `write_text` turned it into CRLF (two new files, 1,249 and 2,197 lines), while every other tool-written file in the sensors folders is LF, and `prettier --check --end-of-line auto`
+  accepts either. Edit by bytes (`read_bytes` / `write_bytes`, which keep the endings), and check with `path.read_bytes().count(b"\r\n")`. The same applies to a mutation harness that rewrites a source file.
+- **Skip one `describe` in a Jest run with a negative look-ahead on `-t`**: `npx jest test/x.spec.ts -t "^(?!replay with the real Python runner)"` runs every test whose full name does not start with that describe's title. The mutation harness of part 5 uses it as its fast tier (about 12 s against 55 s with the real Python runner).
+- **A Jest run started in the background with its output sent to a file leaves the file empty until Jest ends** (it buffers), so an empty log is not a hang; look for the process (`Get-CimInstance Win32_Process` filtered on `jest`) before killing anything.
+- **A script that spawns Python for a replay must hand the runner a worker configuration of its own**: the committed `worker_config.yaml` has every MCD `off`, so a replay under it would run nothing. `src/sensors/replay.ts` writes a temporary one (flags from the stored rows, every other engine MCD `off`) outside the repo and deletes it.
+
+- **`mcd_worker/statistics/` shares its name with the standard library's `statistics`** (build step 3 part 6, the folder name is the plan's). Python run from INSIDE `mcd_worker/` puts the folder ahead of the standard library; run everything from
+  `engine-1-5-new/` as the README says. The package imports no standard `statistics` itself (its quartiles are worked out in `aggregate.py` and a test checks them against `statistics.quantiles(method="inclusive")`, imported as `stdlib_statistics`).
+- **The Python mutation tool pins its own list** (`mcd_worker/tools/mutation_check.py`): `tests/test_tools.py` demands that every test module on disk is in `TEST_MODULES` (so a new module must be added there) and that mutant ids are `M<number>`
+  in ascending order (the part 6 statistics mutants are M130 to M226). A mutant killed first by a golden-file test says little: re-run the group with the golden test left out by monkeypatching `mutation_check.run_suite` in a scratch driver
+  (done in part 6: 97 of 97 still killed). `mcd_worker/fixtures/` holds only slot-named files (a test pins it), so the statistics golden rows live in `mcd_worker/tests/data/state-statistics.rows.json`
+  (`WRITE_FIXTURES=yes` regenerates it, then run `prettier --write` on it; the gateway's specs and the Python test read the parsed JSON, so formatting does not matter).
+- **A Jest spec that scans the repo for a pattern needs the whole checkout** like the six pin tests of step 2: `test/no-direct-state-statistics-reads.spec.ts` reads about 1,200 files across the repository roots, and the state statistics specs read the Python engine's golden rows,
+  `aggregate.py`, `outcomes.py` and the migration file (a copy of `railway-gateway/` alone fails them; the Railway build runs no tests).
+
+- **`test/helpers/kit-runner.ts` deletes its own temporary folder** (build step 3 part 7): the all-`shadow` worker configuration it writes under `%TEMP%\mcd-shadow-<random>` is removed by an `afterAll` the helper registers when a spec file loads it
+  (`removeShadowConfig`; `test/sensors-kit-runner-cleanup.spec.ts` pins it). Before that, one folder per Jest process stayed for good: 134 had piled up and were deleted by hand on 2026-10-03, each checked to hold only `shadow.yaml` with the helper's exact text.
+- **A TypeScript mutation run is slow (about 14 s a mutant) and runs best on parallel copies** (part 7: 447 mutants of `measure-sensors.ts`). Copy `src`, `test`, `scripts`, `prisma` and the four config files of `railway-gateway/` into `scratchpad\m1..m4\railway-gateway`, and make
+  junctions (`mklink /J`) for `node_modules`, and, one level up, for `davintrade-stack-d-and-e` and `docs` (the specs read the engine and the standard through `../..`); one harness instance per copy on a disjoint range of mutant ids, `jest --runInBand --bail=1` with `-t "^(?!<the command-line describe>)"`
+  (the specs that spawn the script cost ten seconds each and judge only the wiring), `// @ts-nocheck` on every mutant. Start it detached (`Start-Process`), never kill it hard while a mutant is in place (restore from the copy and compare the SHA-256), and run Python's `subprocess` on Jest's output with `encoding="utf-8", errors="replace"`:
+  the default Windows code page cannot decode Jest's check marks and the reader thread dies.
+- **Tool limits met in part 7:** `grep -r` over the whole repository from the Bash tool passes two minutes (it walks `node_modules`): use the Grep tool or name the folders. The PowerShell tool refuses a command that contains `Remove-Item` when a path in it has a space and a variable (it read `D:\SaaS` as a system path): put deletions in their own command.
+- **`ioredis-mock` (a gateway devDependency, with `@types/ioredis-mock`) speaks Bull's key layout well enough to test a reader of it** (`bull:<queue>:completed` is a sorted set of job ids, `bull:<queue>:<id>` the job's hash with `returnvalue` as JSON); `test/measure-sensors-real.spec.ts` seeds those keys and holds the kit to three read commands.
+
 ## Dev server and browser
 
 - Another session's `next dev` can hold the shared `.next/` directory; a second dev server then
@@ -140,6 +193,7 @@ Each of these cost a past session real time. Search `state/history/` for the inc
 - PyYAML (YAML 1.1) reads an unquoted `off`, `on`, `yes` and `no` as booleans. Quote them in
   MCD registry and parameter files (`flag: 'off'`); the standard's Appendix C.2 template quotes it
   since version 1.0.3 (`docs/handoffs/2026-10-01-0410-mcd2-p3.md` §7).
+- The step 3 cycle runner (`engine-1-5-new/mcd_worker/`) refuses a flag read as a boolean, in `worker_config.yaml` and in the four registries, and says to quote it (build step 3 part 1).
 
 ## Pre-commit hook and generated files
 
@@ -149,5 +203,7 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   came out as 3,700 lines and T9 failed on the committed state (2026-10-01, MCD2 commit). The MCD
   fixtures and `mcd*_output.json` are now in `.prettierignore`. Any other generated file a test
   compares byte for byte needs the same entry, and a test run after the commit, not only before it.
+- `mcd_worker/fixtures/*.json` is covered by the same `.prettierignore` pattern (`mcd*` matches `mcd_worker`). The `.source.md` notes next to them are NOT ignored, so the hook re-pads their tables;
+  `mcd_worker.tools.build_fixtures.same_text` therefore compares a `.source.md` with the table padding removed, and `python -B -m mcd_worker.tools.build_fixtures --check` still says "same" after a commit.
 - `git stash list` holds 17 old "lint-staged automatic backup" stashes (3 to 5 weeks old, not from a
   current run). Do not drop them without Davin's say.

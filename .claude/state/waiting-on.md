@@ -2,7 +2,7 @@
 type: Concept/BlockersAndTraps
 status: active
 severity: high
-updated_at: 2026-10-02
+updated_at: 2026-10-03
 tags: [blockers, deploys, migrations, verification, stack-c, stack-d]
 related_docs:
   - ../architecture/database-traps.md
@@ -19,6 +19,15 @@ to [history/resolved-waiting-on.md](./history/resolved-waiting-on.md).
 
 Quick index (newest first):
 
+- Build step 3 Phase A wrap-up (2026-10-03): session B checked Phase A (no code or test defect) and **Davin's answers to its findings F1 to F5 are applied (resolved); Phase A is committed locally in four commits by area, NOT pushed, nothing deployed or migrated** · OPEN, Davin: push when he decides · the forming-bar record and the `InpExtendLinesToCurrent` check (below) · before B0 `sync-sensor-kit.js` and Python in the image · before B4 a statistics command and a point-in-time replay · the standard's version (1.0.4 in the header after the R14, T6 and section 13 edits) · the untracked step 2 commit hand-off · a wrong setting turns MCD0 STALE and a STALE MCD0 marks nobody (Q5 b) ·
+- Build step 3 part 7 built (2026-10-03, the last part of Phase A: the measurement kit `railway-gateway/scripts/measure-sensors.js`, the Phase B runbook `docs/runbooks/deploy-stack-d-step3.md`, the forming-bar trace of the seven centroid files, architecture 2.8, the closing verification), NOT committed, nothing deployed or migrated · **the fit DOES include the bar still forming (`rates_total - 1`)**, see the part 7 hand-off section 2 · OPEN, Davin: (1) record the forming-bar result now, or after B4's live comparison · (2) production check: `InpExtendLinesToCurrent` on terminals A and B (ADR-083 depends on it being true) · (3) before B0: build `sync-sensor-kit.js` and settle how Python enters the Railway image (not built, not decided) · before B4: a command that runs the statistics engine, and a point-in-time replay (neither exists) · (4) item 4's `DETECTION_MISMATCH`-through-the-worker scenario: DONE in the Phase A wrap-up (two gated tests) · the session B check and the commit are done, see the line above ·
+- Build step 3 part 6 built (2026-10-03: `state_statistics` and the n >= 30 gate, engine, writer, reader and a guard test), NOT committed, nothing deployed or migrated · **Davin settled its decisions on 2026-10-03, all as built** (resolved): strict window integrity, n counts cycles, the choice of which readings count is for B4 on the real counts, the arithmetic recorded in architecture 2.8 (done in part 7) ·
+- Build step 3 part 5 built (2026-10-03: replay and determinism, `railway-gateway/src/sensors/replay.ts` and `scripts/replay-cycle.js`; a stored cycle replays byte for byte from its stored bundle: `--fixtures` for v1, v3 and v4, `--db --slot` for the database), NOT committed, nothing deployed or migrated · **Davin settled part 5's decisions (all as built) and the Q9 (b) arithmetic on 2026-10-03** (resolved) ·
+  - Build step 3 part 4 built (2026-10-03: the sensor worker `railway-gateway/src/sensors/`, off by default; the runner returns `bundle_canonical_json`), NOT committed, nothing deployed or migrated · **Davin settled part 4's decisions on 2026-10-03** (resolved; items 9 and 10 stay as built) ·
+    Build step 3 part 3 built (2026-10-03: the cycle inputs loader `railway-gateway/src/sensors/inputs/`, one interface and two sources; the database source proven on a scratch PostgreSQL 18.0 against the real Python runner, every envelope equal to the stored one for v1, v3 and v4), NOT committed, nothing deployed or migrated · **Davin settled its decisions on 2026-10-03** (resolved; the runner returns `bundle_canonical_json`, built in part 4) · still unanswered: decision 6 (M15 left out and STALE when its cycle is not READY), stays as built · then "build step 3, part 4" ·
+    Build step 3 part 2 built (2026-10-03: the sensor tables as Prisma models, gateway mirror, stubs and a migration FILE `20261003000000_add_sensor_tables`; verified on a scratch PostgreSQL 18.0 server, zero drift), NOT committed, **NOT applied**, nothing deployed · **Davin approved D1 to D6 on 2026-10-03** (resolved; D3: part 4 owns the 90-day `market_cycle_inputs` cleanup) · apply the migration only at B0, after `prisma migrate status` ·
+    Build step 3 part 1 built (the Python cycle runner `engine-1-5-new/mcd_worker/`, fixtures only), NOT committed · Davin settled its questions on 2026-10-03 · still open: MCD0's checklist items 7 and 8 (steps 4 and 6),
+    an optional per-MCD env override for rollback (part 4) · Phase B still waits on step 2 live (B0 to B5) ·
 - Build step 2 session B check (2026-10-02): no defect found; **build step 2 is committed locally (seven commits, not pushed), NOT deployed, the part 2 migration NOT applied** · OPEN, Davin:
   **decision 1, how RETUNING ends (P1: with the real push worker it could last days, not hours; simulated, unmeasured)** · **P2, three stale statements, to be fixed after decision 1** · **F1 to F4, the "Done when" items
   that wait on live evidence or on later build steps** · six gateway tests need the whole repo checkout ·
@@ -45,7 +54,7 @@ Quick index (newest first):
   Build step 2 part 3 built, NOT deployed to the VPS (three files, restart order; manifests 404 until the gateway ships) ·
   Build step 2: newest row at slot time may be the closing bar, not the new-bar stub (unverified) · production and VPS
   checks Davin runs before the Part 2 migration is applied (four §0.5 items; also which gateway the push worker targets)
-- MCD kit: forming bar inside the statistics fit windows (unverified; new evidence 2026-10-02, carried for stage 5) · kit writes absolute
+- MCD kit: forming bar inside the statistics fit windows (**traced in build step 3 part 7: it IS inside; Davin records the result**, carried for stage 5) · kit writes absolute
   workbook paths into fixture sources · kit passes a non-string `config_hash` into the envelope (P6 finding F1)
 - Shared FX rates `REDIS_URL` · SystemConfig pricing deploy + test · Language & locale open items ·
   Disbursement payout go-live (G1–G4) · 15th indicator rollout order
@@ -55,6 +64,84 @@ Quick index (newest first):
 - Push-worker throughput · Look-ahead bias in historical indicator values · Decision Layer BLOCKED
 - Many "authenticated click-through not yet confirmed" items (Executor never enters credentials)
 - Phase 12 handover re-draft · Journey B chat check · `/help` + `/about` 404 · `rag_dual_memory` tables missing
+
+<!-- session 2026-10-03 step3-phase-a-commit -->
+
+- **Build step 3 Phase A wrap-up (2026-10-03): session B's findings F1 to F5 are closed with Davin's answers, and Phase A is committed locally in four commits by area, NOT pushed, nothing deployed or migrated** (hand-off `docs/handoffs/2026-10-03-1510-step3-commit.md`; the check is `docs/handoffs/2026-10-03-1415-step3-session-b-check.md`; text of the closed items in [resolved](./history/resolved-waiting-on.md)).
+  **Still open:** (1) push (Davin); (2) the forming-bar record and `InpExtendLinesToCurrent` on terminals A and B (part 7 entry below); (3) before B0, `sync-sensor-kit.js` and Python in the Railway image; before B4, a statistics command and a point-in-time replay; (4) the standard's header says 1.0.4 although R14, T6 and section 13 changed: PATCH 1.0.5 or not (Davin); (5) `docs/handoffs/2026-10-02-1635-step2-commit.md` is untracked and linked from two step 3 hand-offs: commit it or not (Davin);
+  (6) session B section 7 items 1 to 4 are known behaviour, not defects: a wrong setting on one timeframe makes MCD0 STALE and a STALE MCD0 marks nobody (Q5 b); a cycle whose job fails or is skipped as too old has no rows (the kit lists them); `mcd_outputs` is append-only by key, not by trigger; replay needs the stored bundle, which is deleted after 90 days.
+
+<!-- session 2026-10-03 step3-part7 -->
+
+- **Build step 3 part 7 (2026-10-03, the last part of Phase A): the measurement kit, the Phase B runbook, the forming-bar trace and the closing verification are DONE, NOT committed, nothing deployed or migrated** (hand-off `docs/handoffs/2026-10-03-1230-step3-part7.md`).
+  **The forming-bar trace (Q12), read only, all seven centroid regression files: the fit INCLUDES the bar still forming (`rates_total - 1`).** In all seven: the SSA fit and trend always (it is the last element of the vector); the crossing set that is clustered (so the centroids and the regression line) as an eligible point; the line evaluated at it; the containment sample (`containment_n`, hence `T_EDT`)
+  and the extended statistics always, with the default `InpExtendLinesToCurrent = true`; the EDT fractals as a confirming bar; the Model A and B window only when the newest used cluster has a crossing on it (always in frozen mode). The export runs at second 59 of each minute. **ADR-083's premise (`T_EDT` rows end at the forming bar, so `t_edt_open_bar_rows = 1`) is confirmed by the source:** no MINOR change on that ground; it holds while
+  `InpExtendLinesToCurrent` is true (check it on the VPS). The plan's first outcome is the case: certification states that the look-ahead is limited to the forming bar's close; how much it moves a fit needs B4's comparison. `FORMING_BAR_FIT: UNVERIFIED` stays on every series until Davin closes the item. Table with line numbers per file: hand-off section 2.
+  **How to use the kit:** `node scripts/measure-sensors.js --db --last 288 [--redis] [--replay 3] [--expect MCD0,MCD1,MCD2,MCD3] [--strict]` (the public database URL; `REDIS_URL` for `--redis`; Python for `--replay`); `--file test/fixtures/measure-sensors-sample.json` shows the format. Read only. It prints the status mix per MCD, the MCD0 flag rate (M5, M15, both), `EVALUATOR_ERROR`, guard problems and a second
+  look at every stored envelope, time per MCD against 1 s and per cycle against 30 s, rows per cycle, READY cycles with no row, skipped jobs, the determinism verdict and the MCD0 inheritance check, then one line per finding.
+  **Not built (the runbook section 0 lists them):** `scripts/sync-sensor-kit.js` (before B0; the 34-file list and its evidence are in runbook 2.2); Python in the Railway image (not decided); a command that runs the statistics engine, and a point-in-time replay (before B4); (the `DETECTION_MISMATCH`-through-the-worker scenario of "Done when" item 4 was added in the Phase A wrap-up).
+  Things to know: `mcd_outputs.evaluated_at` is when the worker STARTED the job (the database holds no completion time; the kit estimates "signal to done"); MCD0's time includes the one-time build of the schema validator (about 0.19 s); six gateway specs need the whole checkout (the part 6 count of five plus `measure-sensors-real.spec.ts`); Redis ran only as a fake; part 2's index test never failed on PostgreSQL 18.0, so its rewrite is deterministic by construction;
+  nothing ran against production, the Railway image, a real Redis or the VPS.
+
+<!-- session 2026-10-03 step3-part6 -->
+
+- **Build step 3 part 6 (2026-10-03): `state_statistics` and the n >= 30 gate are BUILT and tested, NOT committed, nothing deployed or migrated.** `mcd_worker/statistics/` (`outcomes.py`, `aggregate.py`), `railway-gateway/src/sensors/state-statistics.{series,writer,reader}.ts` and `test/no-direct-state-statistics-reads.spec.ts` (hand-off `docs/handoffs/2026-10-03-1000-step3-part6.md`).
+  **How it fits:** the engine takes occurrences (`mcd_id`, `evaluator_version_series` as `MAJOR.MINOR`, `config_hash_key` as the sorted, unspaced JSON of the envelope's `config_hash`, `state_code`, `bias`, `slot` in unix seconds) and the closed M5 bars (`timestamp` = open time, `high`, `low`, `close`) and returns rows with the columns of `state_statistics`
+  (`compute_state_statistics`); `StateStatisticsWriter.writeRows` upserts them in one transaction; `StateStatisticsReader.read` is the only way to read them (`MEASURED` with its n from 30, else `PROVISIONAL` words). The series key is built in TypeScript only (`seriesKeyOf`); Python treats it as opaque text. Nothing runs the engine from TypeScript yet, and neither class is in a Nest module (no caller before the section 5 prompt assembler).
+  **Davin's Q9 (b) arithmetic is built as he gave it** (reference price, sign convention, quartiles, excursion; `opposing_level_rate` NULL until step 4).
+  **Settled by Davin on 2026-10-03, all as built** (text in [resolved](./history/resolved-waiting-on.md)): (1) an outcome needs every M5 bar of its window (a closure leaves the occurrence out of n, never stretched); (2) n counts cycle occurrences, ADR-022 as written; (3) **which readings count as occurrences is deferred to B4's replay and decided on the real counts**; (4) the arithmetic is recorded in architecture section 2.8 (done in part 7); (5) the smaller builder's calls stay.
+  Things to know: run Python from `engine-1-5-new/`, never from inside `mcd_worker/` (the folder `statistics` would shadow the standard library's module); a Prisma `update` ignores `undefined`, so the writer sends explicit nulls (a series that falls below 30 loses its numbers); five gateway specs need the whole checkout (the guard scans 13 roots); the golden rows are
+  `mcd_worker/tests/data/state-statistics.rows.json` (`WRITE_FIXTURES=yes`, then `prettier --write`); the engine is not wired to anything and B4 needs a command or a call to run it (part 7 or B4); the earlier 129 runner mutants were not re-run; nothing ran against production, the Railway image or a real Redis.
+
+<!-- session 2026-10-03 step3-part5 -->
+
+- **Build step 3 part 5 (2026-10-03): replay and determinism are BUILT and tested, NOT committed, nothing deployed or migrated.** `railway-gateway/src/sensors/replay.ts` (`CycleReplayer`, `loadStoredCycle`, `loadFixtureCycle`, `runReplayCommand`) and `scripts/replay-cycle.js` (hand-off `docs/handoffs/2026-10-03-0830-step3-part5.md`).
+  **How to use it:** `node scripts/replay-cycle.js --fixtures` replays v1, v3 and v4 in one command (no database); `node scripts/replay-cycle.js --db --slot <ISO time or unix seconds> [--slot ...]` reads two tables with two SELECTs per slot from the database named by `DATABASE_URL` (from a laptop that is the public URL, never
+  `railway run`'s private one); READ ONLY. Exit 0 every cycle VERIFIED, 1 a difference, 2 a cycle could not be replayed or the arguments are wrong. It needs Python with PyYAML and jsonschema and the engine folder (`SENSOR_PYTHON`, `SENSOR_ENGINE_DIR`, or `--python` and `--engine-dir`), like the worker. B1 and B4 should run it
+  on three real shadow cycles, days after they were written. Verdicts: `VERIFIED`; `TAMPERED_BUNDLE` (the unzipped bundle does not hash to `inputs_sha256`, or a reading names other inputs; Python is not started); `VERSION_MISMATCH` (an evaluator is not the version that wrote the row); `LOGIC_DIVERGENCE` (same version, inputs as stored, another envelope);
+  and two not in Davin's list, `STORED_READING_CORRUPT` and `NOT_REPLAYABLE` (nothing stored, the bundle deleted by the 90-day retention, no readings, readings made under different RETUNING enforcement, the runner gave no result).
+  **Settled by Davin on 2026-10-03: (1) to (7) all as built** (text in [resolved](./history/resolved-waiting-on.md)): the six verdicts stay, a tampered bundle ends the replay before Python runs, the JSON round trip, the temporary configuration, the fixture hash comparison and the read-only `--db` stay; part 4's item 9 goes to part 7 and item 10 stays as built.
+  Things to know: a bundle stored for 90 days and deleted, with readings that stay, is `NO_STORED_BUNDLE`, not an error; a slot delivered twice keeps its first bundle, so a reading written later from changed data reads as `TAMPERED_BUNDLE` (`READINGS_NAME_OTHER_INPUTS`) with the finding saying so; `kit-runner.ts` left a `mcd-shadow-*` folder per Jest process in `%TEMP%`
+  (fixed in part 7: it deletes its own, and the 134 old ones were deleted); nothing ran against production, the Railway image or a real Redis; live replay time is unmeasured (about 1 s per cycle here).
+
+<!-- session 2026-10-03 step3-part4 -->
+
+- **Build step 3 part 4 (2026-10-03): the sensor worker is BUILT and tested, NOT committed, nothing deployed or migrated.** `railway-gateway/src/sensors/` (`SensorsModule.register()`, `CycleReadyProcessor`, `PythonCycleRunner`, `EnvelopeValidator`, `McdOutputsWriter`, `staleBundle`, `readSensorConfig`; hand-off `docs/handoffs/2026-10-03-0548-step3-part4.md`).
+  **Off by default:** the module is empty unless `SENSOR_WORKER_ENABLED` is exactly `true`, and `AppModule` imports it. **To turn it on (B0, Davin):** the migration `20261003000000_add_sensor_tables` applied, Python 3.11 with PyYAML and jsonschema and the engine folder in the Railway image
+  (`SENSOR_ENGINE_DIR`; the plan's `sync-sensor-kit.js` is NOT built), the flags in `worker_config.yaml` set to `shadow` one MCD at a time (the committed file has every MCD off: the worker then runs the runner and writes nothing), `SENSOR_RETUNING_ENFORCED` left false until B5.
+  Other settings: `SENSOR_PYTHON`, `SENSOR_WORKER_CONFIG` (an override file), `SENSOR_MAX_JOB_AGE_SECONDS` (600), `SENSOR_RUNNER_TIMEOUT_MS` (30,000). Rollback: the variable off and a redeploy.
+  **Davin settled (1) to (8) on 2026-10-03** (as built; (6): the plan's `sync-sensor-kit.js` at B0, option (a); text in [resolved](./history/resolved-waiting-on.md)). Items (9) and (10) were settled on 2026-10-03: (9) `test/sensor-tables.pg.spec.ts` "the retention delete is served by the cycle_slot index" depends on planner statistics (fails on a table that has held rows, passes on a fresh one; the real cleanup uses the index on a populated table): taken up in part 7; (10) part 3's decision 6 stays as built.
+  Things to know: Bull's back-off is `(2^n - 1) x delay`; no real Redis ran; `npm run lint` in `railway-gateway/` finds no files (already so); the worker spec truncates the two sensor tables so the gated specs pass in any order.
+
+<!-- session 2026-10-03 step3-part3 -->
+
+- **Build step 3 part 3 (2026-10-03): the cycle inputs loader is BUILT and tested, NOT committed, nothing deployed or migrated.** `railway-gateway/src/sensors/inputs/` (`InputsSource`, `DatabaseInputsSource`, `FixtureInputsSource`; hand-off `docs/handoffs/2026-10-03-0215-step3-part3.md`).
+  The acceptance test (`test/sensors-inputs.pg.spec.ts`, gated on `CYCLE_PG_URL` on localhost and `CYCLE_PG_ALLOW_WIPE=yes`, needs Python) passes 32 of 32 on a scratch PostgreSQL 18.0; the same scenarios run on an in-memory Prisma in `test/sensors-inputs-runner.spec.ts`.
+  **Settled by Davin on 2026-10-03** (moved to [resolved](./history/resolved-waiting-on.md)): the columns the bundle carries, the M15 cover rule, the stored text (the runner returns `bundle_canonical_json`), Q13 as built, the digest check deferred to Phase B.
+  Decision (6) (M15 left out, and STALE, when the cycle that collected it is not READY) was settled as built on 2026-10-03. Things to know: `python -m mcd_worker.cli` runs nothing with the committed config (every flag `off`); the footprint at the replicas' channel lengths
+  is about 2.7 GB for 90 days by arithmetic on fixtures (approved: 1.1 to 1.7 GB), not a live measurement; `INVALID_CYCLE_ROW` will not mend by waiting (part 4 writes STALE at once), `CYCLE_NOT_READY` will.
+
+<!-- session 2026-10-03 step3-part2 -->
+
+- **Build step 3 part 2 (2026-10-03): the sensor tables are BUILT as a migration FILE, NOT applied, NOT committed, nothing deployed.** `prisma/migrations/20261003000000_add_sensor_tables/migration.sql` (Prisma's DDL for `mcd_outputs`,
+  `market_cycle_inputs` and `state_statistics`, plus three hand-written CHECK constraints), the identical models in `prisma/market-data/schema.prisma` and `railway-gateway/prisma/schema.prisma`, `types/prisma-stubs.d.ts`, `schema-sync.spec.ts` (92 tests)
+  and the gated `sensor-tables.pg.spec.ts` (33 tests; hand-off `docs/handoffs/2026-10-03-0050-step3-part2.md`). **To apply (Davin, B0):** `prisma migrate status` first, then `prisma db execute --file prisma/migrations/20261003000000_add_sensor_tables/migration.sql`
+  and `prisma migrate resolve --applied 20261003000000_add_sensor_tables`, before `SENSOR_WORKER_ENABLED` is set; it needs none of the other pending migrations. **SETTLED 2026-10-03: Davin approved D1 to D6 as built (see resolved).** The questions were, and each only edited the unapplied file:
+  (D1) confirm the shapes (`cycle_slot` unix Int, snake_case timestamps, `config_hash_key` as canonical JSON text, the extra columns); (D2) keep the JSONB copy of the envelope (1.24 of 3.1 KB per row); (D3) **retention for `mcd_outputs` is undecided**
+  (about 1.4 GB a year at four MCDs, 5.5 at sixteen) and **no part owns the 90-day `DELETE` of `market_cycle_inputs`** (recommend part 4); (D4) the six measured columns of `state_statistics`, `opposing_level_rate` NULL until step 4; (D5) append-only by key, not by trigger;
+  (D6) the two CHECKs beyond the n >= 30 gate. Things to know: Prisma's `migrate diff` cannot see CHECK constraints (two tests compare them with the model: a measured column added without editing the CHECK would otherwise let a number through below n = 30);
+  measured on the fixtures, a cycle costs 56 to 82 KB stored (bundles 1.14 to 1.79 GB for 90 days); verified on a scratch PostgreSQL 18.0 server, not on the Railway version; Part 4 must convert the runner's ISO `cycle_slot` to unix seconds.
+
+<!-- session 2026-10-03 step3-part1 -->
+
+- **Build step 3 part 1 (2026-10-03): the Python cycle runner is BUILT on fixtures, NOT committed, NOT deployed; no migration.** `davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/` (README, hand-off
+  `docs/handoffs/2026-10-02-2359-step3-part1.md`). All four flags are `off` in `worker_config.yaml` and in the registries; items 1 to 6 of every checklist are passed, 7 to 9 pending. **Settled by Davin on 2026-10-03** (items 1 to 3 and the bundle size, moved to [resolved](./history/resolved-waiting-on.md); items 4 and 5 stay open as noted): (4) and (5) below carry on. The original list:
+  (1) **Q5 b read literally:** only a VALID MCD0 passes its defect on; a CAUTIONARY MCD0 (only while RETUNING is enforced) marks nobody (`PROPAGATING_STATUSES` in `inheritance.py`, one line). (2) **Two flag rules of mine:**
+  no MCD higher than an MCD it depends on, no channel MCD higher than MCD0 (`flags.flag_problems`). (3) **Guard failures** become INVALID with `EVALUATOR_ERROR` (no new reason code). (4) **MCD0's items 7 and 8**
+  (dispatch matrix and playbook chunk; synthesis rows) are `pending` with "whether a gate needs it is Davin's call": until he decides, MCD0 cannot reach `live` (items 1 to 6 allow `shadow`). (5) **Rollback of one MCD is a
+  commit and a gateway deploy** (flags are in the committed `worker_config.yaml`); `SENSOR_WORKER_ENABLED=false` stops the whole worker at once. Things to know: MCD0 calls both timeframes defective on all three real
+  cycles (v1, v3, v4), so every channel MCD is CAUTIONARY on each; MCD3's reading through the runner differs from its stored per-MCD envelope in status and reasons only (it reads the marked MCD1 and MCD2, Q5 a); the
+  shared bundles are 0.54 to 1.17 MB of JSON (41 to 66 KB gzipped) for Q4's sizing; Python in the Railway image and the real cold-start time are still B0.
 
 <!-- session 2026-10-02 step2-session-b-and-commit -->
 

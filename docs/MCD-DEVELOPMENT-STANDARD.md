@@ -96,7 +96,7 @@ Three kinds of MCD ([new] names for existing ideas):
 | R11 | **Canonical English** codes, summaries and commentary from fixed templates                                                                   | arch §4.3, hand-off report |
 | R12 | **Runs only in the sensor worker,** once per cycle                                                                                           | ADR-016                    |
 | R13 | **Versioned:** `evaluator_version` + `config_hash`; any output change starts a new statistics series                                         | arch §2.8                  |
-| R14 | **Off until the checklist passes;** statistics measured before go-live                                                                       | arch §2.9                  |
+| R14 | **Off until the checklist passes** (`shadow` needs items 1 to 6, `live` needs all nine, Q7); statistics measured before go-live              | arch §2.9                  |
 | R15 | **Fits the budget:** envelope ≤ 600 tokens; evaluation ≤ 1 s **[new]**                                                                       | ADR-048                    |
 
 Appendix A turns these into the checklist every MCD manifest must include.
@@ -455,7 +455,7 @@ The 13-test discipline of MCD1–MCD3 stays and is extended. Every MCD **must** 
 | T3  | One test per pre-flight failure | Correct status and reason code for each check (§6)                                                            |
 | T4  | Forming bar                     | Appending an open bar to the fixture changes nothing (R1)                                                     |
 | T5  | Wrong-slot statistics           | A statistics row from another slot gives STALE (R2)                                                           |
-| T6  | Setting                         | No setting → INVALID; detection mismatch → CAUTIONARY (R3)                                                    |
+| T6  | Setting                         | No setting → INVALID; detection mismatch → CAUTIONARY at tier 1, then STALE or INVALID later (R3)             |
 | T7  | Determinism                     | Two runs on the same bundle give byte-identical JSON (R4)                                                     |
 | T8  | Schema                          | Output validates against `mcd-output/1` (Appendix B) (R5)                                                     |
 | T9  | Replay                          | The stored fixture (with its stored upstream, for a derived MCD) reproduces its expected envelope (arch §2.2) |
@@ -487,7 +487,7 @@ Before go-live the MCD also joins the golden scenarios (ADR-079) and the labelle
 | 7 Go live          | Flag `live`; registry row in the architecture (§16); new rules version if rows were accepted; decision entry               | **Davin approves**                                                 |
 | 8 Maintain         | Changes follow §14                                                                                                         | —                                                                  |
 
-The flag stays off until every item of the arch §2.9 checklist passes (R14). Each stage's inputs
+The flag stays off until items 1 to 6 of the arch §2.9 checklist pass: `shadow` requires items 1 to 6 (stage 4), and `live` requires all nine items (stage 7) (R14, decision Q7). Each stage's inputs
 and outputs are in [walkthrough Part D](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md#part-d--path-n-create-a-new-mcd); Davin's prompts are in the
 [build user manual](STACK-D-BUILD-USER-MANUAL.md).
 
