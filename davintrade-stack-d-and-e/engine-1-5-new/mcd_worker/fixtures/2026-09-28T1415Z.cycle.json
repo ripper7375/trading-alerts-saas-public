@@ -3,7 +3,7 @@
   "runner_version": "1.0.0",
   "symbol": "XAUUSD",
   "cycle_slot": "2026-09-28T14:15Z",
-  "inputs_sha256": "69fe11cf4623a2a855d155d7d80e6535747eea94603a96da9e68190a74d96d74",
+  "inputs_sha256": "bff8cadfaed24a72898bb5892ada7169ce8cea4ccedd8294d64c80aae95dcfdf",
   "retuning": {
     "observed": false,
     "enforced": false,
