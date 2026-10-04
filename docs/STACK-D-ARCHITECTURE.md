@@ -1985,26 +1985,57 @@ with the changes in §2.5 and the retrofit steps in
 [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md)), the
 data-collection blueprint v2.29, the terminal, frozen-baseline, chart and news manifests.
 
-Background only, not instructions, until reviewed: the six design folders Davin keeps in
-`seed-code/txtai/` (`CHAT-UI-MANAGEMENT`, `INCOMING-CHAT-ALERT_NOTIFICATIONS`, `MARKDOWN-MEMORY-AND-JSONL-TRANSCRIPT-ARCHITECTURE-DESIGN`, `RAG-SCALABILITY-AND_BOTTLENECK-MITTIGATION-DESIGN`, `CONVERSATIONAL-AI-TRADING-STRATEGY-RAG-MODEL` and `DYNAMIC-CHART-AND-CARD-DISPLAY`). They predate this document and overlap parts of it (chat sessions,
-retention, memory, RAG storage, alerts to traders). Where they disagree with this document, this
-document wins. They are reviewed before build step 4 (Appendix D); the review records here which
-parts are kept, which are background and which are superseded. The txtai library source in the same
-folder is reference code (§4.6).
+### Design Folders in seed-code/txtai/ (Reviewed 4 Oct 2026)
+
+The six design folders in `seed-code/txtai/` were reviewed against this architecture and the live 4-panel terminal codebase (`/terminal`, `components/workspace/trading-workspace.tsx`) before Build Step 4 (Appendix D item resolved).
+
+On 4 Oct 2026 the terminal's chat UI is not built. Panel A (`components/chat-sidebar.tsx`) lists four hardcoded session titles. Panel B (`components/chat-panel.tsx`) is an "AI Copilot Coming Soon" empty state with a tier badge, by the zero-mock-data decision of Session 9-4. Panel C (`components/charts/mtf-stacked-charts.tsx`) has no chat buttons. Panel D is Market Comments. Where this review marks a UI item "kept", it is a design input for the chat UI, not an existing feature.
+
+1. **`CHAT-UI-MANAGEMENT`:**
+   - **Kept:** Visual badge styling for the active cycle and the trader profile (`Day Trader` / `Scalper`, ADR-028) in the `ChatPanel` header (§5.1). The live header shows only the title and the tier badge.
+   - **Superseded:** "1 Instrument = 1 Chat" and "flag migration" across symbols (Stack D chat is session-driven, ADR-057, with the setup pinned to its cycle, ADR-059; the `SESSIONS` list in `components/chat-sidebar.tsx` is four hardcoded XAUUSD titles today).
+   - **Out of scope:** Multi-instrument routing (EURUSD, BTCUSD, etc.). The scope is XAUUSD on M5 and M15, and another symbol or timeframe gets a fixed reply (§4.2, ADR-046).
+
+2. **`INCOMING-CHAT-ALERT_NOTIFICATIONS`:**
+   - **Kept:** Visual styling for session cards in the sidebar (direction pills, timestamps, preview text). The live sidebar shows titles only.
+   - **Superseded / Out of scope:** Proactive AI-initiated incoming chat alerts triggered by state machines are roadmap (Later, Stage G5, §7.10). MVP chat is user-initiated, through the thread gate (§4.2) and the instant prompts that §4.10 keeps.
+   - **Background:** Part 11 alert deprecation and NestJS/BullMQ queue topology.
+
+3. **`MARKDOWN-MEMORY-AND-JSONL-TRANSCRIPT-ARCHITECTURE-DESIGN`:**
+   - **Kept:** Trader psychology and behavioral bias concepts curated into the Knowledge Corpus for RAG retrieval (§4.6, ADR-042).
+   - **Superseded:** Dual-memory Markdown/JSONL files (superseded by session context ADR-057, database audit traces ADR-075, and retention ADR-076: 7 years for audit rows, 12 months for deletable transcripts).
+   - **Out of scope:** MT5 statement Excel upload portal (roadmap).
+
+4. **`RAG-SCALABILITY-AND_BOTTLENECK-MITTIGATION-DESIGN`:**
+   - **Background:** Cloudflare R2 storage evaluation (historical rationale for the private R2 chart store, ADR-004 and ADR-014); pgBouncer connection pooling and disaster recovery runbooks.
+   - **Superseded / Out of scope:** Qdrant cluster, LiteLLM farm, and 30-worker cluster (superseded for MVP by embedded local txtai files, ADR-005, and the existing OpenRouter model gateway with passed models only, §5.1, §5.12, ADR-055).
+
+5. **`CONVERSATIONAL-AI-TRADING-STRATEGY-RAG-MODEL`:**
+   - **Kept:** Qualitative trading strategy prose (invigorated vs. exhausting momentum, spring/shakeout tests, pullback confirmation mechanics) curated into the Knowledge Corpus (§4.6, ADR-042).
+   - **Superseded:** Older custom MQ5 indicators (Fractal Horizontal Line, Momentum Z-Score, TEMA/HRMA) parked in favor of 2EDT Centroid Regression (`market_data_v6`), the MCD0–MCD3 sensors (§2.13, ADR-018, ADR-082), and fixed Day Trader / Scalper profiles (ADR-028).
+
+6. **`DYNAMIC-CHART-AND-CARD-DISPLAY`:**
+   - **Kept:** The live 4-panel terminal layout in `components/workspace/trading-workspace.tsx`: Panel A (`ChatSidebar`, SESSIONS navigation), Panel B (`ChatPanel`, AI Analyst), Panel C (`MtfStackedCharts`, XAUUSD with M5 stacked above M15) and Panel D (Market Comments).
+   - **Kept as design targets, not built:**
+     - Panel B: a model picker that lists passed models only (§5.12, ADR-055), a Monthly Token Quota meter (§5.6, ADR-050, ADR-073), and a chat input box. The design's `Ask Gemini...` placeholder names a model; the launch model is set by the evaluation suite (§5.10, ADR-055).
+     - Panel C: `Ask AI about M5 Chart` and `Ask AI about M15 Chart` instant prompt buttons (§4.10).
+   - **Superseded:** TypeORM entities and older indicator cards (superseded by the Prisma models in the Railway gateway, `railway-gateway/prisma/schema.prisma`, and the Sensor Board, ADR-040).
+
+The txtai library source in the same folder is reference code (§4.6).
 
 ## Appendix D — Open items
 
-| Item                                                                                                       | Owner                       | Where               |
-| ---------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------- |
-| Resolve the four "documents disagree" status items against production                                      | Davin / Executor            | §0.5                |
-| First real, measured cycle; confirm the ADR-012 thresholds                                                 | Executor                    | §1.8                |
-| Write the rules table content (the draft is a starting point)                                              | Davin                       | §3.4                |
-| Approve each knowledge domain before its first build                                                       | Davin                       | §4.6                |
-| Set the model-spend share for the Pro quota; publish tier amounts after measurement                        | Davin                       | §7.3                |
-| Counsel review: wording guide, disclaimers, consent wording, retention figures, privacy notice             | Davin + counsel             | §5.9, §6.11, §7.5   |
-| Capture golden scenarios from live cycles once the pipeline runs                                           | Executor, approved by Davin | §7.7                |
-| Measure token counts and cost per model; set caps per model                                                | Executor                    | §5.4, §5.10         |
-| Review the six design folders in `seed-code/txtai/` against this document; record the result in Appendix C | Davin, with his advisor     | Before build step 4 |
+| Item                                                                                                       | Owner                       | Where                             |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------- |
+| Resolve the four "documents disagree" status items against production                                      | Davin / Executor            | §0.5                              |
+| First real, measured cycle; confirm the ADR-012 thresholds                                                 | Executor                    | §1.8                              |
+| Write the rules table content (the draft is a starting point)                                              | Davin                       | §3.4                              |
+| Approve each knowledge domain before its first build                                                       | Davin                       | §4.6                              |
+| Set the model-spend share for the Pro quota; publish tier amounts after measurement                        | Davin                       | §7.3                              |
+| Counsel review: wording guide, disclaimers, consent wording, retention figures, privacy notice             | Davin + counsel             | §5.9, §6.11, §7.5                 |
+| Capture golden scenarios from live cycles once the pipeline runs                                           | Executor, approved by Davin | §7.7                              |
+| Measure token counts and cost per model; set caps per model                                                | Executor                    | §5.4, §5.10                       |
+| Review the six design folders in `seed-code/txtai/` against this document; record the result in Appendix C | Davin, with his advisor     | Resolved (2026-10-04, Appendix C) |
 
 <!-- decision links -->
 
