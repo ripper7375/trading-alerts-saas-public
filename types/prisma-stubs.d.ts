@@ -1109,6 +1109,73 @@ declare module '@prisma/client' {
     updated_at: Date | string;
   }
 
+  // Stack D chapter 3 tables (build step 4, part 4; migration
+  // 20261004000000_add_synthesis_tables). Mirrors of the market-data schema's
+  // SynthesisReading and EntryZone. Slots are unix UTC seconds; like the chapter 2
+  // tables these keep the schema's snake_case `created_at`.
+  export interface SynthesisReading {
+    id: string;
+    symbol: string;
+    cycle_slot: number;
+    profile: string;
+    flag: string;
+    rules_version: string;
+    rules_sha256: string;
+    rule_id: string;
+    branch_id: string | null;
+    status: string;
+    status_reasons: string[];
+    data_status: string;
+    archetype: string | null;
+    bias: string;
+    trend_relation: string | null;
+    stand_aside: boolean;
+    reading_json: string;
+    reading: JsonValue;
+    reading_sha256: string;
+    zone_count: number;
+    zones_reason: string | null;
+    zones_json: string;
+    zones_sha256: string;
+    zone_params_version: string;
+    zone_params_sha256: string;
+    reference_price: number | null;
+    guard_problems: string[];
+    inputs_sha256: string | null;
+    retuning_observed: boolean;
+    retuning_applied: boolean;
+    runner_version: string;
+    python_version: string;
+    duration_ms: number;
+    evaluated_at: number;
+    created_at: Date | string;
+  }
+
+  export interface EntryZone {
+    id: string;
+    symbol: string;
+    cycle_slot: number;
+    profile: string;
+    zone_id: string;
+    rank: number;
+    bias: string;
+    low: number;
+    high: number;
+    reference_price: number;
+    source_sensors: string[];
+    confluence_count: number;
+    invalidation_price: number;
+    invalidation_basis: string;
+    stop_distance: number;
+    next_opposing_price: number | null;
+    runway: number | null;
+    runway_ratio: number | null;
+    levels: JsonValue;
+    zone_params_version: string;
+    zone_params_sha256: string;
+    created_at: Date | string;
+  }
+
   // ============================================================
   // PRISMA NAMESPACE
   // ============================================================
@@ -1377,6 +1444,8 @@ declare module '@prisma/client' {
     mcdOutput: ModelDelegate<McdOutput>;
     marketCycleInput: ModelDelegate<MarketCycleInput>;
     stateStatistic: ModelDelegate<StateStatistic>;
+    synthesisReading: ModelDelegate<SynthesisReading>;
+    entryZone: ModelDelegate<EntryZone>;
   }
 }
 

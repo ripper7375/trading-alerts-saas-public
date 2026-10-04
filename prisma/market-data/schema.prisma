@@ -1083,3 +1083,171 @@ model StateStatistic {
   @@unique([mcd_id, evaluator_version_series, config_hash_key, state_code, horizon_hours], map: "state_statistics_series_key")
   @@map("state_statistics")
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STACK D CHAPTER 3: SYNTHESIS READINGS AND ENTRY ZONES
+// (build step 4, part 4; docs/STACK-D-ARCHITECTURE.md section 3, decision D9)
+//
+// Two additive tables, written by railway-gateway's synthesis step in the same
+// transaction as the cycle's `mcd_outputs` rows (part 5; its own
+// prisma/schema.prisma mirrors them for `prisma generate` only; this schema owns
+// the migration, 20261004000000_add_synthesis_tables). They are NOT rows of
+// `mcd_outputs`: that table's key is (symbol, cycle_slot, mcd_id) and SYN has two
+// readings per slot, one per trader type, validated by `syn-output/1` and not by
+// `mcd-output/1`. Business timestamps are Int unix UTC and a cycle slot is a
+// multiple of 300 (rule 1, ADR-008). No foreign keys, as in chapters 1 and 2: an
+// entry zone is joined to its reading by (symbol, cycle_slot, profile).
+//
+// The rules of the architecture that a single row can show are CHECK constraints
+// in the migration, which Prisma cannot express and its diff does not see: a
+// stand-aside reading has no zones (3.10, 4), a zone's stop distance is at least
+// $13 (3.6, 3.10 item 5), a zone with no opposing level has no runway, and the
+// text, JSONB copy and SHA-256 of a reading agree.
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// One trader type's SYN reading of one cycle (architecture 3.5, build step 4): what
+/// the synthesis step saved for a symbol, a slot and a profile (DAY_TRADER or
+/// SCALPER). APPEND-ONLY: a row is never updated, and a cycle delivered twice
+/// writes nothing new (the unique key). It holds the readings made while the SYN
+/// flag was `shadow` or `live`, never `off` (a CHECK in the migration). A reading
+/// that failed its guard is never saved (`syn-output/1` is checked before the
+/// write), so every row here is a reading a reader may use.
+///
+/// `reading_json` is the canonical text of the reading (syn-output/1) exactly as
+/// the engine produced it: the record, and what `reading_sha256` hashes.
+/// `reading` is the same document as JSONB, for queries only (a CHECK says the two
+/// are the same document). The scalar columns repeat reading fields so a reader can
+/// filter without opening it, and the whole SYN row says which rules made it: the
+/// version and the SHA-256 of the rules file, and the rule and branch that matched.
+///
+/// `zones_json` is the canonical text of the profile's zone rows as the builder
+/// wrote them (a JSON list, `[]` when none), `zones_sha256` its SHA-256, and
+/// `entry_zones` holds the same rows as columns for queries. When there are no
+/// zones, `zones_reason` says why (NOT_DIRECTIONAL, NO_REFERENCE_PRICE,
+/// NO_ZONE_SOURCES or ZONES_REFUSED). `zone_params_version` and
+/// `zone_params_sha256` name the parameter file the zones were built with.
+/// `reference_price` is the close of the last closed M5 bar the zones were built
+/// from, or NULL when the cycle had none.
+///
+/// Timings and the Python version describe the run, not the reading, so they live
+/// in columns and never inside it. `duration_ms` is the wall time of the whole
+/// synthesis step, so both profiles of a cycle carry the same figure.
+model SynthesisReading {
+  id String @id @default(cuid())
+
+  symbol     String
+  cycle_slot Int // unix UTC, a multiple of 300: the cycle (rule 1). The reading carries the same slot as ISO 8601 text
+  profile    String // DAY_TRADER | SCALPER
+
+  flag String // shadow | live: the SYN flag when the row was written. Never off (CHECK in the migration)
+
+  rules_version String // the rules file the reading was made with, for example draft-1
+  rules_sha256  String // SHA-256 (hex) of that file's parsed document
+  rule_id       String // the matched row, or NO_MATCH
+  branch_id     String? // NULL only for NO_MATCH
+
+  status         String // VALID | CAUTIONARY | INVALID | STALE
+  status_reasons String[] @default([]) // empty exactly when status is VALID (CHECK in the migration)
+  data_status    String // FRESH | DELAYED | STALE | MARKET_CLOSED | INPUTS_REFUSED
+
+  archetype      String? // A | B | C | D; NULL when there is no direction
+  bias           String // LONG | SHORT | NEUTRAL | STAND_ASIDE
+  trend_relation String? // WITH_TREND | COUNTER_TREND; NULL when there is no direction
+  stand_aside    Boolean // true exactly when bias is STAND_ASIDE (CHECK in the migration)
+
+  reading_json   String // the canonical reading text, byte for byte
+  reading        Json // the same document as JSONB
+  reading_sha256 String // SHA-256 (hex) of reading_json
+
+  zone_count          Int // how many entry_zones rows the reading has: 0 to 5
+  zones_reason        String? // why there are no zones; NULL exactly when zone_count > 0
+  zones_json          String // the canonical text of the zone rows, a JSON list; [] when none
+  zones_sha256        String // SHA-256 (hex) of zones_json
+  zone_params_version String // the zone parameters' version, for example zones-1
+  zone_params_sha256  String // SHA-256 (hex) of the parsed zone parameters
+  reference_price     Float? // the close of the last closed M5 bar of the bundle; NULL when there was none
+
+  guard_problems String[] @default([]) // why some zones were dropped (a refused zone set); empty when none were
+
+  inputs_sha256 String? // SHA-256 (hex) of the cycle's canonical bundle text, as on the cycle's mcd_outputs rows
+
+  // RETUNING (ADR-015), as on the cycle's mcd_outputs rows.
+  retuning_observed Boolean
+  retuning_applied  Boolean
+
+  runner_version String // mcd_worker's RUNNER_VERSION
+  python_version String // for example 3.11.9
+  duration_ms    Float // wall time of the synthesis step, milliseconds
+  evaluated_at   Int // unix UTC, the gateway's clock when the cycle was evaluated
+
+  created_at DateTime @default(now())
+
+  // No @updatedAt, deliberately: this table is never updated.
+  @@unique([symbol, cycle_slot, profile])
+  @@map("synthesis_readings")
+}
+
+/// One entry zone of one trader type's reading (architecture 3.6): the row a zone
+/// is stored as. APPEND-ONLY and idempotent like its reading: one row per
+/// (symbol, cycle_slot, profile, zone_id). Zones exist only for a LONG or a SHORT
+/// reading, at most five, ranked 1 to 5 with `zone_id` Z<rank>.
+///
+/// Prices are the exact two-decimal figures the builder computed in decimals, kept
+/// as DOUBLE PRECISION like every price in this schema, so a stored price reads
+/// back as the number it was written as. `low` to `high` is the zone, and
+/// `reference_price` (inside it) is the entry the stop and the runway are measured
+/// from. `invalidation_price` lies on the far side of the reference price, at
+/// least $13 away: `stop_distance` is that distance, and a CHECK in the migration
+/// refuses a row under 13 (changing 13 is a new decision and a new migration, like
+/// the n >= 30 gate) or one whose stop distance is not the distance between the two
+/// prices. `invalidation_basis` says how the invalidation was found: LEVEL (a cent
+/// figure beyond the nearest structure level), MINIMUM_STOP (that level was closer
+/// than the minimum, so it was raised to it) or NO_LEVEL (nothing past the zone).
+///
+/// A zone with no level beyond the entry has no runway: `next_opposing_price`,
+/// `runway` and `runway_ratio` are then ALL NULL (a CHECK says all three or none),
+/// and a reader must read that as "no obstacle found", not as missing data.
+/// `runway_ratio` is runway over stop distance.
+///
+/// `levels` holds the audit trail as JSONB: `source_levels`, `confluence_levels`,
+/// `invalidation_level` and `next_opposing_level` (each level `{name, tf, price,
+/// origin}`; the last two NULL when none). `source_sensors` are the sensors whose
+/// channel gave the zone, `confluence_count` the levels inside it (at least the
+/// source). `zone_params_version` and `zone_params_sha256` name the parameters.
+model EntryZone {
+  id String @id @default(cuid())
+
+  symbol     String
+  cycle_slot Int // unix UTC, a multiple of 300
+  profile    String // DAY_TRADER | SCALPER
+  zone_id    String // Z1 to Z5, always Z<rank> (CHECK in the migration)
+  rank       Int // 1 is the best zone
+
+  bias String // LONG | SHORT
+
+  low             Float
+  high            Float
+  reference_price Float
+
+  source_sensors   String[] @default([]) // MCD1 to MCD3: at least one (CHECK in the migration)
+  confluence_count Int // at least 1: the zone's own source level counts
+
+  invalidation_price Float
+  invalidation_basis String // LEVEL | MINIMUM_STOP | NO_LEVEL
+  stop_distance      Float // at least 13, and the distance from reference_price to invalidation_price (CHECK in the migration)
+
+  next_opposing_price Float? // NULL when nothing lies beyond the entry
+  runway              Float? // distance to it; NULL exactly when next_opposing_price is
+  runway_ratio        Float? // runway over stop_distance; NULL exactly when runway is
+
+  levels Json // the levels behind the zone, see above
+
+  zone_params_version String // the zone parameters' version, for example zones-1
+  zone_params_sha256  String // SHA-256 (hex) of the parsed zone parameters
+
+  created_at DateTime @default(now())
+
+  // No @updatedAt, deliberately: this table is never updated.
+  @@unique([symbol, cycle_slot, profile, zone_id])
+  @@map("entry_zones")
+}

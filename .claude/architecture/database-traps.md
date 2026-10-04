@@ -1,7 +1,7 @@
 ---
 type: Concept/TechnicalTraps
 severity: high
-updated_at: 2026-10-03
+updated_at: 2026-10-04
 source: "Distilled from CLAUDE.md '## Waiting on' and session logs 2026-09-01..09-26; details in state/history/"
 tags: [database, prisma, migrations, railway, postgres]
 related_docs:
@@ -107,6 +107,11 @@ Read before any schema change, migration, or query against a real database.
   The kit (`scripts/measure-sensors.js`) therefore reports "signal to start" (`evaluated_at - market_cycles.ready_at`, about a second of resolution) exactly and "signal to done" as an estimate (start plus the job's wall time, or the MCDs' summed `duration_ms`). `duration_ms` is the wall time of one MCD inside the Python process; the first MCD of a cycle (MCD0) includes the one-time build of the schema validator.
 - **A plan-shape test must not ask the planner about whatever the table holds** (build step 3 part 7, `sensor-tables.pg.spec.ts`): the retention delete's use of `market_cycle_inputs_cycle_slot_idx` now takes the plan of the writer's own `DELETE` in a transaction that is always rolled back (an interactive Prisma `$transaction` rolls back when the callback throws), with the rival
   unique index `(symbol, cycle_slot)` dropped inside it (PostgreSQL 18 can scan it without naming `symbol`: a skip scan) and `SET LOCAL enable_seqscan = off`, so the plan cannot depend on statistics or on the server's version, and it leaves the table, its indexes and its statistics untouched. A separate test reads `pg_indexes.indexdef`.
+
+- **The synthesis tables** (build step 4 part 4, migration FILE `20261004000000_add_synthesis_tables`, NOT applied): `synthesis_readings` (one row per symbol, slot and profile) and `entry_zones` (one per zone, `Z<rank>`), no foreign keys, 25 hand-written CHECKs, a gated spec `railway-gateway/test/synthesis-tables.pg.spec.ts` (55 tests; the same env vars as the sensor spec; it needs only that migration file applied to an empty scratch database).
+  Facts a writer and a replay will meet: **the database re-derives the SHA-256 of the canonical texts** (`encode(sha256(convert_to(text, 'UTF8')), 'hex')`, built into PostgreSQL 11 and later, no extension) and checks that the JSONB copy is the same document as the text (`text::jsonb = copy`; key order does not matter), so a writer must hash exactly the text it stores. **A failing CHECK fails the whole `$transaction([...])`**:
+  if SYN rows share the cycle's transaction with `mcd_outputs` (decision D9) one bad zone loses the sensor rows too; part 5 must run `syn-output/1`, `zone_problems` and the equivalent of every CHECK before the transaction and leave out SYN rows it cannot vouch for (a refused write rolls back both tables: tested). PostgreSQL reports the FIRST failing CHECK by constraint name (alphabetical), so a test of one constraint must break only that one.
+  Prices are DOUBLE PRECISION like the rest of the schema and come back as the same JavaScript number; the two "is the distance" CHECKs use half a cent as tolerance because the stored figures are on a cent grid. `entry_zones` runway columns are all NULL for a zone with no level beyond the entry (D7 e): read that as "no obstacle found". A scratch `prisma migrate diff` against only some tables needs a subset schema: the header (generator and datasource blocks) plus the real new models, saved as `schema.prisma` beside a `prisma.config.mjs` that is just `export default { datasource: { url: '...' } };` (no imports, so it can live outside the repo).
 
 ## Ledger ≠ reality (zero-step baseline rows)
 

@@ -89,6 +89,9 @@ describe.each([
   ['McdOutput', 'mcd_outputs'],
   ['MarketCycleInput', 'market_cycle_inputs'],
   ['StateStatistic', 'state_statistics'],
+  // Stack D chapter 3 (build step 4, part 4).
+  ['SynthesisReading', 'synthesis_readings'],
+  ['EntryZone', 'entry_zones'],
 ])(
   '%s schema drift (railway-gateway vs. monolith source of truth)',
   (model, table) => {
@@ -589,5 +592,477 @@ describe('the migration that creates the sensor tables', () => {
   it('is dated after the chapter 1 migration, so history order is unaffected', () => {
     const dir = path.basename(path.dirname(SENSOR_MIGRATION_PATH));
     expect(dir > '20261002000000_add_cycle_pipeline_tables').toBe(true);
+  });
+});
+
+/**
+ * Stack D chapter 3 tables (docs/STACK-D-ARCHITECTURE.md section 3, build step 4
+ * part 4): synthesis_readings and entry_zones. The same four places must agree
+ * (monolith schema, gateway mirror, migration SQL, type stubs); the first pair is
+ * in the drift block above. The rules a single row can show are CHECK constraints
+ * that Prisma cannot see, so a column added to the model without its CHECK would
+ * slip past `prisma migrate diff`: the tests below compare the CHECKs with the model.
+ */
+const SYNTHESIS_MIGRATION_PATH = path.join(
+  __dirname,
+  '../../prisma/migrations/20261004000000_add_synthesis_tables/migration.sql'
+);
+
+describe.each([
+  ['SynthesisReading', 'synthesis_readings'],
+  ['EntryZone', 'entry_zones'],
+])(
+  '%s agrees with its synthesis migration and its type stub',
+  (model, table) => {
+    const source = fs.readFileSync(SOURCE_OF_TRUTH_SCHEMA_PATH, 'utf-8');
+    const sql = fs.readFileSync(SYNTHESIS_MIGRATION_PATH, 'utf-8');
+    const stubs = fs.readFileSync(STUBS_PATH, 'utf-8');
+    const schemaFields = fieldNames(extractModelBody(source, model));
+
+    it('has the same columns, in the same order, in the migration', () => {
+      expect(createTableColumns(sql, table)).toEqual(schemaFields);
+    });
+
+    it('has the same fields in the type stub', () => {
+      expect([...stubInterfaceFields(stubs, model)].sort()).toEqual(
+        [...schemaFields].sort()
+      );
+    });
+
+    it('has a delegate on the stub client', () => {
+      const delegate = model.charAt(0).toLowerCase() + model.slice(1);
+      expect(stubs).toContain(`${delegate}: ModelDelegate<${model}>;`);
+    });
+
+    it('types every stub field as the schema says', () => {
+      expect(stubInterfaceTypes(stubs, model)).toEqual(
+        schemaTypesAsStubTypes(extractModelBody(source, model))
+      );
+    });
+  }
+);
+
+describe('Stack D chapter 3 table invariants', () => {
+  const source = fs.readFileSync(SOURCE_OF_TRUTH_SCHEMA_PATH, 'utf-8');
+  const rawBody = (model: string) => extractModelBody(source, model);
+  const body = (model: string) => normalizeFields(rawBody(model));
+
+  it('synthesis_readings: one row per (symbol, cycle_slot, profile), so a re-delivered cycle writes nothing new', () => {
+    expect(body('SynthesisReading')).toContain(
+      '@@unique([symbol, cycle_slot, profile])'
+    );
+  });
+
+  it('entry_zones: one row per (symbol, cycle_slot, profile, zone_id)', () => {
+    expect(body('EntryZone')).toContain(
+      '@@unique([symbol, cycle_slot, profile, zone_id])'
+    );
+  });
+
+  it.each(['SynthesisReading', 'EntryZone'])(
+    '%s is write-once: it has no updated_at',
+    (model) => {
+      // Declarations only: the models' own comments say "No @updatedAt".
+      expect(body(model).join('\n')).not.toMatch(/@updatedAt/);
+      expect(fieldNames(rawBody(model))).not.toContain('updated_at');
+    }
+  );
+
+  it('synthesis_readings: the text is the record, with a JSONB copy and the hashes, all required', () => {
+    for (const required of [
+      'reading_json String',
+      'reading Json',
+      'reading_sha256 String',
+      'zones_json String',
+      'zones_sha256 String',
+      'rules_sha256 String',
+      'zone_params_sha256 String',
+      'retuning_observed Boolean',
+      'retuning_applied Boolean',
+      'flag String',
+    ]) {
+      expect(body('SynthesisReading')).toContain(required);
+    }
+  });
+
+  it('synthesis_readings: a reading with no direction has no archetype and no trend relation, and NO_MATCH has no branch, so those are nullable', () => {
+    for (const nullable of [
+      'archetype String?',
+      'trend_relation String?',
+      'branch_id String?',
+      'zones_reason String?',
+      'reference_price Float?',
+    ]) {
+      expect(body('SynthesisReading')).toContain(nullable);
+    }
+  });
+
+  it('entry_zones: a zone with nothing beyond the entry has no runway, so the three runway columns are nullable and nothing else is', () => {
+    expect(columnsOfType(rawBody('EntryZone'), 'Float?').sort()).toEqual([
+      'next_opposing_price',
+      'runway',
+      'runway_ratio',
+    ]);
+    expect(
+      body('EntryZone').filter(
+        (line) => !line.startsWith('@@') && line.split(' ')[1].endsWith('?')
+      )
+    ).toHaveLength(3);
+  });
+
+  it('the list columns default to an empty array', () => {
+    expect(body('SynthesisReading')).toContain(
+      'status_reasons String[] @default([])'
+    );
+    expect(body('SynthesisReading')).toContain(
+      'guard_problems String[] @default([])'
+    );
+    expect(body('EntryZone')).toContain('source_sensors String[] @default([])');
+  });
+});
+
+describe('the CHECK constraints of the synthesis migration', () => {
+  const source = fs.readFileSync(SOURCE_OF_TRUTH_SCHEMA_PATH, 'utf-8');
+  const sql = fs.readFileSync(SYNTHESIS_MIGRATION_PATH, 'utf-8');
+  const names = [...sql.matchAll(/ADD CONSTRAINT "(\w+)" CHECK \(/g)].map(
+    (m) => m[1]
+  );
+  const readingColumns = fieldNames(
+    extractModelBody(source, 'SynthesisReading')
+  );
+  const compact = (text: string) => text.replace(/\s+/g, ' ').trim();
+
+  it('are exactly these 25, so one added or dropped by hand is noticed', () => {
+    expect([...names].sort()).toEqual(
+      [
+        'entry_zones_bias_is_a_direction',
+        'entry_zones_confluence_at_least_the_source',
+        'entry_zones_invalidation_basis_is_known',
+        'entry_zones_invalidation_is_beyond_the_reference_price',
+        'entry_zones_levels_match_the_columns',
+        'entry_zones_prices_are_positive',
+        'entry_zones_profile_is_known',
+        'entry_zones_rank_and_id',
+        'entry_zones_reference_price_is_inside_the_zone',
+        'entry_zones_runway_is_all_or_nothing',
+        'entry_zones_runway_is_the_distance_to_the_opposing_level',
+        'entry_zones_sources_not_empty',
+        'entry_zones_stop_distance_is_at_least_13',
+        'entry_zones_stop_distance_is_the_distance',
+        'synthesis_readings_columns_repeat_the_reading',
+        'synthesis_readings_flag_is_shadow_or_live',
+        'synthesis_readings_list_columns_not_null',
+        'synthesis_readings_profile_is_known',
+        'synthesis_readings_reading_text_is_its_copy_and_hash',
+        'synthesis_readings_reasons_follow_the_status',
+        'synthesis_readings_stand_aside_is_the_bias',
+        'synthesis_readings_zone_count_range',
+        'synthesis_readings_zones_need_a_direction',
+        'synthesis_readings_zones_reason_follows_the_count',
+        'synthesis_readings_zones_text_is_its_count_and_hash',
+      ].sort()
+    );
+    expect(new Set(names).size).toBe(names.length);
+    for (const name of names) expect(name.length).toBeLessThanOrEqual(63);
+  });
+
+  it('synthesis_readings_flag_is_shadow_or_live: a reading made while the SYN flag is off cannot exist', () => {
+    expect(
+      checkBody(sql, 'synthesis_readings_flag_is_shadow_or_live').trim()
+    ).toBe("\"flag\" IN ('shadow', 'live')");
+  });
+
+  it.each([
+    'synthesis_readings_profile_is_known',
+    'entry_zones_profile_is_known',
+  ])('%s names exactly the two trader types', (name) => {
+    expect(checkBody(sql, name).trim()).toBe(
+      "\"profile\" IN ('DAY_TRADER', 'SCALPER')"
+    );
+  });
+
+  it('stand-aside and having no direction are the same fact (3.10 item 4), and a reading with no direction has no zones', () => {
+    expect(
+      compact(checkBody(sql, 'synthesis_readings_stand_aside_is_the_bias'))
+    ).toBe('"stand_aside" = ("bias" = \'STAND_ASIDE\')');
+    expect(
+      compact(checkBody(sql, 'synthesis_readings_zones_need_a_direction'))
+    ).toBe('"zone_count" = 0 OR "bias" IN (\'LONG\', \'SHORT\')');
+    expect(checkBody(sql, 'synthesis_readings_zone_count_range').trim()).toBe(
+      '"zone_count" BETWEEN 0 AND 5'
+    );
+  });
+
+  it('synthesis_readings_list_columns_not_null: every TEXT[] column of the model is covered (Prisma leaves them nullable)', () => {
+    const lists = columnsOfType(
+      extractModelBody(source, 'SynthesisReading'),
+      'String[]'
+    ).sort();
+    const covered = [
+      ...checkBody(sql, 'synthesis_readings_list_columns_not_null').matchAll(
+        /"(\w+)" IS NOT NULL/g
+      ),
+    ]
+      .map((m) => m[1])
+      .sort();
+    expect(lists).toEqual(['guard_problems', 'status_reasons']);
+    expect(covered).toEqual(lists);
+  });
+
+  it('entry_zones_sources_not_empty: the one TEXT[] column of the model is covered and holds at least one sensor', () => {
+    expect(
+      columnsOfType(extractModelBody(source, 'EntryZone'), 'String[]')
+    ).toEqual(['source_sensors']);
+    expect(compact(checkBody(sql, 'entry_zones_sources_not_empty'))).toBe(
+      '"source_sensors" IS NOT NULL AND cardinality("source_sensors") >= 1'
+    );
+  });
+
+  it('the text is the record: the JSONB copy and the SHA-256 of both texts are re-derived by the database', () => {
+    const reading = compact(
+      checkBody(sql, 'synthesis_readings_reading_text_is_its_copy_and_hash')
+    );
+    expect(reading).toContain('"reading_json"::jsonb = "reading"');
+    expect(reading).toContain(
+      'encode(sha256(convert_to("reading_json", \'UTF8\')), \'hex\') = "reading_sha256"'
+    );
+    const zones = compact(
+      checkBody(sql, 'synthesis_readings_zones_text_is_its_count_and_hash')
+    );
+    expect(zones).toContain(
+      'jsonb_array_length("zones_json"::jsonb) = "zone_count"'
+    );
+    expect(zones).toContain(
+      'encode(sha256(convert_to("zones_json", \'UTF8\')), \'hex\') = "zones_sha256"'
+    );
+  });
+
+  it('synthesis_readings_columns_repeat_the_reading: every column that repeats a reading field is compared, and every other column is accounted for', () => {
+    const check = checkBody(
+      sql,
+      'synthesis_readings_columns_repeat_the_reading'
+    );
+    // Each of these columns repeats a field of the reading (the slot is text in the reading and an integer in the column).
+    const repeated = [
+      'profile',
+      'cycle_slot',
+      'rules_version',
+      'rules_sha256',
+      'rule_id',
+      'branch_id',
+      'status',
+      'status_reasons',
+      'data_status',
+      'archetype',
+      'bias',
+      'trend_relation',
+      'stand_aside',
+    ];
+    for (const column of repeated) {
+      expect(check).toMatch(new RegExp(`"reading"->>?'${column}'`));
+      expect(readingColumns).toContain(column);
+    }
+    expect(check).toContain(
+      `jsonb_array_length("reading"->'zones') = "zone_count"`
+    );
+    // The columns that do NOT repeat a reading field. A column added to the model must be put in
+    // one of the two lists, which is the moment to decide whether it needs a comparison here.
+    const notInTheReading = [
+      'id',
+      'symbol',
+      'flag',
+      'reading_json',
+      'reading',
+      'reading_sha256',
+      'zone_count',
+      'zones_reason',
+      'zones_json',
+      'zones_sha256',
+      'zone_params_version',
+      'zone_params_sha256',
+      'reference_price',
+      'guard_problems',
+      'inputs_sha256',
+      'retuning_observed',
+      'retuning_applied',
+      'runner_version',
+      'python_version',
+      'duration_ms',
+      'evaluated_at',
+      'created_at',
+    ];
+    expect([...repeated, ...notInTheReading].sort()).toEqual(
+      [...readingColumns].sort()
+    );
+  });
+
+  it('entry_zones_prices_are_positive: the four prices that are not a distance are named, and the stop distance is held by the 13 rule', () => {
+    const named = [
+      ...checkBody(sql, 'entry_zones_prices_are_positive').matchAll(
+        /"(\w+)" > 0/g
+      ),
+    ].map((m) => m[1]);
+    expect(named).toEqual([
+      'low',
+      'high',
+      'reference_price',
+      'invalidation_price',
+    ]);
+  });
+
+  it('the zone rules of 3.6 and 3.10 item 5 are in the database: at least 13 from the entry, on the far side, the entry inside the zone', () => {
+    expect(
+      checkBody(sql, 'entry_zones_stop_distance_is_at_least_13').trim()
+    ).toBe('"stop_distance" >= 13');
+    expect(
+      compact(checkBody(sql, 'entry_zones_stop_distance_is_the_distance'))
+    ).toBe(
+      'abs(abs("reference_price" - "invalidation_price") - "stop_distance") < 0.005'
+    );
+    expect(
+      compact(
+        checkBody(sql, 'entry_zones_invalidation_is_beyond_the_reference_price')
+      )
+    ).toBe(
+      '("bias" = \'LONG\' AND "invalidation_price" < "reference_price") OR ("bias" = \'SHORT\' AND "invalidation_price" > "reference_price")'
+    );
+    expect(
+      compact(checkBody(sql, 'entry_zones_reference_price_is_inside_the_zone'))
+    ).toBe('"low" <= "reference_price" AND "reference_price" <= "high"');
+    expect(checkBody(sql, 'entry_zones_bias_is_a_direction').trim()).toBe(
+      "\"bias\" IN ('LONG', 'SHORT')"
+    );
+    expect(
+      checkBody(sql, 'entry_zones_invalidation_basis_is_known').trim()
+    ).toBe("\"invalidation_basis\" IN ('LEVEL', 'MINIMUM_STOP', 'NO_LEVEL')");
+  });
+
+  it('entry_zones_runway_is_all_or_nothing: every nullable runway column of the model is named, and nothing else', () => {
+    const nullable = columnsOfType(
+      extractModelBody(source, 'EntryZone'),
+      'Float?'
+    ).sort();
+    const named = new Set(
+      [
+        ...checkBody(sql, 'entry_zones_runway_is_all_or_nothing').matchAll(
+          /"(\w+)" IS NULL/g
+        ),
+      ].map((m) => m[1])
+    );
+    expect([...named].sort()).toEqual(nullable);
+  });
+
+  it('entry_zones_levels_match_the_columns: the audit document has its four parts and agrees with the columns', () => {
+    const check = compact(
+      checkBody(sql, 'entry_zones_levels_match_the_columns')
+    );
+    for (const part of [
+      'source_levels',
+      'confluence_levels',
+      'invalidation_level',
+      'next_opposing_level',
+    ]) {
+      expect(check).toContain(`'${part}'`);
+    }
+    expect(check).toContain(
+      'jsonb_array_length("levels"->\'confluence_levels\') = "confluence_count"'
+    );
+  });
+});
+
+/** `column -> definition` of each column of `CREATE TABLE "<table>"`, for example `low: 'DOUBLE PRECISION NOT NULL'`. */
+function createTableDefinitions(
+  sql: string,
+  table: string
+): Record<string, string> {
+  const match = sql.match(
+    new RegExp(`CREATE TABLE "${table}" \\(([\\s\\S]*?)\\n\\);`)
+  );
+  if (!match) throw new Error(`CREATE TABLE "${table}" not found`);
+  return Object.fromEntries(
+    match[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.startsWith('"'))
+      .map((line) => {
+        const parts = /^"(\w+)" (.*?),?$/.exec(line);
+        if (!parts) throw new Error(`cannot read column line: ${line}`);
+        return [parts[1], parts[2]];
+      })
+  );
+}
+
+const SQL_TYPE: Record<string, string> = {
+  String: 'TEXT',
+  Int: 'INTEGER',
+  Float: 'DOUBLE PRECISION',
+  Boolean: 'BOOLEAN',
+  DateTime: 'TIMESTAMP(3)',
+  Json: 'JSONB',
+  Bytes: 'BYTEA',
+};
+
+/** The column definition Prisma writes for a normalized model field (`name Type? @default(...)`). */
+function schemaFieldAsSql(line: string): [string, string] {
+  const [name, rawType, ...attributes] = line.split(' ');
+  const base = SQL_TYPE[rawType.replace(/(\[\]|\?)$/, '')];
+  if (base === undefined) throw new Error(`unmapped type ${rawType}`);
+  if (rawType.endsWith('[]'))
+    return [name, `${base}[] DEFAULT ARRAY[]::${base}[]`];
+  let definition = rawType.endsWith('?') ? base : `${base} NOT NULL`;
+  if (attributes.join(' ').includes('@default(now())'))
+    definition += ' DEFAULT CURRENT_TIMESTAMP';
+  return [name, definition];
+}
+
+describe.each([
+  ['SynthesisReading', 'synthesis_readings'],
+  ['EntryZone', 'entry_zones'],
+])(
+  '%s: the migration gives each column the type the model says',
+  (model, table) => {
+    const source = fs.readFileSync(SOURCE_OF_TRUTH_SCHEMA_PATH, 'utf-8');
+    const sql = fs.readFileSync(SYNTHESIS_MIGRATION_PATH, 'utf-8');
+
+    it('has the SQL type, nullability and default Prisma derives (Float is DOUBLE PRECISION, a list defaults to an empty array)', () => {
+      const expected = Object.fromEntries(
+        normalizeFields(extractModelBody(source, model))
+          .filter((line) => !line.startsWith('@@'))
+          .map(schemaFieldAsSql)
+      );
+      expect(createTableDefinitions(sql, table)).toEqual(expected);
+    });
+  }
+);
+
+describe('the migration that creates the synthesis tables', () => {
+  const sql = fs.readFileSync(SYNTHESIS_MIGRATION_PATH, 'utf-8');
+  const statements = sql.replace(/^--.*$/gm, '');
+
+  it('creates two tables and two unique indexes, and nothing else besides the 25 CHECKs', () => {
+    expect(statements.match(/^CREATE TABLE /gm)).toHaveLength(2);
+    expect(statements.match(/^CREATE (UNIQUE )?INDEX /gm)).toHaveLength(2);
+    expect(statements.match(/^CREATE UNIQUE INDEX /gm)).toHaveLength(2);
+    expect(statements.match(/^ALTER TABLE /gm)).toHaveLength(25);
+    expect(
+      statements.match(/^ALTER TABLE .* ADD CONSTRAINT .* CHECK \(/gm)
+    ).toHaveLength(25);
+  });
+
+  it('is additive only: it drops, deletes, updates and seeds nothing, and has no foreign key', () => {
+    expect(statements).not.toMatch(
+      /^\s*(DROP|TRUNCATE|DELETE|UPDATE|INSERT)\b/im
+    );
+    expect(statements).not.toMatch(/\b(REFERENCES|FOREIGN KEY)\b/i);
+  });
+
+  it('is plain ASCII, so no tool reads it in another encoding than the one it was written in', () => {
+    // eslint-disable-next-line no-control-regex
+    expect(sql).toMatch(/^[\x00-\x7F]*$/);
+  });
+
+  it('is dated after the sensor migration, so history order is unaffected', () => {
+    const dir = path.basename(path.dirname(SYNTHESIS_MIGRATION_PATH));
+    expect(dir > '20261003000000_add_sensor_tables').toBe(true);
   });
 });
