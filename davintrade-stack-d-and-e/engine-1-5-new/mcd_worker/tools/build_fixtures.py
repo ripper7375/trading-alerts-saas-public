@@ -9,8 +9,13 @@ the kit's own provider from the same replica workbook. For each slot this tool w
   columns of the per-MCD fixtures of that slot, and it holds as many closed bars per timeframe as the largest of
   them. Every other field is checked equal to the per-MCD fixtures' before anything is written;
 * ``<slot>.source.md``: where it came from (workbook, SHA-256, cut-off), through the kit's own report;
-* ``<slot>.cycle.json``: what ``Worker.run_cycle`` makes of the bundle with every MCD at ``shadow`` and RETUNING
-  not enforced (the expected cycle: readings after MCD0 inheritance, hashes, order).
+* ``<slot>.cycle.json``: what ``Worker.run_cycle`` makes of the bundle with every MCD at ``shadow``, the SYN flag ``off`` and
+  RETUNING not enforced (the expected cycle: readings after MCD0 inheritance, hashes, order);
+* ``<slot>.synthesis.json``: the ``synthesis`` section of the same run with the SYN flag at ``shadow`` (build step 4 part 3): the Day Trader and
+  Scalper readings and their entry zones, with the hash of each. The ``results`` of that run are checked equal to ``cycle.json``'s before it is written.
+
+The bundle also carries ``context_levels`` (build step 4 part 3, decision D8): the ``sr_1`` to ``sr_16`` columns of the last closed bar of each
+timeframe, as the workbook holds them (``null`` for an empty cell). No evaluator reads them; synthesis builds its entry zones with them.
 
 Run from ``davintrade-stack-d-and-e/engine-1-5-new/``::
 
@@ -23,12 +28,14 @@ The bundle needs the replica workbooks (``openpyxl``); the runner's tests only r
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
+import re
 import sys
 from pathlib import Path
 
 from mcd_common import excel_fixture_provider as provider
-from mcd_common.cycle_inputs import CycleInputs
+from mcd_common.cycle_inputs import TF_SECONDS, TIMEFRAMES, CycleInputs, is_number, slot_to_epoch
 
 from ..cycle_runner import Worker
 from ..registry import ENGINE_DIR
@@ -45,6 +52,8 @@ WORKBOOKS = {
 SETTINGS = {name: ENGINE_DIR / "mcd_common" / "fixtures" / f"settings_{name}.yaml" for name in SLOTS}
 MCD_FOLDERS = ("mcd0", "mcd1", "mcd2", "mcd3")
 SHADOW_ALL = {f"MCD{n}": "shadow" for n in range(4)}
+SYNTHESIS_SHADOW = {**SHADOW_ALL, "SYN": "shadow"}
+_SR_COLUMN = re.compile(r"sr_([1-9]|1[0-6])")
 SCALAR_FIELDS = ("symbol", "cycle_slot", "data_status", "retuning", "statistics", "stats_slot", "active_indicator", "config_hash", "channel_mode")
 
 
@@ -76,12 +85,32 @@ def shared_shape(name: str) -> tuple[list[str], dict[str, int], dict[str, dict]]
     return sorted(columns), bars, fixtures
 
 
+def context_levels_from(tables: provider.WorkbookTables, slot: str) -> dict[str, dict[str, float | None]]:
+    """``sr_1`` to ``sr_16`` of the last closed bar of each timeframe at ``slot``, exactly as the workbook holds them (``None`` for an empty cell).
+
+    A timeframe whose sheet has no ``sr_*`` column, or no closed bar, is left out; the result is empty when no sheet has any (then the bundle has no
+    ``context_levels`` key at all, and its text and hash are what they were before the section existed).
+    """
+    slot_epoch = slot_to_epoch(slot)
+    out: dict[str, dict[str, float | None]] = {}
+    for tf in TIMEFRAMES:
+        closed = [r for r in tables.bars[tf] if is_number(r.get("timestamp")) and r["timestamp"] + TF_SECONDS[tf] <= slot_epoch]
+        if not closed:
+            continue
+        last = max(closed, key=lambda r: r["timestamp"])
+        names = sorted((c for c in last if isinstance(c, str) and _SR_COLUMN.fullmatch(c)), key=lambda c: int(c[3:]))
+        if names:
+            out[tf] = {c: (float(last[c]) if is_number(last[c]) else None) for c in names}
+    return out
+
+
 def build(name: str) -> dict[str, str]:
     """The text of the three files of one slot, by file name. Raises if the shared bundle differs from a per-MCD fixture."""
     columns, max_bars, fixtures = shared_shape(name)
-    inputs, report = provider.build_cycle_inputs_with_report(
-        WORKBOOKS[name], SETTINGS[name], columns=columns, max_bars=max_bars
-    )
+    tables = provider.read_workbook(WORKBOOKS[name])
+    inputs, report = provider.build_cycle_inputs_with_report(tables, SETTINGS[name], columns=columns, max_bars=max_bars)
+    levels = context_levels_from(tables, SLOTS[name])
+    inputs = dataclasses.replace(inputs, context_levels=levels)
     bundle = inputs.to_dict()
     for folder, data in fixtures.items():
         for field in SCALAR_FIELDS:
@@ -98,15 +127,28 @@ def build(name: str) -> dict[str, str]:
         "This is the **shared** bundle of the sensor worker's cycle runner (`mcd_worker`): the one bundle handed to every MCD.\n"
         f"Bar columns ({len(columns)}): the union of the columns of the per-MCD fixtures of this slot. Closed bars kept: "
         f"M5 {max_bars['M5']}, M15 {max_bars['M15']} (the largest of the per-MCD fixtures: {', '.join(sorted(fixtures))}). "
-        "Every other field equals the per-MCD fixtures' (checked by the tool). Built by `python -m mcd_worker.tools.build_fixtures`.\n"
+        "Every other field equals the per-MCD fixtures' (checked by the tool). "
+        + (
+            f"`context_levels`: the `sr_*` columns of the last closed bar of each timeframe ({', '.join(f'{tf} {len(v)} columns' for tf, v in levels.items())}); "
+            "no evaluator reads them. "
+            if levels
+            else "No `context_levels`: the workbook has no `sr_*` values. "
+        )
+        + "Built by `python -m mcd_worker.tools.build_fixtures`.\n"
     )
     cycle_inputs = CycleInputs.from_dict(json.loads(bundle_text))
     worker = Worker.load(flags=SHADOW_ALL)
-    cycle_text = json.dumps(worker.run_cycle(cycle_inputs).deterministic_dict(), indent=2, ensure_ascii=True) + "\n"
+    plain = worker.run_cycle(cycle_inputs).deterministic_dict()
+    cycle_text = json.dumps(plain, indent=2, ensure_ascii=True) + "\n"
+    with_synthesis = Worker.load(flags=SYNTHESIS_SHADOW).run_cycle(cycle_inputs).deterministic_dict()
+    if with_synthesis["results"] != plain["results"]:
+        raise SystemExit(f"{name}: synthesis changed a sensor reading, which it must never do")
+    synthesis_text = json.dumps(with_synthesis["synthesis"], indent=2, ensure_ascii=True) + "\n"
     return {
         f"{stem(name)}.bundle.json": bundle_text,
         f"{stem(name)}.source.md": heading + "\n" + note + rest,
         f"{stem(name)}.cycle.json": cycle_text,
+        f"{stem(name)}.synthesis.json": synthesis_text,
     }
 
 

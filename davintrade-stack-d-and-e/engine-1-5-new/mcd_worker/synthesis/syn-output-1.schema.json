@@ -1,0 +1,278 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "syn-output/1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mcd_id",
+    "profile",
+    "cycle_slot",
+    "rules_version",
+    "rules_sha256",
+    "rule_id",
+    "branch_id",
+    "status",
+    "status_reasons",
+    "data_status",
+    "archetype",
+    "bias",
+    "trend_relation",
+    "stand_aside",
+    "inputs",
+    "reasons",
+    "zones",
+    "summary_line"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "syn-output/1"
+    },
+    "mcd_id": {
+      "const": "SYN"
+    },
+    "profile": {
+      "enum": ["DAY_TRADER", "SCALPER"]
+    },
+    "cycle_slot": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-5][05]Z$"
+    },
+    "rules_version": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$"
+    },
+    "rules_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "rule_id": {
+      "type": "string",
+      "pattern": "^(R[0-9]+S?_[A-Z0-9_]+|NO_MATCH)$"
+    },
+    "branch_id": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Z0-9_]+$"
+    },
+    "status": {
+      "enum": ["VALID", "CAUTIONARY", "INVALID", "STALE"]
+    },
+    "status_reasons": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Z0-9_]+(:[A-Z0-9_]+)?$"
+      }
+    },
+    "data_status": {
+      "enum": ["FRESH", "DELAYED", "STALE", "MARKET_CLOSED", "INPUTS_REFUSED"]
+    },
+    "archetype": {
+      "enum": ["A", "B", "C", "D", null]
+    },
+    "bias": {
+      "enum": ["LONG", "SHORT", "NEUTRAL", "STAND_ASIDE"]
+    },
+    "trend_relation": {
+      "enum": ["WITH_TREND", "COUNTER_TREND", null]
+    },
+    "stand_aside": {
+      "type": "boolean"
+    },
+    "inputs": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^MCD([1-9]|1[0-5])$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "status",
+          "state_code",
+          "regime_status",
+          "bias",
+          "envelope_sha256"
+        ],
+        "properties": {
+          "status": {
+            "enum": ["VALID", "CAUTIONARY", "INVALID", "STALE", "ABSENT"]
+          },
+          "state_code": {
+            "type": ["string", "null"],
+            "pattern": "^MCD([0-9]|1[0-5])_[A-Z0-9_]+$",
+            "maxLength": 48
+          },
+          "regime_status": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Z0-9_]+$"
+          },
+          "bias": {
+            "enum": ["LONG", "SHORT", "NEUTRAL", "STAND_ASIDE", null]
+          },
+          "envelope_sha256": {
+            "type": ["string", "null"],
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "zones": {
+      "type": "array",
+      "maxItems": 5,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^Z[1-5]$"
+      }
+    },
+    "summary_line": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "stand_aside": {
+            "const": true
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "bias": {
+            "const": "STAND_ASIDE"
+          },
+          "zones": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "bias": {
+            "const": "STAND_ASIDE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "stand_aside": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": ["INVALID", "STALE"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "bias": {
+            "const": "STAND_ASIDE"
+          },
+          "archetype": {
+            "const": null
+          },
+          "trend_relation": {
+            "const": null
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "VALID"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "status_reasons": {
+            "maxItems": 0
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "status_reasons": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "bias": {
+            "enum": ["LONG", "SHORT"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "archetype": {
+            "type": "string"
+          },
+          "trend_relation": {
+            "type": "string"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "trend_relation": {
+            "const": null
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "rule_id": {
+            "const": "NO_MATCH"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "bias": {
+            "const": "NEUTRAL"
+          },
+          "branch_id": {
+            "const": null
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "branch_id": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  ]
+}

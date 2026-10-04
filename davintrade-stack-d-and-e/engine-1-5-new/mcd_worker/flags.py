@@ -4,6 +4,11 @@ A flag is ``off``, ``shadow`` or ``live``. Davin's decision Q7 (2026-10-03): **i
 gate ``shadow``; all nine gate ``live``**, because items 7 to 9 (dispatch matrix, synthesis rows, statistics
 measured) cannot exist before an MCD has run in shadow.
 
+Synthesis (architecture chapter 3) has a flag of its own, ``SYN`` (build step 4, decision D10): ``off`` runs nothing, ``shadow`` makes the
+Day Trader and Scalper readings and their zones from the sensors that are ``shadow`` or ``live`` (so the rules can be exercised before any MCD is
+live), ``live`` reads the ``live`` sensors only. It has no checklist: it may not be higher than the sensors it requires, MCD1 and MCD2 (MCD3
+only modifies, so it is not required), which keeps ``live`` out of reach until step 6.
+
 The runtime flags live in ``worker_config.yaml`` beside this file; the evidence for each item lives in
 ``checklists/MCDn.yaml``. A flag higher than its checklist allows makes the worker refuse to start. A test
 pins the four registries' ``flag`` lines to the same values, so a flag changed in one place only fails the
@@ -17,6 +22,7 @@ not be higher than the gate (MCD0), whose defects it must inherit. Without them 
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -49,6 +55,10 @@ CHECKLIST_ITEMS: tuple[tuple[int, str], ...] = (
 )
 SHADOW_ITEMS = (1, 2, 3, 4, 5, 6)
 LIVE_ITEMS = tuple(item_id for item_id, _ in CHECKLIST_ITEMS)
+
+SYN_ID = "SYN"  # the synthesis flag's key in ``worker_config.yaml``; it is not an MCD and has no registry or checklist
+SYNTHESIS_REQUIRES = ("MCD1", "MCD2")  # the primary sensors of the two trader types (architecture 3.3)
+DEFAULT_RULES_VERSION = "draft-1"  # the rules file used when the configuration names none (mcd_worker/synthesis/rules/<version>.yaml)
 
 ENGINE_DIR = Path(__file__).resolve().parents[1]
 WORKER_DIR = Path(__file__).resolve().parent
@@ -182,17 +192,26 @@ def load_checklists(directory: str | Path = DEFAULT_CHECKLIST_DIR) -> dict[str, 
 
 @dataclass(frozen=True)
 class WorkerConfig:
-    """``worker_config.yaml``: the flag of every MCD. A flag change is a commit, with its evidence in the checklist."""
+    """``worker_config.yaml``: the flag of every MCD, the synthesis flag and the rules version synthesis uses.
+
+    A flag change is a commit, with its evidence in the checklist. ``flags`` holds the MCDs only; ``SYN`` is read out of the same mapping into
+    ``synthesis_flag`` so that the MCD flag rules never see it.
+    """
 
     flags: Mapping[str, str]
     source: str = ""
+    synthesis_flag: str = FLAG_OFF
+    rules_version: str = DEFAULT_RULES_VERSION
+
+
+_RULES_VERSION_RE = re.compile(r"[a-z0-9][a-z0-9._-]*")
 
 
 def worker_config_from_dict(data: Any, *, source: str = "") -> WorkerConfig:
     if not isinstance(data, Mapping):
         raise ConfigError(f"{source or 'worker config'}: the file must hold a mapping")
     problems: list[str] = []
-    extra = sorted(set(data) - {"schema", "flags"})
+    extra = sorted(set(data) - {"schema", "flags", "synthesis"})
     if extra:
         problems.append(f"worker config: unknown keys {extra}")
     if data.get("schema") != CONFIG_SCHEMA:
@@ -209,9 +228,30 @@ def worker_config_from_dict(data: Any, *, source: str = "") -> WorkerConfig:
                     f"worker config: flag of {mcd_id} must be one of {FLAG_VALUES} as a string, got {value!r}"
                     + (" (quote it: YAML 1.1 reads an unquoted off as false)" if isinstance(value, bool) else "")
                 )
+    rules_version = DEFAULT_RULES_VERSION
+    if "synthesis" in data:
+        synthesis = data["synthesis"]
+        if not isinstance(synthesis, Mapping):
+            problems.append("worker config: synthesis must be a mapping")
+        else:
+            unknown = sorted(set(synthesis) - {"rules_version"})
+            if unknown:
+                problems.append(f"worker config: synthesis has unknown keys {unknown}")
+            if "rules_version" in synthesis:
+                value = synthesis["rules_version"]
+                if isinstance(value, str) and _RULES_VERSION_RE.fullmatch(value):
+                    rules_version = value
+                else:
+                    problems.append(f"worker config: synthesis.rules_version must be a lower-case name such as draft-1, got {value!r}")
     if problems:
         raise ConfigError(problems)
-    return WorkerConfig(flags=MappingProxyType(dict(flags)), source=source)
+    mcd_flags = {k: v for k, v in flags.items() if k != SYN_ID}
+    return WorkerConfig(
+        flags=MappingProxyType(mcd_flags),
+        source=source,
+        synthesis_flag=flags.get(SYN_ID, FLAG_OFF),
+        rules_version=rules_version,
+    )
 
 
 def load_worker_config(path: str | Path = DEFAULT_CONFIG_PATH) -> WorkerConfig:
@@ -283,6 +323,27 @@ def flag_problems(flags: Mapping[str, str], registry: "Registry", checklists: Ma
         sensor = registry[mcd_id]
         if sensor.kind != "gate" and sensor.uses_channel and GATE_ID not in registry:
             problems.append(f"{mcd_id}: a channel MCD needs the gate {GATE_ID} in the registry")
+    return problems
+
+
+def synthesis_flag_problems(synthesis_flag: Any, mcd_flags: Mapping[str, str]) -> list[str]:
+    """Every reason the synthesis flag may not run beside these MCD flags (decision D10). Empty list = it may.
+
+    ``off`` is always fine. Otherwise the flag must be ``shadow`` or ``live`` and no higher than the flag of MCD1 or MCD2, which every reading needs
+    (the primary sensors, architecture 3.3 mechanic 1): a ``live`` synthesis over a ``shadow`` sensor could publish what the sensor does not yet
+    publish. MCD3 only modifies a result, so it is not required.
+    """
+    if not isinstance(synthesis_flag, str) or synthesis_flag not in FLAG_VALUES:
+        return [f"{SYN_ID}: flag must be one of {FLAG_VALUES} as a string, got {synthesis_flag!r}"]
+    if synthesis_flag == FLAG_OFF:
+        return []
+    problems: list[str] = []
+    for required in SYNTHESIS_REQUIRES:
+        other = mcd_flags.get(required)
+        if other not in FLAG_RANK:
+            problems.append(f"{SYN_ID}: flag '{synthesis_flag}' needs {required}, which has no flag")
+        elif FLAG_RANK[other] < FLAG_RANK[synthesis_flag]:
+            problems.append(f"{SYN_ID}: flag '{synthesis_flag}' is higher than '{other}' of {required}, which it reads")
     return problems
 
 

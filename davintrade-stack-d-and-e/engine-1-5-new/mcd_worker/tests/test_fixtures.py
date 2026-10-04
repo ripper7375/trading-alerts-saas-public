@@ -20,9 +20,9 @@ FORMING_BAR_FIELDS = ("live_bar_ts", "live_close", "baseline_value", "uoedt_valu
 
 
 class ShapeTests(unittest.TestCase):
-    def test_each_slot_has_its_three_files(self) -> None:
+    def test_each_slot_has_its_four_files(self) -> None:
         for name in s.SLOTS:
-            for suffix in ("bundle.json", "source.md", "cycle.json"):
+            for suffix in ("bundle.json", "source.md", "cycle.json", "synthesis.json"):
                 self.assertTrue((s.FIXTURES / f"{s.stem(name)}.{suffix}").is_file(), f"{name} {suffix}")
 
     def test_the_bundle_belongs_to_its_slot_and_is_a_fresh_cycle(self) -> None:
@@ -150,7 +150,7 @@ class NormalizeMarkdownTests(unittest.TestCase):
 class NamingTests(unittest.TestCase):
     def test_file_names_use_the_slot_without_a_colon(self) -> None:
         for path in s.FIXTURES.iterdir():
-            self.assertRegex(path.name, r"^\d{4}-\d{2}-\d{2}T\d{4}Z\.(bundle\.json|source\.md|cycle\.json)$")
+            self.assertRegex(path.name, r"^\d{4}-\d{2}-\d{2}T\d{4}Z\.(bundle\.json|source\.md|cycle\.json|synthesis\.json)$")
 
 
 if __name__ == "__main__":

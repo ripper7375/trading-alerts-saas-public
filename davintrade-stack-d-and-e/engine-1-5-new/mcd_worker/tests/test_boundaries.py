@@ -19,11 +19,18 @@ ALLOWED_IMPORTS = {
     "types", "typing", "yaml", "mcd_common",
 }
 ALLOWED_KIT_MODULES = {"cycle_inputs", "envelope", "reason_codes", "wording"}
-READS_FILES = {"flags.py", "registry.py"}  # the configuration, the checklists, the registries and the evaluators
+READS_FILES = {"flags.py", "registry.py", "rules.py", "reading.py", "zones.py"}  # the configuration, the checklists, the registries and the evaluators; the rules file and the SYN schema
+
+# Synthesis (build step 4) is runtime too: the same guards apply to it (the imports below, nothing written, no clock). Its files are pinned
+# like the runner's, and ``jsonschema`` (the kit's own dependency, ``mcd_common/requirements.txt``) and ``functools`` (the cached validator) are
+# allowed in ``reading.py`` only, and ``decimal`` (exact prices) in ``zones.py`` only.
+SYNTHESIS_DIR = s.WORKER_DIR / "synthesis"
+SYNTHESIS_PY = {"__init__.py", "cycle.py", "engine.py", "facts.py", "pills.py", "reading.py", "rules.py", "zones.py"}
+SYNTHESIS_DATA = {"syn-output-1.schema.json"}
 
 
 def runtime_files() -> list[Path]:
-    return sorted(p for p in s.WORKER_DIR.glob("*.py"))
+    return sorted(s.WORKER_DIR.glob("*.py")) + sorted(SYNTHESIS_DIR.glob("*.py"))
 
 
 def parse(path: Path) -> ast.Module:
@@ -35,13 +42,21 @@ class TheFilesTests(unittest.TestCase):
         self.assertEqual({p.name for p in s.WORKER_DIR.glob("*.py")}, RUNTIME_PY)
         top_level_files = {p.name for p in s.WORKER_DIR.iterdir() if p.is_file() and p.suffix != ".py"}
         self.assertEqual(top_level_files, RUNTIME_DATA)
-        self.assertEqual({p.name for p in s.WORKER_DIR.iterdir() if p.is_dir() and p.name != "__pycache__"}, {"checklists", "fixtures", "statistics", "tests", "tools"})
+        self.assertEqual({p.name for p in s.WORKER_DIR.iterdir() if p.is_dir() and p.name != "__pycache__"}, {"checklists", "fixtures", "statistics", "synthesis", "tests", "tools"})
+
+    def test_the_synthesis_files_are_exactly_the_documented_ones(self) -> None:
+        self.assertEqual({p.name for p in SYNTHESIS_DIR.glob("*.py")}, SYNTHESIS_PY)
+        self.assertEqual({p.name for p in SYNTHESIS_DIR.iterdir() if p.is_file() and p.suffix == ".json"}, SYNTHESIS_DATA)
+        self.assertEqual({p.name for p in SYNTHESIS_DIR.iterdir() if p.is_file() and p.suffix == ".md"}, {"synthesis.md"})
+        self.assertEqual({p.name for p in SYNTHESIS_DIR.iterdir() if p.is_file() and p.suffix == ".yaml"}, {"zone_params.yaml"})
+        self.assertEqual({p.name for p in SYNTHESIS_DIR.iterdir() if p.is_dir() and p.name != "__pycache__"}, {"rules"})
 
     def test_the_readme_lists_every_runtime_file(self) -> None:
         readme = (s.WORKER_DIR / "README.md").read_text(encoding="utf-8")
         for name in sorted(RUNTIME_PY | RUNTIME_DATA):
             self.assertIn(f"`{name}`", readme, name)
         self.assertIn("`checklists/`", readme)
+        self.assertIn("`synthesis/`", readme)
 
 
 class ImportsTests(unittest.TestCase):
@@ -57,8 +72,10 @@ class ImportsTests(unittest.TestCase):
 
     def test_only_the_standard_library_yaml_and_four_kit_modules_are_imported(self) -> None:
         for path in runtime_files():
+            allowed = ALLOWED_IMPORTS | ({"jsonschema", "functools"} if path == SYNTHESIS_DIR / "reading.py" else set())
+            allowed |= {"decimal"} if path == SYNTHESIS_DIR / "zones.py" else set()  # exact prices
             for top, sub in self.imports(path):
-                self.assertIn(top, ALLOWED_IMPORTS, f"{path.name} imports {top}")
+                self.assertIn(top, allowed, f"{path.name} imports {top}")
                 if top == "mcd_common" and sub is not None:
                     self.assertIn(sub.split(".")[0], ALLOWED_KIT_MODULES | {"cycle_inputs", "Params"}, f"{path.name} imports mcd_common.{sub}")
 

@@ -1,0 +1,407 @@
+# Synthesis rules, version draft-1 (architecture 3.4; ADR-025, ADR-026, ADR-029).
+#
+# Approved by Davin on 2026-10-04: the table of architecture 3.4 as draft-1, with the readings of decision D1 (a) to (e) of the
+# step 4 plan (docs/handoffs/2026-10-04-0110-step4-plan.md) wherever 3.4 is silent. This is not a trading recommendation.
+#
+# HOW TO EDIT. Rows run top to bottom for the trader type they name; the first branch whose conditions all hold decides
+# (ADR-026). The order is part of the version. A change to any row, text or order is a NEW file (draft-2.yaml) and a
+# decision-log entry; this file is never edited in place once approved: its checksum is pinned by a test and every stored
+# reading names the version and the checksum it was made with.
+#
+# A condition names a sensor, one of its facts and the values it may take (mcd_worker/synthesis/facts.py lists them). A fact other
+# than `status` has no value for a sensor with no usable reading, so a branch that needs an unavailable sensor cannot match
+# (D1 (b)). `PRIMARY` stands for the trader type's primary sensor and may only be tested for `status`.
+#
+# The readings of D1 where 3.4 is silent:
+#   (a) Row 0: the primary sensor (MCD1 for Day Traders, MCD2 for Scalpers) must be VALID or CAUTIONARY, else STAND_ASIDE.
+#   (b) A branch that names an INVALID, STALE or absent sensor cannot match; the next branch or row is tried.
+#   (c) Row 1: the breach direction is MCD1's `breach` fact; "MCD2 trending in that direction" is MCD2's `trend` fact.
+#       Row 2: "against the spike" is the opposite of the `breach` fact. When MCD1 and MCD2 both match with different biases the
+#       trader type's primary sensor decides (`primary_first`: its branches are tried first). Rows that say Both and name MCD1
+#       apply to Scalpers as written.
+#   (d) Row 4: only MCD2_SIDEWAYS_UPPER_BREAKOUT (SHORT) and MCD2_SIDEWAYS_LOWER_BREAKDOWN (LONG) are edges, trend relation
+#       COUNTER_TREND. MCD2_SIDEWAYS_IN_CORRIDOR and MCD1's CONSOLIDATION and RANGE_EXPANSION are STAND_ASIDE.
+#   (e) MCD3 modifies, it never votes: consolidated in the direction of the result confirms; NON_CONSOLIDATED makes the result
+#       CAUTIONARY, except TREND_CONFLICT under row 1 (a note only); consolidated against the result is a note only.
+#
+# Caution (decision D3): the result is CAUTIONARY when any sensor the matched branch read, or MCD3 when a modifier applied, is
+# CAUTIONARY, and then carries that sensor's reason codes. Texts are fixed English; reason codes travel beside them for the
+# 16-language texts of build step 6.
+schema: synthesis-rules/1
+rules_version: draft-1
+status: draft
+approved: 'Davin, 2026-10-04: architecture 3.4 as draft-1 with the readings of D1 (a) to (e)'
+
+profiles:
+  DAY_TRADER:
+    primary_sensor: MCD1
+  SCALPER:
+    primary_sensor: MCD2
+
+sensors: [MCD1, MCD2, MCD3]
+
+no_match:
+  bias: NEUTRAL
+  reasons:
+    - No rule matched this combination of sensor states
+  summary: No rule matched, NEUTRAL
+
+rules:
+  # ---------------------------------------------------------------- 0 · data check
+  - id: R0_DATA_CHECK
+    table_row: '0'
+    name: Data check
+    profiles: [DAY_TRADER, SCALPER]
+    branches:
+      - id: PRIMARY_UNAVAILABLE
+        when:
+          - { sensor: PRIMARY, fact: status, in: [INVALID, STALE, ABSENT] }
+        result:
+          data_stand_aside: true
+          bias: STAND_ASIDE
+          archetype: null
+          trend_relation: null
+          reasons:
+            - The primary sensor has no usable reading this cycle
+          summary: Stand aside, primary sensor unavailable
+
+  # ---------------------------------------------------------------- 1 · C · macro counter-trend rally (Day Trader)
+  - id: R1_MACRO_COUNTER_TREND_RALLY
+    table_row: '1'
+    name: C, macro counter-trend rally
+    profiles: [DAY_TRADER]
+    branches:
+      - id: BREACH_UP
+        sensor: MCD1
+        when:
+          - { sensor: MCD1, fact: regime_status, in: [COUNTER_TREND_EXPANSION] }
+          - { sensor: MCD1, fact: breach, in: [UP] }
+          - { sensor: MCD2, fact: trend, in: [UP] }
+        result:
+          bias: LONG
+          archetype: C
+          trend_relation: COUNTER_TREND
+          reasons:
+            - M15 breach up against a falling channel
+            - M5 uptrend
+          summary: Counter-trend rally, LONG
+      - id: BREACH_DOWN
+        sensor: MCD1
+        when:
+          - { sensor: MCD1, fact: regime_status, in: [COUNTER_TREND_EXPANSION] }
+          - { sensor: MCD1, fact: breach, in: [DOWN] }
+          - { sensor: MCD2, fact: trend, in: [DOWN] }
+        result:
+          bias: SHORT
+          archetype: C
+          trend_relation: COUNTER_TREND
+          reasons:
+            - M15 breach down against a rising channel
+            - M5 downtrend
+          summary: Counter-trend decline, SHORT
+
+  # ---------------------------------------------------------------- 2 · B · exhaustion / snapback (both)
+  - id: R2_EXHAUSTION_SNAPBACK
+    table_row: '2'
+    name: B, exhaustion and snapback
+    profiles: [DAY_TRADER, SCALPER]
+    primary_first: true
+    branches:
+      - id: MCD1_SPIKE_UP
+        sensor: MCD1
+        when:
+          - { sensor: MCD1, fact: regime_status, in: [BREAKOUT_SAME_SLOPE] }
+          - { sensor: MCD1, fact: breach, in: [UP] }
+        result:
+          bias: SHORT
+          archetype: B
+          trend_relation: COUNTER_TREND
+          reasons:
+            - M15 closed above its corridor, in line with the channel slope
+            - Bias is against the spike
+          summary: Snapback after a spike up, SHORT
+      - id: MCD1_SPIKE_DOWN
+        sensor: MCD1
+        when:
+          - { sensor: MCD1, fact: regime_status, in: [BREAKOUT_SAME_SLOPE] }
+          - { sensor: MCD1, fact: breach, in: [DOWN] }
+        result:
+          bias: LONG
+          archetype: B
+          trend_relation: COUNTER_TREND
+          reasons:
+            - M15 closed below its corridor, in line with the channel slope
+            - Bias is against the spike
+          summary: Snapback after a spike down, LONG
+      - id: MCD2_SPIKE_UP
+        sensor: MCD2
+        when:
+          - {
+              sensor: MCD2,
+              fact: regime_status,
+              in: [UPPER_OVEREXTENSION_REVERSION],
+            }
+        result:
+          bias: SHORT
+          archetype: B
+          trend_relation: COUNTER_TREND
+          reasons:
+            - M5 uptrend stretched above its corridor
+            - Bias is against the spike
+          summary: Snapback after a spike up, SHORT
+      - id: MCD2_SPIKE_DOWN
+        sensor: MCD2
+        when:
+          - {
+              sensor: MCD2,
+              fact: regime_status,
+              in: [LOWER_OVEREXTENSION_REVERSION],
+            }
+        result:
+          bias: LONG
+          archetype: B
+          trend_relation: COUNTER_TREND
+          reasons:
+            - M5 downtrend stretched below its corridor
+            - Bias is against the spike
+          summary: Snapback after a spike down, LONG
+
+  # ---------------------------------------------------------------- 3 · A · trend continuation (Day Trader)
+  - id: R3_TREND_CONTINUATION
+    table_row: '3'
+    name: A, trend continuation
+    profiles: [DAY_TRADER]
+    branches:
+      - id: TREND_UP
+        sensor: MCD1
+        when:
+          - {
+              sensor: MCD1,
+              fact: regime_status,
+              in: [TREND_ALIGNED_CONTINUATION],
+            }
+          - { sensor: MCD1, fact: trend, in: [UP] }
+          - { sensor: MCD2, fact: trend, in: [UP] }
+          - {
+              sensor: MCD2,
+              fact: regime_status,
+              in: [TREND_ALIGNED_CONTINUATION, UPTREND_DIP_BELOW_CORRIDOR],
+            }
+        result:
+          bias: LONG
+          archetype: A
+          trend_relation: WITH_TREND
+          reasons:
+            - M15 uptrend continuing
+            - M5 uptrend in line with M15
+          summary: Trend continuation, LONG
+      - id: TREND_DOWN
+        sensor: MCD1
+        when:
+          - {
+              sensor: MCD1,
+              fact: regime_status,
+              in: [TREND_ALIGNED_CONTINUATION],
+            }
+          - { sensor: MCD1, fact: trend, in: [DOWN] }
+          - { sensor: MCD2, fact: trend, in: [DOWN] }
+          - {
+              sensor: MCD2,
+              fact: regime_status,
+              in: [TREND_ALIGNED_CONTINUATION, DOWNTREND_RALLY_ABOVE_CORRIDOR],
+            }
+        result:
+          bias: SHORT
+          archetype: A
+          trend_relation: WITH_TREND
+          reasons:
+            - M15 downtrend continuing
+            - M5 downtrend in line with M15
+          summary: Trend continuation, SHORT
+
+  # ---------------------------------------------------------------- 3s · A · trend continuation, M5 (Scalper)
+  - id: R3S_TREND_CONTINUATION_M5
+    table_row: 3s
+    name: A, trend continuation (M5)
+    profiles: [SCALPER]
+    branches:
+      - id: TREND_UP
+        sensor: MCD2
+        when:
+          - { sensor: MCD2, fact: trend, in: [UP] }
+          - {
+              sensor: MCD2,
+              fact: regime_status,
+              in: [TREND_ALIGNED_CONTINUATION, UPTREND_DIP_BELOW_CORRIDOR],
+            }
+        result:
+          bias: LONG
+          archetype: A
+          trend_relation: WITH_TREND
+          reasons:
+            - M5 uptrend continuing
+          summary: M5 trend continuation, LONG
+      - id: TREND_DOWN
+        sensor: MCD2
+        when:
+          - { sensor: MCD2, fact: trend, in: [DOWN] }
+          - {
+              sensor: MCD2,
+              fact: regime_status,
+              in: [TREND_ALIGNED_CONTINUATION, DOWNTREND_RALLY_ABOVE_CORRIDOR],
+            }
+        result:
+          bias: SHORT
+          archetype: A
+          trend_relation: WITH_TREND
+          reasons:
+            - M5 downtrend continuing
+          summary: M5 trend continuation, SHORT
+
+  # ---------------------------------------------------------------- 4 · D · range (both)
+  - id: R4_RANGE
+    table_row: '4'
+    name: D, range
+    profiles: [DAY_TRADER, SCALPER]
+    primary_first: true
+    branches:
+      - id: MCD1_RANGE
+        sensor: MCD1
+        when:
+          - {
+              sensor: MCD1,
+              fact: regime_status,
+              in: [CONSOLIDATION, RANGE_EXPANSION],
+            }
+        result:
+          bias: STAND_ASIDE
+          archetype: D
+          trend_relation: null
+          reasons:
+            - M15 is ranging and no edge rule applies
+          summary: Range, stand aside
+      - id: MCD2_EDGE_UP
+        sensor: MCD2
+        when:
+          - {
+              sensor: MCD2,
+              fact: state_code,
+              in: [MCD2_SIDEWAYS_UPPER_BREAKOUT],
+            }
+        result:
+          bias: SHORT
+          archetype: D
+          trend_relation: COUNTER_TREND
+          reasons:
+            - M5 range, price above the corridor edge
+          summary: Range edge, SHORT
+      - id: MCD2_EDGE_DOWN
+        sensor: MCD2
+        when:
+          - {
+              sensor: MCD2,
+              fact: state_code,
+              in: [MCD2_SIDEWAYS_LOWER_BREAKDOWN],
+            }
+        result:
+          bias: LONG
+          archetype: D
+          trend_relation: COUNTER_TREND
+          reasons:
+            - M5 range, price below the corridor edge
+          summary: Range edge, LONG
+      - id: MCD2_MIDDLE
+        sensor: MCD2
+        when:
+          - { sensor: MCD2, fact: state_code, in: [MCD2_SIDEWAYS_IN_CORRIDOR] }
+        result:
+          bias: STAND_ASIDE
+          archetype: D
+          trend_relation: null
+          reasons:
+            - M5 range, price inside the corridor
+          summary: Range middle, stand aside
+
+  # ---------------------------------------------------------------- 5 · unresolved conflict (both)
+  - id: R5_UNRESOLVED_CONFLICT
+    table_row: '5'
+    name: Unresolved conflict
+    profiles: [DAY_TRADER, SCALPER]
+    branches:
+      - id: MCD3_NOT_CONSOLIDATED
+        sensor: MCD3
+        when:
+          - sensor: MCD3
+            fact: state_code
+            in:
+              - MCD3_NON_CONSOLIDATED_TREND_CONFLICT
+              - MCD3_NON_CONSOLIDATED_OVERFLOW
+              - MCD3_NON_CONSOLIDATED_ESCAPE
+        result:
+          bias: STAND_ASIDE
+          archetype: null
+          trend_relation: null
+          reasons:
+            - M15 and M5 channels do not form a consolidated trend, and no earlier rule matched
+          summary: Unresolved conflict, stand aside
+
+# MCD3 as modifier (architecture 3.4, after the table). The first entry whose conditions hold applies; none applies to a result
+# that is not LONG or SHORT.
+modifiers:
+  - id: M3_CONFLICT_EXPECTED_UNDER_R1
+    rules: [R1_MACRO_COUNTER_TREND_RALLY]
+    sensor: MCD3
+    when:
+      - { fact: state_code, in: [MCD3_NON_CONSOLIDATED_TREND_CONFLICT] }
+    bias: [LONG, SHORT]
+    effect: note
+    text: M15 and M5 slopes differ, expected while the M15 slope lags
+  - id: M3_TREND_CONFLICT
+    sensor: MCD3
+    when:
+      - { fact: state_code, in: [MCD3_NON_CONSOLIDATED_TREND_CONFLICT] }
+    bias: [LONG, SHORT]
+    effect: caution
+    text: M15 and M5 slopes differ
+  - id: M3_OVERFLOW
+    sensor: MCD3
+    when:
+      - { fact: state_code, in: [MCD3_NON_CONSOLIDATED_OVERFLOW] }
+    bias: [LONG, SHORT]
+    effect: caution
+    text: M5 corridor sits inside the M15 corridor on too few bars
+  - id: M3_ESCAPE
+    sensor: MCD3
+    when:
+      - { fact: state_code, in: [MCD3_NON_CONSOLIDATED_ESCAPE] }
+    bias: [LONG, SHORT]
+    effect: caution
+    text: Latest M5 corridor extends beyond the M15 corridor
+  - id: M3_CONFIRMS_UP
+    sensor: MCD3
+    when:
+      - { fact: consolidation, in: [UP] }
+    bias: [LONG]
+    effect: confirm
+    text: M15 and M5 are consolidated in an uptrend
+  - id: M3_CONFIRMS_DOWN
+    sensor: MCD3
+    when:
+      - { fact: consolidation, in: [DOWN] }
+    bias: [SHORT]
+    effect: confirm
+    text: M15 and M5 are consolidated in a downtrend
+  - id: M3_AGAINST_UP
+    sensor: MCD3
+    when:
+      - { fact: consolidation, in: [UP] }
+    bias: [SHORT]
+    effect: note
+    text: M15 and M5 are consolidated in an uptrend, against this direction
+  - id: M3_AGAINST_DOWN
+    sensor: MCD3
+    when:
+      - { fact: consolidation, in: [DOWN] }
+    bias: [LONG]
+    effect: note
+    text: M15 and M5 are consolidated in a downtrend, against this direction
