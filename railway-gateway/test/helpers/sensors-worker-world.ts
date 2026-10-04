@@ -1,9 +1,12 @@
 import { createHash } from 'crypto';
 import type { Job } from 'bull';
+import * as fs from 'fs';
+import * as path from 'path';
 import type {
   CycleRunResult,
   McdRunResult,
   RunnerOutput,
+  SynthesisRunResult,
 } from '../../src/sensors/cycle-run-result';
 import type { CycleReadyJobData } from '../../src/worker/cycle-manifest.service';
 import type {
@@ -16,6 +19,7 @@ import type {
   RunnerRequest,
 } from '../../src/sensors/python-runner';
 import {
+  FIXTURES_DIR,
   FIXTURE_SLOTS,
   FixtureSlot,
   readFixtureBundle,
@@ -102,6 +106,37 @@ export function unitResult(
     results: stored.results.map((r) => ({ ...r })) as McdRunResult[],
     runtime: { python: '3.11.9', timings_ms: timings },
     ...over,
+  };
+}
+
+/**
+ * The `synthesis` section a runner returns with `SYN` at `shadow`, as the engine stored it for a fixture
+ * (`mcd_worker/fixtures/<slot>.synthesis.json`): real readings, real hashes, real zones.
+ */
+export function storedSynthesis(fixture: FixtureSlot): SynthesisRunResult {
+  return JSON.parse(
+    fs.readFileSync(
+      path.join(FIXTURES_DIR, `${fixture.stem}.synthesis.json`),
+      'utf8'
+    )
+  );
+}
+
+/**
+ * `unitResult` with the stored `synthesis` section (and a synthesis time), the result of a runner
+ * whose `SYN` flag is `shadow`. `change` may damage the section before it is returned.
+ */
+export function unitResultWithSynthesis(
+  fixture: FixtureSlot = FIXTURE_SLOTS[0],
+  change: (section: SynthesisRunResult) => void = () => undefined
+): CycleRunResult {
+  const result = unitResult(fixture);
+  const section = storedSynthesis(fixture);
+  change(section);
+  return {
+    ...result,
+    runtime: { ...result.runtime, synthesis_ms: 48.8 },
+    synthesis: section,
   };
 }
 
@@ -201,6 +236,20 @@ class LazyOp<T> implements PromiseLike<T> {
 export class FakeSensorPrisma {
   outputs: Row[] = [];
   inputs: Row[] = [];
+  /** What `to_regclass` finds: false for a database where the SYN migration is not applied (a spec sets it). */
+  synthesisTablesExist = true;
+  /** How many times the writer asked, and an error to throw instead of answering. */
+  tableChecks = 0;
+  tableCheckError: Error | undefined;
+  /** The existence check of the two SYN tables (a tagged-template call; the fake ignores the text). */
+  $queryRaw = async (): Promise<Array<{ ready: boolean }>> => {
+    this.tableChecks += 1;
+    if (this.tableCheckError) throw this.tableCheckError;
+    return [{ ready: this.synthesisTablesExist }];
+  };
+  /** `synthesis_readings` and `entry_zones` (build step 4 part 5): written in the same transaction as the sensors' rows. */
+  synthesisReadings: Row[] = [];
+  entryZones: Row[] = [];
   /** Operations that ran outside `$transaction` (the writer must have none). */
   readonly autocommitted: string[] = [];
   /** Each `$transaction` call: the names of its operations, and whether it committed. */
@@ -280,6 +329,30 @@ export class FakeSensorPrisma {
       }),
   };
 
+  readonly synthesisReading = {
+    createMany: (args: { data: Row[]; skipDuplicates?: boolean }) =>
+      this.op('synthesisReading.createMany', () =>
+        this.createMany(
+          this.synthesisReadings,
+          (r) =>
+            `${String(r['symbol'])}|${String(r['cycle_slot'])}|${String(r['profile'])}`,
+          args
+        )
+      ),
+  };
+
+  readonly entryZone = {
+    createMany: (args: { data: Row[]; skipDuplicates?: boolean }) =>
+      this.op('entryZone.createMany', () =>
+        this.createMany(
+          this.entryZones,
+          (r) =>
+            `${String(r['symbol'])}|${String(r['cycle_slot'])}|${String(r['profile'])}|${String(r['zone_id'])}`,
+          args
+        )
+      ),
+  };
+
   /** Array form only, as the writer uses it: every operation runs, in order, or none of them is kept. */
   async $transaction(ops: Array<LazyOp<unknown>>): Promise<unknown[]> {
     const record = { ops: ops.map((o) => o.name), committed: false };
@@ -288,6 +361,8 @@ export class FakeSensorPrisma {
     const saved = {
       outputs: this.outputs.map((r) => ({ ...r })),
       inputs: this.inputs.map((r) => ({ ...r })),
+      synthesisReadings: this.synthesisReadings.map((r) => ({ ...r })),
+      entryZones: this.entryZones.map((r) => ({ ...r })),
     };
     try {
       const results = ops.map((o) => o.execute());
@@ -296,6 +371,8 @@ export class FakeSensorPrisma {
     } catch (error) {
       this.outputs = saved.outputs;
       this.inputs = saved.inputs;
+      this.synthesisReadings = saved.synthesisReadings;
+      this.entryZones = saved.entryZones;
       throw error;
     }
   }

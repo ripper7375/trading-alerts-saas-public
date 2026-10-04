@@ -147,6 +147,16 @@ export const BAR_COLUMNS: readonly string[] = Object.freeze(
 );
 
 /**
+ * The support and resistance columns `context_levels` carries, `sr_1` to `sr_16` (kit standard 1.0.6,
+ * decision D8). `sr_1` to `sr_4` are the nearest supports below a bar's close and `sr_5` to `sr_8` the nearest
+ * resistances above it; `sr_9` to `sr_16` are the same from the second calibration. Empty is NULL, never 0.
+ * They are NOT in `BAR_COLUMNS`: no evaluator reads them, so the bars of a bundle do not carry them.
+ */
+export const SR_COLUMNS: readonly string[] = Object.freeze(
+  Array.from({ length: 16 }, (_, index) => `sr_${index + 1}`)
+);
+
+/**
  * The columns of a bar inside a window: the open time, the close and the four channel
  * columns (upper, lower, baseline, fit) of the active indicator. With no active
  * indicator (no setting: the evaluators answer INVALID + NO_SETTING) just the first two.

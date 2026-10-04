@@ -29,6 +29,7 @@ import {
   outputOf,
   readyJobData,
   unitResult,
+  unitResultWithSynthesis,
 } from './helpers/sensors-worker-world';
 
 /**
@@ -265,6 +266,130 @@ describe('a cycle that is ready', () => {
     source.set(() => loadedOk(v1, { retuning: true }));
     await processor.handle(fakeJob(readyJobData(v1, { retuning: true })), NOW);
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------- the SYN rows (build step 4 part 5)
+
+describe('a runner with the SYN flag on', () => {
+  it('writes the readings and the zones with the sensors’ rows, reports them in the outcome and says so in the log', async () => {
+    const { processor, runner, prisma } = make();
+    runner.set(() => outputOf(unitResultWithSynthesis(v1)));
+    const outcome = written(
+      (await deliver(processor, readyJobData(v1))).outcome
+    );
+    expect(prisma.outputs).toHaveLength(4);
+    expect(prisma.synthesisReadings.map((r) => r['profile'])).toEqual([
+      'DAY_TRADER',
+      'SCALPER',
+    ]);
+    expect(prisma.entryZones).toHaveLength(4);
+    expect(prisma.transactions).toHaveLength(1);
+    expect(outcome.synthesis).toEqual({
+      readingsInserted: 2,
+      readingsExisting: 0,
+      zonesInserted: 4,
+      zonesExisting: 0,
+      refused: [],
+      error: null,
+    });
+    expect(log.mock.calls.map((c) => String(c[0])).join('\n')).toContain(
+      'SYN 2 readings and 4 zones new, 0 already there'
+    );
+    expect(
+      prisma.synthesisReadings.every((r) => r['evaluated_at'] === NOW)
+    ).toBe(true);
+  });
+
+  it('a job delivered twice writes no SYN row the second time', async () => {
+    const { processor, runner, prisma } = make();
+    runner.set(() => outputOf(unitResultWithSynthesis(v1)));
+    await processor.handle(fakeJob(readyJobData(v1)), NOW);
+    const again = written(
+      await processor.handle(fakeJob(readyJobData(v1)), NOW + 5)
+    );
+    expect(again.synthesis).toMatchObject({
+      readingsInserted: 0,
+      readingsExisting: 2,
+      zonesInserted: 0,
+      zonesExisting: 4,
+    });
+    expect(prisma.synthesisReadings).toHaveLength(2);
+    expect(prisma.entryZones).toHaveLength(4);
+  });
+
+  it('a SYN reading that is refused costs the job nothing: it is not retried, not discarded, and the sensors and the other trader type are written', async () => {
+    const { processor, runner, prisma } = make();
+    runner.set(() =>
+      outputOf(
+        unitResultWithSynthesis(v1, (section) => {
+          section.readings[0].reading_sha256 = 'f'.repeat(64);
+        })
+      )
+    );
+    const job = fakeJob(readyJobData(v1));
+    const outcome = written(await processor.handle(job, NOW));
+    expect(job.discard).not.toHaveBeenCalled();
+    expect(prisma.outputs).toHaveLength(4);
+    expect(prisma.synthesisReadings.map((r) => r['profile'])).toEqual([
+      'SCALPER',
+    ]);
+    expect(outcome.synthesis?.refused.map((r) => r.profile)).toEqual([
+      'DAY_TRADER',
+    ]);
+    expect(
+      error.mock.calls
+        .map((c) => String(c[0]))
+        .filter((line) => line.includes('SYN_READING_REFUSED DAY_TRADER'))
+    ).toHaveLength(1);
+    expect(log.mock.calls.map((c) => String(c[0])).join('\n')).toContain(
+      ', 1 refused'
+    );
+  });
+
+  it('an engine error is written down as the outcome’s and the log’s, and the sensors are written', async () => {
+    const { processor, runner, prisma } = make();
+    runner.set(() =>
+      outputOf(
+        unitResultWithSynthesis(v1, (section) => {
+          section.error = 'SYNTHESIS_ERROR';
+          section.readings = [];
+        })
+      )
+    );
+    const outcome = written(
+      await processor.handle(fakeJob(readyJobData(v1)), NOW)
+    );
+    expect(prisma.outputs).toHaveLength(4);
+    expect(prisma.synthesisReadings).toEqual([]);
+    expect(outcome.synthesis?.error).toBe('SYNTHESIS_ERROR');
+    expect(log.mock.calls.map((c) => String(c[0])).join('\n')).toContain(
+      'error SYNTHESIS_ERROR'
+    );
+  });
+
+  it('with the flag off nothing about synthesis is in the outcome or the log', async () => {
+    const { processor, prisma } = make();
+    const outcome = written(
+      await processor.handle(fakeJob(readyJobData(v1)), NOW)
+    );
+    expect(outcome).not.toHaveProperty('synthesis');
+    expect(log.mock.calls.map((c) => String(c[0])).join('\n')).not.toContain(
+      'SYN'
+    );
+    expect(prisma.synthesisReadings).toEqual([]);
+    expect(prisma.entryZones).toEqual([]);
+  });
+
+  it('a failure of the one transaction fails the job and writes nothing, SYN rows included', async () => {
+    const { processor, runner, prisma } = make();
+    runner.set(() => outputOf(unitResultWithSynthesis(v1)));
+    prisma.failTransaction(new Error('connection lost'));
+    await expect(
+      processor.handle(fakeJob(readyJobData(v1)), NOW)
+    ).rejects.toThrow('connection lost');
+    expect(prisma.outputs).toEqual([]);
+    expect(prisma.synthesisReadings).toEqual([]);
   });
 });
 

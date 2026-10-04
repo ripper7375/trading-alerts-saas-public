@@ -1,11 +1,14 @@
 import { createHash } from 'crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { gzipSync } from 'zlib';
 import { PrismaService } from '../prisma/prisma.service';
 import type { CycleRunResult } from './cycle-run-result';
 import { EnvelopeValidator } from './envelope-validator';
 import { slotToIso } from './inputs/stats-slot';
+import type { SynthesisRefusal } from './synthesis-rows';
+import { SynthesisWriter } from './synthesis.writer';
+import { SynReadingValidator } from './syn-validator';
 
 /**
  * Writes one cycle's readings (STACK-D-ARCHITECTURE.md section 2.2, "write"; build step 3 part 4).
@@ -22,6 +25,12 @@ import { slotToIso } from './inputs/stats-slot';
  * the bundle text hashes to `inputs_sha256`. A cycle that fails any of that is refused whole
  * (`CycleWriteRefused`), because storing the readings that happen to be fine would leave a cycle
  * the replay cannot trust.
+ *
+ * The cycle's SYN rows (build step 4 part 5: `synthesis_readings` and `entry_zones`) join the SAME transaction when the
+ * result has a `synthesis` section, and only after `SynthesisWriter` has judged them (decision 3 of the part 4 hand-off,
+ * option (a)): the database would refuse a row that breaks one of its 25 CHECKs and that would undo the sensors' rows
+ * too, so a SYN row it cannot vouch for is left out, logged, and never offered to the transaction. With the `SYN` flag
+ * `off` the transaction is exactly what it was before synthesis existed: three statements.
  *
  * The bundle text is the one the runner wrote (`bundle_canonical_json`): JavaScript and Python write
  * a float differently, so the worker never rebuilds it (Davin, part 3 decision 3, option a).
@@ -49,6 +58,27 @@ export interface WriteSummary {
   inputsInserted: boolean;
   /** Stored bundles older than 90 days that this call deleted. */
   inputsDeleted: number;
+  /** Present only when the result had a `synthesis` section (the `SYN` flag was `shadow` or `live`). */
+  synthesis?: SynthesisSummary;
+}
+
+/** What this call did with the cycle's SYN rows. */
+export interface SynthesisSummary {
+  /** Rows of `synthesis_readings` this call added (at most one per trader type). */
+  readingsInserted: number;
+  /** Readings that were ready to write and were already there (a re-delivery). */
+  readingsExisting: number;
+  /** Rows of `entry_zones` this call added, and those already there. */
+  zonesInserted: number;
+  zonesExisting: number;
+  /** The profiles left out and why (each was also logged as SYN_READING_REFUSED). */
+  refused: SynthesisRefusal[];
+  /**
+   * Why there are no SYN rows when the whole section failed: the engine's `SYNTHESIS_ERROR` (it raised), or the gateway's
+   * `SYN_TABLES_MISSING` (the migration of the two tables is not applied, so the SYN rows were not offered to the transaction
+   * and the sensors' rows were written as usual). Null otherwise.
+   */
+  error: string | null;
 }
 
 /** The cycle was not written: what is wrong with it, one line each. Nothing was changed in the database. */
@@ -62,11 +92,22 @@ export class CycleWriteRefused extends Error {
 const sha256 = (text: string): string =>
   createHash('sha256').update(text, 'utf8').digest('hex');
 
+/** The gateway's own word for "the two SYN tables are not there" (see `McdOutputsWriter.synthesisTablesReady`). */
+export const SYN_TABLES_MISSING = 'SYN_TABLES_MISSING';
+
 @Injectable()
 export class McdOutputsWriter {
+  private readonly logger = new Logger(McdOutputsWriter.name);
+  /** True once the two SYN tables have been seen; never reset (a table does not disappear under a running gateway). */
+  private synthesisTablesSeen = false;
+
   constructor(
     private readonly prisma: PrismaService,
-    private readonly validator: EnvelopeValidator
+    private readonly validator: EnvelopeValidator,
+    // Registered in the module; the default is for a spec that builds the writer by hand with the first two.
+    private readonly synthesis: SynthesisWriter = new SynthesisWriter(
+      new SynReadingValidator()
+    )
   ) {}
 
   /** Everything wrong with `write` that can be seen without the database. Empty list = it may be written. */
@@ -119,11 +160,40 @@ export class McdOutputsWriter {
     return problems;
   }
 
+  /**
+   * Whether `synthesis_readings` and `entry_zones` exist. A statement on a missing table fails the whole transaction and takes the
+   * sensors' rows with it, and the migration that creates them is applied by a person, so a gateway deployed (or a `SYN` flag turned
+   * on) before it would lose every cycle. One cheap catalogue query, asked only when there are SYN rows to write and only until the
+   * answer is yes. A query that fails is a no: the SYN rows are left out and the sensors are written.
+   */
+  private async synthesisTablesReady(): Promise<boolean> {
+    if (this.synthesisTablesSeen) return true;
+    try {
+      const found = await this.prisma.$queryRaw<
+        Array<{ ready: boolean }>
+      >`SELECT (to_regclass('synthesis_readings') IS NOT NULL AND to_regclass('entry_zones') IS NOT NULL) AS ready`;
+      this.synthesisTablesSeen = found[0]?.ready === true;
+    } catch (error) {
+      this.logger.error(
+        `SYN_TABLES_CHECK_FAILED could not ask whether the SYN tables exist: ${(error as Error).message}`
+      );
+    }
+    return this.synthesisTablesSeen;
+  }
+
   async writeCycle(write: CycleWrite): Promise<WriteSummary> {
     const problems = this.problems(write);
     if (problems.length > 0) throw new CycleWriteRefused(problems);
 
     const { result, slot, symbol, evaluatedAt } = write;
+    // Judged BEFORE the transaction; never throws; logs what it leaves out.
+    let syn = this.synthesis.prepare(write);
+    if (syn.readings.length > 0 && !(await this.synthesisTablesReady())) {
+      this.logger.error(
+        `Slot ${slot}: ${SYN_TABLES_MISSING} the tables synthesis_readings and entry_zones are not there (migration 20261004000000_add_synthesis_tables is not applied); no SYN rows written, the sensors' rows are unaffected`
+      );
+      syn = { ...syn, readings: [], zones: [], error: SYN_TABLES_MISSING };
+    }
     const rows = result.results.map((reading) => ({
       symbol,
       cycle_slot: slot,
@@ -165,8 +235,9 @@ export class McdOutputsWriter {
           ];
     const cutoff = evaluatedAt - INPUTS_RETENTION_DAYS * DAY_SECONDS;
 
-    // One transaction: the three statements commit together or not at all.
-    const [written, stored, deleted] = await this.prisma.$transaction([
+    // One transaction: the statements commit together or not at all. The three of the sensors come first and are
+    // the only ones with the SYN flag off; the SYN statements are appended when there is something to write.
+    const statements = [
       this.prisma.mcdOutput.createMany({ data: rows, skipDuplicates: true }),
       this.prisma.marketCycleInput.createMany({
         data: inputs as Prisma.MarketCycleInputCreateManyInput[],
@@ -175,13 +246,46 @@ export class McdOutputsWriter {
       this.prisma.marketCycleInput.deleteMany({
         where: { cycle_slot: { lt: cutoff } },
       }),
-    ]);
+      ...(syn.readings.length > 0
+        ? [
+            this.prisma.synthesisReading.createMany({
+              data: syn.readings as Prisma.SynthesisReadingCreateManyInput[],
+              skipDuplicates: true,
+            }),
+          ]
+        : []),
+      ...(syn.zones.length > 0
+        ? [
+            this.prisma.entryZone.createMany({
+              data: syn.zones as Prisma.EntryZoneCreateManyInput[],
+              skipDuplicates: true,
+            }),
+          ]
+        : []),
+    ];
+    const counts = await this.prisma.$transaction(statements);
+    const [written, stored, deleted] = counts;
+    let next = 3;
+    const readingsInserted = syn.readings.length > 0 ? counts[next++].count : 0;
+    const zonesInserted = syn.zones.length > 0 ? counts[next++].count : 0;
 
     return {
       outputsInserted: written.count,
       outputsExisting: rows.length - written.count,
       inputsInserted: stored.count > 0,
       inputsDeleted: deleted.count,
+      ...(syn.ran
+        ? {
+            synthesis: {
+              readingsInserted,
+              readingsExisting: syn.readings.length - readingsInserted,
+              zonesInserted,
+              zonesExisting: syn.zones.length - zonesInserted,
+              refused: syn.refused,
+              error: syn.error,
+            },
+          }
+        : {}),
     };
   }
 }

@@ -8,6 +8,7 @@ import {
 import {
   BAR_COLUMNS,
   CycleInputsBundle,
+  SR_COLUMNS,
   channelColumns,
   statisticsSourceOf,
 } from '../../src/sensors/inputs/bundle-types';
@@ -148,18 +149,27 @@ export function buildSeedPlan(
     cycle_id: 11,
     collected_at: slot,
     ...Object.fromEntries(BAR_COLUMNS.map((c) => [c, null])),
+    ...Object.fromEntries(SR_COLUMNS.map((c) => [c, null])),
     ...values,
   });
   for (const timeframe of TIMEFRAMES) {
     const keep = options.keepBars?.[timeframe];
     const stored = bundle.bars[timeframe];
-    for (const bar of keep === undefined ? stored : stored.slice(-keep)) {
-      bars.push(barRow(timeframe, bar));
-    }
+    const kept = keep === undefined ? stored : stored.slice(-keep);
+    kept.forEach((bar, index) => {
+      // the stored bundle’s support and resistance levels belong to its last closed bar; every older bar holds none
+      const levels =
+        index === kept.length - 1
+          ? (bundle.context_levels?.[timeframe] ?? {})
+          : {};
+      bars.push(barRow(timeframe, { ...bar, ...levels }));
+    });
     if (formingBars) {
       const forming = formingBarOpen(timeframe, slot);
       const poisoned = Object.fromEntries(
-        BAR_COLUMNS.filter((c) => c !== 'timestamp').map((c) => [c, POISON])
+        [...BAR_COLUMNS.filter((c) => c !== 'timestamp'), ...SR_COLUMNS].map(
+          (c) => [c, POISON]
+        )
       );
       for (const timestamp of [
         forming,
@@ -320,8 +330,9 @@ export function ambiguousUnusedSources(stored: CycleInputsBundle): string[] {
  *     other bar only the open time, the close and the ACTIVE indicator’s four channel columns;
  *   - a source the two charts disagree on and nobody uses has no hash
  *     (`ambiguousUnusedSources`);
- *   - it has no `context_levels`: the stored bundles carry the `sr_*` columns of the last closed bar (kit standard 1.0.6),
- *     the loader does not load them until build step 4 part 5 (then this line goes).
+ *   - `context_levels` has all sixteen `sr_*` columns for every timeframe that has bars, null where the stored bundle has
+ *     none (a replica workbook holds `sr_1` to `sr_8` only, and none on a timeframe it did not export), because that is
+ *     what a table row holds; a stored bundle with no such section gets all-null levels.
  * The runner’s `inputs_sha256` of this form is the database bundle’s hash to the byte.
  */
 export function loaderForm(stored: CycleInputsBundle): CycleInputsBundle {
@@ -343,7 +354,18 @@ export function loaderForm(stored: CycleInputsBundle): CycleInputsBundle {
   }
   for (const source of ambiguousUnusedSources(stored))
     delete out.config_hash[source];
-  delete out.context_levels;
+  const levels: NonNullable<CycleInputsBundle['context_levels']> = {};
+  for (const timeframe of TIMEFRAMES) {
+    if (stored.bars[timeframe].length === 0) continue;
+    levels[timeframe] = Object.fromEntries(
+      SR_COLUMNS.map((column) => [
+        column,
+        stored.context_levels?.[timeframe]?.[column] ?? null,
+      ])
+    );
+  }
+  if (Object.keys(levels).length > 0) out.context_levels = levels;
+  else delete out.context_levels;
   return out;
 }
 
@@ -372,6 +394,7 @@ export function bundleDifferences(
     'active_indicator',
     'config_hash',
     'channel_mode',
+    'context_levels',
   ] as const) {
     if (!same(actual[key], stored[key])) out.push(`${key} differs`);
   }
@@ -414,7 +437,12 @@ function sortKeys(value: unknown): unknown {
 // ---------------------------------------------------------------- the in-memory stand-in
 
 export interface LoggedQuery {
-  model: 'marketCycle' | 'marketDataV6' | 'indicatorStatistic';
+  /** `marketDataV6ContextLevels` is the one-row read of a bar's `sr_*` columns; `marketDataV6` is the bars read, so its counts are the bars queries'. */
+  model:
+    | 'marketCycle'
+    | 'marketDataV6'
+    | 'marketDataV6ContextLevels'
+    | 'indicatorStatistic';
   op: string;
   args: Record<string, any>;
 }
@@ -429,9 +457,10 @@ function project(row: Row, select: Record<string, boolean> | undefined): Row {
 }
 
 /**
- * The three reads the database source makes, and NOTHING else: no `findFirst` and no
- * `findUnique` (so a changed query fails loudly), no write of any kind. An unpinned
- * statistics read throws, as the real rule 5 would want it to.
+ * The reads the database source makes, and NOTHING else: no `findUnique` (so a changed query
+ * fails loudly), no write of any kind, and `findFirst` only for the one bar whose `sr_*` columns
+ * the bundle's `context_levels` hold. An unpinned statistics read throws, as the real rule 5
+ * would want it to.
  */
 export class FakeInputsPrisma {
   readonly queryLog: LoggedQuery[] = [];
@@ -481,6 +510,26 @@ export class FakeInputsPrisma {
         .sort((a, b) => (b['timestamp'] as number) - (a['timestamp'] as number))
         .slice(0, args.take)
         .map((r) => project(r, args.select));
+    },
+    findFirst: async (args: {
+      where: { symbol: string; timeframe: string; timestamp: number };
+      select: Record<string, boolean>;
+    }) => {
+      this.queryLog.push({
+        model: 'marketDataV6ContextLevels',
+        op: 'findFirst',
+        args,
+      });
+      if (typeof args.where.timestamp !== 'number') {
+        throw new Error('the levels of ONE bar are read, by its open time');
+      }
+      const row = this.bars.find(
+        (r) =>
+          r['symbol'] === args.where.symbol &&
+          r['timeframe'] === args.where.timeframe &&
+          r['timestamp'] === args.where.timestamp
+      );
+      return row ? project(row, args.select) : null;
     },
   };
 

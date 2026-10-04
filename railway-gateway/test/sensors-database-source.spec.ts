@@ -5,6 +5,7 @@ import { lastClosedBarOpen } from '../src/cycle/slot';
 import {
   BAR_COLUMNS,
   REFUSED_DATA_STATUS,
+  SR_COLUMNS,
   barsNotClosed,
   bundleProblems,
 } from '../src/sensors/inputs/bundle-types';
@@ -741,6 +742,7 @@ describe('the source text keeps the rules (a guard that finds no file passes for
         'bundle-types.ts',
         'channel-bars-query.ts',
         'closed-channel.ts',
+        'context-levels-query.ts',
         'database-inputs.source.ts',
         'fixture-inputs.source.ts',
         'inputs-source.ts',
@@ -780,12 +782,24 @@ describe('the source text keeps the rules (a guard that finds no file passes for
   });
 
   it('reads bars only through the one query beside closed-bars-query.ts, which is closed-bar-bounded', () => {
-    expect(
-      [...all.matchAll(/\bmarketDataV6\s*\.\s*(\w+)\s*\(/g)].map((m) => m[1])
-    ).toEqual(['findMany']);
+    const readsOf = (text: string) =>
+      [...text.matchAll(/\bmarketDataV6\s*\.\s*(\w+)\s*\(/g)].map((m) => m[1]);
+    // the bars come through one query, and the one bar whose sr_* levels the bundle carries through another
+    expect(readsOf(all).sort()).toEqual(['findFirst', 'findMany']);
+    expect(readsOf(code.get('channel-bars-query.ts')!)).toEqual(['findMany']);
+    expect(readsOf(code.get('context-levels-query.ts')!)).toEqual([
+      'findFirst',
+    ]);
     const text = code.get('channel-bars-query.ts')!;
     expect(text).toMatch(/timestamp\s*:\s*\{\s*lte\s*:\s*maxOpenTime\s*\}/);
     expect(text).toMatch(/orderBy\s*:\s*\{\s*timestamp\s*:\s*'desc'\s*\}/);
+  });
+
+  it('reads the support and resistance levels of ONE bar, named by its open time, with no range and no ordering (so it cannot reach a bar that is still open)', () => {
+    const text = code.get('context-levels-query.ts')!;
+    expect(text).toMatch(/timestamp\s*:\s*openTime\b/);
+    expect(text).not.toMatch(/\b(lte|lt|gte|gt|orderBy|take)\b/);
+    expect(text).toMatch(/SR_COLUMNS/);
   });
 
   it('does not touch the digest’s query (closed-bars-query.ts keeps selecting the OHLC spine only)', () => {
@@ -795,4 +809,127 @@ describe('the source text keeps the rules (a guard that finds no file passes for
     );
     expect(digest).not.toMatch(/uoedt|ssa|base_fl/);
   });
+});
+
+describe('context_levels: the sr_* levels of the last closed bar (kit standard 1.0.6)', () => {
+  const sr = (name: string) => name.startsWith('sr_');
+
+  it('are the stored bundle’s, padded to all sixteen columns: null where the table row holds none', async () => {
+    const w = world(V1);
+    const { bundle } = await loaded(w);
+    expect(bundle.context_levels).toEqual(
+      loaderForm(readFixtureBundle(V1)).context_levels
+    );
+    for (const timeframe of ['M5', 'M15'] as const) {
+      const levels = bundle.context_levels![timeframe]!;
+      expect(Object.keys(levels)).toEqual(SR_COLUMNS);
+    }
+    // v1’s M15 holds five levels (sr_1 to sr_3 supports, sr_5 and sr_6 resistances), its M5 none, and sr_9 to sr_16 none
+    const m15 = bundle.context_levels!.M15!;
+    expect(Object.entries(m15).filter(([, v]) => v !== null)).toHaveLength(5);
+    expect(m15['sr_1']).toBe(4369.57);
+    expect(m15['sr_4']).toBeNull();
+    expect(
+      Object.values(bundle.context_levels!.M5!).every((v) => v === null)
+    ).toBe(true);
+  });
+
+  it('are read by the open time of the bundle’s own last bar, one row per timeframe, and nothing else', async () => {
+    const w = world(V1);
+    const { bundle } = await loaded(w);
+    const queries = w.prisma.queries('marketDataV6ContextLevels');
+    expect(queries).toHaveLength(2);
+    for (const q of queries) {
+      const timeframe = q.args.where.timeframe as 'M5' | 'M15';
+      const bars = bundle.bars[timeframe];
+      expect(q.op).toBe('findFirst');
+      expect(q.args.where).toEqual({
+        symbol: 'XAUUSD',
+        timeframe,
+        timestamp: bars[bars.length - 1].timestamp,
+      });
+      expect(Object.keys(q.args.select)).toEqual(SR_COLUMNS);
+    }
+  });
+
+  it('leave the bars as they were: no bar carries an sr_* column', async () => {
+    const w = world(V1);
+    const { bundle } = await loaded(w);
+    for (const timeframe of ['M5', 'M15'] as const)
+      for (const bar of bundle.bars[timeframe])
+        expect(Object.keys(bar).filter(sr)).toEqual([]);
+  });
+
+  it('never take a level from the bar still forming or the bars after it (their sr_* hold the poison value)', async () => {
+    const w = world(V1);
+    const { bundle } = await loaded(w);
+    for (const timeframe of ['M5', 'M15'] as const)
+      for (const value of Object.values(bundle.context_levels![timeframe]!))
+        expect(value).not.toBe(424242.5);
+  });
+
+  it('a non-finite level is made null, like every other number of a bundle', async () => {
+    const w = world(V1);
+    const last = w.prisma.bars
+      .filter((b) => b['timeframe'] === 'M15' && b['sr_1'] === 4369.57)
+      .pop()!;
+    last['sr_1'] = Number.NaN;
+    last['sr_2'] = Number.POSITIVE_INFINITY;
+    const { bundle } = await loaded(w);
+    expect(bundle.context_levels!.M15!['sr_1']).toBeNull();
+    expect(bundle.context_levels!.M15!['sr_2']).toBeNull();
+  });
+
+  it('a column of another type is a new kind of column nobody classified: it throws, it does not reach the runner as text', async () => {
+    const w = world(V1);
+    const last = w.prisma.bars
+      .filter((b) => b['timeframe'] === 'M15' && b['sr_1'] === 4369.57)
+      .pop()!;
+    last['sr_1'] = '4369.57';
+    await expect(
+      w.source.loadCycleInputs('XAUUSD', w.plan.slot)
+    ).rejects.toThrow(/sr_1 holds a string, not a price/);
+  });
+
+  it('a timeframe whose last bar has no row at read time has no entry, and the key is left out when no timeframe has one', async () => {
+    const w = world(V1);
+    const real = w.prisma.marketDataV6.findFirst;
+    w.prisma.marketDataV6.findFirst = (async (args: never) => {
+      const answer = await real(args);
+      return (args as { where: { timeframe: string } }).where.timeframe === 'M5'
+        ? null
+        : answer;
+    }) as typeof real;
+    const { bundle } = await loaded(w);
+    expect(Object.keys(bundle.context_levels!)).toEqual(['M15']);
+
+    w.prisma.marketDataV6.findFirst = (async () => null) as typeof real;
+    const none = await loaded(w);
+    expect(none.bundle).not.toHaveProperty('context_levels');
+  });
+
+  it('a timeframe left out of the bundle (its cycle was not READY) has no bars and so no levels', async () => {
+    const w = world(V1);
+    // M15 was collected by the cycle at 20:45 (not the slot): without that READY row M15 is left out
+    w.prisma.cycles = w.prisma.cycles.filter((c) => c['slot'] === w.plan.slot);
+    const { bundle } = await loaded(w);
+    expect(bundle.bars.M15).toEqual([]);
+    expect(Object.keys(bundle.context_levels ?? {})).toEqual(['M5']);
+    expect(w.prisma.queries('marketDataV6ContextLevels')).toHaveLength(1);
+  });
+
+  it.each([['v3'], ['v4']] as const)(
+    '%s: the loader’s bundle has the stored levels (a replica that exported sr_1 to sr_16 on both timeframes)',
+    async (name) => {
+      const fixture = FIXTURE_SLOTS.find((f) => f.name === name)!;
+      const w = world(fixture);
+      const { bundle } = await loaded(w);
+      expect(bundle.context_levels).toEqual(
+        loaderForm(readFixtureBundle(fixture)).context_levels
+      );
+      expect(
+        bundleDifferences(bundle, loaderForm(readFixtureBundle(fixture)))
+      ).toEqual([]);
+    }
+  );
 });

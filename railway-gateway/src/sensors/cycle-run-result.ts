@@ -27,6 +27,41 @@ export interface McdRunResult {
   guard_problems: string[];
 }
 
+/**
+ * One trader type's SYN reading of the cycle and its entry zones, as the engine returns it (an entry of
+ * `synthesis.readings`, `mcd_worker/synthesis/cycle.py` `ProfileResult.to_dict()`).
+ */
+export interface SynthesisProfileResult {
+  /** DAY_TRADER or SCALPER. */
+  profile: string;
+  /** The canonical `syn-output/1` text, byte for byte; null when the reading failed its guard in the engine and may not be saved. */
+  reading_json: string | null;
+  reading_sha256: string | null;
+  /** The canonical text of the zone rows that are kept, a JSON list (`[]` when none). */
+  zones_json: string;
+  /** SHA-256 of `zones_json`. */
+  zones_sha256: string;
+  /** Why there are no zones (NOT_DIRECTIONAL, NO_REFERENCE_PRICE, NO_ZONE_SOURCES, ZONES_REFUSED, READING_REFUSED); null when there are some. */
+  zones_reason: string | null;
+  /** Why a reading was withheld or some zones were dropped; never part of the reading. */
+  guard_problems: string[];
+}
+
+/** The `synthesis` section of a result: present only when the `SYN` flag was `shadow` or `live`. */
+export interface SynthesisRunResult {
+  flag: string;
+  rules_version: string;
+  rules_sha256: string;
+  /** The zone parameters' version and the SHA-256 of their parsed document. */
+  zones_version: string;
+  zones_sha256: string;
+  /** The close of the last closed M5 bar the zones were built from, or null. */
+  reference_price: number | null;
+  /** `SYNTHESIS_ERROR` when an unexpected exception stopped synthesis (no readings then); otherwise null. */
+  error: string | null;
+  readings: SynthesisProfileResult[];
+}
+
 export interface CycleRunResult {
   schema_version: typeof RESULT_SCHEMA;
   runner_version: string;
@@ -47,7 +82,19 @@ export interface CycleRunResult {
     defect_timeframes: string[];
   } | null;
   results: McdRunResult[];
-  runtime: { python: string; timings_ms: Record<string, number> };
+  runtime: {
+    python: string;
+    timings_ms: Record<string, number>;
+    /** Wall time of the synthesis step; present only with `synthesis`. */
+    synthesis_ms?: number;
+  };
+  /**
+   * Build step 4 part 3: the SYN readings and zones, when the `SYN` flag is on; absent when it is `off`, which is what every
+   * result looked like before synthesis existed. **Read leniently on purpose**: `parseCycleResult` does not look inside it, so a
+   * malformed section cannot fail a cycle and cost the sensors their rows. `SynthesisWriter` checks its shape
+   * (`synthesisSectionProblems`) and refuses what it cannot vouch for.
+   */
+  synthesis?: SynthesisRunResult;
 }
 
 /** What the worker did with the process, apart from the answer. */
@@ -174,6 +221,61 @@ export function cycleResultProblems(value: unknown): string[] {
         problems.push(
           `runtime.timings_ms has no number for ${entry['mcd_id']}`
         );
+    }
+  });
+  return problems;
+}
+
+const isNumberOrNull = (value: unknown): value is number | null =>
+  value === null || (typeof value === 'number' && Number.isFinite(value));
+
+/**
+ * Every way the `synthesis` section of a result is not one the synthesis writer can use. Empty list = it is.
+ * Kept apart from `cycleResultProblems` on purpose: a section that fails here costs the cycle its SYN rows and
+ * nothing else (the MCD rows are still written).
+ */
+export function synthesisSectionProblems(value: unknown): string[] {
+  if (!isRecord(value)) return ['synthesis is not an object'];
+  const problems: string[] = [];
+  for (const key of [
+    'flag',
+    'rules_version',
+    'rules_sha256',
+    'zones_version',
+    'zones_sha256',
+  ])
+    if (!isString(value[key]))
+      problems.push(`synthesis.${key} must be a string`);
+  if (value['flag'] !== 'shadow' && value['flag'] !== 'live')
+    problems.push('synthesis.flag must be shadow or live');
+  if (!isNumberOrNull(value['reference_price']))
+    problems.push('synthesis.reference_price must be a number or null');
+  if (!isStringOrNull(value['error']))
+    problems.push('synthesis.error must be a string or null');
+  const readings = value['readings'];
+  if (!Array.isArray(readings)) {
+    problems.push('synthesis.readings must be a list');
+    return problems;
+  }
+  const seen = new Set<string>();
+  readings.forEach((entry: unknown, index: number) => {
+    const where = `synthesis.readings[${index}]`;
+    if (!isRecord(entry)) {
+      problems.push(`${where} is not an object`);
+      return;
+    }
+    for (const key of ['profile', 'zones_json', 'zones_sha256'])
+      if (!isString(entry[key]))
+        problems.push(`${where}.${key} must be a string`);
+    for (const key of ['reading_json', 'reading_sha256', 'zones_reason'])
+      if (!isStringOrNull(entry[key]))
+        problems.push(`${where}.${key} must be a string or null`);
+    if (!isStringList(entry['guard_problems']))
+      problems.push(`${where}.guard_problems must be a list of strings`);
+    if (isString(entry['profile'])) {
+      if (seen.has(entry['profile']))
+        problems.push(`${where}: ${entry['profile']} appears twice`);
+      seen.add(entry['profile']);
     }
   });
   return problems;

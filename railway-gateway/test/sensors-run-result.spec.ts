@@ -2,9 +2,14 @@ import {
   RunnerError,
   cycleResultProblems,
   parseCycleResult,
+  synthesisSectionProblems,
 } from '../src/sensors/cycle-run-result';
 import { FIXTURE_SLOTS } from './helpers/cycle-fixtures';
-import { unitResult } from './helpers/sensors-worker-world';
+import {
+  storedSynthesis,
+  unitResult,
+  unitResultWithSynthesis,
+} from './helpers/sensors-worker-world';
 
 /**
  * What the worker accepts from the Python runner (`mcd-cycle-result/1`). The runner is the
@@ -192,5 +197,158 @@ describe('parseCycleResult', () => {
         /runner_version must be a string/
       );
     }
+  });
+});
+
+// ---------------------------------------------------------------- the synthesis section (build step 4 part 5)
+
+describe('the synthesis section of a result', () => {
+  it.each(FIXTURE_SLOTS.map((f) => [f.name, f] as const))(
+    'the stored section of %s is one the synthesis writer can use',
+    (_name, fixture) => {
+      expect(synthesisSectionProblems(storedSynthesis(fixture))).toEqual([]);
+    }
+  );
+
+  it('a result with a synthesis section is a result, and so is one without (the SYN flag off)', () => {
+    const fixture = FIXTURE_SLOTS[0];
+    expect(cycleResultProblems(unitResultWithSynthesis(fixture))).toEqual([]);
+    expect(cycleResultProblems(unitResult(fixture))).toEqual([]);
+    expect(unitResult(fixture)).not.toHaveProperty('synthesis');
+  });
+
+  it('is read leniently: a malformed section does not make the result malformed, so a bug in synthesis cannot cost the cycle its sensor rows', () => {
+    const fixture = FIXTURE_SLOTS[0];
+    for (const junk of [
+      null,
+      5,
+      'text',
+      [],
+      {},
+      { flag: 'off' },
+      { readings: 3 },
+    ]) {
+      const result = { ...unitResult(fixture), synthesis: junk };
+      expect(cycleResultProblems(result)).toEqual([]);
+      expect(parseCycleResult(JSON.stringify(result)).results).toHaveLength(4);
+    }
+  });
+
+  const defects: Array<[string, (s: any) => void, RegExp]> = [
+    ['no flag', (s) => delete s.flag, /synthesis.flag must be a string/],
+    [
+      'a flag that is off',
+      (s) => (s.flag = 'off'),
+      /flag must be shadow or live/,
+    ],
+    [
+      'a flag that is a boolean',
+      (s) => (s.flag = false),
+      /flag must be a string/,
+    ],
+    [
+      'no rules_version',
+      (s) => delete s.rules_version,
+      /rules_version must be a string/,
+    ],
+    [
+      'a rules_sha256 that is a number',
+      (s) => (s.rules_sha256 = 7),
+      /rules_sha256 must be a string/,
+    ],
+    [
+      'no zones_version',
+      (s) => delete s.zones_version,
+      /zones_version must be a string/,
+    ],
+    [
+      'a zones_sha256 that is null',
+      (s) => (s.zones_sha256 = null),
+      /zones_sha256 must be a string/,
+    ],
+    [
+      'a reference price that is text',
+      (s) => (s.reference_price = '4378.31'),
+      /reference_price must be a number or null/,
+    ],
+
+    [
+      'an error that is a number',
+      (s) => (s.error = 1),
+      /error must be a string or null/,
+    ],
+    [
+      'readings that are not a list',
+      (s) => (s.readings = {}),
+      /readings must be a list/,
+    ],
+    [
+      'a reading entry that is a number',
+      (s) => (s.readings = [3]),
+      /readings\[0\] is not an object/,
+    ],
+    [
+      'no profile',
+      (s) => delete s.readings[0].profile,
+      /readings\[0\].profile must be a string/,
+    ],
+    [
+      'a reading_json that is a number',
+      (s) => (s.readings[0].reading_json = 3),
+      /reading_json must be a string or null/,
+    ],
+    [
+      'a reading_sha256 that is undefined',
+      (s) => delete s.readings[0].reading_sha256,
+      /reading_sha256 must be a string or null/,
+    ],
+    [
+      'no zones_json',
+      (s) => delete s.readings[0].zones_json,
+      /zones_json must be a string/,
+    ],
+    [
+      'a zones_reason that is a number',
+      (s) => (s.readings[0].zones_reason = 4),
+      /zones_reason must be a string or null/,
+    ],
+    [
+      'guard_problems that are not a list of text',
+      (s) => (s.readings[0].guard_problems = [1]),
+      /guard_problems must be a list of strings/,
+    ],
+    [
+      'the same profile twice',
+      (s) => (s.readings[1].profile = s.readings[0].profile),
+      /appears twice/,
+    ],
+  ];
+
+  it.each(defects)('names %s', (_label, damage, expected) => {
+    const section = clone(storedSynthesis(FIXTURE_SLOTS[0]));
+    damage(section);
+    const problems = synthesisSectionProblems(section);
+    expect(problems.length).toBeGreaterThan(0);
+    expect(problems.join('\n')).toMatch(expected);
+  });
+
+  it.each([[null], [5], ['text'], [[]], [undefined]])(
+    '%p is not a section',
+    (value) => {
+      expect(synthesisSectionProblems(value)).toEqual([
+        'synthesis is not an object',
+      ]);
+    }
+  );
+
+  it('accepts a section with no readings (an engine error) and a reading the engine withheld (null text and hash)', () => {
+    const section = clone(storedSynthesis(FIXTURE_SLOTS[0]));
+    section.error = 'SYNTHESIS_ERROR';
+    section.readings = [];
+    expect(synthesisSectionProblems(section)).toEqual([]);
+    const withheld = clone(storedSynthesis(FIXTURE_SLOTS[0]));
+    withheld.readings[0].reading_json = null;
+    withheld.readings[0].reading_sha256 = null;
+    expect(synthesisSectionProblems(withheld)).toEqual([]);
   });
 });

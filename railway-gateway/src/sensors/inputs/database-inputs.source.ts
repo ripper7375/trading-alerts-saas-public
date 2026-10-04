@@ -15,6 +15,7 @@ import {
   BarRecord,
   CycleInputsBundle,
   REFUSED_DATA_STATUS,
+  SR_COLUMNS,
   StatisticsRecord,
   kitIndicatorOf,
   statisticsSourceOf,
@@ -26,6 +27,10 @@ import {
   channelBarsFetcher,
 } from './channel-bars-query';
 import { closedBarsToSupply } from './closed-channel';
+import {
+  FetchContextLevels,
+  contextLevelsFetcher,
+} from './context-levels-query';
 import type {
   InputsProvenance,
   InputsSource,
@@ -86,6 +91,11 @@ type Collecting =
  *     as they are, never padded. Only the columns the evaluators read are carried:
  *     the active indicator's channel on every bar, every candidate's on the last
  *     closed bar (BAR_COLUMNS in bundle-types.ts).
+ *   - Context levels (kit standard 1.0.6, decision D8). The `sr_1` to `sr_16` columns of the bundle's last
+ *     closed bar of each timeframe, read by that bar's open time, go in `context_levels`; an empty column is
+ *     null, never 0. No evaluator reads them: they are for synthesis's entry zones, and the bundle stores
+ *     them because a later cycle may refit the column. A timeframe with no bars, or whose last bar has
+ *     vanished from the table between the two reads, has no entry; the key is left out when no timeframe has one.
  *   - Rule 5, statistics at the slot. Rows are read by symbol, timeframe and ONE
  *     `captured_at`: the slot the timeframe was last collected at (M15 at 20:55 is
  *     20:45). No ordering by time, no "latest available"; a source with no row at the
@@ -114,12 +124,14 @@ type Collecting =
 export class DatabaseInputsSource implements InputsSource {
   private readonly logger = new Logger(DatabaseInputsSource.name);
   private readonly fetchBars: FetchChannelBars;
+  private readonly fetchContextLevels: FetchContextLevels;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly indicators: ActiveIndicatorService
   ) {
     this.fetchBars = channelBarsFetcher(prisma, READER_SYMBOL);
+    this.fetchContextLevels = contextLevelsFetcher(prisma, READER_SYMBOL);
   }
 
   async loadCycleInputs(symbol: string, slot: number): Promise<LoadedInputs> {
@@ -215,6 +227,7 @@ export class DatabaseInputsSource implements InputsSource {
       )
     );
     const bars: Record<Timeframe, BarRecord[]> = { M5: barsM5, M15: barsM15 };
+    const contextLevels = await this.contextLevelsOf(bars);
 
     const usedSources: Partial<Record<Timeframe, string>> = {};
     const perTimeframe: Partial<Record<Timeframe, TimeframeTuning>> = {};
@@ -251,6 +264,9 @@ export class DatabaseInputsSource implements InputsSource {
       active_indicator: active,
       config_hash: merged.config_hash,
       channel_mode: merged.channel_mode,
+      ...(Object.keys(contextLevels).length > 0
+        ? { context_levels: contextLevels }
+        : {}),
     };
     const provenance: InputsProvenance = {
       origin: 'database',
@@ -265,6 +281,35 @@ export class DatabaseInputsSource implements InputsSource {
       notes,
     };
     return { status: 'OK', bundle, provenance };
+  }
+
+  /**
+   * The `sr_1` to `sr_16` of the last closed bar of each timeframe that has bars: one row each, by the open time of the
+   * bundle's own last bar. No bar, or no row for it, gives no entry for the timeframe.
+   */
+  private async contextLevelsOf(
+    bars: Record<Timeframe, BarRecord[]>
+  ): Promise<NonNullable<CycleInputsBundle['context_levels']>> {
+    const found = await Promise.all(
+      TIMEFRAMES.map(async (timeframe) => {
+        const last = bars[timeframe][bars[timeframe].length - 1];
+        return last === undefined
+          ? null
+          : this.fetchContextLevels(timeframe, last.timestamp);
+      })
+    );
+    const out: NonNullable<CycleInputsBundle['context_levels']> = {};
+    TIMEFRAMES.forEach((timeframe, index) => {
+      const row = found[index];
+      if (row === null) return;
+      out[timeframe] = Object.fromEntries(
+        SR_COLUMNS.map((column) => [
+          column,
+          numberOrNull(row[column], `${timeframe} ${column}`),
+        ])
+      );
+    });
+    return out;
   }
 
   /** The usable READY row that collected a timeframe, with its tuning parsed; otherwise why not. */
@@ -367,6 +412,15 @@ export class DatabaseInputsSource implements InputsSource {
       toBar(row, index === rows.length - 1 ? BAR_COLUMNS : window)
     );
   }
+}
+
+/** A price level: a finite number, or null for "no level" (a non-finite number is made null by `jsonValue`; any other type is a new kind of column and throws). */
+function numberOrNull(value: unknown, where: string): number | null {
+  const checked = jsonValue(value, where);
+  if (checked !== null && typeof checked !== 'number') {
+    throw new TypeError(`${where} holds a ${typeof checked}, not a price`);
+  }
+  return checked;
 }
 
 /** A table row as a bundle bar with the given columns only: numbers or null. */

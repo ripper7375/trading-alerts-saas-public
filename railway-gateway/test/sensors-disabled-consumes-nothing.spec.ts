@@ -13,6 +13,8 @@ import {
 import { EnvelopeValidator } from '../src/sensors/envelope-validator';
 import { DatabaseInputsSource } from '../src/sensors/inputs/database-inputs.source';
 import { McdOutputsWriter } from '../src/sensors/mcd-outputs.writer';
+import { SynReadingValidator } from '../src/sensors/syn-validator';
+import { SynthesisWriter } from '../src/sensors/synthesis.writer';
 import { CYCLE_RUNNER, PythonCycleRunner } from '../src/sensors/python-runner';
 import { SENSOR_CONFIG } from '../src/sensors/sensor-config';
 import { SensorsModule } from '../src/sensors/sensors.module';
@@ -82,6 +84,8 @@ describe('SensorsModule.register: what each value of SENSOR_WORKER_ENABLED does'
     expect(classes).toEqual([
       DatabaseInputsSource,
       EnvelopeValidator,
+      SynReadingValidator,
+      SynthesisWriter,
       McdOutputsWriter,
       CycleReadyProcessor,
     ]);

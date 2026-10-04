@@ -6,6 +6,8 @@ import { CycleReadyProcessor, INPUTS_SOURCE } from './cycle-ready.processor';
 import { EnvelopeValidator } from './envelope-validator';
 import { DatabaseInputsSource } from './inputs/database-inputs.source';
 import { McdOutputsWriter } from './mcd-outputs.writer';
+import { SynthesisWriter } from './synthesis.writer';
+import { SynReadingValidator } from './syn-validator';
 import { CYCLE_RUNNER, PythonCycleRunner } from './python-runner';
 import {
   SENSOR_CONFIG,
@@ -58,6 +60,8 @@ export class SensorsModule {
           inject: [SENSOR_CONFIG],
         },
         EnvelopeValidator,
+        SynReadingValidator,
+        SynthesisWriter,
         McdOutputsWriter,
         CycleReadyProcessor,
       ],

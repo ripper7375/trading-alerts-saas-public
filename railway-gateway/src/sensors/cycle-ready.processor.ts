@@ -202,12 +202,20 @@ export class CycleReadyProcessor {
       const statuses = Object.fromEntries(
         result.results.map((reading) => [reading.mcd_id, reading.status])
       );
+      const syn = summary.synthesis;
       this.logger.log(
         `Slot ${data.slot} written (${basis}): ${Object.entries(statuses)
           .map(([id, status]) => `${id} ${status}`)
           .join(
             ', '
-          )}; ${summary.outputsInserted} new, ${summary.outputsExisting} already there, ${output.wallMs} ms`
+          )}; ${summary.outputsInserted} new, ${summary.outputsExisting} already there, ${output.wallMs} ms` +
+          (syn === undefined
+            ? ''
+            : `; SYN ${syn.readingsInserted} readings and ${syn.zonesInserted} zones new, ${syn.readingsExisting + syn.zonesExisting} already there` +
+              (syn.refused.length > 0
+                ? `, ${syn.refused.length} refused`
+                : '') +
+              (syn.error !== null ? `, error ${syn.error}` : ''))
       );
       return {
         outcome: 'WRITTEN',

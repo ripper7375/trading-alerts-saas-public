@@ -29,17 +29,21 @@
  *   3. CYCLE_PG_URL=<that url> CYCLE_PG_ALLOW_WIPE=yes npx jest test/synthesis-tables.pg.spec.ts
  *   4. stop and remove the instance.
  */
-import { createHash } from 'crypto';
-import * as fs from 'fs';
-import * as path from 'path';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { isoToSlot } from '../src/sensors/inputs/stats-slot';
+import { FIXTURE_SLOTS } from './helpers/cycle-fixtures';
 import {
-  FIXTURES_DIR,
-  FIXTURE_SLOTS,
-  FixtureSlot,
-  readFixtureCycle,
-} from './helpers/cycle-fixtures';
+  Doc,
+  V1,
+  V3,
+  V4,
+  changedReadingRow,
+  contextOf,
+  longZone,
+  sha256,
+  storedReadingRow,
+  zoneRowFrom,
+} from './helpers/synthesis-rows';
 
 const URL = process.env['CYCLE_PG_URL'] ?? '';
 const enabled = URL !== '' && process.env['CYCLE_PG_ALLOW_WIPE'] === 'yes';
@@ -50,192 +54,6 @@ if (
   throw new Error('CYCLE_PG_URL must point at localhost or 127.0.0.1');
 }
 const suite = enabled ? describe : describe.skip;
-
-const sha256 = (text: string) =>
-  createHash('sha256').update(text).digest('hex');
-
-// ---------------------------------------------------------------- what the engine writes
-
-interface StoredProfile {
-  profile: string;
-  reading_json: string | null;
-  reading_sha256: string | null;
-  zones_json: string;
-  zones_sha256: string;
-  zones_reason: string | null;
-  guard_problems: string[];
-}
-
-interface StoredSynthesis {
-  flag: string;
-  rules_version: string;
-  rules_sha256: string;
-  zones_version: string;
-  zones_sha256: string;
-  reference_price: number | null;
-  error: string | null;
-  readings: StoredProfile[];
-}
-
-type Doc = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-function readStored(fixture: FixtureSlot): StoredSynthesis {
-  return JSON.parse(
-    fs.readFileSync(
-      path.join(FIXTURES_DIR, `${fixture.stem}.synthesis.json`),
-      'utf8'
-    )
-  );
-}
-
-interface Context {
-  synthesis: StoredSynthesis;
-  inputs_sha256: string;
-  runner_version: string;
-}
-
-function contextOf(fixture: FixtureSlot): Context {
-  const cycle = readFixtureCycle(fixture);
-  return {
-    synthesis: readStored(fixture),
-    inputs_sha256: cycle.inputs_sha256,
-    runner_version: cycle.runner_version,
-  };
-}
-
-/**
- * The columns of a `synthesis_readings` row: from the reading's document, its text and its
- * zone rows. The scalar columns are read OUT of the document, so they agree with it by
- * construction; a test that wants a column to disagree overrides it afterwards.
- */
-function readingRowFrom(
-  doc: Doc,
-  text: string,
-  zones: Doc[],
-  zonesText: string,
-  ctx: Context,
-  zonesReason: string | null
-): Doc {
-  const slot = isoToSlot(doc['cycle_slot']) as number;
-  return {
-    symbol: 'XAUUSD',
-    cycle_slot: slot,
-    profile: doc['profile'],
-    flag: 'shadow',
-    rules_version: doc['rules_version'],
-    rules_sha256: doc['rules_sha256'],
-    rule_id: doc['rule_id'],
-    branch_id: doc['branch_id'],
-    status: doc['status'],
-    status_reasons: doc['status_reasons'],
-    data_status: doc['data_status'],
-    archetype: doc['archetype'],
-    bias: doc['bias'],
-    trend_relation: doc['trend_relation'],
-    stand_aside: doc['stand_aside'],
-    reading_json: text,
-    reading: JSON.parse(text),
-    reading_sha256: sha256(text),
-    zone_count: zones.length,
-    zones_reason: zones.length > 0 ? null : zonesReason,
-    zones_json: zonesText,
-    zones_sha256: sha256(zonesText),
-    zone_params_version: ctx.synthesis.zones_version,
-    zone_params_sha256: ctx.synthesis.zones_sha256,
-    reference_price: ctx.synthesis.reference_price,
-    guard_problems: [],
-    inputs_sha256: ctx.inputs_sha256,
-    retuning_observed: false,
-    retuning_applied: false,
-    runner_version: ctx.runner_version,
-    python_version: '3.11.9',
-    duration_ms: 48.8,
-    evaluated_at: slot + 31,
-  };
-}
-
-/** The `synthesis_readings` row of a stored profile result, with the engine's own text and hash. */
-function storedReadingRow(ctx: Context, profile: string): Doc {
-  const stored = ctx.synthesis.readings.find((r) => r.profile === profile)!;
-  const text = stored.reading_json!;
-  const zones: Doc[] = JSON.parse(stored.zones_json);
-  return readingRowFrom(
-    JSON.parse(text),
-    text,
-    zones,
-    stored.zones_json,
-    ctx,
-    stored.zones_reason
-  );
-}
-
-/** A reading made from a changed document: its text, copy, hash and columns are made consistent again. */
-function changedReadingRow(
-  ctx: Context,
-  profile: string,
-  change: (doc: Doc) => void,
-  zones?: Doc[],
-  zonesReason: string | null = 'NO_ZONE_SOURCES'
-): Doc {
-  const stored = ctx.synthesis.readings.find((r) => r.profile === profile)!;
-  const doc: Doc = JSON.parse(stored.reading_json!);
-  change(doc);
-  const zoneRows: Doc[] = zones ?? JSON.parse(stored.zones_json);
-  return readingRowFrom(
-    doc,
-    JSON.stringify(doc),
-    zoneRows,
-    JSON.stringify(zoneRows),
-    ctx,
-    zonesReason
-  );
-}
-
-/** The columns of an `entry_zones` row, read out of one zone row of `zones_json`. */
-function zoneRowFrom(zone: Doc, over: Doc = {}): Doc {
-  return {
-    symbol: 'XAUUSD',
-    cycle_slot: isoToSlot(zone['cycle_slot']),
-    profile: zone['profile'],
-    zone_id: zone['zone_id'],
-    rank: zone['rank'],
-    bias: zone['bias'],
-    low: zone['low'],
-    high: zone['high'],
-    reference_price: zone['reference_price'],
-    source_sensors: zone['source_sensors'],
-    confluence_count: zone['confluence_count'],
-    invalidation_price: zone['invalidation_price'],
-    invalidation_basis: zone['invalidation_basis'],
-    stop_distance: zone['stop_distance'],
-    next_opposing_price: zone['next_opposing_level']
-      ? zone['next_opposing_level']['price']
-      : null,
-    runway: zone['runway'],
-    runway_ratio: zone['runway_ratio'],
-    levels: {
-      source_levels: zone['source_levels'],
-      confluence_levels: zone['confluence_levels'],
-      invalidation_level: zone['invalidation_level'],
-      next_opposing_level: zone['next_opposing_level'],
-    },
-    zone_params_version: zone['zones_version'],
-    zone_params_sha256: zone['zones_sha256'],
-    ...over,
-  };
-}
-
-const V1 = FIXTURE_SLOTS[0];
-const V3 = FIXTURE_SLOTS[1];
-const V4 = FIXTURE_SLOTS[2];
-
-/** The first zone of the 18 Sep Day Trader reading: a LONG zone with a runway and a level behind it. */
-function longZone(ctx: Context = contextOf(V1)): Doc {
-  const stored = ctx.synthesis.readings.find(
-    (r) => r.profile === 'DAY_TRADER'
-  )!;
-  return JSON.parse(stored.zones_json)[0];
-}
 
 /** What the database said when it refused a write: Prisma's error code and message. */
 async function refusal(
