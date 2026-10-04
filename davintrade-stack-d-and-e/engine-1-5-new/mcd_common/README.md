@@ -8,17 +8,17 @@ An evaluator is `evaluate(inputs, params, upstream) -> Envelope`: pure, never ra
 checks assume a well-formed bundle and can raise on a corrupt one, so wrap every evaluator in
 `envelope.never_throws` (rule R7, test T10).
 
-| Module                      | For                    | What it gives an MCD                                                                                                                                                            |
-| --------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cycle_inputs.py`           | evaluators             | `CycleInputs` (frozen bundle: Part B2 fields plus `stats_slot`), `Params`, `closed_bars()`, slot and grid helpers, the channel-indicator catalogue                              |
-| `reason_codes.py`           | evaluators             | The Appendix D codes; nothing else can be emitted                                                                                                                               |
-| `envelope.py`               | evaluators             | `valid` / `cautionary` / `invalid` / `stale`, `reading_context()`, `canonical_json()`, `schema_errors()`, the `never_throws` decorator                                          |
-| `preflight.py`              | evaluators             | `run_preflight()` (order fixed: cycle, tier 1, tier 4, tier 2, tier 3, upstream) and the tier helpers; tier 1 applies decision D3                                               |
-| `wording.py`                | evaluators, tests      | Banned words, `%`, 80-character summary, no prices, advice words                                                                                                                |
-| `excel_fixture_provider.py` | tests and tooling only | Replica workbook to `CycleInputs` for one slot; writes `<slot>.inputs.json`, `.source.md`, `.envelope.json`. The only place with the replica statistics tolerance (decision E1) |
-| `budget.py`                 | tests and tooling only | Token count (`o200k_base`) and timing; `python -m mcd_common.budget --fetch` downloads the encoding once into `.tiktoken_cache/`                                                |
-| `testing.py`                | tests only             | T4, T5, T6, T7, T8, T9, T10, T11, T12 and the R15 time check; the `SharedSensorChecks` mixin                                                                                    |
-| `fixtures/settings_*.yaml`  | tests only             | Active-indicator setting per replica workbook (decision D2)                                                                                                                     |
+| Module                      | For                    | What it gives an MCD                                                                                                                                                                 |
+| --------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `cycle_inputs.py`           | evaluators             | `CycleInputs` (frozen bundle: Part B2 fields plus `stats_slot` and the optional `context_levels`), `Params`, `closed_bars()`, slot and grid helpers, the channel-indicator catalogue |
+| `reason_codes.py`           | evaluators             | The Appendix D codes; nothing else can be emitted                                                                                                                                    |
+| `envelope.py`               | evaluators             | `valid` / `cautionary` / `invalid` / `stale`, `reading_context()`, `canonical_json()`, `schema_errors()`, the `never_throws` decorator                                               |
+| `preflight.py`              | evaluators             | `run_preflight()` (order fixed: cycle, tier 1, tier 4, tier 2, tier 3, upstream) and the tier helpers; tier 1 applies decision D3                                                    |
+| `wording.py`                | evaluators, tests      | Banned words, `%`, 80-character summary, no prices, advice words                                                                                                                     |
+| `excel_fixture_provider.py` | tests and tooling only | Replica workbook to `CycleInputs` for one slot; writes `<slot>.inputs.json`, `.source.md`, `.envelope.json`. The only place with the replica statistics tolerance (decision E1)      |
+| `budget.py`                 | tests and tooling only | Token count (`o200k_base`) and timing; `python -m mcd_common.budget --fetch` downloads the encoding once into `.tiktoken_cache/`                                                     |
+| `testing.py`                | tests only             | T4, T5, T6, T7, T8, T9, T10, T11, T12 and the R15 time check; the `SharedSensorChecks` mixin                                                                                         |
+| `fixtures/settings_*.yaml`  | tests only             | Active-indicator setting per replica workbook (decision D2)                                                                                                                          |
 
 Evaluator-facing modules (`reason_codes`, `cycle_inputs`, `envelope`, `preflight`, `wording`) import only the
 standard library at module level; `tests/test_kit_boundaries.py` enforces that, and that they use no

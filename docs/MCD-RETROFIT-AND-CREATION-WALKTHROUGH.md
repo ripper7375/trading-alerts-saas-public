@@ -248,7 +248,9 @@ class CycleInputs:
 ```
 
 Final field list, approved 30 September 2026 and built in task P1: the nine fields above plus
-`stats_slot` (per timeframe, ISO 8601 UTC: the slot where that timeframe was last collected).
+`stats_slot` (per timeframe, ISO 8601 UTC: the slot where that timeframe was last collected). One optional
+field was added on 4 October 2026 (standard 1.0.6, build step 4 part 3): `context_levels`, the `sr_*` columns
+of the last closed bar of each timeframe, for synthesis; no evaluator reads it.
 Standard §4 and `mcd_common/cycle_inputs.py` are authoritative.
 
 Rules the fixture provider enforces (so evaluators cannot break them):

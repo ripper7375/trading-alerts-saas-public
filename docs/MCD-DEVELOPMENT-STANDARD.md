@@ -2,7 +2,7 @@
 
 |                  |                                                                                                                                                                                                                                                                         |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**       | Settled ([ADR-082](adr/082-mcd-development-standard.md), approved by Davin 30 September 2026). Version 1.0.5, 3 October 2026 (PATCH: align R14, T6 and §13 with Decision Q7 and approved MCD specs)                                                                     |
+| **Status**       | Settled ([ADR-082](adr/082-mcd-development-standard.md), approved by Davin 30 September 2026). Version 1.0.6, 4 October 2026 (PATCH: optional `context_levels` added to `CycleInputs`, build step 4 part 3)                                                             |
 | **Owner**        | Davin (topics, specs and go-live approvals)                                                                                                                                                                                                                             |
 | **Applies to**   | Every Market Condition Description sensor: MCD0 (quality gate), MCD1–MCD3 (examples, to retrofit), MCD4–MCD15 (to be defined)                                                                                                                                           |
 | **Walkthrough**  | [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md): the order of work for retrofitting MCD0–MCD3 and creating new MCDs, and the agent's task cards. Davin's prompts: [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md)     |
@@ -169,6 +169,7 @@ construction. Implemented in `davintrade-stack-d-and-e/engine-1-5-new/mcd_common
 | `active_indicator` | `{timeframe: indicator}`          | The setting per timeframe (rule 6)                                                                                                                                                                                    |
 | `config_hash`      | `{source: hash}`                  | From `indicator_configs`                                                                                                                                                                                              |
 | `channel_mode`     | `{source: "dynamic" or "frozen"}` | Architecture §1.6                                                                                                                                                                                                     |
+| `context_levels`   | `{tf: {sr_n: price or null}}`     | **Added by D8, version 1.0.6; optional.** `sr_1` to `sr_16` of the last closed bar of each timeframe (`null` = empty cell), for synthesis's entry zones; no evaluator reads it. Left out of the JSON when empty       |
 
 Rules that come with the fields:
 

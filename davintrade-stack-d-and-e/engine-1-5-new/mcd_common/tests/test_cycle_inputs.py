@@ -158,17 +158,81 @@ class BundleJsonTests(unittest.TestCase):
         self.assertEqual(again, inputs)
         self.assertEqual(json.dumps(again.to_dict()), text)
 
-    def test_fields_are_part_b2_plus_stats_slot(self):
+    def test_fields_are_part_b2_plus_stats_slot_and_context_levels(self):
         names = [f.name for f in dataclasses.fields(ci.CycleInputs)]
         self.assertEqual(
             sorted(names),
             sorted(
                 [
                     "symbol", "cycle_slot", "data_status", "retuning", "bars", "statistics",
-                    "stats_slot", "active_indicator", "config_hash", "channel_mode",
+                    "stats_slot", "active_indicator", "config_hash", "channel_mode", "context_levels",
                 ]
             ),
         )
+
+
+ORIGINAL_KEYS = [
+    "symbol", "cycle_slot", "data_status", "retuning", "bars", "statistics", "stats_slot", "active_indicator", "config_hash", "channel_mode",
+]
+SR = {"M5": {"sr_1": 4350.5, "sr_2": None}, "M15": {"sr_1": 4351.25, "sr_5": 4390.0}}
+
+
+class ContextLevelsTests(unittest.TestCase):
+    """Decision D8 of the build step 4 plan (standard 1.0.6): an optional, additive section that no evaluator reads."""
+
+    def test_it_is_empty_by_default(self):
+        inputs = synthetic_inputs()
+        self.assertEqual(dict(inputs.context_levels), {})
+        self.assertFalse(inputs.context_levels)
+
+    def test_an_empty_section_is_left_out_of_the_json_form_so_the_old_text_and_hash_are_unchanged(self):
+        inputs = synthetic_inputs()
+        self.assertEqual(list(inputs.to_dict()), ORIGINAL_KEYS)  # the ten keys, in their order, and nothing else
+        explicit = synthetic_inputs(context_levels={})
+        self.assertEqual(explicit, inputs)
+        self.assertEqual(json.dumps(explicit.to_dict(), sort_keys=True), json.dumps(inputs.to_dict(), sort_keys=True))
+
+    def test_a_section_with_levels_is_written_last_and_round_trips_exactly(self):
+        inputs = synthetic_inputs(context_levels=SR)
+        data = inputs.to_dict()
+        self.assertEqual(list(data), ORIGINAL_KEYS + ["context_levels"])
+        self.assertEqual(data["context_levels"], SR)
+        text = json.dumps(data)
+        again = ci.CycleInputs.from_dict(json.loads(text))
+        self.assertEqual(again, inputs)
+        self.assertEqual(json.dumps(again.to_dict()), text)
+
+    def test_a_none_level_is_kept_so_an_unresolved_slot_stays_visible(self):
+        data = synthetic_inputs(context_levels=SR).to_dict()
+        self.assertIn("sr_2", data["context_levels"]["M5"])
+        self.assertIsNone(data["context_levels"]["M5"]["sr_2"])
+
+    def test_a_bundle_without_the_key_or_with_null_reads_as_empty(self):
+        data = synthetic_inputs().to_dict()
+        self.assertNotIn("context_levels", data)
+        self.assertEqual(dict(ci.CycleInputs.from_dict(data).context_levels), {})
+        self.assertEqual(dict(ci.CycleInputs.from_dict({**data, "context_levels": None}).context_levels), {})
+        self.assertEqual(dict(ci.CycleInputs.from_dict({**data, "context_levels": {}}).context_levels), {})
+
+    def test_the_section_is_read_only_and_copied(self):
+        source = {"M15": {"sr_1": 4351.25}}
+        inputs = synthetic_inputs(context_levels=source)
+        with self.assertRaises(TypeError):
+            inputs.context_levels["M5"] = {}
+        with self.assertRaises(TypeError):
+            inputs.context_levels["M15"]["sr_1"] = 1.0
+        source["M15"]["sr_1"] = 9.99  # the caller's dict changing later cannot change the bundle
+        self.assertEqual(inputs.context_levels["M15"]["sr_1"], 4351.25)
+
+    def test_two_bundles_that_differ_only_in_the_section_are_not_equal(self):
+        self.assertNotEqual(synthetic_inputs(), synthetic_inputs(context_levels=SR))
+        self.assertNotEqual(synthetic_inputs(context_levels=SR), synthetic_inputs(context_levels={"M5": {"sr_1": 1.0}}))
+
+    def test_the_closed_bar_view_and_every_other_field_ignore_it(self):
+        plain, with_levels = synthetic_inputs(), synthetic_inputs(context_levels=SR)
+        self.assertEqual(ci.closed_bars(plain, "M5"), ci.closed_bars(with_levels, "M5"))
+        for name in ORIGINAL_KEYS:
+            self.assertEqual(getattr(plain, name), getattr(with_levels, name), name)
 
 
 class ClosedBarsTests(unittest.TestCase):
