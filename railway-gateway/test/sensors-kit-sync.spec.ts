@@ -9,7 +9,7 @@ import { pythonAvailable } from './helpers/kit-runner';
  * The copy of the Python sensor engine inside this package (build step 3, `scripts/sync-sensor-kit.js`).
  *
  * Railway builds `railway-gateway/` alone, so the worker's engine folder (SENSOR_ENGINE_DIR) has to be inside
- * the package. `sensors/` holds 34 runtime files copied byte for byte from
+ * the package. `sensors/` holds 45 runtime files copied byte for byte from
  * `davintrade-stack-d-and-e/engine-1-5-new/` (docs/runbooks/deploy-stack-d-step3.md section 2.2). Three things can
  * go wrong without anything failing loudly, and each has a block below:
  *
@@ -24,7 +24,7 @@ import { pythonAvailable } from './helpers/kit-runner';
  * This spec reads files outside the package, like six existing gateway specs (the checkout must be whole).
  */
 
-// Each scratch test copies 35 files and starts node a few times; `npm run` and Python start slowly on Windows.
+// Each scratch test copies 46 files and starts node a few times; `npm run` and Python start slowly on Windows.
 jest.setTimeout(60_000);
 
 const PACKAGE_DIR = path.resolve(__dirname, '..');
@@ -67,6 +67,17 @@ const RUNTIME_FILES = [
   'mcd_worker/checklists/MCD1.yaml',
   'mcd_worker/checklists/MCD2.yaml',
   'mcd_worker/checklists/MCD3.yaml',
+  'mcd_worker/synthesis/__init__.py',
+  'mcd_worker/synthesis/cycle.py',
+  'mcd_worker/synthesis/engine.py',
+  'mcd_worker/synthesis/facts.py',
+  'mcd_worker/synthesis/pills.py',
+  'mcd_worker/synthesis/reading.py',
+  'mcd_worker/synthesis/rules.py',
+  'mcd_worker/synthesis/zones.py',
+  'mcd_worker/synthesis/rules/draft-1.yaml',
+  'mcd_worker/synthesis/syn-output-1.schema.json',
+  'mcd_worker/synthesis/zone_params.yaml',
 ] as const;
 
 const SORTED_FILES = [...RUNTIME_FILES].sort();
@@ -109,16 +120,16 @@ function runScript(script: string, ...args: string[]): Run {
 // ---------------------------------------------------------------------------------------------------------------
 
 describe('the list of runtime files', () => {
-  it('has 34 distinct files, and every one exists in the engine', () => {
-    expect(RUNTIME_FILES).toHaveLength(34);
-    expect(new Set(RUNTIME_FILES).size).toBe(34);
+  it('has 45 distinct files, and every one exists in the engine', () => {
+    expect(RUNTIME_FILES).toHaveLength(45);
+    expect(new Set(RUNTIME_FILES).size).toBe(45);
     const missing = RUNTIME_FILES.filter(
       (f) => !fs.existsSync(path.join(ENGINE_DIR, f))
     );
     expect(missing).toEqual([]);
   });
 
-  it('holds the kit, the four MCDs (evaluator, parameters, registry) and the cycle runner, and nothing that only tests use', () => {
+  it('holds the kit, the four MCDs (evaluator, parameters, registry), the cycle runner and synthesis, and nothing that only tests use', () => {
     const byFolder = (folder: string) =>
       RUNTIME_FILES.filter((f) => f.startsWith(`${folder}/`)).length;
     expect(byFolder('mcd_common')).toBe(9);
@@ -127,7 +138,16 @@ describe('the list of runtime files', () => {
       for (const kind of ['evaluator.py', 'params.yaml', 'registry.yaml'])
         expect(RUNTIME_FILES).toContain(`mcd${n}/mcd${n}_${kind}`);
     }
-    expect(byFolder('mcd_worker')).toBe(13);
+    // 13 of the runner (with its four checklists) and 11 of synthesis (build step 4 part 3: the runner imports it).
+    expect(byFolder('mcd_worker')).toBe(24);
+    expect(byFolder('mcd_worker/synthesis')).toBe(11);
+    expect(byFolder('mcd_worker/synthesis/rules')).toBe(1);
+    for (const f of [
+      'rules/draft-1.yaml',
+      'syn-output-1.schema.json',
+      'zone_params.yaml',
+    ])
+      expect(RUNTIME_FILES).toContain(`mcd_worker/synthesis/${f}`);
     // Fixtures, tests, concept notes and the statistics engine are not per-cycle runtime.
     const notRuntime = RUNTIME_FILES.filter((f) =>
       /(^|\/)(tests?|fixtures|statistics|tools|legacy|concept)\//.test(f)
@@ -141,7 +161,7 @@ describe('the list of runtime files', () => {
 // ---------------------------------------------------------------------------------------------------------------
 
 describe('railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this block fails)', () => {
-  it('holds exactly the 34 runtime files', () => {
+  it('holds exactly the 45 runtime files', () => {
     expect(listFiles(COPY_DIR)).toEqual(SORTED_FILES);
   });
 
@@ -156,7 +176,7 @@ describe('railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this bloc
     expect(r.stderr).toBe('');
     expect(r.status).toBe(0);
     expect(r.stdout).toContain(
-      `34 files, ${TOTAL_BYTES.toLocaleString('en-US')} bytes`
+      `45 files, ${TOTAL_BYTES.toLocaleString('en-US')} bytes`
     );
   });
 
@@ -167,7 +187,7 @@ describe('railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this bloc
       shell: true,
     });
     expect(r.status).toBe(0);
-    expect(r.stdout).toContain('34 files');
+    expect(r.stdout).toContain('45 files');
   });
 
   it('is wired into package.json', () => {
@@ -182,7 +202,7 @@ describe('railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this bloc
 
   const maybe = pythonAvailable() ? it : it.skip;
   maybe(
-    'runs on its own: the kit, the worker, four registries, four checklists and the configuration load with no other file and without openpyxl or tiktoken',
+    'runs on its own: the kit, the worker, four registries, four checklists, the configuration and the synthesis rules and zone parameters load with no other file and without openpyxl or tiktoken',
     () => {
       const code = [
         'import sys, json',
@@ -192,7 +212,10 @@ describe('railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this bloc
         'import mcd_common, mcd_worker.cli, mcd_worker.cycle_runner, mcd_worker.guards, mcd_worker.inheritance',
         'from mcd_worker.registry import load_registry',
         'from mcd_worker.flags import load_checklists, load_worker_config',
-        'print(json.dumps({"registry": sorted(load_registry()), "checklists": sorted(load_checklists()), "flags": sorted(load_worker_config().flags)}))',
+        'from mcd_worker.synthesis.cycle import Synthesizer',
+        // The rules and the zone parameters are data files of the copy: loading them proves the two are shipped with the code that reads them.
+        'synthesizer = Synthesizer.load(load_registry())',
+        'print(json.dumps({"registry": sorted(load_registry()), "checklists": sorted(load_checklists()), "flags": sorted(load_worker_config().flags), "syn": [synthesizer.rules.version, synthesizer.params.version]}))',
       ].join('\n');
       const r = spawnSync('python', ['-B', '-c', code], {
         cwd: COPY_DIR,
@@ -211,6 +234,7 @@ describe('railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this bloc
         registry: ids,
         checklists: ids,
         flags: ids,
+        syn: ['draft-1', 'zones-1'],
       });
       // `-B` and PYTHONDONTWRITEBYTECODE: the check must not have left a cache in the folder the image ships.
       expect(
@@ -263,15 +287,15 @@ describe('scripts/sync-sensor-kit.js on a scratch checkout', () => {
       });
   });
 
-  it('creates the folder, copies the 34 files and reports the count and the total bytes', () => {
+  it('creates the folder, copies the 45 files and reports the count and the total bytes', () => {
     const { script, copy } = scratch();
     expect(fs.existsSync(copy)).toBe(false);
     const r = runScript(script);
     expect(r.status).toBe(0);
     expect(r.stdout).toContain(
-      `34 files, ${TOTAL_BYTES.toLocaleString('en-US')} bytes`
+      `45 files, ${TOTAL_BYTES.toLocaleString('en-US')} bytes`
     );
-    expect(r.stdout).toContain('34 written, 0 already identical');
+    expect(r.stdout).toContain('45 written, 0 already identical');
     expect(listFiles(copy)).toEqual(SORTED_FILES);
     for (const f of RUNTIME_FILES)
       expect(
@@ -289,7 +313,7 @@ describe('scripts/sync-sensor-kit.js on a scratch checkout', () => {
     expect(check.stderr).toBe('');
     const again = runScript(script);
     expect(again.status).toBe(0);
-    expect(again.stdout).toContain('0 written, 34 already identical');
+    expect(again.stdout).toContain('0 written, 45 already identical');
   });
 
   it('writes only inside railway-gateway/sensors/', () => {
@@ -297,18 +321,18 @@ describe('scripts/sync-sensor-kit.js on a scratch checkout', () => {
     const before = listFiles(root);
     expect(runScript(script).status).toBe(0);
     const added = listFiles(root).filter((f) => !before.includes(f));
-    expect(added).toHaveLength(34);
+    expect(added).toHaveLength(45);
     expect(added.every((f) => f.startsWith('railway-gateway/sensors/'))).toBe(
       true
     );
     expect(listFiles(root).filter((f) => before.includes(f))).toEqual(before);
   });
 
-  it('--check on a missing folder fails, names all 34 files, and does not create the folder', () => {
+  it('--check on a missing folder fails, names all 45 files, and does not create the folder', () => {
     const { script, copy } = scratch();
     const r = runScript(script, '--check');
     expect(r.status).toBe(1);
-    expect(r.stderr.match(/^ {2}missing {4}/gm)).toHaveLength(34);
+    expect(r.stderr.match(/^ {2}missing {4}/gm)).toHaveLength(45);
     expect(fs.existsSync(copy)).toBe(false);
   });
 
@@ -337,7 +361,7 @@ describe('scripts/sync-sensor-kit.js on a scratch checkout', () => {
       false
     );
     const fixed = runScript(script);
-    expect(fixed.stdout).toContain('1 written, 33 already identical');
+    expect(fixed.stdout).toContain('1 written, 44 already identical');
     expect(runScript(script, '--check').status).toBe(0);
   });
 

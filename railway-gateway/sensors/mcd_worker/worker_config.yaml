@@ -9,6 +9,15 @@
 # The four registries carry the same flag in `mcdN_registry.yaml`; a test fails when the two differ.
 # Changing a flag is a commit that also records its evidence in the checklist.
 #
+# Synthesis (architecture chapter 3; build step 4, decision D10) has a flag of its own, SYN, with the same three values:
+#
+# off     no SYN reading and no entry zones are made
+# shadow  the Day Trader and Scalper readings and their zones are made, from the sensors that are shadow or live, and saved
+# live    the same, from the sensors that are live only (so it cannot be live before MCD1 and MCD2 are)
+#
+# SYN has no checklist: it may not be higher than MCD1 or MCD2, which every reading needs (flags.synthesis_flag_problems). Which rules file it
+# reads is `synthesis.rules_version` below (`synthesis/rules/<version>.yaml`); changing it is a commit, a decision-log entry and a replay.
+#
 # Quote the values: YAML 1.1 reads an unquoted off as the boolean false, and the worker refuses that.
 schema: mcd-worker-config/1
 flags:
@@ -16,3 +25,6 @@ flags:
   MCD1: 'off'
   MCD2: 'off'
   MCD3: 'off'
+  SYN: 'off'
+synthesis:
+  rules_version: draft-1

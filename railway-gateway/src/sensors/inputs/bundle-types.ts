@@ -46,6 +46,13 @@ export interface CycleInputsBundle {
   config_hash: Record<string, string>;
   /** Per statistics source, from `market_cycles.source_modes`. */
   channel_mode: Record<string, ChannelMode>;
+  /**
+   * Optional (kit standard 1.0.6, decision D8): the `sr_1` to `sr_16` columns of the last closed bar of each
+   * timeframe, as the data source holds them (null for an empty cell). Context for synthesis's entry zones;
+   * no evaluator reads it. The kit leaves the key out of its JSON when it is empty, so a bundle without it
+   * keeps the text and the hash it had before the section existed.
+   */
+  context_levels?: Partial<Record<Timeframe, Record<string, number | null>>>;
 }
 
 /**
@@ -169,6 +176,10 @@ const BUNDLE_KEYS = [
   'channel_mode',
 ] as const;
 
+/** The optional `context_levels` key: allowed beside the ten required ones, and checked only when present. */
+const OPTIONAL_BUNDLE_KEYS = ['context_levels'] as const;
+const LEVEL_NAME = /^sr_([1-9]|1[0-6])$/;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -187,7 +198,9 @@ export function bundleProblems(value: unknown): string[] {
   if (!isRecord(value)) return ['the bundle is not an object'];
   const problems: string[] = [];
   const extra = Object.keys(value).filter(
-    (key) => !(BUNDLE_KEYS as readonly string[]).includes(key)
+    (key) =>
+      !(BUNDLE_KEYS as readonly string[]).includes(key) &&
+      !(OPTIONAL_BUNDLE_KEYS as readonly string[]).includes(key)
   );
   if (extra.length) problems.push(`unknown keys: ${extra.sort().join(', ')}`);
   for (const key of BUNDLE_KEYS) {
@@ -245,6 +258,33 @@ export function bundleProblems(value: unknown): string[] {
     for (const timeframe of TIMEFRAMES) {
       if (isoToSlot(statsSlot[timeframe]) === null)
         problems.push(`stats_slot.${timeframe} must be an ISO 8601 UTC slot`);
+    }
+  }
+
+  if ('context_levels' in value) {
+    const levels = value['context_levels'];
+    if (!isRecord(levels)) {
+      problems.push('context_levels must be an object');
+    } else {
+      for (const [timeframe, columns] of Object.entries(levels)) {
+        if (!(TIMEFRAMES as readonly string[]).includes(timeframe))
+          problems.push(
+            `context_levels has an unknown timeframe: ${timeframe}`
+          );
+        else if (!isRecord(columns))
+          problems.push(`context_levels.${timeframe} must map level to price`);
+        else
+          for (const [name, price] of Object.entries(columns)) {
+            if (!LEVEL_NAME.test(name))
+              problems.push(
+                `context_levels.${timeframe} has an unknown level: ${name}`
+              );
+            else if (price !== null && !isNumber(price))
+              problems.push(
+                `context_levels.${timeframe}.${name} must be a number or null`
+              );
+          }
+      }
     }
   }
 

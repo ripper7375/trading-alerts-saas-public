@@ -314,12 +314,14 @@ export function ambiguousUnusedSources(stored: CycleInputsBundle): string[] {
 
 /**
  * A stored bundle in the form the database loader writes it, which differs from it in
- * two documented ways and no other, and which is derived here independently of the loader:
+ * three documented ways and no other, and which is derived here independently of the loader:
  *   - bars carry what the evaluators read and no more: the last closed bar of a timeframe
  *     all 33 columns (null where that slot’s export had none; v3’s export had 17), every
  *     other bar only the open time, the close and the ACTIVE indicator’s four channel columns;
  *   - a source the two charts disagree on and nobody uses has no hash
- *     (`ambiguousUnusedSources`).
+ *     (`ambiguousUnusedSources`);
+ *   - it has no `context_levels`: the stored bundles carry the `sr_*` columns of the last closed bar (kit standard 1.0.6),
+ *     the loader does not load them until build step 4 part 5 (then this line goes).
  * The runner’s `inputs_sha256` of this form is the database bundle’s hash to the byte.
  */
 export function loaderForm(stored: CycleInputsBundle): CycleInputsBundle {
@@ -341,6 +343,7 @@ export function loaderForm(stored: CycleInputsBundle): CycleInputsBundle {
   }
   for (const source of ambiguousUnusedSources(stored))
     delete out.config_hash[source];
+  delete out.context_levels;
   return out;
 }
 

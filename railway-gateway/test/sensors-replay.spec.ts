@@ -114,6 +114,12 @@ describe('the worker configuration of a replay', () => {
     expect(mcdIdsInWorkerConfig(text)).toEqual(['MCD0', 'MCD1']);
   });
 
+  it('does not take the synthesis flag for an MCD', () => {
+    const text =
+      "schema: mcd-worker-config/1\nflags:\n  MCD0: 'off'\n  SYN: 'off'\n  MCD1: 'off'\nsynthesis:\n  rules_version: draft-1\n";
+    expect(mcdIdsInWorkerConfig(text)).toEqual(['MCD0', 'MCD1']);
+  });
+
   it('finds nothing when there is no flags block', () => {
     expect(mcdIdsInWorkerConfig('schema: x\n  MCD0: off\n')).toEqual([]);
     expect(mcdIdsInWorkerConfig('')).toEqual([]);

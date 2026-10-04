@@ -137,6 +137,81 @@ describe('bundleProblems', () => {
     expect(problems.join('\n')).toMatch(expected);
   });
 
+  describe('context_levels (optional, decision D8)', () => {
+    const levelsOf = (b: Record<string, unknown>) => b['context_levels'] as any;
+
+    it.each(FIXTURE_SLOTS.map((f) => [f.name, f] as const))(
+      '%s: the stored bundle carries the sr_* columns of the last closed bar of each timeframe',
+      (_name, fixture) => {
+        const bundle = readFixtureBundle(fixture) as unknown as Record<
+          string,
+          unknown
+        >;
+        expect(Object.keys(levelsOf(bundle)).sort()).toEqual(['M15', 'M5']);
+        for (const columns of Object.values<Record<string, unknown>>(
+          levelsOf(bundle)
+        )) {
+          expect(Object.keys(columns).length).toBeGreaterThan(0);
+          for (const [name, price] of Object.entries(columns)) {
+            expect(name).toMatch(/^sr_([1-9]|1[0-6])$/);
+            expect(price === null || typeof price === 'number').toBe(true);
+          }
+        }
+      }
+    );
+
+    it('a bundle without the key is a bundle (the kit leaves an empty section out)', () => {
+      const bundle = clone(v1()) as unknown as Record<string, unknown>;
+      delete bundle['context_levels'];
+      expect(bundleProblems(bundle)).toEqual([]);
+    });
+
+    it('an empty section, one timeframe, and null for an empty cell are all fine', () => {
+      const bundle = clone(v1()) as unknown as Record<string, unknown>;
+      bundle['context_levels'] = {};
+      expect(bundleProblems(bundle)).toEqual([]);
+      bundle['context_levels'] = { M15: { sr_1: 4369.57, sr_16: null } };
+      expect(bundleProblems(bundle)).toEqual([]);
+    });
+
+    const bad: Array<[string, unknown, RegExp]> = [
+      ['a list', [], /context_levels must be an object/],
+      ['null', null, /context_levels must be an object/],
+      ['text', 'sr_1', /context_levels must be an object/],
+      ['a timeframe that does not exist', { H1: {} }, /unknown timeframe: H1/],
+      ['a timeframe holding a list', { M5: [] }, /context_levels.M5 must map/],
+      [
+        'a level that does not exist',
+        { M5: { sr_17: 1 } },
+        /context_levels.M5 has an unknown level: sr_17/,
+      ],
+      ['a level named sr_0', { M5: { sr_0: 1 } }, /unknown level: sr_0/],
+      [
+        'a level that is not an sr_ column',
+        { M15: { close: 1 } },
+        /unknown level: close/,
+      ],
+      [
+        'a price as text',
+        { M15: { sr_1: '4369.57' } },
+        /context_levels.M15.sr_1 must be a number or null/,
+      ],
+      [
+        'a price that is not finite',
+        { M15: { sr_1: null, sr_2: Infinity } },
+        /context_levels.M15.sr_2 must be a number or null/,
+      ],
+    ];
+
+    it.each(bad)('names %s', (_label, value, expected) => {
+      const bundle = clone(v1()) as unknown as Record<string, unknown>;
+      bundle['context_levels'] = value;
+      const problems = bundleProblems(bundle);
+      expect(problems.length).toBeGreaterThan(0);
+      expect(problems.join('\n')).toMatch(expected);
+    });
+  });
+
   it.each([[null], [[]], ['text'], [5], [undefined]])(
     '%p is not a bundle',
     (value) => {

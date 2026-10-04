@@ -111,7 +111,7 @@ export function defineLoaderToRunnerScenarios(backend: LoaderBackend): void {
     );
 
     it.each(FIXTURE_SLOTS.map((f) => [f.name, f] as const))(
-      '%s: the bundle is the stored one to the byte of the runner’s own canonical text, but for the two documented differences',
+      '%s: the bundle is the stored one to the byte of the runner’s own canonical text, but for the documented differences',
       async (name, fixture) => {
         const { result } = await run(backend, freshPlan(fixture), fixture.name);
         const stored = readFixtureCycle(fixture);

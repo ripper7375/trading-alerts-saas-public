@@ -1,0 +1,45 @@
+# Entry-zone parameters, version zones-1 (architecture 3.6; ADR-031, ADR-032, ADR-033).
+#
+# Approved by Davin on 2026-10-04: the figures of architecture 3.6 and decisions D4 to D7 of the step 4 plan
+# (docs/handoffs/2026-10-04-0110-step4-plan.md). Each parameter carries its value, its unit, its boundary (what a value exactly on the
+# line does) and why it has that value, like the MCD parameter files.
+#
+# A change to any value is a NEW file (zones-2.yaml) and a decision-log entry, never an edit of this one: every stored zone names the
+# version and the checksum of the parameters it was built with, and a test pins the checksum. The checksum is taken over the parsed
+# document, so line endings and comments cannot change it.
+schema: synthesis-zone-params/1
+zones_version: zones-1
+status: draft
+approved: 'Davin, 2026-10-04: architecture 3.6 and decisions D4 to D7'
+
+parameters:
+  half_width_fraction:
+    value: 0.10
+    unit: fraction of the source channel's width
+    boundary: A zone covers its level plus and minus the half-width, both edges included; two zones that touch merge
+    why: ADR-031. The width scales with the channel the level comes from, so a wide channel gets wide zones; overlapping zones mark confluence.
+  invalidation_buffer:
+    value: 0.50
+    unit: USD per ounce
+    boundary: The invalidation price lies exactly this far beyond the next structural level past the zone
+    why: ADR-032. File A domain 4 places a stop $0.50 behind structure.
+  min_stop_distance:
+    value: 13
+    unit: USD per ounce
+    boundary: A stop distance of exactly this much is allowed; less is raised to exactly this much from the reference price
+    why: ADR-032. Engine 4's minimum stop distance (architecture 6.5); an invalidation closer than that cannot be used as a stop.
+  max_zones:
+    value: 5
+    unit: zones
+    boundary: At most this many zones are kept after ranking; fewer if fewer qualify
+    why: Architecture 3.6 step 5 and ADR-033. The modal shows at most five prices, one per zone, and never a filler price.
+  price_decimals:
+    value: 2
+    unit: decimal places of a price
+    boundary: Prices are in cents; the half-width is rounded half up to cents (3.406 gives 3.41)
+    why: Decision D7 (c). XAUUSD quotes in cents; exact decimals keep two runs of one cycle byte-identical.
+  ratio_decimals:
+    value: 2
+    unit: decimal places of the runway ratio
+    boundary: The ratio is rounded half up, and the ranking uses the rounded figure so that the stored order can be read back from the stored rows
+    why: Decision D7 (f). Architecture 3.7 shows the ratio to two places (0.97, 0.24).

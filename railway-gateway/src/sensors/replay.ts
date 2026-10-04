@@ -656,7 +656,11 @@ export function compareReading(
 
 // ---------------------------------------------------------------- the worker configuration of a replay
 
-/** The MCD ids a worker configuration file lists under `flags:` (the kit's own two-level format, one key per line). */
+/**
+ * The MCD ids a worker configuration file lists under `flags:` (the kit's own two-level format, one key per line).
+ * Only `MCD<n>` keys count: `SYN`, the synthesis flag (build step 4), sits in the same mapping but is not an MCD, has no
+ * stored `mcd_outputs` row and is never part of a replay (a replay configuration leaves it out, so synthesis stays off).
+ */
 export function mcdIdsInWorkerConfig(yamlText: string): string[] {
   const ids: string[] = [];
   let inFlags = false;
@@ -667,7 +671,7 @@ export function mcdIdsInWorkerConfig(yamlText: string): string[] {
     }
     if (!inFlags) continue;
     if (/^\S/.test(line)) break; // the next top-level key
-    const key = /^\s+([A-Za-z0-9_]+)\s*:/.exec(line);
+    const key = /^\s+(MCD[0-9]+)\s*:/.exec(line);
     if (key) ids.push(key[1]);
   }
   return ids;

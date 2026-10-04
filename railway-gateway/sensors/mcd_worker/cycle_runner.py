@@ -16,6 +16,10 @@ What one ``Worker.run_cycle`` does, in this order:
 5. Every enabled MCD yields **exactly one** reading. An evaluator that raises, returns something that is not
    an envelope, or returns one that fails its guards is replaced by INVALID with ``EVALUATOR_ERROR``; the
    problems are kept next to the reading, never inside it.
+6. **Synthesis** (build step 4 part 3; ADR-027), when the ``SYN`` flag is ``shadow`` or ``live``: right after the last MCD, in the same call, the Day
+   Trader and Scalper readings and their entry zones are made from the final readings of the sensors synthesis may see (``shadow``: the sensors that are
+   ``shadow`` or ``live``; ``live``: the ``live`` ones), the bundle's closed M5 bars and its ``context_levels``. It changes no sensor reading, and an
+   unexpected exception in it leaves the result with ``synthesis.error`` and no SYN readings, never a changed or missing MCD reading.
 
 Everything that varies between two runs of the same bundle (timings, the Python version) sits under
 ``runtime`` in the result and nowhere else; two runs agree on the rest byte for byte (R4).
@@ -43,13 +47,18 @@ from .errors import BundleError, ConfigError
 from .flags import (
     DEFAULT_CHECKLIST_DIR,
     DEFAULT_CONFIG_PATH,
+    FLAG_LIVE,
     FLAG_OFF,
+    FLAG_SHADOW,
+    SYN_ID,
     Checklist,
     flag_problems,
     load_checklists,
     load_worker_config,
+    synthesis_flag_problems,
 )
 from .registry import ENGINE_DIR, GATE_ID, KIND_GATE, Registry, Sensor, execution_order, load_registry
+from .synthesis.cycle import SynthesisResult, Synthesizer
 
 RUNNER_VERSION = "1.0.0"
 RESULT_SCHEMA = "mcd-cycle-result/1"
@@ -155,6 +164,9 @@ class CycleResult:
     defect_timeframes: tuple[str, ...]  # what MCD0 passed on to the channel MCDs
     results: tuple[MCDResult, ...]
     python: str
+    synthesis_flag: str = FLAG_OFF  # the SYN flag of the worker that made this result
+    synthesis: SynthesisResult | None = None  # ``None`` exactly when the SYN flag is ``off``
+    synthesis_ms: float | None = None  # wall time of the synthesis step (kept under ``runtime``, like the MCDs' timings)
 
     def by_id(self) -> dict[str, MCDResult]:
         return {r.mcd_id: r for r in self.results}
@@ -183,6 +195,8 @@ class CycleResult:
                 "defect_timeframes": list(self.defect_timeframes),
             },
             "results": [r.to_dict() for r in self.results],
+            # present only when synthesis ran: a result made with the SYN flag ``off`` is byte-for-byte what it was before synthesis existed
+            **({"synthesis": self.synthesis.to_dict()} if self.synthesis is not None else {}),
         }
 
     def to_dict(self) -> dict[str, Any]:
@@ -193,6 +207,7 @@ class CycleResult:
         out["runtime"] = {
             "python": self.python,
             "timings_ms": {r.mcd_id: r.duration_ms for r in self.results},
+            **({"synthesis_ms": self.synthesis_ms} if self.synthesis_ms is not None else {}),
         }
         return out
 
@@ -207,12 +222,25 @@ class Worker:
     ``Worker`` that exists is a ``Worker`` that may run.
     """
 
-    def __init__(self, registry: Registry, flags: Mapping[str, str], checklists: Mapping[str, Checklist]) -> None:
+    def __init__(
+        self,
+        registry: Registry,
+        flags: Mapping[str, str],
+        checklists: Mapping[str, Checklist],
+        *,
+        synthesis_flag: str = FLAG_OFF,
+        synthesizer: Synthesizer | None = None,
+    ) -> None:
         problems = flag_problems(flags, registry, checklists)
         if GATE_ID in registry:
             problems += inheritance.gate_state_problems(registry[GATE_ID])
+        problems += synthesis_flag_problems(synthesis_flag, flags)
+        if synthesis_flag in (FLAG_SHADOW, FLAG_LIVE) and synthesizer is None:
+            problems.append(f"{SYN_ID}: flag '{synthesis_flag}' needs a synthesizer (the rules and the zone parameters), and there is none")
         if problems:
             raise ConfigError(problems)
+        self.synthesis_flag = synthesis_flag
+        self.synthesizer = synthesizer
         self.registry = registry
         self.flags: Mapping[str, str] = MappingProxyType({i: flags[i] for i in registry})
         self.checklists = MappingProxyType(dict(checklists))
@@ -227,16 +255,24 @@ class Worker:
         config_path: str | Path | None = None,
         checklist_dir: str | Path | None = None,
         flags: Mapping[str, str] | None = None,
+        rules_version: str | None = None,
     ) -> "Worker":
         """The four MCDs of this checkout with ``worker_config.yaml`` and ``checklists/``.
 
-        ``flags`` replaces single flags of the file (tests and the measurement kit); the result is checked
-        exactly like the file's own, so a flag the checklists do not allow is refused either way.
+        ``flags`` replaces single flags of the file (tests and the measurement kit), the ``SYN`` flag among them; the result is checked
+        exactly like the file's own, so a flag the checklists do not allow is refused either way. ``rules_version`` replaces the file's
+        ``synthesis.rules_version``. The rules and the zone parameters are read only when ``SYN`` is ``shadow`` or ``live``, so a worker with
+        synthesis off never depends on them.
         """
         registry = load_registry(engine_dir or ENGINE_DIR)
         config = load_worker_config(config_path or DEFAULT_CONFIG_PATH)
         checklists = load_checklists(checklist_dir or DEFAULT_CHECKLIST_DIR)
-        return cls(registry, {**config.flags, **(flags or {})}, checklists)
+        overrides = dict(flags or {})
+        synthesis_flag = overrides.pop(SYN_ID, config.synthesis_flag)
+        synthesizer = None
+        if synthesis_flag in (FLAG_SHADOW, FLAG_LIVE):
+            synthesizer = Synthesizer.load(registry, rules_version=rules_version or config.rules_version)
+        return cls(registry, {**config.flags, **overrides}, checklists, synthesis_flag=synthesis_flag, synthesizer=synthesizer)
 
     # ------------------------------------------------------------------ one cycle
 
@@ -290,6 +326,7 @@ class Worker:
                     duration_ms=round((time.perf_counter() - started) * 1000, 3),
                 )
             )
+        synthesis, synthesis_ms = self._synthesize(inputs, envelopes)
         return CycleResult(
             symbol=inputs.symbol,
             cycle_slot=inputs.cycle_slot,
@@ -305,7 +342,26 @@ class Worker:
             defect_timeframes=defects,
             results=tuple(results),
             python=sys.version.split()[0],
+            synthesis_flag=self.synthesis_flag,
+            synthesis=synthesis,
+            synthesis_ms=synthesis_ms,
         )
+
+    # ------------------------------------------------------------------ synthesis
+
+    def _synthesize(self, inputs: CycleInputs, envelopes: Mapping[str, Mapping[str, Any]]) -> tuple[SynthesisResult | None, float | None]:
+        """Synthesis for the cycle, after the last MCD, or ``(None, None)`` when the SYN flag is ``off``. Never raises (see the module docstring, item 6)."""
+        if self.synthesizer is None or self.synthesis_flag == FLAG_OFF:
+            return None, None
+        started = time.perf_counter()
+        allowed = (FLAG_SHADOW, FLAG_LIVE) if self.synthesis_flag == FLAG_SHADOW else (FLAG_LIVE,)  # D10: shadow reads shadow and live, live reads live only
+        visible = {mcd_id: reading for mcd_id, reading in envelopes.items() if self.flags[mcd_id] in allowed}
+        try:
+            result = self.synthesizer.run(self.synthesis_flag, visible, inputs)
+        except Exception:  # noqa: BLE001 - synthesis must never cost a cycle its sensor readings: the SYN rows of this cycle are lost, and the log says so
+            _LOG.exception("synthesis raised", extra={"cycle_slot": inputs.cycle_slot, "mcd_id": SYN_ID})
+            result = self.synthesizer.failed(self.synthesis_flag)
+        return result, round((time.perf_counter() - started) * 1000, 3)
 
     # ------------------------------------------------------------------ one MCD
 

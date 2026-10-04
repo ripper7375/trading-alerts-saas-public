@@ -14,7 +14,7 @@ from __future__ import annotations
 import calendar
 import datetime as _dt
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Mapping, Sequence
 
@@ -187,9 +187,14 @@ class CycleInputs:
     """Per statistics source, from ``indicator_configs``."""
     channel_mode: Mapping[str, str]
     """Per statistics source: ``"dynamic"`` | ``"frozen"`` (architecture section 1.6)."""
+    context_levels: Mapping[str, Mapping[str, Any]] = field(default_factory=dict)
+    """Added by decision D8 of the build step 4 plan (standard 1.0.6). The support and resistance levels ``sr_1`` to ``sr_16`` of the last closed
+    bar of each timeframe, as exported: ``{"M5": {"sr_1": 4369.57, "sr_2": None, ...}, "M15": {...}}``, ``None`` for a slot that resolved no level.
+    **No evaluator reads it**: it is for synthesis (entry zones, architecture 3.6), which must be replayable from the stored bundle. **Empty by
+    default and left out of the JSON form when empty**, so a bundle without it has the same canonical text and hash as before this field existed."""
 
     def __post_init__(self) -> None:
-        for name in ("bars", "statistics", "stats_slot", "active_indicator", "config_hash", "channel_mode"):
+        for name in ("bars", "statistics", "stats_slot", "active_indicator", "config_hash", "channel_mode", "context_levels"):
             object.__setattr__(self, name, freeze(getattr(self, name)))
 
     # JSON form: statistics are nested {tf: {source: row}} because JSON keys must be strings.
@@ -197,7 +202,7 @@ class CycleInputs:
         stats: dict[str, dict[str, Any]] = {}
         for (tf, source), row in self.statistics.items():
             stats.setdefault(tf, {})[source] = thaw(row)
-        return {
+        out = {
             "symbol": self.symbol,
             "cycle_slot": self.cycle_slot,
             "data_status": self.data_status,
@@ -209,6 +214,9 @@ class CycleInputs:
             "config_hash": thaw(self.config_hash),
             "channel_mode": thaw(self.channel_mode),
         }
+        if self.context_levels:  # left out when empty: the canonical text and hash of a bundle without it do not change
+            out["context_levels"] = thaw(self.context_levels)
+        return out
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "CycleInputs":
@@ -226,6 +234,7 @@ class CycleInputs:
             active_indicator=data["active_indicator"],
             config_hash=data["config_hash"],
             channel_mode=data["channel_mode"],
+            context_levels=data.get("context_levels") or {},
         )
 
 

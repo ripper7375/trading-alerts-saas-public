@@ -18,18 +18,18 @@ to `live`. Also how to switch each part off again.
 
 ## 0. What exists, what does not
 
-| Piece                                                       | State after Phase A                                                                                                         |
-| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Sensor worker (`railway-gateway/src/sensors/`)              | Built, tested, **off by default** (`SENSOR_WORKER_ENABLED` unset or anything but `true` registers nothing)                  |
-| Migration `20261003000000_add_sensor_tables`                | A file. Verified on a scratch PostgreSQL 18.0 with zero drift. **Not applied anywhere**                                     |
-| `scripts/replay-cycle.js`                                   | Built (part 5). Read only                                                                                                   |
-| `scripts/measure-sensors.js`                                | Built (part 7). Read only. `--redis` was tested against a fake Redis only                                                   |
-| `state_statistics` engine, writer, reader                   | Built (part 6)                                                                                                              |
-| `scripts/sync-sensor-kit.js`                                | **Built (2026-10-03):** `npm run sync:sensor-kit` / `check:sensor-kit`. 34 files, 252,181 bytes (§2.2)                      |
-| **Python 3.11, PyYAML and jsonschema in the Railway image** | **Not done.** `railway-gateway/nixpacks.toml` is a Node-only image today. §2.1                                              |
-| **A command that runs the statistics engine**               | **Not built** (part 6, section 5). B4 needs one                                                                             |
-| **Point-in-time replay of MCDs into `state_statistics`**    | **Not built.** What exists replays a STORED cycle; B4 needs a loader over `market_data_point_in_time`. §6                   |
-| The forming-bar trace (Q12)                                 | **Done in part 7**, read only: the answer is in the forming-bar trace section of the part 7 hand-off. It needs no live data |
+| Piece                                                       | State after Phase A                                                                                                                        |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Sensor worker (`railway-gateway/src/sensors/`)              | Built, tested, **off by default** (`SENSOR_WORKER_ENABLED` unset or anything but `true` registers nothing)                                 |
+| Migration `20261003000000_add_sensor_tables`                | A file. Verified on a scratch PostgreSQL 18.0 with zero drift. **Not applied anywhere**                                                    |
+| `scripts/replay-cycle.js`                                   | Built (part 5). Read only                                                                                                                  |
+| `scripts/measure-sensors.js`                                | Built (part 7). Read only. `--redis` was tested against a fake Redis only                                                                  |
+| `state_statistics` engine, writer, reader                   | Built (part 6)                                                                                                                             |
+| `scripts/sync-sensor-kit.js`                                | **Built (2026-10-03):** `npm run sync:sensor-kit` / `check:sensor-kit`. 45 files, 377,716 bytes (§2.2; 34 files until build step 4 part 3) |
+| **Python 3.11, PyYAML and jsonschema in the Railway image** | **Not done.** `railway-gateway/nixpacks.toml` is a Node-only image today. §2.1                                                             |
+| **A command that runs the statistics engine**               | **Not built** (part 6, section 5). B4 needs one                                                                                            |
+| **Point-in-time replay of MCDs into `state_statistics`**    | **Not built.** What exists replays a STORED cycle; B4 needs a loader over `market_data_point_in_time`. §6                                  |
+| The forming-bar trace (Q12)                                 | **Done in part 7**, read only: the answer is in the forming-bar trace section of the part 7 hand-off. It needs no live data                |
 
 ## The order at a glance
 
@@ -106,7 +106,7 @@ The gateway is one Nixpacks service, Node only (`railway-gateway/nixpacks.toml`)
 | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Python                                  | 3.11.9, the command `python` (`SENSOR_PYTHON` names another)                                                                                  | The kit was built and tested on 3.11                                                                                                             |
 | Python packages                         | PyYAML 6.0.2, jsonschema 4.25.0 (and what jsonschema pulls in: attrs 25.3.0, referencing 0.36.2, jsonschema-specifications 2025.4.1, rpds-py) | **Not** openpyxl or tiktoken: `mcd_common/requirements.txt` lists them for the tests and fixtures, the runner does not import them. Proven below |
-| The engine folder (`SENSOR_ENGINE_DIR`) | The 34 runtime files of §2.2, 251,497 bytes                                                                                                   | Not the 12 MB of fixtures, workbooks, tests and concept notes                                                                                    |
+| The engine folder (`SENSOR_ENGINE_DIR`) | The 45 runtime files of §2.2, 377,716 bytes (34 files, 252,181 bytes before build step 4 part 3)                                              | Not the 12 MB of fixtures, workbooks, tests and concept notes                                                                                    |
 | Node dev dependencies (`ts-node`)       | Already installed: `NPM_CONFIG_PRODUCTION=false` in `nixpacks.toml`                                                                           | Only needed to run `scripts/*.js` inside the image                                                                                               |
 
 **How to put Python in a Nixpacks image is not settled and is not in the repo.** Two candidates, both
@@ -136,14 +136,21 @@ paths, into `railway-gateway/sensors/` and set `SENSOR_ENGINE_DIR` to that folde
   `testing.py`, `wording.py`, `mcd-output-1.schema.json`;
 - `mcd0/` to `mcd3/`: `mcdN_evaluator.py`, `mcdN_params.yaml`, `mcdN_registry.yaml`;
 - `mcd_worker/`: `__init__.py`, `cli.py`, `cycle_runner.py`, `errors.py`, `flags.py`, `guards.py`,
-  `inheritance.py`, `registry.py`, `worker_config.yaml` and `checklists/MCD0.yaml` to `MCD3.yaml`.
+  `inheritance.py`, `registry.py`, `worker_config.yaml` and `checklists/MCD0.yaml` to `MCD3.yaml`;
+- `mcd_worker/synthesis/` (added in build step 4 part 3, because the runner imports it whether or not the `SYN` flag is on):
+  `__init__.py`, `cycle.py`, `engine.py`, `facts.py`, `pills.py`, `reading.py`, `rules.py`, `zones.py`, `rules/draft-1.yaml`,
+  `syn-output-1.schema.json` and `zone_params.yaml` (11 files).
 
-**The evidence:** in Phase A these 34 files (251,497 bytes; **the built copy of 2026-10-03 totals 252,181 bytes**) were copied alone into an empty folder, and the three
+**The evidence:** in Phase A the first 34 of these files (251,497 bytes; **the built copy of 2026-10-03 totals 252,181 bytes**) were copied alone into an empty folder, and the three
 stored cycles (v1 2026-09-18 20:55, v3 and v4 on 2026-09-28) were run from it with the imports of `openpyxl` and
 `tiktoken` made to fail: all 12 envelopes and the three inputs hashes came back **byte for byte equal** to the stored
 ones (0.75 to 1.3 s per cycle, including Python's start). The test fixtures (`mcd_worker/fixtures/`, about 1.5 MB) are
 **not** in that set; add them to the copy only if you want `replay-cycle.js --fixtures` to run inside the image.
-`mcd_worker/statistics/` is not per-cycle runtime; it belongs with B4's tool (§6).
+`mcd_worker/statistics/` is not per-cycle runtime; it belongs with B4's tool (§6). The 11 files of `mcd_worker/synthesis/`
+were added with the SYN flag (`off`): the copy still runs on its own (`test/sensors-kit-sync.spec.ts` loads the synthesis rules
+and zone parameters from the copy alone, without `openpyxl` or `tiktoken`), and the 12 envelope hashes of the three stored
+cycles are unchanged with the flag `off`, `shadow` and with or without the bundle's `context_levels`
+(`mcd_worker/tests/test_runner_synthesis.py`).
 
 **Rules for the script:** it never writes outside `railway-gateway/sensors/`; it copies an explicit list (a new MCD
 folder is a deliberate edit of the list, with a test); it refuses to run if the engine's four `flag:` lines and

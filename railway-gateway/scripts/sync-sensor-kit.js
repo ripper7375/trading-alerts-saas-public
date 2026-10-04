@@ -38,7 +38,7 @@ const SOURCE_DIR = path.resolve(
 );
 const TARGET_DIR = path.resolve(__dirname, '../sensors');
 
-/** The 34 runtime files, relative to the engine folder (and to railway-gateway/sensors/). */
+/** The 45 runtime files, relative to the engine folder (and to railway-gateway/sensors/). */
 const FILES = [
   // mcd_common: the kit (9)
   'mcd_common/__init__.py',
@@ -77,6 +77,19 @@ const FILES = [
   'mcd_worker/checklists/MCD1.yaml',
   'mcd_worker/checklists/MCD2.yaml',
   'mcd_worker/checklists/MCD3.yaml',
+  // mcd_worker/synthesis: the rules engine, the entry-zone builder, their rules and parameters (11).
+  // The runner imports it (build step 4 part 3), so it must travel with the runner.
+  'mcd_worker/synthesis/__init__.py',
+  'mcd_worker/synthesis/cycle.py',
+  'mcd_worker/synthesis/engine.py',
+  'mcd_worker/synthesis/facts.py',
+  'mcd_worker/synthesis/pills.py',
+  'mcd_worker/synthesis/reading.py',
+  'mcd_worker/synthesis/rules.py',
+  'mcd_worker/synthesis/zones.py',
+  'mcd_worker/synthesis/rules/draft-1.yaml',
+  'mcd_worker/synthesis/syn-output-1.schema.json',
+  'mcd_worker/synthesis/zone_params.yaml',
 ];
 
 const USAGE = `usage: node scripts/sync-sensor-kit.js [--check]
