@@ -105,6 +105,17 @@ const PRIMARY_COUNTRY_FOR_LANGUAGE: Record<string, string> = {
   fr: 'fr',
   ko: 'kr',
   'pt-BR': 'br',
+  it: 'eu',
+  pt: 'eu',
+  es: 'eu',
+};
+
+const LANGUAGE_DEFAULT_TIMEZONE: Record<string, string> = {
+  it: 'Europe/Rome',
+  pt: 'Europe/Lisbon',
+  es: 'Europe/Madrid',
+  de: 'Europe/Berlin',
+  fr: 'Europe/Paris',
 };
 
 /** Expand a country config into the full preference set (never a partial one). */
@@ -143,19 +154,26 @@ export function preferencesForLanguage(
 
   const primary = PRIMARY_COUNTRY_FOR_LANGUAGE[language];
   if (primary && SUPPORTED_COUNTRIES[primary]) {
-    return preferencesFromCountry(SUPPORTED_COUNTRIES[primary]);
+    const prefs = preferencesFromCountry(SUPPORTED_COUNTRIES[primary]);
+    return {
+      ...prefs,
+      language,
+      ...(LANGUAGE_DEFAULT_TIMEZONE[language]
+        ? { timezone: LANGUAGE_DEFAULT_TIMEZONE[language] }
+        : {}),
+    };
   }
 
   // Languages added to a country config without a primary mapping still resolve.
   const match = Object.values(SUPPORTED_COUNTRIES).find(
     (c) => c.language === language
   );
-  return match ? preferencesFromCountry(match) : null;
+  return match ? { ...preferencesFromCountry(match), language } : null;
 }
 
 /**
  * The currency a language implies: its country's (Thai: THB), or USD for a
- * language with no country of its own (zh, zh-TW, es, pt, it). Without the USD
+ * language with no country of its own (zh, zh-TW). Without the USD
  * default, switching Thai → Chinese kept showing baht.
  */
 export const NO_COUNTRY_LANGUAGE_CURRENCY = 'USD';
@@ -207,7 +225,7 @@ export function resolvePreferences({
   // The cookie is user-controlled and the result reaches `<html lang>` and an
   // inline script, so an unknown value is ignored rather than passed through.
   const language = isSupportedLanguage(cookieLanguage) ? cookieLanguage : null;
-  // A language with no backing country (zh, zh-TW, es, pt, it) keeps the default
+  // A language with no backing country (zh, zh-TW) keeps the default
   // formats but must not fall back to English, and prices in USD.
   const fromLanguage =
     fromPrefix ??

@@ -91,7 +91,8 @@ export function formatChargedAmount(
   language?: string
 ): string {
   try {
-    return new Intl.NumberFormat(language || 'en-US', {
+    const intlLocale = language === 'pt' ? 'pt-PT' : language || 'en-US';
+    return new Intl.NumberFormat(intlLocale, {
       style: 'currency',
       currency: currency.toUpperCase(),
     }).format(amount);
