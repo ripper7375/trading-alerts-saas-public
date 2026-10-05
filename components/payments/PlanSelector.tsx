@@ -87,7 +87,7 @@ export function PlanSelector({
 
       <div
         className={cn(
-          'grid gap-4',
+          'grid gap-3 sm:gap-4',
           showThreeDayPlan
             ? 'grid-cols-1 md:grid-cols-3'
             : 'grid-cols-1 md:grid-cols-2'
@@ -102,11 +102,11 @@ export function PlanSelector({
             onClick={() => handlePlanSelect('THREE_DAY')}
             disabled={disabled || !canUseThreeDayPlan}
             className={cn(
-              'relative rounded-lg border-2 p-4 text-left transition-all',
+              'relative flex h-full flex-col justify-between rounded-lg border-2 p-3.5 text-left transition-all sm:p-4',
               'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
               value === 'THREE_DAY' && canUseThreeDayPlan
-                ? 'border-purple-500 bg-purple-50'
-                : 'border-border hover:border-purple-300',
+                ? 'border-purple-500 bg-purple-50 dark:border-purple-500 dark:bg-purple-950/30'
+                : 'border-border bg-card hover:border-purple-300 dark:hover:border-purple-700',
               (!canUseThreeDayPlan || disabled) &&
                 'cursor-not-allowed opacity-50'
             )}
@@ -114,31 +114,37 @@ export function PlanSelector({
             aria-checked={value === 'THREE_DAY'}
             aria-disabled={!canUseThreeDayPlan || disabled}
           >
-            {/* One-time badge */}
-            <div className="absolute -top-2 right-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
-                <Clock className="h-3 w-3" />
-                {t('checkout.one_time_offer', 'One-time offer')}
-              </span>
-            </div>
-
-            <div className="flex items-start justify-between">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold">
-                    {t('checkout.three_day_trial', '3-Day Trial')}
+            <div>
+              {/* One-time badge */}
+              <div className="absolute -top-2.5 right-2 max-w-[calc(100%-1rem)]">
+                <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700 dark:border dark:border-purple-800/40 dark:bg-purple-950/60 dark:text-purple-300">
+                  <Clock className="h-3 w-3 shrink-0" />
+                  <span className="truncate">
+                    {t('checkout.one_time_offer', 'One-time offer')}
                   </span>
-                </div>
-                <div className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(threeDayPrice)}
-                </div>
+                </span>
               </div>
-              {value === 'THREE_DAY' && canUseThreeDayPlan && (
-                <Check className="h-6 w-6 text-purple-600" aria-hidden="true" />
-              )}
+
+              <div className="flex items-center justify-between gap-1.5">
+                <span className="text-base font-bold text-foreground sm:text-lg">
+                  {t('checkout.three_day_trial', '3-Day Trial')}
+                </span>
+                {value === 'THREE_DAY' && canUseThreeDayPlan && (
+                  <Check
+                    className="h-5 w-5 shrink-0 text-purple-600 dark:text-purple-400"
+                    aria-hidden="true"
+                  />
+                )}
+              </div>
+
+              <div className="mt-1.5 flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
+                <span className="break-words text-xl font-bold tracking-tight text-purple-600 dark:text-purple-400 sm:text-2xl">
+                  {formatCurrency(threeDayPrice)}
+                </span>
+              </div>
             </div>
 
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2.5 break-words text-xs leading-relaxed text-muted-foreground sm:text-sm">
               {canUseThreeDayPlan
                 ? t(
                     'checkout.three_day_desc',
@@ -158,45 +164,51 @@ export function PlanSelector({
           onClick={() => handlePlanSelect('MONTHLY')}
           disabled={disabled}
           className={cn(
-            'relative rounded-lg border-2 p-4 text-left transition-all',
+            'relative flex h-full flex-col justify-between rounded-lg border-2 p-3.5 text-left transition-all sm:p-4',
             'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
             value === 'MONTHLY'
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-border hover:border-blue-300',
+              ? 'border-blue-500 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/30'
+              : 'border-border bg-card hover:border-blue-300 dark:hover:border-blue-700',
             disabled && 'cursor-not-allowed opacity-50'
           )}
           role="radio"
           aria-checked={value === 'MONTHLY'}
           aria-disabled={disabled}
         >
-          {/* Best value badge */}
-          <div className="absolute -top-2 right-2">
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-              <Star className="h-3 w-3" />
-              {t('checkout.best_value', 'Best Value')}
-            </span>
-          </div>
-
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">
-                  {t('checkout.monthly', 'Monthly')}
+          <div>
+            {/* Best value badge */}
+            <div className="absolute -top-2.5 right-2 max-w-[calc(100%-1rem)]">
+              <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:border dark:border-blue-800/40 dark:bg-blue-950/60 dark:text-blue-300">
+                <Star className="h-3 w-3 shrink-0" />
+                <span className="truncate">
+                  {t('checkout.best_value', 'Best Value')}
                 </span>
-              </div>
-              <div className="text-2xl font-bold text-blue-600">
-                {formatCurrency(regularPrice)}
-                <span className="text-sm font-normal text-muted-foreground">
-                  /{t('checkout.month', 'month')}
-                </span>
-              </div>
+              </span>
             </div>
-            {value === 'MONTHLY' && (
-              <Check className="h-6 w-6 text-blue-600" aria-hidden="true" />
-            )}
+
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-base font-bold text-foreground sm:text-lg">
+                {t('checkout.monthly', 'Monthly')}
+              </span>
+              {value === 'MONTHLY' && (
+                <Check
+                  className="h-5 w-5 shrink-0 text-blue-600 dark:text-blue-400"
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+
+            <div className="mt-1.5 flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
+              <span className="break-words text-xl font-bold tracking-tight text-blue-600 dark:text-blue-400 sm:text-2xl">
+                {formatCurrency(regularPrice)}
+              </span>
+              <span className="whitespace-nowrap text-xs font-normal text-muted-foreground sm:text-sm">
+                /{t('checkout.month', 'month')}
+              </span>
+            </div>
           </div>
 
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2.5 break-words text-xs leading-relaxed text-muted-foreground sm:text-sm">
             {t(
               'checkout.monthly_desc',
               'Full PRO access with discount code support'
@@ -210,48 +222,54 @@ export function PlanSelector({
           onClick={() => handlePlanSelect('YEARLY')}
           disabled={disabled}
           className={cn(
-            'relative rounded-lg border-2 p-4 text-left transition-all',
+            'relative flex h-full flex-col justify-between rounded-lg border-2 p-3.5 text-left transition-all sm:p-4',
             'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
             value === 'YEARLY'
-              ? 'border-emerald-500 bg-emerald-50'
-              : 'border-border hover:border-emerald-300',
+              ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-950/30'
+              : 'border-border bg-card hover:border-emerald-300 dark:hover:border-emerald-700',
             disabled && 'cursor-not-allowed opacity-50'
           )}
           role="radio"
           aria-checked={value === 'YEARLY'}
           aria-disabled={disabled}
         >
-          {annualSavingsPercent > 0 && (
-            <div className="absolute -top-2 right-2">
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                {t('pricing.save_percent', 'Save {percent}%').replace(
-                  '{percent}',
-                  String(annualSavingsPercent)
-                )}
+          <div>
+            {annualSavingsPercent > 0 && (
+              <div className="absolute -top-2.5 right-2 max-w-[calc(100%-1rem)]">
+                <span className="inline-flex max-w-full items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:border dark:border-emerald-800/40 dark:bg-emerald-950/60 dark:text-emerald-300">
+                  <span className="truncate">
+                    {t('pricing.save_percent', 'Save {percent}%').replace(
+                      '{percent}',
+                      String(annualSavingsPercent)
+                    )}
+                  </span>
+                </span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-1.5">
+              <span className="text-base font-bold text-foreground sm:text-lg">
+                {t('checkout.annual', 'Annual')}
+              </span>
+              {value === 'YEARLY' && (
+                <Check
+                  className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400"
+                  aria-hidden="true"
+                />
+              )}
+            </div>
+
+            <div className="mt-1.5 flex flex-wrap items-baseline gap-x-1 gap-y-0.5">
+              <span className="break-words text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400 sm:text-2xl">
+                {formatCurrency(annualPrice)}
+              </span>
+              <span className="whitespace-nowrap text-xs font-normal text-muted-foreground sm:text-sm">
+                /{t('checkout.year', 'year')}
               </span>
             </div>
-          )}
-
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">
-                  {t('checkout.annual', 'Annual')}
-                </span>
-              </div>
-              <div className="text-2xl font-bold text-emerald-600">
-                {formatCurrency(annualPrice)}
-                <span className="text-sm font-normal text-muted-foreground">
-                  /{t('checkout.year', 'year')}
-                </span>
-              </div>
-            </div>
-            {value === 'YEARLY' && (
-              <Check className="h-6 w-6 text-emerald-600" aria-hidden="true" />
-            )}
           </div>
 
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2.5 break-words text-xs leading-relaxed text-muted-foreground sm:text-sm">
             {t(
               'checkout.annual_desc',
               '12 months of PRO access in one payment, with discount code support'

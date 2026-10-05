@@ -265,4 +265,92 @@ describe('PlanSelector', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('dark theme mode classes', () => {
+    it('applies dark background classes to selected monthly plan', () => {
+      render(<PlanSelector {...defaultProps} value="MONTHLY" />);
+      const monthlyButton = screen.getByRole('radio', { name: /monthly/i });
+      expect(monthlyButton.className).toContain('dark:bg-blue-950/30');
+      expect(monthlyButton.className).toContain('dark:border-blue-500');
+    });
+
+    it('applies dark background classes to selected 3-day plan', () => {
+      render(<PlanSelector {...defaultProps} value="THREE_DAY" />);
+      const threeDayButton = screen.getByRole('radio', {
+        name: /3-day trial/i,
+      });
+      expect(threeDayButton.className).toContain('dark:bg-purple-950/30');
+      expect(threeDayButton.className).toContain('dark:border-purple-500');
+    });
+
+    it('applies dark background classes to selected annual plan', () => {
+      render(<PlanSelector {...defaultProps} value="YEARLY" />);
+      const annualButton = screen.getByRole('radio', { name: /annual/i });
+      expect(annualButton.className).toContain('dark:bg-emerald-950/30');
+      expect(annualButton.className).toContain('dark:border-emerald-500');
+    });
+  });
+
+  describe('multi-language rendering and currencies', () => {
+    const supportedLanguages = [
+      'ar',
+      'de',
+      'en-GB',
+      'en-US',
+      'es',
+      'fr',
+      'hi',
+      'id',
+      'it',
+      'ja',
+      'ko',
+      'pt-BR',
+      'pt',
+      'th',
+      'tr',
+      'ur',
+      'vi',
+      'zh-TW',
+      'zh',
+    ];
+
+    supportedLanguages.forEach((lang) => {
+      it(`renders properly in language: ${lang}`, () => {
+        localStorage.setItem(
+          LOCALE_STORAGE_KEY,
+          JSON.stringify({ ...defaultPreferences, language: lang })
+        );
+        const { unmount } = render(
+          <PlanSelector {...defaultProps} currency="THB" />
+        );
+        const radios = screen.getAllByRole('radio');
+        expect(radios).toHaveLength(3);
+        unmount();
+      });
+    });
+
+    const dlocalCurrencies: Array<
+      | 'THB'
+      | 'IDR'
+      | 'VND'
+      | 'NGN'
+      | 'BRL'
+      | 'TRY'
+      | 'PKR'
+      | 'INR'
+      | 'AED'
+      | 'ZAR'
+    > = ['THB', 'IDR', 'VND', 'NGN', 'BRL', 'TRY', 'PKR', 'INR', 'AED', 'ZAR'];
+
+    dlocalCurrencies.forEach((curr) => {
+      it(`renders all plan cards correctly with currency: ${curr}`, () => {
+        const { unmount } = render(
+          <PlanSelector {...defaultProps} currency={curr} />
+        );
+        const radios = screen.getAllByRole('radio');
+        expect(radios).toHaveLength(3);
+        unmount();
+      });
+    });
+  });
 });

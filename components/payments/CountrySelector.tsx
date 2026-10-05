@@ -130,14 +130,18 @@ export function CountrySelector({
         value={value || ''}
         onChange={handleChange}
         disabled={disabled}
-        className="w-full rounded-lg border border-input bg-background p-3 text-sm ring-offset-background transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        className="w-full rounded-lg border-2 border-blue-500 bg-blue-50 p-3 text-sm font-medium text-foreground ring-offset-background transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-500 dark:bg-background dark:text-foreground"
         aria-label={t('payments.select_your_country', 'Select your country')}
       >
-        <option value="">
+        <option value="" className="bg-background text-foreground">
           {t('payments.choose_a_country', 'Choose a country')}
         </option>
         {DLOCAL_SUPPORTED_COUNTRIES.map((country) => (
-          <option key={country} value={country}>
+          <option
+            key={country}
+            value={country}
+            className="bg-background text-foreground"
+          >
             {COUNTRY_FLAGS[country]} {t(COUNTRY_NAMES[country])}
           </option>
         ))}
