@@ -340,7 +340,7 @@ function CheckoutContent(): React.ReactElement {
 
   return (
     <div className="bg-muted/30 min-h-screen py-8">
-      <div className="container mx-auto max-w-2xl px-4">
+      <div className="container mx-auto max-w-2xl px-4 lg:max-w-3xl">
         {/* Back link */}
         <Link
           href="/pricing"
@@ -422,13 +422,13 @@ function CheckoutContent(): React.ReactElement {
 
               {/* Price display */}
               <div className="bg-muted/30 rounded-lg border border-border p-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-lg font-semibold text-foreground">
                     {stripeBilling === 'yearly'
                       ? t('checkout.pro_annual', 'PRO Annual')
                       : t('checkout.pro_monthly', 'PRO Monthly')}
                   </span>
-                  <span className="text-2xl font-bold text-foreground">
+                  <span className="break-words text-xl font-bold text-foreground sm:text-2xl">
                     {stripeBilling === 'yearly' ? (
                       <>
                         {formatCurrency(annualPrice)}/
@@ -560,7 +560,7 @@ function CheckoutContent(): React.ReactElement {
 
                 {/* Price Summary */}
                 <div className="bg-muted/30 rounded-lg border border-border p-4">
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <span className="text-lg font-semibold text-foreground">
                       {t('checkout.total', 'Total')}
                     </span>

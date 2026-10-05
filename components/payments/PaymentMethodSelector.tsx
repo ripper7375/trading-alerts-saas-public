@@ -401,8 +401,8 @@ export function PaymentMethodSelector({
                 'hover:scale-[1.02] hover:shadow-md',
                 'focus-within:outline focus-within:outline-2 focus-within:outline-ring',
                 isSelected
-                  ? 'border-2 border-blue-600 bg-blue-50'
-                  : 'border border-border bg-background hover:shadow-sm',
+                  ? 'border-2 border-blue-600 bg-blue-50 dark:border-blue-500 dark:bg-blue-950/30'
+                  : 'border border-border bg-card hover:shadow-sm',
                 disabled && 'cursor-not-allowed opacity-50'
               )}
               onClick={() => !disabled && onChange(method.id)}
@@ -415,28 +415,30 @@ export function PaymentMethodSelector({
             >
               {isSelected && (
                 <CheckCircle
-                  className="absolute right-2 top-2 h-5 w-5 text-green-600"
+                  className="absolute right-2 top-2 h-5 w-5 text-emerald-600 dark:text-emerald-400"
                   aria-hidden="true"
                 />
               )}
 
-              <CardContent className="flex flex-col items-center p-4 text-center">
+              <CardContent className="flex flex-col items-center p-3.5 text-center sm:p-4">
                 <div className="mb-2 text-muted-foreground" aria-hidden="true">
                   {getMethodIcon(method.icon)}
                 </div>
-                <p className="mb-1 text-sm font-semibold">{t(method.name)}</p>
+                <p className="mb-1 break-words text-center text-xs font-semibold leading-tight sm:text-sm">
+                  {t(method.name)}
+                </p>
                 {method.sublabel && (
-                  <p className="mb-2 text-xs text-muted-foreground">
+                  <p className="mb-1.5 break-words text-center text-xs leading-tight text-muted-foreground">
                     {method.sublabel}
                   </p>
                 )}
                 <Badge
                   variant="secondary"
                   className={cn(
-                    'text-xs',
+                    'max-w-full truncate whitespace-nowrap px-2 py-0.5 text-[11px] sm:text-xs',
                     method.processingTime === 'Instant'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-yellow-100 text-yellow-700'
+                      ? 'bg-green-100 text-green-700 dark:border dark:border-green-800/40 dark:bg-green-950/50 dark:text-green-300'
+                      : 'bg-yellow-100 text-yellow-700 dark:border dark:border-yellow-800/40 dark:bg-yellow-950/50 dark:text-yellow-300'
                   )}
                 >
                   {processingTimeLabel}

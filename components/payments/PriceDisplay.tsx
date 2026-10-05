@@ -199,7 +199,7 @@ export function PriceDisplay({
   if (compact) {
     return (
       <div className="text-right">
-        <div className="text-2xl font-bold">
+        <div className="break-words text-xl font-bold sm:text-2xl">
           {symbol}
           {formatLocalAmount(conversion.localAmount, currency)}
         </div>
