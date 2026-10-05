@@ -187,6 +187,33 @@ const PAYMENT_METHODS_BY_COUNTRY: Record<DLocalCountry, PaymentMethodInfo[]> = {
       processingTime: '1-2 hours',
     },
   ],
+  BR: [
+    {
+      id: 'Pix',
+      name: 'Pix',
+      icon: 'qr',
+      processingTime: 'Instant',
+      sublabel: 'Instant QR & Code',
+    },
+    {
+      id: 'Boleto',
+      name: 'Boleto Bancário',
+      icon: 'bank',
+      processingTime: '1-2 hours',
+    },
+    {
+      id: 'Bank Transfer',
+      name: 'Bank Transfer',
+      icon: 'bank',
+      processingTime: '1-2 hours',
+    },
+    {
+      id: 'Local Cards',
+      name: 'Credit / Debit Card',
+      icon: 'card',
+      processingTime: 'Instant',
+    },
+  ],
 };
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

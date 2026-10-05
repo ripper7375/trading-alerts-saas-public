@@ -30,6 +30,7 @@ const DLOCAL_CURRENCIES: DLocalCurrency[] = [
   'ZAR',
   'TRY',
   'AED',
+  'BRL',
 ];
 
 describe('exchange-rate parity (Next ↔ money-service)', () => {
@@ -50,6 +51,7 @@ describe('exchange-rate parity (Next ↔ money-service)', () => {
     'GBP',
     'EUR',
     'JPY',
+    'BRL',
   ])('%s has one fallback rate in both apps', (currency) => {
     expect(money.FALLBACK_USD_RATES[currency]).toBeDefined();
     expect(money.FALLBACK_USD_RATES[currency]).toBe(

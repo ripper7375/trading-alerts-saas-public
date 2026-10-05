@@ -39,6 +39,12 @@ export const DLOCAL_METHOD_CODE_MAP: Record<
     'Apple Pay': 'APPLEPAY',
     'Bank Transfer': 'BANK_TRANSFER',
   },
+  BR: {
+    Pix: 'PQ',
+    Boleto: 'BL',
+    'Bank Transfer': 'BANK_TRANSFER',
+    'Local Cards': 'CARD',
+  },
 };
 
 /**
@@ -119,6 +125,7 @@ function getPaymentMethodType(method: string): string {
     'Instant EFT',
     'EFT',
     'USSD',
+    'Boleto',
   ];
   const walletMethods = [
     'UPI',
@@ -138,7 +145,7 @@ function getPaymentMethodType(method: string): string {
     'Paystack',
     'Apple Pay',
   ];
-  const qrMethods = ['Thai QR'];
+  const qrMethods = ['Thai QR', 'Pix'];
 
   if (bankMethods.includes(method)) return 'bank';
   if (walletMethods.includes(method)) return 'wallet';
@@ -162,6 +169,7 @@ export function getDefaultPaymentMethod(country: DLocalCountry): string | null {
     ZA: 'Instant EFT',
     TR: 'Bank Transfer',
     AE: 'Local Cards',
+    BR: 'Pix',
   };
 
   return defaultMethods[country] || null;

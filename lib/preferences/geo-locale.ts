@@ -38,13 +38,13 @@ const EUROZONE_BUNDLE: GeoLocaleBundle = {
 
 /**
  * ISO alpha-2 codes of current Eurozone member states — all resolve to
- * EUROZONE_BUNDLE. `FR` is deliberately excluded: it has its own explicit
- * bundle in `GEO_COUNTRY_TO_LOCALE` below (French language, not the
- * Eurozone default's German) now that `fr` has a real dictionary.
+ * EUROZONE_BUNDLE. `FR` and `IT` are deliberately excluded: each has its own
+ * explicit bundle in `GEO_COUNTRY_TO_LOCALE` below (French / Italian language,
+ * not the Eurozone default's German) now that `fr` and `it` have real
+ * dictionaries.
  */
 const EUROZONE_COUNTRY_CODES = [
   'DE',
-  'IT',
   'ES',
   'NL',
   'BE',
@@ -176,6 +176,24 @@ const GEO_COUNTRY_TO_LOCALE: Record<string, GeoLocaleBundle> = {
     dateFormat: 'YMD',
     timeFormat: '24h',
     currency: 'KRW',
+  },
+  BR: {
+    countryCode: 'BR',
+    language: 'pt-BR',
+    timezone: 'America/Sao_Paulo',
+    dateFormat: 'DMY',
+    timeFormat: '24h',
+    currency: 'BRL',
+  },
+  // Italy has no SUPPORTED_COUNTRIES row of its own (policy §4.A), so it keeps
+  // the Eurozone `countryCode: 'EU'` but resolves to the Italian language.
+  IT: {
+    countryCode: 'EU',
+    language: 'it',
+    timezone: 'Europe/Rome',
+    dateFormat: 'DMY',
+    timeFormat: '24h',
+    currency: 'EUR',
   },
 };
 

@@ -88,7 +88,7 @@ describe('resolvePreferences', () => {
     ).toMatchObject({ dateFormat: 'DMY', timeFormat: '24h' });
   });
 
-  it.each(['zh', 'zh-TW', 'es', 'pt'])(
+  it.each(['zh', 'zh-TW', 'es', 'pt', 'it'])(
     'keeps %s, a language with no country, instead of falling back to English, priced in USD',
     (language) => {
       expect(resolvePreferences({ cookieLanguage: language })).toMatchObject({
@@ -109,6 +109,15 @@ describe('resolvePreferences', () => {
       language: 'hi',
       countryCode: 'IN',
       currency: 'INR',
+    });
+  });
+
+  it("resolves Brazilian Portuguese to Brazil's formats and currency", () => {
+    expect(resolvePreferences({ cookieLanguage: 'pt-BR' })).toMatchObject({
+      language: 'pt-BR',
+      countryCode: 'BR',
+      currency: 'BRL',
+      timezone: 'America/Sao_Paulo',
     });
   });
 

@@ -192,6 +192,18 @@ export const SUPPORTED_COUNTRIES: Record<string, CountryConfig> = {
     timeFormat: '24h',
     exchangeRate: 1350,
   },
+  br: {
+    code: 'BR',
+    name: 'Brazil',
+    flag: '🇧🇷',
+    language: 'pt-BR',
+    currency: 'BRL',
+    symbol: 'R$',
+    timezone: 'America/Sao_Paulo',
+    dateFormat: 'DMY',
+    timeFormat: '24h',
+    exchangeRate: 5.65,
+  },
 };
 
 export const DEFAULT_COUNTRY: CountryConfig = SUPPORTED_COUNTRIES['gb']!;

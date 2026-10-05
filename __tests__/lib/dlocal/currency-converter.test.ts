@@ -57,6 +57,16 @@ describe('Currency Converter Service', () => {
       expect(rate).toBe(3.67);
     });
 
+    it('should get exchange rate for BRL', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ rates: { BRL: 5.65 } }),
+      });
+
+      const rate = await getExchangeRate('BRL');
+      expect(rate).toBe(5.65);
+    });
+
     it('should cache exchange rates', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
@@ -183,6 +193,7 @@ describe('Currency Converter Service', () => {
         'ZAR',
         'TRY',
         'AED',
+        'BRL',
       ];
 
       for (const currency of currencies) {

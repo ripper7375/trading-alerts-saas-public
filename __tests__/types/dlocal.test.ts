@@ -29,7 +29,7 @@ describe('dLocal Types', () => {
   });
 
   describe('DLocalCountry', () => {
-    it('should have 9 supported countries', () => {
+    it('should have 10 supported countries', () => {
       const countries: DLocalCountry[] = [
         'IN',
         'NG',
@@ -40,8 +40,9 @@ describe('dLocal Types', () => {
         'ZA',
         'TR',
         'AE',
+        'BR',
       ];
-      expect(countries).toHaveLength(9);
+      expect(countries).toHaveLength(10);
     });
 
     it('should include India (IN)', () => {
@@ -58,6 +59,11 @@ describe('dLocal Types', () => {
       const country: DLocalCountry = 'AE';
       expect(country).toBe('AE');
     });
+
+    it('should include Brazil (BR)', () => {
+      const country: DLocalCountry = 'BR';
+      expect(country).toBe('BR');
+    });
   });
 
   describe('DLocalCurrency', () => {
@@ -72,8 +78,9 @@ describe('dLocal Types', () => {
         'ZAR',
         'TRY',
         'AED',
+        'BRL',
       ];
-      expect(currencies).toHaveLength(9);
+      expect(currencies).toHaveLength(10);
     });
 
     it('should include UAE Dirham (AED)', () => {
@@ -84,6 +91,11 @@ describe('dLocal Types', () => {
     it('should include Indian Rupee (INR)', () => {
       const currency: DLocalCurrency = 'INR';
       expect(currency).toBe('INR');
+    });
+
+    it('should include Brazilian Real (BRL)', () => {
+      const currency: DLocalCurrency = 'BRL';
+      expect(currency).toBe('BRL');
     });
   });
 

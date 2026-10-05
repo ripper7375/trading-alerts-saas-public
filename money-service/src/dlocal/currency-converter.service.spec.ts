@@ -158,6 +158,7 @@ describe('Currency Converter Service', () => {
         'ZAR',
         'TRY',
         'AED',
+        'BRL',
       ];
 
       for (const currency of currencies) {
@@ -194,6 +195,11 @@ describe('Currency Converter Service', () => {
       expect(rate).toBe(3.67);
     });
 
+    it('should return fallback rate for BRL', () => {
+      const rate = getFallbackRate('BRL');
+      expect(rate).toBe(5.65);
+    });
+
     it('should return fallback rate for all currencies', () => {
       const currencies: DLocalCurrency[] = [
         'INR',
@@ -205,6 +211,7 @@ describe('Currency Converter Service', () => {
         'ZAR',
         'TRY',
         'AED',
+        'BRL',
       ];
 
       currencies.forEach((currency) => {

@@ -23,8 +23,8 @@ import {
 
 describe('dLocal Constants', () => {
   describe('DLOCAL_SUPPORTED_COUNTRIES', () => {
-    it('should have exactly 9 supported countries', () => {
-      expect(DLOCAL_SUPPORTED_COUNTRIES).toHaveLength(9);
+    it('should have exactly 10 supported countries', () => {
+      expect(DLOCAL_SUPPORTED_COUNTRIES).toHaveLength(10);
     });
 
     it('should include all required countries', () => {
@@ -37,6 +37,7 @@ describe('dLocal Constants', () => {
       expect(DLOCAL_SUPPORTED_COUNTRIES).toContain('ZA');
       expect(DLOCAL_SUPPORTED_COUNTRIES).toContain('TR');
       expect(DLOCAL_SUPPORTED_COUNTRIES).toContain('AE');
+      expect(DLOCAL_SUPPORTED_COUNTRIES).toContain('BR');
     });
   });
 
@@ -45,6 +46,7 @@ describe('dLocal Constants', () => {
       expect(isDLocalCountry('IN')).toBe(true);
       expect(isDLocalCountry('NG')).toBe(true);
       expect(isDLocalCountry('TH')).toBe(true);
+      expect(isDLocalCountry('BR')).toBe(true);
     });
 
     it('should return false for unsupported countries', () => {
@@ -78,16 +80,21 @@ describe('dLocal Constants', () => {
       expect(getCurrency('ID')).toBe('IDR');
       expect(getCurrency('ZA')).toBe('ZAR');
       expect(getCurrency('TR')).toBe('TRY');
+      expect(getCurrency('BR')).toBe('BRL');
     });
 
     it('should return correct currency for United Arab Emirates', () => {
       expect(getCurrency('AE')).toBe('AED');
     });
+
+    it('should return correct currency for Brazil', () => {
+      expect(getCurrency('BR')).toBe('BRL');
+    });
   });
 
   describe('COUNTRY_CURRENCY_MAP', () => {
-    it('should have mapping for all 9 countries', () => {
-      expect(Object.keys(COUNTRY_CURRENCY_MAP)).toHaveLength(9);
+    it('should have mapping for all 10 countries', () => {
+      expect(Object.keys(COUNTRY_CURRENCY_MAP)).toHaveLength(10);
     });
   });
 
@@ -121,6 +128,14 @@ describe('dLocal Constants', () => {
       expect(methods).toContain('Bank Transfer');
     });
 
+    it('should return payment methods for Brazil', () => {
+      const methods = getPaymentMethods('BR');
+      expect(methods).toContain('Pix');
+      expect(methods).toContain('Boleto');
+      expect(methods).toContain('Bank Transfer');
+      expect(methods).toContain('Local Cards');
+    });
+
     it('should return payment methods for all countries', () => {
       DLOCAL_SUPPORTED_COUNTRIES.forEach((country) => {
         const methods = getPaymentMethods(country);
@@ -131,7 +146,7 @@ describe('dLocal Constants', () => {
 
   describe('PAYMENT_METHODS', () => {
     it('should have payment methods for all countries', () => {
-      expect(Object.keys(PAYMENT_METHODS)).toHaveLength(9);
+      expect(Object.keys(PAYMENT_METHODS)).toHaveLength(10);
     });
   });
 
@@ -151,11 +166,15 @@ describe('dLocal Constants', () => {
     it('should return United Arab Emirates for AE', () => {
       expect(getCountryName('AE')).toBe('United Arab Emirates');
     });
+
+    it('should return Brazil for BR', () => {
+      expect(getCountryName('BR')).toBe('Brazil');
+    });
   });
 
   describe('COUNTRY_NAMES', () => {
-    it('should have names for all 9 countries', () => {
-      expect(Object.keys(COUNTRY_NAMES)).toHaveLength(9);
+    it('should have names for all 10 countries', () => {
+      expect(Object.keys(COUNTRY_NAMES)).toHaveLength(10);
     });
   });
 
@@ -220,8 +239,8 @@ describe('dLocal Constants', () => {
   });
 
   describe('COUNTRY_CONFIGS', () => {
-    it('should have configs for all 9 countries', () => {
-      expect(COUNTRY_CONFIGS).toHaveLength(9);
+    it('should have configs for all 10 countries', () => {
+      expect(COUNTRY_CONFIGS).toHaveLength(10);
     });
 
     it('should have valid structure for each config', () => {

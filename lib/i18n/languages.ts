@@ -17,6 +17,8 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
   { code: 'es', name: 'Spanish (Español)', flag: '🇪🇸' },
   { code: 'de', name: 'German (Deutsch)', flag: '🇩🇪' },
   { code: 'pt', name: 'Portuguese (Português)', flag: '🇵🇹' },
+  { code: 'pt-BR', name: 'Portuguese (Brazil) (Português)', flag: '🇧🇷' },
+  { code: 'it', name: 'Italian (Italiano)', flag: '🇮🇹' },
   { code: 'ja', name: 'Japanese (日本語)', flag: '🇯🇵' },
   { code: 'ar', name: 'Arabic (العربية)', flag: '🇦🇪' },
   { code: 'fr', name: 'French (Français)', flag: '🇫🇷' },

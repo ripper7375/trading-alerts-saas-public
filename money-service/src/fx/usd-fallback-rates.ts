@@ -25,6 +25,7 @@ export const FALLBACK_USD_RATES: Readonly<Record<string, number>> = {
   TRY: 32.5,
   AED: 3.67,
   KRW: 1350,
+  BRL: 5.65,
 };
 
 /** Redis key of the shared USD rate table (JSON: { rates, fetchedAt }). */
