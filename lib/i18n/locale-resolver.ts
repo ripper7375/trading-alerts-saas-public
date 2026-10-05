@@ -104,6 +104,7 @@ const PRIMARY_COUNTRY_FOR_LANGUAGE: Record<string, string> = {
   ar: 'ae',
   fr: 'fr',
   ko: 'kr',
+  'pt-BR': 'br',
 };
 
 /** Expand a country config into the full preference set (never a partial one). */
@@ -154,7 +155,7 @@ export function preferencesForLanguage(
 
 /**
  * The currency a language implies: its country's (Thai: THB), or USD for a
- * language with no country of its own (zh, zh-TW, es, pt). Without the USD
+ * language with no country of its own (zh, zh-TW, es, pt, it). Without the USD
  * default, switching Thai → Chinese kept showing baht.
  */
 export const NO_COUNTRY_LANGUAGE_CURRENCY = 'USD';
@@ -206,7 +207,7 @@ export function resolvePreferences({
   // The cookie is user-controlled and the result reaches `<html lang>` and an
   // inline script, so an unknown value is ignored rather than passed through.
   const language = isSupportedLanguage(cookieLanguage) ? cookieLanguage : null;
-  // A language with no backing country (zh, zh-TW, es, pt) keeps the default
+  // A language with no backing country (zh, zh-TW, es, pt, it) keeps the default
   // formats but must not fall back to English, and prices in USD.
   const fromLanguage =
     fromPrefix ??

@@ -10,6 +10,8 @@ import idDict from '@/lib/i18n/dictionaries/id.json';
 import trDict from '@/lib/i18n/dictionaries/tr.json';
 import urDict from '@/lib/i18n/dictionaries/ur.json';
 import ptDict from '@/lib/i18n/dictionaries/pt.json';
+import ptBRDict from '@/lib/i18n/dictionaries/pt-BR.json';
+import itDict from '@/lib/i18n/dictionaries/it.json';
 import arDict from '@/lib/i18n/dictionaries/ar.json';
 import frDict from '@/lib/i18n/dictionaries/fr.json';
 import koDict from '@/lib/i18n/dictionaries/ko.json';
@@ -41,6 +43,8 @@ const dictionaries: Record<string, Record<string, string>> = {
   tr: trDict,
   ur: urDict,
   pt: ptDict,
+  'pt-BR': ptBRDict,
+  it: itDict,
   ar: arDict,
   fr: frDict,
   ko: koDict,

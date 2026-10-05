@@ -58,7 +58,7 @@ describe('compulsory pages are translated in every language', () => {
     expect(pages).toContain('app/dashboard/page.tsx');
     expect(pages.some((p) => p.startsWith('app/admin/'))).toBe(false);
     expect(pages.some((p) => p.startsWith('app/affiliate/'))).toBe(false);
-    expect(languages).toHaveLength(15);
+    expect(languages).toHaveLength(17);
   });
 
   it('every literal t()/dt() key on a compulsory page is in the dictionaries', () => {

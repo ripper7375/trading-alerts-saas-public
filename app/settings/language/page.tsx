@@ -75,6 +75,7 @@ const currencies = [
   { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah' },
   { code: 'ZAR', symbol: 'R', name: 'South African Rand' },
   { code: 'TRY', symbol: '₺', name: 'Turkish Lira' },
+  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real' },
 ];
 
 export default function LanguageSettingsPage(): React.ReactElement {
