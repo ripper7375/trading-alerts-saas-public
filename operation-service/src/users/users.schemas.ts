@@ -44,6 +44,7 @@ export const SUPPORTED_COUNTRY_CODES = [
   'AE',
   'FR',
   'KR',
+  'BR',
 ] as const;
 
 export const updatePreferencesSchema = z.object({

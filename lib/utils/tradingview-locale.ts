@@ -18,6 +18,8 @@ const TRADINGVIEW_LOCALE_MAP: Record<string, string> = {
   tr: 'tr',
   ur: 'ar',
   pt: 'pt',
+  'pt-BR': 'br',
+  it: 'it',
   fr: 'fr',
   ko: 'kr',
   zh: 'zh_CN',
