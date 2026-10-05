@@ -89,6 +89,16 @@ describe('Payment Methods Service', () => {
       expect(methods).toContain('Bank Transfer');
     });
 
+    it('should return payment methods for Brazil', async () => {
+      const methods = await getPaymentMethodsForCountry('BR');
+
+      expect(methods).toHaveLength(4);
+      expect(methods).toContain('Pix');
+      expect(methods).toContain('Boleto');
+      expect(methods).toContain('Bank Transfer');
+      expect(methods).toContain('Local Cards');
+    });
+
     it('should throw error for unsupported country', async () => {
       await expect(
         getPaymentMethodsForCountry('US' as DLocalCountry)
@@ -106,6 +116,7 @@ describe('Payment Methods Service', () => {
         'ZA',
         'TR',
         'AE',
+        'BR',
       ];
 
       for (const country of countries) {
@@ -207,6 +218,10 @@ describe('Payment Methods Service', () => {
       expect(getDefaultPaymentMethod('AE')).toBe('Local Cards');
     });
 
+    it('should return Pix for Brazil', () => {
+      expect(getDefaultPaymentMethod('BR')).toBe('Pix');
+    });
+
     it('should return default for all supported countries', () => {
       const countries: DLocalCountry[] = [
         'IN',
@@ -218,6 +233,7 @@ describe('Payment Methods Service', () => {
         'ZA',
         'TR',
         'AE',
+        'BR',
       ];
 
       countries.forEach((country) => {

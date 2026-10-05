@@ -54,6 +54,7 @@ const CURRENCY_SYMBOLS: Record<DLocalCurrency, string> = {
   ZAR: 'R',
   TRY: '₺',
   AED: 'AED',
+  BRL: 'R$',
 };
 
 const CURRENCY_NAMES: Record<DLocalCurrency, string> = {
@@ -66,6 +67,7 @@ const CURRENCY_NAMES: Record<DLocalCurrency, string> = {
   ZAR: 'South African Rand',
   TRY: 'Turkish Lira',
   AED: 'UAE Dirham',
+  BRL: 'Brazilian Real',
 };
 
 // Fallback rates (used if API fails)
@@ -79,6 +81,7 @@ const FALLBACK_RATES: Record<DLocalCurrency, number> = {
   ZAR: 18.5,
   TRY: 32.0,
   AED: 3.67,
+  BRL: 5.65,
 };
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

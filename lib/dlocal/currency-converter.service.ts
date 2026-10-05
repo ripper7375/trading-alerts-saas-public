@@ -25,6 +25,7 @@ const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
   'ZAR',
   'TRY',
   'AED',
+  'BRL',
 ];
 
 /**

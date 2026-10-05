@@ -30,6 +30,7 @@ const DLOCAL_CURRENCIES: DLocalCurrency[] = [
   'ZAR',
   'TRY',
   'AED',
+  'BRL',
 ];
 
 describe('exchange-rate parity (Next ↔ money-service)', () => {

@@ -412,6 +412,11 @@ describe('E2E: dLocal Payment Flow', () => {
         currency: 'AED',
         expectedMethods: ['Local Cards', 'Apple Pay', 'Bank Transfer'],
       },
+      {
+        country: 'BR',
+        currency: 'BRL',
+        expectedMethods: ['Pix', 'Boleto', 'Bank Transfer', 'Local Cards'],
+      },
     ];
 
     it.each(testCases)(

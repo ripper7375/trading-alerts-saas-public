@@ -48,7 +48,7 @@ export const dynamic = 'force-dynamic';
 
 // Input validation schema
 const createPaymentSchema = z.object({
-  country: z.enum(['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR', 'AE']),
+  country: z.enum(['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR', 'AE', 'BR']),
   paymentMethod: z.string().min(1, 'Payment method is required'),
   planType: z.enum(['THREE_DAY', 'MONTHLY', 'YEARLY']),
   currency: z.enum([
@@ -61,6 +61,7 @@ const createPaymentSchema = z.object({
     'ZAR',
     'TRY',
     'AED',
+    'BRL',
   ]),
   discountCode: z.string().optional(),
 });

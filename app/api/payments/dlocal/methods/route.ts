@@ -16,7 +16,10 @@ import {
   getPaymentMethodsForCountry,
   getPaymentMethodDetails,
 } from '@/lib/dlocal/payment-methods.service';
-import { isDLocalCountry } from '@/lib/dlocal/constants';
+import {
+  isDLocalCountry,
+  DLOCAL_SUPPORTED_COUNTRIES,
+} from '@/lib/dlocal/constants';
 import { logger } from '@/lib/logger';
 import type { DLocalCountry } from '@/types/dlocal';
 
@@ -40,7 +43,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(
         {
           error: 'Invalid or unsupported country',
-          supportedCountries: ['IN', 'NG', 'PK', 'VN', 'ID', 'TH', 'ZA', 'TR'],
+          supportedCountries: DLOCAL_SUPPORTED_COUNTRIES,
         },
         { status: 400 }
       );

@@ -19,7 +19,7 @@ import type {
 } from './dlocal.types';
 
 /**
- * List of supported dLocal countries (9 total)
+ * List of supported dLocal countries (10 total)
  */
 export const DLOCAL_SUPPORTED_COUNTRIES: DLocalCountry[] = [
   'IN', // India
@@ -31,6 +31,7 @@ export const DLOCAL_SUPPORTED_COUNTRIES: DLocalCountry[] = [
   'ZA', // South Africa
   'TR', // Turkey
   'AE', // United Arab Emirates
+  'BR', // Brazil
 ];
 
 /**
@@ -46,6 +47,7 @@ export const COUNTRY_CURRENCY_MAP: Record<DLocalCountry, DLocalCurrency> = {
   ZA: 'ZAR',
   TR: 'TRY',
   AE: 'AED',
+  BR: 'BRL',
 };
 
 /**
@@ -61,6 +63,7 @@ export const COUNTRY_NAMES: Record<DLocalCountry, string> = {
   ZA: 'South Africa',
   TR: 'Turkey',
   AE: 'United Arab Emirates',
+  BR: 'Brazil',
 };
 
 /**
@@ -76,6 +79,7 @@ export const PAYMENT_METHODS: Record<DLocalCountry, string[]> = {
   ZA: ['Instant EFT', 'EFT'],
   TR: ['Bank Transfer', 'Local Cards'],
   AE: ['Local Cards', 'Apple Pay', 'Bank Transfer'],
+  BR: ['Pix', 'Boleto', 'Bank Transfer', 'Local Cards'],
 };
 
 /**
