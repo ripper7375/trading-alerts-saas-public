@@ -284,7 +284,8 @@ export function formatCurrencyAmount(
     const rate =
       rates?.[displayCurrency] ?? exchangeRateForCurrency(displayCurrency);
     const convertedAmount = amountInUSD * rate;
-    return new Intl.NumberFormat(language || 'en-GB', {
+    const intlLocale = language === 'pt' ? 'pt-PT' : language || 'en-GB';
+    return new Intl.NumberFormat(intlLocale, {
       style: 'currency',
       currency: displayCurrency,
       maximumFractionDigits: convertedAmount >= 1000 ? 0 : 2,

@@ -88,7 +88,7 @@ describe('resolvePreferences', () => {
     ).toMatchObject({ dateFormat: 'DMY', timeFormat: '24h' });
   });
 
-  it.each(['zh', 'zh-TW', 'es', 'pt', 'it'])(
+  it.each(['zh', 'zh-TW'])(
     'keeps %s, a language with no country, instead of falling back to English, priced in USD',
     (language) => {
       expect(resolvePreferences({ cookieLanguage: language })).toMatchObject({
@@ -96,6 +96,23 @@ describe('resolvePreferences', () => {
         countryCode: 'GB',
         currency: 'USD',
         dateFormat: 'DMY',
+      });
+      // The user's own currency still wins.
+      expect(
+        resolvePreferences({ cookieLanguage: language, cookieCurrency: 'THB' })
+      ).toMatchObject({ language, currency: 'THB' });
+    }
+  );
+
+  it.each(['it', 'pt', 'es'])(
+    'resolves %s to Eurozone formats and EUR currency',
+    (language) => {
+      expect(resolvePreferences({ cookieLanguage: language })).toMatchObject({
+        language,
+        countryCode: 'EU',
+        currency: 'EUR',
+        dateFormat: 'DMY',
+        timeFormat: '24h',
       });
       // The user's own currency still wins.
       expect(

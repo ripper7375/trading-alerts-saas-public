@@ -174,7 +174,7 @@ describe('LocaleProvider', () => {
   });
 
   // Davin's /pricing screenshot: Thai, then Chinese, still priced in baht.
-  it.each(['zh', 'zh-TW', 'es', 'pt'])(
+  it.each(['zh', 'zh-TW'])(
     'switching to %s (no country of its own) prices in USD, not the previous currency',
     async (language) => {
       renderWith({
@@ -190,6 +190,26 @@ describe('LocaleProvider', () => {
       act(() => setPrefs({ language }));
       // Timezone stays the detected one (Europe/London in this harness).
       expect(probe()).toHaveTextContent(`${language}|USD|Europe/London|`);
+      expect(probe()).not.toHaveTextContent('THB');
+    }
+  );
+
+  it.each(['it', 'pt', 'es'])(
+    'switching to %s (Eurozone language) prices in EUR, not the previous currency',
+    async (language) => {
+      renderWith({
+        countryCode: 'TH',
+        language: 'th',
+        timezone: 'Asia/Bangkok',
+        dateFormat: 'DMY',
+        timeFormat: '24h',
+        currency: 'THB',
+      });
+      await waitFor(() => expect(probe()).toHaveTextContent('th|THB'));
+
+      act(() => setPrefs({ language }));
+      // Timezone stays the detected one (Europe/London in this harness).
+      expect(probe()).toHaveTextContent(`${language}|EUR|Europe/London|`);
       expect(probe()).not.toHaveTextContent('THB');
     }
   );
