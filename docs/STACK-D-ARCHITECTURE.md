@@ -123,7 +123,7 @@ Each handoff is specified once, in the section that produces it.
 | 1 Market data & chart         | **A2** one cycle, closed bars · **A3** active-indicator setting · **D1** freshness stamps (stamped here, enforced in §5.3)                 |
 | 2 Sensors                     | **A1** one output format · **A4** per-cycle worker · A5 quality gate as MCD0 · A6 state statistics · A7 dependencies · A8 plug-in contract |
 | 3 Synthesis & entry zones     | **B6** rules-based synthesis · **E1** entry-zone spec                                                                                      |
-| 4 Intake, routing & knowledge | **B1** sensor board · B2 rules-first routing · **B3** 16 languages · B4 txtai usage · B5 corpus and tests                                  |
+| 4 Intake, routing & knowledge | **B1** sensor board · B2 rules-first routing · **B3** 19 languages · B4 txtai usage · B5 corpus and tests                                  |
 | 5 Prompt & AI reply           | **C1** context budget · C2 follow-ups · **D3** number check · F1 structured Report 1 · F2 model gateway · F3 wording                       |
 | 6 Engine 4 & Report 2         | **D2** news blackout · D4 defect flag · E2 structure · **E3** maths · E4 broker specs (exported in §1)                                     |
 | 7 Platform & governance       | **G1** source of truth · G2 entitlements · G3 trace · G4 degraded modes and replay · G5 later                                              |
@@ -787,7 +787,7 @@ bound · [ADR-035] no grades.
 ## 4. Intake, routing & knowledge
 
 The first half of every request: check who is asking and what they may use, understand the question
-in any of 16 languages, and gather exactly the sensors and knowledge it needs. Recommendations: B1,
+in any of 19 languages, and gather exactly the sensors and knowledge it needs. Recommendations: B1,
 B3 (P1), B2, B4, B5.
 
 ### 4.1 Scope
@@ -821,19 +821,19 @@ intent "Explain" scoped to M5 or M15. With no typed question to detect a languag
 written in the language of the user's interface setting. Stale data is flagged in the packet before
 any prompt is built.
 
-### 4.3 Sixteen languages
+### 4.3 Nineteen languages
 
 English is the single pivot for routing and retrieval; the answer is written in the user's language
 ([ADR-038]).
 
-Question (any of 16) → translate to English with a fixed trading glossary → route and retrieve
+Question (any of 19) → translate to English with a fixed trading glossary → route and retrieve
 against one English corpus → answer in the user's language (§5).
 
 - **Never translated:** prices and numbers; level names (UOEDT, LOEDT, baseline, `sr_n`); state codes
   and rule ids; symbol and timeframe names.
 - **The glossary:** one entry per trading term per language (buy / sell, stop loss, take profit,
   entry zone, stand aside…); used both ways; versioned with the corpus.
-- **Tested per language:** the labelled question set covers all 16; each language within 5 points of
+- **Tested per language:** the labelled question set covers all 19; each language within 5 points of
   English ([ADR-044]).
 
 The language list is owned by §7.9.
@@ -941,7 +941,7 @@ foundations → playbook → synthesis → risk; each chunk keeps its id and the
 
 ### 4.8 Labelled question set
 
-One test asset for Sections 4 and 5: real questions (from beta users and Davin) in all 16
+One test asset for Sections 4 and 5: real questions (from beta users and Davin) in all 19
 languages, each labelled with the expected intent, M\* and the chunk ids a good answer needs. Run on
 every deploy against the new index and dispatch matrix; below the bar, the deploy stops.
 
@@ -977,7 +977,7 @@ Section 5 does not reach back into market tables or the index.
 
 - Every request carries the board: synthesis line and all sensors, including unavailable ones.
 - A test where only MCD3 says stand aside still delivers MCD3's full reading.
-- Routing and recall per language within 5 points of English, for all 16.
+- Routing and recall per language within 5 points of English, for all 19.
 - Other symbols and timeframes get the fixed reply in the user's language; nothing else runs.
 - The SQL retrieval runs on the real txtai index with bound, whitelisted ids.
 - The index is built with keyword-score normalisation on and searched with `weights=0.7`; a test
@@ -1180,7 +1180,7 @@ way.
 
 ### 5.9 Wording guide
 
-Decision support, said the same way in 16 languages ([ADR-056]):
+Decision support, said the same way in 19 languages ([ADR-056]):
 
 | Always                                          | Never                                                                   |
 | ----------------------------------------------- | ----------------------------------------------------------------------- |
@@ -1190,7 +1190,7 @@ Decision support, said the same way in 16 languages ([ADR-056]):
 | Statistics only with their n ([ADR-022])        | Urgency: "act now", "don't miss"                                        |
 | Stand-aside said plainly when synthesis says so | News that isn't in the events feed                                      |
 
-Checked how: phrase lists in all 16 languages, versioned with the glossary; run with the number check
+Checked how: phrase lists in all 19 languages, versioned with the glossary; run with the number check
 on every reply; a second failure replaces the reply with a short fixed answer built from the sensor
 board; the same words are fixed in the documentation, marketing and seed idea; counsel in each
 target market reviews the guide (not yet done, see Appendix D).
@@ -1199,7 +1199,7 @@ target market reviews the guide (not yet done, see Appendix D).
 
 The registry stays in `config/ai-models.ts` and gains capability flags and an evaluation record:
 `slug`, `multiplier` (display only), `vision`, `context_tokens`, `json_schema`, `prompt_caching`,
-`languages_ok` (of 16), `units_per_msg`, `eval_run` (id + date), `status` (candidate → passed →
+`languages_ok` (of 19), `units_per_msg`, `eval_run` (id + date), `status` (candidate → passed →
 retired). Only passed models appear in the picker.
 
 | Test                    | Pass when                                               | Bar        |
@@ -1208,7 +1208,7 @@ retired). Only passed models appear in the picker.
 | Schema                  | Valid `report1.v1` after at most one retry              | 100%       |
 | Numbers                 | No unverified number shown                              | 100%       |
 | Wording                 | No listed phrase in any language                        | 100%       |
-| Languages               | All 16 within 5 points of English                       | 16 / 16    |
+| Languages               | All 19 within 5 points of English                       | 19 / 19    |
 | Cost and time           | Units per message and p90 time recorded                 | Feeds §5.6 |
 
 Run on every model or prompt change. At launch: one default model and one fallback from another
@@ -1270,7 +1270,7 @@ Short chat answers ≤ 8 s. One regeneration adds a model call; its rate is trac
 - A STALE test cycle gets no direction; the reply says when the data stopped.
 - A chart from another cycle is dropped and the reply says so.
 - A planted wrong price is caught, regenerated, then flagged; the rate is on the dashboard.
-- Listed phrases are caught in each of the 16 languages' test replies.
+- Listed phrases are caught in each of the 19 languages' test replies.
 - On every golden scenario, Report 1's direction equals the synthesis reading.
 - Units per first message and per follow-up are measured per model and feed §7.3.
 
@@ -1484,7 +1484,7 @@ pre-fill the modal; the trader confirms each input; nothing is computed from fre
 | 7   | Lot ≥ the broker minimum, or the underflow help (§6.8)    |
 
 Report 2 is a fixed template ([ADR-068]): numbers from Engine 4 only; labels and the disclaimer from
-reviewed text in 16 languages; declared and actual risk side by side; the single-order scope notice
+reviewed text in 19 languages; declared and actual risk side by side; the single-order scope notice
 on every report.
 
 ### 6.11 Consent record and audit
@@ -1704,7 +1704,7 @@ models, the corpus or Engine 4):
 | Asset                  | Tests                               | Defined in       |
 | ---------------------- | ----------------------------------- | ---------------- |
 | Golden scenarios       | Whole cycle to Report 2             | §7.7             |
-| Labelled question set  | Routing and retrieval, 16 languages | §4.8             |
+| Labelled question set  | Routing and retrieval, 19 languages | §4.8             |
 | Model evaluation suite | A model joins only after passing    | §5.10            |
 | Engine 4 fixtures      | Worked example, blackout, underflow | §6.7, §6.6, §6.8 |
 | Point-in-time replay   | Sensor certification                | §2.8             |
@@ -1729,14 +1729,14 @@ decline) · **Languages** (questions and routing accuracy per language).
 
 ### 7.9 Languages
 
-Sixteen languages, one list, from `lib/i18n/dictionaries` (17 files; English as `en-US` and
-`en-GB`) ([ADR-081]):
+Nineteen languages/locales, one list, from `lib/i18n/dictionaries` (19 files; English as `en-US` and
+`en-GB`; Portuguese as `pt` and `pt-BR`) ([ADR-081]):
 
 Arabic `ar` (RTL) · Chinese Simplified `zh` · Chinese Traditional `zh-TW` · English `en-US` / `en-GB` ·
-French `fr` · German `de` · Hindi `hi` · Indonesian `id` · Japanese `ja` · Korean `ko` · Portuguese
-`pt` · Spanish `es` · Thai `th` · Turkish `tr` · Urdu `ur` (RTL) · Vietnamese `vi`.
+French `fr` · German `de` · Hindi `hi` · Indonesian `id` · Italian `it` · Japanese `ja` · Korean `ko` ·
+Portuguese `pt` / `pt-BR` · Spanish `es` · Thai `th` · Turkish `tr` · Urdu `ur` (RTL) · Vietnamese `vi`.
 
-- **Must exist in all 16 before release:** disclaimers; out-of-scope replies ([ADR-046]); reasons
+- **Must exist in all 19 before release:** disclaimers; out-of-scope replies ([ADR-046]); reasons
   Report 2 isn't offered ([ADR-058]); consent buttons ([ADR-069]); wording phrase lists
   ([ADR-056]); the trading glossary ([ADR-038]); Report 2 labels ([ADR-068]).
 - **May fall back to English:** ordinary interface labels.
@@ -1835,7 +1835,7 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 - A request id opens its cycle, rule, chunks, model, checks and consent.
 - A deleted test account leaves hashed audit rows and no personal data.
 - Each degraded-mode row has a golden scenario that passes.
-- The release fails if one of the 16 languages lacks a safety text.
+- The release fails if one of the 19 languages lacks a safety text.
 - The blackout test passes across the broker's clock change.
 
 ### 7.14 Decisions
@@ -1895,7 +1895,7 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | [043](adr/043-retrieval-query-built-from-context.md)                           | Retrieval query = intent template + state codes + English question                                       | Section 4 · 29 Sep  | Settled |
 | [044](adr/044-routing-and-retrieval-test-thresholds.md)                        | Tests: routing ≥ 90% · recall@4 ≥ 0.8 · every language within 5 points of English                        | Section 4 · 29 Sep  | Settled |
 | [045](adr/045-embedding-model.md)                                              | Embedding model stays an English MiniLM-class model                                                      | Section 4 · 29 Sep  | Settled |
-| [046](adr/046-deterministic-out-of-scope-check.md)                             | Deterministic out-of-scope check before any reasoning; fixed replies in 16 languages                     | Section 4 · 29 Sep  | Settled |
+| [046](adr/046-deterministic-out-of-scope-check.md)                             | Deterministic out-of-scope check before any reasoning; fixed replies in 19 languages                     | Section 4 · 29 Sep  | Settled |
 | [047](adr/047-one-day-of-ohlc-in-compact-form.md)                              | 1-day OHLC sent in full, compact form, shared and cached; summary only when a cap forces it              | Section 5 · 29 Sep  | Settled |
 | [048](adr/048-context-caps-and-cut-order.md)                                   | Caps per prompt component; cut history → knowledge → OHLC → sensor details; board and warnings never cut | Section 5 · 29 Sep  | Settled |
 | [049](adr/049-prompt-order-for-caching.md)                                     | Prompt order: static rules → shared cycle block → this user’s part, cached where supported               | Section 5 · 29 Sep  | Settled |
@@ -1905,7 +1905,7 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | [053](adr/053-number-check-on-every-reply.md)                                  | Every number matched to the context within $0.05; regenerate once, then flag                             | Section 5 · 29 Sep  | Settled |
 | [054](adr/054-replies-shown-after-their-checks.md)                             | Replies shown only after their checks, with progress stages; Report 1 ≤ 15 s p90                         | Section 5 · 29 Sep  | Settled |
 | [055](adr/055-models-at-launch.md)                                             | Launch with one default and one fallback model, both passing the evaluation suite                        | Section 5 · 29 Sep  | Settled |
-| [056](adr/056-wording-guide-in-16-languages.md)                                | Wording guide and phrase lists in 16 languages, checked on every reply; counsel review                   | Section 5 · 29 Sep  | Settled |
+| [056](adr/056-wording-guide-in-16-languages.md)                                | Wording guide and phrase lists in 19 languages, checked on every reply; counsel review                   | Section 5 · 29 Sep  | Settled |
 | [057](adr/057-follow-ups-and-chat-history.md)                                  | Follow-ups reuse the cached cycle block; changes stated; history = 10 messages + summary                 | Section 5 · 29 Sep  | Settled |
 | [058](adr/058-when-report-2-is-offered.md)                                     | Report 2 offered only with a synthesis direction on a usable cycle, outside a blackout; else the reason  | Section 6 · 30 Sep  | Settled |
 | [059](adr/059-setup-pinned-to-its-cycle.md)                                    | Setup pinned to Report 1’s cycle; refused past invalidation; a changed synthesis offers a refresh        | Section 6 · 30 Sep  | Settled |
@@ -1917,7 +1917,7 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | [065](adr/065-rrr-definition.md)                                               | RRR = net profit ÷ actual loss, after commission; declared and actual risk both shown                    | Section 6 · 30 Sep  | Settled |
 | [066](adr/066-broker-figures-from-mt5.md)                                      | symbol_specs from MT5; spread applied where each price triggers; swap shown for Day Traders              | Section 6 · 30 Sep  | Settled |
 | [067](adr/067-chat-typed-setups-pre-fill-the-modal.md)                         | Chat-typed setups pre-fill the modal; one validator for both paths                                       | Section 6 · 30 Sep  | Settled |
-| [068](adr/068-report-2-is-a-fixed-template.md)                                 | Report 2 = Engine 4 + a fixed template in 16 languages; no model writes it                               | Section 6 · 30 Sep  | Settled |
+| [068](adr/068-report-2-is-a-fixed-template.md)                                 | Report 2 = Engine 4 + a fixed template in 19 languages; no model writes it                               | Section 6 · 30 Sep  | Settled |
 | [069](adr/069-consent-record.md)                                               | Consent record per action; “Accept setup”; history kept, hashed, after deletion                          | Section 6 · 30 Sep  | Settled |
 | [070](adr/070-one-architecture-document-and-decision-log.md)                   | One architecture document from the seven decks; docs/adr/; SUPERSEDED banners on files A–I               | Section 7 · 30 Sep  | Settled |
 | [071](adr/071-engines-named-by-function.md)                                    | Engines named by function; old engine numbers kept as aliases                                            | Section 7 · 30 Sep  | Settled |
@@ -1930,7 +1930,7 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | [078](adr/078-degraded-modes.md)                                               | One degraded-mode table; every row has a test                                                            | Section 7 · 30 Sep  | Settled |
 | [079](adr/079-golden-scenarios.md)                                             | About 24 golden scenarios you approve, replayed on every change                                          | Section 7 · 30 Sep  | Settled |
 | [080](adr/080-operations-dashboard-and-alerts.md)                              | One admin page and five alerts                                                                           | Section 7 · 30 Sep  | Settled |
-| [081](adr/081-safety-texts-in-all-16-languages.md)                             | Safety texts in all 16 languages before release; right-to-left tested                                    | Section 7 · 30 Sep  | Settled |
+| [081](adr/081-safety-texts-in-all-16-languages.md)                             | Safety texts in all 19 languages before release; right-to-left tested                                    | Section 7 · 30 Sep  | Settled |
 | [082](adr/082-mcd-development-standard.md)                                     | Every MCD is built to MCD-DEVELOPMENT-STANDARD.md; one registry row per MCD in §2.13                     | Section 2 · 30 Sep  | Settled |
 
 ## Appendix B — Corrections to earlier material
@@ -1943,7 +1943,7 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | Review A3         | MCD2 and MCD3 disagree on test data               | Stronger: on live data every variant has data every cycle, so a "single active" check would always fail ([ADR-010])                    |
 | Review, evidence  | MCD1–3 timestamps                                 | Not from the live pipeline; MCD evaluators read an Excel replica. The forming-bar finding rests on the pipeline documents              |
 | Rev-3 deck        | "Contabo VPS"                                     | The blueprint names a Vultr Windows server; "Contabo" survives in folder names                                                         |
-| Review B3         | Thai singled out                                  | DavinTrade serves 16 languages; B3 covers all 16 with English as the single pivot ([ADR-038])                                          |
+| Review B3         | Thai singled out                                  | DavinTrade serves 19 languages; B3 covers all with English as the single pivot ([ADR-038])                                             |
 | Review G4         | Block trade setups when the knowledge index fails | Report 2 does not use the index; only Report 1 is flagged (§7.6)                                                                       |
 | Files D, E §4     | "9 constraints"                                   | Engine 4 has 8 metrics                                                                                                                 |
 | File D §3 vs §10  | Chat buffer 20 vs 10 messages                     | 10 messages + a running summary ([ADR-057])                                                                                            |
@@ -1951,7 +1951,7 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | File G §6         | Worked example                                    | Commission not subtracted; declared vs actual risk; corrected in §6.7                                                                  |
 | File G §4.1       | Underflow options 1 and 3                         | Option 1 can exceed Max RPT; option 3 asks for an equity the account does not hold; revised in §6.8                                    |
 | File E §5         | `ON DELETE CASCADE` on the preferences history    | Deletes the audit trail with the account; removed (§6.11)                                                                              |
-| News manifest §10 | "the other 12 dictionaries"                       | `lib/i18n/dictionaries` now holds 17 files for 16 languages (§7.9)                                                                     |
+| News manifest §10 | "the other 12 dictionaries"                       | `lib/i18n/dictionaries` holds 19 files for 19 languages/locales (§7.9)                                                                 |
 
 ## Appendix C — Superseded documents
 

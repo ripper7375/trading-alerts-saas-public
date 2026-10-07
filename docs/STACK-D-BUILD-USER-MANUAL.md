@@ -257,7 +257,7 @@ Follow it as session B, for build step 5 (chapter 6, Engine 4 & Report 2).
 ### Step 6 — Intake, routing & knowledge (chapter 4)
 
 **What gets built:** the session gate, language handling, the dispatch matrix, the knowledge corpus
-and its index, the glossary and reason texts in 16 languages, the labelled question set. Each MCD
+and its index, the glossary and reason texts in 19 languages, the labelled question set. Each MCD
 gets its routing row and its knowledge chunks.
 **You decide:** approve each knowledge area before it is built, and each MCD's playbook chunk.
 

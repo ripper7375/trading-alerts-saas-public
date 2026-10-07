@@ -112,7 +112,7 @@ history. The six design folders in `seed-code/txtai/` are background only until 
 - **Do not invent MCD domain rules.** Each MCD's principles come from Davin's concept board and his
   answers. If the board is ambiguous, the advice is to ask him, with the possible readings listed.
 - **Languages:** reply to Davin in the language he writes in. Anything meant for Claude Code or for a
-  file is in English. Stack D serves 16 languages with English as the pivot; no wording that ships
+  file is in English. Stack D serves 19 languages with English as the pivot; no wording that ships
   should favour any one language.
 - **Keep it short:** the answer first, then the options, then the reply to paste.
 
