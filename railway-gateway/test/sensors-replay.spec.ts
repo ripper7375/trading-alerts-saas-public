@@ -53,7 +53,12 @@ import {
   withReading,
   withTamperedText,
 } from './helpers/replay-world';
-import { outputOf, sha256, unitResult } from './helpers/sensors-worker-world';
+import {
+  outputOf,
+  sha256,
+  unitResult,
+  unitResultWithSynthesis,
+} from './helpers/sensors-worker-world';
 
 const [V1, V3, V4] = FIXTURE_SLOTS;
 const ROOT = path.join(__dirname, '..');
@@ -901,11 +906,11 @@ describe('CycleReplayer on a fake runner', () => {
   describe('a fixture, which has no stored text', () => {
     const fixtureStored = (): StoredCycle =>
       loadFixtureCycle(FIXTURES_DIR, V1.slot);
-    const fixtureResult = (over = {}) =>
-      unitResult(V1, {
-        inputs_sha256: readFixtureCycle(V1).inputs_sha256,
-        ...over,
-      });
+    const fixtureResult = (over = {}) => ({
+      ...unitResultWithSynthesis(V1),
+      inputs_sha256: readFixtureCycle(V1).inputs_sha256,
+      ...over,
+    });
 
     it('is VERIFIED when the runner hashes the parsed bundle to the stored inputs_sha256 and every envelope is equal', async () => {
       const runner = answering(fixtureResult());
@@ -1148,17 +1153,23 @@ describe('loadStoredCycle: the two tables, read with a select', () => {
   it('exposes only reads: the fake has findUnique and findMany and nothing that writes, and the load still works', async () => {
     const db = fakeReplayDatabase(null, []);
     expect(Object.keys(db.database).sort()).toEqual([
+      'entryZone',
       'marketCycleInput',
       'mcdOutput',
+      'synthesisReading',
     ]);
     expect(Object.keys(db.database.marketCycleInput)).toEqual(['findUnique']);
     expect(Object.keys(db.database.mcdOutput)).toEqual(['findMany']);
+    expect(Object.keys(db.database.synthesisReading)).toEqual(['findMany']);
+    expect(Object.keys(db.database.entryZone)).toEqual(['findMany']);
     expect(await loadStoredCycle(db.database, 'XAUUSD', V1.slot)).toEqual({
       origin: 'database',
       symbol: 'XAUUSD',
       slot: V1.slot,
       bundle: null,
       readings: [],
+      synthesis: null,
+      synthesisTablesMissing: false,
     });
   });
 
@@ -1278,6 +1289,8 @@ describe('the stored fixtures', () => {
       slot: V1.slot,
       bundle: null,
       readings: [],
+      synthesis: null,
+      synthesisTablesMissing: false,
     });
   });
 
@@ -1524,11 +1537,10 @@ describe('runReplayCommand on a fake runner', () => {
       const fixture = FIXTURE_SLOTS.find(
         (f) => slotToIso(f.slot) === bundle.cycle_slot
       )!;
-      return outputOf(
-        unitResult(fixture, {
-          inputs_sha256: readFixtureCycle(fixture).inputs_sha256,
-        })
-      );
+      return outputOf({
+        ...unitResultWithSynthesis(fixture),
+        inputs_sha256: readFixtureCycle(fixture).inputs_sha256,
+      });
     });
 
   it('--fixtures replays all three stored slots in one command, oldest first, and exits 0', async () => {
@@ -1841,6 +1853,8 @@ pythonSuite('replay with the real Python runner', () => {
         retuningApplied: r.retuning.applied,
         runnerVersion: r.runner_version,
       })),
+      synthesis: null,
+      synthesisTablesMissing: false,
     };
   }
 

@@ -3,6 +3,8 @@ import * as path from 'path';
 import Redis from 'ioredis-mock';
 import type { CycleReplayReport, ReplayDatabase } from '../src/sensors/replay';
 import { EnvelopeValidator } from '../src/sensors/envelope-validator';
+import type { SynthesisSample } from '../src/sensors/measure-synthesis';
+import { SynReadingValidator } from '../src/sensors/syn-validator';
 import {
   CYCLE_BUDGET_MS,
   CliOptions,
@@ -14,6 +16,7 @@ import {
   STATUSES,
   SensorRowSample,
   SensorRowSource,
+  SynthesisRowSource,
   USES_CHANNEL,
   defectReason,
   formatReport,
@@ -36,6 +39,7 @@ import {
   sampleRows,
   slotOf,
 } from './helpers/measure-sensors-world';
+import { storedSynthesis } from './helpers/sensors-worker-world';
 
 /**
  * The measurement kit against what is real: the three stored cycles the Python runner made (v1, v3 and v4), the real
@@ -195,6 +199,216 @@ describe('the three real stored cycles (v1, v3 and v4), with the real schema val
       '1 stored envelope(s) fail the schema on a second look',
       "1 stored envelope(s) have a '%' in a free text",
     ]);
+  });
+});
+
+const synValidator = new SynReadingValidator();
+const realSynScan = (text: string): string[] => {
+  const check = synValidator.check(text);
+  return check.ok ? [] : check.problems;
+};
+
+/** The rows `synthesis_readings` would hold for the three stored cycles: the engine's own readings and zones, as the writer maps them. */
+function realSynRows(): SynthesisSample[] {
+  const rows: SynthesisSample[] = [];
+  for (const fixture of FIXTURE_SLOTS) {
+    const section = storedSynthesis(fixture);
+    for (const r of section.readings) {
+      const reading = JSON.parse(r.reading_json as string) as Record<
+        string,
+        any
+      >;
+      rows.push({
+        symbol: 'XAUUSD',
+        cycle_slot: fixture.slot,
+        profile: r.profile,
+        flag: section.flag,
+        rules_version: section.rules_version,
+        rule_id: reading['rule_id'],
+        branch_id: reading['branch_id'],
+        status: reading['status'],
+        status_reasons: reading['status_reasons'],
+        data_status: reading['data_status'],
+        archetype: reading['archetype'],
+        bias: reading['bias'],
+        trend_relation: reading['trend_relation'],
+        stand_aside: reading['stand_aside'],
+        zone_count: (JSON.parse(r.zones_json) as unknown[]).length,
+        zones_reason: r.zones_reason,
+        guard_problems: r.guard_problems,
+        duration_ms: 48.8,
+        evaluated_at: fixture.slot + 75,
+        reading_json: r.reading_json,
+      });
+    }
+  }
+  return rows;
+}
+
+describe('the three real stored cycles (v1, v3 and v4): the SYN readings and entry zones, with the real schema validators', () => {
+  const report = () =>
+    measureSensors(
+      { rows: realRows(), synthesis: realSynRows() },
+      { scan: realScan, scanSynthesis: realSynScan }
+    );
+
+  it('measures 6 SYN rows in 3 cycles: both trader types on every one, all shadow, all draft-1', () => {
+    const s = report().synthesis!;
+    expect(s).toMatchObject({ rows: 6, cycles: 3 });
+    expect(s.flags).toEqual({ shadow: 6, live: 0, other: 0 });
+    expect(s.rulesVersions).toEqual(['draft-1']);
+    expect(s.rowsPerCycle).toMatchObject({
+      complete: 3,
+      short: 0,
+      sensorCyclesWithoutSyn: [],
+      unexpectedRows: 0,
+    });
+    expect(s.rowsPerCycle.byRowCount).toEqual([{ value: 2, count: 3 }]);
+  });
+
+  it('every real reading is CAUTIONARY (MCD0 flagged both timeframes on all three cycles): the CAUTIONARY share is 1', () => {
+    const s = report().synthesis!;
+    for (const id of ['DAY_TRADER', 'SCALPER']) {
+      expect(s.profiles[id].status).toMatchObject({
+        VALID: 0,
+        CAUTIONARY: 3,
+        INVALID: 0,
+        STALE: 0,
+        other: 0,
+      });
+      expect(s.profiles[id].share.CAUTIONARY).toBe(1);
+      // the two MCD0 marks on every cycle come first; a modifier's caution may follow
+      expect(s.profiles[id].topReasons.slice(0, 2)).toEqual([
+        { code: 'MCD0_DEFECT_M15', count: 3 },
+        { code: 'MCD0_DEFECT_M5', count: 3 },
+      ]);
+    }
+  });
+
+  it('the rule-hit histogram: which row of the rules table decided each real reading', () => {
+    const s = report().synthesis!;
+    expect(
+      s.profiles['DAY_TRADER'].ruleHits.map((r) => [r.ruleId, r.count])
+    ).toEqual([
+      ['R1_MACRO_COUNTER_TREND_RALLY', 1],
+      ['R2_EXHAUSTION_SNAPBACK', 1],
+      ['R3_TREND_CONTINUATION', 1],
+    ]);
+    expect(
+      s.profiles['SCALPER'].ruleHits.map((r) => [r.ruleId, r.count])
+    ).toEqual([
+      ['R3S_TREND_CONTINUATION_M5', 2],
+      ['R2_EXHAUSTION_SNAPBACK', 1],
+    ]);
+    expect(
+      s.profiles['DAY_TRADER'].noMatch + s.profiles['SCALPER'].noMatch
+    ).toBe(0);
+    expect(s.noMatch).toEqual([]);
+  });
+
+  it('the zones: 4 on v1, none on v3 (NO_ZONE_SOURCES, both trader types), 4 on v4', () => {
+    const s = report().synthesis!;
+    expect(s.zonesPerCycle).toMatchObject({ count: 3, min: 0, max: 4 });
+    expect(s.cyclesWithoutZones).toBe(1);
+    expect(s.profiles['DAY_TRADER'].zoneHistogram).toEqual([
+      { value: 0, count: 1 },
+      { value: 2, count: 2 },
+    ]);
+    expect(s.profiles['DAY_TRADER'].zonesReasons).toEqual([
+      { code: 'NO_ZONE_SOURCES', count: 1 },
+    ]);
+    expect(s.profiles['SCALPER'].zonesReasons).toEqual([
+      { code: 'NO_ZONE_SOURCES', count: 1 },
+    ]);
+  });
+
+  it('nothing is wrong with them: every reading passes syn-output/1, has no percent sign, no banned or advice word, and a summary within 80 characters; the report has no finding', () => {
+    const r = report();
+    expect(r.synthesis!.wording).toEqual({
+      scanned: 6,
+      unreadable: 0,
+      percent: 0,
+      banned: 0,
+      advice: 0,
+      summaryTooLong: 0,
+      schema: { ran: true, scanned: 6, failures: 0 },
+      examples: [],
+    });
+    expect(r.synthesis!.refusals.given).toEqual({ log: false, jobs: false });
+    expect(r.findings).toEqual([]);
+  });
+
+  it('a real reading made to match no rule lists the real states of the sensors it read, from its own inputs', () => {
+    const rows = realSynRows().map((row) =>
+      row.cycle_slot === FIXTURE_SLOTS[1].slot && row.profile === 'DAY_TRADER'
+        ? { ...row, rule_id: 'NO_MATCH', branch_id: null }
+        : row
+    );
+    const noMatch = measureSensors({ rows: realRows(), synthesis: rows })
+      .synthesis!.noMatch;
+    expect(noMatch).toEqual([
+      {
+        slot: FIXTURE_SLOTS[1].slot,
+        profile: 'DAY_TRADER',
+        dataStatus: 'FRESH',
+        sensors: {
+          MCD1: 'CAUTIONARY MCD1_DOWN_LOWER_BREAKDOWN',
+          MCD2: 'CAUTIONARY MCD2_DOWN_LOWER_BREAKDOWN',
+          MCD3: 'CAUTIONARY MCD3_BEAR_BOTTOM',
+        },
+        sensorsFrom: 'READING',
+      },
+    ]);
+  });
+
+  it('a real reading with a percent sign in a reason, one with a banned word (both still valid for the schema), and one with a required field removed are each found', () => {
+    const rows = realSynRows();
+    const edit = (
+      i: number,
+      change: (doc: Record<string, unknown>) => void
+    ): void => {
+      const doc = JSON.parse(rows[i].reading_json as string) as Record<
+        string,
+        unknown
+      >;
+      change(doc);
+      rows[i] = { ...rows[i], reading_json: JSON.stringify(doc) };
+    };
+    edit(0, (d) => {
+      d['reasons'] = ['The channel held 80% of the time'];
+    });
+    edit(1, (d) => {
+      d['reasons'] = ['A safe setup'];
+    });
+    edit(2, (d) => {
+      delete d['rule_id'];
+    });
+    const r = measureSensors(
+      { rows: realRows(), synthesis: rows },
+      { scanSynthesis: realSynScan }
+    );
+    expect(r.synthesis!.wording).toMatchObject({
+      scanned: 6,
+      percent: 1,
+      banned: 1,
+      schema: { scanned: 6, failures: 1 },
+    });
+    expect(r.findings).toEqual([
+      "1 SYN reading(s) have a '%' in a free text",
+      '1 SYN reading(s) carry a banned word',
+      '1 stored SYN reading(s) fail syn-output/1 on a second look',
+    ]);
+  });
+
+  it('the text report names the real rules, the zones of each cycle and a clean wording scan', () => {
+    const text = formatReport(report());
+    expect(text).toContain('SYN (synthesis): 6 rows in 3 cycles');
+    expect(text).toContain('R3S_TREND_CONTINUATION_M5');
+    expect(text).toContain('NO_MATCH: no reading matched no rule');
+    expect(text).toContain(
+      'second look against syn-output/1: 6 scanned, 0 fail'
+    );
+    expect(text).toContain('cycles without any zone: 1 of 3');
   });
 });
 
@@ -645,7 +859,13 @@ describe('runMeasureCommand', () => {
           },
         },
         marketCycleInput: {},
-      } as unknown as SensorRowSource & ReplayDatabase;
+        synthesisReading: {
+          findMany: async () => {
+            calls.push('synthesis');
+            return [];
+          },
+        },
+      } as unknown as SensorRowSource & SynthesisRowSource & ReplayDatabase;
       const close = jest.fn(async () => undefined);
       return {
         database,
@@ -661,7 +881,7 @@ describe('runMeasureCommand', () => {
         readFile: files({}),
         openDatabase: db.openDatabase,
       });
-      expect(db.calls).toEqual(['slots', 'rows', 'ready']);
+      expect(db.calls).toEqual(['slots', 'rows', 'ready', 'synthesis']);
       expect(result.report.rows).toBe(32);
       expect(result.report.rowsPerCycle.readyCycles).toBe(10);
       expect(result.report.jobs).toBeNull();
@@ -692,7 +912,12 @@ describe('runMeasureCommand', () => {
         async (_database: ReplayDatabase, _symbol: string, slots: number[]) =>
           slots.map(
             (slot) =>
-              ({ slot, verdict: 'VERIFIED', cause: null }) as CycleReplayReport
+              ({
+                slot,
+                verdict: 'VERIFIED',
+                cause: null,
+                synthesis: { profiles: [] },
+              }) as unknown as CycleReplayReport
           )
       );
       const result = await runMeasureCommand(opts('--db', '--replay', '3'), {
@@ -725,7 +950,8 @@ describe('runMeasureCommand', () => {
               slot,
               verdict: k === 0 ? 'LOGIC_DIVERGENCE' : 'NOT_REPLAYABLE',
               cause: k === 0 ? null : 'NO_STORED_BUNDLE',
-            }) as CycleReplayReport
+              synthesis: { profiles: [] },
+            }) as unknown as CycleReplayReport
         );
       const result = await runMeasureCommand(
         opts('--db', '--replay', '2', '--strict'),

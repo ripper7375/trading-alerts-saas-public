@@ -10,13 +10,21 @@
  * Reads the stored bundle (market_cycle_inputs) and the stored readings (mcd_outputs) of a
  * slot, or the stored fixture cycles of the Python runner, runs `python -m mcd_worker.cli`
  * on the bundle with the flags and the RETUNING enforcement the readings were made under,
- * and compares every envelope with the stored one, byte for byte. Each cycle ends in one
- * verdict: VERIFIED, TAMPERED_BUNDLE, STORED_READING_CORRUPT, VERSION_MISMATCH,
- * LOGIC_DIVERGENCE or NOT_REPLAYABLE (`--help` says what each means).
+ * and compares every envelope with the stored one, byte for byte. Since build step 4 part 6
+ * the Day Trader and Scalper SYN readings and their entry zones are compared too, when the
+ * cycle has them (synthesis_readings and entry_zones; a fixture's <slot>.synthesis.json): the
+ * replay turns the SYN flag on under the flag and the rules version the rows were written
+ * with, and compares the reading text and hash, the zones text and hash, why there are no
+ * zones, the guard problems and the reference price. Each cycle ends in one verdict:
+ * VERIFIED, TAMPERED_BUNDLE, STORED_READING_CORRUPT, VERSION_MISMATCH, LOGIC_DIVERGENCE or
+ * NOT_REPLAYABLE (`--help` says what each means; a changed rules version is VERSION_MISMATCH,
+ * a rules file edited without a new version is LOGIC_DIVERGENCE).
  *
- * READ ONLY. `--db` runs two SELECTs per slot against the database named by DATABASE_URL (from
- * a laptop that is the public URL: `railway run` injects the private one, which only resolves
- * inside Railway) and nothing else; `--fixtures` touches no database. All the logic is in
+ * READ ONLY. `--db` runs four SELECTs per slot (market_cycle_inputs, mcd_outputs,
+ * synthesis_readings, entry_zones) against the database named by DATABASE_URL (from a laptop
+ * that is the public URL: `railway run` injects the private one, which only resolves inside
+ * Railway) and nothing else; a database without the two SYN tables is read as "no SYN rows",
+ * with a note. `--fixtures` touches no database. All the logic is in
  * src/sensors/replay.ts, which has its own tests; this file only wires the command line to it.
  * TypeScript is loaded straight from src/ with ts-node (a dev dependency), so run it from a
  * checkout with `npm install` done, not from the deployed build. Python 3 with PyYAML and

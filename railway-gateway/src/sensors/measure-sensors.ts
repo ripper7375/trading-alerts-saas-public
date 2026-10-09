@@ -10,6 +10,23 @@ import type {
   ReplayVerdict,
 } from './replay';
 import { slotToIso } from './inputs/stats-slot';
+import {
+  NO_MATCH,
+  SYNTHESIS_SAMPLE_COLUMNS,
+  SYN_STATUSES,
+  SynReadingScanner,
+  SynthesisJob,
+  SynthesisJobSample,
+  SynthesisLogEvent,
+  SynthesisMeasure,
+  SynthesisSample,
+  measureSynthesis,
+  normalizeSynthesisJob,
+  normalizeSynthesisRow,
+  parseSynthesisLog,
+  synthesisFindings,
+} from './measure-synthesis';
+import { tableIsMissing } from './table-missing';
 
 /**
  * The measurement kit for the sensor worker (STACK-D-ARCHITECTURE.md section 2.11, standard
@@ -150,6 +167,8 @@ export interface JobSample {
   basis: string | null;
   wallMs: number | null;
   ageSeconds: number | null;
+  /** Build step 4 part 6: the SYN part of a WRITTEN outcome (`synthesis` of `SensorJobOutcome`); absent when the flag was off. */
+  synthesis?: SynthesisJobSample | null;
 }
 
 /** One cycle's replay: its slot and the verdict (`CycleReplayReport`). */
@@ -157,6 +176,8 @@ export interface ReplaySample {
   slot: number;
   verdict: string;
   cause: string | null;
+  /** Build step 4 part 6: how many SYN readings the replay compared and how many of them were VERIFIED; absent when the cycle has none. */
+  synthesis?: { replayed: number; verified: number } | null;
 }
 
 export interface SensorMeasureInput {
@@ -169,6 +190,10 @@ export interface SensorMeasureInput {
   failedJobs?: number | null;
   /** Replay verdicts; `null` or empty: no determinism check was run. */
   replay?: ReplaySample[] | null;
+  /** Rows of `synthesis_readings` of the same range (build step 4 part 6); `null`: not given (no SYN measurement unless a log or the jobs carry SYN outcomes). */
+  synthesis?: SynthesisSample[] | null;
+  /** The SYN events of the gateway's log (`parseSynthesisLog`); `null`: no log was given. */
+  log?: SynthesisLogEvent[] | null;
 }
 
 /** Looks at one stored envelope text again; returns what is wrong with it (empty: nothing). The command wires `EnvelopeValidator`. */
@@ -179,6 +204,8 @@ export interface MeasureOptions {
   expectedMcds?: string[] | null;
   /** The second look at every stored envelope (Ajv against the schema). Without it the rescan reports "not run". */
   scan?: EnvelopeScanner | null;
+  /** The second look at every stored SYN reading (Ajv against `syn-output/1`). Without it the SYN rescan reports "not run". */
+  scanSynthesis?: SynReadingScanner | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -311,6 +338,8 @@ export type DeterminismVerdict =
 export interface DeterminismMeasure {
   verdict: DeterminismVerdict;
   checked: number;
+  /** SYN readings (one per trader type and cycle) the replays compared, and how many were VERIFIED (build step 4 part 6). */
+  synthesis: { replayed: number; verified: number };
   /** Cycles by replay verdict. */
   counts: Record<string, number>;
   /** The cycles that were not VERIFIED, with the verdict and the cause. */
@@ -353,8 +382,15 @@ export interface MeasureSensorsReport {
   jobs: JobsMeasure | null;
   determinism: DeterminismMeasure;
   inheritance: InheritanceMeasure;
+  /** Build step 4 part 6: the SYN readings and entry zones, the refusals counted from the log and the job outcomes; null when none of the three was given. */
+  synthesis: SynthesisMeasure | null;
   /** What a person should look at, one line each; empty when nothing needs a look. */
   findings: string[];
+  /**
+   * What the report could not look at, for a reason that is not a defect (a SYN table that the migration has not created yet). Not findings:
+   * `--strict` does not fail on them, and a deployment that has only the sensors, with `SYN` off, sees one and is fine.
+   */
+  notices: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -514,9 +550,15 @@ export function measureDeterminism(
   else if (kinds.has('UNKNOWN') || !kinds.has('VERIFIED'))
     verdict = 'INCONCLUSIVE';
   else verdict = 'DETERMINISTIC';
+  const synthesis = { replayed: 0, verified: 0 };
+  for (const sample of list) {
+    synthesis.replayed += sample.synthesis?.replayed ?? 0;
+    synthesis.verified += sample.synthesis?.verified ?? 0;
+  }
   return {
     verdict,
     checked: list.length,
+    synthesis,
     counts,
     attention: list
       .filter((s) => s.verdict !== 'VERIFIED')
@@ -568,6 +610,7 @@ export function measureSensors(
   const determinism = measureDeterminism(input.replay);
   const inheritance = measureInheritance(cycles, slots, views);
   const mcd0 = measureMcd0(rows);
+  const synthesis = measureSynthesisPart(input, rows, options);
 
   const report: MeasureSensorsReport = {
     rows: rows.length,
@@ -583,10 +626,49 @@ export function measureSensors(
     jobs,
     determinism,
     inheritance,
+    synthesis,
     findings: [],
+    notices: [],
   };
   report.findings = findingsOf(report);
   return report;
+}
+
+/** A job outcome as the SYN refusal counts read it. */
+const synthesisJobOf = (job: JobSample): SynthesisJob => ({
+  slot: job.slot,
+  synthesis: job.synthesis ?? null,
+  written: counterOf(job.outcome) === 'written',
+});
+
+/**
+ * The SYN measurement, when there is anything to measure: SYN rows were given, or a log, or job outcomes that carry a SYN part (the
+ * refusals of a database that does not have the tables yet are in the log and the outcomes and nowhere else).
+ */
+function measureSynthesisPart(
+  input: SensorMeasureInput,
+  sensorRows: SensorRowSample[],
+  options: MeasureOptions
+): SynthesisMeasure | null {
+  const jobsCarrySynthesis = (input.jobs ?? []).some(
+    (job) => (job.synthesis ?? null) !== null
+  );
+  if (
+    (input.synthesis ?? null) === null &&
+    (input.log ?? null) === null &&
+    !jobsCarrySynthesis
+  ) {
+    return null;
+  }
+  return measureSynthesis(
+    {
+      rows: input.synthesis ?? [],
+      sensorRows,
+      jobs: input.jobs == null ? null : input.jobs.map(synthesisJobOf),
+      log: input.log ?? null,
+    },
+    { scan: options.scanSynthesis ?? null }
+  );
 }
 
 function measureMcds(
@@ -1058,6 +1140,8 @@ function findingsOf(report: MeasureSensorsReport): string[] {
   const d = report.determinism.verdict;
   if (d !== 'NOT_CHECKED' && d !== 'DETERMINISTIC' && d !== 'VERSION_CHANGED')
     out.push(`replay: ${d}`);
+  if (report.synthesis !== null)
+    out.push(...synthesisFindings(report.synthesis));
   return out;
 }
 
@@ -1263,6 +1347,11 @@ export function formatReport(report: MeasureSensorsReport): string {
             .join(', ')})`
         : ' (no replay was run; give --replay N or --replay-file)')
   );
+  if (d.synthesis.replayed > 0) {
+    lines.push(
+      `  SYN readings replayed: ${d.synthesis.verified} of ${d.synthesis.replayed} VERIFIED (reading and zones, byte for byte)`
+    );
+  }
   lines.push(
     ...listLimited(
       d.attention,
@@ -1284,6 +1373,17 @@ export function formatReport(report: MeasureSensorsReport): string {
   );
   lines.push('');
 
+  if (report.synthesis !== null) {
+    lines.push(...formatSynthesis(report.synthesis));
+    lines.push('');
+  }
+
+  if (report.notices.length > 0) {
+    lines.push('Notices (not findings; --strict ignores them):');
+    for (const n of report.notices) lines.push(`  - ${n}`);
+    lines.push('');
+  }
+
   lines.push(
     report.findings.length === 0
       ? 'Findings: none'
@@ -1299,6 +1399,176 @@ function describeFlags(f: McdMeasure['flags']): string {
   if (f.live > 0) parts.push(`live ${f.live}`);
   if (f.other > 0) parts.push(`other ${f.other}`);
   return parts.join(' ') || 'none';
+}
+
+/** The SYN section of the text report (build step 4 part 6). */
+function formatSynthesis(m: SynthesisMeasure): string[] {
+  const lines: string[] = [];
+  const flags: string[] = [];
+  if (m.flags.shadow > 0) flags.push(`shadow ${m.flags.shadow}`);
+  if (m.flags.live > 0) flags.push(`live ${m.flags.live}`);
+  if (m.flags.other > 0) flags.push(`other ${m.flags.other}`);
+  if (m.rows === 0) {
+    lines.push(
+      'SYN (synthesis): no SYN rows in the range (the SYN flag was off, or the tables are not there); the refusals below come from the log and the job outcomes'
+    );
+  } else {
+    lines.push(
+      `SYN (synthesis): ${m.rows} rows in ${m.cycles} cycles, slots ${m.firstSlot === null ? 'n/a' : slotText(m.firstSlot)} to ${m.lastSlot === null ? 'n/a' : slotText(m.lastSlot)}; ` +
+        `flag ${flags.join(', ') || 'none'}; rules ${m.rulesVersions.join(', ') || 'none'}`
+    );
+    const rpc = m.rowsPerCycle;
+    lines.push(
+      `  rows per cycle: ${rpc.complete} of ${rpc.cycles} cycles have a row for every trader type (${rpc.expected.join(', ')})` +
+        (rpc.byRowCount.length > 0
+          ? ` (${rpc.byRowCount.map((c) => `${c.count} x ${c.value} rows`).join(', ')})`
+          : '')
+    );
+    lines.push(
+      ...listLimited(
+        rpc.shortCycles,
+        (c) => `    ${slotText(c.slot)} lacks ${c.missing.join(', ')}`
+      )
+    );
+    if (rpc.sensorCyclesWithoutSyn.length > 0) {
+      lines.push(
+        `  ${rpc.sensorCyclesWithoutSyn.length} cycle(s) with sensor rows after the first SYN row have no SYN row at all`
+      );
+      lines.push(
+        ...listLimited(
+          rpc.sensorCyclesWithoutSyn,
+          (s) => `    ${slotText(s)} has no SYN row`
+        )
+      );
+    }
+    if (rpc.unexpectedRows > 0) {
+      lines.push(
+        `  ${rpc.unexpectedRows} row(s) belong to a trader type that is not expected`
+      );
+    }
+    for (const [id, p] of Object.entries(m.profiles)) {
+      const cell = (s: (typeof SYN_STATUSES)[number]): string =>
+        `${s} ${p.status[s]} (${pct(p.share[s])})`;
+      lines.push(
+        `  ${id.padEnd(10)} rows ${String(p.rows).padStart(5)}   ${SYN_STATUSES.map(cell).join('  ')}` +
+          (p.status.other > 0 ? `  other ${p.status.other}` : '')
+      );
+      const counts = (record: Record<string, number>): string =>
+        Object.entries(record)
+          .map(([k, n]) => `${k} ${n}`)
+          .join(', ');
+      lines.push(`        bias: ${counts(p.bias)}`);
+      lines.push(`        archetype: ${counts(p.archetype)}`);
+      lines.push(`        data status: ${counts(p.dataStatus)}`);
+      if (p.topReasons.length > 0) {
+        lines.push(
+          `        reasons on readings that are not VALID: ${p.topReasons.map((r) => `${r.code} x ${r.count}`).join(', ')}`
+        );
+      }
+      lines.push(
+        `        rule hits (${p.ruleHits.length} rule(s) decided a reading):`
+      );
+      lines.push(
+        ...listLimited(
+          p.ruleHits,
+          (r) =>
+            `          ${r.ruleId.padEnd(40)} ${String(r.count).padStart(6)} (${pct(r.share)})${r.ruleId === NO_MATCH ? '   <- no row of the rules table matched' : ''}`
+        )
+      );
+      lines.push(
+        `        readings by number of zones: ${p.zoneHistogram.map((z) => `${z.count} with ${z.value}`).join(', ') || 'none'} (${p.withZones} reading(s) have zones)` +
+          (p.zonesReasons.length > 0
+            ? `; none because ${p.zonesReasons.map((r) => `${r.code} x ${r.count}`).join(', ')}`
+            : '')
+      );
+      if (p.guardRows > 0) {
+        lines.push(
+          `        ${p.guardRows} reading(s) had zones the engine dropped (guard problems recorded)`
+        );
+      }
+    }
+    lines.push(`${''.padEnd(34)}${DIST_HEADER}`);
+    lines.push(distRow('  zones per cycle (both types)', m.zonesPerCycle));
+    lines.push(distRow('  SYN step per cycle, ms', m.durationMs));
+    lines.push(
+      `  cycles without any zone: ${m.cyclesWithoutZones} of ${m.cycles}`
+    );
+  }
+  lines.push(
+    m.noMatch.length === 0
+      ? '  NO_MATCH: no reading matched no rule'
+      : `  NO_MATCH: ${m.noMatch.length} reading(s) matched no rule, with the states of the sensors:`
+  );
+  lines.push(
+    ...listLimited(m.noMatch, (c) => {
+      const sensors = Object.entries(c.sensors)
+        .map(([id, state]) => `${id} ${state}`)
+        .join(' | ');
+      return `    ${slotText(c.slot)} ${c.profile.padEnd(10)} ${c.dataStatus}  ${sensors || 'no sensor state'}${c.sensorsFrom === 'SENSOR_ROWS' ? "  (from the sensors' rows)" : c.sensorsFrom === 'NONE' ? '  (no sensor rows)' : ''}`;
+    })
+  );
+  if (m.rows > 0) {
+    const w = m.wording;
+    lines.push(
+      `  wording: ${w.scanned} reading(s) read; ${w.percent} with a '%', ${w.banned} with a banned word, ${w.advice} with an advice word, ${w.summaryTooLong} with a summary over 80 characters, ${w.unreadable} unreadable` +
+        (w.schema.ran
+          ? `; second look against syn-output/1: ${w.schema.scanned} scanned, ${w.schema.failures} fail`
+          : '; second look against syn-output/1: not run (no schema scanner)')
+    );
+    lines.push(
+      ...listLimited(
+        w.examples,
+        (e) => `    ${slotText(e.slot)} ${e.profile}: ${e.problem}`
+      )
+    );
+  }
+  const r = m.refusals;
+  if (!r.given.log && !r.given.jobs) {
+    lines.push(
+      '  refusals: no log and no job outcomes given (readings the gateway left out are not counted; give --log FILE and --jobs or --redis)'
+    );
+  } else {
+    if (r.log !== null) {
+      lines.push(
+        `  refusals in the log: ${r.log.readingRefused} reading(s) refused` +
+          (Object.keys(r.log.byProfileSource).length > 0
+            ? ` (${Object.entries(r.log.byProfileSource)
+                .map(([k, n]) => `${k} ${n}`)
+                .join(', ')})`
+            : '') +
+          `, ${r.log.engineErrors} engine error(s), ${r.log.zonesDropped} zone set(s) dropped, ${r.log.tablesMissing} cycle(s) without the tables, ${r.log.tablesCheckFailed} failed table check(s); ${r.log.events} line(s), ${r.log.distinct} distinct`
+      );
+    }
+    if (r.jobs !== null) {
+      lines.push(
+        `  refusals in the job outcomes: ${r.jobs.readingRefused} reading(s) refused` +
+          (Object.keys(r.jobs.byProfileSource).length > 0
+            ? ` (${Object.entries(r.jobs.byProfileSource)
+                .map(([k, n]) => `${k} ${n}`)
+                .join(', ')})`
+            : '') +
+          `, ${r.jobs.engineErrors} engine error(s), ${r.jobs.tablesMissing} cycle(s) without the tables; ${r.jobs.ranSynthesis} of ${r.jobs.written} written job(s) ran synthesis`
+      );
+    }
+    if (r.topProblems.length > 0) {
+      lines.push(
+        `    what the refusals said: ${r.topProblems.map((p) => `${p.code} x ${p.count}`).join('; ')}`
+      );
+    }
+    if (r.gaps !== null) {
+      lines.push(
+        `  cycles with fewer SYN rows than trader types: ${r.gaps.checked} looked at, ${r.gaps.explained} explained by a refusal or an engine error, ${r.gaps.unexplained.length} not explained by anything` +
+          (r.given.log ? '' : ' (jobs only: just the slots the jobs cover)')
+      );
+      lines.push(
+        ...listLimited(
+          r.gaps.unexplained,
+          (s) => `    ${slotText(s)} has fewer SYN rows and nothing says why`
+        )
+      );
+    }
+  }
+  return lines;
 }
 
 // ---------------------------------------------------------------------------
@@ -1347,12 +1617,14 @@ export function normalizeJob(raw: unknown): JobSample | null {
   const value = isRecord(raw['returnvalue']) ? raw['returnvalue'] : raw;
   const outcome = asText(value['outcome']);
   if (outcome === null) return null;
+  const synthesis = normalizeSynthesisJob(value['synthesis']);
   return {
     outcome,
     slot: asNumber(value['slot']),
     basis: asText(value['basis']),
     wallMs: asNumber(value['wallMs']),
     ageSeconds: asNumber(value['ageSeconds']),
+    ...(synthesis === null ? {} : { synthesis }),
   };
 }
 
@@ -1361,7 +1633,37 @@ export function normalizeReplay(raw: unknown): ReplaySample | null {
   if (!isRecord(raw) || !isNumber(raw['slot'])) return null;
   const verdict = asText(raw['verdict']);
   if (verdict === null) return null;
-  return { slot: raw['slot'], verdict, cause: asText(raw['cause']) };
+  const profiles = isRecord(raw['synthesis'])
+    ? raw['synthesis']['profiles']
+    : undefined;
+  const compared = Array.isArray(profiles) ? profiles.filter(isRecord) : [];
+  return {
+    slot: raw['slot'],
+    verdict,
+    cause: asText(raw['cause']),
+    ...(compared.length === 0
+      ? {}
+      : {
+          synthesis: {
+            replayed: compared.length,
+            verified: compared.filter((p) => p['verdict'] === 'VERIFIED')
+              .length,
+          },
+        }),
+  };
+}
+
+/** The log as the input file gives it: one text, or a list of lines. */
+function logOf(value: unknown): SynthesisLogEvent[] | null {
+  if (typeof value === 'string') return parseSynthesisLog(value);
+  if (Array.isArray(value)) {
+    return parseSynthesisLog(
+      value
+        .filter((line): line is string => typeof line === 'string')
+        .join('\n')
+    );
+  }
+  return null;
 }
 
 function listOf<T>(
@@ -1373,8 +1675,8 @@ function listOf<T>(
 }
 
 /**
- * The input file: `{ "rows": [...], "ready": [...], "jobs": [...], "replay": [...], "failedJobs": 0 }`,
- * where only `rows` is required, or a bare array of rows. Bad rows are dropped (the caller counts them from the lengths).
+ * The input file: `{ "rows": [...], "ready": [...], "jobs": [...], "replay": [...], "failedJobs": 0, "synthesis": [...], "log": "text" }`,
+ * where only `rows` is required (`synthesis` holds `synthesis_readings` rows, `log` the gateway's log as one text or a list of lines), or a bare array of rows. Bad rows are dropped (the caller counts them from the lengths).
  */
 export interface ParsedInput {
   input: SensorMeasureInput;
@@ -1412,6 +1714,11 @@ export function parseInputJson(text: string): ParsedInput {
       replay:
         object === null ? null : listOf(object['replay'], normalizeReplay),
       failedJobs: object === null ? null : asNumber(object['failedJobs']),
+      synthesis:
+        object === null
+          ? null
+          : listOf(object['synthesis'], normalizeSynthesisRow),
+      log: object === null ? null : logOf(object['log']),
     },
   };
 }
@@ -1474,6 +1781,8 @@ export interface CliOptions {
   replay: number;
   /** Replay verdicts from this JSON file (what `replay-cycle.js --json` printed). */
   replayFile: string | null;
+  /** The gateway's log, one file each (build step 4 part 6): the SYN refusals are counted from it. */
+  logFiles: string[];
   json: boolean;
   /** Exit 1 when there is a finding. */
   strict: boolean;
@@ -1481,19 +1790,24 @@ export interface CliOptions {
 
 export const USAGE = `Usage:
   node scripts/measure-sensors.js --db   [--symbol XAUUSD] [--last 576 | --since T --until T] [--expect MCD0,MCD1,MCD2,MCD3]
-                                         [--jobs jobs.json | --redis] [--replay N | --replay-file replay.json] [--json] [--strict]
-  node scripts/measure-sensors.js --file sensors.json [--symbol XAUUSD] [--expect ...] [--jobs jobs.json] [--replay-file replay.json] [--json] [--strict]
+                                         [--jobs jobs.json | --redis] [--replay N | --replay-file replay.json] [--log gateway.log ...] [--json] [--strict]
+  node scripts/measure-sensors.js --file sensors.json [--symbol XAUUSD] [--expect ...] [--jobs jobs.json] [--replay-file replay.json] [--log gateway.log ...] [--json] [--strict]
 
-  --db       read mcd_outputs and the READY market_cycles rows from the database in DATABASE_URL (read only: SELECTs)
-  --file     read rows from a JSON file: { "rows": [...], "ready": [...], "jobs": [...], "replay": [...] } (see the runbook)
+  --db       read mcd_outputs, synthesis_readings and the READY market_cycles rows from the database in DATABASE_URL (read only:
+             SELECTs; a database without the SYN table is read as "no SYN rows", with a note)
+  --file     read rows from a JSON file: { "rows": [...], "ready": [...], "jobs": [...], "replay": [...], "synthesis": [...], "log": "..." } (see the runbook)
   --since/--until  unix seconds or an ISO date (2026-10-03T00:00:00Z), on the cycle slot
   --last     the newest N cycles (default ${DEFAULT_LAST_CYCLES}, two days of slots)
   --expect   the MCDs every cycle should have a row for (default: the ones in the newest cycle)
-  --jobs     job outcomes as JSON (an array of what the worker returns for a job: outcome, slot, basis, wallMs, ageSeconds)
+  --jobs     job outcomes as JSON (an array of what the worker returns for a job: outcome, slot, basis, wallMs, ageSeconds,
+             and a synthesis part with its refused readings when the SYN flag was on)
   --redis    read the outcomes of the last 100 completed jobs of the cycle-ready queue from REDIS_URL (read only)
   --replay   replay the newest N cycles of the range from their stored bundles and report the verdicts (needs --db, Python,
              PyYAML, jsonschema and the engine folder: SENSOR_PYTHON, SENSOR_ENGINE_DIR)
   --replay-file  replay verdicts as JSON, the output of: node scripts/replay-cycle.js --db --slot ... --json
+  --log      a log file of the gateway (plain lines or Railway's JSON lines); may be repeated. The SYN lines are counted:
+             SYN_READING_REFUSED, SYN_ENGINE_ERROR, SYN_ZONES_DROPPED, SYN_TABLES_MISSING, SYN_TABLES_CHECK_FAILED. Together with
+             the job outcomes this is where refused SYN readings are counted (they are logged, not stored)
   --json     print the report as JSON instead of text
   --strict   exit 1 when the report has a finding (exit 0 otherwise; 2 for a bad command line, 1 also for an error)`;
 
@@ -1518,6 +1832,7 @@ export function parseArgs(argv: string[]): CliOptions | { error: string } {
     redis: false,
     replay: 0,
     replayFile: null,
+    logFiles: [],
     json: false,
     strict: false,
   };
@@ -1546,11 +1861,13 @@ export function parseArgs(argv: string[]): CliOptions | { error: string } {
         break;
       case '--file':
       case '--jobs':
+      case '--log':
       case '--replay-file': {
         const v = value();
         if (v === null || v === '') return { error: `${arg} needs a path` };
         if (arg === '--file') options.file = v;
         else if (arg === '--jobs') options.jobsFile = v;
+        else if (arg === '--log') options.logFiles.push(v);
         else options.replayFile = v;
         break;
       }
@@ -1647,6 +1964,45 @@ export interface SensorRowSource {
 export interface LoadedRows {
   rows: SensorRowSample[];
   ready: ReadySample[];
+}
+
+/** The one Prisma method the SYN part of the kit uses, so a caller cannot hand it anything that writes. */
+export interface SynthesisRowSource {
+  synthesisReading: {
+    findMany(args: {
+      where: { symbol: string; cycle_slot: { gte: number; lte: number } };
+      orderBy: { cycle_slot: 'asc' };
+      select: typeof SYNTHESIS_SAMPLE_COLUMNS;
+    }): Promise<unknown[]>;
+  };
+}
+
+/**
+ * The `synthesis_readings` rows of the slots the sensor rows cover. READ ONLY: a SELECT with a `select`. A database that does
+ * not have the table yet (the migration is Davin's to apply) gives `missing`, not a failure: any other failed read is thrown.
+ */
+export async function loadSynthesisRows(
+  source: SynthesisRowSource,
+  symbol: string,
+  slots: { first: number; last: number }
+): Promise<{ rows: SynthesisSample[]; missing: boolean }> {
+  let found: unknown[];
+  try {
+    found = await source.synthesisReading.findMany({
+      where: { symbol, cycle_slot: { gte: slots.first, lte: slots.last } },
+      orderBy: { cycle_slot: 'asc' },
+      select: SYNTHESIS_SAMPLE_COLUMNS,
+    });
+  } catch (error) {
+    if (tableIsMissing(error)) return { rows: [], missing: true };
+    throw error;
+  }
+  return {
+    rows: found
+      .map(normalizeSynthesisRow)
+      .filter((r): r is SynthesisSample => r !== null),
+    missing: false,
+  };
 }
 
 /**
@@ -1769,7 +2125,7 @@ export interface MeasureCommandDeps {
   readFile: (path: string) => string;
   /** Opens the database named by DATABASE_URL (only called for --db). */
   openDatabase?: () => Promise<{
-    database: SensorRowSource & ReplayDatabase;
+    database: SensorRowSource & SynthesisRowSource & ReplayDatabase;
     close: () => Promise<void>;
   }>;
   /** Opens the cycle-ready queue named by REDIS_URL (only called for --redis). */
@@ -1785,6 +2141,8 @@ export interface MeasureCommandDeps {
   ) => Promise<CycleReplayReport[]>;
   /** The second look at every stored envelope. */
   scan?: EnvelopeScanner;
+  /** The second look at every stored SYN reading. */
+  scanSynthesis?: SynReadingScanner;
 }
 
 export interface MeasureCommandResult {
@@ -1800,6 +2158,7 @@ export async function runMeasureCommand(
 ): Promise<MeasureCommandResult> {
   let input: SensorMeasureInput;
   let dropped = 0;
+  let synthesisTablesMissing = false;
   if (options.file !== null) {
     const parsed = parseInputJson(deps.readFile(options.file));
     dropped = parsed.droppedRows;
@@ -1820,7 +2179,18 @@ export async function runMeasureCommand(
         jobs: null,
         replay: null,
         failedJobs: null,
+        synthesis: null,
       };
+      if (loaded.rows.length > 0) {
+        const slots = loaded.rows.map((r) => r.cycle_slot);
+        const syn = await loadSynthesisRows(database, options.symbol, {
+          first: Math.min(...slots),
+          last: Math.max(...slots),
+        });
+        // a database without the table has no SYN rows to measure; the refusals still can be (log, jobs)
+        input.synthesis = syn.missing ? null : syn.rows;
+        synthesisTablesMissing = syn.missing;
+      }
       if (options.replay > 0) {
         if (deps.replaySlots === undefined) {
           throw new Error('no replayer to run (replaySlots is not wired)');
@@ -1838,6 +2208,16 @@ export async function runMeasureCommand(
           slot: r.slot,
           verdict: r.verdict,
           cause: r.cause,
+          ...(r.synthesis.profiles.length === 0
+            ? {}
+            : {
+                synthesis: {
+                  replayed: r.synthesis.profiles.length,
+                  verified: r.synthesis.profiles.filter(
+                    (p) => p.verdict === 'VERIFIED'
+                  ).length,
+                },
+              }),
         }));
       }
     } finally {
@@ -1862,11 +2242,25 @@ export async function runMeasureCommand(
   if (options.replayFile !== null) {
     input.replay = parseReplayJson(deps.readFile(options.replayFile));
   }
+  if (options.logFiles.length > 0) {
+    input.log = [
+      ...(input.log ?? []),
+      ...options.logFiles.flatMap((file) =>
+        parseSynthesisLog(deps.readFile(file))
+      ),
+    ];
+  }
 
   const report = measureSensors(input, {
     expectedMcds: options.expect,
     scan: deps.scan ?? null,
+    scanSynthesis: deps.scanSynthesis ?? null,
   });
+  if (synthesisTablesMissing) {
+    report.notices.push(
+      'the database has no synthesis_readings table yet (the migration 20261004000000_add_synthesis_tables is not applied): no SYN row could be measured'
+    );
+  }
   report.skippedRows += dropped;
   return {
     report,

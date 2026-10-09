@@ -504,6 +504,7 @@ describe('measureSensors on the eight-cycle fixture', () => {
     expect(report.determinism).toEqual({
       verdict: 'DETERMINISTIC',
       checked: 3,
+      synthesis: { replayed: 0, verified: 0 },
       counts: { VERIFIED: 3 },
       attention: [],
     });
@@ -1771,7 +1772,8 @@ describe('parseInputJson, parseJobsJson, parseReplayJson', () => {
       fs.readFileSync(sample, 'utf8')
     );
     expect(droppedRows).toBe(0);
-    expect(input).toEqual(world());
+    // the SYN parts (build step 4 part 6) are not in this file: parsed as "not given"
+    expect(input).toEqual({ ...world(), synthesis: null, log: null });
   });
 
   it('reads a bare array as rows only, and drops rows it cannot use, counting them', () => {
@@ -1867,6 +1869,7 @@ describe('parseArgs', () => {
       redis: false,
       replay: 0,
       replayFile: null,
+      logFiles: [],
       json: false,
       strict: false,
     });
@@ -1889,6 +1892,10 @@ describe('parseArgs', () => {
         '--redis',
         '--replay',
         '3',
+        '--log',
+        'a.log',
+        '--log',
+        'b.log',
         '--json',
         '--strict',
       ])
@@ -1905,6 +1912,7 @@ describe('parseArgs', () => {
       redis: true,
       replay: 3,
       replayFile: null,
+      logFiles: ['a.log', 'b.log'],
       json: true,
       strict: true,
     });

@@ -6,7 +6,14 @@ import type { PrismaClient } from '@prisma/client';
 import { gunzipSync } from 'zlib';
 import { READER_SYMBOL } from '../cycle/read/read-types';
 import { isSlot } from '../cycle/slot';
-import { McdRunResult, RunnerError, RunnerOutput } from './cycle-run-result';
+import {
+  McdRunResult,
+  RunnerError,
+  RunnerOutput,
+  SynthesisProfileResult,
+  SynthesisRunResult,
+  synthesisSectionProblems,
+} from './cycle-run-result';
 import { FixtureInputsSource } from './inputs/fixture-inputs.source';
 import { isoToSlot, slotToIso } from './inputs/stats-slot';
 import {
@@ -15,6 +22,8 @@ import {
   RunnerSettings,
 } from './python-runner';
 import { readSensorConfig, SensorConfig } from './sensor-config';
+import { tableIsMissing } from './table-missing';
+import { EntryZoneRow, canonical, zoneRowsOfText } from './synthesis-rows';
 
 /**
  * Replay and determinism (STACK-D-ARCHITECTURE.md section 2.2 point 6, build step 3 part 5).
@@ -49,6 +58,23 @@ import { readSensorConfig, SensorConfig } from './sensor-config';
  * computes from the bundle it parsed against the `inputs_sha256` stored in `.cycle.json`, so for a fixture a
  * changed bundle and a changed canonical form cannot be told apart (both are reported as TAMPERED_BUNDLE, and
  * the finding says so).
+ *
+ * SYNTHESIS (build step 4 part 6). When the cycle has SYN rows (`synthesis_readings`, and `entry_zones` beside them;
+ * or a `<slot>.synthesis.json` beside a fixture), the replay turns the `SYN` flag on in its configuration, under the flag
+ * and the rules version the rows were written with, and compares each trader type's reading text and hash, its zones text
+ * and hash, why it has no zones, what the guard recorded and the reference price, byte for byte. The same four answers
+ * apply, per trader type, and they are told apart the way the evaluators' are:
+ *   - the rules version (or the zone parameters' version) that answers is not the one the row was written with: VERSION_MISMATCH,
+ *     not a defect. Rules files are versioned data and are kept, so the replay asks for the STORED version and only falls back
+ *     to the engine's current one when the file is gone;
+ *   - the same version, and a file that hashes differently: LOGIC_DIVERGENCE (a rules file or `zone_params.yaml` edited without
+ *     a new version, which is exactly the thing the version is for);
+ *   - a sensor that answers with another evaluator version makes the readings that read it differ, and that is VERSION_MISMATCH too;
+ *   - the same everything and another reading or other zones: LOGIC_DIVERGENCE.
+ * For a database cycle the rows of `entry_zones` are also held to the `zones_json` kept beside the reading (a stored row that
+ * disagrees with its own text is STORED_READING_CORRUPT, as for an envelope). A cycle with no SYN rows is replayed with `SYN`
+ * off, exactly as before. A database that does not have the SYN tables yet (the migration is applied by Davin, not by a tool)
+ * is read as "no SYN rows", with a note.
  *
  * The command line is `scripts/replay-cycle.js`; it only wires the arguments to `runReplayCommand` (the way
  * `scripts/measure-cycles.js` does).
@@ -88,6 +114,44 @@ export type StoredBundle =
       retuningObserved: boolean;
     };
 
+/**
+ * One trader type's stored SYN reading and zones: a `synthesis_readings` row (and its `entry_zones` rows), or an entry of a
+ * fixture's `<slot>.synthesis.json`. The JSONB copy of the reading is not read (the database holds it equal to the text).
+ */
+export interface StoredSynthesisProfile {
+  /** DAY_TRADER or SCALPER. */
+  profile: string;
+  /** shadow | live: the SYN flag the row was written under. */
+  flag: string;
+  rulesVersion: string;
+  rulesSha256: string;
+  zoneParamsVersion: string;
+  zoneParamsSha256: string;
+  /** The canonical reading text, byte for byte; null only in a fixture whose engine withheld the reading (the database never holds such a row). */
+  readingJson: string | null;
+  readingSha256: string | null;
+  zonesJson: string;
+  zonesSha256: string;
+  zonesReason: string | null;
+  /** The `zone_count` column; null for a fixture (it has no column). */
+  zoneCount: number | null;
+  referencePrice: number | null;
+  guardProblems: string[];
+  inputsSha256: string | null;
+  retuningApplied: boolean;
+  runnerVersion: string;
+  /** The `entry_zones` rows of this profile; null for a fixture, which has no table. */
+  zoneRows: EntryZoneRow[] | null;
+}
+
+export interface StoredSynthesis {
+  /** `SYNTHESIS_ERROR` when a fixture records that synthesis raised (no readings then); null otherwise (the database never holds an errored cycle's rows). */
+  error: string | null;
+  profiles: StoredSynthesisProfile[];
+  /** `entry_zones` rows of a trader type that has no `synthesis_readings` row (there is no foreign key): a table that disagrees with itself. */
+  orphanZones: EntryZoneRow[];
+}
+
 export interface StoredCycle {
   origin: 'database' | 'fixture';
   symbol: string;
@@ -95,6 +159,10 @@ export interface StoredCycle {
   slot: number;
   bundle: StoredBundle | null;
   readings: StoredReading[];
+  /** The SYN rows of the cycle; null when none are stored (the `SYN` flag was off, or the tables are missing). */
+  synthesis: StoredSynthesis | null;
+  /** The database has no `synthesis_readings` or `entry_zones` table yet (the migration is not applied): no SYN row could be looked for. */
+  synthesisTablesMissing: boolean;
 }
 
 // ---------------------------------------------------------------- the report
@@ -122,6 +190,8 @@ export type NotReplayableCause =
   | 'NO_STORED_READINGS'
   /** The readings of the slot were made under different RETUNING enforcement: one run cannot reproduce both. */
   | 'MIXED_RETUNING'
+  /** The SYN rows of the slot were made under different flags, rules versions or zone parameters: one run cannot reproduce both. */
+  | 'MIXED_SYNTHESIS'
   /** The engine's `worker_config.yaml` could not be read for the list of MCDs. */
   | 'NO_WORKER_CONFIG'
   /** The runner did not give a result (no Python, a timeout, a refused request or configuration, a crash). */
@@ -159,6 +229,55 @@ export interface McdReplay {
   difference: TextDifference | null;
 }
 
+/** One trader type's SYN reading and zones against what the replay gave for the same trader type. */
+export interface SynthesisProfileReplay {
+  profile: string;
+  verdict: McdReplayVerdict;
+  storedRulesVersion: string;
+  /** null when the replay produced no reading for this trader type. */
+  replayedRulesVersion: string | null;
+  storedRulesSha256: string;
+  replayedRulesSha256: string | null;
+  storedZoneParamsVersion: string;
+  replayedZoneParamsVersion: string | null;
+  storedReadingSha256: string | null;
+  /** SHA-256 of the replayed reading text, computed here (the runner's own claim is compared with it, not trusted). */
+  replayedReadingSha256: string | null;
+  storedZonesSha256: string;
+  replayedZonesSha256: string | null;
+  /** Reading text and hash both equal; null when no comparison was made. */
+  readingEqual: boolean | null;
+  /** Zones text and hash both equal; null when no comparison was made. */
+  zonesEqual: boolean | null;
+  /** Zones kept, as the stored `zones_json` lists them and as the replay made them; null for the replay when it made none. */
+  zoneCount: { stored: number | null; replayed: number | null };
+  detail: string;
+  /** Where the reading or the zones text first differ. */
+  difference: (TextDifference & { in: 'reading' | 'zones' }) | null;
+}
+
+export interface SynthesisReplay {
+  /**
+   * NOT_STORED: the cycle has no SYN row (the flag was off), STORED: it has, and the replay stopped before comparing
+   * (tampered inputs, nothing to replay), REPLAYED: compared, TABLES_MISSING: the database has no SYN tables yet.
+   */
+  state: 'NOT_STORED' | 'STORED' | 'REPLAYED' | 'TABLES_MISSING';
+  flag: string | null;
+  rulesVersion: {
+    stored: string | null;
+    /** The version the replay's configuration asked for: the stored one, or the engine's current one when the stored file is gone. */
+    requested: string | null;
+    /** The version that answered. */
+    replayed: string | null;
+  };
+  profiles: SynthesisProfileReplay[];
+  /** Trader types the replay made a reading for and nothing stored (the gateway refused it, or the rows are gone): a note, not a verdict. */
+  notStored: string[];
+  /** Trader types whose reading the engine withheld in the replay and that have no stored row: they agree. */
+  withheld: string[];
+  zones: { stored: number; replayed: number };
+}
+
 export interface CycleReplayReport {
   origin: StoredCycle['origin'];
   symbol: string;
@@ -188,6 +307,8 @@ export interface CycleReplayReport {
     replayedObserved: boolean | null;
   };
   mcds: McdReplay[];
+  /** The SYN readings and entry zones (build step 4 part 6); `state` says whether there were any and whether they were compared. */
+  synthesis: SynthesisReplay;
   /** Anything else worth reading, one line each (a changed runner version, an MCD nobody asked for, a refused run). */
   findings: string[];
   runner: {
@@ -230,12 +351,12 @@ export function firstDifference(
 // ---------------------------------------------------------------- loading what is stored
 
 /**
- * The two tables a replay reads. A plain Prisma client fits; the replay calls `findUnique` and `findMany` with a
+ * The four tables a replay reads. A plain Prisma client fits; the replay calls `findUnique` and `findMany` with a
  * `select` and nothing else (a spec holds a fake to that).
  */
 export type ReplayDatabase = Pick<
   PrismaClient,
-  'marketCycleInput' | 'mcdOutput'
+  'marketCycleInput' | 'mcdOutput' | 'synthesisReading' | 'entryZone'
 >;
 
 const INPUT_COLUMNS = {
@@ -257,18 +378,139 @@ const OUTPUT_COLUMNS = {
   runner_version: true,
 } as const;
 
+const SYNTHESIS_COLUMNS = {
+  profile: true,
+  flag: true,
+  rules_version: true,
+  rules_sha256: true,
+  zone_params_version: true,
+  zone_params_sha256: true,
+  reading_json: true,
+  reading_sha256: true,
+  zones_json: true,
+  zones_sha256: true,
+  zones_reason: true,
+  zone_count: true,
+  reference_price: true,
+  guard_problems: true,
+  inputs_sha256: true,
+  retuning_applied: true,
+  runner_version: true,
+} as const;
+
+const ZONE_COLUMNS = {
+  symbol: true,
+  cycle_slot: true,
+  profile: true,
+  zone_id: true,
+  rank: true,
+  bias: true,
+  low: true,
+  high: true,
+  reference_price: true,
+  source_sensors: true,
+  confluence_count: true,
+  invalidation_price: true,
+  invalidation_basis: true,
+  stop_distance: true,
+  next_opposing_price: true,
+  runway: true,
+  runway_ratio: true,
+  levels: true,
+  zone_params_version: true,
+  zone_params_sha256: true,
+} as const;
+
 /**
- * Everything the database holds of one cycle: its stored bundle and its readings. READ ONLY (two reads with a
- * `select`; not in one transaction, which only matters for a slot that is being written this second: the worker
- * writes both in one, so a slot read after its commit is whole). A slot with nothing stored gives a cycle with no
- * bundle and no readings, which the replay answers NOT_REPLAYABLE.
+ * The SYN rows of one cycle, or `missing` when the database has no SYN table yet. A read that fails for any other reason
+ * is a failure and is thrown: only "the table is not there" is an answer.
+ */
+async function loadStoredSynthesis(
+  prisma: ReplayDatabase,
+  symbol: string,
+  slot: number
+): Promise<{ synthesis: StoredSynthesis | null; missing: boolean }> {
+  let rows: Awaited<
+    ReturnType<
+      typeof prisma.synthesisReading.findMany<{
+        select: typeof SYNTHESIS_COLUMNS;
+      }>
+    >
+  >;
+  let zones: Awaited<
+    ReturnType<
+      typeof prisma.entryZone.findMany<{ select: typeof ZONE_COLUMNS }>
+    >
+  >;
+  try {
+    [rows, zones] = await Promise.all([
+      prisma.synthesisReading.findMany({
+        where: { symbol, cycle_slot: slot },
+        select: SYNTHESIS_COLUMNS,
+      }),
+      prisma.entryZone.findMany({
+        where: { symbol, cycle_slot: slot },
+        select: ZONE_COLUMNS,
+      }),
+    ]);
+  } catch (error) {
+    if (tableIsMissing(error)) return { synthesis: null, missing: true };
+    throw error;
+  }
+  if (rows.length === 0 && zones.length === 0) {
+    return { synthesis: null, missing: false };
+  }
+  const zoneRows = zones.map(
+    (z): EntryZoneRow => ({ ...z, levels: z.levels as EntryZoneRow['levels'] })
+  );
+  const profiles = rows
+    .map(
+      (row): StoredSynthesisProfile => ({
+        profile: row.profile,
+        flag: row.flag,
+        rulesVersion: row.rules_version,
+        rulesSha256: row.rules_sha256,
+        zoneParamsVersion: row.zone_params_version,
+        zoneParamsSha256: row.zone_params_sha256,
+        readingJson: row.reading_json,
+        readingSha256: row.reading_sha256,
+        zonesJson: row.zones_json,
+        zonesSha256: row.zones_sha256,
+        zonesReason: row.zones_reason,
+        zoneCount: row.zone_count,
+        referencePrice: row.reference_price,
+        guardProblems: row.guard_problems,
+        inputsSha256: row.inputs_sha256,
+        retuningApplied: row.retuning_applied,
+        runnerVersion: row.runner_version,
+        zoneRows: zoneRows
+          .filter((z) => z.profile === row.profile)
+          .sort((a, b) => a.rank - b.rank || (a.zone_id < b.zone_id ? -1 : 1)),
+      })
+    )
+    .sort((a, b) =>
+      a.profile < b.profile ? -1 : a.profile > b.profile ? 1 : 0
+    );
+  // zones that name a profile with no reading row have nothing to be held to: the replay reports them
+  const orphanZones = zoneRows.filter(
+    (z) => !profiles.some((p) => p.profile === z.profile)
+  );
+  return { synthesis: { error: null, profiles, orphanZones }, missing: false };
+}
+
+/**
+ * Everything the database holds of one cycle: its stored bundle, its readings and its SYN rows. READ ONLY (four reads
+ * with a `select`; not in one transaction, which only matters for a slot that is being written this second: the worker
+ * writes all of them in one, so a slot read after its commit is whole). A slot with nothing stored gives a cycle with no
+ * bundle and no readings, which the replay answers NOT_REPLAYABLE. A database that does not have the SYN tables yet gives
+ * `synthesisTablesMissing`, not a failure.
  */
 export async function loadStoredCycle(
   prisma: ReplayDatabase,
   symbol: string,
   slot: number
 ): Promise<StoredCycle> {
-  const [input, outputs] = await Promise.all([
+  const [input, outputs, stored] = await Promise.all([
     prisma.marketCycleInput.findUnique({
       where: { symbol_cycle_slot: { symbol, cycle_slot: slot } },
       select: INPUT_COLUMNS,
@@ -277,11 +519,14 @@ export async function loadStoredCycle(
       where: { symbol, cycle_slot: slot },
       select: OUTPUT_COLUMNS,
     }),
+    loadStoredSynthesis(prisma, symbol, slot),
   ]);
   return {
     origin: 'database',
     symbol,
     slot,
+    synthesis: stored.synthesis,
+    synthesisTablesMissing: stored.missing,
     bundle:
       input === null
         ? null
@@ -349,6 +594,8 @@ export function loadFixtureCycle(directory: string, slot: number): StoredCycle {
       slot,
       bundle: null,
       readings: [],
+      synthesis: null,
+      synthesisTablesMissing: false,
     };
   }
   const read = (file: string): unknown => {
@@ -403,6 +650,14 @@ export function loadFixtureCycle(directory: string, slot: number): StoredCycle {
       };
     }
   );
+  const synthesisFile = path.join(directory, `${stem}.synthesis.json`);
+  const synthesis = fs.existsSync(synthesisFile)
+    ? fixtureSynthesis(path.basename(synthesisFile), read(synthesisFile), {
+        inputsSha256,
+        runnerVersion,
+        retuningApplied: retuning['applied'] as boolean,
+      })
+    : null;
   return {
     origin: 'fixture',
     symbol: cycle['symbol'],
@@ -414,6 +669,60 @@ export function loadFixtureCycle(directory: string, slot: number): StoredCycle {
       retuningObserved: retuning['observed'] as boolean,
     },
     readings: readings.sort((a, b) => byMcd(a.mcdId, b.mcdId)),
+    synthesis,
+    synthesisTablesMissing: false,
+  };
+}
+
+/**
+ * The SYN rows of a fixture: the `synthesis` section the runner made for the cycle (`<slot>.synthesis.json`), one stored
+ * profile per entry, each carrying the section's flag, rules and zone parameters as a database row does. A file that is
+ * not a section is a broken fixture and throws.
+ */
+function fixtureSynthesis(
+  name: string,
+  section: unknown,
+  cycle: {
+    inputsSha256: string;
+    runnerVersion: string;
+    retuningApplied: boolean;
+  }
+): StoredSynthesis {
+  const problems = synthesisSectionProblems(section);
+  if (problems.length > 0) {
+    throw new Error(
+      `${name} is not a stored synthesis (${problems.join('; ')})`
+    );
+  }
+  const s = section as SynthesisRunResult;
+  const profiles = s.readings.map(
+    (entry: SynthesisProfileResult): StoredSynthesisProfile => ({
+      profile: entry.profile,
+      flag: s.flag,
+      rulesVersion: s.rules_version,
+      rulesSha256: s.rules_sha256,
+      zoneParamsVersion: s.zones_version,
+      zoneParamsSha256: s.zones_sha256,
+      readingJson: entry.reading_json,
+      readingSha256: entry.reading_sha256,
+      zonesJson: entry.zones_json,
+      zonesSha256: entry.zones_sha256,
+      zonesReason: entry.zones_reason,
+      zoneCount: null,
+      referencePrice: s.reference_price,
+      guardProblems: entry.guard_problems,
+      inputsSha256: cycle.inputsSha256,
+      retuningApplied: cycle.retuningApplied,
+      runnerVersion: cycle.runnerVersion,
+      zoneRows: null,
+    })
+  );
+  return {
+    error: s.error,
+    profiles: profiles.sort((a, b) =>
+      a.profile < b.profile ? -1 : a.profile > b.profile ? 1 : 0
+    ),
+    orphanZones: [],
   };
 }
 
@@ -519,17 +828,21 @@ export function inspectStoredBundle(stored: StoredCycle): BundleInspection {
       textSha256,
     };
   }
-  const others = stored.readings.filter(
-    (reading) => reading.inputsSha256 !== bundle.inputsSha256
-  );
+  const others = [
+    ...stored.readings.map((r) => ({ name: r.mcdId, sha: r.inputsSha256 })),
+    ...(stored.synthesis?.profiles ?? []).map((p) => ({
+      name: `SYN ${p.profile}`,
+      sha: p.inputsSha256,
+    })),
+  ].filter((reading) => reading.sha !== bundle.inputsSha256);
   if (others.length > 0) {
     return {
       ok: false,
       reason: 'READINGS_NAME_OTHER_INPUTS',
       detail:
-        `${others.map((r) => r.mcdId).join(', ')} ` +
+        `${others.map((r) => r.name).join(', ')} ` +
         `${others.length === 1 ? 'was' : 'were'} made from inputs ` +
-        `${others.map((r) => String(r.inputsSha256)).join(', ')}, ` +
+        `${others.map((r) => String(r.sha)).join(', ')}, ` +
         `not the stored bundle ${bundle.inputsSha256} ` +
         '(the bundle those readings were made from is not the one that was kept)',
       textSha256,
@@ -654,6 +967,386 @@ export function compareReading(
   };
 }
 
+// ---------------------------------------------------------------- one trader type's SYN reading and zones
+
+const ZONE_ROW_KEYS = [
+  'profile',
+  'rank',
+  'bias',
+  'low',
+  'high',
+  'reference_price',
+  'confluence_count',
+  'invalidation_price',
+  'invalidation_basis',
+  'stop_distance',
+  'next_opposing_price',
+  'runway',
+  'runway_ratio',
+  'zone_params_version',
+  'zone_params_sha256',
+] as const;
+
+/** How many zones a zones text lists; null when it is not a JSON list. */
+function zonesInText(text: string): number | null {
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return Array.isArray(parsed) ? parsed.length : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Where the `entry_zones` rows of a profile differ from the rows its own `zones_json` makes. Empty list = they are the same. */
+function zoneRowDifferences(
+  expected: EntryZoneRow[],
+  stored: EntryZoneRow[]
+): string[] {
+  const out: string[] = [];
+  const byId = new Map(stored.map((z) => [z.zone_id, z]));
+  for (const want of expected) {
+    const have = byId.get(want.zone_id);
+    if (have === undefined) {
+      out.push(`${want.zone_id} is in zones_json and not in entry_zones`);
+      continue;
+    }
+    for (const key of ZONE_ROW_KEYS) {
+      if (want[key] !== have[key]) {
+        out.push(
+          `${want.zone_id} ${key} is ${String(have[key])} in entry_zones and ${String(want[key])} in zones_json`
+        );
+      }
+    }
+    if (
+      JSON.stringify(want.source_sensors) !==
+      JSON.stringify(have.source_sensors)
+    ) {
+      out.push(`${want.zone_id} source_sensors differ from zones_json`);
+    }
+    if (canonical(want.levels) !== canonical(have.levels)) {
+      out.push(`${want.zone_id} levels differ from zones_json`);
+    }
+    byId.delete(want.zone_id);
+  }
+  for (const id of byId.keys()) {
+    out.push(`${id} is in entry_zones and not in zones_json`);
+  }
+  return out;
+}
+
+/** What is wrong with a stored SYN row on its own, apart from any replay. Empty list = it agrees with itself. */
+export function storedSynthesisProblems(
+  stored: StoredSynthesisProfile,
+  symbol: string,
+  slot: number
+): string[] {
+  const problems: string[] = [];
+  let named: unknown[] | null = null;
+  if (stored.readingJson === null) {
+    if (stored.readingSha256 !== null) {
+      problems.push('reading_sha256 is set and there is no reading text');
+    }
+  } else {
+    if (sha256(stored.readingJson) !== stored.readingSha256) {
+      problems.push('reading_json does not hash to the stored reading_sha256');
+    }
+    let reading: unknown;
+    let parsedOk = true;
+    try {
+      reading = JSON.parse(stored.readingJson);
+    } catch {
+      parsedOk = false;
+      problems.push('reading_json is not JSON');
+    }
+    if (parsedOk && !isRecord(reading)) {
+      problems.push('reading_json is not an object');
+    } else if (isRecord(reading)) {
+      if (reading['mcd_id'] !== 'SYN') {
+        problems.push(`the reading is ${String(reading['mcd_id'])}`);
+      }
+      if (reading['profile'] !== stored.profile) {
+        problems.push(`the reading is for ${String(reading['profile'])}`);
+      }
+      if (reading['cycle_slot'] !== slotToIso(slot)) {
+        problems.push(
+          `the reading is for slot ${String(reading['cycle_slot'])}`
+        );
+      }
+      if (reading['rules_version'] !== stored.rulesVersion) {
+        problems.push(
+          `rules_version ${stored.rulesVersion} is not the reading's ${String(reading['rules_version'])}`
+        );
+      }
+      if (reading['rules_sha256'] !== stored.rulesSha256) {
+        problems.push("rules_sha256 is not the reading's");
+      }
+      if (Array.isArray(reading['zones'])) named = reading['zones'];
+    }
+  }
+  if (sha256(stored.zonesJson) !== stored.zonesSha256) {
+    problems.push('zones_json does not hash to the stored zones_sha256');
+  }
+  const made = zoneRowsOfText(stored.zonesJson, {
+    symbol,
+    slot,
+    profile: stored.profile,
+    zones_version: stored.zoneParamsVersion,
+    zones_sha256: stored.zoneParamsSha256,
+  });
+  problems.push(...made.problems.map((p) => `zones_json: ${p}`));
+  if (made.problems.length === 0) {
+    if (named !== null) {
+      const ids = made.rows.map((z) => z.zone_id);
+      if (JSON.stringify(ids) !== JSON.stringify(named)) {
+        problems.push(
+          `the reading names zones ${JSON.stringify(named)}, zones_json lists ${JSON.stringify(ids)}`
+        );
+      }
+    }
+    if (stored.zoneCount !== null && stored.zoneCount !== made.rows.length) {
+      problems.push(
+        `zone_count is ${stored.zoneCount} and zones_json lists ${made.rows.length}`
+      );
+    }
+    if (stored.zoneRows !== null) {
+      const differences = zoneRowDifferences(made.rows, stored.zoneRows);
+      problems.push(...differences.slice(0, 5).map((d) => `entry_zones: ${d}`));
+      if (differences.length > 5) {
+        problems.push(`entry_zones: and ${differences.length - 5} more`);
+      }
+    }
+  }
+  return problems;
+}
+
+/** What the sensors' replay says, which the SYN reading depends on: a reading that reads a changed sensor is expected to change. */
+export interface SensorReplayState {
+  /** MCDs that answer with another evaluator version than the stored one. */
+  versionChanged: string[];
+  /** MCDs that gave another envelope under the same version. */
+  diverged: string[];
+}
+
+/**
+ * One stored SYN reading and its zones against what the replay gave for the same trader type. The order matters, as it does for an
+ * envelope: a stored row that disagrees with itself is not evidence about anything; a changed rules or zone-parameter version explains
+ * a changed reading; a file that changed under the same version is a divergence; a changed sensor explains a changed reading too; only the
+ * same version and the same sensors with another reading or other zones is a divergence of the logic.
+ */
+export function compareSynthesisProfile(
+  stored: StoredSynthesisProfile,
+  symbol: string,
+  slot: number,
+  section: SynthesisRunResult | undefined,
+  sensors: SensorReplayState = { versionChanged: [], diverged: [] }
+): SynthesisProfileReplay {
+  const base = {
+    profile: stored.profile,
+    storedRulesVersion: stored.rulesVersion,
+    storedRulesSha256: stored.rulesSha256,
+    storedZoneParamsVersion: stored.zoneParamsVersion,
+    storedReadingSha256: stored.readingSha256,
+    storedZonesSha256: stored.zonesSha256,
+  };
+  const storedZones = stored.zoneCount ?? zonesInText(stored.zonesJson);
+  const nothing = {
+    replayedRulesVersion: null,
+    replayedRulesSha256: null,
+    replayedZoneParamsVersion: null,
+    replayedReadingSha256: null,
+    replayedZonesSha256: null,
+    readingEqual: null,
+    zonesEqual: null,
+    zoneCount: { stored: storedZones, replayed: null },
+    difference: null,
+  };
+  const corrupt = storedSynthesisProblems(stored, symbol, slot);
+  if (corrupt.length > 0) {
+    return {
+      ...base,
+      ...nothing,
+      verdict: 'STORED_READING_CORRUPT',
+      detail: `the stored row disagrees with itself: ${corrupt.join('; ')}`,
+    };
+  }
+  if (section === undefined) {
+    return {
+      ...base,
+      ...nothing,
+      verdict: 'LOGIC_DIVERGENCE',
+      detail: `the replay made no synthesis section, and ${stored.profile} has a stored reading`,
+    };
+  }
+  if (section.error !== null) {
+    return {
+      ...base,
+      ...nothing,
+      replayedRulesVersion: section.rules_version,
+      verdict: 'LOGIC_DIVERGENCE',
+      detail: `synthesis stopped in the replay (${section.error}) and made no reading, and ${stored.profile} has a stored one`,
+    };
+  }
+  const replayed = section.readings.find((r) => r.profile === stored.profile);
+  if (replayed === undefined) {
+    return {
+      ...base,
+      ...nothing,
+      replayedRulesVersion: section.rules_version,
+      verdict: 'LOGIC_DIVERGENCE',
+      detail: `the replay produced no reading for ${stored.profile}, which has a stored one`,
+    };
+  }
+  const replayedReadingSha256 =
+    replayed.reading_json === null ? null : sha256(replayed.reading_json);
+  const replayedZonesSha256 = sha256(replayed.zones_json);
+  // Both the text and the hash are compared, as for an envelope. Here the two always agree (the stored row's own hash was checked
+  // above, and the runner's reported hash is checked below), so a mutation check cannot tell `&&` from `||`: they are the same test.
+  const readingEqual =
+    replayed.reading_json === stored.readingJson &&
+    replayed.reading_sha256 === stored.readingSha256;
+  const zonesEqual =
+    replayed.zones_json === stored.zonesJson &&
+    replayed.zones_sha256 === stored.zonesSha256;
+  const readingDifference =
+    stored.readingJson !== null && replayed.reading_json !== null
+      ? firstDifference(stored.readingJson, replayed.reading_json)
+      : null;
+  const zonesDifference = firstDifference(
+    stored.zonesJson,
+    replayed.zones_json
+  );
+  const difference: SynthesisProfileReplay['difference'] =
+    readingDifference !== null
+      ? { ...readingDifference, in: 'reading' }
+      : zonesDifference !== null
+        ? { ...zonesDifference, in: 'zones' }
+        : null;
+  const common = {
+    ...base,
+    replayedRulesVersion: section.rules_version,
+    replayedRulesSha256: section.rules_sha256,
+    replayedZoneParamsVersion: section.zones_version,
+    replayedReadingSha256,
+    replayedZonesSha256,
+    readingEqual,
+    zonesEqual,
+    zoneCount: {
+      stored: storedZones,
+      replayed: zonesInText(replayed.zones_json),
+    },
+    difference,
+  };
+
+  const versions: string[] = [];
+  if (section.rules_version !== stored.rulesVersion) {
+    versions.push(
+      `the rules are ${section.rules_version} now, the reading was made with ${stored.rulesVersion}`
+    );
+  }
+  if (section.zones_version !== stored.zoneParamsVersion) {
+    versions.push(
+      `the zone parameters are ${section.zones_version} now, the zones were made with ${stored.zoneParamsVersion}`
+    );
+  }
+  if (versions.length > 0) {
+    return {
+      ...common,
+      verdict: 'VERSION_MISMATCH',
+      detail: versions.join('; '),
+    };
+  }
+  const claims: string[] = [];
+  if (replayed.reading_sha256 !== replayedReadingSha256) {
+    claims.push(
+      `the runner reports reading_sha256 ${String(replayed.reading_sha256)}, its own text hashes to ${String(replayedReadingSha256)}`
+    );
+  }
+  if (replayed.zones_sha256 !== replayedZonesSha256) {
+    claims.push(
+      `the runner reports zones_sha256 ${replayed.zones_sha256}, its own text hashes to ${replayedZonesSha256}`
+    );
+  }
+  if (claims.length > 0) {
+    return {
+      ...common,
+      verdict: 'LOGIC_DIVERGENCE',
+      detail: claims.join('; '),
+    };
+  }
+  const files: string[] = [];
+  if (section.rules_sha256 !== stored.rulesSha256) {
+    files.push(
+      `the rules ${stored.rulesVersion} hash to ${section.rules_sha256} now and the reading was made with a file that hashed to ${stored.rulesSha256}: the rules file changed without a new version`
+    );
+  }
+  if (section.zones_sha256 !== stored.zoneParamsSha256) {
+    files.push(
+      `the zone parameters ${stored.zoneParamsVersion} hash to ${section.zones_sha256} now and the zones were made with ones that hashed to ${stored.zoneParamsSha256}: zone_params.yaml changed without a new version`
+    );
+  }
+  if (files.length > 0) {
+    return {
+      ...common,
+      verdict: 'LOGIC_DIVERGENCE',
+      detail: files.join('; '),
+    };
+  }
+
+  const differs: string[] = [];
+  if (!readingEqual) {
+    differs.push(
+      replayed.reading_json === null || stored.readingJson === null
+        ? 'the reading is withheld on one side only'
+        : 'the reading text differs'
+    );
+  }
+  if (!zonesEqual) differs.push('the zones text differs');
+  if (replayed.zones_reason !== stored.zonesReason) {
+    differs.push(
+      `zones_reason is ${String(replayed.zones_reason)}, stored ${String(stored.zonesReason)}`
+    );
+  }
+  if (
+    JSON.stringify(replayed.guard_problems) !==
+    JSON.stringify(stored.guardProblems)
+  ) {
+    differs.push('the guard problems differ');
+  }
+  if (section.reference_price !== stored.referencePrice) {
+    differs.push(
+      `the reference price is ${String(section.reference_price)}, stored ${String(stored.referencePrice)}`
+    );
+  }
+  if (differs.length === 0) {
+    const zones = common.zoneCount.replayed ?? 0;
+    return {
+      ...common,
+      verdict: 'VERIFIED',
+      detail:
+        `reading ${stored.readingJson === null ? 'withheld on both sides' : `text and SHA-256 equal (${stored.readingJson.length} characters)`}, ` +
+        `${zones} zone(s) text and SHA-256 equal`,
+    };
+  }
+  if (sensors.versionChanged.length > 0) {
+    return {
+      ...common,
+      verdict: 'VERSION_MISMATCH',
+      detail:
+        `${sensors.versionChanged.join(', ')} answer${sensors.versionChanged.length === 1 ? 's' : ''} with another evaluator version now, ` +
+        `and synthesis reads their readings, so it is expected to differ (${differs.join('; ')})`,
+    };
+  }
+  return {
+    ...common,
+    verdict: 'LOGIC_DIVERGENCE',
+    detail:
+      `the same rules ${stored.rulesVersion} and zone parameters ${stored.zoneParamsVersion} gave another result: ${differs.join('; ')}` +
+      (sensors.diverged.length > 0
+        ? ` (${sensors.diverged.join(', ')} diverged too, and synthesis reads their readings)`
+        : ''),
+  };
+}
+
 // ---------------------------------------------------------------- the worker configuration of a replay
 
 /**
@@ -678,19 +1371,64 @@ export function mcdIdsInWorkerConfig(yamlText: string): string[] {
 }
 
 /**
+ * The rules version a worker configuration names under `synthesis:` (`rules_version: draft-1`), or null when it names none.
+ * The same two-level format as the flags; quotes and a trailing comment are taken off.
+ */
+export function rulesVersionInWorkerConfig(yamlText: string): string | null {
+  let inSynthesis = false;
+  for (const line of yamlText.split(/\r?\n/)) {
+    if (/^synthesis\s*:\s*$/.test(line)) {
+      inSynthesis = true;
+      continue;
+    }
+    if (!inSynthesis) continue;
+    if (/^\S/.test(line)) break; // the next top-level key
+    const key = /^\s+rules_version\s*:\s*(.*?)\s*$/.exec(line);
+    if (key) {
+      const value = key[1]
+        .replace(/\s+#.*$/, '')
+        .replace(/^(['"])(.*)\1$/, '$2');
+      return value === '' ? null : value;
+    }
+  }
+  return null;
+}
+
+const yamlQuoted = (value: string): string => `'${value.replace(/'/g, "''")}'`;
+
+/** What a replay asks of synthesis: the flag the SYN rows were written under and, when it is to be named, the rules version. */
+export interface SynthesisRunSettings {
+  flag: string;
+  /** The `synthesis.rules_version` to write; null leaves the line out (the runner's own default). */
+  rulesVersion: string | null;
+}
+
+/**
  * A worker configuration (`mcd-worker-config/1`) in which every MCD of the engine is `off` except the ones that
  * have a stored reading, which have the flag they were written under. The values are quoted: YAML 1.1 reads an
- * unquoted `off` as false, and the runner refuses that.
+ * unquoted `off` as false, and the runner refuses that. With `synthesis` the `SYN` flag is the stored one and the
+ * rules version is named; without it there is no `SYN` line, so synthesis stays off, as it always did.
  */
 export function replayWorkerConfig(
   engineMcdIds: string[],
-  storedFlags: ReadonlyMap<string, string>
+  storedFlags: ReadonlyMap<string, string>,
+  synthesis: SynthesisRunSettings | null = null
 ): string {
   const ids = [...new Set([...engineMcdIds, ...storedFlags.keys()])].sort(
     byMcd
   );
   const lines = ids.map((id) => `  ${id}: '${storedFlags.get(id) ?? 'off'}'`);
-  return ['schema: mcd-worker-config/1', 'flags:', ...lines, ''].join('\n');
+  const out = ['schema: mcd-worker-config/1', 'flags:', ...lines];
+  if (synthesis !== null) {
+    out.push(`  SYN: ${yamlQuoted(synthesis.flag)}`);
+    if (synthesis.rulesVersion !== null) {
+      out.push(
+        'synthesis:',
+        `  rules_version: ${yamlQuoted(synthesis.rulesVersion)}`
+      );
+    }
+  }
+  return [...out, ''].join('\n');
 }
 
 // ---------------------------------------------------------------- the replay
@@ -707,6 +1445,25 @@ export interface ReplayHooks {
   engineMcdIds?: () => string[];
   /** Where the temporary configuration goes. Default: the operating system's temporary folder, never the repository. */
   tempRoot?: string;
+  /**
+   * The rules versions the engine has (`<engineDir>/mcd_worker/synthesis/rules/<version>.yaml`; null: the folder could not be read) and
+   * the one its `worker_config.yaml` names now (null: none). Default: read from the engine folder.
+   */
+  rulesVersions?: () => {
+    available: string[] | null;
+    current: string | null;
+  };
+}
+
+/** The stored rules version when the engine still has its file, else the one the engine uses now (the replay is then a VERSION_MISMATCH). */
+export function rulesVersionToAsk(
+  stored: string,
+  engine: { available: string[] | null; current: string | null }
+): string | null {
+  if (engine.available === null || engine.available.includes(stored)) {
+    return stored;
+  }
+  return engine.current;
 }
 
 export class CycleReplayer {
@@ -725,8 +1482,43 @@ export class CycleReplayer {
     return mcdIdsInWorkerConfig(fs.readFileSync(file, 'utf8'));
   }
 
+  /** The rules versions the engine has and the one it uses now; whatever cannot be read is `null` (the runner then has the last word). */
+  private engineRules(): {
+    available: string[] | null;
+    current: string | null;
+  } {
+    if (this.hooks.rulesVersions) return this.hooks.rulesVersions();
+    const base = path.join(this.settings.engineDir, 'mcd_worker');
+    let available: string[] | null = null;
+    try {
+      available = fs
+        .readdirSync(path.join(base, 'synthesis', 'rules'))
+        .filter((name) => name.endsWith('.yaml'))
+        .map((name) => name.slice(0, -'.yaml'.length))
+        .sort();
+    } catch {
+      available = null;
+    }
+    let current: string | null = null;
+    try {
+      current = rulesVersionInWorkerConfig(
+        fs.readFileSync(path.join(base, 'worker_config.yaml'), 'utf8')
+      );
+    } catch {
+      current = null;
+    }
+    return { available, current };
+  }
+
   async replay(stored: StoredCycle): Promise<CycleReplayReport> {
     const slotIso = slotToIso(stored.slot);
+    const synthesisProfiles = stored.synthesis?.profiles ?? [];
+    const orphanZones = stored.synthesis?.orphanZones ?? [];
+    const hasSynthesis = synthesisProfiles.length > 0 || orphanZones.length > 0;
+    const storedZoneCount = synthesisProfiles.reduce(
+      (total, p) => total + (p.zoneCount ?? zonesInText(p.zonesJson) ?? 0),
+      0
+    );
     const report: CycleReplayReport = {
       origin: stored.origin,
       symbol: stored.symbol,
@@ -749,10 +1541,40 @@ export class CycleReplayer {
         replayedObserved: null,
       },
       mcds: [],
-      findings: [],
+      synthesis: {
+        state: stored.synthesisTablesMissing
+          ? 'TABLES_MISSING'
+          : hasSynthesis
+            ? 'STORED'
+            : 'NOT_STORED',
+        flag: synthesisProfiles[0]?.flag ?? null,
+        rulesVersion: {
+          stored: synthesisProfiles[0]?.rulesVersion ?? null,
+          requested: null,
+          replayed: null,
+        },
+        profiles: [],
+        notStored: [],
+        withheld: [],
+        zones: { stored: storedZoneCount, replayed: 0 },
+      },
+      findings: stored.synthesisTablesMissing
+        ? [
+            'the database has no synthesis_readings or entry_zones table yet (the migration 20261004000000_add_synthesis_tables is not applied), so no SYN row could be looked for',
+          ]
+        : stored.synthesis !== null &&
+            stored.synthesis.error !== null &&
+            synthesisProfiles.length === 0
+          ? [
+              `the stored cycle records that synthesis stopped (${stored.synthesis.error}) and made no reading: SYN was not replayed`,
+            ]
+          : [],
       runner: {
         storedVersions: [
-          ...new Set(stored.readings.map((r) => r.runnerVersion)),
+          ...new Set([
+            ...stored.readings.map((r) => r.runnerVersion),
+            ...synthesisProfiles.map((p) => p.runnerVersion),
+          ]),
         ].sort(),
         replayedVersion: null,
         wallMs: null,
@@ -802,18 +1624,44 @@ export class CycleReplayer {
     }
 
     // 3. under which rule were the readings made
-    const applied = new Set(stored.readings.map((r) => r.retuningApplied));
+    const applied = new Set([
+      ...stored.readings.map((r) => r.retuningApplied),
+      ...synthesisProfiles.map((p) => p.retuningApplied),
+    ]);
     if (applied.size > 1) {
       return notReplayable(
         'MIXED_RETUNING',
-        `the readings of ${where} were made under different RETUNING enforcement (${stored.readings
-          .map((r) => `${r.mcdId} applied ${String(r.retuningApplied)}`)
-          .join(', ')}): one run cannot reproduce both`
+        `the readings of ${where} were made under different RETUNING enforcement (${[
+          ...stored.readings.map(
+            (r) => `${r.mcdId} applied ${String(r.retuningApplied)}`
+          ),
+          ...synthesisProfiles.map(
+            (p) => `SYN ${p.profile} applied ${String(p.retuningApplied)}`
+          ),
+        ].join(', ')}): one run cannot reproduce both`
       );
     }
     const enforced = stored.readings[0].retuningApplied;
     report.retuning.storedApplied = enforced;
     report.retuning.enforcedForReplay = enforced;
+
+    // 3b. under which synthesis settings were the SYN rows made
+    const synthesisSettings = new Set(
+      synthesisProfiles.map(
+        (p) => `${p.flag} ${p.rulesVersion} ${p.zoneParamsVersion}`
+      )
+    );
+    if (synthesisSettings.size > 1) {
+      return notReplayable(
+        'MIXED_SYNTHESIS',
+        `the SYN rows of ${where} were made under different flags, rules versions or zone parameters (${synthesisProfiles
+          .map(
+            (p) =>
+              `${p.profile}: ${p.flag}, rules ${p.rulesVersion}, zones ${p.zoneParamsVersion}`
+          )
+          .join('; ')}): one run cannot reproduce both`
+      );
+    }
 
     // 4. the flags the readings were made under
     let engineIds: string[];
@@ -832,6 +1680,15 @@ export class CycleReplayer {
       );
     }
     const flags = new Map(stored.readings.map((r) => [r.mcdId, r.flag]));
+    let synthesisRun: SynthesisRunSettings | null = null;
+    if (synthesisProfiles.length > 0) {
+      const first = synthesisProfiles[0];
+      synthesisRun = {
+        flag: first.flag,
+        rulesVersion: rulesVersionToAsk(first.rulesVersion, this.engineRules()),
+      };
+      report.synthesis.rulesVersion.requested = synthesisRun.rulesVersion;
+    }
     const dir = fs.mkdtempSync(
       path.join(this.hooks.tempRoot ?? os.tmpdir(), 'mcd-replay-')
     );
@@ -842,7 +1699,7 @@ export class CycleReplayer {
       const configPath = path.join(dir, 'worker_config.yaml');
       fs.writeFileSync(
         configPath,
-        replayWorkerConfig(engineIds, flags),
+        replayWorkerConfig(engineIds, flags, synthesisRun),
         'utf8'
       );
       const runnerSettings: RunnerSettings = {
@@ -892,6 +1749,8 @@ export class CycleReplayer {
     let inputsTampered = false;
     let divergent = false;
 
+    if (hasSynthesis) this.compareSynthesis(stored, result.synthesis, report);
+
     if (result.inputs_sha256 !== stored.bundle.inputsSha256) {
       if (stored.bundle.form === 'parsed') {
         inputsTampered = true;
@@ -928,8 +1787,14 @@ export class CycleReplayer {
     }
 
     // 7. the verdict: the worst finding, in the order the diagnosis needs
+    const profiles = report.synthesis.profiles;
     const verdictOf = (verdict: McdReplayVerdict): boolean =>
-      report.mcds.some((m) => m.verdict === verdict);
+      report.mcds.some((m) => m.verdict === verdict) ||
+      profiles.some((p) => p.verdict === verdict);
+    const explainAll = (verdict: McdReplayVerdict): string =>
+      [explain(report.mcds, verdict), explainSynthesis(profiles, verdict)]
+        .filter((text) => text !== '')
+        .join('; ');
     let verdict: ReplayVerdict;
     let summary: string;
     if (inputsTampered) {
@@ -939,18 +1804,23 @@ export class CycleReplayer {
         'the stored bundle does not hash to the stored inputs_sha256 when the runner reads it';
     } else if (verdictOf('STORED_READING_CORRUPT')) {
       verdict = 'STORED_READING_CORRUPT';
-      summary = explain(report.mcds, 'STORED_READING_CORRUPT');
+      summary = explainAll('STORED_READING_CORRUPT');
     } else if (verdictOf('VERSION_MISMATCH')) {
       verdict = 'VERSION_MISMATCH';
-      summary = explain(report.mcds, 'VERSION_MISMATCH');
+      summary = explainAll('VERSION_MISMATCH');
     } else if (verdictOf('LOGIC_DIVERGENCE') || divergent) {
       verdict = 'LOGIC_DIVERGENCE';
-      summary = report.mcds.some((m) => m.verdict === 'LOGIC_DIVERGENCE')
-        ? explain(report.mcds, 'LOGIC_DIVERGENCE')
+      summary = verdictOf('LOGIC_DIVERGENCE')
+        ? explainAll('LOGIC_DIVERGENCE')
         : findings[0];
     } else {
       verdict = 'VERIFIED';
       summary = `${report.mcds.length} of ${report.mcds.length} readings equal the stored ones, envelope text and SHA-256, byte for byte`;
+      if (report.synthesis.state === 'REPLAYED') {
+        summary +=
+          `; ${profiles.length} of ${profiles.length} SYN readings and their ${report.synthesis.zones.replayed} ` +
+          'entry zone(s) equal the stored ones, text and SHA-256, byte for byte';
+      }
     }
     if (
       (verdict === 'LOGIC_DIVERGENCE' || verdict === 'VERSION_MISMATCH') &&
@@ -962,6 +1832,74 @@ export class CycleReplayer {
     }
     return { ...report, verdict, summary };
   }
+
+  /** Step 6 for the SYN rows: each stored trader type against the replay's, and what the replay made that nothing stored. */
+  private compareSynthesis(
+    stored: StoredCycle,
+    section: SynthesisRunResult | undefined,
+    report: CycleReplayReport
+  ): void {
+    const synthesis = report.synthesis;
+    const profiles = stored.synthesis?.profiles ?? [];
+    const sensors: SensorReplayState = {
+      versionChanged: report.mcds
+        .filter((m) => m.verdict === 'VERSION_MISMATCH')
+        .map((m) => m.mcdId),
+      diverged: report.mcds
+        .filter((m) => m.verdict === 'LOGIC_DIVERGENCE')
+        .map((m) => m.mcdId),
+    };
+    synthesis.state = 'REPLAYED';
+    synthesis.rulesVersion.replayed = section?.rules_version ?? null;
+    synthesis.profiles = profiles.map((p) =>
+      compareSynthesisProfile(p, stored.symbol, stored.slot, section, sensors)
+    );
+    const orphanProfiles = [
+      ...new Set((stored.synthesis?.orphanZones ?? []).map((z) => z.profile)),
+    ].sort();
+    for (const profile of orphanProfiles) {
+      const rows = (stored.synthesis?.orphanZones ?? []).filter(
+        (z) => z.profile === profile
+      );
+      synthesis.profiles.push({
+        profile,
+        verdict: 'STORED_READING_CORRUPT',
+        storedRulesVersion: 'none',
+        replayedRulesVersion: null,
+        storedRulesSha256: 'none',
+        replayedRulesSha256: null,
+        storedZoneParamsVersion: rows[0].zone_params_version,
+        replayedZoneParamsVersion: null,
+        storedReadingSha256: null,
+        replayedReadingSha256: null,
+        storedZonesSha256: 'none',
+        replayedZonesSha256: null,
+        readingEqual: null,
+        zonesEqual: null,
+        zoneCount: { stored: rows.length, replayed: null },
+        detail: `entry_zones holds ${rows.length} row(s) for ${profile} and synthesis_readings has no row for it`,
+        difference: null,
+      });
+    }
+    if (section !== undefined && section.error === null) {
+      for (const made of section.readings) {
+        if (profiles.some((p) => p.profile === made.profile)) continue;
+        if (made.reading_json === null) synthesis.withheld.push(made.profile);
+        else synthesis.notStored.push(made.profile);
+      }
+      synthesis.notStored.sort();
+      synthesis.withheld.sort();
+    }
+    synthesis.zones.replayed = synthesis.profiles.reduce(
+      (total, p) => total + (p.zoneCount.replayed ?? 0),
+      0
+    );
+    if (synthesis.notStored.length > 0) {
+      report.findings.push(
+        `the replay makes a SYN reading for ${synthesis.notStored.join(', ')} and none is stored (the gateway refused it, see SYN_READING_REFUSED in the log, or the rows are gone)`
+      );
+    }
+  }
 }
 
 function explain(mcds: McdReplay[], verdict: McdReplayVerdict): string {
@@ -969,18 +1907,30 @@ function explain(mcds: McdReplay[], verdict: McdReplayVerdict): string {
   return mine.map((m) => `${m.mcdId}: ${m.detail}`).join('; ');
 }
 
+function explainSynthesis(
+  profiles: SynthesisProfileReplay[],
+  verdict: McdReplayVerdict
+): string {
+  const mine = profiles.filter((p) => p.verdict === verdict);
+  return mine.map((p) => `SYN ${p.profile}: ${p.detail}`).join('; ');
+}
+
 // ---------------------------------------------------------------- the command
 
 export const REPLAY_USAGE = `Usage: node scripts/replay-cycle.js (--db | --fixtures) [options]
 
 Runs a stored cycle again from its stored bundle and compares what it gives with the stored readings,
-byte for byte (envelope text and SHA-256 of every MCD). READ ONLY: it never writes to a database.
+byte for byte (envelope text and SHA-256 of every MCD, and, when the cycle has them, the Day Trader and Scalper
+SYN readings and their entry zones: reading text and hash, zones text and hash, why there are no zones, the guard
+problems and the reference price). READ ONLY: it never writes to a database.
 
 Where the stored cycle comes from (exactly one):
-  --db                 market_cycle_inputs and mcd_outputs, from the database named by DATABASE_URL
-                       (from a laptop that is the public URL, never railway run's private one)
+  --db                 market_cycle_inputs, mcd_outputs, synthesis_readings and entry_zones, from the database named by
+                       DATABASE_URL (from a laptop that is the public URL, never railway run's private one); a database
+                       without the two SYN tables is read as "no SYN rows", with a note
   --fixtures           the stored fixture cycles of the Python runner (v1, v3 and v4: 2026-09-18T20:55Z,
-                       2026-09-28T14:15Z, 2026-09-28T23:15Z), all of them in one command
+                       2026-09-28T14:15Z, 2026-09-28T23:15Z), all of them in one command, SYN readings and zones
+                       included (<slot>.synthesis.json)
 
 Options:
   --slot <time>        the cycle: ISO 8601 UTC ("2026-09-18T20:55Z") or unix seconds on a 5-minute boundary.
@@ -992,13 +1942,20 @@ Options:
   --json               print the reports as JSON
   --help               this text
 
-Each cycle ends in one verdict:
-  VERIFIED               every envelope is equal: the cycle replays byte for byte
+Each cycle ends in one verdict (SYN readings count in it, per trader type):
+  VERIFIED               every envelope, SYN reading and zone set is equal: the cycle replays byte for byte
   TAMPERED_BUNDLE        the stored inputs do not hash to the stored inputs_sha256 (nothing is run)
-  STORED_READING_CORRUPT a stored row does not hash to its own envelope_sha256
-  VERSION_MISMATCH       an evaluator is not the version that wrote the row (the envelopes are expected to differ)
-  LOGIC_DIVERGENCE       the same version, inputs as stored, and another envelope
-  NOT_REPLAYABLE         nothing stored, the bundle was deleted, or the runner gave no result
+  STORED_READING_CORRUPT a stored row does not hash to its own envelope_sha256 / reading_sha256 / zones_sha256, or the
+                         entry_zones rows are not the zones_json beside the reading
+  VERSION_MISMATCH       an evaluator, the SYN rules version or the zone parameters' version is not the one that wrote the
+                         row (the readings are expected to differ); so is a SYN reading that read a changed sensor
+  LOGIC_DIVERGENCE       the same version, inputs as stored, and another envelope or SYN reading; or the rules file /
+                         zone_params.yaml changed without a new version
+  NOT_REPLAYABLE         nothing stored, the bundle was deleted, the SYN rows were made under different settings, or the
+                         runner gave no result
+
+SYN is replayed under the flag and the rules version the SYN rows were written with (the engine's current rules version when
+the stored one's file is gone). A cycle with no SYN rows is replayed with SYN off.
 
 Exit status: 0 every cycle VERIFIED; 1 a difference was found; 2 a cycle could not be replayed, or the arguments are wrong.`;
 
@@ -1225,6 +2182,37 @@ export function formatReplayReport(report: CycleReplayReport): string {
         );
       }
     }
+  }
+  const syn = report.synthesis;
+  if (syn.state === 'REPLAYED' || syn.state === 'STORED') {
+    lines.push(
+      `  SYN   ${syn.flag ?? '?'} flag, rules ${syn.rulesVersion.stored ?? '?'}` +
+        (syn.state === 'REPLAYED' &&
+        syn.rulesVersion.replayed !== syn.rulesVersion.stored
+          ? ` -> ${syn.rulesVersion.replayed ?? '?'}`
+          : '') +
+        `, ${syn.zones.stored} entry zone(s) stored` +
+        (syn.state === 'STORED' ? ' (not replayed)' : '')
+    );
+  }
+  for (const profile of syn.profiles) {
+    lines.push(
+      `  SYN ${profile.profile.padEnd(10)} ${profile.verdict.padEnd(22)} reading sha256 stored ${short(profile.storedReadingSha256)} replayed ${short(profile.replayedReadingSha256)}  ` +
+        `zones ${profile.zoneCount.stored ?? '?'} sha256 stored ${short(profile.storedZonesSha256)} replayed ${short(profile.replayedZonesSha256)}`
+    );
+    if (profile.verdict !== 'VERIFIED') {
+      lines.push(`        ${profile.detail}`);
+      if (profile.difference !== null) {
+        lines.push(
+          `        first difference in the ${profile.difference.in} at character ${profile.difference.offset}: stored "${profile.difference.stored}" replayed "${profile.difference.replayed}"`
+        );
+      }
+    }
+  }
+  if (syn.withheld.length > 0) {
+    lines.push(
+      `  SYN ${syn.withheld.join(', ')}: the engine withheld the reading in the replay (its guard) and none is stored`
+    );
   }
   for (const finding of report.findings) lines.push(`  note: ${finding}`);
   if (report.runner.wallMs !== null) {

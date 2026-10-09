@@ -3,17 +3,23 @@
  * Measure the sensor worker on real cycles (build step 3 part 7, STACK-D-ARCHITECTURE.md 2.11,
  * standard 11.2; the live use is Phase B, steps B1 to B3).
  *
- *   node scripts/measure-sensors.js --db   [--last 576] [--jobs jobs.json | --redis] [--replay 3]
- *   node scripts/measure-sensors.js --file sensors.json
+ *   node scripts/measure-sensors.js --db   [--last 576] [--jobs jobs.json | --redis] [--replay 3] [--log gateway.log]
+ *   node scripts/measure-sensors.js --file sensors.json [--log gateway.log]
  *
- * Reads mcd_outputs and the READY market_cycles rows and prints the mix of readings per MCD, how
- * often MCD0 flags M5, M15 and both, the EVALUATOR_ERROR count, what the output guards recorded,
- * how long each MCD and the whole cycle took against the 1 s and 30 s budgets, how many rows each
- * cycle has, how many jobs the worker skipped, whether a replay of stored cycles reproduces them,
- * and whether the MCD0 marks on the channel MCDs agree with MCD0's own reading.
+ * Reads mcd_outputs, synthesis_readings and the READY market_cycles rows and prints the mix of
+ * readings per MCD, how often MCD0 flags M5, M15 and both, the EVALUATOR_ERROR count, what the
+ * output guards recorded, how long each MCD and the whole cycle took against the 1 s and 30 s
+ * budgets, how many rows each cycle has, how many jobs the worker skipped, whether a replay of
+ * stored cycles reproduces them, and whether the MCD0 marks on the channel MCDs agree with MCD0's
+ * own reading. Since build step 4 part 6 it also reports the SYN readings: rows per cycle, the
+ * status mix (the CAUTIONARY share) and the rule-hit histogram per trader type, every cycle that
+ * matched no rule with the states of the sensors, the zones per cycle and why there are none, the
+ * wording scan of the stored readings, and the readings the gateway refused, counted from the log
+ * files (--log) and the job outcomes (--jobs, --redis) because refusals are logged and not stored.
  *
  * READ ONLY. `--db` runs SELECTs against the database named by DATABASE_URL (from a laptop that is
- * the public URL: `railway run` injects the private one, which only resolves inside Railway);
+ * the public URL: `railway run` injects the private one, which only resolves inside Railway; a
+ * database without the synthesis_readings table is read as "no SYN rows", with a note);
  * `--redis` runs three read commands (ZREVRANGE, HGET, ZCARD) against REDIS_URL; `--replay N` runs
  * the same read-only replay as scripts/replay-cycle.js on the newest N cycles (it needs Python with
  * PyYAML and jsonschema and the engine folder: SENSOR_PYTHON, SENSOR_ENGINE_DIR); `--file` reads a
@@ -94,6 +100,16 @@ function envelopeScanner() {
   };
 }
 
+/** The second look at every stored SYN reading: Ajv against syn-output/1, the schema the gateway writes with. */
+function synthesisScanner() {
+  const { SynReadingValidator } = require('../src/sensors/syn-validator');
+  const validator = new SynReadingValidator();
+  return (readingJson) => {
+    const check = validator.check(readingJson);
+    return check.ok ? [] : check.problems;
+  };
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.error) {
@@ -110,6 +126,7 @@ async function main() {
     openQueue,
     replaySlots,
     scan: envelopeScanner(),
+    scanSynthesis: synthesisScanner(),
   });
   console.log(text);
   process.exitCode = exitCode;

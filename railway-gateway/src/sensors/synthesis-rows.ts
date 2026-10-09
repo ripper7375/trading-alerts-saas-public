@@ -151,7 +151,7 @@ const isStringList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((item) => typeof item === 'string');
 
 /** JSON with the keys of every object sorted: two documents are the same document when this is the same text (JSONB has no key order). */
-function canonical(value: unknown): string {
+export function canonical(value: unknown): string {
   return JSON.stringify(value, (_key, inner: unknown) =>
     isRecord(inner)
       ? Object.fromEntries(
@@ -637,8 +637,44 @@ interface ZoneContext {
   slot: number;
   isoSlot: string;
   profile: string;
-  synthesis: SynthesisRunResult;
+  /** Only the zone parameters' identity is read: the section of a result, or the version and hash stored beside a reading. */
+  synthesis: Pick<SynthesisRunResult, 'zones_version' | 'zones_sha256'>;
   where: string;
+}
+
+/**
+ * The `entry_zones` rows a stored `zones_json` makes: what `prepareSynthesis` wrote, rebuilt from the text that is kept
+ * beside the reading, so that a replay can hold the rows of the table to it (build step 4 part 6). Problems are about the
+ * SHAPE and the IDENTITY of the text (the CHECK twins are `zoneRowProblems`); a text that is not a list gives no rows.
+ */
+export function zoneRowsOfText(
+  zonesJson: string,
+  context: {
+    symbol: string;
+    slot: number;
+    profile: string;
+    zones_version: string;
+    zones_sha256: string;
+  }
+): { rows: EntryZoneRow[]; problems: string[] } {
+  const parsed = parseJson(zonesJson);
+  if (!parsed.ok || !Array.isArray(parsed.value))
+    return { rows: [], problems: ['zones_json is not a list'] };
+  const rows: EntryZoneRow[] = [];
+  const problems: string[] = [];
+  parsed.value.forEach((zoneDoc: unknown, index: number) => {
+    const made = zoneRowOf(zoneDoc, {
+      symbol: context.symbol,
+      slot: context.slot,
+      isoSlot: slotToIso(context.slot),
+      profile: context.profile,
+      synthesis: context,
+      where: `zone ${index + 1}`,
+    });
+    problems.push(...made.problems);
+    if (made.row !== undefined) rows.push(made.row);
+  });
+  return { rows, problems };
 }
 
 /** One zone row of `zones_json` as a row of `entry_zones`; its problems are about the SHAPE and the IDENTITY, the CHECK twins judge the rest. */

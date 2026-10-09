@@ -2,7 +2,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { gunzipSync, gzipSync } from 'zlib';
-import type { CycleRunResult } from '../../src/sensors/cycle-run-result';
+import type {
+  CycleRunResult,
+  SynthesisRunResult,
+} from '../../src/sensors/cycle-run-result';
 import { slotToIso } from '../../src/sensors/inputs/stats-slot';
 import type {
   CycleRunner,
@@ -15,9 +18,17 @@ import type {
   ReplayHooks,
   StoredCycle,
   StoredReading,
+  StoredSynthesis,
+  StoredSynthesisProfile,
 } from '../../src/sensors/replay';
+import { zoneRowsOfText } from '../../src/sensors/synthesis-rows';
 import { FIXTURE_SLOTS, FixtureSlot, readFixtureCycle } from './cycle-fixtures';
-import { outputOf, sha256, unitResult } from './sensors-worker-world';
+import {
+  outputOf,
+  sha256,
+  storedSynthesis,
+  unitResult,
+} from './sensors-worker-world';
 
 /**
  * Stand-ins for the replay specs (build step 3 part 5): a stored cycle in the database form, with a
@@ -68,6 +79,125 @@ export function storedCycle(
         runnerVersion: cycle.runner_version,
       })
     ),
+    synthesis: null,
+    synthesisTablesMissing: false,
+  };
+}
+
+/** The `synthesis` section of a runner result that equals these stored SYN rows (what a deterministic replay returns). */
+export function sectionOf(
+  synthesis: StoredSynthesis,
+  over: Partial<SynthesisRunResult> = {}
+): SynthesisRunResult {
+  const first = synthesis.profiles[0];
+  return {
+    flag: first.flag,
+    rules_version: first.rulesVersion,
+    rules_sha256: first.rulesSha256,
+    zones_version: first.zoneParamsVersion,
+    zones_sha256: first.zoneParamsSha256,
+    reference_price: first.referencePrice,
+    error: synthesis.error,
+    readings: synthesis.profiles.map((p) => ({
+      profile: p.profile,
+      reading_json: p.readingJson,
+      reading_sha256: p.readingSha256,
+      zones_json: p.zonesJson,
+      zones_sha256: p.zonesSha256,
+      zones_reason: p.zonesReason,
+      guard_problems: p.guardProblems,
+    })),
+    ...over,
+  };
+}
+
+/**
+ * The same stored cycle with the SYN rows its fixture's `synthesis.json` holds (real readings, real hashes, real zones). In the
+ * database form every profile also has its `entry_zones` rows, made from its own `zones_json`; in the fixture form it has none.
+ */
+export function withSynthesis(
+  stored: StoredCycle,
+  fixture: FixtureSlot = FIXTURE_SLOTS[0],
+  form: 'database' | 'fixture' = 'database'
+): StoredCycle {
+  return withSynthesisSection(stored, storedSynthesis(fixture), form);
+}
+
+/** The same stored cycle with the SYN rows a runner's `synthesis` section makes (what the worker would have stored for it). */
+export function withSynthesisSection(
+  stored: StoredCycle,
+  section: SynthesisRunResult,
+  form: 'database' | 'fixture' = 'database'
+): StoredCycle {
+  const profiles = section.readings.map((entry): StoredSynthesisProfile => {
+    const rows = zoneRowsOfText(entry.zones_json, {
+      symbol: stored.symbol,
+      slot: stored.slot,
+      profile: entry.profile,
+      zones_version: section.zones_version,
+      zones_sha256: section.zones_sha256,
+    }).rows;
+    return {
+      profile: entry.profile,
+      flag: section.flag,
+      rulesVersion: section.rules_version,
+      rulesSha256: section.rules_sha256,
+      zoneParamsVersion: section.zones_version,
+      zoneParamsSha256: section.zones_sha256,
+      readingJson: entry.reading_json,
+      readingSha256: entry.reading_sha256,
+      zonesJson: entry.zones_json,
+      zonesSha256: entry.zones_sha256,
+      zonesReason: entry.zones_reason,
+      zoneCount: form === 'database' ? rows.length : null,
+      referencePrice: section.reference_price,
+      guardProblems: entry.guard_problems,
+      inputsSha256: stored.bundle?.inputsSha256 ?? null,
+      retuningApplied: stored.readings[0]?.retuningApplied ?? false,
+      runnerVersion: stored.readings[0]?.runnerVersion ?? '1.0.0',
+      zoneRows: form === 'database' ? rows : null,
+    };
+  });
+  return {
+    ...stored,
+    synthesis: { error: section.error, profiles, orphanZones: [] },
+  };
+}
+
+/** The same cycle with one trader type's stored SYN row changed. */
+export function withProfile(
+  stored: StoredCycle,
+  profile: string,
+  change: (row: StoredSynthesisProfile) => StoredSynthesisProfile
+): StoredCycle {
+  if (stored.synthesis === null) throw new Error('no stored SYN rows');
+  return {
+    ...stored,
+    synthesis: {
+      ...stored.synthesis,
+      profiles: stored.synthesis.profiles.map((p) =>
+        p.profile === profile ? change(p) : p
+      ),
+    },
+  };
+}
+
+/** A stored SYN row rewritten the way an older rules file would have written it: text, hash and version column agree. */
+export function profileAsWrittenByRules(
+  row: StoredSynthesisProfile,
+  rulesVersion: string
+): StoredSynthesisProfile {
+  const readingJson = (row.readingJson as string).replace(
+    `"rules_version":"${row.rulesVersion}"`,
+    `"rules_version":"${rulesVersion}"`
+  );
+  if (readingJson === row.readingJson)
+    throw new Error('the reading has no rules_version to change');
+  return {
+    ...row,
+    rulesVersion,
+    readingJson,
+    readingSha256: sha256(readingJson),
   };
 }
 
@@ -145,7 +275,9 @@ export function resultEqualTo(
 ): CycleRunResult {
   if (stored.bundle === null) throw new Error('no stored bundle');
   const text = stored.bundle.form === 'gzip-text' ? textOf(stored) : null;
-  return unitResult(fixture, {
+  const withSyn =
+    stored.synthesis !== null && stored.synthesis.profiles.length > 0;
+  const base = unitResult(fixture, {
     inputs_sha256: stored.bundle.inputsSha256,
     bundle_canonical_json: text,
     retuning: {
@@ -153,8 +285,15 @@ export function resultEqualTo(
       enforced: stored.readings[0]?.retuningApplied ?? false,
       applied: stored.readings[0]?.retuningApplied ?? false,
     },
-    ...over,
+    ...(withSyn
+      ? { synthesis: sectionOf(stored.synthesis as StoredSynthesis) }
+      : {}),
   });
+  return {
+    ...base,
+    ...(withSyn ? { runtime: { ...base.runtime, synthesis_ms: 48.8 } } : {}),
+    ...over,
+  };
 }
 
 /** A runner that answers what a spec says, and keeps what it was asked and the configuration it was started with. */
@@ -209,22 +348,43 @@ export interface FakeReplayDatabase {
   database: ReplayDatabase;
   findUnique: jest.Mock;
   findMany: jest.Mock;
+  /** `synthesis_readings` and `entry_zones`. */
+  findSynthesis: jest.Mock;
+  findZones: jest.Mock;
 }
 
-/** The two tables a replay reads, as the replay's own `select` asks for them. It has no method that writes. */
+/** What the SYN tables hold, or the error a read of them fails with (a database without the migration, a lost connection). */
+export interface FakeSynthesisTables {
+  synthesis?: Row[];
+  zones?: Row[];
+  fail?: unknown;
+}
+
+/** The four tables a replay reads, as the replay's own `select` asks for them. It has no method that writes. */
 export function fakeReplayDatabase(
   input: Row | null,
-  outputs: Row[]
+  outputs: Row[],
+  tables: FakeSynthesisTables = {}
 ): FakeReplayDatabase {
   const findUnique = jest.fn(async () => input);
   const findMany = jest.fn(async () => outputs);
+  const reads = (rows: Row[] | undefined) => async () => {
+    if (tables.fail !== undefined) throw tables.fail;
+    return rows ?? [];
+  };
+  const findSynthesis = jest.fn(reads(tables.synthesis));
+  const findZones = jest.fn(reads(tables.zones));
   return {
     database: {
       marketCycleInput: { findUnique },
       mcdOutput: { findMany },
+      synthesisReading: { findMany: findSynthesis },
+      entryZone: { findMany: findZones },
     } as unknown as ReplayDatabase,
     findUnique,
     findMany,
+    findSynthesis,
+    findZones,
   };
 }
 
@@ -232,6 +392,9 @@ export function fakeReplayDatabase(
 export function rowsOf(stored: StoredCycle): {
   input: Row | null;
   outputs: Row[];
+  /** The `synthesis_readings` and `entry_zones` rows of the stored SYN profiles (none for a cycle without). */
+  synthesis: Row[];
+  zones: Row[];
 } {
   const bundle = stored.bundle;
   return {
@@ -255,5 +418,27 @@ export function rowsOf(stored: StoredCycle): {
       retuning_applied: r.retuningApplied,
       runner_version: r.runnerVersion,
     })),
+    synthesis: (stored.synthesis?.profiles ?? []).map((p) => ({
+      profile: p.profile,
+      flag: p.flag,
+      rules_version: p.rulesVersion,
+      rules_sha256: p.rulesSha256,
+      zone_params_version: p.zoneParamsVersion,
+      zone_params_sha256: p.zoneParamsSha256,
+      reading_json: p.readingJson,
+      reading_sha256: p.readingSha256,
+      zones_json: p.zonesJson,
+      zones_sha256: p.zonesSha256,
+      zones_reason: p.zonesReason,
+      zone_count: p.zoneCount,
+      reference_price: p.referencePrice,
+      guard_problems: p.guardProblems,
+      inputs_sha256: p.inputsSha256,
+      retuning_applied: p.retuningApplied,
+      runner_version: p.runnerVersion,
+    })),
+    zones: (stored.synthesis?.profiles ?? []).flatMap((p) =>
+      (p.zoneRows ?? []).map((z) => ({ ...z }))
+    ),
   };
 }
