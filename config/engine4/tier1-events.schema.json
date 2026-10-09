@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tier1-events.schema.json",
+  "title": "Engine 4 Tier-1 release list",
+  "description": "The releases around which Report 2 is not offered (architecture 6.6, ADR-060). The only reader is parseTier1List in lib/engine4/blackout.ts; this file says the same thing for people and editors, and a test keeps the two in step.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "listVersion", "events"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "listVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Raised by one whenever the list changes; recorded with a blackout decision."
+    },
+    "description": { "type": "string" },
+    "events": {
+      "type": "array",
+      "description": "Empty ships as 'not set' and fails closed. A list that does not cover every kind also fails closed.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["eventId", "kind", "name"],
+        "properties": {
+          "eventId": {
+            "type": "string",
+            "pattern": "^[0-9]{1,20}$",
+            "description": "MqlCalendarEvent.id as text (an MQL5 ulong), the key the blackout matches on."
+          },
+          "kind": {
+            "enum": ["CPI", "CORE_PCE", "FOMC_RATE_DECISION", "NFP"]
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S",
+            "description": "A label for people; never matched on."
+          }
+        }
+      }
+    }
+  }
+}

@@ -4,8 +4,8 @@
 
 import * as engine4 from '@/lib/engine4';
 
-describe('the public surface of lib/engine4 (parts 1 and 2)', () => {
-  test('exports exactly these values (the database reader is not one of them)', () => {
+describe('the public surface of lib/engine4 (parts 1 to 3)', () => {
+  test('exports exactly these values (the database readers are not among them)', () => {
     expect(Object.keys(engine4).sort()).toEqual(
       [
         'Engine4InputError',
@@ -52,6 +52,23 @@ describe('the public surface of lib/engine4 (parts 1 and 2)', () => {
         'zoneDisagreement',
         'zoneFromStored',
         'zoneInvalidation',
+        'zoneFromEntryRow',
+        'utcClock',
+        'BLACKOUT_APPROXIMATE_SECONDS',
+        'BLACKOUT_EXACT_SECONDS',
+        'CALENDAR_LATE_SECONDS',
+        'HOLDING_WINDOW_SECONDS',
+        'TIER1_KINDS',
+        'TIER1_SCHEMA_VERSION',
+        'checkBlackout',
+        'missingTier1Kinds',
+        'parseTier1List',
+        'SPECS_FUTURE_TOLERANCE_SECONDS',
+        'SPECS_MAX_AGE_SECONDS',
+        'readBrokerFigures',
+        'NOT_OFFERED_ROW',
+        'checkOffer',
+        'parseLiveDataStatus',
       ].sort()
     );
   });
@@ -62,6 +79,15 @@ describe('the public surface of lib/engine4 (parts 1 and 2)', () => {
     jest.isolateModules(() => {
       jest.doMock('@/lib/db/market-prisma', () => {
         throw new Error('the barrel must not load the database client');
+      });
+      expect(() => require('@/lib/engine4')).not.toThrow();
+    });
+  });
+
+  test('loading the barrel does not load the Tier-1 config file', () => {
+    jest.isolateModules(() => {
+      jest.doMock('@/config/engine4/tier1-events.json', () => {
+        throw new Error('the barrel must not load the Tier-1 config');
       });
       expect(() => require('@/lib/engine4')).not.toThrow();
     });

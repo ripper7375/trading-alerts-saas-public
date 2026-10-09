@@ -1,0 +1,7 @@
+{
+  "$schema": "./tier1-events.schema.json",
+  "schemaVersion": 1,
+  "listVersion": 1,
+  "description": "Tier-1 releases for the Report 2 news blackout (ADR-060, architecture 6.6), keyed on MT5 calendar event ids (MqlCalendarEvent.id), never on names. It ships EMPTY: the ids must come from production economic_events (plan decision D13) and cannot be invented. While events is empty or does not cover all four kinds (CPI, CORE_PCE, FOMC_RATE_DECISION, NFP) the offer check fails closed and Report 2 is not offered. Add an entry as { \"eventId\": \"<digits>\", \"kind\": \"<kind>\", \"name\": \"<label>\" } and raise listVersion by one.",
+  "events": []
+}

@@ -48,6 +48,8 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   (found 2026-10-09, restoring the part 6 stash; the commit is LF either way).
 - **`pathlib.Path.write_text` on Windows writes CRLF** (text mode): a Python one-liner that edits a repo file this way converts the whole file (it did to the architecture document
   and the ADR index, 2026-10-09; `git diff --stat` stayed small only because git normalises on the way in). Edit with the Edit tool, or `read_bytes()` / `write_bytes()`.
+- **A CRLF slip is invisible to `tsc` and Jest and fatal to a line-matching mutation harness** (build step 5 part 3, 2026-10-10): a Python edit with `write_text` turned `lib/engine4/offer.ts` into CRLF; the harness asserts each automatic mutant's `old_line` equals the scratch file's line, so all four workers crashed at the first mutant of that file, and the multi-line manual patterns of the same file matched nothing (`NOOP`). After a scripted edit, scan the changed files with Python (`b"\r\n" in path.read_bytes()`, not `grep`) and run `prettier --write` (the repository's `endOfLine` is `lf`) BEFORE the scratch copies are made.
+- **Never stop a process by matching its command line on a word your own command also contains** (`Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -match 'count_done' } | Stop-Process` ended the shell that was running it, exit 255, and the commands after it did not run). Match a script name that your own command does not spell out, or stop the ids you listed first.
 
 ## Tests
 

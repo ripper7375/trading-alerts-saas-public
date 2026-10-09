@@ -110,3 +110,38 @@ export function zoneFromStored(raw: unknown): ZoneInput | null {
     runwayRatio: ratio,
   };
 }
+
+/**
+ * Read one row of `entry_zones` (the table the gateway fills from a synthesis
+ * reading's `zones_json`): flat columns for the prices and a `levels` JSON for
+ * the levels behind them (`source_levels`, `confluence_levels`,
+ * `invalidation_level`, `next_opposing_level`). It is the same zone as
+ * `zoneFromStored` reads from `zones_json`, and null on the same grounds, plus
+ * one: the flat `next_opposing_price` column must say what the level in
+ * `levels` says, so a row whose two halves disagree is not used.
+ */
+export function zoneFromEntryRow(row: unknown): ZoneInput | null {
+  if (!isRecord(row)) return null;
+  const levels = row['levels'];
+  if (!isRecord(levels)) return null;
+  const zone = zoneFromStored({
+    zone_id: row['zone_id'],
+    rank: row['rank'],
+    bias: row['bias'],
+    low: row['low'],
+    high: row['high'],
+    reference_price: row['reference_price'],
+    invalidation_price: row['invalidation_price'],
+    invalidation_basis: row['invalidation_basis'],
+    invalidation_level: levels['invalidation_level'],
+    stop_distance: row['stop_distance'],
+    next_opposing_level: levels['next_opposing_level'],
+    runway: row['runway'],
+    runway_ratio: row['runway_ratio'],
+  });
+  if (zone === null) return null;
+  const column = row['next_opposing_price'];
+  if (zone.nextOpposingLevel === null) return column === null ? zone : null;
+  const price = decimalOrNull(column);
+  return price !== null && price.eq(zone.nextOpposingLevel.price) ? zone : null;
+}

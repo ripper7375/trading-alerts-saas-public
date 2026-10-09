@@ -217,3 +217,36 @@ export function fakeClient(
   };
   return { client, calls };
 }
+
+// -- entry_zones rows -----------------------------------------------------------
+
+/**
+ * The `entry_zones` row for a stored zone of `zones_json`, as the gateway builds
+ * it (`zoneRowOf` in `railway-gateway/src/sensors/synthesis-rows.ts`): flat
+ * columns for the prices and a `levels` JSON for the levels behind them.
+ */
+export function entryRowOf(
+  doc: Record<string, unknown>
+): Record<string, unknown> {
+  const opposing = doc['next_opposing_level'] as { price: number } | null;
+  return {
+    zone_id: doc['zone_id'],
+    rank: doc['rank'],
+    bias: doc['bias'],
+    low: doc['low'],
+    high: doc['high'],
+    reference_price: doc['reference_price'],
+    invalidation_price: doc['invalidation_price'],
+    invalidation_basis: doc['invalidation_basis'],
+    stop_distance: doc['stop_distance'],
+    next_opposing_price: opposing === null ? null : opposing.price,
+    runway: doc['runway'],
+    runway_ratio: doc['runway_ratio'],
+    levels: {
+      source_levels: doc['source_levels'],
+      confluence_levels: doc['confluence_levels'],
+      invalidation_level: doc['invalidation_level'],
+      next_opposing_level: doc['next_opposing_level'],
+    },
+  };
+}

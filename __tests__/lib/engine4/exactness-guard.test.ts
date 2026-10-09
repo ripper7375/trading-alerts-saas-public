@@ -87,6 +87,32 @@ function sourceFilesUnder(dir: string): string[] {
   return out.sort();
 }
 
+/**
+ * `Number(x)` with exactly one argument that the compiler types as a `bigint`
+ * (and nothing wider) is an exact conversion, not arithmetic: it is how a
+ * whole-second time becomes the integer a database query takes (`toDbInt`
+ * range-checks it first). `Number('5')`, `Number(a)` for a `number | bigint`
+ * and every other use stay forbidden.
+ */
+function isBigIntConversion(
+  node: ts.Identifier,
+  checker: ts.TypeChecker
+): boolean {
+  if (node.text !== 'Number') return false;
+  const call = node.parent;
+  if (
+    !ts.isCallExpression(call) ||
+    call.expression !== node ||
+    call.arguments.length !== 1
+  ) {
+    return false;
+  }
+  const [argument] = call.arguments;
+  if (argument === undefined) return false;
+  const type = checker.getTypeAtLocation(argument);
+  return (type.flags & ts.TypeFlags.BigIntLike) !== 0;
+}
+
 /** True when the compiler cannot rule out a JavaScript number (or any). */
 function numberish(type: ts.Type): boolean {
   if (type.flags & (ts.TypeFlags.NumberLike | ts.TypeFlags.Any)) return true;
@@ -98,10 +124,12 @@ function numberish(type: ts.Type): boolean {
 /**
  * The pure modules import sibling files only: no dependency, no I/O. The one
  * place that reads a database is `read/`, which may also import its parent's
- * files (`../`), the database client, `crypto` and `zlib`, and nothing else.
+ * files (`../`), the database client, the Tier-1 config file, `crypto` and
+ * `zlib`, and nothing else.
  */
 const READER_IMPORTS: readonly string[] = [
   '@/lib/db/market-prisma',
+  '@/config/engine4/tier1-events.json',
   'crypto',
   'zlib',
 ];
@@ -170,7 +198,11 @@ function analyse(sources: Map<string, string>): Violation[] {
       });
     };
     const visit = (node: ts.Node): void => {
-      if (ts.isIdentifier(node) && FORBIDDEN_NAMES.has(node.text)) {
+      if (
+        ts.isIdentifier(node) &&
+        FORBIDDEN_NAMES.has(node.text) &&
+        !isBigIntConversion(node, checker)
+      ) {
         report(node, `forbidden name ${node.text}`);
       }
       if (ts.isNumericLiteral(node)) {
@@ -234,6 +266,11 @@ const BAD: Record<string, string> = {
   'parse-int.ts': "export const a = parseInt('1', 10);",
   'to-fixed.ts': 'export const a = (1).toFixed(2);',
   'number-call.ts': "export const a = Number('5');",
+  'number-of-a-number.ts': 'const a: number = 1;\nexport const b = Number(a);',
+  'number-of-a-union.ts':
+    'declare const a: number | bigint;\nexport const b = Number(a);',
+  'number-with-two-arguments.ts': 'export const b = Number(1n, 2n);',
+  'number-by-reference.ts': 'export const f = [1n].map(Number);',
   'locale.ts': 'export const a = (1).toLocaleString();',
   'multiply.ts': 'const a: number = 1;\nexport const b = a * 2;',
   'add-assign.ts': 'let a = 1;\na += 2;\nexport { a };',
@@ -264,11 +301,15 @@ const BAD: Record<string, string> = {
 const BAD_IN_READ: Record<string, string> = {
   'fs.ts': "import { readFileSync } from 'fs';\nexport const a = readFileSync;",
   'other-alias.ts': "import { x } from '@/lib/db/prisma';\nexport const a = x;",
+  'other-config.ts':
+    "import config from '@/config/engine4/other.json';\nexport const a = config;",
   'math.ts': 'export const a = Math.floor(2);',
 };
 const GOOD_IN_READ: Record<string, string> = {
   'client.ts':
     "import { createHash } from 'crypto';\nimport { gunzipSync } from 'zlib';\nimport { marketPrisma } from '@/lib/db/market-prisma';\nimport { x } from '../parent';\nexport const a = [createHash, gunzipSync, marketPrisma, x];",
+  'tier1-config.ts':
+    "import config from '@/config/engine4/tier1-events.json';\nexport const a = config;",
 };
 
 const GOOD: Record<string, string> = {
@@ -280,6 +321,8 @@ const GOOD: Record<string, string> = {
     'const list = [1n, 2n];\nexport const a = list.length > 1 && list.length <= 2 && 3 < 4;',
   'conversions.ts':
     "export const a = BigInt(3);\nexport const b = String(a);\nexport const c = BigInt('7') + 1n;",
+  'number-of-a-bigint.ts':
+    'const a: bigint = 5n;\nexport const b = Number(a);\nexport const c = Number(7n);',
   'integers.ts': 'export const a = [10, 20].slice(1, 2);',
   'negative-integer-literal.ts':
     'export function sign(a: bigint): -1 | 0 | 1 {\n  return a < 0n ? -1 : a > 0n ? 1 : 0;\n}',
@@ -342,7 +385,7 @@ describe('the guard itself', () => {
 describe('lib/engine4', () => {
   const files = sourceFilesUnder(ENGINE_DIR);
 
-  test('holds the files of parts 1 and 2', () => {
+  test('holds the files of parts 1 to 3', () => {
     const names = files.map((file) => file.slice(file.lastIndexOf('/') + 1));
     expect(names).toEqual(
       expect.arrayContaining([
@@ -359,6 +402,13 @@ describe('lib/engine4', () => {
         'stops.ts',
         'zone.ts',
         'structure-levels.ts',
+        'time.ts',
+        'blackout.ts',
+        'broker.ts',
+        'offer.ts',
+        'cycle.ts',
+        'specs.ts',
+        'events.ts',
       ])
     );
   });
