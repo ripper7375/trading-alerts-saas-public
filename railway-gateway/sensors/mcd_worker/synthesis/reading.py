@@ -1,6 +1,6 @@
 """The SYN reading (``syn-output/1``): build it, write it canonically, and refuse one that is not fit to be saved (architecture 3.5).
 
-One reading per trader type per cycle, stored like a sensor reading: byte-stable canonical JSON (the same decision always gives
+One reading per trader type per cycle, kept in its own table (ADR-091): byte-stable canonical JSON (the same decision always gives
 the same text and the same hash, R4), with the rule id, the rules version and the rules checksum it was made with, so a stored
 reading can be replayed and traced to one row of one file (3.2 point 4, ADR-026).
 

@@ -490,7 +490,8 @@ production.** The sequence is B0 (the migration), then B1 for MCD1 and MCD2, the
    If it fails part-way, the tables are unread: `DROP TABLE "entry_zones", "synthesis_readings";` and `prisma migrate resolve --rolled-back 20261004000000_add_synthesis_tables`.
 
 2. **MCD1 and MCD2 at `shadow`** (B1, §3.3). `SYN` may not be higher than either, and the worker refuses to start if it is. MCD3 is optional: synthesis
-   runs without it (the Day Trader's and Scalper's rows then just have no modifier; golden scenario 16 is that case).
+   runs without it (the Day Trader's and Scalper's rows then just have no modifier). Golden scenario 16 feeds synthesis the reading of MCD2 alone (no MCD1, no MCD3)
+   to test absent inputs; it is a test input, not a rollout state you can reach, because the worker refuses `SYN` above MCD1 or MCD2 (ADR-092).
 3. **The kit copy is in step with the engine:** `npm run check:sensor-kit` (45 files, equal).
 
 ### 9.3 Switch it on, and what to expect

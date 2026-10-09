@@ -908,6 +908,78 @@ describe('context_levels: the sr_* levels of the last closed bar (kit standard 1
     expect(none.bundle).not.toHaveProperty('context_levels');
   });
 
+  describe('a failing sr_* read never stops the cycle (an optional input; session B check F1 and F8)', () => {
+    // what Prisma throws when sr_9 to sr_16 are not migrated yet: the production check (b) of waiting-on.md
+    const missingColumn = Object.assign(
+      new Error('The column `market_data_v6.sr_9` does not exist'),
+      { code: 'P2022' }
+    );
+    const contextWarnings = () =>
+      warn.mock.calls
+        .map((call) => String(call[0]))
+        .filter((text) => text.includes('context_levels left out'));
+
+    it.each([
+      ['an Error from the driver', missingColumn, /sr_9` does not exist/],
+      [
+        'a rejection that is not an Error',
+        'connection reset',
+        /connection reset/,
+      ],
+    ])(
+      'loads OK without context_levels, warns once, and changes nothing else (%s)',
+      async (_name, failure, message) => {
+        const normal = await loaded(world(V1));
+        const w = world(V1);
+        w.prisma.marketDataV6.findFirst = (async () => {
+          throw failure;
+        }) as typeof w.prisma.marketDataV6.findFirst;
+        warn.mockClear();
+
+        const { bundle, provenance } = await loaded(w);
+
+        expect(Object.keys(bundle)).not.toContain('context_levels');
+        const { context_levels: stored, ...rest } = normal.bundle;
+        expect(stored).toBeDefined();
+        expect(bundle).toEqual(rest);
+        expect(bundleProblems(bundle)).toEqual([]);
+        expect(provenance.refusals).toEqual([]);
+        expect(contextWarnings()).toHaveLength(1);
+        expect(contextWarnings()[0]).toMatch(message);
+        expect(contextWarnings()[0]).toContain(`Slot ${w.plan.slot}`);
+      }
+    );
+
+    it('one timeframe failing leaves the whole key out: the levels are all or nothing', async () => {
+      const w = world(V1);
+      const real = w.prisma.marketDataV6.findFirst;
+      w.prisma.marketDataV6.findFirst = (async (args: never) => {
+        if (
+          (args as { where: { timeframe: string } }).where.timeframe === 'M15'
+        )
+          throw missingColumn;
+        return real(args);
+      }) as typeof real;
+
+      const { bundle } = await loaded(w);
+
+      expect(Object.keys(bundle)).not.toContain('context_levels');
+      expect(contextWarnings()).toHaveLength(1);
+    });
+
+    it('does not hide a value of another type: that still throws (a new kind of column nobody classified)', async () => {
+      const w = world(V1);
+      const last = w.prisma.bars
+        .filter((b) => b['timeframe'] === 'M15' && b['sr_1'] === 4369.57)
+        .pop()!;
+      last['sr_1'] = '4369.57';
+      await expect(
+        w.source.loadCycleInputs('XAUUSD', w.plan.slot)
+      ).rejects.toThrow(/sr_1 holds a string, not a price/);
+      expect(contextWarnings()).toEqual([]);
+    });
+  });
+
   it('a timeframe left out of the bundle (its cycle was not READY) has no bars and so no levels', async () => {
     const w = world(V1);
     // M15 was collected by the cycle at 20:45 (not the slot): without that READY row M15 is left out

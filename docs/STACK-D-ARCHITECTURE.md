@@ -4,7 +4,7 @@
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**          | Canonical. Version 1.0, 30 September 2026                                                                                                                                                                                                                           |
 | **Owner**           | Davin (approver of every change)                                                                                                                                                                                                                                    |
-| **Decisions**       | [`docs/adr/`](adr/README.md): entries 001–083, all settled ([ADR-015](adr/015-retuning-during-a-promote.md) settled 1 Oct 2026)                                                                                                                                     |
+| **Decisions**       | [`docs/adr/`](adr/README.md): entries 001–092, all settled ([ADR-015](adr/015-retuning-during-a-promote.md) settled 1 Oct 2026)                                                                                                                                     |
 | **Building an MCD** | [MCD-DEVELOPMENT-STANDARD.md](MCD-DEVELOPMENT-STANDARD.md) (ADR-082), in the order given by [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md); the MCD registry is §2.13                                                         |
 | **For Davin**       | [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md): the build steps from his side, with the prompt to paste for each                                                                                                                                      |
 | **Built from**      | The eight decks `STACK-D-REVISED-ARCHITECTURE-00` to `-07` in `davintrade-stack-d-and-e/`, and the review [`STACK-D-ARCHITECTURE-REVIEW-AND-RECOMMENDATIONS.md`](../davintrade-stack-d-and-e/archive/STACK-D-ARCHITECTURE-REVIEW-AND-RECOMMENDATIONS.md) (archived) |
@@ -829,7 +829,7 @@ those sections are built (build steps 5 to 7).
 - Replaying a stored cycle gives the same bias, archetype and zones.
 - Each reading names its rule; unmatched cycles are logged as NEUTRAL.
 - When the rules say stand aside, no zones are built and Report 1 cannot give a direction.
-- Every zone has a reference price, invalidation ≥ $13 away and a runway ratio.
+- Every zone has a reference price, invalidation ≥ $13 away and a runway ratio, unless no level lies beyond the entry ([ADR-089] (e)).
 - A test cycle with a level just above entry blocks targets beyond it (§6.5).
 - Modal pills equal zone reference prices; no filler prices.
 - The 18 Sep test cycle gives rule 1 for Day Traders and rule 3s for Scalpers under the draft rules.
@@ -2015,6 +2015,16 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | [080](adr/080-operations-dashboard-and-alerts.md)                              | One admin page and five alerts                                                                           | Section 7 · 30 Sep  | Settled |
 | [081](adr/081-safety-texts-in-all-16-languages.md)                             | Safety texts in all 19 languages before release; right-to-left tested                                    | Section 7 · 30 Sep  | Settled |
 | [082](adr/082-mcd-development-standard.md)                                     | Every MCD is built to MCD-DEVELOPMENT-STANDARD.md; one registry row per MCD in §2.13                     | Section 2 · 30 Sep  | Settled |
+| [083](adr/083-mcd1-and-mcd2-windows-count-the-channels-closed-bars.md)         | MCD1 and MCD2 windows count the channel’s closed bars (patch 2.0.1)                                      | Section 2 · 1 Oct   | Settled |
+| [084](adr/084-draft-1-reads-the-draft-table-where-it-is-silent.md)             | Rules version draft-1 reads the draft table where it is silent                                           | Section 3 · 4 Oct   | Settled |
+| [085](adr/085-caution-is-inherited-from-the-sensors-a-rule-read.md)            | Caution is inherited from the sensors a rule read                                                        | Section 3 · 4 Oct   | Settled |
+| [086](adr/086-the-reference-price-is-the-last-closed-m5-close.md)              | The reference price is the close of the last closed M5 bar                                               | Section 3 · 4 Oct   | Settled |
+| [087](adr/087-support-and-resistance-levels-are-structure-not-zone-sources.md) | Support and resistance levels are structure, not zone sources                                            | Section 3 · 4 Oct   | Settled |
+| [088](adr/088-zone-sources-are-the-m5-channel-levels.md)                       | Zone sources are the M5 channel levels                                                                   | Section 3 · 4 Oct   | Settled |
+| [089](adr/089-zone-edge-cases.md)                                              | Zone edge cases: runway, rank and the cap of five (refines ADR-031 and ADR-032)                          | Section 3 · 4 Oct   | Settled |
+| [090](adr/090-the-support-and-resistance-levels-travel-in-the-cycle-bundle.md) | The support and resistance levels travel in the cycle bundle                                             | Section 2 · 4 Oct   | Settled |
+| [091](adr/091-syn-readings-and-zones-have-their-own-tables.md)                 | SYN readings and entry zones have their own tables, not rows of mcd_outputs                              | Section 3 · 4 Oct   | Settled |
+| [092](adr/092-the-syn-flag.md)                                                 | SYN has its own flag (off, shadow, live) and may not exceed MCD1 or MCD2                                 | Section 3 · 4 Oct   | Settled |
 
 ## Appendix B — Corrections to earlier material
 

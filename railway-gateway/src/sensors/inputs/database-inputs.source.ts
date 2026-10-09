@@ -96,6 +96,8 @@ type Collecting =
  *     null, never 0. No evaluator reads them: they are for synthesis's entry zones, and the bundle stores
  *     them because a later cycle may refit the column. A timeframe with no bars, or whose last bar has
  *     vanished from the table between the two reads, has no entry; the key is left out when no timeframe has one.
+ *     The read is optional: when it throws (a column not migrated yet, a database error) the loader warns and
+ *     leaves the key out, so it can never stop a cycle's sensor rows. A value of another type still throws.
  *   - Rule 5, statistics at the slot. Rows are read by symbol, timeframe and ONE
  *     `captured_at`: the slot the timeframe was last collected at (M15 at 20:55 is
  *     20:45). No ordering by time, no "latest available"; a source with no row at the
@@ -227,7 +229,7 @@ export class DatabaseInputsSource implements InputsSource {
       )
     );
     const bars: Record<Timeframe, BarRecord[]> = { M5: barsM5, M15: barsM15 };
-    const contextLevels = await this.contextLevelsOf(bars);
+    const contextLevels = await this.contextLevelsOf(bars, slot);
 
     const usedSources: Partial<Record<Timeframe, string>> = {};
     const perTimeframe: Partial<Record<Timeframe, TimeframeTuning>> = {};
@@ -288,16 +290,29 @@ export class DatabaseInputsSource implements InputsSource {
    * bundle's own last bar. No bar, or no row for it, gives no entry for the timeframe.
    */
   private async contextLevelsOf(
-    bars: Record<Timeframe, BarRecord[]>
+    bars: Record<Timeframe, BarRecord[]>,
+    slot: number
   ): Promise<NonNullable<CycleInputsBundle['context_levels']>> {
-    const found = await Promise.all(
-      TIMEFRAMES.map(async (timeframe) => {
-        const last = bars[timeframe][bars[timeframe].length - 1];
-        return last === undefined
-          ? null
-          : this.fetchContextLevels(timeframe, last.timestamp);
-      })
-    );
+    let found: Awaited<ReturnType<FetchContextLevels>>[];
+    try {
+      found = await Promise.all(
+        TIMEFRAMES.map(async (timeframe) => {
+          const last = bars[timeframe][bars[timeframe].length - 1];
+          return last === undefined
+            ? null
+            : this.fetchContextLevels(timeframe, last.timestamp);
+        })
+      );
+    } catch (error) {
+      // An optional input never stops the sensors' rows: a failing read (the sr_9 to sr_16 columns not migrated yet, a
+      // database error) leaves `context_levels` out of the bundle, and the cycle goes on without them.
+      this.logger.warn(
+        `Slot ${slot}: context_levels left out of the inputs (the sr_1 to sr_16 read failed: ${
+          error instanceof Error ? error.message : String(error)
+        })`
+      );
+      return {};
+    }
     const out: NonNullable<CycleInputsBundle['context_levels']> = {};
     TIMEFRAMES.forEach((timeframe, index) => {
       const row = found[index];

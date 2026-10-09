@@ -65,7 +65,7 @@ Every row of the rules table decides at least one reading, for each trader type 
 cells cannot be reached by any input and are not scenarios: a Scalper cannot reach row 5 or "no match" with a usable MCD2, because rows 2, 3s and 4 cover every state of MCD2
 (`synthesis/synthesis.md`, section 7; pinned by `tests/test_synthesis_engine.py`). Also covered: a VALID reading, CAUTIONARY readings from an MCD0 defect and from MCD3's modifier,
 an INVALID and a STALE stand-aside, NEUTRAL, stand-aside from a range and from a conflict, zones with each invalidation basis (`LEVEL`, `MINIMUM_STOP`, `NO_LEVEL`), a level just
-above the entry, no zones and why (`NOT_DIRECTIONAL`, `NO_ZONE_SOURCES`), and partial sensors (only MCD2 running).
+above the entry, no zones and why (`NOT_DIRECTIONAL`, `NO_ZONE_SOURCES`), and partial sensors: scenario 16 hands synthesis the reading of MCD2 alone, to test absent inputs. That is a test input, not a state of the rollout: the worker refuses `SYN` above MCD1 or MCD2 ([ADR-092](../../../../docs/adr/092-the-syn-flag.md)), so MCD1 is never absent while `SYN` runs. The title and the reason stored in scenario 16 (and so `INDEX.md` and `review.md`, which are generated from them) say "only MCD2 is running", as signed; read them this way.
 
 ## Adding a scenario
 
