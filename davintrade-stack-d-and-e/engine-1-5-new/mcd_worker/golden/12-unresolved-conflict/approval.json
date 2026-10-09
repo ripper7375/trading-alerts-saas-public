@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "12-unresolved-conflict",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "d3df8457346a7e3b94a3ffbcbe957777bd5579aa3e90b42a7bb630d43a2a8ba1",
+  "expected_sha256": "988a8a2bc3f3475e83124b0b05f02259c37a2a2a23e39a7ec17d2a0adebc8cde",
+  "note": ""
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "07-opposite-spikes-primary-decides",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "070f4c56b0fbe22c0f60d40fb6b88469ee817cc67732d0fcaff03f1429bd1978",
+  "expected_sha256": "4761ba8f4fd07829fea55c1f6055a97f39a645c223a9e336e80346b2f2b00238",
+  "note": ""
+}

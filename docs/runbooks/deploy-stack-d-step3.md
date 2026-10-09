@@ -6,6 +6,7 @@ live measurements, five trading days of shadow, certification into `state_statis
 to `live`. Also how to switch each part off again.
 **Written:** 2026-10-03, at the close of build step 3 Phase A (parts 1 to 7), from the hand-offs
 `docs/handoffs/2026-10-0*-step3-part*.md`, the plan `2026-10-02-1707-step3-plan.md` (§4, Phase B) and the code.
+**§9 (`SYN`) added 2026-10-09**, at the close of build step 4, from the step 4 hand-offs (`2026-10-04-*-step4-part*.md`) and the code.
 **Who:** Davin. The Executor never applies a migration, deploys, enters a sign-in, or touches production.
 **Before you start:** the step 2 runbook (`deploy-stack-d-step2.md`) has been done and its live evidence is recorded
 (plan decision 6: step 3's Phase B starts after it).
@@ -41,6 +42,9 @@ to `live`. Also how to switch each part off again.
 | B3  | At least five trading days of shadow                  | The status mix, the MCD0 flag rate, no `EVALUATOR_ERROR`, nothing skipped by accident                        | B1, calendar time                             |
 | B4  | Certification                                         | `state_statistics` rows, with n, from the point-in-time history                                              | B3, the two missing tools (§6)                |
 | B5  | RETUNING enforced; flags to `live`                    | Every sensor CAUTIONARY during a promote; the sensors enter the board and synthesis                          | Decision 1 (how RETUNING ends); steps 4 and 6 |
+
+Build step 4 adds the `SYN` flag (the Day Trader and Scalper readings and the entry zones): its steps are **§9**, they start after B1
+(MCD1 and MCD2 at `shadow`), and the third migration (`20261004000000_add_synthesis_tables`) belongs to B0a.
 
 **Stop conditions.** Stop, change nothing further, and tell the Advisor if: the migration fails part-way (§1);
 `prisma migrate status` shows migrations pending that you did not expect (§1); the throwaway service cannot
@@ -401,7 +405,8 @@ Two tools are missing; both are small builder sessions, to be planned with the B
    real fixtures, so "VALID only" would leave MCD1 to MCD3 almost empty; a reading made while RETUNING is enforced is the
    same question). Decide on the real counts, then record it in architecture §2.8.
 
-`opposing_level_rate` stays NULL until build step 4 defines levels and stops. Every series carries
+`opposing_level_rate` stays NULL. Build step 4 defined levels and stops per zone of one SYN reading, not per state occurrence of one MCD, so the rate is defined
+here, with B4's real counts and "which readings count as occurrences" (plan decision D11), not before. Every series carries
 `FORMING_BAR_FIT: UNVERIFIED` until Davin closes that open item with what the trace found.
 
 ---
@@ -443,7 +448,133 @@ Two separate switches, in this order. Neither is part of the shadow stage.
    MCD0 needs items 7 and 8 at all is Davin's to decide in steps 4 and 6. Each flag change is a commit that records its
    evidence in the checklist, and a **decision entry** (standard stage 7, "Go live", **Davin approves**).
 
+---
+
+## 9. Build step 4 — `SYN`: the Day Trader and Scalper readings and the entry zones
+
+**What it adds.** A fifth flag, `SYN`. With it on, the same Python call that runs the MCDs makes, right after the last one,
+a Day Trader and a Scalper reading (`syn-output/1`) and their entry zones, and the gateway stores them in the **same
+transaction** as the cycle's `mcd_outputs` rows (ADR-091). It reads the sensors' final readings and the bundle's closed
+M5 bars and `context_levels`; it never changes a sensor's reading. **Off by default; nothing here has run against
+production.** The sequence is B0 (the migration), then B1 for MCD1 and MCD2, then the steps below.
+
+### 9.1 What exists
+
+| Piece                                                  | State                                                                                                                                     |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Rules `draft-1`, zone parameters `zones-1`, the engine | Built, in the kit copy (45 files). `SYN` is `'off'` in `worker_config.yaml`                                                               |
+| Migration `20261004000000_add_synthesis_tables`        | A file: `synthesis_readings`, `entry_zones`, 25 CHECKs. **Not applied anywhere.** Depends on no other migration                           |
+| Gateway write path                                     | Built: `SYN` rows judged in TypeScript, then written with the sensors' rows. If the tables are missing the SYN rows are left out (§9.5)   |
+| `replay-cycle.js` and `measure-sensors.js`             | Both read the SYN rows (§9.4). A database without the SYN tables is read as "no SYN rows", with a note                                    |
+| The golden scenarios (`mcd_worker/golden/`)            | 16 cycles; each awaits Davin's sign-off in its `approval.json`. `python -B -m mcd_worker.tools.golden check` rebuilds and compares (§9.7) |
+| Live evidence                                          | **None.** `SYN` has never been `shadow` against a live database                                                                           |
+
+### 9.2 Before `SYN` is turned on
+
+1. **Apply the third migration** (B0a, Davin). `npx prisma migrate status --config prisma.production.config.ts` first: the steps 2, 3 and 4
+   migrations are pending, and `migrate deploy` would apply every one in history order, so apply this one alone as §1 does:
+
+   ```bash
+   npx prisma db execute --file prisma/migrations/20261004000000_add_synthesis_tables/migration.sql --config prisma.production.config.ts
+   npx prisma migrate resolve --applied 20261004000000_add_synthesis_tables --config prisma.production.config.ts
+   ```
+
+   Check it (read only): both tables exist and the 25 CHECKs are there.
+
+   ```sql
+   SELECT to_regclass('public.synthesis_readings'), to_regclass('public.entry_zones');   -- neither NULL
+   SELECT count(*) FROM pg_constraint
+    WHERE contype = 'c' AND conrelid IN ('public.synthesis_readings'::regclass, 'public.entry_zones'::regclass);   -- 25
+   ```
+
+   If it fails part-way, the tables are unread: `DROP TABLE "entry_zones", "synthesis_readings";` and `prisma migrate resolve --rolled-back 20261004000000_add_synthesis_tables`.
+
+2. **MCD1 and MCD2 at `shadow`** (B1, §3.3). `SYN` may not be higher than either, and the worker refuses to start if it is. MCD3 is optional: synthesis
+   runs without it (the Day Trader's and Scalper's rows then just have no modifier; golden scenario 16 is that case).
+3. **The kit copy is in step with the engine:** `npm run check:sensor-kit` (45 files, equal).
+
+### 9.3 Switch it on, and what to expect
+
+One commit: `SYN: 'shadow'` in `mcd_worker/worker_config.yaml` (quote it: an unquoted `off` is the boolean false and the worker refuses it),
+`npm run sync:sensor-kit`, push. There is no gateway variable for it: the flag is the engine's. `shadow` reads the sensors that are `shadow`
+or `live`; `live` would read the `live` ones only and cannot be set before MCD1 and MCD2 are (ADR-092). Which rules it reads is
+`synthesis.rules_version` (`draft-1`).
+
+Per cycle expect **two rows** in `synthesis_readings` (DAY_TRADER and SCALPER) and, for each, 0 to 5 rows in `entry_zones`:
+
+```sql
+SELECT cycle_slot, profile, rule_id, branch_id, status, bias, archetype, stand_aside, zone_count, zones_reason,
+       round(duration_ms::numeric, 1) AS ms
+  FROM synthesis_readings WHERE symbol = 'XAUUSD' ORDER BY cycle_slot DESC, profile LIMIT 12;
+
+SELECT cycle_slot, profile, zone_id, low, high, reference_price, invalidation_price, stop_distance, runway, runway_ratio
+  FROM entry_zones WHERE symbol = 'XAUUSD' ORDER BY cycle_slot DESC, profile, rank LIMIT 20;
+```
+
+While MCD0 flags both timeframes (the three stored cycles all do), every reading is CAUTIONARY: that is the MCD0 flag-rate question of B3, not a
+fault of synthesis (ADR-085). A reading with no zones and a `zones_reason` is normal: `NOT_DIRECTIONAL` (a stand-aside or NEUTRAL) and
+`NO_ZONE_SOURCES` (the price is outside the M5 channel on the side opposite to the bias, which every snapback and range-edge reading is: ADR-088).
+
+### 9.4 Replay and the kit now cover SYN
+
+```bash
+DATABASE_URL="<DATABASE_PUBLIC_URL>" node scripts/replay-cycle.js --db --slot <slot> --slot <slot> --slot <slot>
+DATABASE_URL="<DATABASE_PUBLIC_URL>" node scripts/measure-sensors.js --db --last 288 --log gateway.log --strict
+node scripts/replay-cycle.js --fixtures                  # no database: v1, v3 and v4, SYN and zones included: expect 3 cycle(s): 3 VERIFIED
+```
+
+- **The replay** prints, after the sensors' lines, `SYN DAY_TRADER VERIFIED` and `SYN SCALPER VERIFIED` with the stored and replayed SHA-256 of
+  the reading and of the zones. It runs SYN under the flag and **the rules version stored on the rows**, so deploying `draft-2` does not disturb a
+  `draft-1` cycle. If the stored version's file is gone it uses the current one and says `VERSION_MISMATCH` (not a defect). `LOGIC_DIVERGENCE` with
+  "the rules file changed without a new version" is a stop: a rules or `zone_params.yaml` file was edited in place. A trader type with no stored row
+  (a refused reading) is a note, not a verdict. Verdicts and what to do: the table in §3.4.
+- **The kit** gains: SYN rows per cycle; the status mix per trader type and the **CAUTIONARY share**; the **rule-hit histogram** per trader type (`NO_MATCH`
+  marked); **every no-match cycle with the states of the sensors** (each is a gap in the table: a candidate for `draft-2`); bias, archetype and data status;
+  zones per cycle and the cycles with none (and why); the time of the SYN step; a **wording scan** of every stored reading (`%`, banned and advice words,
+  a summary over 80 characters) with a second look by the gateway's own `syn-output/1` validator; and the replay's SYN counts. A `NO_MATCH` reading, a dropped
+  zone set, a refusal and a cycle with fewer SYN rows than trader types are **findings** (`--strict` exits 1). A SYN table that is not there yet is a
+  **notice**, not a finding, so a step 3 deployment with `SYN` off still passes `--strict`.
+- **Refusals are counted from the log, not from a table:** a refused reading is logged and never stored. Give `--log` the gateway's log (plain lines or
+  Railway's JSON; repeatable) and, with `--redis` or `--jobs`, the job outcomes. Bull keeps only the last 100 completed jobs, so with `--redis` alone the
+  gap check covers only those slots; a `--log` is taken to cover the whole range asked about. `test/fixtures/measure-synthesis-sample.json` shows the
+  file form (`node scripts/measure-sensors.js --file test/fixtures/measure-synthesis-sample.json`).
+
+### 9.5 The SYN log lines
+
+| Line                                                  | Means                                                                                                                                            | What to do                                                                                      |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| `SYN_READING_REFUSED <profile> (ENGINE)`              | The engine's own guard refused the reading (schema, reason codes, identity, wording). The sensors and the other trader type are written          | Read the problems on the line. One is a bug in the rules or the engine: stop and say which slot |
+| `SYN_READING_REFUSED <profile> (GATEWAY)`             | The gateway's check (the twin of the database's CHECKs) refused it; nothing reaches the database                                                 | Same. The engine and the twin disagree: that is a defect in one of them                         |
+| `SYN_ENGINE_ERROR`                                    | Synthesis raised in the engine; no SYN rows for that cycle; the sensors' rows are unaffected                                                     | Stop and say which slot                                                                         |
+| `SYN_ZONES_DROPPED <profile>`                         | The reading was written but some zones failed their guard and were dropped                                                                       | Read the problems; a dropped zone is a defect                                                   |
+| `SYN_TABLES_MISSING`                                  | `SYN` is on but the two tables are not there (the migration of §9.2 is not applied): the SYN rows are left out and the sensors are written       | Apply the migration. The SYN rows of the cycles in between are not recovered                    |
+| `SYN_TABLES_CHECK_FAILED` (then `SYN_TABLES_MISSING`) | The gateway could not ask whether the tables exist (a database error); it treats that as "no" and leaves the SYN rows out. This line has no slot | Look at the database error on the line; the next cycle asks again                               |
+
+### 9.6 Over the B3 window (the SYN part)
+
+Daily and at the end, with the kit of §9.4. Have, at the end: two SYN rows in every cycle that has sensor rows (or a named reason); the rule-hit histogram
+(which rows fire, which never do); every no-match cycle explained; the CAUTIONARY share (expect close to 1 while MCD0 flags both timeframes, and read it with
+B3's MCD0 flag rate); zones per cycle; the SYN step's time inside the 30 s cycle budget; zero wording-scan hits; zero `SYN_ENGINE_ERROR`, dropped zones and
+unexplained refusals; and a replay of three real cycles that is `VERIFIED` including SYN. Record it, and tell the Advisor.
+
+### 9.7 Changing the rules, and the golden gate
+
+A change to a row, a text or the order of the rules is a **new file** (`rules/draft-2.yaml`, never an edit of `draft-1`, whose checksum a test pins) and a decision entry;
+a change to a zone parameter is a new `zones_version`. Before either is deployed: `python -B -m mcd_worker.tools.golden check` fails until the new outputs have
+been read and recorded (`record`) and Davin has approved the scenarios that changed; `check --require-approved` is the release gate of architecture 7.7. Then `replay-cycle.js`
+on stored cycles: those made under `draft-1` keep replaying as `draft-1` while its file stays in the image.
+
+### 9.8 Rollback
+
+| What to switch off                | How                                                                                                                                              | What it leaves                                         |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------ |
+| **Synthesis**                     | `SYN: 'off'` in `worker_config.yaml`, `npm run sync:sensor-kit`, push. The sensors are unaffected; the next cycle writes no SYN rows             | The SYN rows stay (append-only)                        |
+| `SYN` on before the migration     | Nothing to undo: the SYN rows are left out and `SYN_TABLES_MISSING` is logged; the sensors' rows are written. Apply the migration (§9.2)         | The SYN rows of those cycles do not exist              |
+| The migration                     | **Leave it.** The tables are additive and unread by old code. Dropping them is a separate decision                                               | —                                                      |
+| A rules or zone-parameter version | Point `synthesis.rules_version` back at the previous file (a commit and a deploy). Stored rows keep the version and checksum they were made with | New rows use the older rules; old rows stay as written |
+
 ## What this runbook does not cover
 
-The prompt side, the board and synthesis (steps 4 to 7); the two missing tools of §6; the Python-in-Nixpacks choice of
-§2.1; how many Railway replicas run the worker (it assumes one, concurrency 1); the push worker's real throughput.
+The prompt side and the board (steps 5 to 7); synthesis is §9. The two missing tools of §6; the Python-in-Nixpacks choice of
+§2.1; how many Railway replicas run the worker (it assumes one, concurrency 1); the push worker's real throughput; any use of the SYN rows by a
+consumer (none exists until Section 5 and Section 6 are built).

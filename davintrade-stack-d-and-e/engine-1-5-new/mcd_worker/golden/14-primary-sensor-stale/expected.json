@@ -1,0 +1,71 @@
+{
+  "schema": "golden-expected/1",
+  "scenario": "14-primary-sensor-stale",
+  "kind": "readings",
+  "cycle_slot": "2026-10-09T10:30Z",
+  "data_status": "FRESH",
+  "inputs_sha256": "d804f13d3ad7ba285c549778f1221968488bdf9a26ba32f4d2a05e4ba88b4c1f",
+  "reference_price": 4402.2,
+  "sensors": [
+    {
+      "mcd_id": "MCD1",
+      "status": "STALE",
+      "state_code": null,
+      "bias": null,
+      "envelope_sha256": "946cdb7f914dd0b31d44cb3a371e5ebc3b8ab259e9522cf9067358d0f4f7bd8b",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD1\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-10-09T10:30Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"STALE\",\"status_reasons\":[\"NO_STATS_AT_SLOT\"],\"state_code\":null,\"regime_status\":null,\"bias\":null,\"levels\":[],\"depends_on\":[],\"summary_line\":\"Stale data, no reading: NO_STATS_AT_SLOT\",\"commentary\":\"No market reading this cycle because the inputs are stale. Reason codes: NO_STATS_AT_SLOT.\",\"details\":{}}"
+    },
+    {
+      "mcd_id": "MCD2",
+      "status": "VALID",
+      "state_code": "MCD2_UP_IN_CORRIDOR",
+      "bias": "LONG",
+      "envelope_sha256": "85855cc3cbedb937ab2ec765d5f1cf7b1d2af29b5ca297f96f42969160b2b483",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD2\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-10-09T10:30Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4420.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4402.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4384.0,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    },
+    {
+      "mcd_id": "MCD3",
+      "status": "STALE",
+      "state_code": null,
+      "bias": null,
+      "envelope_sha256": "1e3058045fa99e10f8e1471671f9f46c03b7e29209b45085d93343b3932b79c0",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD3\",\"evaluator_version\":\"2.0.0\",\"cycle_slot\":\"2026-10-09T10:30Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"STALE\",\"status_reasons\":[\"UPSTREAM_STALE:MCD1\"],\"state_code\":null,\"regime_status\":null,\"bias\":null,\"levels\":[],\"depends_on\":[\"MCD1\",\"MCD2\"],\"summary_line\":\"Stale data, no reading: UPSTREAM_STALE:MCD1\",\"commentary\":\"No market reading this cycle because the inputs are stale. Reason codes: UPSTREAM_STALE:MCD1.\",\"details\":{}}"
+    }
+  ],
+  "synthesis": {
+    "flag": "shadow",
+    "rules_version": "draft-1",
+    "rules_sha256": "42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e",
+    "zones_version": "zones-1",
+    "zones_sha256": "afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d",
+    "reference_price": 4402.2,
+    "error": null,
+    "readings": [
+      {
+        "profile": "DAY_TRADER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"DAY_TRADER\",\"cycle_slot\":\"2026-10-09T10:30Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R0_DATA_CHECK\",\"branch_id\":\"PRIMARY_UNAVAILABLE\",\"status\":\"STALE\",\"status_reasons\":[\"UPSTREAM_STALE:MCD1\"],\"data_status\":\"FRESH\",\"archetype\":null,\"bias\":\"STAND_ASIDE\",\"trend_relation\":null,\"stand_aside\":true,\"inputs\":{\"MCD1\":{\"status\":\"STALE\",\"state_code\":null,\"regime_status\":null,\"bias\":null,\"envelope_sha256\":\"946cdb7f914dd0b31d44cb3a371e5ebc3b8ab259e9522cf9067358d0f4f7bd8b\"},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"85855cc3cbedb937ab2ec765d5f1cf7b1d2af29b5ca297f96f42969160b2b483\"},\"MCD3\":{\"status\":\"STALE\",\"state_code\":null,\"regime_status\":null,\"bias\":null,\"envelope_sha256\":\"1e3058045fa99e10f8e1471671f9f46c03b7e29209b45085d93343b3932b79c0\"}},\"reasons\":[\"The primary sensor has no usable reading this cycle\"],\"zones\":[],\"summary_line\":\"Stand aside, primary sensor unavailable\"}",
+        "reading_sha256": "f29dea2cf93774dcd9ca4daf3dafe533faf183db8e4231ccd35e54ec0b2a029a",
+        "zones_json": "[]",
+        "zones_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "zones_reason": "NOT_DIRECTIONAL",
+        "guard_problems": []
+      },
+      {
+        "profile": "SCALPER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"SCALPER\",\"cycle_slot\":\"2026-10-09T10:30Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R3S_TREND_CONTINUATION_M5\",\"branch_id\":\"TREND_UP\",\"status\":\"VALID\",\"status_reasons\":[],\"data_status\":\"FRESH\",\"archetype\":\"A\",\"bias\":\"LONG\",\"trend_relation\":\"WITH_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"STALE\",\"state_code\":null,\"regime_status\":null,\"bias\":null,\"envelope_sha256\":\"946cdb7f914dd0b31d44cb3a371e5ebc3b8ab259e9522cf9067358d0f4f7bd8b\"},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"85855cc3cbedb937ab2ec765d5f1cf7b1d2af29b5ca297f96f42969160b2b483\"},\"MCD3\":{\"status\":\"STALE\",\"state_code\":null,\"regime_status\":null,\"bias\":null,\"envelope_sha256\":\"1e3058045fa99e10f8e1471671f9f46c03b7e29209b45085d93343b3932b79c0\"}},\"reasons\":[\"M5 uptrend continuing\"],\"zones\":[\"Z1\",\"Z2\"],\"summary_line\":\"M5 trend continuation, LONG\"}",
+        "reading_sha256": "45226e6bd2adf9d6322b91b400abfe70e1738f5a0df24b9dbc1abae044eda3a6",
+        "zones_json": "[{\"cycle_slot\":\"2026-10-09T10:30Z\",\"profile\":\"SCALPER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z1\",\"rank\":1,\"bias\":\"LONG\",\"low\":4380.4,\"high\":4387.6,\"reference_price\":4384.0,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4384.0,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4384.0,\"origin\":\"MCD2\"}],\"confluence_count\":1,\"invalidation_price\":4371.0,\"invalidation_basis\":\"NO_LEVEL\",\"invalidation_level\":null,\"stop_distance\":13.0,\"next_opposing_level\":{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4402.0,\"origin\":\"MCD2\"},\"runway\":18.0,\"runway_ratio\":1.38},{\"cycle_slot\":\"2026-10-09T10:30Z\",\"profile\":\"SCALPER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z2\",\"rank\":2,\"bias\":\"LONG\",\"low\":4398.4,\"high\":4405.6,\"reference_price\":4402.0,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4402.0,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4402.0,\"origin\":\"MCD2\"}],\"confluence_count\":1,\"invalidation_price\":4383.5,\"invalidation_basis\":\"LEVEL\",\"invalidation_level\":{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4384.0,\"origin\":\"MCD2\"},\"stop_distance\":18.5,\"next_opposing_level\":{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4420.0,\"origin\":\"MCD2\"},\"runway\":18.0,\"runway_ratio\":0.97}]",
+        "zones_sha256": "bbc23531c1ec5ac8469674edfc39ce1fa79915e42a586fb33519932e0a3548df",
+        "zones_reason": null,
+        "guard_problems": []
+      }
+    ]
+  },
+  "pills": {
+    "DAY_TRADER": [],
+    "SCALPER": [
+      4384.0,
+      4402.0
+    ]
+  }
+}

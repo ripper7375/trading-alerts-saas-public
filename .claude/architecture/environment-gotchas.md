@@ -42,6 +42,12 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   and copy a cached world (`cycle_test_support.py`); do the same for any new test that bulk-loads `market_data`.
 - **Python scripts that print `°` or `θ` crash on the Windows console** (`UnicodeEncodeError`, cp1252);
   MCD commentary contains `°`. Run them with `PYTHONIOENCODING=utf-8` (same hand-off, §8).
+- **`git stash apply` (and any restore from a stash) writes the files back with CRLF** (`core.autocrlf=true`), while every file the tools of this checkout write is LF on disk
+  (`git ls-files --eol` shows `i/lf w/crlf` for the restored ones). A spec that reads script text then fails (`sensors-replay.spec.ts` wants the shebang line to end in `\n`).
+  After a restore, convert the restored files back to LF (`bytes.replace(b"\r\n", b"\n")`, only the files the stash held), check `git ls-files --eol`, then run the suites
+  (found 2026-10-09, restoring the part 6 stash; the commit is LF either way).
+- **`pathlib.Path.write_text` on Windows writes CRLF** (text mode): a Python one-liner that edits a repo file this way converts the whole file (it did to the architecture document
+  and the ADR index, 2026-10-09; `git diff --stat` stayed small only because git normalises on the way in). Edit with the Edit tool, or `read_bytes()` / `write_bytes()`.
 
 ## Tests
 

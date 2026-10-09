@@ -147,7 +147,7 @@ Each handoff is specified once, in the section that produces it.
 | Envelope        | The common output format of every sensor and of synthesis (`mcd-output/1`, `syn-output/1`)                  |
 | Status          | VALID, CAUTIONARY, INVALID or STALE (§2.4)                                                                  |
 | Bias            | LONG, SHORT, NEUTRAL or STAND_ASIDE ([ADR-017])                                                             |
-| SYN             | The synthesis reading, stored like a sensor with `mcd_id = "SYN"`                                           |
+| SYN             | The synthesis reading: one `syn-output/1` row per trader type per cycle in `synthesis_readings` (ADR-091)   |
 | Zone            | An entry price range around a structural level, with reference price, invalidation and runway (§3.6)        |
 | Invalidation    | $0.50 beyond the next structural level past a zone; never closer than $13 ([ADR-032])                       |
 | Runway          | Distance in dollars from a zone to the first opposing level; the **runway ratio** is runway ÷ stop distance |
@@ -612,8 +612,9 @@ reasons, zones for Report 1); Section 6 (zone prices, invalidation, runway, tren
    (M5 for both). A request uses the one matching the trader's profile ([ADR-028]).
 3. **Same for every user.** Trading style, reward-to-risk caps and personal stop limits are applied
    later (§5, §6), so the cycle output never depends on who asks.
-4. **Saved and replayable.** Stored like a sensor reading (`mcd_id = "SYN"`) with rule id and rules
-   version.
+4. **Saved and replayable.** Stored in its own tables, `synthesis_readings` and `entry_zones`, in the
+   same transaction as the cycle's sensor rows ([ADR-091]), with the rule id, the rules version and
+   its checksum, and a hash of each text, so a stored cycle replays to the same bytes.
 5. **No grades.** No confidence grades (S / A / B, "95% confluence") until state statistics exist
    ([ADR-035]); confidence is shown as reasons.
 
@@ -660,6 +661,10 @@ change to the table is a new rules version and a decision-log entry.
 
 ### 3.5 The SYN reading (`syn-output/1`)
 
+The Day Trader reading of the 18 Sep 20:55 test cycle, exactly as the worker stores it (golden
+scenario 1, `mcd_worker/golden/`; the Scalper's differs in the rule, the reasons and the status
+reasons):
+
 ```json
 {
   "schema_version": "syn-output/1",
@@ -667,25 +672,64 @@ change to the table is a new rules version and a decision-log entry.
   "profile": "DAY_TRADER",
   "cycle_slot": "2026-09-18T20:55Z",
   "rules_version": "draft-1",
+  "rules_sha256": "42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e",
   "rule_id": "R1_MACRO_COUNTER_TREND_RALLY",
-  "status": "VALID",
+  "branch_id": "BREACH_UP",
+  "status": "CAUTIONARY",
+  "status_reasons": ["MCD0_DEFECT_M15", "MCD0_DEFECT_M5"],
+  "data_status": "FRESH",
   "archetype": "C",
   "bias": "LONG",
   "trend_relation": "COUNTER_TREND",
   "stand_aside": false,
   "inputs": {
-    "MCD1": "COUNTER_TREND_EXPANSION",
-    "MCD2": "MCD2_UP_IN_CORRIDOR",
-    "MCD3": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+    "MCD1": {
+      "status": "CAUTIONARY",
+      "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+      "regime_status": "COUNTER_TREND_EXPANSION",
+      "bias": "LONG",
+      "envelope_sha256": "05c6264bb4486856a5a75b0358dce55c340122df7d1149706a0a398be938b705"
+    },
+    "MCD2": {
+      "status": "CAUTIONARY",
+      "state_code": "MCD2_UP_IN_CORRIDOR",
+      "regime_status": "TREND_ALIGNED_CONTINUATION",
+      "bias": "LONG",
+      "envelope_sha256": "050acdd7cb324e519248c967824ca97038c34f77b394c0aab63eddd97a8c4347"
+    },
+    "MCD3": {
+      "status": "CAUTIONARY",
+      "state_code": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "regime_status": "TREND_MISALIGNMENT",
+      "bias": "STAND_ASIDE",
+      "envelope_sha256": "131872b470035a33cf1d0212bf5004197850ab79a82ba13b53680f0f2c4e94d6"
+    }
   },
-  "reasons": ["M15 breach up against a falling channel", "M5 uptrend"],
+  "reasons": [
+    "M15 breach up against a falling channel",
+    "M5 uptrend",
+    "M15 and M5 slopes differ, expected while the M15 slope lags"
+  ],
   "zones": ["Z1", "Z2"],
   "summary_line": "Counter-trend rally, LONG"
 }
 ```
 
+The status is CAUTIONARY, not VALID: MCD0 flags both timeframes on this cycle, so the sensors the
+rule read are CAUTIONARY and the reading inherits their reason codes ([ADR-085]). A VALID reading
+has no `status_reasons`; every other status says why.
+
 `profile` ∈ DAY_TRADER · SCALPER. `trend_relation` ∈ WITH_TREND · COUNTER_TREND (used by §6 for the
-style notice and the 2.50× cap).
+style notice and the 2.50× cap). `rule_id` and `branch_id` name the row and the branch that decided
+(`NO_MATCH` and `null` when none did); `rules_version` and `rules_sha256` name the rules file. `data_status`
+records the cycle's status as given: synthesis does not act on DELAYED or MARKET CLOSED, the answer
+gate of §5.3 does. `inputs` holds, for each of MCD1 to MCD3, its status, state code, regime word, bias
+and the hash of its envelope (the one `mcd_outputs` stores), so a reading joins to the sensor rows it
+was made from; a sensor that was not running is `ABSENT`. `zones` lists the zone ids in rank order
+and is empty whenever the reading stands aside. A stand-aside because the primary sensor has no
+usable reading is the one reading that is neither VALID nor CAUTIONARY: it is STALE
+(`UPSTREAM_STALE:<sensor>`) or INVALID (`UPSTREAM_UNAVAILABLE:<sensor>`). The reading is written as
+canonical JSON (fixed key order, compact) and hashed; the schema is `syn-output-1.schema.json`.
 
 ### 3.6 Entry-zone builder (the missing entry-zone specification)
 
@@ -713,33 +757,48 @@ rank.
 
 ### 3.7 Worked example (18 Sep 20:55, test data)
 
-Sensor readings: MCD1 (M15) downtrend (−29.72°) with a sustained breach above the M15 UOEDT
-(channel position 1.64), COUNTER_TREND_EXPANSION. MCD2 (M5) uptrend (6.94°), MCD2_UP_IN_CORRIDOR.
-MCD3: MCD3_NON_CONSOLIDATED_TREND_CONFLICT.
+The stored 18 Sep cycle (`mcd_worker/fixtures/2026-09-18T2055Z.*`; golden scenario 1), as the
+engine makes it. Sensor readings: MCD1 (M15) downtrend (−29.72°) with a sustained breach above the
+M15 UOEDT (channel position 1.66), COUNTER_TREND_EXPANSION. MCD2 (M5) uptrend (6.94°),
+MCD2_UP_IN_CORRIDOR. MCD3: MCD3_NON_CONSOLIDATED_TREND_CONFLICT. MCD0 flags both timeframes, so all
+three are CAUTIONARY and so are both readings ([ADR-085]).
 
-|          | Day Trader (M15 structure, M5 timing)      | Scalper (M5 for both)          |
-| -------- | ------------------------------------------ | ------------------------------ |
-| Rule     | 1 · C macro counter-trend rally            | 3s · A trend continuation (M5) |
-| Bias     | LONG                                       | LONG                           |
-| Relation | Counter-trend (against the M15 slope)      | With-trend (M5)                |
-| MCD3     | Conflict expected while the M15 slope lags | Conflict noted as caution      |
+|          | Day Trader (M15 structure, M5 timing)      | Scalper (M5 for both)            |
+| -------- | ------------------------------------------ | -------------------------------- |
+| Rule     | 1 · C macro counter-trend rally            | 3s · A trend continuation (M5)   |
+| Bias     | LONG                                       | LONG                             |
+| Relation | Counter-trend (against the M15 slope)      | With-trend (M5)                  |
+| Status   | CAUTIONARY (MCD0 on M15 and M5)            | CAUTIONARY (MCD0, MCD3 conflict) |
+| MCD3     | Conflict expected while the M15 slope lags | Conflict noted as caution        |
 
-Levels: M5 UOEDT 4384.28, M5 baseline 4367.25, M5 LOEDT 4350.22 (channel width 34.06, half-width
-3.41), M15 UOEDT 4279.21, M15 LOEDT 4125.99; last price 4377.99.
+Levels: M5 UOEDT 4384.23, M5 baseline 4367.20, M5 LOEDT 4350.16 (channel width 34.07, half-width
+3.41), M15 UOEDT 4279.46, M15 baseline 4214.17, M15 LOEDT 4126.24; support and resistance levels
+(M15 bar) `sr_1` 4369.57, `sr_2` 4350.92, `sr_3` 4334.56, `sr_5` 4386.20, `sr_6` 4398.29. Reference
+price 4378.31, the close of the last closed M5 bar ([ADR-086]); the bar still forming closes at
+4377.99 and is not used. The M15 and support and resistance levels are structure, not zone sources
+([ADR-087], [ADR-088]). Both trader types have the same bias, so they have the same zones.
 
-|                     | Z1 · M5 baseline       | Z2 · M5 LOEDT              |
-| ------------------- | ---------------------- | -------------------------- |
-| Range               | 4363.84 – 4370.66      | 4346.81 – 4353.63          |
-| Reference price     | 4367.25                | 4350.22                    |
-| Invalidation        | 4349.72 (LOEDT − 0.50) | 4278.71 (M15 UOEDT − 0.50) |
-| Stop distance       | $17.53                 | $71.51 (wide)              |
-| Next opposing level | M5 UOEDT 4384.28       | M5 baseline 4367.25        |
-| Runway ÷ stop       | 0.97                   | 0.24                       |
-| Rank                | 1                      | 2                          |
+|                     | Z1 · M5 baseline                    | Z2 · M5 LOEDT                       |
+| ------------------- | ----------------------------------- | ----------------------------------- |
+| Range               | 4363.79 – 4370.61                   | 4346.75 – 4353.57                   |
+| Reference price     | 4367.20                             | 4350.16                             |
+| Confluence          | 2 (M5 baseline, M15 `sr_1`)         | 2 (M5 LOEDT, M15 `sr_2`)            |
+| Invalidation        | 4350.42 (M15 `sr_2` 4350.92 − 0.50) | 4334.06 (M15 `sr_3` 4334.56 − 0.50) |
+| Stop distance       | $16.78                              | $16.10                              |
+| Next opposing level | M15 `sr_1` 4369.57                  | M15 `sr_2` 4350.92                  |
+| Runway ÷ stop       | $2.37 ÷ $16.78 = 0.14               | $0.76 ÷ $16.10 = 0.05               |
+| Rank                | 1                                   | 2                                   |
 
-Neither zone has room before the next resistance: even the Conservative scenario needs about 1.5×
-the stop, so Report 2 gives no badge and names 4384.28 (§6.5). The MCD2 example was produced with a
-test override while two indicators were active; it illustrates the mechanism only.
+Modal pills: 4367.20 and 4350.16. Neither zone has room before the next level above it: even the
+Conservative scenario needs about 1.5× the stop, so Report 2 gives no badge and names the blocking
+level (§6.5).
+
+The numbers are the engine's, pinned by a test (`test_golden.py`), and they differ from the first
+sketch of this section, which was written before the engine existed and used a last price of
+4377.99, an entry at 4367.25 and no support and resistance levels. §2's MCD2 example (produced with a
+test override while two indicators were active) and the examples of §4 to §6 still use that sketch's
+figures; they illustrate the mechanisms of their own sections and are rebuilt from this table when
+those sections are built (build steps 5 to 7).
 
 ### 3.8 Keep, change, add, remove
 
@@ -775,12 +834,36 @@ test override while two indicators were active; it illustrates the mechanism onl
 - Modal pills equal zone reference prices; no filler prices.
 - The 18 Sep test cycle gives rule 1 for Day Traders and rule 3s for Scalpers under the draft rules.
 
+**Evidence after build step 4** (9 October 2026). On fixtures, the golden scenarios and a throwaway database; nothing is
+live, `SYN` is `off` and the three migrations are not applied.
+
+| #   | Item                                                    | Evidence                                                                                                                                                  |
+| --- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Two readings per cycle, with rule id and version        | `test_runner_synthesis.py`; the gated `sensors-synthesis.pg.spec.ts` (the three stored cycles from a job to rows, idempotent)                             |
+| 2   | Replay gives the same bias, archetype and zones         | `node scripts/replay-cycle.js --fixtures`: VERIFIED for v1, v3 and v4, SYN and zones included, byte for byte; live replay waits for B1                    |
+| 3   | Each reading names its rule; no match is NEUTRAL        | `test_synthesis_engine.py`; golden scenario 15; the measurement kit lists every no-match cycle                                                            |
+| 4   | Stand aside builds no zones                             | Golden scenario 9 and the invariants of `test_golden.py`. **Data side.** "Report 1 cannot give a direction" is enforced by the validator of §5.7 (step 7) |
+| 5   | Every zone has a reference price, a stop of $13 or more | `test_zones_invariants.py` (a thousand random worlds), every golden zone, and the database CHECKs                                                         |
+| 6   | A level just above entry                                | `test_level_just_above_entry_is_the_next_opposing_level` and golden scenario 5. **Data side.** Blocking the targets beyond it is §6.5 (step 5)            |
+| 7   | Modal pills equal the zones' reference prices           | `test_pills.py` and the pills of every golden scenario. **Data side.** The modal and the bound on a custom entry are §6 (step 5)                          |
+| 8   | The 18 Sep cycle gives rule 1 and rule 3s               | `test_18_sep_day_trader_rule_1_scalper_rule_3s` and golden scenario 1. The readings are CAUTIONARY ([ADR-085])                                            |
+
+The first golden scenarios ([ADR-079], §7.7) are 16 cycles in `mcd_worker/golden/`: the three real stored ones and thirteen
+synthetic ones. Every row and every branch of the draft table decides at least one reading, except two cells that no input
+can reach (a Scalper cannot reach rule 5 or "no match" with a usable MCD2). Each scenario's expected output is signed off by
+Davin in its own `approval.json`; `python -B -m mcd_worker.tools.golden check --require-approved` fails while any is pending.
+What waits for live evidence is build step 3's Phase B (B0 to B3, then B4): a real cycle's two readings in
+`synthesis_readings` and a live replay.
+
 ### 3.11 Decisions
 
 [ADR-025] rules decide direction · [ADR-026] rules format · [ADR-027] synthesis in the worker ·
 [ADR-028] two trader-type readings · [ADR-029] precedence · [ADR-030] `sr_1`–`sr_16` as context ·
 [ADR-031] zone half-width · [ADR-032] invalidation · [ADR-033] modal pills · [ADR-034] custom-entry
-bound · [ADR-035] no grades.
+bound · [ADR-035] no grades. Recorded in build step 4: [ADR-084] `draft-1` reads the table where it
+is silent · [ADR-085] caution from the sensors a rule read · [ADR-086] the reference price ·
+[ADR-087] `sr_*` as structure · [ADR-088] zone sources · [ADR-089] zone edge cases · [ADR-090]
+`context_levels` in the bundle · [ADR-091] SYN tables · [ADR-092] the SYN flag.
 
 ---
 
@@ -2119,3 +2202,12 @@ The txtai library source in the same folder is reference code (§4.6).
 [ADR-081]: adr/081-safety-texts-in-all-16-languages.md
 [ADR-082]: adr/082-mcd-development-standard.md
 [ADR-083]: adr/083-mcd1-and-mcd2-windows-count-the-channels-closed-bars.md
+[ADR-084]: adr/084-draft-1-reads-the-draft-table-where-it-is-silent.md
+[ADR-085]: adr/085-caution-is-inherited-from-the-sensors-a-rule-read.md
+[ADR-086]: adr/086-the-reference-price-is-the-last-closed-m5-close.md
+[ADR-087]: adr/087-support-and-resistance-levels-are-structure-not-zone-sources.md
+[ADR-088]: adr/088-zone-sources-are-the-m5-channel-levels.md
+[ADR-089]: adr/089-zone-edge-cases.md
+[ADR-090]: adr/090-the-support-and-resistance-levels-travel-in-the-cycle-bundle.md
+[ADR-091]: adr/091-syn-readings-and-zones-have-their-own-tables.md
+[ADR-092]: adr/092-the-syn-flag.md

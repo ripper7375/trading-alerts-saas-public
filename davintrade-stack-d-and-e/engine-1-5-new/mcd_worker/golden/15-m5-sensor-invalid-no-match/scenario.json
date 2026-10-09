@@ -1,0 +1,20 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "15-m5-sensor-invalid-no-match",
+  "title": "MCD2 is INVALID: a data stand-aside and a NO_MATCH",
+  "why": "MCD2 has no usable reading (INVALID, too few bars) and MCD3, which reads it, is INVALID too. The Scalper's primary sensor is MCD2, so rule 0 stands it aside (INVALID, UPSTREAM_UNAVAILABLE:MCD2). The Day Trader's primary sensor, MCD1, is fine, but every row needs MCD2 or MCD3, so nothing matches: NEUTRAL, rule id NO_MATCH, recorded with every sensor's state (3.3 mechanic 5). This is how a gap in the table shows up in data.",
+  "kind": "readings",
+  "cycle_slot": "2026-10-09T13:10Z",
+  "data_status": "FRESH",
+  "reference_close": 4402.3,
+  "forming_close": 4402.9,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_IN_CORRIDOR",
+      "levels": { "M15": [4480.0, 4420.0, 4360.0] }
+    },
+    "MCD2": { "status": "INVALID", "reasons": ["INSUFFICIENT_BARS"] },
+    "MCD3": { "status": "INVALID", "reasons": ["UPSTREAM_UNAVAILABLE:MCD2"] }
+  }
+}

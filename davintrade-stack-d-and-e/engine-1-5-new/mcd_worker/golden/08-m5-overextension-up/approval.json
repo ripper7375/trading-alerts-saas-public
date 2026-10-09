@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "08-m5-overextension-up",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "b04730c87749da0b96bb698f46298a8bfe0b041e61ce682939f11795fdbf3460",
+  "expected_sha256": "b2d418e424f59942fe797db02338c5a55e3aa94b572d5594ec5d0cf69dcf6cbf",
+  "note": ""
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "09-range-middle-stand-aside",
+  "title": "A range, price in the middle: stand aside",
+  "why": "The stand-aside case (item 4 of 3.10, the data side). M15 and M5 are both flat and the price is inside both corridors. Rule 4 gives STAND_ASIDE (archetype D) to both trader types: the Day Trader through MCD1's range, the Scalper through the middle of MCD2's range. No zones are built (NOT_DIRECTIONAL), there are no modal pills, and the reading says stand_aside. Report 1 cannot give a direction; the validator that enforces it is Section 5 (build step 7).",
+  "kind": "readings",
+  "cycle_slot": "2026-10-07T11:05Z",
+  "data_status": "FRESH",
+  "reference_close": 4210.5,
+  "forming_close": 4210.9,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_SIDEWAYS_IN_CORRIDOR",
+      "levels": { "M15": [4260.0, 4210.0, 4160.0] }
+    },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_SIDEWAYS_IN_CORRIDOR",
+      "levels": { "M5": [4226.0, 4211.0, 4196.0] }
+    },
+    "MCD3": {
+      "status": "VALID",
+      "state": "MCD3_SIDEWAYS_EQUILIBRIUM",
+      "levels": { "M15": [4260.0, 4210.0, 4160.0], "M5": [4226.0, 4211.0, 4196.0] }
+    }
+  }
+}

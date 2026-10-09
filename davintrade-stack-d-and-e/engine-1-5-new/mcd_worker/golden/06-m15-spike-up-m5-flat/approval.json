@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "06-m15-spike-up-m5-flat",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "2f8614176a979e2fad8b398bdfa19dcf274af12ffe9d272d5d77cf58e6759b2e",
+  "expected_sha256": "700ff1a53dbea16aec22d0f190dcd076fc4cb4218b1bbdcb4d99170db175d852",
+  "note": ""
+}

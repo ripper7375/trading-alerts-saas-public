@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "14-primary-sensor-stale",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "70019436b65b44af5117a4ef6a842971e022d7c2895d4b795f132ac3e91f29c7",
+  "expected_sha256": "8fe34a4512433ca3064c3b267845f37a178b623c5b76958c39c9caf4cd99d6e7",
+  "note": ""
+}

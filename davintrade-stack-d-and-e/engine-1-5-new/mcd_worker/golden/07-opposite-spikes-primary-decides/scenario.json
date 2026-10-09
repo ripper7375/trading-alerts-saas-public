@@ -1,0 +1,28 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "07-opposite-spikes-primary-decides",
+  "title": "Opposite spikes: the primary sensor decides",
+  "why": "Rule 2 matches through MCD1 (a spike up at M15, so SHORT) and through MCD2 (a spike down at M5, so LONG). Decision D1 (c): the trader type's primary sensor decides, so the Day Trader gets the SHORT and the Scalper the LONG. The Day Trader's SHORT has three zones (the price is below the whole M5 channel); the Scalper's LONG has none (nothing below the price). MCD3 sees a trend conflict and makes both readings CAUTIONARY.",
+  "kind": "readings",
+  "cycle_slot": "2026-10-06T15:40Z",
+  "data_status": "FRESH",
+  "reference_close": 4262.8,
+  "forming_close": 4261.9,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_UPPER_BREAKOUT",
+      "levels": { "M15": [4250.0, 4200.0, 4150.0] }
+    },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_DOWN_LOWER_BREAKDOWN",
+      "levels": { "M5": [4322.0, 4302.0, 4282.0] }
+    },
+    "MCD3": {
+      "status": "VALID",
+      "state": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "levels": { "M15": [4250.0, 4200.0, 4150.0], "M5": [4322.0, 4302.0, 4282.0] }
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "12-unresolved-conflict",
+  "title": "M15 up against M5 down: an unresolved conflict",
+  "why": "Rule 5 for the Day Trader: M15 is an uptrend and M5 a downtrend, no earlier row matches, and MCD3 reports no consolidated trend, so the Day Trader stands aside (no archetype, no zones). The Scalper does not look at M15: its rule 3s gives a SHORT with the M5 trend, and the same trend conflict at MCD3 makes that reading CAUTIONARY (MODIFIER_CAUTION). The two trader types disagree in direction, which is the point of two readings per cycle (ADR-028).",
+  "kind": "readings",
+  "cycle_slot": "2026-10-08T08:45Z",
+  "data_status": "FRESH",
+  "reference_close": 4195.2,
+  "forming_close": 4194.6,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_IN_CORRIDOR",
+      "levels": { "M15": [4260.0, 4200.0, 4140.0] }
+    },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_DOWN_IN_CORRIDOR",
+      "levels": { "M5": [4210.0, 4196.0, 4182.0] }
+    },
+    "MCD3": {
+      "status": "VALID",
+      "state": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "levels": { "M15": [4260.0, 4200.0, 4140.0], "M5": [4210.0, 4196.0, 4182.0] }
+    }
+  }
+}

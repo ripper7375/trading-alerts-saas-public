@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "01-real-18-sep-counter-trend-rally",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "2658408a2bad50ee575732e36799f477a4dda44a6a85556a8f78bbe0cb397b40",
+  "expected_sha256": "371eb30bd4b05504de25c1342f06503eb99590d228938a0f92160405c7cf6a37",
+  "note": ""
+}

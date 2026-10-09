@@ -42,7 +42,7 @@ class TheFilesTests(unittest.TestCase):
         self.assertEqual({p.name for p in s.WORKER_DIR.glob("*.py")}, RUNTIME_PY)
         top_level_files = {p.name for p in s.WORKER_DIR.iterdir() if p.is_file() and p.suffix != ".py"}
         self.assertEqual(top_level_files, RUNTIME_DATA)
-        self.assertEqual({p.name for p in s.WORKER_DIR.iterdir() if p.is_dir() and p.name != "__pycache__"}, {"checklists", "fixtures", "statistics", "synthesis", "tests", "tools"})
+        self.assertEqual({p.name for p in s.WORKER_DIR.iterdir() if p.is_dir() and p.name != "__pycache__"}, {"checklists", "fixtures", "golden", "statistics", "synthesis", "tests", "tools"})
 
     def test_the_synthesis_files_are_exactly_the_documented_ones(self) -> None:
         self.assertEqual({p.name for p in SYNTHESIS_DIR.glob("*.py")}, SYNTHESIS_PY)

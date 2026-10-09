@@ -1,0 +1,8 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "03-real-28-sep-2315-downtrend-continuation",
+  "title": "The 28 Sep 23:15 cycle: a downtrend continuation",
+  "why": "A real stored cycle. Both trader types get a SHORT with the trend (rule 3 for the Day Trader, rule 3s for the Scalper) and zones above the price. Every sensor is CAUTIONARY (MCD0 flags both timeframes).",
+  "kind": "cycle",
+  "bundle": "2026-09-28T2315Z"
+}

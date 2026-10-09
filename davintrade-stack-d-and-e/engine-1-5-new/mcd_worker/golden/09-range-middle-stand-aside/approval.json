@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "09-range-middle-stand-aside",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "92bf294297ec72c46d6c4894aad3f75864f86c4e7fe286264969f277bdab3560",
+  "expected_sha256": "f66ae97966558ea5ee37fa148aa5db0528430e225d7bd30953dbd5860f9f037f",
+  "note": ""
+}

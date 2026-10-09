@@ -1,0 +1,82 @@
+{
+  "schema": "golden-expected/1",
+  "scenario": "01-real-18-sep-counter-trend-rally",
+  "kind": "cycle",
+  "cycle_slot": "2026-09-18T20:55Z",
+  "data_status": "FRESH",
+  "inputs_sha256": "8657f3e6c70a3658973dacda6f0bfd42f30f91f79cef58382af27222a9517e92",
+  "reference_price": 4378.31,
+  "sensors": [
+    {
+      "mcd_id": "MCD0",
+      "status": "VALID",
+      "state_code": "MCD0_M5_M15_DEFECT",
+      "bias": "NEUTRAL",
+      "envelope_sha256": "62100eb03d908e6d480d918b6faa6bea8e8ca6c7edfec6dc66d29417199ed0ec",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD0\",\"evaluator_version\":\"1.0.0\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"last_closed_bar\":{},\"active_indicator\":{\"M15\":\"non_b\",\"M5\":\"best_fit_a\"},\"config_hash\":{\"best_fit_a\":\"d78ed3ba68428d82572684105f89b8a0f822dcee9fa0eb8f909f3fb7b9d1d398\",\"non_b\":\"dbae8aa6616e612fc7b618fb038a117ba986f1fd7c15f6e6520dab210bbd65cd\"},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD0_M5_M15_DEFECT\",\"regime_status\":null,\"bias\":\"NEUTRAL\",\"levels\":[],\"depends_on\":[],\"summary_line\":\"M5 and M15 channel fits each miss a criterion\",\"commentary\":\"The M5 channel (best_fit_a) misses fit criteria: R2, fit ratio. The M15 channel (non_b) misses fit criteria: R2, fit ratio.\",\"details\":{\"M15\":{\"coverage\":1807,\"failed\":[\"R2_A\",\"FIT_A\",\"FIT_B\"],\"geo_ratio\":0.7425,\"model_a\":{\"fit_ratio\":1.2242,\"kurtosis\":4.07,\"r2\":0.6828,\"skew\":-1.33,\"var_ratio\":0.12},\"model_b\":{\"fit_ratio\":1.1369,\"kurtosis\":3.8,\"r2\":0.655,\"skew\":-1.28,\"var_ratio\":0.13},\"skipped\":[]},\"M5\":{\"coverage\":754,\"failed\":[\"R2_A\",\"R2_B\",\"FIT_A\",\"FIT_B\"],\"geo_ratio\":1.0,\"model_a\":{\"fit_ratio\":0.513,\"kurtosis\":2.48,\"r2\":-0.1016,\"skew\":-0.85,\"var_ratio\":0.32},\"model_b\":{\"fit_ratio\":0.5331,\"kurtosis\":2.5,\"r2\":-0.121,\"skew\":-0.79,\"var_ratio\":0.37},\"skipped\":[]}}}"
+    },
+    {
+      "mcd_id": "MCD1",
+      "status": "CAUTIONARY",
+      "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+      "bias": "LONG",
+      "envelope_sha256": "05c6264bb4486856a5a75b0358dce55c340122df7d1149706a0a398be938b705",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD1\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"last_closed_bar\":{\"M15\":\"2026-09-18T20:30Z\"},\"active_indicator\":{\"M15\":\"non_b\"},\"config_hash\":{\"non_b\":\"dbae8aa6616e612fc7b618fb038a117ba986f1fd7c15f6e6520dab210bbd65cd\"},\"status\":\"CAUTIONARY\",\"status_reasons\":[\"MCD0_DEFECT_M15\"],\"state_code\":\"MCD1_DOWN_UPPER_BREAKOUT\",\"regime_status\":\"COUNTER_TREND_EXPANSION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4279.46,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4214.17,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4126.24,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"M15 downtrend, sustained close above the corridor\",\"commentary\":\"The M15 channel slopes down (-29.72\\u00b0). The latest closed bar closed 101.47 above UOEDT 4279.46 (channel position 1.6622); 96 of the last 96 closed bars closed above UOEDT.\",\"details\":{\"channel_position\":1.6622,\"containment_rate\":73.95,\"lower_breach_count\":0,\"n_micro\":96,\"populated_candidates\":{\"M15\":[]},\"regression_angle_deg\":-29.72,\"trend_direction\":\"DOWN\",\"upper_breach_count\":96}}"
+    },
+    {
+      "mcd_id": "MCD2",
+      "status": "CAUTIONARY",
+      "state_code": "MCD2_UP_IN_CORRIDOR",
+      "bias": "LONG",
+      "envelope_sha256": "050acdd7cb324e519248c967824ca97038c34f77b394c0aab63eddd97a8c4347",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD2\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"last_closed_bar\":{\"M5\":\"2026-09-18T20:50Z\"},\"active_indicator\":{\"M5\":\"best_fit_a\"},\"config_hash\":{\"best_fit_a\":\"d78ed3ba68428d82572684105f89b8a0f822dcee9fa0eb8f909f3fb7b9d1d398\"},\"status\":\"CAUTIONARY\",\"status_reasons\":[\"MCD0_DEFECT_M5\"],\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4384.23,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4367.2,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4350.16,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"M5 uptrend, inside the corridor\",\"commentary\":\"The M5 SSA is inside the corridor, between LOEDT 4350.16 and UOEDT 4384.23 (channel position 0.8192), while the channel slopes up (+6.94\\u00b0).\",\"details\":{\"channel_position\":0.8192,\"containment_rate\":55.76,\"populated_candidates\":{\"M5\":[\"fractal\"]},\"regression_angle_deg\":6.94,\"reversion_setup\":false,\"trend_direction\":\"UP\",\"window_bars\":288}}"
+    },
+    {
+      "mcd_id": "MCD3",
+      "status": "CAUTIONARY",
+      "state_code": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "bias": "STAND_ASIDE",
+      "envelope_sha256": "131872b470035a33cf1d0212bf5004197850ab79a82ba13b53680f0f2c4e94d6",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD3\",\"evaluator_version\":\"2.0.0\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"last_closed_bar\":{\"M15\":\"2026-09-18T20:30Z\",\"M5\":\"2026-09-18T20:50Z\"},\"active_indicator\":{\"M15\":\"non_b\",\"M5\":\"best_fit_a\"},\"config_hash\":{\"best_fit_a\":\"d78ed3ba68428d82572684105f89b8a0f822dcee9fa0eb8f909f3fb7b9d1d398\",\"non_b\":\"dbae8aa6616e612fc7b618fb038a117ba986f1fd7c15f6e6520dab210bbd65cd\"},\"status\":\"CAUTIONARY\",\"status_reasons\":[\"UPSTREAM_CAUTIONARY:MCD1\",\"UPSTREAM_CAUTIONARY:MCD2\",\"MCD0_DEFECT_M5\",\"MCD0_DEFECT_M15\"],\"state_code\":\"MCD3_NON_CONSOLIDATED_TREND_CONFLICT\",\"regime_status\":\"TREND_MISALIGNMENT\",\"bias\":\"STAND_ASIDE\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4279.46,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4214.17,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4126.24,\"role\":\"support\"},{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4384.23,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4367.2,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4350.16,\"role\":\"support\"}],\"depends_on\":[\"MCD1\",\"MCD2\"],\"summary_line\":\"M15 and M5 trends differ, no consolidated trend\",\"commentary\":\"The M15 channel slopes down (-29.72\\u00b0) while the M5 channel slopes up (+6.94\\u00b0), so the two timeframes do not form a consolidated trend and no EDT stochastic is given.\",\"details\":{\"current_bar_engulfed\":false,\"edt_stochastic\":null,\"m15_trend_direction\":\"DOWN\",\"m5_trend_direction\":\"UP\",\"nested_bars\":0,\"nesting_met\":false,\"nesting_window_bars\":754,\"populated_candidates\":{\"M15\":[],\"M5\":[\"fractal\"]},\"trends_aligned\":false}}"
+    }
+  ],
+  "synthesis": {
+    "flag": "shadow",
+    "rules_version": "draft-1",
+    "rules_sha256": "42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e",
+    "zones_version": "zones-1",
+    "zones_sha256": "afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d",
+    "reference_price": 4378.31,
+    "error": null,
+    "readings": [
+      {
+        "profile": "DAY_TRADER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"DAY_TRADER\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R1_MACRO_COUNTER_TREND_RALLY\",\"branch_id\":\"BREACH_UP\",\"status\":\"CAUTIONARY\",\"status_reasons\":[\"MCD0_DEFECT_M15\",\"MCD0_DEFECT_M5\"],\"data_status\":\"FRESH\",\"archetype\":\"C\",\"bias\":\"LONG\",\"trend_relation\":\"COUNTER_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD1_DOWN_UPPER_BREAKOUT\",\"regime_status\":\"COUNTER_TREND_EXPANSION\",\"bias\":\"LONG\",\"envelope_sha256\":\"05c6264bb4486856a5a75b0358dce55c340122df7d1149706a0a398be938b705\"},\"MCD2\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"050acdd7cb324e519248c967824ca97038c34f77b394c0aab63eddd97a8c4347\"},\"MCD3\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD3_NON_CONSOLIDATED_TREND_CONFLICT\",\"regime_status\":\"TREND_MISALIGNMENT\",\"bias\":\"STAND_ASIDE\",\"envelope_sha256\":\"131872b470035a33cf1d0212bf5004197850ab79a82ba13b53680f0f2c4e94d6\"}},\"reasons\":[\"M15 breach up against a falling channel\",\"M5 uptrend\",\"M15 and M5 slopes differ, expected while the M15 slope lags\"],\"zones\":[\"Z1\",\"Z2\"],\"summary_line\":\"Counter-trend rally, LONG\"}",
+        "reading_sha256": "7cb4832fe46d414db1efea4737d47afc6cc3bfd5d0b72b081970175b608cb484",
+        "zones_json": "[{\"cycle_slot\":\"2026-09-18T20:55Z\",\"profile\":\"DAY_TRADER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z1\",\"rank\":1,\"bias\":\"LONG\",\"low\":4363.79,\"high\":4370.61,\"reference_price\":4367.2,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4367.2,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4367.2,\"origin\":\"MCD2\"},{\"name\":\"sr_1\",\"tf\":\"M15\",\"price\":4369.57,\"origin\":\"sr_levels\"}],\"confluence_count\":2,\"invalidation_price\":4350.42,\"invalidation_basis\":\"LEVEL\",\"invalidation_level\":{\"name\":\"sr_2\",\"tf\":\"M15\",\"price\":4350.92,\"origin\":\"sr_levels\"},\"stop_distance\":16.78,\"next_opposing_level\":{\"name\":\"sr_1\",\"tf\":\"M15\",\"price\":4369.57,\"origin\":\"sr_levels\"},\"runway\":2.37,\"runway_ratio\":0.14},{\"cycle_slot\":\"2026-09-18T20:55Z\",\"profile\":\"DAY_TRADER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z2\",\"rank\":2,\"bias\":\"LONG\",\"low\":4346.75,\"high\":4353.57,\"reference_price\":4350.16,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4350.16,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4350.16,\"origin\":\"MCD2\"},{\"name\":\"sr_2\",\"tf\":\"M15\",\"price\":4350.92,\"origin\":\"sr_levels\"}],\"confluence_count\":2,\"invalidation_price\":4334.06,\"invalidation_basis\":\"LEVEL\",\"invalidation_level\":{\"name\":\"sr_3\",\"tf\":\"M15\",\"price\":4334.56,\"origin\":\"sr_levels\"},\"stop_distance\":16.1,\"next_opposing_level\":{\"name\":\"sr_2\",\"tf\":\"M15\",\"price\":4350.92,\"origin\":\"sr_levels\"},\"runway\":0.76,\"runway_ratio\":0.05}]",
+        "zones_sha256": "ebd97d75a4e840829613f644476bd2494e623b01a700c2a706095b21e43c4585",
+        "zones_reason": null,
+        "guard_problems": []
+      },
+      {
+        "profile": "SCALPER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"SCALPER\",\"cycle_slot\":\"2026-09-18T20:55Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R3S_TREND_CONTINUATION_M5\",\"branch_id\":\"TREND_UP\",\"status\":\"CAUTIONARY\",\"status_reasons\":[\"MCD0_DEFECT_M5\",\"MCD0_DEFECT_M15\",\"MODIFIER_CAUTION:MCD3_NON_CONSOLIDATED_TREND_CONFLICT\"],\"data_status\":\"FRESH\",\"archetype\":\"A\",\"bias\":\"LONG\",\"trend_relation\":\"WITH_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD1_DOWN_UPPER_BREAKOUT\",\"regime_status\":\"COUNTER_TREND_EXPANSION\",\"bias\":\"LONG\",\"envelope_sha256\":\"05c6264bb4486856a5a75b0358dce55c340122df7d1149706a0a398be938b705\"},\"MCD2\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"050acdd7cb324e519248c967824ca97038c34f77b394c0aab63eddd97a8c4347\"},\"MCD3\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD3_NON_CONSOLIDATED_TREND_CONFLICT\",\"regime_status\":\"TREND_MISALIGNMENT\",\"bias\":\"STAND_ASIDE\",\"envelope_sha256\":\"131872b470035a33cf1d0212bf5004197850ab79a82ba13b53680f0f2c4e94d6\"}},\"reasons\":[\"M5 uptrend continuing\",\"M15 and M5 slopes differ\"],\"zones\":[\"Z1\",\"Z2\"],\"summary_line\":\"M5 trend continuation, LONG\"}",
+        "reading_sha256": "39cbc736b153101defc5decd30dae093154e974e286e9a6f9eefd5a488bb4307",
+        "zones_json": "[{\"cycle_slot\":\"2026-09-18T20:55Z\",\"profile\":\"SCALPER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z1\",\"rank\":1,\"bias\":\"LONG\",\"low\":4363.79,\"high\":4370.61,\"reference_price\":4367.2,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4367.2,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4367.2,\"origin\":\"MCD2\"},{\"name\":\"sr_1\",\"tf\":\"M15\",\"price\":4369.57,\"origin\":\"sr_levels\"}],\"confluence_count\":2,\"invalidation_price\":4350.42,\"invalidation_basis\":\"LEVEL\",\"invalidation_level\":{\"name\":\"sr_2\",\"tf\":\"M15\",\"price\":4350.92,\"origin\":\"sr_levels\"},\"stop_distance\":16.78,\"next_opposing_level\":{\"name\":\"sr_1\",\"tf\":\"M15\",\"price\":4369.57,\"origin\":\"sr_levels\"},\"runway\":2.37,\"runway_ratio\":0.14},{\"cycle_slot\":\"2026-09-18T20:55Z\",\"profile\":\"SCALPER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z2\",\"rank\":2,\"bias\":\"LONG\",\"low\":4346.75,\"high\":4353.57,\"reference_price\":4350.16,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4350.16,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4350.16,\"origin\":\"MCD2\"},{\"name\":\"sr_2\",\"tf\":\"M15\",\"price\":4350.92,\"origin\":\"sr_levels\"}],\"confluence_count\":2,\"invalidation_price\":4334.06,\"invalidation_basis\":\"LEVEL\",\"invalidation_level\":{\"name\":\"sr_3\",\"tf\":\"M15\",\"price\":4334.56,\"origin\":\"sr_levels\"},\"stop_distance\":16.1,\"next_opposing_level\":{\"name\":\"sr_2\",\"tf\":\"M15\",\"price\":4350.92,\"origin\":\"sr_levels\"},\"runway\":0.76,\"runway_ratio\":0.05}]",
+        "zones_sha256": "d07ffbb44362352af61df357e163f634f5fd44a9b0ff6d4e511b355ecfc24c64",
+        "zones_reason": null,
+        "guard_problems": []
+      }
+    ]
+  },
+  "pills": {
+    "DAY_TRADER": [
+      4367.2,
+      4350.16
+    ],
+    "SCALPER": [
+      4367.2,
+      4350.16
+    ]
+  }
+}

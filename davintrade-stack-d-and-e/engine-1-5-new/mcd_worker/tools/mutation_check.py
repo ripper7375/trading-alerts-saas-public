@@ -46,7 +46,7 @@ TEST_MODULES = (
     "test_cycle_runner", "test_boundaries", "test_fixtures", "test_cli", "test_determinism",
     "test_synthesis_fixtures", "test_synthesis_reading", "test_synthesis_engine", "test_synthesis_rules",
     "test_zones_params", "test_zones_builder", "test_zones_invariants", "test_pills",
-    "test_runner_synthesis",
+    "test_runner_synthesis", "test_golden",
 )
 # A mutant of the synthesis package (build step 4) is run against the synthesis tests alone: they are the tests written for it, so a survivor is
 # a gap in them, and the minute of unrelated tests would only slow the check down.

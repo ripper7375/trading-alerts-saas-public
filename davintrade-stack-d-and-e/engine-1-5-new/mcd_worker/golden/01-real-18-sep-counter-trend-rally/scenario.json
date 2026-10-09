@@ -1,0 +1,8 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "01-real-18-sep-counter-trend-rally",
+  "title": "The 18 Sep 20:55 test cycle: counter-trend rally",
+  "why": "Scenario 1 of architecture 7.7 and the last item of 3.10. A real stored cycle: the Day Trader gets rule 1 (a macro counter-trend rally) and the Scalper rule 3s (M5 trend continuation), both LONG. MCD0 flags both timeframes, so every channel sensor is CAUTIONARY and both readings are CAUTIONARY (3.3 mechanic 4), not VALID as the example of 3.5 showed. The zones are made from the M5 channel with the support and resistance levels as structure.",
+  "kind": "cycle",
+  "bundle": "2026-09-18T2055Z"
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "04-trend-up-all-valid",
+  "title": "A clean uptrend, every sensor VALID",
+  "why": "The one scenario with no caution at all: M15 and M5 both in an uptrend inside their corridors, MCD3 confirming (consolidated up). Both trader types get a LONG with the trend (rules 3 and 3s), status VALID, one confirming reason, and zones whose invalidation sits behind a structure level (basis LEVEL). The bar still forming has another close than the last closed one; the reference price must be the closed one.",
+  "kind": "readings",
+  "cycle_slot": "2026-10-05T14:30Z",
+  "data_status": "FRESH",
+  "reference_close": 4390.4,
+  "forming_close": 4391.15,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_IN_CORRIDOR",
+      "levels": { "M15": [4452.0, 4386.0, 4320.0] }
+    },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_UP_IN_CORRIDOR",
+      "levels": { "M5": [4406.0, 4376.0, 4346.0] }
+    },
+    "MCD3": {
+      "status": "VALID",
+      "state": "MCD3_BULL_MID",
+      "levels": { "M15": [4452.0, 4386.0, 4320.0], "M5": [4406.0, 4376.0, 4346.0] }
+    }
+  }
+}

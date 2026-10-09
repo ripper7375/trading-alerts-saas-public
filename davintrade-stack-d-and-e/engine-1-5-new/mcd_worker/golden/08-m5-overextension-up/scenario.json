@@ -1,0 +1,28 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "08-m5-overextension-up",
+  "title": "An M5 overextension above an M15 uptrend",
+  "why": "Rule 2 through MCD2's branch (an M5 uptrend stretched above its corridor): a SHORT against the spike for both trader types, while M15 is still an ordinary uptrend. MCD3 is consolidated up, against the SHORT, so it adds a note and no caution; both readings are VALID. The price is above the whole M5 channel, so a SHORT has nothing above it to make a zone from (NO_ZONE_SOURCES).",
+  "kind": "readings",
+  "cycle_slot": "2026-10-07T07:50Z",
+  "data_status": "FRESH",
+  "reference_close": 4338.4,
+  "forming_close": 4339.1,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_IN_CORRIDOR",
+      "levels": { "M15": [4420.0, 4340.0, 4260.0] }
+    },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_UP_UPPER_BREAKOUT",
+      "levels": { "M5": [4328.0, 4310.0, 4292.0] }
+    },
+    "MCD3": {
+      "status": "VALID",
+      "state": "MCD3_BULL_MID",
+      "levels": { "M15": [4420.0, 4340.0, 4260.0], "M5": [4328.0, 4310.0, 4292.0] }
+    }
+  }
+}

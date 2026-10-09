@@ -1,0 +1,30 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "10-range-edge-up-with-conflict",
+  "title": "A range edge above the corridor, with caution",
+  "why": "Rule 4 trades an edge: MCD2 is a flat range with the price above its upper edge, so both trader types get a SHORT (archetype D, trend relation COUNTER_TREND by decision D1 (d)); MCD1 is an ordinary uptrend, so it has no range branch to stand aside for. MCD2 and MCD3 are CAUTIONARY from an MCD0 defect on M5, and MCD3 sees a trend conflict, so the readings carry the MCD0 code and the modifier's caution. The price is above the whole M5 channel, so there are no zones (NO_ZONE_SOURCES).",
+  "kind": "readings",
+  "cycle_slot": "2026-10-07T16:20Z",
+  "data_status": "FRESH",
+  "reference_close": 4288.9,
+  "forming_close": 4289.3,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_IN_CORRIDOR",
+      "levels": { "M15": [4350.0, 4290.0, 4230.0] }
+    },
+    "MCD2": {
+      "status": "CAUTIONARY",
+      "reasons": ["MCD0_DEFECT_M5"],
+      "state": "MCD2_SIDEWAYS_UPPER_BREAKOUT",
+      "levels": { "M5": [4285.0, 4275.0, 4265.0] }
+    },
+    "MCD3": {
+      "status": "CAUTIONARY",
+      "reasons": ["MCD0_DEFECT_M5"],
+      "state": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "levels": { "M15": [4350.0, 4290.0, 4230.0], "M5": [4285.0, 4275.0, 4265.0] }
+    }
+  }
+}

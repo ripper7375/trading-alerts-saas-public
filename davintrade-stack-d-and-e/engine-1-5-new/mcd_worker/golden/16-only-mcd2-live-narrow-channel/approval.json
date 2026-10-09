@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "16-only-mcd2-live-narrow-channel",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "7b02c6888af562393049f1699080b7ae13c95731b216c972e9064c80f4bfa7e1",
+  "expected_sha256": "3b5d6438ccdbbf331b71f19892f64cc11548a11212ca1cd28d6ad6265b0b0afa",
+  "note": ""
+}

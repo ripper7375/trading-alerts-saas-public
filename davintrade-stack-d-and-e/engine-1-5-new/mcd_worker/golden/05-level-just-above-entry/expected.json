@@ -1,0 +1,74 @@
+{
+  "schema": "golden-expected/1",
+  "scenario": "05-level-just-above-entry",
+  "kind": "readings",
+  "cycle_slot": "2026-10-05T14:35Z",
+  "data_status": "FRESH",
+  "inputs_sha256": "0bc1a66e7af9ed6153d4c02faf6c4820399d82ed5916ace0e687770e9af645ec",
+  "reference_price": 4384.6,
+  "sensors": [
+    {
+      "mcd_id": "MCD1",
+      "status": "VALID",
+      "state_code": "MCD1_UP_IN_CORRIDOR",
+      "bias": "LONG",
+      "envelope_sha256": "2b041309f7c068f00d023b5134a4c18e513d3e72c627caabc7dddf45b3ba5121",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD1\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-10-05T14:35Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD1_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4452.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4386.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4320.0,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    },
+    {
+      "mcd_id": "MCD2",
+      "status": "VALID",
+      "state_code": "MCD2_UP_IN_CORRIDOR",
+      "bias": "LONG",
+      "envelope_sha256": "b09c06d359a1c46b8b452d538baf635b2fb154552e2d0703b59e6becd0979413",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD2\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-10-05T14:35Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4406.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4376.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4346.0,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    },
+    {
+      "mcd_id": "MCD3",
+      "status": "VALID",
+      "state_code": "MCD3_BULL_MID",
+      "bias": "LONG",
+      "envelope_sha256": "718a2b57638783766a6eb6670554a707059d5b46130b4fb4fbaa47eae78c2378",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD3\",\"evaluator_version\":\"2.0.0\",\"cycle_slot\":\"2026-10-05T14:35Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD3_BULL_MID\",\"regime_status\":\"BULLISH_CONSOLIDATED_EQUILIBRIUM\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4452.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4386.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4320.0,\"role\":\"support\"},{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4406.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4376.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4346.0,\"role\":\"support\"}],\"depends_on\":[\"MCD1\",\"MCD2\"],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    }
+  ],
+  "synthesis": {
+    "flag": "shadow",
+    "rules_version": "draft-1",
+    "rules_sha256": "42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e",
+    "zones_version": "zones-1",
+    "zones_sha256": "afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d",
+    "reference_price": 4384.6,
+    "error": null,
+    "readings": [
+      {
+        "profile": "DAY_TRADER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"DAY_TRADER\",\"cycle_slot\":\"2026-10-05T14:35Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R3_TREND_CONTINUATION\",\"branch_id\":\"TREND_UP\",\"status\":\"VALID\",\"status_reasons\":[],\"data_status\":\"FRESH\",\"archetype\":\"A\",\"bias\":\"LONG\",\"trend_relation\":\"WITH_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"VALID\",\"state_code\":\"MCD1_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"2b041309f7c068f00d023b5134a4c18e513d3e72c627caabc7dddf45b3ba5121\"},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"b09c06d359a1c46b8b452d538baf635b2fb154552e2d0703b59e6becd0979413\"},\"MCD3\":{\"status\":\"VALID\",\"state_code\":\"MCD3_BULL_MID\",\"regime_status\":\"BULLISH_CONSOLIDATED_EQUILIBRIUM\",\"bias\":\"LONG\",\"envelope_sha256\":\"718a2b57638783766a6eb6670554a707059d5b46130b4fb4fbaa47eae78c2378\"}},\"reasons\":[\"M15 uptrend continuing\",\"M5 uptrend in line with M15\",\"M15 and M5 are consolidated in an uptrend\"],\"zones\":[\"Z1\",\"Z2\"],\"summary_line\":\"Trend continuation, LONG\"}",
+        "reading_sha256": "87c9c24fd9ffeb134606f3c08ab63cdad5b258dc3052df65f5852903d268b40d",
+        "zones_json": "[{\"cycle_slot\":\"2026-10-05T14:35Z\",\"profile\":\"DAY_TRADER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z1\",\"rank\":1,\"bias\":\"LONG\",\"low\":4370.0,\"high\":4382.0,\"reference_price\":4376.0,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4376.0,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4376.0,\"origin\":\"MCD2\"},{\"name\":\"sr_3\",\"tf\":\"M15\",\"price\":4377.3,\"origin\":\"sr_levels\"}],\"confluence_count\":2,\"invalidation_price\":4345.5,\"invalidation_basis\":\"LEVEL\",\"invalidation_level\":{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4346.0,\"origin\":\"MCD2\"},\"stop_distance\":30.5,\"next_opposing_level\":{\"name\":\"sr_3\",\"tf\":\"M15\",\"price\":4377.3,\"origin\":\"sr_levels\"},\"runway\":1.3,\"runway_ratio\":0.04},{\"cycle_slot\":\"2026-10-05T14:35Z\",\"profile\":\"DAY_TRADER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z2\",\"rank\":2,\"bias\":\"LONG\",\"low\":4340.0,\"high\":4352.0,\"reference_price\":4346.0,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4346.0,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4346.0,\"origin\":\"MCD2\"}],\"confluence_count\":1,\"invalidation_price\":4319.5,\"invalidation_basis\":\"LEVEL\",\"invalidation_level\":{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4320.0,\"origin\":\"MCD1\"},\"stop_distance\":26.5,\"next_opposing_level\":{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4376.0,\"origin\":\"MCD2\"},\"runway\":30.0,\"runway_ratio\":1.13}]",
+        "zones_sha256": "962ba55b3acbdecca710890751f81318af7ea456234af3da4a40eb689e85bf40",
+        "zones_reason": null,
+        "guard_problems": []
+      },
+      {
+        "profile": "SCALPER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"SCALPER\",\"cycle_slot\":\"2026-10-05T14:35Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R3S_TREND_CONTINUATION_M5\",\"branch_id\":\"TREND_UP\",\"status\":\"VALID\",\"status_reasons\":[],\"data_status\":\"FRESH\",\"archetype\":\"A\",\"bias\":\"LONG\",\"trend_relation\":\"WITH_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"VALID\",\"state_code\":\"MCD1_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"2b041309f7c068f00d023b5134a4c18e513d3e72c627caabc7dddf45b3ba5121\"},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"b09c06d359a1c46b8b452d538baf635b2fb154552e2d0703b59e6becd0979413\"},\"MCD3\":{\"status\":\"VALID\",\"state_code\":\"MCD3_BULL_MID\",\"regime_status\":\"BULLISH_CONSOLIDATED_EQUILIBRIUM\",\"bias\":\"LONG\",\"envelope_sha256\":\"718a2b57638783766a6eb6670554a707059d5b46130b4fb4fbaa47eae78c2378\"}},\"reasons\":[\"M5 uptrend continuing\",\"M15 and M5 are consolidated in an uptrend\"],\"zones\":[\"Z1\",\"Z2\"],\"summary_line\":\"M5 trend continuation, LONG\"}",
+        "reading_sha256": "650ff9f31f3e012d8252655528dbb737efe78041bf44692b8d7b6e2b844d4d1e",
+        "zones_json": "[{\"cycle_slot\":\"2026-10-05T14:35Z\",\"profile\":\"SCALPER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z1\",\"rank\":1,\"bias\":\"LONG\",\"low\":4370.0,\"high\":4382.0,\"reference_price\":4376.0,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4376.0,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4376.0,\"origin\":\"MCD2\"},{\"name\":\"sr_3\",\"tf\":\"M15\",\"price\":4377.3,\"origin\":\"sr_levels\"}],\"confluence_count\":2,\"invalidation_price\":4345.5,\"invalidation_basis\":\"LEVEL\",\"invalidation_level\":{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4346.0,\"origin\":\"MCD2\"},\"stop_distance\":30.5,\"next_opposing_level\":{\"name\":\"sr_3\",\"tf\":\"M15\",\"price\":4377.3,\"origin\":\"sr_levels\"},\"runway\":1.3,\"runway_ratio\":0.04},{\"cycle_slot\":\"2026-10-05T14:35Z\",\"profile\":\"SCALPER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z2\",\"rank\":2,\"bias\":\"LONG\",\"low\":4340.0,\"high\":4352.0,\"reference_price\":4346.0,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4346.0,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4346.0,\"origin\":\"MCD2\"}],\"confluence_count\":1,\"invalidation_price\":4319.5,\"invalidation_basis\":\"LEVEL\",\"invalidation_level\":{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4320.0,\"origin\":\"MCD1\"},\"stop_distance\":26.5,\"next_opposing_level\":{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4376.0,\"origin\":\"MCD2\"},\"runway\":30.0,\"runway_ratio\":1.13}]",
+        "zones_sha256": "1112a246ea2c4c859da0343d3529e505a78f8a72ffd2b30e98a70f276d5dd7c9",
+        "zones_reason": null,
+        "guard_problems": []
+      }
+    ]
+  },
+  "pills": {
+    "DAY_TRADER": [
+      4376.0,
+      4346.0
+    ],
+    "SCALPER": [
+      4376.0,
+      4346.0
+    ]
+  }
+}

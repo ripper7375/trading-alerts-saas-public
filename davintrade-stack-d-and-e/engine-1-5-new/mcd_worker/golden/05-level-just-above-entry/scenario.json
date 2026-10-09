@@ -1,0 +1,29 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "05-level-just-above-entry",
+  "title": "A resistance level just above the entry",
+  "why": "Item 6 of 3.10, the data side. The sensors are those of scenario 04, with one support and resistance level (sr_3) 1.30 above the M5 baseline. For a LONG at the baseline zone that level is the next opposing level, so the zone's runway is 1.30 and its runway ratio is tiny; the level also falls inside the zone, so the zone gains a confluence level and ranks first. Section 6 (build step 5) is what blocks targets beyond it; this scenario pins the numbers it will read.",
+  "kind": "readings",
+  "cycle_slot": "2026-10-05T14:35Z",
+  "data_status": "FRESH",
+  "reference_close": 4384.6,
+  "forming_close": 4385.2,
+  "context_levels": { "M15": { "sr_3": 4377.3 } },
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_IN_CORRIDOR",
+      "levels": { "M15": [4452.0, 4386.0, 4320.0] }
+    },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_UP_IN_CORRIDOR",
+      "levels": { "M5": [4406.0, 4376.0, 4346.0] }
+    },
+    "MCD3": {
+      "status": "VALID",
+      "state": "MCD3_BULL_MID",
+      "levels": { "M15": [4452.0, 4386.0, 4320.0], "M5": [4406.0, 4376.0, 4346.0] }
+    }
+  }
+}

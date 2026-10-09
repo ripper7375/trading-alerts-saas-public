@@ -1,0 +1,28 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "11-range-edge-down",
+  "title": "A range edge below the corridor",
+  "why": "Rule 4 at the lower edge: MCD2 is a flat range with the price below its lower edge, so both trader types get a LONG (archetype D). The trend relation is COUNTER_TREND by decision D1 (d) even though MCD1 is an uptrend and the LONG agrees with it; that is how the draft table reads and Section 6 uses the relation for the style notice and the 2.50 times cap. MCD3 sees a trend conflict (M15 up, M5 flat), so both readings are CAUTIONARY. The price is below the whole M5 channel, so there are no zones.",
+  "kind": "readings",
+  "cycle_slot": "2026-10-08T12:35Z",
+  "data_status": "FRESH",
+  "reference_close": 4176.2,
+  "forming_close": 4175.8,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_IN_CORRIDOR",
+      "levels": { "M15": [4260.0, 4200.0, 4140.0] }
+    },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_SIDEWAYS_LOWER_BREAKDOWN",
+      "levels": { "M5": [4196.0, 4187.0, 4178.0] }
+    },
+    "MCD3": {
+      "status": "VALID",
+      "state": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "levels": { "M15": [4260.0, 4200.0, 4140.0], "M5": [4196.0, 4187.0, 4178.0] }
+    }
+  }
+}

@@ -138,6 +138,10 @@ Run from `davintrade-stack-d-and-e/engine-1-5-new/` (pytest is not installed; th
 python -B -m unittest discover -s mcd_worker/tests -t .
 python -B -m mcd_worker.tools.build_fixtures --check
 python -B -m mcd_worker.tools.mutation_check
+python -B -m mcd_worker.tools.golden check      # the golden scenarios: rebuild and compare, write nothing (also: list, record, --require-approved)
 ```
+
+`golden/` holds the first golden scenarios (build step 4 part 7, architecture 7.7): cycles with expected outputs that Davin approves file by file. `golden/README.md` says how to read
+and sign one off; `tools/golden.py` records and checks them; `tests/test_golden.py` tests both.
 
 `build_fixtures` needs the replica workbooks and `openpyxl`; `mutation_check` mutates a scratch copy and never the checkout.

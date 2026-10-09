@@ -4,13 +4,13 @@ Architecture chapter 3 owns the rules; this file says how `draft-1` reads them a
 Davin, who owns the content of the table (ADR-026), and for whoever builds on it. If this file and architecture chapter 3 disagree, chapter 3
 wins and this file is a bug.
 
-|                       |                                                                                                                                                                                          |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Status**            | Parts 1 and 2 built: rules file, loader, engine, reading; entry-zone builder, parameters, pills. Not called by the runner (part 3), no database (parts 4 and 5).                         |
-| **Rules version**     | `draft-1`, approved by Davin on 2026-10-04 (architecture 3.4 as it stands, plus the readings of decision D1 (a) to (e) of the step 4 plan below).                                        |
-| **Decisions applied** | ADR-025 rules decide direction · ADR-026 ordered versioned file, first match, no match is NEUTRAL and recorded · ADR-028 two readings per cycle · ADR-029 precedence · ADR-035 no grades |
-| **Step 4 plan**       | `docs/handoffs/2026-10-04-0110-step4-plan.md` (approved with D1 to D13 and A1 to A4 as recommended)                                                                                      |
-| **Files**             | Part 1: `rules/draft-1.yaml`, `rules.py`, `facts.py`, `engine.py`, `reading.py`, `syn-output-1.schema.json`. Part 2: `zone_params.yaml`, `zones.py`, `pills.py`                          |
+|                       |                                                                                                                                                                                                                                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Status**            | Built (build step 4, parts 1 to 7): rules file, loader, engine, reading; entry-zone builder, parameters, pills; called by the runner behind the `SYN` flag (`off` in the committed configuration); stored by the gateway; replayed and measured; golden scenarios in `../golden/`. Nothing live. |
+| **Rules version**     | `draft-1`, approved by Davin on 2026-10-04 (architecture 3.4 as it stands, plus the readings of decision D1 (a) to (e) of the step 4 plan below).                                                                                                                                                |
+| **Decisions applied** | ADR-025 rules decide direction · ADR-026 ordered versioned file, first match, no match is NEUTRAL and recorded · ADR-028 two readings per cycle · ADR-029 precedence · ADR-035 no grades                                                                                                         |
+| **Step 4 plan**       | `docs/handoffs/2026-10-04-0110-step4-plan.md` (approved with D1 to D13 and A1 to A4 as recommended)                                                                                                                                                                                              |
+| **Files**             | Part 1: `rules/draft-1.yaml`, `rules.py`, `facts.py`, `engine.py`, `reading.py`, `syn-output-1.schema.json`. Part 2: `zone_params.yaml`, `zones.py`, `pills.py`                                                                                                                                  |
 
 ## 1. What it does
 
@@ -91,9 +91,9 @@ Canonical JSON: compact, ASCII, fixed key order (the schema's `required` list). 
 | `reasons`, `summary_line`       | Fixed English texts: the branch's reasons, then the modifier's; one line of at most 80 characters, no prices                                                                       |
 | `zones`                         | Zone ids (`Z1` to `Z5`) in rank order, from the entry-zone builder (section 8; the runner passes them in part 3). Empty whenever the reading stands aside (the schema enforces it) |
 
-**Differences from the example in 3.5**, to be written into 3.5 in part 7: `inputs` carries an object per sensor (the example shows one word, and not
-the same kind of word for each); `status_reasons`, `data_status`, `rules_sha256` and `branch_id` are added; the status of the 18 Sep reading is
-CAUTIONARY, not VALID, because MCD0 flags both timeframes on every real cycle (the sensors are CAUTIONARY, so the reading inherits it).
+**Differences from the first sketch in 3.5**, written into 3.5 in part 7 (which now shows the stored 18 Sep Day Trader reading, pinned by `tests/test_golden.py`): `inputs` carries an
+object per sensor (the sketch showed one word, and not the same kind of word for each); `status_reasons`, `data_status`, `rules_sha256` and `branch_id` are added; the status of the 18 Sep
+reading is CAUTIONARY, not VALID, because MCD0 flags both timeframes on every real cycle (the sensors are CAUTIONARY, so the reading inherits it, ADR-085).
 
 **A stand-aside because the primary sensor has no usable reading** is the one reading that is not VALID or CAUTIONARY: it is STALE (reason
 `UPSTREAM_STALE:<sensor>`) when the sensor is STALE and INVALID (`UPSTREAM_UNAVAILABLE:<sensor>`) otherwise, and it still says STAND_ASIDE with no
@@ -148,7 +148,7 @@ runway, runway ratio, rank) and, so that it can be audited and replayed: the lev
 level it sits behind. A stored row also names the slot, the trader type, and the version and checksum of the parameters. `zone_problems` is the guard that
 refuses a zone that is not consistent with itself and with the parameters; the runner will put it between the builder and the database.
 
-**Worked example.** Architecture 3.7 on its own numbers (price 4377.99, M5 UOEDT 4384.28, baseline 4367.25, LOEDT 4350.22, M15 UOEDT 4279.21): Z1 is
+**Worked example.** The first sketch of architecture 3.7, kept as an arithmetic test (price 4377.99, M5 UOEDT 4384.28, baseline 4367.25, LOEDT 4350.22, M15 UOEDT 4279.21; 3.7 now shows the 18 Sep fixture's own figures, golden scenario 1): Z1 is
 4363.84 to 4370.66, reference 4367.25, invalidation 4349.72 (stop 17.53), runway 17.03, ratio 0.97; Z2 is 4346.81 to 4353.63, reference 4350.22, invalidation
 4278.71 (stop 71.51), runway 17.03, ratio 0.24. A test pins every figure. With the 18 Sep fixture's own levels and its `sr_*` the figures differ (section below).
 
@@ -157,14 +157,14 @@ refuses a zone that is not consistent with itself and with the parameters; the r
 - **A level between the reference price and the zone's far edge is both confluence and the opposing level** (D7 e says "beyond the reference price"). The
   conservative reading: a resistance just above the entry is an obstacle even though it also marks the zone. On 18 Sep `sr_1` (4369.57) sits inside the
   baseline zone and 2.37 above its reference: confluence 2, runway 2.37. The alternative is to run the runway from the zone's far edge; say if you prefer it.
-- **With `sr_*` the 18 Sep ranking differs from 3.7's.** The two M5 zones each gain a confluence level (`sr_1`, `sr_2`), the invalidations move behind `sr_2`
-  and `sr_3`, and the runways shrink to 2.37 and 0.76 (ratios 0.14 and 0.05). The baseline zone is still first. The numbers of 3.7 are reproduced only without `sr_*`.
+- **With `sr_*` the 18 Sep ranking differs from the first sketch of 3.7.** The two M5 zones each gain a confluence level (`sr_1`, `sr_2`), the invalidations move behind `sr_2`
+  and `sr_3`, and the runways shrink to 2.37 and 0.76 (ratios 0.14 and 0.05). The baseline zone is still first. The sketch's numbers are reproduced only without `sr_*`; architecture 3.7 now shows the figures with them.
 - **D7 f's last tie-break, "then the lower price", can never apply.** Every zone of one bias is on the same side of the price and no two zones share a
   reference price (they would have merged), so their distances from the price differ: the order is total after three keys. It is not in the code.
 - **A LONG with the price below the whole M5 channel has no zones.** On 28 Sep 14:15 the readings are LONG (the snapback of row 2) but the price is
   4138.78, below every M5 level: there is no level on the bias side to make a zone from, so the reading has no zones (`NO_ZONE_SOURCES`). That is D6 as
   approved; supports from `sr_*` or the M15 channel are structure, not sources.
-- **The stop distance is measured from the reference price, not from the zone's edge**, as 3.7 does (4367.25 - 4349.72 = 17.53).
+- **The stop distance is measured from the reference price, not from the zone's edge**, as the first sketch of 3.7 did (4367.25 - 4349.72 = 17.53) and the stored figures do (4367.20 - 4350.42 = 16.78).
 - **Two sensors with different channels** each give their own zones from their own width (MCD2 and MCD3 normally give the same levels, which are one).
 
 ## 9. Changing the rules and the zone parameters
@@ -175,3 +175,9 @@ the six readings of the real cycles are pinned in `tests/test_synthesis_fixtures
 
 A change to a zone parameter is a new `zones_version` (`zones-2`) and a decision-log entry; keep `zone_params.yaml` of the old version as
 `zone_params.zones-1.yaml` so stored zones can be replayed. The checksum of `zones-1` is pinned in `tests/test_zones_params.py`.
+
+## 10. Golden scenarios
+
+`../golden/` holds the first golden scenarios (build step 4 part 7): 16 cycles whose expected outputs Davin signs off, file by file. `python -B -m mcd_worker.tools.golden check` rebuilds them
+and compares byte for byte; `tests/test_golden.py` tests the tool and the set. A change to a rule, a zone parameter or the code here makes them fail until the new output has been read,
+recorded and approved (`../golden/README.md`).

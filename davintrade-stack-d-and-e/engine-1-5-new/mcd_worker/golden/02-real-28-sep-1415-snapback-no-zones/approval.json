@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "02-real-28-sep-1415-snapback-no-zones",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "2c171169352e61803138625b87e8e02d7c74f8e50ce783cdbfd2833c4348b4e5",
+  "expected_sha256": "bda7613f302a9721f094b7067d35935b58f2d6284cd5d60f133841b43a879dbd",
+  "note": ""
+}

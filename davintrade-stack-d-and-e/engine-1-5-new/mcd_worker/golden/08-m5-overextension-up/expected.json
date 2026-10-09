@@ -1,0 +1,68 @@
+{
+  "schema": "golden-expected/1",
+  "scenario": "08-m5-overextension-up",
+  "kind": "readings",
+  "cycle_slot": "2026-10-07T07:50Z",
+  "data_status": "FRESH",
+  "inputs_sha256": "15d35a2e271c910f728a3b3d7b73ec5e47fee18de37750e6107e686c9bd93e5b",
+  "reference_price": 4338.4,
+  "sensors": [
+    {
+      "mcd_id": "MCD1",
+      "status": "VALID",
+      "state_code": "MCD1_UP_IN_CORRIDOR",
+      "bias": "LONG",
+      "envelope_sha256": "56a49a6ac0a8a5000139d823a78b08a124f771e23edeb06a96699e691573f4e1",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD1\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-10-07T07:50Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD1_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4420.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4340.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4260.0,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    },
+    {
+      "mcd_id": "MCD2",
+      "status": "VALID",
+      "state_code": "MCD2_UP_UPPER_BREAKOUT",
+      "bias": "LONG",
+      "envelope_sha256": "50ecf76412213e217e79d773ae2ad291ca280fed96b7fa973c6d9f15db20fd92",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD2\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-10-07T07:50Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD2_UP_UPPER_BREAKOUT\",\"regime_status\":\"UPPER_OVEREXTENSION_REVERSION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4328.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4310.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4292.0,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    },
+    {
+      "mcd_id": "MCD3",
+      "status": "VALID",
+      "state_code": "MCD3_BULL_MID",
+      "bias": "LONG",
+      "envelope_sha256": "7ac06f6d25ddfb9d18081ad541b23847e5e21a9936ece2a74a70f2a3c350fc34",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD3\",\"evaluator_version\":\"2.0.0\",\"cycle_slot\":\"2026-10-07T07:50Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD3_BULL_MID\",\"regime_status\":\"BULLISH_CONSOLIDATED_EQUILIBRIUM\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4420.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4340.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4260.0,\"role\":\"support\"},{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4328.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4310.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4292.0,\"role\":\"support\"}],\"depends_on\":[\"MCD1\",\"MCD2\"],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    }
+  ],
+  "synthesis": {
+    "flag": "shadow",
+    "rules_version": "draft-1",
+    "rules_sha256": "42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e",
+    "zones_version": "zones-1",
+    "zones_sha256": "afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d",
+    "reference_price": 4338.4,
+    "error": null,
+    "readings": [
+      {
+        "profile": "DAY_TRADER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"DAY_TRADER\",\"cycle_slot\":\"2026-10-07T07:50Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R2_EXHAUSTION_SNAPBACK\",\"branch_id\":\"MCD2_SPIKE_UP\",\"status\":\"VALID\",\"status_reasons\":[],\"data_status\":\"FRESH\",\"archetype\":\"B\",\"bias\":\"SHORT\",\"trend_relation\":\"COUNTER_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"VALID\",\"state_code\":\"MCD1_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"56a49a6ac0a8a5000139d823a78b08a124f771e23edeb06a96699e691573f4e1\"},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_UP_UPPER_BREAKOUT\",\"regime_status\":\"UPPER_OVEREXTENSION_REVERSION\",\"bias\":\"LONG\",\"envelope_sha256\":\"50ecf76412213e217e79d773ae2ad291ca280fed96b7fa973c6d9f15db20fd92\"},\"MCD3\":{\"status\":\"VALID\",\"state_code\":\"MCD3_BULL_MID\",\"regime_status\":\"BULLISH_CONSOLIDATED_EQUILIBRIUM\",\"bias\":\"LONG\",\"envelope_sha256\":\"7ac06f6d25ddfb9d18081ad541b23847e5e21a9936ece2a74a70f2a3c350fc34\"}},\"reasons\":[\"M5 uptrend stretched above its corridor\",\"Bias is against the spike\",\"M15 and M5 are consolidated in an uptrend, against this direction\"],\"zones\":[],\"summary_line\":\"Snapback after a spike up, SHORT\"}",
+        "reading_sha256": "24f29bdf20a92c4a5cf9636165ebbc70c410dd58d5ba2930b2f2661a0ceb45f6",
+        "zones_json": "[]",
+        "zones_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "zones_reason": "NO_ZONE_SOURCES",
+        "guard_problems": []
+      },
+      {
+        "profile": "SCALPER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"SCALPER\",\"cycle_slot\":\"2026-10-07T07:50Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R2_EXHAUSTION_SNAPBACK\",\"branch_id\":\"MCD2_SPIKE_UP\",\"status\":\"VALID\",\"status_reasons\":[],\"data_status\":\"FRESH\",\"archetype\":\"B\",\"bias\":\"SHORT\",\"trend_relation\":\"COUNTER_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"VALID\",\"state_code\":\"MCD1_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"56a49a6ac0a8a5000139d823a78b08a124f771e23edeb06a96699e691573f4e1\"},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_UP_UPPER_BREAKOUT\",\"regime_status\":\"UPPER_OVEREXTENSION_REVERSION\",\"bias\":\"LONG\",\"envelope_sha256\":\"50ecf76412213e217e79d773ae2ad291ca280fed96b7fa973c6d9f15db20fd92\"},\"MCD3\":{\"status\":\"VALID\",\"state_code\":\"MCD3_BULL_MID\",\"regime_status\":\"BULLISH_CONSOLIDATED_EQUILIBRIUM\",\"bias\":\"LONG\",\"envelope_sha256\":\"7ac06f6d25ddfb9d18081ad541b23847e5e21a9936ece2a74a70f2a3c350fc34\"}},\"reasons\":[\"M5 uptrend stretched above its corridor\",\"Bias is against the spike\",\"M15 and M5 are consolidated in an uptrend, against this direction\"],\"zones\":[],\"summary_line\":\"Snapback after a spike up, SHORT\"}",
+        "reading_sha256": "5addd549fdc5294b4fca424c7031e80b5153fe7490767d13c8e3208fcba33f5d",
+        "zones_json": "[]",
+        "zones_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "zones_reason": "NO_ZONE_SOURCES",
+        "guard_problems": []
+      }
+    ]
+  },
+  "pills": {
+    "DAY_TRADER": [],
+    "SCALPER": []
+  }
+}

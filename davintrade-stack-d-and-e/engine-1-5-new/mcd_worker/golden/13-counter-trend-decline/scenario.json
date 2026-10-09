@@ -1,0 +1,28 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "13-counter-trend-decline",
+  "title": "A counter-trend decline, the mirror of 18 Sep",
+  "why": "Rule 1 downwards: MCD1 reports a sustained close below an uptrending M15 channel (COUNTER_TREND_EXPANSION) and MCD2 is a downtrend, so the Day Trader gets a SHORT (archetype C, COUNTER_TREND) and the MCD3 trend conflict is only a note, as 3.4 says for rule 1. The Scalper gets a SHORT with the M5 trend (rule 3s), and the same conflict makes its reading CAUTIONARY. The first zone's invalidation is raised to the $13 minimum (basis MINIMUM_STOP).",
+  "kind": "readings",
+  "cycle_slot": "2026-10-08T19:55Z",
+  "data_status": "FRESH",
+  "reference_close": 4126.4,
+  "forming_close": 4125.7,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_LOWER_BREAKDOWN",
+      "levels": { "M15": [4290.0, 4210.0, 4130.0] }
+    },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_DOWN_IN_CORRIDOR",
+      "levels": { "M5": [4150.0, 4138.0, 4126.0] }
+    },
+    "MCD3": {
+      "status": "VALID",
+      "state": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "levels": { "M15": [4290.0, 4210.0, 4130.0], "M5": [4150.0, 4138.0, 4126.0] }
+    }
+  }
+}

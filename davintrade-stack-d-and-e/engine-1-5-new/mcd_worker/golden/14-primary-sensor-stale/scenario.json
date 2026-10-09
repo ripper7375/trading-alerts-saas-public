@@ -1,0 +1,20 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "14-primary-sensor-stale",
+  "title": "The Day Trader's primary sensor is STALE",
+  "why": "Rule 0 (the data check): MCD1 is STALE, so the Day Trader stands aside and its reading is STALE with the reason UPSTREAM_STALE:MCD1, no archetype, no zones. The Scalper's primary sensor is MCD2, which is fine: rule 3s gives a LONG, VALID, because MCD3 is unavailable too and cannot modify. One broken sensor spoils one trader type, not both.",
+  "kind": "readings",
+  "cycle_slot": "2026-10-09T10:30Z",
+  "data_status": "FRESH",
+  "reference_close": 4402.2,
+  "forming_close": 4403.0,
+  "sensors": {
+    "MCD1": { "status": "STALE", "reasons": ["NO_STATS_AT_SLOT"] },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_UP_IN_CORRIDOR",
+      "levels": { "M5": [4420.0, 4402.0, 4384.0] }
+    },
+    "MCD3": { "status": "STALE", "reasons": ["UPSTREAM_STALE:MCD1"] }
+  }
+}

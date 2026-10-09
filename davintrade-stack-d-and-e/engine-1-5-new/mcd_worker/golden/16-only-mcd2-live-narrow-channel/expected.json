@@ -1,0 +1,55 @@
+{
+  "schema": "golden-expected/1",
+  "scenario": "16-only-mcd2-live-narrow-channel",
+  "kind": "readings",
+  "cycle_slot": "2026-10-12T07:20Z",
+  "data_status": "FRESH",
+  "inputs_sha256": "04e341d84701919f95a05bc0573185fc12b8f63a83a2fc9041d08258546383fd",
+  "reference_price": 4455.8,
+  "sensors": [
+    {
+      "mcd_id": "MCD2",
+      "status": "VALID",
+      "state_code": "MCD2_UP_IN_CORRIDOR",
+      "bias": "LONG",
+      "envelope_sha256": "2e5aecd5c82738987c142f50fec4ec548ae0d92a33a404e1b6c324622cb40ef2",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD2\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-10-12T07:20Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4460.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4453.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4446.0,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    }
+  ],
+  "synthesis": {
+    "flag": "shadow",
+    "rules_version": "draft-1",
+    "rules_sha256": "42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e",
+    "zones_version": "zones-1",
+    "zones_sha256": "afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d",
+    "reference_price": 4455.8,
+    "error": null,
+    "readings": [
+      {
+        "profile": "DAY_TRADER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"DAY_TRADER\",\"cycle_slot\":\"2026-10-12T07:20Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R0_DATA_CHECK\",\"branch_id\":\"PRIMARY_UNAVAILABLE\",\"status\":\"INVALID\",\"status_reasons\":[\"UPSTREAM_UNAVAILABLE:MCD1\"],\"data_status\":\"FRESH\",\"archetype\":null,\"bias\":\"STAND_ASIDE\",\"trend_relation\":null,\"stand_aside\":true,\"inputs\":{\"MCD1\":{\"status\":\"ABSENT\",\"state_code\":null,\"regime_status\":null,\"bias\":null,\"envelope_sha256\":null},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"2e5aecd5c82738987c142f50fec4ec548ae0d92a33a404e1b6c324622cb40ef2\"},\"MCD3\":{\"status\":\"ABSENT\",\"state_code\":null,\"regime_status\":null,\"bias\":null,\"envelope_sha256\":null}},\"reasons\":[\"The primary sensor has no usable reading this cycle\"],\"zones\":[],\"summary_line\":\"Stand aside, primary sensor unavailable\"}",
+        "reading_sha256": "dd534da109c5beba5e268a63a3e3f11a691735230b4795e3a24b8955e17bae5b",
+        "zones_json": "[]",
+        "zones_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "zones_reason": "NOT_DIRECTIONAL",
+        "guard_problems": []
+      },
+      {
+        "profile": "SCALPER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"SCALPER\",\"cycle_slot\":\"2026-10-12T07:20Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R3S_TREND_CONTINUATION_M5\",\"branch_id\":\"TREND_UP\",\"status\":\"VALID\",\"status_reasons\":[],\"data_status\":\"FRESH\",\"archetype\":\"A\",\"bias\":\"LONG\",\"trend_relation\":\"WITH_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"ABSENT\",\"state_code\":null,\"regime_status\":null,\"bias\":null,\"envelope_sha256\":null},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_UP_IN_CORRIDOR\",\"regime_status\":\"TREND_ALIGNED_CONTINUATION\",\"bias\":\"LONG\",\"envelope_sha256\":\"2e5aecd5c82738987c142f50fec4ec548ae0d92a33a404e1b6c324622cb40ef2\"},\"MCD3\":{\"status\":\"ABSENT\",\"state_code\":null,\"regime_status\":null,\"bias\":null,\"envelope_sha256\":null}},\"reasons\":[\"M5 uptrend continuing\"],\"zones\":[\"Z1\",\"Z2\"],\"summary_line\":\"M5 trend continuation, LONG\"}",
+        "reading_sha256": "3d5908c8412cd801854189856fbba45e0151c8eb980f985586953b82f678a61c",
+        "zones_json": "[{\"cycle_slot\":\"2026-10-12T07:20Z\",\"profile\":\"SCALPER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z1\",\"rank\":1,\"bias\":\"LONG\",\"low\":4451.6,\"high\":4454.4,\"reference_price\":4453.0,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4453.0,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4453.0,\"origin\":\"MCD2\"}],\"confluence_count\":1,\"invalidation_price\":4440.0,\"invalidation_basis\":\"MINIMUM_STOP\",\"invalidation_level\":{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4446.0,\"origin\":\"MCD2\"},\"stop_distance\":13.0,\"next_opposing_level\":{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4460.0,\"origin\":\"MCD2\"},\"runway\":7.0,\"runway_ratio\":0.54},{\"cycle_slot\":\"2026-10-12T07:20Z\",\"profile\":\"SCALPER\",\"zones_version\":\"zones-1\",\"zones_sha256\":\"afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d\",\"zone_id\":\"Z2\",\"rank\":2,\"bias\":\"LONG\",\"low\":4444.6,\"high\":4447.4,\"reference_price\":4446.0,\"source_sensors\":[\"MCD2\"],\"source_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4446.0,\"origin\":\"MCD2\"}],\"confluence_levels\":[{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4446.0,\"origin\":\"MCD2\"}],\"confluence_count\":1,\"invalidation_price\":4433.0,\"invalidation_basis\":\"NO_LEVEL\",\"invalidation_level\":null,\"stop_distance\":13.0,\"next_opposing_level\":{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4453.0,\"origin\":\"MCD2\"},\"runway\":7.0,\"runway_ratio\":0.54}]",
+        "zones_sha256": "c31a648d6a014b762b4a5ab75a1ab914a8ab90ee4e4b24e99f19d36f03cd0a6e",
+        "zones_reason": null,
+        "guard_problems": []
+      }
+    ]
+  },
+  "pills": {
+    "DAY_TRADER": [],
+    "SCALPER": [
+      4453.0,
+      4446.0
+    ]
+  }
+}

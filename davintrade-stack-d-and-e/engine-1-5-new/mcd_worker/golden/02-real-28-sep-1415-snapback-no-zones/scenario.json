@@ -1,0 +1,8 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "02-real-28-sep-1415-snapback-no-zones",
+  "title": "The 28 Sep 14:15 cycle: a snapback with no zones",
+  "why": "A real stored cycle. Both trader types get a LONG snapback (rule 2, against a spike down), but the price is below every M5 channel level, so there is no level on the bias side to make a zone from (decision D6): the readings carry no zones and no pills, and say why (NO_ZONE_SOURCES). Every sensor is CAUTIONARY (MCD0 flags both timeframes).",
+  "kind": "cycle",
+  "bundle": "2026-09-28T1415Z"
+}

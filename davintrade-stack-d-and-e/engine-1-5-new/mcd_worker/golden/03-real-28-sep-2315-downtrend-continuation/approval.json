@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "03-real-28-sep-2315-downtrend-continuation",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "17e9a19aefbc064b56ab921bd6941023cf13c9eefc43462f50406ccd8d576cef",
+  "expected_sha256": "b1990843deb2efedfb478f44cdde648a444488703a461b2f3301aa8e7339c733",
+  "note": ""
+}

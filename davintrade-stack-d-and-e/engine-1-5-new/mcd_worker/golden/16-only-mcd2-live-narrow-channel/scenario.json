@@ -1,0 +1,18 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "16-only-mcd2-live-narrow-channel",
+  "title": "Only MCD2 is running, with a narrow M5 channel",
+  "why": "The state of the rollout when MCD1 and MCD3 are not at shadow or live yet: synthesis is handed MCD2 alone. The Day Trader's primary sensor is absent, so it stands aside (INVALID, UPSTREAM_UNAVAILABLE:MCD1); the Scalper gets a LONG (rule 3s). The M5 channel is only 14 wide, so the stops from the structure levels would be under $13: the baseline zone's invalidation is raised to the minimum (MINIMUM_STOP) and the lower zone has no structure level behind it at all (NO_LEVEL), so it is exactly $13 away.",
+  "kind": "readings",
+  "cycle_slot": "2026-10-12T07:20Z",
+  "data_status": "FRESH",
+  "reference_close": 4455.8,
+  "forming_close": 4456.1,
+  "sensors": {
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_UP_IN_CORRIDOR",
+      "levels": { "M5": [4460.0, 4453.0, 4446.0] }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "04-trend-up-all-valid",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "e4210bc35e9c3f2c1f3f09a9ae10dd9514b26a24b01c9ecd208cedb877d94055",
+  "expected_sha256": "5ef3dc6b8130e6bf366e7f2c1dd0ed734826c1a03b50b9f82c132644486db83f",
+  "note": ""
+}

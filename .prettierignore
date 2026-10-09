@@ -8,3 +8,9 @@ pnpm-lock.yaml
 # Replay tests compare them byte for byte (standard T9), so prettier must not reformat them.
 davintrade-stack-d-and-e/engine-1-5-new/mcd*/fixtures/*.json
 davintrade-stack-d-and-e/engine-1-5-new/mcd*/mcd*_output.json
+
+# Golden scenarios (build step 4 part 7): expected outputs are canonical text and approval.json holds hashes of files as written, so prettier must
+# not touch them; review.md and INDEX.md are generated and compared byte for byte by `python -m mcd_worker.tools.golden check`.
+davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/golden/*/*.json
+davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/golden/*/review.md
+davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/golden/INDEX.md

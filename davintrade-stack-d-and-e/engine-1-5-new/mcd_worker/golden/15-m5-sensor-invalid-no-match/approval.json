@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "15-m5-sensor-invalid-no-match",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "f2aeddc110fc6538afd7f4a4e9e8893bea5e36e3dfd0ee84c4770bc77e8c4b14",
+  "expected_sha256": "dd4f02daad55bab44e62f0e71e3cad953570027ed83d994fea19b3edabe2cd9f",
+  "note": ""
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "golden-scenario/1",
+  "id": "06-m15-spike-up-m5-flat",
+  "title": "An M15 spike up while M5 is flat",
+  "why": "Rule 2 (a snapback against the spike) for both trader types from MCD1's branch: the Day Trader because MCD1 is its primary sensor, the Scalper because the rows that say Both and name MCD1 apply to it as written (decision D1 (c)), MCD2 being a flat range with no branch of rule 2 of its own. Both get a SHORT. M15 up against M5 flat is a trend conflict at MCD3, so the modifier makes both readings CAUTIONARY.",
+  "kind": "readings",
+  "cycle_slot": "2026-10-06T09:15Z",
+  "data_status": "FRESH",
+  "reference_close": 4301.6,
+  "forming_close": 4302.05,
+  "sensors": {
+    "MCD1": {
+      "status": "VALID",
+      "state": "MCD1_UP_UPPER_BREAKOUT",
+      "levels": { "M15": [4290.0, 4240.0, 4190.0] }
+    },
+    "MCD2": {
+      "status": "VALID",
+      "state": "MCD2_SIDEWAYS_IN_CORRIDOR",
+      "levels": { "M5": [4308.0, 4300.0, 4292.0] }
+    },
+    "MCD3": {
+      "status": "VALID",
+      "state": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "levels": { "M15": [4290.0, 4240.0, 4190.0], "M5": [4308.0, 4300.0, 4292.0] }
+    }
+  }
+}

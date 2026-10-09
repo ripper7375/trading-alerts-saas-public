@@ -1,0 +1,10 @@
+{
+  "schema": "golden-approval/1",
+  "scenario": "05-level-just-above-entry",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-09",
+  "scenario_sha256": "c07d7152b88af405fcc782d397627ffff64cbeb270edc3ae48202e5e4a0a21fa",
+  "expected_sha256": "e134ec5ac640a0fbf2d6b7d7902149bfecfdc3c1b4abad4218cce4ee886a4a59",
+  "note": ""
+}

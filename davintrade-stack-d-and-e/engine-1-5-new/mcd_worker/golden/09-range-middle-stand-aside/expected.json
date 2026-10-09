@@ -1,0 +1,68 @@
+{
+  "schema": "golden-expected/1",
+  "scenario": "09-range-middle-stand-aside",
+  "kind": "readings",
+  "cycle_slot": "2026-10-07T11:05Z",
+  "data_status": "FRESH",
+  "inputs_sha256": "8823ac7db9b24b6d41ac0ebb038a882f8cfe37bf3906c0cff8fa8d7a05db79a3",
+  "reference_price": 4210.5,
+  "sensors": [
+    {
+      "mcd_id": "MCD1",
+      "status": "VALID",
+      "state_code": "MCD1_SIDEWAYS_IN_CORRIDOR",
+      "bias": "NEUTRAL",
+      "envelope_sha256": "9c15ca94389b47b7671f2e9b336a8f0695992cf283d52718d17d2fb67ad81d7a",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD1\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-10-07T11:05Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD1_SIDEWAYS_IN_CORRIDOR\",\"regime_status\":\"CONSOLIDATION\",\"bias\":\"NEUTRAL\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4260.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4210.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4160.0,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    },
+    {
+      "mcd_id": "MCD2",
+      "status": "VALID",
+      "state_code": "MCD2_SIDEWAYS_IN_CORRIDOR",
+      "bias": "NEUTRAL",
+      "envelope_sha256": "eb5d974ea74fec8956dbc31e00fd9138d5f55d934c6d243f8cddd935a5764ed9",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD2\",\"evaluator_version\":\"2.0.1\",\"cycle_slot\":\"2026-10-07T11:05Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD2_SIDEWAYS_IN_CORRIDOR\",\"regime_status\":\"RANGE_EQUILIBRIUM\",\"bias\":\"NEUTRAL\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4226.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4211.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4196.0,\"role\":\"support\"}],\"depends_on\":[],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    },
+    {
+      "mcd_id": "MCD3",
+      "status": "VALID",
+      "state_code": "MCD3_SIDEWAYS_EQUILIBRIUM",
+      "bias": "NEUTRAL",
+      "envelope_sha256": "34910456723622b1058ff1cab15fee80fd65eb6a8455e087f6959cb62fd47681",
+      "envelope_json": "{\"schema_version\":\"mcd-output/1\",\"mcd_id\":\"MCD3\",\"evaluator_version\":\"2.0.0\",\"cycle_slot\":\"2026-10-07T11:05Z\",\"last_closed_bar\":{},\"active_indicator\":{},\"config_hash\":{},\"status\":\"VALID\",\"status_reasons\":[],\"state_code\":\"MCD3_SIDEWAYS_EQUILIBRIUM\",\"regime_status\":\"SIDEWAYS_CONSOLIDATED_EQUILIBRIUM\",\"bias\":\"NEUTRAL\",\"levels\":[{\"name\":\"UOEDT\",\"tf\":\"M15\",\"price\":4260.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M15\",\"price\":4210.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M15\",\"price\":4160.0,\"role\":\"support\"},{\"name\":\"UOEDT\",\"tf\":\"M5\",\"price\":4226.0,\"role\":\"resistance\"},{\"name\":\"baseline\",\"tf\":\"M5\",\"price\":4211.0,\"role\":\"mid\"},{\"name\":\"LOEDT\",\"tf\":\"M5\",\"price\":4196.0,\"role\":\"support\"}],\"depends_on\":[\"MCD1\",\"MCD2\"],\"summary_line\":\"Golden scenario reading\",\"commentary\":\"Synthetic reading written for a golden scenario; the evaluator did not produce it.\",\"details\":{}}"
+    }
+  ],
+  "synthesis": {
+    "flag": "shadow",
+    "rules_version": "draft-1",
+    "rules_sha256": "42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e",
+    "zones_version": "zones-1",
+    "zones_sha256": "afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d",
+    "reference_price": 4210.5,
+    "error": null,
+    "readings": [
+      {
+        "profile": "DAY_TRADER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"DAY_TRADER\",\"cycle_slot\":\"2026-10-07T11:05Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R4_RANGE\",\"branch_id\":\"MCD1_RANGE\",\"status\":\"VALID\",\"status_reasons\":[],\"data_status\":\"FRESH\",\"archetype\":\"D\",\"bias\":\"STAND_ASIDE\",\"trend_relation\":null,\"stand_aside\":true,\"inputs\":{\"MCD1\":{\"status\":\"VALID\",\"state_code\":\"MCD1_SIDEWAYS_IN_CORRIDOR\",\"regime_status\":\"CONSOLIDATION\",\"bias\":\"NEUTRAL\",\"envelope_sha256\":\"9c15ca94389b47b7671f2e9b336a8f0695992cf283d52718d17d2fb67ad81d7a\"},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_SIDEWAYS_IN_CORRIDOR\",\"regime_status\":\"RANGE_EQUILIBRIUM\",\"bias\":\"NEUTRAL\",\"envelope_sha256\":\"eb5d974ea74fec8956dbc31e00fd9138d5f55d934c6d243f8cddd935a5764ed9\"},\"MCD3\":{\"status\":\"VALID\",\"state_code\":\"MCD3_SIDEWAYS_EQUILIBRIUM\",\"regime_status\":\"SIDEWAYS_CONSOLIDATED_EQUILIBRIUM\",\"bias\":\"NEUTRAL\",\"envelope_sha256\":\"34910456723622b1058ff1cab15fee80fd65eb6a8455e087f6959cb62fd47681\"}},\"reasons\":[\"M15 is ranging and no edge rule applies\"],\"zones\":[],\"summary_line\":\"Range, stand aside\"}",
+        "reading_sha256": "86f34ee2e4d22a4f413a97cbaa6975083dbd94903a2e5b64271cf6e36dcde930",
+        "zones_json": "[]",
+        "zones_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "zones_reason": "NOT_DIRECTIONAL",
+        "guard_problems": []
+      },
+      {
+        "profile": "SCALPER",
+        "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"SCALPER\",\"cycle_slot\":\"2026-10-07T11:05Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R4_RANGE\",\"branch_id\":\"MCD2_MIDDLE\",\"status\":\"VALID\",\"status_reasons\":[],\"data_status\":\"FRESH\",\"archetype\":\"D\",\"bias\":\"STAND_ASIDE\",\"trend_relation\":null,\"stand_aside\":true,\"inputs\":{\"MCD1\":{\"status\":\"VALID\",\"state_code\":\"MCD1_SIDEWAYS_IN_CORRIDOR\",\"regime_status\":\"CONSOLIDATION\",\"bias\":\"NEUTRAL\",\"envelope_sha256\":\"9c15ca94389b47b7671f2e9b336a8f0695992cf283d52718d17d2fb67ad81d7a\"},\"MCD2\":{\"status\":\"VALID\",\"state_code\":\"MCD2_SIDEWAYS_IN_CORRIDOR\",\"regime_status\":\"RANGE_EQUILIBRIUM\",\"bias\":\"NEUTRAL\",\"envelope_sha256\":\"eb5d974ea74fec8956dbc31e00fd9138d5f55d934c6d243f8cddd935a5764ed9\"},\"MCD3\":{\"status\":\"VALID\",\"state_code\":\"MCD3_SIDEWAYS_EQUILIBRIUM\",\"regime_status\":\"SIDEWAYS_CONSOLIDATED_EQUILIBRIUM\",\"bias\":\"NEUTRAL\",\"envelope_sha256\":\"34910456723622b1058ff1cab15fee80fd65eb6a8455e087f6959cb62fd47681\"}},\"reasons\":[\"M5 range, price inside the corridor\"],\"zones\":[],\"summary_line\":\"Range middle, stand aside\"}",
+        "reading_sha256": "f4f67a2efafa3c8ced70327baa3cf1969b291e268a93d2ffefbb2c304edb9961",
+        "zones_json": "[]",
+        "zones_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+        "zones_reason": "NOT_DIRECTIONAL",
+        "guard_problems": []
+      }
+    ]
+  },
+  "pills": {
+    "DAY_TRADER": [],
+    "SCALPER": []
+  }
+}
