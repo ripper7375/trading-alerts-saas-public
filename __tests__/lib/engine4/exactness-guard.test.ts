@@ -95,6 +95,41 @@ function numberish(type: ts.Type): boolean {
   return false;
 }
 
+/**
+ * The pure modules import sibling files only: no dependency, no I/O. The one
+ * place that reads a database is `read/`, which may also import its parent's
+ * files (`../`), the database client, `crypto` and `zlib`, and nothing else.
+ */
+const READER_IMPORTS: readonly string[] = [
+  '@/lib/db/market-prisma',
+  'crypto',
+  'zlib',
+];
+
+function isTypeOnly(
+  node: ts.ImportDeclaration | ts.ExportDeclaration
+): boolean {
+  return ts.isImportDeclaration(node)
+    ? node.importClause?.isTypeOnly === true
+    : node.isTypeOnly;
+}
+
+function importAllowed(
+  file: string,
+  specifier: string,
+  typeOnly: boolean
+): boolean {
+  // a pure file may name the reader's TYPES, never its code: the reader pulls in the
+  // database client, and a client component imports the pure files
+  if (specifier.startsWith('./read/'))
+    return typeOnly || file.includes('/read/');
+  if (specifier.startsWith('./')) return true;
+  return (
+    file.includes('/read/') &&
+    (specifier.startsWith('../') || READER_IMPORTS.includes(specifier))
+  );
+}
+
 function analyse(sources: Map<string, string>): Violation[] {
   const options: ts.CompilerOptions = {
     target: ts.ScriptTarget.ES2020,
@@ -178,11 +213,11 @@ function analyse(sources: Map<string, string>): Violation[] {
         (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
         node.moduleSpecifier !== undefined &&
         ts.isStringLiteral(node.moduleSpecifier) &&
-        !node.moduleSpecifier.text.startsWith('./')
+        !importAllowed(name, node.moduleSpecifier.text, isTypeOnly(node))
       ) {
         report(
           node,
-          `import of ${node.moduleSpecifier.text} (only sibling files)`
+          `import of ${node.moduleSpecifier.text} (not allowed in this file)`
         );
       }
       ts.forEachChild(node, visit);
@@ -215,6 +250,25 @@ const BAD: Record<string, string> = {
   'import-package.ts':
     "import { readFileSync } from 'fs';\nexport const a = readFileSync;",
   'import-alias.ts': "import { x } from '@/lib/engine4';\nexport const a = x;",
+  'value-import-of-the-reader.ts':
+    "import { read } from './read/structure';\nexport const a = read;",
+  'value-reexport-of-the-reader.ts': "export { read } from './read/structure';",
+  'parent-import-outside-read.ts':
+    "import { x } from '../elsewhere';\nexport const a = x;",
+};
+
+/**
+ * Snippets that sit in a `read/` folder: the database client, crypto, zlib and
+ * the parent's files are allowed there, nothing else.
+ */
+const BAD_IN_READ: Record<string, string> = {
+  'fs.ts': "import { readFileSync } from 'fs';\nexport const a = readFileSync;",
+  'other-alias.ts': "import { x } from '@/lib/db/prisma';\nexport const a = x;",
+  'math.ts': 'export const a = Math.floor(2);',
+};
+const GOOD_IN_READ: Record<string, string> = {
+  'client.ts':
+    "import { createHash } from 'crypto';\nimport { gunzipSync } from 'zlib';\nimport { marketPrisma } from '@/lib/db/market-prisma';\nimport { x } from '../parent';\nexport const a = [createHash, gunzipSync, marketPrisma, x];",
 };
 
 const GOOD: Record<string, string> = {
@@ -232,6 +286,10 @@ const GOOD: Record<string, string> = {
   'words-in-comments.ts':
     "// Math, parseFloat and Number(…) are only words here\n/* toFixed */\nexport const a = 'Math.floor 0.25 1e3';",
   'sibling-import.ts': "export { x } from './elsewhere';",
+  'type-only-export-of-the-reader.ts':
+    "export type { Read } from './read/structure';",
+  'type-only-import-of-the-reader.ts':
+    "import type { Read } from './read/structure';\nexport type A = Read;",
 };
 
 describe('the guard itself', () => {
@@ -242,7 +300,31 @@ describe('the guard itself', () => {
     sources.set(`/guard-self-test/good/${name}`, text);
   // a sibling for the allowed re-export
   sources.set('/guard-self-test/good/elsewhere.ts', 'export const x = 1n;');
+  for (const [name, text] of Object.entries(BAD_IN_READ))
+    sources.set(`/guard-self-test/bad/read/${name}`, text);
+  for (const [name, text] of Object.entries(GOOD_IN_READ))
+    sources.set(`/guard-self-test/good/read/${name}`, text);
+  sources.set('/guard-self-test/good/parent.ts', 'export const x = 1n;');
   const found = analyse(sources);
+
+  test.each(Object.keys(BAD_IN_READ))(
+    'catches %s in a read/ folder',
+    (name) => {
+      expect(
+        found.filter((v) => v.file === `/guard-self-test/bad/read/${name}`)
+          .length
+      ).toBeGreaterThan(0);
+    }
+  );
+
+  test.each(Object.keys(GOOD_IN_READ))(
+    'leaves %s alone in a read/ folder',
+    (name) => {
+      expect(
+        found.filter((v) => v.file === `/guard-self-test/good/read/${name}`)
+      ).toEqual([]);
+    }
+  );
 
   test.each(Object.keys(BAD))('catches %s', (name) => {
     expect(
@@ -260,7 +342,7 @@ describe('the guard itself', () => {
 describe('lib/engine4', () => {
   const files = sourceFilesUnder(ENGINE_DIR);
 
-  test('holds the files part 1 builds', () => {
+  test('holds the files of parts 1 and 2', () => {
     const names = files.map((file) => file.slice(file.lastIndexOf('/') + 1));
     expect(names).toEqual(
       expect.arrayContaining([
@@ -271,6 +353,12 @@ describe('lib/engine4', () => {
         'sizing.ts',
         'types.ts',
         'underflow.ts',
+        'badge.ts',
+        'levels.ts',
+        'room.ts',
+        'stops.ts',
+        'zone.ts',
+        'structure-levels.ts',
       ])
     );
   });

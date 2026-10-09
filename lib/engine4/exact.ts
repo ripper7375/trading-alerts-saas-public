@@ -22,8 +22,11 @@
 
 import { Engine4InputError } from './types';
 
-/** Decimal text, a JavaScript number (read as its shortest decimal text) or an integer. */
-export type DecimalLike = string | number | bigint;
+/**
+ * Decimal text, a JavaScript number (read as its shortest decimal text), an
+ * integer, or a value that is already exact.
+ */
+export type DecimalLike = string | number | bigint | Rational;
 
 /** How a value is brought to a number of decimal places. HALF_UP is half away from zero. */
 export type RoundingMode = 'HALF_UP' | 'FLOOR' | 'CEIL';
@@ -144,7 +147,7 @@ export class Rational {
    * Infinity, thousands separators, blanks) is refused: callers normalise
    * what a person typed before it gets here.
    */
-  static of(value: DecimalLike | Rational, field?: string): Rational {
+  static of(value: DecimalLike, field?: string): Rational {
     if (value instanceof Rational) return value;
     if (typeof value === 'bigint') return Rational.int(value);
     const text = typeof value === 'number' ? String(value) : value;
