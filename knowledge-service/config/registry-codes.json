@@ -1,0 +1,48 @@
+{
+  "schema": "registry-codes/1",
+  "mcd_ids": ["MCD0", "MCD1", "MCD2", "MCD3"],
+  "board_mcd_ids": ["MCD1", "MCD2", "MCD3"],
+  "state_codes": {
+    "MCD0": [
+      "MCD0_ALL_QUALIFIED",
+      "MCD0_M5_DEFECT",
+      "MCD0_M15_DEFECT",
+      "MCD0_M5_M15_DEFECT"
+    ],
+    "MCD1": [
+      "MCD1_UP_IN_CORRIDOR",
+      "MCD1_UP_UPPER_BREAKOUT",
+      "MCD1_UP_LOWER_BREAKDOWN",
+      "MCD1_DOWN_IN_CORRIDOR",
+      "MCD1_DOWN_LOWER_BREAKDOWN",
+      "MCD1_DOWN_UPPER_BREAKOUT",
+      "MCD1_SIDEWAYS_IN_CORRIDOR",
+      "MCD1_SIDEWAYS_UPPER_BREAKOUT",
+      "MCD1_SIDEWAYS_LOWER_BREAKDOWN"
+    ],
+    "MCD2": [
+      "MCD2_UP_IN_CORRIDOR",
+      "MCD2_UP_UPPER_BREAKOUT",
+      "MCD2_UP_LOWER_BREAKDOWN",
+      "MCD2_DOWN_IN_CORRIDOR",
+      "MCD2_DOWN_LOWER_BREAKDOWN",
+      "MCD2_DOWN_UPPER_BREAKOUT",
+      "MCD2_SIDEWAYS_IN_CORRIDOR",
+      "MCD2_SIDEWAYS_UPPER_BREAKOUT",
+      "MCD2_SIDEWAYS_LOWER_BREAKDOWN"
+    ],
+    "MCD3": [
+      "MCD3_BULL_VALUE",
+      "MCD3_BULL_MID",
+      "MCD3_BULL_TOP",
+      "MCD3_BEAR_PREMIUM",
+      "MCD3_BEAR_MID",
+      "MCD3_BEAR_BOTTOM",
+      "MCD3_SIDEWAYS_EQUILIBRIUM",
+      "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+      "MCD3_NON_CONSOLIDATED_OVERFLOW",
+      "MCD3_NON_CONSOLIDATED_ESCAPE"
+    ]
+  },
+  "timeframes": ["M5", "M15"]
+}

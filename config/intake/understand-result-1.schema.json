@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "understand-result/1",
+  "title": "understand-result/1",
+  "description": "What the one small model call of the Understand step may return (architecture 4.2 step 2, ADR-039). The user's text is untrusted input to that model, so its output is held to this schema and nothing else: a language of the 17 (or und), a bounded English text, one of the eight intent labels (never an instant-prompt label), and short tokens for the symbols and timeframes it saw. Anything else is a failed understanding (decision D4), not a partial answer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "language",
+    "english",
+    "intent",
+    "symbols",
+    "timeframes"
+  ],
+  "properties": {
+    "schema": { "const": "understand-result/1" },
+    "language": {
+      "enum": [
+        "en",
+        "es",
+        "de",
+        "pt",
+        "it",
+        "ja",
+        "ar",
+        "fr",
+        "ko",
+        "zh",
+        "zh-TW",
+        "ur",
+        "hi",
+        "vi",
+        "id",
+        "th",
+        "tr",
+        "und"
+      ]
+    },
+    "english": { "type": "string", "minLength": 1, "maxLength": 1000 },
+    "intent": {
+      "enum": [
+        "DIRECTION",
+        "ENTRY_TIMING",
+        "EXIT_TARGETS",
+        "RISK_SIZING",
+        "EXPLAIN",
+        "NEWS",
+        "REPORT_2",
+        "OUT_OF_SCOPE"
+      ]
+    },
+    "symbols": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "type": "string", "pattern": "^[A-Za-z0-9._/-]{1,12}$" }
+    },
+    "timeframes": {
+      "type": "array",
+      "maxItems": 8,
+      "items": { "type": "string", "pattern": "^[A-Za-z0-9]{1,6}$" }
+    }
+  }
+}

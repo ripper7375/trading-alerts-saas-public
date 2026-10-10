@@ -1,0 +1,596 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "intake-packet/1",
+  "title": "intake-packet/1",
+  "description": "What the intake path hands to Section 5 (architecture 4.9). The SHAPE of the packet: types, enums, patterns, lengths, required keys and the two forbidden key names. The rules that tie one field to another (the board agrees with the readings in full, M* is a subset of the board, the reply locale follows rule D1, the trace equals what the packet says, the sensors and state codes exist in the roster) are enforced by validatePacket in lib/intake/packet.ts and are NOT expressed here. Lengths count Unicode code points here and UTF-16 code units there; they agree for text outside the astral planes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "symbol",
+    "thread_id",
+    "question",
+    "intent",
+    "profile",
+    "data",
+    "board",
+    "readings",
+    "knowledge",
+    "events",
+    "trace"
+  ],
+  "properties": {
+    "schema": { "const": "intake-packet/1" },
+    "symbol": { "const": "XAUUSD" },
+    "thread_id": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "question": { "$ref": "#/$defs/question" },
+    "intent": {
+      "enum": [
+        "DIRECTION",
+        "ENTRY_TIMING",
+        "EXIT_TARGETS",
+        "RISK_SIZING",
+        "EXPLAIN",
+        "NEWS",
+        "REPORT_2",
+        "INSTANT_M5_INSPECT",
+        "INSTANT_M15_INSPECT"
+      ]
+    },
+    "profile": { "$ref": "#/$defs/profile" },
+    "data": { "$ref": "#/$defs/data" },
+    "board": { "$ref": "#/$defs/board" },
+    "readings": { "$ref": "#/$defs/readings" },
+    "knowledge": {
+      "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/knowledge" }]
+    },
+    "events": { "$ref": "#/$defs/events" },
+    "trace": { "$ref": "#/$defs/trace" }
+  },
+  "$defs": {
+    "slot": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-5][05]Z$"
+    },
+    "slotOrNull": {
+      "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/slot" }]
+    },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "mcdId": { "type": "string", "pattern": "^MCD([0-9]|1[0-5])$" },
+    "stateCode": {
+      "type": "string",
+      "pattern": "^MCD([0-9]|1[0-5])_[A-Z0-9_]+$",
+      "maxLength": 48
+    },
+    "stateCodeOrNull": {
+      "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/stateCode" }]
+    },
+    "token": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]{0,39}$" },
+    "reason": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_]+(:[A-Z0-9_]+)?$",
+      "maxLength": 60
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$"
+    },
+    "locale": {
+      "enum": [
+        "en-US",
+        "en-GB",
+        "es",
+        "de",
+        "pt",
+        "pt-BR",
+        "it",
+        "ja",
+        "ar",
+        "fr",
+        "ko",
+        "zh",
+        "zh-TW",
+        "ur",
+        "hi",
+        "vi",
+        "id",
+        "th",
+        "tr"
+      ]
+    },
+    "language": {
+      "enum": [
+        "en",
+        "es",
+        "de",
+        "pt",
+        "it",
+        "ja",
+        "ar",
+        "fr",
+        "ko",
+        "zh",
+        "zh-TW",
+        "ur",
+        "hi",
+        "vi",
+        "id",
+        "th",
+        "tr",
+        "und"
+      ]
+    },
+    "bias": { "enum": ["LONG", "SHORT", "NEUTRAL", "STAND_ASIDE"] },
+    "biasOrNull": {
+      "enum": ["LONG", "SHORT", "NEUTRAL", "STAND_ASIDE", null]
+    },
+    "sensorStatus": { "enum": ["VALID", "CAUTIONARY", "INVALID", "STALE"] },
+    "boardStatus": {
+      "enum": ["VALID", "CAUTIONARY", "INVALID", "STALE", "ABSENT"]
+    },
+    "dataStatus": {
+      "enum": ["FRESH", "DELAYED", "STALE", "MARKET_CLOSED", "UNKNOWN"]
+    },
+    "jsonValue": {
+      "description": "Any JSON value; an object in it may not have a key called like the equity or the commission, at any depth (ADR-077).",
+      "anyOf": [
+        { "type": ["string", "number", "boolean", "null"] },
+        { "type": "array", "items": { "$ref": "#/$defs/jsonValue" } },
+        {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/allowedKey" },
+          "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+        }
+      ]
+    },
+    "allowedKey": {
+      "not": {
+        "pattern": "[eE][qQ][uU][iI][tT][yY]|[cC][oO][mM][mM][iI][sS][sS][iI][oO][nN]"
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "original",
+        "english",
+        "language",
+        "interface_locale",
+        "reply_locale",
+        "flags"
+      ],
+      "properties": {
+        "source": { "enum": ["TYPED", "INSTANT"] },
+        "original": {
+          "type": ["string", "null"],
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "english": { "type": "string", "minLength": 1, "maxLength": 1000 },
+        "language": { "$ref": "#/$defs/language" },
+        "interface_locale": { "$ref": "#/$defs/locale" },
+        "reply_locale": { "$ref": "#/$defs/locale" },
+        "flags": {
+          "type": "array",
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/token" }
+        }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trader_type",
+        "style",
+        "max_risk_pct",
+        "max_leverage",
+        "target_rrr",
+        "min_sld"
+      ],
+      "properties": {
+        "trader_type": { "enum": ["DAY_TRADER", "SCALPER"] },
+        "style": { "enum": ["TREND_FOLLOWING", "TREND_COUNTERING", "BOTH"] },
+        "max_risk_pct": { "$ref": "#/$defs/decimal" },
+        "max_leverage": { "$ref": "#/$defs/decimal" },
+        "target_rrr": { "$ref": "#/$defs/decimal" },
+        "min_sld": { "$ref": "#/$defs/decimal" }
+      }
+    },
+    "decimal": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+      "maxLength": 20
+    },
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "retuning", "cycle_slot", "last_price", "flags"],
+      "properties": {
+        "status": { "$ref": "#/$defs/dataStatus" },
+        "retuning": { "type": "boolean" },
+        "cycle_slot": { "$ref": "#/$defs/slotOrNull" },
+        "last_price": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["price", "timeframe", "bar"],
+              "properties": {
+                "price": { "type": "number", "minimum": 0.01 },
+                "timeframe": { "const": "M5" },
+                "bar": { "$ref": "#/$defs/slot" }
+              }
+            }
+          ]
+        },
+        "flags": {
+          "type": "array",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "enum": ["SENSORS_NOT_LIVE", "GATEWAY_UNREACHABLE"] }
+        }
+      }
+    },
+    "board": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["syn", "sensors"],
+      "properties": {
+        "syn": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "status",
+            "rule_id",
+            "bias",
+            "trend_relation",
+            "summary"
+          ],
+          "properties": {
+            "state": { "enum": ["RUNNING", "NOT_RUNNING"] },
+            "status": {
+              "enum": ["VALID", "CAUTIONARY", "INVALID", "STALE", null]
+            },
+            "rule_id": {
+              "type": ["string", "null"],
+              "pattern": "^(R[0-9]+S?_[A-Z0-9_]+|NO_MATCH)$",
+              "maxLength": 60
+            },
+            "bias": { "$ref": "#/$defs/biasOrNull" },
+            "trend_relation": {
+              "enum": ["WITH_TREND", "COUNTER_TREND", null]
+            },
+            "summary": { "type": "string", "minLength": 1, "maxLength": 120 }
+          }
+        },
+        "sensors": {
+          "type": "array",
+          "maxItems": 15,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mcd_id",
+              "status",
+              "state_code",
+              "bias",
+              "summary",
+              "reasons"
+            ],
+            "properties": {
+              "mcd_id": { "$ref": "#/$defs/mcdId" },
+              "status": { "$ref": "#/$defs/boardStatus" },
+              "state_code": { "$ref": "#/$defs/stateCodeOrNull" },
+              "bias": { "$ref": "#/$defs/biasOrNull" },
+              "summary": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "reasons": {
+                "type": "array",
+                "maxItems": 12,
+                "items": { "$ref": "#/$defs/reason" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "envelope": {
+      "description": "A sensor envelope (mcd-output/1) as the worker stored it. Only the fields the packet's own rules read are required here.",
+      "type": "object",
+      "required": [
+        "schema_version",
+        "mcd_id",
+        "cycle_slot",
+        "status",
+        "state_code",
+        "bias",
+        "summary_line"
+      ],
+      "properties": {
+        "schema_version": { "const": "mcd-output/1" },
+        "mcd_id": { "$ref": "#/$defs/mcdId" },
+        "cycle_slot": { "$ref": "#/$defs/slot" },
+        "status": { "$ref": "#/$defs/sensorStatus" },
+        "state_code": { "$ref": "#/$defs/stateCodeOrNull" },
+        "bias": { "$ref": "#/$defs/biasOrNull" },
+        "summary_line": { "type": "string" }
+      },
+      "propertyNames": { "$ref": "#/$defs/allowedKey" },
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "synReading": {
+      "description": "A synthesis reading (syn-output/1) as the worker stored it.",
+      "type": "object",
+      "required": [
+        "schema_version",
+        "mcd_id",
+        "profile",
+        "cycle_slot",
+        "rule_id",
+        "status",
+        "bias",
+        "trend_relation",
+        "zones"
+      ],
+      "properties": {
+        "schema_version": { "const": "syn-output/1" },
+        "mcd_id": { "const": "SYN" },
+        "profile": { "enum": ["DAY_TRADER", "SCALPER"] },
+        "cycle_slot": { "$ref": "#/$defs/slot" },
+        "rule_id": {
+          "type": "string",
+          "pattern": "^(R[0-9]+S?_[A-Z0-9_]+|NO_MATCH)$"
+        },
+        "status": { "$ref": "#/$defs/sensorStatus" },
+        "bias": { "$ref": "#/$defs/bias" },
+        "trend_relation": {
+          "enum": ["WITH_TREND", "COUNTER_TREND", null]
+        },
+        "zones": {
+          "type": "array",
+          "maxItems": 5,
+          "items": { "type": "string", "pattern": "^Z[1-5]$" }
+        }
+      },
+      "propertyNames": { "$ref": "#/$defs/allowedKey" },
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "zone": {
+      "description": "One stored entry zone of the reading.",
+      "type": "object",
+      "required": ["zone_id", "cycle_slot", "profile"],
+      "properties": {
+        "zone_id": { "type": "string", "pattern": "^Z[1-5]$" },
+        "cycle_slot": { "$ref": "#/$defs/slot" },
+        "profile": { "enum": ["DAY_TRADER", "SCALPER"] }
+      },
+      "propertyNames": { "$ref": "#/$defs/allowedKey" },
+      "additionalProperties": { "$ref": "#/$defs/jsonValue" }
+    },
+    "readings": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["m_star", "sensors", "synthesis"],
+      "properties": {
+        "m_star": {
+          "type": "array",
+          "maxItems": 15,
+          "items": { "$ref": "#/$defs/mcdId" }
+        },
+        "sensors": {
+          "type": "array",
+          "maxItems": 15,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mcd_id", "envelope_sha256", "envelope"],
+            "properties": {
+              "mcd_id": { "$ref": "#/$defs/mcdId" },
+              "envelope_sha256": { "$ref": "#/$defs/sha256" },
+              "envelope": { "$ref": "#/$defs/envelope" }
+            }
+          }
+        },
+        "synthesis": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "profile",
+                "reading_sha256",
+                "reading",
+                "zones_sha256",
+                "zones_reason",
+                "zones"
+              ],
+              "properties": {
+                "profile": { "enum": ["DAY_TRADER", "SCALPER"] },
+                "reading_sha256": { "$ref": "#/$defs/sha256" },
+                "reading": { "$ref": "#/$defs/synReading" },
+                "zones_sha256": { "$ref": "#/$defs/sha256" },
+                "zones_reason": {
+                  "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/token" }]
+                },
+                "zones": {
+                  "type": "array",
+                  "maxItems": 5,
+                  "items": { "$ref": "#/$defs/zone" }
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "chunk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "domain",
+        "mcd_id",
+        "state_codes",
+        "timeframe",
+        "version",
+        "text"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$"
+        },
+        "domain": { "enum": ["D1", "D2", "D3", "D4", "D5"] },
+        "mcd_id": {
+          "anyOf": [{ "type": "null" }, { "$ref": "#/$defs/mcdId" }]
+        },
+        "state_codes": {
+          "type": "array",
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/stateCode" }
+        },
+        "timeframe": { "enum": ["M5", "M15", null] },
+        "version": { "$ref": "#/$defs/version" },
+        "text": { "type": "string", "minLength": 1, "maxLength": 4000 }
+      }
+    },
+    "knowledge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "index_build_id", "chunks", "expansions"],
+      "properties": {
+        "status": { "enum": ["OK", "EMPTY", "UNAVAILABLE"] },
+        "index_build_id": {
+          "type": ["string", "null"],
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$"
+        },
+        "chunks": {
+          "type": "array",
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/chunk" }
+        },
+        "expansions": {
+          "type": "array",
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/chunk" }
+        }
+      }
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "calendar_age_seconds", "scope", "items"],
+      "properties": {
+        "status": { "enum": ["OK", "LATE", "UNAVAILABLE"] },
+        "calendar_age_seconds": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "scope": { "enum": ["UPCOMING_ALL", "NEXT_24H_HIGH"] },
+        "items": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "event_id",
+              "name",
+              "time",
+              "currency",
+              "importance",
+              "approximate",
+              "tier1"
+            ],
+            "properties": {
+              "event_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$"
+              },
+              "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+              "time": {
+                "type": "string",
+                "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+              },
+              "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+              "importance": { "type": "string", "pattern": "^[A-Z_]{1,12}$" },
+              "approximate": { "type": "boolean" },
+              "tier1": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "trace": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "language",
+        "reply_locale",
+        "intent",
+        "m_star",
+        "chunk_ids",
+        "index_build_id",
+        "cycle_slot",
+        "data_status",
+        "sensor_statuses",
+        "synthesis_rule",
+        "intake_version",
+        "routing_version"
+      ],
+      "properties": {
+        "language": { "$ref": "#/$defs/language" },
+        "reply_locale": { "$ref": "#/$defs/locale" },
+        "intent": {
+          "enum": [
+            "DIRECTION",
+            "ENTRY_TIMING",
+            "EXIT_TARGETS",
+            "RISK_SIZING",
+            "EXPLAIN",
+            "NEWS",
+            "REPORT_2",
+            "INSTANT_M5_INSPECT",
+            "INSTANT_M15_INSPECT"
+          ]
+        },
+        "m_star": {
+          "type": "array",
+          "maxItems": 15,
+          "items": { "$ref": "#/$defs/mcdId" }
+        },
+        "chunk_ids": {
+          "type": "array",
+          "maxItems": 12,
+          "items": { "type": "string", "maxLength": 80 }
+        },
+        "index_build_id": { "type": ["string", "null"], "maxLength": 80 },
+        "cycle_slot": { "$ref": "#/$defs/slotOrNull" },
+        "data_status": { "$ref": "#/$defs/dataStatus" },
+        "sensor_statuses": {
+          "type": "object",
+          "propertyNames": { "$ref": "#/$defs/mcdId" },
+          "additionalProperties": { "$ref": "#/$defs/boardStatus" }
+        },
+        "synthesis_rule": {
+          "type": ["string", "null"],
+          "maxLength": 60
+        },
+        "intake_version": { "$ref": "#/$defs/version" },
+        "routing_version": { "$ref": "#/$defs/version" }
+      }
+    }
+  }
+}

@@ -1,0 +1,110 @@
+{
+  "schema": "sensor-roster/1",
+  "synthesis": {
+    "flag": "off",
+    "rules_version": "draft-1"
+  },
+  "sensors": [
+    {
+      "mcd_id": "MCD0",
+      "name": "Channel fit quality gate",
+      "kind": "gate",
+      "timeframes": ["M5", "M15"],
+      "depends_on": [],
+      "uses_channel": [],
+      "rung": {},
+      "primary_for": [],
+      "on_board": false,
+      "flag": "off",
+      "owned_terms": [],
+      "state_codes": [
+        "MCD0_ALL_QUALIFIED",
+        "MCD0_M5_DEFECT",
+        "MCD0_M15_DEFECT",
+        "MCD0_M5_M15_DEFECT"
+      ]
+    },
+    {
+      "mcd_id": "MCD1",
+      "name": "M15 primary trend and micro regime",
+      "kind": "independent",
+      "timeframes": ["M15"],
+      "depends_on": [],
+      "uses_channel": ["M15"],
+      "rung": {
+        "DAY_TRADER": "primary_structure",
+        "SCALPER": "trendlines_channels"
+      },
+      "primary_for": ["DAY_TRADER"],
+      "on_board": true,
+      "flag": "off",
+      "owned_terms": ["UOEDT", "baseline", "LOEDT"],
+      "state_codes": [
+        "MCD1_UP_IN_CORRIDOR",
+        "MCD1_UP_UPPER_BREAKOUT",
+        "MCD1_UP_LOWER_BREAKDOWN",
+        "MCD1_DOWN_IN_CORRIDOR",
+        "MCD1_DOWN_LOWER_BREAKDOWN",
+        "MCD1_DOWN_UPPER_BREAKOUT",
+        "MCD1_SIDEWAYS_IN_CORRIDOR",
+        "MCD1_SIDEWAYS_UPPER_BREAKOUT",
+        "MCD1_SIDEWAYS_LOWER_BREAKDOWN"
+      ]
+    },
+    {
+      "mcd_id": "MCD2",
+      "name": "M5 trend and corridor deviation",
+      "kind": "independent",
+      "timeframes": ["M5"],
+      "depends_on": [],
+      "uses_channel": ["M5"],
+      "rung": {
+        "DAY_TRADER": "trendlines_channels",
+        "SCALPER": "primary_structure"
+      },
+      "primary_for": ["SCALPER"],
+      "on_board": true,
+      "flag": "off",
+      "owned_terms": ["UOEDT", "baseline", "LOEDT"],
+      "state_codes": [
+        "MCD2_UP_IN_CORRIDOR",
+        "MCD2_UP_UPPER_BREAKOUT",
+        "MCD2_UP_LOWER_BREAKDOWN",
+        "MCD2_DOWN_IN_CORRIDOR",
+        "MCD2_DOWN_LOWER_BREAKDOWN",
+        "MCD2_DOWN_UPPER_BREAKOUT",
+        "MCD2_SIDEWAYS_IN_CORRIDOR",
+        "MCD2_SIDEWAYS_UPPER_BREAKOUT",
+        "MCD2_SIDEWAYS_LOWER_BREAKDOWN"
+      ]
+    },
+    {
+      "mcd_id": "MCD3",
+      "name": "Consolidated trend and EDT stochastic",
+      "kind": "derived",
+      "timeframes": ["M15", "M5"],
+      "depends_on": ["MCD1", "MCD2"],
+      "uses_channel": ["M5", "M15"],
+      "rung": {
+        "DAY_TRADER": "oscillators",
+        "SCALPER": "oscillators"
+      },
+      "primary_for": [],
+      "on_board": true,
+      "flag": "off",
+      "owned_terms": ["UOEDT", "baseline", "LOEDT"],
+      "state_codes": [
+        "MCD3_BULL_VALUE",
+        "MCD3_BULL_MID",
+        "MCD3_BULL_TOP",
+        "MCD3_BEAR_PREMIUM",
+        "MCD3_BEAR_MID",
+        "MCD3_BEAR_BOTTOM",
+        "MCD3_SIDEWAYS_EQUILIBRIUM",
+        "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+        "MCD3_NON_CONSOLIDATED_OVERFLOW",
+        "MCD3_NON_CONSOLIDATED_ESCAPE"
+      ]
+    }
+  ]
+}
