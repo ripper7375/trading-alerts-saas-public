@@ -33,6 +33,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # The Python-backed suites in __tests__/lib/intake (roster drift check
+      # `scripts/intake/build_roster.py --check`, canonical-JSON and JSON Schema
+      # parity) skip silently when `import yaml, jsonschema` fails. Install both
+      # so they run, pinned to the versions they were verified with.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python test dependencies
+        run: python -m pip install pyyaml==6.0.2 jsonschema==4.25.0
+
       - name: Generate Prisma Client
         run: pnpm exec prisma generate
 
