@@ -40,7 +40,13 @@
     "errors.global.digest",
     "notifications.type_system",
     "settings.plan",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "report2.subtitle",
+    "report2.entry.zone",
+    "report2.scenario.normal",
+    "report2.scenarios.has_badge",
+    "report2.badge.heading",
+    "report2.check.stop"
   ],
   "es": [
     "Blog",
@@ -62,7 +68,10 @@
     "currency_index_pro.top5.spread",
     "currency_index_pro.zone.neutral",
     "settings.plan",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "report2.stop.heading",
+    "report2.scenario.normal",
+    "report2.check.stop"
   ],
   "pt": [
     "Blog",
@@ -78,7 +87,10 @@
     "checkout.total",
     "currency_index_pro.top5.spread",
     "settings.profile.email_label",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "report2.stop.heading",
+    "report2.scenario.normal",
+    "report2.check.stop"
   ],
   "pt-BR": [
     "Blog",
@@ -94,7 +106,10 @@
     "checkout.total",
     "currency_index_pro.top5.spread",
     "settings.profile.email_label",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "report2.stop.heading",
+    "report2.scenario.normal",
+    "report2.check.stop"
   ],
   "it": [
     "Back Step",
@@ -119,7 +134,11 @@
     "currency_index_pro.top5.spread",
     "settings.profile.email_label",
     "settings.security.password_label",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "report2.stop.heading",
+    "report2.scenarios.has_badge",
+    "report2.badge.heading",
+    "report2.check.stop"
   ],
   "id": [
     "Back Step",
@@ -154,7 +173,11 @@
     "dashboard.target",
     "errors.global.digest",
     "settings.profile.email_label",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "report2.stop.heading",
+    "report2.scenario.normal",
+    "report2.check.stop",
+    "report2.check.leverage"
   ],
   "vi": [
     "Blog",
@@ -184,7 +207,9 @@
     "checkout.plan",
     "currency_index_pro.top5.spread",
     "settings.plan",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "report2.scenario.normal",
+    "report2.check.risk"
   ],
   "hi": ["Heiken Ashi"],
   "ur": ["Heiken Ashi"],
@@ -217,7 +242,14 @@
     "settings.help.documentation",
     "settings.privacy.visibility_public",
     "settings.security.via_provider",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "report2.direction.label",
+    "report2.entry.zone",
+    "report2.stop.heading",
+    "report2.scenario.normal",
+    "report2.scenarios.has_badge",
+    "report2.badge.heading",
+    "report2.check.stop"
   ],
   "ko": ["Heiken Ashi"],
   "zh": ["Heiken Ashi"],

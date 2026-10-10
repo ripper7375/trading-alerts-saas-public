@@ -179,6 +179,13 @@ function importAllowed(
   specifier: string,
   typeOnly: boolean
 ): boolean {
+  // the templates (`templates/`, part 7) are pure and reach up into their parent's
+  // pure files; the parts that touch a database, Redis or a session are named by
+  // TYPE only (a client component imports the templates)
+  if (file.includes('/templates/')) {
+    if (/^\.\.\/(read|store|server)\//.test(specifier)) return typeOnly;
+    return specifier.startsWith('./') || specifier.startsWith('../');
+  }
   // a pure file may name the reader's or a store's TYPES, never its code: they pull
   // in the database client, and a client component imports the pure files
   if (specifier.startsWith('./read/'))
@@ -395,6 +402,40 @@ const GOOD_IN_SERVER: Record<string, string> = {
     'const began = BigInt(Date.now());\nexport const ms = Number(BigInt(Date.now()) - began);',
 };
 
+/**
+ * Snippets in a `templates/` folder (part 7): pure, the parent's files only, the
+ * route layer, the readers and the stores by type alone, and no framework.
+ */
+const BAD_IN_TEMPLATES: Record<string, string> = {
+  'fs.ts': "import { readFileSync } from 'fs';\nexport const a = readFileSync;",
+  'react.ts': "import { useState } from 'react';\nexport const a = useState;",
+  'locale-context.ts':
+    "import { useLocale } from '@/lib/context/locale-context';\nexport const a = useLocale;",
+  'value-import-of-the-route-layer.ts':
+    "import { authorize } from '../server/session';\nexport const a = authorize;",
+  'value-import-of-a-reader.ts':
+    "import { read } from '../read/bars';\nexport const a = read;",
+  'value-import-of-a-store.ts':
+    "import { save } from '../store/profile';\nexport const a = save;",
+  'value-reexport-of-the-route-layer.ts':
+    "export { authorize } from '../server/session';",
+  'database-client.ts':
+    "import { prisma } from '@/lib/db/prisma';\nexport const a = prisma;",
+  'math.ts': 'export const a = Math.floor(2);',
+  'number-of-a-string.ts': "export const a = Number('5');",
+  'length-arithmetic.ts':
+    "const text = 'a.b';\nexport const a = text.length - text.indexOf('.') - 1;",
+  'to-locale-string.ts': 'export const a = (1).toLocaleString();',
+};
+const GOOD_IN_TEMPLATES: Record<string, string> = {
+  'parent-and-sibling.ts':
+    "import { x } from '../parent';\nimport { y } from './sibling';\nexport const a = [x, y];",
+  'type-only-from-the-route-layer.ts':
+    "import type { Caller } from '../server/session';\nexport type A = Caller;",
+  'type-only-reexport-from-a-reader.ts':
+    "export type { Read } from '../read/bars';",
+};
+
 const GOOD: Record<string, string> = {
   'bigint.ts':
     'const a = 5n * 3n;\nconst b = -a;\nconst c = a ** 2n;\nlet d = 1n;\nd += 2n;\nd -= 1n;\nexport const e = d % 2n === 0n ? a / 3n : b;',
@@ -463,7 +504,36 @@ describe('the guard itself', () => {
     '/guard-self-test/good/server/sibling.ts',
     'export const y = 1n;'
   );
+  for (const [name, text] of Object.entries(BAD_IN_TEMPLATES))
+    sources.set(`/guard-self-test/bad/templates/${name}`, text);
+  for (const [name, text] of Object.entries(GOOD_IN_TEMPLATES))
+    sources.set(`/guard-self-test/good/templates/${name}`, text);
+  sources.set(
+    '/guard-self-test/good/templates/sibling.ts',
+    'export const y = 1n;'
+  );
   const found = analyse(sources);
+
+  test.each(Object.keys(BAD_IN_TEMPLATES))(
+    'catches %s in a templates/ folder',
+    (name) => {
+      expect(
+        found.filter((v) => v.file === `/guard-self-test/bad/templates/${name}`)
+          .length
+      ).toBeGreaterThan(0);
+    }
+  );
+
+  test.each(Object.keys(GOOD_IN_TEMPLATES))(
+    'leaves %s alone in a templates/ folder',
+    (name) => {
+      expect(
+        found.filter(
+          (v) => v.file === `/guard-self-test/good/templates/${name}`
+        )
+      ).toEqual([]);
+    }
+  );
 
   test.each(Object.keys(BAD_IN_SERVER))(
     'catches %s in a server/ folder',
@@ -538,7 +608,7 @@ describe('the guard itself', () => {
 describe('lib/engine4', () => {
   const files = sourceFilesUnder(ENGINE_DIR);
 
-  test('holds the files of parts 1 to 6', () => {
+  test('holds the files of parts 1 to 7', () => {
     const names = files.map((file) => file.slice(file.lastIndexOf('/') + 1));
     expect(names).toEqual(
       expect.arrayContaining([
@@ -581,6 +651,11 @@ describe('lib/engine4', () => {
         'setup.ts',
         'trace.ts',
         'versions.ts',
+        'wire.ts',
+        'text.ts',
+        'messages.ts',
+        'fields.ts',
+        'report2.ts',
       ])
     );
   });

@@ -20,6 +20,10 @@
  * answer format) behind `app/api/engine4/{profile,offer,size,consent}/route.ts`;
  * none of it is exported here, because it imports the session, Redis, the gateway
  * client and the databases.
+ * Part 7 is Report 2 as a fixed template under `templates/` (the wire types, the English
+ * text registry, the messages for Engine 4's codes, the browser's prechecks and
+ * `buildReport2`), pure and imported by path; the components that draw it are in
+ * `components/report2/`.
  *
  * @module lib/engine4
  */

@@ -802,11 +802,11 @@ describe('a press that was never guarded does not touch Redis again', () => {
 });
 
 describe('the versions a record names are pinned here on purpose', () => {
-  test('are the two DRAFT strings until part 7 and counsel replace them', async () => {
+  test('are the two DRAFT strings of part 7 until counsel replaces the wording', async () => {
     await consent();
     expect(db.consents[0]).toMatchObject({
-      template_version: 'report2-template/draft-0',
-      disclaimer_version: 'disclaimer/draft-0',
+      template_version: 'report2-template/draft-1',
+      disclaimer_version: 'disclaimer/draft-1',
     });
   });
 });
