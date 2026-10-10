@@ -197,6 +197,66 @@ describe('row 1: synthesis LONG or SHORT, cycle FRESH', () => {
   });
 });
 
+describe('the direction and the trend relation of the pinned synthesis', () => {
+  test.each([
+    ['LONG', 'WITH_TREND'],
+    ['LONG', 'COUNTER_TREND'],
+    ['SHORT', 'WITH_TREND'],
+    ['SHORT', 'COUNTER_TREND'],
+  ])('%s %s is handed on', (bias, trendRelation) => {
+    const zones = bias === 'LONG' ? SEP18_ZONES : SEP28_ZONES;
+    const result = checkOffer(
+      input({
+        pinned: { ...PLAIN, bias, trendRelation },
+        zones,
+        price: bias === 'LONG' ? SEP18_PRICE : 4125.32,
+      })
+    );
+    expect(result.direction).toBe(bias);
+    expect(result.trendRelation).toBe(trendRelation);
+  });
+
+  test('is still known when a LATER row is what refuses the offer', () => {
+    const result = checkOffer(
+      input({ dataStatus: { status: 'STALE', dataAsOfSlot: SEP18_SLOT } })
+    );
+    expect(result.verdict).toBe('NOT_OFFERED');
+    expect(result.direction).toBe('LONG');
+    expect(result.trendRelation).toBe('WITH_TREND');
+  });
+
+  test('is still known when a refresh is offered', () => {
+    const result = checkOffer(
+      input({
+        newest: { ...PLAIN, cycleSlot: SEP18_SLOT + 300, bias: 'SHORT' },
+      })
+    );
+    expect(result.verdict).toBe('REFRESH_OFFERED');
+    expect(result.direction).toBe('LONG');
+  });
+
+  test.each([
+    ['NEUTRAL', null],
+    ['STAND_ASIDE', null],
+  ])('%s gives no direction and no trend relation', (bias, trendRelation) => {
+    const result = checkOffer(
+      input({ pinned: { ...PLAIN, bias, trendRelation } })
+    );
+    expect(result.direction).toBeNull();
+    expect(result.trendRelation).toBeNull();
+  });
+
+  test.each([
+    ['a reading that is not there', null],
+    ['a direction that is INVALID', { ...PLAIN, status: 'INVALID' }],
+    ['a direction with no trend relation', { ...PLAIN, trendRelation: null }],
+  ])('%s gives none either', (_label, pinned) => {
+    const result = checkOffer(input({ pinned }));
+    expect(result.direction).toBeNull();
+    expect(result.trendRelation).toBeNull();
+  });
+});
+
 describe('row 2: cycle DELAYED', () => {
   test('is offered, and says what the data is as of', () => {
     const result = checkOffer(

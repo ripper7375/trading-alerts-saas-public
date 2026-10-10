@@ -213,6 +213,10 @@ export interface OfferResult {
   /** why: the sensors' caution reasons, and RETUNING */
   halfRiskReasons: string[];
   refresh: RefreshOffer | null;
+  /** what the pinned synthesis says to do; null when it gives no usable direction (row 6) */
+  direction: 'LONG' | 'SHORT' | null;
+  /** WITH_TREND or COUNTER_TREND of that direction; null exactly when `direction` is */
+  trendRelation: 'WITH_TREND' | 'COUNTER_TREND' | null;
   /** the zones checked against the price: invalidated ones are not selectable */
   zones: ZoneCheck[];
   pinnedSlot: bigint | null;
@@ -502,6 +506,9 @@ export function checkOffer(input: OfferInput): OfferResult {
     ? input.specs.figures.version
     : input.specs.version;
   const base = {
+    direction,
+    trendRelation:
+      direction === null || pinned === null ? null : pinned.trendRelation,
     zones: zoneChecks,
     pinnedSlot: pinned === null ? null : pinned.slot,
     dataAsOfSlot: dataAsOf,

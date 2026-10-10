@@ -64,6 +64,8 @@ export interface Golden {
   /** a stored real cycle (01 to 03) rather than a synthetic one */
   real: boolean;
   slot: string;
+  /** the cycle's last closed M5 close, as the scenario records it */
+  referencePrice: number | null;
   sensors: StoredSensor[];
   /** the bundle's `context_levels`, or the scenario's own; null when there are none */
   context: unknown;
@@ -98,6 +100,10 @@ export function loadGoldens(): Golden[] {
       id: name,
       real,
       slot: String(expected['cycle_slot']),
+      referencePrice:
+        typeof expected['reference_price'] === 'number'
+          ? expected['reference_price']
+          : null,
       sensors: expected['sensors'] as StoredSensor[],
       context,
       readings: synthesis.readings.map((r) => ({

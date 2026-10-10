@@ -145,3 +145,14 @@ export function zoneFromEntryRow(row: unknown): ZoneInput | null {
   const price = decimalOrNull(column);
   return price !== null && price.eq(zone.nextOpposingLevel.price) ? zone : null;
 }
+
+/**
+ * Rank order: Z1 before Z2 and so on (the id is always `Z<rank>`, so the order of
+ * the text is the order of the rank). For `Array.prototype.sort`.
+ */
+export function byRank(
+  a: Pick<ZoneInput, 'zoneId'>,
+  b: Pick<ZoneInput, 'zoneId'>
+): number {
+  return a.zoneId < b.zoneId ? -1 : a.zoneId > b.zoneId ? 1 : 0;
+}

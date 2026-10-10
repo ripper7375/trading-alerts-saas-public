@@ -385,7 +385,7 @@ describe('the guard itself', () => {
 describe('lib/engine4', () => {
   const files = sourceFilesUnder(ENGINE_DIR);
 
-  test('holds the files of parts 1 to 3', () => {
+  test('holds the files of parts 1 to 4', () => {
     const names = files.map((file) => file.slice(file.lastIndexOf('/') + 1));
     expect(names).toEqual(
       expect.arrayContaining([
@@ -409,6 +409,9 @@ describe('lib/engine4', () => {
         'cycle.ts',
         'specs.ts',
         'events.ts',
+        'entry-bound.ts',
+        'modal-definition.ts',
+        'validate.ts',
       ])
     );
   });

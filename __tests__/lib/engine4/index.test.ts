@@ -4,7 +4,7 @@
 
 import * as engine4 from '@/lib/engine4';
 
-describe('the public surface of lib/engine4 (parts 1 to 3)', () => {
+describe('the public surface of lib/engine4 (parts 1 to 4)', () => {
   test('exports exactly these values (the database readers are not among them)', () => {
     expect(Object.keys(engine4).sort()).toEqual(
       [
@@ -69,6 +69,18 @@ describe('the public surface of lib/engine4 (parts 1 to 3)', () => {
         'NOT_OFFERED_ROW',
         'checkOffer',
         'parseLiveDataStatus',
+        'ENTRY_TYPO_FRACTION',
+        'M5_SECONDS',
+        'checkEntryBound',
+        'dayRange',
+        'entryBounds',
+        'buildModalDefinition',
+        'customEntryStopChoices',
+        'riskPreset',
+        'rrrBounds',
+        'VALIDATED_SETUP_SCHEMA',
+        'serializeValidatedSetup',
+        'validateSetup',
       ].sort()
     );
   });

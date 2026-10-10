@@ -99,6 +99,54 @@ export type {
 export { utcClock } from './time';
 
 export {
+  ENTRY_TYPO_FRACTION,
+  M5_SECONDS,
+  checkEntryBound,
+  dayRange,
+  entryBounds,
+} from './entry-bound';
+export type {
+  DayBar,
+  DayRange,
+  DayRangeProblemCode,
+  EntryBoundCode,
+  EntryBoundResult,
+  EntryBounds,
+} from './entry-bound';
+
+export {
+  buildModalDefinition,
+  customEntryStopChoices,
+  riskPreset,
+  rrrBounds,
+} from './modal-definition';
+export type {
+  CustomEntryStopInput,
+  ModalDefinition,
+  ModalDefinitionInput,
+  ModalPill,
+  NotOfferedModal,
+  OfferedModal,
+  RiskPreset,
+  RrrBounds,
+} from './modal-definition';
+
+export {
+  VALIDATED_SETUP_SCHEMA,
+  serializeValidatedSetup,
+  validateSetup,
+} from './validate';
+export type {
+  CheckId,
+  CheckName,
+  CheckResult,
+  CheckStatus,
+  SetupFields,
+  ValidatedSetup,
+  ValidationContext,
+} from './validate';
+
+export {
   BLACKOUT_APPROXIMATE_SECONDS,
   BLACKOUT_EXACT_SECONDS,
   CALENDAR_LATE_SECONDS,
