@@ -31,7 +31,6 @@ export interface ResizableHandleProps
   tooltipSubtitle?: string;
   tooltipSide?: 'left' | 'right' | 'top' | 'bottom';
   showTooltip?: boolean;
-  onDoubleClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 const ResizableHandle = ({
@@ -52,8 +51,9 @@ const ResizableHandle = ({
   const [mousePos, setMousePos] = React.useState<{
     x: number;
     y: number;
+    width: number;
+    height: number;
   } | null>(null);
-  const handleRef = React.useRef<HTMLDivElement>(null);
   const hoverTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
   React.useEffect(() => {
@@ -75,24 +75,28 @@ const ResizableHandle = ({
   );
 
   const handleMouseMove = React.useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (e: React.MouseEvent<any>) => {
       if (isDragging) return;
       const rect = e.currentTarget.getBoundingClientRect();
       setMousePos({
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
+        width: rect.width,
+        height: rect.height,
       });
     },
     [isDragging]
   );
 
   const handleMouseEnter = React.useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+    (e: React.MouseEvent<any>) => {
       if (isDragging) return;
       const rect = e.currentTarget.getBoundingClientRect();
       setMousePos({
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
+        width: rect.width,
+        height: rect.height,
       });
       if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
       hoverTimerRef.current = setTimeout(() => {
@@ -109,15 +113,13 @@ const ResizableHandle = ({
   }, []);
 
   const clampedY = React.useMemo(() => {
-    if (!mousePos || !handleRef.current) return 30;
-    const height = handleRef.current.offsetHeight || 600;
-    return Math.max(30, Math.min(height - 30, mousePos.y));
+    if (!mousePos) return 30;
+    return Math.max(30, Math.min(mousePos.height - 30, mousePos.y));
   }, [mousePos]);
 
   const clampedX = React.useMemo(() => {
-    if (!mousePos || !handleRef.current) return 80;
-    const width = handleRef.current.offsetWidth || 600;
-    return Math.max(80, Math.min(width - 80, mousePos.x));
+    if (!mousePos) return 80;
+    return Math.max(80, Math.min(mousePos.width - 80, mousePos.x));
   }, [mousePos]);
 
   const side = tooltipSide ?? 'right';
@@ -130,7 +132,6 @@ const ResizableHandle = ({
 
   return (
     <ResizablePrimitive.PanelResizeHandle
-      ref={handleRef}
       onDragging={handleDragging}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

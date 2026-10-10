@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Bot, MessageSquareText } from 'lucide-react';
 import type { ImperativePanelGroupHandle } from 'react-resizable-panels';

@@ -130,6 +130,7 @@
     "seed-code", // Seed/template code
     "frontend", // Separate Next.js project (has own tsconfig.json)
     "mobile-app", // Separate Vite mobile app (has own tsconfig.json + package.json)
+    "davintrade-mobile-app", // Separate Vite mobile app (has own tsconfig.json + package.json)
     "railway-gateway", // Separate NestJS project (has own tsconfig.json + package.json)
     "operation-service", // Separate NestJS project (has own tsconfig.json + package.json)
     "money-service", // Separate NestJS project (has own tsconfig.json + package.json)
