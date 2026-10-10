@@ -67,6 +67,18 @@ const ARITHMETIC = new Set<ts.SyntaxKind>([
   ts.SyntaxKind.GreaterThanGreaterThanGreaterThanEqualsToken,
 ]);
 
+/**
+ * The prefix operators that compute with their operand. `!` is logical negation and
+ * works on any type; a value the guard's small program cannot resolve (a path alias)
+ * is `any`, and `!x` on it is not arithmetic.
+ */
+const ARITHMETIC_PREFIX = new Set<ts.SyntaxKind>([
+  ts.SyntaxKind.MinusToken,
+  ts.SyntaxKind.TildeToken,
+  ts.SyntaxKind.PlusPlusToken,
+  ts.SyntaxKind.MinusMinusToken,
+]);
+
 interface Violation {
   file: string;
   line: number;
@@ -148,6 +160,20 @@ function isTypeOnly(
  */
 const STORE_IMPORTS: readonly string[] = ['@/lib/db/prisma', 'crypto'];
 
+/**
+ * The route layer (`server/`, part 6) reaches the world through the session, the tier
+ * helper, the language list, the gateway client and Redis, and through the readers and
+ * stores of its parent (`../`). It never imports a database client itself.
+ */
+const SERVER_IMPORTS: readonly string[] = [
+  '@/lib/auth/session',
+  '@/lib/tier-validation',
+  '@/lib/i18n/languages',
+  '@/lib/active-indicator/gateway-client',
+  '@/lib/redis/client',
+  'crypto',
+];
+
 function importAllowed(
   file: string,
   specifier: string,
@@ -159,12 +185,16 @@ function importAllowed(
     return typeOnly || file.includes('/read/');
   if (specifier.startsWith('./store/'))
     return typeOnly || file.includes('/store/');
+  if (specifier.startsWith('./server/'))
+    return typeOnly || file.includes('/server/');
   if (specifier.startsWith('./')) return true;
   return (
     (file.includes('/read/') &&
       (specifier.startsWith('../') || READER_IMPORTS.includes(specifier))) ||
     (file.includes('/store/') &&
-      (specifier.startsWith('../') || STORE_IMPORTS.includes(specifier)))
+      (specifier.startsWith('../') || STORE_IMPORTS.includes(specifier))) ||
+    (file.includes('/server/') &&
+      (specifier.startsWith('../') || SERVER_IMPORTS.includes(specifier)))
   );
 }
 
@@ -239,6 +269,7 @@ function analyse(sources: Map<string, string>): Violation[] {
         if (node.operator === ts.SyntaxKind.PlusToken) {
           report(node, 'unary plus (a number coercion)');
         } else if (
+          ARITHMETIC_PREFIX.has(node.operator) &&
           !negativeLiteral &&
           numberish(checker.getTypeAtLocation(node.operand))
         ) {
@@ -286,6 +317,9 @@ const BAD: Record<string, string> = {
   'add-assign.ts': 'let a = 1;\na += 2;\nexport { a };',
   'increment.ts': 'let i = 0;\ni++;\nexport { i };',
   'negate.ts': 'const a: number = 1;\nexport const b = -a;',
+  'bitwise-not.ts': 'const a: number = 1;\nexport const b = ~a;',
+  'pre-increment.ts': 'let i = 0;\n++i;\nexport { i };',
+  'negate-any.ts': 'declare const a: any;\nexport const b = -a;',
   'negative-fraction.ts': 'export const a = -0.5;',
   'unary-plus.ts': "const s = '5';\nexport const n = +s;",
   'fraction.ts': 'export const a = 0.25;',
@@ -337,6 +371,30 @@ const GOOD_IN_STORE: Record<string, string> = {
     "import { createHmac } from 'crypto';\nimport { prisma } from '@/lib/db/prisma';\nimport { x } from '../parent';\nimport { y } from './sibling';\nexport const a = [createHmac, prisma, x, y];",
 };
 
+/** Snippets in a `server/` folder: the session, tier, language, gateway and Redis modules, crypto and the parent's files only. */
+const BAD_IN_SERVER: Record<string, string> = {
+  'fs.ts': "import { readFileSync } from 'fs';\nexport const a = readFileSync;",
+  'market-client.ts':
+    "import { marketPrisma } from '@/lib/db/market-prisma';\nexport const a = marketPrisma;",
+  'user-client.ts':
+    "import { prisma } from '@/lib/db/prisma';\nexport const a = prisma;",
+  'zlib.ts': "import { gunzipSync } from 'zlib';\nexport const a = gunzipSync;",
+  'tier1-config.ts':
+    "import config from '@/config/engine4/tier1-events.json';\nexport const a = config;",
+  'next-server.ts':
+    "import { NextResponse } from 'next/server';\nexport const a = NextResponse;",
+  'math.ts': 'export const a = Math.floor(2);',
+  'number-arithmetic.ts':
+    'const started: number = Date.now();\nexport const ms = Date.now() - started;',
+  'parse-int.ts': "export const a = parseInt('5', 10);",
+};
+const GOOD_IN_SERVER: Record<string, string> = {
+  'modules.ts':
+    "import { randomUUID } from 'crypto';\nimport { getSession } from '@/lib/auth/session';\nimport { canAccessAiAnalyst } from '@/lib/tier-validation';\nimport { isSupportedLanguage } from '@/lib/i18n/languages';\nimport { fetchCurrentCycle } from '@/lib/active-indicator/gateway-client';\nimport { getRedisClient } from '@/lib/redis/client';\nimport { x } from '../parent';\nimport { y } from './sibling';\nexport const a = [randomUUID, getSession, canAccessAiAnalyst, isSupportedLanguage, fetchCurrentCycle, getRedisClient, x, y];",
+  'bigint-time.ts':
+    'const began = BigInt(Date.now());\nexport const ms = Number(BigInt(Date.now()) - began);',
+};
+
 const GOOD: Record<string, string> = {
   'bigint.ts':
     'const a = 5n * 3n;\nconst b = -a;\nconst c = a ** 2n;\nlet d = 1n;\nd += 2n;\nd -= 1n;\nexport const e = d % 2n === 0n ? a / 3n : b;',
@@ -349,6 +407,8 @@ const GOOD: Record<string, string> = {
   'number-of-a-bigint.ts':
     'const a: bigint = 5n;\nexport const b = Number(a);\nexport const c = Number(7n);',
   'integers.ts': 'export const a = [10, 20].slice(1, 2);',
+  'logical-not.ts':
+    'declare const a: any;\ndeclare const b: number;\nexport const c = [!a, !b, !!a];',
   'negative-integer-literal.ts':
     'export function sign(a: bigint): -1 | 0 | 1 {\n  return a < 0n ? -1 : a > 0n ? 1 : 0;\n}',
   'words-in-comments.ts':
@@ -360,6 +420,8 @@ const GOOD: Record<string, string> = {
     "import type { Read } from './read/structure';\nexport type A = Read;",
   'type-only-import-of-a-store.ts':
     "import type { Store } from './store/profile';\nexport type A = Store;",
+  'type-only-import-of-the-route-layer.ts':
+    "import type { Caller } from './server/session';\nexport type A = Caller;",
 };
 
 /** More snippets for the pure files: a store's code must never be reached from them. */
@@ -369,6 +431,10 @@ Object.assign(BAD, {
   'value-reexport-of-a-store.ts': "export { save } from './store/profile';",
   'database-client-in-a-pure-file.ts':
     "import { prisma } from '@/lib/db/prisma';\nexport const a = prisma;",
+  'value-import-of-the-route-layer.ts':
+    "import { authorize } from './server/session';\nexport const a = authorize;",
+  'value-reexport-of-the-route-layer.ts':
+    "export { authorize } from './server/session';",
 });
 
 describe('the guard itself', () => {
@@ -389,7 +455,34 @@ describe('the guard itself', () => {
   for (const [name, text] of Object.entries(GOOD_IN_STORE))
     sources.set(`/guard-self-test/good/store/${name}`, text);
   sources.set('/guard-self-test/good/store/sibling.ts', 'export const y = 1n;');
+  for (const [name, text] of Object.entries(BAD_IN_SERVER))
+    sources.set(`/guard-self-test/bad/server/${name}`, text);
+  for (const [name, text] of Object.entries(GOOD_IN_SERVER))
+    sources.set(`/guard-self-test/good/server/${name}`, text);
+  sources.set(
+    '/guard-self-test/good/server/sibling.ts',
+    'export const y = 1n;'
+  );
   const found = analyse(sources);
+
+  test.each(Object.keys(BAD_IN_SERVER))(
+    'catches %s in a server/ folder',
+    (name) => {
+      expect(
+        found.filter((v) => v.file === `/guard-self-test/bad/server/${name}`)
+          .length
+      ).toBeGreaterThan(0);
+    }
+  );
+
+  test.each(Object.keys(GOOD_IN_SERVER))(
+    'leaves %s alone in a server/ folder',
+    (name) => {
+      expect(
+        found.filter((v) => v.file === `/guard-self-test/good/server/${name}`)
+      ).toEqual([]);
+    }
+  );
 
   test.each(Object.keys(BAD_IN_STORE))(
     'catches %s in a store/ folder',
@@ -445,7 +538,7 @@ describe('the guard itself', () => {
 describe('lib/engine4', () => {
   const files = sourceFilesUnder(ENGINE_DIR);
 
-  test('holds the files of parts 1 to 5', () => {
+  test('holds the files of parts 1 to 6', () => {
     const names = files.map((file) => file.slice(file.lastIndexOf('/') + 1));
     expect(names).toEqual(
       expect.arrayContaining([
@@ -476,6 +569,18 @@ describe('lib/engine4', () => {
         'user-hash.ts',
         'profile-store.ts',
         'consent-store.ts',
+        'bars.ts',
+        'synthesis.ts',
+        'context.ts',
+        'errors.ts',
+        'handlers.ts',
+        'idempotency.ts',
+        'request.ts',
+        'respond.ts',
+        'session.ts',
+        'setup.ts',
+        'trace.ts',
+        'versions.ts',
       ])
     );
   });

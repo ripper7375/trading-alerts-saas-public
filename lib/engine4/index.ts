@@ -12,8 +12,14 @@
  * validator and the modal definition. Part 5 is the three audit tables' stores
  * under `store/` (`profile-store.ts`, `consent-store.ts`, `user-hash.ts`), which
  * import the database client and are also imported by path, never through the
- * barrel; only the engine's version string (`version.ts`) is exported here. The
- * routes are later parts.
+ * barrel; only the engine's version string (`version.ts`) is exported here. Part 6 is
+ * the reader of the closed M5 bars (`read/bars.ts`), the reader of one stored
+ * synthesis reading (`read/synthesis.ts`) and the route layer under `server/` (the
+ * flag, the session and tier gate, the request reader, the loader that reads a
+ * trader's whole picture once, the handlers, the submission guard and the one
+ * answer format) behind `app/api/engine4/{profile,offer,size,consent}/route.ts`;
+ * none of it is exported here, because it imports the session, Redis, the gateway
+ * client and the databases.
  *
  * @module lib/engine4
  */

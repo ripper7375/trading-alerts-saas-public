@@ -108,6 +108,25 @@ describe('the public surface of lib/engine4 (parts 1 to 4)', () => {
     });
   });
 
+  test('loading the barrel does not load the route layer: the session, Redis, the gateway client or the readers of part 6', () => {
+    // the route layer reaches the session, Redis and the gateway; a client component
+    // that imports the barrel must never pull any of it in
+    for (const path of [
+      '@/lib/auth/session',
+      '@/lib/redis/client',
+      '@/lib/active-indicator/gateway-client',
+      '@/lib/engine4/server/handlers',
+      '@/lib/engine4/read/bars',
+      '@/lib/engine4/read/synthesis',
+    ]) {
+      jest.isolateModules(() => {
+        jest.doMock(path, () => {
+          throw new Error(`the barrel must not load ${path}`);
+        });
+        expect(() => require('@/lib/engine4')).not.toThrow();
+      });
+    }
+  });
   test('loading the barrel does not load the Tier-1 config file', () => {
     jest.isolateModules(() => {
       jest.doMock('@/config/engine4/tier1-events.json', () => {
