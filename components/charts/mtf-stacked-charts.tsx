@@ -147,9 +147,9 @@ export function MtfStackedCharts({
         <ResizableHandle
           aria-label={t('Drag to resize the upper and lower charts')}
           onDoubleClick={handleResetSplit}
-          tooltipTitle={t('Reset chart split', 'Reset chart split (50:50)')}
-          tooltipShortcut={t('Double-click', 'Double-click')}
-          tooltipSubtitle={t('Drag to resize', 'Drag to resize')}
+          tooltipTitle="Reset chart split (50:50)"
+          tooltipShortcut="Double-click"
+          tooltipSubtitle="Drag to resize"
           tooltipSide="bottom"
         />
 

@@ -246,9 +246,9 @@ export function TradingWorkspace({
                 : t('Collapse Sidebar', 'Hide sidebar')
             }
             tooltipShortcut={isMac ? '⌘B' : 'Ctrl+B'}
-            tooltipSubtitle={t('Drag to resize', 'Drag to resize')}
+            tooltipSubtitle="Drag to resize"
             tooltipSide="right"
-            aria-label={t('Drag to resize the sidebar')}
+            aria-label="Drag to resize the sidebar"
           />
 
           <ResizablePanel id="panel-b-chat" {...collapsiblePanelProps(ANALYST)}>
@@ -274,14 +274,12 @@ export function TradingWorkspace({
             onDragging={onHandleDragging}
             onDoubleClick={() => togglePanel(ANALYST)}
             tooltipTitle={
-              collapsed[ANALYST]
-                ? t('Show AI Analyst', 'Show AI Analyst')
-                : t('Hide AI Analyst', 'Hide AI Analyst')
+              collapsed[ANALYST] ? 'Show AI Analyst' : 'Hide AI Analyst'
             }
-            tooltipShortcut={t('Double-click', 'Double-click')}
-            tooltipSubtitle={t('Drag to resize', 'Drag to resize')}
+            tooltipShortcut="Double-click"
+            tooltipSubtitle="Drag to resize"
             tooltipSide="right"
-            aria-label={t('Drag to resize AI Analyst')}
+            aria-label="Drag to resize AI Analyst"
           />
 
           <ResizablePanel
@@ -308,14 +306,12 @@ export function TradingWorkspace({
             onDragging={onHandleDragging}
             onDoubleClick={() => togglePanel(COMMENTS)}
             tooltipTitle={
-              collapsed[COMMENTS]
-                ? t('Show Comments', 'Show Market Comments')
-                : t('Hide Comments', 'Hide Market Comments')
+              collapsed[COMMENTS] ? 'Show Comments' : 'Hide Comments'
             }
-            tooltipShortcut={t('Double-click', 'Double-click')}
-            tooltipSubtitle={t('Drag to resize', 'Drag to resize')}
+            tooltipShortcut="Double-click"
+            tooltipSubtitle="Drag to resize"
             tooltipSide="left"
-            aria-label={t('Drag to resize Market Comments')}
+            aria-label="Drag to resize Market Comments"
           />
 
           <ResizablePanel
