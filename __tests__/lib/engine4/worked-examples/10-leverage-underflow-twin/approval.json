@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "10-leverage-underflow-twin",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "d8d558d41b2fd20c62e3b0da83bc9297de72c0d2c0959f86d829bdeb6a3fdf00",
+  "expected_sha256": "bcc0f20d6847108c9dbb8ddf69824e71d0a9da4f9d5bf8cae0cbee538fcdaf76",
+  "note": ""
+}

@@ -1,0 +1,144 @@
+{
+  "schema": "worked-example-expected/1",
+  "example": "03-18-sep-z1-leverage-1-to-5",
+  "kind": "setup",
+  "result": {
+    "stop_options": [
+      {
+        "level": "sr_2",
+        "tf": "M15",
+        "level_price": "4350.92",
+        "stop_price": "4350.42",
+        "stop_distance": "16.78",
+        "also_at": []
+      },
+      {
+        "level": "LOEDT",
+        "tf": "M5",
+        "level_price": "4350.16",
+        "stop_price": "4349.66",
+        "stop_distance": "17.54",
+        "also_at": []
+      },
+      {
+        "level": "sr_3",
+        "tf": "M15",
+        "level_price": "4334.56",
+        "stop_price": "4334.06",
+        "stop_distance": "33.14",
+        "also_at": []
+      },
+      {
+        "level": "UOEDT",
+        "tf": "M15",
+        "level_price": "4279.46",
+        "stop_price": "4278.96",
+        "stop_distance": "88.24",
+        "also_at": []
+      },
+      {
+        "level": "baseline",
+        "tf": "M15",
+        "level_price": "4214.17",
+        "stop_price": "4213.67",
+        "stop_distance": "153.53",
+        "also_at": []
+      },
+      {
+        "level": "LOEDT",
+        "tf": "M15",
+        "level_price": "4126.24",
+        "stop_price": "4125.74",
+        "stop_distance": "241.46",
+        "also_at": []
+      }
+    ],
+    "sizing": {
+      "status": "OK",
+      "causes": [],
+      "limited_by": "RISK",
+      "fill_price": "4367.2",
+      "spread_price": "0",
+      "loss_per_ounce": "16.78",
+      "loss_per_lot": "1682",
+      "max_lot_by_leverage": "25000/436720",
+      "lot_at_stop": "7500/168200",
+      "raw_lot": "7500/168200",
+      "declared_risk": "75",
+      "declared_risk_2dp": "75.00",
+      "stop_price": "4350.42",
+      "stop_price_2dp": "4350.42",
+      "stop_chart_level": "4350.42",
+      "stop_chart_level_2dp": "4350.42",
+      "lot": "0.04",
+      "actual_risk": "67.28",
+      "actual_risk_2dp": "67.28",
+      "actual_risk_pct": "6728/5000",
+      "actual_risk_pct_2dp": "1.35",
+      "leverage_used": "17468.8/5000",
+      "leverage_used_3dp": "3.494"
+    },
+    "scenarios": {
+      "normal_rrr": "1.75",
+      "normal_capped": false,
+      "scenarios": [
+        {
+          "rrr": "1.5",
+          "gain_per_ounce": "2527/100",
+          "target_distance": "2527/100",
+          "target_distance_2dp": "25.27",
+          "target_price": "439247/100",
+          "target_price_2dp": "4392.47",
+          "target_chart_level": "439247/100",
+          "target_chart_level_2dp": "4392.47",
+          "net_profit": "100.92",
+          "net_profit_2dp": "100.92",
+          "name": "CONSERVATIVE"
+        },
+        {
+          "rrr": "1.75",
+          "gain_per_ounce": "2947.5/100",
+          "target_distance": "2947.5/100",
+          "target_distance_2dp": "29.48",
+          "target_price": "439667.5/100",
+          "target_price_2dp": "4396.68",
+          "target_chart_level": "439667.5/100",
+          "target_chart_level_2dp": "4396.68",
+          "net_profit": "117.74",
+          "net_profit_2dp": "117.74",
+          "name": "NORMAL"
+        },
+        {
+          "rrr": "2",
+          "gain_per_ounce": "3368/100",
+          "target_distance": "3368/100",
+          "target_distance_2dp": "33.68",
+          "target_price": "440088/100",
+          "target_price_2dp": "4400.88",
+          "target_chart_level": "440088/100",
+          "target_chart_level_2dp": "4400.88",
+          "net_profit": "134.56",
+          "net_profit_2dp": "134.56",
+          "name": "AGGRESSIVE"
+        }
+      ],
+      "omitted": []
+    },
+    "underflow": null,
+    "room": {
+      "next_level": {
+        "name": "sr_1",
+        "tf": "M15",
+        "price": "4369.57"
+      },
+      "distance": "2.37"
+    },
+    "badge": {
+      "row": "COUNTER_TREND",
+      "cap": "CONSERVATIVE",
+      "fitting": [],
+      "badge": null,
+      "no_badge_reason": "NO_SCENARIO_FITS"
+    }
+  }
+}

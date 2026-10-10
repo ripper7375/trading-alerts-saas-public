@@ -1,0 +1,172 @@
+{
+  "schema": "worked-example-expected/1",
+  "example": "04-m15-uoedt-stop-underflow",
+  "kind": "setup",
+  "result": {
+    "stop_options": [
+      {
+        "level": "sr_2",
+        "tf": "M15",
+        "level_price": "4350.92",
+        "stop_price": "4350.42",
+        "stop_distance": "16.78",
+        "also_at": []
+      },
+      {
+        "level": "LOEDT",
+        "tf": "M5",
+        "level_price": "4350.16",
+        "stop_price": "4349.66",
+        "stop_distance": "17.54",
+        "also_at": []
+      },
+      {
+        "level": "sr_3",
+        "tf": "M15",
+        "level_price": "4334.56",
+        "stop_price": "4334.06",
+        "stop_distance": "33.14",
+        "also_at": []
+      },
+      {
+        "level": "UOEDT",
+        "tf": "M15",
+        "level_price": "4279.46",
+        "stop_price": "4278.96",
+        "stop_distance": "88.24",
+        "also_at": []
+      },
+      {
+        "level": "baseline",
+        "tf": "M15",
+        "level_price": "4214.17",
+        "stop_price": "4213.67",
+        "stop_distance": "153.53",
+        "also_at": []
+      },
+      {
+        "level": "LOEDT",
+        "tf": "M15",
+        "level_price": "4126.24",
+        "stop_price": "4125.74",
+        "stop_distance": "241.46",
+        "also_at": []
+      }
+    ],
+    "sizing": {
+      "status": "UNDERFLOW",
+      "causes": [
+        "RISK"
+      ],
+      "fill_price": "4367.2",
+      "spread_price": "0",
+      "loss_per_ounce": "88.24",
+      "loss_per_lot": "8828",
+      "max_lot_by_leverage": "7500/436720",
+      "lot_at_stop": "7500/882800",
+      "raw_lot": "7500/882800",
+      "declared_risk": "75",
+      "declared_risk_2dp": "75.00",
+      "stop_price": "4278.96",
+      "stop_price_2dp": "4278.96",
+      "stop_chart_level": "4278.96",
+      "stop_chart_level_2dp": "4278.96",
+      "lot": null
+    },
+    "scenarios": {
+      "normal_rrr": "1.75",
+      "normal_capped": false,
+      "scenarios": [
+        {
+          "rrr": "1.5",
+          "gain_per_ounce": "13246/100",
+          "target_distance": "13246/100",
+          "target_distance_2dp": "132.46",
+          "target_price": "449966/100",
+          "target_price_2dp": "4499.66",
+          "target_chart_level": "449966/100",
+          "target_chart_level_2dp": "4499.66",
+          "net_profit": null,
+          "net_profit_2dp": null,
+          "name": "CONSERVATIVE"
+        },
+        {
+          "rrr": "1.75",
+          "gain_per_ounce": "15453/100",
+          "target_distance": "15453/100",
+          "target_distance_2dp": "154.53",
+          "target_price": "452173/100",
+          "target_price_2dp": "4521.73",
+          "target_chart_level": "452173/100",
+          "target_chart_level_2dp": "4521.73",
+          "net_profit": null,
+          "net_profit_2dp": null,
+          "name": "NORMAL"
+        },
+        {
+          "rrr": "2",
+          "gain_per_ounce": "17660/100",
+          "target_distance": "17660/100",
+          "target_distance_2dp": "176.60",
+          "target_price": "454380/100",
+          "target_price_2dp": "4543.80",
+          "target_chart_level": "454380/100",
+          "target_chart_level_2dp": "4543.80",
+          "net_profit": null,
+          "net_profit_2dp": null,
+          "name": "AGGRESSIVE"
+        }
+      ],
+      "omitted": []
+    },
+    "underflow": {
+      "causes": [
+        "RISK"
+      ],
+      "min_lot_loss": "88.28",
+      "min_lot_risk_pct": "8828/5000",
+      "options": [
+        {
+          "kind": "NEARER_STRUCTURAL_STOP",
+          "stop_distance": "16.78",
+          "lot": "0.01",
+          "actual_risk": "16.82",
+          "actual_risk_pct": "1682/5000"
+        },
+        {
+          "kind": "NEARER_STRUCTURAL_STOP",
+          "stop_distance": "17.54",
+          "lot": "0.01",
+          "actual_risk": "17.58",
+          "actual_risk_pct": "1758/5000"
+        },
+        {
+          "kind": "NEARER_STRUCTURAL_STOP",
+          "stop_distance": "33.14",
+          "lot": "0.01",
+          "actual_risk": "33.18",
+          "actual_risk_pct": "3318/5000"
+        },
+        {
+          "kind": "DECLINE"
+        }
+      ],
+      "facts": [
+        {
+          "kind": "EQUITY_NEEDED_FOR_RISK",
+          "equity": "8828/1.5",
+          "at_risk_pct": "1.5",
+          "equity_at_least_2dp": "5885.34"
+        }
+      ]
+    },
+    "room": {
+      "next_level": {
+        "name": "sr_1",
+        "tf": "M15",
+        "price": "4369.57"
+      },
+      "distance": "2.37"
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "worked-example-generator/1",
+  "tool": "scripts/engine4/worked_examples.py",
+  "tool_sha256": "236f334cac1df5954fb0581f16d741aac65cc545532bb73bfe69c8bb93d7abd0",
+  "oracle": "scripts/engine4/oracle.py",
+  "oracle_sha256": "e0291191bb591db6189535a85afe7319217a4666a332d83b8f5debd2059f68d5",
+  "examples": [
+    "01-doc-6-7-table",
+    "02-18-sep-z1-default-profile",
+    "03-18-sep-z1-leverage-1-to-5",
+    "04-m15-uoedt-stop-underflow",
+    "05-500-dollar-account",
+    "06-counter-trend-cap-2-50",
+    "07-cautionary-half-risk",
+    "08-blackout-window-edge",
+    "09-stale-symbol-specs",
+    "10-leverage-underflow-twin"
+  ]
+}

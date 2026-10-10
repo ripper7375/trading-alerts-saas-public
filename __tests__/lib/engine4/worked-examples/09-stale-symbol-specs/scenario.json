@@ -1,0 +1,40 @@
+{
+  "schema": "worked-example-scenario/1",
+  "id": "09-stale-symbol-specs",
+  "title": "A stale or future-dated symbol_specs row (architecture 6.9 and 7.6)",
+  "why": "Report 2 sizes with the broker's own figures, so a row older than 7 days means it is not offered until the figures refresh. The boundary second is still fresh; one second more is stale. A row dated more than 5 minutes ahead of our clock is refused as well, and so is a missing row. With the stored 18 Sep cycle otherwise fine, only the broker figures decide.",
+  "kind": "specs",
+  "specs": {
+    "now_utc": "2026-09-18T20:57:30Z",
+    "probes": [
+      {
+        "label": "one hour old (normal)",
+        "captured_offset_s": "-3600"
+      },
+      {
+        "label": "6 days 23 h 59 min 59 s old",
+        "captured_offset_s": "-604799"
+      },
+      {
+        "label": "exactly 7 days old",
+        "captured_offset_s": "-604800"
+      },
+      {
+        "label": "7 days and 1 second old",
+        "captured_offset_s": "-604801"
+      },
+      {
+        "label": "dated 5 minutes ahead of our clock",
+        "captured_offset_s": "300"
+      },
+      {
+        "label": "dated 5 minutes and 1 second ahead",
+        "captured_offset_s": "301"
+      },
+      {
+        "label": "no row at all",
+        "no_row": true
+      }
+    ]
+  }
+}

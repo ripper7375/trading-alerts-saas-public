@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "06-counter-trend-cap-2-50",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "49b6ea5d71f1941b2f0ccf7b4dd6fd14a24b18cfa7fd90cdd745f27ba540349c",
+  "expected_sha256": "65dd061ea43a9ffcfa8cb3e753aaf08cb43b5cd47e2cd072c14cc22c44074451",
+  "note": ""
+}

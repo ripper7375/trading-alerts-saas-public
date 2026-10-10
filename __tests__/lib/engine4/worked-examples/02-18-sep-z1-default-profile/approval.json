@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "02-18-sep-z1-default-profile",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "0066595d2f9e3e011df10e18f5924384b599e417f9dd8e4b9dcccbc0104d9b55",
+  "expected_sha256": "048334a2a4624d82151c54938603682b8a59ca45adc1e1574ff51be2404a3e47",
+  "note": ""
+}

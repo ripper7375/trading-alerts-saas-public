@@ -1,0 +1,93 @@
+{
+  "schema": "worked-example-expected/1",
+  "example": "10-leverage-underflow-twin",
+  "kind": "setup",
+  "result": {
+    "sizing": {
+      "status": "UNDERFLOW",
+      "causes": [
+        "LEVERAGE"
+      ],
+      "fill_price": "4367.2",
+      "spread_price": "0",
+      "loss_per_ounce": "16.78",
+      "loss_per_lot": "1682",
+      "max_lot_by_leverage": "4200/436720",
+      "lot_at_stop": "4200/168200",
+      "raw_lot": "4200/436720",
+      "declared_risk": "42",
+      "declared_risk_2dp": "42.00",
+      "stop_price": "4350.42",
+      "stop_price_2dp": "4350.42",
+      "stop_chart_level": "4350.42",
+      "stop_chart_level_2dp": "4350.42",
+      "lot": null
+    },
+    "scenarios": {
+      "normal_rrr": "1.75",
+      "normal_capped": false,
+      "scenarios": [
+        {
+          "rrr": "1.5",
+          "gain_per_ounce": "2527/100",
+          "target_distance": "2527/100",
+          "target_distance_2dp": "25.27",
+          "target_price": "439247/100",
+          "target_price_2dp": "4392.47",
+          "target_chart_level": "439247/100",
+          "target_chart_level_2dp": "4392.47",
+          "net_profit": null,
+          "net_profit_2dp": null,
+          "name": "CONSERVATIVE"
+        },
+        {
+          "rrr": "1.75",
+          "gain_per_ounce": "2947.5/100",
+          "target_distance": "2947.5/100",
+          "target_distance_2dp": "29.48",
+          "target_price": "439667.5/100",
+          "target_price_2dp": "4396.68",
+          "target_chart_level": "439667.5/100",
+          "target_chart_level_2dp": "4396.68",
+          "net_profit": null,
+          "net_profit_2dp": null,
+          "name": "NORMAL"
+        },
+        {
+          "rrr": "2",
+          "gain_per_ounce": "3368/100",
+          "target_distance": "3368/100",
+          "target_distance_2dp": "33.68",
+          "target_price": "440088/100",
+          "target_price_2dp": "4400.88",
+          "target_chart_level": "440088/100",
+          "target_chart_level_2dp": "4400.88",
+          "net_profit": null,
+          "net_profit_2dp": null,
+          "name": "AGGRESSIVE"
+        }
+      ],
+      "omitted": []
+    },
+    "underflow": {
+      "causes": [
+        "LEVERAGE"
+      ],
+      "min_lot_loss": "16.82",
+      "min_lot_risk_pct": "1682/2800",
+      "options": [
+        {
+          "kind": "DECLINE"
+        }
+      ],
+      "facts": [
+        {
+          "kind": "EQUITY_NEEDED_FOR_LEVERAGE",
+          "equity": "4367.2/1.5",
+          "at_max_leverage": "1.5",
+          "equity_at_least_2dp": "2911.47"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "05-500-dollar-account",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "642fb1b29e2abb2f9d87da5125edeacaab3ebf1d13a9e86cf36f1e8c82c8cb40",
+  "expected_sha256": "9a4a26868c6b7ecc5d50cbb34cb11bf17b47efb1274024d5cd275142874763c7",
+  "note": ""
+}

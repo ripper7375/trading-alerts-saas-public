@@ -1,0 +1,127 @@
+{
+  "schema": "worked-example-scenario/1",
+  "id": "07-cautionary-half-risk",
+  "title": "18 Sep, zone Z1, a CAUTIONARY cycle: the modal opens at half the risk",
+  "why": "MCD0 flags both timeframes, so the Day Trader reading is CAUTIONARY (ADR-061): the modal pre-sets 0.75%, half of Max RPT 1.50%, with the reasons beside it; the trader may enter up to 1.50% and the override is recorded. Equity $10,000 at 1:5 with the TEST broker row's 25-point spread: the BUY fills at the ask, 4,367.45, so the loss per ounce is $17.03 and the leverage used is worked out at the fill price (decision D3). Lot 0.04, declared $75.00, actual $68.28; the three scenarios give $102.42, $119.49 and $136.56. These are the figures the part 7 preview shows.",
+  "kind": "setup",
+  "setup": {
+    "side": "BUY",
+    "entry": "4367.20",
+    "stop_distance": "16.78",
+    "equity": "10000",
+    "risk_pct": "0.75",
+    "max_leverage": "5",
+    "commission": "4",
+    "spec": {
+      "contract_size": "100",
+      "volume_min": "0.01",
+      "volume_step": "0.01",
+      "volume_max": "100",
+      "typical_spread": "25",
+      "point": "0.01"
+    },
+    "target_rrr": "1.75",
+    "max_risk_pct": "1.5",
+    "min_sld": "13",
+    "counter_trend": true
+  },
+  "stored": {
+    "golden": "01-real-18-sep-counter-trend-rally",
+    "reading": "DAY_TRADER",
+    "zone": "Z1",
+    "facts": {
+      "reference_price": "4367.20",
+      "invalidation_price": "4350.42",
+      "stop_distance": "16.78",
+      "next_opposing_price": "4369.57",
+      "bias": "LONG",
+      "status": "CAUTIONARY",
+      "status_reasons": [
+        "MCD0_DEFECT_M15",
+        "MCD0_DEFECT_M5"
+      ],
+      "trend_relation": "COUNTER_TREND"
+    }
+  },
+  "levels": [
+    {
+      "name": "UOEDT",
+      "tf": "M15",
+      "price": "4279.46",
+      "origin": "MCD1"
+    },
+    {
+      "name": "baseline",
+      "tf": "M15",
+      "price": "4214.17",
+      "origin": "MCD1"
+    },
+    {
+      "name": "LOEDT",
+      "tf": "M15",
+      "price": "4126.24",
+      "origin": "MCD1"
+    },
+    {
+      "name": "UOEDT",
+      "tf": "M5",
+      "price": "4384.23",
+      "origin": "MCD2"
+    },
+    {
+      "name": "baseline",
+      "tf": "M5",
+      "price": "4367.20",
+      "origin": "MCD2"
+    },
+    {
+      "name": "LOEDT",
+      "tf": "M5",
+      "price": "4350.16",
+      "origin": "MCD2"
+    },
+    {
+      "name": "sr_1",
+      "tf": "M15",
+      "price": "4369.57",
+      "origin": "sr_levels"
+    },
+    {
+      "name": "sr_2",
+      "tf": "M15",
+      "price": "4350.92",
+      "origin": "sr_levels"
+    },
+    {
+      "name": "sr_3",
+      "tf": "M15",
+      "price": "4334.56",
+      "origin": "sr_levels"
+    },
+    {
+      "name": "sr_5",
+      "tf": "M15",
+      "price": "4386.20",
+      "origin": "sr_levels"
+    },
+    {
+      "name": "sr_6",
+      "tf": "M15",
+      "price": "4398.29",
+      "origin": "sr_levels"
+    }
+  ],
+  "trend": {
+    "relation": "COUNTER_TREND",
+    "conflict": true,
+    "both_timeframes": false
+  },
+  "cycle": {
+    "status": "CAUTIONARY",
+    "status_reasons": [
+      "MCD0_DEFECT_M15",
+      "MCD0_DEFECT_M5"
+    ],
+    "retuning": false
+  }
+}

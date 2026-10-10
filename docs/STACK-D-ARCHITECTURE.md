@@ -4,7 +4,7 @@
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Status**          | Canonical. Version 1.0, 30 September 2026                                                                                                                                                                                                                           |
 | **Owner**           | Davin (approver of every change)                                                                                                                                                                                                                                    |
-| **Decisions**       | [`docs/adr/`](adr/README.md): entries 001–092, all settled ([ADR-015](adr/015-retuning-during-a-promote.md) settled 1 Oct 2026)                                                                                                                                     |
+| **Decisions**       | [`docs/adr/`](adr/README.md): entries 001–097, all settled ([ADR-015](adr/015-retuning-during-a-promote.md) settled 1 Oct 2026; 093–097 record build step 5)                                                                                                        |
 | **Building an MCD** | [MCD-DEVELOPMENT-STANDARD.md](MCD-DEVELOPMENT-STANDARD.md) (ADR-082), in the order given by [MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md](MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md); the MCD registry is §2.13                                                         |
 | **For Davin**       | [STACK-D-BUILD-USER-MANUAL.md](STACK-D-BUILD-USER-MANUAL.md): the build steps from his side, with the prompt to paste for each                                                                                                                                      |
 | **Built from**      | The eight decks `STACK-D-REVISED-ARCHITECTURE-00` to `-07` in `davintrade-stack-d-and-e/`, and the review [`STACK-D-ARCHITECTURE-REVIEW-AND-RECOMMENDATIONS.md`](../davintrade-stack-d-and-e/archive/STACK-D-ARCHITECTURE-REVIEW-AND-RECOMMENDATIONS.md) (archived) |
@@ -1449,11 +1449,20 @@ modal is submitted. Report 2 stays pinned to the cycle Report 1 used ([ADR-059])
 | With the trend; room ≥ Normal RRR                   | Normal       |
 | With the trend on M5 and M15; room ≥ Aggressive RRR | Aggressive   |
 
-Example (18 Sep, Day Trader, Z1): entry 4367.25; stop option A 4349.72 ($17.53, below M5 LOEDT);
-option B 4278.71 ($88.54, below M15 UOEDT); next opposing level M5 UOEDT 4384.28, room 17.03 =
-0.97 × stop. Conservative (1.50×) needs a target distance of ≈ 26.40 → target ≈ 4393.6, past the
-level → no badge; Report 2 names 4384.28. A default profile (Trend Following) also sees the
-counter-trend notice, and the 2.50× cap applies.
+Example (the stored 18 Sep 20:55 cycle, Day Trader reading, Z1; worked examples
+[02](../__tests__/lib/engine4/worked-examples/02-18-sep-z1-default-profile/review.md) and
+[04](../__tests__/lib/engine4/worked-examples/04-m15-uoedt-stop-underflow/review.md)): entry 4367.20.
+Six stop options lie at least $13 from the entry, each $0.50 beyond its level: behind M15 `sr_2`
+4350.42 ($16.78, which is the zone's own stored invalidation), behind M5 LOEDT 4349.66 ($17.54),
+behind M15 `sr_3` 4334.06 ($33.14), behind M15 UOEDT 4278.96 ($88.24), behind M15 baseline 4213.67
+($153.53) and behind M15 LOEDT 4125.74 ($241.46); the modal shows the nearest three and the rest
+under "more levels". The next opposing level is M15 `sr_1` 4369.57, so the room is 2.37 = 0.14 × the
+$16.78 stop. Conservative (1.50×) needs a target distance of 25.27 → target 4392.47, far past the
+level (Normal and Aggressive lie further out) → **no badge, and Report 2 names 4369.57**. A default
+profile (Trend Following) also sees the counter-trend notice, the 2.50× cap applies, and because the
+cycle is CAUTIONARY the modal pre-sets half the risk (§6.6). The first sketch of this example (entry
+4367.25, stop options 4349.72 and 4278.71, level 4384.28 named) predates the engine and is
+corrected in [Appendix B](#appendix-b--corrections-to-earlier-material).
 
 ### 6.6 News blackout (D2) and defect flag (D4)
 
@@ -1511,8 +1520,27 @@ risk $100.00; **actual risk $90.24 (0.90%)**; leverage used **1.527×** (file G 
 | File G's formulas, applied: target / net   | 2,567.54 / $134.98              | 2,571.29 / $157.48              | 2,575.04 / $179.98              |
 | **This document: distance / target / net** | **$22.60 / 2,567.60 / $135.36** | **$26.36 / 2,571.36 / $157.92** | **$30.12 / 2,575.12 / $180.48** |
 
-This table is a unit-test fixture. Note: with the default Max leverage of 1:1.5, the leverage cap
-would clamp this example to 0.05 lot; the example assumes a higher maximum.
+This table is a unit-test fixture ([worked example
+01](../__tests__/lib/engine4/worked-examples/01-doc-6-7-table/review.md)): the independent oracle and
+the engine both give it to the cent.
+
+**The leverage clamp.** Step 3 takes the smaller of the leverage lot and the risk lot, so the
+leverage limit can set the lot and leave part of the declared risk unused. With the default Max
+leverage of 1:1.5 the leverage cap would clamp this example to 0.05 lot; the table assumes a higher
+maximum. At today's gold price the clamp is the usual case, not the exception: the default profile
+(equity $5,000, 1:1.5, 1.50%) at the stored 18 Sep entry 4367.20 and its $16.78 stop can buy at most
+0.0172 lot, so the lot is 0.01, the declared risk $75.00 and the actual risk $16.82 (0.34%); at the
+1:5 ceiling the lot is 0.04 and the actual risk $67.28 (1.35%) ([worked
+example 02](../__tests__/lib/engine4/worked-examples/02-18-sep-z1-default-profile/review.md) and
+[03](../__tests__/lib/engine4/worked-examples/03-18-sep-z1-leverage-1-to-5/review.md)). Report 2
+says which limit set the lot ("your leverage limit set this lot, not your risk limit"), so that
+declared and actual risk side by side do not look like an error.
+
+**Spread.** With a typical spread S above zero (§6.9) a BUY fills at the ask (entry + S): its loss
+per ounce is SLD + S, its target distance is the gain plus S, and steps 1 and 4 use the fill price.
+A SELL fills on the bid; its stop and target trigger on the ask, so the chart (bid) levels where they
+trigger are S below their trigger prices ([ADR-094]). With S = 0 every formula above is exact as
+printed.
 
 ### 6.8 Lots below the broker minimum
 
@@ -1528,6 +1556,32 @@ trader's limits:
 | 4 Decline              | Kept                                                                                             |
 
 Equity is the trader's real balance; the report never suggests entering a different number.
+
+**Two causes, each stated as a fact.** A lot below the minimum comes from the risk limit, from the
+leverage limit, or from both; the report names every cause that applies and never rounds up:
+
+| Cause                     | It applies when                                         | Fact stated                                                                                                 | Help offered                                                                                                      |
+| ------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Risk limit                | the lot at the stop (step 2) is below the minimum lot   | "this setup needs at least $X of equity at r% risk", X = loss of one minimum lot ÷ r                        | The table above: raise the risk only up to Max RPT, a nearer structural stop, Decline                             |
+| Leverage limit (the twin) | the lot from leverage (step 1) is below the minimum lot | "this setup needs at least $Y of equity at 1:L leverage", Y = minimum lot × 100 × fill price ÷ Max leverage | Decline only. A higher risk or a nearer stop cannot change the leverage lot, and more leverage is never suggested |
+
+When both apply, both facts are shown and only Decline is offered. An amount of equity is rounded up
+to the cent, because it is a minimum. Three cases, each a [worked
+example](../__tests__/lib/engine4/worked-examples/INDEX.md):
+
+- **File G's $500 account, at its own gold price (2,545) and the 1:5 ceiling, is a risk and a
+  leverage shortfall** (example 05). Even the ceiling does not allow a 0.01 lot on $500: it needs
+  $509.00 at 1:5, and the risk needs $3,008.00 at 0.50%. Raising the risk to 3.01% is above Max RPT
+  (2.00%) and would not fix the leverage, so only Decline is offered. File G counted this as a risk
+  shortfall only.
+- **The leverage twin alone** (example 10): the default profile at the stored 18 Sep entry 4367.20
+  with $2,800 of equity. The risk would allow about 0.025 lot but the leverage limit allows 0.0096,
+  which rounds down to nothing: "at least $2,911.47 of equity at 1:1.5 leverage"; at $2,911.47 the lot
+  is 0.01 and at $2,911.46 it is not.
+- **A risk shortfall with help** (example 04): the stored M15 UOEDT stop ($88.24) on the default
+  profile. A minimum lot needs 1.77% risk, above Max RPT (1.50%), so raising the risk is not offered;
+  the three nearer structural stops ($16.78, $17.54, $33.14) each give a 0.01 lot, and the equity
+  fact is $5,885.34 at 1.50%.
 
 ### 6.9 Broker figures (`symbol_specs`)
 
@@ -1624,7 +1678,8 @@ broker" (DavinTrade places no orders). Retention: §7.5.
 - Releases at −16, −14, +14 and +16 minutes give allowed, blocked, blocked, allowed.
 - The corrected table runs as a unit test; this document and the code agree.
 - A CAUTIONARY cycle pre-sets half the risk; an override shows in the consent record.
-- On the 18 Sep example no badge is given and 4384.28 is named.
+- On the stored 18 Sep example (Z1, entry 4367.20) no badge is given and the blocking level, M15
+  `sr_1` 4369.57, 2.37 away, is named.
 - No offered underflow option exceeds Max RPT or asks for a different equity.
 - The same setup typed in chat and entered in the modal gives identical results.
 - Changing contract size or lot step in `symbol_specs` changes the lot with no code change.
@@ -1635,7 +1690,10 @@ broker" (DavinTrade places no orders). Retention: §7.5.
 [ADR-058] when Report 2 is offered · [ADR-059] setup freshness · [ADR-060] news blackout ·
 [ADR-061] defect flag · [ADR-062] stop options · [ADR-063] badge · [ADR-064] style mismatch ·
 [ADR-065] RRR definition · [ADR-066] broker figures · [ADR-067] chat-typed setups · [ADR-068] Report
-2 production · [ADR-069] consent.
+2 production · [ADR-069] consent. Recorded in build step 5: [ADR-093] exact rational arithmetic ·
+[ADR-094] the spread and the fill price in the sizing · [ADR-095] stop options from the stored
+readings and the cycle bundle · [ADR-096] profile history and the keyed audit hash · [ADR-097] the
+fixed Report 2 template and the `ValidatedSetup`.
 
 ---
 
@@ -2025,26 +2083,33 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | [090](adr/090-the-support-and-resistance-levels-travel-in-the-cycle-bundle.md) | The support and resistance levels travel in the cycle bundle                                             | Section 2 · 4 Oct   | Settled |
 | [091](adr/091-syn-readings-and-zones-have-their-own-tables.md)                 | SYN readings and entry zones have their own tables, not rows of mcd_outputs                              | Section 3 · 4 Oct   | Settled |
 | [092](adr/092-the-syn-flag.md)                                                 | SYN has its own flag (off, shadow, live) and may not exceed MCD1 or MCD2                                 | Section 3 · 4 Oct   | Settled |
+| [093](adr/093-exact-rational-arithmetic-for-the-money-maths.md)                | Money maths in exact fractions (no floats); checked by an independent Decimal oracle                     | Section 6 · 9 Oct   | Settled |
+| [094](adr/094-spread-and-the-fill-price-in-the-sizing.md)                      | Spread S: a BUY fills at the ask, a SELL triggers on the ask; leverage uses the fill price               | Section 6 · 9 Oct   | Settled |
+| [095](adr/095-stop-options-from-the-stored-readings-and-the-cycle-bundle.md)   | Stop options rebuilt from stored readings and bundle S&R levels; targets strictly before the level       | Section 6 · 9 Oct   | Settled |
+| [096](adr/096-profile-history-and-the-keyed-audit-hash.md)                     | Profile history and consent rows are append-only; user id goes to NULL, a keyed HMAC hash stays          | Section 6 · 10 Oct  | Settled |
+| [097](adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md)        | One ValidatedSetup for modal and chat; the server recomputes; Report 2 is a fixed template               | Section 6 · 10 Oct  | Settled |
 
 ## Appendix B — Corrections to earlier material
 
-| Where             | Said                                              | Correct statement                                                                                                                      |
-| ----------------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Rev-3 deck        | "SQLite staging + Python calc"                    | The Python calc stack was parked on 9 Sep. MQL5 computes every value; the collector validates and forwards                             |
-| Rev-3 deck        | "Exports at second :59, every 5 minutes"          | Exports every minute at :59; the collector reads every 5 minutes at :05, and M15 every 15                                              |
-| Review A2         | "No cycle identifier"                             | A collection `cycle_id` exists per timeframe and attempt; what was missing is one key across timeframes and a ready signal ([ADR-008]) |
-| Review A3         | MCD2 and MCD3 disagree on test data               | Stronger: on live data every variant has data every cycle, so a "single active" check would always fail ([ADR-010])                    |
-| Review, evidence  | MCD1–3 timestamps                                 | Not from the live pipeline; MCD evaluators read an Excel replica. The forming-bar finding rests on the pipeline documents              |
-| Rev-3 deck        | "Contabo VPS"                                     | The blueprint names a Vultr Windows server; "Contabo" survives in folder names                                                         |
-| Review B3         | Thai singled out                                  | DavinTrade serves 19 languages; B3 covers all with English as the single pivot ([ADR-038])                                             |
-| Review G4         | Block trade setups when the knowledge index fails | Report 2 does not use the index; only Report 1 is flagged (§7.6)                                                                       |
-| Files D, E §4     | "9 constraints"                                   | Engine 4 has 8 metrics                                                                                                                 |
-| File D §3 vs §10  | Chat buffer 20 vs 10 messages                     | 10 messages + a running summary ([ADR-057])                                                                                            |
-| File D §7         | "300+ messages a month"                           | Assumed ≈ 1,500 units a message; a first full-context message is ≈ 16,000–18,000 tokens, up to 19,600 at every cap (§5.4, §5.6)        |
-| File G §6         | Worked example                                    | Commission not subtracted; declared vs actual risk; corrected in §6.7                                                                  |
-| File G §4.1       | Underflow options 1 and 3                         | Option 1 can exceed Max RPT; option 3 asks for an equity the account does not hold; revised in §6.8                                    |
-| File E §5         | `ON DELETE CASCADE` on the preferences history    | Deletes the audit trail with the account; removed (§6.11)                                                                              |
-| News manifest §10 | "the other 12 dictionaries"                       | `lib/i18n/dictionaries` holds 19 files for 19 languages/locales (§7.9)                                                                 |
+| Where             | Said                                                              | Correct statement                                                                                                                      |
+| ----------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Rev-3 deck        | "SQLite staging + Python calc"                                    | The Python calc stack was parked on 9 Sep. MQL5 computes every value; the collector validates and forwards                             |
+| Rev-3 deck        | "Exports at second :59, every 5 minutes"                          | Exports every minute at :59; the collector reads every 5 minutes at :05, and M15 every 15                                              |
+| Review A2         | "No cycle identifier"                                             | A collection `cycle_id` exists per timeframe and attempt; what was missing is one key across timeframes and a ready signal ([ADR-008]) |
+| Review A3         | MCD2 and MCD3 disagree on test data                               | Stronger: on live data every variant has data every cycle, so a "single active" check would always fail ([ADR-010])                    |
+| Review, evidence  | MCD1–3 timestamps                                                 | Not from the live pipeline; MCD evaluators read an Excel replica. The forming-bar finding rests on the pipeline documents              |
+| Rev-3 deck        | "Contabo VPS"                                                     | The blueprint names a Vultr Windows server; "Contabo" survives in folder names                                                         |
+| Review B3         | Thai singled out                                                  | DavinTrade serves 19 languages; B3 covers all with English as the single pivot ([ADR-038])                                             |
+| Review G4         | Block trade setups when the knowledge index fails                 | Report 2 does not use the index; only Report 1 is flagged (§7.6)                                                                       |
+| Files D, E §4     | "9 constraints"                                                   | Engine 4 has 8 metrics                                                                                                                 |
+| File D §3 vs §10  | Chat buffer 20 vs 10 messages                                     | 10 messages + a running summary ([ADR-057])                                                                                            |
+| File D §7         | "300+ messages a month"                                           | Assumed ≈ 1,500 units a message; a first full-context message is ≈ 16,000–18,000 tokens, up to 19,600 at every cap (§5.4, §5.6)        |
+| File G §6         | Worked example                                                    | Commission not subtracted; declared vs actual risk; corrected in §6.7                                                                  |
+| File G §4.1       | Underflow options 1 and 3                                         | Option 1 can exceed Max RPT; option 3 asks for an equity the account does not hold; revised in §6.8                                    |
+| File E §5         | `ON DELETE CASCADE` on the preferences history                    | Deletes the audit trail with the account; removed (§6.11)                                                                              |
+| §6.5, §6.14       | 18 Sep: entry 4367.25, options 4349.72 and 4278.71, 4384.28 named | Stored cycle: entry 4367.20, six options, M15 `sr_1` 4369.57 named, no badge (§6.5; corrected in build step 5 part 8)                  |
+| §6.8              | $500 case is a risk shortfall only                                | At gold 2,545 and the 1:5 ceiling it is also a leverage shortfall ($509 needed); the leverage twin is added (§6.8)                     |
+| News manifest §10 | "the other 12 dictionaries"                                       | `lib/i18n/dictionaries` holds 19 files for 19 languages/locales (§7.9)                                                                 |
 
 ## Appendix C — Superseded documents
 
@@ -2221,3 +2286,8 @@ The txtai library source in the same folder is reference code (§4.6).
 [ADR-090]: adr/090-the-support-and-resistance-levels-travel-in-the-cycle-bundle.md
 [ADR-091]: adr/091-syn-readings-and-zones-have-their-own-tables.md
 [ADR-092]: adr/092-the-syn-flag.md
+[ADR-093]: adr/093-exact-rational-arithmetic-for-the-money-maths.md
+[ADR-094]: adr/094-spread-and-the-fill-price-in-the-sizing.md
+[ADR-095]: adr/095-stop-options-from-the-stored-readings-and-the-cycle-bundle.md
+[ADR-096]: adr/096-profile-history-and-the-keyed-audit-hash.md
+[ADR-097]: adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md

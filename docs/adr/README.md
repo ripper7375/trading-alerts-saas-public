@@ -3,8 +3,8 @@
 One file per decision. The architecture itself is in [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md); these files record what was decided, the alternative not chosen, and why.
 
 - **Settled:** decided by Davin. **Proposed:** adopted provisionally, awaiting confirmation (none at present; ADR-015, the last one, was settled on 2026-10-01).
-- Numbers 001–092 belong to the Stack D series. To change a decision, add a new file that names the one it replaces and mark the old one "Superseded by ADR-nnn".
-- 001–007 were made before the section series; 008–081 come from the seven section decks (`davintrade-stack-d-and-e/STACK-D-REVISED-ARCHITECTURE-01…07`); 082 and 083 came after, and 084 to 092 record the decisions of build step 4 (synthesis and entry zones), approved on 2026-10-04 and written down on 2026-10-09.
+- Numbers 001–097 belong to the Stack D series. To change a decision, add a new file that names the one it replaces and mark the old one "Superseded by ADR-nnn".
+- 001–007 were made before the section series; 008–081 come from the seven section decks (`davintrade-stack-d-and-e/STACK-D-REVISED-ARCHITECTURE-01…07`); 082 and 083 came after, and 084 to 092 record the decisions of build step 4 (synthesis and entry zones), approved on 2026-10-04 and written down on 2026-10-09; 093 to 097 record the decisions of build step 5 (Engine 4 and Report 2), approved on 2026-10-09 and 2026-10-10 in the plan and the part hand-offs and written down in part 8.
 - "File A" to "file I" and "the review" in these entries are the earlier documents, now in
   [`davintrade-stack-d-and-e/archive/`](../../davintrade-stack-d-and-e/archive/):
 
@@ -113,3 +113,8 @@ One file per decision. The architecture itself is in [STACK-D-ARCHITECTURE.md](.
 | 090 | [The support and resistance levels travel in the cycle bundle](090-the-support-and-resistance-levels-travel-in-the-cycle-bundle.md)  | 2 · Sensors (MCDs)              | Settled | 2026-10-04 |
 | 091 | [SYN readings and entry zones have their own tables](091-syn-readings-and-zones-have-their-own-tables.md)                            | 3 · Synthesis & entry zones     | Settled | 2026-10-04 |
 | 092 | [The SYN flag](092-the-syn-flag.md)                                                                                                  | 3 · Synthesis & entry zones     | Settled | 2026-10-04 |
+| 093 | [Exact rational arithmetic for the money maths](093-exact-rational-arithmetic-for-the-money-maths.md)                                | 6 · Engine 4 & Report 2         | Settled | 2026-10-09 |
+| 094 | [The spread and the fill price in the sizing](094-spread-and-the-fill-price-in-the-sizing.md)                                        | 6 · Engine 4 & Report 2         | Settled | 2026-10-09 |
+| 095 | [Stop options come from the stored readings and the cycle bundle](095-stop-options-from-the-stored-readings-and-the-cycle-bundle.md) | 6 · Engine 4 & Report 2         | Settled | 2026-10-09 |
+| 096 | [Profile history and consent are append-only; the audit hash is keyed](096-profile-history-and-the-keyed-audit-hash.md)              | 6 · Engine 4 & Report 2         | Settled | 2026-10-10 |
+| 097 | [Report 2 is a fixed template over one validated setup](097-report-2-is-a-fixed-template-over-one-validated-setup.md)                | 6 · Engine 4 & Report 2         | Settled | 2026-10-10 |

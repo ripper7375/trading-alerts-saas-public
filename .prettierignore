@@ -14,3 +14,8 @@ davintrade-stack-d-and-e/engine-1-5-new/mcd*/mcd*_output.json
 davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/golden/*/*.json
 davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/golden/*/review.md
 davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/golden/INDEX.md
+
+# Engine 4 worked examples (build step 5 part 8): scenario.json and expected.json are written by the oracle tool and approval.json holds their
+# SHA-256, so prettier must not touch them; review.md, INDEX.md and generator.json are generated and compared byte for byte by
+# `python scripts/engine4/worked_examples.py check`.
+__tests__/lib/engine4/worked-examples/**

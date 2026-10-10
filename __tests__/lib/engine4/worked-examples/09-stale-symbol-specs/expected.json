@@ -1,0 +1,66 @@
+{
+  "schema": "worked-example-expected/1",
+  "example": "09-stale-symbol-specs",
+  "kind": "specs",
+  "result": {
+    "now_utc": "2026-09-18T20:57:30Z",
+    "probes": [
+      {
+        "label": "one hour old (normal)",
+        "age_s": "3600",
+        "figures": "OK",
+        "offer_verdict": "OFFERED",
+        "offer_reason": null,
+        "offer_row": null
+      },
+      {
+        "label": "6 days 23 h 59 min 59 s old",
+        "age_s": "604799",
+        "figures": "OK",
+        "offer_verdict": "OFFERED",
+        "offer_reason": null,
+        "offer_row": null
+      },
+      {
+        "label": "exactly 7 days old",
+        "age_s": "604800",
+        "figures": "OK",
+        "offer_verdict": "OFFERED",
+        "offer_reason": null,
+        "offer_row": null
+      },
+      {
+        "label": "7 days and 1 second old",
+        "age_s": "604801",
+        "figures": "SPECS_STALE",
+        "offer_verdict": "NOT_OFFERED",
+        "offer_reason": "SPECS_STALE",
+        "offer_row": "10"
+      },
+      {
+        "label": "dated 5 minutes ahead of our clock",
+        "age_s": "0",
+        "figures": "OK",
+        "offer_verdict": "OFFERED",
+        "offer_reason": null,
+        "offer_row": null
+      },
+      {
+        "label": "dated 5 minutes and 1 second ahead",
+        "age_s": null,
+        "figures": "SPECS_FROM_THE_FUTURE",
+        "offer_verdict": "NOT_OFFERED",
+        "offer_reason": "SPECS_FROM_THE_FUTURE",
+        "offer_row": "10"
+      },
+      {
+        "label": "no row at all",
+        "age_s": null,
+        "figures": "NO_SPECS",
+        "offer_verdict": "NOT_OFFERED",
+        "offer_reason": "SPECS_MISSING",
+        "offer_row": "10"
+      }
+    ]
+  }
+}

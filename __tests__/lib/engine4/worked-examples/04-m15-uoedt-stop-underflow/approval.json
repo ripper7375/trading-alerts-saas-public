@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "04-m15-uoedt-stop-underflow",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "8457488067277e0bce8bf45023ddee235f59a389da76e2192c10da17b922616b",
+  "expected_sha256": "cfa14c4fd5ed7121f764214c65e3ada93bf13d1cba4aee6fc6e98c29008e97c3",
+  "note": ""
+}

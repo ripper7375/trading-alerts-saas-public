@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "03-18-sep-z1-leverage-1-to-5",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "1105adb47c09af35ff55be5306d50d7df09f5b591f13aa73fa07d551b24f0d3a",
+  "expected_sha256": "f0f05b16f0b5caed6ed5463271e63492d6a344f23e4bccecf74f9179ad5407dc",
+  "note": ""
+}

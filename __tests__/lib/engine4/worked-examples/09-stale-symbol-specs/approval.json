@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "09-stale-symbol-specs",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "36ce8db2c047fddabea87a66ecc845ec7e32ba91a8c14774d2179dca0eeff6e8",
+  "expected_sha256": "e152f97f7e5e7a64c350489351c35ea68ce84493faba5be6b17e33b8b8c46031",
+  "note": ""
+}

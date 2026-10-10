@@ -1,0 +1,28 @@
+{
+  "schema": "worked-example-scenario/1",
+  "id": "05-500-dollar-account",
+  "title": "File G's $500 account (architecture 6.8)",
+  "why": "$500 of equity, 0.50% risk ($2.50), a $15.00 stop, $4 commission, BUY 2,545.00, leverage at the 1:5 ceiling, Max RPT 2.00%. The document counts this as a risk shortfall only. The oracle finds a second cause: even at 1:5 a minimum lot (0.01 x 100 x 2,545 = $2,545 of notional) needs $509.00 of equity, so the leverage limit also stops it. Both are stated as facts ($3,008.00 for the risk, $509.00 for the leverage); raising the risk to 3.01% would be above Max RPT and would not fix the leverage, so only Decline is offered. Architecture 6.8 is rewritten to say this.",
+  "kind": "setup",
+  "setup": {
+    "side": "BUY",
+    "entry": "2545.00",
+    "stop_distance": "15.00",
+    "equity": "500",
+    "risk_pct": "0.50",
+    "max_leverage": "5",
+    "commission": "4",
+    "spec": {
+      "contract_size": "100",
+      "volume_min": "0.01",
+      "volume_step": "0.01",
+      "volume_max": "100",
+      "typical_spread": "0",
+      "point": "0.01"
+    },
+    "target_rrr": "1.75",
+    "max_risk_pct": "2",
+    "min_sld": "13",
+    "counter_trend": false
+  }
+}

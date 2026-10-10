@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "01-doc-6-7-table",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "90f4001032c2335f64c361e3027507ece04f3384c86715941d8201fa5aea4bc6",
+  "expected_sha256": "aa12bb4881b4710b6aa160cf2034b07f2f567d04f6c70c44e1602135db667350",
+  "note": ""
+}

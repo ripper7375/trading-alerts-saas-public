@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "07-cautionary-half-risk",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "d1c55ba4d22ff4ffa4fc4635426abbc5656a618dc6e977c508d9e2e3e1afb40f",
+  "expected_sha256": "9480483795d321b19ee776451a87be8c9783bffb35415b1d03971d65ce6bb045",
+  "note": ""
+}

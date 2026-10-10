@@ -1,0 +1,119 @@
+{
+  "schema": "worked-example-scenario/1",
+  "id": "04-m15-uoedt-stop-underflow",
+  "title": "18 Sep, zone Z1, a stop behind M15 UOEDT ($88.24): a lot below the broker minimum",
+  "why": "The fourth of the six structural stops of the stored cycle. The risk limit allows only 0.0085 lot, which rounds down to 0.00: nothing is sized (6.8). The help stays inside the trader's limits: raising the risk to the 1.77% a minimum lot needs is NOT offered (it is above Max RPT 1.50%), the nearer structural stops are, and the equity a minimum lot needs is a fact, never a button.",
+  "kind": "setup",
+  "setup": {
+    "side": "BUY",
+    "entry": "4367.20",
+    "stop_distance": "88.24",
+    "equity": "5000",
+    "risk_pct": "1.50",
+    "max_leverage": "1.5",
+    "commission": "4",
+    "spec": {
+      "contract_size": "100",
+      "volume_min": "0.01",
+      "volume_step": "0.01",
+      "volume_max": "100",
+      "typical_spread": "0",
+      "point": "0.01"
+    },
+    "target_rrr": "1.75",
+    "max_risk_pct": "1.5",
+    "min_sld": "13",
+    "counter_trend": true
+  },
+  "stored": {
+    "golden": "01-real-18-sep-counter-trend-rally",
+    "reading": "DAY_TRADER",
+    "zone": "Z1",
+    "facts": {
+      "reference_price": "4367.20",
+      "invalidation_price": "4350.42",
+      "stop_distance": "16.78",
+      "next_opposing_price": "4369.57",
+      "bias": "LONG",
+      "status": "CAUTIONARY",
+      "status_reasons": [
+        "MCD0_DEFECT_M15",
+        "MCD0_DEFECT_M5"
+      ],
+      "trend_relation": "COUNTER_TREND"
+    }
+  },
+  "levels": [
+    {
+      "name": "UOEDT",
+      "tf": "M15",
+      "price": "4279.46",
+      "origin": "MCD1"
+    },
+    {
+      "name": "baseline",
+      "tf": "M15",
+      "price": "4214.17",
+      "origin": "MCD1"
+    },
+    {
+      "name": "LOEDT",
+      "tf": "M15",
+      "price": "4126.24",
+      "origin": "MCD1"
+    },
+    {
+      "name": "UOEDT",
+      "tf": "M5",
+      "price": "4384.23",
+      "origin": "MCD2"
+    },
+    {
+      "name": "baseline",
+      "tf": "M5",
+      "price": "4367.20",
+      "origin": "MCD2"
+    },
+    {
+      "name": "LOEDT",
+      "tf": "M5",
+      "price": "4350.16",
+      "origin": "MCD2"
+    },
+    {
+      "name": "sr_1",
+      "tf": "M15",
+      "price": "4369.57",
+      "origin": "sr_levels"
+    },
+    {
+      "name": "sr_2",
+      "tf": "M15",
+      "price": "4350.92",
+      "origin": "sr_levels"
+    },
+    {
+      "name": "sr_3",
+      "tf": "M15",
+      "price": "4334.56",
+      "origin": "sr_levels"
+    },
+    {
+      "name": "sr_5",
+      "tf": "M15",
+      "price": "4386.20",
+      "origin": "sr_levels"
+    },
+    {
+      "name": "sr_6",
+      "tf": "M15",
+      "price": "4398.29",
+      "origin": "sr_levels"
+    }
+  ],
+  "trend": {
+    "relation": "COUNTER_TREND",
+    "conflict": true,
+    "both_timeframes": false
+  }
+}

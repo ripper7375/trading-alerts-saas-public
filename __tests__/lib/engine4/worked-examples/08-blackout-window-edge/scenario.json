@@ -1,0 +1,174 @@
+{
+  "schema": "worked-example-scenario/1",
+  "id": "08-blackout-window-edge",
+  "title": "The Tier-1 blackout at its edges (architecture 6.6)",
+  "why": "A Tier-1 release blocks Report 2 from 15 minutes before to 15 minutes after, with both edges inclusive: -15:00 and +15:00 block, -15:01 and +15:01 do not (6.14: releases at -16, -14, +14 and +16 give allowed, blocked, blocked, allowed). A release whose time is only approximate blocks for 60 minutes either side. A HIGH-impact USD release inside the holding window (12 h Day Trader, 2 h Scalper) is a warning, not a block. A calendar not exported for more than 45 minutes still blocks, and its age is shown. The times are UTC, as the exporter stores them; the ids are TEST ids.",
+  "kind": "blackout",
+  "blackout": {
+    "tier1": [
+      {
+        "event_id": "900000001",
+        "kind": "CPI",
+        "name": "TEST US CPI"
+      },
+      {
+        "event_id": "900000002",
+        "kind": "CORE_PCE",
+        "name": "TEST US Core PCE"
+      },
+      {
+        "event_id": "900000003",
+        "kind": "FOMC_RATE_DECISION",
+        "name": "TEST FOMC rate decision"
+      },
+      {
+        "event_id": "900000004",
+        "kind": "NFP",
+        "name": "TEST US NFP"
+      }
+    ],
+    "releases": [
+      {
+        "value_id": "TEST-CPI",
+        "event_id": "900000001",
+        "name": "TEST US CPI (exact time)",
+        "time_utc": "2026-09-17T12:30:00Z",
+        "currency": "USD",
+        "importance": "HIGH",
+        "time_mode": "0"
+      },
+      {
+        "value_id": "TEST-HIGH",
+        "event_id": "900000099",
+        "name": "TEST HIGH-impact USD release, not Tier-1",
+        "time_utc": "2026-09-17T15:30:00Z",
+        "currency": "USD",
+        "importance": "HIGH",
+        "time_mode": "0"
+      },
+      {
+        "value_id": "TEST-NFP",
+        "event_id": "900000004",
+        "name": "TEST US NFP (approximate time)",
+        "time_utc": "2026-09-19T12:30:00Z",
+        "currency": "USD",
+        "importance": "HIGH",
+        "time_mode": "1"
+      }
+    ],
+    "probes": [
+      {
+        "label": "CPI -16:01",
+        "anchor": "TEST-CPI",
+        "offset_s": "-961",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "CPI -15:01",
+        "anchor": "TEST-CPI",
+        "offset_s": "-901",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "CPI -15:00 (window opens)",
+        "anchor": "TEST-CPI",
+        "offset_s": "-900",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "CPI -14:59",
+        "anchor": "TEST-CPI",
+        "offset_s": "-899",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "CPI 0:00",
+        "anchor": "TEST-CPI",
+        "offset_s": "0",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "CPI +14:59",
+        "anchor": "TEST-CPI",
+        "offset_s": "899",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "CPI +15:00 (window closes)",
+        "anchor": "TEST-CPI",
+        "offset_s": "900",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "CPI +15:01",
+        "anchor": "TEST-CPI",
+        "offset_s": "901",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "CPI +16:00",
+        "anchor": "TEST-CPI",
+        "offset_s": "960",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "NFP approximate -60:01",
+        "anchor": "TEST-NFP",
+        "offset_s": "-3601",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "NFP approximate -60:00",
+        "anchor": "TEST-NFP",
+        "offset_s": "-3600",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "NFP approximate +60:00",
+        "anchor": "TEST-NFP",
+        "offset_s": "3600",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "NFP approximate +60:01",
+        "anchor": "TEST-NFP",
+        "offset_s": "3601",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "Scalper, CPI -15:01 (the other release is outside 2 h)",
+        "anchor": "TEST-CPI",
+        "offset_s": "-901",
+        "trader_type": "SCALPER",
+        "calendar_age_s": "600"
+      },
+      {
+        "label": "calendar 45:00 old, CPI -14:59 (still blocks)",
+        "anchor": "TEST-CPI",
+        "offset_s": "-899",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "2700"
+      },
+      {
+        "label": "calendar 45:01 old, CPI -14:59 (still blocks, late)",
+        "anchor": "TEST-CPI",
+        "offset_s": "-899",
+        "trader_type": "DAY_TRADER",
+        "calendar_age_s": "2701"
+      }
+    ]
+  }
+}

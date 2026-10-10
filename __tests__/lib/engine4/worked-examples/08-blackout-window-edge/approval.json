@@ -1,0 +1,10 @@
+{
+  "schema": "worked-example-approval/1",
+  "example": "08-blackout-window-edge",
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-11",
+  "scenario_sha256": "1851868d6a8100ba08debca154c4fce3f68d7d1d1826b77f26cdfdf3b9a2d837",
+  "expected_sha256": "5a529c1b8b915a2d18a38f8c115a1bbd3207a5ea0e5d22cd2839314773b12377",
+  "note": ""
+}

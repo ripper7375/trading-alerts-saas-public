@@ -1,0 +1,46 @@
+{
+  "schema": "worked-example-scenario/1",
+  "id": "10-leverage-underflow-twin",
+  "title": "18 Sep, zone Z1, a $2,800 account: the leverage twin of 6.8",
+  "why": "At 4,367.20 and 1:1.5 a minimum lot needs $4,367.20 x 100 x 0.01 / 1.5 = $2,911.47 of equity. With $2,800 the risk limit would allow about 0.025 lot but the leverage limit allows only 0.0096, which rounds down to nothing. This is the leverage-caused shortfall that 6.8 did not cover (plan finding F7, decision D4): it is shown as a fact, with Decline; raising the risk or choosing a nearer stop cannot help, and the report never suggests more leverage or another equity.",
+  "kind": "setup",
+  "setup": {
+    "side": "BUY",
+    "entry": "4367.20",
+    "stop_distance": "16.78",
+    "equity": "2800",
+    "risk_pct": "1.50",
+    "max_leverage": "1.5",
+    "commission": "4",
+    "spec": {
+      "contract_size": "100",
+      "volume_min": "0.01",
+      "volume_step": "0.01",
+      "volume_max": "100",
+      "typical_spread": "0",
+      "point": "0.01"
+    },
+    "target_rrr": "1.75",
+    "max_risk_pct": "1.5",
+    "min_sld": "13",
+    "counter_trend": true
+  },
+  "stored": {
+    "golden": "01-real-18-sep-counter-trend-rally",
+    "reading": "DAY_TRADER",
+    "zone": "Z1",
+    "facts": {
+      "reference_price": "4367.20",
+      "invalidation_price": "4350.42",
+      "stop_distance": "16.78",
+      "next_opposing_price": "4369.57",
+      "bias": "LONG",
+      "status": "CAUTIONARY",
+      "status_reasons": [
+        "MCD0_DEFECT_M15",
+        "MCD0_DEFECT_M5"
+      ],
+      "trend_relation": "COUNTER_TREND"
+    }
+  }
+}

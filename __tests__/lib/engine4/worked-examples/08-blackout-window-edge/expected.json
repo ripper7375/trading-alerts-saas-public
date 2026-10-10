@@ -1,0 +1,302 @@
+{
+  "schema": "worked-example-expected/1",
+  "example": "08-blackout-window-edge",
+  "kind": "blackout",
+  "result": {
+    "probes": [
+      {
+        "label": "CPI -16:01",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:13:59Z",
+        "status": "CLEAR",
+        "blocked_by": [],
+        "warnings": [
+          {
+            "value_id": "TEST-CPI",
+            "tier1": true,
+            "seconds_until": "961"
+          },
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "11761"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "CPI -15:01",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:14:59Z",
+        "status": "CLEAR",
+        "blocked_by": [],
+        "warnings": [
+          {
+            "value_id": "TEST-CPI",
+            "tier1": true,
+            "seconds_until": "901"
+          },
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "11701"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "CPI -15:00 (window opens)",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:15:00Z",
+        "status": "BLOCKED",
+        "blocked_by": [
+          "TEST-CPI"
+        ],
+        "window_start_utc": "2026-09-17T12:15:00Z",
+        "window_end_utc": "2026-09-17T12:45:00Z",
+        "margin_s": "900",
+        "warnings": [
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "11700"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "CPI -14:59",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:15:01Z",
+        "status": "BLOCKED",
+        "blocked_by": [
+          "TEST-CPI"
+        ],
+        "window_start_utc": "2026-09-17T12:15:00Z",
+        "window_end_utc": "2026-09-17T12:45:00Z",
+        "margin_s": "900",
+        "warnings": [
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "11699"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "CPI 0:00",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:30:00Z",
+        "status": "BLOCKED",
+        "blocked_by": [
+          "TEST-CPI"
+        ],
+        "window_start_utc": "2026-09-17T12:15:00Z",
+        "window_end_utc": "2026-09-17T12:45:00Z",
+        "margin_s": "900",
+        "warnings": [
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "10800"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "CPI +14:59",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:44:59Z",
+        "status": "BLOCKED",
+        "blocked_by": [
+          "TEST-CPI"
+        ],
+        "window_start_utc": "2026-09-17T12:15:00Z",
+        "window_end_utc": "2026-09-17T12:45:00Z",
+        "margin_s": "900",
+        "warnings": [
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "9901"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "CPI +15:00 (window closes)",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:45:00Z",
+        "status": "BLOCKED",
+        "blocked_by": [
+          "TEST-CPI"
+        ],
+        "window_start_utc": "2026-09-17T12:15:00Z",
+        "window_end_utc": "2026-09-17T12:45:00Z",
+        "margin_s": "900",
+        "warnings": [
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "9900"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "CPI +15:01",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:45:01Z",
+        "status": "CLEAR",
+        "blocked_by": [],
+        "warnings": [
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "9899"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "CPI +16:00",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:46:00Z",
+        "status": "CLEAR",
+        "blocked_by": [],
+        "warnings": [
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "9840"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "NFP approximate -60:01",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-19T11:29:59Z",
+        "status": "CLEAR",
+        "blocked_by": [],
+        "warnings": [
+          {
+            "value_id": "TEST-NFP",
+            "tier1": true,
+            "seconds_until": "3601"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "NFP approximate -60:00",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-19T11:30:00Z",
+        "status": "BLOCKED",
+        "blocked_by": [
+          "TEST-NFP"
+        ],
+        "window_start_utc": "2026-09-19T11:30:00Z",
+        "window_end_utc": "2026-09-19T13:30:00Z",
+        "margin_s": "3600",
+        "warnings": [],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "NFP approximate +60:00",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-19T13:30:00Z",
+        "status": "BLOCKED",
+        "blocked_by": [
+          "TEST-NFP"
+        ],
+        "window_start_utc": "2026-09-19T11:30:00Z",
+        "window_end_utc": "2026-09-19T13:30:00Z",
+        "margin_s": "3600",
+        "warnings": [],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "NFP approximate +60:01",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-19T13:30:01Z",
+        "status": "CLEAR",
+        "blocked_by": [],
+        "warnings": [],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "Scalper, CPI -15:01 (the other release is outside 2 h)",
+        "trader_type": "SCALPER",
+        "now_utc": "2026-09-17T12:14:59Z",
+        "status": "CLEAR",
+        "blocked_by": [],
+        "warnings": [
+          {
+            "value_id": "TEST-CPI",
+            "tier1": true,
+            "seconds_until": "901"
+          }
+        ],
+        "calendar_age_s": "600",
+        "calendar_late": false
+      },
+      {
+        "label": "calendar 45:00 old, CPI -14:59 (still blocks)",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:15:01Z",
+        "status": "BLOCKED",
+        "blocked_by": [
+          "TEST-CPI"
+        ],
+        "window_start_utc": "2026-09-17T12:15:00Z",
+        "window_end_utc": "2026-09-17T12:45:00Z",
+        "margin_s": "900",
+        "warnings": [
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "11699"
+          }
+        ],
+        "calendar_age_s": "2700",
+        "calendar_late": false
+      },
+      {
+        "label": "calendar 45:01 old, CPI -14:59 (still blocks, late)",
+        "trader_type": "DAY_TRADER",
+        "now_utc": "2026-09-17T12:15:01Z",
+        "status": "BLOCKED",
+        "blocked_by": [
+          "TEST-CPI"
+        ],
+        "window_start_utc": "2026-09-17T12:15:00Z",
+        "window_end_utc": "2026-09-17T12:45:00Z",
+        "margin_s": "900",
+        "warnings": [
+          {
+            "value_id": "TEST-HIGH",
+            "tier1": false,
+            "seconds_until": "11699"
+          }
+        ],
+        "calendar_age_s": "2701",
+        "calendar_late": true
+      }
+    ]
+  }
+}
