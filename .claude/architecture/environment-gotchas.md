@@ -216,5 +216,12 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   compares byte for byte needs the same entry, and a test run after the commit, not only before it.
 - `mcd_worker/fixtures/*.json` is covered by the same `.prettierignore` pattern (`mcd*` matches `mcd_worker`). The `.source.md` notes next to them are NOT ignored, so the hook re-pads their tables;
   `mcd_worker.tools.build_fixtures.same_text` therefore compares a `.source.md` with the table padding removed, and `python -B -m mcd_worker.tools.build_fixtures --check` still says "same" after a commit.
+- **`npx jest --runTestsByPath <file>` finds nothing on Windows for a `*.pg.spec.ts`** ("No tests found"), and the root Jest only collects `*.test.ts`. Run a gated spec with
+  `npx jest --testMatch '**/__tests__/engine4/*.pg.spec.ts' --coverage=false` (build step 5 part 5). A `describe.skip` suite shows as skipped, not as missing.
+- **`prisma migrate diff --from-config-datasource` needs a `schema` entry in the scratch config** (`export default { schema: '<abs path>', datasource: { url } }`), or it stops with "Could not find Prisma Schema" and exit 1 (not 2, which is drift).
+  `--from-schema <old file> --to-schema <new file>` and `--from-empty --to-schema` need only the config's `datasource`, and print no dotenv lines with a config outside the repo.
+- **A scratch copy of the tree for Jest (the mutation harness) needs four things the repository does not show** (build step 5 part 5): an empty `app/` folder (`next/jest` throws in `find-pages-dir` without one), a config that drops `setupFilesAfterEnv`
+  (`jest.setup.js` mocks `@/lib/fx/shared-rate-store`, which is not in the copy), the golden cycles and fixtures under `davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/{golden,fixtures}` (the test helpers read them), and a CRLF scan limited to the
+  files being mutated (`__mocks__/@auth/prisma-adapter.js` is CRLF in the repository and nothing touches it).
 - `git stash list` holds 17 old "lint-staged automatic backup" stashes (3 to 5 weeks old, not from a
   current run). Do not drop them without Davin's say.

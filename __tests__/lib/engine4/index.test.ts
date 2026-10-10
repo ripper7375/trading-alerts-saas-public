@@ -81,8 +81,20 @@ describe('the public surface of lib/engine4 (parts 1 to 4)', () => {
         'VALIDATED_SETUP_SCHEMA',
         'serializeValidatedSetup',
         'validateSetup',
+        'ENGINE4_VERSION',
       ].sort()
     );
+  });
+
+  test('loading the barrel does not load the stores or the user database client', () => {
+    // the stores write the audit tables through `@/lib/db/prisma`; a client component
+    // that imports the barrel must never pull that in
+    jest.isolateModules(() => {
+      jest.doMock('@/lib/db/prisma', () => {
+        throw new Error('the barrel must not load the user database client');
+      });
+      expect(() => require('@/lib/engine4')).not.toThrow();
+    });
   });
 
   test('loading the barrel does not load the database client', () => {

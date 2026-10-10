@@ -142,19 +142,29 @@ function isTypeOnly(
     : node.isTypeOnly;
 }
 
+/**
+ * The stores (`store/`, part 5) write the audit tables: they may import the user
+ * database client, `crypto` and the parent's files, and nothing else.
+ */
+const STORE_IMPORTS: readonly string[] = ['@/lib/db/prisma', 'crypto'];
+
 function importAllowed(
   file: string,
   specifier: string,
   typeOnly: boolean
 ): boolean {
-  // a pure file may name the reader's TYPES, never its code: the reader pulls in the
-  // database client, and a client component imports the pure files
+  // a pure file may name the reader's or a store's TYPES, never its code: they pull
+  // in the database client, and a client component imports the pure files
   if (specifier.startsWith('./read/'))
     return typeOnly || file.includes('/read/');
+  if (specifier.startsWith('./store/'))
+    return typeOnly || file.includes('/store/');
   if (specifier.startsWith('./')) return true;
   return (
-    file.includes('/read/') &&
-    (specifier.startsWith('../') || READER_IMPORTS.includes(specifier))
+    (file.includes('/read/') &&
+      (specifier.startsWith('../') || READER_IMPORTS.includes(specifier))) ||
+    (file.includes('/store/') &&
+      (specifier.startsWith('../') || STORE_IMPORTS.includes(specifier)))
   );
 }
 
@@ -312,6 +322,21 @@ const GOOD_IN_READ: Record<string, string> = {
     "import config from '@/config/engine4/tier1-events.json';\nexport const a = config;",
 };
 
+/** Snippets in a `store/` folder: the user database client, crypto and the parent's files only. */
+const BAD_IN_STORE: Record<string, string> = {
+  'fs.ts': "import { readFileSync } from 'fs';\nexport const a = readFileSync;",
+  'market-client.ts':
+    "import { marketPrisma } from '@/lib/db/market-prisma';\nexport const a = marketPrisma;",
+  'zlib.ts': "import { gunzipSync } from 'zlib';\nexport const a = gunzipSync;",
+  'tier1-config.ts':
+    "import config from '@/config/engine4/tier1-events.json';\nexport const a = config;",
+  'math.ts': 'export const a = Math.floor(2);',
+};
+const GOOD_IN_STORE: Record<string, string> = {
+  'client.ts':
+    "import { createHmac } from 'crypto';\nimport { prisma } from '@/lib/db/prisma';\nimport { x } from '../parent';\nimport { y } from './sibling';\nexport const a = [createHmac, prisma, x, y];",
+};
+
 const GOOD: Record<string, string> = {
   'bigint.ts':
     'const a = 5n * 3n;\nconst b = -a;\nconst c = a ** 2n;\nlet d = 1n;\nd += 2n;\nd -= 1n;\nexport const e = d % 2n === 0n ? a / 3n : b;',
@@ -333,7 +358,18 @@ const GOOD: Record<string, string> = {
     "export type { Read } from './read/structure';",
   'type-only-import-of-the-reader.ts':
     "import type { Read } from './read/structure';\nexport type A = Read;",
+  'type-only-import-of-a-store.ts':
+    "import type { Store } from './store/profile';\nexport type A = Store;",
 };
+
+/** More snippets for the pure files: a store's code must never be reached from them. */
+Object.assign(BAD, {
+  'value-import-of-a-store.ts':
+    "import { save } from './store/profile';\nexport const a = save;",
+  'value-reexport-of-a-store.ts': "export { save } from './store/profile';",
+  'database-client-in-a-pure-file.ts':
+    "import { prisma } from '@/lib/db/prisma';\nexport const a = prisma;",
+});
 
 describe('the guard itself', () => {
   const sources = new Map<string, string>();
@@ -348,7 +384,31 @@ describe('the guard itself', () => {
   for (const [name, text] of Object.entries(GOOD_IN_READ))
     sources.set(`/guard-self-test/good/read/${name}`, text);
   sources.set('/guard-self-test/good/parent.ts', 'export const x = 1n;');
+  for (const [name, text] of Object.entries(BAD_IN_STORE))
+    sources.set(`/guard-self-test/bad/store/${name}`, text);
+  for (const [name, text] of Object.entries(GOOD_IN_STORE))
+    sources.set(`/guard-self-test/good/store/${name}`, text);
+  sources.set('/guard-self-test/good/store/sibling.ts', 'export const y = 1n;');
   const found = analyse(sources);
+
+  test.each(Object.keys(BAD_IN_STORE))(
+    'catches %s in a store/ folder',
+    (name) => {
+      expect(
+        found.filter((v) => v.file === `/guard-self-test/bad/store/${name}`)
+          .length
+      ).toBeGreaterThan(0);
+    }
+  );
+
+  test.each(Object.keys(GOOD_IN_STORE))(
+    'leaves %s alone in a store/ folder',
+    (name) => {
+      expect(
+        found.filter((v) => v.file === `/guard-self-test/good/store/${name}`)
+      ).toEqual([]);
+    }
+  );
 
   test.each(Object.keys(BAD_IN_READ))(
     'catches %s in a read/ folder',
@@ -385,7 +445,7 @@ describe('the guard itself', () => {
 describe('lib/engine4', () => {
   const files = sourceFilesUnder(ENGINE_DIR);
 
-  test('holds the files of parts 1 to 4', () => {
+  test('holds the files of parts 1 to 5', () => {
     const names = files.map((file) => file.slice(file.lastIndexOf('/') + 1));
     expect(names).toEqual(
       expect.arrayContaining([
@@ -412,6 +472,10 @@ describe('lib/engine4', () => {
         'entry-bound.ts',
         'modal-definition.ts',
         'validate.ts',
+        'version.ts',
+        'user-hash.ts',
+        'profile-store.ts',
+        'consent-store.ts',
       ])
     );
   });

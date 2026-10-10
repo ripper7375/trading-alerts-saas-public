@@ -8,8 +8,12 @@
  * (`offer.ts`), the Tier-1 blackout (`blackout.ts`) and the broker figures
  * (`broker.ts`), with three more readers under `read/` (`cycle.ts`, `specs.ts`,
  * `events.ts`). The readers touch a database or a config file, are imported by
- * path and never through this barrel. The validator, the stores and the routes
- * are later parts.
+ * path and never through this barrel. Part 4 is the entry bound, the single
+ * validator and the modal definition. Part 5 is the three audit tables' stores
+ * under `store/` (`profile-store.ts`, `consent-store.ts`, `user-hash.ts`), which
+ * import the database client and are also imported by path, never through the
+ * barrel; only the engine's version string (`version.ts`) is exported here. The
+ * routes are later parts.
  *
  * @module lib/engine4
  */
@@ -145,6 +149,8 @@ export type {
   ValidatedSetup,
   ValidationContext,
 } from './validate';
+
+export { ENGINE4_VERSION } from './version';
 
 export {
   BLACKOUT_APPROXIMATE_SECONDS,

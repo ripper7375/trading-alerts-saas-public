@@ -157,6 +157,12 @@ model User {
   currencyIndexPrefs UserCurrencyIndexPreference? // Currency Index PRO plan slider/period overrides
   tokenLogs          TokenUsageLog[] // Per-call AI token usage audit log
 
+  // Engine 4 (build step 5 part 5): the current trade profile goes with the account;
+  // the profile history and the consent records stay, with user_id set to NULL.
+  tradePreferences        UserTradePreferences?
+  tradePreferencesHistory UserTradePreferencesHistory[]
+  tradeConsentRecords     TradeConsentRecord[]
+
   sessions Session[]
 
   createdAt DateTime @default(now())
@@ -1479,4 +1485,121 @@ model RefreshToken {
 
   @@index([userId])
   @@index([expiresAt])
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ENGINE 4: TRADE PROFILE, ITS HISTORY AND THE CONSENT RECORD
+// (build step 5 part 5; docs/STACK-D-ARCHITECTURE.md 6.2 and 6.11)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// The eight profile figures are stored as canonical decimal TEXT (what
+// lib/engine4/profile.ts returns), never as a float and never rounded by a column scale.
+// The CHECK constraints (bounds, the action list, the hash format, the setup text and
+// its hash) and the append-only trigger are written by hand in the migration
+// 20261010000000_add_engine4_tables: Prisma cannot express them, and its diff does not
+// see them.
+
+/// The trader's CURRENT profile: one row per user. It is personal data, so it goes with
+/// the account (ON DELETE CASCADE); the audit trail is the two tables below.
+model UserTradePreferences {
+  id String @id @default(cuid())
+
+  user_id String @unique
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  /// The history snapshot this current state was written as
+  snapshot_id String
+  snapshot    UserTradePreferencesHistory @relation(fields: [snapshot_id], references: [id], onDelete: Restrict)
+
+  trader_type  String // SCALPER | DAY_TRADER
+  style        String // TREND_FOLLOWING | TREND_COUNTERING | BOTH
+  max_risk_pct String // percent, 0.5 to 2
+  max_leverage String // multiplier, above 0 up to 5 (1:5 ceiling)
+  target_rrr   String // 1.5 to 3.5 (at most 2.5 for TREND_COUNTERING)
+  equity       String // dollars, above 0
+  min_sld      String // dollars of price, above 0
+  commission   String // dollars per lot, 0 or more
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@index([snapshot_id])
+  @@map("user_trade_preferences")
+}
+
+/// Append-only profile snapshots. Deleting the User sets user_id to NULL; user_id_hash stays.
+model UserTradePreferencesHistory {
+  id String @id @default(cuid())
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  /// HMAC-SHA-256 (hex) of the user id, written on insert
+  user_id_hash String
+  /// Which version of ENGINE4_AUDIT_HMAC_KEY made user_id_hash; old hashes are never recomputed (D12)
+  key_version  Int
+
+  trader_type  String
+  style        String
+  max_risk_pct String
+  max_leverage String
+  target_rrr   String
+  equity       String
+  min_sld      String
+  commission   String
+
+  recorded_at DateTime @default(now())
+
+  current  UserTradePreferences[]
+  consents TradeConsentRecord[]
+
+  @@index([user_id, recorded_at])
+  @@index([user_id_hash, recorded_at])
+  @@map("user_trade_preferences_history")
+}
+
+/// One append-only row for every Accept, Modify and Decline (6.11, ADR-069).
+model TradeConsentRecord {
+  id String @id @default(cuid())
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  user_id_hash String
+  key_version  Int
+
+  action String // ACCEPT | MODIFY | DECLINE
+  symbol String
+
+  /// The pinned cycle, unix UTC seconds (equals setup.pinnedSlot)
+  cycle_slot              Int
+  synthesis_rule_id       String
+  synthesis_rules_version String
+  /// The pill that was picked, null for a custom entry (equals setup.entry.zoneId)
+  zone_id                 String?
+  /// BUY | SELL (equals setup.side)
+  side                    String?
+
+  profile_snapshot_id String
+  profile_snapshot    UserTradePreferencesHistory @relation(fields: [profile_snapshot_id], references: [id], onDelete: Restrict)
+
+  /// The AI badge shown with the setup (not part of ValidatedSetup)
+  badge String?
+
+  /// The ValidatedSetup, as the exact text that was hashed, as JSONB for queries, and its SHA-256
+  setup_json   String
+  setup        Json
+  setup_sha256 String
+
+  engine4_version      String
+  symbol_specs_version Int?
+  template_version     String
+  disclaimer_version   String
+  language             String
+
+  recorded_at DateTime @default(now())
+
+  @@index([user_id, recorded_at])
+  @@index([user_id_hash, recorded_at])
+  @@index([profile_snapshot_id])
+  @@map("trade_consent_records")
 }

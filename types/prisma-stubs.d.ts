@@ -1176,6 +1176,64 @@ declare module '@prisma/client' {
     created_at: Date | string;
   }
 
+  // Engine 4 (build step 5 part 5). The eight profile figures are canonical decimal TEXT.
+  export interface UserTradePreferences {
+    id: string;
+    user_id: string;
+    snapshot_id: string;
+    trader_type: string;
+    style: string;
+    max_risk_pct: string;
+    max_leverage: string;
+    target_rrr: string;
+    equity: string;
+    min_sld: string;
+    commission: string;
+    created_at: Date | string;
+    updated_at: Date | string;
+  }
+
+  export interface UserTradePreferencesHistory {
+    id: string;
+    user_id: string | null;
+    user_id_hash: string;
+    key_version: number;
+    trader_type: string;
+    style: string;
+    max_risk_pct: string;
+    max_leverage: string;
+    target_rrr: string;
+    equity: string;
+    min_sld: string;
+    commission: string;
+    recorded_at: Date | string;
+  }
+
+  export interface TradeConsentRecord {
+    id: string;
+    user_id: string | null;
+    user_id_hash: string;
+    key_version: number;
+    action: string;
+    symbol: string;
+    cycle_slot: number;
+    synthesis_rule_id: string;
+    synthesis_rules_version: string;
+    zone_id: string | null;
+    side: string | null;
+    profile_snapshot_id: string;
+    badge: string | null;
+    setup_json: string;
+    setup: JsonValue;
+    setup_sha256: string;
+    engine4_version: string;
+    symbol_specs_version: number | null;
+    template_version: string;
+    disclaimer_version: string;
+    language: string;
+    recorded_at: Date | string;
+  }
+
   // ============================================================
   // PRISMA NAMESPACE
   // ============================================================
@@ -1446,6 +1504,9 @@ declare module '@prisma/client' {
     stateStatistic: ModelDelegate<StateStatistic>;
     synthesisReading: ModelDelegate<SynthesisReading>;
     entryZone: ModelDelegate<EntryZone>;
+    userTradePreferences: ModelDelegate<UserTradePreferences>;
+    userTradePreferencesHistory: ModelDelegate<UserTradePreferencesHistory>;
+    tradeConsentRecord: ModelDelegate<TradeConsentRecord>;
   }
 }
 
