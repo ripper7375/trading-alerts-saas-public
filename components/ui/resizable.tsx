@@ -34,7 +34,7 @@ export interface ResizableHandleProps
 }
 
 const ResizableHandle = ({
-  withHandle: _withHandle,
+  withHandle,
   withGripPill,
   className,
   tooltipTitle,
@@ -147,6 +147,14 @@ const ResizableHandle = ({
       )}
       {...props}
     >
+      {/* Grip pill if explicitly requested with withHandle (or legacy withGripPill) */}
+      {(withHandle || withGripPill) && (
+        <div className="z-10 flex items-center justify-center rounded-sm border border-border bg-card shadow-md group-data-[panel-group-direction=horizontal]:h-5 group-data-[panel-group-direction=vertical]:h-3.5 group-data-[panel-group-direction=horizontal]:w-3.5 group-data-[panel-group-direction=vertical]:w-6">
+          <GripHorizontalIcon className="h-3 w-3 text-muted-foreground group-data-[panel-group-direction=horizontal]:hidden" />
+          <GripVerticalIcon className="h-3 w-3 text-muted-foreground group-data-[panel-group-direction=vertical]:hidden" />
+        </div>
+      )}
+
       {/* Sleek hairline indicator line */}
       <div
         className={cn(
@@ -163,14 +171,6 @@ const ResizableHandle = ({
           'group-data-[resize-handle-state=drag]:group-data-[panel-group-direction=vertical]:h-[2px] group-data-[resize-handle-state=drag]:group-data-[panel-group-direction=vertical]:bg-amber-500 group-data-[resize-handle-state=drag]:group-data-[panel-group-direction=vertical]:shadow-[0_0_8px_rgba(245,158,11,0.5)]'
         )}
       />
-
-      {/* Legacy grip pill if explicitly requested */}
-      {withGripPill && (
-        <div className="z-10 flex items-center justify-center rounded-sm border border-border bg-card shadow-md group-data-[panel-group-direction=horizontal]:h-5 group-data-[panel-group-direction=vertical]:h-3.5 group-data-[panel-group-direction=horizontal]:w-3.5 group-data-[panel-group-direction=vertical]:w-6">
-          <GripHorizontalIcon className="h-3 w-3 text-muted-foreground group-data-[panel-group-direction=horizontal]:hidden" />
-          <GripVerticalIcon className="h-3 w-3 text-muted-foreground group-data-[panel-group-direction=vertical]:hidden" />
-        </div>
-      )}
 
       {/* Floating tooltip like VS Code / Image 2 (Arrow 5) */}
       {hasTooltip && (
