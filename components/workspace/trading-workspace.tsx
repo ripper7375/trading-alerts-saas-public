@@ -130,21 +130,56 @@ export function TradingWorkspace({
     return () => observer.disconnect();
   }, []);
 
-  const togglePanel = (index: CollapsiblePanelIndex): void => {
-    const group = groupRef.current;
-    if (!group) return;
-    const layout = group.getLayout();
-    group.setLayout(
-      isPanelCollapsed(layout, index, constraints)
-        ? expandLayout(
-            layout,
-            index,
-            constraints,
-            lastExpandedSize.current[index]
-          )
-        : collapseLayout(layout, index, constraints)
-    );
-  };
+  const [isMac, setIsMac] = useState(false);
+  useEffect(() => {
+    if (
+      typeof window !== 'undefined' &&
+      /Mac|iPod|iPhone|iPad/.test(navigator.platform)
+    ) {
+      setIsMac(true);
+    }
+  }, []);
+
+  const togglePanel = useCallback(
+    (index: CollapsiblePanelIndex): void => {
+      const group = groupRef.current;
+      if (!group) return;
+      const layout = group.getLayout();
+      group.setLayout(
+        isPanelCollapsed(layout, index, constraints)
+          ? expandLayout(
+              layout,
+              index,
+              constraints,
+              lastExpandedSize.current[index]
+            )
+          : collapseLayout(layout, index, constraints)
+      );
+    },
+    [constraints]
+  );
+
+  // Keyboard shortcut Ctrl+B / Cmd+B to toggle the sidebar (matching Image 2)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent): void => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+        const target = e.target as HTMLElement | null;
+        if (
+          target &&
+          (target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.isContentEditable)
+        ) {
+          return;
+        }
+        e.preventDefault();
+        togglePanel(SIDEBAR);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [togglePanel]);
 
   const collapsiblePanelProps = (index: CollapsiblePanelIndex) => {
     const constraint = constraints[index];
@@ -202,7 +237,19 @@ export function TradingWorkspace({
             />
           </ResizablePanel>
 
-          <ResizableHandle withHandle onDragging={onHandleDragging} />
+          <ResizableHandle
+            onDragging={onHandleDragging}
+            onDoubleClick={() => togglePanel(SIDEBAR)}
+            tooltipTitle={
+              collapsed[SIDEBAR]
+                ? t('Expand Sidebar', 'Show sidebar')
+                : t('Collapse Sidebar', 'Hide sidebar')
+            }
+            tooltipShortcut={isMac ? '⌘B' : 'Ctrl+B'}
+            tooltipSubtitle={t('Drag to resize', 'Drag to resize')}
+            tooltipSide="right"
+            aria-label={t('Drag to resize the sidebar')}
+          />
 
           <ResizablePanel id="panel-b-chat" {...collapsiblePanelProps(ANALYST)}>
             {collapsed[ANALYST] ? (
@@ -223,7 +270,19 @@ export function TradingWorkspace({
             )}
           </ResizablePanel>
 
-          <ResizableHandle withHandle onDragging={onHandleDragging} />
+          <ResizableHandle
+            onDragging={onHandleDragging}
+            onDoubleClick={() => togglePanel(ANALYST)}
+            tooltipTitle={
+              collapsed[ANALYST]
+                ? t('Show AI Analyst', 'Show AI Analyst')
+                : t('Hide AI Analyst', 'Hide AI Analyst')
+            }
+            tooltipShortcut={t('Double-click', 'Double-click')}
+            tooltipSubtitle={t('Drag to resize', 'Drag to resize')}
+            tooltipSide="right"
+            aria-label={t('Drag to resize AI Analyst')}
+          />
 
           <ResizablePanel
             id="panel-c-chart"
@@ -245,7 +304,19 @@ export function TradingWorkspace({
             </div>
           </ResizablePanel>
 
-          <ResizableHandle withHandle onDragging={onHandleDragging} />
+          <ResizableHandle
+            onDragging={onHandleDragging}
+            onDoubleClick={() => togglePanel(COMMENTS)}
+            tooltipTitle={
+              collapsed[COMMENTS]
+                ? t('Show Comments', 'Show Market Comments')
+                : t('Hide Comments', 'Hide Market Comments')
+            }
+            tooltipShortcut={t('Double-click', 'Double-click')}
+            tooltipSubtitle={t('Drag to resize', 'Drag to resize')}
+            tooltipSide="left"
+            aria-label={t('Drag to resize Market Comments')}
+          />
 
           <ResizablePanel
             id="panel-d-comments"

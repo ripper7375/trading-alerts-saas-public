@@ -28,6 +28,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ImperativePanelGroupHandle } from 'react-resizable-panels';
 
 import {
   ResizableHandle,
@@ -68,8 +69,14 @@ export function MtfStackedCharts({
 }: MtfStackedChartsProps): React.JSX.Element {
   const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
+  const groupRef = useRef<ImperativePanelGroupHandle>(null);
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const [split, setSplit] = useState<readonly number[]>(DEFAULT_SPLIT);
+
+  const handleResetSplit = useCallback(() => {
+    groupRef.current?.setLayout([...DEFAULT_SPLIT]);
+    setSplit(DEFAULT_SPLIT);
+  }, []);
 
   /**
    * lightweight-charts needs an explicit pixel height, but both workspaces put
@@ -115,6 +122,7 @@ export function MtfStackedCharts({
       style={totalHeight !== undefined ? { height: totalHeight } : undefined}
     >
       <ResizablePanelGroup
+        ref={groupRef}
         direction="vertical"
         className="h-full w-full"
         onLayout={onLayout}
@@ -137,8 +145,12 @@ export function MtfStackedCharts({
         </ResizablePanel>
 
         <ResizableHandle
-          withHandle
           aria-label={t('Drag to resize the upper and lower charts')}
+          onDoubleClick={handleResetSplit}
+          tooltipTitle={t('Reset chart split', 'Reset chart split (50:50)')}
+          tooltipShortcut={t('Double-click', 'Double-click')}
+          tooltipSubtitle={t('Drag to resize', 'Drag to resize')}
+          tooltipSide="bottom"
         />
 
         <ResizablePanel
