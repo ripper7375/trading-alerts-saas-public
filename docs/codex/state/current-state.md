@@ -8,6 +8,14 @@ updated_at: 2026-10-11
 
 - Operating system: repository [AGENTS.md](../../../AGENTS.md) and
   [catalog](../index.md), established by Davin's direct instruction.
+- Current task: [Separate Unicode CI repair](../tasks/2026-10-11-pr478-ci-repair.md).
+  [PR 479](https://github.com/ripper7375/trading-alerts-saas-public/pull/479)
+  merged as aece01eb after independent review and all 23 checks passed. Davin
+  also approved merging [PR 478](https://github.com/ripper7375/trading-alerts-saas-public/pull/478)
+  after all refreshed checks pass; its documentation branch has been refreshed
+  from remote main. This checkpoint precedes that final CI/merge: inspect live
+  GitHub state before resuming any integration action.
+- Current handoff: [CI repair report](../../handoffs/2026-10-11-pr478-ci-repair.md).
 - Latest completed task: [Workflow publication](../tasks/2026-10-11-publish-codex-workflow.md).
 - Latest handoff: [Publication report](../../handoffs/2026-10-11-publish-codex-workflow.md).
 - Published workflow: branch codex/claude-collaboration-docs, commit 4a560884.
