@@ -11,6 +11,11 @@ Blocks are verbatim copies from the pre-OKF `CLAUDE.md` (backup: `CLAUDE-480KB-P
 
 Open items live in [../waiting-on.md](../waiting-on.md).
 
+<!-- build step 6 part 1, resolved 2026-10-11 -->
+
+- **RESOLVED 2026-10-11 — build step 6 part 1.** What was open (verbatim from the quick index of `waiting-on.md`): contracts, roster and locales (`lib/intake/`, `config/intake/`, `scripts/intake/build_roster.py`, `knowledge-service/config/registry-codes.json`) BUILT and COMMITTED LOCALLY (`577b0144`, 31 files by explicit paths, not pushed); the step 6 plan is APPROVED (D3, D4 and D5 option (A), every other decision as recommended); nothing deployed or migrated, no dependency, no route or UI; mutation check 967 mutants, 9 alive and equivalent · OPEN, Davin: (1) the ten readings of the part 1 hand-off section 6, above all the packet contract ([hand-off](../../../docs/handoffs/2026-10-10-2328-step6-part1.md)) (2) whether CI installs PyYAML and jsonschema: `tests.yml` has no Python step, so the roster drift check and the schema parity suite skip silently there (3) push `577b0144` and the docs commit · next: part 2 (text intake), no new answer needed ·
+  **How it closed:** Davin and the Advisor approved the part 1 packet contract as built (his order of 2026-10-11); `tests.yml` got `setup-python` 3.11 and `pip install pyyaml==6.0.2 jsonschema==4.25.0` (`88019649`, CI run 38097048781 showed the roster drift check and the schema parity suites running); `main` was pushed through `88019649` after the pre-push hook passed (type-check, 335 suites, 8,509 tests). One consequence found afterwards: `Next.js CI (Progressive)`, a separate workflow on the image's own Python, ran the same suites with jsonschema 4.10 and failed; the helper fix is `d3eb05df` (local, open in the part 2 item).
+
 <!-- CLAUDE.md L4939-L4957 -->
 
 - **RESOLVED 2026-09-11 — the R2 chart-render path is DEPLOYED AND LIVE end to end.** Bucket
