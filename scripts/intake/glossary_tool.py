@@ -540,9 +540,8 @@ def with_statuses(glossary: Mapping[str, Any], approved: set[str]) -> dict[str, 
     """A copy of the glossary whose form statuses follow the approvals: approved for an approved locale, draft otherwise."""
     out = json.loads(json.dumps(glossary))
     for term in out["terms"]:
-        for locale, form in (term.get("forms") or {}).items():
-            if isinstance(form, dict):
-                form["status"] = FORM_APPROVED if locale in approved else FORM_DRAFT
+        for locale, form in term["forms"].items():
+            form["status"] = FORM_APPROVED if locale in approved else FORM_DRAFT
     return out
 
 
@@ -764,12 +763,10 @@ def status_findings(glossary: Mapping[str, Any], approved: set[str]) -> tuple[li
     for locale in LOCALES:
         marked = still = 0
         for term in glossary["terms"]:
-            form = (term.get("forms") or {}).get(locale)
-            if not isinstance(form, dict):
-                continue
-            if form.get("status") == FORM_APPROVED and locale not in approved:
+            status = term["forms"][locale]["status"]
+            if status == FORM_APPROVED and locale not in approved:
                 marked += 1
-            if form.get("status") == FORM_DRAFT and locale in approved:
+            if status == FORM_DRAFT and locale in approved:
                 still += 1
         if marked:
             problems.append("%s: %d form(s) are marked approved but the area %s is not approved (run record)" % (locale, marked, locale))

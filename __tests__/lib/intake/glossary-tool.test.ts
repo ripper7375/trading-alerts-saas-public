@@ -566,8 +566,11 @@ describeTool('record and the approval gate', () => {
   it('refuses an approval.json that is not JSON or is missing, and a review.md that was edited', () => {
     const root = recorded();
     writeFileSync(approvalPath(root, 'it'), '{ not json');
-    expect(tool(['check'], root).stdout).toMatch(
-      /approval\.json is not valid JSON/
+    const broken = tool(['check'], root).stdout;
+    expect(broken).toMatch(/approval\.json is not valid JSON/);
+    expect(broken).not.toMatch(/approval\.json is not an object/);
+    expect(broken).toMatch(
+      /20 area\(s\), 0 approved, 20 pending approval, 1 problem\(s\)/
     );
     rmSync(approvalPath(root, 'it'));
     expect(tool(['check'], root).stdout).toMatch(
@@ -740,6 +743,33 @@ describeTool('a glossary that breaks its rules', () => {
     ).toBe(10);
   });
 
+  it.each<[number, boolean]>([
+    [10, false],
+    [11, true],
+  ])(
+    'names %i problems and says "and N more" only above ten',
+    (count, more) => {
+      const root = makeTree();
+      const glossary = readGlossary(root);
+      for (const term of glossary.terms.slice(0, count)) term.owners = [];
+      writeFileSync(
+        glossaryPath(root),
+        JSON.stringify(glossary, null, 2) + '\n'
+      );
+      const run = tool(['record'], root);
+      expect(run.status).toBe(2);
+      expect(run.stderr).toMatch(
+        new RegExp(`the content breaks ${count} rule\\(s\\)`)
+      );
+      expect(
+        run.stderr.split('\n').filter((l) => l.includes('owners must be'))
+          .length
+      ).toBe(10);
+      if (more) expect(run.stderr).toMatch(/\.\.\. and 1 more/);
+      else expect(run.stderr).not.toMatch(/\.\.\. and/);
+    }
+  );
+
   it('still refuses an area it does not know, before it looks at the glossary', () => {
     const root = makeTree();
     const glossary = readGlossary(root);
@@ -791,6 +821,40 @@ describeTool('what record and check do with what they are given', () => {
       /20 area\(s\), 0 approved, 20 pending approval, 1 problem\(s\)/
     );
     expect(tool(['record'], root).stdout).toMatch(/wrote {2}ko\/review\.md/);
+  });
+
+  it('check says an INDEX.md that differs is stale, and where', () => {
+    const root = recorded();
+    const file = join(root, 'config', 'intake', 'review', 'INDEX.md');
+    writeFileSync(
+      file,
+      readFileSync(file, 'utf8').replace('review areas', 'review zones')
+    );
+    const run = tool(['check'], root);
+    expect(run.status).toBe(1);
+    expect(run.stdout).toMatch(
+      /DIFFERENT {2}INDEX\.md differs from a fresh run: line 1: stored '# Glossary and fixed texts: review zones' but a fresh run gives '# Glossary and fixed texts: review areas'/
+    );
+    expect(tool(['record'], root).stdout).toMatch(/wrote {2}INDEX\.md/);
+    expect(tool(['check'], root).status).toBe(0);
+  });
+
+  it('check --only looks at the areas named and leaves the files of the whole set alone', () => {
+    const root = recorded();
+    rmSync(join(root, 'config', 'intake', 'review', 'INDEX.md'));
+    const glossary = readGlossary(root);
+    writeGlossary(root, glossary); // the layout is not the one record writes
+    const run = tool(['check', '--only', 'fr'], root);
+    expect(run.status).toBe(0);
+    expect(run.stdout).toMatch(
+      /1 area\(s\), 0 approved, 1 pending approval, 0 problem\(s\)/
+    );
+    expect(run.stdout).not.toMatch(/INDEX\.md|layout/);
+    // the whole set sees both
+    const all = tool(['check'], root);
+    expect(all.status).toBe(1);
+    expect(all.stdout).toMatch(/INDEX\.md is missing/);
+    expect(all.stdout).toMatch(/not in the layout record writes/);
   });
 
   it('check says an INDEX.md that is missing is missing', () => {
@@ -1000,6 +1064,28 @@ describeTool('the message of a difference', () => {
     writeFileSync(file, text + 'extra line\n');
     expect(tool(['check'], root).stdout).toMatch(
       /stored 'extra line' but a fresh run gives ''/
+    );
+  });
+
+  it('cuts the fresh side of a long line at 100 characters too', () => {
+    const root = recorded();
+    const file = reviewOf(root);
+    const text = readFileSync(file, 'utf8');
+    expect(text).toContain(
+      '2. Are the other accepted spellings words a trader would also type'
+    );
+    writeFileSync(
+      file,
+      text.replace(
+        '2. Are the other accepted',
+        '2. Is any of the other accepted'
+      )
+    );
+    const stdout = tool(['check'], root).stdout;
+    const match = /but a fresh run gives '([^']*)'/.exec(stdout);
+    expect(match?.[1]).toHaveLength(100);
+    expect(match?.[1]?.startsWith('2. Are the other accepted spellings')).toBe(
+      true
     );
   });
 
@@ -1338,6 +1424,46 @@ describeTool('the limits of the rules', () => {
     const result = verdict(change);
     expect(result.ok).toBe(false);
     expect(result.message).toMatch(message);
+  });
+
+  it.each<[string, string, boolean]>([
+    ['a control character is invisible', 'x\u0001', false],
+    ['a zero-width space is invisible', 'x​', false],
+    ['a variation selector (U+FE00) is invisible', 'x︀', false],
+    ['a variation selector (U+FE0F) is invisible', 'x️', false],
+    ['the character before the selectors (U+FDFF) counts', 'x﷿', true],
+    ['the character after the selectors (U+FE10) counts', 'x︐', true],
+    ['a tab round a word is white space', 'x\t', false],
+    ['two characters count', 'xy', true],
+  ])('counts its length right: %s', (_name, spelling, accepted) => {
+    const result = verdict((g) => (g.terms[0].forms.fr.canonical = spelling));
+    expect(result.ok).toBe(accepted);
+    if (!accepted)
+      expect(result.message).toMatch(
+        /must have 2 to 80 characters once normalised/
+      );
+  });
+
+  it('reads a tab, a space and a newline between two words as the same space', () => {
+    const result = verdict(
+      (g) =>
+        (g.terms[0].forms.fr.variants = [
+          'acheter\tmaintenant',
+          'acheter  maintenant',
+          'acheter\nmaintenant',
+        ])
+    );
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(/written twice for this term/);
+    expect(
+      verdict(
+        (g) =>
+          (g.terms[0].forms.fr.variants = [
+            'acheter\tmaintenant',
+            'acheter ici',
+          ])
+      ).ok
+    ).toBe(true);
   });
 
   it('allows a spelling another term has in ANOTHER locale (the spotter reports both terms)', () => {
