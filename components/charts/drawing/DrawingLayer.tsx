@@ -47,6 +47,9 @@ interface DrawingLayerProps {
   chartHeight?: number;
   /** Optional: receive snapshots when marks change (in addition to autosave). */
   onMarksChange?: (snapshots: MarkSnapshot[]) => void;
+  hideToolbar?: boolean;
+  externalTool?: DrawingType | null;
+  onActiveToolChange?: (tool: DrawingType | null) => void;
 }
 
 export function DrawingLayer({
@@ -56,6 +59,9 @@ export function DrawingLayer({
   timeframe,
   chartHeight,
   onMarksChange,
+  hideToolbar = false,
+  externalTool,
+  onActiveToolChange,
 }: DrawingLayerProps): JSX.Element {
   const overlayRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<DrawingEngine | null>(null);
@@ -104,7 +110,10 @@ export function DrawingLayer({
           id !== null && engine.getSelectedAlertLevels().length > 0
         );
       },
-      onActiveToolChange: setActiveTool,
+      onActiveToolChange: (tool) => {
+        setActiveTool(tool);
+        onActiveToolChange?.(tool);
+      },
       onMarksChange: (snaps) => {
         void persistence.sync(snaps); // autosave (create/update/delete diff)
         setDrawingCount(snaps.length);
@@ -136,7 +145,14 @@ export function DrawingLayer({
       engineRef.current = null;
       persistenceRef.current = null;
     };
-  }, [chart, series, symbol, timeframe, onMarksChange]);
+  }, [chart, series, symbol, timeframe, onMarksChange, onActiveToolChange]);
+
+  useEffect(() => {
+    if (externalTool !== undefined && engineRef.current) {
+      engineRef.current.setActiveTool(externalTool);
+      setActiveTool(externalTool);
+    }
+  }, [externalTool]);
 
   const handleSelectTool = (tool: DrawingType | null): void => {
     setActiveTool(tool);
@@ -215,19 +231,21 @@ export function DrawingLayer({
 
   return (
     <>
-      <Toolbar
-        chartHeight={chartHeight}
-        activeTool={activeTool}
-        hasSelection={hasSelection}
-        canAddAlert={canAddAlert}
-        isPro={tier === 'PRO'}
-        alertsOpen={alertsPanelOpen}
-        onSelectTool={handleSelectTool}
-        onDelete={handleDelete}
-        onAddAlert={handleAddAlert}
-        onEditStyle={handleEditStyle}
-        onToggleAlerts={() => setAlertsPanelOpen((o) => !o)}
-      />
+      {!hideToolbar && (
+        <Toolbar
+          chartHeight={chartHeight}
+          activeTool={activeTool}
+          hasSelection={hasSelection}
+          canAddAlert={canAddAlert}
+          isPro={tier === 'PRO'}
+          alertsOpen={alertsPanelOpen}
+          onSelectTool={handleSelectTool}
+          onDelete={handleDelete}
+          onAddAlert={handleAddAlert}
+          onEditStyle={handleEditStyle}
+          onToggleAlerts={() => setAlertsPanelOpen((o) => !o)}
+        />
+      )}
       <div
         ref={overlayRef}
         className="absolute inset-0"

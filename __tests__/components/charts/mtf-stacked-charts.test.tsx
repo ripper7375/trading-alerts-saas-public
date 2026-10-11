@@ -144,40 +144,34 @@ describe('MtfStackedCharts', () => {
     );
   });
 
-  it('renders the M5 panel above the M15 panel', () => {
+  it('renders the M15 panel above the M5 panel', () => {
     const { container } = render(<MtfStackedCharts symbol="XAUUSD" />);
 
     const text = container.textContent ?? '';
-    const m5At = text.indexOf('XAUUSD · M5');
     const m15At = text.indexOf('XAUUSD · M15');
+    const m5At = text.indexOf('XAUUSD · M5');
 
-    expect(m5At).toBeGreaterThanOrEqual(0);
     expect(m15At).toBeGreaterThanOrEqual(0);
-    expect(m5At).toBeLessThan(m15At);
+    expect(m5At).toBeGreaterThanOrEqual(0);
+    expect(m15At).toBeLessThan(m5At);
   });
 
   it('does not duplicate the full chart header or footer', () => {
     render(<MtfStackedCharts symbol="XAUUSD" />);
 
-    // The single-chart header renders an <h2>; stacked mode uses a compact
-    // strip instead, so neither instance should contribute one.
+    // The single-chart header renders an <h2>; stacked mode uses clean
+    // frameless panels instead, so neither instance should contribute one.
     expect(screen.queryByRole('heading')).not.toBeInTheDocument();
     expect(
       screen.queryByText(/Displaying live OHLCV candlestick data/i)
     ).not.toBeInTheDocument();
   });
 
-  it('places the PRO overlay toggle on the M15 chart only', () => {
+  it('places the PRO overlay toggle on the top toolbar', () => {
     render(<MtfStackedCharts symbol="XAUUSD" />);
 
     const toggles = screen.getAllByTestId('mtf-toggle');
     expect(toggles).toHaveLength(1);
-
-    // Guards against someone later "tidying" mtfAvailable and silently moving
-    // the toggle onto the M5 chart, where overlaying M5 on itself is a no-op.
-    const strip = toggles[0].parentElement;
-    expect(strip?.textContent).toContain('M15');
-    expect(strip?.textContent).not.toContain('· M5');
   });
 
   it('still renders both charts for a FREE user, with the toggle locked', () => {

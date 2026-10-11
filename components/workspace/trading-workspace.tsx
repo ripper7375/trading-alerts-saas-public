@@ -289,13 +289,8 @@ export function TradingWorkspace({
             minSize={chartConstraint?.minSize}
             className="h-full overflow-hidden"
           >
-            <div className="flex h-full flex-col overflow-hidden bg-background p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-bold text-foreground">XAUUSD</h2>
-              </div>
-              {/* Both timeframes are always shown. FREE gets the same layout
-                  and data; the M5-overlay toggle on the M15 chart renders
-                  locked there and routes to /pricing. */}
+            <div className="flex h-full flex-col overflow-hidden bg-background">
+              {/* Both timeframes are always shown in clean dual-pane layout. */}
               <div className="min-h-0 flex-1">
                 <MtfStackedCharts symbol="XAUUSD" />
               </div>

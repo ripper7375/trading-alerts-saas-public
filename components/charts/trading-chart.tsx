@@ -23,6 +23,8 @@ import { useMtfOverlay } from './mtf/useMtfOverlay';
 import { useMtfPreference } from './mtf/useMtfPreference';
 import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 
+import type { DrawingType } from '@/components/charts/drawing/types';
+
 /**
  * TradingChart Props
  *
@@ -45,6 +47,19 @@ interface TradingChartProps {
    * stacked pair stays labelled without repeating the full header chrome.
    */
   label?: string;
+  /** Hide internal vertical drawing toolbar strip */
+  hideToolbar?: boolean;
+  /** Pass armed tool from external toolbar */
+  externalTool?: DrawingType | null;
+  onActiveToolChange?: (tool: DrawingType | null) => void;
+  /** Price display mode: candlestick or bar */
+  priceMode?: 'CANDLE' | 'BAR';
+  /** Stacked mode: fills pane and removes borders/padding */
+  isStacked?: boolean;
+  /** Overlay badge rendered in the top-left inside the chart */
+  overlayBadge?: React.ReactNode;
+  /** Optional external MTF overlay enabled state */
+  externalMtfEnabled?: boolean;
 }
 
 /** lightweight-charts renders to a <canvas> -- it can't read CSS custom
@@ -90,6 +105,13 @@ export function TradingChart({
   showHeader = true,
   showFooter = true,
   label,
+  hideToolbar = false,
+  externalTool,
+  onActiveToolChange,
+  priceMode: _priceMode = 'CANDLE',
+  isStacked = false,
+  overlayBadge,
+  externalMtfEnabled,
 }: TradingChartProps): React.JSX.Element {
   const { t } = useLocale();
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -134,10 +156,12 @@ export function TradingChart({
   // preference to decide which rendered variant to serve, so the downloaded
   // PNG matches what is on screen. Inert unless the toggle is actually shown.
   const {
-    enabled: mtfEnabled,
+    enabled: internalMtfEnabled,
     setEnabled: setMtfEnabled,
     isSaving: mtfSaving,
   } = useMtfPreference(isPro && mtfAvailable);
+  const mtfEnabled =
+    externalMtfEnabled !== undefined ? externalMtfEnabled : internalMtfEnabled;
   const { isLoading: mtfLoading, error: mtfError } = useMtfOverlay(
     chartApi,
     isPro && mtfAvailable && mtfEnabled,
@@ -355,7 +379,7 @@ export function TradingChart({
         toggle must still render, because `mtfAvailable` is what places it on
         the M15 chart and nowhere else.
       */}
-      {!showHeader && (
+      {!showHeader && !isStacked && (
         // Fixed height on purpose: the M15 strip carries MtfToggle and the M5
         // strip does not, so an auto height made the two stacked charts differ
         // by ~18px of chrome. mtf-split-layout.ts subtracts one CHROME_PER_CHART
@@ -391,7 +415,18 @@ export function TradingChart({
       )}
 
       {/* Chart container */}
-      <div className="relative rounded-lg border bg-card p-4">
+      <div
+        className={
+          isStacked
+            ? 'relative h-full w-full overflow-hidden bg-card'
+            : 'relative rounded-lg border bg-card p-4'
+        }
+      >
+        {overlayBadge && (
+          <div className="pointer-events-auto absolute left-2.5 top-2.5 z-20">
+            {overlayBadge}
+          </div>
+        )}
         {isLoading && (
           <div className="bg-background/50 absolute inset-0 flex items-center justify-center">
             <div className="text-center">
@@ -423,6 +458,9 @@ export function TradingChart({
               symbol={symbol}
               timeframe={timeframe}
               chartHeight={height}
+              hideToolbar={hideToolbar}
+              externalTool={externalTool}
+              onActiveToolChange={onActiveToolChange}
             />
           )}
         </div>

@@ -3,33 +3,22 @@
 /**
  * MtfStackedCharts — the two-panel multi-timeframe layout.
  *
- * M5 above, M15 below, matching the rendered PNG a PRO user downloads and the
- * arrangement in the product's own terminal design. The divider between them
- * is draggable, so a trader can give either timeframe more of the panel —
- * before this the split was a fixed 50/50 and the gap between the two charts
- * was inert, unlike the seed prototype it was ported from.
- *
- * This is deliberately a *composition* of two `TradingChart` instances rather
- * than a chart component that owns two canvases. `TradingChart` is already
- * self-contained and parameterized by timeframe, and it carries a reactive
- * appearance effect, a drawing layer, alert markers and live socket wiring that
- * a rewrite would have had to reproduce. Two instances get all of it for free.
- *
- * It also places the PRO overlay toggle correctly with no extra logic:
- * `TradingChart` shows `MtfToggle` only when its own timeframe is M15, so the
- * toggle lands on the lower chart and nowhere else.
- *
- * Each instance holds its own socket subscription, so this doubles WebSocket
- * connections per viewer. That is a deliberate, recorded trade-off (plan D8) —
- * the alternative is a shared-socket refactor of `useOhlcvSocket`, which would
- * touch the single-chart consumers too.
+ * Implements Proposed Design:
+ * - Component 4: Dual-pane container with M15 (top) and M5 (bottom) separated by resizable divider.
+ * - Component 5: Upper Chart top-left overlay badge "[DavinTrade Avatar] XAUUSD M15 Market Context".
+ * - Component 6: Lower Chart top-left overlay badge "[DavinTrade Avatar] XAUUSD M5 Market Context".
+ * - Component 7: Unified top horizontal drawing toolbar.
+ * - Component 8: Chart display mode toggles (Bar vs Candlestick).
+ * - Component 9: M5 Overlay button relocated to the top toolbar.
  *
  * @module components/charts/mtf-stacked-charts
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ImperativePanelGroupHandle } from 'react-resizable-panels';
+import { useSession } from 'next-auth/react';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -37,6 +26,9 @@ import {
 } from '@/components/ui/resizable';
 import { useLocale } from '@/lib/context/locale-context';
 
+import type { DrawingType } from './drawing/types';
+import { MtfTopBar } from './mtf/MtfTopBar';
+import { useMtfPreference } from './mtf/useMtfPreference';
 import { TradingChart } from './trading-chart';
 import {
   DEFAULT_SPLIT,
@@ -47,9 +39,9 @@ import {
 
 interface MtfStackedChartsProps {
   symbol: string;
-  /** Upper panel. Defaults to the pair the PNG renders. */
+  /** Upper panel. Defaults to M15 in the proposed design. */
   upperTimeframe?: string;
-  /** Lower panel — the one the M5 overlay toggle attaches to. */
+  /** Lower panel. Defaults to M5 in the proposed design. */
   lowerTimeframe?: string;
   /**
    * Total height for both charts combined. Omit to measure the container,
@@ -63,29 +55,49 @@ const SPLIT_EPSILON = 0.05;
 
 export function MtfStackedCharts({
   symbol,
-  upperTimeframe = 'M5',
-  lowerTimeframe = 'M15',
+  upperTimeframe = 'M15',
+  lowerTimeframe = 'M5',
   totalHeight,
 }: MtfStackedChartsProps): React.JSX.Element {
   const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
+  const panelsContainerRef = useRef<HTMLDivElement>(null);
   const groupRef = useRef<ImperativePanelGroupHandle>(null);
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const [split, setSplit] = useState<readonly number[]>(DEFAULT_SPLIT);
+
+  // Drawing tools state (Component 7)
+  const [activeTool, setActiveTool] = useState<DrawingType | null>(null);
+
+  // Chart price display mode state (Component 8)
+  const [priceMode, setPriceMode] = useState<'CANDLE' | 'BAR'>('CANDLE');
+
+  // Multi-timeframe overlay preference (Component 9)
+  const { data: session } = useSession();
+  const isPro = session?.user?.tier === 'PRO';
+  const {
+    enabled: mtfEnabled,
+    setEnabled: setMtfEnabled,
+    isSaving: mtfSaving,
+  } = useMtfPreference(isPro);
 
   const handleResetSplit = useCallback(() => {
     groupRef.current?.setLayout([...DEFAULT_SPLIT]);
     setSplit(DEFAULT_SPLIT);
   }, []);
 
+  const handleDeleteSelected = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Delete' }));
+    }
+  }, []);
+
   /**
-   * lightweight-charts needs an explicit pixel height, but both workspaces put
-   * this inside a drag-resizable panel — so observe the box rather than
-   * guessing. Falls back to `totalHeight` when given.
+   * Observe the panels container box to size the chart canvases accurately.
    */
   useEffect(() => {
     if (totalHeight !== undefined) return;
-    const el = containerRef.current;
+    const el = panelsContainerRef.current;
     if (!el) return;
 
     const observer = new ResizeObserver((entries) => {
@@ -97,9 +109,7 @@ export function MtfStackedCharts({
   }, [totalHeight]);
 
   /**
-   * Fires on every frame of a drag, which is what makes both canvases follow
-   * the divider live. Ignoring no-op reports keeps a drag along a panel's
-   * minimum from re-rendering two charts for nothing.
+   * Fires on every frame of a drag, resizing both canvases live.
    */
   const onLayout = useCallback((next: number[]): void => {
     setSplit((prev) =>
@@ -118,58 +128,115 @@ export function MtfStackedCharts({
   return (
     <div
       ref={containerRef}
-      className="h-full w-full"
+      className="flex h-full w-full flex-col overflow-hidden bg-background"
       style={totalHeight !== undefined ? { height: totalHeight } : undefined}
     >
-      <ResizablePanelGroup
-        ref={groupRef}
-        direction="vertical"
-        className="h-full w-full"
-        onLayout={onLayout}
-      >
-        <ResizablePanel
-          id="mtf-upper"
-          order={1}
-          defaultSize={DEFAULT_SPLIT[0]}
-          minSize={minSize}
-          className="overflow-hidden"
-        >
-          <TradingChart
-            symbol={symbol}
-            timeframe={upperTimeframe}
-            height={upperHeight}
-            showHeader={false}
-            showFooter={false}
-            label={`${symbol} · ${upperTimeframe}`}
-          />
-        </ResizablePanel>
+      {/* Unified top toolbar: Component 7 + 8 + 9 */}
+      <MtfTopBar
+        activeTool={activeTool}
+        onSelectTool={setActiveTool}
+        onDeleteSelected={handleDeleteSelected}
+        priceMode={priceMode}
+        onPriceModeChange={setPriceMode}
+        isPro={isPro}
+        mtfEnabled={mtfEnabled}
+        mtfLoading={mtfSaving}
+        onToggleMtf={setMtfEnabled}
+      />
 
-        <ResizableHandle
-          aria-label={t('Drag to resize the upper and lower charts')}
-          onDoubleClick={handleResetSplit}
-          tooltipTitle="Reset chart split (50:50)"
-          tooltipShortcut="Double-click"
-          tooltipSubtitle="Drag to resize"
-          tooltipSide="bottom"
-        />
-
-        <ResizablePanel
-          id="mtf-lower"
-          order={2}
-          defaultSize={DEFAULT_SPLIT[1]}
-          minSize={minSize}
-          className="overflow-hidden"
+      {/* Panels container */}
+      <div ref={panelsContainerRef} className="relative min-h-0 flex-1">
+        <ResizablePanelGroup
+          ref={groupRef}
+          direction="vertical"
+          className="h-full w-full"
+          onLayout={onLayout}
         >
-          <TradingChart
-            symbol={symbol}
-            timeframe={lowerTimeframe}
-            height={lowerHeight}
-            showHeader={false}
-            showFooter={false}
-            label={`${symbol} · ${lowerTimeframe}`}
+          {/* Upper chart: M15 with Component 5 overlay badge */}
+          <ResizablePanel
+            id="mtf-upper"
+            order={1}
+            defaultSize={DEFAULT_SPLIT[0]}
+            minSize={minSize}
+            className="overflow-hidden"
+          >
+            <TradingChart
+              symbol={symbol}
+              timeframe={upperTimeframe}
+              height={upperHeight}
+              showHeader={false}
+              showFooter={false}
+              isStacked={true}
+              hideToolbar={true}
+              externalTool={activeTool}
+              onActiveToolChange={setActiveTool}
+              priceMode={priceMode}
+              externalMtfEnabled={mtfEnabled}
+              overlayBadge={
+                <div className="border-border/80 bg-background/90 shadow-xs backdrop-blur-xs flex items-center gap-1.5 rounded-md border px-2 py-1">
+                  <Avatar className="h-4 w-4 border border-amber-400/80">
+                    <AvatarImage src="/DavinTrade_Logo.jpg" alt="DavinTrade" />
+                    <AvatarFallback className="text-[9px]">DT</AvatarFallback>
+                  </Avatar>
+                  <span className="font-mono text-xs font-semibold text-foreground">
+                    {symbol} · {upperTimeframe}
+                  </span>
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    Market Context
+                  </span>
+                </div>
+              }
+              label={`${symbol} · ${upperTimeframe}`}
+            />
+          </ResizablePanel>
+
+          <ResizableHandle
+            aria-label={t('Drag to resize the upper and lower charts')}
+            onDoubleClick={handleResetSplit}
+            tooltipTitle="Reset chart split (50:50)"
+            tooltipShortcut="Double-click"
+            tooltipSubtitle="Drag to resize"
+            tooltipSide="bottom"
           />
-        </ResizablePanel>
-      </ResizablePanelGroup>
+
+          {/* Lower chart: M5 with Component 6 overlay badge */}
+          <ResizablePanel
+            id="mtf-lower"
+            order={2}
+            defaultSize={DEFAULT_SPLIT[1]}
+            minSize={minSize}
+            className="overflow-hidden"
+          >
+            <TradingChart
+              symbol={symbol}
+              timeframe={lowerTimeframe}
+              height={lowerHeight}
+              showHeader={false}
+              showFooter={false}
+              isStacked={true}
+              hideToolbar={true}
+              externalTool={activeTool}
+              onActiveToolChange={setActiveTool}
+              priceMode={priceMode}
+              overlayBadge={
+                <div className="border-border/80 bg-background/90 shadow-xs backdrop-blur-xs flex items-center gap-1.5 rounded-md border px-2 py-1">
+                  <Avatar className="h-4 w-4 border border-amber-400/80">
+                    <AvatarImage src="/DavinTrade_Logo.jpg" alt="DavinTrade" />
+                    <AvatarFallback className="text-[9px]">DT</AvatarFallback>
+                  </Avatar>
+                  <span className="font-mono text-xs font-semibold text-foreground">
+                    {symbol} · {lowerTimeframe}
+                  </span>
+                  <span className="text-[11px] font-medium text-muted-foreground">
+                    Market Context
+                  </span>
+                </div>
+              }
+              label={`${symbol} · ${lowerTimeframe}`}
+            />
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
     </div>
   );
 }
