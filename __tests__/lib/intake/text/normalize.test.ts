@@ -67,6 +67,24 @@ describe('digit folding', () => {
     expect([...DIGIT_ZEROS].sort((a, b) => a - b)).toEqual([...DIGIT_ZEROS]);
   });
 
+  it('folds every Tolong Siki digit from Unicode 17 on older engines too', () => {
+    const digits = Array.from({ length: 10 }, (_, i) =>
+      String.fromCodePoint(0x11de0 + i)
+    ).join('');
+    expect(text(digits)).toBe('0123456789');
+
+    for (let value = 0; value < 10; value += 1) {
+      const digit = String.fromCodePoint(0x11de0 + value);
+      const original = `XAUUSD ${digit} buy`;
+      expect(normalizeQuestion(original)).toEqual({
+        original,
+        text: `XAUUSD ${value} buy`,
+        changes: ['DIGITS_FOLDED'],
+        flags: [],
+      });
+    }
+  });
+
   it('agrees with the JavaScript engine about which characters are digits', () => {
     const isDigit = /^\p{Nd}$/u;
     // a run is either all digits in this engine or, if the engine's Unicode is older, none
