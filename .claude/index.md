@@ -1,7 +1,7 @@
 ---
 type: Concept/Index
 status: active
-updated_at: 2026-09-27
+updated_at: 2026-10-11
 format: 'Open Knowledge Format (OKF): one concept per file, YAML frontmatter, relative Markdown links'
 tags: [index, catalog]
 ---
@@ -33,6 +33,8 @@ automatically.
 | [protocols/session-lifecycle.md](./protocols/session-lifecycle.md)               | Session open/track/close, action-first entries    | Session start, 3+ step tasks, session close           |
 | [protocols/subagent-orchestration.md](./protocols/subagent-orchestration.md)     | Partitioning, scoping, aggregating subagents      | Only when Davin asks for parallel subagents           |
 | [protocols/verification-checklist.md](./protocols/verification-checklist.md)     | Commands and baselines per project                | Before declaring done                                 |
+| [Shared Claude/Codex protocol](../docs/agent-collaboration/README.md)            | Cross-agent ownership, review and handoff         | Collaborating with Codex                              |
+| [Agent language policy](../docs/agent-collaboration/LANGUAGE-POLICY.md)          | English artifacts; session reply preference       | Every agent session                                   |
 
 Pre-OKF snapshot of `CLAUDE.md`: git history before the OKF refactor commit (sha256 of the file
 `ad804d401c5250f8d1a48f55c517e7fe20983d2a975bbc63e94b4e480c68a1ef`, 480,403 bytes, 5,376 lines).
