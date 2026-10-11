@@ -503,6 +503,7 @@ describeTool('record and the approval gate', () => {
   it('refuses an approval that has been tampered with', () => {
     const cases: [string, (a: any) => void, RegExp][] = [
       ['an unknown key', (a) => (a.extra = 1), /unknown key 'extra'/],
+      ['a note that is a number', (a) => (a.note = 5), /note must be a text/],
       ['a missing key', (a) => delete a.note, /missing key 'note'/],
       ['another area', (a) => (a.area = 'de'), /area is 'de', not 'es'/],
       ['another schema', (a) => (a.schema = 'x/1'), /schema must be/],
@@ -609,6 +610,766 @@ describeTool('record and the approval gate', () => {
 // ---------------------------------------------------------------------------------------
 // The rules
 // ---------------------------------------------------------------------------------------
+
+describeTool('a glossary that breaks its rules', () => {
+  const CASES: [string, (g: any) => void, RegExp][] = [
+    [
+      'a canonical form that is null',
+      (g) => (g.terms[0].forms.fr.canonical = null),
+      /buy\/fr: canonical must be a text/,
+    ],
+    [
+      'a term that is a string',
+      (g) => (g.terms[1] = 'sell'),
+      /terms\[1\]: not an object/,
+    ],
+    [
+      'forms that are a list',
+      (g) => (g.terms[0].forms = []),
+      /buy: forms must be an object/,
+    ],
+    [
+      'a form that is a string',
+      (g) => (g.terms[0].forms.fr = 'acheter'),
+      /a form is exactly canonical/,
+    ],
+    [
+      'variants with a number in them',
+      (g) => (g.terms[0].forms.fr.variants = [1, 2]),
+      /variants must be at most 12 texts/,
+    ],
+    [
+      'owners that are a string',
+      (g) => (g.terms[0].owners = 'SYN'),
+      /owners must be 1 to 4 distinct/,
+    ],
+    [
+      'an id that is a number',
+      (g) => (g.terms[0].id = 5),
+      /id 5 is not a term id/,
+    ],
+    [
+      'an English term that is null',
+      (g) => (g.terms[0].en = null),
+      /en must be a text of 2 to 80/,
+    ],
+  ];
+
+  it.each(CASES)(
+    'is reported by check, not crashed on, with %s',
+    (_name, change, message) => {
+      const root = recorded();
+      const glossary = readGlossary(root);
+      change(glossary);
+      writeFileSync(
+        glossaryPath(root),
+        JSON.stringify(glossary, null, 2) + '\n'
+      );
+      const run = tool(['check'], root);
+      expect(run.status).toBe(1);
+      expect(run.stderr).toBe('');
+      expect(run.stdout).toMatch(message);
+      expect(run.stdout).toMatch(
+        /note {2}the 20 areas were not checked: the content breaks its rules/
+      );
+      expect(run.stdout).not.toMatch(/Traceback/);
+    }
+  );
+
+  it.each(CASES)(
+    'is refused by record and by list, which write and list nothing, with %s',
+    (_name, change) => {
+      const root = makeTree();
+      const glossary = readGlossary(root);
+      change(glossary);
+      writeFileSync(
+        glossaryPath(root),
+        JSON.stringify(glossary, null, 2) + '\n'
+      );
+      for (const command of ['record', 'list']) {
+        const run = tool([command], root);
+        expect(run.status).toBe(2);
+        expect(run.stdout).toBe('');
+        expect(run.stderr).toMatch(
+          /ERROR {2}the content breaks \d+ rule\(s\), so nothing was written or listed/
+        );
+        expect(run.stderr).not.toMatch(/Traceback/);
+      }
+      expect(existsSync(join(root, 'config', 'intake', 'review'))).toBe(false);
+    }
+  );
+
+  it('is reported by check, not crashed on, when a hand edit leaves a NaN token in the file', () => {
+    const root = recorded();
+    const text = readFileSync(glossaryPath(root), 'utf8');
+    expect(text).toContain('"canonical": "acheter"');
+    writeFileSync(
+      glossaryPath(root),
+      text.replace('"canonical": "acheter"', '"canonical": NaN')
+    );
+    const run = tool(['check'], root);
+    expect(run.status).toBe(1);
+    expect(run.stderr).toBe('');
+    expect(run.stdout).toMatch(/buy\/fr: canonical must be a text/);
+    expect(tool(['record'], root).status).toBe(2);
+  });
+
+  it('is not signed by record when a dictionary text is missing: no approval is minted over it', () => {
+    const root = makeTree();
+    const rows = readDictionary(root, 'de');
+    delete rows['intake.instant.m15'];
+    writeDictionary(root, 'de', rows);
+    const run = tool(['record'], root);
+    expect(run.status).toBe(2);
+    expect(run.stderr).toMatch(/de: intake\.instant\.m15 is missing or empty/);
+    expect(existsSync(join(root, 'config', 'intake', 'review'))).toBe(false);
+    expect(tool(['list'], root).status).toBe(0);
+  });
+
+  it('names the first problems and counts the rest', () => {
+    const root = makeTree();
+    const glossary = readGlossary(root);
+    for (const term of glossary.terms.slice(0, 15)) term.owners = [];
+    writeFileSync(glossaryPath(root), JSON.stringify(glossary, null, 2) + '\n');
+    const run = tool(['record'], root);
+    expect(run.status).toBe(2);
+    expect(run.stderr).toMatch(/the content breaks 15 rule\(s\)/);
+    expect(run.stderr).toMatch(/\.\.\. and 5 more/);
+    expect(
+      run.stderr.split('\n').filter((l) => l.includes('owners must be')).length
+    ).toBe(10);
+  });
+
+  it('still refuses an area it does not know, before it looks at the glossary', () => {
+    const root = makeTree();
+    const glossary = readGlossary(root);
+    glossary.terms[0].owners = [];
+    writeFileSync(glossaryPath(root), JSON.stringify(glossary, null, 2) + '\n');
+    const run = tool(['check', '--only', 'xx'], root);
+    expect(run.status).toBe(2);
+    expect(run.stderr).toMatch(/no such area: xx/);
+  });
+});
+
+describeTool('what record and check do with what they are given', () => {
+  it('record --only writes the named areas and leaves the others as a person left them', () => {
+    const root = recorded();
+    approve(root, 'de');
+    approve(root, 'fr');
+    tool(['record'], root);
+    const glossary = readGlossary(root);
+    glossary.terms[0].forms.de.canonical = 'erwerben';
+    glossary.terms[0].forms.fr.canonical = 'acquérir';
+    writeGlossary(root, glossary);
+    const reviewOf = (area: string) =>
+      join(root, 'config', 'intake', 'review', area, 'review.md');
+    const deReview = readFileSync(reviewOf('de'), 'utf8');
+    const run = tool(['record', '--only', 'fr'], root);
+    expect(run.status).toBe(0);
+    expect(run.stdout).toMatch(/wrote {2}fr\/approval\.json/);
+    expect(run.stdout).not.toMatch(/ de\//);
+    expect(readApproval(root, 'fr').status).toBe('PENDING');
+    expect(readApproval(root, 'de').status).toBe('APPROVED');
+    expect(readFileSync(reviewOf('de'), 'utf8')).toBe(deReview);
+    // the approval of de is stale, and check says so until record runs for it
+    expect(tool(['check'], root).stdout).toMatch(
+      /DIFFERENT {2}de {2}\(PENDING\)/
+    );
+    tool(['record', '--only', 'de'], root);
+    expect(readApproval(root, 'de').status).toBe('PENDING');
+  });
+
+  it('check says a review.md that is missing is missing', () => {
+    const root = recorded();
+    rmSync(join(root, 'config', 'intake', 'review', 'ko', 'review.md'));
+    const run = tool(['check'], root);
+    expect(run.status).toBe(1);
+    expect(run.stdout).toMatch(
+      /DIFFERENT {2}ko {2}\(PENDING\)\r?\n {4}review\.md is missing \(run record\)/
+    );
+    expect(run.stdout).toMatch(
+      /20 area\(s\), 0 approved, 20 pending approval, 1 problem\(s\)/
+    );
+    expect(tool(['record'], root).stdout).toMatch(/wrote {2}ko\/review\.md/);
+  });
+
+  it('check says an INDEX.md that is missing is missing', () => {
+    const root = recorded();
+    rmSync(join(root, 'config', 'intake', 'review', 'INDEX.md'));
+    const run = tool(['check'], root);
+    expect(run.status).toBe(1);
+    expect(run.stdout).toMatch(
+      /DIFFERENT {2}INDEX\.md is missing \(run record\)/
+    );
+  });
+
+  it('check counts one problem for each area and each set problem', () => {
+    const root = recorded();
+    const approval = readApproval(root, 'es');
+    approval.status = 'DONE';
+    writeApproval(root, 'es', approval);
+    const glossary = readGlossary(root);
+    writeGlossary(root, glossary); // the layout
+    const run = tool(['check'], root);
+    expect(run.stdout).toMatch(
+      /20 area\(s\), 0 approved, 20 pending approval, 2 problem\(s\)/
+    );
+  });
+
+  it.each([
+    ['a list', '[1, 2]'],
+    ['a number', '5'],
+    ['an object without terms', '{"schema": "glossary/1"}'],
+    ['terms that are a number', '{"terms": 5}'],
+  ])(
+    'refuses a glossary file that is %s, with exit 2 and no traceback',
+    (_name, text) => {
+      const root = recorded();
+      writeFileSync(glossaryPath(root), text);
+      for (const command of ['check', 'record', 'list']) {
+        const run = tool([command], root);
+        expect(run.status).toBe(2);
+        expect(run.stderr).toMatch(
+          /is not a glossary \(an object with a list of terms\)/
+        );
+        expect(run.stderr).not.toMatch(/Traceback/);
+      }
+    }
+  );
+
+  it.each([
+    ['a list', '[]'],
+    ['a number', '5'],
+    ['a string', '"approved"'],
+  ])('reports an approval.json that is %s', (_name, text) => {
+    const root = recorded();
+    writeFileSync(approvalPath(root, 'tr'), text);
+    const run = tool(['check'], root);
+    expect(run.status).toBe(1);
+    expect(run.stderr).toBe('');
+    expect(run.stdout).toMatch(/approval\.json is not an object/);
+    // record replaces what is not an approval with a PENDING one
+    expect(tool(['record'], root).status).toBe(0);
+    expect(readApproval(root, 'tr').status).toBe('PENDING');
+  });
+
+  it('refuses a dictionary that is not an object, and a missing one', () => {
+    const root = recorded();
+    writeFileSync(dictionaryPath(root, 'th'), '["x"]');
+    const run = tool(['check'], root);
+    expect(run.status).toBe(2);
+    expect(run.stderr).toMatch(/th\.json is not an object/);
+    rmSync(dictionaryPath(root, 'th'));
+    expect(tool(['check'], root).stderr).toMatch(/th\.json is missing/);
+  });
+
+  it('reports an en-US dictionary that has no intake text at all', () => {
+    const root = recorded();
+    const rows = readDictionary(root, 'en-US');
+    for (const key of Object.keys(rows))
+      if (key.startsWith('intake.')) delete rows[key];
+    writeDictionary(root, 'en-US', rows);
+    const run = tool(['check'], root);
+    expect(run.status).toBe(1);
+    expect(run.stdout).toMatch(/DIFFERENT {2}en-US has no intake\.\* key/);
+  });
+
+  it('lists the areas even when a dictionary text is a NaN token (the hash does not raise)', () => {
+    const root = recorded();
+    const file = dictionaryPath(root, 'de');
+    const text = readFileSync(file, 'utf8');
+    writeFileSync(
+      file,
+      text.replace(/("intake\.instant\.m5": )"[^"]*"/, '$1NaN')
+    );
+    const run = tool(['list'], root);
+    expect(run.status).toBe(0);
+    expect(run.stdout.trim().split('\n')).toHaveLength(20);
+    expect(run.stderr).toBe('');
+  });
+
+  it('needs a command', () => {
+    const run = tool([]);
+    expect(run.status).toBe(2);
+    expect(run.stderr).toMatch(/usage: glossary_tool\.py/);
+    expect(run.stderr).toMatch(/the following arguments are required: command/);
+  });
+
+  it('prints what it is for', () => {
+    const run = tool(['--help']);
+    expect(run.status).toBe(0);
+    expect(run.stdout).toMatch(
+      /Review tables and approvals for the trading glossary/
+    );
+    expect(run.stdout).toMatch(/list/);
+    expect(run.stdout).toMatch(/check/);
+    expect(run.stdout).toMatch(/record/);
+  });
+});
+
+describeTool('the approval files', () => {
+  it('are written as JSON with two-space indent, ASCII only, one trailing newline', () => {
+    const root = recorded();
+    const text = readFileSync(approvalPath(root, 'fr'), 'utf8');
+    expect(text).toBe(JSON.stringify(JSON.parse(text), null, 2) + '\n');
+    expect(
+      text.startsWith(
+        '{\n  "schema": "glossary-approval/1",\n  "area": "fr",\n'
+      )
+    ).toBe(true);
+  });
+
+  it('keep a name with an accent as the escape JSON gives it, and the approval stays true', () => {
+    const root = recorded();
+    const approval = readApproval(root, 'es');
+    // a person typing the name writes the letter itself, not the escape
+    writeFileSync(
+      approvalPath(root, 'es'),
+      JSON.stringify(
+        {
+          ...approval,
+          status: 'APPROVED',
+          approved_by: 'José Müller',
+          approved_on: '2026-10-11',
+        },
+        null,
+        2
+      ) + '\n'
+    );
+    expect(readFileSync(approvalPath(root, 'es'), 'utf8')).toContain('José');
+    const run = tool(['record'], root);
+    expect(run.status).toBe(0);
+    const text = readFileSync(approvalPath(root, 'es'), 'utf8');
+    expect(text).toContain('Jos\\u00e9 M\\u00fcller');
+    expect(text).not.toContain('José');
+    expect(readApproval(root, 'es')).toMatchObject({
+      status: 'APPROVED',
+      approved_by: 'José Müller',
+    });
+    expect(
+      tool(['check', '--require-approved', '--only', 'es'], root).status
+    ).toBe(0);
+  });
+
+  it('are not crashed on when a text of a dictionary is a NaN token: check reports the rule', () => {
+    const root = recorded();
+    const file = dictionaryPath(root, 'de');
+    const text = readFileSync(file, 'utf8');
+    const key = '"intake.instant.m5": ';
+    expect(text).toContain(key);
+    writeFileSync(
+      file,
+      text.replace(/("intake\.instant\.m5": )"[^"]*"/, '$1NaN')
+    );
+    const run = tool(['check'], root);
+    expect(run.status).toBe(1);
+    expect(run.stderr).toBe('');
+    expect(run.stdout).toMatch(/de: intake\.instant\.m5 is missing or empty/);
+  });
+});
+
+describeTool('the message of a difference', () => {
+  const reviewOf = (root: string) =>
+    join(root, 'config', 'intake', 'review', 'it', 'review.md');
+
+  it('names the first line that differs and shows both sides', () => {
+    const root = recorded();
+    const file = reviewOf(root);
+    writeFileSync(
+      file,
+      readFileSync(file, 'utf8').replace('Glossary version', 'Edited version')
+    );
+    const run = tool(['check'], root);
+    expect(run.stdout).toMatch(
+      /review\.md differs from a fresh run: line 5: stored 'Edited version `1\.0\.0-draft`\. These are DRAFTS until you approve them\.' but a fresh run gives 'Glossary version `1\.0\.0-draft`\. These are DRAFTS until you approve them\.'/
+    );
+  });
+
+  it('says <end of file> on the side that ends first', () => {
+    const root = recorded();
+    const file = reviewOf(root);
+    const text = readFileSync(file, 'utf8');
+    writeFileSync(file, text.split('\n').slice(0, 10).join('\n'));
+    expect(tool(['check'], root).stdout).toMatch(
+      /line 11: stored '<end of file>' but a fresh run gives '/
+    );
+    writeFileSync(file, text + '\nmore');
+    expect(tool(['check'], root).stdout).toMatch(
+      /stored 'more' but a fresh run gives '<end of file>'/
+    );
+    writeFileSync(file, text + 'extra line\n');
+    expect(tool(['check'], root).stdout).toMatch(
+      /stored 'extra line' but a fresh run gives ''/
+    );
+  });
+
+  it('cuts a long line at 100 characters', () => {
+    const root = recorded();
+    const file = reviewOf(root);
+    const text = readFileSync(file, 'utf8');
+    writeFileSync(
+      file,
+      text.replace('# Glossary review', 'X'.repeat(150) + ' # Glossary review')
+    );
+    const stdout = tool(['check'], root).stdout;
+    const match = /line 1: stored '(X+)/.exec(stdout);
+    expect(match?.[1]?.length).toBe(100);
+  });
+});
+
+describeTool('the limits of the rules', () => {
+  /** A script character for each locale, so a canonical form passes the script rule. */
+  const CHAR: Record<string, string> = {
+    ja: 'あ',
+    zh: '汉',
+    'zh-TW': '漢',
+    ko: '가',
+    ar: 'ا',
+    ur: 'ب',
+    hi: 'क',
+    th: 'ก',
+  };
+  const ch = (locale: string) => CHAR[locale] ?? 'x';
+
+  /** A term whose every size is as given; `n` makes its words its own. */
+  function term(
+    n: number,
+    over: Partial<{
+      id: string;
+      en: string;
+      enVariants: string[];
+      definition: string;
+      owners: string[];
+      canonicalLength: number;
+      variantCount: number;
+      variantLength: number;
+    }> = {}
+  ) {
+    const tag = String(n).padStart(3, '0');
+    const forms: Record<string, any> = {};
+    for (const locale of LOCALES) {
+      const c = ch(locale);
+      const canonicalLength = over.canonicalLength ?? 6;
+      const variantLength = over.variantLength ?? 6;
+      const fit = (text: string, length: number) =>
+        text.length === length
+          ? text
+          : text.length < length
+            ? c.repeat(length - text.length) + text
+            : (c + String(n % 10)).padEnd(length, '0').slice(0, length);
+      forms[locale] = {
+        canonical: fit(`${c}${tag}`, canonicalLength),
+        variants: Array.from({ length: over.variantCount ?? 1 }, (_, i) =>
+          fit(`${c}${tag}${String(i).padStart(2, '0')}`, variantLength)
+        ),
+        status: 'draft',
+      };
+    }
+    return {
+      id: over.id ?? `extra_${tag}`,
+      en: over.en ?? `extra term ${tag}`,
+      en_variants: over.enVariants ?? [],
+      definition: over.definition ?? 'An extra term for a test.',
+      owners: over.owners ?? ['SYN'],
+      never_translate: false,
+      forms,
+    };
+  }
+
+  /** The verdict of `record` on a recorded tree changed by `change`: accepted (and then check agrees) or refused with a message. */
+  function verdict(change: (glossary: any) => void): {
+    ok: boolean;
+    message: string;
+  } {
+    const root = recorded();
+    const glossary = readGlossary(root);
+    change(glossary);
+    writeGlossary(root, glossary);
+    const run = tool(['record'], root);
+    if (run.status !== 0) return { ok: false, message: run.stderr };
+    const check = tool(['check'], root);
+    return { ok: check.status === 0, message: check.stdout };
+  }
+
+  it('accepts every size at its largest', () => {
+    const result = verdict((g) => {
+      g.version = 'v'.repeat(40);
+      g.terms.push(
+        term(1, {
+          id: 'x'.repeat(40),
+          en: 'e'.repeat(80),
+          enVariants: Array.from(
+            { length: 12 },
+            (_, i) => `${'v'.repeat(77)}${String(i).padStart(3, '0')}`
+          ),
+          definition: 'd'.repeat(300),
+          owners: ['MCD15', 'SYN', 'D5', 'MCD0'],
+          canonicalLength: 80,
+          variantCount: 12,
+          variantLength: 80,
+        })
+      );
+    });
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it('accepts every size at its smallest', () => {
+    const result = verdict((g) => {
+      g.version = '1';
+      g.terms.push(
+        term(2, {
+          id: 'q',
+          en: 'zz',
+          enVariants: [],
+          definition: 'x',
+          owners: ['D1'],
+          canonicalLength: 2,
+          variantCount: 0,
+        })
+      );
+    });
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it('accepts a glossary of one term and a glossary of 400', () => {
+    expect(
+      verdict((g) => {
+        g.terms = [g.terms.find((t: any) => t.id === 'gold')];
+      })
+    ).toMatchObject({ ok: true });
+    expect(
+      verdict((g) => {
+        const keep = g.terms.length;
+        for (let n = 0; n < 400 - keep; n += 1) g.terms.push(term(n));
+      })
+    ).toMatchObject({ ok: true });
+  });
+
+  it.each<[string, (g: any) => void, RegExp]>([
+    [
+      'a version that is empty',
+      (g) => (g.version = ''),
+      /version '' is not a version/,
+    ],
+    [
+      'a version of 41 characters',
+      (g) => (g.version = 'v'.repeat(41)),
+      /is not a version/,
+    ],
+    [
+      'a version that starts with a dash',
+      (g) => (g.version = '-1'),
+      /is not a version/,
+    ],
+    ['a version with a space', (g) => (g.version = '1 0'), /is not a version/],
+    ['a version that is a number', (g) => (g.version = 1), /is not a version/],
+    ['no terms', (g) => (g.terms = []), /terms must be a list of 1 to 400/],
+    [
+      'terms that are not a list',
+      (g) => (g.terms = {}),
+      /is not a glossary \(an object with a list of terms\)/,
+    ],
+    ['an unknown key', (g) => (g.extra = 1), /unknown key 'extra'/],
+    [
+      'a wrong schema',
+      (g) => (g.schema = 'glossary/2'),
+      /schema must be 'glossary\/1'/,
+    ],
+    [
+      'an id of 41 characters',
+      (g) => (g.terms[0].id = 'x'.repeat(41)),
+      /is not a term id/,
+    ],
+    ['an id in capitals', (g) => (g.terms[0].id = 'Buy'), /is not a term id/],
+    [
+      'an id that starts with a digit',
+      (g) => (g.terms[0].id = '1x'),
+      /is not a term id/,
+    ],
+    [
+      'an English term of one character',
+      (g) => (g.terms[0].en = 'x'),
+      /en must be a text of 2 to 80/,
+    ],
+    [
+      'an English term of 81 characters',
+      (g) => (g.terms[0].en = 'x'.repeat(81)),
+      /en must be a text of 2 to 80/,
+    ],
+    [
+      '13 English wordings',
+      (g) =>
+        (g.terms[0].en_variants = Array.from(
+          { length: 13 },
+          (_, i) => `wording ${i}`
+        )),
+      /en_variants must be at most 12/,
+    ],
+    [
+      'an empty English wording',
+      (g) => (g.terms[0].en_variants = ['']),
+      /en_variants must be at most 12/,
+    ],
+    [
+      'a blank English wording',
+      (g) => (g.terms[0].en_variants = ['  ']),
+      /en_variants must be at most 12/,
+    ],
+    [
+      'an English wording of 81 characters',
+      (g) => (g.terms[0].en_variants = ['x'.repeat(81)]),
+      /en_variants must be at most 12/,
+    ],
+    [
+      'an English wording that is a number',
+      (g) => (g.terms[0].en_variants = [5]),
+      /en_variants must be at most 12/,
+    ],
+    [
+      'English wordings that are a string',
+      (g) => (g.terms[0].en_variants = 'buys'),
+      /en_variants must be at most 12/,
+    ],
+    [
+      'a blank definition',
+      (g) => (g.terms[0].definition = '  '),
+      /definition must be a text/,
+    ],
+    [
+      'a definition of 301 characters',
+      (g) => (g.terms[0].definition = 'x'.repeat(301)),
+      /definition must be a text of at most 300/,
+    ],
+    [
+      'five owners',
+      (g) => (g.terms[0].owners = ['MCD1', 'MCD2', 'MCD3', 'SYN', 'D1']),
+      /owners must be 1 to 4 distinct/,
+    ],
+    [
+      'the same owner twice',
+      (g) => (g.terms[0].owners = ['SYN', 'SYN']),
+      /owners must be 1 to 4 distinct/,
+    ],
+    [
+      'an owner MCD16',
+      (g) => (g.terms[0].owners = ['MCD16']),
+      /owners must be 1 to 4 distinct/,
+    ],
+    [
+      'an owner D6',
+      (g) => (g.terms[0].owners = ['D6']),
+      /owners must be 1 to 4 distinct/,
+    ],
+    [
+      'an owner in lower case',
+      (g) => (g.terms[0].owners = ['syn']),
+      /owners must be 1 to 4 distinct/,
+    ],
+    [
+      'an owner that is a number',
+      (g) => (g.terms[0].owners = [5]),
+      /owners must be 1 to 4 distinct/,
+    ],
+    [
+      'never_translate as a word',
+      (g) => (g.terms[0].never_translate = 'yes'),
+      /never_translate must be true or false/,
+    ],
+    [
+      'a term with an unknown key',
+      (g) => (g.terms[0].extra = 1),
+      /unknown key 'extra'/,
+    ],
+    [
+      'a term without a definition',
+      (g) => delete g.terms[0].definition,
+      /missing key 'definition'/,
+    ],
+    [
+      'a canonical form of 81 characters',
+      (g) => (g.terms[0].forms.fr.canonical = 'x'.repeat(81)),
+      /must have 2 to 80 characters once normalised/,
+    ],
+    [
+      'a canonical form of one character',
+      (g) => (g.terms[0].forms.fr.canonical = 'x'),
+      /must have 2 to 80 characters once normalised/,
+    ],
+    [
+      'a canonical form of one visible character',
+      (g) => (g.terms[0].forms.fr.canonical = 'x​'),
+      /must have 2 to 80 characters once normalised/,
+    ],
+    [
+      'a canonical form that is a number',
+      (g) => (g.terms[0].forms.fr.canonical = 5),
+      /canonical must be a text/,
+    ],
+    [
+      '13 spellings',
+      (g) =>
+        (g.terms[0].forms.fr.variants = Array.from(
+          { length: 13 },
+          (_, i) => `forme ${i}`
+        )),
+      /variants must be at most 12/,
+    ],
+    [
+      'a spelling of 81 characters',
+      (g) => (g.terms[0].forms.fr.variants = ['x'.repeat(81)]),
+      /must have 2 to 80 characters once normalised/,
+    ],
+    [
+      'a spelling written twice for a term, in another case',
+      (g) => (g.terms[0].forms.fr.variants = ['ACHETER']),
+      /'ACHETER' is written twice for this term/,
+    ],
+    [
+      'a spelling written twice with a space more',
+      (g) => (g.terms[0].forms.fr.variants = ['  acheter ']),
+      /written twice for this term/,
+    ],
+    [
+      'a spelling another term has in the same locale',
+      (g) => (g.terms[1].forms.fr.variants = ['acheter']),
+      /'acheter' is already a form of buy in this locale/,
+    ],
+  ])('refuses %s', (_name, change, message) => {
+    const result = verdict(change);
+    expect(result.ok).toBe(false);
+    expect(result.message).toMatch(message);
+  });
+
+  it('allows a spelling another term has in ANOTHER locale (the spotter reports both terms)', () => {
+    const result = verdict((g) => {
+      g.terms[1].forms.es.variants.push(g.terms[0].forms.fr.canonical);
+    });
+    expect(result).toMatchObject({ ok: true });
+  });
+
+  it('refuses a canonical form in the wrong script, and allows the acronym a Latin locale keeps', () => {
+    expect(
+      verdict((g) => (g.terms[0].forms.ja.canonical = 'buy')).message
+    ).toMatch(/not written in the script of this language/);
+    expect(
+      verdict((g) => (g.terms[0].forms.hi.canonical = 'खरीद buy')).ok
+    ).toBe(true);
+  });
+
+  it('keeps a never-translated term to its English form alone, whatever else is true', () => {
+    const level = (g: any) => g.terms.find((t: any) => t.id === 'uoedt');
+    expect(
+      verdict((g) => (level(g).forms.ja.canonical = 'ユーオーイーディーティー'))
+        .message
+    ).toMatch(/never translated is its English form 'UOEDT' alone/);
+    expect(
+      verdict((g) => (level(g).forms.de.variants = ['uoedt-linie'])).message
+    ).toMatch(/never translated is its English form/);
+    expect(verdict((g) => (level(g).en = 'Uoedt')).message).toMatch(
+      /never translated is its English form/
+    );
+  });
+});
 
 describeTool('the rules of check', () => {
   const broken = (

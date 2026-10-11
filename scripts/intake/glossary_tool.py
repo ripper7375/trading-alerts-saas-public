@@ -174,8 +174,8 @@ def dump_approval(data: Any) -> str:
 
 
 def content_sha256(content: Any) -> str:
-    """The hash of what was reviewed: the content as sorted, compact, ASCII-only JSON."""
-    text = json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=False)
+    """The hash of what was reviewed: the content as sorted, compact, ASCII-only JSON. It never raises: content that breaks a rule is `check`'s to report (a NaN token hashes as NaN)."""
+    text = json.dumps(content, sort_keys=True, separators=(",", ":"), ensure_ascii=True, allow_nan=True)
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
@@ -215,8 +215,18 @@ def first_difference(stored: str, built: str) -> str:
     return "no difference found"
 
 
+def _visible(char: str) -> bool:
+    """False for what `normalizeQuestion` removes: format characters, control characters that are not white space, variation selectors."""
+    category = unicodedata.category(char)
+    if category == "Cf" or 0xFE00 <= ord(char) <= 0xFE0F:
+        return False
+    return not (category == "Cc" and not char.isspace())
+
+
 def match_key(spelling: str) -> str:
-    return unicodedata.normalize("NFKC", spelling).strip().lower()
+    """What two spellings must share to count as the same form (as `matchKey` in glossary.ts): invisible characters out, NFKC, one space, lower case."""
+    text = unicodedata.normalize("NFKC", "".join(c for c in spelling if _visible(c)))
+    return " ".join(text.split()).lower()
 
 
 # --------------------------------------------------------------------------- the files
@@ -436,6 +446,16 @@ def text_problems(dictionaries: Mapping[str, Mapping[str, str]]) -> list[str]:
     return problems
 
 
+def require_valid(glossary: Any, dictionaries: Mapping[str, Mapping[str, str]] | None = None) -> None:
+    """Refuse to go on with content that breaks a rule: an approval must never be minted over it, and the code that renders it assumes the shape the rules guarantee."""
+    problems = glossary_problems(glossary) + (text_problems(dictionaries) if dictionaries is not None else [])
+    if problems:
+        shown = problems[:10]
+        if len(problems) > 10:
+            shown.append("... and %d more" % (len(problems) - 10))
+        raise ToolError(["the content breaks %d rule(s), so nothing was written or listed (run check for the full list):" % len(problems)] + shown)
+
+
 # --------------------------------------------------------------------------- approvals
 
 
@@ -480,6 +500,8 @@ def approval_problems(approval: Any, area: str, digest: str) -> list[str]:
         problems.append("approval.json: schema must be %r" % APPROVAL_SCHEMA)
     if approval["area"] != area:
         problems.append("approval.json: area is %r, not %r" % (approval["area"], area))
+    if not _is_text(approval["note"]):
+        problems.append("approval.json: note must be a text")
     if approval["status"] not in (PENDING, APPROVED):
         return problems + ["approval.json: status must be %s or %s" % (PENDING, APPROVED)]
     if not (_is_text(approval["content_sha256"]) and HEX64.fullmatch(approval["content_sha256"])):
@@ -701,6 +723,7 @@ def record(tree: Tree, only: Sequence[str] = ()) -> list[str]:
     """Write review.md, a PENDING approval.json where the approval is not still true, INDEX.md and the glossary with its derived form statuses. Returns what was written."""
     glossary, _ = load_glossary(tree)
     dictionaries = load_dictionaries(tree)
+    require_valid(glossary, dictionaries)
     written: list[str] = []
     approvals: dict[str, Any] = {}
     digests = {area: content_sha256(area_content(glossary, dictionaries, area)) for area in AREAS}
@@ -759,6 +782,13 @@ def check(tree: Tree, only: Sequence[str] = ()) -> tuple[list[Report], list[str]
     """Check the rules and compare every stored file with a fresh run. Returns one report per area, the problems of the set and the notes."""
     glossary, glossary_text = load_glossary(tree)
     dictionaries = load_dictionaries(tree)
+    unknown = sorted(set(only) - set(AREAS))
+    if unknown:
+        raise ToolError("no such area: %s (areas: %s)" % (", ".join(unknown), ", ".join(AREAS)))
+    broken = glossary_problems(glossary) + text_problems(dictionaries)
+    if broken:
+        # content that breaks its rules cannot be rendered or hashed: report the rules and stop
+        return [], broken, ["the %d areas were not checked: the content breaks its rules" % len(AREAS)]
     reports: list[Report] = []
     states = _states(tree, glossary, dictionaries, only)
     for state in states:
@@ -783,7 +813,7 @@ def check(tree: Tree, only: Sequence[str] = ()) -> tuple[list[Report], list[str]
                 report.problems += approval_problems(approval, state.area, state.digest)
                 report.status = state.status
         reports.append(report)
-    set_problems = glossary_problems(glossary) + text_problems(dictionaries)
+    set_problems: list[str] = []
     notes: list[str] = []
     if not only:
         # the layout is compared as the file stands: its statuses are judged below, not rewritten here
@@ -804,6 +834,7 @@ def check(tree: Tree, only: Sequence[str] = ()) -> tuple[list[Report], list[str]
 def listing(tree: Tree) -> list[str]:
     glossary, _ = load_glossary(tree)
     dictionaries = load_dictionaries(tree)
+    require_valid(glossary)
     lines = []
     for state in _states(tree, glossary, dictionaries, ()):
         what = ("%d terms" % len(glossary["terms"])) if state.area == TERMS_AREA else (
