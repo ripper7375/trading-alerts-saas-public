@@ -1,0 +1,690 @@
+{
+  "schema": "glossary/1",
+  "version": "0.1.0-seed",
+  "terms": [
+    {
+      "id": "buy",
+      "en": "buy",
+      "en_variants": ["buys", "buying", "bought", "long"],
+      "definition": "To open a position that gains when the price rises.",
+      "owners": ["SYN"],
+      "never_translate": false,
+      "forms": {
+        "en-US": {
+          "canonical": "buy",
+          "variants": ["buys", "buying", "bought"],
+          "status": "draft"
+        },
+        "es": {
+          "canonical": "comprar",
+          "variants": ["compra", "compro"],
+          "status": "draft"
+        },
+        "de": {
+          "canonical": "kaufen",
+          "variants": ["kaufe", "kauf"],
+          "status": "draft"
+        },
+        "pt": {
+          "canonical": "comprar",
+          "variants": ["compra", "compro"],
+          "status": "draft"
+        },
+        "it": {
+          "canonical": "comprare",
+          "variants": ["compra", "acquistare"],
+          "status": "draft"
+        },
+        "ja": {
+          "canonical": "買い",
+          "variants": ["買う", "ロング"],
+          "status": "draft"
+        },
+        "ar": {
+          "canonical": "شراء",
+          "variants": ["اشتري", "أشتري"],
+          "status": "draft"
+        },
+        "fr": {
+          "canonical": "acheter",
+          "variants": ["achat", "achète"],
+          "status": "draft"
+        },
+        "ko": {
+          "canonical": "매수",
+          "variants": ["매수하다", "구매"],
+          "status": "draft"
+        },
+        "zh": {
+          "canonical": "买入",
+          "variants": ["购买", "做多"],
+          "status": "draft"
+        },
+        "zh-TW": {
+          "canonical": "買入",
+          "variants": ["購買", "做多"],
+          "status": "draft"
+        },
+        "ur": {
+          "canonical": "خرید",
+          "variants": ["خریدنا", "خریدیں"],
+          "status": "draft"
+        },
+        "hi": {
+          "canonical": "खरीद",
+          "variants": ["खरीदना", "खरीदें", "खरीदो"],
+          "status": "draft"
+        },
+        "vi": {
+          "canonical": "mua",
+          "variants": ["mua vào"],
+          "status": "draft"
+        },
+        "id": {
+          "canonical": "beli",
+          "variants": ["membeli"],
+          "status": "draft"
+        },
+        "th": {
+          "canonical": "ซื้อ",
+          "variants": [],
+          "status": "draft"
+        },
+        "tr": {
+          "canonical": "satın al",
+          "variants": ["alım", "satın almak"],
+          "status": "draft"
+        }
+      }
+    },
+    {
+      "id": "sell",
+      "en": "sell",
+      "en_variants": ["sells", "selling", "sold", "short"],
+      "definition": "To open a position that gains when the price falls.",
+      "owners": ["SYN"],
+      "never_translate": false,
+      "forms": {
+        "en-US": {
+          "canonical": "sell",
+          "variants": ["sells", "selling", "sold"],
+          "status": "draft"
+        },
+        "es": {
+          "canonical": "vender",
+          "variants": ["venta", "vende"],
+          "status": "draft"
+        },
+        "de": {
+          "canonical": "verkaufen",
+          "variants": ["verkauf", "verkaufe"],
+          "status": "draft"
+        },
+        "pt": {
+          "canonical": "vender",
+          "variants": ["venda", "vende"],
+          "status": "draft"
+        },
+        "it": {
+          "canonical": "vendere",
+          "variants": ["vendita", "vende"],
+          "status": "draft"
+        },
+        "ja": {
+          "canonical": "売り",
+          "variants": ["売る", "ショート"],
+          "status": "draft"
+        },
+        "ar": {
+          "canonical": "بيع",
+          "variants": ["ابيع"],
+          "status": "draft"
+        },
+        "fr": {
+          "canonical": "vendre",
+          "variants": ["vente", "vends"],
+          "status": "draft"
+        },
+        "ko": {
+          "canonical": "매도",
+          "variants": ["매도하다", "판매"],
+          "status": "draft"
+        },
+        "zh": {
+          "canonical": "卖出",
+          "variants": ["出售", "做空"],
+          "status": "draft"
+        },
+        "zh-TW": {
+          "canonical": "賣出",
+          "variants": ["出售", "做空"],
+          "status": "draft"
+        },
+        "ur": {
+          "canonical": "فروخت",
+          "variants": ["بیچنا", "بیچیں"],
+          "status": "draft"
+        },
+        "hi": {
+          "canonical": "बेचना",
+          "variants": ["बेचें", "बिक्री"],
+          "status": "draft"
+        },
+        "vi": {
+          "canonical": "bán",
+          "variants": ["bán ra"],
+          "status": "draft"
+        },
+        "id": {
+          "canonical": "jual",
+          "variants": ["menjual"],
+          "status": "draft"
+        },
+        "th": {
+          "canonical": "ขาย",
+          "variants": [],
+          "status": "draft"
+        },
+        "tr": {
+          "canonical": "satmak",
+          "variants": ["satış"],
+          "status": "draft"
+        }
+      }
+    },
+    {
+      "id": "gold",
+      "en": "gold",
+      "en_variants": ["xau", "xauusd"],
+      "definition": "The instrument DavinTrade covers: gold priced in US dollars (XAUUSD).",
+      "owners": ["D1"],
+      "never_translate": false,
+      "forms": {
+        "en-US": { "canonical": "gold", "variants": [], "status": "draft" },
+        "es": { "canonical": "oro", "variants": [], "status": "draft" },
+        "de": { "canonical": "Gold", "variants": [], "status": "draft" },
+        "pt": { "canonical": "ouro", "variants": [], "status": "draft" },
+        "it": { "canonical": "oro", "variants": [], "status": "draft" },
+        "ja": {
+          "canonical": "ゴールド",
+          "variants": ["金相場", "金価格"],
+          "status": "draft"
+        },
+        "ar": { "canonical": "ذهب", "variants": [], "status": "draft" },
+        "fr": { "canonical": "or", "variants": [], "status": "draft" },
+        "ko": {
+          "canonical": "골드",
+          "variants": ["금값"],
+          "status": "draft"
+        },
+        "zh": {
+          "canonical": "黄金",
+          "variants": ["金价"],
+          "status": "draft"
+        },
+        "zh-TW": {
+          "canonical": "黃金",
+          "variants": ["金價"],
+          "status": "draft"
+        },
+        "ur": {
+          "canonical": "سونا",
+          "variants": ["گولڈ"],
+          "status": "draft"
+        },
+        "hi": {
+          "canonical": "सोना",
+          "variants": ["गोल्ड", "सोने"],
+          "status": "draft"
+        },
+        "vi": { "canonical": "vàng", "variants": [], "status": "draft" },
+        "id": { "canonical": "emas", "variants": [], "status": "draft" },
+        "th": {
+          "canonical": "ทอง",
+          "variants": ["ทองคำ"],
+          "status": "draft"
+        },
+        "tr": {
+          "canonical": "altın",
+          "variants": ["altin", "altına", "altının"],
+          "status": "draft"
+        }
+      }
+    },
+    {
+      "id": "stop_loss",
+      "en": "stop loss",
+      "en_variants": ["stop-loss", "stoploss", "stop"],
+      "definition": "The price at which a losing trade is closed to limit the loss.",
+      "owners": ["D4"],
+      "never_translate": false,
+      "forms": {
+        "en-US": {
+          "canonical": "stop loss",
+          "variants": ["stop-loss"],
+          "status": "draft"
+        },
+        "es": { "canonical": "stop loss", "variants": [], "status": "draft" },
+        "de": {
+          "canonical": "Stop-Loss",
+          "variants": ["stop loss"],
+          "status": "draft"
+        },
+        "pt": { "canonical": "stop loss", "variants": [], "status": "draft" },
+        "it": { "canonical": "stop loss", "variants": [], "status": "draft" },
+        "ja": {
+          "canonical": "損切り",
+          "variants": ["ストップロス"],
+          "status": "draft"
+        },
+        "ar": {
+          "canonical": "وقف الخسارة",
+          "variants": ["ستوب لوس"],
+          "status": "draft"
+        },
+        "fr": {
+          "canonical": "stop loss",
+          "variants": ["stop-loss"],
+          "status": "draft"
+        },
+        "ko": {
+          "canonical": "손절",
+          "variants": ["스톱로스", "손절매"],
+          "status": "draft"
+        },
+        "zh": {
+          "canonical": "止损",
+          "variants": ["止损价"],
+          "status": "draft"
+        },
+        "zh-TW": {
+          "canonical": "停損",
+          "variants": ["止損"],
+          "status": "draft"
+        },
+        "ur": {
+          "canonical": "اسٹاپ لاس",
+          "variants": [],
+          "status": "draft"
+        },
+        "hi": {
+          "canonical": "स्टॉप लॉस",
+          "variants": [],
+          "status": "draft"
+        },
+        "vi": {
+          "canonical": "cắt lỗ",
+          "variants": ["stop loss"],
+          "status": "draft"
+        },
+        "id": { "canonical": "stop loss", "variants": [], "status": "draft" },
+        "th": {
+          "canonical": "จุดตัดขาดทุน",
+          "variants": ["สต็อปลอส"],
+          "status": "draft"
+        },
+        "tr": {
+          "canonical": "zarar durdur",
+          "variants": ["stop loss"],
+          "status": "draft"
+        }
+      }
+    },
+    {
+      "id": "take_profit",
+      "en": "take profit",
+      "en_variants": ["take-profit", "takeprofit", "target"],
+      "definition": "The price at which a winning trade is closed to take the gain.",
+      "owners": ["D4"],
+      "never_translate": false,
+      "forms": {
+        "en-US": {
+          "canonical": "take profit",
+          "variants": ["take-profit"],
+          "status": "draft"
+        },
+        "es": {
+          "canonical": "take profit",
+          "variants": [],
+          "status": "draft"
+        },
+        "de": {
+          "canonical": "Take-Profit",
+          "variants": ["take profit", "gewinnmitnahme"],
+          "status": "draft"
+        },
+        "pt": {
+          "canonical": "take profit",
+          "variants": [],
+          "status": "draft"
+        },
+        "it": {
+          "canonical": "take profit",
+          "variants": [],
+          "status": "draft"
+        },
+        "ja": {
+          "canonical": "利確",
+          "variants": ["テイクプロフィット", "利益確定"],
+          "status": "draft"
+        },
+        "ar": {
+          "canonical": "جني الأرباح",
+          "variants": ["هدف الربح"],
+          "status": "draft"
+        },
+        "fr": {
+          "canonical": "take profit",
+          "variants": ["prise de profit"],
+          "status": "draft"
+        },
+        "ko": {
+          "canonical": "익절",
+          "variants": ["테이크프로핏"],
+          "status": "draft"
+        },
+        "zh": {
+          "canonical": "止盈",
+          "variants": ["止盈价"],
+          "status": "draft"
+        },
+        "zh-TW": {
+          "canonical": "停利",
+          "variants": ["止盈"],
+          "status": "draft"
+        },
+        "ur": {
+          "canonical": "ٹیک پرافٹ",
+          "variants": [],
+          "status": "draft"
+        },
+        "hi": {
+          "canonical": "टेक प्रॉफिट",
+          "variants": [],
+          "status": "draft"
+        },
+        "vi": {
+          "canonical": "chốt lời",
+          "variants": ["take profit"],
+          "status": "draft"
+        },
+        "id": {
+          "canonical": "take profit",
+          "variants": ["ambil untung"],
+          "status": "draft"
+        },
+        "th": {
+          "canonical": "จุดทำกำไร",
+          "variants": ["เทคโปรฟิต"],
+          "status": "draft"
+        },
+        "tr": {
+          "canonical": "kâr al",
+          "variants": ["take profit"],
+          "status": "draft"
+        }
+      }
+    },
+    {
+      "id": "entry",
+      "en": "entry",
+      "en_variants": ["entries", "entry point", "enter", "entering"],
+      "definition": "The price at which a trade is opened.",
+      "owners": ["D4"],
+      "never_translate": false,
+      "forms": {
+        "en-US": {
+          "canonical": "entry",
+          "variants": ["entry point", "entries"],
+          "status": "draft"
+        },
+        "es": { "canonical": "entrada", "variants": [], "status": "draft" },
+        "de": { "canonical": "Einstieg", "variants": [], "status": "draft" },
+        "pt": { "canonical": "entrada", "variants": [], "status": "draft" },
+        "it": {
+          "canonical": "ingresso",
+          "variants": ["entrata"],
+          "status": "draft"
+        },
+        "ja": {
+          "canonical": "エントリー",
+          "variants": [],
+          "status": "draft"
+        },
+        "ar": {
+          "canonical": "الدخول",
+          "variants": ["دخول"],
+          "status": "draft"
+        },
+        "fr": { "canonical": "entrée", "variants": [], "status": "draft" },
+        "ko": { "canonical": "진입", "variants": [], "status": "draft" },
+        "zh": { "canonical": "入场", "variants": [], "status": "draft" },
+        "zh-TW": { "canonical": "進場", "variants": [], "status": "draft" },
+        "ur": { "canonical": "انٹری", "variants": [], "status": "draft" },
+        "hi": { "canonical": "एंट्री", "variants": [], "status": "draft" },
+        "vi": {
+          "canonical": "điểm vào lệnh",
+          "variants": ["vào lệnh"],
+          "status": "draft"
+        },
+        "id": { "canonical": "entri", "variants": [], "status": "draft" },
+        "th": { "canonical": "จุดเข้า", "variants": [], "status": "draft" },
+        "tr": { "canonical": "giriş", "variants": [], "status": "draft" }
+      }
+    },
+    {
+      "id": "support",
+      "en": "support",
+      "en_variants": ["support level", "floor"],
+      "definition": "A price level where falling prices have tended to stop.",
+      "owners": ["SYN"],
+      "never_translate": false,
+      "forms": {
+        "en-US": {
+          "canonical": "support",
+          "variants": ["support level"],
+          "status": "draft"
+        },
+        "es": { "canonical": "soporte", "variants": [], "status": "draft" },
+        "de": {
+          "canonical": "Unterstützung",
+          "variants": [],
+          "status": "draft"
+        },
+        "pt": { "canonical": "suporte", "variants": [], "status": "draft" },
+        "it": { "canonical": "supporto", "variants": [], "status": "draft" },
+        "ja": {
+          "canonical": "サポート",
+          "variants": [],
+          "status": "draft"
+        },
+        "ar": { "canonical": "دعم", "variants": [], "status": "draft" },
+        "fr": { "canonical": "support", "variants": [], "status": "draft" },
+        "ko": {
+          "canonical": "지지",
+          "variants": ["지지선"],
+          "status": "draft"
+        },
+        "zh": {
+          "canonical": "支撑",
+          "variants": ["支撑位"],
+          "status": "draft"
+        },
+        "zh-TW": {
+          "canonical": "支撐",
+          "variants": ["支撐位"],
+          "status": "draft"
+        },
+        "ur": { "canonical": "سپورٹ", "variants": [], "status": "draft" },
+        "hi": { "canonical": "सपोर्ट", "variants": [], "status": "draft" },
+        "vi": { "canonical": "hỗ trợ", "variants": [], "status": "draft" },
+        "id": {
+          "canonical": "support",
+          "variants": ["dukungan"],
+          "status": "draft"
+        },
+        "th": { "canonical": "แนวรับ", "variants": [], "status": "draft" },
+        "tr": { "canonical": "destek", "variants": [], "status": "draft" }
+      }
+    },
+    {
+      "id": "resistance",
+      "en": "resistance",
+      "en_variants": ["resistance level", "ceiling"],
+      "definition": "A price level where rising prices have tended to stop.",
+      "owners": ["SYN"],
+      "never_translate": false,
+      "forms": {
+        "en-US": {
+          "canonical": "resistance",
+          "variants": ["resistance level"],
+          "status": "draft"
+        },
+        "es": {
+          "canonical": "resistencia",
+          "variants": [],
+          "status": "draft"
+        },
+        "de": {
+          "canonical": "Widerstand",
+          "variants": [],
+          "status": "draft"
+        },
+        "pt": {
+          "canonical": "resistência",
+          "variants": [],
+          "status": "draft"
+        },
+        "it": {
+          "canonical": "resistenza",
+          "variants": [],
+          "status": "draft"
+        },
+        "ja": {
+          "canonical": "レジスタンス",
+          "variants": ["抵抗線"],
+          "status": "draft"
+        },
+        "ar": { "canonical": "مقاومة", "variants": [], "status": "draft" },
+        "fr": {
+          "canonical": "résistance",
+          "variants": [],
+          "status": "draft"
+        },
+        "ko": {
+          "canonical": "저항",
+          "variants": ["저항선"],
+          "status": "draft"
+        },
+        "zh": {
+          "canonical": "阻力",
+          "variants": ["阻力位"],
+          "status": "draft"
+        },
+        "zh-TW": {
+          "canonical": "阻力",
+          "variants": ["壓力"],
+          "status": "draft"
+        },
+        "ur": {
+          "canonical": "ریزسٹنس",
+          "variants": ["مزاحمت"],
+          "status": "draft"
+        },
+        "hi": {
+          "canonical": "रेजिस्टेंस",
+          "variants": ["प्रतिरोध"],
+          "status": "draft"
+        },
+        "vi": { "canonical": "kháng cự", "variants": [], "status": "draft" },
+        "id": {
+          "canonical": "resistance",
+          "variants": ["resisten", "hambatan"],
+          "status": "draft"
+        },
+        "th": { "canonical": "แนวต้าน", "variants": [], "status": "draft" },
+        "tr": { "canonical": "direnç", "variants": [], "status": "draft" }
+      }
+    },
+    {
+      "id": "trend",
+      "en": "trend",
+      "en_variants": ["trends", "trending", "uptrend", "downtrend"],
+      "definition": "The general direction the price has been moving over the period being looked at.",
+      "owners": ["MCD1", "MCD2", "MCD3"],
+      "never_translate": false,
+      "forms": {
+        "en-US": {
+          "canonical": "trend",
+          "variants": ["trends"],
+          "status": "draft"
+        },
+        "es": { "canonical": "tendencia", "variants": [], "status": "draft" },
+        "de": { "canonical": "Trend", "variants": [], "status": "draft" },
+        "pt": { "canonical": "tendência", "variants": [], "status": "draft" },
+        "it": { "canonical": "tendenza", "variants": [], "status": "draft" },
+        "ja": { "canonical": "トレンド", "variants": [], "status": "draft" },
+        "ar": { "canonical": "اتجاه", "variants": [], "status": "draft" },
+        "fr": { "canonical": "tendance", "variants": [], "status": "draft" },
+        "ko": {
+          "canonical": "추세",
+          "variants": ["트렌드"],
+          "status": "draft"
+        },
+        "zh": { "canonical": "趋势", "variants": [], "status": "draft" },
+        "zh-TW": { "canonical": "趨勢", "variants": [], "status": "draft" },
+        "ur": {
+          "canonical": "رجحان",
+          "variants": ["ٹرینڈ"],
+          "status": "draft"
+        },
+        "hi": {
+          "canonical": "ट्रेंड",
+          "variants": ["रुझान"],
+          "status": "draft"
+        },
+        "vi": { "canonical": "xu hướng", "variants": [], "status": "draft" },
+        "id": { "canonical": "tren", "variants": [], "status": "draft" },
+        "th": { "canonical": "แนวโน้ม", "variants": [], "status": "draft" },
+        "tr": {
+          "canonical": "trend",
+          "variants": ["eğilim"],
+          "status": "draft"
+        }
+      }
+    },
+    {
+      "id": "uoedt",
+      "en": "UOEDT",
+      "en_variants": [],
+      "definition": "The upper edge of the corridor of the active EDT channel, a level name that is never translated.",
+      "owners": ["MCD1", "MCD2", "MCD3"],
+      "never_translate": true,
+      "forms": {
+        "en-US": { "canonical": "UOEDT", "variants": [], "status": "draft" }
+      }
+    },
+    {
+      "id": "loedt",
+      "en": "LOEDT",
+      "en_variants": [],
+      "definition": "The lower edge of the corridor of the active EDT channel, a level name that is never translated.",
+      "owners": ["MCD1", "MCD2", "MCD3"],
+      "never_translate": true,
+      "forms": {
+        "en-US": { "canonical": "LOEDT", "variants": [], "status": "draft" }
+      }
+    },
+    {
+      "id": "baseline",
+      "en": "baseline",
+      "en_variants": [],
+      "definition": "The middle line of the active EDT channel, a level name that is never translated.",
+      "owners": ["MCD1", "MCD2", "MCD3"],
+      "never_translate": true,
+      "forms": {
+        "en-US": { "canonical": "baseline", "variants": [], "status": "draft" }
+      }
+    }
+  ]
+}

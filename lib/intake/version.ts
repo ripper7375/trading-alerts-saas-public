@@ -19,6 +19,7 @@ export const INTAKE_PACKET_SCHEMA = 'intake-packet/1';
 export const INTAKE_REFUSAL_SCHEMA = 'intake-refusal/1';
 export const UNDERSTAND_RESULT_SCHEMA = 'understand-result/1';
 export const SENSOR_ROSTER_SCHEMA = 'sensor-roster/1';
+export const GLOSSARY_SCHEMA = 'glossary/1';
 
 export const INTAKE_VERSION = '1.0.0';
 export const ROUTING_VERSION = 'routing-v1';

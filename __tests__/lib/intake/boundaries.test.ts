@@ -3,7 +3,7 @@
  */
 
 /**
- * The boundaries guard of `lib/intake` (build step 6, part 1).
+ * The boundaries guard of `lib/intake` (build step 6, parts 1 and 2).
  *
  *  1. The pure files (the folder itself and `text/`) import only their siblings and, for the
  *     two files named below, one outside module each. They do no I/O and nothing that
@@ -31,9 +31,10 @@ const INTAKE_DIR = join(ROOT, 'lib', 'intake');
 const OUTSIDE_IMPORTS: Readonly<Record<string, readonly string[]>> = {
   'locales.ts': ['@/lib/i18n/languages'],
   'roster.ts': ['@/config/intake/sensor-roster.json'],
+  'text/glossary.ts': ['@/config/intake/glossary.v1.json'],
 };
 
-/** Files outside `lib/intake` that may import it. Part 1: none. */
+/** Files outside `lib/intake` that may import it. Parts 1 and 2: none. */
 const ALLOWED_IMPORTERS: readonly string[] = [];
 
 /** Names that mean input, output, time, randomness or a browser. */
@@ -217,7 +218,7 @@ function loadSources(): Map<string, string> {
 describe('lib/intake', () => {
   const sources = loadSources();
 
-  it('has the files of part 1', () => {
+  it('has the files of parts 1 and 2', () => {
     expect([...sources.keys()]).toEqual([
       'canonical.ts',
       'check.ts',
@@ -227,6 +228,12 @@ describe('lib/intake', () => {
       'packet.ts',
       'refusal.ts',
       'roster.ts',
+      'text/glossary.ts',
+      'text/limits.ts',
+      'text/normalize.ts',
+      'text/scope.ts',
+      'text/understand-fixture.ts',
+      'text/understand.ts',
       'version.ts',
     ]);
   });
@@ -244,7 +251,7 @@ describe('lib/intake', () => {
     expect(barrel).not.toMatch(/from '\.\/(read|server)\//);
   });
 
-  it('is imported by nothing outside it (part 1)', () => {
+  it('is imported by nothing outside it (parts 1 and 2)', () => {
     const importer =
       /(?:from|import|require\()\s*['"](?:@\/lib\/intake|(?:\.\.?\/)+lib\/intake)(?:\/[^'"]*)?['"]/;
     const roots = [
@@ -373,6 +380,18 @@ describe('the guard', () => {
       rules({
         'roster.ts':
           "import r from '@/config/intake/other.json';\nexport const a = r;",
+      }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules({
+        'text/glossary.ts':
+          "import g from '@/config/intake/glossary.v1.json';\nexport const a = g;",
+      })
+    ).toEqual([]);
+    expect(
+      rules({
+        'text/scope.ts':
+          "import g from '@/config/intake/glossary.v1.json';\nexport const a = g;",
       }).length
     ).toBeGreaterThan(0);
   });

@@ -5,10 +5,15 @@
  * the fingerprint of a packet, `intake-packet/1` with its validator, `intake-refusal/1`,
  * and the sensor roster generated from the MCD registries.
  *
- * Later parts add text intake (`text/`, pure), the snapshot readers (`read/`), the gate,
- * the pipeline and the route layer (`server/`). Anything that touches a database, Redis,
- * the session or the network is imported BY PATH and never through this barrel, so a
- * client component can import it (`__tests__/lib/intake/boundaries.test.ts` holds that).
+ * Part 2 adds text intake (`text/`, pure): normalising a typed question, the trading
+ * glossary and the pass that spots its terms, the scope check, the Understand step behind
+ * its port with the validator of `understand-result/1`, and the door limits. The fixture
+ * adapter `text/understand-fixture.ts` is test infrastructure and is imported by path.
+ *
+ * Later parts add the snapshot readers (`read/`), the gate, the pipeline and the route layer
+ * (`server/`). Anything that touches a database, Redis, the session or the network is
+ * imported BY PATH and never through this barrel, so a client component can import it
+ * (`__tests__/lib/intake/boundaries.test.ts` holds that).
  *
  * @module lib/intake
  */
@@ -168,3 +173,76 @@ export type {
 } from './packet';
 
 export type { Issue, IssueCode } from './check';
+
+export { DIGIT_ZEROS, normalizeQuestion } from './text/normalize';
+export type {
+  NormalizeChange,
+  NormalizeFlag,
+  NormalizedText,
+} from './text/normalize';
+
+export {
+  MAX_GLOSSARY_HINTS,
+  MAX_RESULT_TOKENS,
+  NORMALIZED_MAX_CHARS,
+  passTheDoor,
+} from './text/limits';
+export type { DoorCode, DoorResult } from './text/limits';
+
+export {
+  FORM_STATUSES,
+  GLOSSARY,
+  createSpotter,
+  foldCase,
+  glossaryHints,
+  matchKey,
+  parseGlossary,
+  spotTerms,
+  termById,
+} from './text/glossary';
+export type {
+  FormStatus,
+  Glossary,
+  GlossaryForm,
+  GlossaryHint,
+  GlossaryHit,
+  GlossaryParse,
+  GlossaryTerm,
+  HitTerm,
+  Spotter,
+} from './text/glossary';
+
+export {
+  ALLOWED_SYMBOL,
+  ALLOWED_TIMEFRAMES,
+  canonicalTimeframe,
+  checkScope,
+  scanText,
+} from './text/scope';
+export type {
+  ScopeInput,
+  ScopeReason,
+  ScopeReasonKind,
+  ScopeSource,
+  ScopeVerdict,
+} from './text/scope';
+
+export {
+  TERM_DROPPED,
+  UNDERSTAND_PROMPT_VERSION,
+  UNDERSTAND_SYSTEM_PROMPT,
+  buildUnderstandRequest,
+  checkTermPreservation,
+  runUnderstand,
+  validateUnderstandResult,
+} from './text/understand';
+export type {
+  PreservationReport,
+  UnderstandFailure,
+  UnderstandInput,
+  UnderstandOutcome,
+  UnderstandPort,
+  UnderstandRequest,
+  UnderstandResult,
+  UnderstandValidation,
+} from './text/understand';
