@@ -4509,7 +4509,7 @@
   "chat.ask_m15": "Ask AI about M15 Chart",
   "chat.ask_m5": "Ask AI about M5 Chart",
   "chat.input_placeholder": "Ask Gemini or type a message...",
-  "chat.monthly_token_quota": "Monthly Token Quota",
+  "chat.monthly_token_quota": "每月代幣額度",
   "click here to resend": "click here to resend",
   "codes": "codes",
   "codes issued in this window": "codes issued in this window",
@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "M5 通道與價格的擬合不夠好，因此使用它的讀數需謹慎對待。",
   "intake.reason.mcd0_defect_m15": "M15 通道與價格的擬合不夠好，因此使用它的讀數需謹慎對待。",
   "intake.reason.evaluator_error": "該感測器發生意外錯誤，目前沒有讀數。",
-  "intake.reason.modifier_caution": "另一個感測器為該讀數增加了謹慎提示：{state}"
+  "intake.reason.modifier_caution": "另一個感測器為該讀數增加了謹慎提示：{state}",
+  "Market Context": "市場脈絡",
+  "Monthly Token Quota": "每月代幣額度"
 }

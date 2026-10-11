@@ -3322,7 +3322,7 @@
   "chat.ask_m15": "Ask AI about M15 Chart",
   "chat.ask_m5": "Ask AI about M5 Chart",
   "chat.input_placeholder": "Ask Gemini or type a message...",
-  "chat.monthly_token_quota": "Monthly Token Quota",
+  "chat.monthly_token_quota": "Quota mensile di token",
   "checkout.affiliate_code": "Codice affiliato",
   "checkout.affiliate_hint": "Hai un codice referral di un affiliato? Inseriscilo qui per ottenere uno sconto.",
   "checkout.already_pro_desc": "Il tuo account ha attualmente accesso attivo a tutte le funzionalità PRO, alle strategie di trading e agli avvisi in tempo reale.",
@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "Il canale M5 non aderisce abbastanza al prezzo, quindi le letture che lo usano richiedono cautela.",
   "intake.reason.mcd0_defect_m15": "Il canale M15 non aderisce abbastanza al prezzo, quindi le letture che lo usano richiedono cautela.",
   "intake.reason.evaluator_error": "Questo sensore ha avuto un errore imprevisto e al momento non ha una lettura.",
-  "intake.reason.modifier_caution": "Un altro sensore aggiunge cautela a questa lettura: {state}."
+  "intake.reason.modifier_caution": "Un altro sensore aggiunge cautela a questa lettura: {state}.",
+  "Market Context": "Contesto di mercato",
+  "Monthly Token Quota": "Quota mensile di token"
 }

@@ -12,7 +12,7 @@
  * @module components/chat-panel
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Bot,
   ChevronLeft,
@@ -56,17 +56,28 @@ export interface ChatPanelProps {
   onOpenUpgradeModal?: () => void;
   symbol?: string;
   timeframe?: string;
+  pendingPrompt?: string | null;
+  onClearPendingPrompt?: () => void;
 }
 
 export default function ChatPanel({
   tier,
   onCollapsePanel,
   onOpenUpgradeModal,
+  pendingPrompt,
+  onClearPendingPrompt,
 }: ChatPanelProps): React.JSX.Element {
   const { t, language } = useLocale();
   const [selectedModel, setSelectedModel] = useState('gemini-3-6-flash');
   const [tokensUsed] = useState(42500);
   const [input, setInput] = useState('');
+
+  useEffect(() => {
+    if (pendingPrompt) {
+      setInput(pendingPrompt);
+      onClearPendingPrompt?.();
+    }
+  }, [pendingPrompt, onClearPendingPrompt]);
 
   const monthlyQuota = PRO_TIER_CONFIG.aiMonthlyTokenQuota ?? 500000;
   const activeModelObj =
@@ -180,7 +191,7 @@ export default function ChatPanel({
           <span className="flex items-center gap-1 text-muted-foreground">
             <Zap className="h-3 w-3 text-purple-500 dark:text-purple-400" />
             <span className="font-semibold text-foreground">
-              ✦ Monthly Token Quota
+              ✦ {t('Monthly Token Quota')}
             </span>
           </span>
           <span className="font-mono text-[10px] font-bold text-foreground">

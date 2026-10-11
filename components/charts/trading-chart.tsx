@@ -52,8 +52,8 @@ interface TradingChartProps {
   /** Pass armed tool from external toolbar */
   externalTool?: DrawingType | null;
   onActiveToolChange?: (tool: DrawingType | null) => void;
-  /** Price display mode: candlestick or bar */
-  priceMode?: 'CANDLE' | 'BAR';
+  /** Price display mode: candlestick, bar, or hidden (indicators only) */
+  priceMode?: 'CANDLE' | 'BAR' | 'HIDE';
   /** Stacked mode: fills pane and removes borders/padding */
   isStacked?: boolean;
   /** Overlay badge rendered in the top-left inside the chart */
@@ -108,7 +108,7 @@ export function TradingChart({
   hideToolbar = false,
   externalTool,
   onActiveToolChange,
-  priceMode: _priceMode = 'CANDLE',
+  priceMode = 'CANDLE',
   isStacked = false,
   overlayBadge,
   externalMtfEnabled,
@@ -193,12 +193,13 @@ export function TradingChart({
         textColor: chrome.text,
       },
       grid: {
-        vertLines: { color: chrome.grid },
+        vertLines: { visible: !isStacked, color: chrome.grid },
         horzLines: { color: chrome.grid },
       },
       crosshair: {
         mode: 1,
         vertLine: {
+          visible: !isStacked,
           width: 1,
           color: chrome.crosshair,
           style: 3,
@@ -212,11 +213,11 @@ export function TradingChart({
         },
       },
       rightPriceScale: {
-        borderColor: chrome.border,
+        borderColor: isStacked ? 'transparent' : chrome.border,
         scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
-        borderColor: chrome.border,
+        borderColor: isStacked ? 'transparent' : chrome.border,
         timeVisible: true,
         secondsVisible: false,
       },
@@ -228,6 +229,7 @@ export function TradingChart({
       borderVisible: false,
       wickUpColor: chartUpColor,
       wickDownColor: chartDownColor,
+      visible: priceMode !== 'HIDE',
     });
 
     chartRef.current = chart;
@@ -282,11 +284,12 @@ export function TradingChart({
         textColor: chrome.text,
       },
       grid: {
-        vertLines: { color: chrome.grid },
+        vertLines: { visible: !isStacked, color: chrome.grid },
         horzLines: { color: chrome.grid },
       },
       crosshair: {
         vertLine: {
+          visible: !isStacked,
           color: chrome.crosshair,
           labelBackgroundColor: chrome.crosshairLabelBg,
         },
@@ -295,16 +298,38 @@ export function TradingChart({
           labelBackgroundColor: chrome.crosshairLabelBg,
         },
       },
-      rightPriceScale: { borderColor: chrome.border },
-      timeScale: { borderColor: chrome.border },
+      rightPriceScale: {
+        borderColor: isStacked ? 'transparent' : chrome.border,
+      },
+      timeScale: {
+        borderColor: isStacked ? 'transparent' : chrome.border,
+      },
     });
     candleSeriesRef.current.applyOptions({
       upColor: chartUpColor,
       downColor: chartDownColor,
       wickUpColor: chartUpColor,
       wickDownColor: chartDownColor,
+      visible: priceMode !== 'HIDE',
     });
-  }, [resolvedTheme, gridOpacityDecimal, chartUpColor, chartDownColor]);
+  }, [
+    resolvedTheme,
+    gridOpacityDecimal,
+    chartUpColor,
+    chartDownColor,
+    isStacked,
+    priceMode,
+  ]);
+
+  /**
+   * Reactively apply priceMode (CANDLE vs BAR vs HIDE).
+   */
+  useEffect(() => {
+    if (!candleSeriesRef.current) return;
+    candleSeriesRef.current.applyOptions({
+      visible: priceMode !== 'HIDE',
+    });
+  }, [priceMode]);
 
   /**
    * Push height changes to the already-created chart. Needed because the

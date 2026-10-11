@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "قناة M5 لا تتطابق مع السعر بدرجة كافية، لذلك فالقراءات التي تعتمد عليها تتطلب الحذر.",
   "intake.reason.mcd0_defect_m15": "قناة M15 لا تتطابق مع السعر بدرجة كافية، لذلك فالقراءات التي تعتمد عليها تتطلب الحذر.",
   "intake.reason.evaluator_error": "واجه هذا المستشعر خطأً غير متوقع وليست لديه قراءة حالياً.",
-  "intake.reason.modifier_caution": "يضيف مستشعر آخر تحذيراً إلى هذه القراءة: {state}."
+  "intake.reason.modifier_caution": "يضيف مستشعر آخر تحذيراً إلى هذه القراءة: {state}.",
+  "Market Context": "سياق السوق",
+  "Monthly Token Quota": "الحصة الشهرية من الرموز"
 }

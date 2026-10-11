@@ -4509,7 +4509,7 @@
   "chat.ask_m15": "Ask AI about M15 Chart",
   "chat.ask_m5": "Ask AI about M5 Chart",
   "chat.input_placeholder": "Ask Gemini or type a message...",
-  "chat.monthly_token_quota": "Monthly Token Quota",
+  "chat.monthly_token_quota": "월간 토큰 할당량",
   "click here to resend": "click here to resend",
   "codes": "codes",
   "codes issued in this window": "codes issued in this window",
@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "M5 채널이 가격에 충분히 맞지 않아 이 채널을 쓰는 판독값은 주의가 필요합니다.",
   "intake.reason.mcd0_defect_m15": "M15 채널이 가격에 충분히 맞지 않아 이 채널을 쓰는 판독값은 주의가 필요합니다.",
   "intake.reason.evaluator_error": "이 센서에서 예기치 않은 오류가 발생해 지금은 판독값이 없습니다.",
-  "intake.reason.modifier_caution": "다른 센서가 이 판독값에 주의를 더합니다: {state}"
+  "intake.reason.modifier_caution": "다른 센서가 이 판독값에 주의를 더합니다: {state}",
+  "Market Context": "시장 맥락",
+  "Monthly Token Quota": "월간 토큰 할당량"
 }

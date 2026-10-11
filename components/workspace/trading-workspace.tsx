@@ -159,6 +159,18 @@ export function TradingWorkspace({
     [constraints]
   );
 
+  const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+
+  const handleAskAi = useCallback(
+    (prompt: string) => {
+      if (collapsed[ANALYST]) {
+        togglePanel(ANALYST);
+      }
+      setPendingPrompt(prompt);
+    },
+    [collapsed, togglePanel]
+  );
+
   // Keyboard shortcut Ctrl+B / Cmd+B to toggle the sidebar (matching Image 2)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent): void => {
@@ -266,6 +278,8 @@ export function TradingWorkspace({
                 tier={tier}
                 onCollapsePanel={() => togglePanel(ANALYST)}
                 onOpenUpgradeModal={onOpenUpgradeModal}
+                pendingPrompt={pendingPrompt}
+                onClearPendingPrompt={() => setPendingPrompt(null)}
               />
             )}
           </ResizablePanel>
@@ -292,7 +306,7 @@ export function TradingWorkspace({
             <div className="flex h-full flex-col overflow-hidden bg-background">
               {/* Both timeframes are always shown in clean dual-pane layout. */}
               <div className="min-h-0 flex-1">
-                <MtfStackedCharts symbol="XAUUSD" />
+                <MtfStackedCharts symbol="XAUUSD" onAskAi={handleAskAi} />
               </div>
             </div>
           </ResizablePanel>

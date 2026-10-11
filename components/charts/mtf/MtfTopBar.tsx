@@ -22,6 +22,7 @@ import {
   Trash2,
   BarChart2,
   CandlestickChart,
+  EyeOff,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
@@ -34,8 +35,8 @@ export interface MtfTopBarProps {
   activeTool: DrawingType | null;
   onSelectTool: (tool: DrawingType | null) => void;
   onDeleteSelected?: () => void;
-  priceMode: 'CANDLE' | 'BAR';
-  onPriceModeChange: (mode: 'CANDLE' | 'BAR') => void;
+  priceMode: 'CANDLE' | 'BAR' | 'HIDE';
+  onPriceModeChange: (mode: 'CANDLE' | 'BAR' | 'HIDE') => void;
   isPro: boolean;
   mtfEnabled: boolean;
   mtfLoading?: boolean;
@@ -142,6 +143,20 @@ export function MtfTopBar({
             aria-label="Price Candle Mode"
           >
             <CandlestickChart className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className={cn(
+              'hover:bg-muted/60 h-7 w-7 rounded-md text-muted-foreground transition-all hover:text-foreground',
+              priceMode === 'HIDE' &&
+                'shadow-xs border border-[#2962FF] bg-[#2962FF]/20 font-bold text-[#2962FF] dark:text-blue-400'
+            )}
+            onClick={() => onPriceModeChange('HIDE')}
+            title="Hide Price Mode"
+            aria-label="Hide Price Mode"
+          >
+            <EyeOff className="h-3.5 w-3.5" />
           </Button>
         </div>
 

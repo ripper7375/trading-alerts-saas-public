@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "Der M5-Kanal passt nicht gut genug zum Kurs, daher sind Messwerte, die ihn nutzen, mit Vorsicht zu lesen.",
   "intake.reason.mcd0_defect_m15": "Der M15-Kanal passt nicht gut genug zum Kurs, daher sind Messwerte, die ihn nutzen, mit Vorsicht zu lesen.",
   "intake.reason.evaluator_error": "Dieser Sensor hatte einen unerwarteten Fehler und hat derzeit keinen Messwert.",
-  "intake.reason.modifier_caution": "Ein weiterer Sensor mahnt bei diesem Messwert zur Vorsicht: {state}."
+  "intake.reason.modifier_caution": "Ein weiterer Sensor mahnt bei diesem Messwert zur Vorsicht: {state}.",
+  "Market Context": "Marktkontext",
+  "Monthly Token Quota": "Monatliches Token-Kontingent"
 }

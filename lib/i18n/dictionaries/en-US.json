@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "The M5 channel does not fit the price well enough, so readings that use it are cautionary.",
   "intake.reason.mcd0_defect_m15": "The M15 channel does not fit the price well enough, so readings that use it are cautionary.",
   "intake.reason.evaluator_error": "This sensor hit an unexpected error and has no reading right now.",
-  "intake.reason.modifier_caution": "Another sensor adds caution to this reading: {state}."
+  "intake.reason.modifier_caution": "Another sensor adds caution to this reading: {state}.",
+  "Market Context": "Market Context",
+  "Monthly Token Quota": "Monthly Token Quota"
 }

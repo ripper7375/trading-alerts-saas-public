@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "M5 kanalı fiyata yeterince uymuyor, bu yüzden onu kullanan okumalar temkinli ele alınmalı.",
   "intake.reason.mcd0_defect_m15": "M15 kanalı fiyata yeterince uymuyor, bu yüzden onu kullanan okumalar temkinli ele alınmalı.",
   "intake.reason.evaluator_error": "Bu sensör beklenmedik bir hata verdi ve şu anda okuması yok.",
-  "intake.reason.modifier_caution": "Başka bir sensör bu okumaya temkin ekliyor: {state}."
+  "intake.reason.modifier_caution": "Başka bir sensör bu okumaya temkin ekliyor: {state}.",
+  "Market Context": "Piyasa Bağlamı",
+  "Monthly Token Quota": "Aylık Token Kotası"
 }

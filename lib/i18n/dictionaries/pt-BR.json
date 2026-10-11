@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "O canal M5 não se ajusta bem o suficiente ao preço, por isso as leituras que o usam exigem cautela.",
   "intake.reason.mcd0_defect_m15": "O canal M15 não se ajusta bem o suficiente ao preço, por isso as leituras que o usam exigem cautela.",
   "intake.reason.evaluator_error": "Este sensor teve um erro inesperado e não tem leitura neste momento.",
-  "intake.reason.modifier_caution": "Outro sensor acrescenta cautela a esta leitura: {state}."
+  "intake.reason.modifier_caution": "Outro sensor acrescenta cautela a esta leitura: {state}.",
+  "Market Context": "Contexto de mercado",
+  "Monthly Token Quota": "Quota mensal de tokens"
 }

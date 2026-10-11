@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "M5のチャネルが価格に十分に合っていないため、それを使う読み取り結果は要注意です。",
   "intake.reason.mcd0_defect_m15": "M15のチャネルが価格に十分に合っていないため、それを使う読み取り結果は要注意です。",
   "intake.reason.evaluator_error": "このセンサーで予期しないエラーが発生し、現在は読み取り結果がありません。",
-  "intake.reason.modifier_caution": "別のセンサーがこの読み取り結果に注意を加えています：{state}"
+  "intake.reason.modifier_caution": "別のセンサーがこの読み取り結果に注意を加えています：{state}",
+  "Market Context": "市場コンテキスト",
+  "Monthly Token Quota": "月間トークン上限"
 }

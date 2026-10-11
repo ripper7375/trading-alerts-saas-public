@@ -48,6 +48,8 @@ interface MtfStackedChartsProps {
    * which is what a resizable panel needs.
    */
   totalHeight?: number;
+  /** Instant prompt callback to AI chat when clicking market context badge */
+  onAskAi?: (prompt: string) => void;
 }
 
 /** Percentages closer than this are the same divider position. */
@@ -58,6 +60,7 @@ export function MtfStackedCharts({
   upperTimeframe = 'M15',
   lowerTimeframe = 'M5',
   totalHeight,
+  onAskAi,
 }: MtfStackedChartsProps): React.JSX.Element {
   const { t } = useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,7 +73,9 @@ export function MtfStackedCharts({
   const [activeTool, setActiveTool] = useState<DrawingType | null>(null);
 
   // Chart price display mode state (Component 8)
-  const [priceMode, setPriceMode] = useState<'CANDLE' | 'BAR'>('CANDLE');
+  const [priceMode, setPriceMode] = useState<'CANDLE' | 'BAR' | 'HIDE'>(
+    'CANDLE'
+  );
 
   // Multi-timeframe overlay preference (Component 9)
   const { data: session } = useSession();
@@ -173,7 +178,16 @@ export function MtfStackedCharts({
               priceMode={priceMode}
               externalMtfEnabled={mtfEnabled}
               overlayBadge={
-                <div className="border-border/80 bg-background/90 shadow-xs backdrop-blur-xs flex items-center gap-1.5 rounded-md border px-2 py-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onAskAi?.(
+                      `Analyze ${symbol} ${upperTimeframe} market context and structure.`
+                    )
+                  }
+                  title="Instant prompt to AI chat"
+                  className="border-border/80 bg-background/90 shadow-xs backdrop-blur-xs hover:bg-muted/80 group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all hover:border-amber-500/50 active:scale-95"
+                >
                   <Avatar className="h-4 w-4 border border-amber-400/80">
                     <AvatarImage src="/DavinTrade_Logo.jpg" alt="DavinTrade" />
                     <AvatarFallback className="text-[9px]">DT</AvatarFallback>
@@ -181,10 +195,10 @@ export function MtfStackedCharts({
                   <span className="font-mono text-xs font-semibold text-foreground">
                     {symbol} · {upperTimeframe}
                   </span>
-                  <span className="text-[11px] font-medium text-muted-foreground">
-                    Market Context
+                  <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
+                    {t('Market Context')}
                   </span>
-                </div>
+                </button>
               }
               label={`${symbol} · ${upperTimeframe}`}
             />
@@ -219,7 +233,16 @@ export function MtfStackedCharts({
               onActiveToolChange={setActiveTool}
               priceMode={priceMode}
               overlayBadge={
-                <div className="border-border/80 bg-background/90 shadow-xs backdrop-blur-xs flex items-center gap-1.5 rounded-md border px-2 py-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    onAskAi?.(
+                      `Analyze ${symbol} ${lowerTimeframe} market context and structure.`
+                    )
+                  }
+                  title="Instant prompt to AI chat"
+                  className="border-border/80 bg-background/90 shadow-xs backdrop-blur-xs hover:bg-muted/80 group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all hover:border-amber-500/50 active:scale-95"
+                >
                   <Avatar className="h-4 w-4 border border-amber-400/80">
                     <AvatarImage src="/DavinTrade_Logo.jpg" alt="DavinTrade" />
                     <AvatarFallback className="text-[9px]">DT</AvatarFallback>
@@ -227,10 +250,10 @@ export function MtfStackedCharts({
                   <span className="font-mono text-xs font-semibold text-foreground">
                     {symbol} · {lowerTimeframe}
                   </span>
-                  <span className="text-[11px] font-medium text-muted-foreground">
-                    Market Context
+                  <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
+                    {t('Market Context')}
                   </span>
-                </div>
+                </button>
               }
               label={`${symbol} · ${lowerTimeframe}`}
             />

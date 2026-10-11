@@ -149,7 +149,7 @@ const ResizableHandle = ({
     >
       {/* Grip pill if explicitly requested with withHandle (or legacy withGripPill) */}
       {(withHandle || withGripPill) && (
-        <div className="z-10 flex items-center justify-center rounded-sm border border-border bg-card shadow-md group-data-[panel-group-direction=horizontal]:h-5 group-data-[panel-group-direction=vertical]:h-3.5 group-data-[panel-group-direction=horizontal]:w-3.5 group-data-[panel-group-direction=vertical]:w-6">
+        <div className="absolute z-10 flex items-center justify-center rounded-sm border border-border bg-card opacity-0 shadow-md transition-opacity duration-150 group-hover:opacity-100 group-data-[panel-group-direction=horizontal]:h-5 group-data-[panel-group-direction=vertical]:h-3.5 group-data-[panel-group-direction=horizontal]:w-3.5 group-data-[panel-group-direction=vertical]:w-6 group-data-[resize-handle-state=drag]:opacity-100">
           <GripHorizontalIcon className="h-3 w-3 text-muted-foreground group-data-[panel-group-direction=horizontal]:hidden" />
           <GripVerticalIcon className="h-3 w-3 text-muted-foreground group-data-[panel-group-direction=vertical]:hidden" />
         </div>
@@ -166,7 +166,7 @@ const ResizableHandle = ({
           'group-data-[resize-handle-state=drag]:group-data-[panel-group-direction=horizontal]:w-[2px] group-data-[resize-handle-state=drag]:group-data-[panel-group-direction=horizontal]:bg-amber-500 group-data-[resize-handle-state=drag]:group-data-[panel-group-direction=horizontal]:shadow-[0_0_8px_rgba(245,158,11,0.5)]',
           // Horizontal divider line
           'group-data-[panel-group-direction=vertical]:h-[1px] group-data-[panel-group-direction=vertical]:w-full',
-          'group-data-[panel-group-direction=vertical]:bg-border/60',
+          'group-data-[panel-group-direction=vertical]:bg-border',
           'group-hover:group-data-[panel-group-direction=vertical]:h-[2px] group-hover:group-data-[panel-group-direction=vertical]:bg-amber-500 group-hover:group-data-[panel-group-direction=vertical]:shadow-[0_0_8px_rgba(245,158,11,0.5)]',
           'group-data-[resize-handle-state=drag]:group-data-[panel-group-direction=vertical]:h-[2px] group-data-[resize-handle-state=drag]:group-data-[panel-group-direction=vertical]:bg-amber-500 group-data-[resize-handle-state=drag]:group-data-[panel-group-direction=vertical]:shadow-[0_0_8px_rgba(245,158,11,0.5)]'
         )}

@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "Kanal M5 kurang cocok dengan harga, sehingga pembacaan yang memakainya perlu diwaspadai.",
   "intake.reason.mcd0_defect_m15": "Kanal M15 kurang cocok dengan harga, sehingga pembacaan yang memakainya perlu diwaspadai.",
   "intake.reason.evaluator_error": "Sensor ini mengalami kesalahan tak terduga dan saat ini tidak memiliki pembacaan.",
-  "intake.reason.modifier_caution": "Sensor lain menambahkan kewaspadaan pada pembacaan ini: {state}."
+  "intake.reason.modifier_caution": "Sensor lain menambahkan kewaspadaan pada pembacaan ini: {state}.",
+  "Market Context": "Konteks Pasar",
+  "Monthly Token Quota": "Kuota Token Bulanan"
 }

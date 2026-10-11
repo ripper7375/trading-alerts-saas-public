@@ -4509,7 +4509,7 @@
   "chat.ask_m15": "Ask AI about M15 Chart",
   "chat.ask_m5": "Ask AI about M5 Chart",
   "chat.input_placeholder": "Ask Gemini or type a message...",
-  "chat.monthly_token_quota": "Monthly Token Quota",
+  "chat.monthly_token_quota": "Quota mensuel de jetons",
   "click here to resend": "click here to resend",
   "codes": "codes",
   "codes issued in this window": "codes issued in this window",
@@ -5016,5 +5016,7 @@
   "intake.reason.mcd0_defect_m5": "Le canal M5 n’épouse pas assez bien le prix : les lectures qui l’utilisent appellent donc à la prudence.",
   "intake.reason.mcd0_defect_m15": "Le canal M15 n’épouse pas assez bien le prix : les lectures qui l’utilisent appellent donc à la prudence.",
   "intake.reason.evaluator_error": "Ce capteur a rencontré une erreur inattendue et n’a pas de lecture pour le moment.",
-  "intake.reason.modifier_caution": "Un autre capteur ajoute de la prudence à cette lecture : {state}."
+  "intake.reason.modifier_caution": "Un autre capteur ajoute de la prudence à cette lecture : {state}.",
+  "Market Context": "Contexte du marché",
+  "Monthly Token Quota": "Quota mensuel de jetons"
 }
