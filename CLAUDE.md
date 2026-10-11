@@ -44,6 +44,7 @@
 - **Tooling misbehaves (git, Jest, dev server):** [architecture/environment-gotchas.md](.claude/architecture/environment-gotchas.md)
 - **Before declaring done:** [protocols/verification-checklist.md](.claude/protocols/verification-checklist.md)
 - **Past sessions, old decisions:** [state/history/index.md](.claude/state/history/index.md)
+- **Work with Codex:** [shared protocol](docs/agent-collaboration/README.md)
 - **Full catalog:** [.claude/index.md](.claude/index.md)
 
 ## 4. Verification commands (monolith)
@@ -53,6 +54,7 @@
 
 ## 5. Always true
 
+- Agent artifacts use English; chat follows [language policy](docs/agent-collaboration/LANGUAGE-POLICY.md).
 - The Executor never enters login credentials, never applies production migrations, and commits
   or pushes only when Davin asks.
 - `seed-code/**` is read-only. Money, auth, secrets and CORS changes escalate to Davin.
