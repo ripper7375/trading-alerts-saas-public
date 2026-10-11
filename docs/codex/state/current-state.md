@@ -8,19 +8,16 @@ updated_at: 2026-10-11
 
 - Operating system: repository [AGENTS.md](../../../AGENTS.md) and
   [catalog](../index.md), established by Davin's direct instruction.
-- Current task: [Separate Unicode CI repair](../tasks/2026-10-11-pr478-ci-repair.md).
-  [PR 479](https://github.com/ripper7375/trading-alerts-saas-public/pull/479)
-  merged as aece01eb after independent review and all 23 checks passed. Davin
-  also approved merging [PR 478](https://github.com/ripper7375/trading-alerts-saas-public/pull/478)
-  after all refreshed checks pass; its documentation branch has been refreshed
-  from remote main. This checkpoint precedes that final CI/merge: inspect live
-  GitHub state before resuming any integration action.
-- Current handoff: [CI repair report](../../handoffs/2026-10-11-pr478-ci-repair.md).
-- Latest completed task: [Workflow publication](../tasks/2026-10-11-publish-codex-workflow.md).
-- Latest handoff: [Publication report](../../handoffs/2026-10-11-publish-codex-workflow.md).
-- Published workflow: branch codex/claude-collaboration-docs, commit 4a560884.
-  Original main and its five prior local commits remain intact; publication did
-  not merge main. Details and hook limitations are in the publication report.
+- Current task: none assigned; the approved integration is complete.
+- Latest completed task: [Separate Unicode CI repair and integration](../tasks/2026-10-11-pr478-ci-repair.md).
+- Latest handoff: [CI repair and merge report](../../handoffs/2026-10-11-pr478-ci-repair.md).
+- Published workflow: [PR 479](https://github.com/ripper7375/trading-alerts-saas-public/pull/479)
+  merged first as aece01eb, then [PR 478](https://github.com/ripper7375/trading-alerts-saas-public/pull/478)
+  merged as 9ee01dfd after each passed all 23 checks. Remote main contains the
+  two-file Unicode repair and 35 documentation/tooling paths. Original main
+  remains at 96fbf410 with its five prior commits and unrelated edits intact.
+  Committed records are the pre-merge checkpoint; local closeout and live GitHub
+  provide the final outcome. No further merge action is pending.
 - Design and usage: [English package index](../../../davintrade-claude-md-okf-management/codex/README.md).
   Architecture, operating manual, stage prompts and Advisor onboarding live there;
   existing operational sources remain canonical.
