@@ -23,6 +23,8 @@ import {
   BarChart2,
   CandlestickChart,
   EyeOff,
+  Lock,
+  Unlock,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
@@ -30,6 +32,16 @@ import type { DrawingType } from '@/components/charts/drawing/types';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { MtfToggle } from './MtfToggle';
+
+export const INDICATOR_ITEMS = [
+  { id: 'EDT', label: 'EDT', fullName: 'Equal Distance Trendline' },
+  { id: 'SSA', label: 'SSA', fullName: 'Singular Spectrum Analysis' },
+  { id: 'FT', label: 'FT', fullName: 'Fractal' },
+  { id: 'SR', label: 'SR', fullName: 'Support and Resistant' },
+  { id: 'ZZ', label: 'ZZ', fullName: 'Zigzag' },
+] as const;
+
+export type IndicatorId = (typeof INDICATOR_ITEMS)[number]['id'];
 
 export interface MtfTopBarProps {
   activeTool: DrawingType | null;
@@ -41,6 +53,12 @@ export interface MtfTopBarProps {
   mtfEnabled: boolean;
   mtfLoading?: boolean;
   onToggleMtf: (enabled: boolean) => void;
+  /** Active indicators (multi-select) */
+  activeIndicators?: IndicatorId[];
+  onToggleIndicator?: (id: IndicatorId) => void;
+  /** Timeframe timeline sync state between M15 and M5 */
+  isTfLocked?: boolean;
+  onToggleTfLock?: () => void;
 }
 
 interface ToolItem {
@@ -69,11 +87,15 @@ export function MtfTopBar({
   mtfEnabled,
   mtfLoading = false,
   onToggleMtf,
+  activeIndicators = [],
+  onToggleIndicator,
+  isTfLocked = false,
+  onToggleTfLock,
 }: MtfTopBarProps): React.JSX.Element {
   return (
-    <div className="border-border/80 bg-card/60 backdrop-blur-xs z-10 flex h-10 shrink-0 items-center justify-between border-b px-2.5">
+    <div className="border-border/80 bg-card/60 backdrop-blur-xs z-10 flex h-10 shrink-0 items-center justify-between gap-2 overflow-x-auto border-b px-2.5">
       {/* Component 7: Unified Horizontal Drawing Toolbar */}
-      <div className="border-border/70 bg-background/90 shadow-xs flex items-center gap-0.5 rounded-lg border p-0.5">
+      <div className="border-border/70 bg-background/90 shadow-xs flex shrink-0 items-center gap-0.5 rounded-lg border p-0.5">
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
           const isActive = activeTool === tool.id;
@@ -112,8 +134,66 @@ export function MtfTopBar({
         )}
       </div>
 
+      {/* Indicators (EDT, SSA, FT, SR, ZZ) + Padlock TF Timeline Sync */}
+      <div className="flex shrink-0 items-center gap-1.5">
+        {/* Indicators Multi-select Toggle Group */}
+        <div className="border-border/70 bg-background/90 shadow-xs flex items-center gap-0.5 rounded-lg border p-0.5">
+          {INDICATOR_ITEMS.map((ind) => {
+            const isActive = activeIndicators.includes(ind.id);
+            return (
+              <Button
+                key={ind.id}
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  'h-7 rounded-md px-2 font-mono text-[11px] font-semibold transition-all',
+                  isActive
+                    ? 'shadow-xs border border-[#2962FF] bg-[#2962FF]/20 font-bold text-[#2962FF] dark:text-blue-400'
+                    : 'hover:bg-muted/60 text-muted-foreground hover:text-foreground'
+                )}
+                onClick={() => onToggleIndicator?.(ind.id)}
+                title={`${ind.id} : ${ind.fullName}`}
+                aria-label={ind.fullName}
+                aria-pressed={isActive}
+              >
+                {ind.label}
+              </Button>
+            );
+          })}
+        </div>
+
+        {/* Padlock TF Button: Sync timeline of M15 and M5 */}
+        <div className="border-border/70 bg-background/90 shadow-xs flex items-center rounded-lg border p-0.5">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'h-7 gap-1 rounded-md px-2 font-mono text-xs transition-all',
+              isTfLocked
+                ? 'shadow-xs border border-[#2962FF] bg-[#2962FF]/20 font-bold text-[#2962FF] dark:text-blue-400'
+                : 'hover:bg-muted/60 text-muted-foreground hover:text-foreground'
+            )}
+            onClick={onToggleTfLock}
+            title={
+              isTfLocked
+                ? 'Timeline Sync Active (M15 & M5 synced) - Click to unlock'
+                : 'Sync Timeline (M15 & M5) - Click to lock'
+            }
+            aria-label="Toggle Timeframe Timeline Sync"
+            aria-pressed={isTfLocked}
+          >
+            {isTfLocked ? (
+              <Lock className="h-3.5 w-3.5" />
+            ) : (
+              <Unlock className="h-3.5 w-3.5" />
+            )}
+            <span className="text-[11px] font-bold">TF</span>
+          </Button>
+        </div>
+      </div>
+
       {/* Right controls: Component 8 (View Mode) + Component 9 (M5 Overlay) */}
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         {/* Component 8: Price Display Mode (Bar vs Candle) */}
         <div className="border-border/70 bg-background/90 shadow-xs flex items-center rounded-lg border p-0.5">
           <Button

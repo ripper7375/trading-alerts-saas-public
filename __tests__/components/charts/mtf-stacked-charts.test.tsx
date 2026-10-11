@@ -58,8 +58,16 @@ const mockUseOhlcvSocket = useOhlcvSocket as jest.MockedFunction<
 // imports, letting the real module load first.
 jest.mock('lightweight-charts', () => {
   const appliedHeights: number[] = [];
+  const mockTimeScale = {
+    fitContent: jest.fn(),
+    getVisibleRange: jest.fn(() => ({ from: 1000, to: 2000 })),
+    setVisibleRange: jest.fn(),
+    subscribeVisibleTimeRangeChange: jest.fn(),
+    unsubscribeVisibleTimeRangeChange: jest.fn(),
+  };
   return {
     __appliedHeights: appliedHeights,
+    __mockTimeScale: mockTimeScale,
     createChart: jest.fn(() => ({
       addSeries: () => ({
         setData: jest.fn(),
@@ -67,7 +75,7 @@ jest.mock('lightweight-charts', () => {
         applyOptions: jest.fn(),
       }),
       remove: jest.fn(),
-      timeScale: () => ({ fitContent: jest.fn() }),
+      timeScale: () => mockTimeScale,
       applyOptions: (options: { height?: number }) => {
         if (typeof options?.height === 'number') {
           appliedHeights.push(options.height);
@@ -311,5 +319,74 @@ describe('MtfStackedCharts divider', () => {
     // Clicking lower box activates it and displays thick orange border
     fireEvent.pointerDown(lowerBox);
     expect(lowerBox.className).toContain('border-amber-500');
+  });
+});
+
+describe('MtfStackedCharts indicators and Padlock TF sync', () => {
+  it('renders all 5 indicator toggle buttons', () => {
+    render(<MtfStackedCharts symbol="XAUUSD" />);
+
+    const edt = screen.getByRole('button', {
+      name: 'Equal Distance Trendline',
+    });
+    const ssa = screen.getByRole('button', {
+      name: 'Singular Spectrum Analysis',
+    });
+    const ft = screen.getByRole('button', { name: 'Fractal' });
+    const sr = screen.getByRole('button', { name: 'Support and Resistant' });
+    const zz = screen.getByRole('button', { name: 'Zigzag' });
+
+    expect(edt).toBeInTheDocument();
+    expect(ssa).toBeInTheDocument();
+    expect(ft).toBeInTheDocument();
+    expect(sr).toBeInTheDocument();
+    expect(zz).toBeInTheDocument();
+
+    expect(edt).toHaveAttribute('aria-pressed', 'false');
+    expect(ssa).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('allows multi-selecting and unselecting indicators simultaneously', () => {
+    render(<MtfStackedCharts symbol="XAUUSD" />);
+
+    const edt = screen.getByRole('button', {
+      name: 'Equal Distance Trendline',
+    });
+    const ssa = screen.getByRole('button', {
+      name: 'Singular Spectrum Analysis',
+    });
+
+    // Select EDT
+    fireEvent.click(edt);
+    expect(edt).toHaveAttribute('aria-pressed', 'true');
+    expect(ssa).toHaveAttribute('aria-pressed', 'false');
+
+    // Select SSA as well (multi-select)
+    fireEvent.click(ssa);
+    expect(edt).toHaveAttribute('aria-pressed', 'true');
+    expect(ssa).toHaveAttribute('aria-pressed', 'true');
+
+    // Unselect EDT
+    fireEvent.click(edt);
+    expect(edt).toHaveAttribute('aria-pressed', 'false');
+    expect(ssa).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('renders Padlock TF button and toggles sync state', () => {
+    render(<MtfStackedCharts symbol="XAUUSD" />);
+
+    const padlockBtn = screen.getByRole('button', {
+      name: 'Toggle Timeframe Timeline Sync',
+    });
+    expect(padlockBtn).toBeInTheDocument();
+    expect(padlockBtn).toHaveAttribute('aria-pressed', 'false');
+
+    // Click to lock (enable sync)
+    fireEvent.click(padlockBtn);
+    expect(padlockBtn).toHaveAttribute('aria-pressed', 'true');
+
+    // Click to unlock (disable sync)
+    fireEvent.click(padlockBtn);
+    expect(padlockBtn).toHaveAttribute('aria-pressed', 'false');
   });
 });

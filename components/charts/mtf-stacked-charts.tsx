@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ImperativePanelGroupHandle } from 'react-resizable-panels';
+import type { IChartApi, IRange, Time } from 'lightweight-charts';
 import { useSession } from 'next-auth/react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,7 +29,7 @@ import { useLocale } from '@/lib/context/locale-context';
 import { cn } from '@/lib/utils';
 
 import type { DrawingType } from './drawing/types';
-import { MtfTopBar } from './mtf/MtfTopBar';
+import { MtfTopBar, type IndicatorId } from './mtf/MtfTopBar';
 import { useMtfPreference } from './mtf/useMtfPreference';
 import { TradingChart } from './trading-chart';
 import {
@@ -143,6 +144,87 @@ export function MtfStackedCharts({
     isSaving: mtfSaving,
   } = useMtfPreference(isPro);
 
+  // Active indicators state (multi-select: EDT, SSA, FT, SR, ZZ)
+  const [activeIndicators, setActiveIndicators] = useState<IndicatorId[]>([]);
+  const handleToggleIndicator = useCallback((id: IndicatorId) => {
+    setActiveIndicators((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  }, []);
+
+  // Timeframe timeline sync state (M15 & M5 sync visible range)
+  const [isTfLocked, setIsTfLocked] = useState(false);
+  const handleToggleTfLock = useCallback(() => {
+    setIsTfLocked((prev) => !prev);
+  }, []);
+
+  // Chart API references for timeline sync
+  const [upperChartApi, setUpperChartApi] = useState<IChartApi | null>(null);
+  const [lowerChartApi, setLowerChartApi] = useState<IChartApi | null>(null);
+
+  // Synchronize timeline between upper and lower charts when Padlock TF is enabled
+  useEffect(() => {
+    if (!isTfLocked || !upperChartApi || !lowerChartApi) return;
+
+    // Initial sync from upper to lower if visible range exists
+    try {
+      const initialRange = upperChartApi.timeScale().getVisibleRange();
+      if (initialRange) {
+        lowerChartApi.timeScale().setVisibleRange(initialRange);
+      }
+    } catch {
+      // Safe guard if chart timeScale is not ready
+    }
+
+    let isSyncing = false;
+    const handleUpperRangeChange = (range: IRange<Time> | null) => {
+      if (!range || isSyncing || !lowerChartApi) return;
+      isSyncing = true;
+      try {
+        lowerChartApi.timeScale().setVisibleRange(range);
+      } catch {
+        // Safe guard
+      } finally {
+        requestAnimationFrame(() => {
+          isSyncing = false;
+        });
+      }
+    };
+
+    const handleLowerRangeChange = (range: IRange<Time> | null) => {
+      if (!range || isSyncing || !upperChartApi) return;
+      isSyncing = true;
+      try {
+        upperChartApi.timeScale().setVisibleRange(range);
+      } catch {
+        // Safe guard
+      } finally {
+        requestAnimationFrame(() => {
+          isSyncing = false;
+        });
+      }
+    };
+
+    const upperTimeScale = upperChartApi.timeScale();
+    const lowerTimeScale = lowerChartApi.timeScale();
+
+    upperTimeScale.subscribeVisibleTimeRangeChange(handleUpperRangeChange);
+    lowerTimeScale.subscribeVisibleTimeRangeChange(handleLowerRangeChange);
+
+    return () => {
+      try {
+        upperTimeScale.unsubscribeVisibleTimeRangeChange(
+          handleUpperRangeChange
+        );
+        lowerTimeScale.unsubscribeVisibleTimeRangeChange(
+          handleLowerRangeChange
+        );
+      } catch {
+        // Cleanup guard
+      }
+    };
+  }, [isTfLocked, upperChartApi, lowerChartApi]);
+
   const handleResetSplit = useCallback(() => {
     groupRef.current?.setLayout([...DEFAULT_SPLIT]);
     setSplit(DEFAULT_SPLIT);
@@ -193,7 +275,7 @@ export function MtfStackedCharts({
       className="flex h-full w-full flex-col overflow-hidden bg-background"
       style={totalHeight !== undefined ? { height: totalHeight } : undefined}
     >
-      {/* Unified top toolbar: Component 7 + 8 + 9 */}
+      {/* Unified top toolbar: Component 7 + 8 + 9 + Indicators + Padlock TF */}
       <MtfTopBar
         activeTool={activeTool}
         onSelectTool={setActiveTool}
@@ -204,6 +286,10 @@ export function MtfStackedCharts({
         mtfEnabled={mtfEnabled}
         mtfLoading={mtfSaving}
         onToggleMtf={setMtfEnabled}
+        activeIndicators={activeIndicators}
+        onToggleIndicator={handleToggleIndicator}
+        isTfLocked={isTfLocked}
+        onToggleTfLock={handleToggleTfLock}
       />
 
       {/* Panels container */}
@@ -242,6 +328,7 @@ export function MtfStackedCharts({
                 showFooter={false}
                 isStacked={true}
                 hideToolbar={true}
+                onChartReady={setUpperChartApi}
                 externalTool={activePanel === 'upper' ? activeTool : null}
                 onActiveToolChange={(tool) => {
                   if (activePanel === 'upper') setActiveTool(tool);
@@ -324,6 +411,7 @@ export function MtfStackedCharts({
                 showFooter={false}
                 isStacked={true}
                 hideToolbar={true}
+                onChartReady={setLowerChartApi}
                 externalTool={activePanel === 'lower' ? activeTool : null}
                 onActiveToolChange={(tool) => {
                   if (activePanel === 'lower') setActiveTool(tool);

@@ -60,6 +60,8 @@ interface TradingChartProps {
   overlayBadge?: React.ReactNode;
   /** Optional external MTF overlay enabled state */
   externalMtfEnabled?: boolean;
+  /** Callback notifying parent when IChartApi is ready or destroyed */
+  onChartReady?: (chart: IChartApi | null) => void;
 }
 
 /** lightweight-charts renders to a <canvas> -- it can't read CSS custom
@@ -112,6 +114,7 @@ export function TradingChart({
   isStacked = false,
   overlayBadge,
   externalMtfEnabled,
+  onChartReady,
 }: TradingChartProps): React.JSX.Element {
   const { t } = useLocale();
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -237,6 +240,7 @@ export function TradingChart({
     candleSeriesRef.current = candleSeries;
     setChartApi(chart);
     setSeriesApi(candleSeries);
+    onChartReady?.(chart);
 
     // Follow the container, not the window: collapsing or dragging a
     // workspace panel resizes the container while the window stays the same
@@ -254,6 +258,7 @@ export function TradingChart({
 
     return (): void => {
       observer.disconnect();
+      onChartReady?.(null);
       if (chartRef.current) {
         chartRef.current.remove();
         chartRef.current = null;
