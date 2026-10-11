@@ -174,7 +174,11 @@ export type {
 
 export type { Issue, IssueCode } from './check';
 
-export { DIGIT_ZEROS, normalizeQuestion } from './text/normalize';
+export {
+  DIGIT_TABLE_UNICODE,
+  DIGIT_ZEROS,
+  normalizeQuestion,
+} from './text/normalize';
 export type {
   NormalizeChange,
   NormalizeFlag,

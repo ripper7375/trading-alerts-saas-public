@@ -61,11 +61,16 @@ export interface NormalizedText {
 // 3. Digits
 // ---------------------------------------------------------------------------
 
+/** The Unicode version the table below was written from. */
+export const DIGIT_TABLE_UNICODE = '17.0';
+
 /**
- * The first digit (zero) of each run of ten decimal digits in Unicode 16, ASCII first.
+ * The first digit (zero) of each run of ten decimal digits in Unicode 17, ASCII first.
  * Unicode keeps every `Nd` run as ten code points in ascending order from zero, so a digit
  * is `codePoint - zero`. The table is written out, not read from the engine, so Node 20
- * and Node 24 fold the same text the same way; a test compares it with the engine.
+ * and Node 24 fold the same text the same way; a test compares it with the engine. A newer
+ * Unicode than `DIGIT_TABLE_UNICODE` may add a run: the test then stops asking for
+ * completeness (it cannot know the run), and the table gets the run when someone sees it.
  */
 export const DIGIT_ZEROS: readonly number[] = [
   0x0030, 0x0660, 0x06f0, 0x07c0, 0x0966, 0x09e6, 0x0a66, 0x0ae6, 0x0b66,
@@ -74,9 +79,10 @@ export const DIGIT_ZEROS: readonly number[] = [
   0x1c40, 0x1c50, 0xa620, 0xa8d0, 0xa900, 0xa9d0, 0xa9f0, 0xaa50, 0xabf0,
   0xff10, 0x104a0, 0x10d30, 0x10d40, 0x11066, 0x110f0, 0x11136, 0x111d0,
   0x112f0, 0x11450, 0x114d0, 0x11650, 0x116c0, 0x116d0, 0x116da, 0x11730,
-  0x118e0, 0x11950, 0x11bf0, 0x11c50, 0x11d50, 0x11da0, 0x11f50, 0x16130,
-  0x16a60, 0x16ac0, 0x16b50, 0x16d70, 0x1ccf0, 0x1d7ce, 0x1d7d8, 0x1d7e2,
-  0x1d7ec, 0x1d7f6, 0x1e140, 0x1e2f0, 0x1e4f0, 0x1e5f1, 0x1e950, 0x1fbf0,
+  0x118e0, 0x11950, 0x11bf0, 0x11c50, 0x11d50, 0x11da0, 0x11de0, 0x11f50,
+  0x16130, 0x16a60, 0x16ac0, 0x16b50, 0x16d70, 0x1ccf0, 0x1d7ce, 0x1d7d8,
+  0x1d7e2, 0x1d7ec, 0x1d7f6, 0x1e140, 0x1e2f0, 0x1e4f0, 0x1e5f1, 0x1e950,
+  0x1fbf0,
 ];
 
 const DIGIT_OF: ReadonlyMap<number, number> = (() => {

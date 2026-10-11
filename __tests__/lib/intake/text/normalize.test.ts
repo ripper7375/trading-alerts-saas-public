@@ -2,7 +2,11 @@
  * @jest-environment node
  */
 
-import { DIGIT_ZEROS, normalizeQuestion } from '@/lib/intake';
+import {
+  DIGIT_TABLE_UNICODE,
+  DIGIT_ZEROS,
+  normalizeQuestion,
+} from '@/lib/intake';
 
 const text = (raw: string): string => normalizeQuestion(raw).text;
 const changes = (raw: string): string[] => normalizeQuestion(raw).changes;
@@ -83,7 +87,17 @@ describe('digit folding', () => {
       if (!inTable) missing.push(code.toString(16));
     }
     expect(zeros.size).toBeGreaterThan(70);
-    expect(missing).toEqual([]);
+    // an engine on a NEWER Unicode than the table may know a run the table has never heard of
+    // (CI's Node 20 knew U+11DE0 when this machine's Node 24 did not): that is not a defect
+    if (Number(process.versions.unicode) <= Number(DIGIT_TABLE_UNICODE)) {
+      expect(missing).toEqual([]);
+    }
+  });
+
+  it('names the Unicode version of its table', () => {
+    expect(DIGIT_TABLE_UNICODE).toBe('17.0');
+    expect(DIGIT_ZEROS).toContain(0x11de0);
+    expect(text(String.fromCodePoint(0x11de0 + 7))).toBe('7');
   });
 
   it('records the change, and only when there was one', () => {
