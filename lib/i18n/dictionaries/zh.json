@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "该传感器发生意外错误，目前没有读数。",
   "intake.reason.modifier_caution": "另一个传感器为该读数增加了谨慎提示：{state}",
   "Market Context": "市场脉络",
-  "Monthly Token Quota": "每月代币额度"
+  "Monthly Token Quota": "每月代币额度",
+  "Ask": "提问"
 }

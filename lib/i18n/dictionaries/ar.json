@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "واجه هذا المستشعر خطأً غير متوقع وليست لديه قراءة حالياً.",
   "intake.reason.modifier_caution": "يضيف مستشعر آخر تحذيراً إلى هذه القراءة: {state}.",
   "Market Context": "سياق السوق",
-  "Monthly Token Quota": "الحصة الشهرية من الرموز"
+  "Monthly Token Quota": "الحصة الشهرية من الرموز",
+  "Ask": "اسأل"
 }

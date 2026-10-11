@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "इस सेंसर में अप्रत्याशित त्रुटि आई और अभी कोई रीडिंग नहीं है।",
   "intake.reason.modifier_caution": "एक और सेंसर इस रीडिंग में सावधानी जोड़ता है: {state}।",
   "Market Context": "बाजार संदर्भ",
-  "Monthly Token Quota": "मासिक टोकन कोटा"
+  "Monthly Token Quota": "मासिक टोकन कोटा",
+  "Ask": "पूछें"
 }

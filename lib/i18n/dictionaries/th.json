@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "เซนเซอร์นี้เกิดข้อผิดพลาดที่ไม่คาดคิด และตอนนี้ไม่มีค่าที่อ่านได้",
   "intake.reason.modifier_caution": "เซนเซอร์อีกตัวเพิ่มความระมัดระวังให้กับค่าที่อ่านได้นี้: {state}",
   "Market Context": "บริบทตลาด",
-  "Monthly Token Quota": "โควต้าโทเค็นประจำเดือน"
+  "Monthly Token Quota": "โควต้าโทเค็นประจำเดือน",
+  "Ask": "ถาม"
 }

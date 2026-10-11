@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "Ce capteur a rencontré une erreur inattendue et n’a pas de lecture pour le moment.",
   "intake.reason.modifier_caution": "Un autre capteur ajoute de la prudence à cette lecture : {state}.",
   "Market Context": "Contexte du marché",
-  "Monthly Token Quota": "Quota mensuel de jetons"
+  "Monthly Token Quota": "Quota mensuel de jetons",
+  "Ask": "Demander à"
 }

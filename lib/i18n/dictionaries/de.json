@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "Dieser Sensor hatte einen unerwarteten Fehler und hat derzeit keinen Messwert.",
   "intake.reason.modifier_caution": "Ein weiterer Sensor mahnt bei diesem Messwert zur Vorsicht: {state}.",
   "Market Context": "Marktkontext",
-  "Monthly Token Quota": "Monatliches Token-Kontingent"
+  "Monthly Token Quota": "Monatliches Token-Kontingent",
+  "Ask": "Frage an"
 }

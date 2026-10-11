@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "Bu sensör beklenmedik bir hata verdi ve şu anda okuması yok.",
   "intake.reason.modifier_caution": "Başka bir sensör bu okumaya temkin ekliyor: {state}.",
   "Market Context": "Piyasa Bağlamı",
-  "Monthly Token Quota": "Aylık Token Kotası"
+  "Monthly Token Quota": "Aylık Token Kotası",
+  "Ask": "Sor"
 }

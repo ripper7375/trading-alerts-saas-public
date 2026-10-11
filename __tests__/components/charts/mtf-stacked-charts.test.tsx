@@ -298,4 +298,18 @@ describe('MtfStackedCharts divider', () => {
     expect(text).toContain('XAUUSD · M15');
     expect(screen.getAllByTestId('mtf-toggle')).toHaveLength(1);
   });
+
+  it('renders thin rectangular borders on both chart panels and reacts to click', () => {
+    const { getByTestId } = render(<MtfStackedCharts symbol="XAUUSD" />);
+
+    const upperBox = getByTestId('mtf-upper-container');
+    const lowerBox = getByTestId('mtf-lower-container');
+
+    expect(upperBox.className).toContain('border');
+    expect(lowerBox.className).toContain('border');
+
+    // Clicking lower box activates it and displays thick orange border
+    fireEvent.pointerDown(lowerBox);
+    expect(lowerBox.className).toContain('border-amber-500');
+  });
 });

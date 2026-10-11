@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "اس سینسر میں غیر متوقع خرابی آئی اور اس وقت کوئی ریڈنگ نہیں ہے۔",
   "intake.reason.modifier_caution": "ایک اور سینسر اس ریڈنگ میں احتیاط کا اضافہ کرتا ہے: {state}۔",
   "Market Context": "مارکیٹ سیاق و سباق",
-  "Monthly Token Quota": "ماہانہ ٹوکن کوٹہ"
+  "Monthly Token Quota": "ماہانہ ٹوکن کوٹہ",
+  "Ask": "پوچھیں"
 }

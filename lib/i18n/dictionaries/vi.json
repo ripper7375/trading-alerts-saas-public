@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "Cảm biến này gặp lỗi bất ngờ và hiện không có kết quả đọc.",
   "intake.reason.modifier_caution": "Một cảm biến khác bổ sung sự thận trọng cho kết quả đọc này: {state}.",
   "Market Context": "Bối cảnh thị trường",
-  "Monthly Token Quota": "Hạn mức token hằng tháng"
+  "Monthly Token Quota": "Hạn mức token hằng tháng",
+  "Ask": "Hỏi"
 }

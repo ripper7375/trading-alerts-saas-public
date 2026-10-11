@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "This sensor hit an unexpected error and has no reading right now.",
   "intake.reason.modifier_caution": "Another sensor adds caution to this reading: {state}.",
   "Market Context": "Market Context",
-  "Monthly Token Quota": "Monthly Token Quota"
+  "Monthly Token Quota": "Monthly Token Quota",
+  "Ask": "Ask"
 }

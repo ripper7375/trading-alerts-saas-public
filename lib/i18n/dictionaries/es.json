@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "Este sensor tuvo un error inesperado y ahora no tiene lectura.",
   "intake.reason.modifier_caution": "Otro sensor añade precaución a esta lectura: {state}.",
   "Market Context": "Contexto de mercado",
-  "Monthly Token Quota": "Cuota mensual de tokens"
+  "Monthly Token Quota": "Cuota mensual de tokens",
+  "Ask": "Preguntar a"
 }

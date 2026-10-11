@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "이 센서에서 예기치 않은 오류가 발생해 지금은 판독값이 없습니다.",
   "intake.reason.modifier_caution": "다른 센서가 이 판독값에 주의를 더합니다: {state}",
   "Market Context": "시장 맥락",
-  "Monthly Token Quota": "월간 토큰 할당량"
+  "Monthly Token Quota": "월간 토큰 할당량",
+  "Ask": "질문"
 }

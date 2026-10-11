@@ -5018,5 +5018,6 @@
   "intake.reason.evaluator_error": "該感測器發生意外錯誤，目前沒有讀數。",
   "intake.reason.modifier_caution": "另一個感測器為該讀數增加了謹慎提示：{state}",
   "Market Context": "市場脈絡",
-  "Monthly Token Quota": "每月代幣額度"
+  "Monthly Token Quota": "每月代幣額度",
+  "Ask": "提問"
 }

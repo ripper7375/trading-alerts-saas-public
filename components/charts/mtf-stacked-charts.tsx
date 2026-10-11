@@ -25,6 +25,7 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import { useLocale } from '@/lib/context/locale-context';
+import { cn } from '@/lib/utils';
 
 import type { DrawingType } from './drawing/types';
 import { MtfTopBar } from './mtf/MtfTopBar';
@@ -69,13 +70,69 @@ export function MtfStackedCharts({
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const [split, setSplit] = useState<readonly number[]>(DEFAULT_SPLIT);
 
-  // Drawing tools state (Component 7)
+  // Active chart panel: 'upper' (M15) or 'lower' (M5)
+  const [activePanel, setActivePanel] = useState<'upper' | 'lower'>('upper');
+  // Visual click/press feedback state: shows thick orange border while clicking
+  const [pressingPanel, setPressingPanel] = useState<'upper' | 'lower' | null>(
+    null
+  );
+  const pressStartTimeRef = useRef<number>(0);
+  const pressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Drawing tools state (Component 7) applied to active panel
   const [activeTool, setActiveTool] = useState<DrawingType | null>(null);
 
-  // Chart price display mode state (Component 8)
-  const [priceMode, setPriceMode] = useState<'CANDLE' | 'BAR' | 'HIDE'>(
-    'CANDLE'
+  // Chart price display mode state (Component 8): per-panel candle/bar/hide switch
+  const [upperPriceMode, setUpperPriceMode] = useState<
+    'CANDLE' | 'BAR' | 'HIDE'
+  >('CANDLE');
+  const [lowerPriceMode, setLowerPriceMode] = useState<
+    'CANDLE' | 'BAR' | 'HIDE'
+  >('CANDLE');
+
+  const activePriceMode =
+    activePanel === 'upper' ? upperPriceMode : lowerPriceMode;
+
+  const handlePriceModeChange = useCallback(
+    (mode: 'CANDLE' | 'BAR' | 'HIDE') => {
+      if (activePanel === 'upper') {
+        setUpperPriceMode(mode);
+      } else {
+        setLowerPriceMode(mode);
+      }
+    },
+    [activePanel]
   );
+
+  const handlePanelPress = useCallback((panel: 'upper' | 'lower') => {
+    setActivePanel(panel);
+    setPressingPanel(panel);
+    pressStartTimeRef.current = Date.now();
+    if (pressTimeoutRef.current) {
+      clearTimeout(pressTimeoutRef.current);
+      pressTimeoutRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    const handlePointerUp = () => {
+      const elapsed = Date.now() - pressStartTimeRef.current;
+      const remaining = Math.max(0, 180 - elapsed);
+      if (remaining > 0) {
+        pressTimeoutRef.current = setTimeout(() => {
+          setPressingPanel(null);
+        }, remaining);
+      } else {
+        setPressingPanel(null);
+      }
+    };
+
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointerup', handlePointerUp);
+      if (pressTimeoutRef.current) clearTimeout(pressTimeoutRef.current);
+    };
+  }, []);
 
   // Multi-timeframe overlay preference (Component 9)
   const { data: session } = useSession();
@@ -141,8 +198,8 @@ export function MtfStackedCharts({
         activeTool={activeTool}
         onSelectTool={setActiveTool}
         onDeleteSelected={handleDeleteSelected}
-        priceMode={priceMode}
-        onPriceModeChange={setPriceMode}
+        priceMode={activePriceMode}
+        onPriceModeChange={handlePriceModeChange}
         isPro={isPro}
         mtfEnabled={mtfEnabled}
         mtfLoading={mtfSaving}
@@ -163,45 +220,71 @@ export function MtfStackedCharts({
             order={1}
             defaultSize={DEFAULT_SPLIT[0]}
             minSize={minSize}
-            className="overflow-hidden"
+            className="overflow-hidden p-1"
           >
-            <TradingChart
-              symbol={symbol}
-              timeframe={upperTimeframe}
-              height={upperHeight}
-              showHeader={false}
-              showFooter={false}
-              isStacked={true}
-              hideToolbar={true}
-              externalTool={activeTool}
-              onActiveToolChange={setActiveTool}
-              priceMode={priceMode}
-              externalMtfEnabled={mtfEnabled}
-              overlayBadge={
-                <button
-                  type="button"
-                  onClick={() =>
-                    onAskAi?.(
-                      `Analyze ${symbol} ${upperTimeframe} market context and structure.`
-                    )
-                  }
-                  title="Instant prompt to AI chat"
-                  className="border-border/80 bg-background/90 shadow-xs backdrop-blur-xs hover:bg-muted/80 group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all hover:border-amber-500/50 active:scale-95"
-                >
-                  <Avatar className="h-4 w-4 border border-amber-400/80">
-                    <AvatarImage src="/DavinTrade_Logo.jpg" alt="DavinTrade" />
-                    <AvatarFallback className="text-[9px]">DT</AvatarFallback>
-                  </Avatar>
-                  <span className="font-mono text-xs font-semibold text-foreground">
-                    {symbol} · {upperTimeframe}
-                  </span>
-                  <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
-                    {t('Market Context')}
-                  </span>
-                </button>
-              }
-              label={`${symbol} · ${upperTimeframe}`}
-            />
+            <div
+              data-testid="mtf-upper-container"
+              className={cn(
+                'relative h-full w-full select-none overflow-hidden rounded-md transition-all duration-300 ease-out',
+                pressingPanel === 'upper'
+                  ? 'border-2 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-2 ring-amber-500/30'
+                  : activePanel === 'upper'
+                    ? 'border-border/90 ring-border/50 border ring-1'
+                    : 'border-border/60 border'
+              )}
+              onPointerDownCapture={() => handlePanelPress('upper')}
+            >
+              <TradingChart
+                symbol={symbol}
+                timeframe={upperTimeframe}
+                height={upperHeight}
+                showHeader={false}
+                showFooter={false}
+                isStacked={true}
+                hideToolbar={true}
+                externalTool={activePanel === 'upper' ? activeTool : null}
+                onActiveToolChange={(tool) => {
+                  if (activePanel === 'upper') setActiveTool(tool);
+                }}
+                priceMode={upperPriceMode}
+                externalMtfEnabled={mtfEnabled}
+                overlayBadge={
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onAskAi?.(
+                        `Analyze ${symbol} ${upperTimeframe} market context and structure.`
+                      )
+                    }
+                    title="Instant prompt to AI chat"
+                    className={cn(
+                      'shadow-xs backdrop-blur-xs group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all active:scale-95',
+                      activePanel === 'upper'
+                        ? 'border-amber-500/70 bg-amber-500/10 ring-1 ring-amber-500/30'
+                        : 'border-border/80 bg-background/90 hover:bg-muted/80 hover:border-amber-500/50'
+                    )}
+                  >
+                    <Avatar className="h-4 w-4 border border-amber-400/80">
+                      <AvatarImage
+                        src="/DavinTrade_Logo.jpg"
+                        alt="DavinTrade"
+                      />
+                      <AvatarFallback className="text-[9px]">DT</AvatarFallback>
+                    </Avatar>
+                    <span className="font-mono text-xs font-semibold text-foreground">
+                      {symbol} · {upperTimeframe}
+                    </span>
+                    <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
+                      {t('Market Context')}
+                    </span>
+                    {activePanel === 'upper' && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    )}
+                  </button>
+                }
+                label={`${symbol} · ${upperTimeframe}`}
+              />
+            </div>
           </ResizablePanel>
 
           <ResizableHandle
@@ -219,44 +302,70 @@ export function MtfStackedCharts({
             order={2}
             defaultSize={DEFAULT_SPLIT[1]}
             minSize={minSize}
-            className="overflow-hidden"
+            className="overflow-hidden p-1"
           >
-            <TradingChart
-              symbol={symbol}
-              timeframe={lowerTimeframe}
-              height={lowerHeight}
-              showHeader={false}
-              showFooter={false}
-              isStacked={true}
-              hideToolbar={true}
-              externalTool={activeTool}
-              onActiveToolChange={setActiveTool}
-              priceMode={priceMode}
-              overlayBadge={
-                <button
-                  type="button"
-                  onClick={() =>
-                    onAskAi?.(
-                      `Analyze ${symbol} ${lowerTimeframe} market context and structure.`
-                    )
-                  }
-                  title="Instant prompt to AI chat"
-                  className="border-border/80 bg-background/90 shadow-xs backdrop-blur-xs hover:bg-muted/80 group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all hover:border-amber-500/50 active:scale-95"
-                >
-                  <Avatar className="h-4 w-4 border border-amber-400/80">
-                    <AvatarImage src="/DavinTrade_Logo.jpg" alt="DavinTrade" />
-                    <AvatarFallback className="text-[9px]">DT</AvatarFallback>
-                  </Avatar>
-                  <span className="font-mono text-xs font-semibold text-foreground">
-                    {symbol} · {lowerTimeframe}
-                  </span>
-                  <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
-                    {t('Market Context')}
-                  </span>
-                </button>
-              }
-              label={`${symbol} · ${lowerTimeframe}`}
-            />
+            <div
+              data-testid="mtf-lower-container"
+              className={cn(
+                'relative h-full w-full select-none overflow-hidden rounded-md transition-all duration-300 ease-out',
+                pressingPanel === 'lower'
+                  ? 'border-2 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-2 ring-amber-500/30'
+                  : activePanel === 'lower'
+                    ? 'border-border/90 ring-border/50 border ring-1'
+                    : 'border-border/60 border'
+              )}
+              onPointerDownCapture={() => handlePanelPress('lower')}
+            >
+              <TradingChart
+                symbol={symbol}
+                timeframe={lowerTimeframe}
+                height={lowerHeight}
+                showHeader={false}
+                showFooter={false}
+                isStacked={true}
+                hideToolbar={true}
+                externalTool={activePanel === 'lower' ? activeTool : null}
+                onActiveToolChange={(tool) => {
+                  if (activePanel === 'lower') setActiveTool(tool);
+                }}
+                priceMode={lowerPriceMode}
+                overlayBadge={
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onAskAi?.(
+                        `Analyze ${symbol} ${lowerTimeframe} market context and structure.`
+                      )
+                    }
+                    title="Instant prompt to AI chat"
+                    className={cn(
+                      'shadow-xs backdrop-blur-xs group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all active:scale-95',
+                      activePanel === 'lower'
+                        ? 'border-amber-500/70 bg-amber-500/10 ring-1 ring-amber-500/30'
+                        : 'border-border/80 bg-background/90 hover:bg-muted/80 hover:border-amber-500/50'
+                    )}
+                  >
+                    <Avatar className="h-4 w-4 border border-amber-400/80">
+                      <AvatarImage
+                        src="/DavinTrade_Logo.jpg"
+                        alt="DavinTrade"
+                      />
+                      <AvatarFallback className="text-[9px]">DT</AvatarFallback>
+                    </Avatar>
+                    <span className="font-mono text-xs font-semibold text-foreground">
+                      {symbol} · {lowerTimeframe}
+                    </span>
+                    <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
+                      {t('Market Context')}
+                    </span>
+                    {activePanel === 'lower' && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                    )}
+                  </button>
+                }
+                label={`${symbol} · ${lowerTimeframe}`}
+              />
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

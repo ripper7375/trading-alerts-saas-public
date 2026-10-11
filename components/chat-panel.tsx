@@ -220,7 +220,7 @@ export default function ChatPanel({
                   handleSendMessage();
                 }
               }}
-              placeholder={`Ask ${activeModelObj?.name.split(' ')[0]}...`}
+              placeholder={`${t('Ask')} ${activeModelObj?.name.split(' ')[0] ?? 'AI'}...`}
               className="min-h-[58px] w-full resize-none rounded-xl border border-input bg-background py-2.5 pl-3.5 pr-12 text-xs text-foreground placeholder:text-xs placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-1 focus:ring-ring"
               rows={2}
             />
