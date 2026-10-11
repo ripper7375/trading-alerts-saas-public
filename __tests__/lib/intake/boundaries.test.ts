@@ -3,7 +3,7 @@
  */
 
 /**
- * The boundaries guard of `lib/intake` (build step 6, parts 1 and 2).
+ * The boundaries guard of `lib/intake` (build step 6, parts 1 to 3).
  *
  *  1. The pure files (the folder itself and `text/`) import only their siblings and, for the
  *     two files named below, one outside module each. They do no I/O and nothing that
@@ -218,7 +218,7 @@ function loadSources(): Map<string, string> {
 describe('lib/intake', () => {
   const sources = loadSources();
 
-  it('has the files of parts 1 and 2', () => {
+  it('has the files of parts 1 to 3', () => {
     expect([...sources.keys()]).toEqual([
       'canonical.ts',
       'check.ts',
@@ -228,6 +228,7 @@ describe('lib/intake', () => {
       'packet.ts',
       'refusal.ts',
       'roster.ts',
+      'text.ts',
       'text/glossary.ts',
       'text/limits.ts',
       'text/normalize.ts',

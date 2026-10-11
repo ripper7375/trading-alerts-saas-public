@@ -1,0 +1,9 @@
+{
+  "schema": "glossary-approval/1",
+  "area": "hi",
+  "status": "PENDING",
+  "approved_by": null,
+  "approved_on": null,
+  "content_sha256": "2528dcb4404794603de850064f786a0df75ab07b33a8790384dc7eda4c7cc3f8",
+  "note": ""
+}

@@ -89,7 +89,7 @@ describe('digit folding', () => {
     expect(zeros.size).toBeGreaterThan(70);
     // an engine on a NEWER Unicode than the table may know a run the table has never heard of
     // (CI's Node 20 knew U+11DE0 when this machine's Node 24 did not): that is not a defect
-    if (Number(process.versions.unicode) <= Number(DIGIT_TABLE_UNICODE)) {
+    if (Number(process.versions['unicode']) <= Number(DIGIT_TABLE_UNICODE)) {
       expect(missing).toEqual([]);
     }
   });

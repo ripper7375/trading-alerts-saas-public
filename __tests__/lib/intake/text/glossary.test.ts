@@ -11,6 +11,7 @@ import {
   LOCALES,
   createSpotter,
   foldCase,
+  familyOfLocale,
   glossaryHints,
   matchKey,
   normalizeQuestion,
@@ -89,44 +90,6 @@ describe('the committed glossary', () => {
     expect(GLOSSARY).toEqual(raw());
   });
 
-  it('is a seed: 12 terms, all forms still drafts', () => {
-    expect(GLOSSARY.version).toBe('0.1.0-seed');
-    expect(GLOSSARY.terms.map((term) => term.id)).toEqual([
-      'buy',
-      'sell',
-      'gold',
-      'stop_loss',
-      'take_profit',
-      'entry',
-      'support',
-      'resistance',
-      'trend',
-      'uoedt',
-      'loedt',
-      'baseline',
-    ]);
-    for (const term of GLOSSARY.terms) {
-      for (const form of Object.values(term.forms)) {
-        expect(form.status).toBe('draft');
-      }
-    }
-  });
-
-  it('writes the nine trading terms in each of the 17 languages, and the level names once', () => {
-    const FIRST_LOCALES = LOCALES.filter(
-      (locale) => locale !== 'en-GB' && locale !== 'pt-BR'
-    );
-    expect(FIRST_LOCALES).toHaveLength(17);
-    for (const term of GLOSSARY.terms.slice(0, 9)) {
-      expect(Object.keys(term.forms).sort()).toEqual([...FIRST_LOCALES].sort());
-    }
-    for (const term of GLOSSARY.terms.slice(9)) {
-      expect(term.never_translate).toBe(true);
-      expect(Object.keys(term.forms)).toEqual(['en-US']);
-      expect(term.forms['en-US']?.canonical).toBe(term.en);
-    }
-  });
-
   it('uses the same words as Report 2 for stop loss and entry', () => {
     // the Report 2 dictionary rows `report2.stop.heading` and `report2.entry.heading`
     const dictionaries = (locale: string): Record<string, string> =>
@@ -183,9 +146,9 @@ describe('parseGlossary', () => {
     return glossary;
   };
 
-  it('accepts the seed and returns it', () => {
+  it('accepts the committed file and returns it', () => {
     const parsed = parseGlossary(raw());
-    expect(parsed.ok && parsed.glossary.terms).toHaveLength(12);
+    expect(parsed.ok && parsed.glossary.terms).toEqual(GLOSSARY.terms);
   });
 
   it.each([
@@ -420,18 +383,20 @@ describe('parseGlossary', () => {
   });
 
   it('keeps a never-translated term to its one English spelling', () => {
+    const at = raw().terms.findIndex((term: any) => term.id === 'uoedt');
+    expect(at).toBeGreaterThanOrEqual(0);
     expect(
-      summary(break_((g) => (g.terms[9].forms['en-US'].canonical = 'uoedt')))
-    ).toEqual(['terms[9].forms.en-US.canonical INCONSISTENT']);
+      summary(break_((g) => (g.terms[at].forms['en-US'].canonical = 'uoedt')))
+    ).toEqual([`terms[${at}].forms.en-US.canonical INCONSISTENT`]);
     expect(
       summary(
-        break_((g) => (g.terms[9].forms['en-US'].variants = ['UOEDT-line']))
+        break_((g) => (g.terms[at].forms['en-US'].variants = ['UOEDT-line']))
       )
-    ).toEqual(['terms[9].forms.en-US.variants[0] INCONSISTENT']);
+    ).toEqual([`terms[${at}].forms.en-US.variants[0] INCONSISTENT`]);
     expect(
       parseGlossary(
         break_((g) => {
-          g.terms[9].forms.es = {
+          g.terms[at].forms.es = {
             canonical: 'UOEDT',
             variants: [],
             status: 'draft',
@@ -443,10 +408,12 @@ describe('parseGlossary', () => {
 
   it('reports every problem, not only the first, and stops at 60', () => {
     const many = break_((g) => {
+      g.terms = g.terms.slice(0, 12);
       for (const term of g.terms) term.owners = [];
     });
     expect(issuesOf(many)).toHaveLength(12);
     const worse = break_((g) => {
+      g.terms = g.terms.slice(0, 12);
       for (const term of g.terms) {
         term.owners = [];
         term.definition = '';
@@ -509,7 +476,7 @@ describe('foldCase and matchKey', () => {
 // Spotting, per language
 // ---------------------------------------------------------------------------------------
 
-describe('spotting the seed terms', () => {
+describe('spotting the committed terms', () => {
   const QUESTIONS: [string, string, [string, string][]][] = [
     [
       'en',
@@ -580,7 +547,7 @@ describe('spotting the seed terms', () => {
       "Dois-je acheter de l'or maintenant ?",
       [
         ['buy', 'acheter'],
-        ['gold', 'or'],
+        ['gold', "l'or"],
       ],
     ],
     [
@@ -761,12 +728,17 @@ describe('spotting the seed terms', () => {
         languages: ['en', 'es', 'de', 'pt', 'it', 'fr', 'vi', 'id', 'tr'],
       },
     ]);
-    const [gold] = spotTerms('or');
+    // the bare French "or" is not a form: it is also the English and French word "or"
+    expect(spotTerms('or')).toEqual([]);
+    const [gold] = spotTerms("l'or");
     expect(gold?.terms).toEqual([{ id: 'gold', languages: ['fr'] }]);
     const [oro] = spotTerms('oro');
     expect(oro?.terms[0]?.languages).toEqual(['es', 'it']);
+    // a level name is written the same in every language, so every language has it
     const [uoedt] = spotTerms('UOEDT');
-    expect(uoedt?.terms[0]?.languages).toEqual(['en']);
+    expect(uoedt?.terms[0]?.languages).toEqual([
+      ...new Set(LOCALES.map(familyOfLocale)),
+    ]);
   });
 });
 

@@ -10,6 +10,11 @@
  * its port with the validator of `understand-result/1`, and the door limits. The fixture
  * adapter `text/understand-fixture.ts` is test infrastructure and is imported by path.
  *
+ * Part 3 adds the real glossary (`config/intake/glossary.v1.json`, 73 terms in 19 locales,
+ * every form a draft until a native speaker has read it) and `text.ts`, the English registry
+ * of the fixed replies, the instant prompts and the reason texts; their 19 translations are
+ * the `intake.*` keys of the dictionaries.
+ *
  * Later parts add the snapshot readers (`read/`), the gate, the pipeline and the route layer
  * (`server/`). Anything that touches a database, Redis, the session or the network is
  * imported BY PATH and never through this barrel, so a client component can import it
@@ -250,3 +255,25 @@ export type {
   UnderstandResult,
   UnderstandValidation,
 } from './text/understand';
+
+export {
+  FIXED_REASON_TEXT_KEY,
+  INSTANT_TEXT_KEY,
+  INTAKE_COUNSEL_KEYS,
+  INTAKE_KEYS,
+  INTAKE_TEXT,
+  MODIFIER_REASON_CODE,
+  REFUSAL_TEXT_KEY,
+  UPSTREAM_REASON_TEXT_KEY,
+  instantTextKey,
+  intakeText,
+  reasonTextOf,
+  refusalTextKey,
+} from './text';
+export type {
+  FixedReasonCode,
+  IntakeTextKey,
+  ReasonText,
+  TextParams,
+  UpstreamReasonCode,
+} from './text';

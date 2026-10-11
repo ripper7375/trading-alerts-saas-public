@@ -1,6 +1,6 @@
 /**
  * The trading glossary and the pass that finds its terms in a question
- * (architecture 4.3, ADR-038, plan part 2; the real term list is part 3's).
+ * (architecture 4.3, ADR-038, plan parts 2 and 3).
  *
  * The glossary is DATA (`config/intake/glossary.v1.json`, the contract `glossary/1`): one
  * entry per trading term, with its English form, a one-sentence definition, the sensors or
@@ -329,7 +329,7 @@ function load(): Glossary {
   return parsed.glossary;
 }
 
-/** The committed glossary (a seed until part 3). */
+/** The committed glossary. */
 export const GLOSSARY: Glossary = load();
 
 export function termById(

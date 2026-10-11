@@ -343,7 +343,9 @@ describe('checkTermPreservation', () => {
     expect(report('verkaufen', 'Should I go short?', 'de').dropped).toEqual([]);
     expect(report('Gold', 'What about XAU?', 'de').dropped).toEqual([]);
     expect(report('止损', 'Where is the stop?', 'zh').dropped).toEqual([]);
-    expect(report('止盈', 'Where is the target?', 'zh').dropped).toEqual([]);
+    expect(report('止盈', 'Where is the take-profit?', 'zh').dropped).toEqual(
+      []
+    );
   });
 
   it('reads whole words, not parts of words, in any case', () => {
@@ -368,15 +370,34 @@ describe('checkTermPreservation', () => {
     ]);
   });
 
+  // The committed glossary has no spelling that two languages share, so the language rule is
+  // tried on a small glossary that has one: `or` is French for gold and an English word.
+  const homograph = glossaryOf({
+    gold: ['gold', { 'en-US': ['gold'], fr: ['or'] }],
+    buy: ['buy', { 'en-US': ['buy'] }],
+    sell: ['sell', { 'en-US': ['sell'] }],
+  });
+  const reportHomograph = (
+    question: string,
+    english: string,
+    language: string
+  ) =>
+    checkTermPreservation(
+      createSpotter(homograph).spot(normalizeQuestion(question).text),
+      english,
+      language,
+      homograph
+    );
+
   it('counts only the hits of the language the model says the question is in', () => {
-    // "or" is French for gold, and an English word: in an English question it is the word
+    // in an English question "or" is the word, not gold
     const question = 'buy or sell';
-    expect(report(question, 'Buy or sell?', 'en')).toEqual({
+    expect(reportHomograph(question, 'Buy or sell?', 'en')).toEqual({
       checked: ['buy', 'sell'],
       dropped: [],
       flags: [],
     });
-    expect(report(question, 'Buy or sell?', 'fr')).toEqual({
+    expect(reportHomograph(question, 'Buy or sell?', 'fr')).toEqual({
       checked: ['gold'],
       dropped: ['gold'],
       flags: [TERM_DROPPED],
@@ -384,7 +405,7 @@ describe('checkTermPreservation', () => {
   });
 
   it('counts every hit when the language is not known', () => {
-    expect(report('buy or sell', 'Buy or sell?', 'und')).toEqual({
+    expect(reportHomograph('buy or sell', 'Buy or sell?', 'und')).toEqual({
       checked: ['buy', 'gold', 'sell'],
       dropped: ['gold'],
       flags: [TERM_DROPPED],
