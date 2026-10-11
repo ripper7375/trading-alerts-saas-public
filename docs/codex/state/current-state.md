@@ -8,8 +8,11 @@ updated_at: 2026-10-11
 
 - Operating system: repository [AGENTS.md](../../../AGENTS.md) and
   [catalog](../index.md), established by Davin's direct instruction.
-- Latest completed task: [Codex documentation package](../tasks/2026-10-11-codex-documentation-package.md).
-- Latest handoff: [Package delivery report](../../handoffs/2026-10-11-codex-documentation-package.md).
+- Latest completed task: [Workflow publication](../tasks/2026-10-11-publish-codex-workflow.md).
+- Latest handoff: [Publication report](../../handoffs/2026-10-11-publish-codex-workflow.md).
+- Published workflow: branch codex/claude-collaboration-docs, commit 4a560884.
+  Original main and its five prior local commits remain intact; publication did
+  not merge main. Details and hook limitations are in the publication report.
 - Design and usage: [English package index](../../../davintrade-claude-md-okf-management/codex/README.md).
   Architecture, operating manual, stage prompts and Advisor onboarding live there;
   existing operational sources remain canonical.
