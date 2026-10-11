@@ -15,8 +15,19 @@ from pathlib import Path
 import jsonschema
 
 
+# The schemas carry a contract id as their `$id` ("intake-packet/1"), which is not a URI. The
+# resolver of jsonschema up to 4.17 (the version Ubuntu's `python3-jsonschema` ships, which the
+# CI image has) joins that id with itself and then cannot find its own `#/$defs/...`
+# ("unknown url type: 'intake-packet/intake-packet/1'"); 4.18 and later do not. The copy that is
+# validated against gets an absolute id, so every version reads it the same way. The file on
+# disk is not changed.
+BASE = "https://schemas.invalid/"
+
+
 def main() -> int:
     schema = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+    if isinstance(schema.get("$id"), str) and "://" not in schema["$id"]:
+        schema["$id"] = BASE + schema["$id"]
     documents = json.loads(Path(sys.argv[2]).read_text(encoding="utf-8"))
     try:
         jsonschema.Draft202012Validator.check_schema(schema)
