@@ -327,14 +327,14 @@ describe('MtfStackedCharts indicators and Padlock TF sync', () => {
     render(<MtfStackedCharts symbol="XAUUSD" />);
 
     const edt = screen.getByRole('button', {
-      name: 'Equal Distance Trendline',
+      name: /Equal Distance Trendline/i,
     });
     const ssa = screen.getByRole('button', {
-      name: 'Singular Spectrum Analysis',
+      name: /Singular Spectrum Analysis/i,
     });
-    const ft = screen.getByRole('button', { name: 'Fractal' });
-    const sr = screen.getByRole('button', { name: 'Support and Resistant' });
-    const zz = screen.getByRole('button', { name: 'Zigzag' });
+    const ft = screen.getByRole('button', { name: /Fractal/i });
+    const sr = screen.getByRole('button', { name: /Support and Resistance/i });
+    const zz = screen.getByRole('button', { name: /Zigzag/i });
 
     expect(edt).toBeInTheDocument();
     expect(ssa).toBeInTheDocument();
@@ -350,10 +350,10 @@ describe('MtfStackedCharts indicators and Padlock TF sync', () => {
     render(<MtfStackedCharts symbol="XAUUSD" />);
 
     const edt = screen.getByRole('button', {
-      name: 'Equal Distance Trendline',
+      name: /Equal Distance Trendline/i,
     });
     const ssa = screen.getByRole('button', {
-      name: 'Singular Spectrum Analysis',
+      name: /Singular Spectrum Analysis/i,
     });
 
     // Select EDT

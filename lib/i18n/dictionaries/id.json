@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "Sensor lain menambahkan kewaspadaan pada pembacaan ini: {state}.",
   "Market Context": "Konteks Pasar",
   "Monthly Token Quota": "Kuota Token Bulanan",
-  "Ask": "Tanya"
+  "Ask": "Tanya",
+  "charts.indicator.edt": "Garis tren jarak sama (EDT)",
+  "charts.indicator.ssa": "Analisis spektrum tunggal (SSA)",
+  "charts.indicator.ft": "Fraktal (FT)",
+  "charts.indicator.sr": "Support dan resistance (SR)",
+  "charts.indicator.zz": "Zigzag (ZZ)",
+  "charts.tf_sync.lock_active": "Sinkronisasi timeline aktif (M15 & M5 sinkron) - Klik untuk membuka",
+  "charts.tf_sync.unlock_inactive": "Sinkronkan timeline (M15 & M5) - Klik untuk mengunci",
+  "charts.tf_sync.aria_label": "Alihkan sinkronisasi timeline kerangka waktu",
+  "charts.mode.bar": "Mode batang harga (Bar)",
+  "charts.mode.candle": "Mode lilin harga (Candle)",
+  "charts.mode.hide": "Mode sembunyikan harga"
 }

@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "另一个传感器为该读数增加了谨慎提示：{state}",
   "Market Context": "市场脉络",
   "Monthly Token Quota": "每月代币额度",
-  "Ask": "提问"
+  "Ask": "提问",
+  "charts.indicator.edt": "等距通道趋势线 (EDT)",
+  "charts.indicator.ssa": "奇异谱分析 (SSA)",
+  "charts.indicator.ft": "分形指标 (FT)",
+  "charts.indicator.sr": "支撑阻力位 (SR)",
+  "charts.indicator.zz": "之字转向 (ZZ)",
+  "charts.tf_sync.lock_active": "时间轴同步已开启 (M15与M5同步) - 点击解锁",
+  "charts.tf_sync.unlock_inactive": "同步时间轴 (M15与M5) - 点击锁定",
+  "charts.tf_sync.aria_label": "切换周期时间轴同步",
+  "charts.mode.bar": "美国线 (Bar) 模式",
+  "charts.mode.candle": "K线 (Candle) 模式",
+  "charts.mode.hide": "隐藏价格模式"
 }

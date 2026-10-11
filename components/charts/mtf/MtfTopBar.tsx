@@ -30,15 +30,31 @@ import type { ComponentType } from 'react';
 
 import type { DrawingType } from '@/components/charts/drawing/types';
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/lib/context/locale-context';
 import { cn } from '@/lib/utils';
 import { MtfToggle } from './MtfToggle';
 
 export const INDICATOR_ITEMS = [
-  { id: 'EDT', label: 'EDT', fullName: 'Equal Distance Trendline' },
-  { id: 'SSA', label: 'SSA', fullName: 'Singular Spectrum Analysis' },
-  { id: 'FT', label: 'FT', fullName: 'Fractal' },
-  { id: 'SR', label: 'SR', fullName: 'Support and Resistant' },
-  { id: 'ZZ', label: 'ZZ', fullName: 'Zigzag' },
+  {
+    id: 'EDT',
+    label: 'EDT',
+    key: 'charts.indicator.edt',
+    fullName: 'Equal Distance Trendline',
+  },
+  {
+    id: 'SSA',
+    label: 'SSA',
+    key: 'charts.indicator.ssa',
+    fullName: 'Singular Spectrum Analysis',
+  },
+  { id: 'FT', label: 'FT', key: 'charts.indicator.ft', fullName: 'Fractal' },
+  {
+    id: 'SR',
+    label: 'SR',
+    key: 'charts.indicator.sr',
+    fullName: 'Support and Resistance',
+  },
+  { id: 'ZZ', label: 'ZZ', key: 'charts.indicator.zz', fullName: 'Zigzag' },
 ] as const;
 
 export type IndicatorId = (typeof INDICATOR_ITEMS)[number]['id'];
@@ -64,17 +80,53 @@ export interface MtfTopBarProps {
 interface ToolItem {
   id: DrawingType | null;
   icon: ComponentType<{ className?: string }>;
-  label: string;
+  key: string;
+  fallback: string;
 }
 
 const TOOLS: ToolItem[] = [
-  { id: null, icon: MousePointer2, label: 'Select / Cursor' },
-  { id: 'HLINE', icon: Minus, label: 'Horizontal Line' },
-  { id: 'TRENDLINE', icon: TrendingUp, label: 'Trendline' },
-  { id: 'CHANNEL', icon: Spline, label: 'Parallel Channel' },
-  { id: 'FIB_RETRACE', icon: Ruler, label: 'Fib Retracement' },
-  { id: 'FIB_EXT', icon: MoveDiagonal, label: 'Fib Extension' },
-  { id: 'TEXT', icon: Type, label: 'Text Note' },
+  {
+    id: null,
+    icon: MousePointer2,
+    key: 'charts.drawing.select_cursor',
+    fallback: 'Select / cursor',
+  },
+  {
+    id: 'HLINE',
+    icon: Minus,
+    key: 'charts.drawing.tool_hline',
+    fallback: 'Horizontal Line',
+  },
+  {
+    id: 'TRENDLINE',
+    icon: TrendingUp,
+    key: 'charts.drawing.tool_trendline',
+    fallback: 'Trendline',
+  },
+  {
+    id: 'CHANNEL',
+    icon: Spline,
+    key: 'charts.drawing.tool_channel',
+    fallback: 'Parallel Channel',
+  },
+  {
+    id: 'FIB_RETRACE',
+    icon: Ruler,
+    key: 'charts.drawing.tool_fib_retrace',
+    fallback: 'Fib Retracement',
+  },
+  {
+    id: 'FIB_EXT',
+    icon: MoveDiagonal,
+    key: 'charts.drawing.tool_fib_ext',
+    fallback: 'Fib Extension',
+  },
+  {
+    id: 'TEXT',
+    icon: Type,
+    key: 'charts.drawing.tool_text',
+    fallback: 'Text',
+  },
 ];
 
 export function MtfTopBar({
@@ -92,6 +144,8 @@ export function MtfTopBar({
   isTfLocked = false,
   onToggleTfLock,
 }: MtfTopBarProps): React.JSX.Element {
+  const { t } = useLocale();
+
   return (
     <div className="border-border/80 bg-card/60 backdrop-blur-xs scrollbar-none z-10 flex h-10 shrink-0 items-center justify-between gap-1.5 overflow-x-auto overflow-y-hidden border-b px-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {/* Component 7: Unified Horizontal Drawing Toolbar */}
@@ -99,6 +153,7 @@ export function MtfTopBar({
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
           const isActive = activeTool === tool.id;
+          const label = t(tool.key, tool.fallback);
           return (
             <Button
               key={tool.id ?? 'select'}
@@ -110,8 +165,8 @@ export function MtfTopBar({
                   'shadow-xs border border-[#2962FF] bg-[#2962FF]/20 font-bold text-[#2962FF] dark:text-blue-400'
               )}
               onClick={() => onSelectTool(tool.id)}
-              title={tool.label}
-              aria-label={tool.label}
+              title={label}
+              aria-label={label}
             >
               <Icon className="h-3.5 w-3.5" />
             </Button>
@@ -125,8 +180,11 @@ export function MtfTopBar({
               size="icon"
               className="hover:bg-destructive/15 h-7 w-7 rounded-md text-muted-foreground transition-all hover:text-destructive"
               onClick={onDeleteSelected}
-              title="Delete selected mark"
-              aria-label="Delete selected mark"
+              title={t('charts.drawing.delete_selected', 'Delete selected')}
+              aria-label={t(
+                'charts.drawing.delete_selected',
+                'Delete selected'
+              )}
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -140,6 +198,7 @@ export function MtfTopBar({
         <div className="border-border/70 bg-background/90 shadow-xs flex items-center gap-0.5 rounded-lg border p-0.5">
           {INDICATOR_ITEMS.map((ind) => {
             const isActive = activeIndicators.includes(ind.id);
+            const title = `${ind.id} : ${t(ind.key, ind.fullName)}`;
             return (
               <Button
                 key={ind.id}
@@ -152,8 +211,8 @@ export function MtfTopBar({
                     : 'hover:bg-muted/60 text-muted-foreground hover:text-foreground'
                 )}
                 onClick={() => onToggleIndicator?.(ind.id)}
-                title={`${ind.id} : ${ind.fullName}`}
-                aria-label={ind.fullName}
+                title={title}
+                aria-label={title}
                 aria-pressed={isActive}
               >
                 {ind.label}
@@ -176,10 +235,19 @@ export function MtfTopBar({
             onClick={onToggleTfLock}
             title={
               isTfLocked
-                ? 'Timeline Sync Active (M15 & M5 synced) - Click to unlock'
-                : 'Sync Timeline (M15 & M5) - Click to lock'
+                ? t(
+                    'charts.tf_sync.lock_active',
+                    'Timeline Sync Active (M15 & M5 synced) - Click to unlock'
+                  )
+                : t(
+                    'charts.tf_sync.unlock_inactive',
+                    'Sync Timeline (M15 & M5) - Click to lock'
+                  )
             }
-            aria-label="Toggle Timeframe Timeline Sync"
+            aria-label={t(
+              'charts.tf_sync.aria_label',
+              'Toggle Timeframe Timeline Sync'
+            )}
             aria-pressed={isTfLocked}
           >
             {isTfLocked ? (
@@ -205,8 +273,8 @@ export function MtfTopBar({
                 'shadow-xs border border-[#2962FF] bg-[#2962FF]/20 font-bold text-[#2962FF] dark:text-blue-400'
             )}
             onClick={() => onPriceModeChange('BAR')}
-            title="Price Bar Mode"
-            aria-label="Price Bar Mode"
+            title={t('charts.mode.bar', 'Price Bar Mode')}
+            aria-label={t('charts.mode.bar', 'Price Bar Mode')}
           >
             <BarChart2 className="h-3.5 w-3.5" />
           </Button>
@@ -219,8 +287,8 @@ export function MtfTopBar({
                 'shadow-xs border border-[#2962FF] bg-[#2962FF]/20 font-bold text-[#2962FF] dark:text-blue-400'
             )}
             onClick={() => onPriceModeChange('CANDLE')}
-            title="Price Candle Mode"
-            aria-label="Price Candle Mode"
+            title={t('charts.mode.candle', 'Price Candle Mode')}
+            aria-label={t('charts.mode.candle', 'Price Candle Mode')}
           >
             <CandlestickChart className="h-3.5 w-3.5" />
           </Button>
@@ -233,8 +301,8 @@ export function MtfTopBar({
                 'shadow-xs border border-[#2962FF] bg-[#2962FF]/20 font-bold text-[#2962FF] dark:text-blue-400'
             )}
             onClick={() => onPriceModeChange('HIDE')}
-            title="Hide Price Mode"
-            aria-label="Hide Price Mode"
+            title={t('charts.mode.hide', 'Hide Price Mode')}
+            aria-label={t('charts.mode.hide', 'Hide Price Mode')}
           >
             <EyeOff className="h-3.5 w-3.5" />
           </Button>

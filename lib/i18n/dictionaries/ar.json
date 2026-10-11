@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "يضيف مستشعر آخر تحذيراً إلى هذه القراءة: {state}.",
   "Market Context": "سياق السوق",
   "Monthly Token Quota": "الحصة الشهرية من الرموز",
-  "Ask": "اسأل"
+  "Ask": "اسأل",
+  "charts.indicator.edt": "خط الاتجاه متساوي الأبعاد (EDT)",
+  "charts.indicator.ssa": "تحليل الطيف المفرد (SSA)",
+  "charts.indicator.ft": "كسوري (FT)",
+  "charts.indicator.sr": "الدعم والمقاومة (SR)",
+  "charts.indicator.zz": "متعرج (ZZ)",
+  "charts.tf_sync.lock_active": "مزامنة المخطط الزمني نشطة (M15 و M5) - انقر لإلغاء القفل",
+  "charts.tf_sync.unlock_inactive": "مزامنة المخطط الزمني (M15 و M5) - انقر للقفل",
+  "charts.tf_sync.aria_label": "تبديل مزامنة المخطط الزمني للإطار الزمني",
+  "charts.mode.bar": "وضع أشرطة الأسعار",
+  "charts.mode.candle": "وضع الشموع اليابانية",
+  "charts.mode.hide": "وضع إخفاء السعر"
 }

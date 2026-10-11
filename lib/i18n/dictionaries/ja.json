@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "別のセンサーがこの読み取り結果に注意を加えています：{state}",
   "Market Context": "市場コンテキスト",
   "Monthly Token Quota": "月間トークン上限",
-  "Ask": "質問"
+  "Ask": "質問",
+  "charts.indicator.edt": "等距離トレンドライン (EDT)",
+  "charts.indicator.ssa": "特異スペクトル解析 (SSA)",
+  "charts.indicator.ft": "フラクタル (FT)",
+  "charts.indicator.sr": "サポート＆レジスタンス (SR)",
+  "charts.indicator.zz": "ジグザグ (ZZ)",
+  "charts.tf_sync.lock_active": "タイムライン同期中 (M15とM5同期) - クリックで解除",
+  "charts.tf_sync.unlock_inactive": "タイムライン同期 (M15とM5) - クリックで固定",
+  "charts.tf_sync.aria_label": "時間軸タイムライン同期の切替",
+  "charts.mode.bar": "バーチャート表示",
+  "charts.mode.candle": "ローソク足表示",
+  "charts.mode.hide": "価格を非表示"
 }

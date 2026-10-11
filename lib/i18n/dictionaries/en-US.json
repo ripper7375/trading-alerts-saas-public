@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "Another sensor adds caution to this reading: {state}.",
   "Market Context": "Market Context",
   "Monthly Token Quota": "Monthly Token Quota",
-  "Ask": "Ask"
+  "Ask": "Ask",
+  "charts.indicator.edt": "Equal Distance Trendline",
+  "charts.indicator.ssa": "Singular Spectrum Analysis",
+  "charts.indicator.ft": "Fractal",
+  "charts.indicator.sr": "Support and Resistance",
+  "charts.indicator.zz": "Zigzag",
+  "charts.tf_sync.lock_active": "Timeline Sync Active (M15 & M5 synced) - Click to unlock",
+  "charts.tf_sync.unlock_inactive": "Sync Timeline (M15 & M5) - Click to lock",
+  "charts.tf_sync.aria_label": "Toggle Timeframe Timeline Sync",
+  "charts.mode.bar": "Price Bar Mode",
+  "charts.mode.candle": "Price Candle Mode",
+  "charts.mode.hide": "Hide Price Mode"
 }

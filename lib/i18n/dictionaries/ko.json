@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "다른 센서가 이 판독값에 주의를 더합니다: {state}",
   "Market Context": "시장 맥락",
   "Monthly Token Quota": "월간 토큰 할당량",
-  "Ask": "질문"
+  "Ask": "질문",
+  "charts.indicator.edt": "등거리 추세선 (EDT)",
+  "charts.indicator.ssa": "특이 스펙트럼 분석 (SSA)",
+  "charts.indicator.ft": "프랙탈 (FT)",
+  "charts.indicator.sr": "지지 및 저항 (SR)",
+  "charts.indicator.zz": "지그재그 (ZZ)",
+  "charts.tf_sync.lock_active": "타임라인 동기화 활성 (M15 & M5) - 클릭하여 잠금 해제",
+  "charts.tf_sync.unlock_inactive": "타임라인 동기화 (M15 & M5) - 클릭하여 잠금",
+  "charts.tf_sync.aria_label": "시간대 타임라인 동기화 전환",
+  "charts.mode.bar": "바 차트 모드",
+  "charts.mode.candle": "캔들 차트 모드",
+  "charts.mode.hide": "가격 숨기기 모드"
 }

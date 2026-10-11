@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "एक और सेंसर इस रीडिंग में सावधानी जोड़ता है: {state}।",
   "Market Context": "बाजार संदर्भ",
   "Monthly Token Quota": "मासिक टोकन कोटा",
-  "Ask": "पूछें"
+  "Ask": "पूछें",
+  "charts.indicator.edt": "समान दूरी ट्रेंडलाइन (EDT)",
+  "charts.indicator.ssa": "एकल स्पेक्ट्रम विश्लेषण (SSA)",
+  "charts.indicator.ft": "फ्रैक्टल (FT)",
+  "charts.indicator.sr": "सपोर्ट और रेजिस्टेंस (SR)",
+  "charts.indicator.zz": "जिगज़ैग (ZZ)",
+  "charts.tf_sync.lock_active": "टाइमलाइन सिंक सक्रिय (M15 और M5) - अनलॉक करने के लिए क्लिक करें",
+  "charts.tf_sync.unlock_inactive": "टाइमलाइन सिंक करें (M15 और M5) - लॉक करने के लिए क्लिक करें",
+  "charts.tf_sync.aria_label": "टाइमफ्रेम टाइमलाइन सिंक टॉगल करें",
+  "charts.mode.bar": "प्राइस बार मोड",
+  "charts.mode.candle": "प्राइस कैंडल मोड",
+  "charts.mode.hide": "मूल्य छिपाएँ मोड"
 }

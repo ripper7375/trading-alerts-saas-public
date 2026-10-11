@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "Başka bir sensör bu okumaya temkin ekliyor: {state}.",
   "Market Context": "Piyasa Bağlamı",
   "Monthly Token Quota": "Aylık Token Kotası",
-  "Ask": "Sor"
+  "Ask": "Sor",
+  "charts.indicator.edt": "Eşit mesafeli trend çizgisi (EDT)",
+  "charts.indicator.ssa": "Tekil spektrum analizi (SSA)",
+  "charts.indicator.ft": "Fraktal (FT)",
+  "charts.indicator.sr": "Destek ve direnç (SR)",
+  "charts.indicator.zz": "Zigzag (ZZ)",
+  "charts.tf_sync.lock_active": "Zaman çizelgesi senkronizasyonu aktif (M15 & M5) - Kilidi açmak için tıklayın",
+  "charts.tf_sync.unlock_inactive": "Zaman çizelgesini senkronize et (M15 & M5) - Kilitlemek için tıklayın",
+  "charts.tf_sync.aria_label": "Zaman dilimi senkronizasyonunu aç/kapat",
+  "charts.mode.bar": "Fiyat çubuğu modu",
+  "charts.mode.candle": "Fiyat mumu modu",
+  "charts.mode.hide": "Fiyatı gizle modu"
 }

@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "ایک اور سینسر اس ریڈنگ میں احتیاط کا اضافہ کرتا ہے: {state}۔",
   "Market Context": "مارکیٹ سیاق و سباق",
   "Monthly Token Quota": "ماہانہ ٹوکن کوٹہ",
-  "Ask": "پوچھیں"
+  "Ask": "پوچھیں",
+  "charts.indicator.edt": "برابر فاصلے کا ٹرینڈ لائن (EDT)",
+  "charts.indicator.ssa": "واحد سپیکٹرم تجزیہ (SSA)",
+  "charts.indicator.ft": "فریکٹل (FT)",
+  "charts.indicator.sr": "سپورٹ اور مزاحمت (SR)",
+  "charts.indicator.zz": "زگ زیگ (ZZ)",
+  "charts.tf_sync.lock_active": "ٹائم لائن سنک فعال ہے (M15 اور M5) - انلاک کرنے کے لیے کلک کریں",
+  "charts.tf_sync.unlock_inactive": "ٹائم لائن سنک کریں (M15 اور M5) - لاک کرنے کے لیے کلک کریں",
+  "charts.tf_sync.aria_label": "ٹائم فریم ٹائم لائن سنک ٹوگل کریں",
+  "charts.mode.bar": "پرائس بار موڈ",
+  "charts.mode.candle": "پرائس کینڈل موڈ",
+  "charts.mode.hide": "قیمت چھپانے کا موڈ"
 }

@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "เซนเซอร์อีกตัวเพิ่มความระมัดระวังให้กับค่าที่อ่านได้นี้: {state}",
   "Market Context": "บริบทตลาด",
   "Monthly Token Quota": "โควต้าโทเค็นประจำเดือน",
-  "Ask": "ถาม"
+  "Ask": "ถาม",
+  "charts.indicator.edt": "เส้นแนวโน้มระยะเท่ากัน (Equal Distance Trendline)",
+  "charts.indicator.ssa": "การวิเคราะห์สเปกตรัมเอกฐาน (SSA)",
+  "charts.indicator.ft": "แฟร็กทัล (Fractal)",
+  "charts.indicator.sr": "แนวรับแนวต้าน (Support & Resistance)",
+  "charts.indicator.zz": "ซิกแซก (Zigzag)",
+  "charts.tf_sync.lock_active": "เปิดการซิงค์แกนเวลาอยู่ (M15 และ M5 ซิงค์กัน) - คลิกเพื่อปลดล็อก",
+  "charts.tf_sync.unlock_inactive": "ซิงค์แกนเวลา (M15 และ M5) - คลิกเพื่อล็อก",
+  "charts.tf_sync.aria_label": "สลับการซิงค์แกนเวลาระหว่างไทม์เฟรม",
+  "charts.mode.bar": "โหมดแท่งราคา (Bar)",
+  "charts.mode.candle": "โหมดแท่งเทียน (Candle)",
+  "charts.mode.hide": "โหมดซ่อนราคา (แสดงเฉพาะอินดิเคเตอร์)"
 }

@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "Un altro sensore aggiunge cautela a questa lettura: {state}.",
   "Market Context": "Contesto di mercato",
   "Monthly Token Quota": "Quota mensile di token",
-  "Ask": "Chiedi a"
+  "Ask": "Chiedi a",
+  "charts.indicator.edt": "Linea di tendenza equidistante (EDT)",
+  "charts.indicator.ssa": "Analisi dello spettro singolare (SSA)",
+  "charts.indicator.ft": "Frattale (FT)",
+  "charts.indicator.sr": "Supporto e resistenza (SR)",
+  "charts.indicator.zz": "Zigzag (ZZ)",
+  "charts.tf_sync.lock_active": "Sincronizzazione attiva (M15 e M5 sincronizzati) - Clicca per sbloccare",
+  "charts.tf_sync.unlock_inactive": "Sincronizza timeline (M15 e M5) - Clicca per bloccare",
+  "charts.tf_sync.aria_label": "Attiva/disattiva sincronizzazione timeframe",
+  "charts.mode.bar": "Modalità barra prezzo",
+  "charts.mode.candle": "Modalità candela prezzo",
+  "charts.mode.hide": "Modalità nascondi prezzo"
 }

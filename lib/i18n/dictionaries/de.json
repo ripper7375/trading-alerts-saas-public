@@ -5019,5 +5019,16 @@
   "intake.reason.modifier_caution": "Ein weiterer Sensor mahnt bei diesem Messwert zur Vorsicht: {state}.",
   "Market Context": "Marktkontext",
   "Monthly Token Quota": "Monatliches Token-Kontingent",
-  "Ask": "Frage an"
+  "Ask": "Frage an",
+  "charts.indicator.edt": "Äquidistante Trendlinie (EDT)",
+  "charts.indicator.ssa": "Singuläre Spektralanalyse (SSA)",
+  "charts.indicator.ft": "Fraktal (FT)",
+  "charts.indicator.sr": "Unterstützung und Widerstand (SR)",
+  "charts.indicator.zz": "Zickzack (ZZ)",
+  "charts.tf_sync.lock_active": "Zeitleisten-Synchronisation aktiv (M15 & M5) - Klicken zum Entsperren",
+  "charts.tf_sync.unlock_inactive": "Zeitleiste synchronisieren (M15 & M5) - Klicken zum Sperren",
+  "charts.tf_sync.aria_label": "Zeitrahmen-Synchronisation umschalten",
+  "charts.mode.bar": "Preisbalken-Modus",
+  "charts.mode.candle": "Kerzen-Modus",
+  "charts.mode.hide": "Preise ausblenden"
 }
