@@ -3455,7 +3455,7 @@
   "charts.line_width": "Grosor de línea",
   "charts.live": "En vivo",
   "charts.loading_ellipsis": "Cargando…",
-  "charts.m5_overlay": "Superposición M5",
+  "charts.m5_overlay": "Overlay M5",
   "charts.mtf_hide": "Ocultar la superposición del canal equidistante M5",
   "charts.mtf_pro_hint": "La visualización multi-marco temporal es una función PRO: mejora para desbloquearla",
   "charts.mtf_show": "Superponer el canal equidistante M5 en este gráfico",

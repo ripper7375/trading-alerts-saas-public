@@ -1356,7 +1356,7 @@
   "charts.line_width": "Épaisseur de ligne",
   "charts.live": "En direct",
   "charts.loading_ellipsis": "Chargement…",
-  "charts.m5_overlay": "Superposition M5",
+  "charts.m5_overlay": "Overlay M5",
   "charts.mtf_hide": "Masquer la superposition du canal équidistant M5",
   "charts.mtf_pro_hint": "La visualisation multi-unités de temps est une fonctionnalité PRO — passez à PRO pour la débloquer",
   "charts.mtf_show": "Superposer le canal équidistant M5 sur ce graphique",

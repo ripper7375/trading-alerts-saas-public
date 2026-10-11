@@ -3455,7 +3455,7 @@
   "charts.line_width": "Espessura da linha",
   "charts.live": "Em direto",
   "charts.loading_ellipsis": "A carregar…",
-  "charts.m5_overlay": "Sobreposição M5",
+  "charts.m5_overlay": "Overlay M5",
   "charts.mtf_hide": "Ocultar a sobreposição do canal equidistante M5",
   "charts.mtf_pro_hint": "A visualização de vários períodos é uma funcionalidade PRO — atualize para desbloquear",
   "charts.mtf_show": "Sobrepor o canal equidistante M5 a este gráfico",
