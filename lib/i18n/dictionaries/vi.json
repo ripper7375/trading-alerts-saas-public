@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "Chỉ số chất lượng EDT",
   "comments.free_tier_unavailable": "không khả dụng cho Gói FREE",
   "Read-Only (FREE Tier)": "Chỉ đọc (Gói FREE)",
-  "Upgrade to PRO to interact with the AI Analyst.": "Nâng cấp lên PRO để tương tác với Chuyên gia AI."
+  "Upgrade to PRO to interact with the AI Analyst.": "Nâng cấp lên PRO để tương tác với Chuyên gia AI.",
+  "Interactive AI Analyst": "Nhà phân tích AI tương tác",
+  "Interactive AI Analyst (500k Tokens/Mo)": "Nhà phân tích AI tương tác (500k Token/tháng)",
+  "Read-Only AI Analyst (Chat Locked)": "Nhà phân tích AI chỉ đọc (Khóa trò chuyện)",
+  "charts.instant_prompt_analyze": "Phân tích bối cảnh thị trường và cấu trúc của {symbol} {timeframe}.",
+  "charts.instant_prompt_title": "Gợi ý nhanh cho trò chuyện AI"
 }

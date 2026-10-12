@@ -53,6 +53,21 @@ export function TierComparison(): React.ReactElement {
       pro: `${PRO_TIER_CONFIG.maxAlerts} ${t('Active Alerts')}`,
     },
     {
+      name: t('Interactive AI Analyst'),
+      free: false,
+      pro: true,
+    },
+    {
+      name: t('Monthly AI Token Quota'),
+      free: `${FREE_TIER_CONFIG.aiMonthlyTokenQuota.toLocaleString()}`,
+      pro: `${PRO_TIER_CONFIG.aiMonthlyTokenQuota.toLocaleString()}`,
+    },
+    {
+      name: t('Live Market Comments & WebSocket Feed'),
+      free: false,
+      pro: true,
+    },
+    {
       name: t('Drawing-Engine Line Alerts'),
       free: false,
       pro: true,
@@ -191,6 +206,10 @@ export function TierComparison(): React.ReactElement {
               </li>
               <li className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
                 <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
+                {t('Read-Only AI Analyst (Chat Locked)')}
+              </li>
+              <li className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
                 {t('0 Active Alerts (PRO Exclusive)')}
               </li>
               <li className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
@@ -261,6 +280,14 @@ export function TierComparison(): React.ReactElement {
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}
                 {`${PRO_TIER_CONFIG.maxAlerts} ${t('Server-Side Price & Line Alert Rules')}`}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}
+                {t('Interactive AI Analyst (500k Tokens/Mo)')}
+              </li>
+              <li className="flex items-center gap-2">
+                <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}
+                {t('Live Market Comments & WebSocket Feed')}
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}

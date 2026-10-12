@@ -3702,7 +3702,7 @@
   "Live Alerts": "Live Alerts",
   "Live Conversational AI Support": "Support IA conversationnel en direct",
   "Live Feeds & Quality Metrics": "Live Feeds & Quality Metrics",
-  "Live Market Comments & WebSocket Feed": "Live Market Comments & WebSocket Feed",
+  "Live Market Comments & WebSocket Feed": "Commentaires du marché en direct et flux WebSocket",
   "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.": "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.",
   "Live Signal Alerts, System Announcements & Security Events": "Alertes de signaux en direct, annonces système et événements de sécurité",
   "Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats": "Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats",
@@ -3778,7 +3778,7 @@
   "Minimum Payout Threshold (USD)": "Minimum Payout Threshold (USD)",
   "Month Period": "Month Period",
   "Monthly AI Token Allocation": "Monthly AI Token Allocation",
-  "Monthly AI Token Quota": "Monthly AI Token Quota",
+  "Monthly AI Token Quota": "Quota mensuel de jetons IA",
   "Monthly Disbursement Day": "Monthly Disbursement Day",
   "Monthly Recurring Revenue": "Monthly Recurring Revenue",
   "Monthly Subscription Price ($)": "Monthly Subscription Price ($)",
@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "Métriques de qualité EDT",
   "comments.free_tier_unavailable": "ne sont pas disponibles pour le forfait FREE",
   "Read-Only (FREE Tier)": "Lecture seule (Forfait FREE)",
-  "Upgrade to PRO to interact with the AI Analyst.": "Passez à PRO pour interagir avec l'AI Analyst."
+  "Upgrade to PRO to interact with the AI Analyst.": "Passez à PRO pour interagir avec l'AI Analyst.",
+  "Interactive AI Analyst": "Analyste IA interactif",
+  "Interactive AI Analyst (500k Tokens/Mo)": "Analyste IA interactif (500k jetons/mois)",
+  "Read-Only AI Analyst (Chat Locked)": "Analyste IA en lecture seule (chat verrouillé)",
+  "charts.instant_prompt_analyze": "Analyser le contexte de marché et la structure de {symbol} {timeframe}.",
+  "charts.instant_prompt_title": "Prompt instantané pour le chat IA"
 }

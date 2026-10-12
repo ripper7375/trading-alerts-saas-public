@@ -245,6 +245,17 @@ export function MtfStackedCharts({
     }
   }, []);
 
+  const getInstantPrompt = useCallback(
+    (tf: string) =>
+      t(
+        'charts.instant_prompt_analyze',
+        'Analyse {symbol} {timeframe} market context and structure.'
+      )
+        .replace('{symbol}', symbol)
+        .replace('{timeframe}', tf),
+    [t, symbol]
+  );
+
   /**
    * Observe the panels container box to size the chart canvases accurately.
    */
@@ -345,39 +356,47 @@ export function MtfStackedCharts({
                 priceMode={upperPriceMode}
                 externalMtfEnabled={mtfEnabled}
                 watermark={!isPro ? 'DavinTrade' : undefined}
+                watermarkSubtext={
+                  !isPro ? `${symbol} ${upperTimeframe}` : undefined
+                }
                 overlayBadge={
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onAskAi?.(
-                        `Analyze ${symbol} ${upperTimeframe} market context and structure.`
-                      )
-                    }
-                    title="Instant prompt to AI chat"
-                    className={cn(
-                      'shadow-xs backdrop-blur-xs group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all active:scale-95',
-                      activePanel === 'upper'
-                        ? 'border-amber-500/70 bg-amber-500/10 ring-1 ring-amber-500/30'
-                        : 'border-border/80 bg-background/90 hover:bg-muted/80 hover:border-amber-500/50'
-                    )}
-                  >
-                    <Avatar className="h-4 w-4 border border-amber-400/80">
-                      <AvatarImage
-                        src="/DavinTrade_Logo.jpg"
-                        alt="DavinTrade"
-                      />
-                      <AvatarFallback className="text-[9px]">DT</AvatarFallback>
-                    </Avatar>
-                    <span className="font-mono text-xs font-semibold text-foreground">
-                      {symbol} · {upperTimeframe}
-                    </span>
-                    <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
-                      {t('Market Context')}
-                    </span>
-                    {activePanel === 'upper' && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                    )}
-                  </button>
+                  isPro ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onAskAi?.(getInstantPrompt(upperTimeframe))
+                      }
+                      title={t(
+                        'charts.instant_prompt_title',
+                        'Instant prompt to AI chat'
+                      )}
+                      className={cn(
+                        'shadow-xs backdrop-blur-xs group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all active:scale-95',
+                        activePanel === 'upper'
+                          ? 'border-amber-500/70 bg-amber-500/10 ring-1 ring-amber-500/30'
+                          : 'border-border/80 bg-background/90 hover:bg-muted/80 hover:border-amber-500/50'
+                      )}
+                    >
+                      <Avatar className="h-4 w-4 border border-amber-400/80">
+                        <AvatarImage
+                          src="/DavinTrade_Logo.jpg"
+                          alt="DavinTrade"
+                        />
+                        <AvatarFallback className="text-[9px]">
+                          DT
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-mono text-xs font-semibold text-foreground">
+                        {symbol} · {upperTimeframe}
+                      </span>
+                      <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
+                        {t('Market Context')}
+                      </span>
+                      {activePanel === 'upper' && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      )}
+                    </button>
+                  ) : undefined
                 }
                 label={`${symbol} · ${upperTimeframe}`}
               />
@@ -430,16 +449,20 @@ export function MtfStackedCharts({
                 }}
                 priceMode={lowerPriceMode}
                 watermark={!isPro ? 'DavinTrade' : undefined}
+                watermarkSubtext={
+                  !isPro ? `${symbol} ${lowerTimeframe}` : undefined
+                }
                 overlayBadge={
-                  <div className="flex flex-wrap items-center gap-2">
+                  isPro ? (
                     <button
                       type="button"
                       onClick={() =>
-                        onAskAi?.(
-                          `Analyze ${symbol} ${lowerTimeframe} market context and structure.`
-                        )
+                        onAskAi?.(getInstantPrompt(lowerTimeframe))
                       }
-                      title="Instant prompt to AI chat"
+                      title={t(
+                        'charts.instant_prompt_title',
+                        'Instant prompt to AI chat'
+                      )}
                       className={cn(
                         'shadow-xs backdrop-blur-xs group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all active:scale-95',
                         activePanel === 'lower'
@@ -466,36 +489,36 @@ export function MtfStackedCharts({
                         <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                       )}
                     </button>
-
-                    {!isPro && (
-                      <div
-                        data-testid="free-tier-tools-banner"
-                        className="shadow-xs backdrop-blur-xs flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-foreground"
-                      >
-                        <Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                        <span className="text-[11px] font-medium">
-                          {t(
-                            'charts.free_tier_tools_notice',
-                            'Drawing and Indicator Tools are unavailable for FREE Tier'
-                          )}
-                        </span>
-                        <Link
-                          href="/pricing"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                          className="shadow-xs h-5.5 inline-flex items-center gap-1 rounded bg-amber-500 px-2 text-[10px] font-bold text-slate-950 transition-colors hover:bg-amber-400"
-                        >
-                          <Sparkles className="h-2.5 w-2.5 fill-slate-950" />
-                          <span>
-                            {t('dashboard.upgrade_to_pro', 'Upgrade to PRO')}
-                          </span>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
+                  ) : undefined
                 }
                 label={`${symbol} · ${lowerTimeframe}`}
               />
+
+              {!isPro && (
+                <div
+                  data-testid="free-tier-tools-banner"
+                  className="shadow-xs backdrop-blur-xs pointer-events-auto absolute left-1/2 top-2.5 z-20 flex -translate-x-1/2 items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-foreground"
+                >
+                  <Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  <span className="text-[11px] font-medium">
+                    {t(
+                      'charts.free_tier_tools_notice',
+                      'Drawing and Indicator Tools are unavailable for FREE Tier'
+                    )}
+                  </span>
+                  <Link
+                    href="/pricing"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => e.stopPropagation()}
+                    className="shadow-xs h-5.5 inline-flex items-center gap-1 rounded bg-amber-500 px-2 text-[10px] font-bold text-slate-950 transition-colors hover:bg-amber-400"
+                  >
+                    <Sparkles className="h-2.5 w-2.5 fill-slate-950" />
+                    <span>
+                      {t('dashboard.upgrade_to_pro', 'Upgrade to PRO')}
+                    </span>
+                  </Link>
+                </div>
+              )}
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>

@@ -1745,7 +1745,7 @@
   "Live Alerts": "Live Alerts",
   "Live Conversational AI Support": "دعم مباشر بالذكاء الاصطناعي للمحادثة",
   "Live Feeds & Quality Metrics": "Live Feeds & Quality Metrics",
-  "Live Market Comments & WebSocket Feed": "Live Market Comments & WebSocket Feed",
+  "Live Market Comments & WebSocket Feed": "تعليقات السوق المباشرة وموجز WebSocket",
   "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.": "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.",
   "Live Signal Alerts, System Announcements & Security Events": "تنبيهات الإشارات الحية وإعلانات النظام والأحداث الأمنية",
   "Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats": "Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats",
@@ -1829,7 +1829,7 @@
   "Monitor alert execution velocity and historical triggers in /alerts.": "راقب سرعة تنفيذ التنبيهات والمحفزات السابقة من /alerts.",
   "Month Period": "Month Period",
   "Monthly AI Token Allocation": "Monthly AI Token Allocation",
-  "Monthly AI Token Quota": "Monthly AI Token Quota",
+  "Monthly AI Token Quota": "الحصة الشهرية لرموز الذكاء الاصطناعي",
   "Monthly Disbursement Day": "Monthly Disbursement Day",
   "Monthly Subscription Price ($)": "Monthly Subscription Price ($)",
   "Most recent disbursement transactions for this affiliate": "Most recent disbursement transactions for this affiliate",
@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "مقاييس جودة EDT",
   "comments.free_tier_unavailable": "غير متوفرة في باقة FREE",
   "Read-Only (FREE Tier)": "للقراءة فقط (باقة FREE)",
-  "Upgrade to PRO to interact with the AI Analyst.": "قم بالترقية إلى PRO للتفاعل مع محلل الذكاء الاصطناعي."
+  "Upgrade to PRO to interact with the AI Analyst.": "قم بالترقية إلى PRO للتفاعل مع محلل الذكاء الاصطناعي.",
+  "Interactive AI Analyst": "محلل الذكاء الاصطناعي التفاعلي",
+  "Interactive AI Analyst (500k Tokens/Mo)": "محلل الذكاء الاصطناعي التفاعلي (500 ألف رمز/شهر)",
+  "Read-Only AI Analyst (Chat Locked)": "محلل الذكاء الاصطناعي للقراءة فقط (الدردشة مقفلة)",
+  "charts.instant_prompt_analyze": "تحليل سياق السوق وهيكله لـ {symbol} {timeframe}.",
+  "charts.instant_prompt_title": "أمر فوري لمحادثة الذكاء الاصطناعي"
 }

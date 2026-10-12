@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "EDT Kalite Ölçütleri",
   "comments.free_tier_unavailable": "FREE Planı için kullanılamaz",
   "Read-Only (FREE Tier)": "Salt Okunur (FREE Paket)",
-  "Upgrade to PRO to interact with the AI Analyst.": "AI Analyst ile etkileşim kurmak için PRO'ya yükseltin."
+  "Upgrade to PRO to interact with the AI Analyst.": "AI Analyst ile etkileşim kurmak için PRO'ya yükseltin.",
+  "Interactive AI Analyst": "Etkileşimli Yapay Zeka Analisti",
+  "Interactive AI Analyst (500k Tokens/Mo)": "Etkileşimli Yapay Zeka Analisti (500k Jeton/Ay)",
+  "Read-Only AI Analyst (Chat Locked)": "Yalnızca Okunabilir Yapay Zeka Analisti (Sohbet Kilitli)",
+  "charts.instant_prompt_analyze": "{symbol} {timeframe} piyasa bağlamını ve yapısını analiz et.",
+  "charts.instant_prompt_title": "AI sohbeti için anlık komut istemi"
 }

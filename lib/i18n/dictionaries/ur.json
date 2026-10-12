@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "EDT معیار کے پیمانے",
   "comments.free_tier_unavailable": "FREE پلان کے لیے دستیاب نہیں ہیں",
   "Read-Only (FREE Tier)": "صرف پڑھنے کے قابل (FREE پلان)",
-  "Upgrade to PRO to interact with the AI Analyst.": "AI تجزیہ کار سے بات چیت کرنے کے لیے PRO میں اپ گریڈ کریں۔"
+  "Upgrade to PRO to interact with the AI Analyst.": "AI تجزیہ کار سے بات چیت کرنے کے لیے PRO میں اپ گریڈ کریں۔",
+  "Interactive AI Analyst": "انٹرایکٹو اے آئی تجزیہ کار",
+  "Interactive AI Analyst (500k Tokens/Mo)": "انٹرایکٹو اے آئی تجزیہ کار (500k ٹوکن/ماہ)",
+  "Read-Only AI Analyst (Chat Locked)": "صرف پڑھنے کے لیے اے آئی تجزیہ کار (چیٹ مقفل)",
+  "charts.instant_prompt_analyze": "{symbol} {timeframe} کے مارکیٹ سیاق و سباق اور ساخت کا تجزیہ کریں۔",
+  "charts.instant_prompt_title": "AI چیٹ کے لیے فوری پرامپٹ"
 }

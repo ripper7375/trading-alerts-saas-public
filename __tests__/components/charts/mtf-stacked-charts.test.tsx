@@ -407,4 +407,37 @@ describe('MtfStackedCharts indicators and Padlock TF sync', () => {
     fireEvent.click(padlockBtn);
     expect(padlockBtn).toHaveAttribute('aria-pressed', 'false');
   });
+
+  it('renders localized instant prompt buttons for PRO and triggers onAskAi', () => {
+    const handleAskAi = jest.fn();
+    render(
+      <MtfStackedCharts symbol="XAUUSD" isPro={true} onAskAi={handleAskAi} />
+    );
+
+    const promptButtons = screen.getAllByTitle('Instant prompt to AI chat');
+    expect(promptButtons).toHaveLength(2);
+
+    // Click upper prompt button (M15)
+    fireEvent.click(promptButtons[0]);
+    expect(handleAskAi).toHaveBeenCalledWith(
+      'Analyse XAUUSD M15 market context and structure.'
+    );
+
+    // Click lower prompt button (M5)
+    fireEvent.click(promptButtons[1]);
+    expect(handleAskAi).toHaveBeenCalledWith(
+      'Analyse XAUUSD M5 market context and structure.'
+    );
+  });
+
+  it('does not render instant prompt buttons for FREE tier users', () => {
+    const handleAskAi = jest.fn();
+    render(
+      <MtfStackedCharts symbol="XAUUSD" isPro={false} onAskAi={handleAskAi} />
+    );
+
+    expect(
+      screen.queryByTitle('Instant prompt to AI chat')
+    ).not.toBeInTheDocument();
+  });
 });

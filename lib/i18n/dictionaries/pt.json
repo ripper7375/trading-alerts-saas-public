@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "Métricas de qualidade EDT",
   "comments.free_tier_unavailable": "não estão disponíveis no plano FREE",
   "Read-Only (FREE Tier)": "Apenas leitura (Plano FREE)",
-  "Upgrade to PRO to interact with the AI Analyst.": "Mude para PRO para interagir com o AI Analyst."
+  "Upgrade to PRO to interact with the AI Analyst.": "Mude para PRO para interagir com o AI Analyst.",
+  "Interactive AI Analyst": "Analista de IA interativo",
+  "Interactive AI Analyst (500k Tokens/Mo)": "Analista de IA interativo (500k tokens/mês)",
+  "Read-Only AI Analyst (Chat Locked)": "Analista de IA somente leitura (chat bloqueado)",
+  "charts.instant_prompt_analyze": "Analisar o contexto de mercado e a estrutura de {symbol} {timeframe}.",
+  "charts.instant_prompt_title": "Prompt instantâneo para o chat de IA"
 }

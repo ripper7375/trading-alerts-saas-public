@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "EDT गुणवत्ता मेट्रिक्स",
   "comments.free_tier_unavailable": "FREE टियर के लिए उपलब्ध नहीं हैं",
   "Read-Only (FREE Tier)": "केवल-पढ़ने योग्य (FREE योजना)",
-  "Upgrade to PRO to interact with the AI Analyst.": "AI विश्लेषक के साथ बातचीत करने के लिए PRO पर अपग्रेड करें।"
+  "Upgrade to PRO to interact with the AI Analyst.": "AI विश्लेषक के साथ बातचीत करने के लिए PRO पर अपग्रेड करें।",
+  "Interactive AI Analyst": "इंटरएक्टिव एआई विश्लेषक",
+  "Interactive AI Analyst (500k Tokens/Mo)": "इंटरएक्टिव एआई विश्लेषक (500k टोकन/माह)",
+  "Read-Only AI Analyst (Chat Locked)": "केवल पढ़ने योग्य एआई विश्लेषक (चैट लॉक)",
+  "charts.instant_prompt_analyze": "{symbol} {timeframe} के बाजार संदर्भ और संरचना का विश्लेषण करें।",
+  "charts.instant_prompt_title": "AI चैट के लिए त्वरित प्रॉम्प्ट"
 }

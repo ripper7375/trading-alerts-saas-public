@@ -64,6 +64,8 @@ interface TradingChartProps {
   onChartReady?: (chart: IChartApi | null) => void;
   /** Background watermark text (e.g. "DavinTrade") */
   watermark?: string;
+  /** Background secondary watermark text (e.g. "XAUUSD M15") */
+  watermarkSubtext?: string;
 }
 
 /** lightweight-charts renders to a <canvas> -- it can't read CSS custom
@@ -118,6 +120,7 @@ export function TradingChart({
   externalMtfEnabled,
   onChartReady,
   watermark,
+  watermarkSubtext,
 }: TradingChartProps): React.JSX.Element {
   const { t } = useLocale();
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -458,11 +461,25 @@ export function TradingChart({
         {watermark && (
           <div
             data-slot="chart-watermark"
-            className="pointer-events-none absolute inset-0 z-10 flex select-none items-center justify-center"
+            className="pointer-events-none absolute inset-0 z-10 flex select-none flex-col items-center justify-center text-center"
           >
-            <span className="font-sans text-5xl font-bold tracking-widest text-slate-400/40 dark:text-slate-500/35 sm:text-6xl md:text-7xl">
-              {watermark}
-            </span>
+            {watermark.split('\n').map((line, idx) => (
+              <span
+                key={idx}
+                className={
+                  idx === 0
+                    ? 'font-sans text-5xl font-bold tracking-widest text-slate-400/40 dark:text-slate-500/35 sm:text-6xl md:text-7xl'
+                    : 'mt-1 font-sans text-4xl font-bold tracking-widest text-slate-400/40 dark:text-slate-500/35 sm:text-5xl md:text-6xl'
+                }
+              >
+                {line}
+              </span>
+            ))}
+            {watermarkSubtext && (
+              <span className="mt-1 font-sans text-4xl font-bold tracking-widest text-slate-400/40 dark:text-slate-500/35 sm:text-5xl md:text-6xl">
+                {watermarkSubtext}
+              </span>
+            )}
           </div>
         )}
         {overlayBadge && (

@@ -3702,7 +3702,7 @@
   "Live Alerts": "Live Alerts",
   "Live Conversational AI Support": "实时对话 AI 支持",
   "Live Feeds & Quality Metrics": "Live Feeds & Quality Metrics",
-  "Live Market Comments & WebSocket Feed": "Live Market Comments & WebSocket Feed",
+  "Live Market Comments & WebSocket Feed": "实时市场评论与 WebSocket 推送",
   "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.": "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.",
   "Live Signal Alerts, System Announcements & Security Events": "实时信号提醒、系统公告与安全事件",
   "Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats": "Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats",
@@ -3778,7 +3778,7 @@
   "Minimum Payout Threshold (USD)": "Minimum Payout Threshold (USD)",
   "Month Period": "Month Period",
   "Monthly AI Token Allocation": "Monthly AI Token Allocation",
-  "Monthly AI Token Quota": "Monthly AI Token Quota",
+  "Monthly AI Token Quota": "每月 AI Token 配额",
   "Monthly Disbursement Day": "Monthly Disbursement Day",
   "Monthly Recurring Revenue": "Monthly Recurring Revenue",
   "Monthly Subscription Price ($)": "Monthly Subscription Price ($)",
@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "EDT 质量指标",
   "comments.free_tier_unavailable": "在 FREE 方案中不可用",
   "Read-Only (FREE Tier)": "只读（免费版）",
-  "Upgrade to PRO to interact with the AI Analyst.": "升级到 PRO 以与 AI 分析师互动。"
+  "Upgrade to PRO to interact with the AI Analyst.": "升级到 PRO 以与 AI 分析师互动。",
+  "Interactive AI Analyst": "交互式 AI 分析师",
+  "Interactive AI Analyst (500k Tokens/Mo)": "交互式 AI 分析师（50万 Token/月）",
+  "Read-Only AI Analyst (Chat Locked)": "只读 AI 分析师（聊天已锁定）",
+  "charts.instant_prompt_analyze": "分析 {symbol} {timeframe} 市场背景与结构。",
+  "charts.instant_prompt_title": "AI 对话即时提示"
 }

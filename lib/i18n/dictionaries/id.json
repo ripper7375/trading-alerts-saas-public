@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "Metrik Kualitas EDT",
   "comments.free_tier_unavailable": "tidak tersedia untuk Paket FREE",
   "Read-Only (FREE Tier)": "Hanya-baca (Paket FREE)",
-  "Upgrade to PRO to interact with the AI Analyst.": "Tingkatkan ke PRO untuk berinteraksi dengan AI Analyst."
+  "Upgrade to PRO to interact with the AI Analyst.": "Tingkatkan ke PRO untuk berinteraksi dengan AI Analyst.",
+  "Interactive AI Analyst": "Analis AI Interaktif",
+  "Interactive AI Analyst (500k Tokens/Mo)": "Analis AI Interaktif (500k Token/Bulan)",
+  "Read-Only AI Analyst (Chat Locked)": "Analis AI Hanya-Baca (Obrolan Terkunci)",
+  "charts.instant_prompt_analyze": "Analisis konteks pasar dan struktur {symbol} {timeframe}.",
+  "charts.instant_prompt_title": "Prompt instan ke obrolan AI"
 }

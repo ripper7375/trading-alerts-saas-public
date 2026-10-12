@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "EDT品質メトリクス",
   "comments.free_tier_unavailable": "はFREEプランではご利用いただけません",
   "Read-Only (FREE Tier)": "閲覧のみ（FREEプラン）",
-  "Upgrade to PRO to interact with the AI Analyst.": "AIアナリストと対話するにはPROへアップグレードしてください。"
+  "Upgrade to PRO to interact with the AI Analyst.": "AIアナリストと対話するにはPROへアップグレードしてください。",
+  "Interactive AI Analyst": "対話型AIアナリスト",
+  "Interactive AI Analyst (500k Tokens/Mo)": "対話型AIアナリスト（月間50万トークン）",
+  "Read-Only AI Analyst (Chat Locked)": "閲覧専用AIアナリスト（チャットロック中）",
+  "charts.instant_prompt_analyze": "{symbol} {timeframe}の市場コンテキストと構造を分析してください。",
+  "charts.instant_prompt_title": "AIチャットへのインスタントプロンプト"
 }

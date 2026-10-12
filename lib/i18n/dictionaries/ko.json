@@ -3702,7 +3702,7 @@
   "Live Alerts": "Live Alerts",
   "Live Conversational AI Support": "실시간 대화형 AI 지원",
   "Live Feeds & Quality Metrics": "Live Feeds & Quality Metrics",
-  "Live Market Comments & WebSocket Feed": "Live Market Comments & WebSocket Feed",
+  "Live Market Comments & WebSocket Feed": "실시간 시장 코멘트 및 WebSocket 피드",
   "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.": "Live Market Comments, Session Countdowns, Gauges, and EDT Quality Metrics require a PRO subscription. Upgrade to unlock real-time WebSocket feeds for XAUUSD.",
   "Live Signal Alerts, System Announcements & Security Events": "실시간 신호 알림, 시스템 공지 및 보안 이벤트",
   "Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats": "Live Socket Nodes, Broker Feed Connections & Sub-Millisecond Heartbeats",
@@ -3778,7 +3778,7 @@
   "Minimum Payout Threshold (USD)": "Minimum Payout Threshold (USD)",
   "Month Period": "Month Period",
   "Monthly AI Token Allocation": "Monthly AI Token Allocation",
-  "Monthly AI Token Quota": "Monthly AI Token Quota",
+  "Monthly AI Token Quota": "월간 AI 토큰 할당량",
   "Monthly Disbursement Day": "Monthly Disbursement Day",
   "Monthly Recurring Revenue": "Monthly Recurring Revenue",
   "Monthly Subscription Price ($)": "Monthly Subscription Price ($)",
@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "EDT 품질 지표",
   "comments.free_tier_unavailable": "은 FREE 요금제에서 사용할 수 없습니다",
   "Read-Only (FREE Tier)": "읽기 전용 (무료 티어)",
-  "Upgrade to PRO to interact with the AI Analyst.": "AI 애널리스트와 대화하려면 PRO로 업그레이드하세요."
+  "Upgrade to PRO to interact with the AI Analyst.": "AI 애널리스트와 대화하려면 PRO로 업그레이드하세요.",
+  "Interactive AI Analyst": "대화형 AI 분석가",
+  "Interactive AI Analyst (500k Tokens/Mo)": "대화형 AI 분석가 (월 50만 토큰)",
+  "Read-Only AI Analyst (Chat Locked)": "읽기 전용 AI 분석가 (채팅 잠김)",
+  "charts.instant_prompt_analyze": "{symbol} {timeframe} 시장 맥락 및 구조 분석.",
+  "charts.instant_prompt_title": "AI 채팅 즉시 프롬프트"
 }

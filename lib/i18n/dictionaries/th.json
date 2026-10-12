@@ -5040,5 +5040,10 @@
   "comments.free_tier_feature_6": "ตัวชี้วัดคุณภาพ EDT",
   "comments.free_tier_unavailable": "ไม่สามารถใช้งานได้ในแพ็กเกจฟรี",
   "Read-Only (FREE Tier)": "อ่านอย่างเดียว (แพ็กเกจ FREE)",
-  "Upgrade to PRO to interact with the AI Analyst.": "อัปเกรดเป็น PRO เพื่อสนทนากับ AI Analyst"
+  "Upgrade to PRO to interact with the AI Analyst.": "อัปเกรดเป็น PRO เพื่อสนทนากับ AI Analyst",
+  "Interactive AI Analyst": "นักวิเคราะห์ AI เชิงโต้ตอบ",
+  "Interactive AI Analyst (500k Tokens/Mo)": "นักวิเคราะห์ AI เชิงโต้ตอบ (500k โทเค็น/เดือน)",
+  "Read-Only AI Analyst (Chat Locked)": "นักวิเคราะห์ AI แบบอ่านอย่างเดียว (ล็อคการแชท)",
+  "charts.instant_prompt_analyze": "วิเคราะห์บริบทตลาดและโครงสร้าง {symbol} {timeframe}",
+  "charts.instant_prompt_title": "คำสั่งด่วนไปยัง AI Chat"
 }
