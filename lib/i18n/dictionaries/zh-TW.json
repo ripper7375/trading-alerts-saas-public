@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "切換週期時間軸同步",
   "charts.mode.bar": "美國線 (Bar) 模式",
   "charts.mode.candle": "K線 (Candle) 模式",
-  "charts.mode.hide": "隱藏價格模式"
+  "charts.mode.hide": "隱藏價格模式",
+  "charts.free_tier_tools_notice": "繪圖與指標工具在 FREE 方案中不可用"
 }

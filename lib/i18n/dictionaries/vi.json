@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "Bật/tắt đồng bộ dòng thời gian khung thời gian",
   "charts.mode.bar": "Chế độ thanh giá (Bar)",
   "charts.mode.candle": "Chế độ nến giá (Candle)",
-  "charts.mode.hide": "Chế độ ẩn giá"
+  "charts.mode.hide": "Chế độ ẩn giá",
+  "charts.free_tier_tools_notice": "Công cụ vẽ và chỉ báo không khả dụng cho Gói FREE"
 }

@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "ٹائم فریم ٹائم لائن سنک ٹوگل کریں",
   "charts.mode.bar": "پرائس بار موڈ",
   "charts.mode.candle": "پرائس کینڈل موڈ",
-  "charts.mode.hide": "قیمت چھپانے کا موڈ"
+  "charts.mode.hide": "قیمت چھپانے کا موڈ",
+  "charts.free_tier_tools_notice": "ڈراؤنگ اور انڈیکیٹر ٹولز FREE پلان کے لیے دستیاب نہیں ہیں"
 }

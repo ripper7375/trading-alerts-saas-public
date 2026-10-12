@@ -182,7 +182,7 @@ describe('MtfStackedCharts', () => {
     expect(toggles).toHaveLength(1);
   });
 
-  it('still renders both charts for a FREE user, with the toggle locked', () => {
+  it('still renders both charts for a FREE user, with the toggle locked and notice card shown', () => {
     mockUseSession.mockReturnValue({ data: { user: { tier: 'FREE' } } });
     render(<MtfStackedCharts symbol="XAUUSD" />);
 
@@ -194,6 +194,24 @@ describe('MtfStackedCharts', () => {
     // branch — but flagged non-PRO so it cannot enable the overlay.
     const toggle = screen.getByTestId('mtf-toggle');
     expect(toggle).toHaveAttribute('data-is-pro', 'false');
+
+    // For a FREE user, the slim notice card is rendered on the lower chart
+    const banner = screen.getByTestId('free-tier-tools-banner');
+    expect(banner).toBeInTheDocument();
+    expect(banner).toHaveTextContent(
+      'Drawing and Indicator Tools are unavailable for FREE Tier'
+    );
+    const upgradeLink = screen.getByRole('link', {
+      name: /Upgrade to PRO/i,
+    });
+    expect(upgradeLink).toHaveAttribute('href', '/pricing');
+  });
+
+  it('does not render the FREE tier notice card for PRO users', () => {
+    render(<MtfStackedCharts symbol="XAUUSD" />);
+    expect(
+      screen.queryByTestId('free-tier-tools-banner')
+    ).not.toBeInTheDocument();
   });
 
   it('honours explicit timeframes', () => {

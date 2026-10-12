@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "Zeitrahmen-Synchronisation umschalten",
   "charts.mode.bar": "Preisbalken-Modus",
   "charts.mode.candle": "Kerzen-Modus",
-  "charts.mode.hide": "Preise ausblenden"
+  "charts.mode.hide": "Preise ausblenden",
+  "charts.free_tier_tools_notice": "Zeichen- und Indikator-Tools sind im FREE-Tarif nicht verfügbar"
 }

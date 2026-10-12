@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "切换周期时间轴同步",
   "charts.mode.bar": "美国线 (Bar) 模式",
   "charts.mode.candle": "K线 (Candle) 模式",
-  "charts.mode.hide": "隐藏价格模式"
+  "charts.mode.hide": "隐藏价格模式",
+  "charts.free_tier_tools_notice": "绘图与指标工具在 FREE 方案中不可用"
 }

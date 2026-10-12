@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "Basculer la synchronisation des unités de temps",
   "charts.mode.bar": "Mode barre de prix",
   "charts.mode.candle": "Mode chandelier de prix",
-  "charts.mode.hide": "Mode masquer le prix"
+  "charts.mode.hide": "Mode masquer le prix",
+  "charts.free_tier_tools_notice": "Les outils de dessin et d'indicateurs ne sont pas disponibles pour le forfait FREE"
 }

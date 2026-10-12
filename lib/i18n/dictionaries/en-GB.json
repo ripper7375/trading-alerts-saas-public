@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "Toggle Timeframe Timeline Sync",
   "charts.mode.bar": "Price Bar Mode",
   "charts.mode.candle": "Price Candle Mode",
-  "charts.mode.hide": "Hide Price Mode"
+  "charts.mode.hide": "Hide Price Mode",
+  "charts.free_tier_tools_notice": "Drawing and Indicator Tools are unavailable for FREE Tier"
 }

@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "Alihkan sinkronisasi timeline kerangka waktu",
   "charts.mode.bar": "Mode batang harga (Bar)",
   "charts.mode.candle": "Mode lilin harga (Candle)",
-  "charts.mode.hide": "Mode sembunyikan harga"
+  "charts.mode.hide": "Mode sembunyikan harga",
+  "charts.free_tier_tools_notice": "Alat Gambar dan Indikator tidak tersedia untuk Paket FREE"
 }

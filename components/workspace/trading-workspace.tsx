@@ -306,7 +306,11 @@ export function TradingWorkspace({
             <div className="flex h-full flex-col overflow-hidden bg-background">
               {/* Both timeframes are always shown in clean dual-pane layout. */}
               <div className="min-h-0 flex-1">
-                <MtfStackedCharts symbol="XAUUSD" onAskAi={handleAskAi} />
+                <MtfStackedCharts
+                  symbol="XAUUSD"
+                  onAskAi={handleAskAi}
+                  isPro={tier === 'PRO'}
+                />
               </div>
             </div>
           </ResizablePanel>

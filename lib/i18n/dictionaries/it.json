@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "Attiva/disattiva sincronizzazione timeframe",
   "charts.mode.bar": "Modalità barra prezzo",
   "charts.mode.candle": "Modalità candela prezzo",
-  "charts.mode.hide": "Modalità nascondi prezzo"
+  "charts.mode.hide": "Modalità nascondi prezzo",
+  "charts.free_tier_tools_notice": "Gli strumenti di disegno e gli indicatori non sono disponibili per il piano FREE"
 }

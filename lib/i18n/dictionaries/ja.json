@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "時間軸タイムライン同期の切替",
   "charts.mode.bar": "バーチャート表示",
   "charts.mode.candle": "ローソク足表示",
-  "charts.mode.hide": "価格を非表示"
+  "charts.mode.hide": "価格を非表示",
+  "charts.free_tier_tools_notice": "描画およびインジケーターツールはFREEプランではご利用いただけません"
 }

@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "تبديل مزامنة المخطط الزمني للإطار الزمني",
   "charts.mode.bar": "وضع أشرطة الأسعار",
   "charts.mode.candle": "وضع الشموع اليابانية",
-  "charts.mode.hide": "وضع إخفاء السعر"
+  "charts.mode.hide": "وضع إخفاء السعر",
+  "charts.free_tier_tools_notice": "أدوات الرسم والمؤشرات غير متوفرة في باقة FREE"
 }

@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "Alternar sincronización de temporalidad",
   "charts.mode.bar": "Modo barra de precio",
   "charts.mode.candle": "Modo vela de precio",
-  "charts.mode.hide": "Modo ocultar precio"
+  "charts.mode.hide": "Modo ocultar precio",
+  "charts.free_tier_tools_notice": "Las herramientas de dibujo e indicadores no están disponibles en el plan FREE"
 }

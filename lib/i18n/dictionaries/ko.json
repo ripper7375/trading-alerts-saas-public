@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "시간대 타임라인 동기화 전환",
   "charts.mode.bar": "바 차트 모드",
   "charts.mode.candle": "캔들 차트 모드",
-  "charts.mode.hide": "가격 숨기기 모드"
+  "charts.mode.hide": "가격 숨기기 모드",
+  "charts.free_tier_tools_notice": "그리기 및 지표 도구는 FREE 요금제에서 사용할 수 없습니다"
 }

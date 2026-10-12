@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "टाइमफ्रेम टाइमलाइन सिंक टॉगल करें",
   "charts.mode.bar": "प्राइस बार मोड",
   "charts.mode.candle": "प्राइस कैंडल मोड",
-  "charts.mode.hide": "मूल्य छिपाएँ मोड"
+  "charts.mode.hide": "मूल्य छिपाएँ मोड",
+  "charts.free_tier_tools_notice": "ड्राइंग और संकेतक उपकरण FREE टियर के लिए उपलब्ध नहीं हैं"
 }

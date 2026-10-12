@@ -5030,5 +5030,6 @@
   "charts.tf_sync.aria_label": "Zaman dilimi senkronizasyonunu aç/kapat",
   "charts.mode.bar": "Fiyat çubuğu modu",
   "charts.mode.candle": "Fiyat mumu modu",
-  "charts.mode.hide": "Fiyatı gizle modu"
+  "charts.mode.hide": "Fiyatı gizle modu",
+  "charts.free_tier_tools_notice": "Çizim ve Gösterge Araçları FREE Planı için kullanılamaz"
 }
