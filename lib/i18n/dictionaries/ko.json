@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "바 차트 모드",
   "charts.mode.candle": "캔들 차트 모드",
   "charts.mode.hide": "가격 숨기기 모드",
-  "charts.free_tier_tools_notice": "그리기 및 지표 도구는 FREE 요금제에서 사용할 수 없습니다"
+  "charts.free_tier_tools_notice": "그리기 및 지표 도구는 FREE 요금제에서 사용할 수 없습니다",
+  "comments.free_tier_feature_1": "시장 코멘트",
+  "comments.free_tier_feature_2": "시장 세션",
+  "comments.free_tier_feature_3": "고영향 뉴스 및 이벤트",
+  "comments.free_tier_feature_4": "시장 맥락 분석",
+  "comments.free_tier_feature_5": "트레이드 셋업 분석",
+  "comments.free_tier_feature_6": "EDT 품질 지표",
+  "comments.free_tier_unavailable": "은 FREE 요금제에서 사용할 수 없습니다",
+  "Read-Only (FREE Tier)": "읽기 전용 (무료 티어)",
+  "Upgrade to PRO to interact with the AI Analyst.": "AI 애널리스트와 대화하려면 PRO로 업그레이드하세요."
 }

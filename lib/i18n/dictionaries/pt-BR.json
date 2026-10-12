@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "Modo barra de preço",
   "charts.mode.candle": "Modo vela de preço",
   "charts.mode.hide": "Modo ocultar preço",
-  "charts.free_tier_tools_notice": "As ferramentas de desenho e indicadores não estão disponíveis no plano FREE"
+  "charts.free_tier_tools_notice": "As ferramentas de desenho e indicadores não estão disponíveis no plano FREE",
+  "comments.free_tier_feature_1": "Comentários de mercado",
+  "comments.free_tier_feature_2": "Sessão de mercado",
+  "comments.free_tier_feature_3": "Notícias e eventos de alto impacto",
+  "comments.free_tier_feature_4": "Análise do contexto de mercado",
+  "comments.free_tier_feature_5": "Análise de configuração de negociação",
+  "comments.free_tier_feature_6": "Métricas de qualidade EDT",
+  "comments.free_tier_unavailable": "não estão disponíveis no plano FREE",
+  "Read-Only (FREE Tier)": "Apenas leitura (Plano FREE)",
+  "Upgrade to PRO to interact with the AI Analyst.": "Mude para PRO para interagir com o AI Analyst."
 }

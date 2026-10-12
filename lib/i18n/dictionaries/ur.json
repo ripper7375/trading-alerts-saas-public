@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "پرائس بار موڈ",
   "charts.mode.candle": "پرائس کینڈل موڈ",
   "charts.mode.hide": "قیمت چھپانے کا موڈ",
-  "charts.free_tier_tools_notice": "ڈراؤنگ اور انڈیکیٹر ٹولز FREE پلان کے لیے دستیاب نہیں ہیں"
+  "charts.free_tier_tools_notice": "ڈراؤنگ اور انڈیکیٹر ٹولز FREE پلان کے لیے دستیاب نہیں ہیں",
+  "comments.free_tier_feature_1": "مارکیٹ تبصرے",
+  "comments.free_tier_feature_2": "مارکیٹ سیشن",
+  "comments.free_tier_feature_3": "زیادہ اثر والی خبریں اور واقعات",
+  "comments.free_tier_feature_4": "مارکیٹ کے سیاق و سباق کا تجزیہ",
+  "comments.free_tier_feature_5": "ٹریڈ سیٹ اپ کا تجزیہ",
+  "comments.free_tier_feature_6": "EDT معیار کے پیمانے",
+  "comments.free_tier_unavailable": "FREE پلان کے لیے دستیاب نہیں ہیں",
+  "Read-Only (FREE Tier)": "صرف پڑھنے کے قابل (FREE پلان)",
+  "Upgrade to PRO to interact with the AI Analyst.": "AI تجزیہ کار سے بات چیت کرنے کے لیے PRO میں اپ گریڈ کریں۔"
 }

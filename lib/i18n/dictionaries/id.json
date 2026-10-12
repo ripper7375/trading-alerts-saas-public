@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "Mode batang harga (Bar)",
   "charts.mode.candle": "Mode lilin harga (Candle)",
   "charts.mode.hide": "Mode sembunyikan harga",
-  "charts.free_tier_tools_notice": "Alat Gambar dan Indikator tidak tersedia untuk Paket FREE"
+  "charts.free_tier_tools_notice": "Alat Gambar dan Indikator tidak tersedia untuk Paket FREE",
+  "comments.free_tier_feature_1": "Komentar Pasar",
+  "comments.free_tier_feature_2": "Sesi Pasar",
+  "comments.free_tier_feature_3": "Berita dan Peristiwa Berdampak Tinggi",
+  "comments.free_tier_feature_4": "Analisis Konteks Pasar",
+  "comments.free_tier_feature_5": "Analisis Setup Trading",
+  "comments.free_tier_feature_6": "Metrik Kualitas EDT",
+  "comments.free_tier_unavailable": "tidak tersedia untuk Paket FREE",
+  "Read-Only (FREE Tier)": "Hanya-baca (Paket FREE)",
+  "Upgrade to PRO to interact with the AI Analyst.": "Tingkatkan ke PRO untuk berinteraksi dengan AI Analyst."
 }

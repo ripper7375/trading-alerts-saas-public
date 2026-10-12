@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "Fiyat çubuğu modu",
   "charts.mode.candle": "Fiyat mumu modu",
   "charts.mode.hide": "Fiyatı gizle modu",
-  "charts.free_tier_tools_notice": "Çizim ve Gösterge Araçları FREE Planı için kullanılamaz"
+  "charts.free_tier_tools_notice": "Çizim ve Gösterge Araçları FREE Planı için kullanılamaz",
+  "comments.free_tier_feature_1": "Piyasa Yorumları",
+  "comments.free_tier_feature_2": "Piyasa Seansı",
+  "comments.free_tier_feature_3": "Yüksek Etkili Haberler ve Olaylar",
+  "comments.free_tier_feature_4": "Piyasa Bağlamı Analizi",
+  "comments.free_tier_feature_5": "İşlem Kurulumu Analizi",
+  "comments.free_tier_feature_6": "EDT Kalite Ölçütleri",
+  "comments.free_tier_unavailable": "FREE Planı için kullanılamaz",
+  "Read-Only (FREE Tier)": "Salt Okunur (FREE Paket)",
+  "Upgrade to PRO to interact with the AI Analyst.": "AI Analyst ile etkileşim kurmak için PRO'ya yükseltin."
 }

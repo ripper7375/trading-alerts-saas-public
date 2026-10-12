@@ -12,9 +12,11 @@
  * @module components/chat-panel
  */
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import {
   Bot,
+  ChevronDown,
   ChevronLeft,
   CornerDownLeft,
   LineChart,
@@ -23,7 +25,6 @@ import {
   Zap,
 } from 'lucide-react';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -35,6 +36,7 @@ import {
 } from '@/components/ui/select';
 import { useLocale } from '@/lib/context/locale-context';
 import { PRO_TIER_CONFIG, type Tier } from '@/lib/tier-config';
+import { cn } from '@/lib/utils';
 
 export const ANALYST_MODELS = [
   {
@@ -111,35 +113,55 @@ export default function ChatPanel({
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Select value={selectedModel} onValueChange={handleModelChange}>
-            <SelectTrigger
-              className="h-7 w-[160px] border-border bg-background text-xs font-semibold text-foreground focus:ring-amber-500/30"
-              aria-label="Select model"
+          {tier === 'FREE' ? (
+            <Link
+              href="/pricing"
+              aria-label={t('dashboard.upgrade_to_pro')}
+              className="shadow-xs group relative flex h-7 w-[160px] items-center justify-center overflow-hidden rounded-md border border-border"
             >
-              <SelectValue placeholder="Select model" />
-            </SelectTrigger>
-            <SelectContent className="border-border bg-popover">
-              {ANALYST_MODELS.map((model) => (
-                <SelectItem
-                  key={model.id}
-                  value={model.id}
-                  className="text-xs focus:bg-accent focus:text-accent-foreground"
-                >
-                  <div className="flex w-full items-center justify-between gap-1.5">
-                    <span>{model.name}</span>
-                    {tier === 'FREE' && model.proOnly && (
-                      <Badge
-                        variant="outline"
-                        className="ml-1.5 h-3.5 border-amber-500/40 bg-amber-500/10 px-1 font-mono text-[8px] text-amber-600 dark:text-amber-400"
-                      >
-                        PRO
-                      </Badge>
-                    )}
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+              <span
+                aria-hidden="true"
+                className="flex w-full select-none items-center justify-between px-2 text-xs font-semibold text-foreground blur-[1.5px]"
+              >
+                <span>Gemini 2.5 Flash</span>
+                <ChevronDown className="h-3.5 w-3.5 opacity-50" />
+              </span>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  'absolute inset-0 flex items-center justify-center gap-1 backdrop-blur-[2px] transition-colors',
+                  'bg-white/45 group-hover:bg-white/60 dark:bg-slate-950/45 dark:group-hover:bg-slate-950/60'
+                )}
+              >
+                <Lock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300">
+                  {t('dashboard.upgrade_to_pro', 'Upgrade to PRO')}
+                </span>
+              </span>
+            </Link>
+          ) : (
+            <Select value={selectedModel} onValueChange={handleModelChange}>
+              <SelectTrigger
+                className="h-7 w-[160px] border-border bg-background text-xs font-semibold text-foreground focus:ring-amber-500/30"
+                aria-label="Select model"
+              >
+                <SelectValue placeholder="Select model" />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-popover">
+                {ANALYST_MODELS.map((model) => (
+                  <SelectItem
+                    key={model.id}
+                    value={model.id}
+                    className="text-xs focus:bg-accent focus:text-accent-foreground"
+                  >
+                    <div className="flex w-full items-center justify-between gap-1.5">
+                      <span>{model.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           {onCollapsePanel && (
             <Button
@@ -156,56 +178,60 @@ export default function ChatPanel({
         </div>
       </div>
 
-      {/* Center: Clean Empty State Illustration */}
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-          <Bot className="h-6 w-6" />
-        </div>
-        <p className="text-sm font-bold text-foreground">
-          {t('AI Copilot Coming Soon')}
-        </p>
-        <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
-          {t(
-            'AI Copilot backend connects in a future phase — chart and line alerts are already active on the panel to the right.'
+      {/* Center: Empty on FREE tier, Clean Empty State Illustration on PRO */}
+      {tier === 'FREE' ? (
+        <div className="flex-1" />
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <Bot className="h-6 w-6" />
+          </div>
+          <p className="text-sm font-bold text-foreground">
+            {t('AI Copilot Coming Soon')}
+          </p>
+          <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
+            {t(
+              'AI Copilot backend connects in a future phase — chart and line alerts are already active on the panel to the right.'
+            )}
+          </p>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+            <LineChart className="h-3.5 w-3.5" />
+            <span>{t('Real-time XAUUSD chart is live')}</span>
+          </div>
+          {onOpenUpgradeModal && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenUpgradeModal}
+              className="mt-3 h-7 border-amber-500/40 bg-amber-500/10 text-[11px] font-bold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+            >
+              {t('Get priority access on PRO')}
+            </Button>
           )}
-        </p>
-        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
-          <LineChart className="h-3.5 w-3.5" />
-          <span>{t('Real-time XAUUSD chart is live')}</span>
         </div>
-        {tier === 'FREE' && onOpenUpgradeModal && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenUpgradeModal}
-            className="mt-3 h-7 border-amber-500/40 bg-amber-500/10 text-[11px] font-bold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
-          >
-            {t('Get priority access on PRO')}
-          </Button>
-        )}
-      </div>
+      )}
 
-      {/* Component 2: Monthly Token Quota Bar */}
-      <div className="border-border/70 bg-muted/20 shrink-0 border-t px-3.5 py-2 text-[11px]">
-        <div className="mb-1.5 flex items-center justify-between font-medium">
-          <span className="flex items-center gap-1 text-muted-foreground">
-            <Zap className="h-3 w-3 text-purple-500 dark:text-purple-400" />
-            <span className="font-semibold text-foreground">
-              ✦ {t('Monthly Token Quota')}
+      {/* Component 2: Monthly Token Quota Bar (PRO only) */}
+      {tier === 'PRO' && (
+        <div className="border-border/70 bg-muted/20 shrink-0 border-t px-3.5 py-2 text-[11px]">
+          <div className="mb-1.5 flex items-center justify-between font-medium">
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Zap className="h-3 w-3 text-purple-500 dark:text-purple-400" />
+              <span className="font-semibold text-foreground">
+                ✦ {t('Monthly Token Quota')}
+              </span>
             </span>
-          </span>
-          <span className="font-mono text-[10px] font-bold text-foreground">
-            {tokensUsed.toLocaleString(language)} /{' '}
-            {tier === 'PRO'
-              ? monthlyQuota.toLocaleString(language)
-              : (50000).toLocaleString(language)}
-          </span>
+            <span className="font-mono text-[10px] font-bold text-foreground">
+              {tokensUsed.toLocaleString(language)} /{' '}
+              {monthlyQuota.toLocaleString(language)}
+            </span>
+          </div>
+          <Progress
+            value={(tokensUsed / monthlyQuota) * 100}
+            className="bg-muted/60 h-1.5 [&>[data-slot=progress-indicator]]:bg-purple-500 dark:[&>[data-slot=progress-indicator]]:bg-purple-400"
+          />
         </div>
-        <Progress
-          value={(tokensUsed / (tier === 'PRO' ? monthlyQuota : 50000)) * 100}
-          className="bg-muted/60 h-1.5 [&>[data-slot=progress-indicator]]:bg-purple-500 dark:[&>[data-slot=progress-indicator]]:bg-purple-400"
-        />
-      </div>
+      )}
 
       {/* Component 3: Chat Input / Footer */}
       <div className="shrink-0 border-t border-border bg-card p-3">
@@ -243,10 +269,10 @@ export default function ChatPanel({
               <Lock className="h-4 w-4 shrink-0 text-amber-500" />
               <div>
                 <div className="text-xs font-bold text-foreground">
-                  Read-Only (FREE Tier)
+                  {t('Read-Only (FREE Tier)')}
                 </div>
                 <div className="text-[10px] text-muted-foreground">
-                  Upgrade to PRO to interact with the AI Analyst.
+                  {t('Upgrade to PRO to interact with the AI Analyst.')}
                 </div>
               </div>
             </div>

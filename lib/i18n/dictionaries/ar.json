@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "وضع أشرطة الأسعار",
   "charts.mode.candle": "وضع الشموع اليابانية",
   "charts.mode.hide": "وضع إخفاء السعر",
-  "charts.free_tier_tools_notice": "أدوات الرسم والمؤشرات غير متوفرة في باقة FREE"
+  "charts.free_tier_tools_notice": "أدوات الرسم والمؤشرات غير متوفرة في باقة FREE",
+  "comments.free_tier_feature_1": "تعليقات السوق",
+  "comments.free_tier_feature_2": "جلسة السوق",
+  "comments.free_tier_feature_3": "أخبار وأحداث عالية التأثير",
+  "comments.free_tier_feature_4": "تحليل سياق السوق",
+  "comments.free_tier_feature_5": "تحليل إعدادات التداول",
+  "comments.free_tier_feature_6": "مقاييس جودة EDT",
+  "comments.free_tier_unavailable": "غير متوفرة في باقة FREE",
+  "Read-Only (FREE Tier)": "للقراءة فقط (باقة FREE)",
+  "Upgrade to PRO to interact with the AI Analyst.": "قم بالترقية إلى PRO للتفاعل مع محلل الذكاء الاصطناعي."
 }

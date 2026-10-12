@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "美国线 (Bar) 模式",
   "charts.mode.candle": "K线 (Candle) 模式",
   "charts.mode.hide": "隐藏价格模式",
-  "charts.free_tier_tools_notice": "绘图与指标工具在 FREE 方案中不可用"
+  "charts.free_tier_tools_notice": "绘图与指标工具在 FREE 方案中不可用",
+  "comments.free_tier_feature_1": "市场评论",
+  "comments.free_tier_feature_2": "市场交易时段",
+  "comments.free_tier_feature_3": "重大影响新闻与事件",
+  "comments.free_tier_feature_4": "市场背景分析",
+  "comments.free_tier_feature_5": "交易设置分析",
+  "comments.free_tier_feature_6": "EDT 质量指标",
+  "comments.free_tier_unavailable": "在 FREE 方案中不可用",
+  "Read-Only (FREE Tier)": "只读（免费版）",
+  "Upgrade to PRO to interact with the AI Analyst.": "升级到 PRO 以与 AI 分析师互动。"
 }

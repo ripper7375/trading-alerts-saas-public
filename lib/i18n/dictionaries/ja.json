@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "バーチャート表示",
   "charts.mode.candle": "ローソク足表示",
   "charts.mode.hide": "価格を非表示",
-  "charts.free_tier_tools_notice": "描画およびインジケーターツールはFREEプランではご利用いただけません"
+  "charts.free_tier_tools_notice": "描画およびインジケーターツールはFREEプランではご利用いただけません",
+  "comments.free_tier_feature_1": "市場コメント",
+  "comments.free_tier_feature_2": "市場セッション",
+  "comments.free_tier_feature_3": "影響力の高いニュースとイベント",
+  "comments.free_tier_feature_4": "市場コンテキスト分析",
+  "comments.free_tier_feature_5": "トレードセットアップ分析",
+  "comments.free_tier_feature_6": "EDT品質メトリクス",
+  "comments.free_tier_unavailable": "はFREEプランではご利用いただけません",
+  "Read-Only (FREE Tier)": "閲覧のみ（FREEプラン）",
+  "Upgrade to PRO to interact with the AI Analyst.": "AIアナリストと対話するにはPROへアップグレードしてください。"
 }

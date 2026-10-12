@@ -37,6 +37,7 @@ import { TradingChart } from './trading-chart';
 import {
   DEFAULT_SPLIT,
   FALLBACK_TOTAL_HEIGHT_PX,
+  FREE_DEFAULT_SPLIT,
   minPanePercent,
   paneCanvasHeights,
 } from './mtf-split-layout';
@@ -70,11 +71,16 @@ export function MtfStackedCharts({
   isPro: isProProp,
 }: MtfStackedChartsProps): React.JSX.Element {
   const { t } = useLocale();
+  const { data: session } = useSession();
+  const sessionIsPro = session?.user?.tier === 'PRO';
+  const isPro = isProProp !== undefined ? isProProp : sessionIsPro;
+  const initialSplit = isPro ? DEFAULT_SPLIT : FREE_DEFAULT_SPLIT;
+
   const containerRef = useRef<HTMLDivElement>(null);
   const panelsContainerRef = useRef<HTMLDivElement>(null);
   const groupRef = useRef<ImperativePanelGroupHandle>(null);
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
-  const [split, setSplit] = useState<readonly number[]>(DEFAULT_SPLIT);
+  const [split, setSplit] = useState<readonly number[]>(initialSplit);
 
   // Active chart panel: 'upper' (M15) or 'lower' (M5)
   const [activePanel, setActivePanel] = useState<'upper' | 'lower'>('upper');
@@ -141,9 +147,6 @@ export function MtfStackedCharts({
   }, []);
 
   // Multi-timeframe overlay preference (Component 9)
-  const { data: session } = useSession();
-  const sessionIsPro = session?.user?.tier === 'PRO';
-  const isPro = isProProp !== undefined ? isProProp : sessionIsPro;
   const {
     enabled: mtfEnabled,
     setEnabled: setMtfEnabled,
@@ -232,9 +235,9 @@ export function MtfStackedCharts({
   }, [isTfLocked, upperChartApi, lowerChartApi]);
 
   const handleResetSplit = useCallback(() => {
-    groupRef.current?.setLayout([...DEFAULT_SPLIT]);
-    setSplit(DEFAULT_SPLIT);
-  }, []);
+    groupRef.current?.setLayout([...initialSplit]);
+    setSplit(initialSplit);
+  }, [initialSplit]);
 
   const handleDeleteSelected = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -310,7 +313,7 @@ export function MtfStackedCharts({
           <ResizablePanel
             id="mtf-upper"
             order={1}
-            defaultSize={DEFAULT_SPLIT[0]}
+            defaultSize={initialSplit[0]}
             minSize={minSize}
             className="overflow-hidden p-1"
           >
@@ -341,6 +344,7 @@ export function MtfStackedCharts({
                 }}
                 priceMode={upperPriceMode}
                 externalMtfEnabled={mtfEnabled}
+                watermark={!isPro ? 'DavinTrade' : undefined}
                 overlayBadge={
                   <button
                     type="button"
@@ -383,7 +387,9 @@ export function MtfStackedCharts({
           <ResizableHandle
             aria-label={t('Drag to resize the upper and lower charts')}
             onDoubleClick={handleResetSplit}
-            tooltipTitle="Reset chart split (50:50)"
+            tooltipTitle={
+              isPro ? 'Reset chart split (50:50)' : 'Reset chart split (60:40)'
+            }
             tooltipShortcut="Double-click"
             tooltipSubtitle="Drag to resize"
             tooltipSide="bottom"
@@ -393,7 +399,7 @@ export function MtfStackedCharts({
           <ResizablePanel
             id="mtf-lower"
             order={2}
-            defaultSize={DEFAULT_SPLIT[1]}
+            defaultSize={initialSplit[1]}
             minSize={minSize}
             className="overflow-hidden p-1"
           >
@@ -423,6 +429,7 @@ export function MtfStackedCharts({
                   if (activePanel === 'lower') setActiveTool(tool);
                 }}
                 priceMode={lowerPriceMode}
+                watermark={!isPro ? 'DavinTrade' : undefined}
                 overlayBadge={
                   <div className="flex flex-wrap items-center gap-2">
                     <button

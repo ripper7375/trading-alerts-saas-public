@@ -1,7 +1,15 @@
 'use client';
 
-import { ChevronRight, MessageSquareText, Bell } from 'lucide-react';
+import Link from 'next/link';
+import {
+  Bell,
+  ChevronRight,
+  Lock,
+  MessageSquareText,
+  Sparkles,
+} from 'lucide-react';
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ContainmentRateStrip } from '@/components/market-sessions/containment-rate-strip';
@@ -39,18 +47,33 @@ export default function MarketCommentsPanel({
     <div className="flex h-full w-full flex-col overflow-hidden border-l border-border bg-card">
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-border px-3.5">
         <div className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-            <MessageSquareText className="h-4 w-4" />
-          </div>
+          {tier === 'FREE' ? (
+            <Avatar className="h-7 w-7 rounded-lg border border-amber-500/30">
+              <AvatarImage
+                src="/DavinTrade_Logo.jpg"
+                alt="DavinTrade"
+                className="rounded-lg object-cover"
+              />
+              <AvatarFallback className="rounded-lg bg-amber-500/10 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                DT
+              </AvatarFallback>
+            </Avatar>
+          ) : (
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <MessageSquareText className="h-4 w-4" />
+            </div>
+          )}
           <span className="text-xs font-bold text-foreground">
-            {t('Market Comments')}
+            {tier === 'FREE' ? t('FREE Tier') : t('Market Comments')}
           </span>
-          <Badge
-            variant="outline"
-            className="border-border font-mono text-[9px] text-muted-foreground"
-          >
-            {tier}
-          </Badge>
+          {tier === 'PRO' && (
+            <Badge
+              variant="outline"
+              className="border-border font-mono text-[9px] text-muted-foreground"
+            >
+              {t('PRO Tier')}
+            </Badge>
+          )}
         </div>
         {onCollapsePanel && (
           <Button
@@ -95,33 +118,74 @@ export default function MarketCommentsPanel({
         </div>
       )}
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-          <MessageSquareText className="h-6 w-6" />
+      {tier === 'FREE' ? (
+        <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <Lock className="h-6 w-6" />
+          </div>
+
+          <div className="mt-4 space-y-1.5 text-xs font-semibold text-foreground">
+            <p>{t('comments.free_tier_feature_1', 'Market Comments')}</p>
+            <p>{t('comments.free_tier_feature_2', 'Market Session')}</p>
+            <p>
+              {t('comments.free_tier_feature_3', 'High Impact News and Events')}
+            </p>
+            <p>
+              {t('comments.free_tier_feature_4', 'Market Context Analysis')}
+            </p>
+            <p>{t('comments.free_tier_feature_5', 'Trade Setup Analysis')}</p>
+            <p>{t('comments.free_tier_feature_6', 'EDT Quality Metrics')}</p>
+          </div>
+
+          <p className="mt-4 text-xs font-medium text-muted-foreground">
+            {t(
+              'comments.free_tier_unavailable',
+              'are unavailable for FREE Tier'
+            )}
+          </p>
+
+          <div className="mt-5">
+            <Button
+              asChild
+              size="sm"
+              className="bg-amber-500 font-bold text-slate-950 shadow-md shadow-amber-500/20 hover:bg-amber-400"
+            >
+              <Link href="/pricing">
+                <Sparkles className="mr-1.5 h-3.5 w-3.5 fill-black" />
+                {t('dashboard.upgrade_to_pro', 'Upgrade to PRO')}
+              </Link>
+            </Button>
+          </div>
         </div>
-        <p className="text-sm font-bold text-foreground">
-          {t('Live Market Comments Coming Soon')}
-        </p>
-        <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
-          {t(
-            'The generated market-comments feed connects in a future phase — line alerts you draw on the chart fire for real today.'
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <MessageSquareText className="h-6 w-6" />
+          </div>
+          <p className="text-sm font-bold text-foreground">
+            {t('Live Market Comments Coming Soon')}
+          </p>
+          <p className="max-w-[220px] text-xs leading-relaxed text-muted-foreground">
+            {t(
+              'The generated market-comments feed connects in a future phase — line alerts you draw on the chart fire for real today.'
+            )}
+          </p>
+          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
+            <Bell className="h-3.5 w-3.5" />
+            <span>{t('Real-time line alerts are live')}</span>
+          </div>
+          {onOpenUpgradeModal && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenUpgradeModal}
+              className="mt-3 h-7 border-amber-500/40 bg-amber-500/10 text-[11px] font-bold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+            >
+              {t('Get priority access on PRO')}
+            </Button>
           )}
-        </p>
-        <div className="mt-1 flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400">
-          <Bell className="h-3.5 w-3.5" />
-          <span>{t('Real-time line alerts are live')}</span>
         </div>
-        {tier === 'FREE' && onOpenUpgradeModal && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onOpenUpgradeModal}
-            className="mt-3 h-7 border-amber-500/40 bg-amber-500/10 text-[11px] font-bold text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
-          >
-            {t('Get priority access on PRO')}
-          </Button>
-        )}
-      </div>
+      )}
     </div>
   );
 }

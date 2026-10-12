@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "โหมดแท่งราคา (Bar)",
   "charts.mode.candle": "โหมดแท่งเทียน (Candle)",
   "charts.mode.hide": "โหมดซ่อนราคา (แสดงเฉพาะอินดิเคเตอร์)",
-  "charts.free_tier_tools_notice": "เครื่องมือวาดและอินดิเคเตอร์ไม่สามารถใช้งานได้ในแพ็กเกจฟรี"
+  "charts.free_tier_tools_notice": "เครื่องมือวาดและอินดิเคเตอร์ไม่สามารถใช้งานได้ในแพ็กเกจฟรี",
+  "comments.free_tier_feature_1": "ความคิดเห็นตลาด",
+  "comments.free_tier_feature_2": "เซสชันตลาด",
+  "comments.free_tier_feature_3": "ข่าวสารและเหตุการณ์สำคัญที่มีผลกระทบสูง",
+  "comments.free_tier_feature_4": "การวิเคราะห์บริบทตลาด",
+  "comments.free_tier_feature_5": "การวิเคราะห์จุดเข้าเทรด",
+  "comments.free_tier_feature_6": "ตัวชี้วัดคุณภาพ EDT",
+  "comments.free_tier_unavailable": "ไม่สามารถใช้งานได้ในแพ็กเกจฟรี",
+  "Read-Only (FREE Tier)": "อ่านอย่างเดียว (แพ็กเกจ FREE)",
+  "Upgrade to PRO to interact with the AI Analyst.": "อัปเกรดเป็น PRO เพื่อสนทนากับ AI Analyst"
 }

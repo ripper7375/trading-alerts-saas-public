@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "Price Bar Mode",
   "charts.mode.candle": "Price Candle Mode",
   "charts.mode.hide": "Hide Price Mode",
-  "charts.free_tier_tools_notice": "Drawing and Indicator Tools are unavailable for FREE Tier"
+  "charts.free_tier_tools_notice": "Drawing and Indicator Tools are unavailable for FREE Tier",
+  "comments.free_tier_feature_1": "Market Comments",
+  "comments.free_tier_feature_2": "Market Session",
+  "comments.free_tier_feature_3": "High Impact News and Events",
+  "comments.free_tier_feature_4": "Market Context Analysis",
+  "comments.free_tier_feature_5": "Trade Setup Analysis",
+  "comments.free_tier_feature_6": "EDT Quality Metrics",
+  "comments.free_tier_unavailable": "are unavailable for FREE Tier",
+  "Read-Only (FREE Tier)": "Read-Only (FREE Tier)",
+  "Upgrade to PRO to interact with the AI Analyst.": "Upgrade to PRO to interact with the AI Analyst."
 }

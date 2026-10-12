@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "प्राइस बार मोड",
   "charts.mode.candle": "प्राइस कैंडल मोड",
   "charts.mode.hide": "मूल्य छिपाएँ मोड",
-  "charts.free_tier_tools_notice": "ड्राइंग और संकेतक उपकरण FREE टियर के लिए उपलब्ध नहीं हैं"
+  "charts.free_tier_tools_notice": "ड्राइंग और संकेतक उपकरण FREE टियर के लिए उपलब्ध नहीं हैं",
+  "comments.free_tier_feature_1": "बाजार टिप्पणियाँ",
+  "comments.free_tier_feature_2": "बाजार सत्र",
+  "comments.free_tier_feature_3": "उच्च प्रभाव वाले समाचार और घटनाएं",
+  "comments.free_tier_feature_4": "बाजार संदर्भ विश्लेषण",
+  "comments.free_tier_feature_5": "ट्रेड सेटअप विश्लेषण",
+  "comments.free_tier_feature_6": "EDT गुणवत्ता मेट्रिक्स",
+  "comments.free_tier_unavailable": "FREE टियर के लिए उपलब्ध नहीं हैं",
+  "Read-Only (FREE Tier)": "केवल-पढ़ने योग्य (FREE योजना)",
+  "Upgrade to PRO to interact with the AI Analyst.": "AI विश्लेषक के साथ बातचीत करने के लिए PRO पर अपग्रेड करें।"
 }

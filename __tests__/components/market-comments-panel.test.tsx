@@ -76,21 +76,28 @@ describe('MarketCommentsPanel -- session banner tier gate', () => {
     expect(screen.queryByLabelText(/London:/)).not.toBeInTheDocument();
   });
 
-  it('keeps the FREE upgrade path intact', () => {
+  it('renders FREE tier unavailable list and Upgrade to PRO CTA', () => {
     renderPanel('FREE');
-    expect(screen.getByText('Get priority access on PRO')).toBeInTheDocument();
+    expect(screen.getByText('FREE Tier')).toBeInTheDocument();
+    expect(screen.getByText('Market Comments')).toBeInTheDocument();
+    expect(screen.getByText('Market Session')).toBeInTheDocument();
+    expect(screen.getByText('High Impact News and Events')).toBeInTheDocument();
+    expect(screen.getByText('Market Context Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Trade Setup Analysis')).toBeInTheDocument();
+    expect(screen.getByText('EDT Quality Metrics')).toBeInTheDocument();
+    expect(
+      screen.getByText('are unavailable for FREE Tier')
+    ).toBeInTheDocument();
+    const upgradeBtn = screen.getByRole('link', { name: /Upgrade to PRO/i });
+    expect(upgradeBtn).toHaveAttribute('href', '/pricing');
   });
 
-  it('still renders the empty state on both tiers', () => {
-    const { unmount } = renderPanel('PRO');
+  it('renders PRO tier coming soon empty state', () => {
+    renderPanel('PRO');
+    expect(screen.getByText('PRO Tier')).toBeInTheDocument();
     expect(
       screen.getByText('Live Market Comments Coming Soon')
     ).toBeInTheDocument();
-    unmount();
-
-    renderPanel('FREE');
-    expect(
-      screen.getByText('Live Market Comments Coming Soon')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Get priority access on PRO')).toBeInTheDocument();
   });
 });

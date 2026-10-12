@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "Preisbalken-Modus",
   "charts.mode.candle": "Kerzen-Modus",
   "charts.mode.hide": "Preise ausblenden",
-  "charts.free_tier_tools_notice": "Zeichen- und Indikator-Tools sind im FREE-Tarif nicht verfügbar"
+  "charts.free_tier_tools_notice": "Zeichen- und Indikator-Tools sind im FREE-Tarif nicht verfügbar",
+  "comments.free_tier_feature_1": "Marktkommentare",
+  "comments.free_tier_feature_2": "Marktsitzung",
+  "comments.free_tier_feature_3": "Nachrichten und Ereignisse mit hoher Auswirkung",
+  "comments.free_tier_feature_4": "Marktkontext-Analyse",
+  "comments.free_tier_feature_5": "Trade-Setup-Analyse",
+  "comments.free_tier_feature_6": "EDT-Qualitätsmetriken",
+  "comments.free_tier_unavailable": "sind im FREE-Tarif nicht verfügbar",
+  "Read-Only (FREE Tier)": "Schreibgeschützt (FREE-Plan)",
+  "Upgrade to PRO to interact with the AI Analyst.": "Upgraden Sie auf PRO, um mit dem AI Analyst zu interagieren."
 }

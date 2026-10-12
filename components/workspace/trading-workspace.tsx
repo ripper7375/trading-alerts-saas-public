@@ -86,8 +86,8 @@ export function TradingWorkspace({
   const containerRef = useRef<HTMLDivElement>(null);
   const [panelSpacePx, setPanelSpacePx] = useState(0);
   const constraints = useMemo(
-    () => buildPanelConstraints(panelSpacePx),
-    [panelSpacePx]
+    () => buildPanelConstraints(panelSpacePx, tier === 'FREE'),
+    [panelSpacePx, tier]
   );
 
   const [collapsed, setCollapsed] = useState<CollapsedState>({

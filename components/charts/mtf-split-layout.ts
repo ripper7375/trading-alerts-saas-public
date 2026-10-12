@@ -41,6 +41,9 @@ export const FALLBACK_TOTAL_HEIGHT_PX = 640;
 /** An even split, which is also what the downloaded PNG renders. */
 export const DEFAULT_SPLIT: readonly [number, number] = [50, 50];
 
+/** Free tier default split: taller top panel (60%) for higher timeframe market structure analysis. */
+export const FREE_DEFAULT_SPLIT: readonly [number, number] = [60, 40];
+
 /** Height the two panes actually share, once the divider has taken its own. */
 export function usablePaneSpacePx(totalHeightPx: number): number {
   return Math.max(0, totalHeightPx - SPLIT_HANDLE_PX);

@@ -5031,5 +5031,14 @@
   "charts.mode.bar": "Chế độ thanh giá (Bar)",
   "charts.mode.candle": "Chế độ nến giá (Candle)",
   "charts.mode.hide": "Chế độ ẩn giá",
-  "charts.free_tier_tools_notice": "Công cụ vẽ và chỉ báo không khả dụng cho Gói FREE"
+  "charts.free_tier_tools_notice": "Công cụ vẽ và chỉ báo không khả dụng cho Gói FREE",
+  "comments.free_tier_feature_1": "Bình luận thị trường",
+  "comments.free_tier_feature_2": "Phiên thị trường",
+  "comments.free_tier_feature_3": "Tin tức và sự kiện tác động cao",
+  "comments.free_tier_feature_4": "Phân tích bối cảnh thị trường",
+  "comments.free_tier_feature_5": "Phân tích thiết lập giao dịch",
+  "comments.free_tier_feature_6": "Chỉ số chất lượng EDT",
+  "comments.free_tier_unavailable": "không khả dụng cho Gói FREE",
+  "Read-Only (FREE Tier)": "Chỉ đọc (Gói FREE)",
+  "Upgrade to PRO to interact with the AI Analyst.": "Nâng cấp lên PRO để tương tác với Chuyên gia AI."
 }

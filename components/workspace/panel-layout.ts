@@ -73,7 +73,10 @@ function railSize(railPercent: number, minSize: number): number {
   return Math.min(railPercent, round(minSize / 2));
 }
 
-export function buildPanelConstraints(panelSpacePx: number): PanelConstraint[] {
+export function buildPanelConstraints(
+  panelSpacePx: number,
+  isFree = false
+): PanelConstraint[] {
   // Capped at the default so defaultSize never falls below minSize (the
   // library warns and clamps otherwise) on screens narrower than ~1250px.
   const sidebarMin = Math.min(
@@ -93,14 +96,14 @@ export function buildPanelConstraints(panelSpacePx: number): PanelConstraint[] {
       ),
     },
     {
-      defaultSize: 24,
+      defaultSize: isFree ? 18 : 24,
       minSize: SIDE_PANEL_MIN,
       maxSize: 35,
       collapsedSize: railSize(panelRail, SIDE_PANEL_MIN),
     },
-    { defaultSize: 38, minSize: 25, maxSize: 100 },
+    { defaultSize: isFree ? 48 : 38, minSize: 25, maxSize: 100 },
     {
-      defaultSize: 22,
+      defaultSize: isFree ? 18 : 22,
       minSize: SIDE_PANEL_MIN,
       maxSize: 35,
       collapsedSize: railSize(panelRail, SIDE_PANEL_MIN),

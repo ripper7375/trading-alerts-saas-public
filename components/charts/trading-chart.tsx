@@ -62,6 +62,8 @@ interface TradingChartProps {
   externalMtfEnabled?: boolean;
   /** Callback notifying parent when IChartApi is ready or destroyed */
   onChartReady?: (chart: IChartApi | null) => void;
+  /** Background watermark text (e.g. "DavinTrade") */
+  watermark?: string;
 }
 
 /** lightweight-charts renders to a <canvas> -- it can't read CSS custom
@@ -115,6 +117,7 @@ export function TradingChart({
   overlayBadge,
   externalMtfEnabled,
   onChartReady,
+  watermark,
 }: TradingChartProps): React.JSX.Element {
   const { t } = useLocale();
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -452,6 +455,16 @@ export function TradingChart({
             : 'relative rounded-lg border bg-card p-4'
         }
       >
+        {watermark && (
+          <div
+            data-slot="chart-watermark"
+            className="pointer-events-none absolute inset-0 z-10 flex select-none items-center justify-center"
+          >
+            <span className="font-sans text-5xl font-bold tracking-widest text-slate-400/40 dark:text-slate-500/35 sm:text-6xl md:text-7xl">
+              {watermark}
+            </span>
+          </div>
+        )}
         {overlayBadge && (
           <div className="pointer-events-auto absolute left-2.5 top-2.5 z-20">
             {overlayBadge}
