@@ -1,6 +1,6 @@
 ---
 type: Concept/Task
-status: in_progress
+status: completed
 updated_at: 2026-10-13
 task_id: 2026-10-13-intraday-subscription-prices-publish
 owner: Codex
@@ -44,8 +44,8 @@ then verify the remote SHA. Do not create a pull request or deploy.
 - [x] Audit implementation hashes and absence of credentials in the scope.
 - [x] Correct stale implementation-record checkboxes and publication pointers.
 - [x] Stage and verify only the 59 allowlisted implementation/document paths.
-- [ ] Run safe hook equivalents; commit and push without force.
-- [ ] Verify remote SHA and complete publication handoff.
+- [x] Run safe hook equivalents; commit and push without force.
+- [x] Verify remote SHA and complete publication handoff.
 
 ## Decisions and deviations
 
@@ -75,11 +75,14 @@ then verify the remote SHA. Do not create a pull request or deploy.
 - Final focused fixture rerun: 2 suites / 46 tests, exit 0. Full gate and
   root/scoped type checks pass; safe staged lint/format and scoped docs pass.
 
-Results will be recorded in the publication handoff. Prior implementation checks
+Implementation commit cc5fc9f56de8075d74a11416c82c3883a7806b66 is pushed and
+verified byte-for-byte by remote SHA. GitHub main remains d07855d9. Full results
+are in the [publication handoff](../../handoffs/2026-10-13-intraday-subscription-prices-codex-publish.md). Prior implementation checks
 passed: root 176 tests, money 61 tests, types/lint/format, live API and browser.
 
 ## Continuation
 
-- Next: exact staging and safe quality gates, then commit + normal origin push.
+- Feature publication is complete; this record and its handoff are delivered
+  in a separate documentation closure commit on the same branch.
 - No user input is pending. Preserve unrelated files and no PR creation.
 - Handoff: docs/handoffs/2026-10-13-intraday-subscription-prices-codex-publish.md.
