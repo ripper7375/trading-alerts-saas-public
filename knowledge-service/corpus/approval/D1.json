@@ -1,0 +1,8 @@
+{
+  "schema": "corpus-approval/1",
+  "area": "D1",
+  "status": "PENDING",
+  "content_sha256": "f12c3cee9cd1160be4f8a493dd35743d880174b2893875d62dd1b08fc59638c5",
+  "approved_by": null,
+  "approved_at": null
+}

@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-from helpers import SERVICE_ROOT, copy_corpus, doc, write_corpus
+from helpers import FIXTURE_CHUNKS, FIXTURE_DOMAINS, SERVICE_ROOT, copy_corpus, doc, write_corpus
 from knowledge.build import BuildResult
 from knowledge.gate import main
 from knowledge.index import CHUNKS_FILE
@@ -34,15 +34,15 @@ class TestBuild:
         assert code == 0 and "Traceback" not in err
         assert report["ok"] is True
         assert report["index_build_id"] == built.index_build_id
-        assert report["corpus_kind"] == "TEST_ONLY" and report["chunks"] == 15
-        assert report["domains"] == {"D1": 5, "D2": 5, "D3": 2, "D4": 2, "D5": 1}
-        assert any("OVER_DENSE_WINDOW" in w for w in report["warnings"])
+        assert report["corpus_kind"] == "TEST_ONLY" and report["chunks"] == FIXTURE_CHUNKS
+        assert report["domains"] == FIXTURE_DOMAINS
+        assert not any("OVER_DENSE_WINDOW" in w for w in report["warnings"]), "450 tokens fit the 512-token window"
         assert (out / "build_metadata.json").is_file()
 
     def test_check_accepts_what_build_made(self, run, built: BuildResult, model_dir: Path):
         code, report, err = run("check", "--index", str(built.output_dir), "--model-dir", str(model_dir))
         assert code == 0 and "Traceback" not in err
-        assert report["ok"] is True and report["index_build_id"] == built.index_build_id and report["chunks"] == 15
+        assert report["ok"] is True and report["index_build_id"] == built.index_build_id and report["chunks"] == FIXTURE_CHUNKS
         assert 0 < report["load_seconds"] < 30
 
 
@@ -84,7 +84,7 @@ class TestADamagedCorpusExitsOne:
     def test_a_file_that_lost_its_front_matter(self, run, fixture_corpus, tmp_path, model_dir):
         def edit(corpus: Path):
             path = corpus / "d5" / "governance.md"
-            text = path.read_bytes().decode("utf-8")
+            text = path.read_bytes().decode("utf-8").replace("\r\n", "\n")  # a Windows checkout has CRLF
             path.write_bytes(text.split("---\n", 2)[2].encode("utf-8"))
 
         code, _, err = self.build(run, self.damaged(tmp_path, fixture_corpus, edit), tmp_path, model_dir)

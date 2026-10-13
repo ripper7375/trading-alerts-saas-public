@@ -43,7 +43,7 @@ class TestIndexConfig:
     def test_the_real_file_loads(self, index_config: IndexConfig):
         assert index_config.model_repo == "sentence-transformers/all-MiniLM-L6-v2"
         assert re.fullmatch(r"[0-9a-f]{40}", index_config.model_revision)
-        assert index_config.chunker.min_tokens == 200 and index_config.chunker.max_tokens == 1500
+        assert index_config.chunker.min_tokens == 200 and index_config.chunker.max_tokens == 450
         assert index_config.chunker.max_chars == 4000
         assert (index_config.candidates, index_config.limit, index_config.expansions_max) == (40, 4, 6)
 

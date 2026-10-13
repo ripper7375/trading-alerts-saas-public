@@ -253,10 +253,10 @@ class TestTheRealTokenizer:
             return made
 
         long = chunks_of("d1/long-reference.md")
-        assert [c.id for c in long] == ["t.d1.long.the-long-reference-list", "t.d1.long.the-long-reference-list-2"]
-        assert all(c.chars <= 4000 and c.tokens <= 1500 for c in long)
-        # the character limit is the one that binds: these parts are far under 1,500 tokens
-        assert all(c.tokens < 1000 for c in long)
+        assert [c.id for c in long] == [f"t.d1.long.the-long-reference-list{s}" for s in ("", "-2", "-3", "-4", "-5")]
+        assert all(c.chars <= 4000 and c.tokens <= 450 for c in long)
+        # the token limit is the one that binds: 450 tokens of this prose are about 2,100 characters, far under 4,000
+        assert all(c.chars < 2200 for c in long)
         assert all(c.text.startswith("# TEST ONLY") and "## The long reference list" in c.text for c in long)
 
         (tiny,) = chunks_of("d1/tiny.md")

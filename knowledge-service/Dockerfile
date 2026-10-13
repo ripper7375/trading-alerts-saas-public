@@ -4,12 +4,15 @@
 # failure stops the deploy and nothing is downloaded or computed when the container starts:
 #
 #   1. the embedding model is fetched at the revision pinned in config/index.yaml (D12);
-#   2. the index is built from corpus/ and verified, and a corpus marked TEST_ONLY is refused (ADR-005: "rebuilt on
-#      every deploy" means this step; a failed gate is a failed build);
-#   3. the index is loaded back once under every pin (txtai 9.5.0, normalised keyword scores, weights 0.7).
+#   2. the index is built from corpus/ and verified, a corpus marked TEST_ONLY is refused, and so is a corpus with an
+#      area that Davin has not approved or that changed after he did (--require-approved, ADR-042). ADR-005: "rebuilt on
+#      every deploy" means this step; a failed gate is a failed build;
+#   3. the index is loaded back once under every pin (txtai 9.5.0, normalised keyword scores, weights 0.7) and checked
+#      to have been built with every area APPROVED.
 #
-# Until the real corpus exists (parts 7 and 8) step 2 fails with NO_DOCUMENTS, which is the right answer: there is
-# nothing to serve. For a throwaway image of the test corpus, build it by hand, outside this Dockerfile.
+# The corpus is written in parts 7 (D1 and D2) and 8 (D3 to D5) and approved one area at a time, so this build fails
+# on PENDING areas until the last approval is signed. That is the gate working. For a throwaway image of a draft
+# corpus, build it by hand without --require-approved, outside this Dockerfile.
 
 FROM python:3.11-slim
 
@@ -33,10 +36,10 @@ COPY knowledge ./knowledge
 # (1) the model, once, at the pinned revision
 RUN python -m knowledge.gate fetch-model
 
-# (2) and (3) the index, from the real corpus only
+# (2) and (3) the index, from the real and approved corpus only
 COPY corpus ./corpus
-RUN python -m knowledge.gate build --corpus corpus --output index --require-real \
- && python -m knowledge.gate check --index index
+RUN python -m knowledge.gate build --corpus corpus --output index --require-real --require-approved \
+ && python -m knowledge.gate check --index index --require-approved
 
 # from here on nothing may be downloaded
 ENV HF_HUB_OFFLINE=1 \

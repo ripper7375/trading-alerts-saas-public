@@ -20,7 +20,7 @@
       "http_status": 200,
       "response": {
         "status": "OK",
-        "index_build_id": "kb-ed301eb8423cd63e2bcf1fbbbe0925cb",
+        "index_build_id": "kb-0e1082ceaf063636168b851b3a31e82f",
         "chunks": [
           {
             "id": "t.d2.mcd1.sustained-breach-above-the-upper-band",
@@ -85,7 +85,7 @@
       "http_status": 200,
       "response": {
         "status": "OK",
-        "index_build_id": "kb-ed301eb8423cd63e2bcf1fbbbe0925cb",
+        "index_build_id": "kb-0e1082ceaf063636168b851b3a31e82f",
         "chunks": [
           {
             "id": "t.d1.channel.what-a-channel-is",
@@ -115,13 +115,13 @@
             "text": "# TEST ONLY: three tiny sections\n\n## First tiny section\n\nTEST ONLY. A bar is one interval of price.\n\n## Second tiny section\n\nTEST ONLY. A cycle is one pass of the sensors.\n\n### A subsection\n\nTEST ONLY. A reading is what a sensor reports."
           },
           {
-            "id": "t.d1.long.the-long-reference-list-2",
+            "id": "t.d1.long.the-long-reference-list-4",
             "domain": "D1",
             "mcd_id": null,
             "state_codes": [],
             "timeframe": null,
             "version": "1.0.0",
-            "text": "# TEST ONLY: a section longer than one chunk may be\n\n## The long reference list\n\nReference line 21 of the fixture states that item 21 of the invented list is called velvet and is filed beside willow, only so that the chunker has distinct text to split.\nReference line 22 of the fixture states that item 22 of the invented list is called willow and is filed beside dogwood, only so that the chunker has distinct text to split.\nReference line 23 of the fixture states that item 23 of the invented list is called xenon and is filed beside ember, only so that the chunker has distinct text to split.\nReference line 24 of the fixture states that item 24 of the invented list is called yarrow and is filed beside lagoon, only so that the chunker has distinct text to split.\nReference line 25 of the fixture states that item 25 of the invented list is called zephyr and is filed beside sable, only so that the chunker has distinct text to split.\nReference line 26 of the fixture states that item 26 of the invented list is called alder and is filed beside zephyr, only so that the chunker has distinct text to split.\nReference line 27 of the fixture states that item 27 of the invented list is called birch and is filed beside amber, only so that the chunker has distinct text to split.\nReference line 28 of the fixture states that item 28 of the invented list is called cedar and is filed beside harbor, only so that the chunker has distinct text to split.\nReference line 29 of the fixture states that item 29 of the invented list is called dogwood and is filed beside onyx, only so that the chunker has distinct text to split.\nReference line 30 of the fixture states that item 30 of the invented list is called elm and is filed beside velvet, only so that the chunker has distinct text to split.\nReference line 31 of the fixture states that item 31 of the invented list is called fir and is filed beside cedar, only so that the chunker has distinct text to split.\nReference line 32 of the fixture states that item 32 of the invented list is called amber and is filed beside dune, only so that the chunker has distinct text to split.\nReference line 33 of the fixture states that item 33 of the invented list is called basalt and is filed beside kelp, only so that the chunker has distinct text to split.\nReference line 34 of the fixture states that item 34 of the invented list is called cobalt and is filed beside reef, only so that the chunker has distinct text to split.\nReference line 35 of the fixture states that item 35 of the invented list is called dune and is filed beside yarrow, only so that the chunker has distinct text to split.\nReference line 36 of the fixture states that item 36 of the invented list is called ember and is filed beside fir, only so that the chunker has distinct text to split.\nReference line 37 of the fixture states that item 37 of the invented list is called fjord and is filed beside garnet, only so that the chunker has distinct text to split.\nReference line 38 of the fixture states that item 38 of the invented list is called garnet and is filed beside nectar, only so that the chunker has distinct text to split.\nReference line 39 of the fixture states that item 39 of the invented list is called harbor and is filed beside umber, only so that the chunker has distinct text to split.\nReference line 40 of the fixture states that item 40 of the invented list is called indigo and is filed beside birch, only so that the chunker has distinct text to split."
+            "text": "# TEST ONLY: a section longer than one chunk may be\n\n## The long reference list\n\nReference line 21 of the fixture states that item 21 of the invented list is called velvet and is filed beside willow, only so that the chunker has distinct text to split. Reference line 22 of the fixture states that item 22 of the invented list is called willow and is filed beside dogwood, only so that the chunker has distinct text to split. Reference line 23 of the fixture states that item 23 of the invented list is called xenon and is filed beside ember, only so that the chunker has distinct text to split. Reference line 24 of the fixture states that item 24 of the invented list is called yarrow and is filed beside lagoon, only so that the chunker has distinct text to split. Reference line 25 of the fixture states that item 25 of the invented list is called zephyr and is filed beside sable, only so that the chunker has distinct text to split. Reference line 26 of the fixture states that item 26 of the invented list is called alder and is filed beside zephyr, only so that the chunker has distinct text to split. Reference line 27 of the fixture states that item 27 of the invented list is called birch and is filed beside amber, only so that the chunker has distinct text to split. Reference line 28 of the fixture states that item 28 of the invented list is called cedar and is filed beside harbor, only so that the chunker has distinct text to split. Reference line 29 of the fixture states that item 29 of the invented list is called dogwood and is filed beside onyx, only so that the chunker has distinct text to split. Reference line 30 of the fixture states that item 30 of the invented list is called elm and is filed beside velvet, only so that the chunker has distinct text to split. Reference line 31 of the fixture states that item 31 of the invented list is called fir and is filed beside cedar, only so that the chunker has distinct text to split. Reference line 32 of the fixture states that item 32 of the invented list is called amber and is filed beside dune, only so that the chunker has distinct text to split."
           }
         ],
         "expansions": []
@@ -143,7 +143,7 @@
       "http_status": 200,
       "response": {
         "status": "OK",
-        "index_build_id": "kb-ed301eb8423cd63e2bcf1fbbbe0925cb",
+        "index_build_id": "kb-0e1082ceaf063636168b851b3a31e82f",
         "chunks": [
           {
             "id": "t.d2.mcd2.five-minute-breakout-above-the-upper-band",
@@ -230,7 +230,7 @@
       "http_status": 200,
       "response": {
         "status": "EMPTY",
-        "index_build_id": "kb-ed301eb8423cd63e2bcf1fbbbe0925cb",
+        "index_build_id": "kb-0e1082ceaf063636168b851b3a31e82f",
         "chunks": [],
         "expansions": []
       }

@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from helpers import FILLER, copy_corpus, doc, write_corpus
+from helpers import FILLER, FIXTURE_CHUNKS, FIXTURE_DOMAINS, copy_corpus, doc, write_corpus
 from knowledge.build import (
     BUILD_ID_HEX,
     TEST_ONLY_MARKER,
@@ -29,6 +29,8 @@ from knowledge.errors import BuildFailed, IndexUnavailable
 from knowledge.index import CHUNKS_FILE, METADATA_FILE, LoadedIndex, load_index, txtai_version
 from knowledge.model import TokenCounter
 from knowledge.tags import Tags
+
+CORPUS_FIXTURE = Path(__file__).resolve().parent / "fixtures" / "corpus"
 
 # the packet's own pattern for a version string, which the build id must satisfy (lib/intake/packet.ts VERSION)
 PACKET_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$")
@@ -69,8 +71,8 @@ class TestTheFixtureIndex:
         assert meta["index_build_id"] == built.index_build_id
         assert meta["index_build_sha256"].startswith(built.index_build_id[3:])
         assert meta["corpus_kind"] == "TEST_ONLY" and built.corpus_kind == "TEST_ONLY"
-        assert meta["chunk_count"] == built.chunk_count == 15
-        assert meta["domains"] == {"D1": 5, "D2": 5, "D3": 2, "D4": 2, "D5": 1}
+        assert meta["chunk_count"] == built.chunk_count == FIXTURE_CHUNKS
+        assert meta["domains"] == FIXTURE_DOMAINS
         assert meta["inputs"]["txtai_version"] == "9.5.0"
         assert meta["inputs"]["model"] == {"repo": index_config.model_repo, "revision": index_config.model_revision}
         assert meta["inputs"]["tags_sha256"] == tags.sha256
@@ -80,8 +82,22 @@ class TestTheFixtureIndex:
         assert meta["embedding_window_tokens"] == 512
         assert "built_at" not in json.dumps(meta), "no time stamp: the same inputs write the same bytes"
 
-    def test_chunks_longer_than_the_embedding_window_are_a_warning_not_an_error(self, built: BuildResult):
-        warned = {w.where for w in built.warnings if w.code == "OVER_DENSE_WINDOW"}
+    def test_every_chunk_fits_the_embedding_window_under_the_real_limit(self, built: BuildResult):
+        """Part 7, reading 1: 450 tokens, so the whole of every chunk reaches the dense vector. No OVER_DENSE_WINDOW."""
+        assert [w for w in built.warnings if w.code == "OVER_DENSE_WINDOW"] == []
+        assert built.metadata["embedding_window_tokens"] == 512
+        sidecar = json.loads((built.output_dir / CHUNKS_FILE).read_text(encoding="utf-8"))
+        assert max(r["tokens"] for r in sidecar["chunks"]) <= 450 < 512
+
+    def test_chunks_longer_than_the_embedding_window_are_a_warning_not_an_error(
+        self, build_with, index_config: IndexConfig, tmp_path: Path
+    ):
+        """The warning still works when the limit is raised again (the 1,500 tokens of architecture 4.6 item 3)."""
+        raw = copy.deepcopy(index_config.raw)
+        raw["chunker"]["max_tokens"] = 1500
+        wide = parse_index_config(raw)
+        result = build_with(CORPUS_FIXTURE, tmp_path / "wide-index", config=wide)
+        warned = {w.where for w in result.warnings if w.code == "OVER_DENSE_WINDOW"}
         assert warned == {"t.d1.long.the-long-reference-list", "t.d1.long.the-long-reference-list-2"}
 
     def test_the_files_are_there(self, built: BuildResult):
@@ -93,16 +109,16 @@ class TestTheFixtureIndex:
         sidecar = json.loads((built.output_dir / CHUNKS_FILE).read_text(encoding="utf-8"))
         records = sidecar["chunks"]
         assert [r["id"] for r in records] == sorted(r["id"] for r in records)
-        assert len(records) == 15
+        assert len(records) == FIXTURE_CHUNKS
         for r in records:
             assert {"id", "domain", "mcd_id", "state_codes", "timeframe", "version", "text", "related", "tokens"} == set(r)
-            assert len(r["text"]) <= 4000 and r["tokens"] <= 1500
+            assert len(r["text"]) <= 4000 and r["tokens"] <= 450
         meta = json.loads((built.output_dir / METADATA_FILE).read_text(encoding="utf-8"))
         assert meta["chunks_sha256"] == sha256_hex((built.output_dir / CHUNKS_FILE).read_bytes().decode("utf-8"))
 
     def test_it_loads_under_every_pin(self, loaded: LoadedIndex, built: BuildResult):
         assert loaded.build_id == built.index_build_id
-        assert loaded.embeddings.count() == 15 == len(loaded.chunks)
+        assert loaded.embeddings.count() == FIXTURE_CHUNKS == len(loaded.chunks)
         assert loaded.embeddings.isdense() and loaded.embeddings.issparse()
         assert loaded.embeddings.scoring.isnormalized() is True
 
@@ -132,6 +148,9 @@ class TestReproducibility:
             "t.d1.channel.what-a-channel-is",
             "t.d1.long.the-long-reference-list",
             "t.d1.long.the-long-reference-list-2",
+            "t.d1.long.the-long-reference-list-3",
+            "t.d1.long.the-long-reference-list-4",
+            "t.d1.long.the-long-reference-list-5",
             "t.d1.tiny.first-tiny-section",
             "t.d2.mcd1.downtrend-inside-the-corridor",
             "t.d2.mcd1.sustained-breach-above-the-upper-band",
@@ -367,7 +386,7 @@ class TestAnIndexIsLoadedOnlyUnderItsPins:
 
     def test_a_good_copy_loads(self, copy_of_index, index_config, model_dir):
         loaded = self.load(copy_of_index, index_config, model_dir)
-        assert loaded.embeddings.count() == 15
+        assert loaded.embeddings.count() == FIXTURE_CHUNKS
         loaded.embeddings.close()
 
     def test_no_index_at_all(self, tmp_path: Path, index_config, model_dir):
@@ -401,7 +420,7 @@ class TestAnIndexIsLoadedOnlyUnderItsPins:
         assert caught.value.code == "INDEX_CORRUPT"
 
     def test_a_sidecar_with_a_chunk_the_index_does_not_hold(self, copy_of_index, index_config, model_dir):
-        """Everything is consistent on paper (the count and the hash are re-written to match) but txtai holds 15."""
+        """Everything is consistent on paper (the count and the hash are re-written to match) but txtai holds one fewer."""
         from knowledge.index import chunks_text
 
         sidecar = json.loads((copy_of_index / CHUNKS_FILE).read_text(encoding="utf-8"))
@@ -463,5 +482,5 @@ class TestAnIndexIsLoadedOnlyUnderItsPins:
         saved["path"] = "C:/a/directory/that/does/not/exist/here"
         (copy_of_index / "config.json").write_text(json.dumps(saved), encoding="utf-8")
         loaded = self.load(copy_of_index, index_config, model_dir)  # this machine's directory wins
-        assert loaded.embeddings.count() == 15
+        assert loaded.embeddings.count() == FIXTURE_CHUNKS
         loaded.embeddings.close()

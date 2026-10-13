@@ -16,7 +16,7 @@ from typing import Any
 import pytest
 import yaml
 
-from helpers import SERVICE_ROOT, assert_knowledge_contract
+from helpers import FIXTURE_CHUNKS, SERVICE_ROOT, assert_knowledge_contract
 from knowledge.config import CONFIG_DIR, IndexConfig, Matrix, parse_index_config, parse_matrix
 from knowledge.errors import ConfigError, RoutingVersionMismatch, UnknownIntent
 from knowledge.index import LoadedIndex, txtai_version
@@ -268,7 +268,7 @@ class TestOnTheRealIndex:
     def test_the_filter_is_what_keeps_an_out_of_scope_playbook_out(self, retriever: Retriever, loaded: LoadedIndex):
         question = "Five minute breakout above the upper band"
         unfiltered = loaded.embeddings.search(
-            "SELECT id, domain, mcd_id FROM txtai WHERE similar(:q, 15) LIMIT 15", limit=15, weights=0.7, parameters={"q": question}
+            f"SELECT id, domain, mcd_id FROM txtai WHERE similar(:q, {FIXTURE_CHUNKS}) LIMIT {FIXTURE_CHUNKS}", limit=FIXTURE_CHUNKS, weights=0.7, parameters={"q": question}
         )
         assert unfiltered[0]["id"] == "t.d2.mcd2.five-minute-breakout-above-the-upper-band", "the fixture must make the point"
         result = retriever.search(req("DIRECTION", question, m_star=["MCD1"]))
@@ -300,7 +300,7 @@ class TestOnTheRealIndex:
             assert chunk["domain"] in ("D3", "D5") or (chunk["domain"] == "D2" and chunk["mcd_id"] == "MCD1")
         # the store is intact: the same ordinary question gives the same answer afterwards
         assert retriever.search(req(m_star=["MCD1"])).to_response() == before
-        assert retriever.loaded.embeddings.count() == 15
+        assert retriever.loaded.embeddings.count() == FIXTURE_CHUNKS
 
     @pytest.mark.parametrize(
         "intent", ["DIRECTION", "ENTRY_TIMING", "EXIT_TARGETS", "RISK_SIZING", "EXPLAIN", "NEWS", "INSTANT_M5_INSPECT", "INSTANT_M15_INSPECT"]

@@ -14,6 +14,10 @@ REPO_ROOT = SERVICE_ROOT.parent
 PACKET_SCHEMA = REPO_ROOT / "config" / "intake" / "intake-packet-1.schema.json"
 PACKET_TS = REPO_ROOT / "lib" / "intake" / "packet.ts"
 
+# The TEST ONLY corpus under the real chunk limit (450 tokens, part 7): its long reference splits into five parts.
+FIXTURE_CHUNKS = 18
+FIXTURE_DOMAINS = {"D1": 8, "D2": 5, "D3": 2, "D4": 2, "D5": 1}
+
 # a body long enough to stand alone as a chunk of its own (over the 200-token merge threshold of the real settings)
 FILLER = (
     "TEST ONLY. This sentence is plain filler for a fixture, written only so that a section has enough words to stay "

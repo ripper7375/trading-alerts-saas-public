@@ -62,9 +62,9 @@ A 200 body is exactly the `knowledge` section of `intake-packet/1`; `lib/intake/
 
 ## The corpus
 
-One Markdown file per topic under `corpus/` (real) — see `corpus/README.md`. **The tests have their own corpus**, `tests/fixtures/corpus/`,
-marked by a `TEST_ONLY` file; the production build refuses such a folder. Both are kept away from Prettier (a reformatted file is a new
-build id).
+One Markdown file per topic under `corpus/` (real; D1 and D2 are written, D3 to D5 are part 8) — see `corpus/README.md`. **The tests have
+their own corpus**, `tests/fixtures/corpus/`, marked by a `TEST_ONLY` file; the production build refuses such a folder. Both are kept away
+from Prettier (a reformatted file is a new build id).
 
 ```markdown
 ---
@@ -84,10 +84,15 @@ related: [d1.channel.what-a-channel-is] # chunk ids that must exist, optional
 
 - **Chunks** are whole sections: split at `##` and `###`; a run of sections under 200 tokens is merged; a section over the limit is split at
   paragraphs, then sentences, then words, the heading repeated on every part. Tokens are counted with the embedding model's own tokenizer.
-- The limit is two limits: 1,500 tokens **and** 4,000 characters (the packet's `KNOWLEDGE_CHUNK_MAX_CHARS`). For English prose the
-  characters bind first (about 900 tokens). The dense vector sees only the first 512 tokens (txtai's pooling window), so the build warns
-  `OVER_DENSE_WINDOW` for a chunk beyond it; the keyword index always sees all of it.
+- The limit is two limits: **450 tokens** (decision of 2026-10-13, part 7; architecture 4.6 says 1,500 and is amended in part 10) **and**
+  4,000 characters (the packet's `KNOWLEDGE_CHUNK_MAX_CHARS`). For English prose the tokens bind first (450 tokens are about 2,000
+  characters). The dense vector sees only the first 512 tokens (txtai's pooling window), so a chunk of at most 450 is embedded whole; the build
+  still warns `OVER_DENSE_WINDOW` if the limit is ever raised past the window. The corpus is written so that **a section is a chunk**: every
+  section is 200 to 450 tokens, so nothing is merged or split.
 - **Chunk id** = `{file id}.{slug of the chunk's first heading}`, with `-2`, `-3` when a heading repeats; stable when the body changes.
+- **A chunk inherits its file's tags**, so every chunk of a playbook carries all of its sensor's state codes. The state a section covers is
+  declared in its text, on the line under the heading: ``**State code:** `MCD1_UP_IN_CORRIDOR`.`` The review tables and the coverage tests read
+  that line (`knowledge/review.py: declared_state_codes`); the search finds it as ordinary text.
 - **Tags are a whitelist**: `config/tags.yaml` (domains, timeframes) and `config/registry-codes.json` (MCD ids and state codes, generated
   from the four MCD registries by `scripts/intake/build_roster.py`, never typed twice). An unknown value fails the build, with every problem listed.
 - **Wording backstop** (`knowledge/wording.py`, architecture 5.9): guarantees, claims of perfect accuracy, advice, probabilities and grades,
@@ -102,6 +107,28 @@ version, the model revision, the txtai version, `config/index.yaml` and the word
 machine (line endings are normalised first). The service refuses an index built under other settings, another txtai, or without
 normalised keyword scores, and answers 503 instead.
 
+## Review and approval (ADR-042, plan part 7)
+
+Davin approves the corpus one **area** at a time: `D1`, then each MCD's playbook (`D2-MCD0` to `D2-MCD3`), later `D3`, `D4` and `D5`. An area
+is the set of files of one domain; for the playbooks, of one sensor. Two kinds of file describe the corpus and are **not** corpus (a file under
+`review/` or `approval/`, or starting with `_`, is never read by the build):
+
+| File                          | Written by                                        | Holds                                                                                                                                                                                                |
+| ----------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `corpus/review/_<area>.md`    | `python -m knowledge.gate review --corpus corpus` | every chunk: id, heading, tokens, characters, the state code it declares, the sources it came from; for a playbook, which chunk covers each state code of the registry. Content only, never a status |
+| `corpus/approval/<area>.json` | the same command (PENDING); a person (APPROVED)   | `{schema: corpus-approval/1, area, status, content_sha256, approved_by, approved_at}`                                                                                                                |
+| `corpus/source-map.json`      | by hand                                           | for every chunk id, the specification files and sections it was written from (`corpus-source-map/1`)                                                                                                 |
+
+`gate review` **never writes APPROVED**. A person edits `status`, `approved_by` and `approved_at`; the hash stays. `content_sha256` is the hash
+of the area's files (line endings normalised, keyed by document id, so renaming a file changes nothing and editing a letter does). When a file
+changes, `gate review` puts its area back to PENDING with the new hash; `gate review --check` writes nothing and exits 1 when a table or an
+approval is stale (a test runs it).
+
+`--require-approved` is the production gate: `gate build` fails (exit 1, nothing written) when an area is PENDING, has no approval file, has
+changed since it was approved, or has an approval file and no content; `gate check` fails on an index that was not built that way (the build
+records each area's state in `build_metadata.json`). Without the flag a development build succeeds while areas are PENDING and records them. A
+signature does not change the build id: it says what is approved, not what the index answers.
+
 ## Running it
 
 ```bash
@@ -109,7 +136,9 @@ python -m venv .venv && .venv/bin/pip install -r requirements.txt           # Wi
 python -m knowledge.gate fetch-model                                        # the pinned model, once (needs the network)
 python -m pytest                                                            # the tests, on the real txtai and model
 python -m knowledge.gate build --corpus tests/fixtures/corpus --output index   # a TEST ONLY index, for development
-python -m knowledge.gate check --index index
+python -m knowledge.gate review --corpus corpus [--check]                        # the review tables and the PENDING approvals
+python -m knowledge.gate build --corpus corpus --output index --require-real    # the real corpus; add --require-approved for production
+python -m knowledge.gate check --index index [--require-approved]
 KNOWLEDGE_SERVICE_KEY=dev-key uvicorn knowledge.api:app --port 8000
 ```
 
@@ -132,12 +161,12 @@ root (`--check` is a test). `registry-codes.json` is regenerated by `scripts/int
 ## Docker and Railway (D3 (A), D12)
 
 `Dockerfile` (base `python:3.11-slim`): installs the pinned requirements (CPU torch), fetches the model at the revision in `config/index.yaml`
-**at image build**, builds the index from `corpus/` with `--require-real`, runs `gate check`, and starts one `uvicorn` process. Nothing
-is downloaded or computed at start (`HF_HUB_OFFLINE=1`). A failed gate is a failed build. Until the real corpus exists (parts 7 and 8)
-the build stops at `NO_DOCUMENTS`, on purpose. Railway: root directory `knowledge-service`, watch paths `knowledge-service/**`, a
+**at image build**, builds the index from `corpus/` with `--require-real --require-approved`, runs `gate check --require-approved`, and starts
+one `uvicorn` process. Nothing is downloaded or computed at start (`HF_HUB_OFFLINE=1`). A failed gate is a failed build, so **the image cannot
+be built while any area of the corpus is PENDING**: D1 and D2 are written (part 7), D3 to D5 are part 8, and Davin signs each area. Railway: root directory `knowledge-service`, watch paths `knowledge-service/**`, a
 service variable `KNOWLEDGE_SERVICE_KEY`, health check path `/healthz`. One replica per index: the index is in the image.
 
 ## Not here yet
 
-The labelled question set and the recall gate (part 9), the corpus (parts 7 and 8), the `--require-approved` build (part 7), and a rule-id
-tag (part 8 adds it to `tags.yaml` when the D3 chunks need it).
+The labelled question set and the recall gate (part 9), the corpus domains D3 to D5 (part 8), and a rule-id tag (part 8 adds it to
+`tags.yaml` when the D3 chunks need it).

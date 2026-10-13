@@ -43,10 +43,13 @@ search:
     INSTANT_M5_INSPECT: M5 channel reading state meaning
     INSTANT_M15_INSPECT: M15 channel reading state meaning
 
-# 4.6 item 3: whole sections, split on ## and ###, merged under 200 tokens, split over 1,500 (tokens counted with the
-# embedding model's own tokenizer, D11 (f)). max_chars is the packet's own limit on one chunk (KNOWLEDGE_CHUNK_MAX_CHARS in
-# lib/intake/packet.ts); for English prose it binds long before 1,500 tokens do.
+# 4.6 item 3: whole sections, split on ## and ###, merged under 200 tokens, split over 450 (tokens counted with the
+# embedding model's own tokenizer, D11 (f)). 450 is the part 7 decision (Davin and the Advisor, 2026-10-13, reading 1 of the
+# part 6 hand-off): the dense vector sees only the first 512 tokens of a chunk (MiniLM-L6-v2's pooling window), so a chunk
+# of at most 450 is embedded whole, with room for the special tokens. Architecture 4.6 item 3 says 1,500; that figure is
+# amended in part 10 (D17). max_chars is the packet's own limit on one chunk (KNOWLEDGE_CHUNK_MAX_CHARS in
+# lib/intake/packet.ts); for English prose 450 tokens come to about 2,000 characters, so the token limit is the one that binds.
 chunker:
   min_tokens: 200
-  max_tokens: 1500
+  max_tokens: 450
   max_chars: 4000

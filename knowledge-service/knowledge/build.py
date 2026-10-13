@@ -19,6 +19,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from .approval import (
+    APPROVAL_DIR,
+    REVIEW_DIR,
+    approvals_summary,
+    area_hashes,
+    check_approvals,
+    load_approvals,
+)
 from .canonical import normalize_text, sha256_hex, sha256_json
 from .chunker import Chunk, TokenCount, chunk_document
 from .config import IndexConfig
@@ -52,13 +60,28 @@ class BuildResult:
     warnings: list[Problem] = field(default_factory=list)
     output_dir: Path | None = None
 
+    @property
+    def approvals(self) -> dict[str, dict[str, Any]]:
+        """area -> {status, content_sha256, approval_current}: what the build found, whether or not it was required."""
+        return self.metadata["approvals"]
+
+
+# `review/` and `approval/` hold the tables and the sign-off files that describe the corpus; they are never corpus.
+NOT_CORPUS_DIRS = (REVIEW_DIR, APPROVAL_DIR)
+
 
 def corpus_files(corpus_dir: Path) -> list[Path]:
-    """The Markdown files of a corpus, in a fixed order. `README.md` and files starting with `_` are not corpus."""
+    """The Markdown files of a corpus, in a fixed order.
+
+    `README.md`, files starting with `_` and everything under `review/` and `approval/` are not corpus.
+    """
     files = [
         p
         for p in corpus_dir.rglob("*.md")
-        if p.is_file() and p.name.lower() != "readme.md" and not p.name.startswith("_")
+        if p.is_file()
+        and p.name.lower() != "readme.md"
+        and not p.name.startswith("_")
+        and p.relative_to(corpus_dir).parts[0] not in NOT_CORPUS_DIRS
     ]
     return sorted(files, key=lambda p: p.relative_to(corpus_dir).as_posix())
 
@@ -184,8 +207,14 @@ def build_index(
     model_dir: Path,
     counter: TokenCounter | None = None,
     require_real: bool = False,
+    require_approved: bool = False,
 ) -> BuildResult:
-    """Build the index of a corpus into `output_dir`. Raises BuildFailed (nothing written) on any problem."""
+    """Build the index of a corpus into `output_dir`. Raises BuildFailed (nothing written) on any problem.
+
+    `require_approved` is the production gate (ADR-042): every area of the corpus must have an APPROVED approval file
+    whose hash still matches its files. A development build does not require it; it records the state of each area in
+    the index's metadata, which `gate check --require-approved` reads.
+    """
     corpus_dir, output_dir = Path(corpus_dir), Path(output_dir)
     if not corpus_dir.is_dir():
         raise BuildFailed([Problem(str(corpus_dir), "NO_CORPUS", "the corpus folder does not exist")])
@@ -206,6 +235,10 @@ def build_index(
         problems.append(Problem(str(corpus_dir), "NO_DOCUMENTS", "the corpus holds no Markdown file with text"))
     more, warnings = check_chunks(chunks, config, counter.window)
     problems += more
+    hashes = area_hashes(chunks, corpus_dir) if not problems else {}
+    approvals, approval_problems = load_approvals(corpus_dir)
+    if require_approved:
+        problems += check_approvals(hashes, approvals, approval_problems) if hashes else approval_problems
     if problems:
         raise BuildFailed(problems)
 
@@ -265,6 +298,7 @@ def build_index(
                 "normalize": True,
             },
             "embedding_window_tokens": counter.window,
+            "approvals": approvals_summary(hashes, approvals),
             "warnings": [{"where": w.where, "code": w.code, "message": w.message} for w in sorted(warnings)],
         }
         (staging / METADATA_FILE).write_bytes((json.dumps(metadata, indent=2, sort_keys=True) + "\n").encode("utf-8"))

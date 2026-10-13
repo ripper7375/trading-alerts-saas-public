@@ -1,0 +1,1023 @@
+{
+  "schema": "corpus-source-map/1",
+  "sources": {
+    "d1-channels-and-corridors.inside-outside-and-a-sustained-break": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation, where the bars closed and the micro regime"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation, corridor position"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2.5 MCD1-3 and the changes to them"
+      },
+      {
+        "file": "docs/adr/023-mcd1-same-slope-breakout-on-the-latest-bar.md",
+        "section": "Decision"
+      }
+    ],
+    "d1-channels-and-corridors.terms-the-sensors-use": [
+      {
+        "file": "config/intake/glossary.v1.json",
+        "section": "terms uoedt, loedt, baseline, corridor, channel (the English definitions)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/MARKET-DATA-V6-103-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md",
+        "section": "the uoedt, loedt and ssa columns of the centroid regression group"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "3 Inputs (window, T_EDT) and 6 Calculation (trend band, micro window, channel position)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation, position and EDT stochastic"
+      }
+    ],
+    "d1-channels-and-corridors.the-corridor-uoedt-baseline-and-loedt": [
+      {
+        "file": "davintrade-stack-d-and-e/MARKET-DATA-V6-103-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md",
+        "section": "the uoedt and loedt columns (Upper and Lower Outermost Equidistant Trendline)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation and 8 Levels"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation, corridor position, and 8 Levels"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "6 Calculation, the geo ratio"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation, position and EDT stochastic"
+      }
+    ],
+    "d1-channels-and-corridors.the-slope-and-the-five-degree-trend-band": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation, trend direction"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation, trend direction"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "6 Calculation, flat channel and the R-squared pillars"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation, condition 1 (the trend words come from MCD1 and MCD2)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_params.yaml",
+        "section": "sideways_angle_deg"
+      }
+    ],
+    "d1-channels-and-corridors.what-a-channel-is": [
+      {
+        "file": "davintrade-stack-d-and-e/MARKET-DATA-V6-103-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md",
+        "section": "the centroid regression group and the fractal group (SSA, DBSCAN centroids, baseline and equidistant trendlines)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "1.4 item 3, the active-indicator setting"
+      }
+    ],
+    "d1-channels-and-corridors.width-containment-and-refits": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2.4 Pre-flight and status scale (tier 4, containment) and 2.7 Two histories"
+      },
+      {
+        "file": "docs/adr/083-mcd1-and-mcd2-windows-count-the-channels-closed-bars.md",
+        "section": "Decision and Why (T_EDT counts the forming bar)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/MARKET-DATA-V6-103-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md",
+        "section": "the drift of the dynamic channels"
+      }
+    ],
+    "d1-closed-bar-rule.the-reference-price-p-ref": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2.8 State statistics, the arithmetic (P_ref) and 1.3 rule 3 (current price)"
+      },
+      {
+        "file": "lib/intake/read/snapshot.ts",
+        "section": "the data line's price is the stored reading's reference_price"
+      }
+    ],
+    "d1-closed-bar-rule.what-a-closed-bar-is": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "1.3 The nine rules (rules 1 to 4) and 1.5 One cycle"
+      },
+      {
+        "file": "docs/adr/011-still-open-bar-kept-out-of-sensors-and-ohlc.md",
+        "section": "Decision"
+      }
+    ],
+    "d1-closed-bar-rule.what-the-rule-covers-and-what-it-does-not": [
+      {
+        "file": "docs/adr/083-mcd1-and-mcd2-windows-count-the-channels-closed-bars.md",
+        "section": "Why, and the open question on the statistics fit window"
+      },
+      {
+        "file": ".claude/state/waiting-on.md",
+        "section": "the forming-bar trace of build step 3 part 7"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "1.3 rule 3 (the forming bar is drawn hollow)"
+      }
+    ],
+    "d1-closed-bar-rule.why-the-sensors-read-closed-bars-only": [
+      {
+        "file": "docs/adr/011-still-open-bar-kept-out-of-sensors-and-ohlc.md",
+        "section": "Why"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2.2 The sensor worker (item 6, same answer on replay) and 2.7 Two histories"
+      }
+    ],
+    "d1-data-statuses.data-statuses-of-a-cycle": [
+      {
+        "file": "railway-gateway/src/cycle/data-status.ts",
+        "section": "cycleStatus and computeDataStatus"
+      },
+      {
+        "file": "railway-gateway/src/cycle/thresholds.ts",
+        "section": "FRESHNESS_THRESHOLDS"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "1.3 rule 7 and 1.4 item 7"
+      },
+      {
+        "file": "docs/adr/012-freshness-thresholds.md",
+        "section": "Decision"
+      }
+    ],
+    "d1-data-statuses.sensor-statuses-on-the-board": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2.4 Pre-flight and status scale (the status table)"
+      },
+      {
+        "file": "lib/intake/packet.ts",
+        "section": "SENSOR_STATUSES and BOARD_STATUSES (ABSENT)"
+      }
+    ],
+    "d1-data-statuses.what-each-data-status-allows": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "5.3 Answer gate (what each data status allows)"
+      }
+    ],
+    "d1-data-statuses.what-makes-a-reading-cautionary": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_common/reason_codes.py",
+        "section": "the reason codes and the status each produces"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2.2 item 3, 2.4 and 3.3 mechanic 4 (caution is inherited)"
+      }
+    ],
+    "d1-data-statuses.when-the-status-is-unknown-or-retuning": [
+      {
+        "file": "lib/intake/packet.ts",
+        "section": "DATA_STATUSES and DATA_FLAGS"
+      },
+      {
+        "file": "lib/intake/read/snapshot.ts",
+        "section": "the gateway cannot be asked: UNKNOWN and GATEWAY_UNREACHABLE"
+      },
+      {
+        "file": "docs/adr/015-retuning-during-a-promote.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "1.3 rule 9"
+      }
+    ],
+    "d1-data-statuses.why-a-stale-status-withholds-direction": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "5.3 Answer gate"
+      },
+      {
+        "file": "docs/handoffs/2026-10-13-1328-step6-part5.md",
+        "section": "reading 13, STALE and UNKNOWN in the packet"
+      }
+    ],
+    "d1-mcd-architecture.how-the-sensors-run-and-what-a-bias-is": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2.2 The sensor worker and 3.3 Precedence and mechanics"
+      },
+      {
+        "file": "docs/adr/025-rules-decide-direction.md",
+        "section": "Decision"
+      }
+    ],
+    "d1-mcd-architecture.mcd0-the-fit-gate": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "1 Question and purpose, 6 Calculation, 7 State register and 10 Routing"
+      },
+      {
+        "file": "docs/adr/018-quality-gate-becomes-mcd0.md",
+        "section": "Decision"
+      }
+    ],
+    "d1-mcd-architecture.mcd1-the-m15-primary-structure": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "1 Question and purpose, 6 Calculation, 7 State register"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "rung and states"
+      }
+    ],
+    "d1-mcd-architecture.mcd2-the-m5-corridor-deviation": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "1 Question and purpose, 6 Calculation, 7 State register, 11 details (reversion_setup)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "rung and states"
+      }
+    ],
+    "d1-mcd-architecture.mcd3-agreement-and-nesting-of-m15-and-m5": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "1 Question and purpose, 6 Calculation, 7 State register, 8 Levels"
+      },
+      {
+        "file": "docs/adr/021-mcd3-reads-mcd1-and-mcd2-readings.md",
+        "section": "Decision"
+      }
+    ],
+    "d1-mcd-architecture.one-question-per-sensor": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2 Sensors, 2.3 Envelope v1 and 2.13 MCD registry"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "1 Question and purpose"
+      }
+    ],
+    "d2-mcd0-playbook.both-channels-meet-every-fit-criterion": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "7 State register, row MCD0_ALL_QUALIFIED"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0_registry.yaml",
+        "section": "states, MCD0_ALL_QUALIFIED (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "9 Synthesis role (gate, the worker marks the channel MCDs)"
+      }
+    ],
+    "d2-mcd0-playbook.both-channels-miss-a-fit-criterion": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "7 State register, row MCD0_M5_M15_DEFECT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0_registry.yaml",
+        "section": "states, MCD0_M5_M15_DEFECT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "9 Synthesis role (gate, the worker marks the channel MCDs)"
+      }
+    ],
+    "d2-mcd0-playbook.how-to-read-a-defect": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "9 Synthesis role (flag rate) and 10 Routing and knowledge (playbook sections)"
+      },
+      {
+        "file": "docs/adr/061-defect-flag-halves-the-pre-set-risk.md",
+        "section": "Decision"
+      }
+    ],
+    "d2-mcd0-playbook.the-m15-channel-misses-a-fit-criterion": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "7 State register, row MCD0_M15_DEFECT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0_registry.yaml",
+        "section": "states, MCD0_M15_DEFECT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "9 Synthesis role (gate, the worker marks the channel MCDs)"
+      }
+    ],
+    "d2-mcd0-playbook.the-m5-channel-misses-a-fit-criterion": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "7 State register, row MCD0_M5_DEFECT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0_registry.yaml",
+        "section": "states, MCD0_M5_DEFECT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "9 Synthesis role (gate, the worker marks the channel MCDs)"
+      }
+    ],
+    "d2-mcd0-playbook.the-pillars-and-their-bounds": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "6 Calculation, the eight pillars and the parameter table"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0_params.yaml",
+        "section": "min_coverage_bars, min_r2_model_a, min_r2_model_b, min_fit_ratio, max_fit_ratio, min_geo_ratio, max_geo_ratio, max_abs_skew"
+      }
+    ],
+    "d2-mcd0-playbook.what-a-skipped-pillar-means": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "6 Calculation, pillars not applied; 4 Active-indicator use; 11 details (failed, skipped)"
+      }
+    ],
+    "d2-mcd0-playbook.what-mcd0-checks": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "1 Question and purpose, 2 Kind and horizon, 7 State register, 10 Routing and knowledge"
+      },
+      {
+        "file": "docs/adr/018-quality-gate-becomes-mcd0.md",
+        "section": "Decision"
+      }
+    ],
+    "d2-mcd0-playbook.when-mcd0-gives-no-verdict": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0.md",
+        "section": "5 Pre-flight checks and 3 Inputs (MCD0 reads no bars)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_common/reason_codes.py",
+        "section": "the reason codes"
+      }
+    ],
+    "d2-mcd1-playbook.m15-downtrend-close-below-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "7 State register, row MCD1_DOWN_LOWER_BREAKDOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "states, MCD1_DOWN_LOWER_BREAKDOWN (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd1-playbook.m15-downtrend-price-inside-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "7 State register, row MCD1_DOWN_IN_CORRIDOR"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "states, MCD1_DOWN_IN_CORRIDOR (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd1-playbook.m15-downtrend-sustained-close-above-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "7 State register, row MCD1_DOWN_UPPER_BREAKOUT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "states, MCD1_DOWN_UPPER_BREAKOUT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd1-playbook.m15-sideways-price-inside-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "7 State register, row MCD1_SIDEWAYS_IN_CORRIDOR"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "states, MCD1_SIDEWAYS_IN_CORRIDOR (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd1-playbook.m15-sideways-sustained-close-above-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "7 State register, row MCD1_SIDEWAYS_UPPER_BREAKOUT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "states, MCD1_SIDEWAYS_UPPER_BREAKOUT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd1-playbook.m15-sideways-sustained-close-below-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "7 State register, row MCD1_SIDEWAYS_LOWER_BREAKDOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "states, MCD1_SIDEWAYS_LOWER_BREAKDOWN (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd1-playbook.m15-uptrend-close-above-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "7 State register, row MCD1_UP_UPPER_BREAKOUT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "states, MCD1_UP_UPPER_BREAKOUT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd1-playbook.m15-uptrend-price-inside-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "7 State register, row MCD1_UP_IN_CORRIDOR"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "states, MCD1_UP_IN_CORRIDOR (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd1-playbook.m15-uptrend-sustained-close-below-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "7 State register, row MCD1_UP_LOWER_BREAKDOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "states, MCD1_UP_LOWER_BREAKDOWN (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd1-playbook.the-micro-window-and-the-sustained-break": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "3 Inputs (window) and 6 Calculation (window length, where the bars closed, micro regime)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_params.yaml",
+        "section": "micro_window_pct, min_micro_window_bars, sustained_breach_pct"
+      },
+      {
+        "file": "docs/adr/023-mcd1-same-slope-breakout-on-the-latest-bar.md",
+        "section": "Decision"
+      }
+    ],
+    "d2-mcd1-playbook.what-mcd1-measures": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "1 Question and purpose, 7 State register (bias, regime words, levels), 9 Synthesis role"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "rung and states"
+      }
+    ],
+    "d2-mcd1-playbook.when-mcd1-gives-no-state": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "5 Pre-flight checks and 9 Synthesis role (data problems)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_common/reason_codes.py",
+        "section": "the reason codes"
+      }
+    ],
+    "d2-mcd2-playbook.m5-downtrend-rally-above-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "7 State register, row MCD2_DOWN_UPPER_BREAKOUT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "states, MCD2_DOWN_UPPER_BREAKOUT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd2-playbook.m5-downtrend-ssa-below-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "7 State register, row MCD2_DOWN_LOWER_BREAKDOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "states, MCD2_DOWN_LOWER_BREAKDOWN (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd2-playbook.m5-downtrend-ssa-inside-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "7 State register, row MCD2_DOWN_IN_CORRIDOR"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "states, MCD2_DOWN_IN_CORRIDOR (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd2-playbook.m5-sideways-ssa-above-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "7 State register, row MCD2_SIDEWAYS_UPPER_BREAKOUT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "states, MCD2_SIDEWAYS_UPPER_BREAKOUT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd2-playbook.m5-sideways-ssa-below-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "7 State register, row MCD2_SIDEWAYS_LOWER_BREAKDOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "states, MCD2_SIDEWAYS_LOWER_BREAKDOWN (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd2-playbook.m5-sideways-ssa-inside-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "7 State register, row MCD2_SIDEWAYS_IN_CORRIDOR"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "states, MCD2_SIDEWAYS_IN_CORRIDOR (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd2-playbook.m5-uptrend-dip-below-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "7 State register, row MCD2_UP_LOWER_BREAKDOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "states, MCD2_UP_LOWER_BREAKDOWN (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd2-playbook.m5-uptrend-ssa-above-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "7 State register, row MCD2_UP_UPPER_BREAKOUT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "states, MCD2_UP_UPPER_BREAKOUT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd2-playbook.m5-uptrend-ssa-inside-the-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "7 State register, row MCD2_UP_IN_CORRIDOR"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "states, MCD2_UP_IN_CORRIDOR (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "9 Synthesis role (note on bias and rung)"
+      }
+    ],
+    "d2-mcd2-playbook.the-corridor-test-and-the-outside-corridor-flag": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "6 Calculation (corridor position), 3 Inputs (window) and 11 details (reversion_setup)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_params.yaml",
+        "section": "min_window_bars, max_window_bars"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2.6 Keep, change, add, remove (probability words are not carried over)"
+      }
+    ],
+    "d2-mcd2-playbook.what-mcd2-measures": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "1 Question and purpose, 4 Active-indicator use, 7 State register, 9 Synthesis role"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2_registry.yaml",
+        "section": "rung and states"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/MARKET-DATA-V6-103-COLUMNS-AND-MQ5-INDICATORS-REFERENCE-EN.md",
+        "section": "best_fit_a_ssa, the smoothed SSA trendline"
+      }
+    ],
+    "d2-mcd2-playbook.when-mcd2-gives-no-state": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd2/mcd2.md",
+        "section": "5 Pre-flight checks and 9 Synthesis role (data problems)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_common/reason_codes.py",
+        "section": "the reason codes"
+      }
+    ],
+    "d2-mcd3-playbook.consolidated-downtrend-lower-zone-of-the-m15-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_BEAR_BOTTOM"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_BEAR_BOTTOM (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.consolidated-downtrend-middle-zone-of-the-m15-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_BEAR_MID"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_BEAR_MID (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.consolidated-downtrend-upper-zone-of-the-m15-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_BEAR_PREMIUM"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_BEAR_PREMIUM (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.consolidated-sideways-m5-corridor-inside-the-m15-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_SIDEWAYS_EQUILIBRIUM"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_SIDEWAYS_EQUILIBRIUM (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.consolidated-uptrend-lower-zone-of-the-m15-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_BULL_VALUE"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_BULL_VALUE (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.consolidated-uptrend-middle-zone-of-the-m15-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_BULL_MID"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_BULL_MID (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.consolidated-uptrend-upper-zone-of-the-m15-corridor": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_BULL_TOP"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_BULL_TOP (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.escape-the-latest-m5-corridor-extends-beyond-m15": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_NON_CONSOLIDATED_ESCAPE"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_NON_CONSOLIDATED_ESCAPE (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.overflow-the-m5-corridor-is-often-outside-m15": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_NON_CONSOLIDATED_OVERFLOW"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_NON_CONSOLIDATED_OVERFLOW (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.the-edt-stochastic-and-the-three-zones": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation, position and EDT stochastic (decision D10 option A)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_params.yaml",
+        "section": "lower_zone_max_position, upper_zone_min_position"
+      }
+    ],
+    "d2-mcd3-playbook.the-three-conditions-and-the-nesting-test": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation, conditions 1 to 3, and 3 Inputs (the M15 bar of an M5 bar)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_params.yaml",
+        "section": "nesting_min_share, min_nesting_window_bars"
+      }
+    ],
+    "d2-mcd3-playbook.trend-conflict-between-the-two-timeframes": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "7 State register, row MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "states, MCD3_NON_CONSOLIDATED_TREND_CONFLICT (meaning, bias, regime word)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "9 Synthesis role (modifier, STAND_ASIDE in full)"
+      }
+    ],
+    "d2-mcd3-playbook.what-mcd3-measures": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "1 Question and purpose, 2 Kind and horizon, 7 State register, 8 Levels, 9 Synthesis role"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "rung and states"
+      },
+      {
+        "file": "docs/adr/021-mcd3-reads-mcd1-and-mcd2-readings.md",
+        "section": "Decision"
+      }
+    ],
+    "d2-mcd3-playbook.when-mcd3-gives-no-state": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "5 Pre-flight checks (upstream) and 9 Synthesis role (data problems)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_common/reason_codes.py",
+        "section": "the reason codes (UPSTREAM_*)"
+      }
+    ]
+  }
+}
