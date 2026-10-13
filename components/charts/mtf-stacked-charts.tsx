@@ -10,6 +10,8 @@
  * - Component 7: Unified top horizontal drawing toolbar.
  * - Component 8: Chart display mode toggles (Bar vs Candlestick).
  * - Component 9: M5 Overlay button relocated to the top toolbar.
+ * - Component 10: the Panel C instant prompts, one "Explain the current M5 / M15 chart" button at
+ *   the bottom left of each pane (flag-gated; an overlay, so the split arithmetic is untouched).
  *
  * @module components/charts/mtf-stacked-charts
  */
@@ -30,10 +32,12 @@ import {
 import { useLocale } from '@/lib/context/locale-context';
 import { cn } from '@/lib/utils';
 
+import { AskAiOverlay } from './ask-ai-button';
 import type { DrawingType } from './drawing/types';
 import { MtfTopBar, type IndicatorId } from './mtf/MtfTopBar';
 import { useMtfPreference } from './mtf/useMtfPreference';
 import { TradingChart } from './trading-chart';
+import { instantKindFor, useInstantPrompt } from './use-instant-prompt';
 import {
   DEFAULT_SPLIT,
   FALLBACK_TOTAL_HEIGHT_PX,
@@ -57,6 +61,16 @@ interface MtfStackedChartsProps {
   onAskAi?: (prompt: string) => void;
   /** Whether the user has PRO tier. If omitted, resolved from session. */
   isPro?: boolean;
+  /**
+   * The Panel C instant prompts ("Explain the current M5 chart" and the M15 one): one button at the
+   * bottom left of each pane. Off unless the server says `INTAKE_INSTANT_PROMPTS_ENABLED` is `true`
+   * (`isInstantPromptsEnabled()`, read by the page and passed down).
+   */
+  instantPromptsEnabled?: boolean;
+  /** A Free trader's press on an instant prompt opens this (the existing upgrade modal). */
+  onOpenUpgradeModal?: () => void;
+  /** The success body of an instant prompt, for the chat that step 7 builds. */
+  onInstantResult?: (body: unknown) => void;
 }
 
 /** Percentages closer than this are the same divider position. */
@@ -69,12 +83,27 @@ export function MtfStackedCharts({
   totalHeight,
   onAskAi,
   isPro: isProProp,
+  instantPromptsEnabled = false,
+  onOpenUpgradeModal,
+  onInstantResult,
 }: MtfStackedChartsProps): React.JSX.Element {
   const { t } = useLocale();
   const { data: session } = useSession();
   const sessionIsPro = session?.user?.tier === 'PRO';
   const isPro = isProProp !== undefined ? isProProp : sessionIsPro;
   const initialSplit = isPro ? DEFAULT_SPLIT : FREE_DEFAULT_SPLIT;
+
+  // Panel C instant prompts: one request in flight for the whole chart. A Free trader with nowhere
+  // to be sent (no upgrade modal) gets no button rather than one that does nothing.
+  const instant = useInstantPrompt({
+    isPro,
+    onOpenUpgradeModal,
+    onResult: onInstantResult,
+  });
+  const showInstantPrompts =
+    instantPromptsEnabled && (isPro || onOpenUpgradeModal !== undefined);
+  const upperInstantKind = instantKindFor(upperTimeframe);
+  const lowerInstantKind = instantKindFor(lowerTimeframe);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const panelsContainerRef = useRef<HTMLDivElement>(null);
@@ -400,6 +429,20 @@ export function MtfStackedCharts({
                 }
                 label={`${symbol} · ${upperTimeframe}`}
               />
+
+              {showInstantPrompts && upperInstantKind !== null && (
+                <AskAiOverlay
+                  kind={upperInstantKind}
+                  loading={instant.pending === upperInstantKind}
+                  disabled={instant.pending !== null}
+                  notice={
+                    instant.notice?.kind === upperInstantKind
+                      ? instant.notice.text
+                      : null
+                  }
+                  onPress={instant.press}
+                />
+              )}
             </div>
           </ResizablePanel>
 
@@ -493,6 +536,20 @@ export function MtfStackedCharts({
                 }
                 label={`${symbol} · ${lowerTimeframe}`}
               />
+
+              {showInstantPrompts && lowerInstantKind !== null && (
+                <AskAiOverlay
+                  kind={lowerInstantKind}
+                  loading={instant.pending === lowerInstantKind}
+                  disabled={instant.pending !== null}
+                  notice={
+                    instant.notice?.kind === lowerInstantKind
+                      ? instant.notice.text
+                      : null
+                  }
+                  onPress={instant.press}
+                />
+              )}
 
               {!isPro && (
                 <div

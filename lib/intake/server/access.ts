@@ -54,19 +54,11 @@ import {
   createModelUnderstandPort,
   understandConfigFromEnv,
 } from '../text/understand-model';
+import { isInstantPromptsEnabled, isIntakeEnabled, type Env } from './flags';
 import { replyText } from './reply';
 
-export type Env = Readonly<Record<string, string | undefined>>;
-
-/** The intake routes are off unless this is exactly the text `true`. */
-export function isIntakeEnabled(env: Env = process.env): boolean {
-  return env['INTAKE_ENABLED'] === 'true';
-}
-
-/** The Panel C buttons render only when this is exactly the text `true` (the UI reads it; part 10). */
-export function isInstantPromptsEnabled(env: Env = process.env): boolean {
-  return env['INTAKE_INSTANT_PROMPTS_ENABLED'] === 'true';
-}
+// The two flags live in `flags.ts` so a page can read one without this file's imports.
+export { isInstantPromptsEnabled, isIntakeEnabled, type Env };
 
 /** The session as far as this module reads it (a test passes its own). */
 export interface SessionSource {

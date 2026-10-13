@@ -4,6 +4,7 @@ import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
 import { localizedMetadata } from '@/lib/i18n/server-metadata';
+import { isInstantPromptsEnabled } from '@/lib/intake/server/flags';
 
 import { FreeWorkspace } from './free-workspace';
 
@@ -31,5 +32,6 @@ export default async function FreePage(): Promise<React.ReactElement> {
     redirect('/login');
   }
 
-  return <FreeWorkspace />;
+  // read here, on the server, at request time: the browser never sees the variable
+  return <FreeWorkspace instantPromptsEnabled={isInstantPromptsEnabled()} />;
 }

@@ -51,8 +51,17 @@ const MtfStackedCharts = dynamic(
 
 interface TradingWorkspaceProps {
   tier: Tier;
-  /** FREE only: the empty-state panels' "Get priority access on PRO" nudge. */
+  /**
+   * FREE only: the empty-state panels' "Get priority access on PRO" nudge, and the press of a
+   * Panel C instant prompt.
+   */
   onOpenUpgradeModal?: () => void;
+  /**
+   * Whether the Panel C instant prompt buttons render. The server decides
+   * (`isInstantPromptsEnabled()`: `INTAKE_INSTANT_PROMPTS_ENABLED` is exactly `true`) and the page
+   * passes it down; off when omitted.
+   */
+  instantPromptsEnabled?: boolean;
 }
 
 type CollapsedState = Record<CollapsiblePanelIndex, boolean>;
@@ -79,6 +88,7 @@ type CollapsedState = Record<CollapsiblePanelIndex, boolean>;
 export function TradingWorkspace({
   tier,
   onOpenUpgradeModal,
+  instantPromptsEnabled = false,
 }: TradingWorkspaceProps): React.JSX.Element {
   const { t } = useLocale();
 
@@ -310,6 +320,8 @@ export function TradingWorkspace({
                   symbol="XAUUSD"
                   onAskAi={handleAskAi}
                   isPro={tier === 'PRO'}
+                  instantPromptsEnabled={instantPromptsEnabled}
+                  onOpenUpgradeModal={onOpenUpgradeModal}
                 />
               </div>
             </div>

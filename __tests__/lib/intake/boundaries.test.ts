@@ -23,7 +23,8 @@
  *     their types only.
  *  3. The barrel re-exports no value of `read/`, `server/`, an adapter or `check.ts` (the internal toolkit).
  *  4. Nothing outside `lib/intake` imports it except the files named in ALLOWED_IMPORTERS: the two
- *     routes and the dev preview. Each later part that adds a caller adds that file there on purpose.
+ *     routes, the dev preview and the Panel C instant prompts (part 10). Each later part that adds a
+ *     caller adds that file there on purpose.
  *
  * The guard is itself tested: the snippets below must be caught, and the allowed forms must not.
  */
@@ -74,12 +75,22 @@ const ADAPTER_TARGETS: ReadonlySet<string> = new Set(
   Object.keys(ADAPTERS).map((file) => file.replace(/\.ts$/, ''))
 );
 
-/** Files outside `lib/intake` that may import it: the two routes (part 5) and the dev preview. */
+/**
+ * Files outside `lib/intake` that may import it: the two routes (part 5), the dev preview, and the
+ * Panel C instant prompts (part 10): the two pages that read `isInstantPromptsEnabled()` on the server
+ * (`app/terminal/page.tsx` and `app/free/page.tsx`), the button and its press hook (they use the
+ * intent names and the fixed texts), and the dev preview of the buttons.
+ */
 const ALLOWED_IMPORTERS: readonly string[] = [
   'app/api/intake/instant/route.ts',
   'app/api/intake/route.ts',
+  'app/dev/intake/instant/instant-preview.tsx',
   'app/dev/intake/page.tsx',
   'app/dev/intake/world.ts',
+  'app/free/page.tsx',
+  'app/terminal/page.tsx',
+  'components/charts/ask-ai-button.tsx',
+  'components/charts/use-instant-prompt.ts',
 ];
 
 /** Names that mean input, output, time, randomness or a browser. */
@@ -277,7 +288,7 @@ function loadSources(): Map<string, string> {
 describe('lib/intake', () => {
   const sources = loadSources();
 
-  it('has the files of parts 1 to 5', () => {
+  it('has the files of parts 1 to 5 and the flags file of part 10', () => {
     expect([...sources.keys()]).toEqual([
       'board.ts',
       'canonical.ts',
@@ -299,6 +310,7 @@ describe('lib/intake', () => {
       'router.ts',
       'server/access.ts',
       'server/errors.ts',
+      'server/flags.ts',
       'server/reply.ts',
       'server/request.ts',
       'server/respond.ts',

@@ -22,6 +22,7 @@
  *  - a question that names an allowed AND another symbol or timeframe is out of scope ("gold
  *    and BTC", "M5 against H1");
  *  - a duration counts as a timeframe: `last 2 hours` is H2, `10 minutes` is M10;
+ *  - `2day` typed as one word is "today", not the timeframe D2 (`2 day`, `2-day`, `2days`, `2d` are);
  *  - a bare `USD` is not a second symbol: it is the quote currency of gold;
  *  - the model's own `OUT_OF_SCOPE` label is out of scope.
  *
@@ -218,6 +219,12 @@ const SPOKEN_TIMEFRAME =
   /(?<![A-Z0-9.,])(\d{1,3})[ -]?(MINUTES?|MINS?|HOURS?|HRS?|DAYS?|WEEKS?|WKS?|MONTHS?|MO|M|H|D|W)(?![A-Z])/g;
 const TIMEFRAME_WORD =
   /(?<![A-Z0-9])(?:DAILY|WEEKLY|MONTHLY|HOURLY)(?![A-Z0-9])/g;
+/**
+ * `2day` typed as one word is text-speak for "today" ("is there news 2day"), not the two-day
+ * timeframe D2. Word boundaries cannot tell them apart (both sides of `2day` are clean), so the
+ * glued singular form is named. `2 day`, `2-day`, `2days` and `2d` stay the timeframe D2.
+ */
+const TEXT_SPEAK_TODAY = '2DAY';
 
 const WORD_UNIT: ReadonlyMap<string, string> = new Map([
   ['HOURLY', 'H1'],
@@ -300,6 +307,7 @@ function readText(text: string): { found: Found[]; allowed: Timeframe[] } {
     timeframe(timeframeName(match[1] as string, match[2] as string));
   }
   for (const match of upper.matchAll(SPOKEN_TIMEFRAME)) {
+    if (match[0] === TEXT_SPEAK_TODAY) continue;
     timeframe(timeframeName(unitOf(match[2] as string), match[1] as string));
   }
   for (const match of upper.matchAll(TIMEFRAME_WORD)) {

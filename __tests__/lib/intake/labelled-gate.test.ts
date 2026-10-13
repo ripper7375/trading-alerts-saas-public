@@ -865,10 +865,11 @@ describe('recording a live run (a fake port stands in for the model)', () => {
 // Known gaps found by the set (kept as a ledger, not hidden)
 // ---------------------------------------------------------------------------
 
-describe('known gaps of the deterministic front found while labelling', () => {
-  it('"2day" for today is read as the two-day timeframe D2 and the question is refused as out of scope', async () => {
-    // Found on the first draft of q-29: text-speak for "today" is a spoken timeframe to the scope check. The set
-    // spells it "todya" instead. If the scope check learns this, this test fails and "2day" can come back.
+describe('gaps of the deterministic front found while labelling (closed)', () => {
+  it('"2day" for today is NOT read as the two-day timeframe: the question is in scope and a packet is built', async () => {
+    // Found on the first draft of q-29 (part 9): text-speak for "today" was a spoken timeframe to the scope check
+    // and the question was refused as out of scope. Closed in part 10 (`lib/intake/text/scope.ts`). The set still
+    // spells it "todya": changing its text would change `content_sha256`, which the approval pins.
     const question = 'is ther big nws 4 gold 2day?? fomc cpi nfp';
     const { replay } = await replayQuestion(
       {
@@ -887,8 +888,9 @@ describe('known gaps of the deterministic front found while labelling', () => {
       }
     );
     expect(replay).toMatchObject({
-      outcome: 'REFUSED',
-      refusal_code: 'OUT_OF_SCOPE',
+      outcome: 'PACKET',
+      refusal_code: null,
+      intent: 'NEWS',
     });
   });
 

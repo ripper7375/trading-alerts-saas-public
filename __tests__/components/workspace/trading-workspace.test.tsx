@@ -34,7 +34,20 @@ jest.mock('next/navigation', () => ({
 }));
 
 jest.mock('next/dynamic', () => () => {
-  const MockChart = (): React.JSX.Element => <div data-testid="chart" />;
+  // the chart is stubbed; it shows what the workspace handed it
+  const MockChart = (props: {
+    isPro?: boolean;
+    instantPromptsEnabled?: boolean;
+    onOpenUpgradeModal?: () => void;
+  }): React.JSX.Element => (
+    <div
+      data-testid="chart"
+      data-is-pro={String(props.isPro)}
+      data-instant={String(props.instantPromptsEnabled)}
+      data-upgrade={String(typeof props.onOpenUpgradeModal === 'function')}
+      onClick={props.onOpenUpgradeModal}
+    />
+  );
   return MockChart;
 });
 
@@ -215,5 +228,51 @@ describe('TradingWorkspace -- panel collapse', () => {
       'data-collapsed',
       'false'
     );
+  });
+});
+
+describe('TradingWorkspace -- Panel C instant prompts', () => {
+  beforeEach(() => {
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('keeps the buttons off unless the page turns them on', () => {
+    render(<TradingWorkspace tier="PRO" />);
+    expect(screen.getByTestId('chart')).toHaveAttribute(
+      'data-instant',
+      'false'
+    );
+  });
+
+  it('hands the page flag to the stacked charts, for PRO', () => {
+    render(<TradingWorkspace tier="PRO" instantPromptsEnabled />);
+    const chart = screen.getByTestId('chart');
+    expect(chart).toHaveAttribute('data-instant', 'true');
+    expect(chart).toHaveAttribute('data-is-pro', 'true');
+    expect(chart).toHaveAttribute('data-upgrade', 'false');
+  });
+
+  it('hands the flag and the upgrade modal to the stacked charts, for FREE', () => {
+    const open = jest.fn();
+    render(
+      <TradingWorkspace
+        tier="FREE"
+        instantPromptsEnabled
+        onOpenUpgradeModal={open}
+      />
+    );
+    const chart = screen.getByTestId('chart');
+    expect(chart).toHaveAttribute('data-instant', 'true');
+    expect(chart).toHaveAttribute('data-is-pro', 'false');
+    expect(chart).toHaveAttribute('data-upgrade', 'true');
+    fireEvent.click(chart);
+    expect(open).toHaveBeenCalledTimes(1);
   });
 });

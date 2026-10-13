@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { ReactElement } from 'react';
 
@@ -119,6 +120,16 @@ export default async function IntakePreviewPage({
           The real gate, board, router and packet over a signed-off golden
           cycle. No model, database, gateway or knowledge service is called; the
           trader, the calendar and the knowledge chunk are test fixtures.
+        </p>
+        <p className="text-sm">
+          <Link
+            href="/dev/intake/instant"
+            className="underline underline-offset-2"
+            data-testid="instant-preview-link"
+          >
+            Panel C instant prompt buttons (&quot;Explain the current M5 / M15
+            chart&quot;)
+          </Link>
         </p>
       </header>
 

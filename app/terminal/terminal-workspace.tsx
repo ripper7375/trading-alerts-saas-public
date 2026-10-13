@@ -13,9 +13,23 @@ import { TradingWorkspace } from '@/components/workspace/trading-workspace';
  * per this session's Decision 2 -- Stack D/E aren't built until Phases
  * 12/13.
  *
+ * The Panel C instant prompt buttons ("Explain the current M5 / M15 chart")
+ * render only when the page says so: `instantPromptsEnabled` is the server's
+ * `isInstantPromptsEnabled()` (INTAKE_INSTANT_PROMPTS_ENABLED exactly `true`,
+ * set nowhere), read in app/terminal/page.tsx.
+ *
  * The panel layout and its collapse behaviour live in
  * components/workspace/trading-workspace.tsx, shared with `/free`.
  */
-export function TerminalWorkspace(): React.JSX.Element {
-  return <TradingWorkspace tier="PRO" />;
+export function TerminalWorkspace({
+  instantPromptsEnabled = false,
+}: {
+  instantPromptsEnabled?: boolean;
+}): React.JSX.Element {
+  return (
+    <TradingWorkspace
+      tier="PRO"
+      instantPromptsEnabled={instantPromptsEnabled}
+    />
+  );
 }

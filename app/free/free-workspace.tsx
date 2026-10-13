@@ -18,10 +18,19 @@ import { ProUpgradeModal } from '@/components/ui/pro-upgrade-modal';
  * with an additional "Get priority access on PRO" nudge that opens
  * ProUpgradeModal -- this page's own feature-gate/upgrade-modal surface.
  *
+ * The Panel C instant prompt buttons ("Explain the current M5 / M15 chart")
+ * render only when the page says so (`instantPromptsEnabled` is the server's
+ * `isInstantPromptsEnabled()`, read in app/free/page.tsx). For a FREE trader
+ * a press opens the same ProUpgradeModal; no request is made.
+ *
  * The panel layout and its collapse behaviour live in
  * components/workspace/trading-workspace.tsx, shared with `/terminal`.
  */
-export function FreeWorkspace(): React.JSX.Element {
+export function FreeWorkspace({
+  instantPromptsEnabled = false,
+}: {
+  instantPromptsEnabled?: boolean;
+}): React.JSX.Element {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   return (
@@ -29,6 +38,7 @@ export function FreeWorkspace(): React.JSX.Element {
       <TradingWorkspace
         tier="FREE"
         onOpenUpgradeModal={() => setIsUpgradeModalOpen(true)}
+        instantPromptsEnabled={instantPromptsEnabled}
       />
       <ProUpgradeModal
         isOpen={isUpgradeModalOpen}
