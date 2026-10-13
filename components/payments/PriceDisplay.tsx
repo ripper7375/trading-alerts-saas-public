@@ -15,10 +15,11 @@
  * @module components/payments/PriceDisplay
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { RefreshCw, Loader2 } from 'lucide-react';
 import type { DLocalCurrency } from '@/types/dlocal';
 import { useLocale } from '@/lib/context/locale-context';
+import { CURRENCY_USD_RATES } from '@/lib/country-config';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -70,20 +71,6 @@ const CURRENCY_NAMES: Record<DLocalCurrency, string> = {
   BRL: 'Brazilian Real',
 };
 
-// Fallback rates (used if API fails)
-const FALLBACK_RATES: Record<DLocalCurrency, number> = {
-  INR: 83.0,
-  NGN: 780.0,
-  PKR: 278.0,
-  VND: 24500.0,
-  IDR: 15600.0,
-  THB: 35.0,
-  ZAR: 18.5,
-  TRY: 32.0,
-  AED: 3.67,
-  BRL: 5.65,
-};
-
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // HELPER FUNCTIONS (from seed component)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -115,58 +102,104 @@ export function PriceDisplay({
   compact = false,
   showRefresh = true,
 }: PriceDisplayProps): React.ReactElement {
-  const { t, formatRelativeTime } = useLocale();
+  const { t, formatRelativeTime, usdRates } = useLocale();
   const [conversion, setConversion] = useState<ConversionResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const activeRequest = useRef<AbortController | null>(null);
+  const requestSequence = useRef(0);
+  const activeTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
+  const sharedRate = usdRates?.rates[currency];
+
   const fetchConversion = useCallback(async (): Promise<void> => {
+    activeRequest.current?.abort();
+    clearTimeout(activeTimeout.current);
+    const request = new AbortController();
+    activeRequest.current = request;
+    const sequence = ++requestSequence.current;
+    let timedOut = false;
+    const isCurrent = (): boolean =>
+      sequence === requestSequence.current &&
+      activeRequest.current === request &&
+      (timedOut || !request.signal.aborted);
+    let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+    const deadline = new Promise<never>((_, reject) => {
+      deadlineTimer = setTimeout(() => {
+        timedOut = true;
+        request.abort();
+        reject(new Error('Conversion timed out'));
+      }, 10_000);
+      activeTimeout.current = deadlineTimer;
+    });
     try {
       setError(null);
-
-      const res = await fetch(
-        `/api/payments/dlocal/convert?amount=${usdAmount}&currency=${currency}`
-      );
-
-      if (!res.ok) {
-        throw new Error('Failed to fetch conversion');
-      }
-
-      const data = await res.json();
-
+      const data = (await Promise.race([
+        (async () => {
+          const response = await fetch(
+            `/api/payments/dlocal/convert?amount=${usdAmount}&currency=${currency}`,
+            { cache: 'no-store', signal: request.signal }
+          );
+          if (!response.ok) throw new Error('Failed to fetch conversion');
+          return response.json();
+        })(),
+        deadline,
+      ])) as Partial<ConversionResult> & { currency?: string };
+      if (
+        typeof data.localAmount !== 'number' ||
+        !Number.isFinite(data.localAmount) ||
+        data.localAmount < 0 ||
+        typeof data.exchangeRate !== 'number' ||
+        !Number.isFinite(data.exchangeRate) ||
+        data.exchangeRate <= 0 ||
+        (data.currency !== undefined && data.currency !== currency)
+      )
+        throw new Error('Invalid conversion');
+      if (!isCurrent()) return;
       setConversion({
         localAmount: data.localAmount,
         exchangeRate: data.exchangeRate,
       });
       setLastUpdated(new Date());
-    } catch (err) {
-      console.error('Failed to fetch currency conversion:', err);
-      // Use fallback rate
-      const fallbackRate = FALLBACK_RATES[currency];
+    } catch {
+      if (!isCurrent()) return;
+      // Estimate with the current shared snapshot, then the canonical fixed rates.
+      const rate = sharedRate ?? CURRENCY_USD_RATES[currency] ?? 1;
       setConversion({
-        localAmount: usdAmount * fallbackRate,
-        exchangeRate: fallbackRate,
+        localAmount: Math.round(usdAmount * rate * 100) / 100,
+        exchangeRate: rate,
       });
       setLastUpdated(new Date());
       setError(t('payments.using_estimated_rate', 'Using estimated rate'));
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      clearTimeout(deadlineTimer);
+      if (activeRequest.current === request) activeTimeout.current = undefined;
+      if (isCurrent()) {
+        setLoading(false);
+        setRefreshing(false);
+      }
+      if (activeRequest.current === request) activeRequest.current = null;
     }
-  }, [usdAmount, currency, t]);
+  }, [usdAmount, currency, sharedRate, t]);
 
   useEffect(() => {
     setLoading(true);
-    fetchConversion();
-  }, [fetchConversion]);
+    void fetchConversion();
+    return () => {
+      activeRequest.current?.abort();
+      requestSequence.current += 1;
+      clearTimeout(activeTimeout.current);
+    };
+  }, [fetchConversion, usdRates?.fetchedAt]);
 
   const handleRefresh = (): void => {
     setRefreshing(true);
-    fetchConversion();
+    void fetchConversion();
   };
-
   const getTimeSinceUpdate = (): string => {
     if (!lastUpdated) return '';
     const minutes = Math.floor((Date.now() - lastUpdated.getTime()) / 60000);

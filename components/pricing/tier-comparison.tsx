@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
 import { useLocale } from '@/lib/context/locale-context';
+import { FxRateAttribution } from '@/components/payments/fx-rate-attribution';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import { FREE_TIER_CONFIG, PRO_TIER_CONFIG } from '@/lib/tier-config';
 
@@ -371,6 +372,7 @@ export function TierComparison(): React.ReactElement {
           ))}
         </div>
       </div>
+      <FxRateAttribution className="mt-5 text-center" />
     </div>
   );
 }

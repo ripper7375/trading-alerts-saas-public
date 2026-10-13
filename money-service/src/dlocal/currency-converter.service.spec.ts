@@ -16,18 +16,35 @@ import type { DLocalCurrency } from './dlocal.types';
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch as unknown as typeof fetch;
+const originalKey = process.env.CURRENCYBEACON_API_KEY;
+const primaryPayload = (rates: Record<string, number>) => ({
+  meta: { code: 200 },
+  response: {
+    base: 'USD',
+    date: new Date().toISOString(),
+    rates: { ...FALLBACK_USD_RATES, ...rates },
+  },
+});
 
 describe('Currency Converter Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFetch.mockReset();
+    // Both providers fail by default; an individual test opts into a full snapshot.
+    mockFetch.mockRejectedValue(new Error('Provider unavailable'));
+    process.env.CURRENCYBEACON_API_KEY = 'test-converter-key';
     clearExchangeRateCache();
+  });
+  afterEach(() => {
+    if (originalKey === undefined) delete process.env.CURRENCYBEACON_API_KEY;
+    else process.env.CURRENCYBEACON_API_KEY = originalKey;
   });
 
   describe('getExchangeRate', () => {
     it('should get exchange rate for INR', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { INR: 83.12 } }),
+        json: async () => primaryPayload({ INR: 83.12 }),
       });
 
       const rate = await getExchangeRate('INR');
@@ -37,7 +54,7 @@ describe('Currency Converter Service', () => {
     it('should get exchange rate for THB', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { THB: 35.25 } }),
+        json: async () => primaryPayload({ THB: 35.25 }),
       });
 
       const rate = await getExchangeRate('THB');
@@ -47,7 +64,7 @@ describe('Currency Converter Service', () => {
     it('should get exchange rate for AED', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { AED: 3.67 } }),
+        json: async () => primaryPayload({ AED: 3.67 }),
       });
 
       const rate = await getExchangeRate('AED');
@@ -57,7 +74,7 @@ describe('Currency Converter Service', () => {
     it('should cache exchange rates', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { VND: 24750.0 } }),
+        json: async () => primaryPayload({ VND: 24750.0 }),
       });
 
       const rate1 = await getExchangeRate('VND');
@@ -99,7 +116,7 @@ describe('Currency Converter Service', () => {
     it('should convert USD to INR', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { INR: 83.0 } }),
+        json: async () => primaryPayload({ INR: 83.0 }),
       });
 
       const result = await convertUSDToLocal(29.0, 'INR');
@@ -113,7 +130,7 @@ describe('Currency Converter Service', () => {
     it('should convert USD to THB', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { THB: 35.0 } }),
+        json: async () => primaryPayload({ THB: 35.0 }),
       });
 
       const result = await convertUSDToLocal(1.99, 'THB');
@@ -126,7 +143,7 @@ describe('Currency Converter Service', () => {
     it('should round local amount to 2 decimal places', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { INR: 83.123456 } }),
+        json: async () => primaryPayload({ INR: 83.123456 }),
       });
 
       const result = await convertUSDToLocal(29.0, 'INR');
@@ -165,9 +182,8 @@ describe('Currency Converter Service', () => {
         clearExchangeRateCache();
         mockFetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({
-            rates: { [currency]: getFallbackRate(currency) },
-          }),
+          json: async () =>
+            primaryPayload({ [currency]: getFallbackRate(currency) }),
         });
 
         const result = await convertUSDToLocal(29.0, currency);
@@ -225,7 +241,7 @@ describe('Currency Converter Service', () => {
     it('should clear the cache', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
-        json: async () => ({ rates: { INR: 83.12 } }),
+        json: async () => primaryPayload({ INR: 83.12 }),
       });
 
       await getExchangeRate('INR');

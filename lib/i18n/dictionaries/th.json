@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "แหล่งข้อมูลการแปลงสกุลเงิน",
+  "fx.attribution.description": "ราคาสมาชิกในสกุลเงินอื่นเป็นราคาโดยประมาณที่แปลงจากราคา USD เราใช้อัตราแลกเปลี่ยนที่อัปเดตรายชั่วโมงจาก CurrencyBeacon และใช้อัตราอ้างอิงจาก Frankfurter เป็นแหล่งข้อมูลสำรอง",
+  "fx.attribution.source": "อัตราแลกเปลี่ยนโดยประมาณ:",
+  "fx.attribution.updated": "แหล่งข้อมูลอัปเดตเมื่อ:",
+  "fx.attribution.fixed": "ราคาโดยประมาณใช้อัตราแลกเปลี่ยนอ้างอิง",
   "auth.login.go_to_workbench": "ไปยังเวิร์กเบนช์",
   "Go to Workbench": "ไปยังเวิร์กเบนช์",
   "breadcrumb.dashboard": "แดชบอร์ด",

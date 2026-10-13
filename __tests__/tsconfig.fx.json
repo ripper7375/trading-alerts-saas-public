@@ -1,0 +1,21 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "types": ["node", "jest", "@testing-library/jest-dom"]
+  },
+  "include": [
+    "lib/fx/*.test.ts",
+    "lib/fx/*.test.tsx",
+    "lib/dlocal/currency-converter.test.ts",
+    "lib/context/locale-context.test.tsx",
+    "components/payments/PriceDisplay.test.tsx",
+    "components/payments/price-display-refresh.test.tsx",
+    "components/payments/fx-rate-attribution.test.tsx",
+    "components/pricing/annual-plan.test.tsx",
+    "e2e/dlocal-payment-flow.test.ts",
+    "integration/payment-creation.test.ts",
+    "../next-env.d.ts"
+  ],
+  "exclude": ["../node_modules"]
+}

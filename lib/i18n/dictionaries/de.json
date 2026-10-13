@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "Quellen der Währungsumrechnung",
+  "fx.attribution.description": "Abonnementpreise in anderen Währungen sind unverbindliche Umrechnungen der USD-Preise. Wir verwenden stündliche Wechselkurse von CurrencyBeacon und Referenzkurse von Frankfurter als Ersatz.",
+  "fx.attribution.source": "Unverbindliche Wechselkurse:",
+  "fx.attribution.updated": "Quelle aktualisiert:",
+  "fx.attribution.fixed": "Unverbindliche Preise verwenden Referenzwechselkurse.",
   "breadcrumb.dashboard": "Dashboard",
   "breadcrumb.settings": "Einstellungen",
   "nav.dashboard": "Haupt-Dashboard",

@@ -1,35 +1,27 @@
-/**
- * USD exchange rates from exchangerate-api.com for dLocal charges, shared
- * with the Next app through Redis so both services charge and display with
- * the same rates. Mirrors lib/fx/usd-rates.ts + lib/fx/shared-rate-store.ts.
- *
- * A refresh reads `fx:usd_rates` from Redis first and only calls the rate API
- * when Redis has no table younger than an hour; a fetched table is written
- * back for the Next app and other instances. Within this process the table is
- * kept in memory until its hour is up. Redis is an optimisation, never a
- * dependency: when it is missing or slow, the table comes from the API; when
- * the API fails too, callers use FALLBACK_USD_RATES.
- */
-
+/** Hourly provider snapshots shared with Next through a versioned Redis table. */
 import { logger } from '../common/logger.util';
-
 import {
+  FALLBACK_USD_RATES,
+  FX_FAILURE_RETRY_MS,
+  FX_MAX_RETAINED_AGE_MS,
   FX_USD_RATES_REDIS_KEY,
+  FX_USD_RATES_SCHEMA_VERSION,
   FX_USD_RATES_TTL_SECONDS,
+  type FxRateProvider,
 } from './usd-fallback-rates';
+import {
+  completeUsdRates,
+  fetchCurrencyBeacon,
+  fetchFrankfurter,
+  FX_MAX_FUTURE_SKEW_MS,
+  utcTimestamp,
+  validSourceTime,
+  type ProviderSnapshot,
+} from './rate-providers';
 
-export const USD_RATES_URL = 'https://api.exchangerate-api.com/v4/latest/USD';
-
-/** How long a table is used before a refresh (1 hour). */
 export const USD_RATES_TTL_MS = FX_USD_RATES_TTL_SECONDS * 1000;
-
-/** A failed fetch is retried after this long (5 minutes). */
-const FAILURE_RETRY_MS = 5 * 60 * 1000;
-
-/** A Redis call slower than this is treated as failed. */
 const REDIS_TIMEOUT_MS = 500;
 
-/** The subset of an ioredis client the shared table needs. */
 export interface SharedRateStore {
   get(key: string): Promise<string | null>;
   set(
@@ -41,15 +33,25 @@ export interface SharedRateStore {
 }
 
 export interface UsdRateTable {
-  /** Units of each currency per 1 USD. Empty on failure. */
   rates: Record<string, number>;
-  /** 'live' from the rate API (directly or via Redis), 'fallback' otherwise. */
   source: 'live' | 'fallback';
-  /** When the rate API was called, ISO 8601. */
   fetchedAt: string;
+  /** Optional for existing consumers' fixtures; every runtime table supplies it. */
+  provider?: FxRateProvider;
+  rateUpdatedAt?: string | null;
+}
+
+export interface SharedUsdRateRecord {
+  schemaVersion: typeof FX_USD_RATES_SCHEMA_VERSION;
+  rates: Record<string, number>;
+  provider: Exclude<FxRateProvider, 'fixed'>;
+  rateUpdatedAt: string;
+  fetchedAt: string;
+  expiresAt: string;
 }
 
 let cache: { table: UsdRateTable; expiresAt: number } | null = null;
+let priorTable: UsdRateTable | null = null;
 let inflight: Promise<UsdRateTable> | null = null;
 
 function withTimeout<T>(promise: Promise<T>): Promise<T> {
@@ -63,36 +65,72 @@ function withTimeout<T>(promise: Promise<T>): Promise<T> {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-function validRates(input: unknown): Record<string, number> {
-  const rates: Record<string, number> = {};
-  if (!input || typeof input !== 'object') return rates;
-  for (const [code, value] of Object.entries(input)) {
-    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
-      rates[code] = value;
-    }
-  }
-  return rates;
+function usableTable(table: UsdRateTable, nowMs: number): boolean {
+  const fetchedMs = utcTimestamp(table.fetchedAt);
+  if (
+    fetchedMs === null ||
+    fetchedMs > nowMs + FX_MAX_FUTURE_SKEW_MS ||
+    nowMs - fetchedMs > FX_MAX_RETAINED_AGE_MS ||
+    !completeUsdRates(table.rates)
+  )
+    return false;
+  if (table.provider === 'fixed') return table.rateUpdatedAt === null;
+  return (
+    (table.provider === 'currencybeacon' || table.provider === 'frankfurter') &&
+    validSourceTime(table.provider, table.rateUpdatedAt, nowMs)
+  );
 }
 
-/** Parses a stored table; anything malformed counts as missing. */
+/** Reject old schemas, incomplete currencies, expired or forged-long TTLs. */
 export function parseSharedUsdRates(
-  raw: string | null
-): { rates: Record<string, number>; fetchedAt: string } | null {
+  raw: string | null,
+  nowMs = Date.now()
+): SharedUsdRateRecord | null {
   if (!raw) return null;
   try {
-    const data = JSON.parse(raw) as { rates?: unknown; fetchedAt?: unknown };
-    if (typeof data.fetchedAt !== 'string') return null;
-    if (Number.isNaN(Date.parse(data.fetchedAt))) return null;
-    const rates = validRates(data.rates);
-    if (Object.keys(rates).length === 0) return null;
-    return { rates, fetchedAt: data.fetchedAt };
+    const data = JSON.parse(raw) as Partial<SharedUsdRateRecord>;
+    if (
+      !data ||
+      data.schemaVersion !== FX_USD_RATES_SCHEMA_VERSION ||
+      (data.provider !== 'currencybeacon' && data.provider !== 'frankfurter')
+    )
+      return null;
+    const rates = completeUsdRates(data.rates);
+    const fetchedMs = utcTimestamp(data.fetchedAt);
+    const expiresMs = utcTimestamp(data.expiresAt);
+    const updatedMs = utcTimestamp(data.rateUpdatedAt);
+    if (
+      !rates ||
+      fetchedMs === null ||
+      expiresMs === null ||
+      updatedMs === null ||
+      fetchedMs > nowMs + FX_MAX_FUTURE_SKEW_MS ||
+      nowMs - fetchedMs > FX_MAX_RETAINED_AGE_MS ||
+      expiresMs <= nowMs ||
+      expiresMs <= fetchedMs ||
+      expiresMs > fetchedMs + FX_MAX_RETAINED_AGE_MS ||
+      (data.provider === 'currencybeacon' &&
+        expiresMs > updatedMs + FX_MAX_RETAINED_AGE_MS) ||
+      expiresMs > nowMs + USD_RATES_TTL_MS ||
+      updatedMs > fetchedMs + FX_MAX_FUTURE_SKEW_MS ||
+      !validSourceTime(data.provider, data.rateUpdatedAt, nowMs)
+    )
+      return null;
+    return {
+      schemaVersion: FX_USD_RATES_SCHEMA_VERSION,
+      rates,
+      provider: data.provider,
+      rateUpdatedAt: data.rateUpdatedAt!,
+      fetchedAt: data.fetchedAt!,
+      expiresAt: data.expiresAt!,
+    };
   } catch {
     return null;
   }
 }
 
 async function readShared(
-  store: SharedRateStore | null | undefined
+  store?: SharedRateStore | null
 ): Promise<UsdRateTable | null> {
   if (!store) return null;
   try {
@@ -100,87 +138,146 @@ async function readShared(
       await withTimeout(store.get(FX_USD_RATES_REDIS_KEY))
     );
     if (!shared) return null;
-    const expiresAt = Date.parse(shared.fetchedAt) + USD_RATES_TTL_MS;
-    if (expiresAt <= Date.now()) return null;
-    const table: UsdRateTable = { ...shared, source: 'live' };
-    cache = { table, expiresAt };
+    const table: UsdRateTable = {
+      rates: shared.rates,
+      provider: shared.provider,
+      rateUpdatedAt: shared.rateUpdatedAt,
+      fetchedAt: shared.fetchedAt,
+      source: shared.provider === 'currencybeacon' ? 'live' : 'fallback',
+    };
+    cache = { table, expiresAt: Date.parse(shared.expiresAt) };
+    priorTable = table;
     return table;
-  } catch (error) {
-    logger.warn('[fx] Could not read shared USD rates from Redis', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+  } catch {
+    logger.warn('[fx] Could not read shared USD rates from Redis');
     return null;
   }
 }
 
 async function writeShared(
   store: SharedRateStore | null | undefined,
-  table: UsdRateTable
+  table: UsdRateTable,
+  expiresAt: number
 ): Promise<void> {
-  if (!store) return;
+  if (!store || table.provider === 'fixed') return;
+  const record = {
+    schemaVersion: FX_USD_RATES_SCHEMA_VERSION,
+    rates: table.rates,
+    provider: table.provider,
+    rateUpdatedAt: table.rateUpdatedAt,
+    fetchedAt: table.fetchedAt,
+    expiresAt: new Date(expiresAt).toISOString(),
+  };
+  const valid = parseSharedUsdRates(JSON.stringify(record));
+  if (!valid) return;
+  const ttl = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
   try {
     await withTimeout(
-      store.set(
-        FX_USD_RATES_REDIS_KEY,
-        JSON.stringify({ rates: table.rates, fetchedAt: table.fetchedAt }),
-        'EX',
-        FX_USD_RATES_TTL_SECONDS
-      )
+      store.set(FX_USD_RATES_REDIS_KEY, JSON.stringify(valid), 'EX', ttl)
     );
-  } catch (error) {
-    logger.warn('[fx] Could not write shared USD rates to Redis', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+  } catch {
+    logger.warn('[fx] Could not write shared USD rates to Redis');
   }
+}
+
+async function saveSnapshot(
+  snapshot: ProviderSnapshot,
+  ttlMs: number,
+  store?: SharedRateStore | null
+): Promise<UsdRateTable> {
+  const nowMs = Date.now();
+  const table: UsdRateTable = {
+    ...snapshot,
+    source: snapshot.provider === 'currencybeacon' ? 'live' : 'fallback',
+    fetchedAt: new Date(nowMs).toISOString(),
+  };
+  cache = { table, expiresAt: boundedExpiry(table, nowMs, ttlMs) };
+  priorTable = table;
+  await writeShared(store, table, cache.expiresAt);
+  logger.info('[fx] USD rate table fetched', {
+    provider: table.provider,
+    rateUpdatedAt: table.rateUpdatedAt,
+    fetchedAt: table.fetchedAt,
+  });
+  return table;
+}
+
+/** Retry TTL must never extend the original observation or retrieval age. */
+function boundedExpiry(
+  table: UsdRateTable,
+  nowMs: number,
+  ttlMs: number
+): number {
+  let expiresAt = nowMs + Math.min(ttlMs, USD_RATES_TTL_MS);
+  if (table.provider !== 'fixed') {
+    expiresAt = Math.min(
+      expiresAt,
+      Date.parse(table.fetchedAt) + FX_MAX_RETAINED_AGE_MS
+    );
+    if (table.provider === 'currencybeacon' && table.rateUpdatedAt) {
+      expiresAt = Math.min(
+        expiresAt,
+        Date.parse(table.rateUpdatedAt) + FX_MAX_RETAINED_AGE_MS
+      );
+    }
+  }
+  return expiresAt;
 }
 
 async function fetchTable(
-  store: SharedRateStore | null | undefined
+  store?: SharedRateStore | null
 ): Promise<UsdRateTable> {
-  const nowMs = Date.now();
-  const fetchedAt = new Date(nowMs).toISOString();
-  try {
-    const response = await fetch(USD_RATES_URL);
-    if (!response.ok) {
-      throw new Error(`API responded with status ${response.status}`);
+  const apiKey = process.env.CURRENCYBEACON_API_KEY?.trim();
+  if (apiKey) {
+    try {
+      return await saveSnapshot(
+        await fetchCurrencyBeacon(apiKey),
+        USD_RATES_TTL_MS,
+        store
+      );
+    } catch {
+      // Fetch errors may contain request headers. Never log raw errors or keys.
+      logger.warn('[fx] CurrencyBeacon unavailable; trying Frankfurter');
     }
-    const data = (await response.json()) as { rates?: unknown };
-    const rates = validRates(data.rates);
-    if (Object.keys(rates).length === 0) throw new Error('No rates returned');
-    const table: UsdRateTable = { rates, source: 'live', fetchedAt };
-    cache = { table, expiresAt: nowMs + USD_RATES_TTL_MS };
-    await writeShared(store, table);
-    logger.info('[fx] USD rate table fetched', { fetchedAt });
-    return table;
-  } catch (error) {
-    logger.warn('[fx] USD rate API unavailable, using fallback rates', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    const failed: UsdRateTable = { rates: {}, source: 'fallback', fetchedAt };
-    // Keep serving an earlier live table if there is one; retry soon.
-    const keep = cache?.table.source === 'live' ? cache.table : failed;
-    cache = { table: keep, expiresAt: nowMs + FAILURE_RETRY_MS };
-    return keep;
   }
+  const retryMs = apiKey ? FX_FAILURE_RETRY_MS : USD_RATES_TTL_MS;
+  try {
+    return await saveSnapshot(await fetchFrankfurter(), retryMs, store);
+  } catch {
+    logger.warn(
+      '[fx] Frankfurter unavailable; using bounded prior or fixed rates'
+    );
+  }
+  const nowMs = Date.now();
+  const table =
+    priorTable && usableTable(priorTable, nowMs)
+      ? priorTable
+      : {
+          rates: { ...FALLBACK_USD_RATES },
+          provider: 'fixed' as const,
+          rateUpdatedAt: null,
+          source: 'fallback' as const,
+          fetchedAt: new Date(nowMs).toISOString(),
+        };
+  cache = { table, expiresAt: boundedExpiry(table, nowMs, retryMs) };
+  // Cold processes must consume the same bounded snapshot as the warm publisher.
+  await writeShared(store, table, cache.expiresAt);
+  return table;
 }
 
 async function loadTable(
-  store: SharedRateStore | null | undefined
+  store?: SharedRateStore | null
 ): Promise<UsdRateTable> {
   return (await readShared(store)) ?? (await fetchTable(store));
 }
 
-/**
- * The current USD rate table: this process's cached table while it is
- * younger than an hour, else the shared Redis table, else a fresh fetch.
- *
- * @param store - Redis client for the table shared with the Next app;
- *   omitted or null, only the in-memory cache and the API are used.
- */
+/** Await a current shared/provider table; concurrent process refreshes deduplicate. */
 export async function getUsdRateTable(
   store?: SharedRateStore | null
 ): Promise<UsdRateTable> {
-  if (cache && Date.now() < cache.expiresAt) return cache.table;
+  const nowMs = Date.now();
+  if (cache && nowMs < cache.expiresAt && usableTable(cache.table, nowMs))
+    return cache.table;
   if (!inflight) {
     inflight = loadTable(store).finally(() => {
       inflight = null;
@@ -189,8 +286,8 @@ export async function getUsdRateTable(
   return inflight;
 }
 
-/** For tests: forget the cached table. */
 export function clearUsdRateCache(): void {
   cache = null;
+  priorTable = null;
   inflight = null;
 }

@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "Fontes de conversão cambial",
+  "fx.attribution.description": "Os preços de subscrição noutras moedas são conversões indicativas dos preços em USD. Utilizamos as taxas de câmbio horárias da CurrencyBeacon, com as taxas de referência da Frankfurter como alternativa.",
+  "fx.attribution.source": "Taxas de câmbio indicativas:",
+  "fx.attribution.updated": "Fonte atualizada:",
+  "fx.attribution.fixed": "Os preços indicativos utilizam taxas de câmbio de referência.",
   "breadcrumb.dashboard": "Painel",
   "breadcrumb.settings": "Configurações",
   "nav.dashboard": "Painel principal",
