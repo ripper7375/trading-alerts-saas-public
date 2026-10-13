@@ -29,3 +29,8 @@ config/intake/review/**
 # Dispatch matrix review (build step 6 part 4): review.md is generated and compared byte for byte by `python scripts/intake/matrix_tool.py check`,
 # and approval.json holds the SHA-256 of the matrix and the cells Davin signed, so prettier must not touch either.
 config/intake/matrix-review/**
+
+# Knowledge service (build step 6 part 6): the corpus files are hashed into the index build id and an approval holds the SHA-256 of what a
+# reader signed, and the TEST ONLY fixtures are compared by chunk id and text, so prettier must not touch either.
+knowledge-service/corpus/**
+knowledge-service/tests/fixtures/**

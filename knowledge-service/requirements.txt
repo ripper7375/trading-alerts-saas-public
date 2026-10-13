@@ -1,0 +1,25 @@
+# Knowledge service (build step 6 part 6): every direct dependency is pinned to the exact version the tests ran with.
+# The few transitive packages that decide what an embedding or a request looks like are pinned too.
+#
+# torch comes from the CPU-only index: the default Linux wheel carries CUDA and is several times larger. On Windows
+# and macOS the PyPI wheel is already CPU-only; the extra index is harmless there.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+txtai==9.5.0
+torch==2.14.1
+transformers==5.19.0
+faiss-cpu==1.15.1
+fastapi==0.143.0
+uvicorn==0.54.0
+pyyaml==6.0.3
+jsonschema==4.25.0
+pytest==9.1.1
+httpx==0.28.1
+
+# transitive, pinned because they decide the numbers
+numpy==2.4.6
+tokenizers==0.23.3
+safetensors==0.8.0
+huggingface-hub==2.2.0
+pydantic==2.14.1
+starlette==1.7.0

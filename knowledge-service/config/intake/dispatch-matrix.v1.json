@@ -1,0 +1,76 @@
+{
+  "schema": "dispatch-matrix/1",
+  "version": "routing-v1",
+  "intents": {
+    "DIRECTION": {
+      "always": true,
+      "extra": "NONE",
+      "domains": ["D3", "D5"],
+      "playbooks": "M_STAR",
+      "note": "The primary sensor and every warning sensor, in full (ADR-041). No extra sensor."
+    },
+    "ENTRY_TIMING": {
+      "always": true,
+      "extra": "ZONE_SOURCES",
+      "domains": ["D3"],
+      "playbooks": "M_STAR",
+      "note": "Plus the sensors that supplied the entry zones of the trader's reading (D2 d)."
+    },
+    "EXIT_TARGETS": {
+      "always": true,
+      "extra": "TARGET_SIDE_LEVELS",
+      "domains": ["D4"],
+      "playbooks": "M_STAR",
+      "note": "Plus the sensors with a level beyond the entry on the target side of the synthesis bias (D2 e)."
+    },
+    "RISK_SIZING": {
+      "always": true,
+      "extra": "NONE",
+      "domains": ["D4", "D5"],
+      "playbooks": "NONE",
+      "note": "Board only: the always set and no extra sensor (4.5)."
+    },
+    "EXPLAIN": {
+      "always": true,
+      "extra": "TERM_OWNERS",
+      "domains": ["D1"],
+      "playbooks": "NONE",
+      "note": "Plus the sensor that owns the term in the question; when several own it, the primary sensor and the sensor of the timeframe the question names (D2 c)."
+    },
+    "NEWS": {
+      "always": true,
+      "extra": "NONE",
+      "domains": ["D5"],
+      "playbooks": "NONE",
+      "note": "The always set only; the upcoming events travel with the packet (D9 b)."
+    },
+    "REPORT_2": {
+      "always": false,
+      "extra": "NONE",
+      "domains": [],
+      "playbooks": "NONE",
+      "note": "No readings: Section 6 reads the pinned cycle by id (D2 g, D9 a)."
+    },
+    "OUT_OF_SCOPE": {
+      "always": false,
+      "extra": "NONE",
+      "domains": [],
+      "playbooks": "NONE",
+      "note": "Nothing runs: a fixed reply (D2 g)."
+    },
+    "INSTANT_M5_INSPECT": {
+      "always": true,
+      "extra": "TIMEFRAME_CHANNEL",
+      "domains": ["D1", "D3"],
+      "playbooks": "M_STAR",
+      "note": "Plus the sensors that read the M5 channel (D10 b)."
+    },
+    "INSTANT_M15_INSPECT": {
+      "always": true,
+      "extra": "TIMEFRAME_CHANNEL",
+      "domains": ["D1", "D3"],
+      "playbooks": "M_STAR",
+      "note": "Plus the sensors that read the M15 channel (D10 b)."
+    }
+  }
+}

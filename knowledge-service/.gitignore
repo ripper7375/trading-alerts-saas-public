@@ -1,0 +1,7 @@
+# Build outputs and downloads: the index is built from the corpus, the model is fetched at a pinned revision.
+index/
+models/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/

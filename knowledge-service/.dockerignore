@@ -1,0 +1,10 @@
+# What the image does not need: the tests and their TEST ONLY corpus, local build outputs and caches.
+tests/
+index/
+models/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+pytest.ini

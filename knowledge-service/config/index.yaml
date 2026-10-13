@@ -1,0 +1,52 @@
+# The settings of the knowledge index and of its search (architecture 4.6 and 4.7, plan part 6, decisions D11 and D12).
+# Every value here is part of the index build id: change one and the id changes.
+schema: index-config/1
+
+# D12: an English MiniLM-class model (ADR-045) at a revision pinned by hash. Apache-2.0 per the model card.
+# The weights are fetched once, at image build time, to a local directory; nothing is downloaded at start.
+model:
+  repo: sentence-transformers/all-MiniLM-L6-v2
+  revision: 1110a243fdf4706b3f48f1d95db1a4f5529b4d41
+  license: apache-2.0
+
+# txtai embeddings: content store for the SQL, a dense index, and a BM25 keyword index whose scores are normalised.
+# normalize: true is what makes `weights=0.7` mean 70% of the dense SCORE and 30% of the keyword SCORE (4.7);
+# with it off txtai fuses by rank and the 70/30 split would weight rank positions. The loader refuses anything else.
+embeddings:
+  content: true
+  backend: faiss
+  scoring:
+    method: bm25
+    terms: true
+    normalize: true
+
+search:
+  # a single value w gives w to the dense score and 1 - w to the keyword score (4.7)
+  weights: 0.7
+  # the window similar() takes before the SQL filters; D11 (c): becomes max(40, corpus size) if the recall test shows a miss
+  candidates: 40
+  # the top of the pack (4.7) and the most cross-referenced chunks added after it
+  limit: 4
+  expansions_max: 6
+  # section 5.4 gives the knowledge chunks 2,000 tokens; expansions are added only while the pack stays inside it
+  budget_tokens: 2000
+  # ADR-043: the query is built from an intent template, the state codes and the English question
+  intent_templates:
+    DIRECTION: market direction bias synthesis counter-trend stand aside
+    ENTRY_TIMING: entry timing zone pullback invalidation
+    EXIT_TARGETS: exit targets take profit levels stop
+    RISK_SIZING: risk sizing position size stop distance maximum risk
+    EXPLAIN: explain term definition meaning
+    NEWS: news events blackout economic calendar
+    REPORT_2: ''
+    OUT_OF_SCOPE: ''
+    INSTANT_M5_INSPECT: M5 channel reading state meaning
+    INSTANT_M15_INSPECT: M15 channel reading state meaning
+
+# 4.6 item 3: whole sections, split on ## and ###, merged under 200 tokens, split over 1,500 (tokens counted with the
+# embedding model's own tokenizer, D11 (f)). max_chars is the packet's own limit on one chunk (KNOWLEDGE_CHUNK_MAX_CHARS in
+# lib/intake/packet.ts); for English prose it binds long before 1,500 tokens do.
+chunker:
+  min_tokens: 200
+  max_tokens: 1500
+  max_chars: 4000

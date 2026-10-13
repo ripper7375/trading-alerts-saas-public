@@ -1,0 +1,5 @@
+TEST ONLY.
+
+Everything under this folder is a fixture for the knowledge service's own tests. It is invented text, it says nothing
+true about any market, and it must never be built into a production index or copied into the real `corpus/` folder.
+A build with `--require-real` refuses a corpus folder that holds this file.

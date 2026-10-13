@@ -1,0 +1,18 @@
+# The tag whitelist of the knowledge corpus (architecture 4.6 item 2). The build fails on any value that is not listed here.
+#
+# MCD ids and state codes are NOT typed here: they are generated from the four MCD registries into
+# registry-codes.json by `python scripts/intake/build_roster.py`, so a new sensor or state appears in one place only.
+schema: tags/1
+
+# In rank order: foundations, playbooks, synthesis, risk, governance (D11 (d)). The order is also the order of an answer.
+domains: [D1, D2, D3, D4, D5]
+domain_names:
+  D1: Foundations
+  D2: Single-MCD playbooks
+  D3: Synthesis
+  D4: Risk
+  D5: Governance
+
+timeframes: [M5, M15]
+
+registry_codes: registry-codes.json

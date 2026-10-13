@@ -1,0 +1,250 @@
+{
+  "schema": "knowledge-service-samples/1",
+  "corpus_kind": "TEST_ONLY",
+  "samples": [
+    {
+      "name": "ok_direction_with_playbook",
+      "request": {
+        "schema": "knowledge-search/1",
+        "intent": "DIRECTION",
+        "question_en": "What does a breakout above the upper band mean?",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "state_codes": [
+          "MCD1_UP_UPPER_BREAKOUT"
+        ],
+        "routing_version": "routing-v1"
+      },
+      "http_status": 200,
+      "response": {
+        "status": "OK",
+        "index_build_id": "kb-ed301eb8423cd63e2bcf1fbbbe0925cb",
+        "chunks": [
+          {
+            "id": "t.d2.mcd1.sustained-breach-above-the-upper-band",
+            "domain": "D2",
+            "mcd_id": "MCD1",
+            "state_codes": [
+              "MCD1_UP_UPPER_BREAKOUT",
+              "MCD1_DOWN_IN_CORRIDOR"
+            ],
+            "timeframe": "M15",
+            "version": "1.0.0",
+            "text": "# TEST ONLY: playbook for the first channel sensor\n\n## Sustained breach above the upper band\n\nTEST ONLY. When the first channel sensor reports a sustained breach above the upper band, the closed bars have stayed beyond the upper line for several cycles in a row. The playbook for this state starts by saying what it does not claim: a breach is not a promise that price continues, and it is not a signal to act. It says that the corridor the trader used to rely on has been left, and that the sensor now describes price outside it. The trader should look at the middle line and at how far price sits from the upper band, because a small distance after a long wait reads differently from a large distance after a quick move. The playbook also reminds the reader that a breakout above the upper band can fail, and that the failure shows as price returning inside the corridor on closed bars. Where the second channel sensor agrees, the picture is consistent. Where it disagrees, the disagreement is the thing to read first. In a fixture world the same words would be repeated for every cycle in which the state holds, which is why a reader should look at how many cycles it has lasted before treating it as new."
+          },
+          {
+            "id": "t.d2.mcd3.trend-conflict-between-the-two-timeframes",
+            "domain": "D2",
+            "mcd_id": "MCD3",
+            "state_codes": [
+              "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+              "MCD3_BULL_VALUE"
+            ],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "# TEST ONLY: playbook for the position sensor\n\n## Trend conflict between the two timeframes\n\nTEST ONLY. The position sensor compares where price sits in the fifteen minute and the five minute channels. Its trend conflict state means that the two channels disagree about the trend: one is rising and the other falling. The playbook for this state is short on purpose. It says that the sensor stands aside on its own, which means it reports no direction at all, and that this is a complete answer and not a missing one. A reader who sees this state should not search the other sensors for a tie-breaker, because the synthesis already decides how the disagreement is carried forward. The playbook adds that the state can last for many cycles in a fixture world and that it clears when either channel changes its trend word. It never clears because price moved a certain distance. The distinction matters because a reader might otherwise treat the state as a countdown, and it is not one. It is a description of two channels pointing different ways. A reader looking at the fixture may also wonder what the sensor says when only one channel has data: in that case it reports its own status and no state, and the playbook for the state does not apply at all."
+          },
+          {
+            "id": "t.d3.synthesis.when-the-synthesis-stands-aside",
+            "domain": "D3",
+            "mcd_id": null,
+            "state_codes": [
+              "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+            ],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "## When the synthesis stands aside\n\nTEST ONLY. The synthesis stands aside when the sensors disagree in a way that no rule resolves, or when the position sensor alone reports a trend conflict and nothing else gives a direction. Standing aside is a complete reading. It carries no bias, no entry zone and no invalidation, and the answer built from it says so first. The fixture text stresses that a stand aside reading is delivered in full to everyone who asks, and that the sensor which stands aside keeps its whole reading in the answer even when the other sensors agree with each other. The reason is simple: a warning that is dropped when it is inconvenient is not a warning. A reader who wants to know what would end the state should look at which channel would have to change its trend word, because the synthesis follows the sensors and does not move first. The section ends with the observation that stand aside is the only reading in which the sensors are allowed to outvote the rules table, and that this is written down as an invariant."
+          },
+          {
+            "id": "t.d3.synthesis.counter-trend-rally",
+            "domain": "D3",
+            "mcd_id": null,
+            "state_codes": [
+              "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+            ],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "# TEST ONLY: synthesis\n\n## Counter-trend rally\n\nTEST ONLY. The synthesis combines the sensors into one reading with a bias, a rule and a trader type. A counter-trend rally is the fixture name for a reading in which the longer channel falls while the shorter channel rises. The rule that matches it gives the bias of the shorter channel and marks the reading as counter-trend, so the trader knows the bias runs against the larger picture. The synthesis explains the marking rather than hiding it: a counter-trend bias is described as a bias inside a larger move that points the other way, with the invalidation placed where the rally would be over. The text for this section stays with words a reader can check against the reading itself, such as the rule name, the bias and the invalidation. It does not rank the rally against other readings, give it a grade or attach a probability, because the synthesis has no measured basis for any of those and says so plainly in every language it speaks. The fixture adds that the rule name is stored with the reading, so any answer can quote the rule that matched and a reader can check it against the table of rules."
+          }
+        ],
+        "expansions": []
+      }
+    },
+    {
+      "name": "ok_explain_foundations",
+      "request": {
+        "schema": "knowledge-search/1",
+        "intent": "EXPLAIN",
+        "question_en": "What is a channel?",
+        "m_star": [],
+        "state_codes": [],
+        "routing_version": "routing-v1"
+      },
+      "http_status": 200,
+      "response": {
+        "status": "OK",
+        "index_build_id": "kb-ed301eb8423cd63e2bcf1fbbbe0925cb",
+        "chunks": [
+          {
+            "id": "t.d1.channel.what-a-channel-is",
+            "domain": "D1",
+            "mcd_id": null,
+            "state_codes": [],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "# TEST ONLY: foundations, the channel\n\n## What a channel is\n\nTEST ONLY. A channel is a pair of lines fitted to recent closed bars, one above the price and one below, with a middle line between them. The upper band and the lower band are not forecasts. They describe where price has recently turned, measured from the bars that have already closed. When price moves between the two bands the channel is said to hold, and the reading names the corridor as the place price is in. The slope of the channel gives its trend: rising lines are an uptrend, falling lines a downtrend, and lines with almost no slope are sideways. A fixture reader should remember three plain facts. The bands come from closed bars only. The slope names the trend. The corridor is the space between the bands. Nothing in this paragraph is a trading statement, and every number a real reading carries comes from its own cycle, never from this text. The fixture adds that a reader who wants a second opinion on the word channel should compare it with the word corridor, which names only the space between the bands and not the lines themselves."
+          },
+          {
+            "id": "t.d1.channel.the-closed-bar-rule",
+            "domain": "D1",
+            "mcd_id": null,
+            "state_codes": [],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "## The closed-bar rule\n\nTEST ONLY. A bar that is still forming is not used to draw a channel. The reading waits for the bar to close and then includes it, so two readers who look at the same cycle always see the same bands. This rule has a cost that a reader should know about: the newest price can sit outside the bands for a short time before the next cycle shows it. The rule also removes a whole class of confusion, because a band can never move under a reader while they are looking at it. When the data is stale the reading says so in its status and the closed-bar rule still applies to whatever bars were last received. A reader asking why a band did not move after a spike should first check whether the bar that spiked has closed yet. If it has not, the band has not seen it, and that is the intended behaviour of the fixture channel. One more plain note belongs here: a reading that is flagged as delayed still follows this rule, and its closed bars simply end earlier than a fresh reading would."
+          },
+          {
+            "id": "t.d1.tiny.first-tiny-section",
+            "domain": "D1",
+            "mcd_id": null,
+            "state_codes": [],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "# TEST ONLY: three tiny sections\n\n## First tiny section\n\nTEST ONLY. A bar is one interval of price.\n\n## Second tiny section\n\nTEST ONLY. A cycle is one pass of the sensors.\n\n### A subsection\n\nTEST ONLY. A reading is what a sensor reports."
+          },
+          {
+            "id": "t.d1.long.the-long-reference-list-2",
+            "domain": "D1",
+            "mcd_id": null,
+            "state_codes": [],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "# TEST ONLY: a section longer than one chunk may be\n\n## The long reference list\n\nReference line 21 of the fixture states that item 21 of the invented list is called velvet and is filed beside willow, only so that the chunker has distinct text to split.\nReference line 22 of the fixture states that item 22 of the invented list is called willow and is filed beside dogwood, only so that the chunker has distinct text to split.\nReference line 23 of the fixture states that item 23 of the invented list is called xenon and is filed beside ember, only so that the chunker has distinct text to split.\nReference line 24 of the fixture states that item 24 of the invented list is called yarrow and is filed beside lagoon, only so that the chunker has distinct text to split.\nReference line 25 of the fixture states that item 25 of the invented list is called zephyr and is filed beside sable, only so that the chunker has distinct text to split.\nReference line 26 of the fixture states that item 26 of the invented list is called alder and is filed beside zephyr, only so that the chunker has distinct text to split.\nReference line 27 of the fixture states that item 27 of the invented list is called birch and is filed beside amber, only so that the chunker has distinct text to split.\nReference line 28 of the fixture states that item 28 of the invented list is called cedar and is filed beside harbor, only so that the chunker has distinct text to split.\nReference line 29 of the fixture states that item 29 of the invented list is called dogwood and is filed beside onyx, only so that the chunker has distinct text to split.\nReference line 30 of the fixture states that item 30 of the invented list is called elm and is filed beside velvet, only so that the chunker has distinct text to split.\nReference line 31 of the fixture states that item 31 of the invented list is called fir and is filed beside cedar, only so that the chunker has distinct text to split.\nReference line 32 of the fixture states that item 32 of the invented list is called amber and is filed beside dune, only so that the chunker has distinct text to split.\nReference line 33 of the fixture states that item 33 of the invented list is called basalt and is filed beside kelp, only so that the chunker has distinct text to split.\nReference line 34 of the fixture states that item 34 of the invented list is called cobalt and is filed beside reef, only so that the chunker has distinct text to split.\nReference line 35 of the fixture states that item 35 of the invented list is called dune and is filed beside yarrow, only so that the chunker has distinct text to split.\nReference line 36 of the fixture states that item 36 of the invented list is called ember and is filed beside fir, only so that the chunker has distinct text to split.\nReference line 37 of the fixture states that item 37 of the invented list is called fjord and is filed beside garnet, only so that the chunker has distinct text to split.\nReference line 38 of the fixture states that item 38 of the invented list is called garnet and is filed beside nectar, only so that the chunker has distinct text to split.\nReference line 39 of the fixture states that item 39 of the invented list is called harbor and is filed beside umber, only so that the chunker has distinct text to split.\nReference line 40 of the fixture states that item 40 of the invented list is called indigo and is filed beside birch, only so that the chunker has distinct text to split."
+          }
+        ],
+        "expansions": []
+      }
+    },
+    {
+      "name": "ok_instant_with_expansion",
+      "request": {
+        "schema": "knowledge-search/1",
+        "intent": "INSTANT_M5_INSPECT",
+        "question_en": "Explain the current M5 reading for gold and what it implies for the trader type",
+        "m_star": [
+          "MCD2",
+          "MCD3"
+        ],
+        "state_codes": [],
+        "routing_version": "routing-v1"
+      },
+      "http_status": 200,
+      "response": {
+        "status": "OK",
+        "index_build_id": "kb-ed301eb8423cd63e2bcf1fbbbe0925cb",
+        "chunks": [
+          {
+            "id": "t.d2.mcd2.five-minute-breakout-above-the-upper-band",
+            "domain": "D2",
+            "mcd_id": "MCD2",
+            "state_codes": [
+              "MCD2_UP_UPPER_BREAKOUT",
+              "MCD2_SIDEWAYS_IN_CORRIDOR"
+            ],
+            "timeframe": "M5",
+            "version": "1.0.0",
+            "text": "# TEST ONLY: playbook for the second channel sensor\n\n## Five minute breakout above the upper band\n\nTEST ONLY. The second channel sensor reads the five minute bars, so its breakout above the upper band is a faster and shorter event than the first sensor's. The playbook for this state says that a breakout on this timeframe is common and often short, and that a trader who reads it should first check whether the fifteen minute sensor describes the same direction. The fixture playbook lists what the reading contains: the state word, the distance from the upper band, and the count of closed bars spent outside the corridor. It then lists what the reading leaves out: any prediction of the next move and any size for the trade. The reader is reminded that the sensor works from closed bars only, so the breakout the sensor reports is already some minutes old when it is read. A scalper may find this state useful as context, and the playbook is careful to say that context is all it is. The playbook finishes by telling the reader to look at the state word first, the distance second and the bar count third, in that order, every time the fixture state appears.\n\n## Five minute corridor with no clear trend\n\nTEST ONLY. When the five minute channel is sideways inside its corridor, the lines are nearly flat and price moves between them without a lasting direction. The playbook calls this the quiet state of the second sensor and explains that it carries little information about what comes next. The useful thing it does carry is the width of the corridor, because a narrow corridor and a wide corridor ask different questions of a trader. The fixture text adds that a sideways reading on the short timeframe sitting inside a trending reading on the longer timeframe is a normal pairing, and that the two sensors are not in conflict when they describe different scales. If the two sensors do conflict, the synthesis explains how the conflict is handled, and this playbook does not repeat that explanation. It also notes that the corridor of this sensor is narrower than the corridor of the fifteen minute sensor, so a distance that looks large here can look small there."
+          },
+          {
+            "id": "t.d2.mcd3.bullish-value-position",
+            "domain": "D2",
+            "mcd_id": "MCD3",
+            "state_codes": [
+              "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+              "MCD3_BULL_VALUE"
+            ],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "## Bullish value position\n\nTEST ONLY. In the bullish value state both channels rise and price sits in the lower part of the combined range, which the fixture text calls the value area. The playbook explains the word value without attaching a price to it: the area is simply the region of the combined range nearest its lower edge. The sensor reports this state as a position, not as an instruction, and the playbook warns the reader against turning a position word into a promise. A bullish value reading says where price is relative to two rising channels. It says nothing about how long price will remain there. If either channel flattens, the sensor moves on to another state and the playbook for that state applies. This fixture section is deliberately plain so that tests can recognise it by its words, such as value area, combined range and lower edge. The section closes by saying that the combined range is recalculated every cycle from the two channels, and that the value area therefore moves whenever either channel moves its bands."
+          },
+          {
+            "id": "t.d2.mcd3.trend-conflict-between-the-two-timeframes",
+            "domain": "D2",
+            "mcd_id": "MCD3",
+            "state_codes": [
+              "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+              "MCD3_BULL_VALUE"
+            ],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "# TEST ONLY: playbook for the position sensor\n\n## Trend conflict between the two timeframes\n\nTEST ONLY. The position sensor compares where price sits in the fifteen minute and the five minute channels. Its trend conflict state means that the two channels disagree about the trend: one is rising and the other falling. The playbook for this state is short on purpose. It says that the sensor stands aside on its own, which means it reports no direction at all, and that this is a complete answer and not a missing one. A reader who sees this state should not search the other sensors for a tie-breaker, because the synthesis already decides how the disagreement is carried forward. The playbook adds that the state can last for many cycles in a fixture world and that it clears when either channel changes its trend word. It never clears because price moved a certain distance. The distinction matters because a reader might otherwise treat the state as a countdown, and it is not one. It is a description of two channels pointing different ways. A reader looking at the fixture may also wonder what the sensor says when only one channel has data: in that case it reports its own status and no state, and the playbook for the state does not apply at all."
+          },
+          {
+            "id": "t.d3.synthesis.counter-trend-rally",
+            "domain": "D3",
+            "mcd_id": null,
+            "state_codes": [
+              "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+            ],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "# TEST ONLY: synthesis\n\n## Counter-trend rally\n\nTEST ONLY. The synthesis combines the sensors into one reading with a bias, a rule and a trader type. A counter-trend rally is the fixture name for a reading in which the longer channel falls while the shorter channel rises. The rule that matches it gives the bias of the shorter channel and marks the reading as counter-trend, so the trader knows the bias runs against the larger picture. The synthesis explains the marking rather than hiding it: a counter-trend bias is described as a bias inside a larger move that points the other way, with the invalidation placed where the rally would be over. The text for this section stays with words a reader can check against the reading itself, such as the rule name, the bias and the invalidation. It does not rank the rally against other readings, give it a grade or attach a probability, because the synthesis has no measured basis for any of those and says so plainly in every language it speaks. The fixture adds that the rule name is stored with the reading, so any answer can quote the rule that matched and a reader can check it against the table of rules."
+          }
+        ],
+        "expansions": [
+          {
+            "id": "t.d3.synthesis.when-the-synthesis-stands-aside",
+            "domain": "D3",
+            "mcd_id": null,
+            "state_codes": [
+              "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+            ],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "## When the synthesis stands aside\n\nTEST ONLY. The synthesis stands aside when the sensors disagree in a way that no rule resolves, or when the position sensor alone reports a trend conflict and nothing else gives a direction. Standing aside is a complete reading. It carries no bias, no entry zone and no invalidation, and the answer built from it says so first. The fixture text stresses that a stand aside reading is delivered in full to everyone who asks, and that the sensor which stands aside keeps its whole reading in the answer even when the other sensors agree with each other. The reason is simple: a warning that is dropped when it is inconvenient is not a warning. A reader who wants to know what would end the state should look at which channel would have to change its trend word, because the synthesis follows the sensors and does not move first. The section ends with the observation that stand aside is the only reading in which the sensors are allowed to outvote the rules table, and that this is written down as an invariant."
+          },
+          {
+            "id": "t.d1.channel.what-a-channel-is",
+            "domain": "D1",
+            "mcd_id": null,
+            "state_codes": [],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "# TEST ONLY: foundations, the channel\n\n## What a channel is\n\nTEST ONLY. A channel is a pair of lines fitted to recent closed bars, one above the price and one below, with a middle line between them. The upper band and the lower band are not forecasts. They describe where price has recently turned, measured from the bars that have already closed. When price moves between the two bands the channel is said to hold, and the reading names the corridor as the place price is in. The slope of the channel gives its trend: rising lines are an uptrend, falling lines a downtrend, and lines with almost no slope are sideways. A fixture reader should remember three plain facts. The bands come from closed bars only. The slope names the trend. The corridor is the space between the bands. Nothing in this paragraph is a trading statement, and every number a real reading carries comes from its own cycle, never from this text. The fixture adds that a reader who wants a second opinion on the word channel should compare it with the word corridor, which names only the space between the bands and not the lines themselves."
+          }
+        ]
+      }
+    },
+    {
+      "name": "empty_report_2",
+      "request": {
+        "schema": "knowledge-search/1",
+        "intent": "REPORT_2",
+        "question_en": "Make the trade setup",
+        "m_star": [],
+        "state_codes": [],
+        "routing_version": "routing-v1"
+      },
+      "http_status": 200,
+      "response": {
+        "status": "EMPTY",
+        "index_build_id": "kb-ed301eb8423cd63e2bcf1fbbbe0925cb",
+        "chunks": [],
+        "expansions": []
+      }
+    },
+    {
+      "name": "unavailable_503",
+      "request": null,
+      "http_status": 503,
+      "response": {
+        "status": "UNAVAILABLE",
+        "index_build_id": null,
+        "chunks": [],
+        "expansions": []
+      }
+    }
+  ]
+}
