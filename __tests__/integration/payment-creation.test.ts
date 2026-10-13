@@ -28,10 +28,23 @@ import {
 } from '@/lib/dlocal/constants';
 import type { DLocalCountry } from '@/types/dlocal';
 import crypto from 'crypto';
+import { CURRENCY_USD_RATES } from '@/lib/country-config';
 
 // Mock fetch
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
+const originalProviderKey = process.env['CURRENCYBEACON_API_KEY'];
+
+function beaconResponse(overrides: Record<string, number>) {
+  return {
+    meta: { code: 200 },
+    response: {
+      base: 'USD',
+      date: new Date(Date.now()).toISOString(),
+      rates: { ...CURRENCY_USD_RATES, ...overrides, USD: 1 },
+    },
+  };
+}
 
 // The real shared rate table (jest.setup.js mocks it for every other suite)
 jest.unmock('@/lib/fx/usd-rates');
@@ -39,6 +52,18 @@ jest.unmock('@/lib/fx/usd-rates');
 describe('Integration: Payment Creation Flow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFetch.mockReset();
+    mockFetch.mockRejectedValue(new Error('Network unavailable in test'));
+    process.env['CURRENCYBEACON_API_KEY'] = 'fixture-key';
+    clearExchangeRateCache();
+  });
+
+  afterAll(() => {
+    if (originalProviderKey === undefined) {
+      delete process.env['CURRENCYBEACON_API_KEY'];
+    } else {
+      process.env['CURRENCYBEACON_API_KEY'] = originalProviderKey;
+    }
     clearExchangeRateCache();
   });
 
@@ -47,7 +72,7 @@ describe('Integration: Payment Creation Flow', () => {
       // Mock exchange rate API
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { INR: 83.12 } }),
+        json: async () => beaconResponse({ INR: 83.12 }),
       });
 
       // Step 1: Detect country (from headers)
@@ -79,8 +104,8 @@ describe('Integration: Payment Creation Flow', () => {
 
       // Step 6: Convert to local currency
       const conversion = await convertUSDToLocal(usdPrice, currency);
-      expect(conversion.localAmount).toBeGreaterThan(0);
-      expect(conversion.exchangeRate).toBeGreaterThan(0);
+      expect(conversion.localAmount).toBe(2410.48);
+      expect(conversion.exchangeRate).toBe(83.12);
       expect(conversion.usdAmount).toBe(usdPrice);
 
       // Step 7: Create payment
@@ -107,7 +132,7 @@ describe('Integration: Payment Creation Flow', () => {
       // Mock exchange rate API
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { THB: 35.25 } }),
+        json: async () => beaconResponse({ THB: 35.25 }),
       });
 
       // Step 1: Detect country
@@ -129,6 +154,8 @@ describe('Integration: Payment Creation Flow', () => {
       // Step 4: Convert and create payment
       const conversion = await convertUSDToLocal(usdPrice, currency);
       expect(conversion.currency).toBe('THB');
+      expect(conversion.localAmount).toBe(70.15);
+      expect(conversion.exchangeRate).toBe(35.25);
 
       const payment = await createPayment({
         userId: 'user-456',
@@ -162,16 +189,21 @@ describe('Integration: Payment Creation Flow', () => {
         // Mock exchange rate for this currency
         mockFetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ rates: { [currency]: 50 } }),
+          json: async () => beaconResponse({ [currency]: 50 }),
         });
 
         // Get methods
         const methods = await getPaymentMethodsForCountry(country);
         expect(methods.length).toBeGreaterThan(0);
+        const selectedMethod = methods[0];
+        if (selectedMethod === undefined) {
+          throw new Error('Supported country must provide a payment method');
+        }
 
         // Convert
         const conversion = await convertUSDToLocal(29.0, currency);
-        expect(conversion.localAmount).toBeGreaterThan(0);
+        expect(conversion.localAmount).toBe(1450);
+        expect(conversion.exchangeRate).toBe(50);
 
         // Create payment
         const payment = await createPayment({
@@ -179,7 +211,7 @@ describe('Integration: Payment Creation Flow', () => {
           amount: 29.0,
           currency,
           country,
-          paymentMethod: methods[0],
+          paymentMethod: selectedMethod,
           planType: 'MONTHLY',
         });
 
@@ -274,8 +306,9 @@ describe('Integration: Payment Creation Flow', () => {
 
       // Should still work with fallback rates
       const conversion = await convertUSDToLocal(29.0, 'INR');
-      expect(conversion.localAmount).toBeGreaterThan(0);
-      expect(conversion.exchangeRate).toBeGreaterThan(0);
+      expect(conversion.localAmount).toBe(2421.5);
+      expect(conversion.exchangeRate).toBe(CURRENCY_USD_RATES['INR']);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     it('should reject invalid country', async () => {

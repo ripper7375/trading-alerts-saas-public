@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useLocale } from '@/lib/context/locale-context';
+import { FxRateAttribution } from '@/components/payments/fx-rate-attribution';
 
 export default function AboutPage() {
   const { t } = useLocale();
@@ -126,6 +127,39 @@ export default function AboutPage() {
               </Card>
             );
           })}
+        </div>
+      </section>
+
+      <section className="border-t border-slate-200 px-4 py-12 dark:border-slate-800/80 md:px-6">
+        <div className="container mx-auto max-w-4xl space-y-4">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+            {t('fx.attribution.title', 'Currency conversion sources')}
+          </h2>
+          <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+            {t(
+              'fx.attribution.description',
+              'Subscription prices in other currencies are indicative conversions of USD prices. We use CurrencyBeacon hourly exchange rates, with Frankfurter reference rates as a fallback.'
+            )}
+          </p>
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-amber-700 dark:text-amber-400">
+            <a
+              href="https://currencybeacon.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4"
+            >
+              CurrencyBeacon
+            </a>
+            <a
+              href="https://frankfurter.dev/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4"
+            >
+              Frankfurter
+            </a>
+          </div>
+          <FxRateAttribution />
         </div>
       </section>
 

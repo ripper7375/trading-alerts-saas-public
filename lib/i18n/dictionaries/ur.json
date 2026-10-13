@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "کرنسی کی تبدیلی کے ذرائع",
+  "fx.attribution.description": "دیگر کرنسیوں میں سبسکرپشن کی قیمتیں USD قیمتوں کی تخمینی تبدیلیاں ہیں۔ ہم CurrencyBeacon کی ہر گھنٹے اپ ڈیٹ ہونے والی شرحِ مبادلہ استعمال کرتے ہیں اور متبادل کے طور پر Frankfurter کی حوالہ جاتی شرحیں استعمال کرتے ہیں۔",
+  "fx.attribution.source": "تخمینی شرحِ مبادلہ:",
+  "fx.attribution.updated": "ذریعہ اپ ڈیٹ ہونے کا وقت:",
+  "fx.attribution.fixed": "تخمینی قیمتوں کے لیے حوالہ جاتی شرحِ مبادلہ استعمال ہوتی ہے۔",
   "breadcrumb.dashboard": "ڈیش بورڈ",
   "breadcrumb.settings": "ترتیبات",
   "nav.dashboard": "مرکزی ڈیش بورڈ",

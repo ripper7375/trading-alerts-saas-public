@@ -170,7 +170,11 @@ describe('PriceDisplay', () => {
 
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          '/api/payments/dlocal/convert?amount=1.99&currency=NGN'
+          '/api/payments/dlocal/convert?amount=1.99&currency=NGN',
+          expect.objectContaining({
+            cache: 'no-store',
+            signal: expect.any(AbortSignal),
+          })
         );
       });
     });
@@ -189,7 +193,11 @@ describe('PriceDisplay', () => {
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledTimes(2);
         expect(mockFetch).toHaveBeenLastCalledWith(
-          '/api/payments/dlocal/convert?amount=29&currency=NGN'
+          '/api/payments/dlocal/convert?amount=29&currency=NGN',
+          expect.objectContaining({
+            cache: 'no-store',
+            signal: expect.any(AbortSignal),
+          })
         );
       });
     });
@@ -218,9 +226,9 @@ describe('PriceDisplay', () => {
       render(withLocale(<PriceDisplay {...defaultProps} />));
 
       await waitFor(() => {
-        // Fallback rate for INR is 83.0
-        // 29 * 83 = 2407
-        expect(screen.getByText(/₹2,407\.00/)).toBeInTheDocument();
+        // Canonical fallback rate for INR is 83.5
+        // 29 * 83.5 = 2421.5
+        expect(screen.getByText(/₹2,421\.50/)).toBeInTheDocument();
       });
     });
 

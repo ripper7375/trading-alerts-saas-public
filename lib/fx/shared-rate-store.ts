@@ -1,37 +1,29 @@
-/**
- * The USD rate table shared through Redis, so the Next app and money-service
- * convert with the same rates. Whichever service refreshes first writes the
- * table under `fx:usd_rates` for an hour; the other reads it instead of
- * calling the rate API itself. Mirrored in money-service/src/fx/usd-rates.ts
- * (same key, TTL and JSON shape; parity test in
- * __tests__/lib/fx/usd-rates-parity.test.ts).
- *
- * Redis is an optimisation, never a dependency: when REDIS_URL is unset or
- * Redis does not answer within READ_TIMEOUT_MS, callers get `null` and fall
- * back to their own in-memory cache and the rate API.
- *
- * Server-only.
- *
- * @module lib/fx/shared-rate-store
- */
-
+/** Server-only, versioned USD rate snapshots shared with money-service. */
 import { logger } from '@/lib/logger';
 import { getRedisClient } from '@/lib/redis/client';
+import {
+  FX_MAX_RETAINED_AGE_MS,
+  FX_USD_RATES_SCHEMA_VERSION,
+  FX_USD_RATES_REDIS_KEY,
+  FX_USD_RATES_TTL_SECONDS,
+} from '@/lib/fx/rate-contract';
+import {
+  FX_MAX_FUTURE_MS,
+  isFreshFxSource,
+  parseFxTimestamp,
+  validateCompleteUsdRates,
+} from '@/lib/fx/rate-providers';
 
-export const FX_USD_RATES_REDIS_KEY = 'fx:usd_rates';
-
-/** Redis TTL of the shared table (1 hour), in seconds. */
-export const FX_USD_RATES_TTL_SECONDS = 3600;
-
-/** A Redis call slower than this is treated as failed. */
+export { FX_USD_RATES_REDIS_KEY, FX_USD_RATES_TTL_SECONDS };
 const REDIS_TIMEOUT_MS = 500;
 
-/** The JSON stored under FX_USD_RATES_REDIS_KEY. Live rates only. */
 export interface SharedUsdRates {
-  /** Units of each currency per 1 USD. */
+  schemaVersion: typeof FX_USD_RATES_SCHEMA_VERSION;
   rates: Record<string, number>;
-  /** When the rate API was called, ISO 8601. */
+  provider: 'currencybeacon' | 'frankfurter';
+  rateUpdatedAt: string;
   fetchedAt: string;
+  expiresAt: string;
 }
 
 function withTimeout<T>(promise: Promise<T>): Promise<T> {
@@ -45,58 +37,91 @@ function withTimeout<T>(promise: Promise<T>): Promise<T> {
   return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
-/** Parses a stored table; anything malformed counts as missing. */
+/** Legacy, partial, expired, future or stale source snapshots are cache misses. */
 export function parseSharedUsdRates(raw: string | null): SharedUsdRates | null {
   if (!raw) return null;
   try {
-    const data = JSON.parse(raw) as { rates?: unknown; fetchedAt?: unknown };
-    if (typeof data.fetchedAt !== 'string') return null;
-    if (Number.isNaN(Date.parse(data.fetchedAt))) return null;
-    if (!data.rates || typeof data.rates !== 'object') return null;
-    const rates: Record<string, number> = {};
-    for (const [code, value] of Object.entries(data.rates)) {
-      if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
-        rates[code] = value;
-      }
-    }
-    if (Object.keys(rates).length === 0) return null;
-    return { rates, fetchedAt: data.fetchedAt };
+    const data = JSON.parse(raw) as Partial<SharedUsdRates>;
+    if (!data || data.schemaVersion !== FX_USD_RATES_SCHEMA_VERSION)
+      return null;
+    if (data.provider !== 'currencybeacon' && data.provider !== 'frankfurter')
+      return null;
+    const nowMs = Date.now();
+    const fetchedMs = parseFxTimestamp(data.fetchedAt);
+    const expiresMs = parseFxTimestamp(data.expiresAt);
+    const hourMs = FX_USD_RATES_TTL_SECONDS * 1000;
+    if (
+      fetchedMs === null ||
+      expiresMs === null ||
+      fetchedMs > nowMs + FX_MAX_FUTURE_MS ||
+      nowMs - fetchedMs > FX_MAX_RETAINED_AGE_MS
+    )
+      return null;
+    if (
+      expiresMs <= nowMs ||
+      expiresMs <= fetchedMs ||
+      expiresMs > fetchedMs + FX_MAX_RETAINED_AGE_MS ||
+      expiresMs > nowMs + hourMs
+    )
+      return null;
+    const rates = validateCompleteUsdRates(data.rates);
+    const updatedMs = parseFxTimestamp(data.rateUpdatedAt);
+    if (
+      !rates ||
+      updatedMs === null ||
+      !isFreshFxSource(data.provider, data.rateUpdatedAt, nowMs) ||
+      updatedMs > fetchedMs + FX_MAX_FUTURE_MS ||
+      (data.provider === 'currencybeacon' &&
+        expiresMs > updatedMs + FX_MAX_RETAINED_AGE_MS)
+    )
+      return null;
+    return {
+      schemaVersion: FX_USD_RATES_SCHEMA_VERSION,
+      rates,
+      provider: data.provider,
+      rateUpdatedAt: data.rateUpdatedAt as string,
+      fetchedAt: data.fetchedAt as string,
+      expiresAt: data.expiresAt as string,
+    };
   } catch {
     return null;
   }
 }
 
-/** The shared table, or null when absent, malformed or Redis is unreachable. */
 export async function readSharedUsdRates(): Promise<SharedUsdRates | null> {
   if (!process.env['REDIS_URL']) return null;
   try {
-    const raw = await withTimeout(getRedisClient().get(FX_USD_RATES_REDIS_KEY));
-    return parseSharedUsdRates(raw);
-  } catch (error) {
-    logger.warn('[fx] Could not read shared USD rates from Redis', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+    return parseSharedUsdRates(
+      await withTimeout(getRedisClient().get(FX_USD_RATES_REDIS_KEY))
+    );
+  } catch {
+    logger.warn('[fx] Could not read shared USD rates from Redis');
     return null;
   }
 }
 
-/** Publishes a live table for an hour. Failures are logged and ignored. */
+/** Preserve the publisher's expiry, including a shorter primary-failure retry. */
 export async function writeSharedUsdRates(
   table: SharedUsdRates
 ): Promise<void> {
   if (!process.env['REDIS_URL']) return;
+  const valid = parseSharedUsdRates(JSON.stringify(table));
+  if (!valid) return;
+  const ttl = Math.min(
+    FX_USD_RATES_TTL_SECONDS,
+    Math.ceil((Date.parse(valid.expiresAt) - Date.now()) / 1000)
+  );
+  if (ttl <= 0) return;
   try {
     await withTimeout(
       getRedisClient().set(
         FX_USD_RATES_REDIS_KEY,
-        JSON.stringify(table),
+        JSON.stringify(valid),
         'EX',
-        FX_USD_RATES_TTL_SECONDS
+        ttl
       )
     );
-  } catch (error) {
-    logger.warn('[fx] Could not write shared USD rates to Redis', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
+  } catch {
+    logger.warn('[fx] Could not write shared USD rates to Redis');
   }
 }

@@ -29,6 +29,7 @@ const SUPPORTED_CURRENCIES: DLocalCurrency[] = [
   'ZAR',
   'TRY',
   'AED',
+  'BRL',
 ];
 
 function isSupportedCurrency(currency: string): currency is DLocalCurrency {
@@ -79,13 +80,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     const result = await convertUSDToLocal(amount, currency);
 
-    return NextResponse.json({
-      localAmount: result.localAmount,
-      currency: result.currency,
-      exchangeRate: result.exchangeRate,
-      usdAmount: result.usdAmount,
-      timestamp: new Date().toISOString(),
-    });
+    return NextResponse.json(
+      {
+        localAmount: result.localAmount,
+        currency: result.currency,
+        exchangeRate: result.exchangeRate,
+        usdAmount: result.usdAmount,
+        timestamp: new Date().toISOString(),
+      },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch (error) {
     logger.error('Failed to convert currency', {
       error: error instanceof Error ? error.message : 'Unknown error',

@@ -42,6 +42,7 @@ import {
 } from '@/lib/dlocal/constants';
 import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
 import { useLocale } from '@/lib/context/locale-context';
+import { FxRateAttribution } from '@/components/payments/fx-rate-attribution';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -449,6 +450,8 @@ function CheckoutContent(): React.ReactElement {
                   )}
                 </p>
               </div>
+
+              <FxRateAttribution />
 
               {/* The card charge is in USD; the local figure is approximate */}
               {displayCurrency && displayCurrency !== 'USD' && (

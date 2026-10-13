@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "통화 환산 데이터 출처",
+  "fx.attribution.description": "다른 통화로 표시되는 구독 가격은 USD 가격을 환산한 참고 가격입니다. CurrencyBeacon의 매시간 갱신되는 환율을 사용하며, 대체 출처로 Frankfurter의 기준 환율을 사용합니다.",
+  "fx.attribution.source": "참고 환율:",
+  "fx.attribution.updated": "출처 갱신 시각:",
+  "fx.attribution.fixed": "참고 가격에는 기준 환율이 사용됩니다.",
   "(billed annually)": "(연간 청구)",
   "+ New Alert Rule": "+ 새 알림 규칙",
   "/ forever free": "/ 영구 무료",

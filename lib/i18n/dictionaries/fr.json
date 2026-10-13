@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "Sources de conversion des devises",
+  "fx.attribution.description": "Les prix des abonnements dans d’autres devises sont des conversions indicatives des prix en USD. Nous utilisons les taux horaires de CurrencyBeacon, avec les taux de référence de Frankfurter en secours.",
+  "fx.attribution.source": "Taux de change indicatifs :",
+  "fx.attribution.updated": "Source mise à jour :",
+  "fx.attribution.fixed": "Les prix indicatifs utilisent des taux de change de référence.",
   "(billed annually)": "(facturé annuellement)",
   "+ New Alert Rule": "+ Nouvelle règle d'alerte",
   "/ forever free": "/ gratuit à vie",

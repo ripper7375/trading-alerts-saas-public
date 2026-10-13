@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Check, Sparkles, Zap, ArrowRight } from 'lucide-react';
 import { useLocale } from '@/lib/context/locale-context';
+import { FxRateAttribution } from '@/components/payments/fx-rate-attribution';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 /**
@@ -210,6 +211,7 @@ export function LandingPricing() {
             </Link>
           </div>
         </div>
+        <FxRateAttribution className="mt-5 text-center" />
       </div>
     </section>
   );

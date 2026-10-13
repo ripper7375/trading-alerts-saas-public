@@ -28,8 +28,32 @@ export const FALLBACK_USD_RATES: Readonly<Record<string, number>> = {
   BRL: 5.65,
 };
 
-/** Redis key of the shared USD rate table (JSON: { rates, fetchedAt }). */
-export const FX_USD_RATES_REDIS_KEY = 'fx:usd_rates';
+export const FX_SUPPORTED_CURRENCIES = [
+  'USD',
+  'GBP',
+  'EUR',
+  'JPY',
+  'INR',
+  'NGN',
+  'PKR',
+  'VND',
+  'IDR',
+  'THB',
+  'ZAR',
+  'TRY',
+  'AED',
+  'KRW',
+  'BRL',
+] as const;
+
+export type FxRateProvider = 'currencybeacon' | 'frankfurter' | 'fixed';
+
+/** Versioned JSON: schemaVersion, rates, provider, source/fetch/expiry times. */
+export const FX_USD_RATES_SCHEMA_VERSION = 2;
+export const FX_USD_RATES_REDIS_KEY = 'fx:usd_rates:v2';
 
 /** Redis TTL of the shared table (1 hour), in seconds. */
 export const FX_USD_RATES_TTL_SECONDS = 3600;
+export const FX_FAILURE_RETRY_MS = 15 * 60 * 1000;
+export const FX_MAX_RETAINED_AGE_MS = 8 * 60 * 60 * 1000;
+export const FX_MAX_DAILY_RATE_AGE_MS = 7 * 24 * 60 * 60 * 1000;

@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "مصادر تحويل العملات",
+  "fx.attribution.description": "أسعار الاشتراك بالعملات الأخرى هي تحويلات استرشادية للأسعار بالدولار الأمريكي. نستخدم أسعار الصرف المحدّثة كل ساعة من CurrencyBeacon، مع أسعار Frankfurter المرجعية كخيار احتياطي.",
+  "fx.attribution.source": "أسعار الصرف الاسترشادية:",
+  "fx.attribution.updated": "آخر تحديث للمصدر:",
+  "fx.attribution.fixed": "تستخدم الأسعار الاسترشادية أسعار صرف مرجعية.",
   "breadcrumb.dashboard": "لوحة التحكم",
   "breadcrumb.settings": "الإعدادات",
   "breadcrumb.workbench": "مساحة العمل",

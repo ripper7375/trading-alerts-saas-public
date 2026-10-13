@@ -1,3 +1,5 @@
+import type { FxRateMetadata } from '@/lib/fx/rate-contract';
+
 export interface CountryConfig {
   code: string;
   name: string;
@@ -236,7 +238,7 @@ export function isSupportedCurrency(currency?: string | null): boolean {
  * from the server to formatCurrencyAmount() and the browser's LocaleProvider.
  * Client-safe type; the fetching module is server-only.
  */
-export interface DisplayUsdRates {
+export interface DisplayUsdRates extends FxRateMetadata {
   /** Units per 1 USD for every display currency (fixed rate where no live one). */
   rates: Record<string, number>;
   /** 'live' from the rate API, 'fallback' when the fixed rates are in use. */

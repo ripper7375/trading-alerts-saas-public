@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "Sumber konversi mata uang",
+  "fx.attribution.description": "Harga langganan dalam mata uang lain merupakan konversi indikatif dari harga USD. Kami menggunakan kurs per jam dari CurrencyBeacon, dengan kurs referensi Frankfurter sebagai cadangan.",
+  "fx.attribution.source": "Kurs indikatif:",
+  "fx.attribution.updated": "Sumber diperbarui:",
+  "fx.attribution.fixed": "Harga indikatif menggunakan kurs referensi.",
   "breadcrumb.dashboard": "Dasbor",
   "breadcrumb.settings": "Pengaturan",
   "nav.dashboard": "Dasbor Utama",

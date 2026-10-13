@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "货币换算数据来源",
+  "fx.attribution.description": "其他货币的订阅价格是根据USD价格换算的参考价格。我们使用CurrencyBeacon每小时更新的汇率，并以Frankfurter参考汇率作为备用来源。",
+  "fx.attribution.source": "参考汇率：",
+  "fx.attribution.updated": "来源更新时间：",
+  "fx.attribution.fixed": "参考价格使用参考汇率。",
   "(billed annually)": "（按年计费）",
   "+ New Alert Rule": "+ 新建警报规则",
   "/ forever free": "/ 永久免费",

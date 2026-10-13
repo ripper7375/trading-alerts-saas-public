@@ -10,6 +10,7 @@ import React, {
   useState,
 } from 'react';
 import { usePathname } from 'next/navigation';
+import { useDisplayUsdRates } from '@/lib/fx/use-display-usd-rates';
 import {
   SUPPORTED_COUNTRIES,
   getCountryByCode,
@@ -185,8 +186,8 @@ export function LocaleProvider({
   initialLocale?: string;
   /**
    * Live USD display rates resolved on the server (app/layout.tsx), so the
-   * server-rendered and hydrated prices agree. Refreshed hourly from
-   * GET /api/fx/rates while the page stays open. Absent (e.g. in tests):
+   * server-rendered and hydrated prices agree. Refreshed every five minutes from
+   * GET /api/fx/rates and on returning to the page. Providers remain cached hourly. Absent (e.g. in tests):
    * the fixed rates in lib/country-config.ts, and no refresh.
    */
   initialUsdRates?: DisplayUsdRates | null;
@@ -215,25 +216,7 @@ export function LocaleProvider({
   const [preferences, setPreferences] =
     useState<LocalePreferences>(serverPreferences);
 
-  const [usdRates, setUsdRates] = useState<DisplayUsdRates | null>(
-    initialUsdRates ?? null
-  );
-
-  // Keep long-open pages on a current rate: refresh hourly, only when the
-  // server supplied rates to begin with.
-  useEffect(() => {
-    if (!initialUsdRates) return;
-    const refresh = async (): Promise<void> => {
-      try {
-        const res = await fetch('/api/fx/rates');
-        if (res.ok) setUsdRates((await res.json()) as DisplayUsdRates);
-      } catch {
-        /* keep the rates already shown */
-      }
-    };
-    const timer = setInterval(() => void refresh(), 60 * 60 * 1000);
-    return () => clearInterval(timer);
-  }, [initialUsdRates]);
+  const usdRates = useDisplayUsdRates(initialUsdRates);
 
   const [dictionary, setDictionary] = useState<Record<string, string>>(() =>
     dictionaryFor(serverPreferences.language)
