@@ -282,7 +282,20 @@ export type UnderstandOutcome =
       request: UnderstandRequest;
       /** why the schema refused, for the trace */
       issues?: Issue[];
+      /** the code a failed call gave (`TIMEOUT`, `HTTP_503`), when the port's error has one: for the trace only */
+      detail?: string;
     };
+
+const PORT_ERROR_CODE = /^[A-Z][A-Z0-9_]{0,39}$/;
+
+/** The `code` of a port's error when it is a short upper-case token: the only thing taken from it. */
+function portErrorCode(error: unknown): string | undefined {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const code = (error as { code?: unknown }).code;
+  return typeof code === 'string' && PORT_ERROR_CODE.test(code)
+    ? code
+    : undefined;
+}
 
 export interface UnderstandInput {
   /** the NORMALISED question */
@@ -310,8 +323,14 @@ export async function runUnderstand(
   let raw: unknown;
   try {
     raw = await port.understand(request);
-  } catch {
-    return { ok: false, failure: 'PORT_ERROR', request };
+  } catch (error) {
+    const detail = portErrorCode(error);
+    return {
+      ok: false,
+      failure: 'PORT_ERROR',
+      request,
+      ...(detail === undefined ? {} : { detail }),
+    };
   }
 
   let value: unknown = raw;

@@ -25,6 +25,8 @@ export const GLOSSARY_SCHEMA = 'glossary/1';
  * 1.0.0: the contracts, the text intake and the glossary (parts 1 to 3).
  * 1.1.0: the sensor board, the warnings and the router (part 4): the same question now
  *        gets a board and a set of sensors in full.
+ * 1.2.0: the gate and the orchestrator (part 5): a request now becomes a packet or a refusal,
+ *        and the fixed English question of an instant prompt is set.
  */
-export const INTAKE_VERSION = '1.1.0';
+export const INTAKE_VERSION = '1.2.0';
 export const ROUTING_VERSION = 'routing-v1';

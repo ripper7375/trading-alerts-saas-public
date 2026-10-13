@@ -133,7 +133,8 @@ export const REASON = /^[A-Z0-9_]+(:[A-Z0-9_]+)?$/;
 export const STATE_CODE = /^MCD([0-9]|1[0-5])_[A-Z0-9_]+$/;
 export const RULE_ID = /^(R[0-9]+S?_[A-Z0-9_]+|NO_MATCH)$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/;
-const THREAD_ID = /^[A-Za-z0-9_-]{1,64}$/;
+/** A chat thread id: the thread port and the packet agree on what one looks like. */
+export const THREAD_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const VERSION = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/;
 const EVENT_TIME = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$/;
 
@@ -1453,6 +1454,24 @@ function sameJson(a: unknown, b: unknown): boolean {
   } catch {
     return false;
   }
+}
+
+export type KnowledgeValidation =
+  | { ok: true; knowledge: Knowledge }
+  | { ok: false; issues: Issue[] };
+
+/**
+ * Check a knowledge pack on its own, with the rules the packet validator applies to the
+ * `knowledge` section of a packet that is not a Report 2 (`status` against the chunks, the
+ * build id, the sizes). The client of the knowledge service uses it, so a bad answer from the
+ * service becomes an UNAVAILABLE pack, not a packet the validator refuses. Never throws.
+ */
+export function validateKnowledge(value: unknown): KnowledgeValidation {
+  const issues = new Issues();
+  checkKnowledge(value, 'DIRECTION', issues);
+  return issues.any
+    ? { ok: false, issues: issues.list }
+    : { ok: true, knowledge: value as Knowledge };
 }
 
 // ---------------------------------------------------------------------------

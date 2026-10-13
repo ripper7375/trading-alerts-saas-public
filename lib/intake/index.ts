@@ -21,9 +21,14 @@
  * The readers that fetch what they work on (`read/snapshot.ts`, `read/events.ts`,
  * `read/profile.ts`) touch a database and the gateway: they are imported BY PATH.
  *
- * Later parts add the gate, the pipeline and the route layer (`server/`). Anything that
- * touches a database, Redis, the session or the network is imported BY PATH and never through
- * this barrel, so a client component can import it
+ * Part 5 adds the gate (`gate.ts`: flag, session, tier, thread, profile, quota, over ports),
+ * the orchestrator (`pipeline.ts`: steps 1 to 8 over ports) and the trace (`trace.ts`), all
+ * pure. The two adapters that call the network (`knowledge-client.ts` and
+ * `text/understand-model.ts`), the route layer (`server/`) and the routes themselves are
+ * imported BY PATH.
+ *
+ * Anything that touches a database, Redis, the session or the network is imported BY PATH and
+ * never through this barrel, so a client component can import it
  * (`__tests__/lib/intake/boundaries.test.ts` holds that).
  *
  * @module lib/intake
@@ -146,7 +151,9 @@ export {
   deriveTrace,
   forbiddenKeyPaths,
   packetSha256,
+  validateKnowledge,
   validatePacket,
+  THREAD_ID,
 } from './packet';
 export type {
   Bias,
@@ -164,6 +171,7 @@ export type {
   KnowledgeChunk,
   KnowledgeDomain,
   KnowledgeStatus,
+  KnowledgeValidation,
   LastPrice,
   PacketBody,
   PacketData,
@@ -341,3 +349,48 @@ export type { BoardData, BoardInput, BoardResult } from './board';
 
 export { route } from './router';
 export type { Route, RouteInput } from './router';
+
+export { runGate } from './gate';
+export type {
+  EntitlementPort,
+  GateCaller,
+  GateOutcome,
+  GatePorts,
+  GateRefusalCode,
+  GateRequest,
+  GateSession,
+  ProfileGateRead,
+  ProfilePort,
+  QuotaPort,
+  QuotaRequest,
+  QuotaVerdict,
+  RequestKind,
+  RequestRead,
+  SessionPort,
+  ThreadCheck,
+  ThreadPort,
+  ThreadVerdict,
+} from './gate';
+
+export { TRACE_STAGES, TraceRecorder } from './trace';
+export type {
+  IntakeTrace,
+  TraceFields,
+  TraceOutcome,
+  TraceRecorderOptions,
+  TraceRoute,
+  TraceStage,
+  TraceStageName,
+} from './trace';
+
+export {
+  INSTANT_QUESTIONS,
+  PacketInvalidError,
+  eventsScopeOf,
+  packetData,
+  packetReadings,
+  runIntake,
+  stateCodesOf,
+  unavailablePack,
+} from './pipeline';
+export type { IntakePorts, IntakeRequest, IntakeResult } from './pipeline';
