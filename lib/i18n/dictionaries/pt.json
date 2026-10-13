@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "Escolha um método de pagamento para continuar.",
   "checkout.stripe_checkout_title": "Pagamento com Stripe",
   "checkout.dlocal_checkout_title": "Pagamento com dLocal",
+  "Brazil": "Brasil",
   "fx.attribution.title": "Fontes de conversão cambial",
   "fx.attribution.description": "Os preços de subscrição noutras moedas são conversões indicativas dos preços em USD. Utilizamos as taxas de câmbio horárias da CurrencyBeacon, com as taxas de referência da Frankfurter como alternativa.",
   "fx.attribution.source": "Taxas de câmbio indicativas:",

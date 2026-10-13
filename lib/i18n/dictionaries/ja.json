@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "続けるにはお支払い方法をお選びください。",
   "checkout.stripe_checkout_title": "Stripeでのお支払い",
   "checkout.dlocal_checkout_title": "dLocalでのお支払い",
+  "Brazil": "ブラジル",
   "fx.attribution.title": "通貨換算のデータ提供元",
   "fx.attribution.description": "他の通貨でのサブスクリプション価格は、USD価格を換算した参考価格です。CurrencyBeaconの毎時更新される為替レートを使用し、代替としてFrankfurterの参照レートを使用します。",
   "fx.attribution.source": "参考為替レート：",

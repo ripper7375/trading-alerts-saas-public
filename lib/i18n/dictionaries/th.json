@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "เลือกวิธีชำระเงินเพื่อดำเนินการต่อ",
   "checkout.stripe_checkout_title": "ชำระเงินด้วย Stripe",
   "checkout.dlocal_checkout_title": "ชำระเงินด้วย dLocal",
+  "Brazil": "บราซิล",
   "fx.attribution.title": "แหล่งข้อมูลการแปลงสกุลเงิน",
   "fx.attribution.description": "ราคาสมาชิกในสกุลเงินอื่นเป็นราคาโดยประมาณที่แปลงจากราคา USD เราใช้อัตราแลกเปลี่ยนที่อัปเดตรายชั่วโมงจาก CurrencyBeacon และใช้อัตราอ้างอิงจาก Frankfurter เป็นแหล่งข้อมูลสำรอง",
   "fx.attribution.source": "อัตราแลกเปลี่ยนโดยประมาณ:",

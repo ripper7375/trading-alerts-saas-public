@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "جاری رکھنے کے لیے ادائیگی کا طریقہ منتخب کریں۔",
   "checkout.stripe_checkout_title": "Stripe کے ذریعے ادائیگی",
   "checkout.dlocal_checkout_title": "dLocal کے ذریعے ادائیگی",
+  "Brazil": "برازیل",
   "fx.attribution.title": "کرنسی کی تبدیلی کے ذرائع",
   "fx.attribution.description": "دیگر کرنسیوں میں سبسکرپشن کی قیمتیں USD قیمتوں کی تخمینی تبدیلیاں ہیں۔ ہم CurrencyBeacon کی ہر گھنٹے اپ ڈیٹ ہونے والی شرحِ مبادلہ استعمال کرتے ہیں اور متبادل کے طور پر Frankfurter کی حوالہ جاتی شرحیں استعمال کرتے ہیں۔",
   "fx.attribution.source": "تخمینی شرحِ مبادلہ:",

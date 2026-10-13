@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "請選擇一種付款方式以繼續。",
   "checkout.stripe_checkout_title": "Stripe 結帳",
   "checkout.dlocal_checkout_title": "dLocal 結帳",
+  "Brazil": "巴西",
   "fx.attribution.title": "貨幣換算資料來源",
   "fx.attribution.description": "其他貨幣的訂閱價格是根據USD價格換算的參考價格。我們使用CurrencyBeacon每小時更新的匯率，並以Frankfurter參考匯率作為備用來源。",
   "fx.attribution.source": "參考匯率：",

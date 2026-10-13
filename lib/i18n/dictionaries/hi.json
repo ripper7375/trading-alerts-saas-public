@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "आगे बढ़ने के लिए भुगतान का तरीका चुनें।",
   "checkout.stripe_checkout_title": "Stripe से भुगतान",
   "checkout.dlocal_checkout_title": "dLocal से भुगतान",
+  "Brazil": "ब्राज़ील",
   "fx.attribution.title": "मुद्रा रूपांतरण के स्रोत",
   "fx.attribution.description": "अन्य मुद्राओं में सदस्यता की कीमतें USD कीमतों के सांकेतिक रूपांतरण हैं। हम CurrencyBeacon की प्रति घंटे अद्यतन विनिमय दरों का उपयोग करते हैं और वैकल्पिक स्रोत के रूप में Frankfurter की संदर्भ दरों का उपयोग करते हैं।",
   "fx.attribution.source": "सांकेतिक विनिमय दरें:",

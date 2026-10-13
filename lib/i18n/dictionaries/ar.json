@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "اختر طريقة دفع للمتابعة.",
   "checkout.stripe_checkout_title": "الدفع عبر Stripe",
   "checkout.dlocal_checkout_title": "الدفع عبر dLocal",
+  "Brazil": "البرازيل",
   "fx.attribution.title": "مصادر تحويل العملات",
   "fx.attribution.description": "أسعار الاشتراك بالعملات الأخرى هي تحويلات استرشادية للأسعار بالدولار الأمريكي. نستخدم أسعار الصرف المحدّثة كل ساعة من CurrencyBeacon، مع أسعار Frankfurter المرجعية كخيار احتياطي.",
   "fx.attribution.source": "أسعار الصرف الاسترشادية:",

@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "Devam etmek için bir ödeme yöntemi seçin.",
   "checkout.stripe_checkout_title": "Stripe ile ödeme",
   "checkout.dlocal_checkout_title": "dLocal ile ödeme",
+  "Brazil": "Brezilya",
   "fx.attribution.title": "Para birimi dönüşüm kaynakları",
   "fx.attribution.description": "Diğer para birimlerindeki abonelik fiyatları, USD fiyatlarının gösterge niteliğindeki dönüşümleridir. CurrencyBeacon'ın saatlik döviz kurlarını, yedek kaynak olarak da Frankfurter'ın referans kurlarını kullanıyoruz.",
   "fx.attribution.source": "Gösterge döviz kurları:",

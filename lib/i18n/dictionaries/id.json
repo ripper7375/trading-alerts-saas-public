@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "Pilih metode pembayaran untuk melanjutkan.",
   "checkout.stripe_checkout_title": "Pembayaran Stripe",
   "checkout.dlocal_checkout_title": "Pembayaran dLocal",
+  "Brazil": "Brasil",
   "fx.attribution.title": "Sumber konversi mata uang",
   "fx.attribution.description": "Harga langganan dalam mata uang lain merupakan konversi indikatif dari harga USD. Kami menggunakan kurs per jam dari CurrencyBeacon, dengan kurs referensi Frankfurter sebagai cadangan.",
   "fx.attribution.source": "Kurs indikatif:",

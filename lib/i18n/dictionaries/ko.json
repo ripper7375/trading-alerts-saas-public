@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "계속하려면 결제 방법을 선택하세요.",
   "checkout.stripe_checkout_title": "Stripe 결제",
   "checkout.dlocal_checkout_title": "dLocal 결제",
+  "Brazil": "브라질",
   "fx.attribution.title": "통화 환산 데이터 출처",
   "fx.attribution.description": "다른 통화로 표시되는 구독 가격은 USD 가격을 환산한 참고 가격입니다. CurrencyBeacon의 매시간 갱신되는 환율을 사용하며, 대체 출처로 Frankfurter의 기준 환율을 사용합니다.",
   "fx.attribution.source": "참고 환율:",

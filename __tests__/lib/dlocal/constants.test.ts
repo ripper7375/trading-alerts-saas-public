@@ -176,6 +176,29 @@ describe('dLocal Constants', () => {
     it('should have names for all 10 countries', () => {
       expect(Object.keys(COUNTRY_NAMES)).toHaveLength(10);
     });
+
+    it('every dLocal country name has a non-empty translation in all 19 dictionaries', () => {
+      const fs = require('fs');
+
+      const path = require('path');
+      const dictDir = path.resolve(__dirname, '../../../lib/i18n/dictionaries');
+      const files = fs
+        .readdirSync(dictDir)
+        .filter((f: string) => f.endsWith('.json'));
+      expect(files).toHaveLength(19);
+
+      for (const file of files) {
+        const dict = JSON.parse(
+          fs.readFileSync(path.join(dictDir, file), 'utf8')
+        );
+        for (const countryCode of DLOCAL_SUPPORTED_COUNTRIES) {
+          const countryName = COUNTRY_NAMES[countryCode];
+          expect(dict[countryName]).toBeDefined();
+          expect(typeof dict[countryName]).toBe('string');
+          expect(dict[countryName].length).toBeGreaterThan(0);
+        }
+      }
+    });
   });
 
   describe('PRICING', () => {

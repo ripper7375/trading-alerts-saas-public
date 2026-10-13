@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "Choisissez un moyen de paiement pour continuer.",
   "checkout.stripe_checkout_title": "Paiement avec Stripe",
   "checkout.dlocal_checkout_title": "Paiement avec dLocal",
+  "Brazil": "Brésil",
   "fx.attribution.title": "Sources de conversion des devises",
   "fx.attribution.description": "Les prix des abonnements dans d’autres devises sont des conversions indicatives des prix en USD. Nous utilisons les taux horaires de CurrencyBeacon, avec les taux de référence de Frankfurter en secours.",
   "fx.attribution.source": "Taux de change indicatifs :",

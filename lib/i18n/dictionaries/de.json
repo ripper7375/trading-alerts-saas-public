@@ -11,6 +11,7 @@
   "checkout.choose_to_continue": "Wähle eine Zahlungsmethode, um fortzufahren.",
   "checkout.stripe_checkout_title": "Zahlung mit Stripe",
   "checkout.dlocal_checkout_title": "Zahlung mit dLocal",
+  "Brazil": "Brasilien",
   "fx.attribution.title": "Quellen der Währungsumrechnung",
   "fx.attribution.description": "Abonnementpreise in anderen Währungen sind unverbindliche Umrechnungen der USD-Preise. Wir verwenden stündliche Wechselkurse von CurrencyBeacon und Referenzkurse von Frankfurter als Ersatz.",
   "fx.attribution.source": "Unverbindliche Wechselkurse:",
