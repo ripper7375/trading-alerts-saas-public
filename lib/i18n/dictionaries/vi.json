@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "Nguồn chuyển đổi tiền tệ",
+  "fx.attribution.description": "Giá đăng ký bằng các loại tiền tệ khác là giá quy đổi tham khảo từ giá USD. Chúng tôi sử dụng tỷ giá cập nhật hằng giờ của CurrencyBeacon, với tỷ giá tham chiếu của Frankfurter làm nguồn dự phòng.",
+  "fx.attribution.source": "Tỷ giá tham khảo:",
+  "fx.attribution.updated": "Nguồn được cập nhật:",
+  "fx.attribution.fixed": "Giá tham khảo sử dụng tỷ giá tham chiếu.",
   "breadcrumb.dashboard": "Bảng điều khiển",
   "breadcrumb.settings": "Cài đặt",
   "nav.dashboard": "Bảng điều khiển chính",

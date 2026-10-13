@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "Currency conversion sources",
+  "fx.attribution.description": "Subscription prices in other currencies are indicative conversions of USD prices. We use CurrencyBeacon hourly exchange rates, with Frankfurter reference rates as a fallback.",
+  "fx.attribution.source": "Indicative exchange rates:",
+  "fx.attribution.updated": "Source updated:",
+  "fx.attribution.fixed": "Indicative prices use reference exchange rates.",
   "auth.login.go_to_workbench": "Go to Workbench",
   "Go to Workbench": "Go to Workbench",
   "\"XAUUSD is currently testing the key liquidity resistance at 2648.50 on the M15 timeframe. Confluence scan indicates a high-probability bullish continuation towards 2655.00 supported by 200 EMA structure.\"": "\"XAUUSD is currently testing the key liquidity resistance at 2648.50 on the M15 timeframe. Confluence scan indicates a high-probability bullish continuation towards 2655.00 supported by 200 EMA structure.\"",

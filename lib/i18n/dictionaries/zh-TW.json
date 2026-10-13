@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "貨幣換算資料來源",
+  "fx.attribution.description": "其他貨幣的訂閱價格是根據USD價格換算的參考價格。我們使用CurrencyBeacon每小時更新的匯率，並以Frankfurter參考匯率作為備用來源。",
+  "fx.attribution.source": "參考匯率：",
+  "fx.attribution.updated": "來源更新時間：",
+  "fx.attribution.fixed": "參考價格使用參考匯率。",
   "(billed annually)": "（按年計費）",
   "+ New Alert Rule": "+ 新建警報規則",
   "/ forever free": "/ 永久免費",

@@ -15,6 +15,7 @@
  */
 
 import crypto from 'crypto';
+import { CURRENCY_USD_RATES } from '@/lib/country-config';
 
 import {
   isDLocalCountry,
@@ -47,6 +48,18 @@ import type { DLocalCountry, DLocalCurrency, PlanType } from '@/types/dlocal';
 // Mock fetch for external APIs
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
+const originalProviderKey = process.env['CURRENCYBEACON_API_KEY'];
+
+function beaconResponse(overrides: Record<string, number>) {
+  return {
+    meta: { code: 200 },
+    response: {
+      base: 'USD',
+      date: new Date(Date.now()).toISOString(),
+      rates: { ...CURRENCY_USD_RATES, ...overrides, USD: 1 },
+    },
+  };
+}
 
 // The real shared rate table (jest.setup.js mocks it for every other suite)
 jest.unmock('@/lib/fx/usd-rates');
@@ -81,6 +94,18 @@ const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 describe('E2E: dLocal Payment Flow', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFetch.mockReset();
+    mockFetch.mockRejectedValue(new Error('Network unavailable in test'));
+    process.env['CURRENCYBEACON_API_KEY'] = 'fixture-key';
+    clearExchangeRateCache();
+  });
+
+  afterAll(() => {
+    if (originalProviderKey === undefined) {
+      delete process.env['CURRENCYBEACON_API_KEY'];
+    } else {
+      process.env['CURRENCYBEACON_API_KEY'] = originalProviderKey;
+    }
     clearExchangeRateCache();
   });
 
@@ -131,7 +156,7 @@ describe('E2E: dLocal Payment Flow', () => {
       // Mock exchange rate API
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { INR: 83.5 } }),
+        json: async () => beaconResponse({ INR: 83.5 }),
       });
 
       const conversion = await convertUSDToLocal(usdPrice, currency);
@@ -172,6 +197,10 @@ describe('E2E: dLocal Payment Flow', () => {
       // Step 2: Get payment methods
       const paymentMethods = await getPaymentMethodsForCountry(country);
       expect(paymentMethods.length).toBeGreaterThan(0);
+      const selectedMonthlyMethod = paymentMethods[0];
+      if (selectedMonthlyMethod === undefined) {
+        throw new Error('Monthly checkout must provide a payment method');
+      }
 
       // Step 3: Validate discount code
       (mockPrisma.affiliateCode.findFirst as jest.Mock).mockResolvedValue({
@@ -185,13 +214,16 @@ describe('E2E: dLocal Payment Flow', () => {
       const discountResult = await validateDiscountCode(discountCode, planType);
       expect(discountResult.valid).toBe(true);
       expect(discountResult.discountPercent).toBe(10);
+      const discountPercent = discountResult.discountPercent;
+      if (discountPercent === undefined) {
+        throw new Error('Validated discount must provide its percentage');
+      }
 
       // Step 4: Calculate discounted price
       const originalPrice = getPriceUSD(planType);
       expect(originalPrice).toBe(29.0);
 
-      const discountedPrice =
-        originalPrice * (1 - discountResult.discountPercent / 100);
+      const discountedPrice = originalPrice * (1 - discountPercent / 100);
       expect(discountedPrice).toBe(26.1);
 
       // Step 5: Convert to local currency
@@ -200,7 +232,7 @@ describe('E2E: dLocal Payment Flow', () => {
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ rates: { NGN: 1550.0 } }),
+        json: async () => beaconResponse({ NGN: 1550.0 }),
       });
 
       const conversion = await convertUSDToLocal(discountedPrice, currency);
@@ -212,9 +244,9 @@ describe('E2E: dLocal Payment Flow', () => {
         amount: discountedPrice,
         currency,
         country,
-        paymentMethod: paymentMethods[0],
+        paymentMethod: selectedMonthlyMethod,
         planType,
-        affiliateCode: discountCode,
+        discountCode,
       });
 
       expect(payment.paymentId).toBeDefined();
@@ -438,21 +470,26 @@ describe('E2E: dLocal Payment Flow', () => {
         // Mock exchange rate
         mockFetch.mockResolvedValueOnce({
           ok: true,
-          json: async () => ({ rates: { [currency]: 50 } }),
+          json: async () => beaconResponse({ [currency]: 50 }),
         });
 
         // Verify currency conversion works
         const conversion = await convertUSDToLocal(29.0, currency);
-        expect(conversion.localAmount).toBeGreaterThan(0);
+        expect(conversion.localAmount).toBe(1450);
+        expect(conversion.exchangeRate).toBe(50);
         expect(conversion.currency).toBe(currency);
 
         // Verify payment creation works
+        const selectedMethod = expectedMethods[0];
+        if (selectedMethod === undefined) {
+          throw new Error('Country fixture must provide a payment method');
+        }
         const payment = await createPayment({
           userId: `user-${country}`,
           amount: 29.0,
           currency,
           country,
-          paymentMethod: expectedMethods[0],
+          paymentMethod: selectedMethod,
           planType: 'MONTHLY',
         });
 
@@ -527,8 +564,9 @@ describe('E2E: dLocal Payment Flow', () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'));
 
       const conversion = await convertUSDToLocal(29.0, 'INR');
-      expect(conversion.localAmount).toBeGreaterThan(0);
-      expect(conversion.exchangeRate).toBeGreaterThan(0);
+      expect(conversion.localAmount).toBe(2421.5);
+      expect(conversion.exchangeRate).toBe(CURRENCY_USD_RATES['INR']);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
     });
 
     it('should validate payment method for country', () => {

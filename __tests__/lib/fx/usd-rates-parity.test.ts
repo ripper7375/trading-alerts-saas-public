@@ -17,6 +17,7 @@ import {
   FX_USD_RATES_REDIS_KEY,
   FX_USD_RATES_TTL_SECONDS,
 } from '@/lib/fx/shared-rate-store';
+import * as contract from '@/lib/fx/rate-contract';
 import type { DLocalCurrency } from '@/types/dlocal';
 import * as money from '../../../money-service/src/fx/usd-fallback-rates';
 
@@ -67,8 +68,27 @@ describe('exchange-rate parity (Next ↔ money-service)', () => {
 
   it('both apps share the live table under the same Redis key and TTL', () => {
     expect(money.FX_USD_RATES_REDIS_KEY).toBe(FX_USD_RATES_REDIS_KEY);
-    expect(FX_USD_RATES_REDIS_KEY).toBe('fx:usd_rates');
+    expect(FX_USD_RATES_REDIS_KEY).toBe('fx:usd_rates:v2');
     expect(money.FX_USD_RATES_TTL_SECONDS).toBe(FX_USD_RATES_TTL_SECONDS);
     expect(FX_USD_RATES_TTL_SECONDS).toBe(3600);
+  });
+});
+
+describe('intraday provider contract parity', () => {
+  it('has one supported-currency set and schema/retry/age contract in both services', () => {
+    expect([...money.FX_SUPPORTED_CURRENCIES]).toEqual([
+      ...contract.FX_SUPPORTED_CURRENCIES,
+    ]);
+    expect([...contract.FX_SUPPORTED_CURRENCIES].sort()).toEqual(
+      Object.keys(CURRENCY_USD_RATES).sort()
+    );
+    expect(money.FX_USD_RATES_SCHEMA_VERSION).toBe(
+      contract.FX_USD_RATES_SCHEMA_VERSION
+    );
+    expect(money.FX_FAILURE_RETRY_MS).toBe(contract.FX_FAILURE_RETRY_MS);
+    expect(money.FX_MAX_RETAINED_AGE_MS).toBe(contract.FX_MAX_RETAINED_AGE_MS);
+    expect(money.FX_MAX_DAILY_RATE_AGE_MS).toBe(
+      contract.FX_MAX_DAILY_RATE_AGE_MS
+    );
   });
 });

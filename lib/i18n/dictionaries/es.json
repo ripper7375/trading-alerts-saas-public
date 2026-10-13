@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "Fuentes de conversión de divisas",
+  "fx.attribution.description": "Los precios de suscripción en otras divisas son conversiones orientativas de los precios en USD. Utilizamos tipos de cambio horarios de CurrencyBeacon, con los tipos de referencia de Frankfurter como alternativa.",
+  "fx.attribution.source": "Tipos de cambio orientativos:",
+  "fx.attribution.updated": "Fuente actualizada:",
+  "fx.attribution.fixed": "Los precios orientativos utilizan tipos de cambio de referencia.",
   "breadcrumb.dashboard": "Panel principal",
   "breadcrumb.settings": "Configuración",
   "nav.dashboard": "Panel principal",

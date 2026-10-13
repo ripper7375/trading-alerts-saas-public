@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "Para birimi dönüşüm kaynakları",
+  "fx.attribution.description": "Diğer para birimlerindeki abonelik fiyatları, USD fiyatlarının gösterge niteliğindeki dönüşümleridir. CurrencyBeacon'ın saatlik döviz kurlarını, yedek kaynak olarak da Frankfurter'ın referans kurlarını kullanıyoruz.",
+  "fx.attribution.source": "Gösterge döviz kurları:",
+  "fx.attribution.updated": "Kaynak güncelleme zamanı:",
+  "fx.attribution.fixed": "Gösterge fiyatlar referans döviz kurlarını kullanır.",
   "breadcrumb.dashboard": "Kontrol Paneli",
   "breadcrumb.settings": "Ayarlar",
   "nav.dashboard": "Ana Kontrol Paneli",

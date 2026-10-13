@@ -3,8 +3,8 @@
  *
  * Handles USD to local currency conversion for dLocal payments.
  *
- * Rates come from the shared USD table in lib/fx/usd-rates.ts (exchangerate-
- * api.com, refreshed hourly), the same table the pages display local prices
+ * Rates come from the shared USD table in lib/fx/usd-rates.ts (CurrencyBeacon
+ * hourly, with Frankfurter fallback), the same table the pages display local prices
  * with, so the price shown and the price charged use one rate. A charge waits
  * for a fresh table (`fresh: true`) rather than using an expired one.
  */

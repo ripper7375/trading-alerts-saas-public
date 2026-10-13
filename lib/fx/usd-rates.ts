@@ -1,147 +1,131 @@
-/**
- * USD exchange rates from exchangerate-api.com: ONE source for the rate dLocal
- * charges with (lib/dlocal/currency-converter.service.ts) and the rate pages
- * display local prices at (formatCurrency / formatCurrencyAmount).
- *
- * The whole USD table is fetched at most once an hour and shared: through
- * Redis (`fx:usd_rates`, lib/fx/shared-rate-store.ts) with money-service and
- * every other server instance, and in memory within this process. A refresh
- * reads Redis first and only calls the rate API when Redis has no table
- * younger than an hour; a fetched table is written back for the others.
- * Without Redis each process falls back to its own hourly fetch. Display callers get the cached table immediately, even when it is
- * older than an hour (a refresh then runs in the background), so a slow rate
- * API never holds up a page. Charge callers (`fresh: true`) wait for the
- * refresh instead. When the API cannot be reached, callers fall back to the
- * fixed rates in lib/country-config.ts (display) or the dLocal fallback table
- * (charges), and `source` says so.
- *
- * Server-only. The browser receives the display rates through the root layout
- * (LocaleProvider `initialUsdRates`) and `GET /api/fx/rates`.
- *
- * @module lib/fx/usd-rates
- */
-
+/** Server-only hourly USD rates, shared by subscription display and dLocal quotes. */
 import { CURRENCY_USD_RATES, type DisplayUsdRates } from '@/lib/country-config';
+import {
+  FX_FAILURE_RETRY_MS,
+  FX_MAX_RETAINED_AGE_MS,
+  FX_USD_RATES_SCHEMA_VERSION,
+  FX_USD_RATES_TTL_SECONDS,
+  type FxRateMetadata,
+} from '@/lib/fx/rate-contract';
+import {
+  CURRENCYBEACON_RATES_URL,
+  fetchCurrencyBeaconRates,
+  fetchFrankfurterRates,
+  isFreshFxSource,
+} from '@/lib/fx/rate-providers';
 import {
   readSharedUsdRates,
   writeSharedUsdRates,
 } from '@/lib/fx/shared-rate-store';
-import { logger } from '@/lib/logger';
 
-export const USD_RATES_URL = 'https://api.exchangerate-api.com/v4/latest/USD';
+/** Kept for existing consumers; authentication is sent only in the server header. */
+export const USD_RATES_URL = CURRENCYBEACON_RATES_URL;
+export const USD_RATES_TTL_MS = FX_USD_RATES_TTL_SECONDS * 1000;
 
-/** How long a fetched table is used before a refresh (1 hour). */
-export const USD_RATES_TTL_MS = 60 * 60 * 1000;
-
-/** A failed fetch is retried after this long (5 minutes). */
-const FAILURE_RETRY_MS = 5 * 60 * 1000;
-
-/** A request that takes longer than this is treated as failed. */
-const FETCH_TIMEOUT_MS = 3000;
-
-export interface UsdRateTable {
-  /** Units of each currency per 1 USD (e.g. GBP 0.74). Empty on failure. */
+export interface UsdRateTable extends FxRateMetadata {
   rates: Record<string, number>;
-  /** 'live' from the rate API, 'fallback' when it could not be reached. */
   source: 'live' | 'fallback';
-  /** When the table was fetched (or the failed attempt made), ISO 8601. */
   fetchedAt: string;
 }
 
 let cache: { table: UsdRateTable; expiresAt: number } | null = null;
 let inflight: Promise<UsdRateTable> | null = null;
 
-async function fetchTable(): Promise<UsdRateTable> {
-  const nowMs = Date.now();
-  const fetchedAt = new Date(nowMs).toISOString();
-  try {
-    // AbortSignal.timeout exists in the server runtime; skip it where absent.
-    const signal =
-      typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
-        ? AbortSignal.timeout(FETCH_TIMEOUT_MS)
-        : undefined;
-    const response = await fetch(USD_RATES_URL, {
-      next: { revalidate: 3600 },
-      ...(signal && { signal }),
-    } as RequestInit);
-    if (!response.ok) {
-      throw new Error(`API responded with status ${response.status}`);
-    }
-    const data = (await response.json()) as { rates?: Record<string, unknown> };
-    const rates: Record<string, number> = {};
-    for (const [code, value] of Object.entries(data.rates ?? {})) {
-      if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
-        rates[code] = value;
-      }
-    }
-    if (Object.keys(rates).length === 0) throw new Error('No rates returned');
-    const table: UsdRateTable = {
-      rates,
-      source: 'live',
-      fetchedAt,
-    };
-    cache = { table, expiresAt: nowMs + USD_RATES_TTL_MS };
-    await writeSharedUsdRates({ rates, fetchedAt });
-    return table;
-  } catch (error) {
-    logger.warn('[fx] USD rate API unavailable, using fallback rates', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    const table: UsdRateTable = {
-      rates: {},
-      source: 'fallback',
-      fetchedAt,
-    };
-    // Keep serving an earlier live table if there is one; retry soon.
-    const keep = cache?.table.source === 'live' ? cache.table : table;
-    cache = { table: keep, expiresAt: nowMs + FAILURE_RETRY_MS };
-    return keep;
-  }
+function mayRetain(table: UsdRateTable, nowMs: number): boolean {
+  return (
+    table.provider !== 'fixed' &&
+    table.provider !== undefined &&
+    nowMs - Date.parse(table.fetchedAt) <= FX_MAX_RETAINED_AGE_MS &&
+    isFreshFxSource(table.provider, table.rateUpdatedAt, nowMs)
+  );
 }
 
-/**
- * The table another instance or money-service published in Redis, when it is
- * younger than an hour; otherwise a fresh fetch from the rate API. The shared
- * table keeps its own fetch time, so every reader expires it together.
- */
+async function fetchTable(): Promise<UsdRateTable> {
+  const apiKey = process.env['CURRENCYBEACON_API_KEY']?.trim();
+  let snapshot = apiKey ? await fetchCurrencyBeaconRates(apiKey) : null;
+  const primaryFailed = !!apiKey && !snapshot;
+  if (!snapshot) snapshot = await fetchFrankfurterRates();
+  const nowMs = Date.now();
+  const previous = cache?.table;
+  const table: UsdRateTable = snapshot
+    ? {
+        ...snapshot,
+        source: snapshot.provider === 'currencybeacon' ? 'live' : 'fallback',
+        fetchedAt: new Date(nowMs).toISOString(),
+      }
+    : previous && mayRetain(previous, nowMs)
+      ? previous
+      : {
+          rates: { ...CURRENCY_USD_RATES },
+          provider: 'fixed',
+          rateUpdatedAt: null,
+          source: 'fallback',
+          fetchedAt: new Date(nowMs).toISOString(),
+        };
+  const retryMs = primaryFailed ? FX_FAILURE_RETRY_MS : USD_RATES_TTL_MS;
+  let expiresAt = nowMs + retryMs;
+  if (table.provider !== 'fixed') {
+    expiresAt = Math.min(
+      expiresAt,
+      Date.parse(table.fetchedAt) + FX_MAX_RETAINED_AGE_MS
+    );
+    if (table.provider === 'currencybeacon' && table.rateUpdatedAt) {
+      expiresAt = Math.min(
+        expiresAt,
+        Date.parse(table.rateUpdatedAt) + FX_MAX_RETAINED_AGE_MS
+      );
+    }
+  }
+  cache = { table, expiresAt };
+  if (table.provider === 'currencybeacon' || table.provider === 'frankfurter') {
+    await writeSharedUsdRates({
+      schemaVersion: FX_USD_RATES_SCHEMA_VERSION,
+      rates: table.rates,
+      provider: table.provider,
+      rateUpdatedAt: table.rateUpdatedAt as string,
+      fetchedAt: table.fetchedAt,
+      expiresAt: new Date(expiresAt).toISOString(),
+    });
+  }
+  return table;
+}
+
 async function loadTable(): Promise<UsdRateTable> {
   const shared = await readSharedUsdRates();
   if (shared) {
-    const expiresAt = Date.parse(shared.fetchedAt) + USD_RATES_TTL_MS;
-    if (expiresAt > Date.now()) {
-      const table: UsdRateTable = {
-        rates: shared.rates,
-        source: 'live',
-        fetchedAt: shared.fetchedAt,
-      };
-      cache = { table, expiresAt };
-      return table;
-    }
+    const table: UsdRateTable = {
+      rates: shared.rates,
+      provider: shared.provider,
+      rateUpdatedAt: shared.rateUpdatedAt,
+      fetchedAt: shared.fetchedAt,
+      source: shared.provider === 'currencybeacon' ? 'live' : 'fallback',
+    };
+    cache = { table, expiresAt: Date.parse(shared.expiresAt) };
+    return table;
   }
   return fetchTable();
 }
 
 function refresh(): Promise<UsdRateTable> {
-  if (!inflight) {
+  if (!inflight)
     inflight = loadTable().finally(() => {
       inflight = null;
     });
-  }
   return inflight;
 }
 
-/**
- * The current USD rate table.
- *
- * @param options.fresh - Wait for a refresh when the table is older than an
- *   hour (charges). Without it, an expired table is returned at once and
- *   refreshed in the background (display).
- */
+/** Fresh callers wait for expiry refresh; optional stale callers stay age-bounded. */
 export async function getUsdRateTable(
   options: { fresh?: boolean } = {}
 ): Promise<UsdRateTable> {
-  if (cache && Date.now() < cache.expiresAt) return cache.table;
-  if (cache && !options.fresh) {
+  const nowMs = Date.now();
+  if (
+    cache &&
+    nowMs < cache.expiresAt &&
+    (cache.table.provider === 'fixed' || mayRetain(cache.table, nowMs))
+  )
+    return cache.table;
+  if (cache && !options.fresh && mayRetain(cache.table, nowMs)) {
     void refresh();
     return cache.table;
   }
@@ -150,28 +134,14 @@ export async function getUsdRateTable(
 
 export type { DisplayUsdRates };
 
-/**
- * Live rates for the display currencies (those in lib/country-config.ts),
- * with the fixed rate for any currency the API did not return. This is what
- * the browser's formatCurrency() and Server Components use.
- */
-export async function getDisplayUsdRates(): Promise<DisplayUsdRates> {
-  const table = await getUsdRateTable();
-  const rates: Record<string, number> = {};
-  let live = 0;
-  for (const [code, fixed] of Object.entries(CURRENCY_USD_RATES)) {
-    const current = code === 'USD' ? 1 : table.rates[code];
-    if (current) live++;
-    rates[code] = current ?? fixed;
-  }
-  return {
-    rates,
-    source: table.source === 'live' && live > 0 ? 'live' : 'fallback',
-    fetchedAt: table.fetchedAt,
-  };
+/** Public display refreshes wait for an expired snapshot rather than hiding refresh. */
+export async function getDisplayUsdRates(
+  options: { fresh?: boolean } = { fresh: true }
+): Promise<DisplayUsdRates> {
+  const table = await getUsdRateTable(options);
+  return { ...table, rates: { ...table.rates } };
 }
 
-/** For tests: forget the cached table. */
 export function clearUsdRateCache(): void {
   cache = null;
   inflight = null;

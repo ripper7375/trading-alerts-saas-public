@@ -1,4 +1,9 @@
 {
+  "fx.attribution.title": "通貨換算のデータ提供元",
+  "fx.attribution.description": "他の通貨でのサブスクリプション価格は、USD価格を換算した参考価格です。CurrencyBeaconの毎時更新される為替レートを使用し、代替としてFrankfurterの参照レートを使用します。",
+  "fx.attribution.source": "参考為替レート：",
+  "fx.attribution.updated": "提供元の更新日時：",
+  "fx.attribution.fixed": "参考価格には参照為替レートを使用しています。",
   "breadcrumb.dashboard": "ダッシュボード",
   "breadcrumb.settings": "設定",
   "nav.dashboard": "メインダッシュボード",
