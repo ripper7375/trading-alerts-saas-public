@@ -1,7 +1,7 @@
 ---
 type: Concept/EnvironmentGotchas
 status: active
-updated_at: 2026-10-03
+updated_at: 2026-10-13
 source: "'Gotcha' notes scattered through CLAUDE.md session logs 2026-08-30..09-26 (search state/history/ for the full story)"
 tags: [windows, git, shell, jest, browser, tooling]
 related_docs:
@@ -193,6 +193,8 @@ Each of these cost a past session real time. Search `state/history/` for the inc
 - **A source written through the file tools can contain invisible characters as literals** (build step 6 part 2: 65 zero-width, bidirectional and control characters landed in six test files where `\uXXXX` escapes were meant, and a lone surrogate cannot be stored in a file at all). Scan new files for the ranges the normaliser removes (`Cc`, `Cf`, variation selectors, U+E0000 to U+E007F) and write them as escapes. A shell heredoc with a long TypeScript body also failed to parse once ("unexpected EOF"): write the body with the Write tool and splice it in.
 - **Node 24 has Unicode 16, CI's Node 20 has 15**: a test that compares a hard-coded Unicode table with the engine (`\p{Nd}` against `DIGIT_ZEROS`) must accept a run the engine does not know yet (all ten digits or none) and fail on a digit the table lacks.
 - **Read mutation survivors as code to delete, not only tests to add** (build step 6 part 2: 199 survivors of 1,230; a large part were guards that could not matter, such as an ASCII fast path, a string role that only the default branch read, a sort tie-break, and checks of a precondition the caller already guarantees). Removing them is cheaper than recording equivalents.
+- **A long Jest run must BE the background task, not be sent to the background by `&` inside one** (build step 6 part 5): `(npx jest ... > log 2>&1; echo "exit $?" >> log) &` inside a `run_in_background` command was killed when the tool's shell ended; the log stopped after 46 suites with no summary and no `exit` line while the tool reported exit 0. Make the whole command the background task (`run_in_background: true`, output redirected to a file) and wait for the `exit` line with a Monitor.
+- **A temporary `tsconfig` that checks the test folders must include `types/**/\*.d.ts`** (build step 6 part 5): without the `next-auth`module augmentation it reports about 40 errors in`lib/auth`and in any file that reads`session.user.tier`, which the root `tsc`does not have; the real errors (unused variables in tests, which`noUnusedLocals` makes errors) are the two or three at the top of its list. Delete the file before committing.
 
 ## Dev server and browser
 
@@ -207,6 +209,9 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   a harmless dev-only error. Confirm against `next build && next start` before calling it a bug.
 - Authenticated pages cannot be verified by the Executor (it never enters credentials). Use a
   throwaway unauthenticated route outside the gated layout, delete it after, and say so.
+- **`next dev` rewrites the tracked `next-env.d.ts`** (double quotes and `./.next/dev/types/...` paths instead of the committed
+  `'./.next/types/...'`): after any session that started the dev server, `git status` shows ` M next-env.d.ts`. It is not part of any
+  change: restore it with `git checkout -- next-env.d.ts` before committing (build step 6 part 5, the intake preview).
 
 ## YAML registry files
 
