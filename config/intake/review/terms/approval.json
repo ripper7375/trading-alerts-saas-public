@@ -1,9 +1,9 @@
 {
   "schema": "glossary-approval/1",
   "area": "terms",
-  "status": "PENDING",
-  "approved_by": null,
-  "approved_on": null,
+  "status": "APPROVED",
+  "approved_by": "Davin",
+  "approved_on": "2026-10-12",
   "content_sha256": "bcc11a4be4b9dad330d91e014fc698aa64b76ef9b44057df1b684d9bfa4a05ee",
   "note": ""
 }
