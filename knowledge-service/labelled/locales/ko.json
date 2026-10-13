@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "ko",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "지금 금을 사야 하나요, 팔아야 하나요?"
+    },
+    {
+      "id": "q-02",
+      "question": "왜 어시스턴트가 금에서 관망하라고 하나요?"
+    },
+    {
+      "id": "q-03",
+      "question": "M15 차트는 위를 가리키는데 M5 차트는 아래를 가리킵니다. 그래서 금은 어느 방향으로 가나요?"
+    },
+    {
+      "id": "q-04",
+      "question": "금은 어느 방향으로 가고 있나요? M15 센서에 읽은 값이 없습니다."
+    },
+    {
+      "id": "q-05",
+      "question": "지금 골드 어디로가? 사야되냐 팔아야되냐??"
+    },
+    {
+      "id": "q-06",
+      "question": "금에서 매수로 진입하기 좋은 자리는 어디인가요?"
+    },
+    {
+      "id": "q-07",
+      "question": "이 금 하락 추세에는 언제 진입해야 하나요?"
+    },
+    {
+      "id": "q-08",
+      "question": "지금 금에 진입 구간이 없는 이유는 무엇인가요?"
+    },
+    {
+      "id": "q-09",
+      "question": "xauusd m5 어디서 진입?구간 근처임,아님 늦음"
+    },
+    {
+      "id": "q-10",
+      "question": "M5가 코리더를 돌파하고 있는데, 금에 진입하기에는 너무 이른가요?"
+    },
+    {
+      "id": "q-11",
+      "question": "금의 익절은 어디에 두어야 하나요?"
+    },
+    {
+      "id": "q-12",
+      "question": "금 매수 포지션이 4376이고 바로 위에 레벨이 있습니다. 어디까지 갈 수 있나요?"
+    },
+    {
+      "id": "q-13",
+      "question": "금 매도 포지션의 손절은 어디에 두어야 하나요?"
+    },
+    {
+      "id": "q-14",
+      "question": "골드숏 4138 손절 어디둬야돼??"
+    },
+    {
+      "id": "q-15",
+      "question": "금이 코리더 위로 과도하게 늘어났을 때 매도의 목표가는 어디인가요?"
+    },
+    {
+      "id": "q-16",
+      "question": "계좌의 1%를 리스크로 잡으면 금을 몇 랏 거래할 수 있나요?"
+    },
+    {
+      "id": "q-17",
+      "question": "제안된 리스크가 왜 최대치의 절반뿐인가요?"
+    },
+    {
+      "id": "q-18",
+      "question": "계좌 $10000에 리스크 1%면 골드 몇랏?손절 15$"
+    },
+    {
+      "id": "q-19",
+      "question": "이 금 포지션은 어느 정도의 레버리지를 사용하나요?"
+    },
+    {
+      "id": "q-20",
+      "question": "계좌가 $500입니다. 금 거래를 열 수나 있나요?"
+    },
+    {
+      "id": "q-21",
+      "question": "UOEDT가 무엇인가요?"
+    },
+    {
+      "id": "q-22",
+      "question": "M5 baseline은 무슨 뜻인가요?"
+    },
+    {
+      "id": "q-23",
+      "question": "보드에서 STALE 센서는 무슨 뜻인가요?"
+    },
+    {
+      "id": "q-24",
+      "question": "m15 차트에서 마감된캔들이 뭐야"
+    },
+    {
+      "id": "q-25",
+      "question": "보드에서 \"관망\"은 무슨 뜻인가요?"
+    },
+    {
+      "id": "q-26",
+      "question": "오늘 금을 움직일 만한 큰 뉴스가 있나요?"
+    },
+    {
+      "id": "q-27",
+      "question": "CPI 발표 즈음에는 왜 트레이드 셋업을 받을 수 없나요?"
+    },
+    {
+      "id": "q-28",
+      "question": "금 거래를 몇 시간 보유할 예정입니다. 영향이 큰 미국 지표가 나오면 어떻게 되나요?"
+    },
+    {
+      "id": "q-29",
+      "question": "오늘 골드 큰뉴스 있음?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "뉴스 캘린더가 멈추면 금 답변은 어떻게 되나요?"
+    },
+    {
+      "id": "q-31",
+      "question": "금 트레이드 셋업을 만들어 주세요."
+    },
+    {
+      "id": "q-32",
+      "question": "내 프로필로 금 매수용 사이즈가 계산된 트레이드 플랜을 만들어 주세요."
+    },
+    {
+      "id": "q-33",
+      "question": "M15 기준 XAUUSD 트레이드 셋업 리포트를 주세요."
+    },
+    {
+      "id": "q-34",
+      "question": "골드 셋업좀 ㅎㅎ"
+    },
+    {
+      "id": "q-35",
+      "question": "금 매도 거래의 크기를 손절과 목표가와 함께 계산해 주세요."
+    },
+    {
+      "id": "q-36",
+      "question": "이번 주 EURUSD는 어디로 갈까요?"
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd 오늘 오르냐"
+    },
+    {
+      "id": "q-38",
+      "question": "지금 비트코인을 사야 하나요?"
+    },
+    {
+      "id": "q-39",
+      "question": "금 H1 차트는 다음 한 시간에 대해 뭐라고 하나요?"
+    },
+    {
+      "id": "q-40",
+      "question": "오늘 런던 날씨는 어때요?"
+    }
+  ]
+}

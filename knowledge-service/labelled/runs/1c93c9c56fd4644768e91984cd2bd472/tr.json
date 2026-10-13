@@ -1,0 +1,1250 @@
+{
+  "schema": "labelled-run/1",
+  "fingerprint": "1c93c9c56fd4644768e91984cd2bd472",
+  "locale": "tr",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Şimdi altın almalı mıyım yoksa satmalı mıyım?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Should I buy or sell gold right now?",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "Should I buy or sell gold right now?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-02",
+      "question": "Asistan neden bana altında kenarda durmamı söylüyor?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Why is the assistant telling me to stand aside on gold?",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "Why is the assistant telling me to stand aside on gold?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_SIDEWAYS_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-03",
+      "question": "M15 grafiği yukarı, M5 grafiği aşağı bakıyor; peki altın hangi yöne gidiyor?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "The M15 chart points up but the M5 chart points down, so which way is gold going?",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M15",
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "The M15 chart points up but the M5 chart points down, so which way is gold going?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-04",
+      "question": "Altın hangi yöne gidiyor? M15 sensörü hiçbir okuma göstermiyor.",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Which way is gold heading? The M15 sensor shows no reading.",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M15"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "Which way is gold heading? The M15 sensor shows no reading.",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-05",
+      "question": "altin simdi hangi yone gidiyor, alayim mi satayim mi??",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "wich way is gold goin rite now, buy or sel??",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "wich way is gold goin rite now, buy or sel??",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_LOWER_BREAKDOWN",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-06",
+      "question": "Altında alış yönünde girmek için iyi bir yer neresi?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Where is a good place to enter a long on gold?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "Where is a good place to enter a long on gold?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_DOWN_UPPER_BREAKOUT",
+            "MCD2_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-07",
+      "question": "Altının bu düşüş trendine ne zaman girmeliyim?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "When should I get in on this gold downtrend?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "When should I get in on this gold downtrend?",
+          "m_star": [
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_OVERFLOW"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-08",
+      "question": "Altın için şu anda neden giriş bölgesi yok?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Why are there no entry zones for gold right now?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "Why are there no entry zones for gold right now?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_SIDEWAYS_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-09",
+      "question": "xauusd m5 de nerden gireyim?bolgeye yakin mi,gec mi",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "where do i enter xauusd on m5?is it near the zone,or too late",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "where do i enter xauusd on m5?is it near the zone,or too late",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-10",
+      "question": "M5 koridorunu kırıyor, altına girmek için çok erken mi?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "The M5 is breaking out of its corridor, is it too early to enter gold?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "The M5 is breaking out of its corridor, is it too early to enter gold?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-11",
+      "question": "Altında kâr al seviyemi nereye koymalıyım?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Where should I put my take profit on gold?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where should I put my take profit on gold?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_UP_IN_CORRIDOR",
+            "MCD3_BULL_MID"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-12",
+      "question": "Altındaki alış pozisyonum 4376'da ve hemen üstünde bir seviye var. Ne kadar gidebilir?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "My gold long is at 4,376 and there is a level just above it. How far can it run?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "My gold long is at 4,376 and there is a level just above it. How far can it run?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_UP_IN_CORRIDOR",
+            "MCD3_BULL_MID"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-13",
+      "question": "Altındaki satış pozisyonu için zarar durdurumu nereye koymalıyım?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Where should I place my stop loss for the gold short?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where should I place my stop loss for the gold short?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_DOWN_IN_CORRIDOR",
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_OVERFLOW"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-14",
+      "question": "altin satis stop 4138 nereye koyayim??",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Where should I put my stop for the gold short at ٤١٣٨?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where should I put my stop for the gold short at 4138?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_LOWER_BREAKDOWN",
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-15",
+      "question": "Altın koridorunun üzerinde gerildiğinde satışın hedefi nerede?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Where is the target for a short when gold is stretched above its corridor?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where is the target for a short when gold is stretched above its corridor?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_UP_UPPER_BREAKOUT",
+            "MCD3_BULL_MID"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-16",
+      "question": "Hesabımın %1'ini riske atarsam kaç lot altın işlem yapabilirim?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "How many lots of gold can I trade if I risk 1% of my account?",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "How many lots of gold can I trade if I risk 1% of my account?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-17",
+      "question": "Önerilen risk neden maksimumumun yalnızca yarısı?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Why is the suggested risk only half of my maximum?",
+      "intent": "RISK_SIZING",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "Why is the suggested risk only half of my maximum?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_DOWN_UPPER_BREAKOUT",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-18",
+      "question": "$10000 hesapta %1 riskle kac lot altin,stop 15$",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "how much lot for gold if i risk 1% on a $10000 acct,stop 15$",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "how much lot for gold if i risk 1% on a $10000 acct,stop 15$",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-19",
+      "question": "Bu altın pozisyonu ne kadar kaldıraç kullanacak?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "What leverage will this gold position use?",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "What leverage will this gold position use?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_UPPER_BREAKOUT",
+            "MCD2_SIDEWAYS_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-20",
+      "question": "Hesabım $500. Altında işlem açabilir miyim?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "My account is $500. Can I even open a gold trade?",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "My account is $500. Can I even open a gold trade?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_UPPER_BREAKOUT",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-21",
+      "question": "UOEDT nedir?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "What is UOEDT?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What is UOEDT?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-22",
+      "question": "M5 baseline ne anlama gelir?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "What does the M5 baseline mean?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What does the M5 baseline mean?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_UPPER_BREAKOUT",
+            "MCD2_SIDEWAYS_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-23",
+      "question": "Panodaki STALE sensörü ne anlama gelir?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "What does a STALE sensor mean on the board?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What does a STALE sensor mean on the board?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-24",
+      "question": "m15 grafiginde kapanmis mum ne demek",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "wat does closed bar mean on the m15 chrat",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [
+        "M15"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "wat does closed bar mean on the m15 chrat",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-25",
+      "question": "Panoda \"kenarda durmak\" ne anlama gelir?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "What does stand aside mean on the board?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What does stand aside mean on the board?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-26",
+      "question": "Bugün altını oynatabilecek büyük bir haber var mı?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Is there any big news today that could move gold?",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "Is there any big news today that could move gold?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-27",
+      "question": "CPI açıklaması civarında neden işlem kurulumu alamıyorum?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Why can't I get a trade setup around the CPI release?",
+      "intent": "NEWS",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "Why can't I get a trade setup around the CPI release?",
+          "m_star": [
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_OVERFLOW"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-28",
+      "question": "Altın işlemini birkaç saat tutacağım. Yüksek etkili bir ABD verisi gelirse ne olur?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "I am holding a gold trade for a couple of hours. What if a high-impact US release comes out?",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "I am holding a gold trade for a couple of hours. What if a high-impact US release comes out?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_SIDEWAYS_UPPER_BREAKOUT",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-29",
+      "question": "bugun altin icin buyuk haber var mi?? fomc cpi nfp",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "is ther big nws 4 gold todya?? fomc cpi nfp",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "is ther big nws 4 gold todya?? fomc cpi nfp",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-30",
+      "question": "Haber takvimi kapalıysa altın cevaplarına ne olur?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "What happens to the gold answers if the news calendar is down?",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "What happens to the gold answers if the news calendar is down?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-31",
+      "question": "Bana altın için bir işlem kurulumu hazırla.",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Make me a trade setup for gold.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-32",
+      "question": "Profilimi kullanarak altında alış için boyutlandırılmış bir işlem planı oluştur.",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Build a sized trade plan for a gold long using my profile.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-33",
+      "question": "Bana M15'te XAUUSD için işlem kurulumu raporunu ver.",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Give me the trade setup report for XAUUSD on the M15.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M15"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-34",
+      "question": "altin icin kurulum yapsana",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "make me a trade setup 4 gold plz",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-35",
+      "question": "Altında satış işleminin boyutunu stop ve hedefle birlikte hesapla.",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Size a short trade on gold for me, with the stop and the target.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-36",
+      "question": "EURUSD bu hafta nereye gider?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Where will EURUSD go this week?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "EURUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd bugun yukselir mi",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "wil eurusd go up 2day",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "EURUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-38",
+      "question": "Şimdi Bitcoin almalı mıyım?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "Should I buy Bitcoin now?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "BTC"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-39",
+      "question": "Altının H1 grafiği önümüzdeki saat hakkında ne diyor?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "What does the gold H1 chart say about the next hour?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "H1"
+      ],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-40",
+      "question": "Bugün Londra'da hava nasıl?",
+      "status": "OK",
+      "failure": null,
+      "language": "tr",
+      "english": "What is the weather in London today?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    }
+  ]
+}

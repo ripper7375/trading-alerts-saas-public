@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "de",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Soll ich jetzt Gold kaufen oder verkaufen?"
+    },
+    {
+      "id": "q-02",
+      "question": "Warum sagt mir der Assistent, dass ich bei Gold abwarten soll?"
+    },
+    {
+      "id": "q-03",
+      "question": "Der M15-Chart zeigt nach oben, aber der M5-Chart nach unten – wohin geht Gold also?"
+    },
+    {
+      "id": "q-04",
+      "question": "Wohin geht Gold? Der M15-Sensor zeigt keine Messung an."
+    },
+    {
+      "id": "q-05",
+      "question": "wohin geht gold grad, kaufn oder verkaufn??"
+    },
+    {
+      "id": "q-06",
+      "question": "Wo ist ein guter Einstieg für eine Long-Position bei Gold?"
+    },
+    {
+      "id": "q-07",
+      "question": "Wann sollte ich in diesen Gold-Abwärtstrend einsteigen?"
+    },
+    {
+      "id": "q-08",
+      "question": "Warum gibt es gerade keine Einstiegszonen für Gold?"
+    },
+    {
+      "id": "q-09",
+      "question": "wo steig ich bei xauusd auf m5 ein?nahe der zone,oder zu spät"
+    },
+    {
+      "id": "q-10",
+      "question": "Der M5 bricht aus seinem Korridor aus – ist es zu früh für einen Einstieg bei Gold?"
+    },
+    {
+      "id": "q-11",
+      "question": "Wo sollte ich mein Take-Profit bei Gold setzen?"
+    },
+    {
+      "id": "q-12",
+      "question": "Meine Gold-Long-Position liegt bei 4376 und knapp darüber gibt es ein Niveau. Wie weit kann sie laufen?"
+    },
+    {
+      "id": "q-13",
+      "question": "Wo setze ich meinen Stop-Loss für die Gold-Short-Position?"
+    },
+    {
+      "id": "q-14",
+      "question": "wo setz ich den stop fuer den gold short bei 4138??"
+    },
+    {
+      "id": "q-15",
+      "question": "Wo liegt das Ziel für einen Short, wenn Gold über seinem Korridor überdehnt ist?"
+    },
+    {
+      "id": "q-16",
+      "question": "Wie viele Lots Gold kann ich handeln, wenn ich 1% meines Kontos riskiere?"
+    },
+    {
+      "id": "q-17",
+      "question": "Warum beträgt das vorgeschlagene Risiko nur die Hälfte meines Maximums?"
+    },
+    {
+      "id": "q-18",
+      "question": "wie viel lot gold bei 1% risiko auf $10000 konto,stop 15$"
+    },
+    {
+      "id": "q-19",
+      "question": "Welchen Hebel nutzt diese Gold-Position?"
+    },
+    {
+      "id": "q-20",
+      "question": "Mein Konto hat $500. Kann ich überhaupt einen Gold-Trade eröffnen?"
+    },
+    {
+      "id": "q-21",
+      "question": "Was ist UOEDT?"
+    },
+    {
+      "id": "q-22",
+      "question": "Was bedeutet die M5-Baseline?"
+    },
+    {
+      "id": "q-23",
+      "question": "Was bedeutet ein STALE-Sensor auf dem Board?"
+    },
+    {
+      "id": "q-24",
+      "question": "was heisst geschlossene kerze auf dem m15 chrat"
+    },
+    {
+      "id": "q-25",
+      "question": "Was bedeutet „abwarten“ auf dem Board?"
+    },
+    {
+      "id": "q-26",
+      "question": "Gibt es heute wichtige Nachrichten, die Gold bewegen könnten?"
+    },
+    {
+      "id": "q-27",
+      "question": "Warum bekomme ich rund um die CPI-Veröffentlichung kein Trade-Setup?"
+    },
+    {
+      "id": "q-28",
+      "question": "Ich halte einen Gold-Trade für ein paar Stunden. Was ist, wenn eine marktbewegende US-Veröffentlichung kommt?"
+    },
+    {
+      "id": "q-29",
+      "question": "gibts heute grosse nachrichten fuer gold?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "Was passiert mit den Gold-Antworten, wenn der Nachrichtenkalender ausfällt?"
+    },
+    {
+      "id": "q-31",
+      "question": "Erstelle mir ein Trade-Setup für Gold."
+    },
+    {
+      "id": "q-32",
+      "question": "Erstelle einen dimensionierten Trade-Plan für eine Gold-Long-Position mit meinem Profil."
+    },
+    {
+      "id": "q-33",
+      "question": "Gib mir den Trade-Setup-Bericht für XAUUSD auf dem M15."
+    },
+    {
+      "id": "q-34",
+      "question": "mach mir n trade setup fuer gold bitte"
+    },
+    {
+      "id": "q-35",
+      "question": "Berechne mir einen Short-Trade auf Gold mit Stop und Ziel."
+    },
+    {
+      "id": "q-36",
+      "question": "Wohin geht EURUSD diese Woche?"
+    },
+    {
+      "id": "q-37",
+      "question": "steigt eurusd heute"
+    },
+    {
+      "id": "q-38",
+      "question": "Soll ich jetzt Bitcoin kaufen?"
+    },
+    {
+      "id": "q-39",
+      "question": "Was sagt der H1-Chart von Gold über die nächste Stunde?"
+    },
+    {
+      "id": "q-40",
+      "question": "Wie ist das Wetter heute in London?"
+    }
+  ]
+}

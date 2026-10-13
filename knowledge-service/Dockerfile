@@ -1,6 +1,6 @@
 # Knowledge service image (build step 6 part 6; plan decisions D3 (A) and D12).
 #
-# Built alone on Railway from this folder (Watch Paths: knowledge-service/**). Three things happen at BUILD time, so a
+# Built alone on Railway from this folder (Watch Paths: knowledge-service/**). Four things happen at BUILD time, so a
 # failure stops the deploy and nothing is downloaded or computed when the container starts:
 #
 #   1. the embedding model is fetched at the revision pinned in config/index.yaml (D12);
@@ -8,7 +8,14 @@
 #      area that Davin has not approved or that changed after he did (--require-approved, ADR-042). ADR-005: "rebuilt on
 #      every deploy" means this step; a failed gate is a failed build;
 #   3. the index is loaded back once under every pin (txtai 9.5.0, normalised keyword scores, weights 0.7) and checked
-#      to have been built with every area APPROVED.
+#      to have been built with every area APPROVED;
+#   4. the labelled question set is replayed against that index (architecture 4.11 items 3 and 7): recall@4 must be at least
+#      0.80 in every one of the 19 locales and every locale within 5 points of English, the recorded run must be the one for
+#      this set and this glossary (a stale fingerprint stops the build), and the English base must be APPROVED. A corpus
+#      change that lowers recall is a failed build, so it never replaces the running service. The model-dependent part of the
+#      gate (the intent the model returns and the router on it) is the monolith's labelled-gate.test.ts, which deploy.yml
+#      requires; it replays the recording and calls no model. While the recorded run is a stand-in (no model answered it)
+#      the replay says so; add --require-live-run to step 4 once a live run is committed.
 #
 # The corpus is written in parts 7 (D1 and D2) and 8 (D3 to D5) and approved one area at a time, so this build fails
 # on PENDING areas until the last approval is signed. That is the gate working. For a throwaway image of a draft
@@ -40,6 +47,10 @@ RUN python -m knowledge.gate fetch-model
 COPY corpus ./corpus
 RUN python -m knowledge.gate build --corpus corpus --output index --require-real --require-approved \
  && python -m knowledge.gate check --index index --require-approved
+
+# (4) the labelled question set: the last step of the build, so a recall under the bar stops the deploy
+COPY labelled ./labelled
+RUN python -m knowledge.gate replay --index index --labelled labelled --require-approved
 
 # from here on nothing may be downloaded
 ENV HF_HUB_OFFLINE=1 \

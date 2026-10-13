@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "zh-TW",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "我現在應該買入還是賣出黃金？"
+    },
+    {
+      "id": "q-02",
+      "question": "為什麼助手叫我在黃金上觀望？"
+    },
+    {
+      "id": "q-03",
+      "question": "M15圖表向上，但M5圖表向下，那黃金會往哪個方向走？"
+    },
+    {
+      "id": "q-04",
+      "question": "黃金往哪個方向走？M15感測器沒有讀數。"
+    },
+    {
+      "id": "q-05",
+      "question": "黃金現在怎麼走 買還賣??"
+    },
+    {
+      "id": "q-06",
+      "question": "在黃金上做多，哪裡是好的進場位置？"
+    },
+    {
+      "id": "q-07",
+      "question": "我應該什麼時候在這波黃金下降趨勢中進場？"
+    },
+    {
+      "id": "q-08",
+      "question": "為什麼現在黃金沒有進場區域？"
+    },
+    {
+      "id": "q-09",
+      "question": "xauusd m5哪裡進場?靠近區域還是晚了"
+    },
+    {
+      "id": "q-10",
+      "question": "M5正在突破它的走廊，現在進場黃金是不是太早了？"
+    },
+    {
+      "id": "q-11",
+      "question": "黃金的停利應該放在哪裡？"
+    },
+    {
+      "id": "q-12",
+      "question": "我的黃金多單在4376，上方不遠處有一個價位。它還能走多遠？"
+    },
+    {
+      "id": "q-13",
+      "question": "黃金空單的停損應該放在哪裡？"
+    },
+    {
+      "id": "q-14",
+      "question": "黃金空單停損放在４１３８哪裡？"
+    },
+    {
+      "id": "q-15",
+      "question": "當黃金在走廊上方過度拉伸時，空單的目標位在哪裡？"
+    },
+    {
+      "id": "q-16",
+      "question": "如果我冒帳戶1%的風險，可以交易多少手黃金？"
+    },
+    {
+      "id": "q-17",
+      "question": "為什麼建議的風險只有我最大值的一半？"
+    },
+    {
+      "id": "q-18",
+      "question": "帳戶$10000冒險1%黃金幾手?停損15$"
+    },
+    {
+      "id": "q-19",
+      "question": "這個黃金部位會用多大的槓桿？"
+    },
+    {
+      "id": "q-20",
+      "question": "我的帳戶只有$500。我還能開黃金交易嗎？"
+    },
+    {
+      "id": "q-21",
+      "question": "什麼是UOEDT？"
+    },
+    {
+      "id": "q-22",
+      "question": "M5的baseline是什麼意思？"
+    },
+    {
+      "id": "q-23",
+      "question": "面板上的STALE感測器是什麼意思？"
+    },
+    {
+      "id": "q-24",
+      "question": "m15圖表上的已收盤K線是什麼意思"
+    },
+    {
+      "id": "q-25",
+      "question": "面板上的「觀望」是什麼意思？"
+    },
+    {
+      "id": "q-26",
+      "question": "今天有沒有可能影響黃金的重大新聞？"
+    },
+    {
+      "id": "q-27",
+      "question": "為什麼在CPI公布前後我拿不到交易設定？"
+    },
+    {
+      "id": "q-28",
+      "question": "我會持有黃金交易幾個小時。如果美國高影響數據公布了會怎樣？"
+    },
+    {
+      "id": "q-29",
+      "question": "今天有黃金大新聞嗎?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "如果新聞日曆無法使用，黃金的回答會怎樣？"
+    },
+    {
+      "id": "q-31",
+      "question": "請幫我產生一個黃金的交易設定。"
+    },
+    {
+      "id": "q-32",
+      "question": "請用我的資料，為黃金多單制定一個已計算部位的交易計畫。"
+    },
+    {
+      "id": "q-33",
+      "question": "請給我M15上XAUUSD的交易設定報告。"
+    },
+    {
+      "id": "q-34",
+      "question": "來個黃金的設定唄"
+    },
+    {
+      "id": "q-35",
+      "question": "請幫我計算黃金空單的部位，包括停損和目標位。"
+    },
+    {
+      "id": "q-36",
+      "question": "本週EURUSD會去哪裡？"
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd今天會漲嗎"
+    },
+    {
+      "id": "q-38",
+      "question": "我現在應該買入比特幣嗎？"
+    },
+    {
+      "id": "q-39",
+      "question": "黃金的H1圖表對接下來一小時怎麼說？"
+    },
+    {
+      "id": "q-40",
+      "question": "今天倫敦天氣怎麼樣？"
+    }
+  ]
+}

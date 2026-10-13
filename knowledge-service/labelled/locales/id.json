@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "id",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Haruskah saya beli atau jual emas sekarang?"
+    },
+    {
+      "id": "q-02",
+      "question": "Mengapa asisten menyuruh saya menepi di emas?"
+    },
+    {
+      "id": "q-03",
+      "question": "Grafik M15 mengarah ke atas tetapi grafik M5 mengarah ke bawah, jadi ke mana arah emas?"
+    },
+    {
+      "id": "q-04",
+      "question": "Ke mana arah emas? Sensor M15 tidak menunjukkan pembacaan."
+    },
+    {
+      "id": "q-05",
+      "question": "emas skrg arahnya kemana, beli apa jual??"
+    },
+    {
+      "id": "q-06",
+      "question": "Di mana tempat yang bagus untuk entri long di emas?"
+    },
+    {
+      "id": "q-07",
+      "question": "Kapan saya harus masuk di tren turun emas ini?"
+    },
+    {
+      "id": "q-08",
+      "question": "Mengapa saat ini tidak ada zona entri untuk emas?"
+    },
+    {
+      "id": "q-09",
+      "question": "entri xauusd di m5 dimana?deket zona atau udah telat"
+    },
+    {
+      "id": "q-10",
+      "question": "M5 sedang menembus koridornya, apakah terlalu dini untuk masuk emas?"
+    },
+    {
+      "id": "q-11",
+      "question": "Di mana saya harus menaruh take profit di emas?"
+    },
+    {
+      "id": "q-12",
+      "question": "Posisi long emas saya di 4376 dan ada level tepat di atasnya. Seberapa jauh bisa naik?"
+    },
+    {
+      "id": "q-13",
+      "question": "Di mana saya harus menaruh stop loss untuk short emas?"
+    },
+    {
+      "id": "q-14",
+      "question": "stop short emas di 4138 taruh dimana??"
+    },
+    {
+      "id": "q-15",
+      "question": "Di mana target untuk short ketika emas teregang di atas koridornya?"
+    },
+    {
+      "id": "q-16",
+      "question": "Berapa lot emas yang bisa saya perdagangkan jika saya berisiko 1% dari akun saya?"
+    },
+    {
+      "id": "q-17",
+      "question": "Mengapa risiko yang disarankan hanya setengah dari maksimum saya?"
+    },
+    {
+      "id": "q-18",
+      "question": "berapa lot emas kalo risiko 1% akun $10000,stop 15$"
+    },
+    {
+      "id": "q-19",
+      "question": "Berapa leverage yang akan dipakai posisi emas ini?"
+    },
+    {
+      "id": "q-20",
+      "question": "Akun saya $500. Apakah saya bisa membuka trade emas?"
+    },
+    {
+      "id": "q-21",
+      "question": "Apa itu UOEDT?"
+    },
+    {
+      "id": "q-22",
+      "question": "Apa arti baseline M5?"
+    },
+    {
+      "id": "q-23",
+      "question": "Apa arti sensor STALE di papan?"
+    },
+    {
+      "id": "q-24",
+      "question": "apa artinya candle tertutup di grafik m15"
+    },
+    {
+      "id": "q-25",
+      "question": "Apa arti \"menepi\" di papan?"
+    },
+    {
+      "id": "q-26",
+      "question": "Apakah ada berita besar hari ini yang bisa menggerakkan emas?"
+    },
+    {
+      "id": "q-27",
+      "question": "Mengapa saya tidak mendapat setup trade di sekitar rilis CPI?"
+    },
+    {
+      "id": "q-28",
+      "question": "Saya menahan trade emas beberapa jam. Bagaimana jika rilis AS berdampak tinggi keluar?"
+    },
+    {
+      "id": "q-29",
+      "question": "ada berita gede buat emas hari ini?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "Apa yang terjadi pada jawaban emas jika kalender berita mati?"
+    },
+    {
+      "id": "q-31",
+      "question": "Buatkan saya setup trade untuk emas."
+    },
+    {
+      "id": "q-32",
+      "question": "Buatkan rencana trade berukuran untuk long emas memakai profil saya."
+    },
+    {
+      "id": "q-33",
+      "question": "Berikan saya laporan setup trade untuk XAUUSD di M15."
+    },
+    {
+      "id": "q-34",
+      "question": "bikinin setup emas dong"
+    },
+    {
+      "id": "q-35",
+      "question": "Hitung ukuran trade short emas untuk saya, dengan stop dan target."
+    },
+    {
+      "id": "q-36",
+      "question": "Ke mana EURUSD pergi minggu ini?"
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd naik ga hari ini"
+    },
+    {
+      "id": "q-38",
+      "question": "Haruskah saya beli Bitcoin sekarang?"
+    },
+    {
+      "id": "q-39",
+      "question": "Apa kata grafik H1 emas tentang satu jam ke depan?"
+    },
+    {
+      "id": "q-40",
+      "question": "Bagaimana cuaca di London hari ini?"
+    }
+  ]
+}

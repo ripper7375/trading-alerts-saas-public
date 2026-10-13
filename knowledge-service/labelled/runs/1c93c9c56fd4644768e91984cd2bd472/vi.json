@@ -1,0 +1,1250 @@
+{
+  "schema": "labelled-run/1",
+  "fingerprint": "1c93c9c56fd4644768e91984cd2bd472",
+  "locale": "vi",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Tôi nên mua hay bán vàng ngay bây giờ?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Should I buy or sell gold right now?",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "Should I buy or sell gold right now?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-02",
+      "question": "Tại sao trợ lý bảo tôi đứng ngoài với vàng?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Why is the assistant telling me to stand aside on gold?",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "Why is the assistant telling me to stand aside on gold?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_SIDEWAYS_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-03",
+      "question": "Biểu đồ M15 hướng lên nhưng biểu đồ M5 hướng xuống, vậy vàng đang đi theo hướng nào?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "The M15 chart points up but the M5 chart points down, so which way is gold going?",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M15",
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "The M15 chart points up but the M5 chart points down, so which way is gold going?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-04",
+      "question": "Vàng đang đi theo hướng nào? Cảm biến M15 không có số đọc nào.",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Which way is gold heading? The M15 sensor shows no reading.",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M15"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "Which way is gold heading? The M15 sensor shows no reading.",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-05",
+      "question": "vang dang di huong nao, mua hay ban??",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "wich way is gold goin rite now, buy or sel??",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "wich way is gold goin rite now, buy or sel??",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_LOWER_BREAKDOWN",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-06",
+      "question": "Đâu là chỗ tốt để vào lệnh mua vàng?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Where is a good place to enter a long on gold?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "Where is a good place to enter a long on gold?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_DOWN_UPPER_BREAKOUT",
+            "MCD2_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-07",
+      "question": "Khi nào tôi nên vào lệnh theo xu hướng giảm này của vàng?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "When should I get in on this gold downtrend?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "When should I get in on this gold downtrend?",
+          "m_star": [
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_OVERFLOW"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-08",
+      "question": "Tại sao hiện không có vùng vào lệnh cho vàng?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Why are there no entry zones for gold right now?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "Why are there no entry zones for gold right now?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_SIDEWAYS_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-09",
+      "question": "vao xauusd o m5 o dau?gan vung chua,hay tre roi",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "where do i enter xauusd on m5?is it near the zone,or too late",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "where do i enter xauusd on m5?is it near the zone,or too late",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-10",
+      "question": "M5 đang phá vỡ hành lang của nó, vào lệnh vàng bây giờ có quá sớm không?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "The M5 is breaking out of its corridor, is it too early to enter gold?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "The M5 is breaking out of its corridor, is it too early to enter gold?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-11",
+      "question": "Tôi nên đặt chốt lời cho vàng ở đâu?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Where should I put my take profit on gold?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where should I put my take profit on gold?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_UP_IN_CORRIDOR",
+            "MCD3_BULL_MID"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-12",
+      "question": "Lệnh mua vàng của tôi ở 4376 và có một mức ngay phía trên. Nó có thể chạy được bao xa?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "My gold long is at 4,376 and there is a level just above it. How far can it run?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "My gold long is at 4,376 and there is a level just above it. How far can it run?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_UP_IN_CORRIDOR",
+            "MCD3_BULL_MID"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-13",
+      "question": "Tôi nên đặt cắt lỗ cho lệnh bán vàng ở đâu?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Where should I place my stop loss for the gold short?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where should I place my stop loss for the gold short?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_DOWN_IN_CORRIDOR",
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_OVERFLOW"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-14",
+      "question": "dat cat lo cho lenh ban vang o 4138 dau??",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Where should I put my stop for the gold short at ٤١٣٨?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where should I put my stop for the gold short at 4138?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_LOWER_BREAKDOWN",
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-15",
+      "question": "Mục tiêu của lệnh bán ở đâu khi vàng bị kéo giãn trên hành lang của nó?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Where is the target for a short when gold is stretched above its corridor?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where is the target for a short when gold is stretched above its corridor?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_UP_UPPER_BREAKOUT",
+            "MCD3_BULL_MID"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-16",
+      "question": "Nếu tôi chấp nhận rủi ro 1% tài khoản thì có thể giao dịch bao nhiêu lot vàng?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "How many lots of gold can I trade if I risk 1% of my account?",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "How many lots of gold can I trade if I risk 1% of my account?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-17",
+      "question": "Tại sao rủi ro đề xuất chỉ bằng một nửa mức tối đa của tôi?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Why is the suggested risk only half of my maximum?",
+      "intent": "RISK_SIZING",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "Why is the suggested risk only half of my maximum?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_DOWN_UPPER_BREAKOUT",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-18",
+      "question": "bao nhieu lot vang neu rui ro 1% tai khoan $10000,cat lo 15$",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "how much lot for gold if i risk 1% on a $10000 acct,stop 15$",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "how much lot for gold if i risk 1% on a $10000 acct,stop 15$",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-19",
+      "question": "Vị thế vàng này sẽ dùng đòn bẩy bao nhiêu?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "What leverage will this gold position use?",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "What leverage will this gold position use?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_UPPER_BREAKOUT",
+            "MCD2_SIDEWAYS_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-20",
+      "question": "Tài khoản của tôi là $500. Tôi có thể mở lệnh vàng không?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "My account is $500. Can I even open a gold trade?",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "My account is $500. Can I even open a gold trade?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_UPPER_BREAKOUT",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-21",
+      "question": "UOEDT là gì?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "What is UOEDT?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What is UOEDT?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-22",
+      "question": "Baseline của M5 nghĩa là gì?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "What does the M5 baseline mean?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What does the M5 baseline mean?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_UPPER_BREAKOUT",
+            "MCD2_SIDEWAYS_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-23",
+      "question": "Cảm biến STALE trên bảng nghĩa là gì?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "What does a STALE sensor mean on the board?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What does a STALE sensor mean on the board?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-24",
+      "question": "nen da dong tren bieu do m15 nghia la gi",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "wat does closed bar mean on the m15 chrat",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [
+        "M15"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "wat does closed bar mean on the m15 chrat",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-25",
+      "question": "\"Đứng ngoài\" trên bảng nghĩa là gì?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "What does stand aside mean on the board?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What does stand aside mean on the board?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-26",
+      "question": "Hôm nay có tin lớn nào có thể làm vàng biến động không?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Is there any big news today that could move gold?",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "Is there any big news today that could move gold?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-27",
+      "question": "Tại sao tôi không nhận được thiết lập giao dịch quanh thời điểm công bố CPI?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Why can't I get a trade setup around the CPI release?",
+      "intent": "NEWS",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "Why can't I get a trade setup around the CPI release?",
+          "m_star": [
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_OVERFLOW"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-28",
+      "question": "Tôi giữ lệnh vàng vài giờ. Điều gì xảy ra nếu có số liệu Mỹ tác động mạnh được công bố?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "I am holding a gold trade for a couple of hours. What if a high-impact US release comes out?",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "I am holding a gold trade for a couple of hours. What if a high-impact US release comes out?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_SIDEWAYS_UPPER_BREAKOUT",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-29",
+      "question": "hom nay co tin lon cho vang ko?? fomc cpi nfp",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "is ther big nws 4 gold todya?? fomc cpi nfp",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "is ther big nws 4 gold todya?? fomc cpi nfp",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-30",
+      "question": "Điều gì xảy ra với các câu trả lời về vàng nếu lịch tin tức bị lỗi?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "What happens to the gold answers if the news calendar is down?",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "What happens to the gold answers if the news calendar is down?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-31",
+      "question": "Tạo cho tôi một thiết lập giao dịch cho vàng.",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Make me a trade setup for gold.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-32",
+      "question": "Lập cho tôi kế hoạch giao dịch đã tính khối lượng cho lệnh mua vàng theo hồ sơ của tôi.",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Build a sized trade plan for a gold long using my profile.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-33",
+      "question": "Đưa tôi báo cáo thiết lập giao dịch cho XAUUSD trên M15.",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Give me the trade setup report for XAUUSD on the M15.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M15"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-34",
+      "question": "lam setup cho vang giup minh",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "make me a trade setup 4 gold plz",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-35",
+      "question": "Tính khối lượng cho lệnh bán vàng, kèm cắt lỗ và mục tiêu.",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Size a short trade on gold for me, with the stop and the target.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-36",
+      "question": "Tuần này EURUSD sẽ đi đâu?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Where will EURUSD go this week?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "EURUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd hom nay len ko",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "wil eurusd go up 2day",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "EURUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-38",
+      "question": "Tôi có nên mua Bitcoin bây giờ không?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "Should I buy Bitcoin now?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "BTC"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-39",
+      "question": "Biểu đồ H1 của vàng nói gì về giờ tới?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "What does the gold H1 chart say about the next hour?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "H1"
+      ],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-40",
+      "question": "Hôm nay thời tiết ở London thế nào?",
+      "status": "OK",
+      "failure": null,
+      "language": "vi",
+      "english": "What is the weather in London today?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    }
+  ]
+}

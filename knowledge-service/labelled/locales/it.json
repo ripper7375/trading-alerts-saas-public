@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "it",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Devo comprare o vendere oro adesso?"
+    },
+    {
+      "id": "q-02",
+      "question": "Perché l'assistente mi dice di restare a margine sull'oro?"
+    },
+    {
+      "id": "q-03",
+      "question": "Il grafico M15 punta verso l'alto ma il M5 verso il basso, quindi dove va l'oro?"
+    },
+    {
+      "id": "q-04",
+      "question": "Dove sta andando l'oro? Il sensore M15 non mostra alcuna lettura."
+    },
+    {
+      "id": "q-05",
+      "question": "dove va loro adesso, compro o vendo??"
+    },
+    {
+      "id": "q-06",
+      "question": "Qual è un buon punto per entrare long sull'oro?"
+    },
+    {
+      "id": "q-07",
+      "question": "Quando devo entrare in questo trend ribassista dell'oro?"
+    },
+    {
+      "id": "q-08",
+      "question": "Perché al momento non ci sono zone di ingresso per l'oro?"
+    },
+    {
+      "id": "q-09",
+      "question": "dove entro su xauusd in m5?e vicino alla zona,o troppo tardi"
+    },
+    {
+      "id": "q-10",
+      "question": "L'M5 sta uscendo dal suo corridoio, è troppo presto per entrare sull'oro?"
+    },
+    {
+      "id": "q-11",
+      "question": "Dove devo mettere il mio take profit sull'oro?"
+    },
+    {
+      "id": "q-12",
+      "question": "Il mio long sull'oro è a 4376 e c'è un livello appena sopra. Quanto può correre?"
+    },
+    {
+      "id": "q-13",
+      "question": "Dove devo mettere lo stop loss per lo short sull'oro?"
+    },
+    {
+      "id": "q-14",
+      "question": "dove metto lo stop per lo short sull oro a 4138??"
+    },
+    {
+      "id": "q-15",
+      "question": "Dov'è l'obiettivo di uno short quando l'oro è tirato sopra il suo corridoio?"
+    },
+    {
+      "id": "q-16",
+      "question": "Quanti lotti di oro posso operare se rischio l'1% del mio conto?"
+    },
+    {
+      "id": "q-17",
+      "question": "Perché il rischio suggerito è solo la metà del mio massimo?"
+    },
+    {
+      "id": "q-18",
+      "question": "quanti lotti oro se rischio 1% su conto da $10000,stop 15$"
+    },
+    {
+      "id": "q-19",
+      "question": "Quale leva userà questa posizione sull'oro?"
+    },
+    {
+      "id": "q-20",
+      "question": "Il mio conto è di $500. Posso almeno aprire un'operazione sull'oro?"
+    },
+    {
+      "id": "q-21",
+      "question": "Che cos'è UOEDT?"
+    },
+    {
+      "id": "q-22",
+      "question": "Che cosa significa la baseline dell'M5?"
+    },
+    {
+      "id": "q-23",
+      "question": "Che cosa significa un sensore STALE sulla board?"
+    },
+    {
+      "id": "q-24",
+      "question": "cosa vuol dire candela chiusa sul grafico m15"
+    },
+    {
+      "id": "q-25",
+      "question": "Che cosa significa \"restare a margine\" sulla board?"
+    },
+    {
+      "id": "q-26",
+      "question": "Ci sono notizie importanti oggi che potrebbero muovere l'oro?"
+    },
+    {
+      "id": "q-27",
+      "question": "Perché non posso ottenere un setup di trade intorno al rilascio del CPI?"
+    },
+    {
+      "id": "q-28",
+      "question": "Tengo un'operazione sull'oro per un paio d'ore. Cosa succede se esce un dato USA ad alto impatto?"
+    },
+    {
+      "id": "q-29",
+      "question": "ci sono news grosse per loro oggi?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "Che cosa succede alle risposte sull'oro se il calendario delle notizie non funziona?"
+    },
+    {
+      "id": "q-31",
+      "question": "Fammi un setup di trade per l'oro."
+    },
+    {
+      "id": "q-32",
+      "question": "Crea un piano di trade dimensionato per un long sull'oro usando il mio profilo."
+    },
+    {
+      "id": "q-33",
+      "question": "Dammi il report del setup di trade per XAUUSD sull'M15."
+    },
+    {
+      "id": "q-34",
+      "question": "fammi un setup per loro pls"
+    },
+    {
+      "id": "q-35",
+      "question": "Dimensiona per me uno short sull'oro, con lo stop e l'obiettivo."
+    },
+    {
+      "id": "q-36",
+      "question": "Dove andrà l'EURUSD questa settimana?"
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd sale oggi"
+    },
+    {
+      "id": "q-38",
+      "question": "Devo comprare Bitcoin adesso?"
+    },
+    {
+      "id": "q-39",
+      "question": "Che cosa dice il grafico H1 dell'oro sull'ora successiva?"
+    },
+    {
+      "id": "q-40",
+      "question": "Che tempo fa oggi a Londra?"
+    }
+  ]
+}

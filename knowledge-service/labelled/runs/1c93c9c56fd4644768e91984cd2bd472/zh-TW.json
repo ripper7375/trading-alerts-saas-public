@@ -1,0 +1,1250 @@
+{
+  "schema": "labelled-run/1",
+  "fingerprint": "1c93c9c56fd4644768e91984cd2bd472",
+  "locale": "zh-TW",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "我現在應該買入還是賣出黃金？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Should I buy or sell gold right now?",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "Should I buy or sell gold right now?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-02",
+      "question": "為什麼助手叫我在黃金上觀望？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Why is the assistant telling me to stand aside on gold?",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "Why is the assistant telling me to stand aside on gold?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_SIDEWAYS_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-03",
+      "question": "M15圖表向上，但M5圖表向下，那黃金會往哪個方向走？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "The M15 chart points up but the M5 chart points down, so which way is gold going?",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M15",
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "The M15 chart points up but the M5 chart points down, so which way is gold going?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-04",
+      "question": "黃金往哪個方向走？M15感測器沒有讀數。",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Which way is gold heading? The M15 sensor shows no reading.",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M15"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "Which way is gold heading? The M15 sensor shows no reading.",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-05",
+      "question": "黃金現在怎麼走 買還賣??",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "wich way is gold goin rite now, buy or sel??",
+      "intent": "DIRECTION",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "DIRECTION",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "DIRECTION",
+          "question_en": "wich way is gold goin rite now, buy or sel??",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_LOWER_BREAKDOWN",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-06",
+      "question": "在黃金上做多，哪裡是好的進場位置？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Where is a good place to enter a long on gold?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "Where is a good place to enter a long on gold?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_DOWN_UPPER_BREAKOUT",
+            "MCD2_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-07",
+      "question": "我應該什麼時候在這波黃金下降趨勢中進場？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "When should I get in on this gold downtrend?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "When should I get in on this gold downtrend?",
+          "m_star": [
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_OVERFLOW"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-08",
+      "question": "為什麼現在黃金沒有進場區域？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Why are there no entry zones for gold right now?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "Why are there no entry zones for gold right now?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_SIDEWAYS_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-09",
+      "question": "xauusd m5哪裡進場?靠近區域還是晚了",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "where do i enter xauusd on m5?is it near the zone,or too late",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "where do i enter xauusd on m5?is it near the zone,or too late",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-10",
+      "question": "M5正在突破它的走廊，現在進場黃金是不是太早了？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "The M5 is breaking out of its corridor, is it too early to enter gold?",
+      "intent": "ENTRY_TIMING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "ENTRY_TIMING",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "ENTRY_TIMING",
+          "question_en": "The M5 is breaking out of its corridor, is it too early to enter gold?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-11",
+      "question": "黃金的停利應該放在哪裡？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Where should I put my take profit on gold?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where should I put my take profit on gold?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_UP_IN_CORRIDOR",
+            "MCD3_BULL_MID"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-12",
+      "question": "我的黃金多單在4376，上方不遠處有一個價位。它還能走多遠？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "My gold long is at 4,376 and there is a level just above it. How far can it run?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "My gold long is at 4,376 and there is a level just above it. How far can it run?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_UP_IN_CORRIDOR",
+            "MCD3_BULL_MID"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-13",
+      "question": "黃金空單的停損應該放在哪裡？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Where should I place my stop loss for the gold short?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where should I place my stop loss for the gold short?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_DOWN_IN_CORRIDOR",
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_OVERFLOW"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-14",
+      "question": "黃金空單停損放在４１３８哪裡？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Where should I put my stop for the gold short at ٤١٣٨?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where should I put my stop for the gold short at 4138?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_LOWER_BREAKDOWN",
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-15",
+      "question": "當黃金在走廊上方過度拉伸時，空單的目標位在哪裡？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Where is the target for a short when gold is stretched above its corridor?",
+      "intent": "EXIT_TARGETS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXIT_TARGETS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXIT_TARGETS",
+          "question_en": "Where is the target for a short when gold is stretched above its corridor?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_UP_UPPER_BREAKOUT",
+            "MCD3_BULL_MID"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-16",
+      "question": "如果我冒帳戶1%的風險，可以交易多少手黃金？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "How many lots of gold can I trade if I risk 1% of my account?",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "How many lots of gold can I trade if I risk 1% of my account?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-17",
+      "question": "為什麼建議的風險只有我最大值的一半？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Why is the suggested risk only half of my maximum?",
+      "intent": "RISK_SIZING",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "Why is the suggested risk only half of my maximum?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_DOWN_UPPER_BREAKOUT",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-18",
+      "question": "帳戶$10000冒險1%黃金幾手?停損15$",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "how much lot for gold if i risk 1% on a $10000 acct,stop 15$",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "how much lot for gold if i risk 1% on a $10000 acct,stop 15$",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-19",
+      "question": "這個黃金部位會用多大的槓桿？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "What leverage will this gold position use?",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "What leverage will this gold position use?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_UPPER_BREAKOUT",
+            "MCD2_SIDEWAYS_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-20",
+      "question": "我的帳戶只有$500。我還能開黃金交易嗎？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "My account is $500. Can I even open a gold trade?",
+      "intent": "RISK_SIZING",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "RISK_SIZING",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "RISK_SIZING",
+          "question_en": "My account is $500. Can I even open a gold trade?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_UPPER_BREAKOUT",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-21",
+      "question": "什麼是UOEDT？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "What is UOEDT?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What is UOEDT?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-22",
+      "question": "M5的baseline是什麼意思？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "What does the M5 baseline mean?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [
+        "M5"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What does the M5 baseline mean?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_UPPER_BREAKOUT",
+            "MCD2_SIDEWAYS_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-23",
+      "question": "面板上的STALE感測器是什麼意思？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "What does a STALE sensor mean on the board?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What does a STALE sensor mean on the board?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-24",
+      "question": "m15圖表上的已收盤K線是什麼意思",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "wat does closed bar mean on the m15 chrat",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [
+        "M15"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "wat does closed bar mean on the m15 chrat",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-25",
+      "question": "面板上的「觀望」是什麼意思？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "What does stand aside mean on the board?",
+      "intent": "EXPLAIN",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "EXPLAIN",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "EXPLAIN",
+          "question_en": "What does stand aside mean on the board?",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-26",
+      "question": "今天有沒有可能影響黃金的重大新聞？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Is there any big news today that could move gold?",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD1"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "Is there any big news today that could move gold?",
+          "m_star": [
+            "MCD1"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-27",
+      "question": "為什麼在CPI公布前後我拿不到交易設定？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Why can't I get a trade setup around the CPI release?",
+      "intent": "NEWS",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "Why can't I get a trade setup around the CPI release?",
+          "m_star": [
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD2_DOWN_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_OVERFLOW"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-28",
+      "question": "我會持有黃金交易幾個小時。如果美國高影響數據公布了會怎樣？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "I am holding a gold trade for a couple of hours. What if a high-impact US release comes out?",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD1",
+          "MCD2",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "I am holding a gold trade for a couple of hours. What if a high-impact US release comes out?",
+          "m_star": [
+            "MCD1",
+            "MCD2",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD2_SIDEWAYS_UPPER_BREAKOUT",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-29",
+      "question": "今天有黃金大新聞嗎?? fomc cpi nfp",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "is ther big nws 4 gold todya?? fomc cpi nfp",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD1",
+          "MCD3"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "is ther big nws 4 gold todya?? fomc cpi nfp",
+          "m_star": [
+            "MCD1",
+            "MCD3"
+          ],
+          "state_codes": [
+            "MCD1_UP_IN_CORRIDOR",
+            "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-30",
+      "question": "如果新聞日曆無法使用，黃金的回答會怎樣？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "What happens to the gold answers if the news calendar is down?",
+      "intent": "NEWS",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "NEWS",
+        "m_star": [
+          "MCD2"
+        ],
+        "retrieval": {
+          "intent": "NEWS",
+          "question_en": "What happens to the gold answers if the news calendar is down?",
+          "m_star": [
+            "MCD2"
+          ],
+          "state_codes": [
+            "MCD2_UP_IN_CORRIDOR"
+          ],
+          "routing_version": "routing-v1"
+        }
+      }
+    },
+    {
+      "id": "q-31",
+      "question": "請幫我產生一個黃金的交易設定。",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Make me a trade setup for gold.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-32",
+      "question": "請用我的資料，為黃金多單制定一個已計算部位的交易計畫。",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Build a sized trade plan for a gold long using my profile.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-33",
+      "question": "請給我M15上XAUUSD的交易設定報告。",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Give me the trade setup report for XAUUSD on the M15.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "M15"
+      ],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-34",
+      "question": "來個黃金的設定唄",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "make me a trade setup 4 gold plz",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-35",
+      "question": "請幫我計算黃金空單的部位，包括停損和目標位。",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Size a short trade on gold for me, with the stop and the target.",
+      "intent": "REPORT_2",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "PACKET",
+        "refusal_code": null,
+        "intent": "REPORT_2",
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-36",
+      "question": "本週EURUSD會去哪裡？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Where will EURUSD go this week?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "EURUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd今天會漲嗎",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "wil eurusd go up 2day",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "EURUSD"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-38",
+      "question": "我現在應該買入比特幣嗎？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "Should I buy Bitcoin now?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "BTC"
+      ],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-39",
+      "question": "黃金的H1圖表對接下來一小時怎麼說？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "What does the gold H1 chart say about the next hour?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [
+        "XAUUSD"
+      ],
+      "timeframes": [
+        "H1"
+      ],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    },
+    {
+      "id": "q-40",
+      "question": "今天倫敦天氣怎麼樣？",
+      "status": "OK",
+      "failure": null,
+      "language": "zh-TW",
+      "english": "What is the weather in London today?",
+      "intent": "OUT_OF_SCOPE",
+      "symbols": [],
+      "timeframes": [],
+      "replay": {
+        "outcome": "REFUSED",
+        "refusal_code": "OUT_OF_SCOPE",
+        "intent": null,
+        "m_star": [],
+        "retrieval": null
+      }
+    }
+  ]
+}

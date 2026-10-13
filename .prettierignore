@@ -34,3 +34,8 @@ config/intake/matrix-review/**
 # reader signed, and the TEST ONLY fixtures are compared by chunk id and text, so prettier must not touch either.
 knowledge-service/corpus/**
 knowledge-service/tests/fixtures/**
+
+# Labelled question set (build step 6 part 9): the set, its translations and the recorded run are written by tools in one fixed layout, a recorded run
+# is tied to their canonical hashes, review.md is generated and compared byte for byte by `python -m knowledge.gate labelled-review --check`, and
+# approval.json holds the hash of what Davin signed, so prettier must not touch any of it.
+knowledge-service/labelled/**

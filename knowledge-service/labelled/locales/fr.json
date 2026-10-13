@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "fr",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Dois-je acheter ou vendre de l'or maintenant ?"
+    },
+    {
+      "id": "q-02",
+      "question": "Pourquoi l'assistant me dit-il de rester à l'écart sur l'or ?"
+    },
+    {
+      "id": "q-03",
+      "question": "Le graphique M15 pointe vers le haut mais le M5 vers le bas, alors où va l'or ?"
+    },
+    {
+      "id": "q-04",
+      "question": "Où va l'or ? Le capteur M15 n'affiche aucune lecture."
+    },
+    {
+      "id": "q-05",
+      "question": "ou va lor en ce moment, jachete ou je vends??"
+    },
+    {
+      "id": "q-06",
+      "question": "Où est un bon endroit pour entrer à l'achat sur l'or ?"
+    },
+    {
+      "id": "q-07",
+      "question": "Quand dois-je entrer dans cette tendance baissière de l'or ?"
+    },
+    {
+      "id": "q-08",
+      "question": "Pourquoi n'y a-t-il aucune zone d'entrée pour l'or en ce moment ?"
+    },
+    {
+      "id": "q-09",
+      "question": "ou jentre sur xauusd en m5?cest pres de la zone,ou trop tard"
+    },
+    {
+      "id": "q-10",
+      "question": "Le M5 sort de son couloir, est-il trop tôt pour entrer sur l'or ?"
+    },
+    {
+      "id": "q-11",
+      "question": "Où dois-je placer mon take profit sur l'or ?"
+    },
+    {
+      "id": "q-12",
+      "question": "Mon achat sur l'or est à 4376 et il y a un niveau juste au-dessus. Jusqu'où peut-il aller ?"
+    },
+    {
+      "id": "q-13",
+      "question": "Où dois-je placer mon stop loss pour la vente à découvert sur l'or ?"
+    },
+    {
+      "id": "q-14",
+      "question": "ou mettre mon stop pour le short sur lor a 4138??"
+    },
+    {
+      "id": "q-15",
+      "question": "Où se situe l'objectif d'une vente quand l'or est étiré au-dessus de son couloir ?"
+    },
+    {
+      "id": "q-16",
+      "question": "Combien de lots d'or puis-je trader si je risque 1% de mon compte ?"
+    },
+    {
+      "id": "q-17",
+      "question": "Pourquoi le risque suggéré n'est-il que la moitié de mon maximum ?"
+    },
+    {
+      "id": "q-18",
+      "question": "combien de lot or si je risque 1% sur un compte de $10000,stop 15$"
+    },
+    {
+      "id": "q-19",
+      "question": "Quel levier cette position sur l'or va-t-elle utiliser ?"
+    },
+    {
+      "id": "q-20",
+      "question": "Mon compte est de $500. Puis-je seulement ouvrir une position sur l'or ?"
+    },
+    {
+      "id": "q-21",
+      "question": "Qu'est-ce que l'UOEDT ?"
+    },
+    {
+      "id": "q-22",
+      "question": "Que signifie la baseline du M5 ?"
+    },
+    {
+      "id": "q-23",
+      "question": "Que signifie un capteur STALE sur le tableau ?"
+    },
+    {
+      "id": "q-24",
+      "question": "ca veut dire quoi bougie cloturee sur le graphique m15"
+    },
+    {
+      "id": "q-25",
+      "question": "Que signifie « rester à l'écart » sur le tableau ?"
+    },
+    {
+      "id": "q-26",
+      "question": "Y a-t-il aujourd'hui des nouvelles importantes qui pourraient faire bouger l'or ?"
+    },
+    {
+      "id": "q-27",
+      "question": "Pourquoi ne puis-je pas obtenir de setup de trade autour de la publication du CPI ?"
+    },
+    {
+      "id": "q-28",
+      "question": "Je garde une position sur l'or pendant quelques heures. Que se passe-t-il si une publication américaine à fort impact tombe ?"
+    },
+    {
+      "id": "q-29",
+      "question": "y a til des grosses news pour lor aujourdhui?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "Que deviennent les réponses sur l'or si le calendrier des news est indisponible ?"
+    },
+    {
+      "id": "q-31",
+      "question": "Fais-moi un setup de trade pour l'or."
+    },
+    {
+      "id": "q-32",
+      "question": "Construis-moi un plan de trade dimensionné pour un achat sur l'or avec mon profil."
+    },
+    {
+      "id": "q-33",
+      "question": "Donne-moi le rapport de setup de trade pour XAUUSD sur le M15."
+    },
+    {
+      "id": "q-34",
+      "question": "fais moi un setup pour lor stp"
+    },
+    {
+      "id": "q-35",
+      "question": "Dimensionne-moi un trade à la vente sur l'or, avec le stop et l'objectif."
+    },
+    {
+      "id": "q-36",
+      "question": "Où ira l'EURUSD cette semaine ?"
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd va monter aujourdhui"
+    },
+    {
+      "id": "q-38",
+      "question": "Dois-je acheter du Bitcoin maintenant ?"
+    },
+    {
+      "id": "q-39",
+      "question": "Que dit le graphique H1 de l'or sur l'heure à venir ?"
+    },
+    {
+      "id": "q-40",
+      "question": "Quel temps fait-il à Londres aujourd'hui ?"
+    }
+  ]
+}

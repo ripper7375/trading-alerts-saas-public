@@ -4,6 +4,8 @@
     python -m knowledge.gate build --corpus DIR --output DIR [--require-real] [--require-approved] [--model-dir DIR]
     python -m knowledge.gate check --index DIR [--require-approved] [--model-dir DIR]
     python -m knowledge.gate review --corpus DIR [--check] [--model-dir DIR]
+    python -m knowledge.gate replay --index DIR [--labelled DIR] [--require-approved] [--require-live-run] [--model-dir DIR]
+    python -m knowledge.gate labelled-review --labelled DIR [--check]
 
 `build` reads the corpus, fails on any unknown tag, an out-of-bounds chunk or a wording-backstop match, builds the
 index, loads it back under every pin and shows the fusion of 4.7 on it. `check` does the last two on an index that
@@ -17,7 +19,13 @@ without the flag succeeds while the areas are PENDING and records their state in
 `review` writes the review tables and the PENDING approval files of the corpus, and with `--check` only reports whether
 they are current (see `review.py`).
 
-Part 9 adds the labelled question set to this gate (recall at 4); parts 6 and 7 build the commands and what they check.
+`replay` is the retrieval half of the release gate (build step 6 part 9; architecture 4.11 items 3 and 7). It loads the real index,
+reads the labelled question set and the recorded run in `labelled/`, and searches the index with the retrieval request the
+TypeScript replay stored for every question: recall@4 must be at least 0.80 in every locale and every locale within 5 points of
+English. It exits 1 on a stale recording (the fingerprint is not the one of this set and this glossary), a set that fails its own
+integrity checks, a chunk the set names that the index does not hold (a chunk removed from the corpus), or a recall under the bar.
+`--require-approved` also refuses a base set that Davin has not approved; `--require-live-run` refuses a run no model answered
+(the stand-in). `labelled-review` writes the review table and the PENDING approval of the labelled set (see `labelled_review.py`).
 """
 
 from __future__ import annotations
@@ -42,8 +50,11 @@ from .config import (
 )
 from .errors import BuildFailed, ConfigError, IndexUnavailable, Problem
 from .index import load_index
+from .labelled import replay as run_replay
+from .labelled_review import run_labelled_review
 from .model import TokenCounter, fetch_model, require_model
 from .review import run_review
+from .search import Retriever
 from .tags import load_tags
 from .verify import verify_index
 
@@ -169,6 +180,49 @@ def cmd_review(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_replay(args: argparse.Namespace) -> int:
+    tags = load_tags(CONFIG_DIR / "tags.yaml")
+    config = load_index_config(CONFIG_DIR / "index.yaml")
+    matrix = load_matrix(tags, Path(args.matrix) if args.matrix else None)
+    check_templates(config, matrix)
+    model_dir = require_model(config, _model_dir(args))
+
+    loaded = load_index(Path(args.index), config, model_dir)
+    problems = verify_index(loaded, config)
+    if problems:
+        loaded.embeddings.close()
+        return _fail(problems, kind="verify")
+    started = time.perf_counter()
+    try:
+        report = run_replay(
+            Path(args.labelled),
+            retriever=Retriever(loaded, matrix, tags, config),
+            known_chunk_ids=set(loaded.chunks),
+            glossary_version=load_glossary_version(),
+            routing_version=matrix.version,
+            require_approved=args.require_approved,
+            require_live_run=args.require_live_run,
+        )
+    finally:
+        loaded.embeddings.close()
+    payload = report.as_dict()
+    payload["ok"] = not report.problems
+    payload["seconds"] = round(time.perf_counter() - started, 1)
+    if report.problems:
+        _say(payload)
+        return _fail(report.problems, kind="replay")
+    _say(payload)
+    return 0
+
+
+def cmd_labelled_review(args: argparse.Namespace) -> int:
+    result = run_labelled_review(Path(args.labelled), write=not args.check)
+    if result.problems:
+        return _fail(result.problems, kind="labelled-review")
+    _say({"ok": True, "mode": "check" if args.check else "record", "status": result.status, "written": result.written})
+    return 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m knowledge.gate", description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -206,6 +260,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     review.add_argument("--check", action="store_true", help="write nothing; exit 1 when a table or an approval is stale")
     review.add_argument("--model-dir")
     review.set_defaults(run=cmd_review)
+
+    replay = sub.add_parser("replay", help="the retrieval half of the release gate: recall@4 on the labelled question set")
+    replay.add_argument("--index", required=True)
+    replay.add_argument("--labelled", default="labelled", help="the labelled folder (default: labelled)")
+    replay.add_argument("--require-approved", action="store_true", help="refuse a base set that is PENDING or changed since it was approved")
+    replay.add_argument("--require-live-run", action="store_true", help="refuse a recorded run that no model answered (the stand-in)")
+    replay.add_argument("--model-dir")
+    replay.add_argument("--matrix")
+    replay.set_defaults(run=cmd_replay)
+
+    labelled_review = sub.add_parser("labelled-review", help="write the review table and PENDING approval of the labelled set (or --check them)")
+    labelled_review.add_argument("--labelled", required=True)
+    labelled_review.add_argument("--check", action="store_true", help="write nothing; exit 1 when the table or the approval is stale")
+    labelled_review.set_defaults(run=cmd_labelled_review)
 
     args = parser.parse_args(argv)
     try:

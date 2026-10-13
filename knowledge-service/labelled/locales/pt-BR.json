@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "pt-BR",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Devo comprar ou vender ouro agora?"
+    },
+    {
+      "id": "q-02",
+      "question": "Por que o assistente está me dizendo para ficar de fora no ouro?"
+    },
+    {
+      "id": "q-03",
+      "question": "O gráfico M15 aponta para cima, mas o M5 aponta para baixo, então para onde o ouro está indo?"
+    },
+    {
+      "id": "q-04",
+      "question": "Para onde o ouro está indo? O sensor M15 não mostra nenhuma leitura."
+    },
+    {
+      "id": "q-05",
+      "question": "pra onde o ouro ta indo agora, compro ou vendo??"
+    },
+    {
+      "id": "q-06",
+      "question": "Onde é um bom lugar para entrar comprado no ouro?"
+    },
+    {
+      "id": "q-07",
+      "question": "Quando devo entrar nessa tendência de baixa do ouro?"
+    },
+    {
+      "id": "q-08",
+      "question": "Por que não há zonas de entrada para o ouro agora?"
+    },
+    {
+      "id": "q-09",
+      "question": "onde eu entro no xauusd no m5?ta perto da zona,ou ja e tarde"
+    },
+    {
+      "id": "q-10",
+      "question": "O M5 está rompendo o corredor, é cedo demais para entrar no ouro?"
+    },
+    {
+      "id": "q-11",
+      "question": "Onde devo colocar meu take profit no ouro?"
+    },
+    {
+      "id": "q-12",
+      "question": "Minha compra no ouro está em 4376 e tem um nível logo acima. Até onde ela pode ir?"
+    },
+    {
+      "id": "q-13",
+      "question": "Onde devo colocar meu stop loss para a venda no ouro?"
+    },
+    {
+      "id": "q-14",
+      "question": "onde coloco o stop da venda no ouro em 4138??"
+    },
+    {
+      "id": "q-15",
+      "question": "Onde fica o alvo de uma venda quando o ouro está esticado acima do corredor?"
+    },
+    {
+      "id": "q-16",
+      "question": "Quantos lotes de ouro posso operar se eu arriscar 1% da minha conta?"
+    },
+    {
+      "id": "q-17",
+      "question": "Por que o risco sugerido é só metade do meu máximo?"
+    },
+    {
+      "id": "q-18",
+      "question": "quantos lotes de ouro se eu arriscar 1% numa conta de $10000,stop 15$"
+    },
+    {
+      "id": "q-19",
+      "question": "Qual alavancagem essa posição no ouro vai usar?"
+    },
+    {
+      "id": "q-20",
+      "question": "Minha conta tem $500. Consigo pelo menos abrir uma operação no ouro?"
+    },
+    {
+      "id": "q-21",
+      "question": "O que é UOEDT?"
+    },
+    {
+      "id": "q-22",
+      "question": "O que significa a baseline do M5?"
+    },
+    {
+      "id": "q-23",
+      "question": "O que significa um sensor STALE no painel?"
+    },
+    {
+      "id": "q-24",
+      "question": "oq quer dizer vela fechada no grafico m15"
+    },
+    {
+      "id": "q-25",
+      "question": "O que significa \"ficar de fora\" no painel?"
+    },
+    {
+      "id": "q-26",
+      "question": "Tem alguma notícia importante hoje que possa mexer com o ouro?"
+    },
+    {
+      "id": "q-27",
+      "question": "Por que não consigo uma configuração de operação perto da divulgação do CPI?"
+    },
+    {
+      "id": "q-28",
+      "question": "Vou segurar uma operação no ouro por algumas horas. E se sair um dado dos EUA de alto impacto?"
+    },
+    {
+      "id": "q-29",
+      "question": "tem noticia grande pro ouro hj?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "O que acontece com as respostas sobre o ouro se o calendário de notícias estiver fora do ar?"
+    },
+    {
+      "id": "q-31",
+      "question": "Faça uma configuração de operação para o ouro."
+    },
+    {
+      "id": "q-32",
+      "question": "Monte um plano de operação dimensionado para uma compra no ouro usando meu perfil."
+    },
+    {
+      "id": "q-33",
+      "question": "Me dê o relatório de configuração de operação para XAUUSD no M15."
+    },
+    {
+      "id": "q-34",
+      "question": "faz um setup pro ouro pfv"
+    },
+    {
+      "id": "q-35",
+      "question": "Dimensione uma operação vendida no ouro para mim, com o stop e o alvo."
+    },
+    {
+      "id": "q-36",
+      "question": "Para onde vai o EURUSD nesta semana?"
+    },
+    {
+      "id": "q-37",
+      "question": "o eurusd vai subir hj"
+    },
+    {
+      "id": "q-38",
+      "question": "Devo comprar Bitcoin agora?"
+    },
+    {
+      "id": "q-39",
+      "question": "O que o gráfico H1 do ouro diz sobre a próxima hora?"
+    },
+    {
+      "id": "q-40",
+      "question": "Como está o tempo em Londres hoje?"
+    }
+  ]
+}

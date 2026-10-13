@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "zh",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "我现在应该买入还是卖出黄金？"
+    },
+    {
+      "id": "q-02",
+      "question": "为什么助手让我在黄金上观望？"
+    },
+    {
+      "id": "q-03",
+      "question": "M15图表向上，但M5图表向下，那么黄金会往哪个方向走？"
+    },
+    {
+      "id": "q-04",
+      "question": "黄金往哪个方向走？M15传感器没有读数。"
+    },
+    {
+      "id": "q-05",
+      "question": "黄金现在咋走 买还是卖??"
+    },
+    {
+      "id": "q-06",
+      "question": "在黄金上做多，哪里是好的入场位置？"
+    },
+    {
+      "id": "q-07",
+      "question": "我应该什么时候在这波黄金下降趋势中入场？"
+    },
+    {
+      "id": "q-08",
+      "question": "为什么现在黄金没有入场区域？"
+    },
+    {
+      "id": "q-09",
+      "question": "xauusd m5哪进场?靠近区域还是晚了"
+    },
+    {
+      "id": "q-10",
+      "question": "M5正在突破它的走廊，现在入场黄金是不是太早了？"
+    },
+    {
+      "id": "q-11",
+      "question": "黄金的止盈应该放在哪里？"
+    },
+    {
+      "id": "q-12",
+      "question": "我的黄金多单在4376，上方不远处有一个价位。它还能走多远？"
+    },
+    {
+      "id": "q-13",
+      "question": "黄金空单的止损应该放在哪里？"
+    },
+    {
+      "id": "q-14",
+      "question": "黄金空单止损放在４１３８哪里？"
+    },
+    {
+      "id": "q-15",
+      "question": "当黄金在走廊上方过度拉伸时，空单的目标位在哪里？"
+    },
+    {
+      "id": "q-16",
+      "question": "如果我冒账户1%的风险，可以交易多少手黄金？"
+    },
+    {
+      "id": "q-17",
+      "question": "为什么建议的风险只有我最大值的一半？"
+    },
+    {
+      "id": "q-18",
+      "question": "账户$10000冒险1%黄金几手?止损15$"
+    },
+    {
+      "id": "q-19",
+      "question": "这个黄金仓位会用多大的杠杆？"
+    },
+    {
+      "id": "q-20",
+      "question": "我的账户只有$500。我还能开黄金交易吗？"
+    },
+    {
+      "id": "q-21",
+      "question": "什么是UOEDT？"
+    },
+    {
+      "id": "q-22",
+      "question": "M5的baseline是什么意思？"
+    },
+    {
+      "id": "q-23",
+      "question": "面板上的STALE传感器是什么意思？"
+    },
+    {
+      "id": "q-24",
+      "question": "m15图表上的已收盘K线是啥意思"
+    },
+    {
+      "id": "q-25",
+      "question": "面板上的“观望”是什么意思？"
+    },
+    {
+      "id": "q-26",
+      "question": "今天有没有可能影响黄金的重大新闻？"
+    },
+    {
+      "id": "q-27",
+      "question": "为什么在CPI公布前后我拿不到交易设置？"
+    },
+    {
+      "id": "q-28",
+      "question": "我会持有黄金交易几个小时。如果美国高影响数据公布了会怎样？"
+    },
+    {
+      "id": "q-29",
+      "question": "今天有黄金大新闻吗?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "如果新闻日历不可用，黄金的回答会怎样？"
+    },
+    {
+      "id": "q-31",
+      "question": "请给我生成一个黄金的交易设置。"
+    },
+    {
+      "id": "q-32",
+      "question": "请用我的资料，为黄金多单制定一个已计算仓位的交易计划。"
+    },
+    {
+      "id": "q-33",
+      "question": "请给我M15上XAUUSD的交易设置报告。"
+    },
+    {
+      "id": "q-34",
+      "question": "来个黄金的设置呗"
+    },
+    {
+      "id": "q-35",
+      "question": "请帮我计算黄金空单的仓位，包括止损和目标位。"
+    },
+    {
+      "id": "q-36",
+      "question": "本周EURUSD会去哪里？"
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd今天会涨吗"
+    },
+    {
+      "id": "q-38",
+      "question": "我现在应该买入比特币吗？"
+    },
+    {
+      "id": "q-39",
+      "question": "黄金的H1图表对接下来一小时怎么说？"
+    },
+    {
+      "id": "q-40",
+      "question": "今天伦敦天气怎么样？"
+    }
+  ]
+}

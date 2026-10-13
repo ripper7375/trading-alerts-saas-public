@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "vi",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Tôi nên mua hay bán vàng ngay bây giờ?"
+    },
+    {
+      "id": "q-02",
+      "question": "Tại sao trợ lý bảo tôi đứng ngoài với vàng?"
+    },
+    {
+      "id": "q-03",
+      "question": "Biểu đồ M15 hướng lên nhưng biểu đồ M5 hướng xuống, vậy vàng đang đi theo hướng nào?"
+    },
+    {
+      "id": "q-04",
+      "question": "Vàng đang đi theo hướng nào? Cảm biến M15 không có số đọc nào."
+    },
+    {
+      "id": "q-05",
+      "question": "vang dang di huong nao, mua hay ban??"
+    },
+    {
+      "id": "q-06",
+      "question": "Đâu là chỗ tốt để vào lệnh mua vàng?"
+    },
+    {
+      "id": "q-07",
+      "question": "Khi nào tôi nên vào lệnh theo xu hướng giảm này của vàng?"
+    },
+    {
+      "id": "q-08",
+      "question": "Tại sao hiện không có vùng vào lệnh cho vàng?"
+    },
+    {
+      "id": "q-09",
+      "question": "vao xauusd o m5 o dau?gan vung chua,hay tre roi"
+    },
+    {
+      "id": "q-10",
+      "question": "M5 đang phá vỡ hành lang của nó, vào lệnh vàng bây giờ có quá sớm không?"
+    },
+    {
+      "id": "q-11",
+      "question": "Tôi nên đặt chốt lời cho vàng ở đâu?"
+    },
+    {
+      "id": "q-12",
+      "question": "Lệnh mua vàng của tôi ở 4376 và có một mức ngay phía trên. Nó có thể chạy được bao xa?"
+    },
+    {
+      "id": "q-13",
+      "question": "Tôi nên đặt cắt lỗ cho lệnh bán vàng ở đâu?"
+    },
+    {
+      "id": "q-14",
+      "question": "dat cat lo cho lenh ban vang o 4138 dau??"
+    },
+    {
+      "id": "q-15",
+      "question": "Mục tiêu của lệnh bán ở đâu khi vàng bị kéo giãn trên hành lang của nó?"
+    },
+    {
+      "id": "q-16",
+      "question": "Nếu tôi chấp nhận rủi ro 1% tài khoản thì có thể giao dịch bao nhiêu lot vàng?"
+    },
+    {
+      "id": "q-17",
+      "question": "Tại sao rủi ro đề xuất chỉ bằng một nửa mức tối đa của tôi?"
+    },
+    {
+      "id": "q-18",
+      "question": "bao nhieu lot vang neu rui ro 1% tai khoan $10000,cat lo 15$"
+    },
+    {
+      "id": "q-19",
+      "question": "Vị thế vàng này sẽ dùng đòn bẩy bao nhiêu?"
+    },
+    {
+      "id": "q-20",
+      "question": "Tài khoản của tôi là $500. Tôi có thể mở lệnh vàng không?"
+    },
+    {
+      "id": "q-21",
+      "question": "UOEDT là gì?"
+    },
+    {
+      "id": "q-22",
+      "question": "Baseline của M5 nghĩa là gì?"
+    },
+    {
+      "id": "q-23",
+      "question": "Cảm biến STALE trên bảng nghĩa là gì?"
+    },
+    {
+      "id": "q-24",
+      "question": "nen da dong tren bieu do m15 nghia la gi"
+    },
+    {
+      "id": "q-25",
+      "question": "\"Đứng ngoài\" trên bảng nghĩa là gì?"
+    },
+    {
+      "id": "q-26",
+      "question": "Hôm nay có tin lớn nào có thể làm vàng biến động không?"
+    },
+    {
+      "id": "q-27",
+      "question": "Tại sao tôi không nhận được thiết lập giao dịch quanh thời điểm công bố CPI?"
+    },
+    {
+      "id": "q-28",
+      "question": "Tôi giữ lệnh vàng vài giờ. Điều gì xảy ra nếu có số liệu Mỹ tác động mạnh được công bố?"
+    },
+    {
+      "id": "q-29",
+      "question": "hom nay co tin lon cho vang ko?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "Điều gì xảy ra với các câu trả lời về vàng nếu lịch tin tức bị lỗi?"
+    },
+    {
+      "id": "q-31",
+      "question": "Tạo cho tôi một thiết lập giao dịch cho vàng."
+    },
+    {
+      "id": "q-32",
+      "question": "Lập cho tôi kế hoạch giao dịch đã tính khối lượng cho lệnh mua vàng theo hồ sơ của tôi."
+    },
+    {
+      "id": "q-33",
+      "question": "Đưa tôi báo cáo thiết lập giao dịch cho XAUUSD trên M15."
+    },
+    {
+      "id": "q-34",
+      "question": "lam setup cho vang giup minh"
+    },
+    {
+      "id": "q-35",
+      "question": "Tính khối lượng cho lệnh bán vàng, kèm cắt lỗ và mục tiêu."
+    },
+    {
+      "id": "q-36",
+      "question": "Tuần này EURUSD sẽ đi đâu?"
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd hom nay len ko"
+    },
+    {
+      "id": "q-38",
+      "question": "Tôi có nên mua Bitcoin bây giờ không?"
+    },
+    {
+      "id": "q-39",
+      "question": "Biểu đồ H1 của vàng nói gì về giờ tới?"
+    },
+    {
+      "id": "q-40",
+      "question": "Hôm nay thời tiết ở London thế nào?"
+    }
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "en-GB",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Should I buy or sell gold right now?"
+    },
+    {
+      "id": "q-02",
+      "question": "Why is the assistant telling me to stand aside on gold?"
+    },
+    {
+      "id": "q-03",
+      "question": "The M15 chart points up but the M5 chart points down, so which way is gold going?"
+    },
+    {
+      "id": "q-04",
+      "question": "Which way is gold heading? The M15 sensor shows no reading."
+    },
+    {
+      "id": "q-05",
+      "question": "wich way is gold goin at the mo, buy or sell??"
+    },
+    {
+      "id": "q-06",
+      "question": "Where is a good place to enter a long on gold?"
+    },
+    {
+      "id": "q-07",
+      "question": "When should I get in on this gold downtrend?"
+    },
+    {
+      "id": "q-08",
+      "question": "Why are there no entry zones for gold at the moment?"
+    },
+    {
+      "id": "q-09",
+      "question": "where do i enter xauusd on m5?is it near the zone,or too late"
+    },
+    {
+      "id": "q-10",
+      "question": "The M5 is breaking out of its corridor, is it too early to enter gold?"
+    },
+    {
+      "id": "q-11",
+      "question": "Where should I put my take profit on gold?"
+    },
+    {
+      "id": "q-12",
+      "question": "My gold long is at 4,376 and there is a level just above it. How far can it run?"
+    },
+    {
+      "id": "q-13",
+      "question": "Where should I place my stop loss for the gold short?"
+    },
+    {
+      "id": "q-14",
+      "question": "where should I put my stop for the gold short at 4138??"
+    },
+    {
+      "id": "q-15",
+      "question": "Where is the target for a short when gold is stretched above its corridor?"
+    },
+    {
+      "id": "q-16",
+      "question": "How many lots of gold can I trade if I risk 1% of my account?"
+    },
+    {
+      "id": "q-17",
+      "question": "Why is the suggested risk only half of my maximum?"
+    },
+    {
+      "id": "q-18",
+      "question": "how many lots for gold if i risk 1% on a $10000 acct,stop 15$"
+    },
+    {
+      "id": "q-19",
+      "question": "What leverage will this gold position use?"
+    },
+    {
+      "id": "q-20",
+      "question": "My account is $500. Can I even open a gold trade?"
+    },
+    {
+      "id": "q-21",
+      "question": "What is UOEDT?"
+    },
+    {
+      "id": "q-22",
+      "question": "What does the M5 baseline mean?"
+    },
+    {
+      "id": "q-23",
+      "question": "What does a STALE sensor mean on the board?"
+    },
+    {
+      "id": "q-24",
+      "question": "wat does closed bar mean on the m15 chrat"
+    },
+    {
+      "id": "q-25",
+      "question": "What does stand aside mean on the board?"
+    },
+    {
+      "id": "q-26",
+      "question": "Is there any big news today that could move gold?"
+    },
+    {
+      "id": "q-27",
+      "question": "Why can't I get a trade setup around the CPI release?"
+    },
+    {
+      "id": "q-28",
+      "question": "I am holding a gold trade for a couple of hours. What if a high-impact US release comes out?"
+    },
+    {
+      "id": "q-29",
+      "question": "is ther big nws 4 gold todya?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "What happens to the gold answers if the news calendar is down?"
+    },
+    {
+      "id": "q-31",
+      "question": "Make me a trade setup for gold."
+    },
+    {
+      "id": "q-32",
+      "question": "Build a sized trade plan for a gold long using my profile."
+    },
+    {
+      "id": "q-33",
+      "question": "Give me the trade setup report for XAUUSD on the M15."
+    },
+    {
+      "id": "q-34",
+      "question": "make me a trade setup 4 gold please"
+    },
+    {
+      "id": "q-35",
+      "question": "Size a short trade on gold for me, with the stop and the target."
+    },
+    {
+      "id": "q-36",
+      "question": "Where will EURUSD go this week?"
+    },
+    {
+      "id": "q-37",
+      "question": "wil eurusd go up today"
+    },
+    {
+      "id": "q-38",
+      "question": "Should I buy Bitcoin now?"
+    },
+    {
+      "id": "q-39",
+      "question": "What does the gold H1 chart say about the next hour?"
+    },
+    {
+      "id": "q-40",
+      "question": "What is the weather in London today?"
+    }
+  ]
+}

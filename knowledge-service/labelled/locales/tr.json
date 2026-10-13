@@ -1,0 +1,168 @@
+{
+  "schema": "labelled-locale/1",
+  "locale": "tr",
+  "translation_status": "DRAFT",
+  "note": "A draft translation of the 40 English questions, made without a native reader. The noisy questions (q-05, q-09, q-14, q-18, q-24, q-29, q-34, q-37) are noisy in a way that suits the language: typos, missing accents, transliteration, digits in the local script, a lower-case currency code. Labels are the base's.",
+  "questions": [
+    {
+      "id": "q-01",
+      "question": "Şimdi altın almalı mıyım yoksa satmalı mıyım?"
+    },
+    {
+      "id": "q-02",
+      "question": "Asistan neden bana altında kenarda durmamı söylüyor?"
+    },
+    {
+      "id": "q-03",
+      "question": "M15 grafiği yukarı, M5 grafiği aşağı bakıyor; peki altın hangi yöne gidiyor?"
+    },
+    {
+      "id": "q-04",
+      "question": "Altın hangi yöne gidiyor? M15 sensörü hiçbir okuma göstermiyor."
+    },
+    {
+      "id": "q-05",
+      "question": "altin simdi hangi yone gidiyor, alayim mi satayim mi??"
+    },
+    {
+      "id": "q-06",
+      "question": "Altında alış yönünde girmek için iyi bir yer neresi?"
+    },
+    {
+      "id": "q-07",
+      "question": "Altının bu düşüş trendine ne zaman girmeliyim?"
+    },
+    {
+      "id": "q-08",
+      "question": "Altın için şu anda neden giriş bölgesi yok?"
+    },
+    {
+      "id": "q-09",
+      "question": "xauusd m5 de nerden gireyim?bolgeye yakin mi,gec mi"
+    },
+    {
+      "id": "q-10",
+      "question": "M5 koridorunu kırıyor, altına girmek için çok erken mi?"
+    },
+    {
+      "id": "q-11",
+      "question": "Altında kâr al seviyemi nereye koymalıyım?"
+    },
+    {
+      "id": "q-12",
+      "question": "Altındaki alış pozisyonum 4376'da ve hemen üstünde bir seviye var. Ne kadar gidebilir?"
+    },
+    {
+      "id": "q-13",
+      "question": "Altındaki satış pozisyonu için zarar durdurumu nereye koymalıyım?"
+    },
+    {
+      "id": "q-14",
+      "question": "altin satis stop 4138 nereye koyayim??"
+    },
+    {
+      "id": "q-15",
+      "question": "Altın koridorunun üzerinde gerildiğinde satışın hedefi nerede?"
+    },
+    {
+      "id": "q-16",
+      "question": "Hesabımın %1'ini riske atarsam kaç lot altın işlem yapabilirim?"
+    },
+    {
+      "id": "q-17",
+      "question": "Önerilen risk neden maksimumumun yalnızca yarısı?"
+    },
+    {
+      "id": "q-18",
+      "question": "$10000 hesapta %1 riskle kac lot altin,stop 15$"
+    },
+    {
+      "id": "q-19",
+      "question": "Bu altın pozisyonu ne kadar kaldıraç kullanacak?"
+    },
+    {
+      "id": "q-20",
+      "question": "Hesabım $500. Altında işlem açabilir miyim?"
+    },
+    {
+      "id": "q-21",
+      "question": "UOEDT nedir?"
+    },
+    {
+      "id": "q-22",
+      "question": "M5 baseline ne anlama gelir?"
+    },
+    {
+      "id": "q-23",
+      "question": "Panodaki STALE sensörü ne anlama gelir?"
+    },
+    {
+      "id": "q-24",
+      "question": "m15 grafiginde kapanmis mum ne demek"
+    },
+    {
+      "id": "q-25",
+      "question": "Panoda \"kenarda durmak\" ne anlama gelir?"
+    },
+    {
+      "id": "q-26",
+      "question": "Bugün altını oynatabilecek büyük bir haber var mı?"
+    },
+    {
+      "id": "q-27",
+      "question": "CPI açıklaması civarında neden işlem kurulumu alamıyorum?"
+    },
+    {
+      "id": "q-28",
+      "question": "Altın işlemini birkaç saat tutacağım. Yüksek etkili bir ABD verisi gelirse ne olur?"
+    },
+    {
+      "id": "q-29",
+      "question": "bugun altin icin buyuk haber var mi?? fomc cpi nfp"
+    },
+    {
+      "id": "q-30",
+      "question": "Haber takvimi kapalıysa altın cevaplarına ne olur?"
+    },
+    {
+      "id": "q-31",
+      "question": "Bana altın için bir işlem kurulumu hazırla."
+    },
+    {
+      "id": "q-32",
+      "question": "Profilimi kullanarak altında alış için boyutlandırılmış bir işlem planı oluştur."
+    },
+    {
+      "id": "q-33",
+      "question": "Bana M15'te XAUUSD için işlem kurulumu raporunu ver."
+    },
+    {
+      "id": "q-34",
+      "question": "altin icin kurulum yapsana"
+    },
+    {
+      "id": "q-35",
+      "question": "Altında satış işleminin boyutunu stop ve hedefle birlikte hesapla."
+    },
+    {
+      "id": "q-36",
+      "question": "EURUSD bu hafta nereye gider?"
+    },
+    {
+      "id": "q-37",
+      "question": "eurusd bugun yukselir mi"
+    },
+    {
+      "id": "q-38",
+      "question": "Şimdi Bitcoin almalı mıyım?"
+    },
+    {
+      "id": "q-39",
+      "question": "Altının H1 grafiği önümüzdeki saat hakkında ne diyor?"
+    },
+    {
+      "id": "q-40",
+      "question": "Bugün Londra'da hava nasıl?"
+    }
+  ]
+}

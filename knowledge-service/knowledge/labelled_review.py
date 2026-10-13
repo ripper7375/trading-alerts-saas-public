@@ -1,0 +1,280 @@
+"""The review table and the PENDING approval of the labelled question set (plan part 9, ADR-044, decision D15).
+
+    python -m knowledge.gate labelled-review --labelled labelled            writes review.md and approval.json
+    python -m knowledge.gate labelled-review --labelled labelled --check    writes nothing; exit 1 when either is stale
+
+Davin approves the ENGLISH BASE of the set: the 40 questions with their labels (the expected intent, the expected sensors
+M*, the golden cycle and trader type each question applies to, the chunks a complete answer needs) and the adversarial slice.
+The 18 translations are drafts that inherit those labels; they are not part of what is approved (each is marked DRAFT and
+waits for a native reader), but a recorded run is tied to their hashes, so a change to one needs a new run.
+
+  review.md      generated, CONTENT ONLY (never a status, so signing makes no table stale): every question with its labels,
+                 the facts of the golden cycle it applies to so that M* can be checked by eye, the adversarial cases.
+  approval.json  written PENDING and NEVER APPROVED: a person edits `status`, `approved_by` and `approved_at`. It holds the
+                 hash of the base as reviewed. When the base changes the hash no longer matches and this tool puts the
+                 approval back to PENDING with the new hash.
+"""
+
+from __future__ import annotations
+
+import json
+import unicodedata
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from .canonical import normalize_text
+from .errors import Problem
+from .labelled import (
+    APPROVAL_FILE,
+    INTENTS,
+    REVIEW_FILE,
+    TRANSLATED,
+    LabelledSet,
+    approval_hash,
+    approval_text,
+    check_set,
+    load_set,
+)
+
+#: where the golden cycles are, relative to the repository (they are not in the service's image)
+GOLDEN_RELATIVE = Path("davintrade-stack-d-and-e") / "engine-1-5-new" / "mcd_worker" / "golden"
+
+TRADER_NAME = {"DAY_TRADER": "Day Trader", "SCALPER": "Scalper"}
+PRIMARY = {"DAY_TRADER": "MCD1", "SCALPER": "MCD2"}
+
+
+def show(text: str, limit: int | None = None) -> str:
+    """Text for a table cell: invisible characters made visible, pipes and line breaks made safe."""
+    out: list[str] = []
+    for char in text:
+        category = unicodedata.category(char)
+        if char == "\n":
+            out.append("⏎")
+        elif char == "\t":
+            out.append("⇥")
+        elif category in ("Cc", "Cf", "Zs") and char != " ":
+            out.append(f"<U+{ord(char):04X}>")
+        elif char == "|":
+            out.append("\\|")
+        else:
+            out.append(char)
+    shown = "".join(out)
+    if limit is not None and len(shown) > limit:
+        shown = shown[:limit] + f"… ({len(text)} characters)"
+    return shown
+
+
+def _codes(items: list[str]) -> str:
+    return ", ".join(f"`{item}`" for item in items) if items else "none"
+
+
+def find_golden(directory: Path) -> Path | None:
+    """The golden folder of the repository this labelled folder sits in, when there is one."""
+    for parent in directory.resolve().parents:
+        candidate = parent / GOLDEN_RELATIVE
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def scenario_facts(golden: Path, scenario_id: str) -> list[str]:
+    """The lines that say what a golden cycle held, read from its stored expected.json."""
+    number = scenario_id.split("-")[1]
+    folders = sorted(golden.glob(f"{number}-*"))
+    if not folders:
+        return [f"- {scenario_id}: no folder in the golden cycles"]
+    expected = json.loads(normalize_text((folders[0] / "expected.json").read_bytes().decode("utf-8")))
+    lines = [f"**{scenario_id}** ({folders[0].name[3:]}, slot {expected['cycle_slot']}):"]
+    sensors = []
+    for sensor in expected["sensors"]:
+        if sensor["mcd_id"] == "MCD0":
+            continue
+        envelope = json.loads(sensor["envelope_json"])
+        state = envelope.get("state_code") or "no state"
+        bias = envelope.get("bias") or "no bias"
+        sensors.append(f"{sensor['mcd_id']} {sensor['status']} {state} {bias}")
+    lines.append("  - sensors: " + "; ".join(sensors))
+    for reading in expected["synthesis"]["readings"]:
+        body = json.loads(reading["reading_json"])
+        zones = json.loads(reading["zones_json"])
+        sources = sorted({source for zone in zones for source in zone["source_sensors"]})
+        entry = zones[0]["reference_price"] if zones else None
+        lines.append(
+            f"  - {TRADER_NAME[reading['profile']]}: {body['rule_id']} {body['bias']} {body['status']}, "
+            f"zones from {_codes(sources)}, entry {entry if entry is not None else 'none (the close of the reading is used)'}"
+        )
+    return lines
+
+
+def render_review(labelled: LabelledSet, *, golden: Path | None) -> str:
+    base = labelled.base
+    questions = base["questions"]
+    lines: list[str] = [
+        "# Labelled question set: review table",
+        "",
+        "Generated by `python -m knowledge.gate labelled-review --labelled labelled`; do not edit. It holds content only, so signing "
+        "`approval.json` does not make it stale.",
+        "",
+        f"Content hash of the English base (what `approval.json` records): `{approval_hash(labelled)}`",
+        "",
+        "## What you are approving",
+        "",
+        "The English base of the labelled question set (build step 6 part 9, ADR-044, decision D15): **40 questions**, five for each of "
+        "the eight intents, **8 of them noisy** (typos, \"gold\" for the symbol, digits in a local script, a lower-case currency code, "
+        "unspaced punctuation), and an **adversarial slice** that is judged apart from the percentages. Every label was written by "
+        "hand from the golden cycles and the corpus; none was copied from the router or from a search result.",
+        "",
+        "For each question the labels are:",
+        "",
+        "- **intent**: what the question is asking for;",
+        "- **trader and cycle**: which golden cycle (`golden-01` to `golden-16`) and which trader type the question applies to; "
+        "the primary sensor is MCD1 for a Day Trader and MCD2 for a Scalper;",
+        "- **M\\***: the sensors the router must give in full: the primary sensor, every warning (a sensor that says STAND_ASIDE, or "
+        "whose LONG or SHORT is the opposite of the reading), and what the intent adds (entry timing: the sensors that supplied the "
+        "zones; exit and targets: the sensors with a level beyond the entry on the target side; explain: the sensors that own the "
+        "term). Report 2 and Out of scope give no readings;",
+        "- **chunks**: the corpus chunks a complete answer needs (1 to 4). Recall is *at least one of them in the first four "
+        "hits*, so a question whose answer also needs a chunk its intent cannot reach (Explain reads D1 only) still counts when "
+        "another one is found; the share found is reported as well.",
+        "",
+        "The bars: intent and M* match at least 90%; recall@4 at least 0.80; every locale within 5 points of English; stand-aside "
+        "and opposing sensors present in 100%; out-of-scope questions refused in 100% of every locale; in-scope questions refused "
+        "at most 5% (proposed in D15).",
+        "",
+        "Read each question and ask: is this what a trader would type, is the intent right, are these the sensors a good answer "
+        "must have, and are these the chunks a good answer needs? Then approve by editing `approval.json` (`status` APPROVED, "
+        "`approved_by`, `approved_at`; leave the hash). A changed word needs `python -m knowledge.gate labelled-review --labelled "
+        "labelled` and the set is PENDING again.",
+        "",
+    ]
+
+    for intent in INTENTS:
+        group = [q for q in questions if q["expected_intent"] == intent]
+        lines += [f"## {intent} ({len(group)})", ""]
+        lines += [
+            "| id | slice | question | trader and cycle | M* | warnings | chunks a complete answer needs |",
+            "| --- | --- | --- | --- | --- | --- | --- |",
+        ]
+        for q in group:
+            lines.append(
+                "| "
+                + " | ".join(
+                    [
+                        q["id"],
+                        q["slice"],
+                        show(q["question"]),
+                        f"{TRADER_NAME[q['trader_type']]}, {q['scenario_id']}",
+                        _codes(q["expected_m_star"]),
+                        _codes(q["expected_warnings"]),
+                        "<br>".join(f"`{c}`" for c in q["expected_chunk_ids"]) or "none",
+                    ]
+                )
+                + " |"
+            )
+        lines.append("")
+        for q in group:
+            lines.append(f"- **{q['id']}**: {q['label_note']}")
+        lines.append("")
+
+    lines += ["## The adversarial slice (English only, judged apart from the percentages)", ""]
+    lines += [
+        "Each case must be **refused** (one of the listed refusal codes) or **neutralised** (the packet it makes has the same readings "
+        "and board as the clean question it wraps, and the request to the model keeps the text as data in one JSON field). A "
+        "case that reaches retrieval must search with the same SQL and the same bound values as the clean question: the hostile "
+        "text is only ever the query string.",
+        "",
+        "| id | kind | must be | text |",
+        "| --- | --- | --- | --- |",
+    ]
+    for adv in base["adversarial"]:
+        must = (
+            "refused: " + ", ".join(adv["refusal_codes"])
+            if adv["expect"] == "REFUSED"
+            else f"neutralised, equal to {adv['same_as']}"
+        )
+        lines.append(f"| {adv['id']} | {adv['kind']} | {must} | {show(adv['question'], 90)} |")
+    lines.append("")
+
+    lines += ["## The golden cycles the questions apply to", ""]
+    if golden is None:
+        lines += ["The golden cycles were not found next to this folder, so their facts are not listed here.", ""]
+    else:
+        used = sorted({q["scenario_id"] for q in questions})
+        for scenario in used:
+            lines += scenario_facts(golden, scenario)
+            lines.append("")
+
+    lines += ["## The translations", ""]
+    lines += [
+        "The 18 other locales are translations of the 40 questions, made without a native reader and marked DRAFT; they inherit "
+        "every label above. They are not part of this approval. The 19 interface locales are those of the app "
+        "(`lib/i18n/languages.ts`).",
+        "",
+        "| locale | status | questions |",
+        "| --- | --- | --- |",
+    ]
+    for locale in TRANSLATED:
+        file = labelled.locales.get(locale, {})
+        lines.append(f"| {locale} | {file.get('translation_status', 'MISSING')} | {len(file.get('questions', []))} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+@dataclass
+class LabelledReviewResult:
+    problems: list[Problem] = field(default_factory=list)
+    written: list[str] = field(default_factory=list)
+    stale: list[str] = field(default_factory=list)
+    status: str = "PENDING"
+
+
+def run_labelled_review(directory: Path, *, write: bool, golden: Path | None = None) -> LabelledReviewResult:
+    """Write (or, with `write=False`, check) `review.md` and `approval.json` of the labelled folder."""
+    directory = Path(directory)
+    result = LabelledReviewResult()
+    labelled = load_set(directory)
+    problems = check_set(labelled)
+    if problems:
+        result.problems = sorted(problems)
+        return result
+    golden = golden if golden is not None else find_golden(directory)
+
+    text = render_review(labelled, golden=golden)
+    digest = approval_hash(labelled)
+
+    approval_path = directory / APPROVAL_FILE
+    current: dict[str, Any] | None = None
+    if approval_path.is_file():
+        try:
+            parsed = json.loads(normalize_text(approval_path.read_bytes().decode("utf-8")))
+            current = parsed if isinstance(parsed, dict) else None
+        except (UnicodeDecodeError, ValueError):
+            current = None
+    if current is not None and current.get("content_sha256") == digest and current.get("status") in ("PENDING", "APPROVED"):
+        want = approval_path.read_bytes().decode("utf-8")  # unchanged since it was recorded: left exactly as signed
+        result.status = str(current["status"])
+    else:
+        want = approval_text("PENDING", digest, None, None)
+        result.status = "PENDING"
+
+    review_path = directory / REVIEW_FILE
+    review_now = normalize_text(review_path.read_bytes().decode("utf-8")) if review_path.is_file() else None
+    approval_now = normalize_text(approval_path.read_bytes().decode("utf-8")) if approval_path.is_file() else None
+    for rel, same, content, now in (
+        (REVIEW_FILE, review_now == text, text, review_now),
+        (APPROVAL_FILE, approval_now == normalize_text(want), want, approval_now),
+    ):
+        if same:
+            continue
+        if write:
+            (directory / rel).write_bytes(content.encode("utf-8"))
+            result.written.append(rel)
+        else:
+            result.stale.append(rel)
+            what = "missing" if now is None else "differs from a fresh run"
+            code = "REVIEW_STALE" if rel == REVIEW_FILE else "APPROVAL_STALE"
+            result.problems.append(Problem(rel, code, f"{what}: run `gate labelled-review --labelled {directory.name}`"))
+    result.problems = sorted(result.problems)
+    return result
+

@@ -1,0 +1,8 @@
+{
+  "schema": "labelled-approval/1",
+  "area": "labelled",
+  "status": "PENDING",
+  "content_sha256": "20767810cfe8b9adb43d1ad2ad78c37d500efd3bf100a38d0c7e56d2c4e37e6a",
+  "approved_by": null,
+  "approved_at": null
+}
