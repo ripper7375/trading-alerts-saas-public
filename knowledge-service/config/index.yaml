@@ -30,18 +30,24 @@ search:
   expansions_max: 6
   # section 5.4 gives the knowledge chunks 2,000 tokens; expansions are added only while the pack stays inside it
   budget_tokens: 2000
-  # ADR-043: the query is built from an intent template, the state codes and the English question
+  # ADR-043: the query is built from an intent template, the state codes and the English question. Part 8 shortened the templates
+  # from five to eight words each to ONE word each. Measured on the whole corpus (141 chunks, part 8): with the long templates the
+  # words of the template, not the question, picked the chunks (the DIRECTION template pulled the generic D3 chunks to the top of every
+  # DIRECTION search), 16 of the 320 state-code searches of part 7 missed their own playbook section, the state code alone found 10 of 32
+  # sections (28 are required) and 59 of 91 natural questions about D3 to D5 found their chunk; with one word each the figures are 0 of 320,
+  # 32 of 32 and 82 of 91 (with no template at all: 0, 32 of 32 and 87 of 91). The word is only a hint of the intent. Part 9's labelled set
+  # decides the final form, including none.
   intent_templates:
-    DIRECTION: market direction bias synthesis counter-trend stand aside
-    ENTRY_TIMING: entry timing zone pullback invalidation
-    EXIT_TARGETS: exit targets take profit levels stop
-    RISK_SIZING: risk sizing position size stop distance maximum risk
-    EXPLAIN: explain term definition meaning
-    NEWS: news events blackout economic calendar
+    DIRECTION: direction
+    ENTRY_TIMING: entry
+    EXIT_TARGETS: targets
+    RISK_SIZING: risk
+    EXPLAIN: explain
+    NEWS: news
     REPORT_2: ''
     OUT_OF_SCOPE: ''
-    INSTANT_M5_INSPECT: M5 channel reading state meaning
-    INSTANT_M15_INSPECT: M15 channel reading state meaning
+    INSTANT_M5_INSPECT: M5
+    INSTANT_M15_INSPECT: M15
 
 # 4.6 item 3: whole sections, split on ## and ###, merged under 200 tokens, split over 450 (tokens counted with the
 # embedding model's own tokenizer, D11 (f)). 450 is the part 7 decision (Davin and the Advisor, 2026-10-13, reading 1 of the

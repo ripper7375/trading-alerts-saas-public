@@ -1018,6 +1018,1094 @@
         "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_common/reason_codes.py",
         "section": "the reason codes (UPSTREAM_*)"
       }
+    ],
+    "d3-archetypes.archetype-a-for-a-day-trader-trend-continuation-r3-trend-contin": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "R3_TREND_CONTINUATION, branches TREND_UP and TREND_DOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "2 The table, row 3"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.4 Draft rules table, row 3"
+      }
+    ],
+    "d3-archetypes.archetype-a-for-a-scalper-m5-trend-continuation-r3s-trend-conti": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "R3S_TREND_CONTINUATION_M5, branches TREND_UP and TREND_DOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "2 The table, row 3s, and 7 Things to know (a Scalper never gets NO_MATCH)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.4 Draft rules table, row 3s"
+      }
+    ],
+    "d3-archetypes.archetype-b-exhaustion-and-snapback-r2-exhaustion-snapback": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "R2_EXHAUSTION_SNAPBACK, branches MCD1_SPIKE_UP, MCD1_SPIKE_DOWN, MCD2_SPIKE_UP, MCD2_SPIKE_DOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "2 The table, row 2, and 3 (c)"
+      },
+      {
+        "file": "docs/adr/084-draft-1-reads-the-draft-table-where-it-is-silent.md",
+        "section": "Decision"
+      }
+    ],
+    "d3-archetypes.archetype-c-macro-counter-trend-rally-or-decline-r1-macro-count": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "R1_MACRO_COUNTER_TREND_RALLY, branches BREACH_UP and BREACH_DOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "the COUNTER_TREND_EXPANSION states"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1.md",
+        "section": "6 Calculation (the sustained break)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.4 Draft rules table, row 1"
+      }
+    ],
+    "d3-archetypes.archetype-d-range-and-its-edges-r4-range": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "R4_RANGE, branches MCD1_RANGE, MCD2_EDGE_UP, MCD2_EDGE_DOWN, MCD2_MIDDLE"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "3 (d) Row 4 and 7 Things to know"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd1/mcd1_registry.yaml",
+        "section": "the CONSOLIDATION and RANGE_EXPANSION regime words"
+      },
+      {
+        "file": "docs/adr/084-draft-1-reads-the-draft-table-where-it-is-silent.md",
+        "section": "Decision"
+      }
+    ],
+    "d3-archetypes.in-which-order-the-archetypes-are-tested": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "the order of the rules and the profiles each names"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.4 Draft rules table (the paragraph after the table) and 3.7 Worked example (the two readings of one cycle)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "2 The table"
+      }
+    ],
+    "d3-archetypes.the-four-archetypes-a-b-c-and-d": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.4 Draft rules table and 3.8 Keep, change, add, remove (the four archetypes as names)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "the archetype of each rule"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "2 The table"
+      }
+    ],
+    "d3-archetypes.trend-relation-with-the-trend-or-against-it": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.5 The SYN reading (trend_relation) and 6.2 The profile (the counter-trend cap)"
+      },
+      {
+        "file": "docs/adr/064-counter-trend-caps-follow-the-setup.md",
+        "section": "Decision"
+      },
+      {
+        "file": "lib/engine4/scenarios.ts",
+        "section": "the counter-trend cap on the scenarios"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "trend_relation of each branch"
+      }
+    ],
+    "d3-sensor-conflicts.a-trend-conflict-is-a-note-under-r1-and-a-caution-elsewhe": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "modifiers M3_CONFLICT_EXPECTED_UNDER_R1 and M3_TREND_CONFLICT"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.4 Draft rules table (MCD3 as modifier)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+      }
+    ],
+    "d3-sensor-conflicts.consolidated-agreement-confirms-the-direction": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "modifiers M3_CONFIRMS_UP, M3_CONFIRMS_DOWN, M3_AGAINST_UP, M3_AGAINST_DOWN"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "3 (e) MCD3 as modifier"
+      }
+    ],
+    "d3-sensor-conflicts.mcd3-modifies-a-direction-and-never-votes-for-one": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "modifiers (first entry that holds applies; effects confirm, note, caution)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "3 (e) MCD3 as modifier and 7 Things to know (BULL_TOP and BEAR_BOTTOM confirm)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.3 Precedence and mechanics (mechanic 3, derived sensors modify)"
+      }
+    ],
+    "d3-sensor-conflicts.overflow-and-escape-make-the-result-cautionary": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "modifiers M3_OVERFLOW and M3_ESCAPE"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3.md",
+        "section": "6 Calculation (the three conditions and the nesting test)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd3/mcd3_registry.yaml",
+        "section": "MCD3_NON_CONSOLIDATED_OVERFLOW and MCD3_NON_CONSOLIDATED_ESCAPE"
+      }
+    ],
+    "d3-sensor-conflicts.unresolved-conflict-r5-unresolved-conflict": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "R5_UNRESOLVED_CONFLICT, branch MCD3_NOT_CONSOLIDATED"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "2 The table, row 5, and 7 Things to know (row 5 can never fire for a Scalper)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.4 Draft rules table, row 5"
+      }
+    ],
+    "d3-sensor-conflicts.when-the-m15-and-m5-sensors-disagree": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "`primary_first` on R2_EXHAUSTION_SNAPBACK and R4_RANGE; the conditions of R1 and R3"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "3 (c) Rows 1 and 2"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.3 Precedence and mechanics"
+      },
+      {
+        "file": "docs/adr/029-precedence-ladder.md",
+        "section": "Decision"
+      }
+    ],
+    "d3-synthesis-rules.ordered-rules-the-first-match-wins": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "the HOW TO EDIT header, the rows and `primary_first`"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.3 Precedence and mechanics (mechanic 2) and 3.4 (the paragraph after the table: C before A, B before A)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "9 Changing the rules and the zone parameters"
+      },
+      {
+        "file": "docs/adr/026-rules-file-format.md",
+        "section": "Decision"
+      }
+    ],
+    "d3-synthesis-rules.row-0-the-data-check-r0-data-check": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "R0_DATA_CHECK, branch PRIMARY_UNAVAILABLE"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "3 (a) Row 0 and 5 The SYN reading (a stand-aside because the primary sensor has no usable reading)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.3 Precedence and mechanics (mechanic 1, required sensor first) and 3.5 The SYN reading"
+      }
+    ],
+    "d3-synthesis-rules.rules-decide-and-the-model-explains": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.2 Principles (1 rules decide, the model explains; 2 two views per cycle; 3 same for every user; 4 saved and replayable; 5 no grades)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "1 What it does and 5 The SYN reading"
+      },
+      {
+        "file": "docs/adr/025-rules-decide-direction.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/028-two-trader-type-readings-per-cycle.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/035-no-confidence-grades.md",
+        "section": "Decision"
+      }
+    ],
+    "d3-synthesis-rules.stand-aside-neutral-and-a-direction": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "5 The SYN reading (stand_aside, NEUTRAL, archetype and trend relation)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.5 The SYN reading"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "no_match and the stand-aside results of R0, R4 and R5"
+      }
+    ],
+    "d3-synthesis-rules.the-primary-sensor-and-the-precedence-ladder": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.3 Precedence and mechanics (the ladder of file A)"
+      },
+      {
+        "file": "docs/adr/029-precedence-ladder.md",
+        "section": "Decision"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "7 Things to know about draft-1 (a Day Trader with a ranging M15 stands aside)"
+      }
+    ],
+    "d3-synthesis-rules.the-rows-of-the-draft-1-rules-table": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/rules/draft-1.yaml",
+        "section": "rules R0_DATA_CHECK, R1_MACRO_COUNTER_TREND_RALLY, R2_EXHAUSTION_SNAPBACK, R3_TREND_CONTINUATION, R3S_TREND_CONTINUATION_M5, R4_RANGE, R5_UNRESOLVED_CONFLICT, no_match, modifiers"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "2 The table (architecture 3.4 as draft-1)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.4 Draft rules table"
+      }
+    ],
+    "d3-synthesis-rules.when-no-rule-matches": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.3 Precedence and mechanics (mechanic 5, no match is recorded)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "3 (b) An unavailable sensor cannot match, 5 No match, 7 Things to know"
+      },
+      {
+        "file": "docs/adr/084-draft-1-reads-the-draft-table-where-it-is-silent.md",
+        "section": "Decision"
+      }
+    ],
+    "d3-synthesis-rules.why-a-reading-is-cautionary": [
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "4 Caution is inherited"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.3 Precedence and mechanics (mechanic 4, caution is inherited)"
+      },
+      {
+        "file": "docs/adr/085-caution-is-inherited-from-the-sensors-a-rule-read.md",
+        "section": "Decision"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_common/reason_codes.py",
+        "section": "the reason codes and the status each produces"
+      }
+    ],
+    "d3-zones-and-runway.how-a-zone-is-drawn": [
+      {
+        "file": "docs/adr/031-zone-half-width.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/089-zone-edge-cases.md",
+        "section": "Decision (b) merged zones, (c) cents"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/zone_params.yaml",
+        "section": "half_width_fraction and price_decimals"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "8 Entry zones (zone, reference of a zone, confluence)"
+      }
+    ],
+    "d3-zones-and-runway.how-zones-are-ranked-and-become-price-pills": [
+      {
+        "file": "docs/adr/033-modal-price-pills-from-zones.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/034-custom-entry-bound.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/089-zone-edge-cases.md",
+        "section": "Decision (f) rank"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/zone_params.yaml",
+        "section": "max_zones"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.6 Entry-zone builder (steps 5 and 6)"
+      }
+    ],
+    "d3-zones-and-runway.runway-the-room-to-the-next-opposing-level": [
+      {
+        "file": "docs/adr/089-zone-edge-cases.md",
+        "section": "Decision (e) runway"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "8 Entry zones (runway) and Things to know about the zones (a level between the reference price and the far edge)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.6 Entry-zone builder (step 4, runway)"
+      }
+    ],
+    "d3-zones-and-runway.structural-invalidation-why-the-stop-sits-behind-structur": [
+      {
+        "file": "docs/adr/032-invalidation-price.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/089-zone-edge-cases.md",
+        "section": "Decision (a) stop"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/zone_params.yaml",
+        "section": "invalidation_buffer and min_stop_distance"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.6 Entry-zone builder (step 3, invalidation)"
+      }
+    ],
+    "d3-zones-and-runway.what-an-entry-zone-is": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.1 Scope and 3.6 Entry-zone builder (steps 1 and 6)"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "8 Entry zones (reference price, levels, zone sources)"
+      },
+      {
+        "file": "docs/adr/086-the-reference-price-is-the-last-closed-m5-close.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/088-zone-sources-are-the-m5-channel-levels.md",
+        "section": "Decision"
+      }
+    ],
+    "d3-zones-and-runway.where-the-zone-levels-come-from": [
+      {
+        "file": "docs/adr/087-support-and-resistance-levels-are-structure-not-zone-sources.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/088-zone-sources-are-the-m5-channel-levels.md",
+        "section": "Decision"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "8 Entry zones (zone sources, structure) and Things to know about the zones"
+      }
+    ],
+    "d4-caution-sizing.half-risk-in-numbers": [
+      {
+        "file": "__tests__/lib/engine4/worked-examples/07-cautionary-half-risk/scenario.json",
+        "section": "setup: equity, risk_pct, max_risk_pct"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/07-cautionary-half-risk/expected.json",
+        "section": "sizing: declared_risk"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.6 News blackout and defect flag (1.50% to 0.75%)"
+      }
+    ],
+    "d4-caution-sizing.half-the-risk-when-the-sensors-are-cautious": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.4 Offer check (row 3) and 6.6 Defect flag (D4)"
+      },
+      {
+        "file": "docs/adr/061-defect-flag-halves-the-pre-set-risk.md",
+        "section": "Decision"
+      },
+      {
+        "file": "lib/engine4/modal-definition.ts",
+        "section": "the half-risk pre-set"
+      }
+    ],
+    "d4-caution-sizing.the-trader-keeps-the-final-say-up-to-max-rpt": [
+      {
+        "file": "docs/adr/061-defect-flag-halves-the-pre-set-risk.md",
+        "section": "Why"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.6 News blackout and defect flag (the override is stored in the consent record)"
+      },
+      {
+        "file": "lib/engine4/validate.ts",
+        "section": "overrides.defectFlag"
+      }
+    ],
+    "d4-caution-sizing.which-cautions-halve-the-risk-mcd0-defects-and-retuning": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.4 Offer check and 6.6 Defect flag"
+      },
+      {
+        "file": "lib/engine4/offer.ts",
+        "section": "the module header (rows 2 to 4, halfRiskPreset)"
+      },
+      {
+        "file": "docs/adr/064-counter-trend-caps-follow-the-setup.md",
+        "section": "Decision"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_common/reason_codes.py",
+        "section": "MCD0_DEFECT_M5, MCD0_DEFECT_M15, RETUNING"
+      }
+    ],
+    "d4-position-sizing.exposure-and-leverage": [
+      {
+        "file": "davintrade-stack-d-and-e/STACK-D-CALCULATION-FORMULAR.md",
+        "section": "2 Notional USD Exposure and 3 Effective Leverage"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.7 Sizing maths (steps 1 and 4) and The leverage clamp"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/01-doc-6-7-table/expected.json",
+        "section": "sizing: max_lot_by_leverage, leverage_used"
+      }
+    ],
+    "d4-position-sizing.rounding-down-declared-risk-and-actual-risk": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.7 Sizing maths (steps 3, 5 and 6) and the leverage clamp"
+      },
+      {
+        "file": "docs/adr/065-rrr-definition.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/093-exact-rational-arithmetic-for-the-money-maths.md",
+        "section": "Decision"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/01-doc-6-7-table/expected.json",
+        "section": "sizing: lot, declared_risk, actual_risk, actual_risk_pct"
+      }
+    ],
+    "d4-position-sizing.targets-scenarios-and-net-profit": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.7 Sizing maths (steps 8 to 10, the RRR definition and the scenarios)"
+      },
+      {
+        "file": "docs/adr/065-rrr-definition.md",
+        "section": "Decision"
+      },
+      {
+        "file": "lib/engine4/scenarios.ts",
+        "section": "the three scenarios, the notch of 0.25 and the counter-trend cap"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/01-doc-6-7-table/expected.json",
+        "section": "scenarios: distance, price and net profit of each"
+      }
+    ],
+    "d4-position-sizing.the-broker-figures-and-the-spread": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.9 Broker figures (symbol_specs) and 6.7 Sizing maths (Spread)"
+      },
+      {
+        "file": "docs/adr/066-broker-figures-from-mt5.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/094-spread-and-the-fill-price-in-the-sizing.md",
+        "section": "Decision"
+      },
+      {
+        "file": "lib/engine4/broker.ts",
+        "section": "the age limit of the broker figures"
+      }
+    ],
+    "d4-position-sizing.the-gold-contract-in-plain-numbers": [
+      {
+        "file": "davintrade-stack-d-and-e/STACK-D-CALCULATION-FORMULAR.md",
+        "section": "The Core Basics: 3 Golden Rules of XAUUSD; 4 Point Value and Profit/Loss Sensitivity"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.7 Sizing maths (contract figures from symbol_specs) and 6.9 Broker figures"
+      },
+      {
+        "file": "docs/adr/093-exact-rational-arithmetic-for-the-money-maths.md",
+        "section": "Decision"
+      }
+    ],
+    "d4-position-sizing.the-lot-size-formula-in-words": [
+      {
+        "file": "davintrade-stack-d-and-e/STACK-D-CALCULATION-FORMULAR.md",
+        "section": "1 Lot Size Calculation (the plain-English formula)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.7 Sizing maths (steps 2 and 7) and the corrected worked example"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/01-doc-6-7-table/expected.json",
+        "section": "sizing: loss_per_lot, lot_at_stop, stop_price"
+      }
+    ],
+    "d4-profile-and-underflow.declared-risk-actual-risk-and-the-notices-of-report": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.10 One validator, one template and 6.11 Consent record and audit (Accept setup)"
+      },
+      {
+        "file": "docs/adr/068-report-2-is-a-fixed-template.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md",
+        "section": "Decision"
+      },
+      {
+        "file": "lib/engine4/templates/text.ts",
+        "section": "report2.notice.* (single order, broker order, calculation tool, delayed, cautionary, style, newer cycle)"
+      }
+    ],
+    "d4-profile-and-underflow.how-the-profile-is-confirmed-and-used": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.2 The profile (Kept), 6.10 One validator, 6.11 Consent record and audit, 7.5 Retention and privacy (what a model provider sees)"
+      },
+      {
+        "file": "lib/intake/packet.ts",
+        "section": "the packet validator refuses equity and commission as keys"
+      },
+      {
+        "file": "docs/adr/096-profile-history-and-the-keyed-audit-hash.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/067-chat-typed-setups-pre-fill-the-modal.md",
+        "section": "Decision"
+      }
+    ],
+    "d4-profile-and-underflow.the-badge-in-report-2": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.5 Stops, targets and the badge (the badge table)"
+      },
+      {
+        "file": "docs/adr/063-badge-from-synthesis-and-room.md",
+        "section": "Decision"
+      },
+      {
+        "file": "lib/engine4/badge.ts",
+        "section": "the module header"
+      }
+    ],
+    "d4-profile-and-underflow.the-eight-profile-metrics-first-four": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.2 The profile (metrics 1 to 4)"
+      },
+      {
+        "file": "lib/engine4/profile.ts",
+        "section": "PROFILE_DEFAULTS, PROFILE_BOUNDS and RISK_PCT_STEP"
+      }
+    ],
+    "d4-profile-and-underflow.the-eight-profile-metrics-last-four": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.2 The profile (metrics 5 to 8)"
+      },
+      {
+        "file": "lib/engine4/profile.ts",
+        "section": "PROFILE_DEFAULTS and PROFILE_BOUNDS"
+      }
+    ],
+    "d4-profile-and-underflow.two-causes-the-risk-limit-and-the-leverage-limit": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.8 Lots below the broker minimum (Two causes, each stated as a fact)"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/05-500-dollar-account/expected.json",
+        "section": "underflow: causes and facts (EQUITY_NEEDED_FOR_RISK, EQUITY_NEEDED_FOR_LEVERAGE)"
+      }
+    ],
+    "d4-profile-and-underflow.what-help-is-offered-and-what-never-is": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.8 Lots below the broker minimum (the revised options)"
+      },
+      {
+        "file": "lib/engine4/underflow.ts",
+        "section": "RAISE_RISK, NEARER_STRUCTURAL_STOP, DECLINE and the facts"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/05-500-dollar-account/expected.json",
+        "section": "underflow: facts, options"
+      }
+    ],
+    "d4-profile-and-underflow.what-the-validator-checks-on-every-setup": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.10 One validator, one template (checks 0 to 7)"
+      },
+      {
+        "file": "lib/engine4/validate.ts",
+        "section": "the module header (validateSetup)"
+      }
+    ],
+    "d4-profile-and-underflow.when-the-lot-is-below-the-broker-minimum": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.8 Lots below the broker minimum (file G's case)"
+      },
+      {
+        "file": "lib/engine4/underflow.ts",
+        "section": "the module header"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/05-500-dollar-account/expected.json",
+        "section": "underflow: min_lot_loss, min_lot_risk_pct; sizing: lot_at_stop"
+      }
+    ],
+    "d4-structural-stops.a-farther-stop-means-a-smaller-lot": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.7 Sizing maths (step 2, lot at the stop)"
+      },
+      {
+        "file": "lib/engine4/stops.ts",
+        "section": "buildStopChoices"
+      },
+      {
+        "file": "lib/engine4/underflow.ts",
+        "section": "the module header (a nearer structural stop is re-sized)"
+      }
+    ],
+    "d4-structural-stops.how-the-stop-options-are-listed": [
+      {
+        "file": "lib/engine4/stops.ts",
+        "section": "the module header (D7 (b) and (c), degradation) and groupStopOptions"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.5 Stops, targets and the badge (the example: the modal shows the nearest three)"
+      }
+    ],
+    "d4-structural-stops.room-to-the-next-opposing-level": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.5 Stops, targets and the badge (room to the next level) and 6.4 Offer check (a newer cycle)"
+      },
+      {
+        "file": "docs/adr/063-badge-from-synthesis-and-room.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/059-setup-pinned-to-its-cycle.md",
+        "section": "Decision"
+      },
+      {
+        "file": "lib/engine4/room.ts",
+        "section": "targetFitsBefore and nextOpposingLevel"
+      }
+    ],
+    "d4-structural-stops.stops-sit-behind-structure-not-at-a-fixed-distance": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.5 Stops, targets and the badge (stop options)"
+      },
+      {
+        "file": "docs/adr/062-structural-stop-options.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/032-invalidation-price.md",
+        "section": "Decision"
+      },
+      {
+        "file": "lib/engine4/stops.ts",
+        "section": "the module header (structural stop options)"
+      }
+    ],
+    "d4-structural-stops.the-minimum-stop-distance-and-a-custom-stop": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.2 The profile (metric 7) and 6.10 One validator (check 2)"
+      },
+      {
+        "file": "lib/engine4/profile.ts",
+        "section": "PROFILE_DEFAULTS (minSld)"
+      },
+      {
+        "file": "docs/adr/062-structural-stop-options.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-decision-support-role.data-status-governs-what-may-be-said": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "5.3 Answer gate (what each data status allows)"
+      },
+      {
+        "file": "docs/adr/051-answer-gate-by-data-status.md",
+        "section": "Decision"
+      },
+      {
+        "file": "knowledge-service/corpus/D1/data-statuses.md",
+        "section": "What each data status allows; Why a STALE status withholds direction"
+      }
+    ],
+    "d5-decision-support-role.decision-support-and-a-risk-copilot": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "5.9 Wording guide and 6.11 Consent record and audit (Accept setup)"
+      },
+      {
+        "file": "lib/engine4/templates/text.ts",
+        "section": "report2.notice.broker_order and report2.notice.calculation_tool"
+      },
+      {
+        "file": "docs/adr/056-wording-guide-in-16-languages.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/068-report-2-is-a-fixed-template.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-decision-support-role.stand-aside-is-an-answer-that-the-model-cannot-overr": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.2 Principles (1) and 5.9 Wording guide (stand-aside said plainly)"
+      },
+      {
+        "file": "docs/adr/025-rules-decide-direction.md",
+        "section": "Decision"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "5 The SYN reading (stand_aside)"
+      }
+    ],
+    "d5-decision-support-role.the-trader-owns-every-trade-decision": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.10 One validator, 6.11 Consent record and audit"
+      },
+      {
+        "file": "docs/adr/067-chat-typed-setups-pre-fill-the-modal.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/069-consent-record.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/061-defect-flag-halves-the-pre-set-risk.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-decision-support-role.the-wording-guide-what-the-assistant-says-and-never": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "5.9 Wording guide (Always and Never)"
+      },
+      {
+        "file": "docs/adr/056-wording-guide-in-16-languages.md",
+        "section": "Decision"
+      },
+      {
+        "file": "knowledge-service/knowledge/wording.py",
+        "section": "the wording backstop (wording-1)"
+      }
+    ],
+    "d5-news-blackouts.releases-inside-the-holding-window-a-warning-not-a-block": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.6 News blackout (other HIGH-impact USD releases: a warning, not a block) and 6.2 The profile (metric 1)"
+      },
+      {
+        "file": "lib/engine4/blackout.ts",
+        "section": "HOLDING_WINDOW_SECONDS"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/08-blackout-window-edge/expected.json",
+        "section": "probes: warnings"
+      }
+    ],
+    "d5-news-blackouts.tier-1-releases-and-the-blackout-window": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.6 News blackout (D2) and defect flag (D4)"
+      },
+      {
+        "file": "docs/adr/060-news-blackout.md",
+        "section": "Decision"
+      },
+      {
+        "file": "lib/engine4/blackout.ts",
+        "section": "BLACKOUT_EXACT_SECONDS, TIER1_KINDS and the inclusive edges"
+      },
+      {
+        "file": "config/engine4/tier1-events.json",
+        "section": "the list of Tier-1 events (ids are keyed on MT5 calendar events)"
+      }
+    ],
+    "d5-news-blackouts.when-the-calendar-is-late-empty-or-unreadable": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.6 News blackout (calendar not exported for 45 minutes) and 7.6 Degraded modes"
+      },
+      {
+        "file": "lib/engine4/blackout.ts",
+        "section": "CALENDAR_LATE_SECONDS and the module header (fail closed, the age of the newest observation)"
+      },
+      {
+        "file": "docs/adr/078-degraded-modes.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-news-blackouts.when-the-release-time-is-approximate": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.6 News blackout (approximate time: the window widens to 60 minutes)"
+      },
+      {
+        "file": "lib/engine4/blackout.ts",
+        "section": "BLACKOUT_APPROXIMATE_SECONDS"
+      },
+      {
+        "file": "__tests__/lib/engine4/worked-examples/08-blackout-window-edge/scenario.json",
+        "section": "releases with time_mode and the probes at the edges"
+      }
+    ],
+    "d5-news-blackouts.why-entry-recommendations-are-withheld-during-a-blackout": [
+      {
+        "file": "docs/adr/060-news-blackout.md",
+        "section": "Why (the reason the ban is enforced; the market reasoning is the corpus's wording, for approval)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.6 News blackout and 6.7 Sizing maths (spread)"
+      }
+    ],
+    "d5-single-order-scope.gold-on-m5-and-m15-only": [
+      {
+        "file": "lib/intake/text/scope.ts",
+        "section": "the module header (the scope check)"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "4.2 Request path (step 3, scope)"
+      },
+      {
+        "file": "docs/adr/046-deterministic-out-of-scope-check.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-single-order-scope.one-setup-and-one-order-at-a-time": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.1 Scope, 6.3 Flow and 6.10 One validator, one template (the single-order scope notice)"
+      },
+      {
+        "file": "lib/engine4/templates/text.ts",
+        "section": "report2.notice.single_order"
+      },
+      {
+        "file": "docs/adr/068-report-2-is-a-fixed-template.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-single-order-scope.one-setup-per-cycle-and-trader-type": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.2 Principles (2), 3.6 Entry-zone builder and 6.4 Offer check (a newer cycle changed the synthesis)"
+      },
+      {
+        "file": "docs/adr/028-two-trader-type-readings-per-cycle.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/059-setup-pinned-to-its-cycle.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-single-order-scope.what-the-system-does-not-model": [
+      {
+        "file": "davintrade-stack-d-and-e/archive/STACK-D-OKF-CONVERSATIONAL-AI-ARCHITECTURE-V2.md",
+        "section": "Single-Order Scope Demarcation (a superseded document: the principle is carried, the wording is the corpus's)"
+      },
+      {
+        "file": "lib/engine4/templates/text.ts",
+        "section": "report2.notice.single_order"
+      },
+      {
+        "file": "docs/adr/033-modal-price-pills-from-zones.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.8 Keep, change, add, remove (the fixed $2.50 ladder removed)"
+      }
+    ],
+    "d5-system-invariants.closed-bars-only-the-bar-still-forming-is-never-used": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "1.3 The nine rules (rules 2 and 3)"
+      },
+      {
+        "file": "docs/adr/011-still-open-bar-kept-out-of-sensors-and-ohlc.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/086-the-reference-price-is-the-last-closed-m5-close.md",
+        "section": "Decision"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "8 Entry zones (reference price)"
+      }
+    ],
+    "d5-system-invariants.fail-closed": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "6.4 Offer check, 5.3 Answer gate (Also), 7.6 Degraded modes"
+      },
+      {
+        "file": "lib/engine4/offer.ts",
+        "section": "the module header (beyond the table, ALWAYS failing closed)"
+      },
+      {
+        "file": "lib/intake/gate.ts",
+        "section": "the gate order and the ports"
+      },
+      {
+        "file": "docs/adr/078-degraded-modes.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-system-invariants.nothing-hidden-everything-stored-and-replayable": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "2.2 The sensor worker (items 5 and 6), 3.2 Principles (4) and 6.14 Done when"
+      },
+      {
+        "file": "davintrade-stack-d-and-e/engine-1-5-new/mcd_worker/synthesis/synthesis.md",
+        "section": "1 What it does (a pure function) and 9 Changing the rules"
+      },
+      {
+        "file": "docs/adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-system-invariants.rules-decide-the-direction-and-the-model-only-explains-i": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "3.2 Principles (1), 5.2 Reply path, 5.8 Number check and 5.9 Wording guide"
+      },
+      {
+        "file": "docs/adr/025-rules-decide-direction.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/053-number-check-on-every-reply.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/056-wording-guide-in-16-languages.md",
+        "section": "Decision"
+      }
+    ],
+    "d5-system-invariants.two-clocks-and-one-snapshot-per-cycle": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "0.1 Two clocks and 2.2 The sensor worker (items 1 and 6)"
+      },
+      {
+        "file": "docs/adr/025-rules-decide-direction.md",
+        "section": "Why"
+      }
+    ],
+    "d5-system-invariants.what-the-trace-records-for-every-answer-and-how-long-it": [
+      {
+        "file": "docs/STACK-D-ARCHITECTURE.md",
+        "section": "7.4 Trace and 7.5 Retention and privacy"
+      },
+      {
+        "file": "docs/adr/075-one-trace-per-answer.md",
+        "section": "Decision"
+      },
+      {
+        "file": "docs/adr/076-retention.md",
+        "section": "Decision"
+      }
     ]
   }
 }

@@ -29,6 +29,7 @@ from knowledge.tags import Tags, load_tags
 
 TESTS = Path(__file__).resolve().parent
 FIXTURE_CORPUS = TESTS / "fixtures" / "corpus"
+REAL_CORPUS = TESTS.parent / "corpus"
 
 
 @pytest.fixture(scope="session")
@@ -101,3 +102,34 @@ def loaded(built: BuildResult, index_config: IndexConfig, model_dir: Path) -> Lo
 @pytest.fixture(scope="session")
 def retriever(loaded: LoadedIndex, matrix: Matrix, tags: Tags, index_config: IndexConfig) -> Retriever:
     return Retriever(loaded, matrix, tags, index_config)
+
+
+@pytest.fixture(scope="session")
+def real_corpus_build(
+    tmp_path_factory: pytest.TempPathFactory,
+    tags: Tags,
+    index_config: IndexConfig,
+    glossary_version: str,
+    model_dir: Path,
+    counter: TokenCounter,
+) -> BuildResult:
+    """The real corpus (`corpus/`, D1 to D5) built once per session, the way the image builds it minus the approval gate."""
+    output = tmp_path_factory.mktemp("real-index") / "index"
+    return build_index(
+        REAL_CORPUS,
+        output,
+        tags=tags,
+        config=index_config,
+        glossary_version=glossary_version,
+        model_dir=model_dir,
+        counter=counter,
+        require_real=True,
+    )
+
+
+@pytest.fixture(scope="session")
+def real_corpus_retriever(
+    real_corpus_build: BuildResult, index_config: IndexConfig, model_dir: Path, matrix: Matrix, tags: Tags
+) -> Retriever:
+    assert real_corpus_build.output_dir is not None
+    return Retriever(load_index(real_corpus_build.output_dir, index_config, model_dir), matrix, tags, index_config)

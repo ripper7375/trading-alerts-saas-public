@@ -1,8 +1,8 @@
 {
   "schema": "corpus-approval/1",
   "area": "D2-MCD2",
-  "status": "PENDING",
+  "status": "APPROVED",
   "content_sha256": "18550e6e99f4af4942a89de00bb2d0e34d7243b3302db541aa751d4a48a4c61a",
-  "approved_by": null,
-  "approved_at": null
+  "approved_by": "Davin",
+  "approved_at": "2026-10-13"
 }

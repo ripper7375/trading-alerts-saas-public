@@ -1,7 +1,7 @@
 """The real corpus, domains D1 and D2 (build step 6 part 7): coverage, size, wording, truthfulness, retrieval, the gate.
 
-These tests read `corpus/` (never the TEST ONLY fixtures) on the real tokenizer and the real txtai index. Part 8 adds
-D3 to D5 to the same folder; nothing here may break when it does, so every check is "for each area / each domain here".
+These tests read `corpus/` (never the TEST ONLY fixtures) on the real tokenizer and the real txtai index. Part 8 added
+D3 to D5 to the same folder (their tests are in `test_corpus_d3_d4_d5.py`); every check here is "for each area / each domain".
 
 What is NOT tested here, on purpose: whether the prose is right. That is Davin's approval (ADR-042). What is tested is
 everything a machine can show about it: that every state has its section, that the figures it quotes are the specs',
@@ -87,19 +87,14 @@ def chunks(tags: Tags, index_config: IndexConfig, counter: TokenCounter) -> list
 
 
 @pytest.fixture(scope="module")
-def real_build(tmp_path_factory, tags, index_config, glossary_version, model_dir, counter):
-    """The real corpus built the way the Dockerfile builds it, minus the approval gate (a development build)."""
-    out = tmp_path_factory.mktemp("real-index") / "index"
-    return build_index(
-        CORPUS, out, tags=tags, config=index_config, glossary_version=glossary_version, model_dir=model_dir, counter=counter,
-        require_real=True,
-    )
+def real_build(real_corpus_build):
+    """The real corpus built the way the Dockerfile builds it, minus the approval gate (a development build); one per session."""
+    return real_corpus_build
 
 
 @pytest.fixture(scope="module")
-def retriever(real_build, index_config: IndexConfig, model_dir: Path, matrix: Matrix, tags: Tags) -> Retriever:
-    loaded = load_index(real_build.output_dir, index_config, model_dir)
-    return Retriever(loaded, matrix, tags, index_config)
+def retriever(real_corpus_retriever) -> Retriever:
+    return real_corpus_retriever
 
 
 def state_chunk(chunks: list[Chunk], code: str) -> Chunk:
@@ -615,8 +610,8 @@ class TestReviewAndApproval:
             assert approval.content_sha256 == current[area], f"{area}: the files changed after the approval was recorded"
             assert approval.status in (PENDING, APPROVED)
 
-    def test_part_7_ships_its_five_areas_pending_until_davin_signs(self):
-        """A snapshot of the hand-off state: once an area is signed this test still holds (it only forbids a signature without a name)."""
+    def test_a_signed_area_names_who_signed_it_and_when(self):
+        """It only forbids a signature without a name or a date; whether an area is signed is Davin's edit of its file."""
         approvals, _ = load_approvals(CORPUS)
         for area, approval in approvals.items():
             if area in AREAS and approval.status == APPROVED:
@@ -655,15 +650,17 @@ class TestTheProductionGateOnTheRealCorpus:
         out = capsys.readouterr()
         return code, (json.loads(out.out) if out.out.strip() else None), out.err
 
-    def test_the_production_build_refuses_while_the_areas_are_pending(self, capsys, tmp_path, tags, index_config, counter, model_dir):
+    def test_the_production_build_refuses_while_the_areas_are_pending(self, capsys, tmp_path, tags, index_config, counter, model_dir, chunks):
         corpus = approved_copy(tmp_path, tags, index_config, counter, status=PENDING)
         code, report, err = self.run(
             capsys, "build", "--corpus", str(corpus), "--output", str(tmp_path / "index"), "--require-real", "--require-approved",
             "--model-dir", str(model_dir),
         )
         assert code == 1 and report is None
-        assert err.count("APPROVAL_PENDING") == len(AREAS)
-        for area in AREAS:
+        every_area = set(area_files(chunks))
+        assert AREAS <= every_area
+        assert err.count("APPROVAL_PENDING") == len(every_area)
+        for area in every_area:
             assert f"{area}.json" in err
         assert not (tmp_path / "index").exists()
 

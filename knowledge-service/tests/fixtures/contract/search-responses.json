@@ -20,7 +20,7 @@
       "http_status": 200,
       "response": {
         "status": "OK",
-        "index_build_id": "kb-0e1082ceaf063636168b851b3a31e82f",
+        "index_build_id": "kb-26993a80442411bbe11238f88eadb1fa",
         "chunks": [
           {
             "id": "t.d2.mcd1.sustained-breach-above-the-upper-band",
@@ -35,16 +35,16 @@
             "text": "# TEST ONLY: playbook for the first channel sensor\n\n## Sustained breach above the upper band\n\nTEST ONLY. When the first channel sensor reports a sustained breach above the upper band, the closed bars have stayed beyond the upper line for several cycles in a row. The playbook for this state starts by saying what it does not claim: a breach is not a promise that price continues, and it is not a signal to act. It says that the corridor the trader used to rely on has been left, and that the sensor now describes price outside it. The trader should look at the middle line and at how far price sits from the upper band, because a small distance after a long wait reads differently from a large distance after a quick move. The playbook also reminds the reader that a breakout above the upper band can fail, and that the failure shows as price returning inside the corridor on closed bars. Where the second channel sensor agrees, the picture is consistent. Where it disagrees, the disagreement is the thing to read first. In a fixture world the same words would be repeated for every cycle in which the state holds, which is why a reader should look at how many cycles it has lasted before treating it as new."
           },
           {
-            "id": "t.d2.mcd3.trend-conflict-between-the-two-timeframes",
+            "id": "t.d2.mcd1.downtrend-inside-the-corridor",
             "domain": "D2",
-            "mcd_id": "MCD3",
+            "mcd_id": "MCD1",
             "state_codes": [
-              "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
-              "MCD3_BULL_VALUE"
+              "MCD1_UP_UPPER_BREAKOUT",
+              "MCD1_DOWN_IN_CORRIDOR"
             ],
-            "timeframe": null,
+            "timeframe": "M15",
             "version": "1.0.0",
-            "text": "# TEST ONLY: playbook for the position sensor\n\n## Trend conflict between the two timeframes\n\nTEST ONLY. The position sensor compares where price sits in the fifteen minute and the five minute channels. Its trend conflict state means that the two channels disagree about the trend: one is rising and the other falling. The playbook for this state is short on purpose. It says that the sensor stands aside on its own, which means it reports no direction at all, and that this is a complete answer and not a missing one. A reader who sees this state should not search the other sensors for a tie-breaker, because the synthesis already decides how the disagreement is carried forward. The playbook adds that the state can last for many cycles in a fixture world and that it clears when either channel changes its trend word. It never clears because price moved a certain distance. The distinction matters because a reader might otherwise treat the state as a countdown, and it is not one. It is a description of two channels pointing different ways. A reader looking at the fixture may also wonder what the sensor says when only one channel has data: in that case it reports its own status and no state, and the playbook for the state does not apply at all."
+            "text": "## Downtrend inside the corridor\n\nTEST ONLY. In a downtrend inside the corridor the lines fall together and price stays between them. This is the ordinary state of a falling channel and it does not by itself say anything unusual. The playbook explains what to watch next: whether price approaches the lower band, whether the middle line is respected, and whether the slope is steepening or flattening from one cycle to the next. A flattening slope inside a falling corridor often precedes the sensor changing its trend word to sideways, and the playbook says so without attaching any probability to it. What the sensor will never do is predict the next bar. It reports the corridor as measured, the position of price within it, and the trend word, and it leaves the decision with the trader. If the status says stale, nothing in this paragraph should be read as current. A final fixture sentence adds that the playbook speaks of the corridor as measured and never as expected, and that a reader should use the same distinction in their own words."
           },
           {
             "id": "t.d3.synthesis.when-the-synthesis-stands-aside",
@@ -69,7 +69,20 @@
             "text": "# TEST ONLY: synthesis\n\n## Counter-trend rally\n\nTEST ONLY. The synthesis combines the sensors into one reading with a bias, a rule and a trader type. A counter-trend rally is the fixture name for a reading in which the longer channel falls while the shorter channel rises. The rule that matches it gives the bias of the shorter channel and marks the reading as counter-trend, so the trader knows the bias runs against the larger picture. The synthesis explains the marking rather than hiding it: a counter-trend bias is described as a bias inside a larger move that points the other way, with the invalidation placed where the rally would be over. The text for this section stays with words a reader can check against the reading itself, such as the rule name, the bias and the invalidation. It does not rank the rally against other readings, give it a grade or attach a probability, because the synthesis has no measured basis for any of those and says so plainly in every language it speaks. The fixture adds that the rule name is stored with the reading, so any answer can quote the rule that matched and a reader can check it against the table of rules."
           }
         ],
-        "expansions": []
+        "expansions": [
+          {
+            "id": "t.d2.mcd3.trend-conflict-between-the-two-timeframes",
+            "domain": "D2",
+            "mcd_id": "MCD3",
+            "state_codes": [
+              "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+              "MCD3_BULL_VALUE"
+            ],
+            "timeframe": null,
+            "version": "1.0.0",
+            "text": "# TEST ONLY: playbook for the position sensor\n\n## Trend conflict between the two timeframes\n\nTEST ONLY. The position sensor compares where price sits in the fifteen minute and the five minute channels. Its trend conflict state means that the two channels disagree about the trend: one is rising and the other falling. The playbook for this state is short on purpose. It says that the sensor stands aside on its own, which means it reports no direction at all, and that this is a complete answer and not a missing one. A reader who sees this state should not search the other sensors for a tie-breaker, because the synthesis already decides how the disagreement is carried forward. The playbook adds that the state can last for many cycles in a fixture world and that it clears when either channel changes its trend word. It never clears because price moved a certain distance. The distinction matters because a reader might otherwise treat the state as a countdown, and it is not one. It is a description of two channels pointing different ways. A reader looking at the fixture may also wonder what the sensor says when only one channel has data: in that case it reports its own status and no state, and the playbook for the state does not apply at all."
+          }
+        ]
       }
     },
     {
@@ -85,7 +98,7 @@
       "http_status": 200,
       "response": {
         "status": "OK",
-        "index_build_id": "kb-0e1082ceaf063636168b851b3a31e82f",
+        "index_build_id": "kb-26993a80442411bbe11238f88eadb1fa",
         "chunks": [
           {
             "id": "t.d1.channel.what-a-channel-is",
@@ -143,7 +156,7 @@
       "http_status": 200,
       "response": {
         "status": "OK",
-        "index_build_id": "kb-0e1082ceaf063636168b851b3a31e82f",
+        "index_build_id": "kb-26993a80442411bbe11238f88eadb1fa",
         "chunks": [
           {
             "id": "t.d2.mcd2.five-minute-breakout-above-the-upper-band",
@@ -230,7 +243,7 @@
       "http_status": 200,
       "response": {
         "status": "EMPTY",
-        "index_build_id": "kb-0e1082ceaf063636168b851b3a31e82f",
+        "index_build_id": "kb-26993a80442411bbe11238f88eadb1fa",
         "chunks": [],
         "expansions": []
       }
