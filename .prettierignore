@@ -25,3 +25,7 @@ __tests__/lib/engine4/worked-examples/**
 # them; review.md and INDEX.md are generated and compared byte for byte by `python scripts/intake/glossary_tool.py check`.
 config/intake/glossary.v1.json
 config/intake/review/**
+
+# Dispatch matrix review (build step 6 part 4): review.md is generated and compared byte for byte by `python scripts/intake/matrix_tool.py check`,
+# and approval.json holds the SHA-256 of the matrix and the cells Davin signed, so prettier must not touch either.
+config/intake/matrix-review/**

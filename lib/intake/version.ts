@@ -21,5 +21,10 @@ export const UNDERSTAND_RESULT_SCHEMA = 'understand-result/1';
 export const SENSOR_ROSTER_SCHEMA = 'sensor-roster/1';
 export const GLOSSARY_SCHEMA = 'glossary/1';
 
-export const INTAKE_VERSION = '1.0.0';
+/**
+ * 1.0.0: the contracts, the text intake and the glossary (parts 1 to 3).
+ * 1.1.0: the sensor board, the warnings and the router (part 4): the same question now
+ *        gets a board and a set of sensors in full.
+ */
+export const INTAKE_VERSION = '1.1.0';
 export const ROUTING_VERSION = 'routing-v1';

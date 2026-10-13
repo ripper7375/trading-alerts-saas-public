@@ -15,9 +15,15 @@
  * of the fixed replies, the instant prompts and the reason texts; their 19 translations are
  * the `intake.*` keys of the dictionaries.
  *
- * Later parts add the snapshot readers (`read/`), the gate, the pipeline and the route layer
- * (`server/`). Anything that touches a database, Redis, the session or the network is
- * imported BY PATH and never through this barrel, so a client component can import it
+ * Part 4 adds the sensor board (`board.ts`), the warnings, the dispatch matrix (`matrix.ts`,
+ * data in `config/intake/dispatch-matrix.v1.json`) and the router (`router.ts`), all pure, with
+ * the facts they read out of a stored reading (`facts.ts`) and the slot arithmetic (`slots.ts`).
+ * The readers that fetch what they work on (`read/snapshot.ts`, `read/events.ts`,
+ * `read/profile.ts`) touch a database and the gateway: they are imported BY PATH.
+ *
+ * Later parts add the gate, the pipeline and the route layer (`server/`). Anything that
+ * touches a database, Redis, the session or the network is imported BY PATH and never through
+ * this barrel, so a client component can import it
  * (`__tests__/lib/intake/boundaries.test.ts` holds that).
  *
  * @module lib/intake
@@ -277,3 +283,61 @@ export type {
   TextParams,
   UpstreamReasonCode,
 } from './text';
+
+export {
+  MAX_SECONDS,
+  SLOT_SECONDS,
+  boardStamp,
+  clockOf,
+  isEpochSeconds,
+  isSlotSeconds,
+  secondsOfSlot,
+  shiftSlot,
+  slotIso,
+  timeIso,
+} from './slots';
+
+export {
+  REASONS_MAX,
+  SENSOR_SUMMARY_MAX,
+  SYNTHESIS_SUMMARY_MAX,
+  isUsable,
+  orderedMcdIds,
+  sensorFactsOf,
+  synthesisFactsOf,
+} from './facts';
+export type { FactsResult, SensorFacts, SynthesisFacts } from './facts';
+
+export { WARNING_KINDS, findWarnings, opposes } from './warnings';
+export type { Warning, WarningKind } from './warnings';
+
+export {
+  DISPATCH_MATRIX,
+  DISPATCH_MATRIX_SCHEMA,
+  EXTRA_SELECTORS,
+  NOTE_MAX_CHARS,
+  PLAYBOOK_SCOPES,
+  matrixRow,
+  parseMatrix,
+} from './matrix';
+export type {
+  ExtraSelector,
+  Matrix,
+  MatrixParse,
+  MatrixRow,
+  PlaybookScope,
+} from './matrix';
+
+export {
+  BOARD_TOKEN_CAP,
+  CHARS_PER_TOKEN,
+  SYN_NOT_RUNNING_NO_READING,
+  SYN_NOT_RUNNING_NO_SENSOR,
+  buildBoard,
+  estimateTokens,
+  liveSensorIds,
+} from './board';
+export type { BoardData, BoardInput, BoardResult } from './board';
+
+export { route } from './router';
+export type { Route, RouteInput } from './router';

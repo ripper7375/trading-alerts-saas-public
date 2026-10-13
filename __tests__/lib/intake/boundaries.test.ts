@@ -3,16 +3,19 @@
  */
 
 /**
- * The boundaries guard of `lib/intake` (build step 6, parts 1 to 3).
+ * The boundaries guard of `lib/intake` (build step 6, parts 1 to 4).
  *
  *  1. The pure files (the folder itself and `text/`) import only their siblings and, for the
  *     two files named below, one outside module each. They do no I/O and nothing that
  *     differs from one run to the next: no network, no process, no clock, no randomness,
  *     no browser globals. A client component may import the barrel.
- *  2. What touches a database, Redis, the session or the network (`read/`, `server/`, parts
- *     4 and 5) is imported BY PATH, never through the barrel, and a pure file may name its
- *     types only. Those two folders have no allow-list yet: the part that creates one adds
- *     its rules here, and until then the guard refuses a file in it.
+ *  2. What touches a database, Redis, the session or the network (`read/`, part 4, and
+ *     `server/`, part 5) is imported BY PATH, never through the barrel, and a pure file may
+ *     name its types only. `read/` has an allow-list below: each reader may import its
+ *     siblings of the pure folder and the one or two outside modules it is named for, and
+ *     nothing that differs from one run to the next (no clock, no randomness, no process).
+ *     `server/` has no allow-list yet: the part that creates one adds its rules here, and
+ *     until then the guard refuses a file in it.
  *  3. The barrel re-exports no value of `read/`, `server/` or `check.ts` (the internal toolkit).
  *  4. Nothing outside `lib/intake` imports it yet. Each later part that adds a caller (a
  *     route, a page, a component) adds that file to ALLOWED_IMPORTERS on purpose.
@@ -30,8 +33,20 @@ const INTAKE_DIR = join(ROOT, 'lib', 'intake');
 /** The one outside module a pure file may import, by file (path inside `lib/intake`). */
 const OUTSIDE_IMPORTS: Readonly<Record<string, readonly string[]>> = {
   'locales.ts': ['@/lib/i18n/languages'],
+  'matrix.ts': ['@/config/intake/dispatch-matrix.v1.json'],
   'roster.ts': ['@/config/intake/sensor-roster.json'],
   'text/glossary.ts': ['@/config/intake/glossary.v1.json'],
+  // the readers (part 4): each is allowed the modules it is named for and no other
+  'read/events.ts': [
+    '@/config/engine4/tier1-events.json',
+    '@/lib/db/market-prisma',
+  ],
+  'read/profile.ts': ['@/lib/engine4/store/profile-store'],
+  'read/snapshot.ts': [
+    'crypto',
+    '@/lib/active-indicator/gateway-client',
+    '@/lib/db/market-prisma',
+  ],
 };
 
 /** Files outside `lib/intake` that may import it. Parts 1 and 2: none. */
@@ -138,7 +153,7 @@ function analyse(sources: Map<string, string>): Violation[] {
     };
 
     const folder = folderOf(file);
-    if (folder !== '' && folder !== 'text') {
+    if (folder !== '' && folder !== 'text' && folder !== 'read') {
       report(
         sourceFile,
         `a file in ${folder}/: this folder has no allow-list in the guard yet, add one with the code`
@@ -159,7 +174,8 @@ function analyse(sources: Map<string, string>): Violation[] {
           if (target.startsWith('..')) {
             report(node, `import of ${specifier}: it leaves lib/intake`);
           } else if (
-            (target.startsWith('read/') || target.startsWith('server/')) &&
+            ((target.startsWith('read/') && folder !== 'read') ||
+              target.startsWith('server/')) &&
             !typeOnly
           ) {
             report(node, `value import of ${specifier}: name its types only`);
@@ -218,16 +234,24 @@ function loadSources(): Map<string, string> {
 describe('lib/intake', () => {
   const sources = loadSources();
 
-  it('has the files of parts 1 to 3', () => {
+  it('has the files of parts 1 to 4', () => {
     expect([...sources.keys()]).toEqual([
+      'board.ts',
       'canonical.ts',
       'check.ts',
+      'facts.ts',
       'index.ts',
       'intents.ts',
       'locales.ts',
+      'matrix.ts',
       'packet.ts',
+      'read/events.ts',
+      'read/profile.ts',
+      'read/snapshot.ts',
       'refusal.ts',
       'roster.ts',
+      'router.ts',
+      'slots.ts',
       'text.ts',
       'text/glossary.ts',
       'text/limits.ts',
@@ -236,6 +260,7 @@ describe('lib/intake', () => {
       'text/understand-fixture.ts',
       'text/understand.ts',
       'version.ts',
+      'warnings.ts',
     ]);
   });
 
@@ -250,6 +275,47 @@ describe('lib/intake', () => {
     );
     expect(barrel).not.toMatch(/export \{[^}]*\} from '\.\/check'/);
     expect(barrel).not.toMatch(/from '\.\/(read|server)\//);
+    expect(barrel).not.toMatch(/from '[^']*(read|server)\//);
+  });
+
+  it('keeps the readers apart: nothing pure imports them, and they import no server code', () => {
+    for (const [file, text] of sources) {
+      const folder = folderOf(file);
+      const imports = [...text.matchAll(/from '(\.[^']*)'/g)].map(
+        (m) => m[1] as string
+      );
+      for (const specifier of imports) {
+        const target = resolveRelative(file, specifier);
+        if (folder !== 'read') {
+          expect({ file, reads: target.startsWith('read/') }).toEqual({
+            file,
+            reads: false,
+          });
+        } else {
+          expect({ file, serves: target.startsWith('server/') }).toEqual({
+            file,
+            serves: false,
+          });
+        }
+      }
+    }
+  });
+
+  it('gives each reader exactly the outside modules the guard names for it', () => {
+    for (const file of [
+      'read/events.ts',
+      'read/profile.ts',
+      'read/snapshot.ts',
+    ]) {
+      const text = sources.get(file) as string;
+      const outside = [...text.matchAll(/from '([^.][^']*)'/g)]
+        .map((m) => m[1])
+        .sort();
+      expect({ file, outside }).toEqual({
+        file,
+        outside: [...(OUTSIDE_IMPORTS[file] ?? [])].sort(),
+      });
+    }
   });
 
   it('is imported by nothing outside it (parts 1 and 2)', () => {
@@ -398,9 +464,6 @@ describe('the guard', () => {
   });
 
   it('refuses any file in a folder it has no rules for, but accepts text/ as pure', () => {
-    expect(rules({ 'read/snapshot.ts': 'export const a = 1;' })).toEqual([
-      expect.stringContaining('a file in read/'),
-    ]);
     expect(rules({ 'server/respond.ts': 'export const a = 1;' })).toEqual([
       expect.stringContaining('a file in server/'),
     ]);
@@ -425,6 +488,97 @@ describe('the guard', () => {
           "import { x } from '../../engine4/profile';\nexport const a = x;",
       }).length
     ).toBeGreaterThan(0);
+  });
+
+  it('holds a reader to its allow-list: its own modules, and nothing else', () => {
+    // the modules a reader is named for are fine
+    expect(
+      rules({
+        'read/snapshot.ts':
+          "import { createHash } from 'crypto';\nimport { m } from '@/lib/db/market-prisma';\nimport { f } from '@/lib/active-indicator/gateway-client';\nexport const a = [createHash, m, f];",
+      })
+    ).toEqual([]);
+    // a module named for another reader, or none, is not
+    expect(
+      rules({
+        'read/events.ts':
+          "import { createHash } from 'crypto';\nexport const a = createHash;",
+      }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules({
+        'read/profile.ts':
+          "import { p } from '@/lib/db/prisma';\nexport const a = p;",
+      }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules({
+        'read/snapshot.ts':
+          "import { x } from '@/lib/engine4';\nexport const a = x;",
+      }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules({
+        'read/new-reader.ts':
+          "import { m } from '@/lib/db/market-prisma';\nexport const a = m;",
+      }).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('keeps a reader free of the clock, randomness, the process and the network', () => {
+    const header = "import { m } from '@/lib/db/market-prisma';\n";
+    for (const body of [
+      'export const a = [m, Date.now()];',
+      'export const a = [m, new Date()];',
+      'export const a = [m, process.env.X];',
+      'export const a = [m, Math.random()];',
+      "export const a = [m, fetch('https://example.com')];",
+      'export const a = [m, setTimeout(() => 1, 1)];',
+      "export const a = [m, console.log('x')];",
+      'export const a = [m, globalThis.crypto.randomUUID()];',
+    ]) {
+      expect(
+        rules({ 'read/snapshot.ts': header + body }).length
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it('lets a reader use a pure sibling by value, and a pure file never a reader', () => {
+    expect(
+      rules({
+        'read/snapshot.ts':
+          "import { x } from '../board';\nexport const a = x;",
+      })
+    ).toEqual([]);
+    expect(
+      rules({
+        'read/events.ts':
+          "import { s } from './snapshot';\nexport const a = s;",
+      })
+    ).toEqual([]);
+    expect(
+      rules({
+        'read/snapshot.ts':
+          "import { r } from '../server/respond';\nexport const a = r;",
+      })
+    ).toEqual([expect.stringContaining('value import of ../server/respond')]);
+    expect(
+      rules({
+        'board.ts': "import { r } from './read/snapshot';\nexport const a = r;",
+      })
+    ).toEqual([expect.stringContaining('value import of ./read/snapshot')]);
+    expect(
+      rules({
+        'text/normalize.ts':
+          "import { r } from '../read/snapshot';\nexport const a = r;",
+      })
+    ).toEqual([expect.stringContaining('value import of ../read/snapshot')]);
+    expect(
+      rules({
+        'board.ts':
+          "import type { R } from './read/snapshot';\nexport type A = R;",
+      })
+    ).toEqual([]);
   });
 
   it('catches the barrel exporting a value of the toolkit', () => {

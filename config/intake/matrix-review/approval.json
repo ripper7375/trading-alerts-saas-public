@@ -1,0 +1,9 @@
+{
+  "schema": "matrix-approval/1",
+  "area": "matrix",
+  "status": "PENDING",
+  "approved_by": null,
+  "approved_on": null,
+  "content_sha256": "17d6118d6179791855c88bc626e85d169d91768fa4e5a1a9532f117b1aad1c36",
+  "note": ""
+}

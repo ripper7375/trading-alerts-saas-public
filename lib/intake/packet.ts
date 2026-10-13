@@ -128,9 +128,10 @@ const SLOT = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-5][05]Z$/;
 const SHA256 = /^[0-9a-f]{64}$/;
 const DECIMAL = /^(0|[1-9][0-9]*)(\.[0-9]+)?$/;
 const TOKEN = /^[A-Z][A-Z0-9_]{0,39}$/;
-const REASON = /^[A-Z0-9_]+(:[A-Z0-9_]+)?$/;
-const STATE_CODE = /^MCD([0-9]|1[0-5])_[A-Z0-9_]+$/;
-const RULE_ID = /^(R[0-9]+S?_[A-Z0-9_]+|NO_MATCH)$/;
+/** A reason code of a status: `MCD0_DEFECT_M5`, `UPSTREAM_STALE:MCD1`. */
+export const REASON = /^[A-Z0-9_]+(:[A-Z0-9_]+)?$/;
+export const STATE_CODE = /^MCD([0-9]|1[0-5])_[A-Z0-9_]+$/;
+export const RULE_ID = /^(R[0-9]+S?_[A-Z0-9_]+|NO_MATCH)$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/;
 const THREAD_ID = /^[A-Za-z0-9_-]{1,64}$/;
 const VERSION = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/;
