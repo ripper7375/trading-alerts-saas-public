@@ -18,10 +18,17 @@ tags: [frontend, i18n, locale, currency, testing]
 **Source of truth:** `docs/policies/08-locale-i18n-compliance.md` — read it before building new
 frontend UI. The recurring failure class is "new UI ships with zero locale wiring".
 
-- **Compulsory pages** (public marketing, auth, FREE/PRO user pages): any new text needs a real
-  translation in **all 17 dictionaries** (`lib/i18n/dictionaries/*.json`), or
-  `__tests__/lib/i18n/compulsory-translation-coverage.test.ts` fails. Affiliate pages are
+- **Compulsory pages** (public marketing, auth, FREE/PRO user pages): any new text needs a key in
+  **all 19 dictionaries** (`lib/i18n/dictionaries/*.json`; the list is `lib/i18n/languages.ts`:
+  `en-US`, `en-GB`, `es`, `de`, `pt`, `pt-BR`, `it`, `ja`, `ar`, `fr`, `ko`, `zh`, `zh-TW`, `ur`,
+  `hi`, `vi`, `id`, `th`, `tr`), with a **real translation in the 17 that are not English**, or
+  `__tests__/lib/i18n/compulsory-translation-coverage.test.ts` fails (that test counts the 17
+  non-English files; `en-GB` and `en-US` carry the English). They are 17 languages in 19 locales:
+  English and Portuguese appear twice, and `zh` and `zh-TW` are two scripts. Affiliate pages are
   encouraged, admin pages are not required. Coverage script: `scripts/i18n-translation-coverage.js`.
+  The intake path's fixed texts (`intake.*`, 28 keys) are held to one English registry,
+  `lib/intake/text.ts`, by `__tests__/lib/intake/text.test.ts`; the replies to refusals also wait
+  for counsel and a native read (ADR-098 D14).
 - **Client Components:** `useLocale()` → `t()`, `formatCurrency()`, `formatDate()`,
   `formatDateTime()`. **Server Components:** `getServerLanguage()`/`getDictionary()`; for USD
   amounts `getServerLocalePreferences()` + `formatCurrencyAmount()` (`lib/country-config.ts`).

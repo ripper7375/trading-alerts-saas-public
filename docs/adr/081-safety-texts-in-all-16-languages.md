@@ -4,6 +4,7 @@
 - **Date:** 2026-09-30
 - **Section:** 7 · Platform & governance (deck decision 7.12: Languages)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §7.9
+- **Amended by:** [ADR-098](098-intake-routing-and-knowledge-service.md): read "16 languages" as the 19 interface locales (17 languages); the decision below is unchanged and holds for all 19
 
 ## Decision
 

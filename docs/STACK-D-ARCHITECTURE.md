@@ -904,20 +904,48 @@ intent "Explain" scoped to M5 or M15. With no typed question to detect a languag
 written in the language of the user's interface setting. Stale data is flagged in the packet before
 any prompt is built.
 
+**The two buttons (build step 6, part 10, [ADR-098]).** Panel C's "Explain the current M5 chart" and
+"Explain the current M15 chart" are the first screen on this path. A press
+posts `{ "kind": "INSTANT_M5_INSPECT" | "INSTANT_M15_INSPECT" }` to `/api/intake/instant` and nothing
+else (no text, no language, no thread). They render only when `INTAKE_INSTANT_PROMPTS_ENABLED` is
+exactly `true`, a flag the page reads on the server; for a Free trader a press opens the upgrade modal
+and sends nothing. The route itself stays off until `INTAKE_ENABLED` is `true`, which waits for step 7's
+metering (D5).
+
 ### 4.3 Nineteen languages
 
 English is the single pivot for routing and retrieval; the answer is written in the user's language
-([ADR-038]).
+([ADR-038], amended to 19 locales by [ADR-098]).
 
 Question (any of 19) → translate to English with a fixed trading glossary → route and retrieve
 against one English corpus → answer in the user's language (§5).
 
+- **The 19 locales** are the list of `lib/i18n/languages.ts` (§7.9): `en-US`, `en-GB`, `es`, `de`,
+  `pt`, `pt-BR`, `it`, `ja`, `ar`, `fr`, `ko`, `zh`, `zh-TW`, `ur`, `hi`, `vi`, `id`, `th`, `tr`. They
+  are 17 languages: English and Portuguese appear twice, Simplified and Traditional Chinese are two
+  scripts. The code reads the list from there, not from a second copy; a locale added there appears in
+  the intake path at once and fails the pinned counts until the plan says so.
+- **Language of the reply (rule D1):** the language detected in the question, except that when the
+  interface locale belongs to the same family it wins (`pt` text from a `pt-BR` user is answered in
+  `pt-BR`; English from `en-GB` in `en-GB`); a language outside the list falls back to the interface
+  locale. An instant prompt has no typed text, so it uses the interface locale.
+- **The door:** a typed question is at most 500 characters as typed and 1,000 after normalisation
+  (invisible characters out, NFKC, the digits of 76 digit runs to ASCII, punctuation and white space
+  made even, a number in one notation when the separators leave one reading; an ambiguous one such as
+  `4.377` is left as typed and flagged). `2day` typed as one word is read as "today", not as the
+  two-day timeframe.
 - **Never translated:** prices and numbers; level names (UOEDT, LOEDT, baseline, `sr_n`); state codes
   and rule ids; symbol and timeframe names.
-- **The glossary:** one entry per trading term per language (buy / sell, stop loss, take profit,
-  entry zone, stand aside…); used both ways; versioned with the corpus.
-- **Tested per language:** the labelled question set covers all 19; each language within 5 points of
-  English ([ADR-044]).
+- **The glossary:** `config/intake/glossary.v1.json`, one entry per trading term per language (buy /
+  sell, stop loss, take profit, entry zone, stand aside…): 73 terms × 19 locales, 4,013 spellings; used
+  both ways; versioned with the corpus. The English term list is approved; the other 18 languages are
+  drafts until a native speaker has read them (decision D14).
+- **Fixed texts:** the reply to each of the ten refusals, the two instant questions and sixteen reason
+  texts are 28 keys (`intake.*`) in all 19 dictionaries, held to one English registry
+  (`lib/intake/text.ts`) by a test. No model writes any of them.
+- **Tested per language:** the labelled question set covers all 19 (40 questions in each); each
+  language within 5 points of English ([ADR-044]). The 18 translations are drafts, and the recorded
+  run is a stand-in: nothing about a model or a translation is measured yet (§4.8).
 
 The language list is owned by §7.9.
 
@@ -925,21 +953,39 @@ The language list is owned by §7.9.
 
 Every request carries the whole board ([ADR-040]):
 
+The board as the code builds it (`lib/intake/board.ts`) from the stored 18 Sep 20:55 reading, for a
+Day Trader. This is the text `board.test.ts` holds character for character (the earlier sketch here had
+VALID everywhere, a last price of 4377.99 and a rule name that is not the stored one):
+
 ```
 SENSOR BOARD · XAUUSD · 18 SEP 20:55 · DAY TRADER
-SYN    VALID   Rule 1 · C counter-trend rally · LONG · counter-trend
-MCD1   VALID   M15 downtrend; sustained breach above the upper band
-MCD2   VALID   M5 uptrend; price inside the corridor
-MCD3   VALID   M15 and M5 trends disagree; stand aside on its own
-MCD4…          future sensors appear here as they are switched on
-DATA   FRESH   cycle 20:55 · last price 4377.99 at 20:55:05
+SYN   CAUTIONARY  R1_MACRO_COUNTER_TREND_RALLY · LONG · COUNTER_TREND · Counter-trend rally, LONG
+MCD1  CAUTIONARY  MCD1_DOWN_UPPER_BREAKOUT · LONG · M15 downtrend, sustained close above the corridor
+MCD2  CAUTIONARY  MCD2_UP_IN_CORRIDOR · LONG · M5 uptrend, inside the corridor
+MCD3  CAUTIONARY  MCD3_NON_CONSOLIDATED_TREND_CONFLICT · STAND_ASIDE · M15 and M5 trends differ, no consolidated trend
+DATA  FRESH       cycle 20:55 · last price 4378.31 (close of the 20:50 M5 bar)
 ```
 
-1. Always sent: about 600–800 tokens for 15 sensors.
-2. Warnings can't be routed out: any sensor opposing the synthesis bias, or saying stand aside, also
-   gets its full reading ([ADR-041]).
-3. The primary sensor is always in full: MCD1 for Day Traders, MCD2 for Scalpers ([ADR-041]).
-4. Unavailable is said out loud: INVALID and STALE sensors are listed, never dropped.
+A sensor that is live but cannot be read keeps its line: `MCD2  INVALID  unavailable · <reasons>`,
+`MCD2  STALE  unavailable · <reasons>`, or `MCD2  ABSENT  unavailable · no reading for this cycle`.
+
+1. Always sent: one line per live sensor plus the synthesis line and the data line, so the body is
+   always the number of live sensors plus two (tested on all 16 golden cycles, the three stored cycles
+   and 300 random boards). About 600–800 tokens for 15 sensors, held by a character-based proxy at 800
+   (three characters to a token); the real count is per model and belongs to step 7 (§5.4).
+2. Warnings can't be routed out: a usable sensor (VALID or CAUTIONARY) that says stand aside, or whose
+   LONG or SHORT is the opposite of a LONG or SHORT synthesis bias, also gets its full reading
+   ([ADR-041]). NEUTRAL is not a warning, and when the synthesis itself stands aside nothing opposes it.
+3. The primary sensor is always in full: MCD1 for Day Traders, MCD2 for Scalpers ([ADR-041]); it is read
+   from the registry rung, not named in code.
+4. Unavailable is said out loud: INVALID, STALE and ABSENT sensors are listed, never dropped.
+5. Only sensors whose flag is `live` have a line; a shadow row never reaches the board. With no live
+   sensor (the committed configuration today) the SYN line says so in words, the packet carries
+   `SENSORS_NOT_LIVE`, and Section 5 treats it like STALE for direction.
+6. The DATA line's price is the close of the last closed M5 bar of the stored reading, labelled with its
+   bar. It is not the price of the bar still forming; that waits for the newest-row question (§1).
+7. MCD0 is a gate and has no line; its defects show as reasons on the channel sensors' lines. Future
+   sensors appear here as they are switched on.
 
 ### 4.5 Dispatch matrix (routing v1)
 
@@ -959,6 +1005,18 @@ labelled set. Eight intent labels ([ADR-037]):
 
 Plus always: the whole board and the SYN reading.
 
+As built (`config/intake/dispatch-matrix.v1.json`, version `routing-v1`, approved by Davin on
+2026-10-13): M\* = ALWAYS ∪ EXTRA(intent), where ALWAYS is the trader type's primary sensor and every
+warning (none for Report 2 and Out of scope) and EXTRA is the table's "sensors in full" column made
+exact: none for Direction, Risk / sizing and News; the sensors that supplied the zones for Entry timing;
+the sensors with levels beyond the entry on the target side for Exit / targets; the owner of the term
+for Explain. The D2 playbooks of M\* are read for Direction, Entry timing, Exit / targets and the two
+instant prompts; Risk / sizing, Explain and News read no playbook. The instant prompts are rows of
+their own: `INSTANT_M5_INSPECT` adds the sensors that read the M5 channel, `INSTANT_M15_INSPECT` those
+that read the M15 channel, and both read D1 and D3. The labelled set (§4.8) raised two questions for a
+`routing-v2` that this version does not answer: no D2 playbooks for Exit / targets (+2 of 30 on
+recall@4) and D3 to D5 for Explain (+1 of 30).
+
 ### 4.6 Knowledge corpus and index
 
 | Domain | Name                 | Written from                                           |
@@ -969,17 +1027,29 @@ Plus always: the whole board and the SYN reading.
 | D4     | Risk                 | Engine 4 maths, stops behind structure, caution sizing |
 | D5     | Governance           | Invariants, single-order scope, news blackouts         |
 
-Drafted from existing specs; Davin approves each domain before its first build ([ADR-042]).
+Drafted from existing specs; Davin approves each domain before its first build ([ADR-042]). Built in
+step 6 (`knowledge-service/corpus/`): 141 chunks in eight approved areas (D1, the four D2 playbooks,
+D3, D4, D5), all approved by Davin by 2026-10-14; the production image build refuses a pending one.
 
-Built on every deploy ([ADR-005]):
+Built on every deploy ([ADR-005]) by the image build of the Railway `knowledge-service` ([ADR-098] D3):
 
-1. Front-matter on every chunk: `id`, `domain`, `mcd_id`, `state_codes`, `timeframe`, `version`.
-2. One tag list (`tags.yaml`): the build fails on any unknown domain, MCD or state code.
-3. Whole sections: split on `##` / `###`; merge under 200 tokens, split over 1,500.
-4. Local files: txtai content + hybrid index, saved with a build id.
-5. Tests before release: below the bar (§4.8), the deploy stops.
+1. Front-matter on every chunk: `id`, `domain`, `mcd_id`, `state_codes`, `timeframe`, `version`, and
+   `related` (the chunks to add after a hit while the knowledge budget allows).
+2. One tag list (`tags.yaml`): the build fails on any unknown domain, MCD or state code; the sensor ids
+   and state codes are generated from the registries, not typed twice.
+3. Whole sections: split on `##` / `###`; merge under 200 tokens, split over **450** (was 1,500: the
+   dense vector sees only the first 512 tokens of a chunk, so a chunk of at most 450 is embedded whole;
+   decided by Davin and the Advisor on 2026-10-13). Tokens are counted with the embedding model's own
+   tokenizer.
+4. Local files: txtai content + hybrid index (`scoring: {method: bm25, terms: true, normalize: true}`),
+   saved with a build id that hashes the corpus, tags, glossary version, model revision, txtai version
+   and settings.
+5. Tests before release: below the bar (§4.8), the deploy stops (`gate replay` is the Dockerfile's last
+   step, with `--require-approved`).
 
-Embedding model: an English MiniLM-class model ([ADR-045]).
+Embedding model: `sentence-transformers/all-MiniLM-L6-v2` at the pinned revision
+`1110a243fdf4706b3f48f1d95db1a4f5529b4d41`, Apache-2.0, fetched once at image build and baked into the
+image; nothing is downloaded at start ([ADR-045], [ADR-098] D12).
 
 Reference code: `seed-code/txtai/` (read-only) holds the txtai 9.5.0 source (`src/python/txtai/`),
 its `docs/` and examples, among them `30_Embeddings_SQL_custom_functions.ipynb` and
@@ -989,29 +1059,46 @@ and tested with; after any upgrade, re-check the two behaviours in §4.7.
 ### 4.7 Retrieval
 
 txtai's `search()` has no filter argument, so filtering is done in SQL alongside `similar()` with
-bound parameters:
+bound parameters. This is what the service builds (`knowledge-service/knowledge/search.py`, behind
+`POST /search`, contract `knowledge-search/1`); the first sketch of this section scoped a chunk by its
+sensor id alone and passed neither the playbook domain nor the weights:
 
 ```python
-# 1. constructed query, not the raw message
-q = f"{INTENT_TEMPLATE[intent]} | {state_codes} | {question_en}"
+# 1. the constructed query, never the raw message: ONE bound value, :q
+#    the template is one word per intent (config/index.yaml), e.g. "direction", "entry", "targets",
+#    "risk", "explain", "news"; the state codes are those the registries list
+q = f"{INTENT_TEMPLATE[intent]} | {' '.join(state_codes)} | {question_en}"
 
-# 2. whitelisted ids only, each bound separately
-ids = [m for m in m_star if m in MCD_REGISTRY]
-doms = DOMAINS_FOR[intent]            # from tags.yaml
-p = {"q": q, **{f"m{i}": m for i, m in enumerate(ids)},
-            **{f"d{i}": d for i, d in enumerate(doms)}}
+# 2. whitelisted ids only, each bound separately; the DOMAINS come from the dispatch matrix
+#    (routing-v1, §4.5), never from the request. D2 playbooks only for the sensors of M*, and only
+#    for an intent whose matrix row reads playbooks.
+ids  = sorted({m for m in m_star if m in MCD_REGISTRY})      # a hostile id is dropped, never bound
+doms = MATRIX[intent].domains                                # e.g. ("D3", "D5") for Direction
+p = {"q": q, "pd": "D2", **{f"m{i}": m for i, m in enumerate(ids)},
+                         **{f"d{i}": d for i, d in enumerate(doms)}}
 
-# 3. filter in SQL alongside similar()
-sql = f"""SELECT id, text, mcd_id, domain, score
-  FROM txtai WHERE similar(:q, 40)
-  AND (mcd_id IN ({ph("m", ids)})
-       OR domain IN ({ph("d", doms)}))
-  LIMIT 4"""
-hits = embeddings.search(sql, parameters=p)
+# 3. filter in SQL alongside similar(). The only values written into the text are the two whole
+#    numbers from the configuration and placeholder names made of a letter and a counter.
+sql = ("SELECT id, text, mcd_id, domain, score FROM txtai WHERE similar(:q, 40) "
+       "AND ((domain = :pd AND mcd_id IN (:m0, :m1)) OR domain IN (:d0, :d1)) LIMIT 4")
+hits = embeddings.search(sql, limit=4, weights=0.7, parameters=p)
 ```
 
-Top 4, then cross-referenced chunks only while the knowledge budget allows (§5.4). Order:
-foundations → playbook → synthesis → risk; each chunk keeps its id and the index build id.
+An empty list builds no clause. A request with nothing left to search (Report 2, Out of scope, or a
+scope with no domain and no playbook) answers `EMPTY` without calling txtai: an empty scope must never
+turn into an unfiltered query. If the index cannot load, the service stays up, `/healthz` still
+answers, and `/search` answers 503 with `{"status": "UNAVAILABLE", ...}` so the monolith builds the
+packet with an unavailable knowledge section (§7.6).
+
+Top 4, then cross-referenced chunks (the `related` lists of the hits, at most 6, in the scope of the
+search) only while the knowledge budget of 2,000 tokens allows (§5.4). Order: foundations → playbook →
+synthesis → risk → governance (D1 → D5); each chunk keeps its id and the index build id.
+
+**Why one word per template.** The first form (five to eight words per intent) let the words of the
+template, not the question, pick the chunks: the Direction template pulled the generic synthesis chunks
+to the top of every Direction search, and 16 of the 320 state-code searches missed their own playbook
+section once D3 was in the corpus. With one word each the figures are 0 of 320; the labelled set
+(part 9) found one-word templates the best of the forms tried, by one question (§4.8).
 
 **Hybrid weighting, as txtai 9.5.0 does it** (`embeddings/search/base.py` in the seed copy):
 
@@ -1030,25 +1117,66 @@ every deploy against the new index and dispatch matrix; below the bar, the deplo
 
 Bars ([ADR-044], starting values): intent and M\* match ≥ **90%** · recall@4 ≥ **0.8** · every
 language within **5 points** of English · stand-aside or opposing sensors present in full **100%**.
+Added by [ADR-098] (D15 c): the out-of-scope questions are refused in **100%** of every language, and
+at most **5%** of the in-scope questions may be wrongly refused by the scope check (one of the 35 of a
+locale).
+
+As built in step 6 (`knowledge-service/labelled/`): an English base of 40 questions (five for each of
+the eight intents, eight of them noisy), each with its expected intent, M\*, a golden cycle and the chunk
+ids a good answer needs, all labelled by hand and none derived from the router; the same 40 in the other
+18 locales (labels are inherited); an English adversarial slice of 13 cases outside the percentages
+(prompt injection, SQL-looking text, an over-long and an empty input). The gate has two halves that need
+each other: `__tests__/lib/intake/labelled-gate.test.ts` replays the real intake pipeline over a recorded
+run of the Understand step (intent, M\*, scope, warnings), and `python -m knowledge.gate replay` computes
+recall@4 on the real index with the retrieval requests the first half stored; the second is the
+Dockerfile's last step. The recorded run in the repository is a **stand-in** (the answers are the hand
+labels): the mechanism is shown, a model and the translations are not yet measured. The base set is
+approved by Davin before the image build accepts it (`--require-approved`); a live run
+(`scripts/intake/eval_understand.ts --live --write`) is a separate step.
 
 ### 4.9 The intake packet (handoffs)
 
-| To    | What                  | Form                                                         | Replaces                  |
-| ----- | --------------------- | ------------------------------------------------------------ | ------------------------- |
-| 5     | Question              | English text + original text + language code                 | The raw message only      |
-| 5     | Intent                | One label from the fixed list                                | Nothing                   |
-| 5     | Sensor board          | Synthesis line + one line per sensor                         | Only routed sensors       |
-| 5     | Readings in full      | Envelopes for M\*, plus the SYN reading and zones            | Raw output files          |
-| 5     | Knowledge pack        | Up to 4 chunks + expansions, with ids and index build id     | Unfiltered search results |
-| 5 · 6 | Profile + data status | Trader type, style, limits; FRESH / DELAYED / STALE / CLOSED | Nothing                   |
-| 7     | Trace                 | Language, intent, M\*, chunk ids, build id, cycle slot       | Nothing                   |
+| To    | What                  | Form                                                                                                     | Replaces                  |
+| ----- | --------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------- |
+| 5     | Question              | Source (typed / instant), original text, English text, language, interface and reply locale, flags       | The raw message only      |
+| 5     | Intent                | One label of nine: seven typed intents and the two instant prompts (Out of scope never makes a packet)   | Nothing                   |
+| 5     | Sensor board          | Synthesis line + one line per live sensor, unavailable ones listed                                       | Only routed sensors       |
+| 5     | Readings in full      | M\* and, for each sensor in it, its envelope with its stored hash; the trader's SYN reading and zones    | Raw output files          |
+| 5     | Knowledge pack        | Status, up to 4 chunks + expansions, each with its id, and the index build id; null for Report 2         | Unfiltered search results |
+| 5 · 6 | Profile + data status | Six profile fields (never equity or commission); FRESH / DELAYED / STALE / MARKET_CLOSED / UNKNOWN       | Nothing                   |
+| 5     | Events                | Status (OK / LATE / UNAVAILABLE), the calendar's age, a scope and the events                             | Nothing                   |
+| 7     | Trace                 | Language, reply locale, intent, M\*, chunk ids, build id, cycle slot, data status, sensor statuses, rule | Nothing                   |
+
+The packet is `intake-packet/1` (`config/intake/intake-packet-1.schema.json`, checked by a hand-written
+validator, `lib/intake/packet.ts`). Its fields are `schema`, `symbol` (always XAUUSD), `thread_id`,
+`question`, `intent`, `profile`, `data`, `board`, `readings`, `knowledge`, `events` and `trace`. Points
+that the first sketch of this table left open:
+
+- **The packet pins the cycle.** Section 5 never chooses the cycle, the sensors or the chunks; it reads
+  the OHLC and the chart for the pinned slot by id. `data` carries the status, `retuning`, the slot, the
+  last price (the close of the last closed M5 bar, with its bar) and flags (`SENSORS_NOT_LIVE`,
+  `GATEWAY_UNREACHABLE`). A STALE or unknown status is written before anything else is assembled.
+- **`knowledge`** is `{status, index_build_id, chunks, expansions}`. Status `OK` has a build id and at
+  least one chunk, `EMPTY` has a build id and no chunk, `UNAVAILABLE` has neither (the service could not
+  be asked). A chunk is `{id, domain, mcd_id, state_codes, timeframe, version, text}`, domain D1 to D5. A
+  failure of the service gives a packet with `UNAVAILABLE`, never an error.
+- **`events`** is there for every intent except Out of scope: the full upcoming list for News
+  (`UPCOMING_ALL`), the next 24 hours of high-impact events for the others (`NEXT_24H_HIGH`), with the
+  calendar's age so that an unavailable calendar is said aloud.
+- **`profile`** is a projection of six of Engine 4's eight metrics (`trader_type`, `style`,
+  `max_risk_pct`, `max_leverage`, `target_rrr`, `min_sld`). `equity` and `commission` are refused as a
+  key at any depth by the validator, and every packet of the golden run is scanned for them
+  ([ADR-077]).
+- **`trace`** equals the trace the route returns, field by field; the route adds `packet_sha256`, the
+  fingerprint of the whole packet. The stored `request_traces` row is chapter 7's.
 
 Section 5 does not reach back into market tables or the index.
 
 ### 4.10 Keep, change, add, remove
 
 - **Keep:** tier, quota and thread gate; XAUUSD and M5 / M15 scope with fixed replies; instant
-  prompts; five knowledge domains; txtai with local index files and hybrid search.
+  prompts (built in step 6 part 10, behind `INTAKE_INSTANT_PROMPTS_ENABLED`); five knowledge domains;
+  txtai with local index files and hybrid search.
 - **Change:** routing by dispatch matrix, not vector similarity; retrieval query built from context;
   filtering in SQL with whitelisted ids; the gate also checks data status and profile.
 - **Add:** language detection, English pivot and glossary; intent labels; sensor board on every
@@ -1058,25 +1186,39 @@ Section 5 does not reach back into market tables or the index.
 
 ### 4.11 Done when
 
-- Every request carries the board: synthesis line and all sensors, including unavailable ones.
-- A test where only MCD3 says stand aside still delivers MCD3's full reading.
-- Routing and recall per language within 5 points of English, for all 19.
-- Other symbols and timeframes get the fixed reply in the user's language; nothing else runs.
-- The SQL retrieval runs on the real txtai index with bound, whitelisted ids.
-- The index is built with keyword-score normalisation on and searched with `weights=0.7`; a test
-  fails if either setting changes.
-- A corpus change that drops recall below 0.8 stops the deploy.
-- A STALE cycle is flagged in the packet before any prompt is built.
-- An instant prompt with too little quota is refused at the gate, before any model call, and its reply
-  is in the user's interface language.
-- Each answer's trace names its language, intent, M\*, chunk ids and index build.
+Build step 6 (parts 1 to 10, 11 to 14 October 2026) built everything in this chapter on fixtures, the
+16 signed-off golden cycles and a scratch database. Nothing is deployed, no migration is applied, and
+no model has been called. The table gives, for each item, the proof as it exists in the repository and
+its state. Test paths are relative to the repository root; `knowledge-service/tests/` runs with
+`( cd knowledge-service && python -m pytest )`, the others with `npx jest <path>`.
+
+| #   | Item                                                                                                                                     | Proof                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | State after step 6                                                                                                                                                                                                                                                                                                                            |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Every request carries the board: synthesis line and all sensors, including unavailable ones                                              | `__tests__/lib/intake/board.test.ts`: the 16 golden and the 3 stored cycles for both trader types (38 cases), each line against the stored envelope, line count = live sensors + 2 (also on 300 random boards), INVALID, STALE and ABSENT listed, the 18 Sep text written out by hand; `packet.test.ts` (the validator refuses a packet with no board); `pipeline-golden.test.ts` (288 packets, each with the whole board)                                                                           | **Met** on fixtures, and on a scratch PostgreSQL 18 by the gated `__tests__/intake/intake-readers.pg.spec.ts` (23 tests: the `flag = 'live'` filter, the unique keys, a missing row becoming ABSENT)                                                                                                                                          |
+| 2   | A test where only MCD3 says stand aside still delivers MCD3's full reading                                                               | `__tests__/lib/intake/router.test.ts` on golden 01 (MCD1 and MCD2 say LONG, MCD3 alone says STAND_ASIDE): for both trader types and each of the eight intents that give readings, MCD3 is in M\* and its whole envelope with its stored hash is in the accepted packet (16 cases); the property test over 300 random boards × 10 intents (primary sensor and every warning always in M\*, shown not to be vacuous); `pipeline-golden.test.ts` repeats it end to end                                  | **Met**                                                                                                                                                                                                                                                                                                                                       |
+| 3   | Routing and recall per language within 5 points of English, for all 19                                                                   | `__tests__/lib/intake/labelled-gate.test.ts` (84 tests: intent and M\* ≥ 90%, out of scope 100%, warnings 100%, within 5 points of English, the adversarial slice, in 19 locales) and `python -m knowledge.gate replay` with `knowledge-service/tests/test_replay.py` (87 tests: recall@4 ≥ 0.80 and within 5 points of English per locale on the real index); the recorded run `knowledge-service/labelled/runs/1c93c9c56fd4644768e91984cd2bd472/`                                                  | **Met by the mechanism, NOT by a measurement.** The recorded run is a stand-in (the answers are the hand labels, `calls: 0`): recall@4 is 24/30 = 0.800 in all 19 locales by construction, the TypeScript bars are 100%. What the Understand model does in 19 languages is unmeasured until a live run exists; the 18 translations are drafts |
+| 4   | Other symbols and timeframes get the fixed reply in the user's language; nothing else runs                                               | `__tests__/lib/intake/pipeline.test.ts` for all 19 locales (the model says EURUSD in that language: Understand called once, snapshot, calendar, router, board and knowledge client 0 times, stages exactly GATE, DOOR, UNDERSTAND, SCOPE, the reply in the locale of rule D1) plus six more ways to be out of scope; `__tests__/lib/intake/text/scope.test.ts` (including `2day`, which is "today" and in scope); `typed.test.ts` and `pipeline-golden.test.ts` on the route and the golden cycles   | **Met**                                                                                                                                                                                                                                                                                                                                       |
+| 5   | The SQL retrieval runs on the real txtai index with bound, whitelisted ids                                                               | `knowledge-service/tests/test_search.py` and `test_api.py` on the real txtai 9.5.0 and the real model: the SQL equals §4.7 character for character; 15 hostile id shapes dropped and a hostile id answers exactly like an empty M\*; 9 hostile question shapes appear only as the bound `:q`; a 300-case randomised search; D2 never comes back outside M\*; an empty scope answers EMPTY with zero calls to txtai                                                                                   | **Met** (the Python environment of plan assumption A8; nothing ran on Python 3.11 or Linux, the image is not built)                                                                                                                                                                                                                           |
+| 6   | The index is built with keyword-score normalisation on and searched with `weights=0.7`; a test fails if either setting changes           | `knowledge-service/tests/test_search.py` and `test_config.py`: txtai asserted to be exactly 9.5.0; `index.yaml` pinned to `weights: 0.7` and `scoring: {method: bm25, terms: true, normalize: true}`; `parse_index_config` refuses `normalize: false`; the loader refuses an index whose saved scoring differs; the search call is spied and carries `weights=0.7`; a crafted pair of documents orders differently at 0.7 and 0.3, and an index built with `normalize: false` fails the fusion check | **Met**                                                                                                                                                                                                                                                                                                                                       |
+| 7   | A corpus change that drops recall below 0.8 stops the deploy                                                                             | `knowledge-service/tests/test_replay.py`: the gate exits 1 on a corpus with a chunk removed (`CHUNK_UNKNOWN`), a stale fingerprint (eight codes), a locale 6 points under English (`BELOW_ENGLISH`) and a recall of 0.77 (`RECALL_LOW`); `gate replay --require-approved` is the Dockerfile's last build step; the TypeScript half runs in `npm run test:ci`, which `deploy.yml` requires                                                                                                            | **Met** for the service build and for the Jest gate. The Railway wiring is Davin's (decision D3), and `deploy.yml` is invalid today (§0.5), so what stops a Vercel deploy is unverified                                                                                                                                                       |
+| 8   | A STALE cycle is flagged in the packet before any prompt is built                                                                        | `__tests__/lib/intake/pipeline.test.ts`: under a STALE gateway each of the 7 packet intents gives `data.status = STALE` and the trace says so, and the knowledge port, when called, finds GATE through ROUTE already finished with the status already written; an unreachable gateway gives UNKNOWN with `GATEWAY_UNREACHABLE`; FRESH, DELAYED and MARKET_CLOSED raise no flag                                                                                                                       | **Met.** A STALE cycle is not refused: Section 5 decides about direction from `data.status`                                                                                                                                                                                                                                                   |
+| 9   | An instant prompt with too little quota is refused at the gate, before any model call, and its reply is in the user's interface language | `__tests__/lib/intake/gate.test.ts`; `pipeline.test.ts` (both prompts in all 19 locales, 38 cases: `QUOTA_INSUFFICIENT` at stage GATE, the reply in the locale's own dictionary, and the counters of Understand, snapshot, calendar, router, board and knowledge client all 0); `__tests__/api/intake/gating.test.ts` and `instant.test.ts` (HTTP 429, no `fetch`); the buttons: `__tests__/components/charts/ask-ai-button.test.tsx`                                                                | **Met with a fake quota.** The real quota is step 7's (decision D5): the default adapter allows everything, which is why `INTAKE_ENABLED` stays false until step 7 meters                                                                                                                                                                     |
+| 10  | Each answer's trace names its language, intent, M\*, chunk ids and index build                                                           | `__tests__/lib/intake/trace.test.ts`; `pipeline-golden.test.ts` (each of the 288 packets: the trace equals `packet.trace` field by field and `packet_sha256` equals the packet's canonical hash); `__tests__/api/intake/typed.test.ts` on the route                                                                                                                                                                                                                                                  | **Met in the response.** The stored `request_traces` row is chapter 7's                                                                                                                                                                                                                                                                       |
+| –   | §7.10 row 6: glossary, corpus, index, labelled set                                                                                       | Parts 3, 6 to 9. `check --require-approved` for the glossary, the matrix, each corpus area and the labelled base; `gate build ... --require-real --require-approved` exits 0                                                                                                                                                                                                                                                                                                                         | **Built; approval is Davin's.** The matrix, the English term list and all eight corpus areas are APPROVED; the English base of the labelled set is signed in the Phase 1 of part 10 (see its hand-off); the 18 non-English term and text translations are drafts (D14)                                                                        |
+
+Not shown, and not claimed: a real model call (the Understand adapter and the knowledge client have
+never met a real endpoint), the Docker image (never built; its size and memory are estimates), nothing
+on Python 3.11 or Linux, the Vercel to Railway latency, and the quota. Each is a line of
+[the Step 6 runbook](runbooks/deploy-stack-d-step6.md).
 
 ### 4.12 Decisions
 
 [ADR-036] dispatch matrix · [ADR-037] eight intents · [ADR-038] English pivot · [ADR-039] one
 small model call · [ADR-040] sensor board · [ADR-041] always in full · [ADR-042] corpus authorship ·
 [ADR-043] retrieval query · [ADR-044] test thresholds · [ADR-045] embedding model · [ADR-046]
-out-of-scope check.
+out-of-scope check · [ADR-098] the build of this chapter: 19 locales, the knowledge service, the
+Understand adapter, the quota pre-check, the instant prompt buttons, retrieval settings and the pinned
+model.
 
 ---
 
@@ -2088,6 +2230,7 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | [095](adr/095-stop-options-from-the-stored-readings-and-the-cycle-bundle.md)   | Stop options rebuilt from stored readings and bundle S&R levels; targets strictly before the level       | Section 6 · 9 Oct   | Settled |
 | [096](adr/096-profile-history-and-the-keyed-audit-hash.md)                     | Profile history and consent rows are append-only; user id goes to NULL, a keyed HMAC hash stays          | Section 6 · 10 Oct  | Settled |
 | [097](adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md)        | One ValidatedSetup for modal and chat; the server recomputes; Report 2 is a fixed template               | Section 6 · 10 Oct  | Settled |
+| [098](adr/098-intake-routing-and-knowledge-service.md)                         | Section 4 as built: 19 locales, Railway service, adapter, quota port, buttons, retrieval, model pin      | Section 4 · 14 Oct  | Settled |
 
 ## Appendix B — Corrections to earlier material
 
@@ -2110,6 +2253,12 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | §6.5, §6.14       | 18 Sep: entry 4367.25, options 4349.72 and 4278.71, 4384.28 named | Stored cycle: entry 4367.20, six options, M15 `sr_1` 4369.57 named, no badge (§6.5; corrected in build step 5 part 8)                  |
 | §6.8              | $500 case is a risk shortfall only                                | At gold 2,545 and the 1:5 ceiling it is also a leverage shortfall ($509 needed); the leverage twin is added (§6.8)                     |
 | News manifest §10 | "the other 12 dictionaries"                                       | `lib/i18n/dictionaries` holds 19 files for 19 languages/locales (§7.9)                                                                 |
+| §4.3, 5 ADRs      | "16 languages"                                                    | 19 locales, 17 languages ([ADR-098]); the five ADR files carry an "Amended by" line, their text is unchanged                           |
+| §4.4              | Sample board: all VALID, last price 4377.99 at 20:55:05           | Stored 18 Sep cycle: all CAUTIONARY, state codes shown, last price 4378.31 (close of the 20:50 M5 bar)                                 |
+| §4.6              | Chunks split over 1,500 tokens                                    | Over 450: the embedding model sees only the first 512 tokens of a chunk (§4.6)                                                         |
+| §4.7              | SQL scoped by `mcd_id` or domain, no weights, long templates      | Playbook domain and ids bound together, `weights=0.7`, one-word templates, domains from the matrix (§4.7)                              |
+| App. C, item 6    | Panel C buttons are a design target, not built                    | Built in step 6 part 10 behind `INTAKE_INSTANT_PROMPTS_ENABLED`; text "Explain the current M5 / M15 chart" (§4.2)                      |
+| Step 6 task text  | Locales `ms` and `ru`                                             | The app has `en-GB` and `pt` instead (`lib/i18n/languages.ts`); the labelled set follows the app (§4.3)                                |
 
 ## Appendix C — Superseded documents
 
@@ -2147,7 +2296,7 @@ data-collection blueprint v2.29, the terminal, frozen-baseline, chart and news m
 
 The six design folders in `seed-code/txtai/` were reviewed against this architecture and the live 4-panel terminal codebase (`/terminal`, `components/workspace/trading-workspace.tsx`) before Build Step 4 (Appendix D item resolved).
 
-On 4 Oct 2026 the terminal's chat UI is not built. Panel A (`components/chat-sidebar.tsx`) lists four hardcoded session titles. Panel B (`components/chat-panel.tsx`) is an "AI Copilot Coming Soon" empty state with a tier badge, by the zero-mock-data decision of Session 9-4. Panel C (`components/charts/mtf-stacked-charts.tsx`) has no chat buttons. Panel D is Market Comments. Where this review marks a UI item "kept", it is a design input for the chat UI, not an existing feature.
+On 4 Oct 2026 the terminal's chat UI is not built. Panel A (`components/chat-sidebar.tsx`) lists four hardcoded session titles. Panel B (`components/chat-panel.tsx`) is an "AI Copilot Coming Soon" empty state with a tier badge, by the zero-mock-data decision of Session 9-4. Panel C (`components/charts/mtf-stacked-charts.tsx`) has no chat buttons (the two instant prompt buttons were added on 14 Oct 2026, item 6 below). Panel D is Market Comments. Where this review marks a UI item "kept", it is a design input for the chat UI, not an existing feature.
 
 1. **`CHAT-UI-MANAGEMENT`:**
    - **Kept:** Visual badge styling for the active cycle and the trader profile (`Day Trader` / `Scalper`, ADR-028) in the `ChatPanel` header (§5.1). The live header shows only the title and the tier badge.
@@ -2177,6 +2326,9 @@ On 4 Oct 2026 the terminal's chat UI is not built. Panel A (`components/chat-sid
    - **Kept as design targets, not built:**
      - Panel B: a model picker that lists passed models only (§5.12, ADR-055), a Monthly Token Quota meter (§5.6, ADR-050, ADR-073), and a chat input box. The design's `Ask Gemini...` placeholder names a model; the launch model is set by the evaluation suite (§5.10, ADR-055).
      - Panel C: `Ask AI about M5 Chart` and `Ask AI about M15 Chart` instant prompt buttons (§4.10).
+       **Update (14 Oct 2026, build step 6 part 10): built**, behind `INTAKE_INSTANT_PROMPTS_ENABLED`
+       (off). The visible text is the dictionary text of the fixed question, "Explain the current M5
+       chart" and "Explain the current M15 chart"; the old label is the tooltip (§4.2, [ADR-098] D10).
    - **Superseded:** TypeORM entities and older indicator cards (superseded by the Prisma models in the Railway gateway, `railway-gateway/prisma/schema.prisma`, and the Sensor Board, ADR-040).
 
 The txtai library source in the same folder is reference code (§4.6).
@@ -2188,7 +2340,12 @@ The txtai library source in the same folder is reference code (§4.6).
 | Resolve the four "documents disagree" status items against production                                      | Davin / Executor            | §0.5                              |
 | First real, measured cycle; confirm the ADR-012 thresholds                                                 | Executor                    | §1.8                              |
 | Write the rules table content (the draft is a starting point)                                              | Davin                       | §3.4                              |
-| Approve each knowledge domain before its first build                                                       | Davin                       | §4.6                              |
+| Approve each knowledge domain before its first build                                                       | Davin                       | Resolved (14 Oct 2026, §4.6)      |
+| Sign the English labelled base; record a live Understand run and re-run the gate                           | Davin, then Executor        | §4.8, runbook                     |
+| Native readers for the 18 translations; counsel for the ten refusal replies                                | Davin + counsel             | §4.3, ADR-098                     |
+| Meter the quota (step 7) before `INTAKE_ENABLED` is on in production                                       | Executor                    | §4.2, §7.3, ADR-098 D5            |
+| Wire the Railway `knowledge-service`; build the image once and measure it                                  | Davin / Executor            | §4.6, runbook                     |
+| Decide the two `routing-v2` questions the labelled set raised (§4.5)                                       | Davin, with his advisor     | §4.5                              |
 | Set the model-spend share for the Pro quota; publish tier amounts after measurement                        | Davin                       | §7.3                              |
 | Counsel review: wording guide, disclaimers, consent wording, retention figures, privacy notice             | Davin + counsel             | §5.9, §6.11, §7.5                 |
 | Capture golden scenarios from live cycles once the pipeline runs                                           | Executor, approved by Davin | §7.7                              |
@@ -2291,3 +2448,4 @@ The txtai library source in the same folder is reference code (§4.6).
 [ADR-095]: adr/095-stop-options-from-the-stored-readings-and-the-cycle-bundle.md
 [ADR-096]: adr/096-profile-history-and-the-keyed-audit-hash.md
 [ADR-097]: adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md
+[ADR-098]: adr/098-intake-routing-and-knowledge-service.md
