@@ -1,6 +1,6 @@
 ---
 type: Concept/Task
-status: in_progress
+status: completed
 updated_at: 2026-10-13
 task_id: 2026-10-13-checkout-provider-choice-publish
 owner: Codex
@@ -41,9 +41,9 @@ manual deployment, payment action or schema/client generation is authorized.
 
 - [x] Confirm explicit authorization, local branch/HEAD, remote HEAD and index.
 - [x] Verify unchanged reviewed source, scoped formatting/lint/types and test gate.
-- [ ] Stage exact allowlist, inspect staged diff and commit.
-- [ ] Push without force and verify the remote SHA.
-- [ ] Publish final durable verification and closure records.
+- [x] Stage exact allowlist, inspect staged diff and commit.
+- [x] Push without force and verify the remote SHA.
+- [x] Publish final durable verification and closure records.
 
 ## Verification
 
@@ -68,8 +68,17 @@ Publication gates passed:
 - Operating-document checker has 29 reproduced pre-existing errors; no new
   checkout-record errors were introduced.
 
+Implementation commit `acd94c403e7fe462a1b02431ce29ff5eb2ae99aa` was pushed
+to `origin/main` and verified with `git ls-remote`: remote and local SHA match.
+The commit contains exactly the 31 allowlisted files. Git commit/push both
+exited 0. The index is empty and owned source paths have no remaining diff.
+A separate documentation-only closure records this post-push result.
+No unrelated work was included, no force push used, and no manual deployment
+or production payment action performed.
+
 ## Continuation
 
-- Next: scoped commit and push by root; validation and scope audit are complete.
+- Next: publication complete. A documentation closure records this verified
+  outcome on the same branch; no runtime change or user input remains.
 - Blocked: none.
 - Handoff: `docs/handoffs/2026-10-13-checkout-provider-choice-codex-publish.md`.

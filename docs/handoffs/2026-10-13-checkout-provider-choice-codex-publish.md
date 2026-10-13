@@ -1,6 +1,6 @@
 ---
 type: Concept/Handoff
-status: in_progress
+status: completed
 updated_at: 2026-10-13
 task_id: 2026-10-13-checkout-provider-choice-publish
 ---
@@ -13,7 +13,9 @@ Task / authorization: [publication task](../codex/tasks/2026-10-13-checkout-prov
 Phase/session: unchanged; ad-hoc
 Source: D:/SaaS Project/trading-alerts-saas-public, main
 Base: f7d7368650179a0a4958133c451cc3f1ba6f2702
-Status: validation passed; staged for commit and push
+Status: committed, pushed and remote-verified
+Implementation commit: `acd94c403e7fe462a1b02431ce29ff5eb2ae99aa`
+Destination: `origin/main`
 
 ## Needs from Davin
 
@@ -54,6 +56,12 @@ Additional publication checks:
 Results and coverage are saved outside Git under this chat's visualization root
 as `checkout-publication-jest.json` and `checkout-publication-coverage/`.
 
+Publication result: Git commit and push exited 0. The feature commit
+`acd94c403e7fe462a1b02431ce29ff5eb2ae99aa` contains exactly the 31 allowlisted
+paths; `git ls-remote origin refs/heads/main` returned that same SHA, exit 0.
+Owned runtime paths are clean, index empty, unrelated local changes preserved.
+A documentation-only closure follows to make this verified result durable.
+
 ## Review findings
 
 Read-only reviewer confirmed 27/27 unchanged hashes and the exact 31-file
@@ -74,5 +82,7 @@ document error was introduced.
 
 ## Next action and ownership
 
-Root completes gates, stages only the allowlisted paths, commits, pushes and
-verifies the exact remote SHA. Shared-state publication remains handoff-only.
+Requested commit and push are complete. Root publishes only these two closure
+records in a documentation commit; there is no remaining runtime work or
+owner decision. Shared-state publication remains handoff-only; no shared
+Claude/Codex state was edited.
