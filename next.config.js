@@ -47,6 +47,12 @@ const nextConfig = {
 
   // Experimental & Optimization features for Next.js 16
   experimental: {
+    // Reclaim unreachable Turbopack work from memory and the persistent cache
+    turbopackGc: true,
+    // Compile client dynamic imports when first requested during development
+    turbopackLazyDynamicImports: true,
+    // Run Node.js build tooling in worker threads
+    turbopackPluginRuntimeStrategy: 'workerThreads',
     // Enable server actions (stable in Next.js 15/16)
     serverActions: {
       bodySizeLimit: '2mb',
