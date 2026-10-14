@@ -60,7 +60,7 @@ function monthKeyOf(iso: string): string {
 
 function monthLabelOf(key: string): string {
   const [year, month] = key.split('-').map(Number);
-  return new Date(year!, (month ?? 1) - 1, 1).toLocaleDateString(undefined, {
+  return new Date(year!, (month ?? 1) - 1, 1).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
   });

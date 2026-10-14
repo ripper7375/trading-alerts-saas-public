@@ -333,7 +333,7 @@ describe('the zone builder works in cents (toStructure)', () => {
     const yaml = readFileSync(
       join(WORKER, 'synthesis', 'zone_params.yaml'),
       'utf8'
-    );
+    ).replace(/\r\n/g, '\n');
     const value = (name: string): string => {
       const match = new RegExp(`\\n  ${name}:\\n    value: ([0-9.]+)`).exec(
         yaml
