@@ -440,3 +440,16 @@ a[title*='TradingView'],
     opacity: 0;
   }
 }
+
+/* Snappy 80ms micro-fade for checkout & payment pages (calm, reassuring, zero lag) */
+::view-transition-group(checkout-page-content) {
+  animation-duration: 80ms;
+}
+
+::view-transition-old(checkout-page-content) {
+  animation: 60ms ease-out both fadeOut;
+}
+
+::view-transition-new(checkout-page-content) {
+  animation: 80ms ease-out both fadeIn;
+}
