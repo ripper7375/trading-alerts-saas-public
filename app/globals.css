@@ -419,9 +419,24 @@ a[title*='TradingView'],
   pointer-events: none;
 }
 
-/* Smooth crossfade timing for settings subpage content */
-::view-transition-old(settings-subpage-content),
+/* Snappy 80ms micro-fade for settings subpage content (instant feel, zero perceptual lag) */
+::view-transition-group(settings-subpage-content) {
+  animation-duration: 80ms;
+}
+
+::view-transition-old(settings-subpage-content) {
+  animation: 60ms ease-out both fadeOut;
+}
+
 ::view-transition-new(settings-subpage-content) {
-  animation-duration: 0.22s;
-  animation-timing-function: ease-in-out;
+  animation: 80ms ease-out both fadeIn;
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
