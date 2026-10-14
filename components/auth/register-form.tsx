@@ -42,7 +42,7 @@ const registrationSchema = z
 
 type RegistrationFormData = z.infer<typeof registrationSchema>;
 
-export default function RegisterForm(): JSX.Element {
+export default function RegisterForm(): React.JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { t, formatCurrency } = useLocale();

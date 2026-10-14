@@ -20,7 +20,7 @@ const ACCENT_OPTIONS: { id: AccentScheme; label: string; swatch: string }[] = [
   { id: 'purple', label: 'Amethyst Purple', swatch: 'bg-purple-500' },
 ];
 
-export default function WelcomePage(): JSX.Element {
+export default function WelcomePage(): React.JSX.Element {
   const router = useRouter();
   const { status } = useSession();
   const { t } = useLocale();

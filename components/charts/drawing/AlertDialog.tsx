@@ -9,7 +9,7 @@
  * @module components/charts/drawing/AlertDialog
  */
 
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -56,7 +56,7 @@ export function AlertDialog({
   submitting = false,
   error,
   onSubmit,
-}: AlertDialogProps): JSX.Element {
+}: AlertDialogProps): React.JSX.Element {
   const { t } = useLocale();
   const [targetLevel, setTargetLevel] = useState('');
   const [direction, setDirection] =

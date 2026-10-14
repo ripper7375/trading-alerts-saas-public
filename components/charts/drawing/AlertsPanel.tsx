@@ -8,7 +8,7 @@
  */
 
 import { Trash2, X } from 'lucide-react';
-import { useCallback, useEffect, useState, type JSX } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Switch } from '@/components/ui/switch';
 import { useLocale } from '@/lib/context/locale-context';
@@ -34,7 +34,7 @@ export function AlertsPanel({
   drawingCount,
   refreshKey,
   onClose,
-}: AlertsPanelProps): JSX.Element {
+}: AlertsPanelProps): React.JSX.Element {
   const { t } = useLocale();
   const [alerts, setAlerts] = useState<LineAlertDTO[]>([]);
   const [loading, setLoading] = useState(true);

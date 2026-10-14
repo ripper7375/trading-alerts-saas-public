@@ -16,7 +16,9 @@ interface LoginTrackerProps {
   provider?: string;
 }
 
-export function LoginTracker({ provider = 'credentials' }: LoginTrackerProps): null {
+export function LoginTracker({
+  provider = 'credentials',
+}: LoginTrackerProps): null {
   useLoginTracking(provider);
   return null;
 }

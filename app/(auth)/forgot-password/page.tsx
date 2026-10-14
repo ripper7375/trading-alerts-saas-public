@@ -57,7 +57,7 @@ type ErrorType =
   | 'invalid'
   | null;
 
-function ForgotPasswordForm(): JSX.Element {
+function ForgotPasswordForm(): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState<Step>('request');
@@ -162,7 +162,7 @@ function RequestResetStep({
   setError: (error: ErrorType) => void;
   countdown: number;
   formatTime: (seconds: number) => string;
-}): JSX.Element {
+}): React.JSX.Element {
   const { t } = useLocale();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -338,7 +338,7 @@ function ConfirmationStep({
   email: string;
   setStep: (step: Step) => void;
   setError: (error: ErrorType) => void;
-}): JSX.Element {
+}): React.JSX.Element {
   const { t } = useLocale();
   const [isResending, setIsResending] = useState(false);
 
@@ -438,7 +438,7 @@ function ResetPasswordStep({
   tokenInvalid: boolean;
   setTokenExpired: (expired: boolean) => void;
   searchParams: ReturnType<typeof useSearchParams>;
-}): JSX.Element {
+}): React.JSX.Element {
   const router = useRouter();
   const { t } = useLocale();
   const [isLoading, setIsLoading] = useState(false);
@@ -697,7 +697,7 @@ function SuccessStep({
   autoRedirectCountdown,
 }: {
   autoRedirectCountdown: number;
-}): JSX.Element {
+}): React.JSX.Element {
   const { t } = useLocale();
   return (
     <div className="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-2xl dark:border-slate-800/80 dark:bg-[#0b0e17]">
@@ -725,7 +725,7 @@ function SuccessStep({
 }
 
 // Wrap with Suspense for useSearchParams
-export default function ForgotPasswordPage(): JSX.Element {
+export default function ForgotPasswordPage(): React.JSX.Element {
   return (
     <Suspense
       fallback={

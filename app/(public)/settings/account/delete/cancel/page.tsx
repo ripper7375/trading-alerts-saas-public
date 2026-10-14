@@ -30,7 +30,7 @@ import { useLocale } from '@/lib/context/locale-context';
 
 type CancelState = 'submitting' | 'success' | 'error';
 
-function BrandHeader(): JSX.Element {
+function BrandHeader(): React.JSX.Element {
   return (
     <div className="mb-6 space-y-2 text-center">
       <Link href="/" className="inline-flex items-center gap-2">
@@ -51,7 +51,7 @@ function BrandHeader(): JSX.Element {
   );
 }
 
-function DeleteCancelContent(): JSX.Element {
+function DeleteCancelContent(): React.JSX.Element {
   const { t } = useLocale();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -222,7 +222,7 @@ function DeleteCancelContent(): JSX.Element {
   );
 }
 
-function DeleteCancelFallback(): JSX.Element {
+function DeleteCancelFallback(): React.JSX.Element {
   const { t } = useLocale();
   return (
     <div className="text-center">
@@ -237,7 +237,7 @@ function DeleteCancelFallback(): JSX.Element {
   );
 }
 
-export default function DeleteCancelPage(): JSX.Element {
+export default function DeleteCancelPage(): React.JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-[#050609]">
       <Suspense fallback={<DeleteCancelFallback />}>

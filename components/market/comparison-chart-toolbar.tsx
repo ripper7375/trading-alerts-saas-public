@@ -26,7 +26,6 @@ import {
   TrendingUp,
   Type,
 } from 'lucide-react';
-import type { JSX } from 'react';
 
 import { TOOL_LABEL_KEY } from '@/components/charts/drawing/Toolbar';
 import { useLocale } from '@/lib/context/locale-context';
@@ -45,7 +44,7 @@ interface ComparisonChartToolbarProps {
   onEditStyle: () => void;
 }
 
-const TOOL_ICONS: Partial<Record<DrawingType, JSX.Element>> = {
+const TOOL_ICONS: Partial<Record<DrawingType, React.JSX.Element>> = {
   HLINE: <Minus className="h-4 w-4" />,
   TRENDLINE: <TrendingUp className="h-4 w-4" />,
   CHANNEL: <Spline className="h-4 w-4" />,
@@ -60,7 +59,7 @@ export function ComparisonChartToolbar({
   onSelectTool,
   onDelete,
   onEditStyle,
-}: ComparisonChartToolbarProps): JSX.Element {
+}: ComparisonChartToolbarProps): React.JSX.Element {
   const { t } = useLocale();
   const buttonBase =
     'flex h-9 w-9 items-center justify-center rounded-md border transition-colors';

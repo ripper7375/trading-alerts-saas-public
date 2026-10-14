@@ -43,7 +43,7 @@ const resetPasswordSchema = z
 
 type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 
-function ResetPasswordForm(): JSX.Element {
+function ResetPasswordForm(): React.JSX.Element {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -337,7 +337,7 @@ function ResetPasswordForm(): JSX.Element {
   );
 }
 
-export default function ResetPasswordPage(): JSX.Element {
+export default function ResetPasswordPage(): React.JSX.Element {
   return (
     <Suspense fallback={null}>
       <ResetPasswordForm />

@@ -20,7 +20,6 @@ import {
   TrendingUp,
   Type,
 } from 'lucide-react';
-import type { JSX } from 'react';
 
 import { useLocale } from '@/lib/context/locale-context';
 import { DRAWABLE_TOOLS, TOOL_DEFINITIONS } from './tools';
@@ -91,7 +90,7 @@ interface ToolbarProps {
   onToggleAlerts: () => void;
 }
 
-const TOOL_ICONS: Partial<Record<DrawingType, JSX.Element>> = {
+const TOOL_ICONS: Partial<Record<DrawingType, React.JSX.Element>> = {
   HLINE: <Minus className="h-4 w-4" />,
   TRENDLINE: <TrendingUp className="h-4 w-4" />,
   CHANNEL: <Spline className="h-4 w-4" />,
@@ -127,7 +126,7 @@ export function Toolbar({
   onAddAlert,
   onEditStyle,
   onToggleAlerts,
-}: ToolbarProps): JSX.Element {
+}: ToolbarProps): React.JSX.Element {
   const { t } = useLocale();
   const buttonBase =
     'flex h-9 w-9 items-center justify-center rounded-md border transition-colors';

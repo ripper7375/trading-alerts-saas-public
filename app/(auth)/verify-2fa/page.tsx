@@ -30,7 +30,7 @@ interface SafeUserSession {
   };
 }
 
-function TwoFactorVerificationContent(): JSX.Element {
+function TwoFactorVerificationContent(): React.JSX.Element {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   // Forwarded by login-form.tsx when the visitor was sent to sign in from a
@@ -423,7 +423,7 @@ function TwoFactorVerificationContent(): JSX.Element {
   );
 }
 
-export default function TwoFactorVerificationPage(): JSX.Element {
+export default function TwoFactorVerificationPage(): React.JSX.Element {
   return (
     <Suspense
       fallback={

@@ -43,7 +43,7 @@ type ErrorType =
   | '2fa_required'
   | null;
 
-export default function LoginForm(): JSX.Element {
+export default function LoginForm(): React.JSX.Element {
   const router = useRouter();
   const { t } = useLocale();
   const [showPassword, setShowPassword] = useState(false);

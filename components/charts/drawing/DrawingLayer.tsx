@@ -23,7 +23,7 @@ import type {
   Time,
 } from 'lightweight-charts';
 import { useSession } from 'next-auth/react';
-import { useEffect, useRef, useState, type JSX } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { AlertDialog, type LineAlertValues } from './AlertDialog';
 import { AlertsPanel } from './AlertsPanel';
@@ -62,7 +62,7 @@ export function DrawingLayer({
   hideToolbar = false,
   externalTool,
   onActiveToolChange,
-}: DrawingLayerProps): JSX.Element {
+}: DrawingLayerProps): React.JSX.Element {
   const overlayRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<DrawingEngine | null>(null);
   const persistenceRef = useRef<DrawingPersistence | null>(null);

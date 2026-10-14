@@ -11,7 +11,6 @@
 
 import { Layers, Loader2, Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import type { JSX } from 'react';
 
 import { useLocale } from '@/lib/context/locale-context';
 
@@ -31,7 +30,7 @@ export function MtfToggle({
   isLoading = false,
   className,
   onToggle,
-}: MtfToggleProps): JSX.Element {
+}: MtfToggleProps): React.JSX.Element {
   const router = useRouter();
   const { t } = useLocale();
 

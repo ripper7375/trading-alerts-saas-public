@@ -7,7 +7,7 @@
  * @module components/charts/drawing/StyleEditor
  */
 
-import { type JSX } from 'react';
+import {} from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -46,7 +46,7 @@ export function StyleEditor({
   type,
   style,
   onChange,
-}: StyleEditorProps): JSX.Element {
+}: StyleEditorProps): React.JSX.Element {
   const { t } = useLocale();
   const color = typeof style?.color === 'string' ? style.color : '#2962FF';
   const lineWidth = typeof style?.lineWidth === 'number' ? style.lineWidth : 2;

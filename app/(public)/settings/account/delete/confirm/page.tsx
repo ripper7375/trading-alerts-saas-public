@@ -41,7 +41,7 @@ type ConfirmState =
   | 'error'
   | 'missing-token';
 
-function BrandHeader(): JSX.Element {
+function BrandHeader(): React.JSX.Element {
   return (
     <div className="mb-6 space-y-2 text-center">
       <Link href="/" className="inline-flex items-center gap-2">
@@ -62,7 +62,7 @@ function BrandHeader(): JSX.Element {
   );
 }
 
-function DeleteConfirmContent(): JSX.Element {
+function DeleteConfirmContent(): React.JSX.Element {
   const { t } = useLocale();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
@@ -331,7 +331,7 @@ function DeleteConfirmContent(): JSX.Element {
   );
 }
 
-function DeleteConfirmFallback(): JSX.Element {
+function DeleteConfirmFallback(): React.JSX.Element {
   const { t } = useLocale();
   return (
     <div className="text-center">
@@ -346,7 +346,7 @@ function DeleteConfirmFallback(): JSX.Element {
   );
 }
 
-export default function DeleteConfirmPage(): JSX.Element {
+export default function DeleteConfirmPage(): React.JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12 dark:bg-[#050609]">
       <Suspense fallback={<DeleteConfirmFallback />}>

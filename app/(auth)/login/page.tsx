@@ -24,7 +24,7 @@ async function handleSignOut(): Promise<void> {
   window.location.href = '/login';
 }
 
-export default function LoginPage(): JSX.Element {
+export default function LoginPage(): React.JSX.Element {
   const { t } = useLocale();
   const { data: session, status } = useSession();
 

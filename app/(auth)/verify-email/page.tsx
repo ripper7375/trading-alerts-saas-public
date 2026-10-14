@@ -10,7 +10,7 @@ import { useLocale } from '@/lib/context/locale-context';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
-function VerifyEmailContent(): JSX.Element {
+function VerifyEmailContent(): React.JSX.Element {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const { t } = useLocale();
@@ -158,7 +158,7 @@ function VerifyEmailContent(): JSX.Element {
   );
 }
 
-export default function VerifyEmailPage(): JSX.Element {
+export default function VerifyEmailPage(): React.JSX.Element {
   return (
     <Suspense fallback={null}>
       <VerifyEmailContent />

@@ -39,7 +39,7 @@ import type {
   SeriesType,
   Time,
 } from 'lightweight-charts';
-import { useEffect, useRef, useState, type JSX } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { DrawingEngine } from '@/components/charts/drawing/engine/DrawingEngine';
 import { PointerController } from '@/components/charts/drawing/engine/PointerController';
@@ -59,7 +59,7 @@ interface ComparisonDrawingLayerProps {
 export function ComparisonDrawingLayer({
   chart,
   series,
-}: ComparisonDrawingLayerProps): JSX.Element {
+}: ComparisonDrawingLayerProps): React.JSX.Element {
   const overlayRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<DrawingEngine | null>(null);
 

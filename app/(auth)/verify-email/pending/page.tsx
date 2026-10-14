@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-function VerifyEmailPendingContent(): JSX.Element {
+function VerifyEmailPendingContent(): React.JSX.Element {
   const { t } = useLocale();
   const searchParams = useSearchParams();
   const emailFromUrl = decodeURIComponent(searchParams.get('email') || '');
@@ -233,7 +233,7 @@ function VerifyEmailPendingContent(): JSX.Element {
   );
 }
 
-export default function VerifyEmailPendingPage(): JSX.Element {
+export default function VerifyEmailPendingPage(): React.JSX.Element {
   return (
     <Suspense fallback={null}>
       <VerifyEmailPendingContent />

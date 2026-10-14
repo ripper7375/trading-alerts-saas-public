@@ -14,7 +14,7 @@ interface AvailableProviders {
   twitter: boolean;
 }
 
-export default function SocialAuthButtons(): JSX.Element {
+export default function SocialAuthButtons(): React.JSX.Element {
   const { t } = useLocale();
   const [loadingProvider, setLoadingProvider] = useState<LoadingProvider>(null);
   const [availableProviders, setAvailableProviders] =
