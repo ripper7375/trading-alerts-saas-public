@@ -1234,6 +1234,75 @@ declare module '@prisma/client' {
     recorded_at: Date | string;
   }
 
+  // Reply path (build step 7 part 1): the trace of every answer, chat threads and messages.
+  export interface RequestTrace {
+    request_id: string;
+    client_request_id: string;
+    user_id: string | null;
+    user_id_hash: string;
+    key_version: number;
+    thread_id: string | null;
+    tier: string;
+    locale: string;
+    intent: string;
+    cycle_slot: number | null;
+    data_status: string | null;
+    model: string | null;
+    units_charged: number;
+    regenerations: number;
+    number_violations: number;
+    wording_violations: number;
+    outcome: string;
+    total_ms: number;
+    request_group: JsonValue;
+    data_group: JsonValue;
+    knowledge_group: JsonValue;
+    model_group: JsonValue;
+    checks_group: JsonValue;
+    risk_group: JsonValue | null;
+    time_group: JsonValue;
+    reply_json: string | null;
+    reply_sha256: string | null;
+    report2_json: string | null;
+    report2_sha256: string | null;
+    consent_action: string | null;
+    created_at: Date | string;
+    archived_at: Date | string | null;
+    archive_ref: string | null;
+  }
+
+  export interface ChatThread {
+    id: string;
+    user_id: string;
+    symbol: string;
+    title: string;
+    title_source: string;
+    trader_type: string;
+    last_bias: string | null;
+    last_cycle_slot: number | null;
+    last_preview: string;
+    message_count: number;
+    report_count: number;
+    last_message_at: Date | string;
+    created_at: Date | string;
+    updated_at: Date | string;
+  }
+
+  export interface ChatMessage {
+    id: string;
+    thread_id: string;
+    seq: number;
+    request_id: string;
+    role: string;
+    kind: string;
+    intent: string | null;
+    body_text: string | null;
+    body_json: JsonValue | null;
+    cycle_slot: number | null;
+    created_at: Date | string;
+    expires_at: Date | string;
+  }
+
   // ============================================================
   // PRISMA NAMESPACE
   // ============================================================
@@ -1507,6 +1576,9 @@ declare module '@prisma/client' {
     userTradePreferences: ModelDelegate<UserTradePreferences>;
     userTradePreferencesHistory: ModelDelegate<UserTradePreferencesHistory>;
     tradeConsentRecord: ModelDelegate<TradeConsentRecord>;
+    requestTrace: ModelDelegate<RequestTrace>;
+    chatThread: ModelDelegate<ChatThread>;
+    chatMessage: ModelDelegate<ChatMessage>;
   }
 }
 

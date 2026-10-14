@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "answer.v1",
+  "title": "answer.v1",
+  "description": "What the model writes for a question that is not a full analysis (ADR-052: Report 1 JSON or a short answer; build step 7 decision D9): the locale the text is written in, a short text with {value id} placeholders, the lines it rests on, and at most one action from a closed list. This is the SHAPE of lib/reply/contracts/answer.ts. The rules that need the packet (the locale must be the reply locale, the cited ids and the placeholders must exist in it), the number of placeholders in a text (at most 8), the tag characters U+E0000 to U+E007F, and the specific FORBIDDEN_KEY report for a direction-like key are enforced by validateAnswer and are NOT expressed here. Lengths count Unicode code points here and UTF-16 code units there; they agree for text outside the astral planes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["locale", "text", "cites", "action"],
+  "properties": {
+    "locale": { "$ref": "#/$defs/locale" },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 800,
+      "allOf": [
+        { "$ref": "#/$defs/plainText" },
+        { "$ref": "#/$defs/placeholders" },
+        { "$ref": "#/$defs/notBlank" }
+      ]
+    },
+    "cites": {
+      "type": "array",
+      "maxItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^(MCD([1-9]|1[0-5])|Z[1-5]|SYN)$"
+      }
+    },
+    "action": { "enum": ["OPEN_TRADE_SETUP", null] }
+  },
+  "$defs": {
+    "locale": {
+      "enum": [
+        "en-US",
+        "en-GB",
+        "es",
+        "de",
+        "pt",
+        "pt-BR",
+        "it",
+        "ja",
+        "ar",
+        "fr",
+        "ko",
+        "zh",
+        "zh-TW",
+        "ur",
+        "hi",
+        "vi",
+        "id",
+        "th",
+        "tr"
+      ]
+    },
+    "plainText": {
+      "description": "One line of plain text: no control, line-separator, bidirectional embedding, override or isolate character, no byte order mark.",
+      "pattern": "^[^\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029\\u202a-\\u202e\\u2066-\\u2069\\ufeff]*$"
+    },
+    "placeholders": {
+      "description": "A brace belongs to a well-formed {value id}, or the text is refused.",
+      "pattern": "^([^{}]|\\{[A-Z][A-Z0-9_]{0,23}(\\.[A-Za-z0-9][A-Za-z0-9_]{0,31}){0,3}\\})*$"
+    },
+    "notBlank": {
+      "pattern": "\\S"
+    }
+  }
+}

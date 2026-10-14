@@ -163,6 +163,11 @@ model User {
   tradePreferencesHistory UserTradePreferencesHistory[]
   tradeConsentRecords     TradeConsentRecord[]
 
+  // Reply path (build step 7 part 1): chat threads (and their messages) go with the
+  // account; the request traces stay, with user_id set to NULL and the keyed hash kept.
+  chatThreads   ChatThread[]
+  requestTraces RequestTrace[]
+
   sessions Session[]
 
   createdAt DateTime @default(now())
@@ -1602,4 +1607,141 @@ model TradeConsentRecord {
   @@index([user_id_hash, recorded_at])
   @@index([profile_snapshot_id])
   @@map("trade_consent_records")
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// REPLY PATH: THE TRACE OF EVERY ANSWER, CHAT THREADS AND MESSAGES
+// (build step 7 part 1; docs/STACK-D-ARCHITECTURE.md 5.7, 7.4 and 7.5)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// The CHECK constraints (enums, ranges, the hash format, a column equal to the group it
+// is projected from, a report equal to its hash), the trigger on request_traces (no DELETE
+// of a row that is not archived, no UPDATE of a sealed column, no TRUNCATE) are written by
+// hand in the migration 20261014000000_add_reply_trace_and_chat_tables: Prisma cannot
+// express them, and its diff does not see them.
+
+/// One row per answer (7.4, ADR-075), written once at the end of the request. 90 days live,
+/// then archived (7 years, ADR-076). Deleting the User sets user_id to NULL; user_id_hash stays.
+/// The columns the dashboard filters on are projections of the seven JSONB groups; the
+/// database checks each equals its group's value.
+model RequestTrace {
+  /// the server's own request id: what support opens
+  request_id        String @id
+  /// the client's idempotency key; unique per user (by hash, so it survives account deletion)
+  client_request_id String
+
+  user_id String?
+  user    User?   @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  /// HMAC-SHA-256 (hex) of the user id, written on insert (the Engine 4 key and key versions)
+  user_id_hash String
+  key_version  Int
+
+  /// the chat thread ("session" of 7.4); no foreign key: a trader may delete the thread, the trace stays
+  thread_id String?
+
+  tier               String // FREE | PRO
+  locale             String // the reply locale
+  intent             String // one of the nine packet intents
+  /// the cycle slot, unix UTC seconds (a multiple of 300)
+  cycle_slot         Int?
+  data_status        String?
+  model              String? // the model that wrote the delivered reply
+  /// integer cost units (decision D2: one unit is one micro-dollar)
+  units_charged      Int
+  regenerations      Int // 0 or 1, shared by the number and the wording check
+  number_violations  Int
+  wording_violations Int
+  outcome            String // REPORT1 | ANSWER | FIXED_ANSWER | OPEN_TRADE_SETUP | REFUSED | ERROR
+  total_ms           Int
+
+  /// The seven groups of 7.4. No user id inside any of them.
+  request_group   Json
+  data_group      Json
+  knowledge_group Json
+  model_group     Json
+  checks_group    Json
+  /// attached later by Section 6 (the only group that is written after the row)
+  risk_group      Json?
+  time_group      Json
+
+  /// the reply that was delivered, as the exact canonical JSON text that was hashed
+  reply_json     String?
+  reply_sha256   String?
+  /// Report 2 (the validated trade setup), attached with the risk group
+  report2_json   String?
+  report2_sha256 String?
+  consent_action String? // ACCEPT | MODIFY | DECLINE
+
+  created_at  DateTime  @default(now())
+  /// set when the row has been written to the write-once archive; nothing is deleted before
+  archived_at DateTime?
+  archive_ref String?
+
+  @@unique([user_id_hash, client_request_id])
+  @@index([created_at])
+  @@index([user_id, created_at])
+  @@index([user_id_hash, created_at])
+  @@index([outcome, created_at])
+  @@index([intent, created_at])
+  @@index([cycle_slot])
+  @@map("request_traces")
+}
+
+/// A conversation of one trader with the AI analyst. Personal data: it goes with the account.
+model ChatThread {
+  id String @id @default(cuid())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  symbol          String
+  title           String // at most 80 characters
+  title_source    String // AUTO | USER
+  trader_type     String // SCALPER | DAY_TRADER, as it was when the thread began
+  /// what Panel A shows: the bias and the cycle of the last report
+  last_bias       String?
+  last_cycle_slot Int?
+  last_preview    String   @default("") // at most 120 characters
+  message_count   Int      @default(0)
+  report_count    Int      @default(0)
+  last_message_at DateTime @default(now())
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  messages ChatMessage[]
+
+  @@index([user_id, last_message_at(sort: Desc)])
+  @@map("chat_threads")
+}
+
+/// One message of a thread: the trader's question (or the press of an instant prompt) and the
+/// reply that was delivered. Kept 12 months from its own time (decision D18), deleted with the thread.
+model ChatMessage {
+  id String @id @default(cuid())
+
+  thread_id String
+  thread    ChatThread @relation(fields: [thread_id], references: [id], onDelete: Cascade)
+
+  /// 1, 2, 3 ... in the thread
+  seq        Int
+  /// the request that made the message; a request has one USER and one ASSISTANT message
+  request_id String
+
+  role       String // USER | ASSISTANT
+  kind       String // TYPED | INSTANT | REPORT1 | ANSWER | FIXED_ANSWER | ACTION | REFUSAL
+  intent     String?
+  /// the question the trader typed (USER, TYPED)
+  body_text  String?
+  /// the delivered reply object (ASSISTANT): reply-result/1 or intake-refusal/1
+  body_json  Json?
+  cycle_slot Int?
+
+  created_at DateTime @default(now())
+  expires_at DateTime
+
+  @@unique([thread_id, seq])
+  @@unique([request_id, role])
+  @@index([expires_at])
+  @@map("chat_messages")
 }

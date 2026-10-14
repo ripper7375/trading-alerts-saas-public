@@ -92,6 +92,9 @@ const ALLOWED_IMPORTERS: readonly string[] = [
   'app/terminal/page.tsx',
   'components/charts/ask-ai-button.tsx',
   'components/charts/use-instant-prompt.ts',
+  // build step 7: the reply path sits on top of the intake path and reads it through this ONE file;
+  // `__tests__/lib/reply/boundaries.test.ts` holds the rest of lib/reply and lib/platform to that door
+  'lib/reply/contracts/intake.ts',
 ];
 
 /** Names that mean input, output, time, randomness or a browser. */
