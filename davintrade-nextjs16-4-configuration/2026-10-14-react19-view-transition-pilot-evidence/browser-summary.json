@@ -1,0 +1,33 @@
+{
+  "requested": "/settings/profile",
+  "anonymousStatus": 307,
+  "redirect": "/login?callbackUrl=%2Fsettings%2Fprofile",
+  "browserUrl": "http://127.0.0.1:3104/login?callbackUrl=%2Fsettings%2Fprofile",
+  "nativeViewTransitionAPI": false,
+  "reducedMotionMatches": false,
+  "safeguardsLoaded": [
+    {
+      "selector": "::view-transition-group(*)",
+      "condition": "(prefers-reduced-motion: reduce)",
+      "animationName": "none",
+      "priority": "important"
+    },
+    {
+      "selector": "::view-transition-old(*)",
+      "condition": "(prefers-reduced-motion: reduce)",
+      "animationName": "none",
+      "priority": "important"
+    },
+    {
+      "selector": "::view-transition-new(*)",
+      "condition": "(prefers-reduced-motion: reduce)",
+      "animationName": "none",
+      "priority": "important"
+    }
+  ],
+  "consoleErrorsObserved": [
+    "Server-origin Redis EACCES due sandbox network restrictions"
+  ],
+  "authenticatedCheck": "unavailable per Davin",
+  "animationPlayback": "unavailable: no authenticated session; in-app browser lacks native API"
+}

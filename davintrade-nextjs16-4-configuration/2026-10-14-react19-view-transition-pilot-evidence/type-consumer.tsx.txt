@@ -1,0 +1,9 @@
+import { ViewTransition, type PropsWithChildren } from 'react';
+import { createRoot } from 'react-dom/client';
+import { render, act } from '@testing-library/react';
+function Wrapper({ children }: PropsWithChildren) { return <ViewTransition><div>{children}</div></ViewTransition>; }
+const tree = <Wrapper><button>Settings content</button></Wrapper>;
+const result = render(tree, { wrapper: Wrapper });
+void result.getByRole("button");
+void act(() => { result.rerender(tree); });
+void createRoot(document.createElement("div")).render(tree);

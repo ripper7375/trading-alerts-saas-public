@@ -1,0 +1,10 @@
+{
+  "addedPackageVersions": ["@types/react-dom@19.3.0", "@types/react@19.3.0"],
+  "removedPackageVersions": [
+    "@types/prop-types@15.7.15",
+    "@types/react@18.3.27"
+  ],
+  "changedExistingPackageDefinitions": [],
+  "nonRootImportersUnchanged": true,
+  "lockOverridesUnchanged": true
+}

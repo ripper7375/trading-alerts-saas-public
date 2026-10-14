@@ -1,0 +1,15 @@
+{
+  "head": "bff5b660825bdd346f5bafda815f860def8e4dda",
+  "headStable": true,
+  "preservedFiles": 343,
+  "changedPreservedFiles": [],
+  "sourceFiles": 1334,
+  "changedSourceFiles": [],
+  "missingStatusEntries": [],
+  "sourceHashes": {
+    "package.json": "2819b525e5fd9850f77d7653b3c67cac10647becea4a021d2f2b18514160f857",
+    "pnpm-lock.yaml": "6b531dc62701e3716d3c3e393e6b2619cf6c60da4becf66693ffbfd826a17682",
+    "app/globals.css": "a92e5260584d4becc7c678900cbbee31158fd2e3d73ea1276acb2eda8fcfd6cc",
+    "app/settings/layout.tsx": "744aa0fa4d48487aa420cf37763acf2c40b2081b089f618cf80745f77c51a1ff"
+  }
+}

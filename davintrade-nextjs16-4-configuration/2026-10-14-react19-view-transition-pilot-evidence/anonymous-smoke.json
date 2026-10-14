@@ -1,0 +1,5 @@
+{
+  "location": "/login?callbackUrl=%2Fsettings%2Fprofile",
+  "request": "/settings/profile",
+  "status": 307
+}

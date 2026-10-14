@@ -1,0 +1,15 @@
+{
+  "success": true,
+  "suites": {
+    "total": 383,
+    "passed": 383,
+    "failed": 0,
+    "skipped": 0
+  },
+  "tests": {
+    "total": 11748,
+    "passed": 11748,
+    "failed": 0,
+    "skipped": 0
+  }
+}
