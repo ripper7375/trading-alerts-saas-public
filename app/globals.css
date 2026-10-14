@@ -404,3 +404,12 @@ a[title*='TradingView'],
 .price-flash {
   animation: priceChange 0.3s ease-in-out;
 }
+
+/* Respect system motion preferences for native view transitions. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

@@ -1,3 +1,4 @@
+import { ViewTransition } from 'react';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
@@ -78,9 +79,11 @@ export default async function SettingsLayout({
             <SettingsNav />
 
             <div className="flex-1">
-              <div className="min-h-[600px] rounded-xl border border-border bg-card p-6 shadow-sm md:p-8">
-                <UserViewAsGate>{children}</UserViewAsGate>
-              </div>
+              <ViewTransition>
+                <div className="min-h-[600px] rounded-xl border border-border bg-card p-6 shadow-sm md:p-8">
+                  <UserViewAsGate>{children}</UserViewAsGate>
+                </div>
+              </ViewTransition>
             </div>
           </div>
         </div>
