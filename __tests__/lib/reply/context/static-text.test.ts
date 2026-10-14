@@ -470,7 +470,11 @@ describe('the tool (scripts/reply/prompts-tool.js) on a copy of the tree', () =>
   it('treats a CRLF checkout the same as an LF one', () => {
     run('record');
     const rules = path(tool.FILES.rules);
-    writeFileSync(rules, readFileSync(rules, 'utf8').replace(/\n/g, '\r\n'));
+    // this checkout may already be CRLF (autocrlf): start from LF so no line ends in CR CR LF
+    writeFileSync(
+      rules,
+      readFileSync(rules, 'utf8').replace(/\r\n/g, '\n').replace(/\n/g, '\r\n')
+    );
     expect(run('check').status).toBe(0);
   });
 });
