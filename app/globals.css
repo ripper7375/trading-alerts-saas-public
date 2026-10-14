@@ -413,3 +413,15 @@ a[title*='TradingView'],
     animation: none !important;
   }
 }
+
+/* Keep page interactive during view transitions */
+::view-transition {
+  pointer-events: none;
+}
+
+/* Smooth crossfade timing for settings subpage content */
+::view-transition-old(settings-subpage-content),
+::view-transition-new(settings-subpage-content) {
+  animation-duration: 0.22s;
+  animation-timing-function: ease-in-out;
+}

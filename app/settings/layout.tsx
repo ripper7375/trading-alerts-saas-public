@@ -1,4 +1,3 @@
-import { ViewTransition } from 'react';
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 
@@ -14,6 +13,7 @@ import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
 
 import { SettingsNav } from './_components/settings-nav';
+import { SettingsContentTransition } from './_components/settings-content-transition';
 import AppHeader from '@/components/layout/app-header';
 
 interface SettingsLayoutProps {
@@ -79,11 +79,11 @@ export default async function SettingsLayout({
             <SettingsNav />
 
             <div className="flex-1">
-              <ViewTransition>
+              <SettingsContentTransition>
                 <div className="min-h-[600px] rounded-xl border border-border bg-card p-6 shadow-sm md:p-8">
                   <UserViewAsGate>{children}</UserViewAsGate>
                 </div>
-              </ViewTransition>
+              </SettingsContentTransition>
             </div>
           </div>
         </div>
