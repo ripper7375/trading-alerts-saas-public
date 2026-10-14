@@ -560,7 +560,8 @@ class TestApproval:
         "change, code",
         [
             (lambda a: a.update(status="MAYBE"), "APPROVAL_INVALID"),
-            (lambda a: a.update(status="APPROVED"), "APPROVAL_INVALID"),  # approved by nobody
+            # approved by nobody (explicit: the repository's own approval is signed, so the status alone changes nothing)
+            (lambda a: a.update(status="APPROVED", approved_by=None, approved_at=None), "APPROVAL_INVALID"),
             (lambda a: a.update(status="PENDING", approved_by="Davin"), "APPROVAL_INVALID"),
             (lambda a: a.update(content_sha256="abc"), "APPROVAL_INVALID"),
             (lambda a: a.update(extra=1), "APPROVAL_INVALID"),
