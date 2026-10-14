@@ -1,0 +1,9 @@
+{
+  "schema": "prompts-approval/1",
+  "area": "prompts",
+  "status": "PENDING",
+  "approved_by": "",
+  "approved_on": "",
+  "content_sha256": "d7636a33ebacfd7b7c018a1cce375b87832d1959e42d2a2b88120c92116b12e0",
+  "note": ""
+}

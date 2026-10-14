@@ -1,0 +1,97 @@
+{
+  "schema": "context-caps/1",
+  "version": "context-caps.v1",
+  "source": "docs/STACK-D-ARCHITECTURE.md 5.4, ADR-048, ADR-049",
+  "note": "Starting values in estimated tokens, to be re-measured per model. The total is the sum of the ten caps; the budget of a request is min(total, the model's budget). cut_rank is the order of ADR-048: 1 is cut first.",
+  "total": 19600,
+  "components": [
+    {
+      "id": "SYSTEM_RULES",
+      "label": "System rules + wording guide",
+      "cap": 1500,
+      "segment": "STATIC",
+      "cut_rank": null,
+      "when_over": "NEVER_CUT"
+    },
+    {
+      "id": "BOARD_SYNTHESIS",
+      "label": "Sensor board + synthesis line",
+      "cap": 800,
+      "segment": "CYCLE",
+      "cut_rank": null,
+      "when_over": "NEVER_CUT"
+    },
+    {
+      "id": "OHLC",
+      "label": "OHLC, 1 day, compact",
+      "cap": 8000,
+      "segment": "CYCLE",
+      "cut_rank": 3,
+      "when_over": "SUMMARY_MODE"
+    },
+    {
+      "id": "CHART",
+      "label": "Chart image",
+      "cap": 1500,
+      "segment": "CHART",
+      "cut_rank": null,
+      "when_over": "DROPPED_BY_GATE_OR_TIER"
+    },
+    {
+      "id": "READINGS_ZONES",
+      "label": "Readings for M* + zones",
+      "cap": 2000,
+      "segment": "USER",
+      "cut_rank": 4,
+      "when_over": "DETAILS_DROPPED"
+    },
+    {
+      "id": "KNOWLEDGE",
+      "label": "Knowledge chunks",
+      "cap": 2000,
+      "segment": "USER",
+      "cut_rank": 2,
+      "when_over": "EXPANSIONS_THEN_CHUNK_4"
+    },
+    {
+      "id": "PROFILE_EVENTS",
+      "label": "Profile + upcoming events",
+      "cap": 500,
+      "segment": "USER",
+      "cut_rank": null,
+      "when_over": "NEVER_CUT"
+    },
+    {
+      "id": "HISTORY",
+      "label": "Chat history",
+      "cap": 1500,
+      "segment": "USER",
+      "cut_rank": 1,
+      "when_over": "OLDER_TURNS_TO_SUMMARY"
+    },
+    {
+      "id": "QUESTION",
+      "label": "Question",
+      "cap": 300,
+      "segment": "USER",
+      "cut_rank": null,
+      "when_over": "NEVER_CUT"
+    },
+    {
+      "id": "ANSWER",
+      "label": "Answer (max output)",
+      "cap": 1500,
+      "segment": "OUTPUT",
+      "cut_rank": null,
+      "when_over": "SCHEMA_KEEPS_IT_SHORT"
+    }
+  ],
+  "limits": {
+    "history_verbatim_messages": 10,
+    "history_summary_max_tokens": 300,
+    "ohlc_summary_m5_bars": 12,
+    "ohlc_summary_m15_bars": 8,
+    "knowledge_max_chunks": 4,
+    "ohlc_summary_target_tokens": 500
+  }
+}

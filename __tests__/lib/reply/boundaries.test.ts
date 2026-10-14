@@ -9,7 +9,12 @@
  *     (no network, no process, no clock, no randomness, no browser globals, no database). Its
  *     files import only their siblings, and `contracts/intake.ts` is the ONE file that reads
  *     the intake path (so `__tests__/lib/intake/boundaries.test.ts` lists one importer for the
- *     whole reply path).
+ *     whole reply path). The one exception is the folder `read/` (build step 7 part 2): the
+ *     readers that fetch what the prompt is made of, imported by path and never through a
+ *     barrel, like `lib/engine4/read/`. A reader may import the database client named for it
+ *     below and nothing else from outside; the other rules (no network, no process, no clock,
+ *     no randomness) hold for it too. `context/caps.ts` also imports its one data file, the
+ *     caps table.
  *  2. `lib/platform` may touch the database, but each file may import only the outside
  *     modules named for it below, and none of it may use the network, the process, the
  *     console or a browser global. The clock is `messages-store.ts`'s alone (its default `now`).
@@ -35,7 +40,12 @@ const REPLY_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
     '@/lib/intake/check',
     '@/lib/intake/slots',
   ],
+  'context/caps.ts': ['@/config/reply/context-caps.v1.json'],
+  'read/day-bars.ts': ['@/lib/db/market-prisma'],
 };
+
+/** The folder of `lib/reply` whose files may read the database (each one only the client named above). */
+const READER_DIR = 'read/';
 
 const PLATFORM_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
   'delivered.ts': [
@@ -240,8 +250,21 @@ const PLATFORM: Tree = { alias: '@/lib/platform', outside: PLATFORM_OUTSIDE };
 describe('lib/reply', () => {
   const sources = load(REPLY_DIR);
 
-  it('has the files of part 1', () => {
+  it('has the files of parts 1 and 2', () => {
     expect([...sources.keys()]).toEqual([
+      'context/assemble.ts',
+      'context/budget.ts',
+      'context/caps.ts',
+      'context/cut.ts',
+      'context/history.ts',
+      'context/ohlc-compact.ts',
+      'context/prompt.ts',
+      'context/readings.ts',
+      'context/sections.ts',
+      'context/segments.ts',
+      'context/static-text.ts',
+      'context/tokens.ts',
+      'context/values.ts',
       'contracts/answer.ts',
       'contracts/fields.ts',
       'contracts/intake.ts',
@@ -251,12 +274,46 @@ describe('lib/reply', () => {
       'contracts/shape.ts',
       'contracts/stage-events.ts',
       'contracts/trace-fields.ts',
+      'read/day-bars.ts',
       'version.ts',
     ]);
   });
 
   it('is pure: no I/O, no clock, no randomness, no database; only its siblings and the one intake door', () => {
     expect(analyse(REPLY, sources)).toEqual([]);
+  });
+
+  it('lets only the readers touch the database, and each only the client named for it', () => {
+    for (const [file, text] of sources) {
+      const code = text
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+      const clients = [...code.matchAll(/from '(@\/lib\/db\/[^']*)'/g)].map(
+        (m) => m[1]
+      );
+      expect({ file, clients }).toEqual({
+        file,
+        clients: file.startsWith(READER_DIR) ? ['@/lib/db/market-prisma'] : [],
+      });
+    }
+  });
+
+  it('keeps the readers apart: nothing outside read/ imports one, and no reader imports the platform', () => {
+    for (const [file, text] of sources) {
+      const code = text
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+      if (!file.startsWith(READER_DIR)) {
+        expect({
+          file,
+          readerImport: /(?:\/|'\.?\.?\/)read\//.test(code),
+        }).toEqual({ file, readerImport: false });
+      }
+      expect({ file, platform: /lib\/platform/.test(code) }).toEqual({
+        file,
+        platform: false,
+      });
+    }
   });
 
   it('reads the intake path in one file only', () => {
@@ -266,16 +323,21 @@ describe('lib/reply', () => {
     expect(importers).toEqual(['contracts/intake.ts']);
   });
 
-  it('never imports the platform or the database', () => {
+  it('never imports the platform, and the database only in the readers', () => {
     for (const [file, text] of sources) {
+      const code = text
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
       expect({
         file,
-        platform: /lib\/platform|lib\/db|prisma/i.test(
-          text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
-        ),
+        platform: /lib\/platform/i.test(code),
+        database: file.startsWith(READER_DIR)
+          ? false
+          : /lib\/db|prisma/i.test(code),
       }).toEqual({
         file,
         platform: false,
+        database: false,
       });
     }
   });
@@ -439,6 +501,53 @@ describe('the guard', () => {
           "import { createHash } from 'crypto';\nexport const a = createHash;",
       })
     ).toEqual([]);
+  });
+
+  it('lets a reader import its market client, and no other file, and no other client', () => {
+    const source =
+      "import { marketPrisma } from '@/lib/db/market-prisma';\nexport const a = marketPrisma;";
+    expect(rules(REPLY, { 'read/day-bars.ts': source })).toEqual([]);
+    expect(
+      rules(REPLY, { 'context/assemble.ts': source }).length
+    ).toBeGreaterThan(0);
+    expect(rules(REPLY, { 'read/other.ts': source }).length).toBeGreaterThan(0);
+    expect(
+      rules(REPLY, {
+        'read/day-bars.ts':
+          "import { prisma } from '@/lib/db/prisma';\nexport const a = prisma;",
+      }).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('still holds a reader to the other rules: no network, no clock, no randomness, no process', () => {
+    for (const text of [
+      "export const a = fetch('https://example.com');",
+      'export const a = Date.now();',
+      'export const a = new Date();',
+      'export const a = Math.random();',
+      'export const a = process.env.X;',
+      "import { x } from '../contracts/shape';\nexport const a = x; export const b = console.log(1);",
+      "export const a = () => import('./x');",
+    ]) {
+      expect(rules(REPLY, { 'read/day-bars.ts': text }).length).toBeGreaterThan(
+        0
+      );
+    }
+  });
+
+  it('lets the caps file import its table and no other file', () => {
+    const source =
+      "import caps from '@/config/reply/context-caps.v1.json';\nexport const a = caps;";
+    expect(rules(REPLY, { 'context/caps.ts': source })).toEqual([]);
+    expect(
+      rules(REPLY, { 'context/budget.ts': source }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules(REPLY, {
+        'context/caps.ts':
+          "import caps from '@/config/intake/glossary.v1.json';\nexport const a = caps;",
+      }).length
+    ).toBeGreaterThan(0);
   });
 
   it('lets the platform use its own tree by alias, and a sibling, but not a path that leaves the tree', () => {

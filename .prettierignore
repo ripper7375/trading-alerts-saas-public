@@ -39,3 +39,9 @@ knowledge-service/tests/fixtures/**
 # is tied to their canonical hashes, review.md is generated and compared byte for byte by `python -m knowledge.gate labelled-review --check`, and
 # approval.json holds the hash of what Davin signed, so prettier must not touch any of it.
 knowledge-service/labelled/**
+
+# Static prompt of the reply path (build step 7 part 2): review.md is generated and compared byte for byte by
+# `node scripts/reply/prompts-tool.js check`, and approval.json holds the hash of the texts Davin signed, so prettier must
+# not touch either.
+config/reply/prompts/review.md
+config/reply/prompts/approval.json
