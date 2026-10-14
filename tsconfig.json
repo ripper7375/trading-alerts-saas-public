@@ -143,6 +143,7 @@
     "**/*.spec.ts",
     "**/*.spec.tsx",
     "__tests__", // Test directories
-    "__mocks__" // Mock files (use Jest types separately)
+    "__mocks__", // Mock files (use Jest types separately)
+    "scripts" // CLI and development scripts
   ]
 }

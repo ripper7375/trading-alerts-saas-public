@@ -135,7 +135,7 @@ async function main(argv: string[]): Promise<number> {
       english?.adversarial ?? []
     );
     console.log(
-      `adversarial: ${adversarial.filter((v) => v.ok).length} of ${adversarial.length} refused or neutralised`
+      `adversarial: ${adversarial.filter((v: { ok: boolean }) => v.ok).length} of ${adversarial.length} refused or neutralised`
     );
     const problems = [...stale, ...judge(reports)];
     for (const v of adversarial) if (!v.ok) problems.push(`${v.id}: ${v.why}`);
@@ -205,8 +205,9 @@ async function main(argv: string[]): Promise<number> {
   const made = await makeRun({
     provenance: 'LIVE',
     model_id: config.model,
-    answer: (item) => throttle(() => liveRecord(counted, item.question)),
-    answerAdversarial: (item) =>
+    answer: (item: { question: string }) =>
+      throttle(() => liveRecord(counted, item.question)),
+    answerAdversarial: (item: { question: string }) =>
       throttle(() => liveRecord(counted, item.question)),
     calls: () => calls,
     cost_usd: null,
