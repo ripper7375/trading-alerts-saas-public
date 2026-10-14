@@ -6,8 +6,8 @@
  * and no language. The reply is written in the language of the interface setting the server
  * reads. The gate applies like any question: sign-in, tier and the quota pre-check.
  *
- * Off unless INTAKE_ENABLED is `true`; the buttons that call it render only when
- * INTAKE_INSTANT_PROMPTS_ENABLED is `true` as well (part 10).
+ * Off unless INTAKE_ENABLED is `true`; the Market Context badges that call it are instant prompts
+ * only when INTAKE_INSTANT_PROMPTS_ENABLED is `true` as well (part 10).
  *
  * @module app/api/intake/instant/route
  */

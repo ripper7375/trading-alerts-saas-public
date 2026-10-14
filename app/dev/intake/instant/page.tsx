@@ -5,12 +5,12 @@ import type { ReactElement } from 'react';
 import { InstantPreview } from './instant-preview';
 
 /**
- * Development preview of the Panel C instant prompt buttons (build step 6, part 10; plan decision
- * D10): the real button, overlay and press hook in a stand-in chart pane, in every state, in any
- * interface language, at the narrow widths.
+ * Development preview of the Panel C instant prompts (build step 6, part 10; plan decision D10;
+ * Option A, 2026-10-14): the real top-left Market Context badge and press hook in a stand-in chart
+ * pane, in every state, in any interface language, at the narrow widths.
  *
  * Like its parent `/dev/intake`, it exists only outside a production build (Vercel builds and
- * previews run with NODE_ENV=production, so the route answers 404 there). The route the buttons
+ * previews run with NODE_ENV=production, so the route answers 404 there). The route the badges
  * call is replaced by a stand-in: no network call, no model, nothing is recorded or sent.
  */
 

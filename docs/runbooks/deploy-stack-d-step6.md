@@ -16,8 +16,8 @@ are tested against a fake quota that refuses; the real one does not exist.
 
 Two things follow:
 
-- `INTAKE_INSTANT_PROMPTS_ENABLED` has no use before it either: with it on and `INTAKE_ENABLED` off the buttons render, and a Pro press gets the route's 404
-  and shows "The AI analyst is not available yet". With both on, the buttons call a route that has no meter. Step 7 also renders the reply, which today nothing does.
+- `INTAKE_INSTANT_PROMPTS_ENABLED` has no use before it either: with it on and `INTAKE_ENABLED` off the Market Context badges become the instant prompts, and a Pro press gets the route's 404
+  and shows "The AI analyst is not available yet" below the badge. With both on, the badges call a route that has no meter. Step 7 also renders the reply, which today nothing does.
 - **A Vercel preview deployment reaches the production database** (see `waiting-on.md`, "Preview deployments hit the production DB"). Do not turn either flag on
   for a preview, for the same reason.
 
@@ -29,18 +29,18 @@ Both flags are **set nowhere today**, and a flag is on only when its value is ex
 
 ## 0. What exists, what does not
 
-| Piece                                                                                   | State after part 10                                                                                                                                                    |
-| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lib/intake/` (gate, pipeline, board, router, packet, text, glossary), `app/api/intake` | Built and tested. **404 for everybody unless `INTAKE_ENABLED` is exactly `true`** (set nowhere)                                                                        |
-| Panel C buttons (`components/charts/ask-ai-button.tsx`)                                 | Built. **Render only when `INTAKE_INSTANT_PROMPTS_ENABLED` is exactly `true`** (set nowhere); nothing draws a reply (step 7); `/dev/intake/instant` shows them locally |
-| `knowledge-service/` (Python, txtai 9.5.0)                                              | Built and tested (`pytest`: 1004 passed, 3 xfailed). **Not deployed. The image was never built**                                                                       |
-| The corpus (141 chunks), the glossary, the matrix                                       | Written and **APPROVED** by Davin (eight corpus areas, the English term list, `routing-v1`)                                                                            |
-| The labelled question set (40 questions × 19 locales, 13 adversarial)                   | Written. The English base is signed in part 10 (see its hand-off). **The 18 translations are my drafts**                                                               |
-| The recorded run `knowledge-service/labelled/runs/…`                                    | A **STAND-IN**: the hand labels answered it, no model was called. It proves the mechanism and measures nothing about the model or translation (§4)                     |
-| The Understand model: key, model id, cost                                               | **None exists.** No key is set; the cost of a run is unmeasured                                                                                                        |
-| The quota                                                                               | **Not metered** (D5): the default adapter allows everything. Step 7's                                                                                                  |
-| Translations: native readers for 18 languages; counsel for the ten refusal replies      | **Not done** (D14). The flags stay off until they are read                                                                                                             |
-| A chat that shows a reply, `request_traces`, Section 5                                  | **Not built** (step 7 and the platform chapter)                                                                                                                        |
+| Piece                                                                                   | State after part 10                                                                                                                                                                                                        |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lib/intake/` (gate, pipeline, board, router, packet, text, glossary), `app/api/intake` | Built and tested. **404 for everybody unless `INTAKE_ENABLED` is exactly `true`** (set nowhere)                                                                                                                            |
+| Panel C badges (`components/charts/ask-ai-button.tsx`)                                  | Built. **The top-left Market Context badges are the instant prompts only when `INTAKE_INSTANT_PROMPTS_ENABLED` is exactly `true`** (set nowhere); nothing draws a reply (step 7); `/dev/intake/instant` shows them locally |
+| `knowledge-service/` (Python, txtai 9.5.0)                                              | Built and tested (`pytest`: 1004 passed, 3 xfailed). **Not deployed. The image was never built**                                                                                                                           |
+| The corpus (141 chunks), the glossary, the matrix                                       | Written and **APPROVED** by Davin (eight corpus areas, the English term list, `routing-v1`)                                                                                                                                |
+| The labelled question set (40 questions × 19 locales, 13 adversarial)                   | Written. The English base is signed in part 10 (see its hand-off). **The 18 translations are my drafts**                                                                                                                   |
+| The recorded run `knowledge-service/labelled/runs/…`                                    | A **STAND-IN**: the hand labels answered it, no model was called. It proves the mechanism and measures nothing about the model or translation (§4)                                                                         |
+| The Understand model: key, model id, cost                                               | **None exists.** No key is set; the cost of a run is unmeasured                                                                                                                                                            |
+| The quota                                                                               | **Not metered** (D5): the default adapter allows everything. Step 7's                                                                                                                                                      |
+| Translations: native readers for 18 languages; counsel for the ten refusal replies      | **Not done** (D14). The flags stay off until they are read                                                                                                                                                                 |
+| A chat that shows a reply, `request_traces`, Section 5                                  | **Not built** (step 7 and the platform chapter)                                                                                                                                                                            |
 
 ## The order at a glance
 
@@ -128,7 +128,7 @@ All seven are set nowhere and none is in `.env.example`. Set them in Vercel → 
 | Variable                         | Value                                                              | Notes                                                                                                                                                                    |
 | -------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `INTAKE_ENABLED`                 | `true` or unset                                                    | **KEEP IT UNSET OR `false` IN PRODUCTION until step 7 meters (the rule above).** Exactly `true` opens `/api/intake` and `/api/intake/instant`                            |
-| `INTAKE_INSTANT_PROMPTS_ENABLED` | `true` or unset                                                    | The Panel C buttons render only on exactly `true`. Read on the server by `/terminal` and `/free`. Keep it off with the line above                                        |
+| `INTAKE_INSTANT_PROMPTS_ENABLED` | `true` or unset                                                    | The Panel C badges are instant prompts only on exactly `true`. Read on the server by `/terminal` and `/free`. Keep it off with the line above                            |
 | `KNOWLEDGE_SERVICE_URL`          | `https://<service>.up.railway.app` (https, or `http://localhost…`) | The monolith's client refuses any other URL and does not follow redirects                                                                                                |
 | `KNOWLEDGE_SERVICE_KEY`          | the same secret as the service's variable                          | Travels in the header `X-Knowledge-Service-Key`, never in the URL or the body, and appears in no log                                                                     |
 | `INTAKE_UNDERSTAND_API_KEY`      | an OpenRouter key                                                  | **Secret.** It appears only in the `Authorization` header. Without it the Understand step fails with `NOT_CONFIGURED` and every typed question is `UNDERSTANDING_FAILED` |
@@ -164,14 +164,15 @@ KNOWLEDGE_SERVICE_URL=http://localhost:8000
 KNOWLEDGE_SERVICE_KEY=local-test
 ```
 
-Then `npm run dev`, sign in as a Pro test user whose profile is confirmed, and open `/terminal`. Expect the two buttons at the bottom left of each chart pane; a press makes **one**
-`POST /api/intake/instant` with the body `{"kind":"INSTANT_M5_INSPECT"}` (or the M15 one) and nothing else; both buttons are disabled while it runs; the answer is a packet (HTTP 200) that nothing
-draws yet, or a refusal that appears beside the button in your interface language. Unset the two flags afterwards. `/dev/intake` (the packet, the board and the trace on the golden cycles)
-and `/dev/intake/instant` (the buttons in every state and language) need none of this and call nothing.
+Then `npm run dev`, sign in as a Pro test user whose profile is confirmed, and open `/terminal`. Expect the Market Context badge at the top left of each chart pane (`XAUUSD · M15 Market Context` above, `XAUUSD · M5 Market Context` below) and **no button at the bottom left**; a press on a badge makes **one**
+`POST /api/intake/instant` with the body `{"kind":"INSTANT_M5_INSPECT"}` (lower badge) or `{"kind":"INSTANT_M15_INSPECT"}` (upper badge) and nothing else; both badges are disabled and busy while it runs, with a spinner on the pressed one; the answer is a packet (HTTP 200) that nothing
+draws yet, or a refusal that appears below the badge in your interface language. As a Free trader (`/free`) a press on a badge opens the upgrade modal and makes no request.
+With the flag off the badges are the older ones (Pro only). Unset the two flags afterwards. `/dev/intake` (the packet, the board and the trace on the golden cycles)
+and `/dev/intake/instant` (the badges in every state and language) need none of this and call nothing.
 
 ## 6. S6 — Roll back
 
-Unset `INTAKE_INSTANT_PROMPTS_ENABLED` and `INTAKE_ENABLED` (or set them to anything but `true`) and redeploy: the buttons disappear and both routes answer 404 to everybody. The service can be
+Unset `INTAKE_INSTANT_PROMPTS_ENABLED` and `INTAKE_ENABLED` (or set them to anything but `true`) and redeploy: the badges go back to the older ones (Pro only, a canned prompt for the chat panel) and both routes answer 404 to everybody. The service can be
 stopped or deleted on its own: the monolith then builds packets with an unavailable knowledge pack, and nothing else depends on it. No migration, table or row was added by step 6.
 
 ## 7. Before any flag goes on in production
@@ -181,7 +182,7 @@ stopped or deleted on its own: the monolith then builds packets with an unavaila
    text in a language nobody read is a draft.
 3. A live run is committed and its numbers are inside the bars (S4); the image was built and measured (S1); the Vercel to Railway latency is measured (S2).
 4. The two `routing-v2` questions the labelled set raised (no D2 playbooks for Exit / targets, D3 to D5 for Explain) have an answer from you and the Advisor (architecture §4.5).
-5. Something renders the reply: Section 5 and the chat are step 7's, and the buttons are useless before it.
+5. Something renders the reply: Section 5 and the chat are step 7's, and the instant prompts are useless before it.
 
 ## Where things are
 

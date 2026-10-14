@@ -78,8 +78,9 @@ const ADAPTER_TARGETS: ReadonlySet<string> = new Set(
 /**
  * Files outside `lib/intake` that may import it: the two routes (part 5), the dev preview, and the
  * Panel C instant prompts (part 10): the two pages that read `isInstantPromptsEnabled()` on the server
- * (`app/terminal/page.tsx` and `app/free/page.tsx`), the button and its press hook (they use the
- * intent names and the fixed texts), and the dev preview of the buttons.
+ * (`app/terminal/page.tsx` and `app/free/page.tsx`), the Market Context badge and its press hook (they
+ * use the intent names and the fixed texts; the badge lives in `ask-ai-button.tsx`, which keeps its
+ * part 10 name), and the dev preview of the badges.
  */
 const ALLOWED_IMPORTERS: readonly string[] = [
   'app/api/intake/instant/route.ts',

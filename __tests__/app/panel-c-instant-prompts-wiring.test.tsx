@@ -1,7 +1,11 @@
 /**
- * The server side of the Panel C instant prompts (build step 6 part 10): the two workspace pages
- * read `isInstantPromptsEnabled()` on the server and pass it down, and the two workspace shells hand
- * it to the shared `TradingWorkspace`. The browser never sees the variable.
+ * The server side of the Panel C instant prompts (build step 6 part 10; Option A, 2026-10-14: the
+ * instant prompts are the top-left Market Context badges of the two chart panes, not a separate
+ * button): the two workspace pages read `isInstantPromptsEnabled()` on the server and pass it down,
+ * and the two workspace shells hand it to the shared `TradingWorkspace`, which gives it to the
+ * stacked charts (`trading-workspace.test.tsx`, and `ask-ai-button.test.tsx` for the badges). The
+ * browser never sees the variable. The flag is read here as exactly `true`: any other value leaves
+ * the badges as the older, plain ones.
  */
 
 import React from 'react';

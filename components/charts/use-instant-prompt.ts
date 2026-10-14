@@ -3,10 +3,11 @@
 /**
  * The press of a Panel C instant prompt (architecture 4.2 and 4.10, plan decision D10).
  *
- * One hook serves both buttons of the stacked charts, so there is ONE request in flight for the
- * whole chart: while the M5 question is out, the M15 button waits too (two simultaneous presses
- * would both pass the quota pre-check). A press posts `{ kind }` to `/api/intake/instant` and
- * nothing else: no text and no language, the server reads the interface setting.
+ * One hook serves both Market Context badges of the stacked charts, so there is ONE request in
+ * flight for the whole chart: while the M5 question is out, the M15 badge waits too (two
+ * simultaneous presses would both pass the quota pre-check). A press posts `{ kind }` to
+ * `/api/intake/instant` and nothing else: no text and no language, the server reads the interface
+ * setting.
  *
  *  - PRO: the request. While it runs `pending` names the kind and every further press is ignored
  *    (a ref guards the same tick, so a double click cannot slip through before the next render).
@@ -15,7 +16,7 @@
  *    other failure (the route answers 404 while `INTAKE_ENABLED` is off, a 5xx, no network) shows
  *    the fixed "not available" text of the dictionaries.
  *  - A success (200, `{ success: true, packet, trace }`) is handed to `onResult` and nothing is
- *    rendered: the reply to the trader is step 7's (D10 (e)), which is why the buttons stay behind
+ *    rendered: the reply to the trader is step 7's (D10 (e)), which is why the badges stay behind
  *    their own flag until then.
  *
  * @module components/charts/use-instant-prompt
@@ -27,10 +28,10 @@ import { useLocale } from '@/lib/context/locale-context';
 import { INSTANT_INTENTS, type InstantIntent } from '@/lib/intake/intents';
 import { INTAKE_TEXT } from '@/lib/intake/text';
 
-/** The one route the buttons call. */
+/** The one route the badges call. */
 export const INSTANT_ENDPOINT = '/api/intake/instant';
 
-/** How long a refusal stays beside its button. */
+/** How long a refusal stays below its badge. */
 export const NOTICE_MS = 12_000;
 
 /** The kind of instant prompt a chart timeframe has, or null (only M5 and M15 have one). */
@@ -40,7 +41,7 @@ export function instantKindFor(timeframe: string): InstantIntent | null {
   return null;
 }
 
-/** What the route said, reduced to what a button needs. */
+/** What the route said, reduced to what a badge needs. */
 export type InstantAnswer =
   | { ok: true; body: unknown }
   | { ok: false; reply: string | null };
@@ -101,7 +102,7 @@ export interface InstantNotice {
 export interface InstantPromptState {
   /** the kind whose request is in flight, or null */
   pending: InstantIntent | null;
-  /** the text beside the button that was refused, or null */
+  /** the text below the badge that was refused, or null */
   notice: InstantNotice | null;
   press: (kind: InstantIntent) => void;
 }

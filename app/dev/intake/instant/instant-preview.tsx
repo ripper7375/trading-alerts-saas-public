@@ -2,7 +2,10 @@
 
 import { useCallback, useMemo, useState, type ReactElement } from 'react';
 
-import { AskAiButton, AskAiOverlay } from '@/components/charts/ask-ai-button';
+import {
+  MarketContextBadge,
+  type InstantBadgeState,
+} from '@/components/charts/ask-ai-button';
 import {
   useInstantPrompt,
   type InstantAnswer,
@@ -68,7 +71,10 @@ function Choice<T extends string>({
   );
 }
 
-/** A stand-in for a chart pane: the same `relative` box the overlay is placed in, no chart in it. */
+/**
+ * A stand-in for a chart pane: the same `relative` box, and the same top-left box `TradingChart`
+ * puts its `overlayBadge` in, with no chart behind it.
+ */
 function FakePane({
   title,
   children,
@@ -85,12 +91,13 @@ function FakePane({
         backgroundSize: '32px 32px',
       }}
     >
-      <span className="absolute left-2.5 top-2.5 font-mono text-xs font-semibold text-muted-foreground">
+      <div className="pointer-events-auto absolute left-2.5 top-2.5 z-20">
+        {children}
+      </div>
+      <span className="absolute bottom-9 right-2.5 font-mono text-xs text-muted-foreground">
         {title}
       </span>
-      {/* the time axis the overlay sits above */}
       <div className="border-border/60 bg-background/60 absolute inset-x-0 bottom-0 h-7 border-t" />
-      {children}
     </div>
   );
 }
@@ -143,17 +150,17 @@ export function InstantPreview(): ReactElement {
     [t]
   );
 
-  const panes: { kind: InstantIntent; title: string }[] = [
-    { kind: 'INSTANT_M15_INSPECT', title: 'XAUUSD · M15 (upper pane)' },
-    { kind: 'INSTANT_M5_INSPECT', title: 'XAUUSD · M5 (lower pane)' },
+  const panes: { kind: InstantIntent; timeframe: string; title: string }[] = [
+    { kind: 'INSTANT_M15_INSPECT', timeframe: 'M15', title: 'upper pane' },
+    { kind: 'INSTANT_M5_INSPECT', timeframe: 'M5', title: 'lower pane' },
   ];
 
-  const propsFor = (kind: InstantIntent) => {
+  const instantFor = (kind: InstantIntent): InstantBadgeState => {
     if (mode === 'LIVE') {
       return {
         kind,
         loading: live.pending === kind,
-        disabled: live.pending !== null,
+        busy: live.pending !== null,
         notice: live.notice?.kind === kind ? live.notice.text : null,
         onPress: live.press,
       };
@@ -162,7 +169,7 @@ export function InstantPreview(): ReactElement {
     return {
       kind,
       loading: mode === 'IN_FLIGHT' && shown,
-      disabled: mode === 'IN_FLIGHT',
+      busy: mode === 'IN_FLIGHT',
       notice: mode === 'REFUSED' && shown ? staticNotice : null,
       onPress: () => note(`${kind} pressed (static state, nothing happens)`),
     };
@@ -175,10 +182,11 @@ export function InstantPreview(): ReactElement {
           Panel C instant prompts (development only)
         </h1>
         <p className="text-sm text-muted-foreground">
-          The real button and overlay of{' '}
-          <code>components/charts/ask-ai-button.tsx</code> in a stand-in pane,
-          with the real press hook. The route is replaced by a stand-in: no
-          network call, no model. In the product the buttons render only when{' '}
+          The real Market Context badge of{' '}
+          <code>components/charts/ask-ai-button.tsx</code> in a stand-in pane
+          (top left, where the chart puts it), with the real press hook. The
+          route is replaced by a stand-in: no network call, no model. In the
+          product the badges are the instant prompts only when{' '}
           <code>INTAKE_INSTANT_PROMPTS_ENABLED</code> is exactly{' '}
           <code>true</code>.
         </p>
@@ -255,19 +263,29 @@ export function InstantPreview(): ReactElement {
         className={`${FRAME_CLASS[frame]} space-y-3`}
         data-testid="panes"
       >
-        {panes.map(({ kind, title }) => (
+        {panes.map(({ kind, timeframe, title }) => (
           <FakePane key={kind} title={title}>
-            <AskAiOverlay {...propsFor(kind)} />
+            <MarketContextBadge
+              symbol="XAUUSD"
+              timeframe={timeframe}
+              active={timeframe === 'M15'}
+              instant={instantFor(kind)}
+            />
           </FakePane>
         ))}
       </section>
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold">
-          The button alone, in the way it flows (for a screenshot)
+          The badge alone, in the way it flows (for a screenshot)
         </h2>
         <div className={`${FRAME_CLASS[frame]} rounded-md border p-3`}>
-          <AskAiButton {...propsFor('INSTANT_M5_INSPECT')} />
+          <MarketContextBadge
+            symbol="XAUUSD"
+            timeframe="M5"
+            active
+            instant={instantFor('INSTANT_M5_INSPECT')}
+          />
         </div>
       </section>
 

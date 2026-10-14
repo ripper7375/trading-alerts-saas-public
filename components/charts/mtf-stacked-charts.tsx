@@ -10,8 +10,10 @@
  * - Component 7: Unified top horizontal drawing toolbar.
  * - Component 8: Chart display mode toggles (Bar vs Candlestick).
  * - Component 9: M5 Overlay button relocated to the top toolbar.
- * - Component 10: the Panel C instant prompts, one "Explain the current M5 / M15 chart" button at
- *   the bottom left of each pane (flag-gated; an overlay, so the split arithmetic is untouched).
+ * - Component 10: the Panel C instant prompts ARE the two Market Context badges (Owner Decision
+ *   "Option A", 2026-10-14): with the flag on, a press on a badge asks "Explain the current M15 / M5
+ *   chart" (PRO) or opens the upgrade modal (FREE). The badge is the node `TradingChart` already
+ *   places at the top left, so nothing is added to the pane and the split arithmetic is untouched.
  *
  * @module components/charts/mtf-stacked-charts
  */
@@ -23,7 +25,6 @@ import type { IChartApi, IRange, Time } from 'lightweight-charts';
 import { Lock, Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -32,7 +33,7 @@ import {
 import { useLocale } from '@/lib/context/locale-context';
 import { cn } from '@/lib/utils';
 
-import { AskAiOverlay } from './ask-ai-button';
+import { MarketContextBadge } from './ask-ai-button';
 import type { DrawingType } from './drawing/types';
 import { MtfTopBar, type IndicatorId } from './mtf/MtfTopBar';
 import { useMtfPreference } from './mtf/useMtfPreference';
@@ -62,9 +63,10 @@ interface MtfStackedChartsProps {
   /** Whether the user has PRO tier. If omitted, resolved from session. */
   isPro?: boolean;
   /**
-   * The Panel C instant prompts ("Explain the current M5 chart" and the M15 one): one button at the
-   * bottom left of each pane. Off unless the server says `INTAKE_INSTANT_PROMPTS_ENABLED` is `true`
-   * (`isInstantPromptsEnabled()`, read by the page and passed down).
+   * The Panel C instant prompts ("Explain the current M5 chart" and the M15 one): the top-left
+   * Market Context badge of each pane becomes the trigger. Off unless the server says
+   * `INTAKE_INSTANT_PROMPTS_ENABLED` is `true` (`isInstantPromptsEnabled()`, read by the page and
+   * passed down); off, the badges are the older ones.
    */
   instantPromptsEnabled?: boolean;
   /** A Free trader's press on an instant prompt opens this (the existing upgrade modal). */
@@ -94,7 +96,7 @@ export function MtfStackedCharts({
   const initialSplit = isPro ? DEFAULT_SPLIT : FREE_DEFAULT_SPLIT;
 
   // Panel C instant prompts: one request in flight for the whole chart. A Free trader with nowhere
-  // to be sent (no upgrade modal) gets no button rather than one that does nothing.
+  // to be sent (no upgrade modal) gets no badge rather than one that does nothing.
   const instant = useInstantPrompt({
     isPro,
     onOpenUpgradeModal,
@@ -102,8 +104,9 @@ export function MtfStackedCharts({
   });
   const showInstantPrompts =
     instantPromptsEnabled && (isPro || onOpenUpgradeModal !== undefined);
-  const upperInstantKind = instantKindFor(upperTimeframe);
-  const lowerInstantKind = instantKindFor(lowerTimeframe);
+  // a Free trader sees a badge on a pane only while the instant prompts are on
+  const freeBadgeAtTopLeft =
+    !isPro && showInstantPrompts && instantKindFor(lowerTimeframe) !== null;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const panelsContainerRef = useRef<HTMLDivElement>(null);
@@ -286,6 +289,44 @@ export function MtfStackedCharts({
   );
 
   /**
+   * The top-left Market Context badge of a pane (Components 5 and 6). With the Panel C flag on, a
+   * pane that has an instant prompt (M5, M15) gets the badge that asks it, for PRO and FREE alike;
+   * otherwise it is the older badge, for PRO only, that hands a canned prompt to the chat.
+   */
+  const marketContextBadge = (
+    panel: 'upper' | 'lower',
+    timeframe: string
+  ): React.ReactNode => {
+    const active = activePanel === panel;
+    const kind = instantKindFor(timeframe);
+    if (showInstantPrompts && kind !== null) {
+      return (
+        <MarketContextBadge
+          symbol={symbol}
+          timeframe={timeframe}
+          active={active}
+          instant={{
+            kind,
+            loading: instant.pending === kind,
+            busy: instant.pending !== null,
+            notice: instant.notice?.kind === kind ? instant.notice.text : null,
+            onPress: instant.press,
+          }}
+        />
+      );
+    }
+    if (!isPro) return undefined;
+    return (
+      <MarketContextBadge
+        symbol={symbol}
+        timeframe={timeframe}
+        active={active}
+        onPress={() => onAskAi?.(getInstantPrompt(timeframe))}
+      />
+    );
+  };
+
+  /**
    * Observe the panels container box to size the chart canvases accurately.
    */
   useEffect(() => {
@@ -388,61 +429,9 @@ export function MtfStackedCharts({
                 watermarkSubtext={
                   !isPro ? `${symbol} ${upperTimeframe}` : undefined
                 }
-                overlayBadge={
-                  isPro ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onAskAi?.(getInstantPrompt(upperTimeframe))
-                      }
-                      title={t(
-                        'charts.instant_prompt_title',
-                        'Instant prompt to AI chat'
-                      )}
-                      className={cn(
-                        'shadow-xs backdrop-blur-xs group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all active:scale-95',
-                        activePanel === 'upper'
-                          ? 'border-amber-500/70 bg-amber-500/10 ring-1 ring-amber-500/30'
-                          : 'border-border/80 bg-background/90 hover:bg-muted/80 hover:border-amber-500/50'
-                      )}
-                    >
-                      <Avatar className="h-4 w-4 border border-amber-400/80">
-                        <AvatarImage
-                          src="/DavinTrade_Logo.jpg"
-                          alt="DavinTrade"
-                        />
-                        <AvatarFallback className="text-[9px]">
-                          DT
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-mono text-xs font-semibold text-foreground">
-                        {symbol} · {upperTimeframe}
-                      </span>
-                      <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
-                        {t('Market Context')}
-                      </span>
-                      {activePanel === 'upper' && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                      )}
-                    </button>
-                  ) : undefined
-                }
+                overlayBadge={marketContextBadge('upper', upperTimeframe)}
                 label={`${symbol} · ${upperTimeframe}`}
               />
-
-              {showInstantPrompts && upperInstantKind !== null && (
-                <AskAiOverlay
-                  kind={upperInstantKind}
-                  loading={instant.pending === upperInstantKind}
-                  disabled={instant.pending !== null}
-                  notice={
-                    instant.notice?.kind === upperInstantKind
-                      ? instant.notice.text
-                      : null
-                  }
-                  onPress={instant.press}
-                />
-              )}
             </div>
           </ResizablePanel>
 
@@ -495,66 +484,21 @@ export function MtfStackedCharts({
                 watermarkSubtext={
                   !isPro ? `${symbol} ${lowerTimeframe}` : undefined
                 }
-                overlayBadge={
-                  isPro ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onAskAi?.(getInstantPrompt(lowerTimeframe))
-                      }
-                      title={t(
-                        'charts.instant_prompt_title',
-                        'Instant prompt to AI chat'
-                      )}
-                      className={cn(
-                        'shadow-xs backdrop-blur-xs group flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-left transition-all active:scale-95',
-                        activePanel === 'lower'
-                          ? 'border-amber-500/70 bg-amber-500/10 ring-1 ring-amber-500/30'
-                          : 'border-border/80 bg-background/90 hover:bg-muted/80 hover:border-amber-500/50'
-                      )}
-                    >
-                      <Avatar className="h-4 w-4 border border-amber-400/80">
-                        <AvatarImage
-                          src="/DavinTrade_Logo.jpg"
-                          alt="DavinTrade"
-                        />
-                        <AvatarFallback className="text-[9px]">
-                          DT
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="font-mono text-xs font-semibold text-foreground">
-                        {symbol} · {lowerTimeframe}
-                      </span>
-                      <span className="text-[11px] font-medium text-muted-foreground group-hover:text-foreground">
-                        {t('Market Context')}
-                      </span>
-                      {activePanel === 'lower' && (
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                      )}
-                    </button>
-                  ) : undefined
-                }
+                overlayBadge={marketContextBadge('lower', lowerTimeframe)}
                 label={`${symbol} · ${lowerTimeframe}`}
               />
-
-              {showInstantPrompts && lowerInstantKind !== null && (
-                <AskAiOverlay
-                  kind={lowerInstantKind}
-                  loading={instant.pending === lowerInstantKind}
-                  disabled={instant.pending !== null}
-                  notice={
-                    instant.notice?.kind === lowerInstantKind
-                      ? instant.notice.text
-                      : null
-                  }
-                  onPress={instant.press}
-                />
-              )}
 
               {!isPro && (
                 <div
                   data-testid="free-tier-tools-banner"
-                  className="shadow-xs backdrop-blur-xs pointer-events-auto absolute left-1/2 top-2.5 z-20 flex -translate-x-1/2 items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-foreground"
+                  className={cn(
+                    'shadow-xs backdrop-blur-xs pointer-events-auto absolute z-20 flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-foreground',
+                    // the Free trader's Market Context badge is at the top left, where this
+                    // centred banner would cover it: the banner goes just below the badge
+                    freeBadgeAtTopLeft
+                      ? 'left-2.5 top-[42px] max-w-[calc(100%-1.25rem)]'
+                      : 'left-1/2 top-2.5 -translate-x-1/2'
+                  )}
                 >
                   <Lock className="h-3.5 w-3.5 shrink-0 text-amber-500" />
                   <span className="text-[11px] font-medium">

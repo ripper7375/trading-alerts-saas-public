@@ -904,13 +904,31 @@ intent "Explain" scoped to M5 or M15. With no typed question to detect a languag
 written in the language of the user's interface setting. Stale data is flagged in the packet before
 any prompt is built.
 
-**The two buttons (build step 6, part 10, [ADR-098]).** Panel C's "Explain the current M5 chart" and
-"Explain the current M15 chart" are the first screen on this path. A press
-posts `{ "kind": "INSTANT_M5_INSPECT" | "INSTANT_M15_INSPECT" }` to `/api/intake/instant` and nothing
-else (no text, no language, no thread). They render only when `INTAKE_INSTANT_PROMPTS_ENABLED` is
-exactly `true`, a flag the page reads on the server; for a Free trader a press opens the upgrade modal
-and sends nothing. The route itself stays off until `INTAKE_ENABLED` is `true`, which waits for step 7's
-metering (D5).
+**The two instant prompts are the two Market Context badges (build step 6, part 10, [ADR-098] D10;
+Owner Decision "Option A", Davin, 2026-10-14).** Panel C's "Explain the current M15 chart" (upper pane)
+and "Explain the current M5 chart" (lower pane) are the first screen on this path, and they are not
+separate buttons: the badge at the top left of each chart pane is the trigger. It reads
+`[DavinTrade logo] XAUUSD · M15 Market Context •` (upper) and `[logo] XAUUSD · M5 Market Context •` (lower).
+Nothing is added to the pane (no control at the bottom left, no change to `TradingChart`,
+`mtf-split-layout.ts` or `CHROME_PER_CHART`).
+
+- **PRO:** a press posts `{ "kind": "INSTANT_M15_INSPECT" }` (upper) or `{ "kind": "INSTANT_M5_INSPECT" }`
+  (lower) to `/api/intake/instant` and nothing else (no text, no language, no thread).
+- **FREE:** the same press opens the upgrade modal (`onOpenUpgradeModal`) and sends nothing. The badge is
+  shown to a Free trader only while the flag is on and there is a modal to open.
+- **In flight:** both badges are disabled and `aria-busy` (one request for the whole chart), the pressed
+  one shows a spinner where its active dot is, and a second press is ignored.
+- **A refusal** is the server's own reply, in the interface language, shown below the badge that was
+  pressed and cleared after 12 seconds or at the next press.
+- **The flag:** the badges are the instant prompts only when `INTAKE_INSTANT_PROMPTS_ENABLED` is exactly
+  `true`, a flag the page reads on the server (`isInstantPromptsEnabled()`). Off, they are the older
+  badges (PRO only, a press hands a canned prompt to the chat panel). The tooltip of an instant badge
+  is the fixed question ("Explain the current M5 chart", in the interface language).
+- **One layout consequence:** a Free trader's lower pane also holds a centred "tools are unavailable"
+  banner; with the badge at the top left it sits just below the badge instead (the flag off leaves it
+  centred as before).
+
+The route itself stays off until `INTAKE_ENABLED` is `true`, which waits for step 7's metering (D5).
 
 ### 4.3 Nineteen languages
 
@@ -1175,7 +1193,8 @@ Section 5 does not reach back into market tables or the index.
 ### 4.10 Keep, change, add, remove
 
 - **Keep:** tier, quota and thread gate; XAUUSD and M5 / M15 scope with fixed replies; instant
-  prompts (built in step 6 part 10, behind `INTAKE_INSTANT_PROMPTS_ENABLED`); five knowledge domains;
+  prompts (built in step 6 part 10, behind `INTAKE_INSTANT_PROMPTS_ENABLED`; they are the two top-left
+  Market Context badges of the chart, §4.2); five knowledge domains;
   txtai with local index files and hybrid search.
 - **Change:** routing by dispatch matrix, not vector similarity; retrieval query built from context;
   filtering in SQL with whitelisted ids; the gate also checks data status and profile.
@@ -1202,7 +1221,7 @@ its state. Test paths are relative to the repository root; `knowledge-service/te
 | 6   | The index is built with keyword-score normalisation on and searched with `weights=0.7`; a test fails if either setting changes           | `knowledge-service/tests/test_search.py` and `test_config.py`: txtai asserted to be exactly 9.5.0; `index.yaml` pinned to `weights: 0.7` and `scoring: {method: bm25, terms: true, normalize: true}`; `parse_index_config` refuses `normalize: false`; the loader refuses an index whose saved scoring differs; the search call is spied and carries `weights=0.7`; a crafted pair of documents orders differently at 0.7 and 0.3, and an index built with `normalize: false` fails the fusion check | **Met**                                                                                                                                                                                                                                                                                                                                       |
 | 7   | A corpus change that drops recall below 0.8 stops the deploy                                                                             | `knowledge-service/tests/test_replay.py`: the gate exits 1 on a corpus with a chunk removed (`CHUNK_UNKNOWN`), a stale fingerprint (eight codes), a locale 6 points under English (`BELOW_ENGLISH`) and a recall of 0.77 (`RECALL_LOW`); `gate replay --require-approved` is the Dockerfile's last build step; the TypeScript half runs in `npm run test:ci`, which `deploy.yml` requires                                                                                                            | **Met** for the service build and for the Jest gate. The Railway wiring is Davin's (decision D3), and `deploy.yml` is invalid today (§0.5), so what stops a Vercel deploy is unverified                                                                                                                                                       |
 | 8   | A STALE cycle is flagged in the packet before any prompt is built                                                                        | `__tests__/lib/intake/pipeline.test.ts`: under a STALE gateway each of the 7 packet intents gives `data.status = STALE` and the trace says so, and the knowledge port, when called, finds GATE through ROUTE already finished with the status already written; an unreachable gateway gives UNKNOWN with `GATEWAY_UNREACHABLE`; FRESH, DELAYED and MARKET_CLOSED raise no flag                                                                                                                       | **Met.** A STALE cycle is not refused: Section 5 decides about direction from `data.status`                                                                                                                                                                                                                                                   |
-| 9   | An instant prompt with too little quota is refused at the gate, before any model call, and its reply is in the user's interface language | `__tests__/lib/intake/gate.test.ts`; `pipeline.test.ts` (both prompts in all 19 locales, 38 cases: `QUOTA_INSUFFICIENT` at stage GATE, the reply in the locale's own dictionary, and the counters of Understand, snapshot, calendar, router, board and knowledge client all 0); `__tests__/api/intake/gating.test.ts` and `instant.test.ts` (HTTP 429, no `fetch`); the buttons: `__tests__/components/charts/ask-ai-button.test.tsx`                                                                | **Met with a fake quota.** The real quota is step 7's (decision D5): the default adapter allows everything, which is why `INTAKE_ENABLED` stays false until step 7 meters                                                                                                                                                                     |
+| 9   | An instant prompt with too little quota is refused at the gate, before any model call, and its reply is in the user's interface language | `__tests__/lib/intake/gate.test.ts`; `pipeline.test.ts` (both prompts in all 19 locales, 38 cases: `QUOTA_INSUFFICIENT` at stage GATE, the reply in the locale's own dictionary, and the counters of Understand, snapshot, calendar, router, board and knowledge client all 0); `__tests__/api/intake/gating.test.ts` and `instant.test.ts` (HTTP 429, no `fetch`); the badges: `__tests__/components/charts/ask-ai-button.test.tsx`                                                                 | **Met with a fake quota.** The real quota is step 7's (decision D5): the default adapter allows everything, which is why `INTAKE_ENABLED` stays false until step 7 meters                                                                                                                                                                     |
 | 10  | Each answer's trace names its language, intent, M\*, chunk ids and index build                                                           | `__tests__/lib/intake/trace.test.ts`; `pipeline-golden.test.ts` (each of the 288 packets: the trace equals `packet.trace` field by field and `packet_sha256` equals the packet's canonical hash); `__tests__/api/intake/typed.test.ts` on the route                                                                                                                                                                                                                                                  | **Met in the response.** The stored `request_traces` row is chapter 7's                                                                                                                                                                                                                                                                       |
 | –   | §7.10 row 6: glossary, corpus, index, labelled set                                                                                       | Parts 3, 6 to 9. `check --require-approved` for the glossary, the matrix, each corpus area and the labelled base; `gate build ... --require-real --require-approved` exits 0                                                                                                                                                                                                                                                                                                                         | **Built; approval is Davin's.** The matrix, the English term list and all eight corpus areas are APPROVED; the English base of the labelled set is signed in the Phase 1 of part 10 (see its hand-off); the 18 non-English term and text translations are drafts (D14)                                                                        |
 
@@ -1217,7 +1236,7 @@ on Python 3.11 or Linux, the Vercel to Railway latency, and the quota. Each is a
 small model call · [ADR-040] sensor board · [ADR-041] always in full · [ADR-042] corpus authorship ·
 [ADR-043] retrieval query · [ADR-044] test thresholds · [ADR-045] embedding model · [ADR-046]
 out-of-scope check · [ADR-098] the build of this chapter: 19 locales, the knowledge service, the
-Understand adapter, the quota pre-check, the instant prompt buttons, retrieval settings and the pinned
+Understand adapter, the quota pre-check, the instant prompts (the Market Context badges, D10), retrieval settings and the pinned
 model.
 
 ---
@@ -2230,7 +2249,7 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | [095](adr/095-stop-options-from-the-stored-readings-and-the-cycle-bundle.md)   | Stop options rebuilt from stored readings and bundle S&R levels; targets strictly before the level       | Section 6 · 9 Oct   | Settled |
 | [096](adr/096-profile-history-and-the-keyed-audit-hash.md)                     | Profile history and consent rows are append-only; user id goes to NULL, a keyed HMAC hash stays          | Section 6 · 10 Oct  | Settled |
 | [097](adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md)        | One ValidatedSetup for modal and chat; the server recomputes; Report 2 is a fixed template               | Section 6 · 10 Oct  | Settled |
-| [098](adr/098-intake-routing-and-knowledge-service.md)                         | Section 4 as built: 19 locales, Railway service, adapter, quota port, buttons, retrieval, model pin      | Section 4 · 14 Oct  | Settled |
+| [098](adr/098-intake-routing-and-knowledge-service.md)                         | Section 4 as built: 19 locales, Railway service, adapter, quota port, badges, retrieval, model pin       | Section 4 · 14 Oct  | Settled |
 
 ## Appendix B — Corrections to earlier material
 
@@ -2257,7 +2276,8 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 | §4.4              | Sample board: all VALID, last price 4377.99 at 20:55:05           | Stored 18 Sep cycle: all CAUTIONARY, state codes shown, last price 4378.31 (close of the 20:50 M5 bar)                                 |
 | §4.6              | Chunks split over 1,500 tokens                                    | Over 450: the embedding model sees only the first 512 tokens of a chunk (§4.6)                                                         |
 | §4.7              | SQL scoped by `mcd_id` or domain, no weights, long templates      | Playbook domain and ids bound together, `weights=0.7`, one-word templates, domains from the matrix (§4.7)                              |
-| App. C, item 6    | Panel C buttons are a design target, not built                    | Built in step 6 part 10 behind `INTAKE_INSTANT_PROMPTS_ENABLED`; text "Explain the current M5 / M15 chart" (§4.2)                      |
+| App. C, item 6    | Panel C buttons are a design target, not built                    | Built in step 6 part 10 behind `INTAKE_INSTANT_PROMPTS_ENABLED`, as the top-left Market Context badges, not buttons (Option A; §4.2)   |
+| App. C, item 6    | "XAUUSD with M5 stacked above M15"                                | M15 is the upper pane and M5 the lower one (`upperTimeframe = 'M15'`, `lowerTimeframe = 'M5'`); settled by Davin, 14 Oct (§4.2)        |
 | Step 6 task text  | Locales `ms` and `ru`                                             | The app has `en-GB` and `pt` instead (`lib/i18n/languages.ts`); the labelled set follows the app (§4.3)                                |
 
 ## Appendix C — Superseded documents
@@ -2296,7 +2316,7 @@ data-collection blueprint v2.29, the terminal, frozen-baseline, chart and news m
 
 The six design folders in `seed-code/txtai/` were reviewed against this architecture and the live 4-panel terminal codebase (`/terminal`, `components/workspace/trading-workspace.tsx`) before Build Step 4 (Appendix D item resolved).
 
-On 4 Oct 2026 the terminal's chat UI is not built. Panel A (`components/chat-sidebar.tsx`) lists four hardcoded session titles. Panel B (`components/chat-panel.tsx`) is an "AI Copilot Coming Soon" empty state with a tier badge, by the zero-mock-data decision of Session 9-4. Panel C (`components/charts/mtf-stacked-charts.tsx`) has no chat buttons (the two instant prompt buttons were added on 14 Oct 2026, item 6 below). Panel D is Market Comments. Where this review marks a UI item "kept", it is a design input for the chat UI, not an existing feature.
+On 4 Oct 2026 the terminal's chat UI is not built. Panel A (`components/chat-sidebar.tsx`) lists four hardcoded session titles. Panel B (`components/chat-panel.tsx`) is an "AI Copilot Coming Soon" empty state with a tier badge, by the zero-mock-data decision of Session 9-4. Panel C (`components/charts/mtf-stacked-charts.tsx`) has no chat buttons (the two Market Context badges became the instant prompts on 14 Oct 2026, item 6 below). Panel D is Market Comments. Where this review marks a UI item "kept", it is a design input for the chat UI, not an existing feature.
 
 1. **`CHAT-UI-MANAGEMENT`:**
    - **Kept:** Visual badge styling for the active cycle and the trader profile (`Day Trader` / `Scalper`, ADR-028) in the `ChatPanel` header (§5.1). The live header shows only the title and the tier badge.
@@ -2322,13 +2342,16 @@ On 4 Oct 2026 the terminal's chat UI is not built. Panel A (`components/chat-sid
    - **Superseded:** Older custom MQ5 indicators (Fractal Horizontal Line, Momentum Z-Score, TEMA/HRMA) parked in favor of 2EDT Centroid Regression (`market_data_v6`), the MCD0–MCD3 sensors (§2.13, ADR-018, ADR-082), and fixed Day Trader / Scalper profiles (ADR-028).
 
 6. **`DYNAMIC-CHART-AND-CARD-DISPLAY`:**
-   - **Kept:** The live 4-panel terminal layout in `components/workspace/trading-workspace.tsx`: Panel A (`ChatSidebar`, SESSIONS navigation), Panel B (`ChatPanel`, AI Analyst), Panel C (`MtfStackedCharts`, XAUUSD with M5 stacked above M15) and Panel D (Market Comments).
+   - **Kept:** The live 4-panel terminal layout in `components/workspace/trading-workspace.tsx`: Panel A (`ChatSidebar`, SESSIONS navigation), Panel B (`ChatPanel`, AI Analyst), Panel C (`MtfStackedCharts`, XAUUSD with M15 stacked above M5, as built) and Panel D (Market Comments).
    - **Kept as design targets, not built:**
-     - Panel B: a model picker that lists passed models only (§5.12, ADR-055), a Monthly Token Quota meter (§5.6, ADR-050, ADR-073), and a chat input box. The design's `Ask Gemini...` placeholder names a model; the launch model is set by the evaluation suite (§5.10, ADR-055).
+     - Panel B: a model picker that lists passed models only (§5.12, ADR-055), a Monthly Token Quota meter (§5.6, ADR-050, ADR-073), and a chat input box. The design's `Ask Gemini...` placeholder names a model; the launch model is set by the evaluation suite (§5.10, ADR-055). - Panel C: `Ask AI about M5 Chart` and `Ask AI about M15 Chart` instant prompt buttons (§4.10).
      - Panel C: `Ask AI about M5 Chart` and `Ask AI about M15 Chart` instant prompt buttons (§4.10).
        **Update (14 Oct 2026, build step 6 part 10): built**, behind `INTAKE_INSTANT_PROMPTS_ENABLED`
-       (off). The visible text is the dictionary text of the fixed question, "Explain the current M5
-       chart" and "Explain the current M15 chart"; the old label is the tooltip (§4.2, [ADR-098] D10).
+       (off), **as the top-left Market Context badges** (`XAUUSD · M15 Market Context` and
+       `XAUUSD · M5 Market Context`), not as separate buttons (Owner Decision "Option A", 14 Oct): the
+       badge is the trigger, its tooltip is the dictionary text of the fixed question ("Explain the
+       current M5 chart", "Explain the current M15 chart"), and the bottom-left button of the first build
+       is gone (§4.2, [ADR-098] D10).
    - **Superseded:** TypeORM entities and older indicator cards (superseded by the Prisma models in the Railway gateway, `railway-gateway/prisma/schema.prisma`, and the Sensor Board, ADR-040).
 
 The txtai library source in the same folder is reference code (§4.6).

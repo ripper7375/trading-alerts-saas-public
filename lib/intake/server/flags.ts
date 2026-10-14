@@ -8,9 +8,10 @@
  *  - `INTAKE_ENABLED`: the two routes (`/api/intake`, `/api/intake/instant`) answer 404 to
  *    everybody until it is on. **It stays false in production until step 7 meters the quota**
  *    (decision D5 (A); runbook `docs/runbooks/deploy-stack-d-step6.md`).
- *  - `INTAKE_INSTANT_PROMPTS_ENABLED`: the Panel C buttons render only when it is on (part 10). It
- *    is not a second lock on the route: a button pressed while the route is off gets the 404 and
- *    shows the "not available" text.
+ *  - `INTAKE_INSTANT_PROMPTS_ENABLED`: the chart's Market Context badges are the Panel C instant
+ *    prompts only when it is on (part 10; off, they are the older badges). It is not a second lock
+ *    on the route: a badge pressed while the route is off gets the 404 and shows the "not available"
+ *    text.
  *
  * @module lib/intake/server/flags
  */
@@ -22,7 +23,7 @@ export function isIntakeEnabled(env: Env = process.env): boolean {
   return env['INTAKE_ENABLED'] === 'true';
 }
 
-/** The Panel C buttons render only when this is exactly the text `true` (the UI reads it; part 10). */
+/** The Panel C badges are instant prompts only when this is exactly the text `true` (the UI reads it; part 10). */
 export function isInstantPromptsEnabled(env: Env = process.env): boolean {
   return env['INTAKE_INSTANT_PROMPTS_ENABLED'] === 'true';
 }

@@ -57,7 +57,7 @@ interface TradingWorkspaceProps {
    */
   onOpenUpgradeModal?: () => void;
   /**
-   * Whether the Panel C instant prompt buttons render. The server decides
+   * Whether the Market Context badges of the chart are the Panel C instant prompts. The server decides
    * (`isInstantPromptsEnabled()`: `INTAKE_INSTANT_PROMPTS_ENABLED` is exactly `true`) and the page
    * passes it down; off when omitted.
    */

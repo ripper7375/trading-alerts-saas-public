@@ -7,7 +7,7 @@
  *
  *  - the FLAG is `INTAKE_ENABLED`, exactly the text `true`, and nothing else turns it on (decision
  *    D16). Off is the default and it is set nowhere: both routes answer 404 to everybody. The
- *    instant-prompt buttons have their own flag, `INTAKE_INSTANT_PROMPTS_ENABLED`, which the UI
+ *    instant prompts (the chart's Market Context badges) have their own flag, `INTAKE_INSTANT_PROMPTS_ENABLED`, which the UI
  *    reads (part 10); it is not a second lock on the route;
  *  - the SESSION is the server's session and the only source of the user id and the tier. An
  *    unknown or missing tier is Free: access is never granted by a gap (the Engine 4 rule);

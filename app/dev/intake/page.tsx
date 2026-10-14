@@ -127,8 +127,8 @@ export default async function IntakePreviewPage({
             className="underline underline-offset-2"
             data-testid="instant-preview-link"
           >
-            Panel C instant prompt buttons (&quot;Explain the current M5 / M15
-            chart&quot;)
+            Panel C instant prompts: the Market Context badges (&quot;Explain
+            the current M5 / M15 chart&quot;)
           </Link>
         </p>
       </header>
