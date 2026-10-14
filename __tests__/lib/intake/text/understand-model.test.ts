@@ -124,6 +124,74 @@ describe('understandConfigFromEnv', () => {
   });
 });
 
+describe('understandConfigFromEnv: one key for the gateway (step 7 decision D5)', () => {
+  const OTHER = 'sk-or-v1-the-alias-key-0000';
+
+  it('reads OPENROUTER_API_KEY, and INTAKE_UNDERSTAND_API_KEY as its alias', () => {
+    expect(
+      understandConfigFromEnv({
+        OPENROUTER_API_KEY: KEY,
+        INTAKE_UNDERSTAND_MODEL: MODEL,
+      })
+    ).toEqual({ apiKey: KEY, model: MODEL });
+    expect(
+      understandConfigFromEnv({
+        INTAKE_UNDERSTAND_API_KEY: OTHER,
+        INTAKE_UNDERSTAND_MODEL: MODEL,
+      })
+    ).toEqual({ apiKey: OTHER, model: MODEL });
+  });
+
+  it('prefers the canonical name when both are set, and falls back to the alias when it is empty', () => {
+    expect(
+      understandConfigFromEnv({
+        OPENROUTER_API_KEY: KEY,
+        INTAKE_UNDERSTAND_API_KEY: OTHER,
+        INTAKE_UNDERSTAND_MODEL: MODEL,
+      })
+    ).toEqual({ apiKey: KEY, model: MODEL });
+    expect(
+      understandConfigFromEnv({
+        OPENROUTER_API_KEY: '',
+        INTAKE_UNDERSTAND_API_KEY: OTHER,
+        INTAKE_UNDERSTAND_MODEL: MODEL,
+      })
+    ).toEqual({ apiKey: OTHER, model: MODEL });
+    expect(
+      understandConfigFromEnv({
+        OPENROUTER_API_KEY: '   ',
+        INTAKE_UNDERSTAND_MODEL: MODEL,
+      })
+    ).toBeNull();
+  });
+
+  it('reads the base URL from OPENROUTER_BASE_URL, and INTAKE_UNDERSTAND_BASE_URL as its alias', () => {
+    expect(
+      understandConfigFromEnv({
+        OPENROUTER_API_KEY: KEY,
+        INTAKE_UNDERSTAND_MODEL: MODEL,
+        OPENROUTER_BASE_URL: ' https://proxy.example.com/v1 ',
+        INTAKE_UNDERSTAND_BASE_URL: 'https://old.example.com/v1',
+      })
+    ).toEqual({
+      apiKey: KEY,
+      model: MODEL,
+      baseUrl: 'https://proxy.example.com/v1',
+    });
+    expect(
+      understandConfigFromEnv({
+        OPENROUTER_API_KEY: KEY,
+        INTAKE_UNDERSTAND_MODEL: MODEL,
+        INTAKE_UNDERSTAND_BASE_URL: 'https://old.example.com/v1',
+      })
+    ).toEqual({
+      apiKey: KEY,
+      model: MODEL,
+      baseUrl: 'https://old.example.com/v1',
+    });
+  });
+});
+
 describe('completionsEndpoint', () => {
   it('is OpenRouter’s chat completions by default', () => {
     expect(completionsEndpoint(DEFAULT_UNDERSTAND_BASE_URL)?.toString()).toBe(
@@ -176,6 +244,8 @@ describe('the request to the model', () => {
       max_tokens: UNDERSTAND_MAX_TOKENS,
       response_format: { type: 'json_object' },
       provider: { data_collection: 'deny' },
+      // step 7 part 3: the usage block is asked for on every call, so the cost can be settled
+      usage: { include: true },
     });
     expect(UNDERSTAND_MAX_TOKENS).toBe(700);
   });

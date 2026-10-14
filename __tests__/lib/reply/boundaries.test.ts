@@ -15,6 +15,11 @@
  *     below and nothing else from outside; the other rules (no network, no process, no clock,
  *     no randomness) hold for it too. `context/caps.ts` also imports its one data file, the
  *     caps table.
+ *     The other exception is the model gateway (build step 7 part 3), `gateway/`: the registry
+ *     reads its one table (`config/ai-models.ts`), and `gateway/openrouter.ts` is the ONE file of
+ *     the tree that calls the network, uses a timer and reads the clock (for the latency it
+ *     reports). It is also the one file that names the `Authorization` header: the key lives there
+ *     and nowhere else (a test below reads every file for it).
  *  2. `lib/platform` may touch the database, but each file may import only the outside
  *     modules named for it below, and none of it may use the network, the process, the
  *     console or a browser global. The clock is `messages-store.ts`'s alone (its default `now`).
@@ -41,6 +46,10 @@ const REPLY_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
     '@/lib/intake/slots',
   ],
   'context/caps.ts': ['@/config/reply/context-caps.v1.json'],
+  // the model gateway (build step 7 part 3): the registry table, and nothing else from outside
+  'gateway/registry.ts': ['@/config/ai-models'],
+  'gateway/types.ts': ['@/config/ai-models'],
+  'gateway/understand-adapter.ts': ['@/config/ai-models'],
   'read/day-bars.ts': ['@/lib/db/market-prisma'],
 };
 
@@ -69,8 +78,14 @@ const PLATFORM_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
   ],
 };
 
-/** Files outside both trees that may import them: none in part 1. */
-const ALLOWED_IMPORTERS: readonly string[] = [];
+/**
+ * Files outside both trees that may import them. Build step 7 part 3: the Understand adapter of the
+ * intake path is now a thin wrapper over the gateway's Understand adapter, so it imports ONE module
+ * of `lib/reply` (`__tests__/lib/intake/boundaries.test.ts` holds it to that one).
+ */
+const ALLOWED_IMPORTERS: readonly string[] = [
+  'lib/intake/text/understand-model.ts',
+];
 
 /** Names that mean input, output, randomness or a browser. `Date` is judged separately. */
 const FORBIDDEN_NAMES = new Set([
@@ -96,8 +111,21 @@ const FORBIDDEN_NAMES = new Set([
   'getRandomValues',
 ]);
 
-/** The one file that may read the clock (its default `now`). */
-const CLOCK_FILES: ReadonlySet<string> = new Set(['chat/messages-store.ts']);
+/** The one file of each tree that may read the clock (its default `now`). */
+const REPLY_CLOCK_FILES: ReadonlySet<string> = new Set([
+  'gateway/openrouter.ts',
+]);
+const PLATFORM_CLOCK_FILES: ReadonlySet<string> = new Set([
+  'chat/messages-store.ts',
+]);
+
+/**
+ * The names a file may use although they are forbidden elsewhere: the gateway adapter is the ONE
+ * file of `lib/reply` that calls the network (`fetch`) and uses a timer (the wait of an attempt).
+ */
+const REPLY_ALLOWED_NAMES: Readonly<Record<string, readonly string[]>> = {
+  'gateway/openrouter.ts': ['fetch', 'setTimeout'],
+};
 
 interface Violation {
   file: string;
@@ -138,6 +166,8 @@ interface Tree {
   /** `@/lib/reply` or `@/lib/platform`: the alias of a sibling inside the same tree is allowed */
   alias: string;
   outside: Readonly<Record<string, readonly string[]>>;
+  clockFiles: ReadonlySet<string>;
+  allowedNames: Readonly<Record<string, readonly string[]>>;
 }
 
 /** Check files given as `path inside the tree -> source text`. */
@@ -186,6 +216,7 @@ function analyse(tree: Tree, sources: Map<string, string>): Violation[] {
       if (
         ts.isIdentifier(node) &&
         FORBIDDEN_NAMES.has(node.text) &&
+        !(tree.allowedNames[file] ?? []).includes(node.text) &&
         !isLabel(node)
       ) {
         report(node, `forbidden name ${node.text}`);
@@ -205,7 +236,7 @@ function analyse(tree: Tree, sources: Map<string, string>): Violation[] {
         report(node, `forbidden name ${node.name.text}`);
       }
       // the clock: `Date.now()` and `new Date()` with no argument
-      if (!CLOCK_FILES.has(file)) {
+      if (!tree.clockFiles.has(file)) {
         if (
           ts.isCallExpression(node) &&
           ts.isPropertyAccessExpression(node.expression) &&
@@ -242,15 +273,25 @@ function load(dir: string): Map<string, string> {
   return sources;
 }
 
-const REPLY: Tree = { alias: '@/lib/reply', outside: REPLY_OUTSIDE };
-const PLATFORM: Tree = { alias: '@/lib/platform', outside: PLATFORM_OUTSIDE };
+const REPLY: Tree = {
+  alias: '@/lib/reply',
+  outside: REPLY_OUTSIDE,
+  clockFiles: REPLY_CLOCK_FILES,
+  allowedNames: REPLY_ALLOWED_NAMES,
+};
+const PLATFORM: Tree = {
+  alias: '@/lib/platform',
+  outside: PLATFORM_OUTSIDE,
+  clockFiles: PLATFORM_CLOCK_FILES,
+  allowedNames: {},
+};
 
 // ---------------------------------------------------------------------------------------
 
 describe('lib/reply', () => {
   const sources = load(REPLY_DIR);
 
-  it('has the files of parts 1 and 2', () => {
+  it('has the files of parts 1 to 3', () => {
     expect([...sources.keys()]).toEqual([
       'context/assemble.ts',
       'context/budget.ts',
@@ -274,6 +315,14 @@ describe('lib/reply', () => {
       'contracts/shape.ts',
       'contracts/stage-events.ts',
       'contracts/trace-fields.ts',
+      'gateway/fallback.ts',
+      'gateway/fixture.ts',
+      'gateway/messages.ts',
+      'gateway/openrouter.ts',
+      'gateway/registry.ts',
+      'gateway/types.ts',
+      'gateway/understand-adapter.ts',
+      'gateway/usage.ts',
       'read/day-bars.ts',
       'version.ts',
     ]);
@@ -313,6 +362,27 @@ describe('lib/reply', () => {
         file,
         platform: false,
       });
+    }
+  });
+
+  it('keeps the key in one place: only the gateway adapter names the Authorization header or a bearer token', () => {
+    for (const [file, text] of sources) {
+      expect({
+        file,
+        header: /Authorization|Bearer/i.test(text),
+      }).toEqual({ file, header: file === 'gateway/openrouter.ts' });
+    }
+  });
+
+  it('lets only the gateway adapter call the network, use a timer and read the clock', () => {
+    for (const [file, text] of sources) {
+      const code = text
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/\/\/.*$/gm, '');
+      expect({
+        file,
+        network: /\bfetch\b|\bsetTimeout\b|Date\.now\(\)/.test(code),
+      }).toEqual({ file, network: file === 'gateway/openrouter.ts' });
     }
   });
 
@@ -546,6 +616,70 @@ describe('the guard', () => {
       rules(REPLY, {
         'context/caps.ts':
           "import caps from '@/config/intake/glossary.v1.json';\nexport const a = caps;",
+      }).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('lets the gateway registry import its table and no other file, and no other table', () => {
+    const source =
+      "import { AI_MODELS } from '@/config/ai-models';\nexport const a = AI_MODELS;";
+    expect(rules(REPLY, { 'gateway/registry.ts': source })).toEqual([]);
+    expect(rules(REPLY, { 'gateway/types.ts': source })).toEqual([]);
+    expect(rules(REPLY, { 'gateway/usage.ts': source }).length).toBeGreaterThan(
+      0
+    );
+    expect(
+      rules(REPLY, { 'context/budget.ts': source }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules(REPLY, {
+        'gateway/registry.ts':
+          "import { x } from '@/config/intake/glossary.v1.json';\nexport const a = x;",
+      }).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('lets the gateway adapter call the network, use a timer and read the clock, and nothing else that differs from one run to the next', () => {
+    expect(
+      rules(REPLY, {
+        'gateway/openrouter.ts':
+          "export const a = [fetch('u'), setTimeout(() => 1, 1), Date.now(), new AbortController()];",
+      })
+    ).toEqual([]);
+    for (const body of [
+      'export const a = process.env.X;',
+      'export const a = Math.random();',
+      "export const a = console.log('x');",
+      'export const a = setInterval(() => 1, 1);',
+      "export const a = require('fs');",
+      'export const a = globalThis.crypto.randomUUID();',
+      "import { createHash } from 'crypto';\nexport const a = createHash;",
+    ]) {
+      expect(
+        rules(REPLY, { 'gateway/openrouter.ts': body }).length
+      ).toBeGreaterThan(0);
+    }
+    // no other file of the tree, the other gateway files included, has the same freedom
+    for (const file of [
+      'gateway/fallback.ts',
+      'gateway/fixture.ts',
+      'gateway/registry.ts',
+      'gateway/understand-adapter.ts',
+      'gateway/usage.ts',
+      'context/assemble.ts',
+    ]) {
+      for (const body of [
+        "export const a = fetch('u');",
+        'export const a = setTimeout(() => 1, 1);',
+        'export const a = Date.now();',
+      ]) {
+        expect(rules(REPLY, { [file]: body }).length).toBeGreaterThan(0);
+      }
+    }
+    // and the platform has no such file at all
+    expect(
+      rules(PLATFORM, {
+        'gateway/openrouter.ts': "export const a = fetch('u');",
       }).length
     ).toBeGreaterThan(0);
   });

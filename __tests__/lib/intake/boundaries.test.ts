@@ -17,10 +17,12 @@
  *     `server/` (part 5) is the route layer: it reads the session, the database, the network and
  *     the environment, so the clock and the process are its to use, but it may import only the
  *     outside modules named for each of its files below, and nothing pure may import it.
- *     Two ADAPTERS in the pure folders call the network and use a timer (`knowledge-client.ts`
- *     and `text/understand-model.ts`): they may use `fetch` and `setTimeout` and nothing else
- *     that differs from one run to the next, import no outside module, and a pure file may name
- *     their types only.
+ *     Two ADAPTERS in the pure folders reach a model or a service. `knowledge-client.ts` calls the
+ *     network and uses a timer: it may use `fetch` and `setTimeout` and nothing else that differs
+ *     from one run to the next, and imports no outside module. `text/understand-model.ts` calls
+ *     NOTHING itself since build step 7 part 3 (the model gateway does, and holds the key): it may use
+ *     no network and no timer, and imports exactly one outside module, the gateway's Understand
+ *     adapter. A pure file may name the types of either, and no value.
  *  3. The barrel re-exports no value of `read/`, `server/`, an adapter or `check.ts` (the internal toolkit).
  *  4. Nothing outside `lib/intake` imports it except the files named in ALLOWED_IMPORTERS: the two
  *     routes, the dev preview and the Panel C instant prompts (part 10). Each later part that adds a
@@ -42,6 +44,9 @@ const OUTSIDE_IMPORTS: Readonly<Record<string, readonly string[]>> = {
   'matrix.ts': ['@/config/intake/dispatch-matrix.v1.json'],
   'roster.ts': ['@/config/intake/sensor-roster.json'],
   'text/glossary.ts': ['@/config/intake/glossary.v1.json'],
+  // the Understand adapter (step 7 part 3): a thin wrapper over the model gateway's Understand
+  // adapter; the gateway holds the key and calls the network, this file imports that one module
+  'text/understand-model.ts': ['@/lib/reply/gateway/understand-adapter'],
   // the readers (part 4): each is allowed the modules it is named for and no other
   'read/events.ts': [
     '@/config/engine4/tier1-events.json',
@@ -64,12 +69,13 @@ const OUTSIDE_IMPORTS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
- * The two adapters that call the network. Each may use the names listed (and no other name the
- * guard forbids), imports no outside module, and is imported by a pure file for its types only.
+ * The two adapters. Each may use the names listed (and no other name the guard forbids) and is
+ * imported by a pure file for its types only. The knowledge client calls the network itself; the
+ * Understand adapter calls it only through the model gateway, so it is allowed nothing.
  */
 const ADAPTERS: Readonly<Record<string, readonly string[]>> = {
   'knowledge-client.ts': ['fetch', 'setTimeout'],
-  'text/understand-model.ts': ['fetch', 'setTimeout'],
+  'text/understand-model.ts': [],
 };
 const ADAPTER_TARGETS: ReadonlySet<string> = new Set(
   Object.keys(ADAPTERS).map((file) => file.replace(/\.ts$/, ''))
@@ -385,13 +391,15 @@ describe('lib/intake', () => {
     }
   });
 
-  it('gives each adapter no outside module, and each server file exactly the modules the guard names', () => {
+  it('gives the knowledge client no outside module, the Understand adapter exactly the gateway’s, and each server file exactly the modules the guard names', () => {
     for (const file of Object.keys(ADAPTERS)) {
       const text = sources.get(file) as string;
       expect({
         file,
-        outside: [...text.matchAll(/from '([^.][^']*)'/g)].map((m) => m[1]),
-      }).toEqual({ file, outside: [] });
+        outside: [...text.matchAll(/from '([^.][^']*)'/g)]
+          .map((m) => m[1])
+          .sort(),
+      }).toEqual({ file, outside: [...(OUTSIDE_IMPORTS[file] ?? [])].sort() });
     }
     for (const file of [
       'server/access.ts',
@@ -639,33 +647,62 @@ describe('the guard', () => {
     ).toEqual([]);
   });
 
-  it('lets an adapter use the network and a timer, and nothing else that differs from one run to the next', () => {
-    for (const file of ['knowledge-client.ts', 'text/understand-model.ts']) {
-      expect(
-        rules({
-          [file]:
-            "export const a = [fetch('u'), setTimeout(() => 1, 1), new AbortController()];",
-        })
-      ).toEqual([]);
-      for (const body of [
-        'export const a = Date.now();',
-        'export const a = new Date();',
-        'export const a = process.env.X;',
-        'export const a = Math.random();',
-        "export const a = console.log('x');",
-        'export const a = globalThis.crypto.randomUUID();',
-        "export const a = require('fs');",
-        'export const a = setInterval(() => 1, 1);',
-      ]) {
-        expect(rules({ [file]: body }).length).toBeGreaterThan(0);
-      }
-      expect(
-        rules({
-          [file]:
-            "import { createHash } from 'crypto';\nexport const a = createHash;",
-        }).length
-      ).toBeGreaterThan(0);
+  it('lets the knowledge client use the network and a timer, and nothing else that differs from one run to the next', () => {
+    const file = 'knowledge-client.ts';
+    expect(
+      rules({
+        [file]:
+          "export const a = [fetch('u'), setTimeout(() => 1, 1), new AbortController()];",
+      })
+    ).toEqual([]);
+    for (const body of [
+      'export const a = Date.now();',
+      'export const a = new Date();',
+      'export const a = process.env.X;',
+      'export const a = Math.random();',
+      "export const a = console.log('x');",
+      'export const a = globalThis.crypto.randomUUID();',
+      "export const a = require('fs');",
+      'export const a = setInterval(() => 1, 1);',
+    ]) {
+      expect(rules({ [file]: body }).length).toBeGreaterThan(0);
     }
+    expect(
+      rules({
+        [file]:
+          "import { createHash } from 'crypto';\nexport const a = createHash;",
+      }).length
+    ).toBeGreaterThan(0);
+
+    // the Understand adapter reaches the network through the gateway only: no fetch, no timer of its own
+    const understand = 'text/understand-model.ts';
+    for (const body of [
+      "export const a = fetch('u');",
+      'export const a = setTimeout(() => 1, 1);',
+      'export const a = Date.now();',
+      'export const a = process.env.X;',
+    ]) {
+      expect(rules({ [understand]: body }).length).toBeGreaterThan(0);
+    }
+    expect(
+      rules({
+        [understand]:
+          "import { c } from '@/lib/reply/gateway/understand-adapter';\nexport const a = c;",
+      })
+    ).toEqual([]);
+    // the gateway's other modules are not its to import
+    expect(
+      rules({
+        [understand]:
+          "import { c } from '@/lib/reply/gateway/openrouter';\nexport const a = c;",
+      }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules({
+        'text/understand.ts':
+          "import { c } from '@/lib/reply/gateway/understand-adapter';\nexport const a = c;",
+      }).length
+    ).toBeGreaterThan(0);
     // the network is not free for any other pure file
     expect(
       rules({ 'gate.ts': "export const a = fetch('u');" }).length

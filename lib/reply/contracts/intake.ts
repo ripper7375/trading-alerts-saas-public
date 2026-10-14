@@ -82,6 +82,8 @@ export type {
   Timeframe,
   TraderType,
   TrendRelation,
+  UnderstandPort,
+  UnderstandRequest,
 } from '@/lib/intake';
 
 export {
