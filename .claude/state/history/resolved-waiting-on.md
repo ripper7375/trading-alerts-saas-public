@@ -11,6 +11,11 @@ Blocks are verbatim copies from the pre-OKF `CLAUDE.md` (backup: `CLAUDE-480KB-P
 
 Open items live in [../waiting-on.md](../waiting-on.md).
 
+<!-- the two machine-local test failures, resolved 2026-10-14 -->
+
+- **RESOLVED 2026-10-14 — the two machine-local test failures of the whole-repository run.** What was open (verbatim from the "still true" list in the step 6 part 4 item of `waiting-on.md`): **two tests of the whole-repository run fail on this Windows checkout for local reasons** (`__tests__/lib/engine4/levels.test.ts`: `zone_params.yaml` is CRLF here and its regex needs LF; `__tests__/pages/affiliate/statements.test.tsx`: the machine's default locale is `th-TH` and the test expects `July 2026`); not touched, Davin's call.
+  **How it closed:** Davin fixed both and pushed them (commit `545de3f0`, "fix(tests): resolve machine-local test failures for Windows CRLF and system locale": it changes `__tests__/lib/engine4/levels.test.ts` and `app/affiliate/dashboard/statements/page.tsx`). His word in the chat: every test passes, and `type-check` and `test:quick` pass in the pre-push hook. The whole-repository run of build step 7 part 1 (403 suites, 12,780 tests, 2 failing) predates the fix.
+
 <!-- build step 6 part 9, resolved 2026-10-14 -->
 
 - **RESOLVED 2026-10-14 — build step 6 part 9 (the English base, "2day", the push).** What was open (from the quick index of `waiting-on.md`): the English base (`labelled/approval.json`) was PENDING and the Dockerfile's `gate replay --require-approved` refused until it was signed; the scope check refused "2day" (today) as the two-day timeframe; `main` was five commits ahead of `origin/main` because the push was denied by the permission classifier.
