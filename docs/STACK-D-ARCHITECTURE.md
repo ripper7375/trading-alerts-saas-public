@@ -1518,6 +1518,38 @@ Short chat answers ≤ 8 s. One regeneration adds a model call; its rate is trac
 - On every golden scenario, Report 1's direction equals the synthesis reading.
 - Units per first message and per follow-up are measured per model and feed §7.3.
 
+**Built (build step 7 part 7; files only, nothing applied or deployed, `REPLY_ENABLED` set nowhere).**
+
+- **The orchestrator** is `runReply(request, ports)` in `lib/reply/orchestrator.ts`, with its pieces in
+  `lib/reply/run/`. It takes one request from the gate to a stored reply, over ports, and owns no route, key,
+  database client or clock. The gate's own quota check is wrapped so the worst case is HELD before the
+  Understand call (the Understand call is therefore metered without a change to `lib/intake`); the hold is
+  settled once, for what the paid calls cost, and the rest is released.
+- **§5.14 items 2 to 7 are shown end to end by named tests, not by reading** (the chart of another cycle is
+  dropped and the reply says so; a planted wrong price is regenerated once, then flagged; listed phrases are caught).
+  Besides these: a Free trader, a caller who
+  is not signed in, an unknown tier, another trader's thread, an empty balance, a STALE cycle and Report 2 each end
+  with the model port's call count at 0; a reply charges once (the request id is
+  `SHA-256("reply-request/1\n" + user id + "\n" + client request id)`, so a double click finds its own hold and
+  its own stored reply, and a duplicate that arrives while the first runs is told to try again); a client that
+  leaves before a model is called costs nothing and one that leaves after it pays and finds the reply stored; the
+  direction of a Report 1 is the synthesis reading's on all 16 cycles for both trader types; the trace says what
+  happened.
+- **One extra model call at most**, shared by the schema retry and the check regeneration (ADR-053 allows one
+  regeneration); a primary model that throws falls back to the second, and both failing gives the fixed answer from
+  the board. The request has a deadline of 55 seconds (D23), the route a `maxDuration` of 60, a call 25 seconds
+  (primary) or 20 (fallback); past the deadline the answer is the board's.
+- **The wire** is `POST /api/chat/message` (JSON error with an HTTP status for every decision about who may ask,
+  then, once the gate has passed, an NDJSON stream of stage events GATE, UNDERSTAND, DATA, CONTEXT, MODEL and CHECKS and
+  exactly one final event: `result`, `refusal` or `error`; D24: the reply is delivered whole, never token by
+  token), the threads API (`GET /api/chat/threads`, `GET|PATCH|DELETE /api/chat/threads/[id]`: strict ownership,
+  not found and not yours are one 404 `THREAD_INVALID`) and `GET /api/chat/state` (models with their measured
+  cost, the balance, the profile and cycle badges). Everything is 404 while `REPLY_ENABLED` is not exactly
+  `true`; `REPLY_ALLOWED_USER_IDS` (D21) puts a staging list in front of the session.
+- **`/api/intake` and `/api/intake/instant` are dev-only tools** (D8): they make the Understand call with no hold,
+  so `isIntakeEnabled` is false in a production build whatever `INTAKE_ENABLED` says, and the throwaway
+  `/api/test/ai-metering` route is deleted.
+
 ### 5.15 Decisions
 
 [ADR-047] OHLC delivery · [ADR-048] caps · [ADR-049] prompt order · [ADR-050] metering ·
@@ -1968,6 +2000,16 @@ is written twice):
 
 Storage: a `request_traces` table, 90 days in PostgreSQL, then archived with the consent records.
 Read by support ("open request id"), the dashboard and audits.
+
+**Built (build step 7 part 7).** The orchestrator writes ONE row per answer, at completion (D16), through
+`lib/reply/run/trace.ts`: the request and data groups from the packet, the knowledge group from the retrieval,
+the model group from the calls that were really made (role, model, tokens, latency, outcome), the checks group from
+the first, second and final check, the time group from the stage tracker, and the units the ledger really charged. The
+question text is never in it, and the `risk` group is left open for `attachRisk`. The thread (when the message made a new one), the trace row and the two
+messages are written, in that order, before the final event is sent, and a failed write is an `error` event, not a
+silent loss. A request that was charged and could not be filed leaves an
+`ERROR` row. A refused INSTANT prompt has a row (the button is the intent); a refused typed question has none. Deleting
+a thread (`DELETE /api/chat/threads/[id]`) leaves its trace row, which holds no question and is the 7-year audit row.
 
 ### 7.5 Retention and privacy
 

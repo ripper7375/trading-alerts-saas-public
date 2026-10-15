@@ -27,6 +27,11 @@ Two things follow:
 > until it is wired a Pro trader with a balance can still cause paid Understand calls that nothing charges. The ledger tables are a migration FILE, not applied
 > (`20261014010000_add_ai_metering_tables`); with the tables missing the port throws and the gate answers `FEATURE_UNAVAILABLE`, which is safe but is not metering.
 
+> **Update (build step 7 part 7, 2026-10-15): the rule is now enforced by the code.** The one metered front door is `POST /api/chat/message` (behind `REPLY_ENABLED`),
+> which holds the worst case of the whole request, Understand call included, before the call is made. `/api/intake` and `/api/intake/instant` make the Understand call with
+> no hold, so they are **dev-only tools (decision D8)**: `isIntakeEnabled` is false in any production build (`NODE_ENV=production`, which includes a Vercel preview) whatever
+> `INTAKE_ENABLED` says. On a developer's machine `INTAKE_ENABLED=true` still turns them on. The throwaway `/api/test/ai-metering` route is deleted.
+
 Both flags are **set nowhere today**, and a flag is on only when its value is exactly the text `true` (`TRUE`, `1` and ` true` are off).
 
 > **Nothing here has been run against production.** Step 6 was built and tested on fixtures, the 16 golden cycles, a scratch PostgreSQL 18 and the real txtai on
