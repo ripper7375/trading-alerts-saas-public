@@ -28,7 +28,12 @@ frontend UI. The recurring failure class is "new UI ships with zero locale wirin
   encouraged, admin pages are not required. Coverage script: `scripts/i18n-translation-coverage.js`.
   The intake path's fixed texts (`intake.*`, 28 keys) are held to one English registry,
   `lib/intake/text.ts`, by `__tests__/lib/intake/text.test.ts`; the replies to refusals also wait
-  for counsel and a native read (ADR-098 D14).
+  for counsel and a native read (ADR-098 D14). The AI chat panel's words (`chat.*`, 145 keys: Panel B,
+  `components/chat/`) are held to one English registry, `components/chat/text.ts`, by
+  `__tests__/components/chat/translation-coverage.test.ts` (every dictionary has every key, a real
+  translation in the 17, the same `{placeholders}`, no hard-coded English in `components/chat/*.tsx`);
+  they are drafts no native reader has seen. A model's words, prices, level names, sensor ids and state
+  codes are never keys: they arrive in the reply and stay as they are.
 - **Client Components:** `useLocale()` → `t()`, `formatCurrency()`, `formatDate()`,
   `formatDateTime()`. **Server Components:** `getServerLanguage()`/`getDictionary()`; for USD
   amounts `getServerLocalePreferences()` + `formatCurrencyAmount()` (`lib/country-config.ts`).

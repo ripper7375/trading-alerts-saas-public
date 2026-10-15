@@ -1550,6 +1550,30 @@ Short chat answers ≤ 8 s. One regeneration adds a model call; its rate is trac
   so `isIntakeEnabled` is false in a production build whatever `INTAKE_ENABLED` says, and the throwaway
   `/api/test/ai-metering` route is deleted.
 
+**Built (build step 7 part 8; the interface of Panel B, nothing deployed, `REPLY_ENABLED` still set nowhere).**
+
+- **Panel B is `components/chat/` behind the same `components/chat-panel.tsx`** (same export, same seven props).
+  A `ChatProvider` holds one reducer (thread, items, the request in flight and its six stages, the state of
+  `GET /api/chat/state`); `use-chat-stream.ts` posts `{ client_request_id, thread_id?, question | kind }` and
+  nothing else and reads the NDJSON with a `ReadableStreamDefaultReader`. A second request in the same tick is
+  refused by a guard on a ref, not on state, so a double press sends one request. A request that fails on the
+  way is an error card whose "Try again" is the SAME request (same `client_request_id`).
+- **The cards draw the server's reply as it came**: Report 1 (headline, the direction copied from the reading,
+  the six sections, the stamp, the footer), the short answer, the answer from the sensor board (seven reasons),
+  the Trade Setup action, the refusal (ten codes, the server's own words) and the error. A number that could not
+  be verified is already the "not verified" mark of the reader's language in the text; the card never puts a
+  model's digits back. Ids, level names, state codes and model slugs are drawn in `<bdi dir="ltr">` and never
+  translated; Arabic and Urdu run right to left.
+- **The picker lists the models that passed (none yet) with "about N analyses left" from the MEASURED cost, or
+  "not measured yet"; the meter shows a share and the same count, never a number of units or tokens (ADR-073).**
+  The Free tier sees a locked picker and a recorded example under a "Recorded example, data as of ..." banner
+  (ADR-072); the recording is part 10's content.
+- **"Open trade setup"** asks `POST /api/engine4/offer` for the reply's cycle and opens Report 2's own modal, or
+  says why not; the chat sizes nothing.
+- **Only `components/chat/types.ts` imports `lib/reply`, and only types**; the few lists the browser needs as
+  values are repeated in `limits.ts` and held to the contracts by a test. The words are 145 `chat.*` keys in one
+  registry (`components/chat/text.ts`) with drafts in the 17 languages.
+
 ### 5.15 Decisions
 
 [ADR-047] OHLC delivery · [ADR-048] caps · [ADR-049] prompt order · [ADR-050] metering ·

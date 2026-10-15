@@ -102,6 +102,9 @@ const ALLOWED_IMPORTERS: readonly string[] = [
   'app/dev/intake/instant/instant-preview.tsx',
   'app/dev/intake/page.tsx',
   'app/dev/intake/world.ts',
+  // build step 7 part 8: the development preview of the chat panel reads the server's fixed refusal
+  // texts (`intake.refusal.*`) to show a refusal in the language the preview is set to
+  'app/dev/chat/samples.ts',
   'app/free/page.tsx',
   'app/terminal/page.tsx',
   'components/charts/ask-ai-button.tsx',

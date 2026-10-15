@@ -195,6 +195,10 @@ const SERVER_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
  * port, so they import the platform's entitlement reader and ledger port and the meter.
  */
 const ALLOWED_IMPORTERS: readonly string[] = [
+  // the chat panel (build step 7 part 8): ONE file of components/ names lib/reply, and it imports TYPES
+  // only (the contracts' shapes), so nothing of lib/reply or lib/platform reaches the browser;
+  // `__tests__/components/chat/limits.test.ts` holds that and the lists it repeats to the contracts
+  'components/chat/types.ts',
   // the chat routes (build step 7 part 7b): the message route, the threads API and the state route
   'app/api/chat/message/route.ts',
   'app/api/chat/state/route.ts',
