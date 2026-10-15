@@ -11,8 +11,10 @@
  * @module components/chat/message-list
  */
 
-import { Bot } from 'lucide-react';
+import { Bot, Loader2 } from 'lucide-react';
 import { useEffect, useRef, type ReactElement } from 'react';
+
+import { Button } from '@/components/ui/button';
 
 import { ErrorCard } from './error-card';
 import { ProgressStages } from './progress-stages';
@@ -49,6 +51,8 @@ export interface MessageListProps {
   onStop?: () => void;
   onUpgrade?: () => void;
   onOpenTradeSetup?: (action: TradeSetupAction) => void;
+  /** open the thread of the state again, after it could not be opened (Panel A picked it) */
+  onReopen?: () => void;
 }
 
 export function MessageList({
@@ -57,6 +61,7 @@ export function MessageList({
   onStop,
   onUpgrade,
   onOpenTradeSetup,
+  onReopen,
 }: MessageListProps): ReactElement {
   const { tr } = useChatWords();
   const box = useRef<HTMLDivElement | null>(null);
@@ -78,7 +83,9 @@ export function MessageList({
         : element.scrollHeight;
   }, [state.items.length, busy, stageKey, newest]);
 
-  const empty = state.items.length === 0 && !busy;
+  const opening = state.threadStatus === 'loading';
+  const openFailed = state.threadStatus === 'error';
+  const empty = state.items.length === 0 && !busy && !opening && !openFailed;
 
   return (
     <div
@@ -88,6 +95,39 @@ export function MessageList({
       data-testid="message-list"
       className="relative min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-3 py-3"
     >
+      {opening ? (
+        <p
+          role="status"
+          aria-busy="true"
+          data-testid="thread-opening"
+          className="flex items-center justify-center gap-2 p-6 text-xs text-muted-foreground"
+        >
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          {tr('chat.threads.opening')}
+        </p>
+      ) : null}
+
+      {openFailed ? (
+        <div
+          role="alert"
+          data-testid="thread-open-failed"
+          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-rose-500/40 bg-rose-500/5 px-3 py-2 text-xs"
+        >
+          <span>{tr('chat.threads.open_failed')}</span>
+          {onReopen === undefined ? null : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onReopen}
+              className="h-6 text-[11px]"
+            >
+              {tr('chat.retry')}
+            </Button>
+          )}
+        </div>
+      ) : null}
+
       {empty ? (
         <div
           data-testid="empty-state"

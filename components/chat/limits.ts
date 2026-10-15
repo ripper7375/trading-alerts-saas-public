@@ -63,9 +63,16 @@ export const REFUSAL_CODES_UI = [
 ] as const;
 export type RefusalCodeUi = (typeof REFUSAL_CODES_UI)[number];
 
+/** The longest thread title the server keeps (`TITLE_MAX_CHARS`, counted in code points). */
+export const THREAD_TITLE_MAX_CHARS = 80;
+
+/** How many threads Panel A asks for at a time (the server's default is 50, its largest 100). */
+export const THREAD_PAGE_SIZE = 30;
+
 /** The routes the panel talks to. */
 export const CHAT_ROUTES = {
   message: '/api/chat/message',
   state: '/api/chat/state',
+  threads: '/api/chat/threads',
   offer: '/api/engine4/offer',
 } as const;

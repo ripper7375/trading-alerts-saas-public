@@ -89,6 +89,8 @@ export interface FakeRoutes {
   ) => Response | Promise<Response>;
   /** `POST /api/engine4/offer` */
   offer?: Response | (() => Response);
+  /** `/api/chat/threads` and `/api/chat/threads/<id>`: list, read, rename (PATCH) and delete */
+  threads?: (call: Call) => Response | Promise<Response>;
 }
 
 export interface FakeFetch {
@@ -135,6 +137,12 @@ export function fakeFetch(routes: FakeRoutes): FakeFetch {
       const offer = routes.offer;
       if (offer === undefined) return jsonResponse({ success: false }, 404);
       return typeof offer === 'function' ? offer() : offer.clone();
+    }
+    if (/\/api\/chat\/threads(\/|\?|$)/.test(url)) {
+      if (routes.threads === undefined) {
+        return jsonResponse({ success: false }, 500);
+      }
+      return routes.threads(call);
     }
     return jsonResponse({ success: false }, 404);
   };

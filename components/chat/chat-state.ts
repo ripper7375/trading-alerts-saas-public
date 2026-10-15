@@ -17,6 +17,7 @@ import { STAGES } from './limits';
 import type {
   AskInput,
   ChatInfo,
+  InstantIntent,
   IntakeRefusal,
   PickerModel,
   QuotaBody,
@@ -28,6 +29,8 @@ import type {
 import type { SendFailure } from './wire';
 
 export type InfoStatus = 'idle' | 'loading' | 'ready' | 'unavailable' | 'error';
+/** Whether the thread Panel B shows is being read from the server (build step 7 part 9). */
+export type ThreadStatus = 'idle' | 'loading' | 'error';
 export type StageState = 'PENDING' | 'STARTED' | 'DONE' | 'SKIPPED';
 
 export type ChatItem =
@@ -63,6 +66,8 @@ export interface ChatState {
   infoStatus: InfoStatus;
   info: ChatInfo | null;
   threadId: string | null;
+  /** `loading` while a thread picked in Panel A is being read; `error` when it could not be */
+  threadStatus: ThreadStatus;
   items: ChatItem[];
   flight: Flight | null;
   /** the model the trader picked; the default when null */
@@ -91,7 +96,13 @@ export type ChatAction =
       input: AskInput;
     }
   | { type: 'SELECT_MODEL'; slug: string }
-  | { type: 'NEW_THREAD' };
+  | { type: 'NEW_THREAD' }
+  /** a thread was picked in Panel A: it is the active one at once, and its messages are on their way */
+  | { type: 'THREAD_LOADING'; threadId: string }
+  | { type: 'THREAD_LOADED'; threadId: string; items: ChatItem[] }
+  | { type: 'THREAD_FAILED'; threadId: string }
+  /** the active thread was deleted in Panel A: Panel B goes back to a new, empty one */
+  | { type: 'THREAD_DELETED'; threadId: string };
 
 export const emptyStages = (): Record<ReplyStage, StageState> =>
   Object.fromEntries(STAGES.map((stage) => [stage, 'PENDING'])) as Record<
@@ -103,6 +114,7 @@ export const initialChatState = (): ChatState => ({
   infoStatus: 'idle',
   info: null,
   threadId: null,
+  threadStatus: 'idle',
   items: [],
   flight: null,
   modelSlug: null,
@@ -287,7 +299,59 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
       return { ...state, modelSlug: action.slug };
 
     case 'NEW_THREAD':
-      return { ...state, threadId: null, items: [], flight: null };
+      return {
+        ...state,
+        threadId: null,
+        threadStatus: 'idle',
+        items: [],
+        flight: null,
+      };
+
+    case 'THREAD_LOADING':
+      return {
+        ...state,
+        threadId: action.threadId,
+        threadStatus: 'loading',
+        items: [],
+        flight: null,
+      };
+
+    case 'THREAD_LOADED': {
+      // an answer for a thread that is no longer the one being opened (another was picked since) is dropped
+      if (
+        state.threadId !== action.threadId ||
+        state.threadStatus !== 'loading'
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        threadStatus: 'idle',
+        items: action.items,
+        next: action.items.length + 1,
+      };
+    }
+
+    case 'THREAD_FAILED':
+      if (
+        state.threadId !== action.threadId ||
+        state.threadStatus !== 'loading'
+      ) {
+        return state;
+      }
+      return { ...state, threadStatus: 'error' };
+
+    case 'THREAD_DELETED':
+      // only the thread on screen empties Panel B; any other thread's deletion leaves it alone
+      return state.threadId === action.threadId
+        ? {
+            ...state,
+            threadId: null,
+            threadStatus: 'idle',
+            items: [],
+            flight: null,
+          }
+        : state;
   }
 }
 
@@ -296,6 +360,19 @@ export function chatReducer(state: ChatState, action: ChatAction): ChatState {
 // ---------------------------------------------------------------------------------------
 
 export const isBusy = (state: ChatState): boolean => state.flight !== null;
+
+/** A thread picked in Panel A is being read: nothing may be sent into it yet. */
+export const isOpeningThread = (state: ChatState): boolean =>
+  state.threadStatus === 'loading';
+
+/**
+ * The Panel C button whose request is in flight, or null. A typed question in flight is busy with
+ * none: both buttons wait, neither shows the spinner.
+ */
+export function pendingInstant(state: ChatState): InstantIntent | null {
+  const input = state.flight?.input;
+  return input !== undefined && input.kind === 'INSTANT' ? input.intent : null;
+}
 
 /** The model the picker shows: the one picked if it is still offered, else the default, else the first. */
 export function chosenModel(state: ChatState): PickerModel | null {

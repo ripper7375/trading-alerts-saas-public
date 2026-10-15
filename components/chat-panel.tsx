@@ -17,8 +17,12 @@
  * the `chat.*` dictionary keys, and the server decides who may ask, with which model, and for how much.
  * While `REPLY_ENABLED` is off the routes answer 404 and the panel says the analyst is not switched on.
  *
- * The state lives in a `ChatProvider`. This shell mounts its own unless one is already above it (build
- * step 7 part 9 hoists one into the workspace so Panels A, B and C share it).
+ * The state lives in a `ChatProvider`. In the workspace there is ONE, above the three panels
+ * (`components/chat/chat-workspace.tsx`, build step 7 part 9): Panel A's thread list, this panel and
+ * the Panel C badges share it, and a conversation survives this panel being collapsed to its rail. This
+ * shell mounts its own provider only when none is above it, which is how it runs alone (the preview, the
+ * tests); the trade setup launcher then belongs to the shell, and in the workspace it belongs to the
+ * workspace.
  *
  * @module components/chat-panel
  */
@@ -27,6 +31,7 @@ import { useMemo } from 'react';
 
 import { ChatPanelView } from '@/components/chat/chat-panel-view';
 import { ChatProvider, useOptionalChat } from '@/components/chat/chat-provider';
+import { useWorkspaceOverlay } from '@/components/chat/chat-workspace';
 import { loadDemo } from '@/components/chat/demo-source';
 import { useTradeSetupLauncher } from '@/components/chat/trade-setup-launcher';
 import { useLocale } from '@/lib/context/locale-context';
@@ -51,6 +56,8 @@ export default function ChatPanel({
 }: ChatPanelProps): React.JSX.Element {
   const { language } = useLocale();
   const inherited = useOptionalChat();
+  const workspaceOverlay = useWorkspaceOverlay();
+  // the launcher of this shell; unused (and idle) when the workspace has one above
   const launcher = useTradeSetupLauncher();
   const demo = useMemo(() => loadDemo(language), [language]);
   const chatTier = tier === 'PRO' ? 'PRO' : 'FREE';
@@ -59,7 +66,7 @@ export default function ChatPanel({
     <ChatPanelView
       tier={chatTier}
       demo={demo}
-      overlay={launcher.element}
+      overlay={inherited !== null ? workspaceOverlay : launcher.element}
       {...(onCollapsePanel === undefined ? {} : { onCollapsePanel })}
       {...(onOpenUpgradeModal === undefined ? {} : { onOpenUpgradeModal })}
       {...(pendingPrompt === undefined ? {} : { pendingPrompt })}

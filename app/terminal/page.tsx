@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { localizedMetadata } from '@/lib/i18n/server-metadata';
 import { isInstantPromptsEnabled } from '@/lib/intake/server/flags';
+import { isReplyEnabled } from '@/lib/reply/server/flags';
 import type { Tier } from '@/lib/tier-config';
 
 import { TerminalWorkspace } from './terminal-workspace';
@@ -41,8 +42,11 @@ export default async function TerminalPage(): Promise<React.ReactElement> {
     redirect('/free');
   }
 
-  // read here, on the server, at request time: the browser never sees the variable
+  // read here, on the server, at request time: the browser never sees the variables
   return (
-    <TerminalWorkspace instantPromptsEnabled={isInstantPromptsEnabled()} />
+    <TerminalWorkspace
+      instantPromptsEnabled={isInstantPromptsEnabled()}
+      replyEnabled={isReplyEnabled(process.env)}
+    />
   );
 }

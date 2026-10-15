@@ -30,6 +30,7 @@ import type {
   QuotaBody,
   QuotaState,
   RefusalEvent,
+  ReplyResult,
   ResultEvent,
   StageEvent,
   StreamEvent,
@@ -44,6 +45,26 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 
 const RESULT_KINDS = ['REPORT1', 'ANSWER', 'FIXED_ANSWER', 'ACTION'];
 const STAGE_STATUSES = ['STARTED', 'DONE', 'SKIPPED'];
+
+/**
+ * Whether a value has the shape of a `reply-result/1` the panel can draw: one of the four kinds and
+ * the fields every card reads. The strict validator is the server's; this is the browser's light twin,
+ * used for a result event and for a reply read back from a stored thread.
+ */
+export function isReplyResultShape(value: unknown): value is ReplyResult {
+  return (
+    isRecord(value) &&
+    typeof value['kind'] === 'string' &&
+    RESULT_KINDS.includes(value['kind']) &&
+    typeof value['thread_id'] === 'string' &&
+    typeof value['reply_locale'] === 'string' &&
+    isRecord(value['stamp']) &&
+    isRecord(value['provenance']) &&
+    isRecord(value['checks']) &&
+    Array.isArray(value['changes']) &&
+    Array.isArray(value['notes'])
+  );
+}
 
 // ---------------------------------------------------------------------------------------
 // One line of the stream
@@ -66,22 +87,11 @@ export function parseEventLine(line: string): StreamEvent | null {
         STAGE_STATUSES.includes(value['status'])
         ? (value as unknown as StageEvent)
         : null;
-    case 'result': {
-      const result = value['result'];
+    case 'result':
       return typeof value['request_id'] === 'string' &&
-        isRecord(result) &&
-        typeof result['kind'] === 'string' &&
-        RESULT_KINDS.includes(result['kind']) &&
-        typeof result['thread_id'] === 'string' &&
-        typeof result['reply_locale'] === 'string' &&
-        isRecord(result['stamp']) &&
-        isRecord(result['provenance']) &&
-        isRecord(result['checks']) &&
-        Array.isArray(result['changes']) &&
-        Array.isArray(result['notes'])
+        isReplyResultShape(value['result'])
         ? (value as unknown as ResultEvent)
         : null;
-    }
     case 'refusal':
       return typeof value['request_id'] === 'string' &&
         readRefusal(value['refusal']) !== null
@@ -98,7 +108,7 @@ export function parseEventLine(line: string): StreamEvent | null {
   }
 }
 
-function readRefusal(value: unknown): IntakeRefusal | null {
+export function readRefusal(value: unknown): IntakeRefusal | null {
   return isRecord(value) &&
     typeof value['code'] === 'string' &&
     typeof value['stage'] === 'string' &&

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -8,7 +8,6 @@ import { getSession, signOut, useSession } from 'next-auth/react';
 import {
   LayoutDashboard,
   Bell,
-  MessageSquare,
   ChevronRight,
   ChevronLeft,
   ChevronDown,
@@ -41,6 +40,8 @@ import type { Tier } from '@/lib/tier-config';
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { useLocale } from '@/lib/context/locale-context';
 
+import { loadDemo } from './chat/demo-source';
+import { ThreadList } from './chat/thread-list';
 import { ProFeatureLinks } from './sidebar/pro-feature-links';
 
 interface ChatSidebarProps {
@@ -68,7 +69,7 @@ export function ChatSidebar({
   unreadAlertsCount = 3,
 }: ChatSidebarProps) {
   const pathname = usePathname();
-  const { t } = useLocale();
+  const { t, language } = useLocale();
   const { data: session } = useSession();
   const currentTier: Tier =
     pathname === '/free'
@@ -81,9 +82,8 @@ export function ChatSidebar({
     .join('')
     .toUpperCase()
     .slice(0, 2);
-  const [activeSession, setActiveSession] = useState<string>(
-    'XAUUSD M5 Scalp Setup'
-  );
+  // the Free tier's one thread is the recorded example (ADR-072, ADR-098 D19)
+  const demo = useMemo(() => loadDemo(language), [language]);
 
   // Same bridge-aware logout as components/layout/header.tsx.
   const handleLogout = async (): Promise<void> => {
@@ -99,13 +99,6 @@ export function ChatSidebar({
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- same as above
     window.location.href = '/login';
   };
-
-  const sessions = [
-    'XAUUSD M5 Scalp Setup',
-    'XAUUSD M15 EDT Retest',
-    'XAUUSD Resistance Rejection',
-    'XAUUSD Macro Structure',
-  ];
 
   const navItems = [
     {
@@ -316,47 +309,18 @@ export function ChatSidebar({
           </nav>
         </div>
 
-        {/* Sessions Section */}
+        {/* Sessions Section: the trader's real conversations (build step 7 part 9) */}
         <div className="mt-4 px-2.5">
           {!isCollapsed && (
             <h3 className="mb-2 truncate px-2 text-[10px] font-extrabold uppercase tracking-wider text-muted-foreground">
               {t('nav.sessions_header', 'SESSIONS')}
             </h3>
           )}
-          <div className="grid gap-1">
-            {sessions.map((session, index) => {
-              const isActive = activeSession === session;
-              return (
-                <Button
-                  key={index}
-                  variant="ghost"
-                  onClick={() => setActiveSession(session)}
-                  title={isCollapsed ? session : undefined}
-                  aria-label={isCollapsed ? session : undefined}
-                  className={cn(
-                    'h-8 justify-start rounded-lg text-xs font-medium transition-all',
-                    isCollapsed && 'justify-center px-0',
-                    isActive
-                      ? 'border-[var(--primary)]/50 bg-[var(--primary)]/15 shadow-[var(--primary)]/10 shadow-xs border font-bold text-[var(--primary)]'
-                      : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
-                  )}
-                >
-                  <MessageSquare
-                    className={cn(
-                      'h-3.5 w-3.5 shrink-0 transition-colors',
-                      !isCollapsed && 'mr-2',
-                      isActive
-                        ? 'text-[var(--primary)]'
-                        : 'text-[var(--primary)]/60'
-                    )}
-                  />
-                  {!isCollapsed && (
-                    <span className="truncate text-[11px]">{session}</span>
-                  )}
-                </Button>
-              );
-            })}
-          </div>
+          <ThreadList
+            collapsed={isCollapsed}
+            tier={currentTier === 'PRO' ? 'PRO' : 'FREE'}
+            demo={demo}
+          />
         </div>
       </ScrollArea>
 

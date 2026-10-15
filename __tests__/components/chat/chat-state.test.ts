@@ -17,6 +17,8 @@ import {
   emptyStages,
   initialChatState,
   isBusy,
+  isOpeningThread,
+  pendingInstant,
   shareLeft,
   type ChatAction,
   type ChatState,
@@ -109,6 +111,7 @@ describe('the start', () => {
       infoStatus: 'idle',
       info: null,
       threadId: null,
+      threadStatus: 'idle',
       items: [],
       flight: null,
       modelSlug: null,
@@ -503,5 +506,144 @@ describe('shareLeft and analysesLeft: never a guess', () => {
 
   it('is never negative', () => {
     expect(analysesLeft(info({ available_units: -100 }), measured)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------------------
+// Panel A's threads (build step 7 part 9)
+// ---------------------------------------------------------------------------------------
+
+describe('opening a thread picked in Panel A', () => {
+  const report = resultOf('report1-long');
+  const conversation = (): ChatState => reduce(play('report1-long'));
+
+  it('makes the thread active at once, clears Panel B and waits for its messages', () => {
+    const state = chatReducer(conversation(), {
+      type: 'THREAD_LOADING',
+      threadId: 'th-old',
+    });
+    expect(state.threadId).toBe('th-old');
+    expect(state.threadStatus).toBe('loading');
+    expect(state.items).toEqual([]);
+    expect(state.flight).toBeNull();
+    expect(isOpeningThread(state)).toBe(true);
+  });
+
+  it('shows the messages when they arrive, and numbers the next item after them', () => {
+    const items = conversation().items;
+    const state = reduce([
+      { type: 'THREAD_LOADING', threadId: 'th-old' },
+      { type: 'THREAD_LOADED', threadId: 'th-old', items },
+    ]);
+    expect(state.threadStatus).toBe('idle');
+    expect(state.items).toBe(items);
+    expect(state.next).toBe(items.length + 1);
+    expect(isOpeningThread(state)).toBe(false);
+    // a question asked in it joins the thread and its first bubble gets a fresh id
+    const asked = chatReducer(state, send('c-2'));
+    expect(asked.items.at(-1)?.id).toBe(`m${items.length + 1}`);
+    expect(asked.threadId).toBe('th-old');
+  });
+
+  it('drops the messages of a thread that is no longer the one being opened', () => {
+    const state = reduce([
+      { type: 'THREAD_LOADING', threadId: 'th-a' },
+      { type: 'THREAD_LOADING', threadId: 'th-b' },
+      { type: 'THREAD_LOADED', threadId: 'th-a', items: conversation().items },
+    ]);
+    expect(state.threadId).toBe('th-b');
+    expect(state.threadStatus).toBe('loading');
+    expect(state.items).toEqual([]);
+  });
+
+  it('ignores messages that arrive when nothing was being opened', () => {
+    const before = conversation();
+    expect(
+      chatReducer(before, {
+        type: 'THREAD_LOADED',
+        threadId: report.thread_id,
+        items: [],
+      })
+    ).toBe(before);
+    expect(
+      chatReducer(before, { type: 'THREAD_FAILED', threadId: report.thread_id })
+    ).toBe(before);
+  });
+
+  it('keeps the thread active and says so when it could not be opened', () => {
+    const state = reduce([
+      { type: 'THREAD_LOADING', threadId: 'th-a' },
+      { type: 'THREAD_FAILED', threadId: 'th-a' },
+    ]);
+    expect(state.threadId).toBe('th-a');
+    expect(state.threadStatus).toBe('error');
+    expect(state.items).toEqual([]);
+    expect(isOpeningThread(state)).toBe(false);
+  });
+
+  it('a failure for a thread that was left behind changes nothing', () => {
+    const state = reduce([
+      { type: 'THREAD_LOADING', threadId: 'th-a' },
+      { type: 'THREAD_LOADING', threadId: 'th-b' },
+      { type: 'THREAD_FAILED', threadId: 'th-a' },
+    ]);
+    expect(state.threadStatus).toBe('loading');
+  });
+
+  it('a new thread ends an opening that was under way', () => {
+    const state = reduce([
+      { type: 'THREAD_LOADING', threadId: 'th-a' },
+      { type: 'NEW_THREAD' },
+    ]);
+    expect(state.threadId).toBeNull();
+    expect(state.threadStatus).toBe('idle');
+    expect(state.items).toEqual([]);
+  });
+});
+
+describe('a thread deleted in Panel A', () => {
+  it('empties Panel B when it was the thread on screen', () => {
+    const shown = reduce(play('report1-long'));
+    const state = chatReducer(shown, {
+      type: 'THREAD_DELETED',
+      threadId: resultOf('report1-long').thread_id,
+    });
+    expect(state.threadId).toBeNull();
+    expect(state.items).toEqual([]);
+    expect(state.flight).toBeNull();
+    expect(state.threadStatus).toBe('idle');
+  });
+
+  it('leaves Panel B alone when it was another thread', () => {
+    const shown = reduce(play('report1-long'));
+    expect(
+      chatReducer(shown, { type: 'THREAD_DELETED', threadId: 'th-other' })
+    ).toBe(shown);
+  });
+});
+
+describe('which Panel C button is waiting', () => {
+  it('names the button of an instant request in flight', () => {
+    expect(pendingInstant(initialChatState())).toBeNull();
+    expect(pendingInstant(reduce([send('c-1', INSTANT)]))).toBe(
+      'INSTANT_M15_INSPECT'
+    );
+    expect(
+      pendingInstant(
+        reduce([send('c-1', { kind: 'INSTANT', intent: 'INSTANT_M5_INSPECT' })])
+      )
+    ).toBe('INSTANT_M5_INSPECT');
+  });
+
+  it('names none for a typed question: both buttons wait, neither spins', () => {
+    const state = reduce([send('c-1', TYPED)]);
+    expect(isBusy(state)).toBe(true);
+    expect(pendingInstant(state)).toBeNull();
+  });
+
+  it('names none once the request has ended', () => {
+    expect(
+      pendingInstant(reduce(play('report1-short-instant', 'c-1', INSTANT)))
+    ).toBeNull();
   });
 });

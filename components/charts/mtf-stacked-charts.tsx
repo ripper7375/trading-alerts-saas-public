@@ -19,7 +19,7 @@
  */
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ImperativePanelGroupHandle } from 'react-resizable-panels';
 import type { IChartApi, IRange, Time } from 'lightweight-charts';
 import { Lock, Sparkles } from 'lucide-react';
@@ -33,12 +33,19 @@ import {
 import { useLocale } from '@/lib/context/locale-context';
 import { cn } from '@/lib/utils';
 
+import { useOptionalChat } from '@/components/chat/chat-provider';
+import { pendingInstant } from '@/components/chat/chat-state';
+
 import { MarketContextBadge } from './ask-ai-button';
 import type { DrawingType } from './drawing/types';
 import { MtfTopBar, type IndicatorId } from './mtf/MtfTopBar';
 import { useMtfPreference } from './mtf/useMtfPreference';
 import { TradingChart } from './trading-chart';
-import { instantKindFor, useInstantPrompt } from './use-instant-prompt';
+import {
+  instantKindFor,
+  useInstantPrompt,
+  type InstantChat,
+} from './use-instant-prompt';
 import {
   DEFAULT_SPLIT,
   FALLBACK_TOTAL_HEIGHT_PX,
@@ -73,6 +80,14 @@ interface MtfStackedChartsProps {
   onOpenUpgradeModal?: () => void;
   /** The success body of an instant prompt, for the chat that step 7 builds. */
   onInstantResult?: (body: unknown) => void;
+  /**
+   * Build step 7 part 9: the chat routes are on (the page reads `REPLY_ENABLED`). With the instant
+   * prompts also on, a PRO press on a badge goes to the workspace's chat (one request in flight for
+   * the whole workspace, the answer in Panel B) instead of `/api/intake/instant`. Off, nothing changes.
+   */
+  replyEnabled?: boolean;
+  /** The chat answered a press: the workspace opens Panel B if it was collapsed. */
+  onChatResult?: (result: { threadId: string }) => void;
 }
 
 /** Percentages closer than this are the same divider position. */
@@ -88,6 +103,8 @@ export function MtfStackedCharts({
   instantPromptsEnabled = false,
   onOpenUpgradeModal,
   onInstantResult,
+  replyEnabled = false,
+  onChatResult,
 }: MtfStackedChartsProps): React.JSX.Element {
   const { t } = useLocale();
   const { data: session } = useSession();
@@ -97,10 +114,26 @@ export function MtfStackedCharts({
 
   // Panel C instant prompts: one request in flight for the whole chart. A Free trader with nowhere
   // to be sent (no upgrade modal) gets no badge rather than one that does nothing.
+  // the workspace's chat, when the reply flag is on and a provider is above (a Free press never uses it)
+  const chat = useOptionalChat();
+  const chatState = chat?.state;
+  const chatAsk = chat?.ask;
+  const chatBusy = chat?.busy ?? false;
+  const chatPending =
+    chatState === undefined ? null : pendingInstant(chatState);
+  const instantChat = useMemo<InstantChat | null>(
+    () =>
+      replyEnabled && isPro && chatAsk !== undefined
+        ? { busy: chatBusy, pending: chatPending, ask: chatAsk }
+        : null,
+    [replyEnabled, isPro, chatAsk, chatBusy, chatPending]
+  );
   const instant = useInstantPrompt({
     isPro,
     onOpenUpgradeModal,
     onResult: onInstantResult,
+    chat: instantChat,
+    ...(onChatResult === undefined ? {} : { onChatResult }),
   });
   const showInstantPrompts =
     instantPromptsEnabled && (isPro || onOpenUpgradeModal !== undefined);
@@ -308,7 +341,7 @@ export function MtfStackedCharts({
           instant={{
             kind,
             loading: instant.pending === kind,
-            busy: instant.pending !== null,
+            busy: instant.busy,
             notice: instant.notice?.kind === kind ? instant.notice.text : null,
             onPress: instant.press,
           }}

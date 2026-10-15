@@ -51,7 +51,10 @@
     "chat.profile.SCALPER",
     "chat.zone.heading",
     "chat.status.FRESH",
-    "chat.disclaimer.version"
+    "chat.disclaimer.version",
+    "chat.threads.bias.LONG",
+    "chat.threads.bias.SHORT",
+    "chat.threads.bias.NEUTRAL"
   ],
   "es": [
     "Blog",
@@ -78,7 +81,8 @@
     "report2.scenario.normal",
     "report2.check.stop",
     "chat.bias.NEUTRAL",
-    "chat.profile.SCALPER"
+    "chat.profile.SCALPER",
+    "chat.threads.bias.NEUTRAL"
   ],
   "pt": [
     "Blog",
@@ -151,7 +155,9 @@
     "report2.badge.heading",
     "report2.check.stop",
     "chat.profile.DAY_TRADER",
-    "chat.profile.SCALPER"
+    "chat.profile.SCALPER",
+    "chat.threads.bias.LONG",
+    "chat.threads.bias.SHORT"
   ],
   "id": [
     "Back Step",
@@ -192,7 +198,9 @@
     "report2.check.stop",
     "report2.check.leverage",
     "chat.profile.SCALPER",
-    "chat.channel.status.VALID"
+    "chat.channel.status.VALID",
+    "chat.threads.bias.LONG",
+    "chat.threads.bias.SHORT"
   ],
   "vi": [
     "Blog",
@@ -209,7 +217,9 @@
     "Tokyo",
     "settings.profile.email_label",
     "terminal.meta_title",
-    "chat.profile.SCALPER"
+    "chat.profile.SCALPER",
+    "chat.threads.bias.LONG",
+    "chat.threads.bias.SHORT"
   ],
   "tr": [
     "Blog",
@@ -227,7 +237,9 @@
     "terminal.meta_title",
     "report2.scenario.normal",
     "report2.check.risk",
-    "chat.profile.SCALPER"
+    "chat.profile.SCALPER",
+    "chat.threads.bias.LONG",
+    "chat.threads.bias.SHORT"
   ],
   "hi": ["Heiken Ashi"],
   "ur": ["Heiken Ashi"],
@@ -274,7 +286,10 @@
     "chat.zone.heading",
     "chat.zone.invalidation",
     "chat.disclaimer.version",
-    "chat.badge.cycle"
+    "chat.badge.cycle",
+    "chat.threads.label",
+    "chat.threads.bias.LONG",
+    "chat.threads.bias.SHORT"
   ],
   "ko": ["Heiken Ashi"],
   "zh": ["Heiken Ashi"],

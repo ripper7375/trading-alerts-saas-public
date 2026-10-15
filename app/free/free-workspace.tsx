@@ -24,13 +24,19 @@ import { ProUpgradeModal } from '@/components/ui/pro-upgrade-modal';
  * app/free/page.tsx). For a FREE trader a press on a badge opens the same
  * ProUpgradeModal; no request is made.
  *
+ * `replyEnabled` is the server's `isReplyEnabled()` (read in app/free/page.tsx). A Free trader's chat
+ * never reads a route (ADR-072): Panel A shows the recorded example as its one thread, Panel B plays
+ * it, and a badge press opens the upgrade modal whatever the flag says.
+ *
  * The panel layout and its collapse behaviour live in
  * components/workspace/trading-workspace.tsx, shared with `/terminal`.
  */
 export function FreeWorkspace({
   instantPromptsEnabled = false,
+  replyEnabled = false,
 }: {
   instantPromptsEnabled?: boolean;
+  replyEnabled?: boolean;
 }): React.JSX.Element {
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
@@ -40,6 +46,7 @@ export function FreeWorkspace({
         tier="FREE"
         onOpenUpgradeModal={() => setIsUpgradeModalOpen(true)}
         instantPromptsEnabled={instantPromptsEnabled}
+        replyEnabled={replyEnabled}
       />
       <ProUpgradeModal
         isOpen={isUpgradeModalOpen}

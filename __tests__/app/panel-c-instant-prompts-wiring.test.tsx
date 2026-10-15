@@ -28,6 +28,7 @@ jest.mock('@/components/workspace/trading-workspace', () => ({
   TradingWorkspace: (props: {
     tier: string;
     instantPromptsEnabled?: boolean;
+    replyEnabled?: boolean;
     onOpenUpgradeModal?: () => void;
   }) => (
     <button
@@ -35,6 +36,7 @@ jest.mock('@/components/workspace/trading-workspace', () => ({
       data-testid="workspace"
       data-tier={props.tier}
       data-instant={String(props.instantPromptsEnabled)}
+      data-reply={String(props.replyEnabled)}
       data-upgrade={String(typeof props.onOpenUpgradeModal === 'function')}
       onClick={props.onOpenUpgradeModal}
     />
@@ -126,6 +128,74 @@ describe('the pages read the flag on the server', () => {
     await expect(FreePage()).rejects.toThrow('NEXT_REDIRECT:/login');
     mockSession.mockResolvedValue({ user: { id: 'u', tier: 'FREE' } });
     await expect(TerminalPage()).rejects.toThrow('NEXT_REDIRECT:/free');
+  });
+});
+
+describe('the pages read the reply flag on the server (build step 7 part 9)', () => {
+  const ORIGINAL_REPLY = process.env['REPLY_ENABLED'];
+  afterEach(() => {
+    if (ORIGINAL_REPLY === undefined) delete process.env['REPLY_ENABLED'];
+    else process.env['REPLY_ENABLED'] = ORIGINAL_REPLY;
+  });
+  const setReply = (value: string | undefined): void => {
+    if (value === undefined) delete process.env['REPLY_ENABLED'];
+    else process.env['REPLY_ENABLED'] = value;
+  };
+  const replyOf = (element: React.ReactElement | React.ReactNode) =>
+    (element as React.ReactElement<{ replyEnabled?: boolean }>).props
+      .replyEnabled;
+
+  it.each([
+    ['true', true],
+    [undefined, false],
+    ['', false],
+    ['false', false],
+    ['TRUE', false],
+    ['1', false],
+    ['yes', false],
+    [' true', false],
+  ])(
+    'REPLY_ENABLED=%j gives %s on /terminal and on /free',
+    async (value, expected) => {
+      setReply(value);
+      mockSession.mockResolvedValue({ user: { id: 'u', tier: 'PRO' } });
+      expect(replyOf(await TerminalPage())).toBe(expected);
+      expect(replyOf(await FreePage())).toBe(expected);
+    }
+  );
+
+  it('is independent of the instant-prompts flag, and of the intake flag', async () => {
+    setReply('true');
+    setFlag(undefined);
+    mockSession.mockResolvedValue({ user: { id: 'u', tier: 'PRO' } });
+    const element = await TerminalPage();
+    expect(replyOf(element)).toBe(true);
+    expect(asProps(element).instantPromptsEnabled).toBe(false);
+    setReply(undefined);
+    setFlag('true');
+    const other = await TerminalPage();
+    expect(replyOf(other)).toBe(false);
+    expect(asProps(other).instantPromptsEnabled).toBe(true);
+  });
+
+  it('the shells hand it to the shared workspace, and it is off when they are not told', () => {
+    const { unmount } = render(<TerminalWorkspace replyEnabled />);
+    expect(screen.getByTestId('workspace')).toHaveAttribute(
+      'data-reply',
+      'true'
+    );
+    unmount();
+    const free = render(<FreeWorkspace replyEnabled instantPromptsEnabled />);
+    expect(screen.getByTestId('workspace')).toHaveAttribute(
+      'data-reply',
+      'true'
+    );
+    free.unmount();
+    render(<TerminalWorkspace />);
+    expect(screen.getByTestId('workspace')).toHaveAttribute(
+      'data-reply',
+      'false'
+    );
   });
 });
 
