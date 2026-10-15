@@ -21,6 +21,12 @@ Two things follow:
 - **A Vercel preview deployment reaches the production database** (see `waiting-on.md`, "Preview deployments hit the production DB"). Do not turn either flag on
   for a preview, for the same reason.
 
+> **Update (build step 7 part 6, 2026-10-15): the rule STANDS.** `passThroughQuota` is gone: the gate's quota is now the floor check of the quota ledger
+> (`lib/reply/meter/quota-port.ts` behind `lib/intake/server/access.ts`), and it refuses every request while `PRO_MONTHLY_UNITS` is unset (fail closed). But a floor
+> check only reads the balance. **Nothing yet holds units around the Understand call or settles its cost**: that is the orchestrator of part 7 (`runMetered`), so
+> until it is wired a Pro trader with a balance can still cause paid Understand calls that nothing charges. The ledger tables are a migration FILE, not applied
+> (`20261014010000_add_ai_metering_tables`); with the tables missing the port throws and the gate answers `FEATURE_UNAVAILABLE`, which is safe but is not metering.
+
 Both flags are **set nowhere today**, and a flag is on only when its value is exactly the text `true` (`TRUE`, `1` and ` true` are off).
 
 > **Nothing here has been run against production.** Step 6 was built and tested on fixtures, the 16 golden cycles, a scratch PostgreSQL 18 and the real txtai on

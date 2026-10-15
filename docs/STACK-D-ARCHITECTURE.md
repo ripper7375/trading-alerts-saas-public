@@ -1929,6 +1929,28 @@ per view.
 measured cost per unit ([ADR-050]). Davin sets the share; measurement supplies the cost. No token
 number is published until the first measurement run.
 
+**Built (build step 7 part 6; files only, nothing applied or deployed).**
+
+- **The table** is `config/entitlements.ts`, read through `lib/platform/entitlements.ts`, by the
+  session gate, by `canAccessAiAnalyst` and by the quota port; the live analyst is the
+  `MONTHLY_UNITS` value of `ai_chat_and_report1` (Free's `RECORDED_DEMO` is not the analyst). The
+  chart route, the Trade Setup modal, the picker and the history panel are not on it yet.
+- **A unit is one micro-dollar of gateway cost** (decision D2, integer-exact, $1.00 = 1,000,000
+  units), the period is a UTC calendar month, and the allowance of a Pro trader is
+  `PRO_MONTHLY_UNITS` (decision D4): while it is unset the quota port refuses every request. The
+  ADR-073 arithmetic is `proQuotaUnits({ priceUsd, share })` (the price is the SystemConfig price,
+  passed in) and `scripts/reply/measure-units.js --price --share` prints it from the measured
+  traces.
+- **The ledger** is two PostgreSQL tables (decision D3): `ai_quota_periods` (limit, used, reserved
+  per trader per month) and `ai_usage_reservations` (one row per request id: RESERVED, SETTLED,
+  RELEASED or EXPIRED). The reservation is one atomic `UPDATE ... WHERE used + reserved + n <= limit`
+  plus the insert of the reservation row in the same statement. Settlement is idempotent on the
+  request id and charges the cost up to what the balance has left (the rest is the business's and
+  is in `cost_micro_usd`); an unknown cost charges the whole reservation; a reservation the reaper
+  expired can still be settled late. The reaper expires one period per statement (a statement that
+  took several periods at once lost period updates under load on PostgreSQL 18.1; see the
+  environment gotchas). The migration is `20261014010000_add_ai_metering_tables`.
+
 ### 7.4 Trace
 
 One row per answer ([ADR-075]), written by Sections 4, 5 and 6 (each fills its own fields; nothing
