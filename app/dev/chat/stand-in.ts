@@ -44,17 +44,28 @@ export interface StandInOptions {
   t: (key: string, fallback?: string) => string;
   /** the pause between two events, in milliseconds */
   stepMs?: number;
+  /**
+   * Whole-workspace preview (build step 7 part 9): the thread a message belongs to. Called once per
+   * message request, with its body; the result event is given that thread, as the real route gives a
+   * reply the thread of its request (a new one when the body names none). Left out, a recorded reply
+   * keeps the thread it was recorded in, which is what `/dev/chat` has always shown.
+   */
+  threadId?: (body: Record<string, unknown>) => string;
 }
 
 export function standInFetch(options: StandInOptions): typeof fetch {
   const step = options.stepMs ?? 650;
 
-  const localized = (event: StreamEvent): StreamEvent => {
+  const localized = (
+    event: StreamEvent,
+    threadId: string | null
+  ): StreamEvent => {
     const language = options.language();
     if (event.type === 'result') {
+      const result = localizeResult(event.result, language);
       return {
         ...event,
-        result: localizeResult(event.result, language),
+        result: threadId === null ? result : { ...result, thread_id: threadId },
       };
     }
     if (event.type === 'refusal') {
@@ -91,6 +102,17 @@ export function standInFetch(options: StandInOptions): typeof fetch {
     if (!url.endsWith('/api/chat/message'))
       return json({ success: false }, 404);
 
+    // the thread this message belongs to (the whole-workspace preview files it into its thread list)
+    let threadId: string | null = null;
+    if (options.threadId !== undefined) {
+      let body: Record<string, unknown> = {};
+      try {
+        body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      } catch {
+        body = {};
+      }
+      threadId = options.threadId(body);
+    }
     const exchange = RECORDED[options.answer()] as Exchange;
     if (exchange.kind === 'JSON') {
       await sleep(step, signal);
@@ -119,7 +141,7 @@ export function standInFetch(options: StandInOptions): typeof fetch {
           for (const event of exchange.events) {
             await sleep(step, signal);
             controller.enqueue(
-              encoder.encode(`${JSON.stringify(localized(event))}\n`)
+              encoder.encode(`${JSON.stringify(localized(event, threadId))}\n`)
             );
           }
           controller.close();

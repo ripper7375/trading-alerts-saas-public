@@ -202,6 +202,38 @@ export const CHAT_TEXT = {
   'chat.badge.cycle': 'Cycle {time}',
   'chat.badge.no_cycle': 'No cycle yet',
 
+  // -- Panel A: the threads (build step 7 part 9) ------------------------------------------
+  'chat.threads.label': 'Conversations',
+  'chat.threads.new': 'New thread',
+  'chat.threads.loading': 'Loading your conversations…',
+  'chat.threads.empty_title': 'No conversations yet',
+  'chat.threads.empty_body': 'Your questions to the AI Analyst are saved here.',
+  'chat.threads.error': 'Your conversations could not be loaded.',
+  'chat.threads.unavailable':
+    'Conversations appear here once the AI Analyst is switched on.',
+  'chat.threads.load_more': 'Show more',
+  'chat.threads.more_failed': 'More conversations could not be loaded.',
+  'chat.threads.bias.LONG': 'Long',
+  'chat.threads.bias.SHORT': 'Short',
+  'chat.threads.bias.NEUTRAL': 'Neutral',
+  'chat.threads.bias.STAND_ASIDE': 'Stand aside',
+  'chat.threads.rename_for': 'Rename {title}',
+  'chat.threads.rename_label': 'Conversation name',
+  'chat.threads.rename_save': 'Save name',
+  'chat.threads.rename_cancel': 'Cancel',
+  'chat.threads.rename_failed': 'The name could not be saved.',
+  'chat.threads.delete_for': 'Delete {title}',
+  'chat.threads.delete_title': 'Delete this conversation?',
+  'chat.threads.delete_body':
+    'The messages of this conversation are removed for good. A separate audit record of each request stays on our servers and cannot be changed or deleted; it holds no part of your questions.',
+  'chat.threads.delete_confirm': 'Delete conversation',
+  'chat.threads.delete_cancel': 'Keep it',
+  'chat.threads.delete_failed': 'The conversation could not be deleted.',
+  'chat.threads.opening': 'Opening the conversation…',
+  'chat.threads.open_failed': 'This conversation could not be opened.',
+  'chat.threads.demo_title': 'Recorded example',
+  'chat.threads.last_message': 'Last message: {time}',
+
   // -- the Free tier -----------------------------------------------------------------------
   'chat.demo.label': 'Recorded example, data as of {time}',
   'chat.demo.body':
@@ -235,6 +267,8 @@ export const DRAFT_TEXT_KEYS: readonly ChatKey[] = [
   'chat.fixed.reason.MARKET_CLOSED',
   'chat.fixed.reason.NO_SYNTHESIS',
   'chat.error.PERSISTENCE_FAILED',
+  // what is kept after a conversation is deleted is a statement about the audit record (ADR-098 D16)
+  'chat.threads.delete_body',
 ];
 
 export type TextParams = Readonly<Record<string, string>>;

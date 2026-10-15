@@ -199,6 +199,10 @@ const ALLOWED_IMPORTERS: readonly string[] = [
   // only (the contracts' shapes), so nothing of lib/reply or lib/platform reaches the browser;
   // `__tests__/components/chat/limits.test.ts` holds that and the lists it repeats to the contracts
   'components/chat/types.ts',
+  // the two workspace pages (build step 7 part 9) read the reply flag on the server, at request time,
+  // and pass it down as a prop: the browser never sees the variable
+  'app/free/page.tsx',
+  'app/terminal/page.tsx',
   // the chat routes (build step 7 part 7b): the message route, the threads API and the state route
   'app/api/chat/message/route.ts',
   'app/api/chat/state/route.ts',

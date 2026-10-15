@@ -137,6 +137,25 @@ export type AskInput =
   | { kind: 'TYPED'; question: string }
   | { kind: 'INSTANT'; intent: InstantIntent };
 
+/**
+ * One thread of `GET /api/chat/threads`, as Panel A keeps it (build step 7 part 9). The title is the
+ * server's: deterministic from the first answer (`XAUUSD · M15 · LONG · 18 SEP 20:55`) or the trader's
+ * own, and is shown as it came. The bias is the thread's last one, null until an answer had one.
+ */
+export interface ThreadSummary {
+  id: string;
+  title: string;
+  titleSource: 'AUTO' | 'USER';
+  lastBias: Bias | null;
+  /** one line of the last exchange; may be empty */
+  lastPreview: string;
+  messageCount: number;
+  /** ISO time of the last message */
+  lastMessageAt: string;
+  /** the cycle slot of the last answer that had one, such as `2026-09-18T20:55Z` */
+  lastCycleSlot: string | null;
+}
+
 /** A recorded conversation for the Free tier (ADR-072): the turns of one golden scenario. */
 export interface DemoTurn {
   /** what the trader asked; an instant prompt has a label instead */

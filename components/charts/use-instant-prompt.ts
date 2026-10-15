@@ -19,11 +19,27 @@
  *    rendered: the reply to the trader is step 7's (D10 (e)), which is why the badges stay behind
  *    their own flag until then.
  *
+ * With the workspace's chat given (`chat`, build step 7 part 9: the reply flag is on) a PRO press goes
+ * to the chat instead of this route, and the chat is the whole answer:
+ *
+ *  - the request is `POST /api/chat/message` with `{ client_request_id, kind }`, made by the chat's own
+ *    provider; there is ONE request in flight for the WHOLE workspace, whether it was started by a
+ *    badge or by a typed question in Panel B. While it runs `busy` is true for both badges, and
+ *    `pending` names the badge that was pressed (none for a typed question); a press during it is
+ *    ignored;
+ *  - the answer, the stages and a refusal card are Panel B's. A refusal is ALSO shown below the badge
+ *    that was pressed, as before; any other failure shows the fixed "not available" text there;
+ *  - a success calls `onChatResult` (the workspace opens Panel B if it was collapsed; the active
+ *    thread of Panel A is the chat's own, so it needs nothing from here).
+ *
+ * Off (no `chat`), everything above the line is exactly what it was.
+ *
  * @module components/charts/use-instant-prompt
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
+import type { AskOptions } from '@/components/chat/chat-provider';
 import { useLocale } from '@/lib/context/locale-context';
 import { INSTANT_INTENTS, type InstantIntent } from '@/lib/intake/intents';
 import { INTAKE_TEXT } from '@/lib/intake/text';
@@ -82,6 +98,21 @@ export const postInstantPrompt: PostInstant = async (kind) => {
   }
 };
 
+/**
+ * The workspace's chat, as far as a badge needs it. `ChatContextValue` fits it; a test or the preview
+ * may pass a smaller one.
+ */
+export interface InstantChat {
+  /** a request is in flight anywhere in the workspace (Panel B's composer or either badge) */
+  busy: boolean;
+  /** the badge whose request is in flight; null when none is, or when a typed question is */
+  pending: InstantIntent | null;
+  ask: (
+    input: { kind: 'INSTANT'; intent: InstantIntent },
+    options?: AskOptions
+  ) => boolean;
+}
+
 export interface InstantPromptOptions {
   /** the trader has the Pro plan; a Free trader's press opens the upgrade modal */
   isPro: boolean;
@@ -92,6 +123,10 @@ export interface InstantPromptOptions {
   post?: PostInstant;
   /** how long a refusal stays; {@link NOTICE_MS} unless a test shortens it */
   noticeMs?: number;
+  /** the workspace's chat: given, a PRO press goes to it and not to `/api/intake/instant` */
+  chat?: InstantChat | null;
+  /** the chat answered: the workspace opens Panel B if it was collapsed */
+  onChatResult?: (result: { threadId: string }) => void;
 }
 
 export interface InstantNotice {
@@ -102,6 +137,8 @@ export interface InstantNotice {
 export interface InstantPromptState {
   /** the kind whose request is in flight, or null */
   pending: InstantIntent | null;
+  /** a request is in flight that both badges wait for: this chart's own, or (with the chat) the whole workspace's */
+  busy: boolean;
   /** the text below the badge that was refused, or null */
   notice: InstantNotice | null;
   press: (kind: InstantIntent) => void;
@@ -113,6 +150,8 @@ export function useInstantPrompt({
   onResult,
   post = postInstantPrompt,
   noticeMs = NOTICE_MS,
+  chat = null,
+  onChatResult,
 }: InstantPromptOptions): InstantPromptState {
   const { t } = useLocale();
   const [pending, setPending] = useState<InstantIntent | null>(null);
@@ -141,14 +180,50 @@ export function useInstantPrompt({
         onOpenUpgradeModal?.();
         return;
       }
-      inFlight.current = true;
-      setNotice(null);
-      setPending(kind);
-      const unavailable = (): string =>
+      const unavailableText = (): string =>
         t(
           'intake.refusal.feature_unavailable',
           INTAKE_TEXT['intake.refusal.feature_unavailable']
         );
+      if (chat !== null) {
+        // one request for the whole workspace: while any is in flight a press does nothing
+        if (chat.busy) return;
+        setNotice(null);
+        chat.ask(
+          { kind: 'INSTANT', intent: kind },
+          {
+            onSettled: (outcome) => {
+              if (!mounted.current) return;
+              switch (outcome.kind) {
+                case 'RESULT':
+                  onChatResult?.({ threadId: outcome.threadId });
+                  break;
+                case 'REFUSAL':
+                  // Panel B has the refusal card; the badge repeats the server's words, as it always did
+                  setNotice({
+                    kind,
+                    text:
+                      outcome.reply.trim() !== ''
+                        ? outcome.reply
+                        : unavailableText(),
+                  });
+                  break;
+                case 'UNAVAILABLE':
+                case 'FAILED':
+                  setNotice({ kind, text: unavailableText() });
+                  break;
+                case 'CANCELLED':
+                  break;
+              }
+            },
+          }
+        );
+        return;
+      }
+      inFlight.current = true;
+      setNotice(null);
+      setPending(kind);
+      const unavailable = unavailableText;
       const run = async (): Promise<void> => {
         try {
           const answer = await post(kind);
@@ -164,8 +239,10 @@ export function useInstantPrompt({
       };
       void run();
     },
-    [isPro, onOpenUpgradeModal, onResult, post, t]
+    [isPro, onOpenUpgradeModal, onResult, post, t, chat, onChatResult]
   );
 
-  return { pending, notice, press };
+  return chat !== null
+    ? { pending: chat.pending, busy: chat.busy, notice, press }
+    : { pending, busy: pending !== null, notice, press };
 }

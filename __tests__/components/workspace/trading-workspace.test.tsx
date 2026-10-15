@@ -38,12 +38,16 @@ jest.mock('next/dynamic', () => () => {
   const MockChart = (props: {
     isPro?: boolean;
     instantPromptsEnabled?: boolean;
+    replyEnabled?: boolean;
+    onChatResult?: () => void;
     onOpenUpgradeModal?: () => void;
   }): React.JSX.Element => (
     <div
       data-testid="chart"
       data-is-pro={String(props.isPro)}
       data-instant={String(props.instantPromptsEnabled)}
+      data-reply={String(props.replyEnabled)}
+      data-chat-result={String(typeof props.onChatResult === 'function')}
       data-upgrade={String(typeof props.onOpenUpgradeModal === 'function')}
       onClick={props.onOpenUpgradeModal}
     />
@@ -228,6 +232,58 @@ describe('TradingWorkspace -- panel collapse', () => {
       'data-collapsed',
       'false'
     );
+  });
+});
+
+describe('TradingWorkspace -- the chat of the three panels (build step 7 part 9)', () => {
+  beforeEach(() => {
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify(defaultPreferences)
+    );
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('keeps the chat off unless the page turns it on', () => {
+    render(<TradingWorkspace tier="PRO" instantPromptsEnabled />);
+    expect(screen.getByTestId('chart')).toHaveAttribute('data-reply', 'false');
+  });
+
+  it('hands the page flag to the stacked charts, with a way to open Panel B', () => {
+    render(<TradingWorkspace tier="PRO" instantPromptsEnabled replyEnabled />);
+    const chart = screen.getByTestId('chart');
+    expect(chart).toHaveAttribute('data-reply', 'true');
+    expect(chart).toHaveAttribute('data-chat-result', 'true');
+  });
+
+  it('does not touch the panels: the same sizes with the chat on or off, collapse still works', async () => {
+    // the chat reads its state when it is on: answer it, so nothing outlives the test
+    const original = global.fetch;
+    global.fetch = jest.fn(
+      async () => new Response('{}', { status: 404 })
+    ) as unknown as typeof fetch;
+    try {
+      const { unmount } = render(<TradingWorkspace tier="PRO" />);
+      const off = sizes();
+      unmount();
+      render(<TradingWorkspace tier="PRO" replyEnabled />);
+      // the chat reads its state: let the answer land inside act
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      });
+      expect(sizes()).toEqual(off);
+      expect(sizes()).toEqual(DEFAULT_SIZES);
+      fireEvent.click(screen.getByText('Collapse AI Analyst'));
+      expect(sizes()['analyst']).toBe(rail(1));
+      fireEvent.click(screen.getByRole('button', { name: 'Show AI Analyst' }));
+      expect(sizes()).toEqual(DEFAULT_SIZES);
+    } finally {
+      await act(async () => undefined);
+      global.fetch = original;
+    }
   });
 });
 

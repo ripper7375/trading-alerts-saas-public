@@ -271,6 +271,10 @@ export function ChatPanelView({
                   ? {}
                   : { onUpgrade: onOpenUpgradeModal })}
                 onOpenTradeSetup={chat.openTradeSetup}
+                onReopen={() => {
+                  if (state.threadId !== null)
+                    chat.selectThread(state.threadId);
+                }}
               />
             </>
           )}

@@ -8,9 +8,12 @@
  * profile and the cycle). `useChat()` hands the panel's components the state and five things to do:
  * `ask`, `retry`, `stop`, `selectModel` and `reloadInfo`.
  *
- * It is built to be hoisted: `ChatPanel` mounts its own provider when none is above it and uses the
- * one that is when there is (`useOptionalChat`), so build step 7 part 9 can lift it into the workspace
- * to share one state between the three panels without touching the panel.
+ * It is hoisted (build step 7 part 9): the workspace mounts ONE provider above the three panels, so the
+ * thread list of Panel A, the conversation of Panel B and the two Market Context badges of Panel C share
+ * one state, one active thread and one request in flight. `ChatPanel` still mounts its own provider when
+ * none is above it (`useOptionalChat`), which is how it runs on its own in the preview and the tests.
+ * Because the provider sits above the panels, collapsing Panel B to its rail unmounts only the panel: the
+ * conversation, the thread and a request in flight are all still here when it opens again.
  *
  * Who the trader is, what tier they have and which model answers are never sent from here: the server
  * reads them. A Free trader's provider never calls the routes at all (the panel shows the recorded
@@ -35,28 +38,95 @@ import {
   chatReducer,
   initialChatState,
   isBusy,
+  isOpeningThread,
   type ChatItem,
   type ChatState,
 } from './chat-state';
 import { COMPOSER_MAX_CHARS } from './limits';
+import { getThread } from './threads-wire';
 import type { AskInput, TradeSetupAction } from './types';
 import { newRequestId, useChatStream } from './use-chat-stream';
-import { loadInfo } from './wire';
+import { loadInfo, type SendOutcome } from './wire';
 
 type Fetch = typeof fetch;
 
+/**
+ * How one `ask` ended, for a caller that must react to it (the Panel C badges: a refusal is shown
+ * below the badge as well as in Panel B, a result expands Panel B). The chat state has already been told
+ * (the update is dispatched; React draws it on its next render), so a caller never has to put the
+ * answer on screen itself.
+ */
+export type AskOutcome =
+  /** an answer was delivered into this thread */
+  | { kind: 'RESULT'; threadId: string; requestId: string }
+  /** the server (or its gate) said no; `reply` is its fixed words, in the reader's language */
+  | { kind: 'REFUSAL'; reply: string }
+  /** the chat routes are not switched on */
+  | { kind: 'UNAVAILABLE' }
+  /** an error card is on screen: the request failed on the way or on our side */
+  | { kind: 'FAILED' }
+  /** the trader stopped it */
+  | { kind: 'CANCELLED' };
+
+export interface AskOptions {
+  /** called once, when an accepted request has ended; never for one that was not sent */
+  onSettled?: (outcome: AskOutcome) => void;
+}
+
+/** What a request's end means to a caller that does not read the chat state. */
+export function outcomeOf(outcome: SendOutcome): AskOutcome {
+  if (outcome.ok) {
+    const event = outcome.terminal;
+    if (event.type === 'result') {
+      return {
+        kind: 'RESULT',
+        threadId: event.result.thread_id,
+        requestId: event.request_id,
+      };
+    }
+    if (event.type === 'refusal') {
+      return { kind: 'REFUSAL', reply: event.refusal.reply };
+    }
+    return { kind: 'FAILED' };
+  }
+  const failure = outcome.failure;
+  switch (failure.kind) {
+    case 'ABORTED':
+      return { kind: 'CANCELLED' };
+    case 'DISABLED':
+      return { kind: 'UNAVAILABLE' };
+    case 'REFUSED':
+      return { kind: 'REFUSAL', reply: failure.refusal.reply };
+    default:
+      return { kind: 'FAILED' };
+  }
+}
+
 export interface ChatContextValue {
   state: ChatState;
-  /** a request is in flight, for the whole workspace */
+  /**
+   * A request is in flight, or a thread is being opened: for the whole workspace. Every control that
+   * would start another (the composer, the two Panel C badges, "new thread", a thread row) waits on it.
+   */
   busy: boolean;
+  /** the chat routes are being read (a Pro trader, and the workspace says the chat is on) */
+  live: boolean;
+  /** the `fetch` the chat uses, so Panel A's thread list talks to the same server (or stand-in) */
+  fetcher: Fetch;
   /** Send a typed question or a Panel C label. False when it was not sent (empty, too long, or busy). */
-  ask: (input: AskInput) => boolean;
+  ask: (input: AskInput, options?: AskOptions) => boolean;
   /** Send an error's request again, with the same `client_request_id`. */
   retry: (item: Extract<ChatItem, { kind: 'ERROR' }>) => boolean;
   /** Stop the request in flight. */
   stop: () => void;
   selectModel: (slug: string) => void;
   reloadInfo: () => void;
+  /** Panel A: start a new, empty thread. False while a request is in flight. */
+  newThread: () => boolean;
+  /** Panel A: open a thread of the trader's. False when it was not opened (busy, or not a Pro trader). */
+  selectThread: (threadId: string) => boolean;
+  /** Panel A: a thread was deleted; Panel B empties if it was the one on screen. */
+  threadDeleted: (threadId: string) => void;
   /** a card's "Open trade setup" button */
   openTradeSetup: (action: TradeSetupAction) => void;
 }
@@ -102,6 +172,12 @@ export function ChatProvider({
   // the latest values, for callbacks that must not change identity on every render
   const threadRef = useRef(state.threadId);
   threadRef.current = state.threadId;
+  // the latest answer to "may another request start", for callbacks that must not change identity
+  const busyRef = useRef(false);
+  busyRef.current = isBusy(state) || isOpeningThread(state);
+  const isOpeningThreadRef = useRef(false);
+  isOpeningThreadRef.current = isOpeningThread(state);
+  const threadFlight = useRef<AbortController | null>(null);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
   const openRef = useRef(onOpenTradeSetup);
@@ -131,11 +207,19 @@ export function ChatProvider({
     return () => {
       alive.current = false;
       infoFlight.current?.abort();
+      threadFlight.current?.abort();
     };
   }, [shouldLoad, reloadInfo]);
 
   const send = useCallback(
-    (input: AskInput, clientRequestId: string, retry: boolean): boolean => {
+    (
+      input: AskInput,
+      clientRequestId: string,
+      retry: boolean,
+      options?: AskOptions
+    ): boolean => {
+      // a thread is being opened: a question sent now would join it and then be wiped by its messages
+      if (isOpeningThreadRef.current) return false;
       const started = stream.run({
         clientRequestId,
         threadId: threadRef.current,
@@ -146,6 +230,7 @@ export function ChatProvider({
       // the balance moved (a settled request, or a refusal about it): read it again, unless the
       // route is not on at all (then there is nothing to read)
       void started.done.then((outcome) => {
+        if (alive.current) options?.onSettled?.(outcomeOf(outcome));
         if (outcome.ok === false && outcome.failure.kind === 'DISABLED') return;
         if (alive.current && tier === 'PRO') reloadInfo();
       });
@@ -155,13 +240,18 @@ export function ChatProvider({
   );
 
   const ask = useCallback(
-    (input: AskInput): boolean => {
+    (input: AskInput, options?: AskOptions): boolean => {
       if (input.kind === 'TYPED') {
         const text = input.question.trim();
         if (text === '' || lengthOf(text) > COMPOSER_MAX_CHARS) return false;
-        return send({ kind: 'TYPED', question: text }, makeId(), false);
+        return send(
+          { kind: 'TYPED', question: text },
+          makeId(),
+          false,
+          options
+        );
       }
-      return send(input, makeId(), false);
+      return send(input, makeId(), false, options);
     },
     [send, makeId]
   );
@@ -181,18 +271,75 @@ export function ChatProvider({
     openRef.current?.(action);
   }, []);
 
+  const newThread = useCallback((): boolean => {
+    if (busyRef.current) return false;
+    threadFlight.current?.abort();
+    dispatch({ type: 'NEW_THREAD' });
+    return true;
+  }, []);
+
+  const selectThread = useCallback(
+    (threadId: string): boolean => {
+      if (tier !== 'PRO' || busyRef.current) return false;
+      threadFlight.current?.abort();
+      const own = new AbortController();
+      threadFlight.current = own;
+      dispatch({ type: 'THREAD_LOADING', threadId });
+      void getThread(fetcherRef.current, threadId, own.signal).then(
+        (outcome) => {
+          if (!alive.current || own.signal.aborted) return;
+          if (outcome.ok) {
+            dispatch({ type: 'THREAD_LOADED', threadId, items: outcome.items });
+          } else if (outcome.reason !== 'ABORTED') {
+            dispatch({ type: 'THREAD_FAILED', threadId });
+          }
+        }
+      );
+      return true;
+    },
+    [tier]
+  );
+
+  const threadDeleted = useCallback((threadId: string): void => {
+    dispatch({ type: 'THREAD_DELETED', threadId });
+  }, []);
+
+  const fetchStable = useCallback<Fetch>(
+    (...args) => fetcherRef.current(...args),
+    []
+  );
+
   const value = useMemo<ChatContextValue>(
     () => ({
       state,
-      busy: isBusy(state),
+      busy: isBusy(state) || isOpeningThread(state),
+      live: tier === 'PRO' && shouldLoad,
+      fetcher: fetchStable,
       ask,
       retry,
       stop,
       selectModel,
       reloadInfo,
       openTradeSetup,
+      newThread,
+      selectThread,
+      threadDeleted,
     }),
-    [state, ask, retry, stop, selectModel, reloadInfo, openTradeSetup]
+    [
+      state,
+      tier,
+      shouldLoad,
+      fetchStable,
+      ask,
+      retry,
+      stop,
+      selectModel,
+      reloadInfo,
+      openTradeSetup,
+      newThread,
+      selectThread,
+      threadDeleted,
+    ]
   );
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

@@ -1574,6 +1574,34 @@ Short chat answers ≤ 8 s. One regeneration adds a model call; its rate is trac
   values are repeated in `limits.ts` and held to the contracts by a test. The words are 145 `chat.*` keys in one
   registry (`components/chat/text.ts`) with drafts in the 17 languages.
 
+**Built (build step 7 part 9; Panel A's threads and Panel C's badges on the same chat, nothing deployed, `REPLY_ENABLED` still set nowhere).**
+
+- **One `ChatProvider` above the three panels** (`components/chat/chat-workspace.tsx`, mounted by
+  `TradingWorkspace` around its existing body). Panel A's thread list, Panel B's conversation and Panel C's two
+  Market Context badges share one thread, one conversation and ONE request in flight. Collapsing Panel B to its
+  rail unmounts only the panel, so the conversation, the active thread, a request still being answered and the
+  "Open trade setup" notice all survive it (part 8's deviation 3 is closed). `ChatPanel` still mounts its own
+  provider when none is above it (the preview, the tests).
+- **`replyEnabled` is read on the server** (`/terminal` and `/free`: `isReplyEnabled(process.env)`, exactly
+  `true`) and passed down as a prop. Off, the chat reads nothing at all (no state, no threads, no post) and Panel B
+  and Panel A say it is not switched on; the Panel C badges are what they were (ADR-098 D10). A Free trader's chat
+  never reads a route, whatever the flag says.
+- **Panel A is the trader's real threads** (`use-chat-threads.ts`, `thread-list.tsx`, `thread-item.tsx`):
+  `GET /api/chat/threads` a page of 30 at a time with the server's opaque cursor, the title as the server made it,
+  the last direction as a LONG, SHORT, NEUTRAL or STAND ASIDE badge, the time through the viewer's format, one line
+  of preview. A press opens the thread in Panel B (`GET /api/chat/threads/[id]`, the stored messages turned into
+  the items the live panel would have drawn); "New thread" empties Panel B; rename is `PATCH`; delete asks first
+  and says plainly that the messages go and the audit record of each request stays on the server (ADR-098 D16).
+  The list is read again, quietly, whenever a request ends. Free sees the recorded example as its one thread
+  (D19). Opening, a new thread and deleting the thread being answered wait while a request is in flight.
+- **Panel C goes through the same chat** when the reply flag and the instant prompts are both on and the trader
+  is Pro: a press is `provider.ask({ kind: 'INSTANT', intent })`, which posts `{ client_request_id, kind }` and
+  nothing else. While ANY request is in flight (a badge or a typed question) both badges are disabled and
+  `aria-busy`, the pressed one spins, and a second press does nothing. A refusal is shown below the badge AND is
+  a card in Panel B; a result opens Panel B if it was collapsed and the thread it made is active in Panel A.
+  With the reply flag off the press is still `POST /api/intake/instant`; a Free press still opens the upgrade modal.
+  The canvas arithmetic (`CHROME_PER_CHART`, `mtf-split-layout.ts`) is untouched.
+
 ### 5.15 Decisions
 
 [ADR-047] OHLC delivery · [ADR-048] caps · [ADR-049] prompt order · [ADR-050] metering ·

@@ -19,18 +19,25 @@ import { TradingWorkspace } from '@/components/workspace/trading-workspace';
  * `isInstantPromptsEnabled()` (INTAKE_INSTANT_PROMPTS_ENABLED exactly `true`,
  * set nowhere), read in app/terminal/page.tsx.
  *
+ * `replyEnabled` is the server's `isReplyEnabled()` (REPLY_ENABLED exactly `true`, set nowhere), read in
+ * app/terminal/page.tsx: it switches on the live AI chat for the whole workspace, which is Panel A's
+ * thread list, Panel B's conversation and the Panel C badges sharing one chat (build step 7 part 9).
+ *
  * The panel layout and its collapse behaviour live in
  * components/workspace/trading-workspace.tsx, shared with `/free`.
  */
 export function TerminalWorkspace({
   instantPromptsEnabled = false,
+  replyEnabled = false,
 }: {
   instantPromptsEnabled?: boolean;
+  replyEnabled?: boolean;
 }): React.JSX.Element {
   return (
     <TradingWorkspace
       tier="PRO"
       instantPromptsEnabled={instantPromptsEnabled}
+      replyEnabled={replyEnabled}
     />
   );
 }

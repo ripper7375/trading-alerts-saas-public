@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/resizable';
 import { ChatSidebar } from '@/components/chat-sidebar';
 import ChatPanel from '@/components/chat-panel';
+import { ChatWorkspace } from '@/components/chat/chat-workspace';
 import MarketCommentsPanel from '@/components/market-comments-panel';
 import { Translated, useLocale } from '@/lib/context/locale-context';
 import type { Tier } from '@/lib/tier-config';
@@ -62,6 +63,18 @@ interface TradingWorkspaceProps {
    * passes it down; off when omitted.
    */
   instantPromptsEnabled?: boolean;
+  /**
+   * Whether the chat routes are on. The server decides (`isReplyEnabled`: `REPLY_ENABLED` is exactly
+   * `true`) and the page passes it down; off when omitted. Off, the chat reads nothing: Panel A and
+   * Panel B say it is not switched on, and the Panel C badges behave as they always did.
+   */
+  replyEnabled?: boolean;
+  /**
+   * Replaces the network for the chat only (the development preview `/dev/workspace` and the tests):
+   * the chat's reads and posts, the thread list and the trade setup launcher all go through it. Never
+   * given by a page.
+   */
+  chatFetchImpl?: typeof fetch;
 }
 
 type CollapsedState = Record<CollapsiblePanelIndex, boolean>;
@@ -69,6 +82,10 @@ type CollapsedState = Record<CollapsiblePanelIndex, boolean>;
 /**
  * The 4-panel workbench shared by `/terminal` (PRO) and `/free` (FREE):
  * sidebar | AI Analyst | M5+M15 charts | Market Comments.
+ *
+ * ONE chat provider sits above the panels (build step 7 part 9, `ChatWorkspace` below): Panel A's
+ * thread list, Panel B's conversation and Panel C's two Market Context badges share one thread and one
+ * request in flight, and collapsing Panel B to its rail no longer discards the conversation.
  *
  * Collapsing a panel resizes the panel itself. Before this, the collapse
  * buttons only changed what a panel rendered: the sidebar showed its icon
@@ -85,10 +102,27 @@ type CollapsedState = Record<CollapsiblePanelIndex, boolean>;
  * the library's onCollapse/onExpand callbacks tell each panel which content to
  * render, whichever of the two moved it.
  */
-export function TradingWorkspace({
+export function TradingWorkspace(
+  props: TradingWorkspaceProps
+): React.JSX.Element {
+  return (
+    <ChatWorkspace
+      tier={props.tier === 'PRO' ? 'PRO' : 'FREE'}
+      replyEnabled={props.replyEnabled ?? false}
+      {...(props.chatFetchImpl === undefined
+        ? {}
+        : { fetchImpl: props.chatFetchImpl })}
+    >
+      <WorkspaceBody {...props} />
+    </ChatWorkspace>
+  );
+}
+
+function WorkspaceBody({
   tier,
   onOpenUpgradeModal,
   instantPromptsEnabled = false,
+  replyEnabled = false,
 }: TradingWorkspaceProps): React.JSX.Element {
   const { t } = useLocale();
 
@@ -180,6 +214,30 @@ export function TradingWorkspace({
     },
     [collapsed, togglePanel]
   );
+
+  /**
+   * Open Panel B if it is on its rail; do nothing if it is already open. A Panel C badge calls this when
+   * its answer has arrived (the answer is in Panel B, which may have been collapsed meanwhile). It looks
+   * at the live layout, never at a value captured when the badge was pressed, so it cannot close a panel
+   * that is open: `togglePanel` alone would.
+   */
+  const expandAnalyst = useCallback((): void => {
+    const group = groupRef.current;
+    if (!group) return;
+    const layout = group.getLayout();
+    if (!isPanelCollapsed(layout, ANALYST, constraints)) return;
+    group.setLayout(
+      expandLayout(
+        layout,
+        ANALYST,
+        constraints,
+        lastExpandedSize.current[ANALYST]
+      )
+    );
+  }, [constraints]);
+  const expandAnalystRef = useRef(expandAnalyst);
+  expandAnalystRef.current = expandAnalyst;
+  const onChatResult = useCallback((): void => expandAnalystRef.current(), []);
 
   // Keyboard shortcut Ctrl+B / Cmd+B to toggle the sidebar (matching Image 2)
   useEffect(() => {
@@ -321,6 +379,8 @@ export function TradingWorkspace({
                   onAskAi={handleAskAi}
                   isPro={tier === 'PRO'}
                   instantPromptsEnabled={instantPromptsEnabled}
+                  replyEnabled={replyEnabled}
+                  onChatResult={onChatResult}
                   onOpenUpgradeModal={onOpenUpgradeModal}
                 />
               </div>
