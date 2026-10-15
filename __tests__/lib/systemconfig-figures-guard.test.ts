@@ -152,6 +152,8 @@ describe('SystemConfig figures are never hardcoded', () => {
       'alerts.condition_equals_desc',
       'alerts.equals_tolerance_note',
       'billing.reverse_charge',
+      'worldGold.notes.jp',
+      'worldGold.notes.in',
     ]);
     const hits = Object.entries(en)
       .filter(([k, v]) => !allow.has(k) && figure.test(v) && business.test(v))
