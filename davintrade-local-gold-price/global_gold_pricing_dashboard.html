@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Gold Pricing & Local Units Architecture</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter, Sarabun, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Sarabun', 'Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            gold: {
+              300: '#FDE047',
+              400: '#FACC15',
+              500: '#EAB308',
+              600: '#CA8A04',
+              700: '#A16207',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background: radial-gradient(circle at 50% -20%, #1e293b 0%, #090d16 100%);
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-accent {
+      background: linear-gradient(135deg, rgba(234, 179, 8, 0.08) 0%, rgba(17, 24, 39, 0.7) 100%);
+      border: 1px solid rgba(234, 179, 8, 0.25);
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+  </style>
+</head>
+<body class="text-slate-100 py-8 px-4 md:px-8 lg:px-12 antialiased selection:bg-amber-500 selection:text-slate-900">
+
+  <div class="max-w-7xl mx-auto space-y-8">
+    
+    <!-- Executive Header Section -->
+    <header class="space-y-4 text-center md:text-left flex flex-col md:flex-row justify-between items-center border-b border-slate-800 pb-6">
+      <div class="space-y-2">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+          <span class="inline-block w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+          Financial Engineering & Multi-Currency Engine v2.4
+        </div>
+        <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500">
+          Global Gold Pricing & Local Units Matrix
+        </h1>
+        <p class="text-slate-400 text-sm md:text-base max-w-3xl">
+          ระบบคำนวณและแปลงราคาทองคำสากล (Spot XAU/USD) สู่สกุลเงินและหน่วยประเพณีท้องถิ่น 10 เขตเศรษฐกิจหลัก พร้อมแบบจำลองภาษี พรีเมียม และจุดหลอมละลาย
+        </p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button onclick="window.print()" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 flex items-center gap-2 transition shadow-lg">
+          <i class="fa-solid fa-print"></i> พิมพ์เอกสาร / PDF
+        </button>
+        <a href="#simulator" class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-amber-500/20">
+          <i class="fa-solid fa-calculator"></i> Live Simulator
+        </a>
+      </div>
+    </header>
+
+    <!-- Key Metric Summary Cards -->
+    <section class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div class="glass-card rounded-xl p-4">
+        <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">Troy Ounce</span>
+        <div class="text-lg md:text-xl font-bold font-mono text-amber-300 mt-1">31.1035 g</div>
+        <p class="text-[11px] text-slate-500 mt-0.5">มาตรฐานสากล 99.99%</p>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">ไทย (บาททองคำ)</span>
+        <div class="text-lg md:text-xl font-bold font-mono text-emerald-400 mt-1">15.2440 g</div>
+        <p class="text-[11px] text-slate-500 mt-0.5">ความบริสุทธิ์ 96.5%</p>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">ฮ่องกง (ตำลึง)</span>
+        <div class="text-lg md:text-xl font-bold font-mono text-cyan-400 mt-1">37.4285 g</div>
+        <p class="text-[11px] text-slate-500 mt-0.5">1 Tael ≈ 1.2034 oz</p>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">อินเดีย/UAE (Tola)</span>
+        <div class="text-lg md:text-xl font-bold font-mono text-violet-400 mt-1">11.6638 g</div>
+        <p class="text-[11px] text-slate-500 mt-0.5">1 Tola = 0.375 oz</p>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">สหราชอาณาจักร</span>
+        <div class="text-lg md:text-xl font-bold font-mono text-rose-400 mt-1">7.3224 g</div>
+        <p class="text-[11px] text-slate-500 mt-0.5">ทองแท้ใน Sovereign 22K</p>
+      </div>
+      <div class="glass-card rounded-xl p-4">
+        <span class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">ตุรกี (Çeyrek Altın)</span>
+        <div class="text-lg md:text-xl font-bold font-mono text-amber-200 mt-1">1.6080 g</div>
+        <p class="text-[11px] text-slate-500 mt-0.5">ทองแท้ใน 1/4 เหรียญ 22K</p>
+      </div>
+    </section>
+
+    <!-- Interactive Search and Filter Section -->
+    <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+      <div class="relative w-full sm:w-96">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
+        <input 
+          type="text" 
+          id="tableSearch" 
+          placeholder="ค้นหาประเทศ, สกุลเงิน (AED, HKD, THB...), หน่วย..."
+          class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-sm text-slate-200 focus:outline-none focus:border-amber-400 transition"
+          onkeyup="filterTable()"
+        >
+      </div>
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <button onclick="filterRegion('all')" class="region-filter active px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/40">ทั้งหมด (10 ตลาด)</button>
+        <button onclick="filterRegion('asia')" class="region-filter px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 hover:text-white">เอเชีย &amp; ตะวันออกกลาง</button>
+        <button onclick="filterRegion('west')" class="region-filter px-3 py-1.5 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 hover:text-white">ยุโรป &amp; ตะวันตก</button>
+      </div>
+    </div>
+
+    <!-- Master Reference Table -->
+    <main class="glass-card rounded-2xl border border-slate-700/60 shadow-2xl overflow-hidden">
+      <div class="p-5 border-b border-slate-800 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/40">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-table-cells text-amber-400"></i> Master Formula &amp; Local Units Reference Table
+          </h2>
+          <p class="text-xs text-slate-400">รายละเอียดสูตร ตัวแปลงหน่วย และพารามิเตอร์ภาษีรวม UAE (AED) และ Hong Kong (HKD)</p>
+        </div>
+        <div class="flex items-center gap-2 text-xs text-slate-400">
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span> ปลอดภาษี VAT/GST
+          </span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span> มีภาษี/พรีเมียมเฉพาะตัว
+          </span>
+        </div>
+      </div>
+
+      <div class="overflow-x-auto custom-scrollbar">
+        <table class="w-full text-left text-sm text-slate-300" id="matrixTable">
+          <thead class="text-xs uppercase tracking-wider text-slate-400 bg-slate-900/80 border-b border-slate-800">
+            <tr>
+              <th scope="col" class="py-4 px-6 font-semibold">ประเทศ / สกุลเงิน</th>
+              <th scope="col" class="py-4 px-6 font-semibold">หน่วยซื้อขายท้องถิ่น</th>
+              <th scope="col" class="py-4 px-6 font-semibold">น้ำหนัก &amp; ความบริสุทธิ์</th>
+              <th scope="col" class="py-4 px-6 font-semibold">ทิศทาง FX</th>
+              <th scope="col" class="py-4 px-6 font-semibold">ภาษี / พรีเมียม</th>
+              <th scope="col" class="py-4 px-6 font-semibold">สูตรการคำนวณ (Production Formula)</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/80">
+
+            <!-- UAE (AED) - NEW -->
+            <tr class="hover:bg-slate-800/40 transition bg-amber-500/[0.04]" data-region="asia">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇦🇪</span>
+                <div>
+                  <div class="font-bold flex items-center gap-2">
+                    UAE / ดูไบ (AED)
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">NEW HUB</span>
+                  </div>
+                  <span class="text-xs text-slate-400 font-mono">Pegged ~3.6725 AED/USD</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300">AED / oz</div>
+                <div class="font-mono text-slate-300 text-xs mt-0.5">AED / g</div>
+                <div class="font-mono text-cyan-300 text-xs mt-0.5 font-semibold">AED / Tola (โทลา)</div>
+              </td>
+              <td class="py-4 px-6">
+                <div>31.1035 g <span class="text-xs text-emerald-400">(99.99%)</span></div>
+                <div class="text-xs text-slate-400">1.0000 g (99.99%)</div>
+                <div class="text-xs text-cyan-400 font-medium">11.6638 g (Tola Bar 99.99%)</div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">× USDAED</span>
+              </td>
+              <td class="py-4 px-6">
+                <div class="text-xs text-emerald-400 font-semibold">0% VAT (ทองแท่ง ≥99%)</div>
+                <span class="text-xs text-slate-400">Making Charge ต่ำพิเศษ (DMCC)</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-amber-500/30 space-y-1">
+                  <div>Price/oz = XAUUSD * USDAED</div>
+                  <div class="text-slate-300">Price/g = Price/oz / 31.1034768</div>
+                  <div class="text-cyan-300 font-bold">Price/Tola = Price/g * 11.6638</div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Hong Kong (HKD) - NEW -->
+            <tr class="hover:bg-slate-800/40 transition bg-cyan-500/[0.04]" data-region="asia">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇭🇰</span>
+                <div>
+                  <div class="font-bold flex items-center gap-2">
+                    ฮ่องกง (HKD)
+                    <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">NEW HUB</span>
+                  </div>
+                  <span class="text-xs text-slate-400 font-mono">Peg Band ~7.75-7.85</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300">HKD / oz</div>
+                <div class="font-mono text-slate-300 text-xs mt-0.5">HKD / g</div>
+                <div class="font-mono text-amber-400 text-xs mt-0.5 font-bold">HKD / Tael (ตำลึงฮ่องกง)</div>
+              </td>
+              <td class="py-4 px-6">
+                <div>31.1035 g <span class="text-xs text-emerald-400">(99.99%)</span></div>
+                <div class="text-xs text-slate-400">1.0000 g (99.99%)</div>
+                <div class="text-xs text-amber-300 font-semibold">37.4285 g (1 ตำลึง 兩)</div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">× USDHKD</span>
+              </td>
+              <td class="py-4 px-6">
+                <div class="text-xs text-emerald-400 font-semibold">เมืองท่าปลอดภาษี (Free Port)</div>
+                <span class="text-xs text-slate-400">0% VAT/GST • 0% Duty • 0% CGT</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-cyan-500/30 space-y-1">
+                  <div>Price/oz = XAUUSD * USDHKD</div>
+                  <div class="text-slate-300">Price/g = Price/oz / 31.1034768</div>
+                  <div class="text-amber-300 font-bold">Price/Tael = Price/g * 37.428499</div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Thailand (THB) -->
+            <tr class="hover:bg-slate-800/40 transition bg-amber-500/[0.02]" data-region="asia">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇹🇭</span>
+                <div>
+                  <div class="font-bold text-amber-300">ไทย (THB)</div>
+                  <span class="text-xs text-slate-400">สมาคมค้าทองคำ</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300 font-bold">THB / บาททองคำ</div>
+                <div class="font-mono text-slate-400 text-xs mt-0.5">THB / กรัม (96.5%)</div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-semibold text-amber-200">15.2440 g</div>
+                <span class="text-xs text-amber-400 font-medium">(96.50% มาตรฐานไทย)</span>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">× USDTHB</span>
+              </td>
+              <td class="py-4 px-6">
+                <div class="text-xs text-emerald-400 font-medium">ทองแท่งยกเว้น VAT</div>
+                <span class="text-xs text-slate-400">Physical Premium ±50-150฿</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-amber-500/30 space-y-1">
+                  <div class="text-amber-300 font-bold">Price/Baht = XAUUSD * USDTHB * 0.47294</div>
+                  <div class="text-slate-400 text-[11px]">(มาจาก: 15.244 * 0.965 / 31.1034768)</div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Europe (EUR) -->
+            <tr class="hover:bg-slate-800/40 transition" data-region="west">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇪🇺</span>
+                <div>
+                  <div class="font-bold">ยุโรป (EUR)</div>
+                  <span class="text-xs text-slate-400">Eurozone Hub</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300">EUR / oz</div>
+                <div class="font-mono text-slate-400 text-xs mt-0.5">EUR / g</div>
+              </td>
+              <td class="py-4 px-6">
+                <div>31.1035 g <span class="text-xs text-emerald-400">(99.99%)</span></div>
+                <div class="text-xs text-slate-400">1.0000 g (99.99%)</div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">÷ EURUSD</span>
+              </td>
+              <td class="py-4 px-6">
+                <span class="text-xs text-emerald-400 font-medium">ปลอดภาษี (VAT-Free EU Directive)</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                  <div>Price/oz = XAUUSD / EURUSD</div>
+                  <div class="text-slate-400">Price/g = Price/oz / 31.1034768</div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Switzerland (CHF) -->
+            <tr class="hover:bg-slate-800/40 transition" data-region="west">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇨🇭</span>
+                <div>
+                  <div class="font-bold">สวิตเซอร์แลนด์ (CHF)</div>
+                  <span class="text-xs text-slate-400">Global Refinery Hub</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300">CHF / oz</div>
+                <div class="font-mono text-slate-400 text-xs mt-0.5">CHF / kg</div>
+              </td>
+              <td class="py-4 px-6">
+                <div>31.1035 g <span class="text-xs text-emerald-400">(99.99%)</span></div>
+                <div class="text-xs text-slate-400">1,000.0 g (99.99%)</div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">× USDCHF</span>
+              </td>
+              <td class="py-4 px-6">
+                <span class="text-xs text-emerald-400 font-medium">ปลอดภาษี (VAT-Free)</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                  <div>Price/oz = XAUUSD * USDCHF</div>
+                  <div class="text-slate-400">Price/kg = Price/oz * 32.1507466</div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- United Kingdom (GBP) -->
+            <tr class="hover:bg-slate-800/40 transition" data-region="west">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇬🇧</span>
+                <div>
+                  <div class="font-bold">สหราชอาณาจักร (GBP)</div>
+                  <span class="text-xs text-slate-400">London Bullion Market</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300">GBP / oz</div>
+                <div class="font-mono text-rose-300 text-xs mt-0.5">เหรียญ Sovereign (22K)</div>
+              </td>
+              <td class="py-4 px-6">
+                <div>31.1035 g <span class="text-xs text-emerald-400">(99.99%)</span></div>
+                <div class="text-xs text-slate-400">7.9881 g <span class="text-amber-400">(ทองแท้ 7.3224g)</span></div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">÷ GBPUSD</span>
+              </td>
+              <td class="py-4 px-6">
+                <span class="text-xs text-emerald-400 font-medium">ปลอด VAT &amp; ปลอด CGT (Royal Mint)</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                  <div>Price/oz = XAUUSD / GBPUSD</div>
+                  <div class="text-rose-300">Sovereign = (Price/oz / 31.1034768) * 7.3224</div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Australia (AUD) -->
+            <tr class="hover:bg-slate-800/40 transition" data-region="west">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇦🇺</span>
+                <div>
+                  <div class="font-bold">ออสเตรเลีย (AUD)</div>
+                  <span class="text-xs text-slate-400">The Perth Mint Ref.</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300">AUD / oz</div>
+                <div class="font-mono text-slate-400 text-xs mt-0.5">AUD / kg</div>
+              </td>
+              <td class="py-4 px-6">
+                <div>31.1035 g <span class="text-xs text-emerald-400">(99.99%)</span></div>
+                <div class="text-xs text-slate-400">1,000.0 g (99.99%)</div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">÷ AUDUSD</span>
+              </td>
+              <td class="py-4 px-6">
+                <span class="text-xs text-emerald-400 font-medium">ปลอดภาษี (GST-Free Bullion)</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                  <div>Price/oz = XAUUSD / AUDUSD</div>
+                  <div class="text-slate-400">Price/kg = Price/oz * 32.1507466</div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Japan (JPY) -->
+            <tr class="hover:bg-slate-800/40 transition" data-region="asia">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇯🇵</span>
+                <div>
+                  <div class="font-bold">ญี่ปุ่น (JPY)</div>
+                  <span class="text-xs text-slate-400">Tanaka Kikinzoku Ref.</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300">JPY / g (ก่อนภาษี)</div>
+                <div class="font-mono text-amber-400 font-semibold text-xs mt-0.5">JPY / g (ราคาหน้าร้าน)</div>
+              </td>
+              <td class="py-4 px-6">
+                <div>1.0000 g <span class="text-xs text-emerald-400">(99.99%)</span></div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">× USDJPY</span>
+              </td>
+              <td class="py-4 px-6">
+                <span class="text-xs text-amber-400 font-semibold">ภาษีบริโภค (JCT) +10%</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                  <div>Base/g = (XAUUSD * USDJPY) / 31.1034768</div>
+                  <div class="text-amber-300 font-semibold">Retail/g = Base/g * 1.10</div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- India (INR) -->
+            <tr class="hover:bg-slate-800/40 transition" data-region="asia">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇮🇳</span>
+                <div>
+                  <div class="font-bold">อินเดีย (INR)</div>
+                  <span class="text-xs text-slate-400">MCX Exchange Ref.</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300">INR / g</div>
+                <div class="font-mono text-cyan-300 text-xs mt-0.5">INR / Tola (โทลา)</div>
+              </td>
+              <td class="py-4 px-6">
+                <div>1.0000 g <span class="text-xs text-emerald-400">(99.90%)</span></div>
+                <div class="text-xs text-slate-400">11.6638 g (1 Tola)</div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">× USDINR</span>
+              </td>
+              <td class="py-4 px-6">
+                <div class="text-xs text-amber-400 font-medium">Duty (~6%) + AIDC</div>
+                <span class="text-xs text-amber-300">+ GST 3% ภายในประเทศ</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                  <div>Base/g = (XAUUSD * USDINR) / 31.1034768</div>
+                  <div class="text-cyan-300 font-semibold">Retail/g = Base/g * 1.06 * 1.03</div>
+                  <div class="text-slate-400">Price/Tola = Retail/g * 11.6638</div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Turkey (TRY) -->
+            <tr class="hover:bg-slate-800/40 transition" data-region="asia">
+              <td class="py-4 px-6 font-medium text-white flex items-center gap-3">
+                <span class="text-2xl">🇹🇷</span>
+                <div>
+                  <div class="font-bold">ตุรกี (TRY)</div>
+                  <span class="text-xs text-slate-400">Grand Bazaar Ref.</span>
+                </div>
+              </td>
+              <td class="py-4 px-6">
+                <div class="font-mono text-amber-300">TRY / g</div>
+                <div class="font-mono text-rose-300 text-xs mt-0.5">เหรียญ Çeyrek (1/4)</div>
+              </td>
+              <td class="py-4 px-6">
+                <div>1.0000 g <span class="text-xs text-emerald-400">(99.99%)</span></div>
+                <div class="text-xs text-slate-400">1.7540 g <span class="text-amber-400">(22K ทองแท้ 1.6080g)</span></div>
+              </td>
+              <td class="py-4 px-6">
+                <span class="px-2 py-0.5 rounded text-xs font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20">× USDTRY</span>
+              </td>
+              <td class="py-4 px-6">
+                <div class="text-xs text-amber-400">Grand Bazaar Premium (1-3%)</div>
+                <span class="text-xs text-slate-400">+ Mint Fee เหรียญสาธารณรัฐ</span>
+              </td>
+              <td class="py-4 px-6 font-mono text-xs">
+                <div class="bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                  <div>Base/g = (XAUUSD * USDTRY / 31.1034768) * 1.015</div>
+                  <div class="text-rose-300 font-semibold">Price/Çeyrek = (Base/g * 1.608) + MintFee</div>
+                </div>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <!-- Interactive Live Simulator Section -->
+    <section id="simulator" class="glass-card-accent rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-amber-500/20 pb-4">
+        <div>
+          <span class="text-xs uppercase font-bold text-amber-400 tracking-wider">Executive Demonstration Tool</span>
+          <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-calculator text-amber-400"></i> Multi-Currency Live Gold Price Simulator
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">ทดลองเปลี่ยน Spot Gold หรืออัตราแลกเปลี่ยนเพื่อคำนวณราคาท้องถิ่นทั้ง 10 สกุลเงินแบบเรียลไทม์</p>
+        </div>
+        <button onclick="resetDefaults()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700">
+          <i class="fa-solid fa-arrow-rotate-left mr-1"></i> รีเซ็ตค่ามาตรฐาน
+        </button>
+      </div>
+
+      <!-- Simulator Inputs -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="space-y-1 col-span-2 sm:col-span-1">
+          <label class="text-[11px] font-semibold text-amber-300">Spot XAU/USD ($)</label>
+          <input type="number" id="sim_xauusd" value="2650.00" step="1" oninput="calculateLive()" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-amber-500/50 text-amber-300 font-mono text-sm font-bold focus:outline-none">
+        </div>
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-slate-400">USD/THB (฿)</label>
+          <input type="number" id="sim_usdthb" value="32.85" step="0.05" oninput="calculateLive()" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-sm focus:outline-none">
+        </div>
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-amber-400">USD/AED (🇦🇪)</label>
+          <input type="number" id="sim_usdaed" value="3.6725" step="0.0001" oninput="calculateLive()" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-amber-500/40 text-amber-200 font-mono text-sm focus:outline-none">
+        </div>
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-cyan-400">USD/HKD (🇭🇰)</label>
+          <input type="number" id="sim_usdhkd" value="7.7750" step="0.001" oninput="calculateLive()" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-cyan-500/40 text-cyan-200 font-mono text-sm focus:outline-none">
+        </div>
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-slate-400">EUR/USD (€)</label>
+          <input type="number" id="sim_eurusd" value="1.0850" step="0.001" oninput="calculateLive()" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-sm focus:outline-none">
+        </div>
+        <div class="space-y-1">
+          <label class="text-[11px] font-semibold text-slate-400">USD/JPY (¥)</label>
+          <input type="number" id="sim_usdjpy" value="148.50" step="0.1" oninput="calculateLive()" class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-sm focus:outline-none">
+        </div>
+      </div>
+
+      <!-- Secondary Inputs Drawer (Collapsible) -->
+      <details class="text-xs text-slate-400 group">
+        <summary class="cursor-pointer font-semibold text-amber-400 hover:text-amber-300 inline-flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders"></i> ปรับแต่งอัตราแลกเปลี่ยนอื่นๆ (GBP, AUD, CHF, INR, TRY)
+        </summary>
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mt-3 pt-3 border-t border-slate-800">
+          <div>
+            <label class="text-[11px] font-medium text-slate-400">GBP/USD (£)</label>
+            <input type="number" id="sim_gbpusd" value="1.3050" step="0.001" oninput="calculateLive()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-xs">
+          </div>
+          <div>
+            <label class="text-[11px] font-medium text-slate-400">AUD/USD (A$)</label>
+            <input type="number" id="sim_audusd" value="0.6720" step="0.001" oninput="calculateLive()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-xs">
+          </div>
+          <div>
+            <label class="text-[11px] font-medium text-slate-400">USD/CHF (Fr)</label>
+            <input type="number" id="sim_usdchf" value="0.8650" step="0.001" oninput="calculateLive()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-xs">
+          </div>
+          <div>
+            <label class="text-[11px] font-medium text-slate-400">USD/INR (₹)</label>
+            <input type="number" id="sim_usdinr" value="84.05" step="0.05" oninput="calculateLive()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-xs">
+          </div>
+          <div>
+            <label class="text-[11px] font-medium text-slate-400">USD/TRY (₺)</label>
+            <input type="number" id="sim_usdtry" value="34.25" step="0.05" oninput="calculateLive()" class="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono text-xs">
+          </div>
+        </div>
+      </details>
+
+      <!-- Live Calculation Display Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 pt-2">
+        
+        <!-- Thai Baht -->
+        <div class="glass-card rounded-xl p-3.5 border-amber-500/40 border">
+          <div class="flex items-center justify-between text-xs text-amber-400">
+            <span class="font-bold">🇹🇭 บาททองคำ (96.5%)</span>
+            <span>THB</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-amber-300 mt-2" id="out_thb_baht">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_thb_gram">กรัมละ: -</div>
+        </div>
+
+        <!-- UAE AED -->
+        <div class="glass-card rounded-xl p-3.5 border-amber-500/30 border">
+          <div class="flex items-center justify-between text-xs text-amber-300">
+            <span class="font-bold">🇦🇪 ดูไบ / Tola Bar</span>
+            <span>AED</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-amber-200 mt-2" id="out_aed_tola">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_aed_gram">กรัมละ: -</div>
+        </div>
+
+        <!-- Hong Kong HKD -->
+        <div class="glass-card rounded-xl p-3.5 border-cyan-500/30 border">
+          <div class="flex items-center justify-between text-xs text-cyan-300">
+            <span class="font-bold">🇭🇰 ตำลึงฮ่องกง (Tael)</span>
+            <span>HKD</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-cyan-200 mt-2" id="out_hkd_tael">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_hkd_gram">กรัมละ: -</div>
+        </div>
+
+        <!-- Europe EUR -->
+        <div class="glass-card rounded-xl p-3.5">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <span class="font-bold">🇪🇺 ยุโรป (EUR/oz)</span>
+            <span>EUR</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-white mt-2" id="out_eur_oz">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_eur_gram">กรัมละ: -</div>
+        </div>
+
+        <!-- Japan JPY -->
+        <div class="glass-card rounded-xl p-3.5">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <span class="font-bold">🇯🇵 ญี่ปุ่น หน้าร้าน (+10%)</span>
+            <span>JPY</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-white mt-2" id="out_jpy_gram">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_jpy_pretax">ก่อนภาษี: -</div>
+        </div>
+
+        <!-- UK Sovereign -->
+        <div class="glass-card rounded-xl p-3.5">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <span class="font-bold">🇬🇧 Full Sovereign (เหรียญ)</span>
+            <span>GBP</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-white mt-2" id="out_gbp_sovereign">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_gbp_oz">ออนซ์ละ: -</div>
+        </div>
+
+        <!-- India Tola -->
+        <div class="glass-card rounded-xl p-3.5">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <span class="font-bold">🇮🇳 อินเดีย (+Duty+GST)</span>
+            <span>INR</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-white mt-2" id="out_inr_tola">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_inr_gram">กรัมละ: -</div>
+        </div>
+
+        <!-- Swiss Kg -->
+        <div class="glass-card rounded-xl p-3.5">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <span class="font-bold">🇨🇭 สวิส ทองกิโล (Kg)</span>
+            <span>CHF</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-white mt-2" id="out_chf_kg">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_chf_oz">ออนซ์ละ: -</div>
+        </div>
+
+        <!-- Aussie Oz -->
+        <div class="glass-card rounded-xl p-3.5">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <span class="font-bold">🇦🇺 ออสเตรเลีย (AUD/oz)</span>
+            <span>AUD</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-white mt-2" id="out_aud_oz">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_aud_gram">กรัมละ: -</div>
+        </div>
+
+        <!-- Turkey Çeyrek -->
+        <div class="glass-card rounded-xl p-3.5">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <span class="font-bold">🇹🇷 เหรียญ Çeyrek (1/4)</span>
+            <span>TRY</span>
+          </div>
+          <div class="text-xl font-extrabold font-mono text-white mt-2" id="out_try_ceyrek">-</div>
+          <div class="text-[11px] text-slate-400 mt-1" id="out_try_gram">กรัมละ: -</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- System Architecture & Production Pipeline Section -->
+    <section class="glass-card rounded-2xl p-6 md:p-8 space-y-6">
+      <div class="border-b border-slate-800 pb-4">
+        <span class="text-xs uppercase font-bold text-cyan-400 tracking-wider">Engineering Blueprint</span>
+        <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+          <i class="fa-solid fa-network-wired text-cyan-400"></i> Data Ingestion &amp; Serving Pipeline
+        </h3>
+        <p class="text-xs text-slate-400 mt-1">โครงสร้างการทำงานตั้งแต่ Ingestion ต้นทางไปจนถึง Client Web/App ผ่าน Redis Microservices</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
+          <div class="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-sm">1</div>
+          <h4 class="font-bold text-white text-sm">Data Ingestion</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            • <strong>MT5 Broker:</strong> XAUUSD, EURUSD, GBPUSD, AUDUSD, USDCHF (Tick/Intraday)<br>
+            • <strong>Yahoo Finance:</strong> USDTHB=X, USDAED=X, USDHKD=X, USDJPY=X, USDINR=X, USDTRY=X (Every 5-15 mins)
+          </p>
+        </div>
+
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
+          <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">2</div>
+          <h4 class="font-bold text-white text-sm">Normalization</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            • แปลง Spot เป็น <code class="text-amber-300">USD/Gram Pure</code> โดยหาร <code class="text-amber-300">31.1035</code><br>
+            • บริหารทิศทาง FX: หารด้วย Base Quote (EUR, GBP, AUD) หรือคูณด้วย USD Pair (AED, HKD, THB, etc.)
+          </p>
+        </div>
+
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
+          <div class="w-8 h-8 rounded-lg bg-violet-500/20 text-violet-400 flex items-center justify-center font-bold text-sm">3</div>
+          <h4 class="font-bold text-white text-sm">Dynamic Tax &amp; Units</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            • ดึงพารามิเตอร์ภาษี/พรีเมียมจาก Config DB (India Duty 6%, JCT 10%, Grand Bazaar 1.5%)<br>
+            • คำนวณหน่วยเฉพาะ: <strong>บาททองคำ, Tola, Tael, Sovereign, Çeyrek</strong>
+          </p>
+        </div>
+
+        <div class="bg-slate-900/80 rounded-xl p-4 border border-slate-800 space-y-3">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">4</div>
+          <h4 class="font-bold text-white text-sm">Cache &amp; Delivery</h4>
+          <p class="text-xs text-slate-400 leading-relaxed">
+            • บันทึก JSON ลง <strong>Redis Cache</strong> (TTL: 60-300s)<br>
+            • ส่งต่อผ่าน REST API &amp; WebSocket ไปยัง Mobile App, Web Trading และ Dashboard
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Presentation Footnote -->
+    <footer class="text-center text-xs text-slate-500 py-4 border-t border-slate-800/80 space-y-1">
+      <p>Global Gold Pricing &amp; Multi-Currency Engine • Designed for Executive &amp; Engineering Review</p>
+      <p class="text-[11px]">Conversion reference based on International Troy Ounce Standards, LBMA Specifications, HK CGSE &amp; Dubai DMCC Guidelines</p>
+    </footer>
+
+  </div>
+
+  <!-- Interactive JavaScript Logic -->
+  <script>
+    const TROY_OUNCE_GRAMS = 31.1034768;
+    const THAI_BAHT_CONSTANT = 0.47294; // 15.244 * 0.965 / 31.1034768
+    const TOLA_GRAMS = 11.6638;
+    const HK_TAEL_GRAMS = 37.428499;
+    const SOVEREIGN_PURE_GRAMS = 7.3224;
+    const CEYREK_PURE_GRAMS = 1.6080;
+
+    function formatNum(val, decimals = 2) {
+      if (isNaN(val)) return '-';
+      return val.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+
+    function calculateLive() {
+      const xauusd = parseFloat(document.getElementById('sim_xauusd').value) || 0;
+      const usdthb = parseFloat(document.getElementById('sim_usdthb').value) || 0;
+      const usdaed = parseFloat(document.getElementById('sim_usdaed').value) || 0;
+      const usdhkd = parseFloat(document.getElementById('sim_usdhkd').value) || 0;
+      const eurusd = parseFloat(document.getElementById('sim_eurusd').value) || 0;
+      const usdjpy = parseFloat(document.getElementById('sim_usdjpy').value) || 0;
+      const gbpusd = parseFloat(document.getElementById('sim_gbpusd').value) || 0;
+      const audusd = parseFloat(document.getElementById('sim_audusd').value) || 0;
+      const usdchf = parseFloat(document.getElementById('sim_usdchf').value) || 0;
+      const usdinr = parseFloat(document.getElementById('sim_usdinr').value) || 0;
+      const usdtry = parseFloat(document.getElementById('sim_usdtry').value) || 0;
+
+      const pureUsdPerGram = xauusd / TROY_OUNCE_GRAMS;
+
+      // 1. Thai Baht (96.5%)
+      const thaiBahtPrice = xauusd * usdthb * THAI_BAHT_CONSTANT;
+      const thaiGramPrice = thaiBahtPrice / 15.244;
+      document.getElementById('out_thb_baht').innerText = '฿' + formatNum(thaiBahtPrice, 0);
+      document.getElementById('out_thb_gram').innerText = 'กรัมละ: ฿' + formatNum(thaiGramPrice, 1);
+
+      // 2. UAE (AED)
+      const aedPerOz = xauusd * usdaed;
+      const aedPerGram = aedPerOz / TROY_OUNCE_GRAMS;
+      const aedPerTola = aedPerGram * TOLA_GRAMS;
+      document.getElementById('out_aed_tola').innerText = 'AED ' + formatNum(aedPerTola, 0);
+      document.getElementById('out_aed_gram').innerText = 'กรัมละ: AED ' + formatNum(aedPerGram, 2);
+
+      // 3. Hong Kong (HKD)
+      const hkdPerOz = xauusd * usdhkd;
+      const hkdPerGram = hkdPerOz / TROY_OUNCE_GRAMS;
+      const hkdPerTael = hkdPerGram * HK_TAEL_GRAMS;
+      document.getElementById('out_hkd_tael').innerText = 'HK$ ' + formatNum(hkdPerTael, 0);
+      document.getElementById('out_hkd_gram').innerText = 'กรัมละ: HK$ ' + formatNum(hkdPerGram, 2);
+
+      // 4. Europe (EUR)
+      const eurPerOz = eurusd > 0 ? (xauusd / eurusd) : 0;
+      const eurPerGram = eurPerOz / TROY_OUNCE_GRAMS;
+      document.getElementById('out_eur_oz').innerText = '€' + formatNum(eurPerOz, 1);
+      document.getElementById('out_eur_gram').innerText = 'กรัมละ: €' + formatNum(eurPerGram, 2);
+
+      // 5. Japan (JPY)
+      const jpyBasePerGram = (xauusd * usdjpy) / TROY_OUNCE_GRAMS;
+      const jpyRetailPerGram = jpyBasePerGram * 1.10; // +10% JCT
+      document.getElementById('out_jpy_gram').innerText = '¥' + formatNum(jpyRetailPerGram, 0);
+      document.getElementById('out_jpy_pretax').innerText = 'ก่อนภาษี: ¥' + formatNum(jpyBasePerGram, 0);
+
+      // 6. UK Sovereign (GBP)
+      const gbpPerOz = gbpusd > 0 ? (xauusd / gbpusd) : 0;
+      const gbpPerGram = gbpPerOz / TROY_OUNCE_GRAMS;
+      const gbpSovereign = gbpPerGram * SOVEREIGN_PURE_GRAMS;
+      document.getElementById('out_gbp_sovereign').innerText = '£' + formatNum(gbpSovereign, 1);
+      document.getElementById('out_gbp_oz').innerText = 'ออนซ์ละ: £' + formatNum(gbpPerOz, 1);
+
+      // 7. India (INR)
+      const inrBaseGram = (xauusd * usdinr) / TROY_OUNCE_GRAMS;
+      const inrRetailGram = inrBaseGram * 1.06 * 1.03; // Duty 6% + GST 3%
+      const inrTola = inrRetailGram * TOLA_GRAMS;
+      document.getElementById('out_inr_tola').innerText = '₹' + formatNum(inrTola, 0);
+      document.getElementById('out_inr_gram').innerText = 'กรัมละ: ₹' + formatNum(inrRetailGram, 0);
+
+      // 8. Swiss (CHF)
+      const chfPerOz = xauusd * usdchf;
+      const chfKg = chfPerOz * 32.1507466;
+      document.getElementById('out_chf_kg').innerText = 'CHF ' + formatNum(chfKg, 0);
+      document.getElementById('out_chf_oz').innerText = 'ออนซ์ละ: CHF ' + formatNum(chfPerOz, 1);
+
+      // 9. Australia (AUD)
+      const audPerOz = audusd > 0 ? (xauusd / audusd) : 0;
+      const audPerGram = audPerOz / TROY_OUNCE_GRAMS;
+      document.getElementById('out_aud_oz').innerText = 'A$' + formatNum(audPerOz, 1);
+      document.getElementById('out_aud_gram').innerText = 'กรัมละ: A$' + formatNum(audPerGram, 2);
+
+      // 10. Turkey (TRY)
+      const tryBaseGram = ((xauusd * usdtry) / TROY_OUNCE_GRAMS) * 1.015; // 1.5% premium
+      const tryCeyrek = (tryBaseGram * CEYREK_PURE_GRAMS) + 120; // 120 TRY estimated mint fee
+      document.getElementById('out_try_ceyrek').innerText = '₺' + formatNum(tryCeyrek, 0);
+      document.getElementById('out_try_gram').innerText = 'กรัมละ: ₺' + formatNum(tryBaseGram, 1);
+    }
+
+    function resetDefaults() {
+      document.getElementById('sim_xauusd').value = "2650.00";
+      document.getElementById('sim_usdthb').value = "32.85";
+      document.getElementById('sim_usdaed').value = "3.6725";
+      document.getElementById('sim_usdhkd').value = "7.7750";
+      document.getElementById('sim_eurusd').value = "1.0850";
+      document.getElementById('sim_usdjpy').value = "148.50";
+      document.getElementById('sim_gbpusd').value = "1.3050";
+      document.getElementById('sim_audusd').value = "0.6720";
+      document.getElementById('sim_usdchf').value = "0.8650";
+      document.getElementById('sim_usdinr').value = "84.05";
+      document.getElementById('sim_usdtry').value = "34.25";
+      calculateLive();
+    }
+
+    function filterTable() {
+      const q = document.getElementById('tableSearch').value.toLowerCase();
+      const rows = document.querySelectorAll('#matrixTable tbody tr');
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
+    }
+
+    function filterRegion(reg) {
+      document.querySelectorAll('.region-filter').forEach(btn => {
+        btn.classList.remove('active', 'bg-amber-500/20', 'text-amber-300', 'border-amber-500/40');
+        btn.classList.add('bg-slate-800', 'text-slate-400', 'border-slate-700');
+      });
+      event.target.classList.add('active', 'bg-amber-500/20', 'text-amber-300', 'border-amber-500/40');
+      event.target.classList.remove('bg-slate-800', 'text-slate-400', 'border-slate-700');
+
+      const rows = document.querySelectorAll('#matrixTable tbody tr');
+      rows.forEach(row => {
+        if (reg === 'all') {
+          row.style.display = '';
+        } else {
+          row.style.display = row.getAttribute('data-region') === reg ? '' : 'none';
+        }
+      });
+    }
+
+    // Initialize calculations on page load
+    window.onload = function() {
+      calculateLive();
+    };
+  </script>
+</body>
+</html>
