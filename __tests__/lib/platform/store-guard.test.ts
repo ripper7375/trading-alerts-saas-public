@@ -52,6 +52,8 @@ const ALLOWED_CALLS: Record<string, string[]> = {
   'traces/hash.ts': [],
   'traces/retention.ts': [],
   'chat/title.ts': [],
+  // build step 7 part 7a: the gate's thread check asks the thread store and uses no delegate itself
+  'chat/thread-port.ts': [],
   'delivered.ts': [],
   // build step 7 part 6: the entitlement reader and the quota ledger use no Prisma delegate at all
   'entitlements.ts': [],
@@ -81,6 +83,7 @@ const ALLOWED_DECLARATIONS: Record<string, string[]> = {
   'traces/hash.ts': [],
   'traces/retention.ts': [],
   'chat/title.ts': [],
+  'chat/thread-port.ts': [],
   'delivered.ts': [],
   'entitlements.ts': [],
   'metering/ledger-port.ts': [],

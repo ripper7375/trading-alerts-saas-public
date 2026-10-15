@@ -328,3 +328,57 @@ describe('listThreads: what it asks the database', () => {
     expect(short.next).not.toBeNull();
   });
 });
+
+describe('createThread with an id of the caller’s own (build step 7 part 7a)', () => {
+  it('makes the thread under that id, so the first reply can name its thread before it is stored', async () => {
+    const fake = new FakeChatClient();
+    const result = await createThread(input({ id: 'th_0123456789abcdef' }), {
+      client: fake.client(),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.thread.id).toBe('th_0123456789abcdef');
+    expect(fake.threads.has('th_0123456789abcdef')).toBe(true);
+    expect(
+      (
+        await getThread(USER_ID, 'th_0123456789abcdef', {
+          client: fake.client(),
+        })
+      )?.id
+    ).toBe('th_0123456789abcdef');
+  });
+
+  it('lets the database make the id when none is given', async () => {
+    const fake = new FakeChatClient();
+    const created: unknown[] = [];
+    const real = fake.chatThread.create;
+    fake.chatThread.create = async (args) => {
+      created.push(args.data);
+      return real(args);
+    };
+    await createThread(input(), { client: fake.client() });
+    expect(created[0]).not.toHaveProperty('id');
+  });
+
+  it.each(['', 'has space', 'a/b', 'x'.repeat(65), 'é', '../x'])(
+    'refuses the id %j and writes nothing',
+    async (id) => {
+      const fake = new FakeChatClient();
+      await expect(
+        createThread(input({ id }), { client: fake.client() })
+      ).resolves.toEqual({ ok: false, code: 'BAD_ID' });
+      expect(fake.threads.size).toBe(0);
+      expect(fake.log).toEqual([]);
+    }
+  );
+
+  it('accepts the shortest and the longest id', async () => {
+    const fake = new FakeChatClient();
+    for (const id of ['a', 'x'.repeat(64)]) {
+      const result = await createThread(input({ id }), {
+        client: fake.client(),
+      });
+      expect(result.ok).toBe(true);
+    }
+  });
+});

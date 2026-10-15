@@ -14,8 +14,11 @@
  *  - the TIER is the entitlement table (`config/entitlements.ts`, architecture 7.3, ADR-074),
  *    read through `lib/platform/entitlements.ts`: the live analyst is the `MONTHLY_UNITS` value of
  *    `ai_chat_and_report1`, which only Pro has (the Free tier's recorded demo is not the analyst);
- *  - the THREAD (decision D6 (a)): the request is for XAUUSD and may carry a thread id. No chat
- *    store exists, so the adapter checks that an id is well formed and nothing more; no table;
+ *  - the THREAD (build step 7 part 7a): the request is for XAUUSD and may carry a thread id, which
+ *    must be a thread of THIS trader for this symbol, read from the chat store. Another trader's
+ *    thread, a thread that does not exist and a malformed id are the same `THREAD_INVALID` (the
+ *    store puts the user id in the `where`, so existence is never leaked). It replaces the
+ *    format-only check of step 6 (decision D6 (a)), which had no store to ask;
  *  - the PROFILE is `readProfileProjection`: six of the eight metrics, never the equity or the
  *    commission;
  *  - the QUOTA (build step 7 part 6; decisions D2, D3, D4) is the floor check of the quota ledger
@@ -35,6 +38,7 @@
 
 import { getSession } from '@/lib/auth/session';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
+import { createThreadPort } from '@/lib/platform/chat/thread-port';
 import { canUseAiChat, quotaModeOf } from '@/lib/platform/entitlements';
 import { createLedgerPort } from '@/lib/platform/metering/ledger-port';
 import {
@@ -59,7 +63,6 @@ import {
   createKnowledgeClient,
   knowledgeConfigFromEnv,
 } from '../knowledge-client';
-import { THREAD_ID } from '../packet';
 import type { IntakePorts } from '../pipeline';
 import { readUpcomingEvents } from '../read/events';
 import { readProfileProjection } from '../read/profile';
@@ -95,14 +98,8 @@ export const entitlementPort: EntitlementPort = {
   allows: (tier) => canUseAiChat(tier),
 };
 
-/** No chat store exists yet (decision D6 (a)): an id is accepted when it is well formed. */
-export const threadPort: ThreadPort = {
-  async check({ threadId }) {
-    return threadId === null || THREAD_ID.test(threadId)
-      ? { ok: true, threadId }
-      : { ok: false };
-  },
-};
+/** The thread must be the trader's own, for this symbol (the chat store; see the header). */
+export const threadPort: ThreadPort = createThreadPort();
 
 export const profilePort: ProfilePort = {
   read: (userId) => readProfileProjection(userId),

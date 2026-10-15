@@ -35,6 +35,11 @@ jest.mock('@/lib/db/market-prisma', () =>
     .requireActual<typeof import('./helpers/mocks')>('./helpers/mocks')
     .marketPrismaModule()
 );
+jest.mock('@/lib/platform/chat/threads-store', () => ({
+  // the one thread this test file names belongs to the trader and is for gold
+  getThread: async (_user: string, id: string) =>
+    id === 'thread-7' ? { id, symbol: 'XAUUSD' } : null,
+}));
 jest.mock('@/lib/platform/metering/ledger-port', () =>
   jest
     .requireActual<typeof import('./helpers/mocks')>('./helpers/mocks')

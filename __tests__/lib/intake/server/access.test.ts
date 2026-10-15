@@ -9,6 +9,9 @@
  */
 
 jest.mock('@/lib/db/prisma', () => ({ prisma: {} }));
+jest.mock('@/lib/platform/chat/threads-store', () => ({
+  getThread: jest.fn(),
+}));
 jest.mock('@/lib/auth/session', () => ({ getSession: jest.fn() }));
 jest.mock('@/lib/i18n/server-locale', () => ({ getServerLanguage: jest.fn() }));
 jest.mock('@/lib/engine4/store/profile-store', () => {
@@ -21,6 +24,7 @@ jest.mock('@/lib/intake/read/events', () => ({
 }));
 
 import { getSession } from '@/lib/auth/session';
+import { getThread } from '@/lib/platform/chat/threads-store';
 import { readProfile } from '@/lib/engine4/store/profile-store';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
 import { THREAD_ID } from '@/lib/intake';
@@ -173,20 +177,37 @@ describe('entitlementPort (the entitlement table, architecture 7.3)', () => {
   );
 });
 
-describe('threadPort (decision D6 (a): no store, so well-formed is all it can check)', () => {
-  const check = (threadId: string | null) =>
-    threadPort.check({ userId: 'u', threadId, symbol: 'XAUUSD' });
+describe('threadPort (build step 7 part 7a: the thread must be the trader’s own, for this symbol)', () => {
+  const check = (threadId: string | null, userId = 'u') =>
+    threadPort.check({ userId, threadId, symbol: 'XAUUSD' });
+  const row = (over: Record<string, unknown> = {}) =>
+    ({ id: 'thread-1', user_id: 'u', symbol: 'XAUUSD', ...over }) as never;
 
-  it('accepts no thread', async () => {
+  beforeEach(() => jest.mocked(getThread).mockReset());
+
+  it('accepts no thread, and asks the store nothing', async () => {
     await expect(check(null)).resolves.toEqual({ ok: true, threadId: null });
+    expect(getThread).not.toHaveBeenCalled();
   });
 
   it.each(['thread-1', 'a', 'A_b-9', 'x'.repeat(64), '0123456789'])(
-    'accepts %s',
+    'accepts %s when the store has it for this trader',
     async (id) => {
+      jest.mocked(getThread).mockResolvedValue(row({ id }));
       await expect(check(id)).resolves.toEqual({ ok: true, threadId: id });
+      expect(getThread).toHaveBeenCalledWith('u', id, {});
     }
   );
+
+  it('refuses a thread the store does not have for this trader (another trader’s, or none): the same answer', async () => {
+    jest.mocked(getThread).mockResolvedValue(null);
+    await expect(check('thread-1')).resolves.toEqual({ ok: false });
+  });
+
+  it('refuses a thread of another symbol', async () => {
+    jest.mocked(getThread).mockResolvedValue(row({ symbol: 'EURUSD' }));
+    await expect(check('thread-1')).resolves.toEqual({ ok: false });
+  });
 
   it.each([
     '',
@@ -199,8 +220,14 @@ describe('threadPort (decision D6 (a): no store, so well-formed is all it can ch
     'a:b',
     '<script>',
     'id\n',
-  ])('refuses %j', async (id) => {
+  ])('refuses %j without asking the store', async (id) => {
     await expect(check(id)).resolves.toEqual({ ok: false });
+    expect(getThread).not.toHaveBeenCalled();
+  });
+
+  it('lets a store that cannot be read throw (the gate turns it into FEATURE_UNAVAILABLE)', async () => {
+    jest.mocked(getThread).mockRejectedValue(new Error('database down'));
+    await expect(check('thread-1')).rejects.toThrow('database down');
   });
 
   it('uses the packet’s own rule for what a thread id is', () => {

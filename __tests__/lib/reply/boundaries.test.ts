@@ -23,6 +23,14 @@
  *  2. `lib/platform` may touch the database, but each file may import only the outside
  *     modules named for it below, and none of it may use the network, the process, the
  *     console or a browser global. The clock is `messages-store.ts`'s alone (its default `now`).
+ *  1b. The orchestrator (build step 7 part 7a) is pure like the rest: `orchestrator.ts` and `run/` do
+ *     no I/O, read no clock and make no randomness (all of it is a port), and they reach the intake
+ *     path through `contracts/intake.ts` alone. `run/answer-step.ts` imports the two JSON Schemas
+ *     the model's reply is asked to follow, like `context/caps.ts` imports its table.
+ *     The folder `server/` is the other side of the ports: it is the one place of `lib/reply`
+ *     that may touch the platform, the database, the environment, a timer and the clock, and each
+ *     of its files may import only the outside modules named for it below. Like `read/`, it is
+ *     imported by path and never through a barrel, and nothing but the routes (part 7b) imports it.
  *  3. Nothing outside `lib/reply` and `lib/platform` imports them yet: step 7 part 1 builds
  *     contracts, tables and stores, and wires no route and no component. A later part that
  *     adds a caller adds it to ALLOWED_IMPORTERS on purpose.
@@ -71,6 +79,11 @@ const REPLY_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
   'gateway/registry.ts': ['@/config/ai-models'],
   'gateway/types.ts': ['@/config/ai-models'],
   'gateway/understand-adapter.ts': ['@/config/ai-models'],
+  // the model's two JSON Schemas (build step 7 part 7a), and nothing else from outside
+  'run/answer-step.ts': [
+    '@/config/reply/answer-1.schema.json',
+    '@/config/reply/report1-1.schema.json',
+  ],
   'read/day-bars.ts': ['@/lib/db/market-prisma'],
   // the chart rule (build step 7 part 5): the dependency-free chart keys, never the AWS client (the port is handed in)
   'read/chart.ts': ['@/lib/storage/chart-keys'],
@@ -107,6 +120,7 @@ const PLATFORM_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
   'metering/period.ts': [],
   'metering/reaper.ts': ['@/lib/db/prisma'],
   'chat/messages-store.ts': ['@/lib/db/prisma', '@/lib/reply/contracts/intake'],
+  'chat/thread-port.ts': ['@/lib/reply/contracts/intake'],
   'chat/threads-store.ts': ['@/lib/db/prisma', '@/lib/reply/contracts/intake'],
   'chat/title.ts': [
     '@/lib/reply/contracts/intake',
@@ -122,6 +136,57 @@ const PLATFORM_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
   ],
 };
 
+/** The outside modules each file of `lib/reply/server/` may import (path inside `lib/reply`). */
+const SERVER_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
+  // the error format of the chat routes: the intake routes' statuses and messages
+  'server/errors.ts': ['@/lib/intake/server/errors'],
+  // the staging switches read an env object the caller passes: no outside module at all
+  'server/flags.ts': [],
+  // the real ports of the orchestrator (build step 7 part 7a): the intake path's own real ports, the
+  // quota ledger and the entitlement table, and the chart in storage
+  'server/ports.ts': [
+    '@/lib/intake/server/access',
+    '@/lib/platform/entitlements',
+    '@/lib/platform/metering/ledger-port',
+    '@/lib/storage/r2',
+    'crypto',
+  ],
+  // the body reader of the intake routes, and its failure type
+  'server/request.ts': [
+    '@/lib/intake/server/errors',
+    '@/lib/intake/server/request',
+  ],
+  // the message route's body: the orchestrator, the ports, the stream (all inside lib/reply)
+  'server/respond.ts': [],
+  // the chat panel's state in one call: the registry's table, the intake path's profile and snapshot,
+  // the quota ledger and the entitlement table
+  'server/state-api.ts': [
+    '@/config/ai-models',
+    '@/lib/intake/read/snapshot',
+    '@/lib/intake/server/access',
+    '@/lib/platform/entitlements',
+    '@/lib/platform/metering/ledger-port',
+    '@/lib/platform/metering/period',
+  ],
+  'server/stream.ts': [],
+  // the threads API: the chat stores, the entitlement table, the session of the intake path
+  'server/threads-api.ts': [
+    '@/lib/intake/server/access',
+    '@/lib/platform/chat/messages-store',
+    '@/lib/platform/chat/threads-store',
+    '@/lib/platform/entitlements',
+  ],
+  // the thread, message and trace stores as the orchestrator's ports
+  'server/store-ports.ts': [
+    '@/lib/platform/chat/messages-store',
+    '@/lib/platform/chat/threads-store',
+    '@/lib/platform/chat/title',
+    '@/lib/platform/delivered',
+    '@/lib/platform/traces/hash',
+    '@/lib/platform/traces/store',
+  ],
+};
+
 /**
  * Files outside both trees that may import them. Build step 7 part 3: the Understand adapter of the
  * intake path is now a thin wrapper over the gateway's Understand adapter, so it imports ONE module
@@ -130,6 +195,11 @@ const PLATFORM_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
  * port, so they import the platform's entitlement reader and ledger port and the meter.
  */
 const ALLOWED_IMPORTERS: readonly string[] = [
+  // the chat routes (build step 7 part 7b): the message route, the threads API and the state route
+  'app/api/chat/message/route.ts',
+  'app/api/chat/state/route.ts',
+  'app/api/chat/threads/[id]/route.ts',
+  'app/api/chat/threads/route.ts',
   // the gate's real edges (build step 7 part 6): the entitlement table, the quota ledger's port and the meter
   'lib/intake/server/access.ts',
   'lib/intake/text/understand-model.ts',
@@ -327,6 +397,20 @@ const REPLY: Tree = {
   clockFiles: REPLY_CLOCK_FILES,
   allowedNames: REPLY_ALLOWED_NAMES,
 };
+const SERVER: Tree = {
+  alias: '@/lib/reply',
+  outside: SERVER_OUTSIDE,
+  // the real clock of the request, for the quota meter
+  clockFiles: new Set<string>(['server/ports.ts', 'server/state-api.ts']),
+  // the environment (the default of `createReplyPorts` and of the route bodies), a timer (the
+  // deadline), a random id and the log
+  allowedNames: {
+    'server/ports.ts': ['console', 'process', 'randomUUID', 'setTimeout'],
+    'server/respond.ts': ['process'],
+    'server/state-api.ts': ['process'],
+    'server/threads-api.ts': ['process'],
+  },
+};
 const PLATFORM: Tree = {
   alias: '@/lib/platform',
   outside: PLATFORM_OUTSIDE,
@@ -336,10 +420,19 @@ const PLATFORM: Tree = {
 
 // ---------------------------------------------------------------------------------------
 
-describe('lib/reply', () => {
-  const sources = load(REPLY_DIR);
+/** The files of `lib/reply` that are not under `server/`: the pure tree. */
+function loadPure(): Map<string, string> {
+  const all = load(REPLY_DIR);
+  for (const key of [...all.keys()]) {
+    if (key.startsWith('server/')) all.delete(key);
+  }
+  return all;
+}
 
-  it('has the files of parts 1 to 6', () => {
+describe('lib/reply', () => {
+  const sources = loadPure();
+
+  it('has the files of parts 1 to 7a', () => {
     expect([...sources.keys()]).toEqual([
       'checks/extract.ts',
       'checks/matcher.ts',
@@ -384,6 +477,7 @@ describe('lib/reply', () => {
       'meter/quota-port.ts',
       'meter/reserve-plan.ts',
       'meter/units.ts',
+      'orchestrator.ts',
       'read/chart.ts',
       'read/day-bars.ts',
       'read/snapshot-at.ts',
@@ -394,6 +488,14 @@ describe('lib/reply', () => {
       'report1/resolve.ts',
       'report1/sections.ts',
       'report1/stamp.ts',
+      'run/answer-step.ts',
+      'run/calls.ts',
+      'run/hold.ts',
+      'run/regenerate.ts',
+      'run/request-id.ts',
+      'run/stages.ts',
+      'run/trace.ts',
+      'run/types.ts',
       'version.ts',
     ]);
   });
@@ -424,16 +526,26 @@ describe('lib/reply', () => {
     expect(readers.sort()).toEqual(Object.keys(READER_CLIENTS).sort());
   });
 
-  it('keeps the readers apart: nothing outside read/ imports one, and no reader imports the platform', () => {
+  it('keeps the readers apart: nothing outside read/ imports one that reaches a database, and no reader imports the platform', () => {
     for (const [file, text] of sources) {
       const code = text
         .replace(/\/\*[\s\S]*?\*\//g, '')
         .replace(/\/\/.*$/gm, '');
       if (!file.startsWith(READER_DIR)) {
-        expect({
-          file,
-          readerImport: /(?:\/|'\.?\.?\/)read\//.test(code),
-        }).toEqual({ file, readerImport: false });
+        // a type is erased and costs nothing at run time; a value import of a reader runs its module, so
+        // only a reader that has no database client of its own (the chart rule, which reaches storage
+        // through a port) may be imported by a file outside read/ (the orchestrator calls it)
+        const values = code.replace(/import type[^;]*;/g, '');
+        const readers = [
+          ...values.matchAll(/from '(?:\.\.?\/)+(read\/[a-z0-9-]+)'/g),
+        ].map((m) => `${m[1]}.ts`);
+        for (const reader of readers) {
+          expect({ file, reader, clients: READER_CLIENTS[reader] }).toEqual({
+            file,
+            reader,
+            clients: [],
+          });
+        }
       }
       expect({ file, platform: /lib\/platform/.test(code) }).toEqual({
         file,
@@ -493,9 +605,10 @@ describe('lib/reply', () => {
 describe('lib/platform', () => {
   const sources = load(PLATFORM_DIR);
 
-  it('has the files of parts 1 and 6', () => {
+  it('has the files of parts 1, 6 and 7a', () => {
     expect([...sources.keys()]).toEqual([
       'chat/messages-store.ts',
+      'chat/thread-port.ts',
       'chat/threads-store.ts',
       'chat/title.ts',
       'delivered.ts',
@@ -527,6 +640,56 @@ describe('lib/platform', () => {
         file,
         outside: [...(PLATFORM_OUTSIDE[file] ?? [])].sort(),
       });
+    }
+  });
+});
+
+describe('lib/reply/server', () => {
+  const sources = new Map(
+    [...load(REPLY_DIR)].filter(([file]) => file.startsWith('server/'))
+  );
+
+  it('has the files of part 7', () => {
+    expect([...sources.keys()]).toEqual([
+      'server/errors.ts',
+      'server/flags.ts',
+      'server/ports.ts',
+      'server/request.ts',
+      'server/respond.ts',
+      'server/state-api.ts',
+      'server/store-ports.ts',
+      'server/stream.ts',
+      'server/threads-api.ts',
+    ]);
+  });
+
+  it('imports only the modules named for each file, uses no network, console or browser global', () => {
+    expect(analyse(SERVER, sources)).toEqual([]);
+  });
+
+  it('gives each file exactly the outside modules named for it', () => {
+    for (const [file, text] of sources) {
+      const outside = [
+        ...new Set(
+          [...text.matchAll(/from '([^.][^']*)'/g)]
+            .map((m) => m[1] as string)
+            .filter((m) => !m.startsWith('@/lib/reply/'))
+        ),
+      ].sort();
+      expect({ file, outside }).toEqual({
+        file,
+        outside: [...(SERVER_OUTSIDE[file] ?? [])].sort(),
+      });
+    }
+  });
+
+  it('is imported by nothing in the pure tree', () => {
+    for (const [file, text] of load(REPLY_DIR)) {
+      if (file.startsWith('server/')) continue;
+      expect({
+        file,
+        server: /(?:\/|'\.?\.?\/)server\//.test(text),
+      }).toEqual({ file, server: false });
     }
   });
 });

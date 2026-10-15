@@ -64,6 +64,7 @@ const OUTSIDE_IMPORTS: Readonly<Record<string, readonly string[]>> = {
   'server/access.ts': [
     '@/lib/auth/session',
     '@/lib/i18n/server-locale',
+    '@/lib/platform/chat/thread-port',
     '@/lib/platform/entitlements',
     '@/lib/platform/metering/ledger-port',
     '@/lib/reply/gateway/registry',
@@ -108,6 +109,15 @@ const ALLOWED_IMPORTERS: readonly string[] = [
   // build step 7: the reply path sits on top of the intake path and reads it through this ONE file;
   // `__tests__/lib/reply/boundaries.test.ts` holds the rest of lib/reply and lib/platform to that door
   'lib/reply/contracts/intake.ts',
+  // build step 7 part 7a: the real ports of the orchestrator take the intake path's own real ports
+  // (the session, the profile, the snapshot, the calendar, the knowledge service) and switch its flag
+  'lib/reply/server/ports.ts',
+  // build step 7 part 7b: the chat routes reuse the intake routes' body reader, error statuses, session,
+  // profile and snapshot
+  'lib/reply/server/errors.ts',
+  'lib/reply/server/request.ts',
+  'lib/reply/server/state-api.ts',
+  'lib/reply/server/threads-api.ts',
 ];
 
 /** Names that mean input, output, time, randomness or a browser. */

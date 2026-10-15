@@ -332,6 +332,37 @@ export type MeteredRun<T> =
   /** the request id already had a reservation: the model was not called */
   | { ok: false; duplicate: { status: ReservationState } };
 
+export interface HoldOutcome {
+  /** what became of the hold: a charge, or null when nothing was spent and the units were released */
+  settlement: MeterSettleResult | null;
+  release: MeterReleaseResult | null;
+}
+
+/**
+ * End a hold: settle it for the calls that were made, or give it back when there were none. A
+ * ledger that cannot be reached is reported in the outcome and never thrown (the reply that was
+ * paid for must not be lost to it); the reaper gives back what a crashed request left held.
+ * `runMetered` ends its hold this way, and so does the orchestrator of part 7, whose hold is
+ * made at the gate (before the Understand call) and ended after the reply is composed.
+ */
+export async function settleOrRelease(
+  meter: Meter,
+  request: MeterRequest,
+  calls: readonly SpentCall[]
+): Promise<HoldOutcome> {
+  try {
+    if (calls.length > 0) {
+      return { settlement: await meter.settle(request, calls), release: null };
+    }
+    return { settlement: null, release: await meter.release(request) };
+  } catch {
+    // the ledger could not be reached: the hold stays until the reaper gives it back
+    return calls.length > 0
+      ? { settlement: { ok: false, code: 'LEDGER_ERROR' }, release: null }
+      : { settlement: null, release: { ok: false, code: 'LEDGER_ERROR' } };
+  }
+}
+
 /**
  * Hold, run, settle. `run` is called ONLY when the hold is granted, and it reports each paid call
  * to the recorder as it finishes. Afterwards the hold is settled for the calls recorded, or
@@ -358,25 +389,8 @@ export async function runMetered<T>(
     },
   };
 
-  const finish = async (): Promise<{
-    settlement: MeterSettleResult | null;
-    release: MeterReleaseResult | null;
-  }> => {
-    try {
-      if (calls.length > 0) {
-        return {
-          settlement: await meter.settle(request, calls),
-          release: null,
-        };
-      }
-      return { settlement: null, release: await meter.release(request) };
-    } catch {
-      // the ledger could not be reached: the hold stays until the reaper gives it back
-      return calls.length > 0
-        ? { settlement: { ok: false, code: 'LEDGER_ERROR' }, release: null }
-        : { settlement: null, release: { ok: false, code: 'LEDGER_ERROR' } };
-    }
-  };
+  const finish = (): Promise<HoldOutcome> =>
+    settleOrRelease(meter, request, calls);
 
   let value: T;
   try {

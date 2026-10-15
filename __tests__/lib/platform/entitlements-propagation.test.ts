@@ -22,6 +22,11 @@ const ROOT = resolve(__dirname, '..', '..', '..');
 jest.mock('@/lib/auth/session', () => ({ getSession: jest.fn() }));
 jest.mock('@/lib/i18n/server-locale', () => ({ getServerLanguage: jest.fn() }));
 jest.mock('@/lib/db/prisma', () => ({ prisma: {} }));
+jest.mock('@/lib/db/market-prisma', () => ({ marketPrisma: {} }));
+jest.mock('@/lib/storage/r2', () => ({
+  getChartStamp: jest.fn(),
+  getChartImage: jest.fn(),
+}));
 jest.mock('@/lib/engine4/store/profile-store', () => ({
   readProfile: jest.fn(),
   StoredProfileError: class extends Error {},
@@ -35,6 +40,7 @@ interface Readers {
   tierValidation: typeof import('@/lib/tier-validation');
   platform: typeof import('@/lib/platform/entitlements');
   access: typeof import('@/lib/intake/server/access');
+  reply: typeof import('@/lib/reply/server/ports');
 }
 
 /** Load every reader over the table `change` makes of the shipped one. */
@@ -63,6 +69,7 @@ function load(
       tierValidation: require('@/lib/tier-validation'),
       platform: require('@/lib/platform/entitlements'),
       access: require('@/lib/intake/server/access'),
+      reply: require('@/lib/reply/server/ports'),
     };
   });
   jest.dontMock('@/config/entitlements');
@@ -177,6 +184,21 @@ describe('one value changed in each of the other features, for each tier', () =>
       'PRO',
       false,
       (r) => r.platform.canSendChartToModel('PRO'),
+      false,
+    ],
+    // the reply path asks the same table whether the model may be shown the chart (part 7a)
+    [
+      'chart_image_to_model',
+      'FREE',
+      true,
+      (r) => r.reply.createReplyPorts({}).tierAllowsChart('FREE'),
+      true,
+    ],
+    [
+      'chart_image_to_model',
+      'PRO',
+      false,
+      (r) => r.reply.createReplyPorts({}).tierAllowsChart('PRO'),
       false,
     ],
     [
@@ -305,9 +327,13 @@ describe('these are all the readers', () => {
     ]);
   });
 
-  it('only the session gate’s adapters import the platform reader', () => {
+  it('only the session gate’s adapters, the reply path’s real ports and the chat routes’ bodies import the platform reader', () => {
     expect(importers('@/lib/platform/entitlements')).toEqual([
       'lib/intake/server/access.ts',
+      'lib/reply/server/ports.ts',
+      // the chat state route (the quota mode of a tier) and the chat auth (may this tier use the analyst)
+      'lib/reply/server/state-api.ts',
+      'lib/reply/server/threads-api.ts',
     ]);
   });
 
@@ -315,15 +341,14 @@ describe('these are all the readers', () => {
     const readers = FILES.filter((f) => /\baiAnalystAllowed\b/.test(f.text))
       .map((f) => f.path)
       .sort();
-    // the shared package's helper (re-exported by lib/tier-config.ts for the throwaway metering route of
-    // step 6, which part 7 deletes) is the one place the old flag is still read; tier-validation is not
+    // the shared package's helper (re-exported by lib/tier-config.ts) is the one place the old flag is still read; the throwaway
+    // metering route of step 6 that used it is gone (part 7b, decision D8); tier-validation is not
     expect(readers).toEqual([]);
     expect(
       FILES.filter((f) => /\bcanAccessAiAnalyst\b/.test(f.text))
         .map((f) => f.path)
         .sort()
     ).toEqual([
-      'app/api/test/ai-metering/route.ts',
       'lib/engine4/server/session.ts',
       'lib/tier-config.ts',
       'lib/tier-validation.ts',

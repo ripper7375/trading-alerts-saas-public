@@ -36,6 +36,7 @@ import {
   createMeter,
   createQuotaPort,
   runMetered,
+  settleOrRelease,
   type Balance,
   type LedgerPort,
   type MeterConfig,
@@ -1057,5 +1058,77 @@ describe('ACCEPTANCE 5.14 item 2: a request whose worst case exceeds the balance
       refusal: { ok: false, code: 'PRICE_UNKNOWN', call: 'answer' },
     });
     expect(fixture.count).toBe(0);
+  });
+});
+
+describe('settleOrRelease: how a hold ends (build step 7 part 7a)', () => {
+  const call = {
+    model: 'vendor/model',
+    costMicroUsd: 700,
+    promptTokens: 10,
+    completionTokens: 5,
+  };
+
+  it('settles for the calls that were paid, and releases nothing', async () => {
+    const { ledger, calls } = scripted();
+    const meter = createMeter(config(ledger));
+    const out = await settleOrRelease(meter, REQUEST, [
+      call,
+      { ...call, costMicroUsd: 300 },
+    ]);
+    expect(out.release).toBeNull();
+    expect(out.settlement).toMatchObject({ ok: true, chargedUnits: 1_000 });
+    expect(calls.settle).toHaveLength(1);
+    expect(calls.release).toHaveLength(0);
+  });
+
+  it('gives the hold back when nothing was paid for', async () => {
+    const { ledger, calls } = scripted();
+    const meter = createMeter(config(ledger));
+    const out = await settleOrRelease(meter, REQUEST, []);
+    expect(out.settlement).toBeNull();
+    expect(out.release).toEqual({
+      ok: true,
+      changed: true,
+      status: 'RELEASED',
+    });
+    expect(calls.release).toHaveLength(1);
+    expect(calls.settle).toHaveLength(0);
+  });
+
+  it('reports a ledger that cannot be reached and never throws, for a settlement and for a release', async () => {
+    const down = scripted({
+      settle: async () => {
+        throw new Error('down');
+      },
+      release: async () => {
+        throw new Error('down');
+      },
+    });
+    const meter = createMeter(config(down.ledger));
+    await expect(settleOrRelease(meter, REQUEST, [call])).resolves.toEqual({
+      settlement: { ok: false, code: 'LEDGER_ERROR' },
+      release: null,
+    });
+    await expect(settleOrRelease(meter, REQUEST, [])).resolves.toEqual({
+      settlement: null,
+      release: { ok: false, code: 'LEDGER_ERROR' },
+    });
+  });
+
+  it('is what runMetered does at the end of its run', async () => {
+    const { ledger, calls } = scripted();
+    const meter = createMeter(config(ledger));
+    const run = await runMetered(
+      meter,
+      REQUEST,
+      ESTIMATE,
+      async (_hold, recorder) => {
+        recorder.record(call);
+        return 'value';
+      }
+    );
+    expect(run).toMatchObject({ ok: true, value: 'value', release: null });
+    expect(calls.settle).toHaveLength(1);
   });
 });

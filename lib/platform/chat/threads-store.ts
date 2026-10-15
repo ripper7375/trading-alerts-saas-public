@@ -46,6 +46,8 @@ export interface ThreadRow {
 }
 
 export interface ThreadCreateData {
+  /** the id the caller chose; omitted, the database makes one */
+  id?: string;
   user_id: string;
   symbol: string;
   title: string;
@@ -89,6 +91,7 @@ export interface ThreadStoreOptions {
 
 export type ThreadRefusalCode =
   | 'MISSING_USER'
+  | 'BAD_ID'
   | 'BAD_SYMBOL'
   | 'BAD_TRADER_TYPE'
   | 'TITLE_EMPTY'
@@ -100,6 +103,12 @@ export type CreateThreadResult =
   | { ok: false; code: Exclude<ThreadRefusalCode, 'NOT_FOUND'> };
 
 export interface CreateThreadInput {
+  /**
+   * An id the caller made before the thread exists, so the first reply can carry it
+   * (build step 7 part 7: the result names its thread before the thread is stored). Omitted,
+   * the database makes one. It is checked like the id of the packet's thread.
+   */
+  id?: string;
   userId: string;
   symbol: string;
   traderType: TraderType;
@@ -110,12 +119,18 @@ export interface CreateThreadInput {
 const hasUser = (userId: unknown): userId is string =>
   typeof userId === 'string' && userId !== '';
 
+/** The ids a packet's `thread_id` and a message's thread may have. */
+export const THREAD_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
 /** Make a thread for a trader. The title is checked like a trader's own; its source is AUTO. */
 export async function createThread(
   input: CreateThreadInput,
   options: ThreadStoreOptions = {}
 ): Promise<CreateThreadResult> {
   if (!hasUser(input.userId)) return { ok: false, code: 'MISSING_USER' };
+  if (input.id !== undefined && !THREAD_ID_PATTERN.test(input.id)) {
+    return { ok: false, code: 'BAD_ID' };
+  }
   if (!THREAD_SYMBOL.test(input.symbol))
     return { ok: false, code: 'BAD_SYMBOL' };
   if (!(TRADER_TYPES as readonly string[]).includes(input.traderType)) {
@@ -131,6 +146,7 @@ export async function createThread(
   const client: ThreadStoreClient = options.client ?? prisma;
   const thread = await client.chatThread.create({
     data: {
+      ...(input.id === undefined ? {} : { id: input.id }),
       user_id: input.userId,
       symbol: input.symbol,
       title: title.title,

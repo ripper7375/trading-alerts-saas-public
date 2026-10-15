@@ -33,6 +33,30 @@ export {
 } from '@/lib/intake/check';
 export type { Issue, IssueCode, StringRule } from '@/lib/intake/check';
 
+// The orchestrator of build step 7 part 7 runs the whole intake path in process (no HTTP): the
+// pipeline, its trace recorder and the ports it is built over come through this door too.
+export {
+  DEFAULT_LOCALE,
+  PacketInvalidError,
+  TraceRecorder,
+  runIntake,
+} from '@/lib/intake';
+export type {
+  GateCaller,
+  GatePorts,
+  GateSession,
+  IntakePorts,
+  IntakeRequest,
+  IntakeResult,
+  IntakeTrace,
+  ProfileGateRead,
+  RequestRead,
+  SessionPort,
+  ThreadPort,
+  TraceRecorderOptions,
+  TraceStageName,
+} from '@/lib/intake';
+
 export {
   BIASES,
   BOARD_STATUSES,
