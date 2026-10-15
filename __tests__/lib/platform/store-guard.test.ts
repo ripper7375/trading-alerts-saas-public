@@ -13,6 +13,12 @@
  *  - A chat message is created by `appendExchange` and deleted only by its thread's foreign
  *    key; there is no `chatMessage.delete*` and no `chatMessage.update*`.
  *  - The thread store never mentions the trace table: deleting a thread leaves the traces.
+ *  - The quota ledger (build step 7 part 6) is the ONE place raw SQL is allowed, because the
+ *    reservation must be a single atomic statement: `metering/ledger-store.ts` and
+ *    `metering/reaper.ts` call `$queryRawUnsafe` with a CONSTANT statement and values as
+ *    parameters, never a built string, never `$executeRaw*`, never a tagged template; the
+ *    statements INSERT and UPDATE the two ledger tables and nothing else, and DELETE nothing (a
+ *    deleted account's balance goes by the foreign key). No other file names the ledger's tables.
  * Anything outside the lists below fails: a new call is a new decision, made here on purpose.
  */
 
@@ -47,6 +53,12 @@ const ALLOWED_CALLS: Record<string, string[]> = {
   'traces/retention.ts': [],
   'chat/title.ts': [],
   'delivered.ts': [],
+  // build step 7 part 6: the entitlement reader and the quota ledger use no Prisma delegate at all
+  'entitlements.ts': [],
+  'metering/ledger-port.ts': [],
+  'metering/ledger-store.ts': [],
+  'metering/period.ts': [],
+  'metering/reaper.ts': [],
 };
 
 /** Methods the client interfaces of a file may declare. */
@@ -70,6 +82,17 @@ const ALLOWED_DECLARATIONS: Record<string, string[]> = {
   'traces/retention.ts': [],
   'chat/title.ts': [],
   'delivered.ts': [],
+  'entitlements.ts': [],
+  'metering/ledger-port.ts': [],
+  'metering/ledger-store.ts': ['$queryRawUnsafe'],
+  'metering/period.ts': [],
+  'metering/reaper.ts': [],
+};
+
+/** The raw-SQL calls a file may make: the quota ledger's two files, `$queryRawUnsafe` only. */
+const ALLOWED_RAW: Record<string, string[]> = {
+  'metering/ledger-store.ts': ['$queryRawUnsafe'],
+  'metering/reaper.ts': ['$queryRawUnsafe'],
 };
 
 const DELEGATES = new Set(['requestTrace', 'chatThread', 'chatMessage']);
@@ -207,8 +230,8 @@ describe('lib/platform', () => {
       );
     });
 
-    it('writes no raw SQL', () => {
-      expect(found.raw).toEqual([]);
+    it('writes no raw SQL, except the quota ledger’s two files and only through $queryRawUnsafe', () => {
+      expect([...new Set(found.raw)]).toEqual(ALLOWED_RAW[name] ?? []);
     });
   });
 
@@ -256,6 +279,131 @@ describe('lib/platform', () => {
         words.filter((w) => /requestTrace|request_traces/.test(w))
       ).toEqual([]);
     }
+  });
+
+  describe('the quota ledger’s raw SQL (build step 7 part 6)', () => {
+    const LEDGER_FILES = ['metering/ledger-store.ts', 'metering/reaper.ts'];
+
+    /** The first argument of every `$queryRawUnsafe` call of a source, as a kind of node. */
+    function firstArguments(name: string, text: string): string[] {
+      const file = ts.createSourceFile(
+        name,
+        text,
+        ts.ScriptTarget.ES2020,
+        true
+      );
+      const kinds: string[] = [];
+      const visit = (node: ts.Node): void => {
+        if (
+          ts.isCallExpression(node) &&
+          ts.isPropertyAccessExpression(node.expression) &&
+          node.expression.name.text === '$queryRawUnsafe'
+        ) {
+          const first = node.arguments[0];
+          kinds.push(first === undefined ? 'none' : ts.SyntaxKind[first.kind]!);
+        }
+        ts.forEachChild(node, visit);
+      };
+      visit(file);
+      return kinds;
+    }
+
+    it('the scanner tells a constant statement from a built one', () => {
+      expect(
+        firstArguments(
+          'x.ts',
+          'c.$queryRawUnsafe(SQL.a, 1); c.$queryRawUnsafe(REAP_SQL); c.$queryRawUnsafe(`select ${x}`); c.$queryRawUnsafe("a" + b); c.$queryRawUnsafe(f(x));'
+        )
+      ).toEqual([
+        'PropertyAccessExpression',
+        'Identifier',
+        'TemplateExpression',
+        'BinaryExpression',
+        'CallExpression',
+      ]);
+    });
+
+    it.each(LEDGER_FILES)(
+      '%s sends only a named constant as the statement',
+      (name) => {
+        const kinds = firstArguments(
+          name,
+          readFileSync(join(PLATFORM, name), 'utf8')
+        );
+        expect(kinds.length).toBeGreaterThan(0);
+        for (const kind of kinds) {
+          expect(['PropertyAccessExpression', 'Identifier']).toContain(kind);
+        }
+      }
+    );
+
+    it.each(LEDGER_FILES)(
+      '%s never calls $executeRaw, $queryRaw or a tagged template',
+      (name) => {
+        const text = readFileSync(join(PLATFORM, name), 'utf8');
+        const words = codeWords(name, text);
+        expect(
+          words.filter(
+            (w) =>
+              /^\$(execute|query)Raw(?!Unsafe)/.test(w) ||
+              w === '$executeRawUnsafe'
+          )
+        ).toEqual([]);
+        expect(
+          scan(name, text).raw.filter((r) => r !== '$queryRawUnsafe')
+        ).toEqual([]);
+      }
+    );
+
+    it('the statements INSERT and UPDATE the two ledger tables, and delete and truncate nothing', async () => {
+      const { LEDGER_SQL } = await import(
+        '@/lib/platform/metering/ledger-store'
+      );
+      const { REAP_SQL } = await import('@/lib/platform/metering/reaper');
+      const statements = [...Object.values(LEDGER_SQL), REAP_SQL];
+      for (const sql of statements) {
+        expect(sql).not.toMatch(
+          /\bDELETE\b|\bTRUNCATE\b|\bDROP\b|\bALTER\b|\bCREATE\b/i
+        );
+        for (const target of sql.matchAll(
+          /\b(?:INSERT INTO|UPDATE)\s+"([a-z_]+)"/g
+        )) {
+          expect(['ai_quota_periods', 'ai_usage_reservations']).toContain(
+            target[1]
+          );
+        }
+        for (const from of sql.matchAll(/\bFROM\s+"([A-Za-z_]+)"/g)) {
+          expect(['ai_quota_periods', 'ai_usage_reservations']).toContain(
+            from[1]
+          );
+        }
+      }
+    });
+
+    it('no other file of the platform names the ledger’s tables, and the ledger names no other table', () => {
+      for (const name of FILES) {
+        const words = codeWords(
+          name,
+          readFileSync(join(PLATFORM, name), 'utf8')
+        );
+        const names = words.filter((w) =>
+          /ai_quota_periods|ai_usage_reservations|aiQuotaPeriod|aiUsageReservation/.test(
+            w
+          )
+        );
+        if (!LEDGER_FILES.includes(name))
+          expect({ name, names }).toEqual({ name, names: [] });
+        if (LEDGER_FILES.includes(name)) {
+          expect(
+            words.filter((w) =>
+              /request_traces|requestTrace|chat_|chatThread|chatMessage|trade_|"User"/.test(
+                w
+              )
+            )
+          ).toEqual([]);
+        }
+      }
+    });
   });
 
   it('does not let the trace store name the chat tables', () => {

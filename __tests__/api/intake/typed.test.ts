@@ -35,6 +35,11 @@ jest.mock('@/lib/db/market-prisma', () =>
     .requireActual<typeof import('./helpers/mocks')>('./helpers/mocks')
     .marketPrismaModule()
 );
+jest.mock('@/lib/platform/metering/ledger-port', () =>
+  jest
+    .requireActual<typeof import('./helpers/mocks')>('./helpers/mocks')
+    .ledgerPortModule()
+);
 
 import { POST } from '@/app/api/intake/route';
 import {

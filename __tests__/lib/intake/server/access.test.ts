@@ -8,6 +8,7 @@
  * tier, and the adapters the production ports are made of.
  */
 
+jest.mock('@/lib/db/prisma', () => ({ prisma: {} }));
 jest.mock('@/lib/auth/session', () => ({ getSession: jest.fn() }));
 jest.mock('@/lib/i18n/server-locale', () => ({ getServerLanguage: jest.fn() }));
 jest.mock('@/lib/engine4/store/profile-store', () => {
@@ -30,12 +31,13 @@ import {
   gatePorts,
   isInstantPromptsEnabled,
   isIntakeEnabled,
-  passThroughQuota,
   productionPorts,
   profilePort,
+  quotaPort,
   sessionPort,
   threadPort,
 } from '@/lib/intake/server/access';
+import type { Balance, LedgerPort } from '@/lib/reply/meter/quota-port';
 import { replyText } from '@/lib/intake/server/reply';
 
 const ORIGINAL_ENV = process.env;
@@ -157,8 +159,8 @@ describe('sessionPort', () => {
   });
 });
 
-describe('entitlementPort', () => {
-  it('lets Pro in and keeps Free out, as canAccessAiAnalyst says', () => {
+describe('entitlementPort (the entitlement table, architecture 7.3)', () => {
+  it('lets Pro in and keeps Free out: the live analyst is Pro’s, the Free tier has the recorded demo', () => {
     expect(entitlementPort.allows('PRO')).toBe(true);
     expect(entitlementPort.allows('FREE')).toBe(false);
   });
@@ -253,13 +255,147 @@ describe('profilePort', () => {
   });
 });
 
-describe('passThroughQuota (decision D5 (A): not metered until step 7)', () => {
-  it('allows everything, for either kind of request', async () => {
+describe('quotaPort (build step 7 part 6: the floor check of the quota ledger replaces the pass-through)', () => {
+  const NOW = Date.UTC(2026, 9, 15, 10, 0, 0);
+  const balanceOf = (available: number): Balance => ({
+    limit: 5_000_000,
+    used: 5_000_000 - available,
+    reserved: 0,
+    available,
+  });
+  function ledger(available: number) {
+    const balance = jest.fn(async () => balanceOf(available));
+    const port: LedgerPort = {
+      balance,
+      reserve: jest.fn(),
+      settle: jest.fn(),
+      release: jest.fn(),
+    };
+    return { port, balance };
+  }
+  const ask = (tier: string, kind: 'TYPED' | 'INSTANT' = 'TYPED') => ({
+    userId: 'u',
+    tier,
+    kind,
+  });
+
+  it('refuses everything while PRO_MONTHLY_UNITS is unset (decision D4: fail closed), and does not ask the ledger', async () => {
+    const { port, balance } = ledger(5_000_000);
+    const quota = quotaPort({}, { ledger: port, now: () => NOW });
     for (const kind of ['TYPED', 'INSTANT'] as const) {
-      await expect(
-        passThroughQuota.precheck({ userId: 'u', tier: 'PRO', kind })
-      ).resolves.toEqual({ allowed: true });
+      await expect(quota.precheck(ask('PRO', kind))).resolves.toEqual({
+        allowed: false,
+      });
     }
+    expect(balance).not.toHaveBeenCalled();
+  });
+
+  it.each(['', '0', '-5', '1.5', '1e6', 'many', ' 5000'])(
+    'a damaged PRO_MONTHLY_UNITS (%j) is no allowance either',
+    async (value) => {
+      const { port, balance } = ledger(5_000_000);
+      const quota = quotaPort(
+        { PRO_MONTHLY_UNITS: value },
+        { ledger: port, now: () => NOW }
+      );
+      await expect(quota.precheck(ask('PRO'))).resolves.toEqual({
+        allowed: false,
+      });
+      expect(balance).not.toHaveBeenCalled();
+    }
+  );
+
+  it('with an allowance, lets a Pro trader through while the balance reaches the floor, asking the ledger for this trader, this instant and the allowance', async () => {
+    const { port, balance } = ledger(5_000_000);
+    const quota = quotaPort(
+      { PRO_MONTHLY_UNITS: '5000000' },
+      { ledger: port, now: () => NOW }
+    );
+    await expect(quota.precheck(ask('PRO'))).resolves.toEqual({
+      allowed: true,
+    });
+    expect(balance).toHaveBeenCalledWith({
+      userId: 'u',
+      nowMs: NOW,
+      allowanceUnits: 5_000_000,
+    });
+  });
+
+  it('refuses an empty account before the Understand call is paid for', async () => {
+    const { port } = ledger(0);
+    const quota = quotaPort(
+      { PRO_MONTHLY_UNITS: '5000000' },
+      { ledger: port, now: () => NOW }
+    );
+    for (const kind of ['TYPED', 'INSTANT'] as const) {
+      await expect(quota.precheck(ask('PRO', kind))).resolves.toEqual({
+        allowed: false,
+      });
+    }
+  });
+
+  it('the Free tier has no units (ADR-072): refused whatever the allowance, and the ledger is not asked', async () => {
+    const { port, balance } = ledger(5_000_000);
+    const quota = quotaPort(
+      { PRO_MONTHLY_UNITS: '5000000' },
+      { ledger: port, now: () => NOW }
+    );
+    for (const tier of ['FREE', 'pro', 'ADMIN', '']) {
+      await expect(quota.precheck(ask(tier))).resolves.toEqual({
+        allowed: false,
+      });
+    }
+    expect(balance).not.toHaveBeenCalled();
+  });
+
+  it('while no model is priced the floor is one unit: a balance of one is enough and nothing is not', async () => {
+    const env = { PRO_MONTHLY_UNITS: '5000000' };
+    await expect(
+      quotaPort(env, { ledger: ledger(1).port, now: () => NOW }).precheck(
+        ask('PRO')
+      )
+    ).resolves.toEqual({ allowed: true });
+    await expect(
+      quotaPort(env, { ledger: ledger(0).port, now: () => NOW }).precheck(
+        ask('PRO')
+      )
+    ).resolves.toEqual({ allowed: false });
+  });
+
+  it('a ledger that fails fails the check: it never lets a request through for free', async () => {
+    const port: LedgerPort = {
+      balance: async () => {
+        throw new Error('database down');
+      },
+      reserve: jest.fn(),
+      settle: jest.fn(),
+      release: jest.fn(),
+    };
+    const quota = quotaPort(
+      { PRO_MONTHLY_UNITS: '5000000' },
+      { ledger: port, now: () => NOW }
+    );
+    await expect(quota.precheck(ask('PRO'))).rejects.toThrow('database down');
+  });
+
+  it('reads the clock by default', async () => {
+    const { port, balance } = ledger(5_000_000);
+    const before = Date.now();
+    await quotaPort(
+      { PRO_MONTHLY_UNITS: '5000000' },
+      { ledger: port }
+    ).precheck(ask('PRO'));
+    const nowMs = (balance.mock.calls[0] as unknown as [{ nowMs: number }])[0]
+      .nowMs;
+    expect(nowMs).toBeGreaterThanOrEqual(before);
+    expect(nowMs).toBeLessThanOrEqual(Date.now());
+  });
+
+  it('is not the pass-through any more: with the allowance unset a Pro trader is refused', async () => {
+    const quota = quotaPort({}, { ledger: ledger(5_000_000).port });
+    await expect(quota.precheck(ask('PRO'))).resolves.toEqual({
+      allowed: false,
+    });
   });
 });
 
@@ -282,7 +418,10 @@ describe('gatePorts', () => {
     expect(ports.entitlement).toBe(entitlementPort);
     expect(ports.thread).toBe(threadPort);
     expect(ports.profile).toBe(profilePort);
-    expect(ports.quota).toBe(passThroughQuota);
+    // the quota is the ledger's floor check: with the allowance unset in this environment it refuses
+    await expect(
+      ports.quota.precheck({ userId: 'u3', tier: 'PRO', kind: 'TYPED' })
+    ).resolves.toEqual({ allowed: false });
   });
 });
 

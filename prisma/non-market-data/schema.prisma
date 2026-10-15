@@ -168,6 +168,11 @@ model User {
   chatThreads   ChatThread[]
   requestTraces RequestTrace[]
 
+  // Reply path (build step 7 part 6): the quota ledger is a trader's balance, so it goes with
+  // the account (ON DELETE CASCADE); what was charged stays in request_traces.units_charged.
+  aiQuotaPeriods      AiQuotaPeriod[]
+  aiUsageReservations AiUsageReservation[]
+
   sessions Session[]
 
   createdAt DateTime @default(now())
@@ -1744,4 +1749,77 @@ model ChatMessage {
   @@unique([request_id, role])
   @@index([expires_at])
   @@map("chat_messages")
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// AI METERING: THE QUOTA LEDGER
+// (build step 7 part 6; docs/STACK-D-ARCHITECTURE.md 5.6 and 7.3, ADR-050, ADR-072, ADR-073)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// One unit is one micro-dollar of gateway cost (decision D2: $1.00 is 1,000,000 units), always a
+// whole number. The CHECK constraints (the arithmetic of a period, the shape of each reservation
+// state) and the transition guard are written by hand in the migration
+// 20261014010000_add_ai_metering_tables: Prisma cannot express them, and its diff does not see
+// them. Every write goes through lib/platform/metering/ledger-store.ts (raw SQL: the reservation
+// is ONE atomic statement); nothing else may write these tables.
+
+/// A trader's balance for one UTC calendar month. Created on the first request of the month with
+/// the month's allowance as `limit`. Personal data: it goes with the account.
+model AiQuotaPeriod {
+  id String @id @default(cuid())
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  /// the UTC calendar month, YYYY-MM
+  month    String
+  /// the month's allowance, in units
+  limit    Int
+  /// units charged by settled requests
+  used     Int    @default(0)
+  /// units held by requests in flight (the sum of their RESERVED reservations)
+  reserved Int    @default(0)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  reservations AiUsageReservation[]
+
+  @@unique([user_id, month])
+  /// the target of the reservations' composite key: a reservation and its period are one user's
+  @@unique([id, user_id])
+  @@map("ai_quota_periods")
+}
+
+/// One request's hold on a balance, and what the request finally cost. The request id is the key,
+/// so a retry finds the reservation it already made. RESERVED -> SETTLED | RELEASED | EXPIRED, and
+/// EXPIRED -> SETTLED (a late settlement still charges what was spent).
+model AiUsageReservation {
+  request_id String @id
+
+  user_id String
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  period_id String
+  period    AiQuotaPeriod @relation(fields: [period_id, user_id], references: [id, user_id], onDelete: Cascade)
+
+  /// the worst case that was held
+  reserved_units    Int
+  status            String // RESERVED | SETTLED | RELEASED | EXPIRED
+  /// units charged to the period (the cost, up to what the balance had left); null until settled
+  actual_units      Int?
+  /// what the gateway reported the calls cost, in micro-dollars; null when unknown or not settled
+  cost_micro_usd    Int?
+  model             String?
+  prompt_tokens     Int?
+  completion_tokens Int?
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  /// a RESERVED row past this time is released by the reaper
+  expires_at DateTime
+
+  @@index([period_id])
+  @@index([status, expires_at])
+  @@index([user_id, created_at])
+  @@map("ai_usage_reservations")
 }

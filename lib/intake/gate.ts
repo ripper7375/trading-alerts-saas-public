@@ -5,12 +5,12 @@
  *
  *   1. the feature flag        off: the routes do not exist, for anybody (a 404, not a refusal)
  *   2. the session             NOT_SIGNED_IN
- *   3. the tier                TIER_REQUIRED (`EntitlementPort`; today `canAccessAiAnalyst`)
+ *   3. the tier                TIER_REQUIRED (`EntitlementPort`; the entitlement table of 7.3)
  *   4. the thread              THREAD_INVALID (`ThreadPort`, decision D6 (a): XAUUSD, an optional
  *                              thread id, no table until the chat exists)
  *   5. the profile confirmed   PROFILE_NOT_SET (the six-field projection, never the equity)
- *   6. the quota pre-check     QUOTA_INSUFFICIENT (`QuotaPort`, decision D5 (A): a fake for tests
- *                              and a pass-through default until step 7 meters)
+ *   6. the quota pre-check     QUOTA_INSUFFICIENT (`QuotaPort`; since build step 7 part 6 the floor
+ *                              check of the quota ledger, `lib/reply/meter/quota-port.ts`)
  *
  * The first three need nothing from the request, so the request is read between the third and
  * the fourth: a request that is not signed in, or not Pro, never has its body read. The user and
@@ -62,7 +62,7 @@ export interface SessionPort {
 }
 
 export interface EntitlementPort {
-  /** may a trader of this tier use the AI analyst (chapter 7 swaps in the entitlement table) */
+  /** may a trader of this tier use the AI analyst (the live analyst of the entitlement table, `config/entitlements.ts`) */
   allows(tier: string): boolean | Promise<boolean>;
 }
 
@@ -108,7 +108,8 @@ export interface QuotaVerdict {
 export interface QuotaPort {
   /**
    * Is there balance for a request of this kind? A PRE-check: it reserves and charges nothing.
-   * The units follow the model's actual cost and belong to step 7 (ADR-050, ADR-073).
+   * The units follow the model's actual cost (ADR-050, ADR-073); the hold and the charge are the
+   * meter's (`lib/reply/meter/quota-port.ts`), made around the model calls and not by this gate.
    */
   precheck(request: QuotaRequest): Promise<QuotaVerdict>;
 }

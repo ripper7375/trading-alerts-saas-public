@@ -35,6 +35,11 @@ jest.mock('@/lib/db/market-prisma', () =>
     .requireActual<typeof import('./helpers/mocks')>('./helpers/mocks')
     .marketPrismaModule()
 );
+jest.mock('@/lib/platform/metering/ledger-port', () =>
+  jest
+    .requireActual<typeof import('./helpers/mocks')>('./helpers/mocks')
+    .ledgerPortModule()
+);
 
 import * as instantRoute from '@/app/api/intake/instant/route';
 import * as typedRoute from '@/app/api/intake/route';
@@ -527,6 +532,79 @@ describe('the status order, end to end (404, 401, 403, 409, 429)', () => {
       }
     }
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  describe('the quota is the ledger’s floor check (build step 7 part 6)', () => {
+    it.each(BOTH)(
+      '$name: an empty account is 429 QUOTA_INSUFFICIENT, and no model and no knowledge service was reached',
+      async ({ run }) => {
+        signIn('PRO');
+        state.available = 0;
+        const response = await run();
+        expect(response.status).toBe(429);
+        const body = await bodyOf(response);
+        expect(body.error.code).toBe('QUOTA_INSUFFICIENT');
+        expect(body.refusal).toMatchObject({
+          code: 'QUOTA_INSUFFICIENT',
+          stage: 'GATE',
+        });
+        expect(body.trace.units_charged).toBe(0);
+        // the ledger was asked once, for the allowance of the environment
+        expect(calls.ledgerBalance).toHaveBeenCalledTimes(1);
+        expect(calls.ledgerBalance.mock.calls[0]?.[0]).toMatchObject({
+          allowanceUnits: 5_000_000,
+        });
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(calls.gateway).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each(BOTH)(
+      '$name: with PRO_MONTHLY_UNITS unset every request is refused 429, and the ledger is not read (decision D4: fail closed)',
+      async ({ run }) => {
+        signIn('PRO');
+        delete process.env['PRO_MONTHLY_UNITS'];
+        const response = await run();
+        expect(response.status).toBe(429);
+        expect((await bodyOf(response)).error.code).toBe('QUOTA_INSUFFICIENT');
+        expect(calls.ledgerBalance).not.toHaveBeenCalled();
+        expect(fetchSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    it.each(BOTH)(
+      '$name: a ledger that cannot be read is FEATURE_UNAVAILABLE, never a free pass',
+      async ({ run }) => {
+        signIn('PRO');
+        state.available = 'THROWS';
+        const response = await run();
+        const body = await bodyOf(response);
+        expect(response.status).not.toBe(200);
+        expect(body.error.code).toBe('FEATURE_UNAVAILABLE');
+        expect(body.trace.problems).toEqual(['QUOTA_PORT_ERROR']);
+        expect(JSON.stringify(body)).not.toContain('could not be reached');
+        expect(fetchSpy).not.toHaveBeenCalled();
+      }
+    );
+
+    it('a balance of one unit still passes the floor while nothing is priced', async () => {
+      signIn('PRO');
+      state.available = 1;
+      const response = await instantRoute.POST(
+        post('/api/intake/instant', INSTANT_BODY)
+      );
+      expect(response.status).toBe(200);
+    });
+
+    it.each(BOTH)(
+      '$name: a Free trader is refused at the tier (403) before the ledger is read',
+      async ({ run }) => {
+        signIn('FREE');
+        const response = await run();
+        expect(response.status).toBe(403);
+        expect(calls.ledgerBalance).not.toHaveBeenCalled();
+      }
+    );
   });
 
   it('the trace names the version of the intake rules only for a request that got as far as a packet', async () => {

@@ -1303,6 +1303,33 @@ declare module '@prisma/client' {
     expires_at: Date | string;
   }
 
+  export interface AiQuotaPeriod {
+    id: string;
+    user_id: string;
+    month: string;
+    limit: number;
+    used: number;
+    reserved: number;
+    created_at: Date | string;
+    updated_at: Date | string;
+  }
+
+  export interface AiUsageReservation {
+    request_id: string;
+    user_id: string;
+    period_id: string;
+    reserved_units: number;
+    status: string;
+    actual_units: number | null;
+    cost_micro_usd: number | null;
+    model: string | null;
+    prompt_tokens: number | null;
+    completion_tokens: number | null;
+    created_at: Date | string;
+    updated_at: Date | string;
+    expires_at: Date | string;
+  }
+
   // ============================================================
   // PRISMA NAMESPACE
   // ============================================================
@@ -1579,6 +1606,8 @@ declare module '@prisma/client' {
     requestTrace: ModelDelegate<RequestTrace>;
     chatThread: ModelDelegate<ChatThread>;
     chatMessage: ModelDelegate<ChatMessage>;
+    aiQuotaPeriod: ModelDelegate<AiQuotaPeriod>;
+    aiUsageReservation: ModelDelegate<AiUsageReservation>;
   }
 }
 

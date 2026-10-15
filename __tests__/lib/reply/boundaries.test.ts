@@ -98,6 +98,14 @@ const PLATFORM_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
     '@/lib/reply/contracts/result',
     '@/lib/reply/contracts/trace-fields',
   ],
+  // the entitlement table (build step 7 part 6): its one data file, and nothing else from outside
+  'entitlements.ts': ['@/config/entitlements'],
+  // the quota ledger (part 6): the store and the reaper touch the database; the port is the meter's
+  // interface in the platform's hands (its types are the one thing it takes from lib/reply)
+  'metering/ledger-port.ts': ['@/lib/reply/meter/quota-port'],
+  'metering/ledger-store.ts': ['@/lib/db/prisma'],
+  'metering/period.ts': [],
+  'metering/reaper.ts': ['@/lib/db/prisma'],
   'chat/messages-store.ts': ['@/lib/db/prisma', '@/lib/reply/contracts/intake'],
   'chat/threads-store.ts': ['@/lib/db/prisma', '@/lib/reply/contracts/intake'],
   'chat/title.ts': [
@@ -117,9 +125,13 @@ const PLATFORM_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
 /**
  * Files outside both trees that may import them. Build step 7 part 3: the Understand adapter of the
  * intake path is now a thin wrapper over the gateway's Understand adapter, so it imports ONE module
- * of `lib/reply` (`__tests__/lib/intake/boundaries.test.ts` holds it to that one).
+ * of `lib/reply` (`__tests__/lib/intake/boundaries.test.ts` holds it to that one). Part 6: the
+ * gate's adapters (`lib/intake/server/access.ts`) read the entitlement table and build the quota
+ * port, so they import the platform's entitlement reader and ledger port and the meter.
  */
 const ALLOWED_IMPORTERS: readonly string[] = [
+  // the gate's real edges (build step 7 part 6): the entitlement table, the quota ledger's port and the meter
+  'lib/intake/server/access.ts',
   'lib/intake/text/understand-model.ts',
 ];
 
@@ -327,7 +339,7 @@ const PLATFORM: Tree = {
 describe('lib/reply', () => {
   const sources = load(REPLY_DIR);
 
-  it('has the files of parts 1 to 5', () => {
+  it('has the files of parts 1 to 6', () => {
     expect([...sources.keys()]).toEqual([
       'checks/extract.ts',
       'checks/matcher.ts',
@@ -368,6 +380,10 @@ describe('lib/reply', () => {
       'gateway/types.ts',
       'gateway/understand-adapter.ts',
       'gateway/usage.ts',
+      'meter/estimate.ts',
+      'meter/quota-port.ts',
+      'meter/reserve-plan.ts',
+      'meter/units.ts',
       'read/chart.ts',
       'read/day-bars.ts',
       'read/snapshot-at.ts',
@@ -477,12 +493,17 @@ describe('lib/reply', () => {
 describe('lib/platform', () => {
   const sources = load(PLATFORM_DIR);
 
-  it('has the files of part 1', () => {
+  it('has the files of parts 1 and 6', () => {
     expect([...sources.keys()]).toEqual([
       'chat/messages-store.ts',
       'chat/threads-store.ts',
       'chat/title.ts',
       'delivered.ts',
+      'entitlements.ts',
+      'metering/ledger-port.ts',
+      'metering/ledger-store.ts',
+      'metering/period.ts',
+      'metering/reaper.ts',
       'traces/hash.ts',
       'traces/retention.ts',
       'traces/store.ts',
@@ -809,6 +830,82 @@ describe('the guard', () => {
           "import { x } from '../../intake/check';\nexport const a = x;",
       }).length
     ).toBeGreaterThan(0);
+  });
+
+  it('lets the metering files import what is named for them and nothing else (build step 7 part 6)', () => {
+    const prisma =
+      "import { prisma } from '@/lib/db/prisma';\nexport const a = prisma;";
+    expect(rules(PLATFORM, { 'metering/ledger-store.ts': prisma })).toEqual([]);
+    expect(rules(PLATFORM, { 'metering/reaper.ts': prisma })).toEqual([]);
+    expect(
+      rules(PLATFORM, { 'metering/period.ts': prisma }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules(PLATFORM, { 'metering/ledger-port.ts': prisma }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules(PLATFORM, {
+        'metering/ledger-port.ts':
+          "import type { LedgerPort } from '@/lib/reply/meter/quota-port';\nexport type A = LedgerPort;",
+      })
+    ).toEqual([]);
+    // the port takes the meter's types and nothing else of lib/reply
+    expect(
+      rules(PLATFORM, {
+        'metering/ledger-port.ts':
+          "import { x } from '@/lib/reply/meter/units';\nexport const a = x;",
+      }).length
+    ).toBeGreaterThan(0);
+    // the table is read through its own config file only
+    expect(
+      rules(PLATFORM, {
+        'entitlements.ts':
+          "import { ENTITLEMENTS } from '@/config/entitlements';\nexport const a = ENTITLEMENTS;",
+      })
+    ).toEqual([]);
+    expect(
+      rules(PLATFORM, {
+        'entitlements.ts':
+          "import { AI_MODELS } from '@/config/ai-models';\nexport const a = AI_MODELS;",
+      }).length
+    ).toBeGreaterThan(0);
+    // the ledger reads no clock: the time is an argument
+    for (const file of [
+      'metering/ledger-store.ts',
+      'metering/reaper.ts',
+      'metering/period.ts',
+      'metering/ledger-port.ts',
+      'entitlements.ts',
+    ]) {
+      expect(
+        rules(PLATFORM, { [file]: 'export const a = Date.now();' }).length
+      ).toBeGreaterThan(0);
+      expect(
+        rules(PLATFORM, { [file]: 'export const a = new Date();' }).length
+      ).toBeGreaterThan(0);
+    }
+  });
+
+  it('keeps the meter pure: no outside module, no platform, no clock, no network (build step 7 part 6)', () => {
+    for (const file of [
+      'meter/units.ts',
+      'meter/estimate.ts',
+      'meter/reserve-plan.ts',
+      'meter/quota-port.ts',
+    ]) {
+      for (const body of [
+        "import { prisma } from '@/lib/db/prisma';\nexport const a = prisma;",
+        "import { x } from '@/lib/platform/metering/ledger-store';\nexport const a = x;",
+        "import { x } from '@/config/entitlements';\nexport const a = x;",
+        'export const a = Date.now();',
+        'export const a = new Date();',
+        "export const a = fetch('u');",
+        'export const a = process.env.PRO_MONTHLY_UNITS;',
+        'export const a = Math.random();',
+      ]) {
+        expect(rules(REPLY, { [file]: body }).length).toBeGreaterThan(0);
+      }
+    }
   });
 
   it('lets exactly one platform file read the clock, and only for its default `now`', () => {

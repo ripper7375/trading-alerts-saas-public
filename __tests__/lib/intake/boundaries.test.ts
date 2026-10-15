@@ -59,10 +59,17 @@ const OUTSIDE_IMPORTS: Readonly<Record<string, readonly string[]>> = {
     '@/lib/db/market-prisma',
   ],
   // the route layer (part 5)
+  // build step 7 part 6: the entitlement table's reader replaces the tier helper, and the quota
+  // port is the meter over the ledger's port (its registry is read for the floor's prices)
   'server/access.ts': [
     '@/lib/auth/session',
     '@/lib/i18n/server-locale',
-    '@/lib/tier-validation',
+    '@/lib/platform/entitlements',
+    '@/lib/platform/metering/ledger-port',
+    '@/lib/reply/gateway/registry',
+    '@/lib/reply/meter/estimate',
+    '@/lib/reply/meter/quota-port',
+    '@/lib/reply/meter/units',
   ],
   'server/reply.ts': ['@/lib/i18n/get-dictionary'],
   'server/respond.ts': ['crypto'],

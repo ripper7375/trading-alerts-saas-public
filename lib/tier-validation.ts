@@ -10,12 +10,13 @@
  *   until the Part 10 purge removes their last consumers.
  */
 
+import { entitlementOf } from '@/config/entitlements';
+
 import {
   SYMBOLS,
   TIMEFRAMES,
   FREE_TIER_CONFIG,
   PRO_TIER_CONFIG,
-  canAccessAiAnalyst as sharedCanAccessAiAnalyst,
   canAccessMarketComments as sharedCanAccessMarketComments,
   type Tier,
 } from './tier-config';
@@ -220,12 +221,14 @@ export function canCreateAlert(
 
 /**
  * Whether a tier may use the Stack D conversational AI analyst (Phase 12).
- * Delegates to `@trading-alerts/types/tier`'s canonical entitlement (via
- * `lib/tier-config.ts`) and wraps it in this file's own `ValidationResult`
- * shape, matching `canCreateAlert`'s convention.
+ * Reads the entitlement table (`config/entitlements.ts`, architecture 7.3,
+ * ADR-074): the live analyst is the `MONTHLY_UNITS` value of
+ * `ai_chat_and_report1`; the Free tier's `RECORDED_DEMO` is not the analyst.
+ * Wraps the answer in this file's own `ValidationResult` shape, matching
+ * `canCreateAlert`'s convention.
  */
 export function canAccessAiAnalyst(tier: Tier): ValidationResult {
-  if (sharedCanAccessAiAnalyst(tier)) {
+  if (entitlementOf('ai_chat_and_report1', tier) === 'MONTHLY_UNITS') {
     return { allowed: true };
   }
 

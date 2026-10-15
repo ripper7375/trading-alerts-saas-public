@@ -11,14 +11,18 @@
  *    reads (part 10); it is not a second lock on the route;
  *  - the SESSION is the server's session and the only source of the user id and the tier. An
  *    unknown or missing tier is Free: access is never granted by a gap (the Engine 4 rule);
- *  - the TIER is `canAccessAiAnalyst`, the same helper Engine 4 uses; chapter 7's entitlement
- *    table replaces it behind the same port;
+ *  - the TIER is the entitlement table (`config/entitlements.ts`, architecture 7.3, ADR-074),
+ *    read through `lib/platform/entitlements.ts`: the live analyst is the `MONTHLY_UNITS` value of
+ *    `ai_chat_and_report1`, which only Pro has (the Free tier's recorded demo is not the analyst);
  *  - the THREAD (decision D6 (a)): the request is for XAUUSD and may carry a thread id. No chat
  *    store exists, so the adapter checks that an id is well formed and nothing more; no table;
  *  - the PROFILE is `readProfileProjection`: six of the eight metrics, never the equity or the
  *    commission;
- *  - the QUOTA (decision D5 (A)) is "not metered, allow": there are no units to count until step
- *    7. The runbook forbids turning `INTAKE_ENABLED` on in production before step 7 meters;
+ *  - the QUOTA (build step 7 part 6; decisions D2, D3, D4) is the floor check of the quota ledger
+ *    (`lib/reply/meter/quota-port.ts`): enough balance for the smallest possible request, or the
+ *    request is refused before the Understand call is paid for. The allowance is
+ *    `PRO_MONTHLY_UNITS`; while it is unset the port refuses everything (fail closed), and the
+ *    Free tier has no allowance. It replaces the pass-through of step 6;
  *  - the INTERFACE LOCALE is the language cookie the app already sets, read on the server. A
  *    request body never names a language;
  *  - the REPLIES are the `intake.refusal.*` keys of the dictionaries (part 3), in the locale of
@@ -31,7 +35,17 @@
 
 import { getSession } from '@/lib/auth/session';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
-import { canAccessAiAnalyst } from '@/lib/tier-validation';
+import { canUseAiChat, quotaModeOf } from '@/lib/platform/entitlements';
+import { createLedgerPort } from '@/lib/platform/metering/ledger-port';
+import {
+  disabledModelsFromEnv,
+  findModel,
+  pickerModels,
+  planLaunch,
+} from '@/lib/reply/gateway/registry';
+import { floorUnits } from '@/lib/reply/meter/estimate';
+import { createQuotaPort, type LedgerPort } from '@/lib/reply/meter/quota-port';
+import { proMonthlyUnitsFromEnv } from '@/lib/reply/meter/units';
 
 import type {
   EntitlementPort,
@@ -78,7 +92,7 @@ export function sessionPort(read: SessionSource = getSession): SessionPort {
 }
 
 export const entitlementPort: EntitlementPort = {
-  allows: (tier) => canAccessAiAnalyst(tier === 'PRO' ? 'PRO' : 'FREE').allowed,
+  allows: (tier) => canUseAiChat(tier),
 };
 
 /** No chat store exists yet (decision D6 (a)): an id is accepted when it is well formed. */
@@ -94,12 +108,42 @@ export const profilePort: ProfilePort = {
   read: (userId) => readProfileProjection(userId),
 };
 
-/** Not metered until step 7 (decision D5 (A)). */
-export const passThroughQuota: QuotaPort = {
-  async precheck() {
-    return { allowed: true };
-  },
-};
+/**
+ * The quota: the floor check over the quota ledger (build step 7 part 6). The allowance of a tier
+ * with the live analyst is `PRO_MONTHLY_UNITS`, and while that is unset the port refuses every
+ * request (decision D4). The floor is the cheapest reservation any request could make, from the
+ * registry's dated prices; while nothing is priced it is one unit, so an empty account is refused
+ * all the same. The ledger is read when a request arrives, never when the port is made.
+ */
+export function quotaPort(
+  env: Env = process.env,
+  options: { ledger?: LedgerPort; now?: () => number } = {}
+): QuotaPort {
+  const units = proMonthlyUnitsFromEnv(env);
+  const disabled = disabledModelsFromEnv(env);
+  const understandSlug = env['INTAKE_UNDERSTAND_MODEL'];
+  return createQuotaPort({
+    ledger: options.ledger ?? createLedgerPort(),
+    now: options.now ?? (() => Date.now()),
+    allowanceOf: (tier) => (quotaModeOf(tier) === 'MONTHLY_UNITS' ? units : 0),
+    floorOf: (kind) => {
+      const launch = planLaunch(disabled);
+      const answerModels = [
+        ...pickerModels('PRO', disabled),
+        ...(launch.primary === null ? [] : [launch.primary]),
+        ...(launch.fallback === null ? [] : [launch.fallback]),
+      ];
+      return floorUnits({
+        kind,
+        understandModel:
+          typeof understandSlug === 'string'
+            ? (findModel(understandSlug) ?? null)
+            : null,
+        answerModels,
+      });
+    },
+  });
+}
 
 export function gatePorts(
   env: Env = process.env,
@@ -111,7 +155,7 @@ export function gatePorts(
     entitlement: entitlementPort,
     thread: threadPort,
     profile: profilePort,
-    quota: passThroughQuota,
+    quota: quotaPort(env),
   };
 }
 

@@ -31,13 +31,20 @@ export const calls = {
   readProfile: jest.fn(),
   gateway: jest.fn(),
   database: jest.fn(),
+  /** the quota ledger's balance read (build step 7 part 6): the one edge the quota port uses */
+  ledgerBalance: jest.fn(),
 };
+
+/** The units a trader has left this month, as the quota ledger reports them. */
+export const FULL_BALANCE = 5_000_000;
 
 export interface State {
   world: World;
   gateway: GatewayStatus | 'THROWS';
   locale: string;
   profile: Record<string, string> | null;
+  /** the units available to the trader; `'THROWS'` makes the ledger fail */
+  available: number | 'THROWS';
 }
 
 export const state: State = {
@@ -45,6 +52,7 @@ export const state: State = {
   gateway: 'FRESH',
   locale: 'en-US',
   profile: null,
+  available: FULL_BALANCE,
 };
 
 /** The stored profile of a trader, all eight metrics, as the profile store keeps it. */
@@ -78,6 +86,7 @@ export function resetAll(): void {
   state.gateway = 'FRESH';
   state.locale = 'en-US';
   state.profile = { ...STORED_PROFILE };
+  state.available = FULL_BALANCE;
   signOut();
   calls.locale.mockImplementation(async () => state.locale);
   calls.readProfile.mockImplementation(async () =>
@@ -108,6 +117,39 @@ export function profileStoreModule(): Record<string, unknown> {
   return {
     StoredProfileError,
     readProfile: (...args: unknown[]) => calls.readProfile(...args),
+  };
+}
+
+/**
+ * The quota ledger's port. The real one reads PostgreSQL; here it answers from `state.available`.
+ * Only the read of the balance is used by the gate (the hold and the charge are the meter's,
+ * made around the model calls by the orchestrator of part 7).
+ */
+export function ledgerPortModule(): Record<string, unknown> {
+  return {
+    createLedgerPort: () => ({
+      balance: async (query: { allowanceUnits: number }) => {
+        calls.ledgerBalance(query);
+        if (state.available === 'THROWS') {
+          throw new Error('the ledger could not be reached');
+        }
+        return {
+          limit: query.allowanceUnits,
+          used: Math.max(query.allowanceUnits - state.available, 0),
+          reserved: 0,
+          available: state.available,
+        };
+      },
+      reserve: async () => {
+        throw new Error('the gate reserves nothing');
+      },
+      settle: async () => {
+        throw new Error('the gate settles nothing');
+      },
+      release: async () => {
+        throw new Error('the gate releases nothing');
+      },
+    }),
   };
 }
 
@@ -159,6 +201,8 @@ export const MODEL_NAME = 'test-vendor/test-model';
 
 export const ENV = {
   INTAKE_ENABLED: 'true',
+  // the Pro allowance in units (decision D4): without it the quota port refuses every request
+  PRO_MONTHLY_UNITS: String(FULL_BALANCE),
   KNOWLEDGE_SERVICE_URL: KNOWLEDGE_URL,
   KNOWLEDGE_SERVICE_KEY: KNOWLEDGE_KEY,
   INTAKE_UNDERSTAND_API_KEY: MODEL_KEY,

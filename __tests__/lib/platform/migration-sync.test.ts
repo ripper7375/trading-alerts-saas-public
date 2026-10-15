@@ -739,13 +739,19 @@ describe('the guard on request_traces', () => {
 });
 
 describe('the migration file', () => {
-  test('sorts after every earlier migration and is the newest', () => {
+  test('sorts after every earlier migration, and none sorts between it and the next part’s', () => {
     const names = readdirSync(resolve(ROOT, 'prisma', 'migrations')).filter(
       (name) => /^\d{14}_/.test(name)
     );
     expect(names).toContain(MIGRATION_NAME);
     expect(MIGRATION_NAME > '20261010000000_add_engine4_tables').toBe(true);
-    expect(names.sort().pop()).toBe(MIGRATION_NAME);
+    // later parts add migrations after it (part 6: 20261014010000_add_ai_metering_tables)
+    expect(
+      names
+        .filter((name) => name <= MIGRATION_NAME)
+        .sort()
+        .pop()
+    ).toBe(MIGRATION_NAME);
   });
 
   test('is additive: it creates and constrains, and drops or alters nothing that exists', () => {
