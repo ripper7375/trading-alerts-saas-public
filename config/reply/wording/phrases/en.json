@@ -1,0 +1,212 @@
+{
+  "schema": "wording-phrases/1",
+  "language": "en",
+  "default_mode": "word",
+  "not_verified": "—, not verified",
+  "categories": {
+    "ADVICE": {
+      "recommend": ["recommend*"],
+      "advise": ["advice", "advise*", "advisable"],
+      "should_act": [
+        "you should buy",
+        "you should sell",
+        "you should enter",
+        "you should go long",
+        "you should go short",
+        "should buy",
+        "should sell",
+        "must buy",
+        "must sell",
+        "need to buy",
+        "need to sell"
+      ],
+      "suggest_trade": [
+        "suggest buying",
+        "suggest selling",
+        "consider buying",
+        "consider selling",
+        "best to buy",
+        "best to sell",
+        "good time to buy",
+        "good time to sell",
+        "time to buy",
+        "time to sell"
+      ]
+    },
+    "PROBABILITY": {
+      "chance": [
+        "probability",
+        "probabilities",
+        "chance of",
+        "chances of",
+        "odds"
+      ],
+      "likely": [
+        "likel*",
+        "unlikel*",
+        "probably",
+        "most probable",
+        "highly probable",
+        "improbable"
+      ],
+      "grade": [
+        "grade",
+        "grades",
+        "graded",
+        "a+ setup",
+        "a+ trade",
+        "a+ signal"
+      ],
+      "conviction": [
+        "conviction*",
+        "high confidence",
+        "confidence level",
+        "confident",
+        "i am sure",
+        "we are sure"
+      ]
+    },
+    "GUARANTEE": {
+      "guaranteed": ["guarantee*"],
+      "accurate": [
+        "100% accurate",
+        "100 percent accurate",
+        "100% reliable",
+        "always right",
+        "never wrong",
+        "infallible",
+        "foolproof",
+        "sure thing"
+      ],
+      "risk_free": [
+        "risk free",
+        "riskless",
+        "no risk",
+        "zero risk",
+        "without risk",
+        "cannot lose",
+        "cant lose",
+        "safe bet",
+        "sure profit"
+      ],
+      "error_free": [
+        "hallucination free",
+        "no hallucination*",
+        "error free",
+        "never makes mistakes",
+        "flawless"
+      ]
+    },
+    "URGENCY": {
+      "act_now": [
+        "act now",
+        "act fast",
+        "act quickly",
+        "hurry",
+        "buy now",
+        "sell now",
+        "enter now",
+        "trade now"
+      ],
+      "dont_miss": ["dont miss", "do not miss", "miss out", "missing out"],
+      "last_chance": [
+        "last chance",
+        "now or never",
+        "before its too late",
+        "before it is too late",
+        "limited time",
+        "once in a lifetime"
+      ]
+    },
+    "UNLISTED_NEWS": {
+      "breaking": [
+        "breaking news",
+        "news flash",
+        "flash news",
+        "just announced",
+        "just broke",
+        "news just"
+      ],
+      "reports_say": [
+        "reports say",
+        "reports suggest",
+        "according to reports",
+        "according to sources",
+        "according to media",
+        "sources say",
+        "it is reported that",
+        "it was reported",
+        "media reports",
+        "press reports"
+      ],
+      "rumour": [
+        "rumor*",
+        "rumour*",
+        "speculation that",
+        "insider*",
+        "word on the street",
+        "unconfirmed reports"
+      ]
+    }
+  },
+  "direction": {
+    "long": {
+      "stance": [
+        "go long",
+        "going long",
+        "goes long",
+        "enter long",
+        "entering long",
+        "open a long",
+        "buy here",
+        "buy the dip",
+        "buy this dip",
+        "buy the breakout",
+        "start buying"
+      ],
+      "label": [
+        "long position",
+        "long setup",
+        "long bias",
+        "long trade",
+        "long entry",
+        "long side",
+        "buy setup",
+        "buy signal",
+        "buy bias",
+        "buy entry",
+        "buy side"
+      ],
+      "view": ["bullish*"]
+    },
+    "short": {
+      "stance": [
+        "go short",
+        "going short",
+        "goes short",
+        "enter short",
+        "entering short",
+        "open a short",
+        "sell here",
+        "sell the rally",
+        "sell this rally",
+        "sell the breakdown",
+        "start selling"
+      ],
+      "label": [
+        "short position",
+        "short setup",
+        "short bias",
+        "short trade",
+        "short entry",
+        "short side",
+        "sell setup",
+        "sell signal",
+        "sell bias",
+        "sell entry",
+        "sell side"
+      ],
+      "view": ["bearish*"]
+    }
+  }
+}

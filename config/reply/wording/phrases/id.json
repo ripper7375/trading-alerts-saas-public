@@ -1,0 +1,222 @@
+{
+  "schema": "wording-phrases/1",
+  "language": "id",
+  "default_mode": "word",
+  "not_verified": "—, belum diverifikasi",
+  "categories": {
+    "ADVICE": {
+      "recommend": [
+        "rekomendasi",
+        "merekomendasikan",
+        "kami rekomendasikan",
+        "saya rekomendasikan",
+        "direkomendasikan"
+      ],
+      "advise": [
+        "saran",
+        "menyarankan",
+        "kami sarankan",
+        "saya sarankan",
+        "nasihat",
+        "menasihati"
+      ],
+      "should_act": [
+        "anda sebaiknya membeli",
+        "anda sebaiknya menjual",
+        "sebaiknya beli",
+        "sebaiknya jual",
+        "anda harus membeli",
+        "anda harus menjual",
+        "harus beli",
+        "harus jual",
+        "kamu harus beli",
+        "kamu harus jual"
+      ],
+      "suggest_trade": [
+        "saya sarankan beli",
+        "saya sarankan jual",
+        "pertimbangkan membeli",
+        "pertimbangkan menjual",
+        "pertimbangkan untuk membeli",
+        "pertimbangkan untuk menjual",
+        "saat yang tepat untuk membeli",
+        "saat yang tepat untuk menjual",
+        "waktunya beli",
+        "waktunya jual"
+      ]
+    },
+    "PROBABILITY": {
+      "chance": ["probabilitas", "peluang sebesar", "persentase peluang"],
+      "likely": [
+        "kemungkinan besar",
+        "sangat mungkin",
+        "sangat berpeluang",
+        "hampir pasti",
+        "tidak mungkin",
+        "kecil kemungkinan",
+        "besar kemungkinan"
+      ],
+      "grade": [
+        "grade a",
+        "grade s",
+        "grade b",
+        "peringkat a",
+        "peringkat s",
+        "nilai a",
+        "setup a+"
+      ],
+      "conviction": [
+        "keyakinan tinggi",
+        "tingkat keyakinan",
+        "sangat yakin",
+        "saya yakin",
+        "kami yakin"
+      ]
+    },
+    "GUARANTEE": {
+      "guaranteed": [
+        "garansi",
+        "dijamin",
+        "menjamin",
+        "jaminan",
+        "pasti untung",
+        "pasti profit"
+      ],
+      "accurate": [
+        "100% akurat",
+        "100 persen akurat",
+        "akurat 100",
+        "tidak pernah salah",
+        "selalu benar",
+        "mustahil salah",
+        "tanpa cela"
+      ],
+      "risk_free": [
+        "tanpa risiko",
+        "bebas risiko",
+        "tidak ada risiko",
+        "nol risiko",
+        "risiko nol",
+        "tidak mungkin rugi",
+        "tidak akan rugi",
+        "untung pasti"
+      ],
+      "error_free": [
+        "bebas halusinasi",
+        "tanpa halusinasi",
+        "tidak ada halusinasi",
+        "bebas kesalahan",
+        "tanpa kesalahan",
+        "tanpa error",
+        "bebas error"
+      ]
+    },
+    "URGENCY": {
+      "act_now": [
+        "bertindak sekarang",
+        "bertindaklah sekarang",
+        "beli sekarang",
+        "jual sekarang",
+        "masuk sekarang",
+        "segera beli",
+        "segera jual",
+        "cepat beli",
+        "cepat jual"
+      ],
+      "dont_miss": [
+        "jangan lewatkan",
+        "jangan sampai terlewat",
+        "jangan sampai ketinggalan",
+        "jangan ketinggalan"
+      ],
+      "last_chance": [
+        "kesempatan terakhir",
+        "sekarang atau tidak sama sekali",
+        "sebelum terlambat",
+        "waktu terbatas",
+        "kesempatan langka"
+      ]
+    },
+    "UNLISTED_NEWS": {
+      "breaking": [
+        "berita terbaru",
+        "berita utama",
+        "breaking news",
+        "baru saja diumumkan",
+        "baru saja mengumumkan",
+        "kabar mendadak"
+      ],
+      "reports_say": [
+        "menurut laporan",
+        "menurut sumber",
+        "menurut media",
+        "berdasarkan laporan",
+        "sumber mengatakan",
+        "dilaporkan bahwa",
+        "dikabarkan bahwa"
+      ],
+      "rumour": [
+        "rumor",
+        "desas-desus",
+        "isu bahwa",
+        "spekulasi bahwa",
+        "orang dalam",
+        "informasi orang dalam",
+        "kabar yang belum dikonfirmasi",
+        "belum terkonfirmasi"
+      ]
+    }
+  },
+  "direction": {
+    "long": {
+      "stance": [
+        "masuk long",
+        "buka posisi long",
+        "buka posisi beli",
+        "beli di sini",
+        "beli saat koreksi",
+        "beli di area ini",
+        "ambil posisi long",
+        "masuk beli"
+      ],
+      "label": [
+        "posisi long",
+        "posisi beli",
+        "setup long",
+        "setup beli",
+        "bias long",
+        "bias beli",
+        "sinyal beli",
+        "sinyal long",
+        "sisi beli",
+        "skenario beli"
+      ],
+      "view": ["bullish*", "sentimen optimis"]
+    },
+    "short": {
+      "stance": [
+        "masuk short",
+        "buka posisi short",
+        "buka posisi jual",
+        "jual di sini",
+        "jual saat rebound",
+        "jual di area ini",
+        "ambil posisi short",
+        "masuk jual"
+      ],
+      "label": [
+        "posisi short",
+        "posisi jual",
+        "setup short",
+        "setup jual",
+        "bias short",
+        "bias jual",
+        "sinyal jual",
+        "sinyal short",
+        "sisi jual",
+        "skenario jual"
+      ],
+      "view": ["bearish*", "sentimen pesimis"]
+    }
+  }
+}

@@ -46,6 +46,27 @@ const REPLY_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
     '@/lib/intake/slots',
   ],
   'context/caps.ts': ['@/config/reply/context-caps.v1.json'],
+  // the wording lists (build step 7 part 4): the categories and one file per language, and nothing else from outside
+  'checks/wording-lists.ts': [
+    '@/config/reply/wording/categories.json',
+    '@/config/reply/wording/phrases/ar.json',
+    '@/config/reply/wording/phrases/de.json',
+    '@/config/reply/wording/phrases/en.json',
+    '@/config/reply/wording/phrases/es.json',
+    '@/config/reply/wording/phrases/fr.json',
+    '@/config/reply/wording/phrases/hi.json',
+    '@/config/reply/wording/phrases/id.json',
+    '@/config/reply/wording/phrases/it.json',
+    '@/config/reply/wording/phrases/ja.json',
+    '@/config/reply/wording/phrases/ko.json',
+    '@/config/reply/wording/phrases/pt.json',
+    '@/config/reply/wording/phrases/th.json',
+    '@/config/reply/wording/phrases/tr.json',
+    '@/config/reply/wording/phrases/ur.json',
+    '@/config/reply/wording/phrases/vi.json',
+    '@/config/reply/wording/phrases/zh.json',
+    '@/config/reply/wording/phrases/zh-TW.json',
+  ],
   // the model gateway (build step 7 part 3): the registry table, and nothing else from outside
   'gateway/registry.ts': ['@/config/ai-models'],
   'gateway/types.ts': ['@/config/ai-models'],
@@ -291,8 +312,15 @@ const PLATFORM: Tree = {
 describe('lib/reply', () => {
   const sources = load(REPLY_DIR);
 
-  it('has the files of parts 1 to 3', () => {
+  it('has the files of parts 1 to 4', () => {
     expect([...sources.keys()]).toEqual([
+      'checks/extract.ts',
+      'checks/matcher.ts',
+      'checks/number-check.ts',
+      'checks/report.ts',
+      'checks/value-dictionary.ts',
+      'checks/wording-check.ts',
+      'checks/wording-lists.ts',
       'context/assemble.ts',
       'context/budget.ts',
       'context/caps.ts',

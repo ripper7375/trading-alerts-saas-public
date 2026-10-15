@@ -1,0 +1,126 @@
+{
+  "schema": "wording-categories/1",
+  "version": "wording.v1",
+  "glossary_version": "1.0.0-draft",
+  "modes": {
+    "word": "the phrase must be bounded by a non-letter on both sides",
+    "prefix": "bounded on the left only; any ending may follow (written with a trailing star in the phrase files)",
+    "substring": "anywhere in the text (written with a star at both ends; the default of the languages without spaces)"
+  },
+  "categories": [
+    {
+      "id": "ADVICE",
+      "never": "Advice, \"we recommend you buy\" (architecture 5.9)",
+      "concepts": [
+        {
+          "id": "recommend",
+          "gloss": "we recommend / I recommend / a recommendation"
+        },
+        { "id": "advise", "gloss": "advice / I advise / my advice" },
+        {
+          "id": "should_act",
+          "gloss": "you should buy, sell or enter; you must buy or sell"
+        },
+        {
+          "id": "suggest_trade",
+          "gloss": "I suggest buying or selling; consider buying; time to buy"
+        }
+      ]
+    },
+    {
+      "id": "PROBABILITY",
+      "never": "Unmeasured probabilities or grades: \"82%\", \"GRADE S\", \"high-conviction\"",
+      "concepts": [
+        { "id": "chance", "gloss": "probability, chance of, odds" },
+        {
+          "id": "likely",
+          "gloss": "likely, unlikely, probably, most probable"
+        },
+        { "id": "grade", "gloss": "grade A or S, an A+ setup, a rated setup" },
+        {
+          "id": "conviction",
+          "gloss": "conviction, high confidence, I am confident"
+        }
+      ]
+    },
+    {
+      "id": "GUARANTEE",
+      "never": "\"Guaranteed\", \"100% accurate\", \"hallucination-free\", \"risk-free\"",
+      "concepts": [
+        { "id": "guaranteed", "gloss": "guarantee, guaranteed" },
+        {
+          "id": "accurate",
+          "gloss": "100% accurate, never wrong, always right, infallible"
+        },
+        {
+          "id": "risk_free",
+          "gloss": "risk-free, no risk, zero risk, cannot lose"
+        },
+        {
+          "id": "error_free",
+          "gloss": "hallucination-free, error-free, no mistakes"
+        }
+      ]
+    },
+    {
+      "id": "URGENCY",
+      "never": "Urgency: \"act now\", \"don't miss\"",
+      "concepts": [
+        { "id": "act_now", "gloss": "act now, hurry, buy now, sell now" },
+        { "id": "dont_miss", "gloss": "don't miss, do not miss, miss out" },
+        {
+          "id": "last_chance",
+          "gloss": "last chance, now or never, before it is too late"
+        }
+      ]
+    },
+    {
+      "id": "UNLISTED_NEWS",
+      "never": "News that is not in the events feed",
+      "concepts": [
+        { "id": "breaking", "gloss": "breaking news, just announced" },
+        {
+          "id": "reports_say",
+          "gloss": "reports say, according to sources, it is reported that"
+        },
+        {
+          "id": "rumour",
+          "gloss": "rumours, speculation, an insider, unconfirmed reports"
+        }
+      ]
+    }
+  ],
+  "direction": {
+    "sides": ["long", "short"],
+    "tiers": [
+      {
+        "id": "stance",
+        "gloss": "an instruction to take the side: go long, enter short, sell the rally, buy here"
+      },
+      {
+        "id": "label",
+        "gloss": "the side as a noun: a long setup, a short bias, a buy signal, a sell position"
+      },
+      { "id": "view", "gloss": "the adjective: bullish, bearish" }
+    ]
+  },
+  "languages": [
+    { "language": "en", "locales": ["en-US", "en-GB"] },
+    { "language": "es", "locales": ["es"] },
+    { "language": "de", "locales": ["de"] },
+    { "language": "pt", "locales": ["pt", "pt-BR"] },
+    { "language": "it", "locales": ["it"] },
+    { "language": "ja", "locales": ["ja"] },
+    { "language": "ar", "locales": ["ar"] },
+    { "language": "fr", "locales": ["fr"] },
+    { "language": "ko", "locales": ["ko"] },
+    { "language": "zh", "locales": ["zh"] },
+    { "language": "zh-TW", "locales": ["zh-TW"] },
+    { "language": "ur", "locales": ["ur"] },
+    { "language": "hi", "locales": ["hi"] },
+    { "language": "vi", "locales": ["vi"] },
+    { "language": "id", "locales": ["id"] },
+    { "language": "th", "locales": ["th"] },
+    { "language": "tr", "locales": ["tr"] }
+  ]
+}

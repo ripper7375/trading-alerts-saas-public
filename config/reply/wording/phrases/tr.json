@@ -1,0 +1,214 @@
+{
+  "schema": "wording-phrases/1",
+  "language": "tr",
+  "default_mode": "word",
+  "not_verified": "—, doğrulanmadı",
+  "categories": {
+    "ADVICE": {
+      "recommend": [
+        "tavsiye*",
+        "öneriyoruz",
+        "öneriyorum",
+        "öneririm",
+        "öneririz",
+        "tavsiye ederim",
+        "tavsiye ederiz"
+      ],
+      "advise": ["nasihat*", "danışmanlık", "yatırım tavsiyesi"],
+      "should_act": [
+        "almalısınız",
+        "satmalısınız",
+        "almalısın",
+        "satmalısın",
+        "satın almalısınız",
+        "mutlaka almalı",
+        "mutlaka satmalı",
+        "hemen alın",
+        "hemen satın"
+      ],
+      "suggest_trade": [
+        "almayı düşünün",
+        "satmayı düşünün",
+        "almayı öneririm",
+        "satmayı öneririm",
+        "almak için iyi bir zaman",
+        "satmak için iyi bir zaman",
+        "alım zamanı",
+        "satım zamanı"
+      ]
+    },
+    "PROBABILITY": {
+      "chance": [
+        "olasılık*",
+        "olasılığ*",
+        "ihtimal*",
+        "şansı",
+        "şans oranı",
+        "yüzde şans"
+      ],
+      "likely": [
+        "muhtemelen",
+        "büyük ihtimalle",
+        "çok olası",
+        "yüksek ihtimalle",
+        "olası değil",
+        "neredeyse kesin",
+        "düşük ihtimal"
+      ],
+      "grade": [
+        "not a",
+        "not s",
+        "derece a",
+        "derece s",
+        "seviye a",
+        "a+ kurulum",
+        "a sınıfı"
+      ],
+      "conviction": [
+        "yüksek güven",
+        "güçlü kanaat",
+        "eminim",
+        "emin olabilirsiniz",
+        "kesin inanç",
+        "kanaat*"
+      ]
+    },
+    "GUARANTEE": {
+      "guaranteed": ["garanti*", "güvence altında", "kesin kazanç"],
+      "accurate": [
+        "yüzde 100 doğru",
+        "%100 doğru",
+        "100% doğru",
+        "asla yanılmaz",
+        "her zaman doğru",
+        "hatasız tahmin",
+        "yanılmaz"
+      ],
+      "risk_free": [
+        "risksiz",
+        "risk yok",
+        "sıfır risk",
+        "riski yok",
+        "kaybetmezsiniz",
+        "kaybetmeniz imkansız",
+        "kesin kar",
+        "garanti kar"
+      ],
+      "error_free": [
+        "halüsinasyonsuz",
+        "halüsinasyon içermez",
+        "halüsinasyon yok",
+        "hatasız",
+        "hata yapmaz",
+        "kusursuz"
+      ]
+    },
+    "URGENCY": {
+      "act_now": [
+        "hemen harekete geçin",
+        "hemen harekete geç",
+        "şimdi harekete geçin",
+        "hemen al",
+        "hemen sat",
+        "şimdi al",
+        "şimdi sat",
+        "acele edin",
+        "acele et"
+      ],
+      "dont_miss": [
+        "kaçırmayın",
+        "kaçırma",
+        "fırsatı kaçırmayın",
+        "elinizden kaçırmayın"
+      ],
+      "last_chance": [
+        "son şans",
+        "son fırsat",
+        "ya şimdi ya hiç",
+        "çok geç olmadan",
+        "sınırlı süre",
+        "bir daha gelmez"
+      ]
+    },
+    "UNLISTED_NEWS": {
+      "breaking": [
+        "son dakika",
+        "flaş haber",
+        "az önce açıkladı",
+        "az önce açıklandı",
+        "az önce duyurdu",
+        "acil haber"
+      ],
+      "reports_say": [
+        "haberlere göre",
+        "raporlara göre",
+        "kaynaklara göre",
+        "medya haberlerine göre",
+        "kaynaklar diyor",
+        "iddia edildi",
+        "bildirildiğine göre"
+      ],
+      "rumour": [
+        "söylenti*",
+        "dedikodu",
+        "spekülasyon*",
+        "iç kaynak*",
+        "içeriden bilgi",
+        "doğrulanmamış haber",
+        "doğrulanmamış bilgi"
+      ]
+    }
+  },
+  "direction": {
+    "long": {
+      "stance": [
+        "long'a gir",
+        "long gir",
+        "long aç",
+        "long pozisyon aç",
+        "buradan al",
+        "düşüşte al",
+        "geri çekilmede al",
+        "buradan satın al",
+        "alım yap"
+      ],
+      "label": [
+        "long pozisyon*",
+        "long kurulum*",
+        "long yönlü",
+        "long işlem*",
+        "alım sinyali",
+        "alış sinyali",
+        "alım kurulumu",
+        "alıcı tarafı",
+        "long eğilim*"
+      ],
+      "view": ["yükseliş yönlü", "boğa piyasası", "bullish*", "pozitif görünüm"]
+    },
+    "short": {
+      "stance": [
+        "short'a gir",
+        "short gir",
+        "short aç",
+        "short pozisyon aç",
+        "buradan sat",
+        "yükselişte sat",
+        "tepkide sat",
+        "burada satmak",
+        "satış yap"
+      ],
+      "label": [
+        "short pozisyon*",
+        "short kurulum*",
+        "short yönlü",
+        "short işlem*",
+        "satım sinyali",
+        "satış sinyali",
+        "satım kurulumu",
+        "satıcı tarafı",
+        "short eğilim*"
+      ],
+      "view": ["düşüş yönlü", "ayı piyasası", "bearish*", "negatif görünüm"]
+    }
+  }
+}

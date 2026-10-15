@@ -1,0 +1,206 @@
+{
+  "schema": "wording-phrases/1",
+  "language": "de",
+  "default_mode": "word",
+  "not_verified": "—, nicht verifiziert",
+  "categories": {
+    "ADVICE": {
+      "recommend": ["*empfehl*", "*empfiehl*", "*empfohlen*"],
+      "advise": [
+        "ratschlag*",
+        "ratschläge",
+        "beratung",
+        "wir raten",
+        "ich rate",
+        "anlageberatung"
+      ],
+      "should_act": [
+        "sie sollten kaufen",
+        "sie sollten verkaufen",
+        "du solltest kaufen",
+        "du solltest verkaufen",
+        "sollten sie kaufen",
+        "sollten sie verkaufen",
+        "sie müssen kaufen",
+        "sie müssen verkaufen",
+        "du musst kaufen",
+        "du musst verkaufen"
+      ],
+      "suggest_trade": [
+        "ich schlage vor zu kaufen",
+        "ich schlage vor zu verkaufen",
+        "erwägen sie einen kauf",
+        "erwägen sie einen verkauf",
+        "guter zeitpunkt zum kaufen",
+        "guter zeitpunkt zum verkaufen",
+        "zeit zu kaufen",
+        "zeit zu verkaufen",
+        "am besten kaufen",
+        "am besten verkaufen"
+      ]
+    },
+    "PROBABILITY": {
+      "chance": [
+        "wahrscheinlichkeit*",
+        "chance auf",
+        "chancen auf",
+        "chancen von",
+        "quote"
+      ],
+      "likely": [
+        "wahrscheinlich*",
+        "unwahrscheinlich*",
+        "höchstwahrscheinlich",
+        "sehr wahrscheinlich"
+      ],
+      "grade": [
+        "note a",
+        "note s",
+        "grad a",
+        "grad s",
+        "klasse a",
+        "bewertung a",
+        "a+ setup"
+      ],
+      "conviction": [
+        "überzeugung*",
+        "hohe zuversicht",
+        "hohes vertrauen",
+        "ich bin sicher",
+        "wir sind sicher"
+      ]
+    },
+    "GUARANTEE": {
+      "guaranteed": ["*garantie*", "*garantiert*", "*garantieren*"],
+      "accurate": [
+        "100% genau",
+        "100% zuverlässig",
+        "100 prozent genau",
+        "immer richtig",
+        "nie falsch",
+        "unfehlbar",
+        "narrensicher"
+      ],
+      "risk_free": [
+        "risikofrei*",
+        "risikolos*",
+        "ohne risiko",
+        "kein risiko",
+        "null risiko",
+        "sichere sache",
+        "sicherer gewinn",
+        "kann nicht verlieren"
+      ],
+      "error_free": [
+        "halluzinationsfrei*",
+        "ohne halluzinationen",
+        "fehlerfrei*",
+        "ohne fehler",
+        "macht keine fehler"
+      ]
+    },
+    "URGENCY": {
+      "act_now": [
+        "handeln sie jetzt",
+        "handle jetzt",
+        "jetzt handeln",
+        "schnell handeln",
+        "beeilen sie sich",
+        "beeil dich",
+        "jetzt kaufen",
+        "jetzt verkaufen",
+        "sofort kaufen",
+        "sofort verkaufen"
+      ],
+      "dont_miss": [
+        "verpassen sie nicht",
+        "verpasse nicht",
+        "nicht verpassen",
+        "lassen sie sich nicht entgehen",
+        "nicht entgehen lassen"
+      ],
+      "last_chance": [
+        "letzte chance",
+        "jetzt oder nie",
+        "bevor es zu spät ist",
+        "nur für kurze zeit",
+        "einmalige gelegenheit"
+      ]
+    },
+    "UNLISTED_NEWS": {
+      "breaking": [
+        "eilmeldung",
+        "breaking news",
+        "gerade bekannt gegeben",
+        "soeben bekannt gegeben",
+        "gerade veröffentlicht worden"
+      ],
+      "reports_say": [
+        "laut berichten",
+        "berichten zufolge",
+        "laut quellen",
+        "quellen zufolge",
+        "laut medien",
+        "wie berichtet wird",
+        "es wird berichtet"
+      ],
+      "rumour": [
+        "gerücht*",
+        "spekulation*",
+        "insider*",
+        "unbestätigte meldung*",
+        "unbestätigten meldung*"
+      ]
+    }
+  },
+  "direction": {
+    "long": {
+      "stance": [
+        "long gehen",
+        "gehen sie long",
+        "geh long",
+        "long einsteigen",
+        "einen long eröffnen",
+        "hier kaufen",
+        "den rücksetzer kaufen",
+        "den dip kaufen"
+      ],
+      "label": [
+        "long position*",
+        "long setup*",
+        "long bias",
+        "long trade*",
+        "long einstieg",
+        "kaufsignal*",
+        "kaufsetup*",
+        "kaufseite",
+        "long seite"
+      ],
+      "view": ["bullisch*", "bullish*"]
+    },
+    "short": {
+      "stance": [
+        "short gehen",
+        "gehen sie short",
+        "geh short",
+        "short einsteigen",
+        "einen short eröffnen",
+        "hier verkaufen",
+        "den anstieg verkaufen",
+        "die erholung verkaufen"
+      ],
+      "label": [
+        "short position*",
+        "short setup*",
+        "short bias",
+        "short trade*",
+        "short einstieg",
+        "verkaufssignal*",
+        "verkaufssetup*",
+        "verkaufsseite",
+        "short seite"
+      ],
+      "view": ["bärisch*", "bearish*"]
+    }
+  }
+}

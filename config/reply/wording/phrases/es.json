@@ -1,0 +1,209 @@
+{
+  "schema": "wording-phrases/1",
+  "language": "es",
+  "default_mode": "word",
+  "not_verified": "—, no verificado",
+  "categories": {
+    "ADVICE": {
+      "recommend": ["recomend*", "recomiend*"],
+      "advise": ["consejo", "consejos", "aconsej*"],
+      "should_act": [
+        "debería comprar",
+        "deberías comprar",
+        "debería vender",
+        "deberías vender",
+        "debe comprar",
+        "debes comprar",
+        "debe vender",
+        "debes vender",
+        "tiene que comprar",
+        "tienes que comprar",
+        "tienes que vender"
+      ],
+      "suggest_trade": [
+        "sugiero comprar",
+        "sugiero vender",
+        "considere comprar",
+        "considera comprar",
+        "considere vender",
+        "considera vender",
+        "buen momento para comprar",
+        "buen momento para vender",
+        "es hora de comprar",
+        "es hora de vender"
+      ]
+    },
+    "PROBABILITY": {
+      "chance": [
+        "probabilidad*",
+        "posibilidad de",
+        "posibilidades de",
+        "chance de",
+        "chances de"
+      ],
+      "likely": [
+        "probablemente",
+        "es probable",
+        "muy probable",
+        "poco probable",
+        "improbable",
+        "seguramente"
+      ],
+      "grade": [
+        "grado a",
+        "grado b",
+        "grado s",
+        "calificación a",
+        "calificación s",
+        "setup a+"
+      ],
+      "conviction": [
+        "convicci*",
+        "alta confianza",
+        "estoy seguro",
+        "estamos seguros"
+      ]
+    },
+    "GUARANTEE": {
+      "guaranteed": ["garant*"],
+      "accurate": [
+        "100% preciso",
+        "100% exacto",
+        "100% fiable",
+        "siempre acierta",
+        "nunca falla",
+        "nunca se equivoca",
+        "infalible"
+      ],
+      "risk_free": [
+        "sin riesgo",
+        "libre de riesgo",
+        "cero riesgo",
+        "riesgo cero",
+        "no hay riesgo",
+        "no puede perder",
+        "apuesta segura",
+        "ganancia segura"
+      ],
+      "error_free": [
+        "sin alucinaciones",
+        "libre de alucinaciones",
+        "sin errores",
+        "libre de errores",
+        "no comete errores",
+        "impecable"
+      ]
+    },
+    "URGENCY": {
+      "act_now": [
+        "actúa ya",
+        "actúe ya",
+        "actúa ahora",
+        "actúe ahora",
+        "actúa rápido",
+        "actúe rápido",
+        "date prisa",
+        "dese prisa",
+        "compra ya",
+        "compre ya",
+        "vende ya",
+        "venda ya",
+        "compra ahora",
+        "vende ahora"
+      ],
+      "dont_miss": [
+        "no te pierdas",
+        "no se pierda",
+        "no pierdas",
+        "no dejes pasar",
+        "no deje pasar",
+        "no te lo pierdas"
+      ],
+      "last_chance": [
+        "última oportunidad",
+        "ahora o nunca",
+        "antes de que sea tarde",
+        "tiempo limitado",
+        "oportunidad única"
+      ]
+    },
+    "UNLISTED_NEWS": {
+      "breaking": [
+        "última hora",
+        "noticia de última hora",
+        "acaba de anunciar*",
+        "flash informativo"
+      ],
+      "reports_say": [
+        "según informes",
+        "según fuentes",
+        "según medios",
+        "según informan",
+        "fuentes dicen",
+        "se informa que",
+        "se dice que",
+        "medios informan",
+        "informes indican"
+      ],
+      "rumour": [
+        "rumor*",
+        "especulación de que",
+        "especulaciones",
+        "información privilegiada",
+        "fuentes cercanas"
+      ]
+    }
+  },
+  "direction": {
+    "long": {
+      "stance": [
+        "ir en largo",
+        "ir largo",
+        "entrar en largo",
+        "abrir un largo",
+        "abrir una posición larga",
+        "comprar aquí",
+        "compra aquí",
+        "comprar la caída",
+        "comprar el retroceso"
+      ],
+      "label": [
+        "posición larga",
+        "posiciones largas",
+        "sesgo largo",
+        "sesgo comprador",
+        "operación larga",
+        "señal de compra",
+        "configuración de compra",
+        "entrada en largo",
+        "lado comprador"
+      ],
+      "view": ["alcista*"]
+    },
+    "short": {
+      "stance": [
+        "ir en corto",
+        "ir corto",
+        "entrar en corto",
+        "abrir un corto",
+        "abrir una posición corta",
+        "vender aquí",
+        "vende aquí",
+        "vender el rebote",
+        "vender la subida"
+      ],
+      "label": [
+        "posición corta",
+        "posiciones cortas",
+        "sesgo corto",
+        "sesgo vendedor",
+        "operación corta",
+        "señal de venta",
+        "configuración de venta",
+        "entrada en corto",
+        "lado vendedor"
+      ],
+      "view": ["bajista*"]
+    }
+  }
+}

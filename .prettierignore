@@ -45,3 +45,9 @@ knowledge-service/labelled/**
 # not touch either.
 config/reply/prompts/review.md
 config/reply/prompts/approval.json
+
+# Wording lists of the reply path (build step 7 part 4): review.md is generated and compared byte for byte by
+# `node scripts/reply/wording-tool.js check`, and approval.json holds the hash of the lists a reader signed, so prettier
+# must not touch either.
+config/reply/wording/review.md
+config/reply/wording/approval.json

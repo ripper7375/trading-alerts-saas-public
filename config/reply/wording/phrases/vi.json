@@ -1,0 +1,198 @@
+{
+  "schema": "wording-phrases/1",
+  "language": "vi",
+  "default_mode": "word",
+  "not_verified": "—, chưa được xác minh",
+  "categories": {
+    "ADVICE": {
+      "recommend": [
+        "khuyến nghị",
+        "chúng tôi khuyên",
+        "tôi khuyên",
+        "khuyên bạn",
+        "đề xuất bạn nên"
+      ],
+      "advise": ["lời khuyên", "tư vấn", "lời khuyên của tôi", "khuyên nhủ"],
+      "should_act": [
+        "bạn nên mua",
+        "bạn nên bán",
+        "nên mua",
+        "nên bán",
+        "phải mua",
+        "phải bán",
+        "cần mua",
+        "cần bán",
+        "bạn hãy mua",
+        "bạn hãy bán"
+      ],
+      "suggest_trade": [
+        "tôi đề xuất mua",
+        "tôi đề xuất bán",
+        "hãy cân nhắc mua",
+        "hãy cân nhắc bán",
+        "cân nhắc mua",
+        "cân nhắc bán",
+        "thời điểm tốt để mua",
+        "thời điểm tốt để bán",
+        "đã đến lúc mua",
+        "đã đến lúc bán"
+      ]
+    },
+    "PROBABILITY": {
+      "chance": ["xác suất", "khả năng cao", "tỷ lệ thắng", "tỉ lệ thắng"],
+      "likely": [
+        "nhiều khả năng",
+        "rất có thể",
+        "khó có khả năng",
+        "gần như chắc chắn",
+        "gần như chắc"
+      ],
+      "grade": [
+        "hạng a",
+        "hạng s",
+        "hạng b",
+        "cấp độ a",
+        "cấp độ s",
+        "điểm a",
+        "thiết lập a+"
+      ],
+      "conviction": [
+        "niềm tin cao",
+        "tin tưởng cao",
+        "độ tin cậy cao",
+        "tôi tin chắc",
+        "chúng tôi tin chắc"
+      ]
+    },
+    "GUARANTEE": {
+      "guaranteed": ["đảm bảo", "bảo đảm", "cam kết", "chắc chắn thắng"],
+      "accurate": [
+        "chính xác 100",
+        "chính xác tuyệt đối",
+        "không bao giờ sai",
+        "luôn đúng",
+        "luôn chính xác",
+        "không thể sai"
+      ],
+      "risk_free": [
+        "không rủi ro",
+        "phi rủi ro",
+        "không có rủi ro",
+        "rủi ro bằng không",
+        "không thể thua",
+        "không thể lỗ",
+        "lợi nhuận chắc chắn",
+        "kèo chắc thắng"
+      ],
+      "error_free": [
+        "không ảo giác",
+        "không có ảo giác",
+        "miễn nhiễm ảo giác",
+        "không sai sót",
+        "không có lỗi",
+        "hoàn hảo không lỗi"
+      ]
+    },
+    "URGENCY": {
+      "act_now": [
+        "hành động ngay",
+        "mua ngay",
+        "bán ngay",
+        "vào lệnh ngay",
+        "nhanh tay",
+        "khẩn trương"
+      ],
+      "dont_miss": [
+        "đừng bỏ lỡ",
+        "không được bỏ lỡ",
+        "chớ bỏ lỡ",
+        "bỏ lỡ cơ hội"
+      ],
+      "last_chance": [
+        "cơ hội cuối cùng",
+        "cơ hội cuối",
+        "bây giờ hoặc không bao giờ",
+        "trước khi quá muộn",
+        "thời gian có hạn",
+        "cơ hội duy nhất"
+      ]
+    },
+    "UNLISTED_NEWS": {
+      "breaking": [
+        "tin nóng",
+        "tin khẩn",
+        "vừa công bố",
+        "vừa thông báo",
+        "tin mới nhất vừa"
+      ],
+      "reports_say": [
+        "theo các báo cáo",
+        "theo báo cáo",
+        "theo nguồn tin",
+        "theo các nguồn",
+        "theo truyền thông",
+        "nguồn tin cho biết",
+        "có thông tin rằng"
+      ],
+      "rumour": [
+        "tin đồn",
+        "đồn đoán",
+        "suy đoán rằng",
+        "nội gián",
+        "thông tin nội bộ",
+        "tin chưa được xác nhận",
+        "chưa được kiểm chứng"
+      ]
+    }
+  },
+  "direction": {
+    "long": {
+      "stance": [
+        "vào lệnh mua",
+        "vào lệnh long",
+        "mở lệnh mua",
+        "mở lệnh long",
+        "mua tại đây",
+        "mua khi giá giảm",
+        "mua nhịp hồi",
+        "mua vùng này"
+      ],
+      "label": [
+        "vị thế mua",
+        "vị thế long",
+        "lệnh long",
+        "thiên hướng mua",
+        "xu hướng mua",
+        "tín hiệu mua",
+        "thiết lập mua",
+        "phe mua",
+        "kịch bản mua"
+      ],
+      "view": ["bullish*", "kỳ vọng tăng giá", "tâm lý lạc quan"]
+    },
+    "short": {
+      "stance": [
+        "vào lệnh bán",
+        "vào lệnh short",
+        "mở lệnh bán",
+        "mở lệnh short",
+        "bán tại đây",
+        "bán khi giá hồi",
+        "bán nhịp hồi",
+        "bán vùng này"
+      ],
+      "label": [
+        "vị thế bán",
+        "vị thế short",
+        "lệnh short",
+        "thiên hướng bán",
+        "xu hướng bán",
+        "tín hiệu bán",
+        "thiết lập bán",
+        "phe bán",
+        "kịch bản bán"
+      ],
+      "view": ["bearish*", "kỳ vọng giảm giá", "tâm lý bi quan"]
+    }
+  }
+}

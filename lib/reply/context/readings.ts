@@ -114,14 +114,15 @@ function flatten(prefix: string, value: unknown, out: string[]): void {
   out.push(`${prefix}=${scalar(value)}`);
 }
 
-interface Level {
+/** A level of a sensor's envelope as the prompt shows it; the value dictionary of part 4 reads the same ones. */
+export interface Level {
   name: string;
   tf: string;
   price: number;
   role: string | null;
 }
 
-function levelsOf(envelope: Rec): Level[] {
+export function levelsOf(envelope: Record<string, unknown>): Level[] {
   const raw = envelope['levels'];
   if (!Array.isArray(raw)) return [];
   const levels: Level[] = [];
