@@ -46,7 +46,12 @@
     "report2.scenario.normal",
     "report2.scenarios.has_badge",
     "report2.badge.heading",
-    "report2.check.stop"
+    "report2.check.stop",
+    "chat.bias.NEUTRAL",
+    "chat.profile.SCALPER",
+    "chat.zone.heading",
+    "chat.status.FRESH",
+    "chat.disclaimer.version"
   ],
   "es": [
     "Blog",
@@ -71,7 +76,9 @@
     "terminal.meta_title",
     "report2.stop.heading",
     "report2.scenario.normal",
-    "report2.check.stop"
+    "report2.check.stop",
+    "chat.bias.NEUTRAL",
+    "chat.profile.SCALPER"
   ],
   "pt": [
     "Blog",
@@ -90,7 +97,9 @@
     "terminal.meta_title",
     "report2.stop.heading",
     "report2.scenario.normal",
-    "report2.check.stop"
+    "report2.check.stop",
+    "chat.profile.DAY_TRADER",
+    "chat.profile.SCALPER"
   ],
   "pt-BR": [
     "Blog",
@@ -109,7 +118,9 @@
     "terminal.meta_title",
     "report2.stop.heading",
     "report2.scenario.normal",
-    "report2.check.stop"
+    "report2.check.stop",
+    "chat.profile.DAY_TRADER",
+    "chat.profile.SCALPER"
   ],
   "it": [
     "Back Step",
@@ -138,7 +149,9 @@
     "report2.stop.heading",
     "report2.scenarios.has_badge",
     "report2.badge.heading",
-    "report2.check.stop"
+    "report2.check.stop",
+    "chat.profile.DAY_TRADER",
+    "chat.profile.SCALPER"
   ],
   "id": [
     "Back Step",
@@ -177,7 +190,9 @@
     "report2.stop.heading",
     "report2.scenario.normal",
     "report2.check.stop",
-    "report2.check.leverage"
+    "report2.check.leverage",
+    "chat.profile.SCALPER",
+    "chat.channel.status.VALID"
   ],
   "vi": [
     "Blog",
@@ -193,7 +208,8 @@
     "Sydney",
     "Tokyo",
     "settings.profile.email_label",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "chat.profile.SCALPER"
   ],
   "tr": [
     "Blog",
@@ -210,7 +226,8 @@
     "settings.plan",
     "terminal.meta_title",
     "report2.scenario.normal",
-    "report2.check.risk"
+    "report2.check.risk",
+    "chat.profile.SCALPER"
   ],
   "hi": ["Heiken Ashi"],
   "ur": ["Heiken Ashi"],
@@ -250,7 +267,14 @@
     "report2.scenario.normal",
     "report2.scenarios.has_badge",
     "report2.badge.heading",
-    "report2.check.stop"
+    "report2.check.stop",
+    "chat.messages.label",
+    "chat.direction.label",
+    "chat.profile.DAY_TRADER",
+    "chat.zone.heading",
+    "chat.zone.invalidation",
+    "chat.disclaimer.version",
+    "chat.badge.cycle"
   ],
   "ko": ["Heiken Ashi"],
   "zh": ["Heiken Ashi"],

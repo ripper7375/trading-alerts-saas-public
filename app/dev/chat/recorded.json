@@ -1,0 +1,1757 @@
+{
+  "report1-long": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "UNDERSTAND",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "DATA",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "DATA",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CONTEXT",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CONTEXT",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "MODEL",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "MODEL",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CHECKS",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CHECKS",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "request_id": "bb584acd000f84d35073ea3b56fe002caaafac8e94d24c285f2039ffd804ac12",
+        "result": {
+          "changes": [],
+          "checks": {
+            "numbers_flagged": 0,
+            "regenerations": 0
+          },
+          "disclaimer_version": "disclaimer-1",
+          "intent": "DIRECTION",
+          "kind": "REPORT1",
+          "notes": ["CHART_UNAVAILABLE"],
+          "provenance": {
+            "model": "fixture-a/recorded",
+            "prompt_version": "prompts.v1",
+            "reply_version": "1.0.0",
+            "request_id": "bb584acd000f84d35073ea3b56fe002caaafac8e94d24c285f2039ffd804ac12"
+          },
+          "reply_locale": "en-US",
+          "report": {
+            "alignment": {
+              "channels": [
+                {
+                  "bias": "LONG",
+                  "mcd_id": "MCD1",
+                  "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+                  "status": "CAUTIONARY",
+                  "timeframe": "M15"
+                },
+                {
+                  "bias": "LONG",
+                  "mcd_id": "MCD2",
+                  "state_code": "MCD2_UP_IN_CORRIDOR",
+                  "status": "CAUTIONARY",
+                  "timeframe": "M5"
+                }
+              ],
+              "lines": [
+                {
+                  "cites": ["MCD1"],
+                  "text": "MCD1 reads MCD1_DOWN_UPPER_BREAKOUT"
+                },
+                {
+                  "cites": ["MCD2"],
+                  "text": "MCD2 reads MCD2_UP_IN_CORRIDOR"
+                },
+                {
+                  "cites": ["MCD3"],
+                  "text": "MCD3 reads MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+                }
+              ],
+              "trend_relation": "COUNTER_TREND"
+            },
+            "direction": {
+              "archetype": "C",
+              "bias": "LONG",
+              "profile": "DAY_TRADER",
+              "rule_id": "R1_MACRO_COUNTER_TREND_RALLY",
+              "stand_aside": false,
+              "trend_relation": "COUNTER_TREND"
+            },
+            "headline": "Price near 4,378.31 inside the day range 4,310.91 to 4,331.58",
+            "levels": [
+              {
+                "id": "MCD3.M5.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4384.23,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z1.next_opposing",
+                "kind": "CONTEXT",
+                "name": "sr_1",
+                "price": 4369.57,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M5.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4367.2,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z1.invalidation_level",
+                "kind": "CONTEXT",
+                "name": "sr_2",
+                "price": 4350.92,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M5.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4350.16,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z2.invalidation_level",
+                "kind": "CONTEXT",
+                "name": "sr_3",
+                "price": 4334.56,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD1.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4279.46,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4279.46,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD1.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4214.17,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4214.17,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD1.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4126.24,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4126.24,
+                "timeframe": "M15"
+              }
+            ],
+            "news": {
+              "calendar_age_seconds": 120,
+              "items": [],
+              "status": "OK"
+            },
+            "risks": [
+              {
+                "cites": ["MCD1"],
+                "text": "MCD1 is cautionary"
+              },
+              {
+                "cites": ["MCD2"],
+                "text": "MCD2 is cautionary"
+              }
+            ],
+            "watch": [
+              {
+                "cites": ["Z1"],
+                "text": "A close beyond 4,350.42 cancels the view for Z1"
+              },
+              {
+                "cites": ["Z2"],
+                "text": "A close beyond 4,334.06 cancels the view for Z2"
+              }
+            ],
+            "zones": [
+              {
+                "bias": "LONG",
+                "confluence_count": 2,
+                "high": 4370.61,
+                "invalidation_basis": "LEVEL",
+                "invalidation_price": 4350.42,
+                "low": 4363.79,
+                "next_opposing_price": 4369.57,
+                "reference_price": 4367.2,
+                "runway": 2.37,
+                "runway_ratio": 0.14,
+                "source_sensors": ["MCD2"],
+                "stop_distance": 16.78,
+                "zone_id": "Z1"
+              },
+              {
+                "bias": "LONG",
+                "confluence_count": 2,
+                "high": 4353.57,
+                "invalidation_basis": "LEVEL",
+                "invalidation_price": 4334.06,
+                "low": 4346.75,
+                "next_opposing_price": 4350.92,
+                "reference_price": 4350.16,
+                "runway": 0.76,
+                "runway_ratio": 0.05,
+                "source_sensors": ["MCD2"],
+                "stop_distance": 16.1,
+                "zone_id": "Z2"
+              }
+            ]
+          },
+          "schema": "reply-result/1",
+          "stamp": {
+            "as_of": "2026-09-18T20:55Z",
+            "data_status": "FRESH",
+            "flags": [],
+            "retuning": false
+          },
+          "thread_id": "th-fixture-0001"
+        },
+        "type": "result"
+      }
+    ]
+  },
+  "report1-short-instant": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "SKIPPED",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "DATA",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "DATA",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CONTEXT",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CONTEXT",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "MODEL",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "MODEL",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CHECKS",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CHECKS",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "request_id": "356eb12adc1d079da0feca693cbbcd27b16735f58a9443350140fc647d24517f",
+        "result": {
+          "changes": [],
+          "checks": {
+            "numbers_flagged": 0,
+            "regenerations": 0
+          },
+          "disclaimer_version": "disclaimer-1",
+          "intent": "INSTANT_M15_INSPECT",
+          "kind": "REPORT1",
+          "notes": ["CHART_UNAVAILABLE"],
+          "provenance": {
+            "model": "fixture-a/recorded",
+            "prompt_version": "prompts.v1",
+            "reply_version": "1.0.0",
+            "request_id": "356eb12adc1d079da0feca693cbbcd27b16735f58a9443350140fc647d24517f"
+          },
+          "reply_locale": "en-US",
+          "report": {
+            "alignment": {
+              "channels": [
+                {
+                  "bias": "SHORT",
+                  "mcd_id": "MCD1",
+                  "state_code": "MCD1_DOWN_IN_CORRIDOR",
+                  "status": "CAUTIONARY",
+                  "timeframe": "M15"
+                },
+                {
+                  "bias": "SHORT",
+                  "mcd_id": "MCD2",
+                  "state_code": "MCD2_DOWN_IN_CORRIDOR",
+                  "status": "CAUTIONARY",
+                  "timeframe": "M5"
+                }
+              ],
+              "lines": [
+                {
+                  "cites": ["MCD1"],
+                  "text": "MCD1 reads MCD1_DOWN_IN_CORRIDOR"
+                },
+                {
+                  "cites": ["MCD2"],
+                  "text": "MCD2 reads MCD2_DOWN_IN_CORRIDOR"
+                },
+                {
+                  "cites": ["MCD3"],
+                  "text": "MCD3 reads MCD3_NON_CONSOLIDATED_OVERFLOW"
+                }
+              ],
+              "trend_relation": "WITH_TREND"
+            },
+            "direction": {
+              "archetype": "A",
+              "bias": "SHORT",
+              "profile": "SCALPER",
+              "rule_id": "R3S_TREND_CONTINUATION_M5",
+              "stand_aside": false,
+              "trend_relation": "WITH_TREND"
+            },
+            "headline": "Price near 4,125.32 inside the day range 4,310.91 to 4,331.58",
+            "levels": [
+              {
+                "id": "MCD1.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4307.72,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4307.72,
+                "timeframe": "M15"
+              },
+              {
+                "id": "Z2.invalidation_level",
+                "kind": "CONTEXT",
+                "name": "sr_15",
+                "price": 4265.75,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z2.confluence_3",
+                "kind": "CONTEXT",
+                "name": "sr_14",
+                "price": 4257.39,
+                "timeframe": "M5"
+              },
+              {
+                "id": "MCD2.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4249.14,
+                "timeframe": "M5"
+              },
+              {
+                "id": "MCD3.M5.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4249.14,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z2.next_opposing",
+                "kind": "CONTEXT",
+                "name": "sr_13",
+                "price": 4248.55,
+                "timeframe": "M5"
+              },
+              {
+                "id": "MCD1.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4214,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4214,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD2.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4170.13,
+                "timeframe": "M5"
+              },
+              {
+                "id": "MCD3.M5.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4170.13,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z1.next_opposing",
+                "kind": "CONTEXT",
+                "name": "sr_6",
+                "price": 4164.69,
+                "timeframe": "M15"
+              },
+              {
+                "id": "Z1.confluence_1",
+                "kind": "CONTEXT",
+                "name": "sr_8",
+                "price": 4158.37,
+                "timeframe": "M5"
+              },
+              {
+                "id": "MCD1.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4103.45,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4103.45,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD2.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4096.72,
+                "timeframe": "M5"
+              },
+              {
+                "id": "MCD3.M5.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4096.72,
+                "timeframe": "M5"
+              }
+            ],
+            "news": {
+              "calendar_age_seconds": 120,
+              "items": [],
+              "status": "OK"
+            },
+            "risks": [
+              {
+                "cites": ["MCD1"],
+                "text": "MCD1 is cautionary"
+              },
+              {
+                "cites": ["MCD2"],
+                "text": "MCD2 is cautionary"
+              }
+            ],
+            "watch": [
+              {
+                "cites": ["Z1"],
+                "text": "A close beyond 4,214.50 cancels the view for Z1"
+              },
+              {
+                "cites": ["Z2"],
+                "text": "A close beyond 4,266.25 cancels the view for Z2"
+              }
+            ],
+            "zones": [
+              {
+                "bias": "SHORT",
+                "confluence_count": 3,
+                "high": 4185.37,
+                "invalidation_basis": "LEVEL",
+                "invalidation_price": 4214.5,
+                "low": 4154.89,
+                "next_opposing_price": 4164.69,
+                "reference_price": 4170.13,
+                "runway": 5.44,
+                "runway_ratio": 0.12,
+                "source_sensors": ["MCD2"],
+                "stop_distance": 44.37,
+                "zone_id": "Z1"
+              },
+              {
+                "bias": "SHORT",
+                "confluence_count": 3,
+                "high": 4264.38,
+                "invalidation_basis": "LEVEL",
+                "invalidation_price": 4266.25,
+                "low": 4233.9,
+                "next_opposing_price": 4248.55,
+                "reference_price": 4249.14,
+                "runway": 0.59,
+                "runway_ratio": 0.03,
+                "source_sensors": ["MCD2"],
+                "stop_distance": 17.11,
+                "zone_id": "Z2"
+              }
+            ]
+          },
+          "schema": "reply-result/1",
+          "stamp": {
+            "as_of": "2026-09-28T23:15Z",
+            "data_status": "FRESH",
+            "flags": [],
+            "retuning": false
+          },
+          "thread_id": "th-fixture-0002"
+        },
+        "type": "result"
+      }
+    ]
+  },
+  "answer": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "UNDERSTAND",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "DATA",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "DATA",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CONTEXT",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CONTEXT",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "MODEL",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "MODEL",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CHECKS",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CHECKS",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "request_id": "9cc0ee1c68747e20a85a0f5faf4f059d167599025567b078008680f6289f7d13",
+        "result": {
+          "action": {
+            "cycle_slot": "2026-09-18T20:55Z",
+            "trader_type": "DAY_TRADER",
+            "type": "OPEN_TRADE_SETUP",
+            "zone_ids": ["Z1", "Z2"]
+          },
+          "answer": {
+            "cites": ["Z1"],
+            "text": "The nearest level above is 4,367.20; the room to it is shorter than the stop."
+          },
+          "changes": [],
+          "checks": {
+            "numbers_flagged": 0,
+            "regenerations": 0
+          },
+          "disclaimer_version": "disclaimer-1",
+          "intent": "EXIT_TARGETS",
+          "kind": "ANSWER",
+          "notes": [],
+          "provenance": {
+            "model": "fixture-a/recorded",
+            "prompt_version": "prompts.v1",
+            "reply_version": "1.0.0",
+            "request_id": "9cc0ee1c68747e20a85a0f5faf4f059d167599025567b078008680f6289f7d13"
+          },
+          "reply_locale": "en-US",
+          "schema": "reply-result/1",
+          "stamp": {
+            "as_of": "2026-09-18T20:55Z",
+            "data_status": "FRESH",
+            "flags": [],
+            "retuning": false
+          },
+          "thread_id": "th-fixture-0003"
+        },
+        "type": "result"
+      }
+    ]
+  },
+  "report1-flagged": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "UNDERSTAND",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "DATA",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "DATA",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CONTEXT",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CONTEXT",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "MODEL",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "MODEL",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CHECKS",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CHECKS",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "request_id": "cc8b42640bec663f3f87aad412f04a2e6a27151bc1f0b92316be0138e2d507f0",
+        "result": {
+          "changes": [],
+          "checks": {
+            "numbers_flagged": 1,
+            "regenerations": 1
+          },
+          "disclaimer_version": "disclaimer-1",
+          "intent": "DIRECTION",
+          "kind": "REPORT1",
+          "notes": ["CHART_UNAVAILABLE"],
+          "provenance": {
+            "model": "fixture-a/recorded",
+            "prompt_version": "prompts.v1",
+            "reply_version": "1.0.0",
+            "request_id": "cc8b42640bec663f3f87aad412f04a2e6a27151bc1f0b92316be0138e2d507f0"
+          },
+          "reply_locale": "en-US",
+          "report": {
+            "alignment": {
+              "channels": [
+                {
+                  "bias": "LONG",
+                  "mcd_id": "MCD1",
+                  "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+                  "status": "CAUTIONARY",
+                  "timeframe": "M15"
+                },
+                {
+                  "bias": "LONG",
+                  "mcd_id": "MCD2",
+                  "state_code": "MCD2_UP_IN_CORRIDOR",
+                  "status": "CAUTIONARY",
+                  "timeframe": "M5"
+                }
+              ],
+              "lines": [
+                {
+                  "cites": ["MCD1"],
+                  "text": "MCD1 reads MCD1_DOWN_UPPER_BREAKOUT"
+                },
+                {
+                  "cites": ["MCD2"],
+                  "text": "MCD2 reads MCD2_UP_IN_CORRIDOR"
+                },
+                {
+                  "cites": ["MCD3"],
+                  "text": "MCD3 reads MCD3_NON_CONSOLIDATED_TREND_CONFLICT"
+                }
+              ],
+              "trend_relation": "COUNTER_TREND"
+            },
+            "direction": {
+              "archetype": "C",
+              "bias": "LONG",
+              "profile": "DAY_TRADER",
+              "rule_id": "R1_MACRO_COUNTER_TREND_RALLY",
+              "stand_aside": false,
+              "trend_relation": "COUNTER_TREND"
+            },
+            "headline": "Price near —, not verified inside the day range 4,310.91 to 4,331.58",
+            "levels": [
+              {
+                "id": "MCD3.M5.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4384.23,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z1.next_opposing",
+                "kind": "CONTEXT",
+                "name": "sr_1",
+                "price": 4369.57,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M5.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4367.2,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z1.invalidation_level",
+                "kind": "CONTEXT",
+                "name": "sr_2",
+                "price": 4350.92,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M5.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4350.16,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z2.invalidation_level",
+                "kind": "CONTEXT",
+                "name": "sr_3",
+                "price": 4334.56,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD1.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4279.46,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4279.46,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD1.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4214.17,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4214.17,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD1.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4126.24,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4126.24,
+                "timeframe": "M15"
+              }
+            ],
+            "news": {
+              "calendar_age_seconds": 120,
+              "items": [],
+              "status": "OK"
+            },
+            "risks": [
+              {
+                "cites": ["MCD1"],
+                "text": "MCD1 is cautionary"
+              },
+              {
+                "cites": ["MCD2"],
+                "text": "MCD2 is cautionary"
+              }
+            ],
+            "watch": [
+              {
+                "cites": ["Z1"],
+                "text": "A close beyond 4,350.42 cancels the view for Z1"
+              },
+              {
+                "cites": ["Z2"],
+                "text": "A close beyond 4,334.06 cancels the view for Z2"
+              }
+            ],
+            "zones": [
+              {
+                "bias": "LONG",
+                "confluence_count": 2,
+                "high": 4370.61,
+                "invalidation_basis": "LEVEL",
+                "invalidation_price": 4350.42,
+                "low": 4363.79,
+                "next_opposing_price": 4369.57,
+                "reference_price": 4367.2,
+                "runway": 2.37,
+                "runway_ratio": 0.14,
+                "source_sensors": ["MCD2"],
+                "stop_distance": 16.78,
+                "zone_id": "Z1"
+              },
+              {
+                "bias": "LONG",
+                "confluence_count": 2,
+                "high": 4353.57,
+                "invalidation_basis": "LEVEL",
+                "invalidation_price": 4334.06,
+                "low": 4346.75,
+                "next_opposing_price": 4350.92,
+                "reference_price": 4350.16,
+                "runway": 0.76,
+                "runway_ratio": 0.05,
+                "source_sensors": ["MCD2"],
+                "stop_distance": 16.1,
+                "zone_id": "Z2"
+              }
+            ]
+          },
+          "schema": "reply-result/1",
+          "stamp": {
+            "as_of": "2026-09-18T20:55Z",
+            "data_status": "FRESH",
+            "flags": [],
+            "retuning": false
+          },
+          "thread_id": "th-fixture-0004"
+        },
+        "type": "result"
+      }
+    ]
+  },
+  "fixed-stale": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "UNDERSTAND",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "DATA",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "DATA",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CONTEXT",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CONTEXT",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "MODEL",
+        "status": "SKIPPED",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CHECKS",
+        "status": "SKIPPED",
+        "type": "stage"
+      },
+      {
+        "request_id": "74accea2ac6356eaa90ba5f75b2bb104fb31b9e8af561a9a8f4e41ab25a29b60",
+        "result": {
+          "changes": [],
+          "checks": {
+            "numbers_flagged": 0,
+            "regenerations": 0
+          },
+          "disclaimer_version": "disclaimer-1",
+          "fixed": {
+            "board": [
+              {
+                "mcd_id": "MCD1",
+                "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+                "status": "CAUTIONARY"
+              },
+              {
+                "mcd_id": "MCD2",
+                "state_code": "MCD2_UP_IN_CORRIDOR",
+                "status": "CAUTIONARY"
+              },
+              {
+                "mcd_id": "MCD3",
+                "state_code": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+                "status": "CAUTIONARY"
+              }
+            ],
+            "direction": null,
+            "levels": [],
+            "reason": "DATA_STALE"
+          },
+          "intent": "DIRECTION",
+          "kind": "FIXED_ANSWER",
+          "notes": [],
+          "provenance": {
+            "model": null,
+            "prompt_version": null,
+            "reply_version": "1.0.0",
+            "request_id": "74accea2ac6356eaa90ba5f75b2bb104fb31b9e8af561a9a8f4e41ab25a29b60"
+          },
+          "reply_locale": "en-US",
+          "schema": "reply-result/1",
+          "stamp": {
+            "as_of": "2026-09-18T20:55Z",
+            "data_status": "STALE",
+            "flags": [],
+            "retuning": false
+          },
+          "thread_id": "th-fixture-0005"
+        },
+        "type": "result"
+      }
+    ]
+  },
+  "fixed-model-down": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "UNDERSTAND",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "DATA",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "DATA",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CONTEXT",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CONTEXT",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "MODEL",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "MODEL",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "request_id": "38ef209afbf3ce80b324e2dec5492f8bffb9af2948a2ff0bf1f946ca03829bb0",
+        "result": {
+          "changes": [],
+          "checks": {
+            "numbers_flagged": 0,
+            "regenerations": 0
+          },
+          "disclaimer_version": "disclaimer-1",
+          "fixed": {
+            "board": [
+              {
+                "mcd_id": "MCD1",
+                "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+                "status": "CAUTIONARY"
+              },
+              {
+                "mcd_id": "MCD2",
+                "state_code": "MCD2_UP_IN_CORRIDOR",
+                "status": "CAUTIONARY"
+              },
+              {
+                "mcd_id": "MCD3",
+                "state_code": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+                "status": "CAUTIONARY"
+              }
+            ],
+            "direction": {
+              "archetype": "C",
+              "bias": "LONG",
+              "profile": "DAY_TRADER",
+              "rule_id": "R1_MACRO_COUNTER_TREND_RALLY",
+              "stand_aside": false,
+              "trend_relation": "COUNTER_TREND"
+            },
+            "levels": [
+              {
+                "id": "MCD3.M5.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4384.23,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z1.next_opposing",
+                "kind": "CONTEXT",
+                "name": "sr_1",
+                "price": 4369.57,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M5.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4367.2,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z1.invalidation_level",
+                "kind": "CONTEXT",
+                "name": "sr_2",
+                "price": 4350.92,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M5.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4350.16,
+                "timeframe": "M5"
+              },
+              {
+                "id": "Z2.invalidation_level",
+                "kind": "CONTEXT",
+                "name": "sr_3",
+                "price": 4334.56,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD1.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4279.46,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.UOEDT",
+                "kind": "CHANNEL",
+                "name": "UOEDT",
+                "price": 4279.46,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD1.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4214.17,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.baseline",
+                "kind": "CHANNEL",
+                "name": "baseline",
+                "price": 4214.17,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD1.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4126.24,
+                "timeframe": "M15"
+              },
+              {
+                "id": "MCD3.M15.LOEDT",
+                "kind": "CHANNEL",
+                "name": "LOEDT",
+                "price": 4126.24,
+                "timeframe": "M15"
+              }
+            ],
+            "reason": "MODEL_UNAVAILABLE"
+          },
+          "intent": "DIRECTION",
+          "kind": "FIXED_ANSWER",
+          "notes": ["CHART_UNAVAILABLE"],
+          "provenance": {
+            "model": null,
+            "prompt_version": null,
+            "reply_version": "1.0.0",
+            "request_id": "38ef209afbf3ce80b324e2dec5492f8bffb9af2948a2ff0bf1f946ca03829bb0"
+          },
+          "reply_locale": "en-US",
+          "schema": "reply-result/1",
+          "stamp": {
+            "as_of": "2026-09-18T20:55Z",
+            "data_status": "FRESH",
+            "flags": [],
+            "retuning": false
+          },
+          "thread_id": "th-fixture-0006"
+        },
+        "type": "result"
+      }
+    ]
+  },
+  "fixed-market-closed": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "UNDERSTAND",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "DATA",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "DATA",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CONTEXT",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CONTEXT",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "MODEL",
+        "status": "SKIPPED",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CHECKS",
+        "status": "SKIPPED",
+        "type": "stage"
+      },
+      {
+        "request_id": "644145cecbff6b4538814b173c47070f6acf13333d56e4cd551823e31e36a97b",
+        "result": {
+          "changes": [],
+          "checks": {
+            "numbers_flagged": 0,
+            "regenerations": 0
+          },
+          "disclaimer_version": "disclaimer-1",
+          "fixed": {
+            "board": [
+              {
+                "mcd_id": "MCD1",
+                "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+                "status": "CAUTIONARY"
+              },
+              {
+                "mcd_id": "MCD2",
+                "state_code": "MCD2_UP_IN_CORRIDOR",
+                "status": "CAUTIONARY"
+              },
+              {
+                "mcd_id": "MCD3",
+                "state_code": "MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+                "status": "CAUTIONARY"
+              }
+            ],
+            "direction": null,
+            "levels": [],
+            "reason": "MARKET_CLOSED"
+          },
+          "intent": "REPORT_2",
+          "kind": "FIXED_ANSWER",
+          "notes": [],
+          "provenance": {
+            "model": null,
+            "prompt_version": null,
+            "reply_version": "1.0.0",
+            "request_id": "644145cecbff6b4538814b173c47070f6acf13333d56e4cd551823e31e36a97b"
+          },
+          "reply_locale": "en-US",
+          "schema": "reply-result/1",
+          "stamp": {
+            "as_of": "2026-09-18T20:55Z",
+            "data_status": "MARKET_CLOSED",
+            "flags": [],
+            "retuning": false
+          },
+          "thread_id": "th-fixture-0007"
+        },
+        "type": "result"
+      }
+    ]
+  },
+  "action": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "UNDERSTAND",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "DATA",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "DATA",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CONTEXT",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CONTEXT",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "MODEL",
+        "status": "SKIPPED",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CHECKS",
+        "status": "SKIPPED",
+        "type": "stage"
+      },
+      {
+        "request_id": "f850f8dca1a9487992e79bf082057cde66756b8e788c867ca4b83dc65ac5a30a",
+        "result": {
+          "action": {
+            "cycle_slot": "2026-09-18T20:55Z",
+            "trader_type": "DAY_TRADER",
+            "type": "OPEN_TRADE_SETUP",
+            "zone_ids": ["Z1", "Z2"]
+          },
+          "changes": [],
+          "checks": {
+            "numbers_flagged": 0,
+            "regenerations": 0
+          },
+          "disclaimer_version": "disclaimer-1",
+          "intent": "REPORT_2",
+          "kind": "ACTION",
+          "notes": [],
+          "provenance": {
+            "model": null,
+            "prompt_version": null,
+            "reply_version": "1.0.0",
+            "request_id": "f850f8dca1a9487992e79bf082057cde66756b8e788c867ca4b83dc65ac5a30a"
+          },
+          "reply_locale": "en-US",
+          "schema": "reply-result/1",
+          "stamp": {
+            "as_of": "2026-09-18T20:55Z",
+            "data_status": "FRESH",
+            "flags": [],
+            "retuning": false
+          },
+          "thread_id": "th-fixture-0008"
+        },
+        "type": "result"
+      }
+    ]
+  },
+  "refusal-out-of-scope": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "refusal": {
+          "code": "OUT_OF_SCOPE",
+          "reply": "This analyst covers gold (XAUUSD) on the M5 and M15 charts only. Ask about those.",
+          "reply_locale": "en-US",
+          "schema": "intake-refusal/1",
+          "stage": "SCOPE"
+        },
+        "request_id": "f97d29f643d46bfc08e0c55a5faa40c2b85e11ef6c579c9978e191f6b2a31953",
+        "type": "refusal"
+      }
+    ]
+  },
+  "refusal-quota": {
+    "kind": "JSON",
+    "status": 429,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "QUOTA_INSUFFICIENT",
+        "message": "There is not enough allowance for this request."
+      },
+      "request_id": "3d05b6871b9fdf5f1d6a2ca9e0e733c8ae701500471f30a14aa3423857fae8e2",
+      "refusal": {
+        "schema": "intake-refusal/1",
+        "code": "QUOTA_INSUFFICIENT",
+        "stage": "GATE",
+        "reply_locale": "en-US",
+        "reply": "Your AI analyst allowance is used up for now. Please try again later."
+      },
+      "quota": {
+        "limit_units": 20000000,
+        "available_units": 30000,
+        "needed_units": 44302
+      }
+    }
+  },
+  "refusal-tier": {
+    "kind": "JSON",
+    "status": 403,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "TIER_REQUIRED",
+        "message": "The AI analyst is a Pro feature."
+      },
+      "request_id": "anon-0000000000000001",
+      "refusal": {
+        "schema": "intake-refusal/1",
+        "code": "TIER_REQUIRED",
+        "stage": "GATE",
+        "reply_locale": "en-US",
+        "reply": "The AI analyst is part of the Pro plan."
+      }
+    }
+  },
+  "refusal-profile": {
+    "kind": "JSON",
+    "status": 409,
+    "body": {
+      "success": false,
+      "error": {
+        "code": "PROFILE_NOT_SET",
+        "message": "The trader has not confirmed a profile."
+      },
+      "request_id": "6e30b88ba5090ae7bc303be68b4a48a32fd303e47a61894baddd72a377aa50b1",
+      "refusal": {
+        "schema": "intake-refusal/1",
+        "code": "PROFILE_NOT_SET",
+        "stage": "GATE",
+        "reply_locale": "en-US",
+        "reply": "Confirm your trading profile first."
+      }
+    }
+  },
+  "error-persistence": {
+    "kind": "STREAM",
+    "status": 200,
+    "events": [
+      {
+        "ms": null,
+        "stage": "GATE",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "GATE",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "UNDERSTAND",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "UNDERSTAND",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "DATA",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "DATA",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CONTEXT",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "CONTEXT",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "MODEL",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "ms": 0,
+        "stage": "MODEL",
+        "status": "DONE",
+        "type": "stage"
+      },
+      {
+        "ms": null,
+        "stage": "CHECKS",
+        "status": "STARTED",
+        "type": "stage"
+      },
+      {
+        "code": "PERSISTENCE_FAILED",
+        "request_id": "37418493885697d54dc5985685dca1c4bbe04149481315390e4d5a4553dbc081",
+        "retryable": false,
+        "type": "error"
+      }
+    ]
+  }
+}
