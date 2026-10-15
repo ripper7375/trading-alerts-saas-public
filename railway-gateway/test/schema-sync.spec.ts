@@ -80,6 +80,7 @@ describe.each([
   ['IndicatorConfig', 'indicator_configs'],
   ['EconomicEvent', 'economic_events'],
   ['CurrencyGoldIndex', 'currency_gold_indices'],
+  ['WorldGoldClose', 'world_gold_closes'],
   // Stack D chapter 1 (build step 2, part 2).
   ['MarketCycle', 'market_cycles'],
   ['ActiveIndicatorSetting', 'active_indicator_settings'],

@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "ignoreCommand": "if [[ \"$VERCEL_GIT_COMMIT_REF\" == claude/* ]] || [[ \"$VERCEL_GIT_COMMIT_REF\" == docs/* ]]; then exit 0; else exit 1; fi",
-  "crons": []
+  "crons": [{ "path": "/api/cron/world-gold", "schedule": "*/5 * * * *" }]
 }

@@ -78,6 +78,12 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-16-language-localization-r
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-systemconfig\systemconfig-fix-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\davintrade-intraday-subscription-prices\intraday-subscription-prices-manifest-work-completion.md
+
+D:\SaaS Project\trading-alerts-saas-public\davintrade-nextjs16-4-configuration\nextjs-16-4-manifest-work-completion.md
+
+D:\SaaS Project\trading-alerts-saas-public\davintrade-local-gold-price\worldgoldmarket-manifest-work-completion.md
+
 =================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder

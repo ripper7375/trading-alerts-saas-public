@@ -37,11 +37,15 @@ export function MarketingNavbar() {
   const navLinks = [
     { href: '/#features', label: t('Features') },
     { href: '/pricing', label: t('Pricing') },
+    { href: '/worldgoldmarket', label: t('worldGold.nav') },
+    { href: '/affiliate', label: t('Affiliates') },
+    { href: '/econ-news', label: t('EconNews') },
+  ];
+
+  const moreLinks = [
     { href: '/docs', label: t('Docs') },
     { href: '/blog', label: t('Blog') },
     { href: '/academy', label: t('Academy') },
-    { href: '/affiliate', label: t('Affiliates') },
-    { href: '/econ-news', label: t('EconNews') },
   ];
 
   return (
@@ -114,6 +118,17 @@ export function MarketingNavbar() {
               align="end"
               className="bg-popover/95 w-48 border-border backdrop-blur-xl"
             >
+              {moreLinks.map((item) => (
+                <DropdownMenuItem key={item.href} asChild>
+                  <Link
+                    href={item.href}
+                    className="cursor-pointer text-popover-foreground"
+                  >
+                    {item.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link
                   href="/about"
@@ -223,6 +238,19 @@ export function MarketingNavbar() {
               </Link>
             ))}
             <div className="flex flex-col space-y-2 border-t border-border pt-4">
+              <p className="text-xs font-semibold text-muted-foreground">
+                {t('More')}
+              </p>
+              {moreLinks.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-sm text-muted-foreground hover:text-amber-600 dark:hover:text-amber-400"
+                >
+                  {item.label}
+                </Link>
+              ))}
               <Link
                 href="/about"
                 onClick={() => setMobileMenuOpen(false)}

@@ -1,5 +1,5 @@
 {
-  "ja": [],
+  "ja": ["worldGold.nav"],
   "de": [
     "Affiliate (FREE)",
     "Affiliate (PRO)",
@@ -46,7 +46,10 @@
     "report2.scenario.normal",
     "report2.scenarios.has_badge",
     "report2.badge.heading",
-    "report2.check.stop"
+    "report2.check.stop",
+    "worldGold.nav",
+    "worldGold.country.th",
+    "worldGold.country.jp"
   ],
   "es": [
     "Blog",
@@ -71,7 +74,13 @@
     "terminal.meta_title",
     "report2.stop.heading",
     "report2.scenario.normal",
-    "report2.check.stop"
+    "report2.check.stop",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk",
+    "worldGold.country.in",
+    "worldGold.country.au"
   ],
   "pt": [
     "Blog",
@@ -90,7 +99,11 @@
     "terminal.meta_title",
     "report2.stop.heading",
     "report2.scenario.normal",
-    "report2.check.stop"
+    "report2.check.stop",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk"
   ],
   "pt-BR": [
     "Blog",
@@ -109,7 +122,11 @@
     "terminal.meta_title",
     "report2.stop.heading",
     "report2.scenario.normal",
-    "report2.check.stop"
+    "report2.check.stop",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk"
   ],
   "it": [
     "Back Step",
@@ -138,7 +155,13 @@
     "report2.stop.heading",
     "report2.scenarios.has_badge",
     "report2.badge.heading",
-    "report2.check.stop"
+    "report2.check.stop",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk",
+    "worldGold.country.in",
+    "worldGold.country.au"
   ],
   "id": [
     "Back Step",
@@ -177,7 +200,15 @@
     "report2.stop.heading",
     "report2.scenario.normal",
     "report2.check.stop",
-    "report2.check.leverage"
+    "report2.check.leverage",
+    "worldGold.nav",
+    "worldGold.unit.gram",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.th",
+    "worldGold.country.hk",
+    "worldGold.country.in",
+    "worldGold.country.au"
   ],
   "vi": [
     "Blog",
@@ -193,7 +224,9 @@
     "Sydney",
     "Tokyo",
     "settings.profile.email_label",
-    "terminal.meta_title"
+    "terminal.meta_title",
+    "worldGold.nav",
+    "worldGold.unit.tola"
   ],
   "tr": [
     "Blog",
@@ -210,11 +243,16 @@
     "settings.plan",
     "terminal.meta_title",
     "report2.scenario.normal",
-    "report2.check.risk"
+    "report2.check.risk",
+    "worldGold.nav",
+    "worldGold.unit.gram",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk"
   ],
-  "hi": ["Heiken Ashi"],
-  "ur": ["Heiken Ashi"],
-  "ar": ["Heiken Ashi"],
+  "hi": ["Heiken Ashi", "worldGold.nav"],
+  "ur": ["Heiken Ashi", "worldGold.nav"],
+  "ar": ["Heiken Ashi", "worldGold.nav"],
   "fr": [
     "Architecture",
     "Back Step",
@@ -250,10 +288,14 @@
     "report2.scenario.normal",
     "report2.scenarios.has_badge",
     "report2.badge.heading",
-    "report2.check.stop"
+    "report2.check.stop",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk"
   ],
-  "ko": ["Heiken Ashi"],
-  "zh": ["Heiken Ashi"],
-  "zh-TW": ["Heiken Ashi"],
-  "th": ["Heiken Ashi", "academy.badge"]
+  "ko": ["Heiken Ashi", "worldGold.nav"],
+  "zh": ["Heiken Ashi", "worldGold.nav"],
+  "zh-TW": ["Heiken Ashi", "worldGold.nav"],
+  "th": ["Heiken Ashi", "academy.badge", "worldGold.nav"]
 }
