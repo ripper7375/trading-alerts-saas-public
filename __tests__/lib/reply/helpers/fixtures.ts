@@ -277,6 +277,7 @@ const baseResult = (
   },
   checks: { numbers_flagged: 0, regenerations: 1 },
   changes: [],
+  notes: [] as ('CHART_OTHER_CYCLE' | 'CHART_UNAVAILABLE')[],
 });
 
 export function reportResult(): Report1Result {

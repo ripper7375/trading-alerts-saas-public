@@ -746,7 +746,7 @@ describe('the tool holds an entry to the same rules as the code', () => {
 
   it('reads a review sheet with Windows line endings the same', () => {
     const root = copyTree();
-    const review = readFileSync(join(root, tool.FILES.review), 'utf8');
+    const review = lf(readFileSync(join(root, tool.FILES.review), 'utf8'));
     writeFileSync(join(root, tool.FILES.review), review.replace(/\n/g, '\r\n'));
     expect(tool.check(root).problems).toEqual([]);
     writeFileSync(join(root, tool.FILES.review), review.replace(/\n/g, '\r'));
@@ -939,7 +939,7 @@ describe('the tool says what it found, in the words and the layout a person read
   it('writes the review sheet in the layout the reader expects', () => {
     const review = readFileSync(join(ROOT, tool.FILES.review), 'utf8');
     expect(
-      review.startsWith('# Wording lists wording.v1: review sheet\n\n')
+      lf(review).startsWith('# Wording lists wording.v1: review sheet\n\n')
     ).toBe(true);
     expect(review).toContain('| language | locales | ADVICE.recommend |');
     expect(review).toContain('| DIRECTION long | stance |');

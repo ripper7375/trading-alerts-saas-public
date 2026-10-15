@@ -130,3 +130,63 @@ export async function getChartStamp(
     throw error;
   }
 }
+
+/**
+ * The most bytes of a chart image the reply path will read (the renders are a few hundred
+ * kilobytes; a larger object is something else and is refused, not buffered).
+ */
+export const MAX_CHART_IMAGE_BYTES = 8 * 1024 * 1024;
+
+/** An image read server-side, with the stamp of the very object that was downloaded. */
+export interface ChartImageObject {
+  bytes: Uint8Array;
+  contentType: string;
+  /** parsed from this object's own metadata: `null` when there is none or it cannot be trusted */
+  stamp: ChartStamp | null;
+}
+
+/**
+ * The bytes of the render stored for a variant, for the reply path (architecture 5.3 and 5.11:
+ * the chart goes to the model only when its stamp says it is the cycle's own). The stamp comes
+ * back WITH the bytes, from the same GET, so an image the renderer replaced between a HEAD and
+ * this read is judged by what it really is.
+ *
+ * `null` when the object does not exist. An object over `MAX_CHART_IMAGE_BYTES`, one with no body
+ * and any other failure (credentials, network, R2 down) are thrown: "I could not look" is not
+ * "there is no chart".
+ */
+export async function getChartImage(
+  variant: ChartVariant
+): Promise<ChartImageObject | null> {
+  const command = new GetObjectCommand({
+    Bucket: requireEnv('R2_BUCKET'),
+    Key: chartObjectKey(variant),
+  });
+
+  try {
+    const response = await getClient().send(command);
+    if (
+      typeof response.ContentLength === 'number' &&
+      response.ContentLength > MAX_CHART_IMAGE_BYTES
+    ) {
+      throw new Error(
+        `the chart object is ${response.ContentLength} bytes; the most read is ${MAX_CHART_IMAGE_BYTES}`
+      );
+    }
+    if (!response.Body) throw new Error('the chart object has no body');
+    const bytes = await response.Body.transformToByteArray();
+    if (bytes.byteLength > MAX_CHART_IMAGE_BYTES) {
+      throw new Error(
+        `the chart object is ${bytes.byteLength} bytes; the most read is ${MAX_CHART_IMAGE_BYTES}`
+      );
+    }
+    return {
+      bytes,
+      contentType: response.ContentType ?? 'image/png',
+      stamp: parseChartStamp(response.Metadata, variant),
+    };
+  } catch (error) {
+    if (isObjectNotFound(error)) return null;
+    throw error;
+  }
+}

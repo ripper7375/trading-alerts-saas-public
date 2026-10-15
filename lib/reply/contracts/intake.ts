@@ -56,6 +56,7 @@ export {
   TRADER_TYPES,
   TREND_RELATIONS,
   canonicalJson,
+  directionOf,
   familyOfLocale,
   findWarnings,
   forbiddenKeyPaths,
@@ -64,10 +65,12 @@ export {
   isLocale,
   primarySensor,
   sensorById,
+  sensorFactsOf,
   sha256Hex,
   validateRefusal,
 } from '@/lib/intake';
 export type {
+  SensorFacts,
   Bias,
   BoardStatus,
   DataFlag,
@@ -91,7 +94,10 @@ export type {
 
 export {
   boardStamp,
+  clockOf,
+  isEpochSeconds,
   isSlotSeconds,
   secondsOfSlot,
+  shiftSlot,
   slotIso,
 } from '@/lib/intake/slots';

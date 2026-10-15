@@ -1,0 +1,28 @@
+{
+  "schema": "invalidation-line/1",
+  "version": "1.0.0-draft",
+  "status": "DRAFT: written by the builder in build step 7 part 5 and read by no native speaker; counsel has not seen it. The feature stays off for a language until its line is read (plan risk R4).",
+  "placeholders": {
+    "zone": "the zone id, as the engines write it, never translated",
+    "price": "the figure of the zone's invalidation price, filled by the resolver in the reader's notation"
+  },
+  "lines": {
+    "en": "A close beyond {price} cancels the view for {zone}",
+    "es": "Un cierre más allá de {price} anula el escenario de {zone}",
+    "de": "Ein Schlusskurs jenseits von {price} macht das Szenario für {zone} hinfällig",
+    "pt": "Um fechamento além de {price} anula o cenário de {zone}",
+    "it": "Una chiusura oltre {price} annulla lo scenario per {zone}",
+    "ja": "{price}を超えて引けると、{zone}のシナリオは無効になります",
+    "ar": "إغلاق يتجاوز {price} يُبطل سيناريو {zone}",
+    "fr": "Une clôture au-delà de {price} annule le scénario de {zone}",
+    "ko": "{price}을 넘어 마감하면 {zone} 시나리오는 무효가 됩니다",
+    "zh": "收盘价越过{price}，{zone}的情景即告失效",
+    "zh-TW": "收盤價越過{price}，{zone}的情境即告失效",
+    "ur": "{price} سے آگے بند ہونے پر {zone} کا منظرنامہ کالعدم ہو جاتا ہے",
+    "hi": "{price} के पार बंद होने पर {zone} का परिदृश्य रद्द हो जाता है",
+    "vi": "Giá đóng cửa vượt quá {price} sẽ hủy kịch bản của {zone}",
+    "id": "Penutupan di luar {price} membatalkan skenario untuk {zone}",
+    "th": "การปิดเกินกว่า {price} ทำให้สถานการณ์ของ {zone} ถูกยกเลิก",
+    "tr": "{price} ötesinde bir kapanış {zone} senaryosunu iptal eder"
+  }
+}

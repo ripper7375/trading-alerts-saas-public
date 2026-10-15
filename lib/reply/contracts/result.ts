@@ -99,8 +99,35 @@ export const FIXED_REASONS = [
   'MODEL_UNAVAILABLE',
   /** the request deadline passed (decision D23) */
   'DEADLINE',
+  /**
+   * The market is closed and the request needs a live cycle (Report 2, 5.3): the last session's
+   * picture is shown, labelled by the stamp (build step 7 part 5).
+   */
+  'MARKET_CLOSED',
+  /**
+   * No synthesis reading exists for this cycle (it is not running, 4.4): there is no direction to
+   * copy, so the board is shown and none is stated (build step 7 part 5).
+   */
+  'NO_SYNTHESIS',
 ] as const;
 export type FixedReason = (typeof FIXED_REASONS)[number];
+
+/**
+ * What the reply must say about its own inputs, as codes the interface turns into words in the
+ * reader's language (build step 7 part 5; 5.3: "a chart from another cycle is dropped and the
+ * reply says the chart is missing"). The data status, the delay and the retuning already travel in
+ * the stamp; the chart has no other home.
+ */
+export const RESULT_NOTES = [
+  /**
+   * a chart was available but it was drawn for another cycle (usually the one before): it was not
+   * sent to the model, and the reader is told so
+   */
+  'CHART_OTHER_CYCLE',
+  /** a chart was called for and none could be read (no image, no stamp, storage down) */
+  'CHART_UNAVAILABLE',
+] as const;
+export type ResultNote = (typeof RESULT_NOTES)[number];
 
 export const ARCHETYPES = ['A', 'B', 'C', 'D'] as const;
 export const ZONE_BIASES = ['LONG', 'SHORT'] as const;
@@ -118,7 +145,8 @@ export const RESULT_LIMITS = {
   lineText: 480,
   headline: 400,
   alignmentLines: 6,
-  watchLines: 4,
+  /** the model's four lines plus one invalidation line the server adds for each of at most five zones */
+  watchLines: 9,
   riskLines: 5,
   levels: 40,
   boardLines: 16,
@@ -251,6 +279,8 @@ export interface ResultBase {
   checks: { numbers_flagged: number; regenerations: number };
   /** what moved since the thread's last cycle, built by code; empty on a first message */
   changes: StateChange[];
+  /** what the reply says about its inputs (a chart that was dropped); codes, never text */
+  notes: ResultNote[];
 }
 
 export interface Report1Result extends ResultBase {
@@ -693,6 +723,21 @@ function checkStamp(value: unknown, path: string, issues: Issues): void {
   );
 }
 
+function checkNotes(value: unknown, path: string, issues: Issues): void {
+  codeList(value, path, issues, RESULT_NOTES.length)?.forEach((note, index) => {
+    if (!(RESULT_NOTES as readonly string[]).includes(note)) {
+      issues.add(
+        at(path, index),
+        'NOT_ONE_OF',
+        `must be one of ${RESULT_NOTES.join(', ')}`
+      );
+    }
+  });
+}
+
+/** The reasons for which a fixed answer states no direction (a stale cycle; no synthesis reading). */
+const NO_DIRECTION_REASONS: readonly string[] = ['DATA_STALE', 'NO_SYNTHESIS'];
+
 function checkFixed(value: unknown, path: string, issues: Issues): void {
   const f = exactObject(
     value,
@@ -704,11 +749,16 @@ function checkFixed(value: unknown, path: string, issues: Issues): void {
   oneOf(f['reason'], join(path, 'reason'), FIXED_REASONS, issues);
   if (f['direction'] !== null) {
     checkDirection(f['direction'], join(path, 'direction'), issues);
-    if (f['reason'] === 'DATA_STALE') {
+    if (
+      typeof f['reason'] === 'string' &&
+      NO_DIRECTION_REASONS.includes(f['reason'])
+    ) {
       issues.add(
         join(path, 'direction'),
         'INCONSISTENT',
-        'a stale cycle has no direction to state'
+        f['reason'] === 'DATA_STALE'
+          ? 'a stale cycle has no direction to state'
+          : 'a cycle with no synthesis reading has no direction to state'
       );
     }
   }
@@ -754,6 +804,7 @@ const BASE_KEYS = [
   'provenance',
   'checks',
   'changes',
+  'notes',
 ] as const;
 
 const KIND_KEYS: Readonly<Record<ResultKind, readonly string[]>> = {
@@ -836,6 +887,7 @@ export function validateReplyResult(value: unknown): ResultValidation {
       checkStateCodeOrNull(r['to'], join(here, 'to'), issues);
     }
   );
+  checkNotes(record['notes'], 'notes', issues);
 
   switch (kind) {
     case 'REPORT1':

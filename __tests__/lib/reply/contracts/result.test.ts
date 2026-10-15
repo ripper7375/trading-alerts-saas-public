@@ -10,6 +10,7 @@ import {
   LEVEL_KINDS,
   RESULT_KINDS,
   RESULT_LIMITS,
+  RESULT_NOTES,
   ZONE_BIASES,
   validateReplyResult,
 } from '@/lib/reply/contracts/result';
@@ -78,6 +79,7 @@ describe('reply-result/1', () => {
       'provenance',
       'checks',
       'changes',
+      'notes',
     ];
     it.each(base)('%s is required', (key) => {
       expect(codes(without(answerResult(), key))).toContain(`${key}:REQUIRED`);
@@ -263,6 +265,44 @@ describe('reply-result/1', () => {
         )
       ).toEqual(['changes[0].from:BAD_FORMAT']);
     });
+
+    it('takes the notes a reply makes about its inputs: two codes, none twice', () => {
+      expect([...RESULT_NOTES]).toEqual([
+        'CHART_OTHER_CYCLE',
+        'CHART_UNAVAILABLE',
+      ]);
+      for (const notes of [
+        [],
+        ['CHART_OTHER_CYCLE'],
+        ['CHART_UNAVAILABLE'],
+        ['CHART_OTHER_CYCLE', 'CHART_UNAVAILABLE'],
+      ]) {
+        expect(codes(withPath(answerResult(), 'notes', notes))).toEqual([]);
+      }
+      expect(
+        codes(
+          withPath(answerResult(), 'notes', [
+            'CHART_UNAVAILABLE',
+            'CHART_UNAVAILABLE',
+          ])
+        )
+      ).toEqual(['notes[1]:DUPLICATE']);
+      expect(codes(withPath(answerResult(), 'notes', ['BORED']))).toEqual([
+        'notes[0]:NOT_ONE_OF',
+      ]);
+      expect(
+        codes(withPath(answerResult(), 'notes', 'CHART_UNAVAILABLE'))
+      ).toEqual(['notes:WRONG_TYPE']);
+      expect(
+        codes(
+          withPath(answerResult(), 'notes', [
+            'CHART_OTHER_CYCLE',
+            'CHART_UNAVAILABLE',
+            'CHART_UNAVAILABLE',
+          ])
+        )
+      ).toEqual(['notes:TOO_MANY']);
+    });
   });
 
   describe('REPORT1', () => {
@@ -366,7 +406,16 @@ describe('reply-result/1', () => {
           withPath(
             result,
             'report.watch',
-            Array.from({ length: 5 }, () => line)
+            Array.from({ length: 9 }, () => line)
+          )
+        )
+      ).toEqual([]);
+      expect(
+        codes(
+          withPath(
+            result,
+            'report.watch',
+            Array.from({ length: 10 }, () => line)
           )
         )
       ).toEqual(['report.watch:TOO_MANY']);
@@ -581,13 +630,15 @@ describe('reply-result/1', () => {
   });
 
   describe('FIXED_ANSWER', () => {
-    it('knows its five reasons', () => {
+    it('knows its seven reasons', () => {
       expect([...FIXED_REASONS]).toEqual([
         'DATA_STALE',
         'WORDING_FAILED',
         'SCHEMA_FAILED',
         'MODEL_UNAVAILABLE',
         'DEADLINE',
+        'MARKET_CLOSED',
+        'NO_SYNTHESIS',
       ]);
       expect(codes(withPath(fixedResult(), 'fixed.reason', 'BORED'))).toEqual([
         'fixed.reason:NOT_ONE_OF',
@@ -601,6 +652,16 @@ describe('reply-result/1', () => {
       expect(codes(withPath(fixedResult(), 'fixed.direction', null))).toEqual(
         []
       );
+    });
+
+    it('has no direction when there is no synthesis reading either, and keeps one for a closed market', () => {
+      const none = withPath(fixedResult(), 'fixed.reason', 'NO_SYNTHESIS');
+      expect(codes(none)).toEqual(['fixed.direction:INCONSISTENT']);
+      expect(codes(withPath(none, 'fixed.direction', null))).toEqual([]);
+      // the last session's picture is a direction: the stamp says it is last session's
+      expect(
+        codes(withPath(fixedResult(), 'fixed.reason', 'MARKET_CLOSED'))
+      ).toEqual([]);
     });
 
     it('carries the board as ids, statuses and state codes alone', () => {
@@ -671,7 +732,7 @@ describe('the limits and the fixed lists are what the contract says', () => {
       lineText: 480,
       headline: 400,
       alignmentLines: 6,
-      watchLines: 4,
+      watchLines: 9,
       riskLines: 5,
       levels: 40,
       boardLines: 16,

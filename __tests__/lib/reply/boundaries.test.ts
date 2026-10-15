@@ -72,10 +72,25 @@ const REPLY_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
   'gateway/types.ts': ['@/config/ai-models'],
   'gateway/understand-adapter.ts': ['@/config/ai-models'],
   'read/day-bars.ts': ['@/lib/db/market-prisma'],
+  // the chart rule (build step 7 part 5): the dependency-free chart keys, never the AWS client (the port is handed in)
+  'read/chart.ts': ['@/lib/storage/chart-keys'],
+  // the earlier cycle's states (part 5): the market database client, like the day's bars
+  'read/snapshot-at.ts': ['@/lib/db/market-prisma'],
+  // the language-specific invalidation line (part 5): its one data file
+  'report1/invalidation-line.ts': [
+    '@/config/reply/report1/invalidation-line.v1.json',
+  ],
 };
 
-/** The folder of `lib/reply` whose files may read the database (each one only the client named above). */
+/** The folder of `lib/reply` whose files may read (and only they may be imported by path). */
 const READER_DIR = 'read/';
+
+/** The database client each reader may import: the chart reader reaches storage through a port and imports none. */
+const READER_CLIENTS: Readonly<Record<string, readonly string[]>> = {
+  'read/chart.ts': [],
+  'read/day-bars.ts': ['@/lib/db/market-prisma'],
+  'read/snapshot-at.ts': ['@/lib/db/market-prisma'],
+};
 
 const PLATFORM_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
   'delivered.ts': [
@@ -312,7 +327,7 @@ const PLATFORM: Tree = {
 describe('lib/reply', () => {
   const sources = load(REPLY_DIR);
 
-  it('has the files of parts 1 to 4', () => {
+  it('has the files of parts 1 to 5', () => {
     expect([...sources.keys()]).toEqual([
       'checks/extract.ts',
       'checks/matcher.ts',
@@ -343,6 +358,8 @@ describe('lib/reply', () => {
       'contracts/shape.ts',
       'contracts/stage-events.ts',
       'contracts/trace-fields.ts',
+      'gate/answer-gate.ts',
+      'gate/shape.ts',
       'gateway/fallback.ts',
       'gateway/fixture.ts',
       'gateway/messages.ts',
@@ -351,7 +368,16 @@ describe('lib/reply', () => {
       'gateway/types.ts',
       'gateway/understand-adapter.ts',
       'gateway/usage.ts',
+      'read/chart.ts',
       'read/day-bars.ts',
+      'read/snapshot-at.ts',
+      'report1/changes.ts',
+      'report1/compose.ts',
+      'report1/fixed-answer.ts',
+      'report1/invalidation-line.ts',
+      'report1/resolve.ts',
+      'report1/sections.ts',
+      'report1/stamp.ts',
       'version.ts',
     ]);
   });
@@ -370,9 +396,16 @@ describe('lib/reply', () => {
       );
       expect({ file, clients }).toEqual({
         file,
-        clients: file.startsWith(READER_DIR) ? ['@/lib/db/market-prisma'] : [],
+        clients: READER_CLIENTS[file] ?? [],
       });
     }
+  });
+
+  it('names every reader in the client table, and no file that is not one', () => {
+    const readers = [...sources.keys()].filter((file) =>
+      file.startsWith(READER_DIR)
+    );
+    expect(readers.sort()).toEqual(Object.keys(READER_CLIENTS).sort());
   });
 
   it('keeps the readers apart: nothing outside read/ imports one, and no reader imports the platform', () => {
@@ -631,6 +664,51 @@ describe('the guard', () => {
         0
       );
     }
+  });
+
+  it('lets the chart reader import the chart keys and nothing else, and the earlier-cycle reader its market client', () => {
+    const keys =
+      "import { chartMatchesCycle } from '@/lib/storage/chart-keys';\nexport const a = chartMatchesCycle;";
+    const market =
+      "import { marketPrisma } from '@/lib/db/market-prisma';\nexport const a = marketPrisma;";
+    expect(rules(REPLY, { 'read/chart.ts': keys })).toEqual([]);
+    // the keys are for the chart reader alone: the pure tree does not read them anywhere else
+    expect(
+      rules(REPLY, { 'context/assemble.ts': keys }).length
+    ).toBeGreaterThan(0);
+    expect(rules(REPLY, { 'read/day-bars.ts': keys }).length).toBeGreaterThan(
+      0
+    );
+    // the AWS-backed storage module is never imported: the port is handed in by the orchestrator
+    expect(
+      rules(REPLY, {
+        'read/chart.ts':
+          "import { getChartStamp } from '@/lib/storage/r2';\nexport const a = getChartStamp;",
+      }).length
+    ).toBeGreaterThan(0);
+    // the chart reader has no database client, the earlier-cycle reader has the market one
+    expect(rules(REPLY, { 'read/chart.ts': market }).length).toBeGreaterThan(0);
+    expect(rules(REPLY, { 'read/snapshot-at.ts': market })).toEqual([]);
+    expect(
+      rules(REPLY, { 'report1/changes.ts': market }).length
+    ).toBeGreaterThan(0);
+  });
+
+  it('lets the invalidation line import its data file and no other file', () => {
+    const source =
+      "import file from '@/config/reply/report1/invalidation-line.v1.json';\nexport const a = file;";
+    expect(rules(REPLY, { 'report1/invalidation-line.ts': source })).toEqual(
+      []
+    );
+    expect(
+      rules(REPLY, { 'report1/compose.ts': source }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules(REPLY, {
+        'report1/invalidation-line.ts':
+          "import file from '@/config/intake/glossary.v1.json';\nexport const a = file;",
+      }).length
+    ).toBeGreaterThan(0);
   });
 
   it('lets the caps file import its table and no other file', () => {
