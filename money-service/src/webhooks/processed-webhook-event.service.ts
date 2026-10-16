@@ -34,6 +34,13 @@ export type ClaimResult = 'claimed' | 'duplicate' | 'unavailable';
 /** An unfinished claim older than this belongs to a handler that crashed. */
 export const CLAIM_LEASE_MS = 10 * 60 * 1000;
 
+/**
+ * Rows are bookkeeping. Stripe retries a failed delivery for up to 3 days, so a
+ * row older than ~90 days can never be asked about again (the purge in
+ * CronsScheduler removes them; see the migration header).
+ */
+export const PROCESSED_EVENT_RETENTION_MS = 90 * 24 * 60 * 60 * 1000;
+
 @Injectable()
 export class ProcessedWebhookEventService {
   constructor(private readonly prisma: PrismaService) {}
@@ -94,6 +101,23 @@ export class ProcessedWebhookEventService {
         error: describe(error),
       });
     }
+  }
+
+  /**
+   * Deletes the claims older than `retentionMs` (90 days by default), finished
+   * or not: a claim that old is either bookkeeping or a crashed handler's
+   * leftover, and no delivery of that event can still arrive. The cutoff is
+   * taken from the same clock `claim()` writes `createdAt` with. Not best
+   * effort: an error (for example the table not migrated yet) propagates so the
+   * scheduler logs the failed run. Returns the number of rows deleted.
+   */
+  async purgeOlderThan(
+    retentionMs: number = PROCESSED_EVENT_RETENTION_MS
+  ): Promise<number> {
+    const deleted = await this.prisma.processedWebhookEvent.deleteMany({
+      where: { createdAt: { lt: new Date(Date.now() - retentionMs) } },
+    });
+    return deleted.count;
   }
 
   /** Drops an unfinished claim so a retry of a failed event is processed. Best effort. */

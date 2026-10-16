@@ -263,8 +263,12 @@ export class ConversionProcessorService {
       return { reserved: false, reason: 'AFFILIATE_NOT_ACTIVE' };
     }
 
-    await this.prisma.affiliateCode.update({
-      where: { id: affiliateCode.id },
+    // The ACTIVE check above is a plain read, so two checkouts redeeming one
+    // code both pass it. The reservation itself is a conditional update (same
+    // fix as processAffiliateConversion): only the call that still finds the
+    // code ACTIVE flips it (count 1); the other matches nothing (count 0).
+    const claimed = await this.prisma.affiliateCode.updateMany({
+      where: { id: affiliateCode.id, status: 'ACTIVE' },
       data: {
         status: 'USED',
         usedAt: new Date(),
@@ -272,6 +276,9 @@ export class ConversionProcessorService {
         subscriptionId: input.subscriptionId ?? null,
       },
     });
+    if (claimed.count === 0) {
+      return { reserved: false, reason: 'ALREADY_USED' };
+    }
 
     return { reserved: true, affiliateCodeId: affiliateCode.id };
   }

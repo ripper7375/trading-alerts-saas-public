@@ -18,6 +18,7 @@ import { DisbursementProcessorService } from '../disbursement/disbursement-proce
 import { TransactionLoggerService } from '../disbursement/transaction-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, testFactories } from '../test-utils/prisma-mock';
+import { ProcessedWebhookEventService } from '../webhooks/processed-webhook-event.service';
 
 import { AffiliateCronService } from './affiliate.service';
 import { CronLockService } from './cron-lock.service';
@@ -40,6 +41,7 @@ describe('CronsScheduler', () => {
   };
   let transactionLoggerMock: { log: jest.Mock };
   let cronLockMock: { acquire: jest.Mock };
+  let processedWebhookEventsMock: { purgeOlderThan: jest.Mock };
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
@@ -99,11 +101,18 @@ describe('CronsScheduler', () => {
     // Remediation Tier 2 6.9: every scheduled firing asks for the lock first; by
     // default this instance wins it, so the older assertions are unchanged.
     cronLockMock = { acquire: jest.fn().mockResolvedValue(true) };
+    processedWebhookEventsMock = {
+      purgeOlderThan: jest.fn().mockResolvedValue(3),
+    };
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         CronsScheduler,
         { provide: CronLockService, useValue: cronLockMock },
+        {
+          provide: ProcessedWebhookEventService,
+          useValue: processedWebhookEventsMock,
+        },
         { provide: PrismaService, useValue: prismaMock },
         { provide: SubscriptionCronService, useValue: subscriptionCronMock },
         { provide: AffiliateCronService, useValue: affiliateCronMock },
@@ -259,6 +268,7 @@ describe('CronsScheduler', () => {
         | 'scheduledApproveMaturedCommissions'
         | 'scheduledSendMonthlyReports'
         | 'scheduledSyncRiseWorksAccounts'
+        | 'scheduledPurgeProcessedWebhookEvents'
       >
     > = [
       'scheduledCheckExpiringSubscriptions',
@@ -270,6 +280,7 @@ describe('CronsScheduler', () => {
       'scheduledApproveMaturedCommissions',
       'scheduledSendMonthlyReports',
       'scheduledSyncRiseWorksAccounts',
+      'scheduledPurgeProcessedWebhookEvents',
     ];
 
     const underlyingHandlerFor: Record<string, keyof CronsScheduler> = {
@@ -283,6 +294,7 @@ describe('CronsScheduler', () => {
       scheduledApproveMaturedCommissions: 'handleApproveMaturedCommissions',
       scheduledSendMonthlyReports: 'handleSendMonthlyReports',
       scheduledSyncRiseWorksAccounts: 'handleSyncRiseWorksAccounts',
+      scheduledPurgeProcessedWebhookEvents: 'handlePurgeProcessedWebhookEvents',
     };
 
     it.each(scheduledMethods)(
@@ -382,6 +394,15 @@ describe('CronsScheduler', () => {
       );
     });
 
+    it('handlePurgeProcessedWebhookEvents purges through ProcessedWebhookEventService and reports the count', async () => {
+      const result = await scheduler.handlePurgeProcessedWebhookEvents();
+
+      expect(result).toEqual({ deleted: 3 });
+      expect(processedWebhookEventsMock.purgeOlderThan).toHaveBeenCalledTimes(
+        1
+      );
+    });
+
     it('handleSyncRiseWorksAccounts delegates to DisbursementProcessorService', async () => {
       await scheduler.handleSyncRiseWorksAccounts();
       expect(
@@ -439,6 +460,11 @@ describe('CronsScheduler', () => {
         'scheduledWiseReconciliation',
         'handleWiseReconciliation',
         'wise-reconciliation',
+      ],
+      [
+        'scheduledPurgeProcessedWebhookEvents',
+        'handlePurgeProcessedWebhookEvents',
+        'purge-processed-webhook-events',
       ],
     ];
 
@@ -542,6 +568,12 @@ describe('CronsScheduler', () => {
     it('approve-matured-commissions runs daily at 02:00 UTC', () => {
       expect(cronTimeOf('scheduledApproveMaturedCommissions')).toBe(
         '0 2 * * *'
+      );
+    });
+
+    it('purge-processed-webhook-events runs daily at 05:30 UTC, clear of the other jobs', () => {
+      expect(cronTimeOf('scheduledPurgeProcessedWebhookEvents')).toBe(
+        '30 5 * * *'
       );
     });
 

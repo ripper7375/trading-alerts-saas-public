@@ -367,7 +367,7 @@ describe('ConversionProcessorService', () => {
         status: 'ACTIVE',
         affiliateProfile: { status: 'ACTIVE' },
       } as never);
-      prismaMock.affiliateCode.update.mockResolvedValue({} as never);
+      prismaMock.affiliateCode.updateMany.mockResolvedValue({ count: 1 });
 
       const result = await service.reserveAffiliateCode({
         code: 'aff10',
@@ -375,8 +375,9 @@ describe('ConversionProcessorService', () => {
         subscriptionId: 'sub_123',
       });
 
-      expect(prismaMock.affiliateCode.update).toHaveBeenCalledWith({
-        where: { id: 'code-1' },
+      // Remediation sibling fix: a CONDITIONAL claim, not a plain update by id.
+      expect(prismaMock.affiliateCode.updateMany).toHaveBeenCalledWith({
+        where: { id: 'code-1', status: 'ACTIVE' },
         data: {
           status: 'USED',
           usedAt: expect.any(Date),
@@ -384,9 +385,60 @@ describe('ConversionProcessorService', () => {
           subscriptionId: 'sub_123',
         },
       });
+      expect(prismaMock.affiliateCode.update).not.toHaveBeenCalled();
       expect(result).toEqual({ reserved: true, affiliateCodeId: 'code-1' });
       expect(prismaMock.commission.create).not.toHaveBeenCalled();
       expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+    });
+
+    it('returns ALREADY_USED when a concurrent checkout claimed the code between the read and the update (count 0)', async () => {
+      prismaMock.affiliateCode.findUnique.mockResolvedValue({
+        id: 'code-1',
+        code: 'AFF10',
+        status: 'ACTIVE',
+        affiliateProfile: { status: 'ACTIVE' },
+      } as never);
+      prismaMock.affiliateCode.updateMany.mockResolvedValue({ count: 0 });
+
+      const result = await service.reserveAffiliateCode({
+        code: 'aff10',
+        userId: 'user-2',
+        subscriptionId: 'sub_456',
+      });
+
+      expect(result).toEqual({ reserved: false, reason: 'ALREADY_USED' });
+      expect(prismaMock.affiliateCode.update).not.toHaveBeenCalled();
+    });
+
+    it('lets exactly one of two concurrent reservations win (a stateful stand-in for the conditional update)', async () => {
+      // Both calls read ACTIVE before either writes; the database applies the
+      // conditional update to one of them only.
+      let status = 'ACTIVE';
+      prismaMock.affiliateCode.findUnique.mockImplementation((async () => ({
+        id: 'code-1',
+        code: 'AFF10',
+        status,
+        affiliateProfile: { status: 'ACTIVE' },
+      })) as never);
+      prismaMock.affiliateCode.updateMany.mockImplementation((async (args: {
+        where: { status?: string };
+      }) => {
+        if (args.where.status !== undefined && args.where.status !== status) {
+          return { count: 0 };
+        }
+        status = 'USED';
+        return { count: 1 };
+      }) as never);
+
+      const results = await Promise.all([
+        service.reserveAffiliateCode({ code: 'aff10', userId: 'user-1' }),
+        service.reserveAffiliateCode({ code: 'aff10', userId: 'user-2' }),
+      ]);
+
+      expect(results.filter((r) => r.reserved)).toHaveLength(1);
+      expect(results.filter((r) => !r.reserved)).toEqual([
+        { reserved: false, reason: 'ALREADY_USED' },
+      ]);
     });
   });
 

@@ -15,11 +15,14 @@ const mockSubscriptionUpsert = jest.fn();
 const mockInvoiceUpsert = jest.fn();
 const mockAffiliateCodeFindUnique = jest.fn();
 const mockAffiliateCodeUpdate = jest.fn();
+const mockAffiliateCodeUpdateMany = jest.fn();
 const mockCommissionFindFirst = jest.fn();
 const mockCommissionFindMany = jest.fn();
 const mockCommissionCreate = jest.fn();
 const mockCommissionUpdate = jest.fn();
+const mockCommissionUpdateMany = jest.fn();
 const mockAffiliateProfileUpdate = jest.fn();
+const mockTransaction = jest.fn();
 
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
@@ -39,16 +42,19 @@ jest.mock('@/lib/db/prisma', () => ({
     affiliateCode: {
       findUnique: (...args: unknown[]) => mockAffiliateCodeFindUnique(...args),
       update: (...args: unknown[]) => mockAffiliateCodeUpdate(...args),
+      updateMany: (...args: unknown[]) => mockAffiliateCodeUpdateMany(...args),
     },
     commission: {
       findFirst: (...args: unknown[]) => mockCommissionFindFirst(...args),
       findMany: (...args: unknown[]) => mockCommissionFindMany(...args),
       create: (...args: unknown[]) => mockCommissionCreate(...args),
       update: (...args: unknown[]) => mockCommissionUpdate(...args),
+      updateMany: (...args: unknown[]) => mockCommissionUpdateMany(...args),
     },
     affiliateProfile: {
       update: (...args: unknown[]) => mockAffiliateProfileUpdate(...args),
     },
+    $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));
 
@@ -305,11 +311,14 @@ describe('Stripe Webhook Handlers', () => {
           code: 'AFF10',
           status: 'ACTIVE',
         });
+        mockAffiliateCodeUpdateMany.mockResolvedValue({ count: 1 });
 
         await handleCheckoutCompleted(sessionWithCode);
 
-        expect(mockAffiliateCodeUpdate).toHaveBeenCalledWith({
-          where: { id: 'code-1' },
+        // A CONDITIONAL claim (only while still ACTIVE), not a plain update by id.
+        expect(mockAffiliateCodeUpdate).not.toHaveBeenCalled();
+        expect(mockAffiliateCodeUpdateMany).toHaveBeenCalledWith({
+          where: { id: 'code-1', status: 'ACTIVE' },
           data: {
             status: 'USED',
             usedAt: expect.any(Date),
@@ -334,7 +343,7 @@ describe('Stripe Webhook Handlers', () => {
 
         await handleCheckoutCompleted(sessionWithCode);
 
-        expect(mockAffiliateCodeUpdate).not.toHaveBeenCalled();
+        expect(mockAffiliateCodeUpdateMany).not.toHaveBeenCalled();
         expect(mockSubscriptionUpsert).toHaveBeenCalledWith(
           expect.objectContaining({
             update: expect.objectContaining({ affiliateCodeId: null }),
@@ -352,12 +361,35 @@ describe('Stripe Webhook Handlers', () => {
 
         await handleCheckoutCompleted(sessionWithCode);
 
-        expect(mockAffiliateCodeUpdate).not.toHaveBeenCalled();
+        expect(mockAffiliateCodeUpdateMany).not.toHaveBeenCalled();
         expect(mockSubscriptionUpsert).toHaveBeenCalledWith(
           expect.objectContaining({
             create: expect.objectContaining({ affiliateCodeId: null }),
           })
         );
+      });
+
+      it('does not attribute the code when a concurrent checkout claimed it between the read and the update (count 0)', async () => {
+        // Both checkouts read the code as ACTIVE; the conditional update
+        // matches nothing for the one that lost the race.
+        mockAffiliateCodeFindUnique.mockResolvedValue({
+          id: 'code-1',
+          code: 'AFF10',
+          status: 'ACTIVE',
+        });
+        mockAffiliateCodeUpdateMany.mockResolvedValue({ count: 0 });
+
+        await handleCheckoutCompleted(sessionWithCode);
+
+        expect(mockAffiliateCodeUpdateMany).toHaveBeenCalledTimes(1);
+        expect(mockAffiliateCodeUpdate).not.toHaveBeenCalled();
+        expect(mockSubscriptionUpsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            update: expect.objectContaining({ affiliateCodeId: null }),
+            create: expect.objectContaining({ affiliateCodeId: null }),
+          })
+        );
+        expect(mockCommissionCreate).not.toHaveBeenCalled();
       });
 
       it('clears a stale affiliateCodeId when re-subscribing without a code this time', async () => {
@@ -1355,10 +1387,63 @@ describe('Stripe Webhook Handlers', () => {
       status: 'PENDING',
     };
 
+    // A small stand-in for the database row the cancel acts on: the status
+    // change applies only when the `where` still matches (what a conditional
+    // updateMany does), and a transaction that throws puts the status back.
+    let storedStatus: string;
+    const CANCEL_CLAIM = {
+      where: { id: 'commission-1', status: { in: ['PENDING', 'APPROVED'] } },
+      data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
+    };
+
     beforeEach(() => {
+      storedStatus = 'PENDING';
       mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
-      mockCommissionUpdate.mockResolvedValue({});
+      // The unconditional by-id update (what the handler used to call): it
+      // overwrites the row whatever its status is and sits outside any
+      // transaction, so nothing undoes it if the counter update fails.
+      mockCommissionUpdate.mockImplementation(
+        async (args: { data: { status: string } }) => {
+          storedStatus = args.data.status;
+          return {};
+        }
+      );
       mockAffiliateProfileUpdate.mockResolvedValue({});
+      mockCommissionUpdateMany.mockImplementation(
+        async (args: {
+          where: { id: string; status: { in: string[] } };
+          data: { status: string };
+        }) => {
+          if (
+            args.where.id === 'commission-1' &&
+            args.where.status.in.includes(storedStatus)
+          ) {
+            storedStatus = args.data.status;
+            return { count: 1 };
+          }
+          return { count: 0 };
+        }
+      );
+      mockTransaction.mockImplementation(
+        async (fn: (tx: unknown) => Promise<unknown>) => {
+          const before = storedStatus;
+          try {
+            return await fn({
+              commission: {
+                updateMany: (...args: unknown[]) =>
+                  mockCommissionUpdateMany(...args),
+              },
+              affiliateProfile: {
+                update: (...args: unknown[]) =>
+                  mockAffiliateProfileUpdate(...args),
+              },
+            });
+          } catch (error) {
+            storedStatus = before;
+            throw error;
+          }
+        }
+      );
     });
 
     it('cancels a PENDING commission and reverses the affiliate profile stats on refund', async () => {
@@ -1368,10 +1453,11 @@ describe('Stripe Webhook Handlers', () => {
         customer: 'cus_test_123',
       } as unknown as Stripe.Charge);
 
-      expect(mockCommissionUpdate).toHaveBeenCalledWith({
-        where: { id: 'commission-1' },
-        data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
-      });
+      // A CONDITIONAL cancel inside one transaction, not a plain update by id.
+      expect(mockTransaction).toHaveBeenCalledTimes(1);
+      expect(mockCommissionUpdateMany).toHaveBeenCalledWith(CANCEL_CLAIM);
+      expect(mockCommissionUpdate).not.toHaveBeenCalled();
+      expect(storedStatus).toBe('CANCELLED');
       expect(mockAffiliateProfileUpdate).toHaveBeenCalledWith({
         where: { id: 'aff-1' },
         data: {
@@ -1421,6 +1507,7 @@ describe('Stripe Webhook Handlers', () => {
     });
 
     it('also cancels an APPROVED (not yet disbursed) commission', async () => {
+      storedStatus = 'APPROVED';
       mockCommissionFindFirst.mockResolvedValue({
         ...mockCommission,
         status: 'APPROVED',
@@ -1430,10 +1517,84 @@ describe('Stripe Webhook Handlers', () => {
         customer: 'cus_test_123',
       } as unknown as Stripe.Charge);
 
-      expect(mockCommissionUpdate).toHaveBeenCalledWith({
-        where: { id: 'commission-1' },
-        data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
-      });
+      expect(mockCommissionUpdateMany).toHaveBeenCalledWith(CANCEL_CLAIM);
+      expect(mockCommissionUpdate).not.toHaveBeenCalled();
+      expect(storedStatus).toBe('CANCELLED');
+      expect(mockAffiliateProfileUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it('reverses the affiliate counters once when the same refund is delivered twice at once', async () => {
+      // Both deliveries read the commission as PENDING before either writes
+      // (the read holds no lock); only the conditional update tells them apart.
+      mockCommissionFindFirst.mockResolvedValue(mockCommission);
+      const charge = { customer: 'cus_test_123' } as unknown as Stripe.Charge;
+
+      await Promise.all([
+        handleChargeRefunded(charge),
+        handleChargeRefunded(charge),
+      ]);
+
+      expect(mockCommissionUpdateMany).toHaveBeenCalledTimes(2);
+      expect(storedStatus).toBe('CANCELLED');
+      expect(mockAffiliateProfileUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it('reverses the affiliate counters once when a refund and a dispute for the same invoice arrive together', async () => {
+      mockCommissionFindFirst.mockResolvedValue(mockCommission);
+      mockChargesRetrieve.mockResolvedValue({ customer: 'cus_test_123' });
+
+      await Promise.all([
+        handleChargeRefunded({
+          customer: 'cus_test_123',
+        } as unknown as Stripe.Charge),
+        handleChargeDisputeCreated({
+          charge: 'ch_test_123',
+        } as unknown as Stripe.Dispute),
+      ]);
+
+      expect(storedStatus).toBe('CANCELLED');
+      expect(mockAffiliateProfileUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it('reverses nothing when the commission is no longer PENDING/APPROVED by the time of the update (count 0)', async () => {
+      // Read as PENDING, then paid out (or cancelled by another delivery)
+      // before the conditional update ran.
+      mockCommissionFindFirst.mockResolvedValue(mockCommission);
+      storedStatus = 'PAID';
+      const warnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      await expect(
+        handleChargeRefunded({
+          customer: 'cus_test_123',
+        } as unknown as Stripe.Charge)
+      ).resolves.toBeUndefined();
+
+      expect(mockCommissionUpdateMany).toHaveBeenCalledWith(CANCEL_CLAIM);
+      expect(storedStatus).toBe('PAID');
+      expect(mockAffiliateProfileUpdate).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('no longer PENDING/APPROVED'),
+        expect.anything()
+      );
+      warnSpy.mockRestore();
+    });
+
+    it('rolls the status change back when the counter reversal fails (one transaction)', async () => {
+      mockCommissionFindFirst.mockResolvedValue(mockCommission);
+      mockAffiliateProfileUpdate.mockRejectedValue(new Error('db blip'));
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await expect(
+        handleChargeRefunded({
+          customer: 'cus_test_123',
+        } as unknown as Stripe.Charge)
+      ).resolves.toBeUndefined();
+
+      // The commission is still cancellable by a later delivery; it is not
+      // left CANCELLED with the affiliate's counters never reversed.
+      expect(storedStatus).toBe('PENDING');
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
 
     it('does NOT flip an already-PAID commission -- instead creates a negative clawback row netted against the next payout', async () => {
@@ -1450,6 +1611,7 @@ describe('Stripe Webhook Handlers', () => {
       // The original PAID row is never touched -- money already left, so
       // it can't be silently flipped back.
       expect(mockCommissionUpdate).not.toHaveBeenCalled();
+      expect(mockCommissionUpdateMany).not.toHaveBeenCalled();
 
       // Instead, a new negative-amount row is created, referencing the
       // original via clawbackOfCommissionId, immediately APPROVED (a
@@ -1490,6 +1652,8 @@ describe('Stripe Webhook Handlers', () => {
       } as unknown as Stripe.Charge);
 
       expect(mockCommissionUpdate).not.toHaveBeenCalled();
+      expect(mockTransaction).not.toHaveBeenCalled();
+      expect(mockAffiliateProfileUpdate).not.toHaveBeenCalled();
     });
 
     it('no-ops when the refund has no associated affiliate commission at all', async () => {
@@ -1500,6 +1664,7 @@ describe('Stripe Webhook Handlers', () => {
       } as unknown as Stripe.Charge);
 
       expect(mockCommissionUpdate).not.toHaveBeenCalled();
+      expect(mockTransaction).not.toHaveBeenCalled();
     });
 
     it('no-ops when there is no customer id on the charge', async () => {
@@ -1539,10 +1704,9 @@ describe('Stripe Webhook Handlers', () => {
       } as unknown as Stripe.Dispute);
 
       expect(mockChargesRetrieve).toHaveBeenCalledWith('ch_test_123');
-      expect(mockCommissionUpdate).toHaveBeenCalledWith({
-        where: { id: 'commission-1' },
-        data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
-      });
+      expect(mockCommissionUpdateMany).toHaveBeenCalledWith(CANCEL_CLAIM);
+      expect(mockCommissionUpdate).not.toHaveBeenCalled();
+      expect(storedStatus).toBe('CANCELLED');
     });
 
     it('does not throw if resolving the disputed charge fails', async () => {

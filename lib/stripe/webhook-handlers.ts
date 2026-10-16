@@ -712,19 +712,43 @@ async function cancelCommissionForRefundOrDispute(
     }
 
     // PENDING or APPROVED -- cancel before it's ever (or further) disbursed.
-    await prisma.commission.update({
-      where: { id: commission.id },
-      data: { status: 'CANCELLED', cancelledAt: new Date() },
+    // The status change is a conditional update in the SAME transaction as the
+    // counter reversal (mirrors money-service). The read above holds no lock,
+    // so two deliveries of one refund both saw PENDING; with an unconditional
+    // update both cancelled it and both reversed the affiliate's counters. Now
+    // exactly one delivery changes the row (count 1) and reverses the counters;
+    // the other finds it no longer PENDING/APPROVED (count 0). If the counter
+    // update fails, the status change rolls back with it.
+    const cancelled = await prisma.$transaction(async (tx) => {
+      const changed = await tx.commission.updateMany({
+        where: { id: commission.id, status: { in: ['PENDING', 'APPROVED'] } },
+        data: { status: 'CANCELLED', cancelledAt: new Date() },
+      });
+      if (changed.count === 0) return false;
+
+      await tx.affiliateProfile.update({
+        where: { id: commission.affiliateProfileId },
+        data: {
+          totalCodesUsed: { decrement: 1 },
+          totalEarnings: { decrement: Number(commission.commissionAmount) },
+          pendingCommissions: {
+            decrement: Number(commission.commissionAmount),
+          },
+        },
+      });
+      return true;
     });
 
-    await prisma.affiliateProfile.update({
-      where: { id: commission.affiliateProfileId },
-      data: {
-        totalCodesUsed: { decrement: 1 },
-        totalEarnings: { decrement: Number(commission.commissionAmount) },
-        pendingCommissions: { decrement: Number(commission.commissionAmount) },
-      },
-    });
+    if (!cancelled) {
+      // Either a concurrent delivery cancelled it (fine), or it was paid out
+      // between the read above and now (the clawback row for a PAID
+      // commission was not written). Say so; a human can tell which.
+      console.warn(
+        `[Webhook] Commission was no longer PENDING/APPROVED when the ${reason} arrived -- not cancelled again`,
+        { commissionId: commission.id }
+      );
+      return;
+    }
 
     console.log(`[Webhook] Commission cancelled due to ${reason}:`, {
       commissionId: commission.id,
@@ -868,8 +892,13 @@ async function reserveAffiliateCode(
       return null;
     }
 
-    await prisma.affiliateCode.update({
-      where: { id: affiliateCode.id },
+    // The ACTIVE check above is a plain read, so two checkouts redeeming one
+    // code both pass it. The reservation itself is a conditional update (same
+    // fix as money-service's processAffiliateConversion): only the call that
+    // still finds the code ACTIVE flips it (count 1); the other matches nothing
+    // (count 0) and the code is not reservable for it.
+    const claimed = await prisma.affiliateCode.updateMany({
+      where: { id: affiliateCode.id, status: 'ACTIVE' },
       data: {
         status: 'USED',
         usedAt: new Date(),
@@ -877,6 +906,13 @@ async function reserveAffiliateCode(
         subscriptionId,
       },
     });
+
+    if (claimed.count === 0) {
+      console.log(
+        `[Webhook] Affiliate code ${code} was claimed by another checkout first, skipping attribution`
+      );
+      return null;
+    }
 
     return { id: affiliateCode.id };
   } catch (error) {

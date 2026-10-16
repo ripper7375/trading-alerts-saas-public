@@ -16,7 +16,7 @@ import { PinoLoggerService } from './common/logging/logging.service';
  *
  * Ported from scripts/alert-worker.ts. Unlike source's plain
  * process.on('SIGINT'/'SIGTERM') handlers, shutdown here goes through
- * Nest's own enableShutdownHooks() (L25) — AlertWorkerService,
+ * Nest's own shutdown hooks (enableShutdownHooks) — AlertWorkerService,
  * AlertQueueService, RedisService, and PrismaService all drain via their
  * own onModuleDestroy hooks, no separate manual signal handler (which would
  * double-fire alongside Nest's own re-emitted signal).
@@ -28,7 +28,12 @@ async function bootstrap(): Promise<void> {
     bufferLogs: true,
   });
   app.useLogger(app.get(PinoLoggerService));
-  app.enableShutdownHooks();
+  // useProcessExit: end with process.exit(0) once the hooks are done, like
+  // main.ts. By default Nest removes its listeners and re-sends the signal to
+  // the process, so the worker would end by being killed with the signal. This
+  // is an application context (no HTTP server, nothing to drain besides the
+  // hooks), so exiting right after the hooks is safe.
+  app.enableShutdownHooks(undefined, { useProcessExit: true });
 
   const worker = app.get(AlertWorkerService);
   const scheduler = app.get(AlertCronScheduler);

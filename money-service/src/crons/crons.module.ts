@@ -24,6 +24,7 @@ import { TransactionService } from '../disbursement/transaction.service';
 import { OutboxPublisherCron } from '../outbox/outbox-publisher.cron';
 import { OutboxService } from '../outbox/outbox.service';
 
+import { ProcessedWebhookEventService } from '../webhooks/processed-webhook-event.service';
 import { WiseStateMapper } from '../wise/services/wise-state.mapper';
 import { WiseTransferStateReducer } from '../wise/services/wise-transfer-state.reducer';
 import { WiseApiClient } from '../wise/wise-api.client';
@@ -72,6 +73,8 @@ import { WiseReconciliationService } from './wise-reconciliation.service';
     DisbursementSettingsService,
     // Remediation Tier 2 6.9: one winner per cron firing across instances
     CronLockService,
+    // Sibling fix: the scheduler purges ProcessedWebhookEvent rows after 90 days
+    ProcessedWebhookEventService,
     // File 4/6
     CronsScheduler,
     // File 5/6

@@ -42,6 +42,17 @@ the control must show the defect.
 Negative control for the migration itself: drop `Commission_affiliateCodeId_stripeInvoiceId_key`, run step d again,
 and the credit race fails with 10 commission rows (earnings 100 to 158). Recreate the index afterwards.
 
+## Sibling fixes (2026-10-17, addendum to the hand-off)
+
+Two more scripts, same setup as above (the scratch server and the **current** money-service schema,
+`prisma migrate diff --from-empty --to-schema money-service/prisma/schema.prisma --script`, plus the user and
+affiliate rows of `seed-2.1-duplicates.sql`; `npm run build` first):
+
+| Script                                       | What it shows                                                                                                                                                                                                      |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `proof-s2-reserve-affiliate-code.js`         | Control: the old `reserveAffiliateCode` (read, then update by id) tells all 10 concurrent checkouts "reserved". New: exactly 1 reserves, 9 get `ALREADY_USED`, and the row names the winner (not the last writer). |
+| `proof-s5-purge-processed-webhook-events.js` | Seven claims aged 0 to 100 days: `purgeOlderThan()` deletes the four older than 90 days (finished or not), keeps the three younger ones, and a second run finds nothing.                                           |
+
 ## Not covered here
 
 Anything that needs a real Redis (the outbox consumer claim, the cron locks) is covered by unit tests against

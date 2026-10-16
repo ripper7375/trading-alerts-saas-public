@@ -5,6 +5,7 @@ import { createPrismaMock } from '../test-utils/prisma-mock';
 
 import {
   CLAIM_LEASE_MS,
+  PROCESSED_EVENT_RETENTION_MS,
   ProcessedWebhookEventService,
 } from './processed-webhook-event.service';
 
@@ -188,6 +189,55 @@ describe('ProcessedWebhookEventService', () => {
       );
 
       await expect(service.release('stripe', 'evt_1')).resolves.toBeUndefined();
+    });
+  });
+
+  describe('purgeOlderThan', () => {
+    const DAY_MS = 24 * 60 * 60 * 1000;
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('keeps rows for 90 days', () => {
+      expect(PROCESSED_EVENT_RETENTION_MS).toBe(90 * DAY_MS);
+    });
+
+    it('deletes every claim created before now - 90 days, finished or not, and returns the count', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-10-17T00:00:00.000Z'));
+      prismaMock.processedWebhookEvent.deleteMany.mockResolvedValue({
+        count: 7,
+      });
+
+      await expect(service.purgeOlderThan()).resolves.toBe(7);
+
+      expect(prismaMock.processedWebhookEvent.deleteMany).toHaveBeenCalledTimes(
+        1
+      );
+      expect(prismaMock.processedWebhookEvent.deleteMany).toHaveBeenCalledWith({
+        where: { createdAt: { lt: new Date('2026-07-19T00:00:00.000Z') } },
+      });
+    });
+
+    it('takes the retention as a parameter', async () => {
+      jest.useFakeTimers().setSystemTime(new Date('2026-10-17T00:00:00.000Z'));
+      prismaMock.processedWebhookEvent.deleteMany.mockResolvedValue({
+        count: 0,
+      });
+
+      await service.purgeOlderThan(DAY_MS);
+
+      expect(prismaMock.processedWebhookEvent.deleteMany).toHaveBeenCalledWith({
+        where: { createdAt: { lt: new Date('2026-10-16T00:00:00.000Z') } },
+      });
+    });
+
+    it('lets a database error propagate (the scheduler logs the failed run)', async () => {
+      prismaMock.processedWebhookEvent.deleteMany.mockRejectedValue(
+        new Error('relation "ProcessedWebhookEvent" does not exist')
+      );
+
+      await expect(service.purgeOlderThan()).rejects.toThrow('does not exist');
     });
   });
 });

@@ -39,6 +39,7 @@ import {
 } from '../disbursement/disbursement-settings.constants';
 import { TransactionLoggerService } from '../disbursement/transaction-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProcessedWebhookEventService } from '../webhooks/processed-webhook-event.service';
 
 import {
   AffiliateCronService,
@@ -85,6 +86,10 @@ export interface ApproveMaturedCommissionsResult {
   approvedCount: number;
 }
 
+export interface PurgeProcessedWebhookEventsResult {
+  deleted: number;
+}
+
 @Injectable()
 export class CronsScheduler {
   constructor(
@@ -94,7 +99,8 @@ export class CronsScheduler {
     private readonly disbursementProcessor: DisbursementProcessorService,
     private readonly wiseReconciliation: WiseReconciliationService,
     private readonly transactionLogger: TransactionLoggerService,
-    private readonly cronLock: CronLockService
+    private readonly cronLock: CronLockService,
+    private readonly processedWebhookEvents: ProcessedWebhookEventService
   ) {}
 
   /**
@@ -439,6 +445,17 @@ export class CronsScheduler {
   }
 
   /**
+   * Job: purge-processed-webhook-events — daily, "30 5 * * *". Housekeeping
+   * for the ProcessedWebhookEvent claim table (Remediation Tier 2 §6.1): rows
+   * older than 90 days are deleted. New job, not in `vercel.json`.
+   */
+  async handlePurgeProcessedWebhookEvents(): Promise<PurgeProcessedWebhookEventsResult> {
+    const deleted = await this.processedWebhookEvents.purgeOlderThan();
+    logger.info(`[CRON] Purged ${deleted} processed webhook events`);
+    return { deleted };
+  }
+
+  /**
    * Job: sync-riseworks-accounts — vercel.json "0 3 * * *"
    */
   async handleSyncRiseWorksAccounts(): Promise<AccountSyncResult> {
@@ -512,6 +529,13 @@ export class CronsScheduler {
   async scheduledSendMonthlyReports(): Promise<void> {
     await this.runScheduled('send-monthly-reports', () =>
       this.handleSendMonthlyReports()
+    );
+  }
+
+  @Cron('30 5 * * *')
+  async scheduledPurgeProcessedWebhookEvents(): Promise<void> {
+    await this.runScheduled('purge-processed-webhook-events', () =>
+      this.handlePurgeProcessedWebhookEvents()
     );
   }
 
