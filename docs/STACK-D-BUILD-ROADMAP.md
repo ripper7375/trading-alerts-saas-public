@@ -9,12 +9,12 @@ STEP 5: Engine 4 & Report 2 (Risk Sizing & Trade Modal)
 └─ UI: Report 2 Trade Setup Modal & Card, interactive entry price pills, Accept/Decline buttons
 ↓
 STEP 6: Intake, Routing & Knowledge (RAG & Chart Triggers)
-├─ Backend: Trading glossary, curated Knowledge Corpus, local txtai RAG index, 16-language routing
-└─ UI: Panel C instant prompt buttons ("Ask AI about M5 Chart" & "Ask AI about M15 Chart")
+├─ Backend: Trading glossary, curated Knowledge Corpus, local txtai RAG index, 19-locale routing
+└─ UI: Panel C instant prompts: the two Market Context badges of the charts (ADR-098 D10)
 ↓
 STEP 7: Prompt & Reply (AI Copilot Chat Interface)
 ├─ Backend: Prompt assembler, OpenRouter model gateway, number check, token quota metering
-└─ UI: Panel B live ChatPanel (model picker, token meter, Report 1 stream) & Panel A dynamic sessions
+└─ UI: Panel B live ChatPanel (model picker, quota meter, Report 1 shown after its checks) & Panel A dynamic threads
 ↓
 PHASE B: Live Rollout & Certification on Railway (B0 → B5)
 ├─ Operations: PostgreSQL migrations applied, Python 3.11 Railway container, live shadow ingestion
@@ -66,7 +66,7 @@ Frontend & UI Built:
 - Consent Action Controls:
   -- "Accept setup" button (with broker execution disclaimer), "Modify", and "Decline".
 
-- Legal Disclaimers: Reviewed risk disclaimers and single-order scope notices translated into 16 languages.
+- Legal Disclaimers: Reviewed risk disclaimers and single-order scope notices translated into the 19 interface locales.
 
 Verification: Pre-calculated worked examples and edge-case unit tests. Zero mock data.
 
@@ -77,16 +77,16 @@ Enables multi-language intent parsing, semantic RAG search, and chart-to-chat tr
 Backend & Engine:
 
 - Knowledge Corpus & Vector Index: Curated trading psychology, market mechanics, and indicator playbooks indexed using local txtai files (ADR-005).
-- Trading Glossary: Definitive terminology translations across all 16 supported languages.
+- Trading Glossary: Definitive terminology translations across all 19 interface locales.
 - Intent & Language Router: Classifies user queries (analysis request vs. risk modification vs. out-of-scope question).
 
 Frontend & UI Built:
 
-- Panel C Instant Prompt Buttons (components/charts/mtf-stacked-charts.tsx):
-  -- Adds Ask AI about M5 Chart and Ask AI about M15 Chart buttons directly above the live candlestick charts.
-  -- Clicking a button automatically packages the active timeframe's technical context and routes it straight into the chat input gate.
+- Panel C Instant Prompts (components/charts/mtf-stacked-charts.tsx):
+  -- The top-left Market Context badge of each chart is the instant prompt (ADR-098 D10, Owner Decision "Option A"); there is no separate button.
+  -- Pressing a badge sends the fixed question of that timeframe through the instant route; the reply is drawn by Step 7.
 
-Verification: Labelled 16-language question benchmark set with semantic retrieval accuracy validation.
+Verification: Labelled question benchmark set in all 19 locales with semantic retrieval accuracy validation.
 
 Step 7 — Prompt & Reply (Chapter 5 — Final UI Integration)
 
@@ -95,8 +95,8 @@ Connects the LLM gateway, safety backstops, token quota meter, and the live conv
 Backend & Engine:
 
 - Prompt Assembler: Combines cycle state, synthesis reading, entry zones, and retrieved knowledge into a compact prompt (
-  ≈7k tokens).
-- OpenRouter Model Gateway: Multi-model routing (Gemini 2.5 Flash default, secondary fallback) using passed models only (ADR-055).
+  16,000 to 19,600 tokens at the caps; the day of OHLC alone is about 7,700, architecture 5.4).
+- OpenRouter Model Gateway: Multi-model routing (one default and one fallback of another provider, named after the live evaluation; none is named yet, ADR-099 D1) using passed models only (ADR-055).
 - Number Check & Safety Backstop: Re-validates that every price in the AI reply exists in the verified cycle context (
   ±$0.05 tolerance); enforces banned wording policies.
 - Token Metering & Quota Engine: Deducts usage against actual gateway costs, reserving token balances before request dispatch.
@@ -106,15 +106,17 @@ Frontend & UI Built:
 
 - Panel B AI Copilot (components/chat-panel.tsx):
   -- Replaces the "AI Copilot Coming Soon" placeholder with the live conversational interface.
-  -- Header Model Picker: Dropdown allowing users to select between verified models, displaying estimated cost units per message.
+  -- Header Model Picker: Dropdown listing the models that passed the evaluation, with "about N analyses left" from the measured cost (ADR-073).
   -- Active Cycle & Profile Badges: Displays DAY_TRADER / SCALPER and current cycle time slot.
-  -- Monthly Token Quota Meter: Live progress bar showing remaining Free/Pro quota units.
+  -- Monthly Quota Meter: Live progress bar showing the share of the Pro allowance left (a share, never a token number, ADR-073).
   -- Report 1 Structured Renderer: Formats the AI market analysis (headline, multi-timeframe alignment, levels, entry zones, risks).
 
 - Panel A Sidebar (components/chat-sidebar.tsx):
   -- Replaces static session titles with dynamic database chat sessions, complete with LONG/SHORT direction badges, timestamps, and preview snippets.
 
-Verification: End-to-end question-to-report streaming verification, token billing accuracy tests.
+Verification: End-to-end question-to-report verification over the 34 golden scenarios and a recorded evaluation run (replies are shown whole after their checks, ADR-054), billing accuracy tests on the ledger.
+
+Status (2026-10-16): built in ten parts and proved offline (the evaluation run is a STAND-IN: no model was called); nothing is switched on. The stages that need a key, a budget and people are in docs/runbooks/deploy-stack-d-step7.md (S0 to S9); the decisions are ADR-099.
 
 Phase B — Live Rollout & Production Certification (Railway B0 → B5)
 

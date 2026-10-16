@@ -5,6 +5,7 @@
 - **Section:** 5 · Prompt & AI reply (deck decision 5.4: Metering)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §5.6
 - **Sources (archived):** file D = [`STACK-D-CONVERSATIONAL-AI-CHART-ANALYSIS-ARCHITECTURE-V2.md`](../../davintrade-stack-d-and-e/archive/STACK-D-CONVERSATIONAL-AI-CHART-ANALYSIS-ARCHITECTURE-V2.md)
+- **Amended by:** [ADR-099](099-prompt-and-reply-as-built-in-step-7.md): a unit is one micro-dollar of the gateway's reported cost, the ledger is two PostgreSQL tables with an atomic reserve, an idempotent settle that charges up to what is left, a release and a reaper (D2, D3); the decision below is unchanged
 
 ## Decision
 

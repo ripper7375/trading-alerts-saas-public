@@ -4,6 +4,7 @@
 - **Date:** 2026-09-30
 - **Section:** 7 · Platform & governance (deck decision 7.10: Golden scenarios)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §7.7
+- **Amended by:** [ADR-099](099-prompt-and-reply-as-built-in-step-7.md): the reply path's set is 34 scenarios in five families (about 24 is read as a floor), approved through `config/reply/golden/review.md` and `approval.json`, and a model joins only after a live run over them (D25); the decision below is unchanged
 
 ## Decision
 

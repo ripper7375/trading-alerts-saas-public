@@ -4,6 +4,7 @@
 - **Date:** 2026-09-29
 - **Section:** 5 · Prompt & AI reply (deck decision 5.8: Show after checks)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §5.11
+- **Amended by:** [ADR-099](099-prompt-and-reply-as-built-in-step-7.md): what is delivered is NDJSON stage events and exactly one whole result, never token by token (D24); the roadmap's "Report 1 stream" is corrected; the decision below is unchanged
 
 ## Decision
 

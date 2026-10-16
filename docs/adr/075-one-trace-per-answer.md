@@ -4,6 +4,7 @@
 - **Date:** 2026-09-30
 - **Section:** 7 · Platform & governance (deck decision 7.6: Trace)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §7.4
+- **Amended by:** [ADR-099](099-prompt-and-reply-as-built-in-step-7.md): the trace is seven strict groups written once at the end, holds no question text and never the user id (D16); the decision below is unchanged
 
 ## Decision
 

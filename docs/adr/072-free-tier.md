@@ -5,6 +5,7 @@
 - **Section:** 7 · Platform & governance (deck decision 7.3: Free tier)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §7.3
 - **Sources (archived):** file A = [`STACK-D-OKF-CONVERSATIONAL-AI-ARCHITECTURE-V2.md`](../../davintrade-stack-d-and-e/archive/STACK-D-OKF-CONVERSATIONAL-AI-ARCHITECTURE-V2.md)
+- **Amended by:** [ADR-099](099-prompt-and-reply-as-built-in-step-7.md): the Free tier's recorded example is a golden scenario in 19 locales, shown only when its files are approved and come from a live run (D19); the decision below is unchanged
 
 ## Decision
 

@@ -4,6 +4,7 @@
 - **Date:** 2026-09-30
 - **Section:** 7 · Platform & governance (deck decision 7.4: Pro quota)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §7.3
+- **Amended by:** [ADR-099](099-prompt-and-reply-as-built-in-step-7.md): `PRO_MONTHLY_UNITS` stays unset (the ledger refuses everything) until a measured allowance is set, and a unit is one micro-dollar (D2, D4); the decision below is unchanged
 
 ## Decision
 

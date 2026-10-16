@@ -1313,6 +1313,14 @@ reading ([ADR-041]).
 The profile in the prompt carries trader type, style and limits, never the equity balance or
 commission ([ADR-077]).
 
+**As built (build step 7 part 2 and part 10; [ADR-099] D7).** The ten caps add up to exactly the 19,600 total, so "over its total" could
+never be true of a request whose components are each within their own caps. The cut order is read as the order in which components
+shrink when the assembled prompt exceeds **the budget of the chosen model**, `min(19,600, floor(model budget / (1 + margin)))`: history
+first, then knowledge, then the OHLC (summary mode), then the readings' details; the board, the synthesis line, the warnings, the
+profile, the events and the question are never cut, and a component that cannot be cut and is over its cap is kept and listed. The
+caps are `config/reply/context-caps.v1.json`; the estimator is deterministic (a per-model calibration and a safety margin, no
+tokenizer library), and the real counts the provider reports go to the trace.
+
 **Prompt order for caching** ([ADR-049]): static rules and wording guide (identical for everyone)
 → the cycle block (board, SYN, OHLC; identical for every user of that trader type in that cycle) →
 the chart → this user's part. Cached where the model supports it.
@@ -1336,7 +1344,10 @@ M15 · 96 bars · same day · step 15 min
 LAST PRICE 4377.99 at 20:55:05 (forming, not a close)
 ```
 
-(Illustrative prices except the last price.) One header per timeframe instead of a timestamp on every
+(Illustrative prices except the last price.) **As built ([ADR-099] D6):** the last-price line is
+`LAST PRICE 4377.99 · close of the last closed M5 bar (opened 18 Sep 20:50 UTC)`, from the packet, or `LAST PRICE unavailable`; a forming
+price has no stored source (ADR-011), so the example's "at 20:55:05 (forming, not a close)" is not what the prompt says. One header per
+timeframe instead of a timestamp on every
 bar; gap lines mark market breaks; the day line carries the values most often quoted; the block is
 shared and cached.
 
@@ -1459,6 +1470,14 @@ Run on every model or prompt change. At launch: one default model and one fallba
 provider, both passed; file D's six models start as candidates ([ADR-055]). Providers are restricted
 to those that don't train on or keep prompts ([ADR-077]).
 
+**As built (build step 7 part 10; [ADR-099]).** The suite is `lib/reply/eval/` and `scripts/reply/eval-run.js`; the scenarios are
+`config/reply/golden/scenarios.v1.json` (34, approved through `review.md` and `approval.json`). A run is recorded under
+`config/reply/eval-runs/` with a **fingerprint** (model and host, prompt, wording lists, caps, scenarios and their worlds); a model is
+`passed` only with a LIVE run for the current fingerprint whose bars all hold (`__tests__/lib/reply/eval-gate.test.ts`). A language's
+score is the share of its scored runs that pass every check without a retry, a regeneration or a flag, compared with `en-US` in basis
+points. **The run committed today is a STAND-IN** (the fixture model's replies): it shows the mechanism and measures nothing about a
+model, a language or a price, and the gate refuses it as evidence by name. The live run is runbook S2.
+
 ### 5.11 Follow-ups and speed
 
 - **Same cycle:** the cycle block is identical, so it is served from the cache; the chart is resent
@@ -1486,8 +1505,10 @@ Short chat answers ≤ 8 s. One regeneration adds a model call; its rate is trac
 
 ### 5.12 Keep, change, add, remove
 
-- **Keep:** OpenRouter gateway and `config/ai-models.ts`; dual report; Pillar 8 news rules; sessions
-  API, auto-title, quota meter.
+- **Keep:** dual report; Pillar 8 news rules. (The first draft of this line also said to keep "OpenRouter
+  gateway and `config/ai-models.ts`; sessions API, auto-title, quota meter". None of them existed (S7-F1: the model list was
+  an array in `components/chat-panel.tsx`, the sessions a hard-coded list, the meter `useState(42500)`), so step 7 **built**
+  them: the gateway and the registry, the threads API with deterministic titles, the ledger and the meter; [ADR-099].)
 - **Change:** units from actual cost with the worst case reserved; Report 1 contents (synthesis and
   zones replace WACS and density); history 10 messages + summary; picker lists passed models only.
 - **Add:** answer gate; caps and a cut order; Report 1 as checked JSON; number and wording checks;
@@ -1601,6 +1622,27 @@ Short chat answers ≤ 8 s. One regeneration adds a model call; its rate is trac
   a card in Panel B; a result opens Panel B if it was collapsed and the thread it made is active in Panel A.
   With the reply flag off the press is still `POST /api/intake/instant`; a Free press still opens the upgrade modal.
   The canvas arithmetic (`CHROME_PER_CHART`, `mtf-split-layout.ts`) is untouched.
+
+**Built (build step 7 part 10; the evaluation suite, the golden scenarios, the Free recording, the runbook and ADR-099; nothing deployed, no model called).**
+
+- **The scenarios** (`config/reply/golden/`): 34 in five families (the 16 stored cycles for both trader types in 19 locales, the DELAYED
+  overlay, the ten rows of 7.6, the four planted failures, the Free recording), each with what must be true written before anything
+  is run; the scenario table is held word for word to the table of 7.6 by a test. The approval is **PENDING** (`golden-tool.js`).
+- **The suite** (`lib/reply/eval/`, `scripts/reply/eval-run.js`): a cell goes through the REAL orchestrator; `judgeReplies` (pure)
+  re-finds what the checks find in the recorded replies and the harness throws when it and the orchestrator disagree; the bars of
+  5.10 are arithmetic (`scoring.ts`); the fingerprint names the configuration a run is about; `evalGate` is the release gate.
+- **A STAND-IN run is committed** (`config/reply/eval-runs/stand-in.json`, 680 cells): recomputed byte for byte in CI with no paid call,
+  replayed from its recorded replies, and labelled STAND-IN on every table it prints. It measures nothing about a model.
+- **5.14 items 5, 6, 7 and 8 are shown by named tests** (`__tests__/lib/reply/golden/acceptance-5-14.test.ts`): a planted wrong price is caught,
+  regenerated once and shown as "not verified", and the trace row stores the counts by class; a listed phrase is caught in each of the 19 locales
+  (through the pipeline) and a sentence of each of the five "never" rows in each of the 19 (95 cases); the direction equals the stored synthesis
+  reading in 128 Report 1s (16 cycles x 2 trader types x FRESH, DELAYED, MARKET_CLOSED and RETUNING) and is replaced by none in 32 STALE ones;
+  first message, follow-up and instant prompt are each measured per model from the traces, and `measure-units.js --run` reads a recorded run. The
+  real numbers of item 8 are runbook S3 and need a key.
+- **The Free recording** (`config/reply/demo/`, 19 files made from the recorded run's replies, `components/chat/demo-source.ts`): the panels draw it with
+  the real cards at no cost; a trader is shown it only when it is approved AND comes from a live run, so today (a stand-in recording, PENDING) the
+  Free tier says it is not available yet.
+- **The runbook** is `docs/runbooks/deploy-stack-d-step7.md` (S0 to S9, with the rollback); the decisions are [ADR-099].
 
 ### 5.15 Decisions
 
@@ -2369,32 +2411,36 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 
 ## Appendix B — Corrections to earlier material
 
-| Where             | Said                                                              | Correct statement                                                                                                                      |
-| ----------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Rev-3 deck        | "SQLite staging + Python calc"                                    | The Python calc stack was parked on 9 Sep. MQL5 computes every value; the collector validates and forwards                             |
-| Rev-3 deck        | "Exports at second :59, every 5 minutes"                          | Exports every minute at :59; the collector reads every 5 minutes at :05, and M15 every 15                                              |
-| Review A2         | "No cycle identifier"                                             | A collection `cycle_id` exists per timeframe and attempt; what was missing is one key across timeframes and a ready signal ([ADR-008]) |
-| Review A3         | MCD2 and MCD3 disagree on test data                               | Stronger: on live data every variant has data every cycle, so a "single active" check would always fail ([ADR-010])                    |
-| Review, evidence  | MCD1–3 timestamps                                                 | Not from the live pipeline; MCD evaluators read an Excel replica. The forming-bar finding rests on the pipeline documents              |
-| Rev-3 deck        | "Contabo VPS"                                                     | The blueprint names a Vultr Windows server; "Contabo" survives in folder names                                                         |
-| Review B3         | Thai singled out                                                  | DavinTrade serves 19 languages; B3 covers all with English as the single pivot ([ADR-038])                                             |
-| Review G4         | Block trade setups when the knowledge index fails                 | Report 2 does not use the index; only Report 1 is flagged (§7.6)                                                                       |
-| Files D, E §4     | "9 constraints"                                                   | Engine 4 has 8 metrics                                                                                                                 |
-| File D §3 vs §10  | Chat buffer 20 vs 10 messages                                     | 10 messages + a running summary ([ADR-057])                                                                                            |
-| File D §7         | "300+ messages a month"                                           | Assumed ≈ 1,500 units a message; a first full-context message is ≈ 16,000–18,000 tokens, up to 19,600 at every cap (§5.4, §5.6)        |
-| File G §6         | Worked example                                                    | Commission not subtracted; declared vs actual risk; corrected in §6.7                                                                  |
-| File G §4.1       | Underflow options 1 and 3                                         | Option 1 can exceed Max RPT; option 3 asks for an equity the account does not hold; revised in §6.8                                    |
-| File E §5         | `ON DELETE CASCADE` on the preferences history                    | Deletes the audit trail with the account; removed (§6.11)                                                                              |
-| §6.5, §6.14       | 18 Sep: entry 4367.25, options 4349.72 and 4278.71, 4384.28 named | Stored cycle: entry 4367.20, six options, M15 `sr_1` 4369.57 named, no badge (§6.5; corrected in build step 5 part 8)                  |
-| §6.8              | $500 case is a risk shortfall only                                | At gold 2,545 and the 1:5 ceiling it is also a leverage shortfall ($509 needed); the leverage twin is added (§6.8)                     |
-| News manifest §10 | "the other 12 dictionaries"                                       | `lib/i18n/dictionaries` holds 19 files for 19 languages/locales (§7.9)                                                                 |
-| §4.3, 5 ADRs      | "16 languages"                                                    | 19 locales, 17 languages ([ADR-098]); the five ADR files carry an "Amended by" line, their text is unchanged                           |
-| §4.4              | Sample board: all VALID, last price 4377.99 at 20:55:05           | Stored 18 Sep cycle: all CAUTIONARY, state codes shown, last price 4378.31 (close of the 20:50 M5 bar)                                 |
-| §4.6              | Chunks split over 1,500 tokens                                    | Over 450: the embedding model sees only the first 512 tokens of a chunk (§4.6)                                                         |
-| §4.7              | SQL scoped by `mcd_id` or domain, no weights, long templates      | Playbook domain and ids bound together, `weights=0.7`, one-word templates, domains from the matrix (§4.7)                              |
-| App. C, item 6    | Panel C buttons are a design target, not built                    | Built in step 6 part 10 behind `INTAKE_INSTANT_PROMPTS_ENABLED`, as the top-left Market Context badges, not buttons (Option A; §4.2)   |
-| App. C, item 6    | "XAUUSD with M5 stacked above M15"                                | M15 is the upper pane and M5 the lower one (`upperTimeframe = 'M15'`, `lowerTimeframe = 'M5'`); settled by Davin, 14 Oct (§4.2)        |
-| Step 6 task text  | Locales `ms` and `ru`                                             | The app has `en-GB` and `pt` instead (`lib/i18n/languages.ts`); the labelled set follows the app (§4.3)                                |
+| Where             | Said                                                                       | Correct statement                                                                                                                                                   |
+| ----------------- | -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rev-3 deck        | "SQLite staging + Python calc"                                             | The Python calc stack was parked on 9 Sep. MQL5 computes every value; the collector validates and forwards                                                          |
+| Rev-3 deck        | "Exports at second :59, every 5 minutes"                                   | Exports every minute at :59; the collector reads every 5 minutes at :05, and M15 every 15                                                                           |
+| Review A2         | "No cycle identifier"                                                      | A collection `cycle_id` exists per timeframe and attempt; what was missing is one key across timeframes and a ready signal ([ADR-008])                              |
+| Review A3         | MCD2 and MCD3 disagree on test data                                        | Stronger: on live data every variant has data every cycle, so a "single active" check would always fail ([ADR-010])                                                 |
+| Review, evidence  | MCD1–3 timestamps                                                          | Not from the live pipeline; MCD evaluators read an Excel replica. The forming-bar finding rests on the pipeline documents                                           |
+| Rev-3 deck        | "Contabo VPS"                                                              | The blueprint names a Vultr Windows server; "Contabo" survives in folder names                                                                                      |
+| Review B3         | Thai singled out                                                           | DavinTrade serves 19 languages; B3 covers all with English as the single pivot ([ADR-038])                                                                          |
+| Review G4         | Block trade setups when the knowledge index fails                          | Report 2 does not use the index; only Report 1 is flagged (§7.6)                                                                                                    |
+| Files D, E §4     | "9 constraints"                                                            | Engine 4 has 8 metrics                                                                                                                                              |
+| File D §3 vs §10  | Chat buffer 20 vs 10 messages                                              | 10 messages + a running summary ([ADR-057])                                                                                                                         |
+| File D §7         | "300+ messages a month"                                                    | Assumed ≈ 1,500 units a message; a first full-context message is ≈ 16,000–18,000 tokens, up to 19,600 at every cap (§5.4, §5.6)                                     |
+| File G §6         | Worked example                                                             | Commission not subtracted; declared vs actual risk; corrected in §6.7                                                                                               |
+| File G §4.1       | Underflow options 1 and 3                                                  | Option 1 can exceed Max RPT; option 3 asks for an equity the account does not hold; revised in §6.8                                                                 |
+| File E §5         | `ON DELETE CASCADE` on the preferences history                             | Deletes the audit trail with the account; removed (§6.11)                                                                                                           |
+| §6.5, §6.14       | 18 Sep: entry 4367.25, options 4349.72 and 4278.71, 4384.28 named          | Stored cycle: entry 4367.20, six options, M15 `sr_1` 4369.57 named, no badge (§6.5; corrected in build step 5 part 8)                                               |
+| §6.8              | $500 case is a risk shortfall only                                         | At gold 2,545 and the 1:5 ceiling it is also a leverage shortfall ($509 needed); the leverage twin is added (§6.8)                                                  |
+| News manifest §10 | "the other 12 dictionaries"                                                | `lib/i18n/dictionaries` holds 19 files for 19 languages/locales (§7.9)                                                                                              |
+| §4.3, 5 ADRs      | "16 languages"                                                             | 19 locales, 17 languages ([ADR-098]); the five ADR files carry an "Amended by" line, their text is unchanged                                                        |
+| §4.4              | Sample board: all VALID, last price 4377.99 at 20:55:05                    | Stored 18 Sep cycle: all CAUTIONARY, state codes shown, last price 4378.31 (close of the 20:50 M5 bar)                                                              |
+| §4.6              | Chunks split over 1,500 tokens                                             | Over 450: the embedding model sees only the first 512 tokens of a chunk (§4.6)                                                                                      |
+| §4.7              | SQL scoped by `mcd_id` or domain, no weights, long templates               | Playbook domain and ids bound together, `weights=0.7`, one-word templates, domains from the matrix (§4.7)                                                           |
+| App. C, item 6    | Panel C buttons are a design target, not built                             | Built in step 6 part 10 behind `INTAKE_INSTANT_PROMPTS_ENABLED`, as the top-left Market Context badges, not buttons (Option A; §4.2)                                |
+| App. C, item 6    | "XAUUSD with M5 stacked above M15"                                         | M15 is the upper pane and M5 the lower one (`upperTimeframe = 'M15'`, `lowerTimeframe = 'M5'`); settled by Davin, 14 Oct (§4.2)                                     |
+| Step 6 task text  | Locales `ms` and `ru`                                                      | The app has `en-GB` and `pt` instead (`lib/i18n/languages.ts`); the labelled set follows the app (§4.3)                                                             |
+| §5.5              | Last price "at 20:55:05 (forming, not a close)"                            | The close of the last closed M5 bar, labelled with the bar: a forming price has no stored source ([ADR-099] D6)                                                     |
+| §5.4              | The cut order applies "when a request is over its total"                   | The ten caps already sum to the total; it applies when the prompt exceeds the chosen model's budget ([ADR-099] D7)                                                  |
+| §5.12             | Keep the gateway, `config/ai-models.ts`, the sessions API, the quota meter | None of them existed; step 7 built them ([ADR-099]; the registry, the threads API, the ledger)                                                                      |
+| Roadmap, step 7   | "≈7k tokens", "Gemini 2.5 Flash default", "Report 1 stream", "token meter" | The whole prompt is 16,000–19,600 tokens (7,700 is the OHLC); no launch pair is named yet; the reply is shown whole after its checks; a share, never a token number |
 
 ## Appendix C — Superseded documents
 
@@ -2474,22 +2520,30 @@ The txtai library source in the same folder is reference code (§4.6).
 
 ## Appendix D — Open items
 
-| Item                                                                                                       | Owner                       | Where                             |
-| ---------------------------------------------------------------------------------------------------------- | --------------------------- | --------------------------------- |
-| Resolve the four "documents disagree" status items against production                                      | Davin / Executor            | §0.5                              |
-| First real, measured cycle; confirm the ADR-012 thresholds                                                 | Executor                    | §1.8                              |
-| Write the rules table content (the draft is a starting point)                                              | Davin                       | §3.4                              |
-| Approve each knowledge domain before its first build                                                       | Davin                       | Resolved (14 Oct 2026, §4.6)      |
-| Sign the English labelled base; record a live Understand run and re-run the gate                           | Davin, then Executor        | §4.8, runbook                     |
-| Native readers for the 18 translations; counsel for the ten refusal replies                                | Davin + counsel             | §4.3, ADR-098                     |
-| Meter the quota (step 7) before `INTAKE_ENABLED` is on in production                                       | Executor                    | §4.2, §7.3, ADR-098 D5            |
-| Wire the Railway `knowledge-service`; build the image once and measure it                                  | Davin / Executor            | §4.6, runbook                     |
-| Decide the two `routing-v2` questions the labelled set raised (§4.5)                                       | Davin, with his advisor     | §4.5                              |
-| Set the model-spend share for the Pro quota; publish tier amounts after measurement                        | Davin                       | §7.3                              |
-| Counsel review: wording guide, disclaimers, consent wording, retention figures, privacy notice             | Davin + counsel             | §5.9, §6.11, §7.5                 |
-| Capture golden scenarios from live cycles once the pipeline runs                                           | Executor, approved by Davin | §7.7                              |
-| Measure token counts and cost per model; set caps per model                                                | Executor                    | §5.4, §5.10                       |
-| Review the six design folders in `seed-code/txtai/` against this document; record the result in Appendix C | Davin, with his advisor     | Resolved (2026-10-04, Appendix C) |
+| Item                                                                                                                                               | Owner                       | Where                                 |
+| -------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- | ------------------------------------- |
+| Resolve the four "documents disagree" status items against production                                                                              | Davin / Executor            | §0.5                                  |
+| First real, measured cycle; confirm the ADR-012 thresholds                                                                                         | Executor                    | §1.8                                  |
+| Write the rules table content (the draft is a starting point)                                                                                      | Davin                       | §3.4                                  |
+| Approve each knowledge domain before its first build                                                                                               | Davin                       | Resolved (14 Oct 2026, §4.6)          |
+| Sign the English labelled base; record a live Understand run and re-run the gate                                                                   | Davin, then Executor        | §4.8, runbook                         |
+| Native readers for the 18 translations; counsel for the ten refusal replies                                                                        | Davin + counsel             | §4.3, ADR-098                         |
+| Meter the quota (step 7) before `INTAKE_ENABLED` is on in production                                                                               | Executor                    | §4.2, §7.3, ADR-098 D5                |
+| Wire the Railway `knowledge-service`; build the image once and measure it                                                                          | Davin / Executor            | §4.6, runbook                         |
+| Decide the two `routing-v2` questions the labelled set raised (§4.5)                                                                               | Davin, with his advisor     | §4.5                                  |
+| Set the model-spend share for the Pro quota; publish tier amounts after measurement                                                                | Davin                       | §7.3                                  |
+| Counsel review: wording guide, disclaimers, consent wording, retention figures, privacy notice                                                     | Davin + counsel             | §5.9, §6.11, §7.5                     |
+| Capture golden scenarios from live cycles once the pipeline runs                                                                                   | Executor, approved by Davin | §7.7                                  |
+| Measure token counts and cost per model; set caps per model                                                                                        | Executor                    | §5.4, §5.10                           |
+| Verify the six candidate models against OpenRouter, write their dated prices; name the launch pair                                                 | Davin (key, spend cap)      | §5.10, ADR-099 D1, runbook S1         |
+| Record a LIVE evaluation run for the pair; sign the golden scenarios first; set the models `passed`                                                | Davin (budget, D25)         | §5.10, ADR-099 D25, runbook S2        |
+| Set `PRO_MONTHLY_UNITS` from the measurement; change the pricing page's 500,000-token figure                                                       | Davin                       | §5.6, §7.3, ADR-099 D4, runbook S3-S4 |
+| Native readers for the 17 wording lists, the 17 invalidation lines, the `chat.*` texts and the Free recording; counsel for the delete confirmation | Davin + counsel             | §5.9, ADR-099, runbook S5             |
+| Provision the key and the spend cap; schedule `reapExpired` from one scheduler                                                                     | Davin                       | ADR-099 D5, runbook S0                |
+| The archive for `request_traces` (a trigger refuses to delete an unarchived row); or keep traces in PostgreSQL                                     | Davin                       | §7.5, ADR-099 D17, runbook S7         |
+| Check the Vercel plan's function limit against the 55 s deadline and `maxDuration = 60`                                                            | Davin                       | §5.11, ADR-099 D23                    |
+| Stage `REPLY_ENABLED` on your own account for a week, then activate                                                                                | Davin                       | ADR-099 D21, runbook S8-S9            |
+| Review the six design folders in `seed-code/txtai/` against this document; record the result in Appendix C                                         | Davin, with his advisor     | Resolved (2026-10-04, Appendix C)     |
 
 <!-- decision links -->
 
@@ -2588,3 +2642,4 @@ The txtai library source in the same folder is reference code (§4.6).
 [ADR-096]: adr/096-profile-history-and-the-keyed-audit-hash.md
 [ADR-097]: adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md
 [ADR-098]: adr/098-intake-routing-and-knowledge-service.md
+[ADR-099]: adr/099-prompt-and-reply-as-built-in-step-7.md

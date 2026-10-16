@@ -4,6 +4,7 @@
 - **Date:** 2026-10-14 (D10 amended the same day by Davin's Owner Decision, "Option A": the instant prompts are the Market Context badges)
 - **Section:** 4 · Intake, routing & knowledge
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §4.2 to §4.11; amends [ADR-038](038-english-pivot-for-16-languages.md), [ADR-046](046-deterministic-out-of-scope-check.md), [ADR-056](056-wording-guide-in-16-languages.md), [ADR-068](068-report-2-is-a-fixed-template.md) and [ADR-081](081-safety-texts-in-all-16-languages.md); refines [ADR-043](043-retrieval-query-built-from-context.md), [ADR-044](044-routing-and-retrieval-test-thresholds.md) and [ADR-045](045-embedding-model.md)
+- **Amended by:** [ADR-099](099-prompt-and-reply-as-built-in-step-7.md) D8: `/api/intake` and `/api/intake/instant` are dev-only tools (false in any production build) and the one metered front door is `POST /api/chat/message`, so D5's rule "`INTAKE_ENABLED` stays `false` in production until step 7 meters" is now enforced by the code; the quota port is the ledger's floor check
 
 ## Decision
 

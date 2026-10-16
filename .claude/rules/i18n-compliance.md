@@ -35,6 +35,12 @@ frontend UI. The recurring failure class is "new UI ships with zero locale wirin
   translation in the 17, the same `{placeholders}`, no hard-coded English in `components/chat/*.tsx`);
   they are drafts no native reader has seen. A model's words, prices, level names, sensor ids and state
   codes are never keys: they arrive in the reply and stay as they are.
+  **The reply path's 19 locales are counted from `SUPPORTED_LANGUAGES`, not copied** (`lib/reply/eval/languages.ts`, the wording
+  lists, the invalidation lines, the labelled set): a locale added to `lib/i18n/languages.ts` fails the pinned counts of the evaluation
+  suite (`__tests__/lib/reply/eval-gate.test.ts`, the 19 demo recordings) until a decision says so, and "within 5 points of English" is
+  measured per locale against `en-US` (ADR-099). The Free tier's recorded example (`config/reply/demo/<locale>.json`) is model output
+  replayed from a recorded run, not dictionary text: it needs no key, and it is shown to a trader only when approved AND from a live run
+  (`components/chat/demo-source.ts`).
 - **Client Components:** `useLocale()` → `t()`, `formatCurrency()`, `formatDate()`,
   `formatDateTime()`. **Server Components:** `getServerLanguage()`/`getDictionary()`; for USD
   amounts `getServerLocalePreferences()` + `formatCurrencyAmount()` (`lib/country-config.ts`).

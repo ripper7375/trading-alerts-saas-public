@@ -4,6 +4,7 @@
 - **Date:** 2026-09-29
 - **Section:** 5 · Prompt & AI reply (deck decision 5.9: Models at launch)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §5.10
+- **Amended by:** [ADR-099](099-prompt-and-reply-as-built-in-step-7.md): the registry holds six candidates and no model is `passed` until a LIVE evaluation run for the current fingerprint exists and `eval-gate.test.ts` is green; a stand-in run is never evidence; the launch pair is named after S1 and S2 (D1, D25); the fixed answer carries ids, statuses and state codes and no sensor sentence (D20); the decision below is unchanged
 
 ## Decision
 
