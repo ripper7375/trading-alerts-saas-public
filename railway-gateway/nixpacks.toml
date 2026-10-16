@@ -14,11 +14,36 @@
 #
 # Mirrors operation-service/nixpacks.toml, which has been deploying this way
 # successfully with the identical NODE_ENV=production setup.
+#
+# ---------------------------------------------------------------------------
+# STAGE B0 THROWAWAY BRANCH (b0/python-image). NOT FOR main. Draft A1 of
+# docs/handoffs/2026-10-16-b0-plan.md: adds a Python 3.11 interpreter and a
+# virtualenv /opt/venv with PyYAML and jsonschema (python-requirements.txt) for
+# the sensor worker's Python runner. Nothing else changes; the Node build is the
+# same three facts as above. It does NOT set SENSOR_* (Railway service
+# variables, runbook deploy-stack-d-step3.md section 3.1), so the image is inert.
+# Valid only if the service is still built by Nixpacks (Railpack ignores this file).
+# ---------------------------------------------------------------------------
 [variables]
 NPM_CONFIG_PRODUCTION = "false"
 
+[phases.setup]
+# "..." keeps the Node provider's own packages: the Node and npm versions are not touched.
+# Any Python 3.11.x is acceptable (Davin, 2026-10-16); print which one with `python --version`.
+nixPkgs = ["...", "python311"]
+
 [phases.install]
-cmds = ["npm install --include=dev"]
+cmds = [
+  "npm install --include=dev",
+  # --copies: the venv does not point into the nix store. --only-binary: a missing wheel
+  # fails the build loudly instead of compiling from source (no compiler on purpose).
+  "python3.11 -m venv --copies /opt/venv",
+  "/opt/venv/bin/pip install --no-cache-dir --only-binary=:all: -r python-requirements.txt",
+]
+# The docs say `paths` are appended to PATH, so the nix python may come first. Do not rely
+# on this: set the Railway variable SENSOR_PYTHON=/opt/venv/bin/python, and read
+# `which -a python` in the throwaway (check T3).
+paths = ["/opt/venv/bin"]
 
 [phases.build]
 cmds = ["npm run build"]

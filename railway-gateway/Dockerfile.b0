@@ -1,0 +1,47 @@
+# STAGE B0 THROWAWAY BRANCH (b0/python-image). NOT FOR main. Draft B of docs/handoffs/2026-10-16-b0-plan.md.
+# NOT built anywhere (no Docker on the Executor's machine): not one line of this has run.
+#
+# Named Dockerfile.b0 on purpose. Railway auto-detects only a file named exactly `Dockerfile`, so this
+# file is ignored unless the service has the variable  RAILWAY_DOCKERFILE_PATH=Dockerfile.b0
+# (the docs do not say whether the path is relative to the Root Directory or to the repository, nor whether
+# the variable alone forces the Dockerfile builder: the throwaway's build log shows it).
+#   Test A (Nixpacks, nixpacks.toml):  variable unset.
+#   Test B (this file):                variable set, then redeploy.
+#
+# Why it exists: Railway's current docs list only RAILPACK and DOCKERFILE as builders and Railpack ignores
+# nixpacks.toml. A Dockerfile does not depend on the builder at all, and gives Python exactly 3.11.9.
+# Must stay the same as today: `npm install --include=dev`, `npm run build` (nest build), `npm run start:prod`
+# (node dist/main), PORT 3000.
+
+FROM python:3.11.9-slim-bookworm
+
+# Node 20 from the official image of the same Debian release. TODO at the throwaway: read the Node version the
+# production build log shows today and pin this tag (or its digest) to that version.
+COPY --from=node:20-bookworm-slim /usr/local/bin/node /usr/local/bin/node
+COPY --from=node:20-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+RUN ln -sf ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+ && ln -sf ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends openssl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# The two Python packages (and what jsonschema pulls in), pinned. System site-packages: `python` on PATH is
+# /usr/local/bin/python, so `python -c "import yaml, jsonschema"` works with no venv and no PATH change.
+COPY python-requirements.txt ./
+RUN pip install --no-cache-dir --only-binary=:all: -r python-requirements.txt
+
+# Node, the same two phases Nixpacks ran. package.json has a postinstall `prisma generate`, so the schema must be
+# present before the install.
+ENV NPM_CONFIG_PRODUCTION=false
+COPY package.json package-lock.json ./
+COPY prisma ./prisma
+RUN npm install --include=dev
+
+COPY . .
+RUN npm run build
+
+ENV NODE_ENV=production PORT=3000
+# SENSOR_* are Railway service variables (runbook section 3.1). SENSOR_ENGINE_DIR will be /app/sensors.
+CMD ["npm", "run", "start:prod"]

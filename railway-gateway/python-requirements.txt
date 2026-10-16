@@ -1,0 +1,14 @@
+# STAGE B0 THROWAWAY BRANCH (b0/python-image). Python packages for the sensor worker's runner. Not named
+# requirements.txt on purpose: a requirements.txt next to package.json could make a builder detect a second language.
+#
+# Source of the pins: davintrade-stack-d-and-e/engine-1-5-new/mcd_common/requirements.txt (PyYAML, jsonschema) and
+# docs/runbooks/deploy-stack-d-step3.md section 2.1 (the transitive versions Phase A was tested with).
+# NOT included on purpose: openpyxl and tiktoken. The cycle runner does not import them (proven in Phase A).
+PyYAML==6.0.2
+jsonschema==4.25.0
+attrs==25.3.0
+referencing==0.36.2
+jsonschema-specifications==2025.4.1
+# The runbook names no version for rpds-py, and referencing 0.36.x may also pull typing-extensions on Python < 3.13
+# (from memory, not checked). The throwaway prints `pip freeze`: copy EVERY line of it here, then pin this file.
+rpds-py>=0.7.1

@@ -60,3 +60,7 @@ config/reply/golden/review.md
 config/reply/golden/approval.json
 config/reply/eval-runs/**
 config/reply/demo/**
+
+# Stage B0 throwaway branch (b0/python-image): copies of the three stored sensor cycles. They are replayed byte for byte by
+# `node scripts/replay-cycle.js --fixtures --fixtures-dir b0-fixtures`, so prettier must not touch them.
+railway-gateway/b0-fixtures/**

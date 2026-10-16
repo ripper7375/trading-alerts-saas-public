@@ -1,0 +1,29 @@
+{
+  "flag": "shadow",
+  "rules_version": "draft-1",
+  "rules_sha256": "42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e",
+  "zones_version": "zones-1",
+  "zones_sha256": "afc334328b60b98bd01c523e431a720783ea97a32684e2843cb6e53c19dd2e4d",
+  "reference_price": 4138.78,
+  "error": null,
+  "readings": [
+    {
+      "profile": "DAY_TRADER",
+      "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"DAY_TRADER\",\"cycle_slot\":\"2026-09-28T14:15Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R2_EXHAUSTION_SNAPBACK\",\"branch_id\":\"MCD1_SPIKE_DOWN\",\"status\":\"CAUTIONARY\",\"status_reasons\":[\"MCD0_DEFECT_M15\",\"MCD0_DEFECT_M5\"],\"data_status\":\"FRESH\",\"archetype\":\"B\",\"bias\":\"LONG\",\"trend_relation\":\"COUNTER_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD1_DOWN_LOWER_BREAKDOWN\",\"regime_status\":\"BREAKOUT_SAME_SLOPE\",\"bias\":\"SHORT\",\"envelope_sha256\":\"4ce93d8947ed710031dc3c9d5080d64c2f30ffec03a2f911b3e4a46c645e57c7\"},\"MCD2\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD2_DOWN_LOWER_BREAKDOWN\",\"regime_status\":\"LOWER_OVEREXTENSION_REVERSION\",\"bias\":\"SHORT\",\"envelope_sha256\":\"ce8fe51f7a68782f8fa366a4ed4ac1277692f7259be969cf447eed836e1d015f\"},\"MCD3\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD3_BEAR_BOTTOM\",\"regime_status\":\"BEARISH_CONSOLIDATED_OVERSOLD\",\"bias\":\"NEUTRAL\",\"envelope_sha256\":\"00e5e99963842ecf566f8a1da35f8546e9dd98ce0a64f0399d9fea7e35effe90\"}},\"reasons\":[\"M15 closed below its corridor, in line with the channel slope\",\"Bias is against the spike\",\"M15 and M5 are consolidated in a downtrend, against this direction\"],\"zones\":[],\"summary_line\":\"Snapback after a spike down, LONG\"}",
+      "reading_sha256": "e209e0498f90731f4b380b1c057eb99debf469c98c3a70f56509fd650d6763a8",
+      "zones_json": "[]",
+      "zones_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "zones_reason": "NO_ZONE_SOURCES",
+      "guard_problems": []
+    },
+    {
+      "profile": "SCALPER",
+      "reading_json": "{\"schema_version\":\"syn-output/1\",\"mcd_id\":\"SYN\",\"profile\":\"SCALPER\",\"cycle_slot\":\"2026-09-28T14:15Z\",\"rules_version\":\"draft-1\",\"rules_sha256\":\"42694707a43d65a4ec1b535f60cbc163f3a8a616ec47af87ddaa8daf3773d06e\",\"rule_id\":\"R2_EXHAUSTION_SNAPBACK\",\"branch_id\":\"MCD2_SPIKE_DOWN\",\"status\":\"CAUTIONARY\",\"status_reasons\":[\"MCD0_DEFECT_M5\",\"MCD0_DEFECT_M15\"],\"data_status\":\"FRESH\",\"archetype\":\"B\",\"bias\":\"LONG\",\"trend_relation\":\"COUNTER_TREND\",\"stand_aside\":false,\"inputs\":{\"MCD1\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD1_DOWN_LOWER_BREAKDOWN\",\"regime_status\":\"BREAKOUT_SAME_SLOPE\",\"bias\":\"SHORT\",\"envelope_sha256\":\"4ce93d8947ed710031dc3c9d5080d64c2f30ffec03a2f911b3e4a46c645e57c7\"},\"MCD2\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD2_DOWN_LOWER_BREAKDOWN\",\"regime_status\":\"LOWER_OVEREXTENSION_REVERSION\",\"bias\":\"SHORT\",\"envelope_sha256\":\"ce8fe51f7a68782f8fa366a4ed4ac1277692f7259be969cf447eed836e1d015f\"},\"MCD3\":{\"status\":\"CAUTIONARY\",\"state_code\":\"MCD3_BEAR_BOTTOM\",\"regime_status\":\"BEARISH_CONSOLIDATED_OVERSOLD\",\"bias\":\"NEUTRAL\",\"envelope_sha256\":\"00e5e99963842ecf566f8a1da35f8546e9dd98ce0a64f0399d9fea7e35effe90\"}},\"reasons\":[\"M5 downtrend stretched below its corridor\",\"Bias is against the spike\",\"M15 and M5 are consolidated in a downtrend, against this direction\"],\"zones\":[],\"summary_line\":\"Snapback after a spike down, LONG\"}",
+      "reading_sha256": "96042c375cc4137ca922463f2084aa603cfd593dbf8b8d5c57ddcfe0fa089850",
+      "zones_json": "[]",
+      "zones_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "zones_reason": "NO_ZONE_SOURCES",
+      "guard_problems": []
+    }
+  ]
+}
