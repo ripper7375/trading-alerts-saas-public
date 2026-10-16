@@ -4,8 +4,21 @@
 > **Review Incorporated:** [`davintrade-nest-js-checklists/nestjs-production-remediation-plan-claude-code-recommendation.md`](./nestjs-production-remediation-plan-claude-code-recommendation.md) (Claude Code Executor Review, 2026-10-16)  
 > **Handoff for Tier 0–2 Execution:** [`davintrade-nest-js-checklists/nestjs-tier0-tier1-tier2-handoff-for-claude-code.md`](./nestjs-tier0-tier1-tier2-handoff-for-claude-code.md)  
 > **Target Codebases:** `operation-service`, `money-service`, `railway-gateway` (plus lockstep auth/webhook mirrors in the Next.js monolith)  
-> **Status:** P0 COMPLETED & VERIFIED · TIER 0, TIER 1 (INCLUDING `⚠` ITEMS), AND TIER 2 APPROVED BY DAVIN FOR CLAUDE CODE EXECUTION (2026-10-16)  
+> **Status:** P0 COMPLETED & VERIFIED · TIER 0, TIER 1 AND TIER 2 **EXECUTED AND VERIFIED BY CLAUDE CODE (2026-10-16); NOT COMMITTED, PUSHED, APPLIED OR DEPLOYED** — see the [execution report](./../docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md)  
 > **Date:** 2026-10-16
+
+### Execution record (Claude Code, 2026-10-16) — corrections for the next revision
+
+All 18 units (0.1, 1.1–1.8, 2.1–2.9) are written and verified; the working tree holds them. Where this plan and the live code disagreed, the live code won. The plan should be corrected as follows:
+
+- **§4.1 / Check 17:** `railway-gateway`'s `npm run lint` matches no files (no ESLint config of its own; the root config ignores the package), so the CI job omits it. `operation-service` builds `packages/types` before `tsc`.
+- **§5.4:** `money-service/src/redis/redis.service.ts` is **not** the reference: it has the same `if (times > 10) return null` give-up. Only `operation-service` was fixed (finding open).
+- **§5.7:** the four gateway ingestion controllers have no `limit`/`offset`; `notifications.controller` was already Zod-validated. The unguarded sites were `operation-service/src/users/users.controller.ts` (`login-history`, `security-alerts`) and `railway-gateway/src/gateway/active-indicator.controller.ts`.
+- **§6.2:** the reason string is `'ALREADY_USED'`, not `'Code already used'`. `reserveAffiliateCode` has the same race (the Stripe path) and is not yet fixed.
+- **§6.6:** `OutboxEvent` has **no `updatedAt`**; the claim time is stored in `processedAt`.
+- **§6.9:** `AlertCronScheduler` uses `@Interval`, not `@Cron`.
+- **New migration:** `prisma/migrations/20261016000000_add_processed_webhook_events_and_commission_uniqueness` (file only; pre-flight queries in its header must return zero rows before it is applied).
+- **New runtime requirement:** money-service now refuses to start a checkout without `NEXTAUTH_URL` and a dLocal payment without `DLOCAL_API_KEY` (§6.5).
 
 ---
 
