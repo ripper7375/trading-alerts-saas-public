@@ -1216,3 +1216,22 @@ model EntryZone {
   @@unique([symbol, cycle_slot, profile, zone_id])
   @@map("entry_zones")
 }
+
+
+/// Immutable formula-derived local-market close prices. Raw FX rates are NEVER archived here.
+/// The dedicated cron observes raw fiat snapshots only within their eight-hour Redis retention.
+model WorldGoldClose {
+  market_id          String
+  session_date       String
+  formula_version    String
+  closed_at          Int
+  gold_bar_closed_at Int
+  fx_published_at    Int
+  fx_observed_at     Int
+  prices             Json
+  created_at         DateTime @default(now())
+
+  @@id([market_id, session_date, formula_version])
+  @@index([session_date])
+  @@map("world_gold_closes")
+}

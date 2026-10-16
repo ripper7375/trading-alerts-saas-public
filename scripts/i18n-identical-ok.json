@@ -1,5 +1,5 @@
 {
-  "ja": [],
+  "ja": ["worldGold.nav"],
   "de": [
     "Affiliate (FREE)",
     "Affiliate (PRO)",
@@ -54,7 +54,10 @@
     "chat.disclaimer.version",
     "chat.threads.bias.LONG",
     "chat.threads.bias.SHORT",
-    "chat.threads.bias.NEUTRAL"
+    "chat.threads.bias.NEUTRAL",
+    "worldGold.nav",
+    "worldGold.country.th",
+    "worldGold.country.jp"
   ],
   "es": [
     "Blog",
@@ -82,7 +85,13 @@
     "report2.check.stop",
     "chat.bias.NEUTRAL",
     "chat.profile.SCALPER",
-    "chat.threads.bias.NEUTRAL"
+    "chat.threads.bias.NEUTRAL",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk",
+    "worldGold.country.in",
+    "worldGold.country.au"
   ],
   "pt": [
     "Blog",
@@ -103,7 +112,11 @@
     "report2.scenario.normal",
     "report2.check.stop",
     "chat.profile.DAY_TRADER",
-    "chat.profile.SCALPER"
+    "chat.profile.SCALPER",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk"
   ],
   "pt-BR": [
     "Blog",
@@ -124,7 +137,11 @@
     "report2.scenario.normal",
     "report2.check.stop",
     "chat.profile.DAY_TRADER",
-    "chat.profile.SCALPER"
+    "chat.profile.SCALPER",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk"
   ],
   "it": [
     "Back Step",
@@ -157,7 +174,13 @@
     "chat.profile.DAY_TRADER",
     "chat.profile.SCALPER",
     "chat.threads.bias.LONG",
-    "chat.threads.bias.SHORT"
+    "chat.threads.bias.SHORT",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk",
+    "worldGold.country.in",
+    "worldGold.country.au"
   ],
   "id": [
     "Back Step",
@@ -200,7 +223,15 @@
     "chat.profile.SCALPER",
     "chat.channel.status.VALID",
     "chat.threads.bias.LONG",
-    "chat.threads.bias.SHORT"
+    "chat.threads.bias.SHORT",
+    "worldGold.nav",
+    "worldGold.unit.gram",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.th",
+    "worldGold.country.hk",
+    "worldGold.country.in",
+    "worldGold.country.au"
   ],
   "vi": [
     "Blog",
@@ -219,7 +250,9 @@
     "terminal.meta_title",
     "chat.profile.SCALPER",
     "chat.threads.bias.LONG",
-    "chat.threads.bias.SHORT"
+    "chat.threads.bias.SHORT",
+    "worldGold.nav",
+    "worldGold.unit.tola"
   ],
   "tr": [
     "Blog",
@@ -239,11 +272,16 @@
     "report2.check.risk",
     "chat.profile.SCALPER",
     "chat.threads.bias.LONG",
-    "chat.threads.bias.SHORT"
+    "chat.threads.bias.SHORT",
+    "worldGold.nav",
+    "worldGold.unit.gram",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk"
   ],
-  "hi": ["Heiken Ashi"],
-  "ur": ["Heiken Ashi"],
-  "ar": ["Heiken Ashi"],
+  "hi": ["Heiken Ashi", "worldGold.nav"],
+  "ur": ["Heiken Ashi", "worldGold.nav"],
+  "ar": ["Heiken Ashi", "worldGold.nav"],
   "fr": [
     "Architecture",
     "Back Step",
@@ -289,10 +327,14 @@
     "chat.badge.cycle",
     "chat.threads.label",
     "chat.threads.bias.LONG",
-    "chat.threads.bias.SHORT"
+    "chat.threads.bias.SHORT",
+    "worldGold.nav",
+    "worldGold.unit.tola",
+    "worldGold.unit.tael",
+    "worldGold.country.hk"
   ],
-  "ko": ["Heiken Ashi"],
-  "zh": ["Heiken Ashi"],
-  "zh-TW": ["Heiken Ashi"],
-  "th": ["Heiken Ashi", "academy.badge"]
+  "ko": ["Heiken Ashi", "worldGold.nav"],
+  "zh": ["Heiken Ashi", "worldGold.nav"],
+  "zh-TW": ["Heiken Ashi", "worldGold.nav"],
+  "th": ["Heiken Ashi", "academy.badge", "worldGold.nav"]
 }

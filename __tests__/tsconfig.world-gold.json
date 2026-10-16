@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "incremental": false,
+    "types": ["node", "jest", "@testing-library/jest-dom"]
+  },
+  "include": [
+    "lib/world-gold/**/*.ts",
+    "api/world-gold/**/*.ts",
+    "components/market/world-gold-market.test.tsx",
+    "../next-env.d.ts"
+  ],
+  "exclude": ["../node_modules"]
+}

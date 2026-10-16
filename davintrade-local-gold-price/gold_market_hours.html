@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Local Gold Trading Hours (10 Markets)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', 'Sarabun', sans-serif; }
+    .gold-gradient { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-4 md:p-8">
+
+  <!-- Header Section -->
+  <header class="max-w-7xl mx-auto mb-8 bg-slate-900/80 border border-slate-800 rounded-2xl p-6 backdrop-blur shadow-2xl">
+    <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 mb-3">
+          <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+          MARKET LIQUIDITY MONITOR
+        </div>
+        <h1 class="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
+          10 Local Gold Market Trading Hours
+        </h1>
+        <p class="text-slate-400 text-sm mt-1">ตารางเวลาเปิด-ปิดตลาดทองคำท้องถิ่นทั่วโลก เทียบเวลาท้องถิ่นและเวลาประเทศไทย (ICT / UTC+7)</p>
+      </div>
+
+      <!-- Real-Time Clocks -->
+      <div class="flex flex-wrap items-center gap-4 bg-slate-950/80 border border-slate-800/80 p-4 rounded-xl">
+        <div class="border-r border-slate-800 pr-4">
+          <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">เวลาประเทศไทย (ICT)</div>
+          <div id="ict-clock" class="text-xl font-black text-amber-400 font-mono">--:--:--</div>
+        </div>
+        <div>
+          <div class="text-[10px] uppercase font-bold text-slate-500 tracking-wider">เวลาสากล (UTC)</div>
+          <div id="utc-clock" class="text-xl font-black text-slate-300 font-mono">--:--:--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter & Search Controls -->
+    <div class="mt-6 pt-6 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button onclick="filterStatus('all')" id="btn-all" class="px-4 py-2 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition">ทั้งหมด (10)</button>
+        <button onclick="filterStatus('open')" id="btn-open" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">เปิดอยู่ตอนนี้ (Open)</button>
+        <button onclick="filterStatus('closed')" id="btn-closed" class="px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition">ปิดทำการ (Closed)</button>
+      </div>
+      <div class="w-full sm:w-72">
+        <input type="text" id="searchInput" onkeyup="searchTable()" placeholder="ค้นหาประเทศ, สกุลเงิน, ตลาด..." 
+               class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500">
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Table Section -->
+  <main class="max-w-7xl mx-auto bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl mb-8">
+    <div class="overflow-x-auto">
+      <table id="marketTable" class="w-full text-left border-collapse">
+        <thead>
+          <tr class="bg-slate-950/60 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <th class="p-4">ตลาด / สกุลเงิน</th>
+            <th class="p-4">ศูนย์กลางการซื้อขาย</th>
+            <th class="p-4">เวลาเปิด-ปิด (เวลาท้องถิ่น)</th>
+            <th class="p-4">เวลาเปิด-ปิด (เวลาไทย: UTC+7)</th>
+            <th class="p-4">สถานะปัจจุบัน</th>
+            <th class="p-4">ลักษณะการซื้อขายที่สำคัญ</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800/60 text-xs">
+          
+          <!-- 1. UK -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="8" data-utc-end="17">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇬🇧</span> สหราชอาณาจักร <span class="text-amber-400 font-mono text-[11px] font-semibold">(GBP)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">London Bullion Market (LBMA) / LME</td>
+            <td class="p-4 font-mono text-slate-300">08:00 – 17:00 (GMT/BST)</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">14:00 – 23:00 (ฤดูร้อน)<br>15:00 – 24:00 (ฤดูหนาว)</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">LBMA Gold Price Fixing 2 รอบ: 10:30 และ 15:00 น. (เวลาลอนดอน)</td>
+          </tr>
+
+          <!-- 2. Thailand -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="2" data-utc-end="10.5">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇹🇭</span> ประเทศไทย <span class="text-amber-400 font-mono text-[11px] font-semibold">(THB)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">สมาคมค้าทองคำ / เยาวราช</td>
+            <td class="p-4 font-mono text-slate-300">09:00 – 17:30 (จันทร์-ศุกร์)</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">09:00 – 17:30</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">ประกาศราคากลางรายวัน 09:30 น. และปรับตาม Spot USD และค่าเงินบาท</td>
+          </tr>
+
+          <!-- 3. Hong Kong -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="1" data-utc-end="8.5">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇭🇰</span> ฮ่องกง <span class="text-amber-400 font-mono text-[11px] font-semibold">(HKD)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">CGSE (金銀業貿易場)</td>
+            <td class="p-4 font-mono text-slate-300">Open Outcry: 09:00 – 16:30<br>Electronic: 07:00 – 05:00 (+1)</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">08:00 – 15:30 (Floor)<br>06:00 – 04:00 (+1) (E-Platform)</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">เทรดทองแท่ง 5 ตำลึง และเชื่อมต่อสภาพคล่องตลาดข้ามคืน</td>
+          </tr>
+
+          <!-- 4. Japan -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="23.75" data-utc-end="6.75">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇯🇵</span> ญี่ปุ่น <span class="text-amber-400 font-mono text-[11px] font-semibold">(JPY)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">Osaka Exchange (JPX) / Tanaka</td>
+            <td class="p-4 font-mono text-slate-300">Day: 08:45 – 15:45<br>Night: 17:00 – 06:00 (+1)</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">06:45 – 13:45 (Day)<br>15:00 – 04:00 (+1) (Night)</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">ฟิวเจอร์สเยน/กรัม ร้านทองค้าปลีกประกาศ 09:30 JST (07:30 ไทย)</td>
+          </tr>
+
+          <!-- 5. India -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="3.5" data-utc-end="18">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇮🇳</span> อินเดีย <span class="text-amber-400 font-mono text-[11px] font-semibold">(INR)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">Multi Commodity Exchange (MCX)</td>
+            <td class="p-4 font-mono text-slate-300">09:00 – 23:30 / 23:55</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">10:30 – 01:00 / 01:25 (+1)</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">สัญญา Gold Mini / Tola ปิดช่วงดึกเพื่อให้สอดรับกับตลาด COMEX</td>
+          </tr>
+
+          <!-- 6. UAE -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="6" data-utc-end="18">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇦🇪</span> สหรัฐอาหรับเอมิเรตส์ <span class="text-amber-400 font-mono text-[11px] font-semibold">(AED)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">Dubai Gold Souk / DMCC</td>
+            <td class="p-4 font-mono text-slate-300">10:00 – 22:00 (ศุกร์ 16:00 – 22:00)</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">13:00 – 01:00 (+1)</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">ร้านค้าส่ง-ปลีกอ้างอิง Dubai Retail Gold Rate แบบ Real-time ตลอดวัน</td>
+          </tr>
+
+          <!-- 7. Turkey -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="6.67" data-utc-end="15">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇹🇷</span> ตุรกี <span class="text-amber-400 font-mono text-[11px] font-semibold">(TRY)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">Borsa Istanbul (BIST) / Grand Bazaar</td>
+            <td class="p-4 font-mono text-slate-300">BIST: 09:40 – 18:00<br>Bazaar: 09:00 – 19:00</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">13:40 – 22:00 (BIST)<br>13:00 – 23:00 (Grand Bazaar)</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">กระดานซื้อขายโลหะมีค่า BIST และตลาดค้าปลีกเหรียญ Çeyrek</td>
+          </tr>
+
+          <!-- 8. Germany -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="7" data-utc-end="15.5">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇩🇪</span> เยอรมนี <span class="text-amber-400 font-mono text-[11px] font-semibold">(EUR)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">Deutsche Börse (Xetra / Frankfurt)</td>
+            <td class="p-4 font-mono text-slate-300">09:00 – 17:30 (CET / CEST)</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">14:00 – 22:30 (ฤดูร้อน)<br>15:00 – 23:30 (ฤดูหนาว)</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">เทรด Xetra-Gold (4GLD) และการส่งมอบทองคำแท่งของระบบธนาคารพาณิชย์</td>
+          </tr>
+
+          <!-- 9. Switzerland -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="7" data-utc-end="15.5">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇨🇭</span> สวิตเซอร์แลนด์ <span class="text-amber-400 font-mono text-[11px] font-semibold">(CHF)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">SIX Swiss Exchange / Physical OTC</td>
+            <td class="p-4 font-mono text-slate-300">09:00 – 17:30 (CET / CEST)</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">14:00 – 22:30 (ฤดูร้อน)<br>15:00 – 23:30 (ฤดูหนาว)</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">เคาน์เตอร์ส่งมอบทองคำทางกายภาพ และศูนย์กลางโรงหลอมระดับสากล</td>
+          </tr>
+
+          <!-- 10. Australia -->
+          <tr class="market-row hover:bg-slate-800/40 transition" data-status="open" data-utc-start="1" data-utc-end="9">
+            <td class="p-4 font-bold text-white flex items-center gap-2">
+              <span class="text-lg">🇦🇺</span> ออสเตรเลีย <span class="text-amber-400 font-mono text-[11px] font-semibold">(AUD)</span>
+            </td>
+            <td class="p-4 font-medium text-slate-300">The Perth Mint / ตลาดออสเตรเลีย</td>
+            <td class="p-4 font-mono text-slate-300">09:00 – 17:00 (AWST)</td>
+            <td class="p-4 font-mono font-semibold text-amber-300">08:00 – 16:00</td>
+            <td class="p-4 status-cell"><span class="px-2 py-1 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">CALCULATING...</span></td>
+            <td class="p-4 text-slate-400 text-[11px]">ราคาอ้างอิงเคาน์เตอร์ Bullion Trading เหรียญ Kangaroo และแท่งทองคำ</td>
+          </tr>
+
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    // Live Clock Update
+    function updateClocks() {
+      const now = new Date();
+      
+      // ICT (UTC+7)
+      const ictString = now.toLocaleTimeString('en-GB', { timeZone: 'Asia/Bangkok', hour12: false });
+      document.getElementById('ict-clock').innerText = ictString;
+
+      // UTC
+      const utcString = now.toLocaleTimeString('en-GB', { timeZone: 'UTC', hour12: false });
+      document.getElementById('utc-clock').innerText = utcString;
+
+      // Update Market Status Badges
+      updateMarketStatuses(now);
+    }
+
+    function updateMarketStatuses(now) {
+      const utcHours = now.getUTCHours() + (now.getUTCMinutes() / 60);
+      const rows = document.querySelectorAll('.market-row');
+
+      rows.forEach(row => {
+        const start = parseFloat(row.getAttribute('data-utc-start'));
+        const end = parseFloat(row.getAttribute('data-utc-end'));
+        const cell = row.querySelector('.status-cell');
+
+        let isOpen = false;
+        if (start < end) {
+          isOpen = (utcHours >= start && utcHours <= end);
+        } else {
+          // Overnight sessions
+          isOpen = (utcHours >= start || utcHours <= end);
+        }
+
+        if (isOpen) {
+          row.setAttribute('data-status', 'open');
+          cell.innerHTML = `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> OPEN NOW
+                            </span>`;
+        } else {
+          row.setAttribute('data-status', 'closed');
+          cell.innerHTML = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                              CLOSED
+                            </span>`;
+        }
+      });
+    }
+
+    // Filter Functionality
+    function filterStatus(status) {
+      const rows = document.querySelectorAll('.market-row');
+      const buttons = ['all', 'open', 'closed'];
+      
+      buttons.forEach(b => {
+        const btn = document.getElementById(`btn-${b}`);
+        if (b === status) {
+          btn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-amber-500 text-slate-950 transition";
+        } else {
+          btn.className = "px-4 py-2 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 hover:bg-slate-700 transition";
+        }
+      });
+
+      rows.forEach(row => {
+        if (status === 'all' || row.getAttribute('data-status') === status) {
+          row.style.display = '';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    }
+
+    // Search Functionality
+    function searchTable() {
+      const input = document.getElementById('searchInput').value.toLowerCase();
+      const rows = document.querySelectorAll('.market-row');
+
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(input) ? '' : 'none';
+      });
+    }
+
+    setInterval(updateClocks, 1000);
+    updateClocks();
+  </script>
+</body>
+</html>
