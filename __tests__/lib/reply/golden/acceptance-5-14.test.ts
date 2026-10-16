@@ -4,8 +4,9 @@
 
 /**
  * Architecture 5.14 "Done when", items 5, 6, 7 and 8 (build step 7 part 10). Items 1 to 4 are shown
- * by the tests of parts 2, 5, 6 and 7 (`context/budget.test.ts`, `meter/reserve.test.ts`,
- * `gate/answer-gate.test.ts`, `gate/chart.test.ts`); these four are the ones the evaluation suite
+ * by the tests of parts 2, 5, 6 and 7 (1 the cut order: `context/cut.test.ts`, `context/budget.test.ts`;
+ * 2 the worst case: `meter/quota-port.test.ts`; 3 a STALE cycle: `report1/golden-overlay.test.ts`;
+ * 4 a chart of another cycle: `gate/chart.test.ts`); these four are the ones the evaluation suite
  * closes. Each test is named after the item it shows and runs the REAL orchestrator, gate, checks and
  * composer over the golden cycles; only the model is the fixture model with a recorded or planted
  * reply, so no paid call is made.

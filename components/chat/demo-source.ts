@@ -18,9 +18,10 @@
  *      a replayed picture of the market with made-up words must never reach a trader, approved or
  *      not.
  *
- * `__tests__/lib/reply/eval/demo.test.ts` holds the files to `scripts/reply/record-demo.js check`
- * (so an approval is only worth anything if it is for the files that are here), to the result
- * contract, and to the two rules above. A preview or a test that wants to LOOK at an unapproved
+ * `__tests__/lib/reply/eval/demo-freshness.test.ts` holds each file to what the pipeline makes of the
+ * recorded run's replies again, and `__tests__/components/chat/demo-recordings.test.tsx` holds the
+ * files to `scripts/reply/record-demo.js check` (so an approval is only worth anything if it is for
+ * the files that are here), to the result contract, and to the two rules above. A preview or a test that wants to LOOK at an unapproved
  * recording says so, by `includeUnapproved` or by the `DemoPolicyContext` (the dev previews do);
  * no page of the product does.
  *

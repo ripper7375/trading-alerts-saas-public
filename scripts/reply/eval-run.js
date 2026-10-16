@@ -64,8 +64,10 @@ const UNREPORTED_CALL_MICRO_USD = 20_000;
 class UsageError extends Error {}
 class CapReached extends Error {}
 
+// A Windows checkout may hold CRLF line endings; `\n` alone would not find the header comment.
 const HELP = fs
   .readFileSync(__filename, 'utf8')
+  .replace(/\r\n/g, '\n')
   .split('\n')
   .slice(1)
   .join('\n')
