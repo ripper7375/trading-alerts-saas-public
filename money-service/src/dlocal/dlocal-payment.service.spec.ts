@@ -106,6 +106,140 @@ describe('dLocal Payment Service', () => {
     });
   });
 
+  describe('fails closed outside test mode (Remediation Tier 2 §6.5)', () => {
+    const ORIGINAL_ENV = process.env;
+    const loadFresh = () => {
+      jest.resetModules();
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return require('./dlocal-payment.service') as typeof import('./dlocal-payment.service');
+    };
+    const request = {
+      userId: 'user-1',
+      amount: 29,
+      currency: 'INR' as const,
+      country: 'IN' as const,
+      paymentMethod: 'UPI',
+      planType: 'MONTHLY' as const,
+    };
+
+    afterEach(() => {
+      process.env = ORIGINAL_ENV;
+      jest.resetModules();
+    });
+
+    it('createPayment refuses, instead of returning a mock PENDING payment, when DLOCAL_API_KEY is missing', async () => {
+      const env = {
+        ...ORIGINAL_ENV,
+        NODE_ENV: 'production',
+        NEXTAUTH_URL: 'https://app.example.test',
+      } as Record<string, string | undefined>;
+      delete env['DLOCAL_API_KEY'];
+      process.env = env as NodeJS.ProcessEnv;
+      const fresh = loadFresh();
+
+      await expect(fresh.createPayment(request)).rejects.toMatchObject({
+        name: 'DLocalNotConfiguredError',
+        missing: ['DLOCAL_API_KEY'],
+      });
+    });
+
+    it('createPayment refuses when NEXTAUTH_URL is missing (it would build "undefined/api/webhooks/dlocal")', async () => {
+      const env = {
+        ...ORIGINAL_ENV,
+        NODE_ENV: 'production',
+        DLOCAL_API_KEY: 'key',
+      } as Record<string, string | undefined>;
+      delete env['NEXTAUTH_URL'];
+      process.env = env as NodeJS.ProcessEnv;
+      const fresh = loadFresh();
+
+      await expect(fresh.createPayment(request)).rejects.toMatchObject({
+        missing: ['NEXTAUTH_URL'],
+      });
+    });
+
+    it('names every missing variable at once', async () => {
+      const env = { ...ORIGINAL_ENV, NODE_ENV: 'production' } as Record<
+        string,
+        string | undefined
+      >;
+      delete env['DLOCAL_API_KEY'];
+      delete env['NEXTAUTH_URL'];
+      process.env = env as NodeJS.ProcessEnv;
+      const fresh = loadFresh();
+
+      expect(fresh.getMissingDLocalConfig()).toEqual([
+        'DLOCAL_API_KEY',
+        'NEXTAUTH_URL',
+      ]);
+      expect(() => fresh.assertDLocalConfigured()).toThrow(
+        /DLOCAL_API_KEY, NEXTAUTH_URL/
+      );
+    });
+
+    it('never calls dLocal when it refuses', async () => {
+      const env = { ...ORIGINAL_ENV, NODE_ENV: 'production' } as Record<
+        string,
+        string | undefined
+      >;
+      delete env['DLOCAL_API_KEY'];
+      process.env = env as NodeJS.ProcessEnv;
+      const fresh = loadFresh();
+      const freshFetch = jest.spyOn(global, 'fetch');
+
+      await expect(fresh.createPayment(request)).rejects.toBeDefined();
+
+      expect(freshFetch).not.toHaveBeenCalled();
+      freshFetch.mockRestore();
+    });
+
+    it('getPaymentStatus throws instead of reporting a mock PENDING when the key is missing', async () => {
+      const env = { ...ORIGINAL_ENV, NODE_ENV: 'production' } as Record<
+        string,
+        string | undefined
+      >;
+      delete env['DLOCAL_API_KEY'];
+      process.env = env as NodeJS.ProcessEnv;
+      const fresh = loadFresh();
+
+      await expect(fresh.getPaymentStatus('pay-1')).rejects.toMatchObject({
+        name: 'DLocalNotConfiguredError',
+      });
+    });
+
+    it('mock mode still works under NODE_ENV=test, with no key and no NEXTAUTH_URL', async () => {
+      const env = { ...ORIGINAL_ENV, NODE_ENV: 'test' } as Record<
+        string,
+        string | undefined
+      >;
+      delete env['DLOCAL_API_KEY'];
+      delete env['NEXTAUTH_URL'];
+      process.env = env as NodeJS.ProcessEnv;
+      const fresh = loadFresh();
+
+      expect(fresh.getMissingDLocalConfig()).toEqual([]);
+      await expect(fresh.createPayment(request)).resolves.toMatchObject({
+        status: 'PENDING',
+        paymentId: expect.stringContaining('mock-payment-'),
+      });
+      await expect(fresh.getPaymentStatus('pay-1')).resolves.toMatchObject({
+        status: 'PENDING',
+      });
+    });
+
+    it('takes a real payment when both are set outside test', async () => {
+      process.env = {
+        ...ORIGINAL_ENV,
+        NODE_ENV: 'production',
+        DLOCAL_API_KEY: 'key',
+        NEXTAUTH_URL: 'https://app.example.test',
+      } as NodeJS.ProcessEnv;
+      const fresh = loadFresh();
+
+      expect(fresh.getMissingDLocalConfig()).toEqual([]);
+    });
+  });
+
   describe('createPayment outbound request body (F49)', () => {
     const ORIGINAL_ENV = process.env;
 
@@ -119,6 +253,7 @@ describe('dLocal Payment Service', () => {
       process.env = {
         ...ORIGINAL_ENV,
         NODE_ENV: 'production',
+        NEXTAUTH_URL: 'https://app.example.test',
         DLOCAL_API_KEY: 'test-api-key',
         DLOCAL_LOGIN: 'test-login',
         DLOCAL_SECRET_KEY: 'test-secret',
@@ -158,6 +293,7 @@ describe('dLocal Payment Service', () => {
       process.env = {
         ...ORIGINAL_ENV,
         NODE_ENV: 'production',
+        NEXTAUTH_URL: 'https://app.example.test',
         DLOCAL_API_KEY: 'test-api-key',
         DLOCAL_LOGIN: 'test-login',
         DLOCAL_SECRET_KEY: 'test-secret',
@@ -198,6 +334,7 @@ describe('dLocal Payment Service', () => {
       process.env = {
         ...ORIGINAL_ENV,
         NODE_ENV: 'production',
+        NEXTAUTH_URL: 'https://app.example.test',
         DLOCAL_API_KEY: 'test-api-key',
         DLOCAL_LOGIN: 'test-login',
         DLOCAL_SECRET_KEY: 'test-secret',

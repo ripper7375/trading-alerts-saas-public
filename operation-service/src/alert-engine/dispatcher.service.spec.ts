@@ -87,4 +87,40 @@ describe('DispatcherService', () => {
 
     expect(publish).toHaveBeenCalledWith(fire, expect.any(String));
   });
+
+  // Remediation Tier 2 §6.7: BullMQ runs this job with 5 attempts. A throw from
+  // the post-commit Redis publish used to re-run the whole job, inserting another
+  // Notification and incrementing triggerCount again each time.
+  describe('a failing live push after the commit', () => {
+    it('does not fail the job, so BullMQ does not run the transaction again', async () => {
+      publish.mockRejectedValue(new Error('redis pub/sub down'));
+
+      await expect(service.dispatch(fire)).resolves.toBeUndefined();
+    });
+
+    it('has already stored exactly one notification and one trigger by then', async () => {
+      publish.mockRejectedValue(new Error('redis pub/sub down'));
+
+      await service.dispatch(fire);
+
+      expect(notificationCreate).toHaveBeenCalledTimes(1);
+      expect(alertUpdate).toHaveBeenCalledTimes(1);
+      expect(publish).toHaveBeenCalledTimes(1);
+    });
+
+    it('publishes only AFTER the transaction committed', async () => {
+      await service.dispatch(fire);
+
+      expect(notificationCreate.mock.invocationCallOrder[0]).toBeLessThan(
+        publish.mock.invocationCallOrder[0] as number
+      );
+    });
+
+    it('still fails the job when the DATABASE transaction fails (nothing was committed, so a retry is safe)', async () => {
+      notificationCreate.mockRejectedValue(new Error('db down'));
+
+      await expect(service.dispatch(fire)).rejects.toThrow('db down');
+      expect(publish).not.toHaveBeenCalled();
+    });
+  });
 });

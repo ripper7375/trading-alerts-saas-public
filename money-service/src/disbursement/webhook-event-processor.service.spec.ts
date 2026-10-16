@@ -59,7 +59,9 @@ describe('WebhookEventProcessorService', () => {
         commissionAmount: 10,
       } as never);
       prismaMock.affiliateProfile.update.mockResolvedValue({} as never);
-      prismaMock.disbursementTransaction.update.mockResolvedValue({} as never);
+      prismaMock.disbursementTransaction.updateMany.mockResolvedValue({
+        count: 1,
+      });
 
       const result = await service.processEvent({
         event: 'payment.completed',
@@ -146,7 +148,9 @@ describe('WebhookEventProcessorService', () => {
       prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
         (cb as (tx: unknown) => unknown)(prismaMock)
       );
-      prismaMock.disbursementTransaction.update.mockResolvedValue({} as never);
+      prismaMock.disbursementTransaction.updateMany.mockResolvedValue({
+        count: 1,
+      });
       prismaMock.commission.update.mockResolvedValue({
         affiliateProfileId: 'aff-1',
         commissionAmount: 10,
@@ -159,8 +163,11 @@ describe('WebhookEventProcessorService', () => {
         timestamp: new Date(),
       });
 
-      expect(prismaMock.disbursementTransaction.update).toHaveBeenCalledWith({
-        where: { id: 'txn-db-1' },
+      // Remediation Tier 2 §6.3: completing is a CONDITIONAL update (not already COMPLETED)
+      expect(
+        prismaMock.disbursementTransaction.updateMany
+      ).toHaveBeenCalledWith({
+        where: { id: 'txn-db-1', status: { not: 'COMPLETED' } },
         data: { status: 'COMPLETED', completedAt: expect.any(Date) },
       });
       expect(prismaMock.commission.update).toHaveBeenCalledWith({
@@ -177,6 +184,81 @@ describe('WebhookEventProcessorService', () => {
       });
       expect(loggerMock.logPaymentCompleted).toHaveBeenCalledWith('txn-1', 50);
       expect(result.processed).toBe(true);
+    });
+
+    describe('two concurrent deliveries of the same event (Remediation Tier 2 §6.3)', () => {
+      const pendingTransaction = {
+        id: 'txn-db-1',
+        transactionId: 'txn-1',
+        commissionId: 'comm-1',
+        // both deliveries read it before either wrote, so both see PENDING
+        status: 'PENDING',
+      };
+      const deliver = () =>
+        service.processEvent({
+          event: 'payment.completed',
+          data: { providerTxId: 'provider-tx-1', amount: 50 },
+          timestamp: new Date(),
+        });
+
+      beforeEach(() => {
+        prismaMock.disbursementTransaction.findFirst.mockResolvedValue(
+          pendingTransaction as never
+        );
+        prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
+          (cb as (tx: unknown) => unknown)(prismaMock)
+        );
+        prismaMock.commission.update.mockResolvedValue({
+          affiliateProfileId: 'aff-1',
+          commissionAmount: 10,
+        } as never);
+        prismaMock.affiliateProfile.update.mockResolvedValue({} as never);
+      });
+
+      it('moves nothing, marks nothing PAID and logs no payment for a delivery that lost the claim (count 0)', async () => {
+        prismaMock.disbursementTransaction.updateMany.mockResolvedValue({
+          count: 0,
+        });
+
+        const result = await deliver();
+
+        expect(result).toEqual({
+          processed: true,
+          eventType: 'payment.completed',
+          message: 'Transaction already completed (idempotent)',
+        });
+        expect(prismaMock.commission.update).not.toHaveBeenCalled();
+        expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+        expect(loggerMock.logPaymentCompleted).not.toHaveBeenCalled();
+      });
+
+      it('moves the balance from pending to paid exactly once when two deliveries race', async () => {
+        prismaMock.disbursementTransaction.updateMany
+          .mockResolvedValueOnce({ count: 1 })
+          .mockResolvedValueOnce({ count: 0 });
+
+        const results = await Promise.all([deliver(), deliver()]);
+
+        expect(results.every((r) => r.processed)).toBe(true);
+        expect(prismaMock.commission.update).toHaveBeenCalledTimes(1);
+        expect(prismaMock.affiliateProfile.update).toHaveBeenCalledTimes(1);
+        expect(loggerMock.logPaymentCompleted).toHaveBeenCalledTimes(1);
+      });
+
+      it('claims the transaction BEFORE it touches the commission or the balances', async () => {
+        prismaMock.disbursementTransaction.updateMany.mockResolvedValue({
+          count: 1,
+        });
+
+        await deliver();
+
+        const claim =
+          prismaMock.disbursementTransaction.updateMany.mock
+            .invocationCallOrder[0];
+        expect(claim).toBeLessThan(
+          prismaMock.commission.update.mock.invocationCallOrder[0] as number
+        );
+      });
     });
   });
 

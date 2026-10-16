@@ -18,7 +18,11 @@
  * forever.
  */
 
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 import { OutboxEventDto } from './dto/outbox-event.dto';
 import {
@@ -30,6 +34,7 @@ import {
 } from '../email/subscription-email.util';
 import { sendSubscriptionConfirmationEmail } from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 export interface OutboxProcessResult {
   status: 'processed' | 'skipped';
@@ -37,6 +42,21 @@ export interface OutboxProcessResult {
 }
 
 type EmailSendResult = { success: boolean; error?: string };
+
+/**
+ * Remediation Tier 2 §6.7: money-service's publisher is at-least-once (any
+ * non-2xx, a timeout, or a crash between the send and its own bookkeeping makes
+ * it deliver the same event again), and every event here is an email. Each
+ * event.id is therefore claimed in Redis around the send:
+ *   in flight  a short lease, so a delivery that dies mid-send does not block the event for long
+ *   done       kept for a week, longer than the publisher keeps retrying
+ * Redis being down is not a reason to stop sending a receipt: the claim fails open.
+ */
+const CLAIM_KEY_PREFIX = 'outbox-consumer:event:';
+const IN_FLIGHT_LEASE_SECONDS = 300;
+const DONE_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+type ClaimResult = 'claimed' | 'done' | 'in-flight' | 'unavailable';
 
 const KNOWN_EVENT_TYPES = new Set([
   'TIER_UPGRADED',
@@ -49,7 +69,60 @@ const KNOWN_EVENT_TYPES = new Set([
 
 @Injectable()
 export class OutboxConsumerService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService
+  ) {}
+
+  private claimKey(eventId: string): string {
+    return `${CLAIM_KEY_PREFIX}${eventId}`;
+  }
+
+  private async claim(eventId: string): Promise<ClaimResult> {
+    try {
+      const client = this.redis.getClient();
+      const key = this.claimKey(eventId);
+      const won = await client.set(
+        key,
+        'in-flight',
+        'EX',
+        IN_FLIGHT_LEASE_SECONDS,
+        'NX'
+      );
+      if (won === 'OK') return 'claimed';
+      return (await client.get(key)) === 'done' ? 'done' : 'in-flight';
+    } catch (error) {
+      console.warn('[Outbox] Idempotency claim unavailable, sending anyway', {
+        outboxEventId: eventId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return 'unavailable';
+    }
+  }
+
+  private async markDone(eventId: string): Promise<void> {
+    try {
+      await this.redis
+        .getClient()
+        .set(this.claimKey(eventId), 'done', 'EX', DONE_TTL_SECONDS);
+    } catch (error) {
+      console.warn('[Outbox] Could not record the event as done', {
+        outboxEventId: eventId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  private async release(eventId: string): Promise<void> {
+    try {
+      await this.redis.getClient().del(this.claimKey(eventId));
+    } catch (error) {
+      console.warn('[Outbox] Could not release the event claim', {
+        outboxEventId: eventId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
 
   async processEvent(event: OutboxEventDto): Promise<OutboxProcessResult> {
     if (!KNOWN_EVENT_TYPES.has(event.eventType)) {
@@ -80,14 +153,35 @@ export class OutboxConsumerService {
     const name = user.name ?? 'User';
     const payload = event.payload;
 
-    const result = await this.dispatch(event.eventType, email, name, payload);
-
-    if (!result.success) {
-      throw new InternalServerErrorException(
-        result.error ?? 'Email send failed'
+    const claim = await this.claim(event.id);
+    if (claim === 'done') {
+      // The publisher delivered this event before and we sent its email.
+      return { status: 'skipped', reason: 'duplicate' };
+    }
+    if (claim === 'in-flight') {
+      // Another delivery of the same event is sending right now. A 5xx makes the
+      // publisher retry later: if that send fails, the retry sends it; if it
+      // succeeds, the retry finds the event done.
+      throw new ServiceUnavailableException(
+        'Outbox event is already being delivered'
       );
     }
 
+    try {
+      const result = await this.dispatch(event.eventType, email, name, payload);
+
+      if (!result.success) {
+        throw new InternalServerErrorException(
+          result.error ?? 'Email send failed'
+        );
+      }
+    } catch (error) {
+      // Free the claim so the publisher's retry can send it.
+      if (claim === 'claimed') await this.release(event.id);
+      throw error;
+    }
+
+    if (claim === 'claimed') await this.markDone(event.id);
     return { status: 'processed' };
   }
 

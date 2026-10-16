@@ -20,6 +20,7 @@ import { TwoFactorBackupCodesDto } from '../auth/dto/two-factor-backup-codes.dto
 import { TwoFactorDisableDto } from '../auth/dto/two-factor-disable.dto';
 import { TwoFactorVerifySetupDto } from '../auth/dto/two-factor-verify-setup.dto';
 import { TwoFactorVerifyDto } from '../auth/dto/two-factor-verify.dto';
+import { parsePageLimit, parsePageOffset } from '../common/pagination.util';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import {
   changePasswordSchema,
@@ -178,8 +179,8 @@ export class UsersController {
     @Query('limit') limitParam?: string,
     @Query('offset') offsetParam?: string
   ) {
-    const limit = Math.min(parseInt(limitParam || '20', 10), 100);
-    const offset = parseInt(offsetParam || '0', 10);
+    const limit = parsePageLimit(limitParam, 20, 100);
+    const offset = parsePageOffset(offsetParam);
     return this.usersService.getLoginHistory(request.user.id, limit, offset);
   }
 
@@ -194,8 +195,8 @@ export class UsersController {
     @Query('limit') limitParam?: string,
     @Query('offset') offsetParam?: string
   ) {
-    const limit = Math.min(parseInt(limitParam || '20', 10), 100);
-    const offset = parseInt(offsetParam || '0', 10);
+    const limit = parsePageLimit(limitParam, 20, 100);
+    const offset = parsePageOffset(offsetParam);
     return this.usersService.getSecurityAlerts(request.user.id, limit, offset);
   }
 

@@ -26,8 +26,17 @@ import { Injectable } from '@nestjs/common';
 import { RedisService } from '../../redis/redis.service';
 import { MONEY_KEY_PREFIX } from '../../queue/queue.constants';
 
-/** 24h, matching this order's own Step 1 spec ("standard TTL"). */
+/** 24h, matching this order's own Step 1 spec ("standard TTL"). How long a FINISHED response is replayed. */
 export const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
+
+/**
+ * How long a claim on a request still in flight is held (Remediation Tier 2 §6.8).
+ * The claim used to live for the full 24h, so one process that died mid-request
+ * left its key answering "already being processed" for a day. A request finishes
+ * in seconds; if one outlives this, a duplicate may run again, which is the lesser
+ * evil. `save()` replaces the claim with the 24h record when the request succeeds.
+ */
+export const IDEMPOTENCY_CLAIM_LEASE_SECONDS = 60;
 
 const IN_PROGRESS_MARKER = '__IN_PROGRESS__';
 const KEY_PREFIX = `${MONEY_KEY_PREFIX}idempotency:`;
@@ -35,6 +44,12 @@ const KEY_PREFIX = `${MONEY_KEY_PREFIX}idempotency:`;
 export interface IdempotencyRecord {
   statusCode: number;
   body: unknown;
+  /**
+   * SHA-256 of the request body that produced this response. A replay whose body
+   * hashes differently is a different request reusing the key, not a retry.
+   * Absent on records written before it existed (the 24h of old keys).
+   */
+  bodyHash?: string;
 }
 
 @Injectable()

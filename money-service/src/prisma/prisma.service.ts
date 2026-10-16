@@ -1,4 +1,8 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnApplicationShutdown,
+} from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
@@ -17,7 +21,7 @@ import { logger } from '../common/logger.util';
 @Injectable()
 export class PrismaService
   extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
+  implements OnModuleInit, OnApplicationShutdown
 {
   constructor() {
     super({
@@ -35,10 +39,16 @@ export class PrismaService
     await this.$connect();
   }
 
-  async onModuleDestroy() {
+  async onApplicationShutdown(): Promise<void> {
     // Session 4A-W4: only observable now that main.ts calls
     // enableShutdownHooks() — previously this method was wired to Nest's
     // lifecycle but never actually invoked on SIGTERM/SIGINT.
+    //
+    // NestJS 11 shutdown order: onModuleDestroy -> onBeforeApplicationShutdown
+    // -> close the HTTP server (dispose) -> onApplicationShutdown. This used to
+    // disconnect in onModuleDestroy, which cut the database off while in-flight
+    // requests and queue jobs were still running; here the HTTP server has
+    // already drained.
     await this.$disconnect();
     logger.info('PrismaService disconnected cleanly on module shutdown');
   }

@@ -19,6 +19,7 @@ jest.mock('./currency-converter.service', () => ({
 jest.mock('./dlocal-payment.service', () => ({
   acquireCreatePaymentLock: jest.fn(),
   createPayment: jest.fn(),
+  getMissingDLocalConfig: jest.fn().mockReturnValue([]),
 }));
 jest.mock('./payment-methods.service', () => ({
   isValidPaymentMethod: jest.fn(),
@@ -28,6 +29,7 @@ import { convertUSDToLocal } from './currency-converter.service';
 import {
   acquireCreatePaymentLock,
   createPayment,
+  getMissingDLocalConfig,
 } from './dlocal-payment.service';
 import { isValidPaymentMethod } from './payment-methods.service';
 
@@ -170,6 +172,41 @@ describe('DlocalPaymentController', () => {
         data: expect.objectContaining({ amountUSD: 350, planType: 'YEARLY' }),
       })
     );
+  });
+
+  describe('fails closed when payments are not configured (Remediation Tier 2 §6.5)', () => {
+    it('answers 503 PAYMENTS_NOT_CONFIGURED before it reads the user, takes the lock or writes a Payment row', async () => {
+      (getMissingDLocalConfig as jest.Mock).mockReturnValueOnce([
+        'DLOCAL_API_KEY',
+      ]);
+
+      await expect(
+        controller.create(makeRequest(), validBody)
+      ).rejects.toMatchObject({
+        status: 503,
+        response: expect.objectContaining({ code: 'PAYMENTS_NOT_CONFIGURED' }),
+      });
+
+      expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+      expect(acquireCreatePaymentLock).not.toHaveBeenCalled();
+      expect(prismaMock.payment.create).not.toHaveBeenCalled();
+      expect(createPayment).not.toHaveBeenCalled();
+    });
+
+    it('does not tell the caller which variable is missing', async () => {
+      (getMissingDLocalConfig as jest.Mock).mockReturnValueOnce([
+        'DLOCAL_API_KEY',
+        'NEXTAUTH_URL',
+      ]);
+
+      const error = await controller
+        .create(makeRequest(), validBody)
+        .catch((e: unknown) => e);
+
+      expect(
+        JSON.stringify((error as { response: unknown }).response)
+      ).not.toMatch(/DLOCAL_API_KEY|NEXTAUTH_URL/);
+    });
   });
 
   it('returns 400 for an invalid request body', async () => {

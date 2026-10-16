@@ -9,6 +9,7 @@ import {
   ParseArrayPipe,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Queue } from 'bull';
 import { ApiKeyGuard } from '../auth/api-key.guard';
 import { IndicatorStatisticDto } from './dto/indicator-statistic.dto';
@@ -39,6 +40,7 @@ export class IndicatorStatisticsController {
   ) {}
 
   @Post()
+  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   async publishStatistics(
     // whitelist/forbidNonWhitelisted must be passed EXPLICITLY here.

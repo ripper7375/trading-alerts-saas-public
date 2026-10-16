@@ -21,6 +21,11 @@ import {
   handleChargeRefunded,
   handleChargeDisputeCreated,
 } from '@/lib/stripe/webhook-handlers';
+import {
+  claimEvent,
+  completeEvent,
+  releaseEvent,
+} from '@/lib/webhooks/processed-event';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CONFIG
@@ -30,6 +35,34 @@ import {
  * Disable body parsing - we need raw body for signature verification
  */
 export const dynamic = 'force-dynamic';
+
+const PROVIDER = 'stripe';
+
+/** The handler for an event type, or null when this app ignores it. */
+function resolveHandler(event: Stripe.Event): (() => Promise<void>) | null {
+  switch (event.type) {
+    case 'checkout.session.completed':
+      return () =>
+        handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+    case 'customer.subscription.updated':
+      return () =>
+        handleSubscriptionUpdated(event.data.object as Stripe.Subscription);
+    case 'customer.subscription.deleted':
+      return () =>
+        handleSubscriptionDeleted(event.data.object as Stripe.Subscription);
+    case 'invoice.payment_failed':
+      return () => handleInvoiceFailed(event.data.object as Stripe.Invoice);
+    case 'invoice.payment_succeeded':
+      return () => handleInvoiceSucceeded(event.data.object as Stripe.Invoice);
+    case 'charge.refunded':
+      return () => handleChargeRefunded(event.data.object as Stripe.Charge);
+    case 'charge.dispute.created':
+      return () =>
+        handleChargeDisputeCreated(event.data.object as Stripe.Dispute);
+    default:
+      return null;
+  }
+}
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POST /api/webhooks/stripe
@@ -85,50 +118,38 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.log(`[Webhook] Received event: ${event.type}`);
 
     // Route to appropriate handler based on event type
+    const handle = resolveHandler(event);
+    if (!handle) {
+      // Log unhandled events but don't fail
+      console.log(`[Webhook] Unhandled event type: ${event.type}`);
+      return NextResponse.json({ received: true });
+    }
+
+    // Remediation Tier 2 §6.1: claim the event before its handler runs, so a
+    // redelivery -- or the same event arriving at money-service's endpoint too
+    // (4A-13 dual delivery) -- does not repeat the handler's side effects.
+    const claim = await claimEvent(PROVIDER, event.id);
+    if (claim === 'duplicate') {
+      console.log(
+        `[Webhook] Duplicate event skipped: ${event.type} ${event.id}`
+      );
+      return NextResponse.json({ received: true, duplicate: true });
+    }
+    // 'unavailable': the claim table could not be used, so the handler still
+    // runs (the Commission unique indexes are the money guard) and there is
+    // nothing to complete or release.
+    const claimed = claim === 'claimed';
+
     try {
-      switch (event.type) {
-        case 'checkout.session.completed':
-          await handleCheckoutCompleted(
-            event.data.object as Stripe.Checkout.Session
-          );
-          break;
-
-        case 'customer.subscription.updated':
-          await handleSubscriptionUpdated(
-            event.data.object as Stripe.Subscription
-          );
-          break;
-
-        case 'customer.subscription.deleted':
-          await handleSubscriptionDeleted(
-            event.data.object as Stripe.Subscription
-          );
-          break;
-
-        case 'invoice.payment_failed':
-          await handleInvoiceFailed(event.data.object as Stripe.Invoice);
-          break;
-
-        case 'invoice.payment_succeeded':
-          await handleInvoiceSucceeded(event.data.object as Stripe.Invoice);
-          break;
-
-        case 'charge.refunded':
-          await handleChargeRefunded(event.data.object as Stripe.Charge);
-          break;
-
-        case 'charge.dispute.created':
-          await handleChargeDisputeCreated(event.data.object as Stripe.Dispute);
-          break;
-
-        default:
-          // Log unhandled events but don't fail
-          console.log(`[Webhook] Unhandled event type: ${event.type}`);
-      }
+      await handle();
+      if (claimed) await completeEvent(PROVIDER, event.id);
 
       // Return 200 OK to acknowledge receipt
       return NextResponse.json({ received: true });
     } catch (handlerError) {
+      // Free the claim first so Stripe's retry (or the other endpoint) runs it.
+      if (claimed) await releaseEvent(PROVIDER, event.id);
+
       // Log handler error but still return 200 to prevent retries
       // for errors we can't recover from
       console.error(`[Webhook] Handler error for ${event.type}:`, handlerError);

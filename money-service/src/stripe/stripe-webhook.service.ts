@@ -26,6 +26,7 @@ import type Stripe from 'stripe';
 import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { ConversionProcessorService } from '../affiliate/conversion-processor.service';
 import { logger } from '../common/logger.util';
+import { isUniqueConstraintError } from '../common/prisma-errors.util';
 import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -215,26 +216,36 @@ export class StripeWebhookService {
 
       const status = this.mapStripeStatus(subscription.status);
 
-      await this.prisma.subscription.update({
-        where: { id: dbSubscription.id },
-        data: {
-          status,
-          stripeCurrentPeriodEnd: new Date(
-            subscription.current_period_end * 1000
-          ),
-          expiresAt: new Date(subscription.current_period_end * 1000),
-        },
-      });
-
-      if (
-        subscription.status !== 'active' &&
-        subscription.status !== 'trialing'
-      ) {
-        await this.prisma.user.update({
-          where: { id: dbSubscription.userId },
-          data: { tier: 'FREE' },
+      // Remediation Tier 2 §6.4 (4A-13 audit item b): the subscription row and
+      // the user's tier change together or not at all. As two separate writes,
+      // a failure between them left the subscription cancelled/unpaid while the
+      // user kept PRO (and this event is not retried, see the controller).
+      const downgraded = await this.prisma.$transaction(async (tx) => {
+        await tx.subscription.update({
+          where: { id: dbSubscription.id },
+          data: {
+            status,
+            stripeCurrentPeriodEnd: new Date(
+              subscription.current_period_end * 1000
+            ),
+            expiresAt: new Date(subscription.current_period_end * 1000),
+          },
         });
 
+        if (
+          subscription.status !== 'active' &&
+          subscription.status !== 'trialing'
+        ) {
+          await tx.user.update({
+            where: { id: dbSubscription.userId },
+            data: { tier: 'FREE' },
+          });
+          return true;
+        }
+        return false;
+      });
+
+      if (downgraded) {
         logger.info('[Webhook] User downgraded due to subscription status', {
           userId: dbSubscription.userId,
           stripeStatus: subscription.status,
@@ -668,35 +679,53 @@ export class StripeWebhookService {
         // so no trial-safety hold needed). No changes needed to
         // CommissionAggregator -- it already just sums commissionAmount
         // across rows, so a negative row nets out automatically.
-        await this.prisma.$transaction(async (tx) => {
-          await tx.commission.create({
-            data: {
-              affiliateProfileId: commission.affiliateProfileId,
-              affiliateCodeId: commission.affiliateCodeId,
-              userId: commission.userId,
-              subscriptionId: commission.subscriptionId,
-              grossRevenue: Number(commission.grossRevenue) * -1,
-              discountAmount: Number(commission.discountAmount) * -1,
-              netRevenue: Number(commission.netRevenue) * -1,
-              commissionAmount: Number(commission.commissionAmount) * -1,
-              status: 'APPROVED',
-              approvedAt: new Date(),
-              clawbackOfCommissionId: commission.id,
-            },
+        const clawedBack = await this.prisma
+          .$transaction(async (tx) => {
+            await tx.commission.create({
+              data: {
+                affiliateProfileId: commission.affiliateProfileId,
+                affiliateCodeId: commission.affiliateCodeId,
+                userId: commission.userId,
+                subscriptionId: commission.subscriptionId,
+                grossRevenue: Number(commission.grossRevenue) * -1,
+                discountAmount: Number(commission.discountAmount) * -1,
+                netRevenue: Number(commission.netRevenue) * -1,
+                commissionAmount: Number(commission.commissionAmount) * -1,
+                status: 'APPROVED',
+                approvedAt: new Date(),
+                clawbackOfCommissionId: commission.id,
+              },
+            });
+
+            await tx.affiliateProfile.update({
+              where: { id: commission.affiliateProfileId },
+              data: {
+                totalEarnings: {
+                  decrement: Number(commission.commissionAmount),
+                },
+                pendingCommissions: {
+                  decrement: Number(commission.commissionAmount),
+                },
+              },
+            });
+            return true;
+          })
+          .catch((error: unknown) => {
+            // Remediation Tier 2 §6.1: clawbackOfCommissionId is unique in the
+            // database, so a redelivered refund / dispute (or the same event at
+            // the monolith's endpoint too) cannot deduct a second time. The
+            // loser's transaction -- row AND counters -- rolled back.
+            if (isUniqueConstraintError(error)) return false;
+            throw error;
           });
 
-          await tx.affiliateProfile.update({
-            where: { id: commission.affiliateProfileId },
-            data: {
-              totalEarnings: {
-                decrement: Number(commission.commissionAmount),
-              },
-              pendingCommissions: {
-                decrement: Number(commission.commissionAmount),
-              },
-            },
-          });
-        });
+        if (!clawedBack) {
+          logger.info(
+            `[Webhook] Clawback already recorded for this commission -- skipping duplicate ${reason}`,
+            { commissionId: commission.id }
+          );
+          return;
+        }
 
         logger.info(
           `[Webhook] Commission already PAID -- created a clawback deduction for the next payout due to ${reason}`,
@@ -710,21 +739,42 @@ export class StripeWebhookService {
       }
 
       // PENDING or APPROVED -- cancel before it's ever (or further) disbursed.
-      await this.prisma.commission.update({
-        where: { id: commission.id },
-        data: { status: 'CANCELLED', cancelledAt: new Date() },
+      // Remediation Tier 2 §6.1: the status change is a conditional update in
+      // the SAME transaction as the counter reversal. The read above holds no
+      // lock, so two deliveries of one refund both saw PENDING; with an
+      // unconditional update both cancelled it and both reversed the affiliate's
+      // counters. Now exactly one delivery changes the row (count 1) and reverses
+      // the counters; the other finds it no longer PENDING/APPROVED (count 0).
+      const cancelled = await this.prisma.$transaction(async (tx) => {
+        const changed = await tx.commission.updateMany({
+          where: { id: commission.id, status: { in: ['PENDING', 'APPROVED'] } },
+          data: { status: 'CANCELLED', cancelledAt: new Date() },
+        });
+        if (changed.count === 0) return false;
+
+        await tx.affiliateProfile.update({
+          where: { id: commission.affiliateProfileId },
+          data: {
+            totalCodesUsed: { decrement: 1 },
+            totalEarnings: { decrement: Number(commission.commissionAmount) },
+            pendingCommissions: {
+              decrement: Number(commission.commissionAmount),
+            },
+          },
+        });
+        return true;
       });
 
-      await this.prisma.affiliateProfile.update({
-        where: { id: commission.affiliateProfileId },
-        data: {
-          totalCodesUsed: { decrement: 1 },
-          totalEarnings: { decrement: Number(commission.commissionAmount) },
-          pendingCommissions: {
-            decrement: Number(commission.commissionAmount),
-          },
-        },
-      });
+      if (!cancelled) {
+        // Either a concurrent delivery cancelled it (fine), or it was paid out
+        // between the read above and now (the clawback row for a PAID
+        // commission was not written). Say so; a human can tell which.
+        logger.warn(
+          `[Webhook] Commission was no longer PENDING/APPROVED when the ${reason} arrived -- not cancelled again`,
+          { commissionId: commission.id }
+        );
+        return;
+      }
 
       logger.info(`[Webhook] Commission cancelled due to ${reason}`, {
         commissionId: commission.id,

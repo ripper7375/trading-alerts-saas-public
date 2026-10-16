@@ -44,6 +44,7 @@ import {
   AffiliateCronService,
   MonthlyDistributionResult,
 } from './affiliate.service';
+import { CronLockService } from './cron-lock.service';
 import {
   CheckExpiringResult,
   DowngradeExpiredResult,
@@ -92,7 +93,8 @@ export class CronsScheduler {
     private readonly affiliateCron: AffiliateCronService,
     private readonly disbursementProcessor: DisbursementProcessorService,
     private readonly wiseReconciliation: WiseReconciliationService,
-    private readonly transactionLogger: TransactionLoggerService
+    private readonly transactionLogger: TransactionLoggerService,
+    private readonly cronLock: CronLockService
   ) {}
 
   /**
@@ -109,6 +111,29 @@ export class CronsScheduler {
    */
   private isCronEnabled(): boolean {
     return process.env['CRON_ENABLED'] === 'true';
+  }
+
+  /**
+   * What every scheduled entry point does (Remediation Tier 2 §6.9): the
+   * CRON_ENABLED gate, then a one-winner lock so that two instances alive at
+   * once (a rolling deploy) do not both run the job, then the job. See
+   * CronLockService.
+   */
+  private async runScheduled(
+    jobName: string,
+    job: () => Promise<unknown>
+  ): Promise<void> {
+    if (!this.isCronEnabled()) {
+      logger.info(`[CRON] Skipped ${jobName} — CRON_ENABLED is not "true"`);
+      return;
+    }
+    if (!(await this.cronLock.acquire(jobName))) {
+      logger.info(
+        `[CRON] Skipped ${jobName} — another instance already took this run`
+      );
+      return;
+    }
+    await job();
   }
 
   /**
@@ -438,109 +463,69 @@ export class CronsScheduler {
 
   @Cron('0 0 * * *')
   async scheduledCheckExpiringSubscriptions(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info(
-        '[CRON] Skipped check-expiring-subscriptions — CRON_ENABLED is not "true"'
-      );
-      return;
-    }
-    await this.handleCheckExpiringSubscriptions();
+    await this.runScheduled('check-expiring-subscriptions', () =>
+      this.handleCheckExpiringSubscriptions()
+    );
   }
 
   @Cron('0 4 * * *')
   async scheduledDailyMaintenance(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info(
-        '[CRON] Skipped daily-maintenance — CRON_ENABLED is not "true"'
-      );
-      return;
-    }
-    await this.handleDailyMaintenance();
+    await this.runScheduled('daily-maintenance', () =>
+      this.handleDailyMaintenance()
+    );
   }
 
   @Cron('0 0 1 * *')
   async scheduledDistributeCodes(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info(
-        '[CRON] Skipped distribute-codes — CRON_ENABLED is not "true"'
-      );
-      return;
-    }
-    await this.handleDistributeCodes();
+    await this.runScheduled('distribute-codes', () =>
+      this.handleDistributeCodes()
+    );
   }
 
   @Cron('0 1 * * *')
   async scheduledDowngradeExpiredSubscriptions(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info(
-        '[CRON] Skipped downgrade-expired-subscriptions — CRON_ENABLED is not "true"'
-      );
-      return;
-    }
-    await this.handleDowngradeExpiredSubscriptions();
+    await this.runScheduled('downgrade-expired-subscriptions', () =>
+      this.handleDowngradeExpiredSubscriptions()
+    );
   }
 
   @Cron('59 23 28-31 * *')
   async scheduledExpireCodes(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info('[CRON] Skipped expire-codes — CRON_ENABLED is not "true"');
-      return;
-    }
-    await this.handleExpireCodes();
+    await this.runScheduled('expire-codes', () => this.handleExpireCodes());
   }
 
   @Cron(PAYOUT_CRON_EXPRESSION)
   async scheduledProcessPendingDisbursements(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info(
-        '[CRON] Skipped process-pending-disbursements — CRON_ENABLED is not "true"'
-      );
-      return;
-    }
-    await this.handleProcessPendingDisbursements();
+    await this.runScheduled('process-pending-disbursements', () =>
+      this.handleProcessPendingDisbursements()
+    );
   }
 
   @Cron(APPROVAL_CRON_EXPRESSION)
   async scheduledApproveMaturedCommissions(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info(
-        '[CRON] Skipped approve-matured-commissions — CRON_ENABLED is not "true"'
-      );
-      return;
-    }
-    await this.handleApproveMaturedCommissions();
+    await this.runScheduled('approve-matured-commissions', () =>
+      this.handleApproveMaturedCommissions()
+    );
   }
 
   @Cron('0 6 1 * *')
   async scheduledSendMonthlyReports(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info(
-        '[CRON] Skipped send-monthly-reports — CRON_ENABLED is not "true"'
-      );
-      return;
-    }
-    await this.handleSendMonthlyReports();
+    await this.runScheduled('send-monthly-reports', () =>
+      this.handleSendMonthlyReports()
+    );
   }
 
   @Cron('0 3 * * *')
   async scheduledSyncRiseWorksAccounts(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info(
-        '[CRON] Skipped sync-riseworks-accounts — CRON_ENABLED is not "true"'
-      );
-      return;
-    }
-    await this.handleSyncRiseWorksAccounts();
+    await this.runScheduled('sync-riseworks-accounts', () =>
+      this.handleSyncRiseWorksAccounts()
+    );
   }
 
   @Cron('0 * * * *')
   async scheduledWiseReconciliation(): Promise<void> {
-    if (!this.isCronEnabled()) {
-      logger.info(
-        '[CRON] Skipped wise-reconciliation — CRON_ENABLED is not "true"'
-      );
-      return;
-    }
-    await this.handleWiseReconciliation();
+    await this.runScheduled('wise-reconciliation', () =>
+      this.handleWiseReconciliation()
+    );
   }
 }

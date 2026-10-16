@@ -2,13 +2,17 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
-import { sendPasswordChangedEmail } from '../email/email.util';
+import {
+  sendAccountDeletionEmail,
+  sendPasswordChangedEmail,
+} from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatLocation, getGeoLocation } from '../security/geo-location.util';
 import { TwoFactorService } from '../auth/two-factor.service';
@@ -37,6 +41,8 @@ export interface RequestContext {
  */
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly twoFactorService: TwoFactorService
@@ -711,22 +717,56 @@ export class UsersService {
       data: { userId, token, status: 'PENDING', expiresAt },
     });
 
-    const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
-    const confirmationUrl = `${baseUrl}/account/confirm-deletion?token=${token}`;
-    const cancelUrl = `${baseUrl}/account/cancel-deletion?token=${token}`;
-    console.log('[AccountDeletion] Request created:', {
+    // Never log the token, the two URLs built from it, or the address: stdout
+    // is shipped to the log store, and the token alone confirms or cancels the
+    // deletion (confirmDeletion is unauthenticated by design).
+    this.logger.log('Account deletion requested', {
       userId,
       requestId: deletionRequest.id,
-      confirmationUrl,
-      cancelUrl,
+      expiresAt,
     });
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true, name: true },
-    });
-    // TODO (preserved from SOURCE): send confirmation email.
-    console.log(`[AccountDeletion] Email would be sent to: ${user?.email}`);
+    // The public pages that read `?token=` and call deletion-confirm/-cancel
+    // (app/(public)/settings/account/delete/{confirm,cancel}/page.tsx).
+    const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
+    const confirmationUrl = `${baseUrl}/settings/account/delete/confirm?token=${token}`;
+    const cancelUrl = `${baseUrl}/settings/account/delete/cancel?token=${token}`;
+
+    // Non-fatal, like AuthService.register: the request row already exists, so
+    // a failed send is logged and the call still succeeds.
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, name: true },
+      });
+      if (!user?.email) {
+        this.logger.warn('Account deletion email not sent: no address', {
+          userId,
+          requestId: deletionRequest.id,
+        });
+      } else {
+        const emailResult = await sendAccountDeletionEmail(
+          user.email,
+          user.name,
+          confirmationUrl,
+          cancelUrl,
+          expiresAt
+        );
+        if (!emailResult.success) {
+          this.logger.error('Failed to send account deletion email', {
+            userId,
+            requestId: deletionRequest.id,
+            error: emailResult.error,
+          });
+        }
+      }
+    } catch (error) {
+      this.logger.error('Failed to send account deletion email', {
+        userId,
+        requestId: deletionRequest.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
 
     return {
       success: true,

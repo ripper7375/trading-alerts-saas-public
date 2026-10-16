@@ -13,10 +13,12 @@ import Redis, { type RedisOptions } from 'ioredis';
 // build their own from REDIS_URL directly, matching source).
 const REDIS_OPTIONS: RedisOptions = {
   maxRetriesPerRequest: 3,
-  retryStrategy: (times: number): number | null => {
-    if (times > 10) return null;
-    return Math.min(times * 500, 30000);
-  },
+  // Bounded backoff that never gives up. ioredis stops reconnecting for good
+  // when retryStrategy returns null, so the old `if (times > 10) return null`
+  // left this client (and everything on it: the alert dispatcher, quota
+  // counters, RealtimeGateway) dead after a Redis restart longer than ~27 s
+  // until the process itself was restarted.
+  retryStrategy: (times: number): number => Math.min(times * 500, 30000),
   enableReadyCheck: true,
   lazyConnect: true,
 };

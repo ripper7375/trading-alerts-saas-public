@@ -1,0 +1,155 @@
+name: NestJS Services CI
+
+# Type-check, test and build the three NestJS services. No other workflow runs them
+# (Tier 0, unit 0.1 of davintrade-nest-js-checklists/nestjs-production-remediation-plan.md).
+# Each service has its own npm lockfile and is built alone on Railway, so each is its own job.
+
+on:
+  push:
+    branches: [main, develop, 'claude/**']
+    paths:
+      - 'operation-service/**'
+      - 'money-service/**'
+      - 'railway-gateway/**'
+      - 'packages/types/**'
+      - '.github/workflows/nestjs-services-ci.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'operation-service/**'
+      - 'money-service/**'
+      - 'railway-gateway/**'
+      - 'packages/types/**'
+      - '.github/workflows/nestjs-services-ci.yml'
+
+concurrency:
+  group: nestjs-services-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Node 20 reached end of life on 2026-04-30; 22 is the active LTS.
+  NODE_VERSION: '22'
+
+jobs:
+  operation-service:
+    name: operation-service
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: operation-service
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: operation-service/package-lock.json
+
+      # `postinstall` runs `prisma generate`.
+      - name: Install dependencies
+        run: npm ci
+
+      # `@trading-alerts/types` is `file:./packages/types` and resolves to its `dist/`, which is
+      # not committed. `npm run build` does this in its `prebuild`; the type-check and the
+      # tests below need it first.
+      - name: Build shared types package
+        run: npm run build --prefix packages/types
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+      - name: Build
+        run: npm run build
+
+  money-service:
+    name: money-service
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: money-service
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: money-service/package-lock.json
+
+      # `postinstall` runs `prisma generate`.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+      - name: Build
+        run: npm run build
+
+  railway-gateway:
+    name: railway-gateway
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: railway-gateway
+    steps:
+      # The gateway specs read files outside the package (the Stack D engine, the standard, the
+      # migrations), so the whole repository is checked out.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: railway-gateway/package-lock.json
+
+      # The sensor specs run the Python cycle runner (`python -m mcd_worker.cli`) and skip
+      # silently when `import yaml, jsonschema` fails. Same pins as tests.yml.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python test dependencies
+        run: python -m pip install pyyaml==6.0.2 jsonschema==4.25.0
+
+      # `postinstall` runs `prisma generate`.
+      - name: Install dependencies
+        run: npm ci
+
+      # `npm run lint` is not a step here: the package has no ESLint configuration of its own and
+      # the root `eslint.config.mjs` ignores `railway-gateway/**`, so the script exits 2 with
+      # "No files matching the pattern" (environment-gotchas.md). Add the step when a config exists.
+      - name: Type-check
+        run: npx tsc --noEmit
+
+      - name: Unit tests
+        run: npm test -- --ci
+
+      - name: End-to-end tests
+        run: npm run test:e2e -- --ci
+
+      - name: Sensor kit is in sync
+        run: npm run check:sensor-kit
+
+      - name: Build
+        run: npm run build

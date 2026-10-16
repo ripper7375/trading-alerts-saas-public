@@ -1002,3 +1002,101 @@ export async function sendTwoFactorDisabledEmail(
     html
   );
 }
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ACCOUNT DELETION EMAILS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Generate the account-deletion confirmation email HTML.
+ *
+ * Unlike the older templates above, the interpolated values are HTML-escaped:
+ * the links carry a one-time token and the name is user-controlled.
+ */
+export function getAccountDeletionEmail(
+  name: string,
+  confirmationUrl: string,
+  cancelUrl: string,
+  expiresAt: Date
+): string {
+  const formattedExpiry = expiresAt.toLocaleString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  });
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Confirm Account Deletion</title>
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
+      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <div style="background: #fee2e2; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+          <h1 style="color: #991b1b; margin: 0; font-size: 20px;">Confirm Your Account Deletion</h1>
+        </div>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          Hi ${escapeHtml(name)}, we received a request to permanently delete your Trading Alerts account.
+        </p>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
+          <strong>To go ahead,</strong> confirm the deletion with the button below. This cannot be undone.
+        </p>
+
+        <a href="${escapeHtml(confirmationUrl)}" style="display: inline-block; background: #dc2626; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; margin: 8px 0;">
+          Confirm Account Deletion
+        </a>
+
+        <p style="color: #52525b; line-height: 1.6; margin: 24px 0 16px 0;">
+          <strong>If you changed your mind, or this wasn't you,</strong> cancel the request instead:
+        </p>
+
+        <a href="${escapeHtml(cancelUrl)}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; margin: 8px 0;">
+          Cancel Deletion Request
+        </a>
+
+        <p style="color: #71717a; font-size: 14px; margin: 24px 0 0 0;">
+          These links expire on ${escapeHtml(formattedExpiry)}. Anyone with these links can act on your request, so please do not forward this email.
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/**
+ * Send the account-deletion confirmation email (confirm and cancel links).
+ */
+export async function sendAccountDeletionEmail(
+  to: string,
+  name: string | null,
+  confirmationUrl: string,
+  cancelUrl: string,
+  expiresAt: Date
+): Promise<{ success: boolean; error?: string }> {
+  const html = getAccountDeletionEmail(
+    name?.trim() || 'User',
+    confirmationUrl,
+    cancelUrl,
+    expiresAt
+  );
+  return sendEmail(to, 'Confirm Your Account Deletion - Trading Alerts', html);
+}

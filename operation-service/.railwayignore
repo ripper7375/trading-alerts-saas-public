@@ -6,3 +6,16 @@
 **/.cache
 **/coverage
 **/tmp
+
+# Secrets and local state: a manual `railway up` uploads the working directory,
+# so a developer's .env must never travel with it. Keep the example file.
+.env
+.env.*
+!.env.example
+
+# Logs, test output and test sources are not needed to build or run the service.
+coverage/
+*.log
+.git/
+src/**/*.spec.ts
+test/

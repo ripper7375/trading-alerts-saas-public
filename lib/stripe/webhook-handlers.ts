@@ -660,21 +660,36 @@ async function cancelCommissionForRefundOrDispute(
       // needed to CommissionAggregator/buildCommissionSummary -- both
       // already just sum commissionAmount across rows, so a negative row
       // nets out automatically wherever it's read.
-      await prisma.commission.create({
-        data: {
-          affiliateProfileId: commission.affiliateProfileId,
-          affiliateCodeId: commission.affiliateCodeId,
-          userId: commission.userId,
-          subscriptionId: commission.subscriptionId,
-          grossRevenue: Number(commission.grossRevenue) * -1,
-          discountAmount: Number(commission.discountAmount) * -1,
-          netRevenue: Number(commission.netRevenue) * -1,
-          commissionAmount: Number(commission.commissionAmount) * -1,
-          status: 'APPROVED',
-          approvedAt: new Date(),
-          clawbackOfCommissionId: commission.id,
-        },
-      });
+      try {
+        await prisma.commission.create({
+          data: {
+            affiliateProfileId: commission.affiliateProfileId,
+            affiliateCodeId: commission.affiliateCodeId,
+            userId: commission.userId,
+            subscriptionId: commission.subscriptionId,
+            grossRevenue: Number(commission.grossRevenue) * -1,
+            discountAmount: Number(commission.discountAmount) * -1,
+            netRevenue: Number(commission.netRevenue) * -1,
+            commissionAmount: Number(commission.commissionAmount) * -1,
+            status: 'APPROVED',
+            approvedAt: new Date(),
+            clawbackOfCommissionId: commission.id,
+          },
+        });
+      } catch (createError) {
+        // Remediation Tier 2 §6.1: clawbackOfCommissionId is unique in the
+        // database, so a redelivered refund / dispute (or the same event at
+        // money-service's endpoint too) cannot deduct a second time. The insert
+        // comes first, so no counter below has moved yet.
+        if (isUniqueViolation(createError)) {
+          console.log(
+            `[Webhook] Clawback already recorded for this commission -- skipping duplicate ${reason}`,
+            { commissionId: commission.id }
+          );
+          return;
+        }
+        throw createError;
+      }
 
       await prisma.affiliateProfile.update({
         where: { id: commission.affiliateProfileId },
@@ -726,6 +741,19 @@ async function cancelCommissionForRefundOrDispute(
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // HELPER FUNCTIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * True for Prisma's unique-constraint violation (P2002). Duck-typed on `code`
+ * (not `instanceof`), like the other stores in lib/platform: the error crosses
+ * the driver-adapter boundary and module registries.
+ */
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
+}
 
 /**
  * Extract the multi-jurisdiction tax breakdown from a finalized Stripe
@@ -951,22 +979,38 @@ async function processAffiliateCommission(
       affiliateCode.commissionPercent
     );
 
-    // Create commission record for this billing cycle
-    await prisma.commission.create({
-      data: {
-        affiliateProfileId: affiliateCode.affiliateProfileId,
-        affiliateCodeId: affiliateCode.id,
-        userId,
-        subscriptionId,
-        stripeInvoiceId,
-        grossRevenue: breakdown.grossRevenue,
-        discountAmount: breakdown.discountAmount,
-        netRevenue: breakdown.netRevenue,
-        commissionAmount: breakdown.commissionAmount,
-        status: 'PENDING',
-        earnedAt: new Date(),
-      },
-    });
+    // Create commission record for this billing cycle.
+    // Remediation Tier 2 §6.1: (affiliateCodeId, stripeInvoiceId) is unique in
+    // the database. The priorCommissions read above holds no lock, so a
+    // concurrent delivery of this same invoice (money-service's endpoint also
+    // receives it, 4A-13) can pass that check too; the loser's insert is
+    // refused here, before any counter below is touched.
+    try {
+      await prisma.commission.create({
+        data: {
+          affiliateProfileId: affiliateCode.affiliateProfileId,
+          affiliateCodeId: affiliateCode.id,
+          userId,
+          subscriptionId,
+          stripeInvoiceId,
+          grossRevenue: breakdown.grossRevenue,
+          discountAmount: breakdown.discountAmount,
+          netRevenue: breakdown.netRevenue,
+          commissionAmount: breakdown.commissionAmount,
+          status: 'PENDING',
+          earnedAt: new Date(),
+        },
+      });
+    } catch (createError) {
+      if (isUniqueViolation(createError)) {
+        console.log(
+          '[Webhook] Commission already credited by a concurrent delivery, skipping duplicate:',
+          { code: affiliateCode.code, stripeInvoiceId }
+        );
+        return;
+      }
+      throw createError;
+    }
 
     // Only clear the attribution once the cap is reached on THIS cycle --
     // otherwise leave it in place so the next renewal keeps crediting.

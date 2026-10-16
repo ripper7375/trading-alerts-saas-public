@@ -55,7 +55,21 @@ export class DispatcherService {
       });
     });
 
-    await this.notifyBridge.publish(fire, new Date().toISOString());
+    // Remediation Tier 2 §6.7: the transaction above is the dispatch. The live
+    // push below is best effort. This job runs under BullMQ with 5 attempts, and
+    // a throw from here used to run the whole job again: another Notification
+    // row and another triggerCount increment per attempt, up to 5 copies of one
+    // fire, because a Redis pub/sub call failed after the data was committed.
+    // The notification is in the database either way (the bell shows it on the
+    // next load); only the instant socket push is lost for this fire.
+    try {
+      await this.notifyBridge.publish(fire, new Date().toISOString());
+    } catch (error) {
+      log.error(
+        { error: error instanceof Error ? error.message : 'Unknown error' },
+        'live alert push failed after the notification was stored'
+      );
+    }
     log.info('fire dispatched');
   };
 }

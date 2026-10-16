@@ -135,7 +135,7 @@ describe('ConversionProcessorService', () => {
     prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
       (cb as (tx: unknown) => unknown)(prismaMock)
     );
-    prismaMock.affiliateCode.update.mockResolvedValue({} as never);
+    prismaMock.affiliateCode.updateMany.mockResolvedValue({ count: 1 });
     prismaMock.commission.create.mockResolvedValue({
       id: 'commission-1',
     } as never);
@@ -173,7 +173,7 @@ describe('ConversionProcessorService', () => {
     prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
       (cb as (tx: unknown) => unknown)(prismaMock)
     );
-    prismaMock.affiliateCode.update.mockResolvedValue({} as never);
+    prismaMock.affiliateCode.updateMany.mockResolvedValue({ count: 1 });
     prismaMock.commission.create.mockResolvedValue({
       id: 'commission-2',
     } as never);
@@ -189,8 +189,9 @@ describe('ConversionProcessorService', () => {
       provider: 'DLOCAL',
     });
 
-    expect(prismaMock.affiliateCode.update).toHaveBeenCalledWith({
-      where: { id: 'code-1' },
+    // Remediation Tier 2 §6.2: the flip is a CONDITIONAL update (still ACTIVE)
+    expect(prismaMock.affiliateCode.updateMany).toHaveBeenCalledWith({
+      where: { id: 'code-1', status: 'ACTIVE' },
       data: {
         status: 'USED',
         usedAt: expect.any(Date),
@@ -227,6 +228,90 @@ describe('ConversionProcessorService', () => {
       affiliateUserId: 'affiliate-user-1',
       code: 'CODE-1',
       totalEarnings: 27,
+    });
+  });
+
+  describe('two concurrent deliveries of the same payment (Remediation Tier 2 §6.2)', () => {
+    const activeCode = {
+      id: 'code-1',
+      code: 'CODE-1',
+      affiliateProfileId: 'aff-1',
+      discountPercent: 10,
+      commissionPercent: 30,
+      status: 'ACTIVE',
+      affiliateProfile: {
+        id: 'aff-1',
+        status: 'ACTIVE',
+        userId: 'affiliate-user-1',
+      },
+    };
+    const convert = () =>
+      service.processAffiliateConversion({
+        code: 'code-1',
+        userId: 'user-1',
+        subscriptionId: 'sub-1',
+        grossRevenueUsd: 100,
+        provider: 'DLOCAL',
+      });
+
+    beforeEach(() => {
+      // Both deliveries read the code while it is still ACTIVE: the guard above is not a lock.
+      prismaMock.affiliateCode.findUnique.mockResolvedValue(
+        activeCode as never
+      );
+      prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
+        (cb as (tx: unknown) => unknown)(prismaMock)
+      );
+    });
+
+    it('pays nothing when the conditional claim finds the code already USED (count 0)', async () => {
+      prismaMock.affiliateCode.updateMany.mockResolvedValue({ count: 0 });
+
+      await expect(convert()).resolves.toEqual({
+        processed: false,
+        reason: 'ALREADY_USED',
+      });
+
+      expect(prismaMock.commission.create).not.toHaveBeenCalled();
+      expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+    });
+
+    it('lets exactly one of two concurrent deliveries pay, and the other reports ALREADY_USED', async () => {
+      prismaMock.affiliateCode.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
+      prismaMock.commission.create.mockResolvedValue({
+        id: 'commission-win',
+      } as never);
+      prismaMock.affiliateProfile.update.mockResolvedValue({
+        totalEarnings: 27,
+      } as never);
+
+      const [first, second] = await Promise.all([convert(), convert()]);
+
+      expect([first.processed, second.processed].sort()).toEqual([false, true]);
+      const loser = first.processed ? second : first;
+      expect(loser.reason).toBe('ALREADY_USED');
+      expect(prismaMock.commission.create).toHaveBeenCalledTimes(1);
+      expect(prismaMock.affiliateProfile.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('claims the code BEFORE it creates the commission', async () => {
+      prismaMock.affiliateCode.updateMany.mockResolvedValue({ count: 1 });
+      prismaMock.commission.create.mockResolvedValue({
+        id: 'commission-1',
+      } as never);
+      prismaMock.affiliateProfile.update.mockResolvedValue({
+        totalEarnings: 27,
+      } as never);
+
+      await convert();
+
+      const claimOrder =
+        prismaMock.affiliateCode.updateMany.mock.invocationCallOrder[0];
+      const createOrder = prismaMock.commission.create.mock
+        .invocationCallOrder[0] as number;
+      expect(claimOrder).toBeLessThan(createOrder);
     });
   });
 
@@ -397,6 +482,83 @@ describe('ConversionProcessorService', () => {
         code: 'AFF10',
         totalEarnings: 5.8,
         capReached: false,
+      });
+    });
+
+    describe('dual delivery of one invoice (Remediation Tier 2 §6.1)', () => {
+      const codeRow = {
+        id: 'code-1',
+        code: 'AFF10',
+        affiliateProfileId: 'aff-1',
+        discountPercent: 20,
+        commissionPercent: 20,
+        affiliateProfile: { id: 'aff-1', userId: 'affiliate-user-1' },
+      };
+      const credit = () =>
+        service.creditAffiliateCommission({
+          affiliateCodeId: 'code-1',
+          userId: 'user-1',
+          subscriptionId: 'sub_123',
+          grossRevenueUsd: 29,
+          stripeInvoiceId: 'inv-1',
+          interval: 'month',
+        });
+
+      beforeEach(() => {
+        prismaMock.affiliateCode.findUnique.mockResolvedValue(codeRow as never);
+        // Both deliveries read "no commission yet": the check holds no lock.
+        prismaMock.commission.findMany.mockResolvedValue([]);
+        prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
+          (cb as (tx: unknown) => unknown)(prismaMock)
+        );
+      });
+
+      it('reports ALREADY_CREDITED, and increments no counters, when the database refuses the second insert (unique violation)', async () => {
+        prismaMock.commission.create.mockRejectedValue(
+          Object.assign(new Error('Unique constraint failed'), {
+            code: 'P2002',
+          })
+        );
+
+        await expect(credit()).resolves.toEqual({
+          processed: false,
+          reason: 'ALREADY_CREDITED',
+        });
+
+        // The insert is the transaction's first statement; once it throws, the
+        // counter update never runs (and a real transaction rolls back anyway).
+        expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+      });
+
+      it('lets exactly one of two concurrent deliveries credit the invoice', async () => {
+        prismaMock.commission.create
+          .mockResolvedValueOnce({ id: 'commission-win' } as never)
+          .mockRejectedValueOnce(
+            Object.assign(new Error('Unique constraint failed'), {
+              code: 'P2002',
+            })
+          );
+        prismaMock.affiliateProfile.update.mockResolvedValue({
+          totalEarnings: 4.64,
+        } as never);
+
+        const [first, second] = await Promise.all([credit(), credit()]);
+
+        expect([first.processed, second.processed].sort()).toEqual([
+          false,
+          true,
+        ]);
+        const loser = first.processed ? second : first;
+        expect(loser.reason).toBe('ALREADY_CREDITED');
+        expect(prismaMock.affiliateProfile.update).toHaveBeenCalledTimes(1);
+      });
+
+      it('does NOT swallow other database errors: the webhook must see them', async () => {
+        prismaMock.commission.create.mockRejectedValue(
+          Object.assign(new Error('deadlock detected'), { code: 'P2034' })
+        );
+
+        await expect(credit()).rejects.toThrow('deadlock detected');
       });
     });
 

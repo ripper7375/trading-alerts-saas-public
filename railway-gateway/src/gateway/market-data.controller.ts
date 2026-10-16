@@ -8,6 +8,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Queue } from 'bull';
 import { ApiKeyGuard } from '../auth/api-key.guard';
 import { MarketDataDto } from './dto/market-data.dto';
@@ -27,6 +28,7 @@ export class MarketDataController {
   ) {}
 
   @Post()
+  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   async publishMarketData(@Body() data: MarketDataDto) {
     const startTime = Date.now();

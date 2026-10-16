@@ -32,6 +32,41 @@ const DLOCAL_API_KEY = process.env['DLOCAL_API_KEY'] || '';
 const DLOCAL_SECRET_KEY = process.env['DLOCAL_SECRET_KEY'] || '';
 const DLOCAL_WEBHOOK_SECRET = process.env['DLOCAL_WEBHOOK_SECRET'] || '';
 
+/**
+ * Remediation Tier 2 §6.5: thrown when a real dLocal payment is asked for but
+ * the service is not configured to take one. Mock mode exists ONLY under
+ * NODE_ENV=test; everywhere else a missing credential used to fall through to a
+ * mock response (a PENDING payment and a fake `sandbox.dlocal.com/pay/mock-...`
+ * link), so checkout "worked" and no money could ever move.
+ */
+export class DLocalNotConfiguredError extends Error {
+  constructor(readonly missing: string[]) {
+    super(`dLocal is not configured: missing ${missing.join(', ')}`);
+    this.name = 'DLocalNotConfiguredError';
+  }
+}
+
+/**
+ * The environment variables a real payment needs and the process lacks.
+ * Always empty under NODE_ENV=test, where the mock responses below are used.
+ * `NEXTAUTH_URL` builds the webhook URL dLocal calls back; without it the
+ * notification URL would read "undefined/api/webhooks/dlocal" and a paid
+ * customer would never be upgraded.
+ */
+export function getMissingDLocalConfig(): string[] {
+  if (process.env['NODE_ENV'] === 'test') return [];
+  const missing: string[] = [];
+  if (!DLOCAL_API_KEY) missing.push('DLOCAL_API_KEY');
+  if (!process.env['NEXTAUTH_URL']) missing.push('NEXTAUTH_URL');
+  return missing;
+}
+
+/** Throws DLocalNotConfiguredError unless a real payment can be taken. */
+export function assertDLocalConfigured(): void {
+  const missing = getMissingDLocalConfig();
+  if (missing.length > 0) throw new DLocalNotConfiguredError(missing);
+}
+
 /** 30s: absorbs a double-click/client retry without blocking a deliberate later attempt. */
 const CREATE_PAYMENT_IDEMPOTENCY_TTL_SECONDS = 30;
 
@@ -98,6 +133,8 @@ export async function createPayment(
   const orderId = generateOrderId(request.userId);
 
   try {
+    assertDLocalConfigured();
+
     const requestBody = {
       amount: request.amount,
       currency: request.currency,
@@ -122,9 +159,9 @@ export async function createPayment(
       country: request.country,
     });
 
-    // In production, this would call the dLocal API
-    // For development/testing, we simulate a response
-    if (process.env['NODE_ENV'] === 'test' || !DLOCAL_API_KEY) {
+    // Mock mode is for automated tests ONLY. Without a key outside test,
+    // assertDLocalConfigured() above has already refused.
+    if (process.env['NODE_ENV'] === 'test') {
       logger.info('Using mock dLocal response (test mode)', { orderId });
       return {
         paymentId: `mock-payment-${Date.now()}`,
@@ -252,14 +289,18 @@ export async function getPaymentStatus(paymentId: string): Promise<{
   currency?: string;
 }> {
   try {
-    // In test mode, return mock status
-    if (process.env['NODE_ENV'] === 'test' || !DLOCAL_API_KEY) {
+    // In test mode, return mock status. Outside test a missing key is a
+    // configuration error, not a payment that is "still PENDING" forever.
+    if (process.env['NODE_ENV'] === 'test') {
       return {
         id: paymentId,
         status: 'PENDING',
         amount: 29.0,
         currency: 'USD',
       };
+    }
+    if (!DLOCAL_API_KEY) {
+      throw new DLocalNotConfiguredError(['DLOCAL_API_KEY']);
     }
 
     const response = await fetch(`${DLOCAL_API_URL}/payments/${paymentId}`, {

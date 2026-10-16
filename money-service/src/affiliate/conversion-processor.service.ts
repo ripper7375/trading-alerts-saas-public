@@ -27,6 +27,7 @@
 
 import { Injectable } from '@nestjs/common';
 
+import { isUniqueConstraintError } from '../common/prisma-errors.util';
 import { PrismaService } from '../prisma/prisma.service';
 
 import {
@@ -167,45 +168,55 @@ export class ConversionProcessorService {
     );
 
     // Atomic: code flip + commission + profile counters succeed or fail together
-    const { commission, updatedProfile } = await this.prisma.$transaction(
-      async (tx) => {
-        await tx.affiliateCode.update({
-          where: { id: affiliateCode.id },
-          data: {
-            status: 'USED',
-            usedAt: new Date(),
-            usedBy: input.userId,
-            subscriptionId: input.subscriptionId ?? null,
-          },
-        });
+    const processed = await this.prisma.$transaction(async (tx) => {
+      // Remediation Tier 2 §6.2: the ACTIVE/USED checks above are a plain read
+      // outside this transaction, so two concurrent deliveries of the same
+      // payment both pass them. The claim itself is a conditional update: only
+      // the delivery that still finds the code ACTIVE flips it (count 1) and
+      // goes on to pay; the other matches nothing (count 0) and pays nothing.
+      const claimed = await tx.affiliateCode.updateMany({
+        where: { id: affiliateCode.id, status: 'ACTIVE' },
+        data: {
+          status: 'USED',
+          usedAt: new Date(),
+          usedBy: input.userId,
+          subscriptionId: input.subscriptionId ?? null,
+        },
+      });
+      if (claimed.count === 0) return null;
 
-        const commission = await tx.commission.create({
-          data: {
-            affiliateProfileId: affiliateCode.affiliateProfileId,
-            affiliateCodeId: affiliateCode.id,
-            userId: input.userId,
-            subscriptionId: input.subscriptionId ?? null,
-            grossRevenue: breakdown.grossRevenue,
-            discountAmount: breakdown.discountAmount,
-            netRevenue: breakdown.netRevenue,
-            commissionAmount: breakdown.commissionAmount,
-            status: 'PENDING',
-            earnedAt: new Date(),
-          },
-        });
+      const commission = await tx.commission.create({
+        data: {
+          affiliateProfileId: affiliateCode.affiliateProfileId,
+          affiliateCodeId: affiliateCode.id,
+          userId: input.userId,
+          subscriptionId: input.subscriptionId ?? null,
+          grossRevenue: breakdown.grossRevenue,
+          discountAmount: breakdown.discountAmount,
+          netRevenue: breakdown.netRevenue,
+          commissionAmount: breakdown.commissionAmount,
+          status: 'PENDING',
+          earnedAt: new Date(),
+        },
+      });
 
-        const updatedProfile = await tx.affiliateProfile.update({
-          where: { id: affiliateCode.affiliateProfileId },
-          data: {
-            totalCodesUsed: { increment: 1 },
-            totalEarnings: { increment: breakdown.commissionAmount },
-            pendingCommissions: { increment: breakdown.commissionAmount },
-          },
-        });
+      const updatedProfile = await tx.affiliateProfile.update({
+        where: { id: affiliateCode.affiliateProfileId },
+        data: {
+          totalCodesUsed: { increment: 1 },
+          totalEarnings: { increment: breakdown.commissionAmount },
+          pendingCommissions: { increment: breakdown.commissionAmount },
+        },
+      });
 
-        return { commission, updatedProfile };
-      }
-    );
+      return { commission, updatedProfile };
+    });
+
+    if (!processed) {
+      // A concurrent delivery claimed the code between the read and the update.
+      return { processed: false, reason: 'ALREADY_USED' };
+    }
+    const { commission, updatedProfile } = processed;
 
     return {
       processed: true,
@@ -322,8 +333,8 @@ export class ConversionProcessorService {
       affiliateCode.commissionPercent
     );
 
-    const { commission, updatedProfile } = await this.prisma.$transaction(
-      async (tx) => {
+    const created = await this.prisma
+      .$transaction(async (tx) => {
         const commission = await tx.commission.create({
           data: {
             affiliateProfileId: affiliateCode.affiliateProfileId,
@@ -350,8 +361,23 @@ export class ConversionProcessorService {
         });
 
         return { commission, updatedProfile };
-      }
-    );
+      })
+      .catch((error: unknown) => {
+        // Remediation Tier 2 §6.1: (affiliateCodeId, stripeInvoiceId) is unique
+        // in the database. The read of priorCommissions above takes no lock, so
+        // a concurrent delivery of this same invoice (the monolith's endpoint
+        // and this service's both receive it) can pass that check too. The
+        // loser's insert is refused here, and the whole transaction -- the
+        // commission AND the affiliate's counters -- rolled back, so nothing is
+        // credited twice.
+        if (isUniqueConstraintError(error)) return null;
+        throw error;
+      });
+
+    if (!created) {
+      return { processed: false, reason: 'ALREADY_CREDITED' };
+    }
+    const { commission, updatedProfile } = created;
 
     return {
       processed: true,

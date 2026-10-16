@@ -48,3 +48,9 @@ related_docs:
   been run against production yet.
 - After an indicator rebuild, confirm a fresh `_Statistic.txt` contains `[EDT CHANNEL]` before
   trusting a green cycle — a stale `.ex5` fails silently (new fields just read as NULL).
+- **The three NestJS services have CI** (`.github/workflows/nestjs-services-ci.yml`, Remediation Tier 0, 2026-10-16): one job each,
+  Node 22 (Node 20 is past end of life), `npm ci`, `tsc --noEmit`, tests and `nest build`; the gateway also runs its e2e specs, `check:sensor-kit`
+  and installs Python 3.11 with `pyyaml==6.0.2 jsonschema==4.25.0` (its sensor specs skip silently without them). It is **not run on GitHub yet**
+  (first push will show). No `npm run lint` for the gateway: the script matches no files. Report: `docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md`.
+- **money-service refuses to guess its public URL or its dLocal key** (Remediation 6.5): Stripe checkout needs `NEXTAUTH_URL`, dLocal create-payment needs
+  `DLOCAL_API_KEY` and `NEXTAUTH_URL`; without them they answer 503, and mock mode exists only under `NODE_ENV=test`.

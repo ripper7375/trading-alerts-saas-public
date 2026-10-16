@@ -52,6 +52,15 @@ import { WiseModule } from './wise/wise.module';
     BullModule.forRoot({
       connection: { url: process.env['REDIS_URL'] ?? 'redis://localhost:6379' },
       prefix: MONEY_QUEUE_PREFIX,
+      // Remediation Tier 2 §6.9: BullMQ keeps every finished job forever unless
+      // told otherwise, so the queue's Redis keys only ever grew. Keep the most
+      // recent 1,000 completed jobs and 5,000 failed ones (failures are the ones
+      // worth inspecting). Applies to every queue registered in this app; a job that
+      // sets its own removeOnComplete / removeOnFail still wins.
+      defaultJobOptions: {
+        removeOnComplete: 1000,
+        removeOnFail: 5000,
+      },
     }),
     // Session 4A-2 (File 4/6): registers Nest's cron scheduling registry
     // once for the whole app, per Nest's own convention. NOTE: the moment

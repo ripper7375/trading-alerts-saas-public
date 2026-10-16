@@ -1,6 +1,19 @@
 import { Injectable, LoggerService } from '@nestjs/common';
+import pino from 'pino';
 
 import { rootPinoLogger } from './pino-instance';
+
+type PinoLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+
+function toMessage(message: unknown): string {
+  if (typeof message === 'string') return message;
+  try {
+    return JSON.stringify(message) ?? String(message);
+  } catch {
+    // Circular structure, BigInt, ...: never let logging throw.
+    return String(message);
+  }
+}
 
 /**
  * NestJS LoggerService backed by the shared root pino instance
@@ -12,55 +25,31 @@ import { rootPinoLogger } from './pino-instance';
 @Injectable()
 export class PinoLoggerService implements LoggerService {
   log(message: unknown, ...optionalParams: unknown[]): void {
-    this.write(
-      rootPinoLogger.info.bind(rootPinoLogger),
-      message,
-      optionalParams
-    );
+    this.write('info', message, optionalParams);
   }
 
   error(message: unknown, ...optionalParams: unknown[]): void {
-    this.write(
-      rootPinoLogger.error.bind(rootPinoLogger),
-      message,
-      optionalParams
-    );
+    this.write('error', message, optionalParams);
   }
 
   warn(message: unknown, ...optionalParams: unknown[]): void {
-    this.write(
-      rootPinoLogger.warn.bind(rootPinoLogger),
-      message,
-      optionalParams
-    );
+    this.write('warn', message, optionalParams);
   }
 
   debug(message: unknown, ...optionalParams: unknown[]): void {
-    this.write(
-      rootPinoLogger.debug.bind(rootPinoLogger),
-      message,
-      optionalParams
-    );
+    this.write('debug', message, optionalParams);
   }
 
   verbose(message: unknown, ...optionalParams: unknown[]): void {
-    this.write(
-      rootPinoLogger.trace.bind(rootPinoLogger),
-      message,
-      optionalParams
-    );
+    this.write('trace', message, optionalParams);
   }
 
   fatal(message: unknown, ...optionalParams: unknown[]): void {
-    this.write(
-      rootPinoLogger.fatal.bind(rootPinoLogger),
-      message,
-      optionalParams
-    );
+    this.write('fatal', message, optionalParams);
   }
 
   private write(
-    pinoCall: (mergingObject: object, msg: string) => void,
+    level: PinoLevel,
     message: unknown,
     optionalParams: unknown[]
   ): void {
@@ -70,15 +59,42 @@ export class PinoLoggerService implements LoggerService {
     // Nest's internal framework logs pass it as a trailing string arg).
     const last = optionalParams[optionalParams.length - 1];
     const context = typeof last === 'string' ? last : undefined;
-    const extra = context ? optionalParams.slice(0, -1) : optionalParams;
+    const rest = context ? optionalParams.slice(0, -1) : optionalParams;
 
-    const msg = typeof message === 'string' ? message : JSON.stringify(message);
-    pinoCall(
+    // An Error is serialised by pino's `err` serializer (type, message, stack).
+    // JSON.stringify(new Error('x')) is "{}", which is what used to be logged.
+    // The first Error wins the `err` key; any further Error is serialised in
+    // place so it does not collapse to "{}" inside `params`.
+    let err: Error | undefined = message instanceof Error ? message : undefined;
+    const params: unknown[] = [];
+    for (const param of rest) {
+      if (param instanceof Error) {
+        if (err === undefined) err = param;
+        else params.push(pino.stdSerializers.err(param));
+      } else {
+        params.push(param);
+      }
+    }
+
+    // Nest's `error(message, stack, context)` shape: a lone trailing string on
+    // error/fatal is a stack trace. On log/warn/debug/verbose it is just data.
+    let stack: string | undefined;
+    if (
+      (level === 'error' || level === 'fatal') &&
+      params.length === 1 &&
+      typeof params[0] === 'string'
+    ) {
+      stack = params.pop() as string;
+    }
+
+    rootPinoLogger[level](
       {
+        ...(err ? { err } : {}),
         ...(context ? { context } : {}),
-        ...(extra.length ? { params: extra } : {}),
+        ...(stack ? { stack } : {}),
+        ...(params.length ? { params } : {}),
       },
-      msg
+      err && message === err ? err.message : toMessage(message)
     );
   }
 }

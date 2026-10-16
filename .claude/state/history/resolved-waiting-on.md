@@ -11,6 +11,11 @@ Blocks are verbatim copies from the pre-OKF `CLAUDE.md` (backup: `CLAUDE-480KB-P
 
 Open items live in [../waiting-on.md](../waiting-on.md).
 
+<!-- NestJS remediation plan review, P0 auth, resolved 2026-10-16 -->
+
+- **RESOLVED 2026-10-16 — the P0 auth finding of the NestJS remediation plan review.** What was open (verbatim from the quick index of `waiting-on.md`): **P0, auth, needs Davin:** `FIXED_TEST_ACCOUNTS` in `operation-service` and in the monolith's still-registered `CredentialsProvider` accept hard-coded passwords for `admin@tradingalerts.com` in production and skip 2FA, and the production `/login` page shows them ("Quick Test Credentials", `components/auth/login-form.tsx:266-348`). Davin's production click-throughs use these accounts, so a fix needs a replacement (review §2; relates to F80). Also open: whether the monolith Stripe webhook endpoint still receives events next to money-service's (double-commission race, review §4.6). The plan goes back to the Advisor for revision (review §6).
+  **How it closed:** the Advisor fixed it and Claude Code verified it in `bd67b30c` ("security(auth): remove fixed admin accounts, gate test accounts in prod, and hand off Tier 0-2 plan"): the two fixed admin accounts are gone from `operation-service/src/auth/auth.service.ts` and `lib/auth/auth-options.ts`, the other fixed test accounts work only in development, test and Vercel previews, and `components/auth/login-form.tsx` shows its "Quick Test Credentials" panel only in development and test. Production click-throughs use real database accounts. The Stripe-endpoint half of that item stayed open.
+
 <!-- the two machine-local test failures, resolved 2026-10-14 -->
 
 - **RESOLVED 2026-10-14 — the two machine-local test failures of the whole-repository run.** What was open (verbatim from the "still true" list in the step 6 part 4 item of `waiting-on.md`): **two tests of the whole-repository run fail on this Windows checkout for local reasons** (`__tests__/lib/engine4/levels.test.ts`: `zone_params.yaml` is CRLF here and its regex needs LF; `__tests__/pages/affiliate/statements.test.tsx`: the machine's default locale is `th-TH` and the test expects `July 2026`); not touched, Davin's call.

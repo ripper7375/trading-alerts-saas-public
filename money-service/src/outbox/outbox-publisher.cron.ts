@@ -33,10 +33,42 @@ const MAX_DELIVERY_ATTEMPTS = 5;
 /** Backoff between retries WITHIN a single delivery attempt, not across polling ticks. */
 const RETRY_BACKOFF_DELAYS_MS = [1000, 2000, 4000];
 
+/**
+ * Remediation Tier 2 §6.6. One HTTP call may not hang the publisher: with the
+ * overlap guard below, a delivery that never returns would otherwise block every
+ * later tick for good.
+ */
+const DELIVERY_TIMEOUT_MS = 15_000;
+/**
+ * A tick that has run this long is treated as dead (a hung database call, a
+ * stuck socket) and a new one may start. The old one's claims stay safe: each is
+ * an atomic conditional update, so the two can never deliver the same row.
+ */
+const MAX_TICK_MS = 2 * 60 * 1000;
+/**
+ * A PROCESSING row is claimed for the span of one delivery (seconds). One still
+ * PROCESSING after this was left by a process that died between the claim and its
+ * bookkeeping, and would otherwise never be sent: the poll only reads PENDING.
+ * The claim time is `processedAt` (the table has no updatedAt): set when the row is
+ * claimed, replaced by the real completion time on success, cleared when a failed
+ * attempt hands the row back to PENDING.
+ */
+const STALE_PROCESSING_MS = 5 * 60 * 1000;
+/**
+ * A PROCESSING row with no `processedAt` was claimed by a build from before the
+ * claim time was recorded. Wait much longer before treating it as dead, because a
+ * replica still running that build may be mid-delivery during a rolling deploy.
+ * Delivering twice is survivable: operation-service ignores an event id it has
+ * already sent (outbox-consumer.service.ts).
+ */
+const LEGACY_STALE_PROCESSING_MS = 30 * 60 * 1000;
+
 export interface PublishOutboxEventsResult {
   published: number;
   failed: number;
   deadLettered: number;
+  /** PROCESSING rows put back to PENDING because nothing was delivering them. */
+  recovered: number;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -45,6 +77,9 @@ function sleep(ms: number): Promise<void> {
 
 @Injectable()
 export class OutboxPublisherCron {
+  /** When the tick now running began; null when none is. */
+  private tickStartedAt: number | null = null;
+
   constructor(private readonly prisma: PrismaService) {}
 
   private isEnabled(): boolean {
@@ -96,6 +131,7 @@ export class OutboxPublisherCron {
             eventType: event.eventType,
             payload: event.payload,
           }),
+          signal: AbortSignal.timeout(DELIVERY_TIMEOUT_MS),
         });
         if (!response.ok) {
           throw new Error(`Delivery failed with status ${response.status}`);
@@ -114,6 +150,41 @@ export class OutboxPublisherCron {
   }
 
   /**
+   * Puts rows left in PROCESSING by a process that died mid-delivery back to
+   * PENDING (see STALE_PROCESSING_MS). Never throws: failing to recover must not
+   * stop this tick from delivering what is pending.
+   */
+  private async recoverStuckEvents(): Promise<number> {
+    try {
+      const now = Date.now();
+      const recovered = await this.prisma.outboxEvent.updateMany({
+        where: {
+          status: 'PROCESSING',
+          OR: [
+            { processedAt: { lt: new Date(now - STALE_PROCESSING_MS) } },
+            {
+              processedAt: null,
+              createdAt: { lt: new Date(now - LEGACY_STALE_PROCESSING_MS) },
+            },
+          ],
+        },
+        data: { status: 'PENDING', processedAt: null },
+      });
+      if (recovered.count > 0) {
+        logger.warn('[OutboxPublisher] Recovered events stuck in PROCESSING', {
+          count: recovered.count,
+        });
+      }
+      return recovered.count;
+    } catch (error) {
+      logger.error('[OutboxPublisher] Could not recover stuck events', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return 0;
+    }
+  }
+
+  /**
    * Never gated -- callable directly (manual trigger, or the real 4A-11/12
    * consumer) once OUTBOX_PUBLISHER_TARGET_URL is actually configured.
    */
@@ -122,6 +193,7 @@ export class OutboxPublisherCron {
       published: 0,
       failed: 0,
       deadLettered: 0,
+      recovered: await this.recoverStuckEvents(),
     };
 
     const pending = await this.prisma.outboxEvent.findMany({
@@ -135,7 +207,9 @@ export class OutboxPublisherCron {
       // replica's own poll tick can't double-process the same row.
       const claim = await this.prisma.outboxEvent.updateMany({
         where: { id: event.id, status: 'PENDING' },
-        data: { status: 'PROCESSING' },
+        // processedAt = when the claim began, so a row a dead process left in
+        // PROCESSING can be told apart from one being delivered right now.
+        data: { status: 'PROCESSING', processedAt: new Date() },
       });
       if (claim.count === 0) {
         continue;
@@ -157,6 +231,8 @@ export class OutboxPublisherCron {
             status: deadLettered ? 'FAILED' : 'PENDING',
             attemptCount,
             lastError: error instanceof Error ? error.message : 'Unknown error',
+            // the claim ended without a delivery
+            processedAt: null,
           },
         });
         result.failed++;
@@ -185,6 +261,29 @@ export class OutboxPublisherCron {
     if (!this.isEnabled()) {
       return;
     }
-    await this.publishPendingEvents();
+
+    // Remediation Tier 2 §6.6: one tick at a time. A tick takes up to 20 events
+    // x (up to 7 s of backoff + the HTTP time) while the interval is 5 s, so a
+    // slow consumer made ticks pile up, each re-reading the same PENDING rows and
+    // racing to claim them. A tick that has outlived MAX_TICK_MS is treated as dead.
+    const now = Date.now();
+    if (this.tickStartedAt !== null && now - this.tickStartedAt < MAX_TICK_MS) {
+      return;
+    }
+    if (this.tickStartedAt !== null) {
+      logger.error(
+        '[OutboxPublisher] Previous tick exceeded its limit, starting a new one',
+        { runningForMs: now - this.tickStartedAt }
+      );
+    }
+    this.tickStartedAt = now;
+    try {
+      await this.publishPendingEvents();
+    } finally {
+      // only the tick that set the marker clears it (a replaced, late tick must not)
+      if (this.tickStartedAt === now) {
+        this.tickStartedAt = null;
+      }
+    }
   }
 }

@@ -181,3 +181,14 @@ services do not restart when a referenced variable changes — redeploy them.
 
 - **A row of `market_data_v6` needs `cycle_id` and `collected_at` besides the OHLC columns** (both NOT NULL, no default): a test insert through the Prisma client without them stops with "Argument `cycle_id` is missing". The unique key `(symbol, timeframe, timestamp)` leaves room for ONE row per bar whatever terminal wrote it (`terminal_id` is not in the key), so a reader never has to choose between two rows of one bar.
 - **`timestamp` is a bar's OPEN time (INTEGER, unix seconds); a bar is closed at a slot when `timestamp + period <= slot`.** Both of the reader's queries use the unique index (`EXPLAIN` on 50,000 rows: an Index Only Scan Backward for the newest closable bar, an Index Scan for the window).
+
+- **`ProcessedWebhookEvent` and the two `Commission` unique indexes** (Remediation Tier 2 6.1, migration FILE `20261016000000_add_processed_webhook_events_and_commission_uniqueness`, NOT applied;
+  models in `prisma/non-market-data/schema.prisma` and mirrored by hand in `money-service/prisma/schema.prisma`): `Commission` is unique on `(affiliateCodeId, stripeInvoiceId)` and on `clawbackOfCommissionId`
+  (NULL never conflicts, so dLocal rows, legacy rows and clawback rows are untouched), and the webhook claim table is keyed `(provider, eventId)` with `completedAt` and a 10-minute lease.
+  **Run the two pre-flight queries in the migration header against production first: a duplicate pair is a real double credit and makes the index fail to build** (as one transaction, so nothing changes).
+  Facts the real server showed: (1) Prisma prints a `prisma:error` block for every expected unique violation, so a claim that is expected to collide uses `createMany({ skipDuplicates: true })` (`ON CONFLICT DO NOTHING`, a count of 0)
+  and the credit path, which must be a `create` inside a transaction, catches `P2002` (the code arrives intact through the pg adapter, also inside an interactive `$transaction`, which rolls back whole);
+  (2) `createdAt` is `TIMESTAMP(3)` WITHOUT time zone, so a lease cutoff computed in JavaScript (UTC) only matches if the row's `createdAt` was written by the same process: the service writes it, not the column default; a raw SQL
+  seed must use `now() at time zone 'utc'` (this machine's PostgreSQL session is Asia/Bangkok, UTC+7). The scripts and seeds are in `docs/handoffs/2026-10-16-nestjs-tier0-tier2-proofs/`.
+- **`OutboxEvent` has no `updatedAt`**: the publisher stores the time a row was claimed in `processedAt` while it is `PROCESSING` (set on the claim, replaced by the completion time on success, cleared on a failed attempt) and recovers rows
+  older than 5 minutes (30 minutes for rows from before the claim time existed). Nothing else reads `processedAt` of a `PROCESSING` row (the admin page only counts statuses).

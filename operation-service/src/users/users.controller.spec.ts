@@ -136,6 +136,37 @@ describe('UsersController', () => {
       expect(getSecurityAlerts).toHaveBeenCalledWith('user-1', 100, 0);
     });
 
+    // Tier 1 §5.7: bad paging input must never reach Prisma's take/skip.
+    describe.each([
+      ['getLoginHistory', { history: [] }],
+      ['getSecurityAlerts', { alerts: [] }],
+    ] as const)('%s paging input', (method, result) => {
+      function call(limit?: string, offset?: string) {
+        const fn = jest.fn().mockResolvedValue(result);
+        const controller = makeController({ [method]: fn });
+        return controller[method](mockRequest(), limit, offset).then(
+          () => fn.mock.calls[0]
+        );
+      }
+
+      it('falls back to the defaults for non-numeric limit and offset', async () => {
+        expect(await call('abc', 'xyz')).toEqual(['user-1', 20, 0]);
+      });
+
+      it('floors a negative offset at 0 and a limit below 1 at 1', async () => {
+        expect(await call('-5', '-5')).toEqual(['user-1', 1, 0]);
+        expect(await call('0', '-1')).toEqual(['user-1', 1, 0]);
+      });
+
+      it('passes sane values through', async () => {
+        expect(await call('50', '40')).toEqual(['user-1', 50, 40]);
+      });
+
+      it('treats empty strings as absent', async () => {
+        expect(await call('', '')).toEqual(['user-1', 20, 0]);
+      });
+    });
+
     it('markSecurityAlertRead delegates with the caller id and alert id', async () => {
       const markSecurityAlertRead = jest
         .fn()

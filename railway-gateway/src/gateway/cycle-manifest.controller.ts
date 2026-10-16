@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Queue } from 'bull';
 import { ApiKeyGuard } from '../auth/api-key.guard';
 import { validateCycleManifest } from '../cycle/cycle-manifest.contract';
@@ -49,6 +50,7 @@ export class CycleManifestController {
   constructor(@InjectQueue(MARKET_DATA_QUEUE) private readonly queue: Queue) {}
 
   @Post()
+  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   // `unknown`, deliberately: the global ValidationPipe cannot validate a plain
   // object (it skips Object metatypes), and the contract is the single source of

@@ -1,4 +1,8 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnApplicationShutdown,
+} from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
@@ -12,7 +16,7 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService
   extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
+  implements OnModuleInit, OnApplicationShutdown
 {
   constructor() {
     super({
@@ -26,7 +30,11 @@ export class PrismaService
     await this.$connect();
   }
 
-  async onModuleDestroy(): Promise<void> {
+  // NestJS 11 shutdown order: onModuleDestroy -> onBeforeApplicationShutdown ->
+  // close the HTTP server (dispose) -> onApplicationShutdown. Disconnecting in
+  // onModuleDestroy cut the database off while in-flight requests and queue
+  // jobs were still running; here the HTTP server has already drained.
+  async onApplicationShutdown(): Promise<void> {
     await this.$disconnect();
   }
 }

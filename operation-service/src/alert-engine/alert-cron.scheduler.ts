@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 
 import { AlertCheckerService } from './alert-checker.service';
+import { CronLockService } from './cron-lock.service';
 
 /**
  * Alert Cron Scheduler — periodic poll/check engine.
@@ -24,6 +25,14 @@ import { AlertCheckerService } from './alert-checker.service';
  */
 const ALERT_CHECK_INTERVAL_MS = 60 * 1000;
 
+/**
+ * Remediation Tier 2 §6.9: how long a worker's claim on a tick lasts. Just under
+ * the interval, so the claim has lapsed when the next tick is due, and so that
+ * workers ticking out of phase with each other still make about one check a minute
+ * between them (see CronLockService).
+ */
+const ALERT_CHECK_LOCK_TTL_MS = 55 * 1000;
+
 @Injectable()
 export class AlertCronScheduler {
   private readonly logger = new Logger(AlertCronScheduler.name);
@@ -31,7 +40,10 @@ export class AlertCronScheduler {
   private isRunning = false;
   private lastRun: Date | undefined;
 
-  constructor(private readonly alertChecker: AlertCheckerService) {}
+  constructor(
+    private readonly alertChecker: AlertCheckerService,
+    private readonly cronLock: CronLockService
+  ) {}
 
   /** Called once by main-worker.ts after bootstrap. */
   enable(): void {
@@ -50,6 +62,15 @@ export class AlertCronScheduler {
   @Interval(ALERT_CHECK_INTERVAL_MS)
   async tick(): Promise<void> {
     if (!this.active) return;
+    // One worker checks per tick, however many are alive (a rolling deploy).
+    if (
+      !(await this.cronLock.acquire('alert-checker', ALERT_CHECK_LOCK_TTL_MS))
+    ) {
+      this.logger.log(
+        'Alert check already taken by another worker, skipping...'
+      );
+      return;
+    }
     await this.runAlertChecker();
   }
 

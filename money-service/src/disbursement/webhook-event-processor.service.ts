@@ -121,14 +121,20 @@ export class WebhookEventProcessorService {
 
     // Atomically: complete transaction, mark commission PAID, and move the
     // affiliate's balance from pending to paid so dashboards stay accurate.
-    await this.prisma.$transaction(async (tx) => {
-      await tx.disbursementTransaction.update({
-        where: { id: transaction.id },
+    const completed = await this.prisma.$transaction(async (tx) => {
+      // Remediation Tier 2 §6.3: the COMPLETED check above is a read outside
+      // this transaction, so two concurrent deliveries of the same webhook both
+      // pass it and would each move the balance from pending to paid. The claim
+      // is a conditional update here: only the delivery that still finds the
+      // transaction not COMPLETED flips it (count 1) and moves the balance.
+      const claimed = await tx.disbursementTransaction.updateMany({
+        where: { id: transaction.id, status: { not: 'COMPLETED' } },
         data: {
           status: 'COMPLETED',
           completedAt: new Date(),
         },
       });
+      if (claimed.count === 0) return false;
 
       const commission = await tx.commission.update({
         where: { id: transaction.commissionId },
@@ -150,7 +156,19 @@ export class WebhookEventProcessorService {
           paidCommissions: { increment: commission.commissionAmount },
         },
       });
+      return true;
     });
+
+    if (!completed) {
+      this.logger.log(
+        `Transaction ${transaction.transactionId} was completed by a concurrent delivery`
+      );
+      return {
+        processed: true,
+        eventType: event.event,
+        message: 'Transaction already completed (idempotent)',
+      };
+    }
 
     await this.transactionLogger.logPaymentCompleted(
       transaction.transactionId,

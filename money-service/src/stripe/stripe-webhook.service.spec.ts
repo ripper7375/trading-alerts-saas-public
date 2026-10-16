@@ -234,6 +234,65 @@ describe('StripeWebhookService', () => {
 
       expect(prismaMock.subscription.update).not.toHaveBeenCalled();
     });
+
+    describe('atomic write (Remediation Tier 2 §6.4, 4A-13 audit item b)', () => {
+      const pastDue = {
+        id: 'sub_123',
+        status: 'past_due',
+        current_period_end: 1234567890,
+      } as unknown as Stripe.Subscription;
+
+      beforeEach(() => {
+        prismaMock.subscription.findFirst.mockResolvedValue({
+          id: 'sub-row-1',
+          userId: 'user-1',
+        } as never);
+      });
+
+      it('writes the subscription and the user tier inside ONE transaction', async () => {
+        await service.handleSubscriptionUpdated(pastDue);
+
+        expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+      });
+
+      it('writes the subscription first and the downgrade second, in that transaction', async () => {
+        await service.handleSubscriptionUpdated(pastDue);
+
+        const subscriptionWrite = prismaMock.subscription.update.mock
+          .invocationCallOrder[0] as number;
+        const userWrite = prismaMock.user.update.mock
+          .invocationCallOrder[0] as number;
+        expect(subscriptionWrite).toBeLessThan(userWrite);
+      });
+
+      it('rolls the subscription change back, and rethrows, when the tier downgrade fails', async () => {
+        prismaMock.user.update.mockRejectedValue(new Error('db blip'));
+        // a real transaction rolls back every statement when the callback throws
+        let rolledBack = false;
+        prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
+          try {
+            return await (cb as (tx: unknown) => unknown)(prismaMock);
+          } catch (error) {
+            rolledBack = true;
+            throw error;
+          }
+        });
+
+        await expect(
+          service.handleSubscriptionUpdated(pastDue)
+        ).rejects.toThrow('db blip');
+
+        expect(rolledBack).toBe(true);
+      });
+
+      it('does not open a transaction at all when the subscription is unknown', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(null);
+
+        await service.handleSubscriptionUpdated(pastDue);
+
+        expect(prismaMock.$transaction).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe('handleSubscriptionDeleted', () => {
@@ -657,7 +716,14 @@ describe('StripeWebhookService', () => {
         userId: 'user-1',
         stripeSubscriptionId: 'sub_123',
       } as never);
+      // Tier 2 §6.1: the cancel is a conditional update; count 1 = this delivery won it.
+      prismaMock.commission.updateMany.mockResolvedValue({ count: 1 });
     });
+
+    const cancelWhere = {
+      id: 'commission-1',
+      status: { in: ['PENDING', 'APPROVED'] },
+    };
 
     it('cancels a PENDING commission and reverses the affiliate profile stats on refund', async () => {
       prismaMock.commission.findFirst.mockResolvedValue(
@@ -668,8 +734,8 @@ describe('StripeWebhookService', () => {
         customer: 'cus_123',
       } as unknown as Stripe.Charge);
 
-      expect(prismaMock.commission.update).toHaveBeenCalledWith({
-        where: { id: 'commission-1' },
+      expect(prismaMock.commission.updateMany).toHaveBeenCalledWith({
+        where: cancelWhere,
         data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
       });
       expect(prismaMock.affiliateProfile.update).toHaveBeenCalledWith({
@@ -707,8 +773,8 @@ describe('StripeWebhookService', () => {
         customer: 'cus_123',
       } as unknown as Stripe.Charge);
 
-      expect(prismaMock.commission.update).toHaveBeenCalledWith({
-        where: { id: 'commission-1' },
+      expect(prismaMock.commission.updateMany).toHaveBeenCalledWith({
+        where: cancelWhere,
         data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
       });
     });
@@ -729,6 +795,7 @@ describe('StripeWebhookService', () => {
       // The original PAID row is never touched -- money already left, so
       // it can't be silently flipped back.
       expect(prismaMock.commission.update).not.toHaveBeenCalled();
+      expect(prismaMock.commission.updateMany).not.toHaveBeenCalled();
 
       // Instead, a new negative-amount row is created, referencing the
       // original via clawbackOfCommissionId, immediately APPROVED (a
@@ -769,6 +836,7 @@ describe('StripeWebhookService', () => {
       } as unknown as Stripe.Charge);
 
       expect(prismaMock.commission.update).not.toHaveBeenCalled();
+      expect(prismaMock.commission.updateMany).not.toHaveBeenCalled();
     });
 
     it('no-ops when the refund has no associated affiliate commission at all', async () => {
@@ -779,6 +847,89 @@ describe('StripeWebhookService', () => {
       } as unknown as Stripe.Charge);
 
       expect(prismaMock.commission.update).not.toHaveBeenCalled();
+      expect(prismaMock.commission.updateMany).not.toHaveBeenCalled();
+    });
+
+    describe('redelivery and dual delivery (Remediation Tier 2 §6.1)', () => {
+      it('reverses the affiliate counters only once when a second delivery finds the commission already cancelled', async () => {
+        prismaMock.commission.findFirst.mockResolvedValue(
+          mockCommission as never
+        );
+        // The other delivery already changed the row: this one's conditional update matches nothing.
+        prismaMock.commission.updateMany.mockResolvedValue({ count: 0 });
+
+        await expect(
+          service.handleChargeRefunded({
+            customer: 'cus_123',
+          } as unknown as Stripe.Charge)
+        ).resolves.toBeUndefined();
+
+        expect(prismaMock.commission.updateMany).toHaveBeenCalledTimes(1);
+        expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+      });
+
+      it('cancels and reverses inside ONE transaction, so a failed reversal rolls the cancellation back', async () => {
+        prismaMock.commission.findFirst.mockResolvedValue(
+          mockCommission as never
+        );
+        prismaMock.affiliateProfile.update.mockRejectedValue(
+          new Error('db blip')
+        );
+        // A real transaction rolls the first statement back when the callback throws.
+        let rolledBack = false;
+        prismaMock.$transaction.mockImplementation(async (cb: unknown) => {
+          try {
+            return await (cb as (tx: unknown) => unknown)(prismaMock);
+          } catch (error) {
+            rolledBack = true;
+            throw error;
+          }
+        });
+
+        await service.handleChargeRefunded({
+          customer: 'cus_123',
+        } as unknown as Stripe.Charge);
+
+        expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+        expect(prismaMock.commission.updateMany).toHaveBeenCalledTimes(1);
+        expect(rolledBack).toBe(true);
+      });
+
+      it('writes no second clawback row, and deducts nothing again, when the clawback already exists (unique violation)', async () => {
+        prismaMock.commission.findFirst.mockResolvedValue({
+          ...mockCommission,
+          status: 'PAID',
+        } as never);
+        prismaMock.commission.create.mockRejectedValue(
+          Object.assign(new Error('Unique constraint failed'), {
+            code: 'P2002',
+          })
+        );
+
+        await expect(
+          service.handleChargeRefunded({
+            customer: 'cus_123',
+          } as unknown as Stripe.Charge)
+        ).resolves.toBeUndefined();
+
+        expect(prismaMock.commission.create).toHaveBeenCalledTimes(1);
+        expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+      });
+
+      it('still swallows any other database error while writing the clawback, and deducts nothing', async () => {
+        prismaMock.commission.findFirst.mockResolvedValue({
+          ...mockCommission,
+          status: 'PAID',
+        } as never);
+        prismaMock.commission.create.mockRejectedValue(new Error('db blip'));
+
+        await expect(
+          service.handleChargeRefunded({
+            customer: 'cus_123',
+          } as unknown as Stripe.Charge)
+        ).resolves.toBeUndefined();
+        expect(prismaMock.affiliateProfile.update).not.toHaveBeenCalled();
+      });
     });
 
     it('no-ops when there is no customer id on the charge', async () => {
@@ -812,8 +963,8 @@ describe('StripeWebhookService', () => {
       } as unknown as Stripe.Dispute);
 
       expect(stripeServiceMock.retrieveCharge).toHaveBeenCalledWith('ch_123');
-      expect(prismaMock.commission.update).toHaveBeenCalledWith({
-        where: { id: 'commission-1' },
+      expect(prismaMock.commission.updateMany).toHaveBeenCalledWith({
+        where: cancelWhere,
         data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
       });
     });

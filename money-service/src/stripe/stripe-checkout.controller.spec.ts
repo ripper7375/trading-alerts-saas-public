@@ -22,6 +22,7 @@ describe('StripeCheckoutController', () => {
     createCheckoutSession: jest.Mock;
     buildCheckoutIdempotencyKey: jest.Mock;
   };
+  let configServiceMock: { get: jest.Mock };
 
   const makeRequest = (
     overrides: Partial<AuthenticatedRequest['user']> = {}
@@ -43,6 +44,13 @@ describe('StripeCheckoutController', () => {
       createCheckoutSession: jest.fn(),
       buildCheckoutIdempotencyKey: jest.fn().mockReturnValue('idem-key-1'),
     };
+    configServiceMock = {
+      get: jest
+        .fn()
+        .mockImplementation((key: string) =>
+          key === 'NEXTAUTH_URL' ? 'https://app.example.test' : undefined
+        ),
+    };
 
     const moduleRef = await Test.createTestingModule({
       controllers: [StripeCheckoutController],
@@ -60,7 +68,8 @@ describe('StripeCheckoutController', () => {
         },
         {
           provide: ConfigService,
-          useValue: { get: jest.fn().mockReturnValue(undefined) },
+          // NEXTAUTH_URL is required (Remediation Tier 2 §6.5): no localhost fallback
+          useValue: configServiceMock,
         },
         IdempotencyInterceptor,
         {
@@ -89,6 +98,62 @@ describe('StripeCheckoutController', () => {
     expect(result).toEqual({
       sessionId: 'cs_123',
       url: 'https://checkout.stripe.com/pay/cs_123',
+    });
+  });
+
+  describe('NEXTAUTH_URL is required (Remediation Tier 2 §6.5)', () => {
+    it('sends Stripe the configured origin for the success and cancel return URLs', async () => {
+      stripeServiceMock.createCheckoutSession.mockResolvedValue({
+        id: 'cs_123',
+        url: 'https://checkout.stripe.com/pay/cs_123',
+      });
+
+      await controller.createCheckout(makeRequest(), undefined);
+
+      const args = stripeServiceMock.createCheckoutSession.mock.calls[0] as [
+        string,
+        string,
+        string,
+        string,
+      ];
+      expect(args[2]).toBe(
+        'https://app.example.test/upgrade/success?upgrade=success'
+      );
+      expect(args[3]).toBe(
+        'https://app.example.test/pricing?upgrade=cancelled'
+      );
+    });
+
+    it.each([undefined, ''])(
+      'refuses with 503 CHECKOUT_NOT_CONFIGURED, and creates no Stripe session, when NEXTAUTH_URL is %p',
+      async (value) => {
+        configServiceMock.get.mockReturnValue(value);
+        jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+        await expect(
+          controller.createCheckout(makeRequest(), undefined)
+        ).rejects.toMatchObject({
+          status: 503,
+          response: expect.objectContaining({
+            code: 'CHECKOUT_NOT_CONFIGURED',
+          }),
+        });
+
+        expect(stripeServiceMock.createCheckoutSession).not.toHaveBeenCalled();
+      }
+    );
+
+    it('never falls back to localhost', async () => {
+      configServiceMock.get.mockReturnValue(undefined);
+      jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      await controller.createCheckout(makeRequest(), undefined).catch(() => {
+        /* expected: 503 */
+      });
+
+      expect(
+        JSON.stringify(stripeServiceMock.createCheckoutSession.mock.calls)
+      ).not.toContain('localhost');
     });
   });
 

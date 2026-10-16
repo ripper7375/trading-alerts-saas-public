@@ -1,15 +1,18 @@
 import {
   BadRequestException,
   ConflictException,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 
+import { sendAccountDeletionEmail } from '../email/email.util';
 import { UsersService } from './users.service';
 
 jest.mock('../email/email.util', () => ({
   sendPasswordChangedEmail: jest.fn().mockResolvedValue({ success: true }),
+  sendAccountDeletionEmail: jest.fn().mockResolvedValue({ success: true }),
 }));
 jest.mock('../security/geo-location.util', () => ({
   getGeoLocation: jest.fn().mockResolvedValue({
@@ -396,6 +399,184 @@ describe('UsersService', () => {
         (expiresAt.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
       expect(diffDays).toBeGreaterThan(6.9);
       expect(diffDays).toBeLessThan(7.1);
+    });
+
+    describe('token hygiene and the confirmation email', () => {
+      const ORIGINAL_NEXTAUTH_URL = process.env['NEXTAUTH_URL'];
+      const sendEmailMock = sendAccountDeletionEmail as jest.Mock;
+      let loggerLog: jest.SpyInstance;
+      let loggerWarn: jest.SpyInstance;
+      let loggerError: jest.SpyInstance;
+      let consoleLog: jest.SpyInstance;
+      let consoleError: jest.SpyInstance;
+
+      /** Everything any log channel received, as one string. */
+      function everythingLogged(): string {
+        return JSON.stringify([
+          loggerLog.mock.calls,
+          loggerWarn.mock.calls,
+          loggerError.mock.calls,
+          consoleLog.mock.calls,
+          consoleError.mock.calls,
+        ]);
+      }
+
+      function issuedToken(): string {
+        return mockPrisma.accountDeletionRequest.create.mock.calls[0][0].data
+          .token as string;
+      }
+
+      beforeEach(() => {
+        process.env['NEXTAUTH_URL'] = 'https://app.example.test';
+        mockPrisma.accountDeletionRequest.findFirst.mockResolvedValue(null);
+        mockPrisma.accountDeletionRequest.create.mockResolvedValue({
+          id: 'req-9',
+        });
+        mockPrisma.user.findUnique.mockResolvedValue({
+          email: 'private.person@example.test',
+          name: 'Alice',
+        });
+        sendEmailMock.mockResolvedValue({ success: true });
+        loggerLog = jest
+          .spyOn(Logger.prototype, 'log')
+          .mockImplementation(() => undefined);
+        loggerWarn = jest
+          .spyOn(Logger.prototype, 'warn')
+          .mockImplementation(() => undefined);
+        loggerError = jest
+          .spyOn(Logger.prototype, 'error')
+          .mockImplementation(() => undefined);
+        consoleLog = jest
+          .spyOn(console, 'log')
+          .mockImplementation(() => undefined);
+        consoleError = jest
+          .spyOn(console, 'error')
+          .mockImplementation(() => undefined);
+      });
+
+      afterEach(() => {
+        jest.restoreAllMocks();
+        if (ORIGINAL_NEXTAUTH_URL === undefined) {
+          delete process.env['NEXTAUTH_URL'];
+        } else {
+          process.env['NEXTAUTH_URL'] = ORIGINAL_NEXTAUTH_URL;
+        }
+      });
+
+      it('logs only the user id, request id and expiry', async () => {
+        await makeService().requestDeletion('user-1');
+
+        const created = mockPrisma.accountDeletionRequest.create.mock
+          .calls[0][0].data.expiresAt as Date;
+        expect(loggerLog).toHaveBeenCalledTimes(1);
+        expect(loggerLog).toHaveBeenCalledWith('Account deletion requested', {
+          userId: 'user-1',
+          requestId: 'req-9',
+          expiresAt: created,
+        });
+      });
+
+      it('never writes the token, either link or the address to any log', async () => {
+        await makeService().requestDeletion('user-1');
+
+        const logged = everythingLogged();
+        const token = issuedToken();
+        expect(token).toMatch(/^[0-9a-f]{64}$/);
+        expect(logged).not.toContain(token);
+        expect(logged).not.toContain('confirm?token');
+        expect(logged).not.toContain('cancel?token');
+        expect(logged).not.toContain('private.person@example.test');
+        expect(consoleLog).not.toHaveBeenCalled();
+      });
+
+      it('sends the address, the name and both links, and the expiry', async () => {
+        await makeService().requestDeletion('user-1');
+
+        const token = issuedToken();
+        const expiresAt = mockPrisma.accountDeletionRequest.create.mock
+          .calls[0][0].data.expiresAt as Date;
+        expect(sendEmailMock).toHaveBeenCalledTimes(1);
+        expect(sendEmailMock).toHaveBeenCalledWith(
+          'private.person@example.test',
+          'Alice',
+          `https://app.example.test/settings/account/delete/confirm?token=${token}`,
+          `https://app.example.test/settings/account/delete/cancel?token=${token}`,
+          expiresAt
+        );
+      });
+
+      it('passes a missing name through as null (the e-mail helper greets "User")', async () => {
+        mockPrisma.user.findUnique.mockResolvedValue({
+          email: 'private.person@example.test',
+          name: null,
+        });
+
+        await makeService().requestDeletion('user-1');
+
+        expect(sendEmailMock.mock.calls[0][1]).toBeNull();
+      });
+
+      it('still succeeds, and logs without the secrets, when the send reports a failure', async () => {
+        sendEmailMock.mockResolvedValue({
+          success: false,
+          error: 'Email service not configured',
+        });
+
+        await expect(makeService().requestDeletion('user-1')).resolves.toEqual(
+          expect.objectContaining({ success: true, requestId: 'req-9' })
+        );
+
+        expect(loggerError).toHaveBeenCalledWith(
+          'Failed to send account deletion email',
+          {
+            userId: 'user-1',
+            requestId: 'req-9',
+            error: 'Email service not configured',
+          }
+        );
+        const logged = everythingLogged();
+        expect(logged).not.toContain(issuedToken());
+        expect(logged).not.toContain('private.person@example.test');
+      });
+
+      it('still succeeds when the sender throws', async () => {
+        sendEmailMock.mockRejectedValue(new Error('network down'));
+
+        await expect(makeService().requestDeletion('user-1')).resolves.toEqual(
+          expect.objectContaining({ success: true })
+        );
+
+        expect(loggerError).toHaveBeenCalledWith(
+          'Failed to send account deletion email',
+          expect.objectContaining({ error: 'network down' })
+        );
+      });
+
+      it('still succeeds when the user lookup throws, and sends nothing', async () => {
+        mockPrisma.user.findUnique.mockRejectedValue(new Error('db blip'));
+
+        await expect(makeService().requestDeletion('user-1')).resolves.toEqual(
+          expect.objectContaining({ success: true })
+        );
+
+        expect(sendEmailMock).not.toHaveBeenCalled();
+        expect(loggerError).toHaveBeenCalled();
+      });
+
+      it('sends nothing, and warns, when the account has no address', async () => {
+        mockPrisma.user.findUnique.mockResolvedValue({
+          email: null,
+          name: 'Alice',
+        });
+
+        await makeService().requestDeletion('user-1');
+
+        expect(sendEmailMock).not.toHaveBeenCalled();
+        expect(loggerWarn).toHaveBeenCalledWith(
+          'Account deletion email not sent: no address',
+          { userId: 'user-1', requestId: 'req-9' }
+        );
+      });
     });
   });
 

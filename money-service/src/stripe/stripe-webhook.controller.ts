@@ -10,6 +10,12 @@
  * an explicit route-level ceiling instead of the bare global default, so a
  * legitimate Stripe retry burst can't get 429'd and read as a permanent
  * delivery failure.
+ *
+ * Remediation Tier 2 §6.1: each handled event is claimed in
+ * `ProcessedWebhookEvent` before its handler runs, so a redelivery -- or the
+ * same event arriving at the monolith's endpoint too (4A-13 dual delivery) --
+ * does not repeat the handler's side effects. See ProcessedWebhookEventService
+ * for the claim / complete / release protocol and its fail-open rule.
  */
 
 import { Controller, Post, Req, Res } from '@nestjs/common';
@@ -19,16 +25,63 @@ import type { Request, Response } from 'express';
 import type Stripe from 'stripe';
 
 import { logger } from '../common/logger.util';
+import { ProcessedWebhookEventService } from '../webhooks/processed-webhook-event.service';
 
 import { StripeService } from './stripe.service';
 import { StripeWebhookService } from './stripe-webhook.service';
+
+const PROVIDER = 'stripe';
 
 @Controller('webhooks/stripe')
 export class StripeWebhookController {
   constructor(
     private readonly stripeService: StripeService,
-    private readonly webhookService: StripeWebhookService
+    private readonly webhookService: StripeWebhookService,
+    private readonly eventClaims: ProcessedWebhookEventService
   ) {}
+
+  /** The handler for an event type, or null when this service ignores it. */
+  private resolveHandler(event: Stripe.Event): (() => Promise<void>) | null {
+    switch (event.type) {
+      case 'checkout.session.completed':
+        return () =>
+          this.webhookService.handleCheckoutCompleted(
+            event.data.object as Stripe.Checkout.Session
+          );
+      case 'customer.subscription.updated':
+        return () =>
+          this.webhookService.handleSubscriptionUpdated(
+            event.data.object as Stripe.Subscription
+          );
+      case 'customer.subscription.deleted':
+        return () =>
+          this.webhookService.handleSubscriptionDeleted(
+            event.data.object as Stripe.Subscription
+          );
+      case 'invoice.payment_failed':
+        return () =>
+          this.webhookService.handleInvoiceFailed(
+            event.data.object as Stripe.Invoice
+          );
+      case 'invoice.payment_succeeded':
+        return () =>
+          this.webhookService.handleInvoiceSucceeded(
+            event.data.object as Stripe.Invoice
+          );
+      case 'charge.refunded':
+        return () =>
+          this.webhookService.handleChargeRefunded(
+            event.data.object as Stripe.Charge
+          );
+      case 'charge.dispute.created':
+        return () =>
+          this.webhookService.handleChargeDisputeCreated(
+            event.data.object as Stripe.Dispute
+          );
+      default:
+        return null;
+    }
+  }
 
   @Throttle({ default: { ttl: 60_000, limit: 300 } })
   @Post()
@@ -65,58 +118,35 @@ export class StripeWebhookController {
 
       logger.info('[Webhook] Received event', { type: event.type });
 
+      const handle = this.resolveHandler(event);
+      if (!handle) {
+        logger.info('[Webhook] Unhandled event type', { type: event.type });
+        response.status(200).json({ received: true });
+        return;
+      }
+
+      const claim = await this.eventClaims.claim(PROVIDER, event.id);
+      if (claim === 'duplicate') {
+        logger.info('[Webhook] Duplicate event skipped', {
+          type: event.type,
+          eventId: event.id,
+        });
+        response.status(200).json({ received: true, duplicate: true });
+        return;
+      }
+      // 'unavailable' means the claim table could not be used: the handler
+      // still runs (the commission indexes are the money guard), and there is
+      // nothing to complete or release.
+      const claimed = claim === 'claimed';
+
       try {
-        switch (event.type) {
-          case 'checkout.session.completed':
-            await this.webhookService.handleCheckoutCompleted(
-              event.data.object as Stripe.Checkout.Session
-            );
-            break;
-
-          case 'customer.subscription.updated':
-            await this.webhookService.handleSubscriptionUpdated(
-              event.data.object as Stripe.Subscription
-            );
-            break;
-
-          case 'customer.subscription.deleted':
-            await this.webhookService.handleSubscriptionDeleted(
-              event.data.object as Stripe.Subscription
-            );
-            break;
-
-          case 'invoice.payment_failed':
-            await this.webhookService.handleInvoiceFailed(
-              event.data.object as Stripe.Invoice
-            );
-            break;
-
-          case 'invoice.payment_succeeded':
-            await this.webhookService.handleInvoiceSucceeded(
-              event.data.object as Stripe.Invoice
-            );
-            break;
-
-          case 'charge.refunded':
-            await this.webhookService.handleChargeRefunded(
-              event.data.object as Stripe.Charge
-            );
-            break;
-
-          case 'charge.dispute.created':
-            await this.webhookService.handleChargeDisputeCreated(
-              event.data.object as Stripe.Dispute
-            );
-            break;
-
-          default:
-            logger.info('[Webhook] Unhandled event type', {
-              type: event.type,
-            });
-        }
+        await handle();
+        if (claimed) await this.eventClaims.complete(PROVIDER, event.id);
 
         response.status(200).json({ received: true });
       } catch (handlerError) {
+        if (claimed) await this.eventClaims.release(PROVIDER, event.id);
+
         logger.error('[Webhook] Handler error', {
           type: event.type,
           error:
@@ -125,9 +155,17 @@ export class StripeWebhookController {
               : 'Unknown error',
         });
 
+        // Critical = answer 5xx so Stripe retries. Remediation Tier 2 §6.4
+        // (4A-13 audit item c): invoice.payment_succeeded is critical too. It
+        // answered 200 on a failure, so a renewal that failed to write (the
+        // subscription period, the PRO tier, the tax record, the receipt) was
+        // never retried. Safe to retry: the renewal's main write is one
+        // transaction (nothing partial is left behind), the claim above is
+        // released, and the commission credit is idempotent per invoice.
         const isCritical =
           event.type === 'checkout.session.completed' ||
-          event.type === 'customer.subscription.deleted';
+          event.type === 'customer.subscription.deleted' ||
+          event.type === 'invoice.payment_succeeded';
 
         if (isCritical) {
           response.status(500).json({ error: 'Webhook handler failed' });

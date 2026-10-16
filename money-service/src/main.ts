@@ -56,14 +56,19 @@ async function bootstrap() {
   );
 
   // Session 4A-W4 (Defect 1, plan §13 CC-C): without this, Nest never wires
-  // SIGTERM/SIGINT to its lifecycle hooks, so PrismaService.onModuleDestroy()
+  // SIGTERM/SIGINT to its lifecycle hooks, so PrismaService's shutdown hook
   // (prisma.service.ts) has never actually fired on a Railway redeploy —
   // in-flight queries/webhook requests were severed abruptly instead of
   // draining. Session 4A-W5's BullMQ worker(s) must call worker.close() from
   // their own onModuleDestroy/onApplicationShutdown so this same SIGTERM
   // hook drains in-flight jobs before the process exits, the same way
-  // PrismaService drains its connection here.
-  app.enableShutdownHooks();
+  // PrismaService drains its connection here (in onApplicationShutdown, after
+  // the HTTP server has closed).
+  // useProcessExit: end with process.exit(0) once the hooks are done. The
+  // default re-sends the signal to ourselves, and otel.ts keeps its own
+  // SIGTERM listener alive, so the re-sent signal is swallowed there and the
+  // process lingers until Railway kills it.
+  app.enableShutdownHooks(undefined, { useProcessExit: true });
 
   const port = process.env['PORT'] ?? 3002;
   await app.listen(port);

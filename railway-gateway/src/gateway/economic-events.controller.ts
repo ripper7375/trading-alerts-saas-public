@@ -9,6 +9,7 @@ import {
   ParseArrayPipe,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Queue } from 'bull';
 import { ApiKeyGuard } from '../auth/api-key.guard';
 import { EconomicEventDto } from './dto/economic-event.dto';
@@ -39,6 +40,7 @@ export class EconomicEventsController {
   ) {}
 
   @Post()
+  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   async publishEvents(
     // whitelist/forbidNonWhitelisted must be passed EXPLICITLY here.

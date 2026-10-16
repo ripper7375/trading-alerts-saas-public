@@ -480,6 +480,24 @@ model Commission {
   @@index([paidAt])
   @@index([clawbackOfCommissionId])
   @@index([stripeInvoiceId])
+
+  /// Remediation Tier 2 §6.1 -- mirrors prisma/non-market-data/schema.prisma.
+  /// One commission per code per Stripe invoice (NULL never conflicts).
+  @@unique([affiliateCodeId, stripeInvoiceId])
+  /// At most ONE clawback row per original commission.
+  @@unique([clawbackOfCommissionId])
+}
+
+/// Remediation Tier 2 §6.1 -- mirrors prisma/non-market-data/schema.prisma.
+/// Which provider webhook events have been handled; see the root model.
+model ProcessedWebhookEvent {
+  provider    String
+  eventId     String
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@id([provider, eventId])
+  @@index([createdAt])
 }
 
 model Notification {

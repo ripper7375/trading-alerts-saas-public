@@ -15,6 +15,7 @@ import {
   Controller,
   HttpException,
   InternalServerErrorException,
+  ServiceUnavailableException,
   Post,
   Req,
   UseGuards,
@@ -117,9 +118,22 @@ export class StripeCheckoutController {
         discountPercent = codeRecord.discountPercent;
       }
 
-      const baseUrl =
-        this.configService.get<string>('NEXTAUTH_URL') ??
-        'http://localhost:3000';
+      // Remediation Tier 2 §6.5: no localhost fallback. These URLs are where
+      // Stripe sends the customer back after paying; a missing NEXTAUTH_URL used
+      // to send paying customers to http://localhost:3000. The check is made
+      // before the Stripe session exists, so nothing is created or charged.
+      const baseUrl = this.configService.get<string>('NEXTAUTH_URL');
+      if (!baseUrl) {
+        console.error(
+          '[Checkout] NEXTAUTH_URL is not set; refusing to create a checkout session'
+        );
+        throw new ServiceUnavailableException({
+          error: 'Configuration error',
+          message:
+            'Checkout is temporarily unavailable. Please try again later.',
+          code: 'CHECKOUT_NOT_CONFIGURED',
+        });
+      }
       const successUrl = `${baseUrl}/upgrade/success?upgrade=success`;
       const cancelUrl = `${baseUrl}/pricing?upgrade=cancelled`;
 

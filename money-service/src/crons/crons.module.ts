@@ -31,6 +31,7 @@ import { WiseConfig } from '../wise/wise.config';
 import { WiseModule } from '../wise/wise.module';
 
 import { AffiliateCronService } from './affiliate.service';
+import { CronLockService } from './cron-lock.service';
 import { CronSecretGuard } from './cron-secret.guard';
 import { CronTriggerController } from './cron-trigger.controller';
 import { CronsScheduler } from './crons.scheduler';
@@ -69,6 +70,8 @@ import { WiseReconciliationService } from './wise-reconciliation.service';
     DisbursementProcessorService,
     // DECISION-LOG F83 -- payout settings reader (E1-E4)
     DisbursementSettingsService,
+    // Remediation Tier 2 6.9: one winner per cron firing across instances
+    CronLockService,
     // File 4/6
     CronsScheduler,
     // File 5/6

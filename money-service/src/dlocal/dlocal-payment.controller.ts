@@ -22,6 +22,7 @@ import {
   NotFoundException,
   Post,
   Req,
+  ServiceUnavailableException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -41,6 +42,7 @@ import type { DLocalCountry, DLocalCurrency } from './dlocal.types';
 import {
   acquireCreatePaymentLock,
   createPayment,
+  getMissingDLocalConfig,
 } from './dlocal-payment.service';
 import { isValidPaymentMethod } from './payment-methods.service';
 
@@ -79,6 +81,24 @@ export class DlocalPaymentController {
     @Body() body: unknown
   ): Promise<Record<string, unknown>> {
     try {
+      // Remediation Tier 2 §6.5: refuse before any Payment row or lock exists.
+      // Without the dLocal key (or NEXTAUTH_URL, which builds the webhook URL)
+      // no real payment can complete; the service used to answer with a mock
+      // PENDING payment and a fake link instead. The detail goes to the log
+      // only: the caller learns that payments are unavailable, not why.
+      const missingConfig = getMissingDLocalConfig();
+      if (missingConfig.length > 0) {
+        logger.error('dLocal payments are not configured; refusing checkout', {
+          missing: missingConfig,
+        });
+        throw new ServiceUnavailableException({
+          error: 'Payments are temporarily unavailable',
+          message:
+            'Payments are temporarily unavailable. Please try again later.',
+          code: 'PAYMENTS_NOT_CONFIGURED',
+        });
+      }
+
       const userId = request.user.id;
 
       const validationResult = createPaymentSchema.safeParse(body);

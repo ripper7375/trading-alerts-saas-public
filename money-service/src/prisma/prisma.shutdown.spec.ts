@@ -1,3 +1,4 @@
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 
@@ -5,25 +6,74 @@ import { logger } from '../common/logger.util';
 
 import { PrismaService } from './prisma.service';
 
+// Loading @prisma/client and compiling a Nest module is slow when the whole suite runs
+// in parallel (this spec timed out at Jest's 5 s default: LESSONS-LEARNED L24).
+jest.setTimeout(30_000);
+
+/** Polls for an observable outcome instead of guessing how many ticks an async chain needs. */
+async function waitUntil(done: () => boolean, timeoutMs = 5000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!done()) {
+    if (Date.now() > deadline)
+      throw new Error('timed out waiting for shutdown');
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
+
 /**
  * Session 4A-W4 (Defect 1): before this session, main.ts never called
- * app.enableShutdownHooks(), so PrismaService.onModuleDestroy() was wired
+ * app.enableShutdownHooks(), so PrismaService's shutdown hook was wired
  * into Nest's lifecycle but never actually invoked on SIGTERM/SIGINT — a
  * Railway redeploy severed in-flight queries instead of draining them.
  *
- * This proves the fix using the real NestJS shutdown-hook mechanism (not a
- * hand-rolled call to onModuleDestroy) and a synthetic `process.emit`
- * (an in-process event, not a real OS signal — safe to run under Jest,
- * doesn't touch a live database).
+ * Remediation Tier 1 (§5.5/§5.6) changed two things, both proven here:
+ *  - PrismaService disconnects in onApplicationShutdown(), which NestJS 11
+ *    runs AFTER it has closed the HTTP server (onModuleDestroy runs before),
+ *    so in-flight requests keep their database connection while they drain.
+ *  - main.ts passes { useProcessExit: true }: once the hooks finish the
+ *    process ends with process.exit(0) instead of re-sending SIGTERM to
+ *    itself (which otel.ts's own SIGTERM listener swallows).
+ *
+ * This uses the real NestJS shutdown-hook mechanism (not a hand-rolled call
+ * to the hook) and a synthetic `process.emit` (an in-process event, not a
+ * real OS signal — safe to run under Jest, doesn't touch a live database).
  */
-describe('graceful shutdown (4A-W4 Defect 1)', () => {
-  it('fires PrismaService.onModuleDestroy and logs cleanup when the process receives SIGTERM', async () => {
-    const moduleRef = await Test.createTestingModule({
-      providers: [PrismaService],
-    }).compile();
+@Injectable()
+class OtherProviderDestroyProbe implements OnModuleDestroy {
+  static onDestroy: () => void = () => undefined;
+  onModuleDestroy(): void {
+    OtherProviderDestroyProbe.onDestroy();
+  }
+}
 
-    const app: INestApplication = moduleRef.createNestApplication();
-    const prisma = app.get(PrismaService);
+describe('graceful shutdown (4A-W4 Defect 1, Tier 1 §5.5/§5.6)', () => {
+  async function bootApp(): Promise<{
+    app: INestApplication;
+    prisma: PrismaService;
+  }> {
+    const moduleRef = await Test.createTestingModule({
+      providers: [PrismaService, OtherProviderDestroyProbe],
+    }).compile();
+    const app = moduleRef.createNestApplication();
+    return { app, prisma: app.get(PrismaService) };
+  }
+
+  /** Nest's real listenToShutdownSignals() ends in process.exit(0) or process.kill. */
+  function stubProcessEnd() {
+    const killSpy = jest.spyOn(process, 'kill').mockImplementation(() => true);
+    const exitSpy = jest
+      .spyOn(process, 'exit')
+      .mockImplementation(() => undefined as never);
+    return { killSpy, exitSpy };
+  }
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    OtherProviderDestroyProbe.onDestroy = () => undefined;
+  });
+
+  it('disconnects Prisma on SIGTERM, logs it, and ends the process with exit(0) rather than re-sending the signal', async () => {
+    const { app, prisma } = await bootApp();
 
     // Stub the network-touching methods only — this proves our own
     // shutdown wiring, not Prisma's/Postgres's connection behavior.
@@ -38,18 +88,9 @@ describe('graceful shutdown (4A-W4 Defect 1)', () => {
     // assertion), matching this repo's other spec files' convention of
     // not suppressing real log output during tests.
     const logSpy = jest.spyOn(logger, 'info');
+    const { killSpy, exitSpy } = stubProcessEnd();
 
-    // Nest's real listenToShutdownSignals() re-sends the OS signal to this
-    // process (process.kill(process.pid, signal)) once destroy hooks finish,
-    // so the default handler terminates it — exactly what a production
-    // Railway redeploy wants, but fatal to a Jest worker. Stub it so we can
-    // observe the hook firing without actually killing the test process.
-    const killSpy = jest.spyOn(process, 'kill').mockImplementation(() => true);
-    const exitSpy = jest
-      .spyOn(process, 'exit')
-      .mockImplementation(() => undefined as never);
-
-    app.enableShutdownHooks();
+    app.enableShutdownHooks(undefined, { useProcessExit: true });
     await app.init();
 
     expect(connectSpy).toHaveBeenCalledTimes(1);
@@ -57,24 +98,42 @@ describe('graceful shutdown (4A-W4 Defect 1)', () => {
 
     process.emit('SIGTERM', 'SIGTERM');
 
-    // Let the async onModuleDestroy chain (triggered by the SIGTERM
-    // listener Nest registered via enableShutdownHooks) actually run.
-    await new Promise((resolve) => setImmediate(resolve));
-    await new Promise((resolve) => setImmediate(resolve));
-    await new Promise((resolve) => setImmediate(resolve));
+    // Let the async shutdown chain (triggered by the SIGTERM listener Nest
+    // registered via enableShutdownHooks) run to its end: process.exit(0).
+    await waitUntil(() => exitSpy.mock.calls.length > 0);
 
     expect(disconnectSpy).toHaveBeenCalledTimes(1);
     expect(logSpy).toHaveBeenCalledWith(
       'PrismaService disconnected cleanly on module shutdown'
     );
-    // Proves Nest's real shutdown-signal wiring ran end to end (it tried to
-    // re-deliver the signal after cleanup), not just a hand-called hook.
-    expect(killSpy).toHaveBeenCalledWith(process.pid, 'SIGTERM');
+    // Proves Nest's real shutdown-signal wiring ran end to end and ended the
+    // process the way main.ts asks (useProcessExit), not by re-delivering
+    // the signal.
+    expect(exitSpy).toHaveBeenCalledWith(0);
+    expect(killSpy).not.toHaveBeenCalledWith(process.pid, 'SIGTERM');
+  });
 
-    connectSpy.mockRestore();
-    disconnectSpy.mockRestore();
-    logSpy.mockRestore();
-    killSpy.mockRestore();
-    exitSpy.mockRestore();
+  it('disconnects Prisma only AFTER the other providers are destroyed and the HTTP server is closed', async () => {
+    const { app, prisma } = await bootApp();
+    const order: string[] = [];
+
+    jest.spyOn(prisma, '$connect').mockResolvedValue(undefined);
+    jest.spyOn(prisma, '$disconnect').mockImplementation(async () => {
+      order.push('prisma.$disconnect');
+    });
+    OtherProviderDestroyProbe.onDestroy = () => order.push('onModuleDestroy');
+    const adapter = app.getHttpAdapter();
+    jest.spyOn(adapter, 'close').mockImplementation(async () => {
+      order.push('http.close');
+    });
+
+    await app.init();
+    await app.close();
+
+    expect(order).toEqual([
+      'onModuleDestroy',
+      'http.close',
+      'prisma.$disconnect',
+    ]);
   });
 });

@@ -5,6 +5,7 @@ import { AlertCheckerService } from './alert-checker.service';
 import { AlertCronScheduler } from './alert-cron.scheduler';
 import { AlertQueueService } from './alert-queue.service';
 import { AlertWorkerService } from './alert-worker.service';
+import { CronLockService } from './cron-lock.service';
 import { DispatcherService } from './dispatcher.service';
 import { NotifyBridgeService } from './notify-bridge.service';
 
@@ -32,6 +33,7 @@ import { NotifyBridgeService } from './notify-bridge.service';
     AlertQueueService,
     AlertCheckerService,
     AlertCronScheduler,
+    CronLockService,
     AlertWorkerService,
   ],
   exports: [AlertWorkerService, AlertCronScheduler, AlertQueueService],

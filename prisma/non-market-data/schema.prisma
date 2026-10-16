@@ -787,6 +787,35 @@ model Commission {
   @@index([paidAt])
   @@index([clawbackOfCommissionId])
   @@index([stripeInvoiceId])
+
+  /// Remediation Tier 2 §6.1: the database, not the application, guarantees one
+  /// commission per code per Stripe invoice. The monolith's and money-service's
+  /// Stripe webhooks both credit commissions (4A-13 dual delivery) and neither
+  /// holds a lock, so two concurrent deliveries of one invoice each inserted a
+  /// row and each incremented the affiliate's counters. NULL `stripeInvoiceId`
+  /// (dLocal conversions, pre-recurring rows, clawback rows) never conflicts:
+  /// PostgreSQL treats NULLs as distinct in a unique index.
+  @@unique([affiliateCodeId, stripeInvoiceId])
+  /// At most ONE clawback row per original commission, so a redelivered
+  /// charge.refunded / charge.dispute.created cannot deduct twice.
+  @@unique([clawbackOfCommissionId])
+}
+
+/// Remediation Tier 2 §6.1: which provider webhook events have been handled, so
+/// the same event delivered twice (Stripe is at-least-once; the monolith and
+/// money-service endpoints may both be registered) runs its side effects once.
+/// A claim is inserted before the handler runs; `completedAt` is set when it
+/// succeeds and the claim is deleted when it fails, so a retry is processed. An
+/// unfinished claim older than the lease is taken over (a crashed handler).
+/// Rows are pure bookkeeping; purge anything older than ~90 days.
+model ProcessedWebhookEvent {
+  provider    String
+  eventId     String
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+
+  @@id([provider, eventId])
+  @@index([createdAt])
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

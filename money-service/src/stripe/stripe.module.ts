@@ -17,6 +17,7 @@ import { ConversionProcessorService } from '../affiliate/conversion-processor.se
 import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
 import { IdempotencyStore } from '../common/idempotency/idempotency.store';
 import { OutboxService } from '../outbox/outbox.service';
+import { ProcessedWebhookEventService } from '../webhooks/processed-webhook-event.service';
 
 import { StripeCheckoutController } from './stripe-checkout.controller';
 import { StripeSubscriptionController } from './stripe-subscription.controller';
@@ -36,6 +37,7 @@ import { StripeService } from './stripe.service';
     ConversionProcessorService,
     AffiliateConfigService,
     OutboxService,
+    ProcessedWebhookEventService,
     IdempotencyInterceptor,
     IdempotencyStore,
   ],

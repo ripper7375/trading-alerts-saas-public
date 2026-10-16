@@ -29,7 +29,11 @@ async function bootstrap() {
   // not for security-critical decisions.
   app.set('trust proxy', 1);
 
-  app.enableShutdownHooks();
+  // useProcessExit: end with process.exit(0) once the hooks are done. The
+  // default re-sends the signal to ourselves, and otel.ts keeps its own
+  // SIGTERM listener alive, so the re-sent signal is swallowed there and the
+  // process lingers until Railway kills it.
+  app.enableShutdownHooks(undefined, { useProcessExit: true });
   app.use(helmet());
   const allowedOrigins = (process.env['ALLOWED_ORIGINS'] ?? '*').split(',');
   app.enableCors({ origin: allowedOrigins, credentials: true });

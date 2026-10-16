@@ -20,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, testFactories } from '../test-utils/prisma-mock';
 
 import { AffiliateCronService } from './affiliate.service';
+import { CronLockService } from './cron-lock.service';
 import { CronsScheduler } from './crons.scheduler';
 import { SubscriptionCronService } from './subscription.service';
 import { WiseReconciliationService } from './wise-reconciliation.service';
@@ -38,6 +39,7 @@ describe('CronsScheduler', () => {
     approveMaturedCommissions: jest.Mock;
   };
   let transactionLoggerMock: { log: jest.Mock };
+  let cronLockMock: { acquire: jest.Mock };
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
@@ -94,9 +96,14 @@ describe('CronsScheduler', () => {
       }),
     };
 
+    // Remediation Tier 2 6.9: every scheduled firing asks for the lock first; by
+    // default this instance wins it, so the older assertions are unchanged.
+    cronLockMock = { acquire: jest.fn().mockResolvedValue(true) };
+
     const moduleRef = await Test.createTestingModule({
       providers: [
         CronsScheduler,
+        { provide: CronLockService, useValue: cronLockMock },
         { provide: PrismaService, useValue: prismaMock },
         { provide: SubscriptionCronService, useValue: subscriptionCronMock },
         { provide: AffiliateCronService, useValue: affiliateCronMock },
@@ -379,6 +386,138 @@ describe('CronsScheduler', () => {
       await scheduler.handleSyncRiseWorksAccounts();
       expect(
         disbursementProcessorMock.syncRiseWorksAccounts
+      ).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('one winner per firing across instances (Remediation Tier 2 §6.9)', () => {
+    const originalEnv = process.env['CRON_ENABLED'];
+
+    afterEach(() => {
+      process.env['CRON_ENABLED'] = originalEnv;
+    });
+
+    const jobs: Array<[keyof CronsScheduler, keyof CronsScheduler, string]> = [
+      [
+        'scheduledCheckExpiringSubscriptions',
+        'handleCheckExpiringSubscriptions',
+        'check-expiring-subscriptions',
+      ],
+      [
+        'scheduledDailyMaintenance',
+        'handleDailyMaintenance',
+        'daily-maintenance',
+      ],
+      ['scheduledDistributeCodes', 'handleDistributeCodes', 'distribute-codes'],
+      [
+        'scheduledDowngradeExpiredSubscriptions',
+        'handleDowngradeExpiredSubscriptions',
+        'downgrade-expired-subscriptions',
+      ],
+      ['scheduledExpireCodes', 'handleExpireCodes', 'expire-codes'],
+      [
+        'scheduledProcessPendingDisbursements',
+        'handleProcessPendingDisbursements',
+        'process-pending-disbursements',
+      ],
+      [
+        'scheduledApproveMaturedCommissions',
+        'handleApproveMaturedCommissions',
+        'approve-matured-commissions',
+      ],
+      [
+        'scheduledSendMonthlyReports',
+        'handleSendMonthlyReports',
+        'send-monthly-reports',
+      ],
+      [
+        'scheduledSyncRiseWorksAccounts',
+        'handleSyncRiseWorksAccounts',
+        'sync-riseworks-accounts',
+      ],
+      [
+        'scheduledWiseReconciliation',
+        'handleWiseReconciliation',
+        'wise-reconciliation',
+      ],
+    ];
+
+    it('covers every @Cron entry point', () => {
+      const scheduledOnScheduler = Object.getOwnPropertyNames(
+        CronsScheduler.prototype
+      ).filter((name) => name.startsWith('scheduled'));
+      expect(scheduledOnScheduler.sort()).toEqual(
+        jobs.map(([method]) => method as string).sort()
+      );
+    });
+
+    it.each(jobs)(
+      '%s asks the lock for "%3$s" and runs its handler when it wins',
+      async (method, handler, lockName) => {
+        process.env['CRON_ENABLED'] = 'true';
+        cronLockMock.acquire.mockResolvedValue(true);
+        const spy = jest
+          .spyOn(scheduler, handler as never)
+          .mockResolvedValue(undefined as never) as unknown as jest.SpyInstance;
+
+        await (scheduler[method] as () => Promise<void>)();
+
+        expect(cronLockMock.acquire).toHaveBeenCalledWith(lockName);
+        expect(spy).toHaveBeenCalledTimes(1);
+        spy.mockRestore();
+      }
+    );
+
+    it.each(jobs)(
+      '%s skips its handler when another instance already took this run',
+      async (method, handler) => {
+        process.env['CRON_ENABLED'] = 'true';
+        cronLockMock.acquire.mockResolvedValue(false);
+        const spy = jest
+          .spyOn(scheduler, handler as never)
+          .mockResolvedValue(undefined as never) as unknown as jest.SpyInstance;
+
+        await (scheduler[method] as () => Promise<void>)();
+
+        expect(spy).not.toHaveBeenCalled();
+        spy.mockRestore();
+      }
+    );
+
+    it('does not even ask for the lock while CRON_ENABLED is off', async () => {
+      process.env['CRON_ENABLED'] = 'false';
+
+      await scheduler.scheduledProcessPendingDisbursements();
+
+      expect(cronLockMock.acquire).not.toHaveBeenCalled();
+    });
+
+    it('lets two instances firing together run the payout job once', async () => {
+      process.env['CRON_ENABLED'] = 'true';
+      // a real one-winner lock: the first acquire() wins, the next loses
+      let taken = false;
+      cronLockMock.acquire.mockImplementation(async () => {
+        if (taken) return false;
+        taken = true;
+        return true;
+      });
+
+      await Promise.all([
+        scheduler.scheduledProcessPendingDisbursements(),
+        scheduler.scheduledProcessPendingDisbursements(),
+      ]);
+
+      expect(
+        disbursementProcessorMock.processAutomatedDisbursements
+      ).toHaveBeenCalledTimes(1);
+    });
+
+    it('the manual trigger path is NOT behind the lock (an operator can always run a job by hand)', async () => {
+      await scheduler.handleProcessPendingDisbursements();
+
+      expect(cronLockMock.acquire).not.toHaveBeenCalled();
+      expect(
+        disbursementProcessorMock.processAutomatedDisbursements
       ).toHaveBeenCalledTimes(1);
     });
   });

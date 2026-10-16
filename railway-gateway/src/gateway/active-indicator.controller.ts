@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiKeyGuard } from '../auth/api-key.guard';
+import { parsePageLimit } from '../common/pagination';
 import { ActiveIndicatorService } from '../cycle/active-indicator/active-indicator.service';
 import { isTimeframe } from '../cycle/slot';
 import { SetActiveIndicatorDto } from './dto/active-indicator.dto';
@@ -47,7 +48,8 @@ export class ActiveIndicatorController {
     const now = Math.floor(Date.now() / 1000);
     const settings = await this.indicators.listSettings({
       timeframe,
-      limit: limit === undefined ? undefined : Number(limit),
+      // ?limit=abc must not reach Prisma as `take: NaN`; same bounds as listSettings.
+      limit: parsePageLimit(limit, 100, 500),
     });
     return {
       now,

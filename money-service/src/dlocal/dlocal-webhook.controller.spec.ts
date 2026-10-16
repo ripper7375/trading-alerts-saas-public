@@ -113,6 +113,10 @@ describe('DlocalWebhookController', () => {
       (cb as (tx: unknown) => unknown)(prismaMock)
     );
     prismaMock.notification.create.mockResolvedValue({} as never);
+    // Remediation Tier 2 §6.3: completing a payment is a conditional update
+    // (status not already COMPLETED). Count 1 = this delivery won the claim;
+    // the replay / race tests below override it with 0.
+    prismaMock.payment.updateMany.mockResolvedValue({ count: 1 });
   });
 
   afterEach(() => {
@@ -213,12 +217,10 @@ describe('DlocalWebhookController', () => {
 
     await controller.handleWebhook(request, response);
 
-    expect(prismaMock.payment.update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: { id: 'payment-1' },
-        data: expect.objectContaining({ status: 'COMPLETED' }),
-      })
-    );
+    expect(prismaMock.payment.updateMany).toHaveBeenCalledWith({
+      where: { id: 'payment-1', status: { not: 'COMPLETED' } },
+      data: expect.objectContaining({ status: 'COMPLETED' }),
+    });
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: { tier: 'PRO' },
@@ -490,13 +492,7 @@ describe('DlocalWebhookController', () => {
     expect(response.status).toHaveBeenCalledWith(200);
   });
 
-  it('should be fully idempotent when the same COMPLETED webhook is replayed: no duplicate Subscription row, no duplicate Notification', async () => {
-    const payload = JSON.stringify({
-      id: 'payment-replay',
-      status: 'PAID',
-      order_id: 'order-user-replay-123',
-    });
-
+  describe('replay and concurrent delivery of a COMPLETED webhook (Remediation Tier 2 §6.3)', () => {
     const basePayment = {
       id: 'payment-replay',
       userId: 'user-replay',
@@ -507,94 +503,123 @@ describe('DlocalWebhookController', () => {
       paymentMethod: null,
       providerPaymentId: 'payment-replay',
       discountCode: null,
+      // Both deliveries read the payment BEFORE either wrote, so the read says
+      // PENDING for both: it is not what decides who completes it.
+      status: 'PENDING',
     };
-
-    // First delivery finds the payment still PENDING; by the second delivery
-    // (replay) the first delivery's own write has already landed, so the
-    // lookup now returns COMPLETED — this is what a real replay would see.
-    prismaMock.payment.findFirst
-      .mockResolvedValueOnce({ ...basePayment, status: 'PENDING' } as never)
-      .mockResolvedValueOnce({ ...basePayment, status: 'COMPLETED' } as never);
-    prismaMock.payment.update.mockResolvedValue({} as never);
-    prismaMock.user.update.mockResolvedValue({} as never);
-    prismaMock.subscription.create.mockResolvedValue({} as never);
-    prismaMock.subscription.update.mockResolvedValue({} as never);
-
-    // First delivery: no subscription exists yet -> create(), then link-back finds it.
-    // Second delivery (replay): the row from the first delivery is now found on
-    // the "existingSubscription" check -> update(), not create().
-    prismaMock.subscription.findUnique
-      .mockResolvedValueOnce(null) // call 1: existingSubscription check
-      .mockResolvedValueOnce({ id: 'sub-replay' } as never) // call 1: link-back
-      .mockResolvedValueOnce({ id: 'sub-replay' } as never) // call 2: existingSubscription check
-      .mockResolvedValueOnce({ id: 'sub-replay' } as never); // call 2: link-back
-
     const makeRequest = () =>
-      createMockRequest(payload, {
-        authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
-        'x-date': '2026-07-24T09:23:38.899Z',
-        'x-login': 'test-merchant-login',
+      createMockRequest(
+        JSON.stringify({
+          id: 'payment-replay',
+          status: 'PAID',
+          order_id: 'order-user-replay-123',
+        }),
+        {
+          authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+          'x-date': '2026-07-24T09:23:38.899Z',
+          'x-login': 'test-merchant-login',
+        }
+      );
+
+    beforeEach(() => {
+      prismaMock.payment.findFirst.mockResolvedValue(basePayment as never);
+      prismaMock.payment.update.mockResolvedValue({} as never);
+      prismaMock.user.update.mockResolvedValue({} as never);
+      prismaMock.subscription.create.mockResolvedValue({} as never);
+      prismaMock.subscription.update.mockResolvedValue({} as never);
+      prismaMock.subscription.findUnique
+        .mockResolvedValueOnce(null) // winner: existingSubscription check
+        .mockResolvedValueOnce({ id: 'sub-replay' } as never); // winner: link-back
+    });
+
+    it('applies everything once on the first delivery and NOTHING on the replay (not even a longer expiry)', async () => {
+      prismaMock.payment.updateMany
+        .mockResolvedValueOnce({ count: 1 }) // first delivery wins the claim
+        .mockResolvedValueOnce({ count: 0 }); // the replay finds it COMPLETED
+
+      const first = createMockResponse();
+      const replay = createMockResponse();
+      await controller.handleWebhook(makeRequest(), first);
+      await controller.handleWebhook(makeRequest(), replay);
+
+      expect(first.status).toHaveBeenCalledWith(200);
+      expect(replay.status).toHaveBeenCalledWith(200);
+      expect(prismaMock.payment.updateMany).toHaveBeenCalledTimes(2);
+      expect(prismaMock.user.update).toHaveBeenCalledTimes(1);
+      expect(prismaMock.subscription.create).toHaveBeenCalledTimes(1);
+      // the replay must not push the subscription's expiry out again
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+      // link-back of the subscription id, by the first delivery only
+      expect(prismaMock.payment.update).toHaveBeenCalledTimes(1);
+      expect(prismaMock.notification.create).toHaveBeenCalledTimes(1);
+      expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips the 3-day-plan mark, the affiliate conversion, the notification and the outbox event for a delivery that lost the claim', async () => {
+      prismaMock.payment.findFirst.mockResolvedValue({
+        ...basePayment,
+        planType: 'THREE_DAY',
+        discountCode: 'AFF10',
+      } as never);
+      prismaMock.payment.updateMany.mockResolvedValue({ count: 0 });
+
+      await controller.handleWebhook(makeRequest(), createMockResponse());
+
+      expect(prismaMock.user.update).not.toHaveBeenCalled();
+      expect(prismaMock.subscription.create).not.toHaveBeenCalled();
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+      expect(threeDayValidatorMock.markThreeDayPlanUsed).not.toHaveBeenCalled();
+      expect(
+        conversionProcessorMock.processAffiliateConversion
+      ).not.toHaveBeenCalled();
+      expect(prismaMock.notification.create).not.toHaveBeenCalled();
+      expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
+    });
+
+    it('runs the one-time effects exactly once when two deliveries race', async () => {
+      prismaMock.payment.findFirst.mockResolvedValue({
+        ...basePayment,
+        discountCode: 'AFF10',
+      } as never);
+      conversionProcessorMock.processAffiliateConversion.mockResolvedValue({
+        processed: true,
+        commissionId: 'c-1',
+        commissionAmount: 5.8,
       });
+      prismaMock.subscription.findUnique.mockReset();
+      prismaMock.subscription.findUnique.mockResolvedValue({
+        id: 'sub-replay',
+      } as never);
+      prismaMock.payment.updateMany
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 0 });
 
-    await controller.handleWebhook(makeRequest(), createMockResponse());
-    await controller.handleWebhook(makeRequest(), createMockResponse());
+      await Promise.all([
+        controller.handleWebhook(makeRequest(), createMockResponse()),
+        controller.handleWebhook(makeRequest(), createMockResponse()),
+      ]);
 
-    // Subscription: upsert keyed on unique userId correctly avoids a duplicate row.
-    expect(prismaMock.subscription.create).toHaveBeenCalledTimes(1);
-    expect(prismaMock.subscription.update).toHaveBeenCalledTimes(1);
-
-    // Payment.update fires twice per delivery (status write + subscriptionId
-    // link-back), both naturally idempotent — same values written both times.
-    expect(prismaMock.payment.update).toHaveBeenCalledTimes(4);
-
-    // Fixed: handlePaymentCompleted now skips the one-time completion side
-    // effects (3-day-plan mark, affiliate conversion, notification) when the
-    // payment was already COMPLETED, so replay creates exactly one Notification.
-    expect(prismaMock.notification.create).toHaveBeenCalledTimes(1);
-  });
-
-  it('should skip 3-day-plan marking and affiliate conversion, not just notification, on a replay of an already-COMPLETED payment', async () => {
-    const payload = JSON.stringify({
-      id: 'payment-replay-2',
-      status: 'PAID',
-      order_id: 'order-user-replay-2-123',
+      expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledTimes(1);
+      expect(
+        conversionProcessorMock.processAffiliateConversion
+      ).toHaveBeenCalledTimes(1);
+      expect(prismaMock.notification.create).toHaveBeenCalledTimes(1);
+      expect(prismaMock.user.update).toHaveBeenCalledTimes(1);
     });
 
-    prismaMock.payment.findFirst.mockResolvedValue({
-      id: 'payment-replay-2',
-      userId: 'user-replay-2',
-      planType: 'THREE_DAY',
-      amountUSD: 1.99,
-      currency: 'USD',
-      country: null,
-      paymentMethod: null,
-      providerPaymentId: 'payment-replay-2',
-      discountCode: null,
-      status: 'COMPLETED', // already completed prior to this delivery
-    } as never);
-    prismaMock.payment.update.mockResolvedValue({} as never);
-    prismaMock.user.update.mockResolvedValue({} as never);
-    prismaMock.subscription.findUnique
-      .mockResolvedValueOnce({ id: 'sub-replay-2' } as never)
-      .mockResolvedValueOnce({ id: 'sub-replay-2' } as never);
-    prismaMock.subscription.update.mockResolvedValue({} as never);
+    it('claims the payment BEFORE it touches the user or the subscription', async () => {
+      prismaMock.payment.updateMany.mockResolvedValue({ count: 1 });
 
-    const request = createMockRequest(payload, {
-      authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
-      'x-date': '2026-07-24T09:23:38.899Z',
-      'x-login': 'test-merchant-login',
+      await controller.handleWebhook(makeRequest(), createMockResponse());
+
+      const claim = prismaMock.payment.updateMany.mock.invocationCallOrder[0];
+      const userWrite = prismaMock.user.update.mock
+        .invocationCallOrder[0] as number;
+      const subscriptionWrite = prismaMock.subscription.create.mock
+        .invocationCallOrder[0] as number;
+      expect(claim).toBeLessThan(userWrite);
+      expect(claim).toBeLessThan(subscriptionWrite);
     });
-
-    await controller.handleWebhook(request, createMockResponse());
-
-    expect(threeDayValidatorMock.markThreeDayPlanUsed).not.toHaveBeenCalled();
-    expect(
-      conversionProcessorMock.processAffiliateConversion
-    ).not.toHaveBeenCalled();
-    expect(prismaMock.notification.create).not.toHaveBeenCalled();
-    // 4A-8, F14: a replay of an already-COMPLETED payment must not emit a
-    // second outbox event for a tier change that already happened.
-    expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
   });
 
   it('should return 500 when an unexpected error is thrown', async () => {

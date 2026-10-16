@@ -178,19 +178,10 @@ export class DlocalWebhookController {
     payment: PaymentRecord,
     webhookData: DLocalWebhookPayload
   ): Promise<void> {
-    // Captured before any writes below — reflects DB state prior to this
-    // delivery. Payment/Subscription/User-tier writes further down are all
-    // idempotent upserts and safe to repeat on replay; the one-time side
-    // effects gated behind `!alreadyCompleted` (3-day-plan mark, affiliate
-    // conversion, notification) are not all self-guarded, so a webhook
-    // replay for an already-COMPLETED payment must skip them explicitly.
-    const alreadyCompleted = payment.status === 'COMPLETED';
-
     logger.info('Processing payment completion', {
       paymentId: payment.id,
       userId: payment.userId,
       planType: payment.planType,
-      alreadyCompleted,
     });
 
     // Calculate subscription expiry based on plan type
@@ -219,16 +210,25 @@ export class DlocalWebhookController {
           : await this.affiliateConfig.getBasePriceUsd());
 
     // Use a transaction to ensure all updates succeed or fail together
-    await this.prisma.$transaction(async (tx) => {
-      // 1. Update payment status
-      await tx.payment.update({
-        where: { id: payment.id },
+    const firstCompletion = await this.prisma.$transaction(async (tx) => {
+      // 1. Claim the completion. Remediation Tier 2 §6.3: `payment` was read
+      // before this transaction, so two concurrent deliveries of the same
+      // webhook both saw it not-COMPLETED, and a flag taken from that read
+      // let both run the one-time effects below (a second outbox event, a
+      // second affiliate conversion, a second notification). The claim is a
+      // conditional update inside the transaction: only the delivery that
+      // still finds the payment not COMPLETED flips it (count 1) and goes on;
+      // a replay, or the loser of the race, matches nothing (count 0) and
+      // changes nothing -- not even the subscription's expiry.
+      const claimed = await tx.payment.updateMany({
+        where: { id: payment.id, status: { not: 'COMPLETED' } },
         data: {
           status: 'COMPLETED',
           providerStatus: webhookData.status,
           updatedAt: new Date(),
         },
       });
+      if (claimed.count === 0) return false;
 
       // 2. Upgrade user to PRO tier
       await tx.user.update({
@@ -288,21 +288,21 @@ export class DlocalWebhookController {
       }
 
       // 5. Outbox event for the tier change (4A-8, F14) -- same transaction
-      // as the tier write itself, so the two can never diverge. Guarded by
-      // `alreadyCompleted` (captured before this transaction started) so a
-      // webhook replay of an already-COMPLETED payment doesn't emit a
-      // second event for a tier change that already happened.
-      if (!alreadyCompleted) {
-        await this.outboxService.recordInTransaction(tx, {
-          aggregateType: 'User',
-          aggregateId: payment.userId,
-          eventType: 'TIER_UPGRADED',
-          payload: { tier: 'PRO', paymentId: payment.id, provider: 'DLOCAL' },
-        });
-      }
+      // as the tier write itself, so the two can never diverge. Only the
+      // delivery that won the claim above reaches this point, so a webhook
+      // replay of an already-COMPLETED payment can't emit a second event for a
+      // tier change that already happened.
+      await this.outboxService.recordInTransaction(tx, {
+        aggregateType: 'User',
+        aggregateId: payment.userId,
+        eventType: 'TIER_UPGRADED',
+        payload: { tier: 'PRO', paymentId: payment.id, provider: 'DLOCAL' },
+      });
+
+      return true;
     });
 
-    if (!alreadyCompleted) {
+    if (firstCompletion) {
       // 5. Mark 3-day plan as used if applicable (outside transaction for isolation)
       if (payment.planType === 'THREE_DAY') {
         await this.threeDayValidator.markThreeDayPlanUsed(payment.userId);
@@ -363,9 +363,10 @@ export class DlocalWebhookController {
       });
     } else {
       logger.info(
-        'Payment was already COMPLETED — skipping one-time completion side effects (3-day-plan mark, affiliate conversion, notification) on replay',
+        'Payment was already COMPLETED — nothing to apply (subscription, tier, 3-day-plan mark, affiliate conversion, notification) on replay',
         { paymentId: payment.id, userId: payment.userId }
       );
+      return;
     }
 
     logger.info('Payment completed and subscription created', {

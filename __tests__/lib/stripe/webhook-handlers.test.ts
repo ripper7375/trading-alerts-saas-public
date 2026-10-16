@@ -991,6 +991,40 @@ describe('Stripe Webhook Handlers', () => {
         });
       });
 
+      it('treats a unique violation on (code, invoice) as a duplicate: no counters, no email, no attribution change (Remediation Tier 2 §6.1)', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+        mockCommissionCreate.mockRejectedValue(
+          Object.assign(new Error('Unique constraint failed'), {
+            code: 'P2002',
+          })
+        );
+        const logSpy = jest.spyOn(console, 'log').mockImplementation();
+        const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+        await expect(handleInvoiceSucceeded(mockInvoice)).resolves.toBe(
+          undefined
+        );
+
+        expect(mockAffiliateProfileUpdate).not.toHaveBeenCalled();
+        // the plan was renewed by the invoice itself; the duplicate only skips the
+        // commission, and must not touch the attribution
+        expect(mockSubscriptionUpdate).not.toHaveBeenCalledWith({
+          where: { id: 'sub-db-123' },
+          data: { affiliateCodeId: null },
+        });
+        // reported as an expected duplicate, not as a failure
+        expect(logSpy).toHaveBeenCalledWith(
+          expect.stringContaining('already credited by a concurrent delivery'),
+          expect.anything()
+        );
+        expect(errorSpy).not.toHaveBeenCalledWith(
+          expect.stringContaining('Error processing affiliate commission'),
+          expect.anything()
+        );
+        logSpy.mockRestore();
+        errorSpy.mockRestore();
+      });
+
       it('credits cycle 1 with the code discount, stamps the invoice id, and leaves the attribution in place for future renewals', async () => {
         mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
 
@@ -1359,6 +1393,31 @@ describe('Stripe Webhook Handlers', () => {
       expect(mockCommissionFindFirst).toHaveBeenCalledWith({
         where: { subscriptionId: 'sub_test_123', stripeInvoiceId: 'inv_5' },
       });
+    });
+
+    it('writes no second clawback, and deducts nothing again, when it already exists (unique violation, Remediation Tier 2 §6.1)', async () => {
+      mockCommissionFindFirst.mockResolvedValue({
+        ...mockCommission,
+        status: 'PAID',
+      });
+      mockCommissionCreate.mockRejectedValue(
+        Object.assign(new Error('Unique constraint failed'), { code: 'P2002' })
+      );
+      const logSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      await expect(
+        handleChargeRefunded({
+          customer: 'cus_test_123',
+        } as unknown as Stripe.Charge)
+      ).resolves.toBeUndefined();
+
+      expect(mockCommissionCreate).toHaveBeenCalledTimes(1);
+      expect(mockAffiliateProfileUpdate).not.toHaveBeenCalled();
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Clawback already recorded'),
+        expect.anything()
+      );
+      logSpy.mockRestore();
     });
 
     it('also cancels an APPROVED (not yet disbursed) commission', async () => {
