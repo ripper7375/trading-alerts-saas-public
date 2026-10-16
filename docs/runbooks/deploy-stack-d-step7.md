@@ -74,6 +74,7 @@ them is needed by this step beyond `"User"`):
 ```
 20261002000000_add_cycle_pipeline_tables   20261003000000_add_sensor_tables   20261004000000_add_synthesis_tables
 20261010000000_add_engine4_tables          20261014000000_add_reply_trace_and_chat_tables   20261014010000_add_ai_metering_tables
+20261015000000_add_world_gold_closes   (another feature's: the worldGold market, merged on 2026-10-16; read its own header)
 ```
 
 `prisma migrate deploy` applies **every** pending migration. To apply only this step's two, in this order, read the **ROLLOUT ORDER** paragraph of each file's header
