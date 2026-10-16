@@ -10,7 +10,7 @@ Written for Davin and his advisor; it stands on its own.
 - **F1 is real and fixed.** `scripts/reply/eval-run.js` computes its manual at module load with a regular expression that wants `\n`. On a checkout whose files end in CRLF the expression matches nothing and the script throws before it reads its arguments, so every test that starts the script fails. I reproduced it on a genuine CRLF checkout (a fresh clone with `core.autocrlf=true`), applied the one-line fix, and the suite is 29 of 29 there. On this machine's own working copy the file is LF, so the suite was green before and after: the failure shows only on a CRLF checkout (section 1).
 - **One more defect class, fixed, and it is only comments:** two test names written in code comments did not exist (F2). The code is unchanged.
 - **Three findings I did not change** (section 6): the order's numbering of §5.14 is not the document's (F3, a mapping, no defect); **the wording lists miss plain paraphrases** (F4, measured: a one-word insertion defeats a listed phrase; yours and the native readers'); and a stale open item in `waiting-on.md` was out of date and is updated (F5).
-- **Needs from you:** nothing blocks. The list of section 7 is unchanged from part 10, and **F4 is the one new thing to weigh before the wording lists are signed.**
+- **Needs from you:** (1) **the push**: the three commits are local (section 9); the permission classifier refused `git push origin main`. (2) Nothing else blocks. The list of section 7 is unchanged from part 10, and **F4 is the one new thing to weigh before the wording lists are signed.**
 
 ## 1. Task 1: Finding F1, Windows CRLF in `scripts/reply/eval-run.js`
 
@@ -159,7 +159,7 @@ Not findings, but stated so you do not have to find them: the recorded run has n
 
 **After the last edit I ran again:** `npx jest` on `eval-run-cli`, `acceptance-5-14` and `demo-recordings`, `npm run type-check`, ESLint and `prettier --check --end-of-line auto` on the changed files (results in the session entry).
 
-**Commits and push:** see the session entry in `.claude/state/current-state.md` (it records the hashes and whether the push went through).
+**Commits and push:** three local commits by explicit paths on top of `origin/main` = `fe1524f4` (a fetch showed nothing newer): `4009b635` (F1 and F2), `41b42994` (this report, the architecture note, the gotchas, the state files) and the one after it, which records that **the push is NOT done**: `git push origin main` was denied by the auto-mode permission classifier ("Out-of-Place Publication"), as it was for earlier sessions, and I tried nothing else. **Davin pushes** (`git push origin main`; the pre-push hook runs the type-check and the whole suite, which passed here: 517 suites, 17,856 tests, 0 failed).
 
 ## 10. Suggested next task
 
