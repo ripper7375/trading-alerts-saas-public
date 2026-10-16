@@ -263,89 +263,77 @@ export default function LoginForm(): React.JSX.Element {
         </div>
       )}
 
-      {/* Quick Test Accounts Helper */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs dark:border-slate-800 dark:bg-[#06080e]">
-        <div className="mb-2 flex items-center justify-between font-semibold text-slate-600 dark:text-slate-400">
-          <span>⚡ {t('Quick Test Credentials:')}</span>
-          <span className="text-[10px] text-amber-600 dark:text-amber-400">
-            {t('Click to Autofill')}
-          </span>
+      {/* Quick Test Accounts Helper (development/test only) */}
+      {(() => {
+        const nodeEnv =
+          (typeof process !== 'undefined' && process.env
+            ? (Reflect.get(process.env, 'NODE_ENV') as string | undefined)
+            : undefined) ?? process.env.NODE_ENV;
+        return nodeEnv === 'development' || nodeEnv === 'test';
+      })() && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs dark:border-slate-800 dark:bg-[#06080e]">
+          <div className="mb-2 flex items-center justify-between font-semibold text-slate-600 dark:text-slate-400">
+            <span>⚡ {t('Quick Test Credentials:')}</span>
+            <span className="text-[10px] text-amber-600 dark:text-amber-400">
+              {t('Click to Autofill')}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill(
+                  'free-test@trading-alerts.test',
+                  'TestPassword123!'
+                )
+              }
+              className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-2 text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:bg-[#0b0e17] dark:text-slate-300 dark:hover:bg-[#12151f]"
+            >
+              <span>{t('FREE User')}</span>
+              <CheckCircle2 className="h-3.5 w-3.5 text-slate-400" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill(
+                  'pro-test@trading-alerts.test',
+                  'TestPassword123!'
+                )
+              }
+              className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-amber-600 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
+            >
+              <span className="font-semibold">{t('PRO User')}</span>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill(
+                  'affiliate-test@trading-alerts.test',
+                  'AffiliatePassword123!'
+                )
+              }
+              className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-600 transition-colors hover:bg-emerald-500/20 dark:text-emerald-400"
+            >
+              <span className="font-semibold">{t('Affiliate (FREE)')}</span>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                handleAutofill(
+                  'affiliate-pro-test@trading-alerts.test',
+                  'AffiliatePassword123!'
+                )
+              }
+              className="flex items-center justify-between rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 text-blue-600 transition-colors hover:bg-blue-500/20 dark:text-blue-400"
+            >
+              <span className="font-semibold">{t('Affiliate (PRO)')}</span>
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-2 font-mono text-[11px]">
-          <button
-            type="button"
-            onClick={() =>
-              handleAutofill(
-                'free-test@trading-alerts.test',
-                'TestPassword123!'
-              )
-            }
-            className="flex items-center justify-between rounded-lg border border-slate-200 bg-white p-2 text-slate-700 transition-colors hover:bg-slate-100 dark:border-slate-800 dark:bg-[#0b0e17] dark:text-slate-300 dark:hover:bg-[#12151f]"
-          >
-            <span>{t('FREE User')}</span>
-            <CheckCircle2 className="h-3.5 w-3.5 text-slate-400" />
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              handleAutofill('pro-test@trading-alerts.test', 'TestPassword123!')
-            }
-            className="flex items-center justify-between rounded-lg border border-amber-500/30 bg-amber-500/10 p-2 text-amber-600 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
-          >
-            <span className="font-semibold">{t('PRO User')}</span>
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              handleAutofill(
-                'admin-test@trading-alerts.test',
-                'AdminPassword123!'
-              )
-            }
-            className="flex items-center justify-between rounded-lg border border-rose-500/30 bg-rose-500/10 p-2 text-rose-600 transition-colors hover:bg-rose-500/20 dark:text-rose-400"
-          >
-            <span className="font-semibold">{t('Admin Test')}</span>
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              handleAutofill('admin@tradingalerts.com', 'ChangeMe123!')
-            }
-            className="flex items-center justify-between rounded-lg border border-orange-500/30 bg-orange-500/10 p-2 text-orange-600 transition-colors hover:bg-orange-500/20 dark:text-orange-400"
-          >
-            <span className="font-semibold">{t('Admin (Fixed)')}</span>
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              handleAutofill(
-                'affiliate-test@trading-alerts.test',
-                'AffiliatePassword123!'
-              )
-            }
-            className="flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-2 text-emerald-600 transition-colors hover:bg-emerald-500/20 dark:text-emerald-400"
-          >
-            <span className="font-semibold">{t('Affiliate (FREE)')}</span>
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              handleAutofill(
-                'affiliate-pro-test@trading-alerts.test',
-                'AffiliatePassword123!'
-              )
-            }
-            className="flex items-center justify-between rounded-lg border border-blue-500/30 bg-blue-500/10 p-2 text-blue-600 transition-colors hover:bg-blue-500/20 dark:text-blue-400"
-          >
-            <span className="font-semibold">{t('Affiliate (PRO)')}</span>
-            <CheckCircle2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Email Field */}

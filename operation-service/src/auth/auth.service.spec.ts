@@ -67,7 +67,7 @@ describe('AuthService', () => {
   const originalNodeEnv = process.env['NODE_ENV'];
 
   let prisma: {
-    user: { findUnique: jest.Mock; create: jest.Mock };
+    user: { findUnique: jest.Mock; create: jest.Mock; upsert: jest.Mock };
   };
   let refreshTokens: {
     issue: jest.Mock;
@@ -80,8 +80,9 @@ describe('AuthService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env['NEXTAUTH_SECRET'] = TEST_SECRET;
+    process.env['NODE_ENV'] = originalNodeEnv;
     prisma = {
-      user: { findUnique: jest.fn(), create: jest.fn() },
+      user: { findUnique: jest.fn(), create: jest.fn(), upsert: jest.fn() },
     };
     refreshTokens = {
       issue: jest.fn().mockResolvedValue({
@@ -325,6 +326,58 @@ describe('AuthService', () => {
       await expect(
         service.login('__2fa_verified__', wrongPurposeToken)
       ).rejects.toThrow(InvalidCredentialsError);
+    });
+
+    it('never grants fixed-credential bypass for admin@tradingalerts.com or admin-test@trading-alerts.test even in development/test', async () => {
+      process.env['NODE_ENV'] = 'development';
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.login('admin@tradingalerts.com', 'ChangeMe123!')
+      ).rejects.toThrow(InvalidCredentialsError);
+      await expect(
+        service.login('admin-test@trading-alerts.test', 'AdminPassword123!')
+      ).rejects.toThrow(InvalidCredentialsError);
+
+      expect(prisma.user.upsert).not.toHaveBeenCalled();
+      expect(prisma.user.findUnique).toHaveBeenCalledTimes(2);
+    });
+
+    it('disables FIXED_TEST_ACCOUNTS when NODE_ENV is production or unset', async () => {
+      process.env['NODE_ENV'] = 'production';
+      prisma.user.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.login('free-test@trading-alerts.test', 'TestPassword123!')
+      ).rejects.toThrow(InvalidCredentialsError);
+      expect(prisma.user.upsert).not.toHaveBeenCalled();
+
+      delete process.env['NODE_ENV'];
+      await expect(
+        service.login('pro-test@trading-alerts.test', 'TestPassword123!')
+      ).rejects.toThrow(InvalidCredentialsError);
+      expect(prisma.user.upsert).not.toHaveBeenCalled();
+    });
+
+    it('allows non-admin FIXED_TEST_ACCOUNTS in test/development environments', async () => {
+      process.env['NODE_ENV'] = 'test';
+      prisma.user.upsert.mockResolvedValue(
+        makeUser({
+          id: 'free-test-id',
+          email: 'free-test@trading-alerts.test',
+          tier: 'FREE',
+          role: 'USER',
+        })
+      );
+
+      const result = await service.login(
+        'free-test@trading-alerts.test',
+        'TestPassword123!'
+      );
+
+      expect(prisma.user.upsert).toHaveBeenCalledTimes(1);
+      expect(result.user.email).toBe('free-test@trading-alerts.test');
+      expect(result.user.role).toBe('USER');
     });
   });
 

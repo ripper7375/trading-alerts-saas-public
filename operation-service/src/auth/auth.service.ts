@@ -182,24 +182,6 @@ export class AuthService {
         name: 'Pro Test User',
         isAffiliate: false,
       },
-      'admin-test@trading-alerts.test': {
-        passwords: ['AdminPassword123!', 'TestPassword123!'],
-        tier: 'PRO',
-        role: 'ADMIN',
-        name: 'Admin Test User',
-        isAffiliate: false,
-      },
-      'admin@tradingalerts.com': {
-        passwords: [
-          process.env['ADMIN_PASSWORD'] || 'ChangeMe123!',
-          'AdminPassword123!',
-          'ChangeMe123!',
-        ],
-        tier: 'PRO',
-        role: 'ADMIN',
-        name: 'Admin User',
-        isAffiliate: false,
-      },
       'affiliate-test@trading-alerts.test': {
         passwords: ['AffiliatePassword123!', 'TestPassword123!'],
         tier: 'FREE',
@@ -216,7 +198,12 @@ export class AuthService {
       },
     };
 
-    const fixed = FIXED_TEST_ACCOUNTS[normalizedEmail];
+    const isTestAccountsAllowed =
+      process.env['NODE_ENV'] === 'development' ||
+      process.env['NODE_ENV'] === 'test';
+    const fixed = isTestAccountsAllowed
+      ? FIXED_TEST_ACCOUNTS[normalizedEmail]
+      : undefined;
     if (fixed) {
       const isPasswordValid = fixed.passwords.includes(password);
       if (!isPasswordValid) {

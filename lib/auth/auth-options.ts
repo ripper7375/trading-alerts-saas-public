@@ -142,14 +142,12 @@ function CustomPrismaAdapter(): Adapter {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * NextAuth Configuration — OAuth only (Google, Twitter/X, LinkedIn)
+ * NextAuth Configuration — OAuth (Google, Twitter/X, LinkedIn) + Credentials fallback
  *
- * Session 4B-21 (DECISION-LOG.md F56, Option B): CredentialsProvider was
- * retired from here once email/password login, registration, 2FA, and
- * logout fully cut over to operation-service via the token-* bridge routes
- * (see lib/auth/auth-bridge-flag.ts). This file now exists solely to keep
- * OAuth sign-in working indefinitely - it is not a staging step toward
- * removal.
+ * Email/password login routes through operation-service via `/api/auth/token-login`
+ * when `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED=true` (see `lib/auth/auth-bridge-flag.ts`),
+ * while `CredentialsProvider` below remains the fallback path when the bridge flag
+ * is off. OAuth sign-in stays handled here permanently (DECISION-LOG.md F56).
  *
  * Features:
  * - Google OAuth 2.0 for seamless user authentication
@@ -181,7 +179,7 @@ export const authOptions: NextAuthOptions = {
 
         const email = credentials.email.toLowerCase().trim();
 
-        // 1. Check if email matches a predefined test/admin account
+        // 1. Check if email matches a predefined non-admin test account (dev/test/preview only)
         const FIXED_TEST_ACCOUNTS: Record<
           string,
           {
@@ -206,24 +204,6 @@ export const authOptions: NextAuthOptions = {
             name: 'Pro Test User',
             isAffiliate: false,
           },
-          'admin-test@trading-alerts.test': {
-            passwords: ['AdminPassword123!', 'TestPassword123!'],
-            tier: 'PRO',
-            role: 'ADMIN',
-            name: 'Admin Test User',
-            isAffiliate: false,
-          },
-          'admin@tradingalerts.com': {
-            passwords: [
-              process.env['ADMIN_PASSWORD'] || 'ChangeMe123!',
-              'AdminPassword123!',
-              'ChangeMe123!',
-            ],
-            tier: 'PRO',
-            role: 'ADMIN',
-            name: 'Admin User',
-            isAffiliate: false,
-          },
           'affiliate-test@trading-alerts.test': {
             passwords: ['AffiliatePassword123!', 'TestPassword123!'],
             tier: 'FREE',
@@ -240,7 +220,17 @@ export const authOptions: NextAuthOptions = {
           },
         };
 
-        const fixed = FIXED_TEST_ACCOUNTS[email];
+        const runtimeNodeEnv = Reflect.get(process.env, 'NODE_ENV') as
+          | string
+          | undefined;
+        const isTestAccountsAllowed =
+          (runtimeNodeEnv === 'development' ||
+            runtimeNodeEnv === 'test' ||
+            process.env['VERCEL_ENV'] === 'preview') &&
+          process.env['VERCEL_ENV'] !== 'production';
+        const fixed = isTestAccountsAllowed
+          ? FIXED_TEST_ACCOUNTS[email]
+          : undefined;
         if (fixed) {
           const isPasswordValid = fixed.passwords.includes(
             credentials.password

@@ -293,4 +293,44 @@ describe('LoginForm', () => {
       screen.getByRole('button', { name: 'Hide password' })
     ).toBeInTheDocument();
   });
+
+  describe('Quick Test Credentials helper panel (P0 hardening)', () => {
+    const originalNodeEnv = Reflect.get(process.env, 'NODE_ENV');
+
+    afterEach(() => {
+      Reflect.set(process.env, 'NODE_ENV', originalNodeEnv);
+    });
+
+    it('renders non-admin quick test buttons in test/development but never renders admin buttons', () => {
+      mockIsAuthBridgeEnabled.mockReturnValue(false);
+      render(withLocale(<LoginForm />));
+
+      expect(screen.getByText(/Quick Test Credentials:/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /FREE User/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /PRO User/i })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Admin Test/i })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Admin \(Fixed\)/i })
+      ).not.toBeInTheDocument();
+    });
+
+    it('hides the Quick Test Credentials panel completely when NODE_ENV is production', () => {
+      Reflect.set(process.env, 'NODE_ENV', 'production');
+      mockIsAuthBridgeEnabled.mockReturnValue(false);
+      render(withLocale(<LoginForm />));
+
+      expect(
+        screen.queryByText(/Quick Test Credentials:/i)
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /FREE User/i })
+      ).not.toBeInTheDocument();
+    });
+  });
 });
