@@ -697,12 +697,17 @@ describe('the Free tier', () => {
     expect(f.calls).toHaveLength(0);
   });
 
-  it('while no recording exists says the example is not available yet (the recording is part 10’s)', () => {
-    expect(loadDemo('en-US')).toBeNull();
+  it('says the example is not available yet whenever a trader may not be shown the recording (not approved, or made by a stand-in run: demo-recordings.test.tsx holds the rule)', () => {
+    const shown = loadDemo('en-US') !== null;
     renderIn(<ChatPanel tier="FREE" />);
-    expect(screen.getByTestId('demo-empty')).toHaveTextContent(
-      'The recorded example is not available yet.'
-    );
+    if (shown) {
+      expect(screen.getByTestId('demo-replay')).toBeInTheDocument();
+      expect(screen.queryByTestId('demo-empty')).not.toBeInTheDocument();
+    } else {
+      expect(screen.getByTestId('demo-empty')).toHaveTextContent(
+        'The recorded example is not available yet.'
+      );
+    }
   });
 
   const demo = (): DemoRecording => ({

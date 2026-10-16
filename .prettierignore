@@ -51,3 +51,12 @@ config/reply/prompts/approval.json
 # must not touch either.
 config/reply/wording/review.md
 config/reply/wording/approval.json
+
+# Golden scenarios, recorded evaluation runs and the Free tier recordings of the reply path (build step 7 part 10): review.md is generated and
+# compared byte for byte by `node scripts/reply/golden-tool.js check` and `node scripts/reply/record-demo.js check`; approval.json holds the hash of
+# what Davin signed; a recorded run is compared byte for byte with a fresh recording by `node scripts/reply/eval-run.js --check` (one cell to a line);
+# and the demo recordings are the composed results of a recorded run. Prettier must not touch any of them. The scenario file itself IS formatted.
+config/reply/golden/review.md
+config/reply/golden/approval.json
+config/reply/eval-runs/**
+config/reply/demo/**

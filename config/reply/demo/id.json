@@ -1,0 +1,274 @@
+{
+  "schema": "demo-recording/1",
+  "locale": "id",
+  "source": {
+    "kind": "STAND_IN",
+    "run_id": "standin-195b4e225f70",
+    "fingerprint_sha256": "195b4e225f70041a8bfc4053bac9a1af0deac1aa0590e94981fae0be59f37fbd",
+    "scenario": "M01",
+    "trader": "DAY_TRADER",
+    "pass": 1
+  },
+  "recording": {
+    "as_of": "2026-09-18T20:55Z",
+    "locale": "id",
+    "turns": [
+      {
+        "question": null,
+        "instant": "INSTANT_M5_INSPECT",
+        "result": {
+          "schema": "reply-result/1",
+          "kind": "REPORT1",
+          "thread_id": "th-eval-0001",
+          "reply_locale": "id",
+          "intent": "INSTANT_M5_INSPECT",
+          "stamp": {
+            "as_of": "2026-09-18T20:55Z",
+            "data_status": "FRESH",
+            "retuning": false,
+            "flags": []
+          },
+          "disclaimer_version": "disclaimer-1",
+          "provenance": {
+            "request_id": "2dbfebce1a85b764139c1e5be894ca6132f6b95bde94f184c06366013c0ad4dd",
+            "model": "fixture-a/recorded",
+            "prompt_version": "prompts.v1",
+            "reply_version": "1.0.0"
+          },
+          "checks": {
+            "numbers_flagged": 0,
+            "regenerations": 0
+          },
+          "changes": [],
+          "notes": [],
+          "report": {
+            "headline": "Harga di dekat 4.378,31, di dalam kisaran hari ini dari 4.368,30 hingga 4.388,97",
+            "direction": {
+              "bias": "LONG",
+              "trend_relation": "COUNTER_TREND",
+              "rule_id": "R1_MACRO_COUNTER_TREND_RALLY",
+              "archetype": "C",
+              "stand_aside": false,
+              "profile": "DAY_TRADER"
+            },
+            "alignment": {
+              "trend_relation": "COUNTER_TREND",
+              "channels": [
+                {
+                  "mcd_id": "MCD1",
+                  "timeframe": "M15",
+                  "status": "CAUTIONARY",
+                  "state_code": "MCD1_DOWN_UPPER_BREAKOUT",
+                  "bias": "LONG"
+                },
+                {
+                  "mcd_id": "MCD2",
+                  "timeframe": "M5",
+                  "status": "CAUTIONARY",
+                  "state_code": "MCD2_UP_IN_CORRIDOR",
+                  "bias": "LONG"
+                }
+              ],
+              "lines": [
+                {
+                  "text": "MCD1 · MCD1_DOWN_UPPER_BREAKOUT",
+                  "cites": [
+                    "MCD1"
+                  ]
+                },
+                {
+                  "text": "MCD2 · MCD2_UP_IN_CORRIDOR",
+                  "cites": [
+                    "MCD2"
+                  ]
+                },
+                {
+                  "text": "MCD3 · MCD3_NON_CONSOLIDATED_TREND_CONFLICT",
+                  "cites": [
+                    "MCD3"
+                  ]
+                }
+              ]
+            },
+            "levels": [
+              {
+                "id": "MCD2.UOEDT",
+                "kind": "CHANNEL",
+                "timeframe": "M5",
+                "name": "UOEDT",
+                "price": 4384.23
+              },
+              {
+                "id": "MCD3.M5.UOEDT",
+                "kind": "CHANNEL",
+                "timeframe": "M5",
+                "name": "UOEDT",
+                "price": 4384.23
+              },
+              {
+                "id": "Z1.next_opposing",
+                "kind": "CONTEXT",
+                "timeframe": "M15",
+                "name": "sr_1",
+                "price": 4369.57
+              },
+              {
+                "id": "MCD2.baseline",
+                "kind": "CHANNEL",
+                "timeframe": "M5",
+                "name": "baseline",
+                "price": 4367.2
+              },
+              {
+                "id": "MCD3.M5.baseline",
+                "kind": "CHANNEL",
+                "timeframe": "M5",
+                "name": "baseline",
+                "price": 4367.2
+              },
+              {
+                "id": "Z1.invalidation_level",
+                "kind": "CONTEXT",
+                "timeframe": "M15",
+                "name": "sr_2",
+                "price": 4350.92
+              },
+              {
+                "id": "MCD2.LOEDT",
+                "kind": "CHANNEL",
+                "timeframe": "M5",
+                "name": "LOEDT",
+                "price": 4350.16
+              },
+              {
+                "id": "MCD3.M5.LOEDT",
+                "kind": "CHANNEL",
+                "timeframe": "M5",
+                "name": "LOEDT",
+                "price": 4350.16
+              },
+              {
+                "id": "Z2.invalidation_level",
+                "kind": "CONTEXT",
+                "timeframe": "M15",
+                "name": "sr_3",
+                "price": 4334.56
+              },
+              {
+                "id": "MCD1.UOEDT",
+                "kind": "CHANNEL",
+                "timeframe": "M15",
+                "name": "UOEDT",
+                "price": 4279.46
+              },
+              {
+                "id": "MCD3.M15.UOEDT",
+                "kind": "CHANNEL",
+                "timeframe": "M15",
+                "name": "UOEDT",
+                "price": 4279.46
+              },
+              {
+                "id": "MCD1.baseline",
+                "kind": "CHANNEL",
+                "timeframe": "M15",
+                "name": "baseline",
+                "price": 4214.17
+              },
+              {
+                "id": "MCD3.M15.baseline",
+                "kind": "CHANNEL",
+                "timeframe": "M15",
+                "name": "baseline",
+                "price": 4214.17
+              },
+              {
+                "id": "MCD1.LOEDT",
+                "kind": "CHANNEL",
+                "timeframe": "M15",
+                "name": "LOEDT",
+                "price": 4126.24
+              },
+              {
+                "id": "MCD3.M15.LOEDT",
+                "kind": "CHANNEL",
+                "timeframe": "M15",
+                "name": "LOEDT",
+                "price": 4126.24
+              }
+            ],
+            "zones": [
+              {
+                "zone_id": "Z1",
+                "bias": "LONG",
+                "low": 4363.79,
+                "high": 4370.61,
+                "reference_price": 4367.2,
+                "invalidation_price": 4350.42,
+                "invalidation_basis": "LEVEL",
+                "stop_distance": 16.78,
+                "next_opposing_price": 4369.57,
+                "runway": 2.37,
+                "runway_ratio": 0.14,
+                "source_sensors": [
+                  "MCD2"
+                ],
+                "confluence_count": 2
+              },
+              {
+                "zone_id": "Z2",
+                "bias": "LONG",
+                "low": 4346.75,
+                "high": 4353.57,
+                "reference_price": 4350.16,
+                "invalidation_price": 4334.06,
+                "invalidation_basis": "LEVEL",
+                "stop_distance": 16.1,
+                "next_opposing_price": 4350.92,
+                "runway": 0.76,
+                "runway_ratio": 0.05,
+                "source_sensors": [
+                  "MCD2"
+                ],
+                "confluence_count": 2
+              }
+            ],
+            "watch": [
+              {
+                "text": "Penutupan di luar 4.350,42 membatalkan skenario untuk Z1",
+                "cites": [
+                  "Z1"
+                ]
+              },
+              {
+                "text": "Penutupan di luar 4.334,06 membatalkan skenario untuk Z2",
+                "cites": [
+                  "Z2"
+                ]
+              }
+            ],
+            "risks": [
+              {
+                "text": "MCD1 · CAUTIONARY",
+                "cites": [
+                  "MCD1"
+                ]
+              },
+              {
+                "text": "MCD2 · CAUTIONARY",
+                "cites": [
+                  "MCD2"
+                ]
+              }
+            ],
+            "news": {
+              "status": "OK",
+              "calendar_age_seconds": 120,
+              "items": []
+            }
+          }
+        }
+      }
+    ]
+  }
+}

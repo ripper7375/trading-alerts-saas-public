@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -40,7 +39,7 @@ import type { Tier } from '@/lib/tier-config';
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { useLocale } from '@/lib/context/locale-context';
 
-import { loadDemo } from './chat/demo-source';
+import { useDemo } from './chat/demo-source';
 import { ThreadList } from './chat/thread-list';
 import { ProFeatureLinks } from './sidebar/pro-feature-links';
 
@@ -83,7 +82,7 @@ export function ChatSidebar({
     .toUpperCase()
     .slice(0, 2);
   // the Free tier's one thread is the recorded example (ADR-072, ADR-098 D19)
-  const demo = useMemo(() => loadDemo(language), [language]);
+  const demo = useDemo(language);
 
   // Same bridge-aware logout as components/layout/header.tsx.
   const handleLogout = async (): Promise<void> => {

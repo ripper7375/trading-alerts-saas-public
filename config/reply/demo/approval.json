@@ -1,0 +1,9 @@
+{
+  "schema": "demo-approval/1",
+  "area": "demo",
+  "status": "PENDING",
+  "approved_by": "",
+  "approved_on": "",
+  "content_sha256": "301901f798732f6289ee618bda21c347ea24fee3143ae6ffbf684354f52afde5",
+  "note": ""
+}

@@ -27,12 +27,10 @@
  * @module components/chat-panel
  */
 
-import { useMemo } from 'react';
-
 import { ChatPanelView } from '@/components/chat/chat-panel-view';
 import { ChatProvider, useOptionalChat } from '@/components/chat/chat-provider';
 import { useWorkspaceOverlay } from '@/components/chat/chat-workspace';
-import { loadDemo } from '@/components/chat/demo-source';
+import { useDemo } from '@/components/chat/demo-source';
 import { useTradeSetupLauncher } from '@/components/chat/trade-setup-launcher';
 import { useLocale } from '@/lib/context/locale-context';
 import type { Tier } from '@/lib/tier-config';
@@ -59,7 +57,7 @@ export default function ChatPanel({
   const workspaceOverlay = useWorkspaceOverlay();
   // the launcher of this shell; unused (and idle) when the workspace has one above
   const launcher = useTradeSetupLauncher();
-  const demo = useMemo(() => loadDemo(language), [language]);
+  const demo = useDemo(language);
   const chatTier = tier === 'PRO' ? 'PRO' : 'FREE';
 
   const view = (

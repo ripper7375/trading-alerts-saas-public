@@ -33,7 +33,13 @@
  *   node scripts/reply/measure-units.js --help
  *   node scripts/reply/measure-units.js --traces <file.json|file.ndjson> [options]
  *   node scripts/reply/measure-units.js --db [--url <postgres url>] [options]
+ *   node scripts/reply/measure-units.js --run <eval-run.json> [options]
  *
+ *   --run <file>      a recorded evaluation run (config/reply/eval-runs/*.json, build step 7 part 10):
+ *                     every cell a model wrote becomes one measured request, so the same table comes
+ *                     out of the live run of runbook S2 before there is any traffic. A STAND-IN run
+ *                     is measured too, to prove the mechanism, and the table says so: its units are
+ *                     the fixture model's under a FICTIONAL price and mean nothing about money.
  *   --traces <file>   rows of request_traces as a JSON array or one JSON object a line (the columns
  *                     request_id, thread_id, intent, model, units_charged, outcome, created_at and
  *                     the JSON columns model_group and checks_group)
@@ -59,6 +65,7 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 
 const KINDS = ['FIRST_MESSAGE', 'FOLLOW_UP', 'INSTANT'];
 const PERCENTILES = [50, 90, 95, 99];
@@ -116,6 +123,51 @@ function normalise(row) {
     fallbackUsed: modelGroup.fallback_used === true,
     regenerated: checksGroup.regenerations === 1,
   };
+}
+
+/**
+ * The rows of request_traces that a recorded evaluation run stands in for (part 10): one row per cell,
+ * with the units the ledger charged, the tokens the calls reported and the model that wrote the reply.
+ * A cell is its own thread, so a typed question is a first message; an instant prompt is an instant.
+ * The intent of a cell is its scenario's, read from the scenario file next to the run.
+ */
+function rowsFromRun(run, scenarios) {
+  const intentOf = new Map(scenarios.map((s) => [s.id, s.intent]));
+  return run.cells.map((cell) => {
+    const intent = intentOf.get(cell.scenario) ?? 'DIRECTION';
+    const answered = cell.judgement !== null;
+    const calls = Array.isArray(cell.calls) ? cell.calls : [];
+    const sum = (key) =>
+      calls.reduce((total, call) => total + (call[key] ?? 0), 0);
+    const staged =
+      calls.length > 0 && calls.every((call) => call.host === 'fixture');
+    return {
+      request_id: cell.id,
+      thread_id: intent.startsWith('INSTANT_') ? null : `th-${cell.id}`,
+      intent,
+      model: answered
+        ? run.kind === 'LIVE' && staged
+          ? 'fixture (staged)'
+          : run.model.slug
+        : null,
+      units_charged: cell.units,
+      outcome: cell.outcome,
+      created_at: `${run.made_on}T00:00:00Z`,
+      model_group: {
+        tokens: {
+          prompt: sum('prompt_tokens'),
+          completion: sum('completion_tokens'),
+          cached: sum('cached_tokens'),
+        },
+        cost_micro_usd: sum('cost_micro_usd'),
+        fallback_used: cell.fallback_used === true,
+      },
+      checks_group: {
+        regenerations:
+          cell.judgement !== null && cell.judgement.regenerations === 1 ? 1 : 0,
+      },
+    };
+  });
 }
 
 function readFile(path) {
@@ -513,6 +565,10 @@ function parseArgs(argv) {
       case '--db':
         options.db = true;
         break;
+      case '--run':
+        options.run = need(i, arg);
+        i += 1;
+        break;
       case '--url':
         options.url = need(i, arg);
         i += 1;
@@ -553,8 +609,16 @@ function parseArgs(argv) {
     }
   }
   if (options.help) return options;
-  if ((options.traces === undefined) === (options.db !== true)) {
-    throw new Error('give exactly one of --traces <file> and --db');
+  if (
+    [
+      options.traces !== undefined,
+      options.db === true,
+      options.run !== undefined,
+    ].filter(Boolean).length !== 1
+  ) {
+    throw new Error(
+      'give exactly one of --traces <file>, --db and --run <file>'
+    );
   }
   if ((options.price === undefined) !== (options.share === undefined)) {
     throw new Error('--price and --share go together');
@@ -606,8 +670,28 @@ async function main(
       : Date.parse(`${options.until}T00:00:00Z`);
 
   let rows;
+  let source = null;
   try {
-    if (options.traces !== undefined) {
+    if (options.run !== undefined) {
+      const run = JSON.parse(fs.readFileSync(options.run, 'utf8').trim());
+      if (!run || run.schema !== 'eval-run/1' || !Array.isArray(run.cells)) {
+        throw new Error('not an evaluation run (schema eval-run/1)');
+      }
+      const scenarioFile = path.join(
+        __dirname,
+        '..',
+        '..',
+        'config',
+        'reply',
+        'golden',
+        'scenarios.v1.json'
+      );
+      rows = rowsFromRun(
+        run,
+        JSON.parse(fs.readFileSync(scenarioFile, 'utf8')).scenarios
+      );
+      source = { kind: run.kind, id: run.id };
+    } else if (options.traces !== undefined) {
       rows = readFile(options.traces);
     } else {
       const url = options.url ?? env.DATABASE_PUBLIC_URL;
@@ -648,9 +732,22 @@ async function main(
       buys: buys(report, result.units),
     };
   }
+  if (source !== null && source.kind === 'STAND_IN' && !options.json) {
+    io.out(
+      "STAND-IN RUN: the replies are the fixture model's and the units are under a FICTIONAL price. This shows the mechanism and measures nothing about money."
+    );
+  }
   io.out(
     options.json
-      ? JSON.stringify({ ...report, proposal: extra ?? null }, null, 2)
+      ? JSON.stringify(
+          {
+            ...report,
+            proposal: extra ?? null,
+            ...(source === null ? {} : { source }),
+          },
+          null,
+          2
+        )
       : render(report, extra)
   );
   return report.measured === 0 ? 1 : 0;
@@ -670,6 +767,7 @@ module.exports = {
   proposal,
   readFile,
   render,
+  rowsFromRun,
   spread,
 };
 

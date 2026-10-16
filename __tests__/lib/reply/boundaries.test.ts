@@ -93,6 +93,8 @@ const REPLY_OUTSIDE: Readonly<Record<string, readonly string[]>> = {
   'report1/invalidation-line.ts': [
     '@/config/reply/report1/invalidation-line.v1.json',
   ],
+  // the golden scenarios (build step 7 part 10): the scenario table, and nothing else from outside
+  'eval/scenarios.ts': ['@/config/reply/golden/scenarios.v1.json'],
 };
 
 /** The folder of `lib/reply` whose files may read (and only they may be imported by path). */
@@ -440,7 +442,7 @@ function loadPure(): Map<string, string> {
 describe('lib/reply', () => {
   const sources = loadPure();
 
-  it('has the files of parts 1 to 7a', () => {
+  it('has the files of parts 1 to 7a and the evaluation suite of part 10', () => {
     expect([...sources.keys()]).toEqual([
       'checks/extract.ts',
       'checks/matcher.ts',
@@ -471,6 +473,12 @@ describe('lib/reply', () => {
       'contracts/shape.ts',
       'contracts/stage-events.ts',
       'contracts/trace-fields.ts',
+      'eval/fingerprint.ts',
+      'eval/languages.ts',
+      'eval/report.ts',
+      'eval/scenarios.ts',
+      'eval/scoring.ts',
+      'eval/suite.ts',
       'gate/answer-gate.ts',
       'gate/shape.ts',
       'gateway/fallback.ts',

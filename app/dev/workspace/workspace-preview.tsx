@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useMemo, useRef, useState, type ReactElement } from 'react';
 
+import { DemoPolicyContext } from '@/components/chat/demo-source';
 import { ProUpgradeModal } from '@/components/ui/pro-upgrade-modal';
 import { useAppearance } from '@/components/providers/appearance-provider';
 import { TradingWorkspace } from '@/components/workspace/trading-workspace';
@@ -75,6 +76,9 @@ export function WorkspacePreview(): ReactElement {
   const [tier, setTier] = useState<'PRO' | 'FREE'>('PRO');
   const [replyEnabled, setReplyEnabled] = useState(true);
   const [instantPrompts, setInstantPrompts] = useState(true);
+  // the Free tier's recorded example: the files of config/reply/demo/, which the product itself shows
+  // only once they are approved and come from a live run (components/chat/demo-source.ts)
+  const [recorded, setRecorded] = useState(true);
   const [world, setWorld] = useState<ThreadWorld>('five');
   const [answer, setAnswer] = useState<string>('report1-short-instant');
   const [open, setOpen] = useState(true);
@@ -117,16 +121,18 @@ export function WorkspacePreview(): ReactElement {
 
   return (
     <div data-testid="workspace-preview" className="relative">
-      <TradingWorkspace
-        key={key}
-        tier={tier}
-        replyEnabled={replyEnabled}
-        instantPromptsEnabled={instantPrompts}
-        chatFetchImpl={standIn}
-        {...(tier === 'FREE'
-          ? { onOpenUpgradeModal: () => setUpgrade(true) }
-          : {})}
-      />
+      <DemoPolicyContext.Provider value={{ includeUnapproved: recorded }}>
+        <TradingWorkspace
+          key={key}
+          tier={tier}
+          replyEnabled={replyEnabled}
+          instantPromptsEnabled={instantPrompts}
+          chatFetchImpl={standIn}
+          {...(tier === 'FREE'
+            ? { onOpenUpgradeModal: () => setUpgrade(true) }
+            : {})}
+        />
+      </DemoPolicyContext.Provider>
       {tier === 'FREE' ? (
         <ProUpgradeModal
           isOpen={upgrade}
@@ -194,6 +200,12 @@ export function WorkspacePreview(): ReactElement {
               value={instantPrompts}
               onChange={setInstantPrompts}
               testId="preview-instant"
+            />
+            <Toggle
+              label="Free: show the recorded example (stand-in, unapproved)"
+              value={recorded}
+              onChange={setRecorded}
+              testId="preview-demo"
             />
             <div className="space-y-1">
               <label htmlFor="world" className={LABEL}>

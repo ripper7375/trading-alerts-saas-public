@@ -1,0 +1,1196 @@
+{
+  "schema": "golden-reply/1",
+  "version": "scenarios.v1",
+  "scenarios": [
+    {
+      "id": "G01",
+      "family": "CYCLE",
+      "title": "Golden cycle 01: the real 18 Sep cycle: a counter-trend rally",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "01",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G02",
+      "family": "CYCLE",
+      "title": "Golden cycle 02: the real 28 Sep 14:15 cycle: a snapback with no zones",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "02",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G03",
+      "family": "CYCLE",
+      "title": "Golden cycle 03: the real 28 Sep 23:15 cycle: a downtrend continuing",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "03",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G04",
+      "family": "CYCLE",
+      "title": "Golden cycle 04: a trend up with every sensor valid",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "04",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G05",
+      "family": "CYCLE",
+      "title": "Golden cycle 05: a level just above the entry",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "05",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G06",
+      "family": "CYCLE",
+      "title": "Golden cycle 06: an M15 spike up with M5 flat",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "06",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G07",
+      "family": "CYCLE",
+      "title": "Golden cycle 07: opposite spikes, the primary sensor decides",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "07",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G08",
+      "family": "CYCLE",
+      "title": "Golden cycle 08: an M5 overextension up",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "08",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G09",
+      "family": "CYCLE",
+      "title": "Golden cycle 09: the middle of a range: stand aside",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "09",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G10",
+      "family": "CYCLE",
+      "title": "Golden cycle 10: a range edge up, with a conflict",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "10",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G11",
+      "family": "CYCLE",
+      "title": "Golden cycle 11: a range edge down",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "11",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G12",
+      "family": "CYCLE",
+      "title": "Golden cycle 12: an unresolved conflict",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "12",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G13",
+      "family": "CYCLE",
+      "title": "Golden cycle 13: a counter-trend decline",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "13",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G14",
+      "family": "CYCLE",
+      "title": "Golden cycle 14: the primary sensor stale",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "14",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G15",
+      "family": "CYCLE",
+      "title": "Golden cycle 15: the M5 sensor invalid: no rule matches",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "15",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "G16",
+      "family": "CYCLE",
+      "title": "Golden cycle 16: only MCD2 live, a narrow channel",
+      "rule": "Report 1's direction is the synthesis reading's, copied; the zones are the stored zones; a stand-aside reading stays one (5.7, 5.10, ADR-052).",
+      "row": null,
+      "cycle": "16",
+      "traders": ["DAY_TRADER", "SCALPER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "O01",
+      "family": "DATA",
+      "title": "The 18 Sep cycle with the data DELAYED",
+      "rule": "A DELAYED cycle still gets its direction, and the reply says the data is late (5.3: direction yes, the delay stated).",
+      "row": null,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "DELAYED",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D01",
+      "family": "DEGRADED",
+      "title": "Row 1: market data STALE, a question about direction",
+      "rule": "No direction and no model call; the reply says when the data stopped (5.3, 7.6 row 1, ADR-051).",
+      "row": 1,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "FIXTURE",
+      "condition": "NONE",
+      "overlay": {
+        "status": "STALE",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "FIXED_ANSWER",
+        "fixed_reason": "DATA_STALE",
+        "refusal": null,
+        "model_calls": {
+          "min": 0,
+          "max": 0
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "NONE",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D01b",
+      "family": "DEGRADED",
+      "title": "Row 1: market data STALE, a question that is not about direction",
+      "rule": "Other questions are answered when the data is stale: Explain is one of them (5.3, 7.6 row 1).",
+      "row": 1,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "EXPLAIN",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "STALE",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "ANSWER",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "NONE",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D02",
+      "family": "DEGRADED",
+      "title": "Row 2: the market is closed",
+      "rule": "The last session's picture is shown, labelled by the stamp; direction yes, Report 2 no (5.3, 7.6 row 2).",
+      "row": 2,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "MARKET_CLOSED",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D03",
+      "family": "DEGRADED",
+      "title": "Row 3: a sensor is stale, an instant prompt on M15",
+      "rule": "A sensor that is INVALID or STALE is listed as unavailable and left out of the synthesis; the reply is still given (4.9, ADR-040, 7.6 row 3).",
+      "row": 3,
+      "cycle": "14",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "INSTANT_M15_INSPECT",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D04",
+      "family": "DEGRADED",
+      "title": "Row 4: the stored chart is from another cycle",
+      "rule": "The chart is not sent to the model and the reply says the chart is missing; the answer is text only (5.3, 7.6 row 4, ADR-051).",
+      "row": 4,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "INSTANT_M5_INSPECT",
+      "source": "MODEL",
+      "condition": "CHART_OTHER_CYCLE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": ["CHART_OTHER_CYCLE"],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D05",
+      "family": "DEGRADED",
+      "title": "Row 5: the sensors are being retuned",
+      "rule": "RETUNING is a flag on the cycle: the answer is given and the stamp carries the flag; Report 2 opens with the half-risk pre-set (ADR-015, ADR-061, 7.6 row 5).",
+      "row": 5,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": true
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D06",
+      "family": "DEGRADED",
+      "title": "Row 6: the model provider is down, the fallback answers",
+      "rule": "The fallback model of another provider writes the reply (ADR-055, 7.6 row 6).",
+      "row": 6,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "FIXTURE",
+      "condition": "MODEL_DOWN",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 2,
+          "max": 2
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": true
+      }
+    },
+    {
+      "id": "D06b",
+      "family": "DEGRADED",
+      "title": "Row 6: both models are down",
+      "rule": "A fixed answer from the sensor board, with the synthesis direction and no model words (ADR-055, 7.6 row 6).",
+      "row": 6,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "FIXTURE",
+      "condition": "BOTH_MODELS_DOWN",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "FIXED_ANSWER",
+        "fixed_reason": "MODEL_UNAVAILABLE",
+        "refusal": null,
+        "model_calls": {
+          "min": 2,
+          "max": 2
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D07",
+      "family": "DEGRADED",
+      "title": "Row 7: the quota is exhausted",
+      "rule": "Refused before any model call; the balance is shown (5.6, ADR-050, 7.6 row 7).",
+      "row": 7,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "FIXTURE",
+      "condition": "QUOTA_EXHAUSTED",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REFUSED",
+        "fixed_reason": null,
+        "refusal": "QUOTA_INSUFFICIENT",
+        "model_calls": {
+          "min": 0,
+          "max": 0
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "NONE",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D08",
+      "family": "DEGRADED",
+      "title": "Row 8: the knowledge index won't load",
+      "rule": "Report 1 is made from the sensor data alone and the pack is marked unavailable in the trace; Report 2 is unaffected (ADR-078, 7.6 row 8).",
+      "row": 8,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "KNOWLEDGE_DOWN",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D09",
+      "family": "DEGRADED",
+      "title": "Row 9: the news calendar was not exported for 45 minutes",
+      "rule": "The calendar block says it is late and shows its age; the blackout is applied from the last known schedule by Engine 4 (worked example 08, ADR-078, 7.6 row 9).",
+      "row": 9,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "MODEL",
+      "condition": "CALENDAR_LATE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": "LATE",
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "D10",
+      "family": "DEGRADED",
+      "title": "Row 10: `symbol_specs` older than 7 days",
+      "rule": "The chat only opens the Trade Setup modal; Report 2 is not offered until the specs refresh, which Engine 4's offer check decides (worked example 09, ADR-078, 7.6 row 10).",
+      "row": 10,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "REPORT_2",
+      "source": "FIXTURE",
+      "condition": "SPECS_STALE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "ACTION",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 0,
+          "max": 0
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "NONE",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "P01",
+      "family": "PLANTED",
+      "title": "A planted wrong price, kept in the regeneration",
+      "rule": "A price the model types that is not in the context is caught, the model is asked once more, and what is still wrong is shown as \"not verified\" (5.8, ADR-053, 5.14 item 5).",
+      "row": null,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "FIXTURE",
+      "condition": "PLANT_WRONG_PRICE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 2,
+          "max": 2
+        },
+        "regenerations": 1,
+        "schema_retries": 0,
+        "numbers_flagged": 1,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "P02",
+      "family": "PLANTED",
+      "title": "A planted listed phrase, in each of the 19 locales",
+      "rule": "A phrase of the wording lists is caught in every language, the model is asked once more, and the clean reply is delivered (5.9, ADR-056, 5.14 item 6).",
+      "row": null,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": "ALL",
+      "intent": "DIRECTION",
+      "source": "FIXTURE",
+      "condition": "PLANT_BANNED_PHRASE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 2,
+          "max": 2
+        },
+        "regenerations": 1,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "P03",
+      "family": "PLANTED",
+      "title": "A planted malformed JSON",
+      "rule": "A reply that is not JSON is asked for again once; the valid reply is delivered (5.10: valid after at most one retry).",
+      "row": null,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "FIXTURE",
+      "condition": "PLANT_BAD_JSON",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 2,
+          "max": 2
+        },
+        "regenerations": 0,
+        "schema_retries": 1,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "P04",
+      "family": "PLANTED",
+      "title": "A planted zone id the cycle does not have",
+      "rule": "A zone id that is not one of the stored zones fails the schema; the model is asked once more and the valid reply is delivered (5.7, 5.10).",
+      "row": null,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": ["en-US"],
+      "intent": "DIRECTION",
+      "source": "FIXTURE",
+      "condition": "PLANT_BAD_ZONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 2,
+          "max": 2
+        },
+        "regenerations": 0,
+        "schema_retries": 1,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    },
+    {
+      "id": "M01",
+      "family": "DEMO",
+      "title": "The Free tier's recorded example: the 18 Sep cycle, an M5 instant prompt",
+      "rule": "The recorded example a Free trader sees is a real golden scenario replayed from storage in the trader's language, labelled with the time of its data (ADR-072, decision D19).",
+      "row": null,
+      "cycle": "01",
+      "traders": ["DAY_TRADER"],
+      "locales": "ALL",
+      "intent": "INSTANT_M5_INSPECT",
+      "source": "MODEL",
+      "condition": "NONE",
+      "overlay": {
+        "status": "FRESH",
+        "retuning": false
+      },
+      "expect": {
+        "outcome": "REPORT1",
+        "fixed_reason": null,
+        "refusal": null,
+        "model_calls": {
+          "min": 1,
+          "max": 1
+        },
+        "regenerations": 0,
+        "schema_retries": 0,
+        "numbers_flagged": 0,
+        "direction": "SYN",
+        "zones_valid": true,
+        "stand_aside_kept": true,
+        "notes": [],
+        "news_status": null,
+        "fallback_used": false
+      }
+    }
+  ]
+}

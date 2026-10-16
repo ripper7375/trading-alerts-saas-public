@@ -44,8 +44,16 @@ jest.mock('next/navigation', () => ({
 }));
 
 let lastProps: Record<string, unknown> = {};
+let lastPolicy: unknown = null;
 jest.mock('@/components/workspace/trading-workspace', () => ({
   TradingWorkspace: (props: Record<string, unknown>) => {
+    // the policy the two Free panels would read (components/chat/demo-source.ts)
+
+    const { DemoPolicyContext } = jest.requireActual(
+      '@/components/chat/demo-source'
+    );
+
+    lastPolicy = require('react').useContext(DemoPolicyContext);
     lastProps = props;
     return <div data-testid="workspace-stub" />;
   },
@@ -446,6 +454,15 @@ describe('the preview', () => {
       'data-open',
       'true'
     );
+  });
+
+  it('lets the Free panels look at the recorded example of config/reply/demo (a stand-in, unapproved), and turns that off on request', async () => {
+    renderPreview();
+    expect(lastPolicy).toEqual({ includeUnapproved: true });
+    await userEvent.click(screen.getByTestId('preview-demo'));
+    expect(lastPolicy).toEqual({ includeUnapproved: false });
+    await userEvent.click(screen.getByTestId('preview-demo'));
+    expect(lastPolicy).toEqual({ includeUnapproved: true });
   });
 
   it('its stand-in answers the state, the threads and a message, and files the message into the list', async () => {

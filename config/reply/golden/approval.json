@@ -1,0 +1,9 @@
+{
+  "schema": "golden-reply-approval/1",
+  "area": "golden-reply",
+  "status": "PENDING",
+  "approved_by": "",
+  "approved_on": "",
+  "content_sha256": "8abd22de10ea2320deac4762922f60a9beda268c2f4ca86bda5fe97fbda6b968",
+  "note": ""
+}
