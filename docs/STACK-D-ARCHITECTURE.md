@@ -1647,9 +1647,9 @@ Short chat answers ≤ 8 s. One regeneration adds a model call; its rate is trac
 **Checked (build step 7 session B, 2026-10-16;** [report](handoffs/2026-10-16-step7-session-b-verification.md)**).** All eight items above are shown by named,
 passing tests. Items 2 and 5 also held against probes written by the checker (the ledger and the reaper on a scratch PostgreSQL 18.1; the $0.05 line of
 the number check), item 4 has its non-test caller (`lib/reply/read/chart.ts:150`), and the tables of 5.3 and 7.6 agree with the code. One defect was found
-and fixed (`scripts/reply/eval-run.js` threw at load on a CRLF checkout). **Open:** item 6 holds for the listed phrases, but the lists are phrase lists and
-a plain paraphrase can miss them (6 of 19 locales missed one plain advice sentence), so the native readers' review (runbook S5) decides how wide they must
-be. Nothing here measures a model, a language or a price.
+and fixed (`scripts/reply/eval-run.js` threw at load on a CRLF checkout). **Settled by Davin:** item 6 holds for the listed phrases; the lists are phrase lists and
+a plain paraphrase can miss them (6 of 19 locales missed one plain advice sentence), and the decision is to keep an exact-phrase check, because the system
+prompt already restricts investment advice and the native readers and legal counsel review the lists at S5. Nothing here measures a model, a language or a price.
 
 ### 5.15 Decisions
 
