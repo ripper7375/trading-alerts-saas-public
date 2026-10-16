@@ -4,7 +4,7 @@
 - **Order:** [the Tier 0 to Tier 2 hand-off](../../davintrade-nest-js-checklists/nestjs-tier0-tier1-tier2-handoff-for-claude-code.md)
   from the Advisor, under [plan Revision 2](../../davintrade-nest-js-checklists/nestjs-production-remediation-master-plan.md).
   Davin approved Tier 0, Tier 1 (including the two `⚠` items, §5.1 and §5.6) and Tier 2 in the chat.
-- **State:** written and verified, **nothing committed, nothing pushed, nothing applied, nothing deployed.** The one
+- **State:** written and verified and **committed on `main`** (`4955cfd8`; `14a50ce2` for the checklist-folder rename), **not pushed, nothing applied, nothing deployed.** The one
   migration is a file. The unrelated untracked and dirty files named in the order were left alone.
 
 ## 1. What was done
@@ -86,7 +86,7 @@ In the order they bite.
 7. **Tier 0 §4.2 (the Railway and Stripe runtime inventory)** is still yours: start commands, replicas, draining,
    Watch Paths, `max_connections`, whether PgBouncer is in front. It is also what 2.9's "CRON_ENABLED on at most one
    instance" depends on.
-8. **Commit and push** when you decide. I made no commit. The pre-push hook runs the whole root suite.
+8. **Push** when you decide. The pre-push hook runs the whole root suite.
 
 ## 3. Where the order and the live code disagreed
 
