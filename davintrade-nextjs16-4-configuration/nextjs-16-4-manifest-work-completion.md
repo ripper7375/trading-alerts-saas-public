@@ -1,16 +1,16 @@
 ---
 type: Concept/Manifest
 status: completed
-updated_at: 2026-10-14
+updated_at: 2026-10-17
 owner: Codex & Antigravity (Advisor)
 ---
 
 # Next.js 16.4 and React 19.3 — Manifest of Work Completion
 
-**Date:** 2026-10-14, Asia/Bangkok.
+**Date:** 2026-10-17, Asia/Bangkok.
 **Branch:** `main`.
-**State:** Phase 1 configuration, Path A Settings implementation, and subsequent Settings/Checkout 80ms Micro-Fade refinements delivered and verified. Phase 1 (`7d2f452b`), Path A initial pilot (`820aa640`), and Settings dynamic keying (`509c3e77`) are in local Git history. Checkout layout and globals CSS tuning are verified (TypeScript & 178-route Turbopack build exit 0).
-**Approved by Davin in chat:** Review Antigravity's canonical roadmap; implement Phase 1 Turbopack options; modernize React typings and pilot Settings View Transitions (Path A); diagnose and resolve persistent-layout update suppression; tune transitions to a snappy 80ms Micro-Fade; establish the 0ms Instant vs 80ms Micro-Fade UX standard; and extend the 80ms Micro-Fade to Payment & Checkout (`/checkout/*`).
+**State:** Phase 1 configuration, Path A Settings implementation, Settings/Checkout 80ms Micro-Fade refinements, and Next.js 16.4.1 Out-of-Band Security Patch delivered and verified. Phase 1 (`7d2f452b`), Path A initial pilot (`820aa640`), Settings dynamic keying (`509c3e77`), and Adoption manifest/tuning (`5d31544c`) are in local Git history. Checkout layout, globals CSS tuning, and Next.js 16.4.1 upgrade are verified (TypeScript, 178-route Turbopack build exit 0, and 518 Jest suites / 18,179 tests pass exit 0).
+**Approved by Davin in chat:** Review Antigravity's canonical roadmap; implement Phase 1 Turbopack options; modernize React typings and pilot Settings View Transitions (Path A); diagnose and resolve persistent-layout update suppression; tune transitions to a snappy 80ms Micro-Fade; establish the 0ms Instant vs 80ms Micro-Fade UX standard; extend the 80ms Micro-Fade to Payment & Checkout (`/checkout/*`); and upgrade to Next.js 16.4.1 following the October 14, 2026 Out-of-Band Security Advisory.
 
 This manifest consolidates the work performed across this session by both Codex and Antigravity. Its numbered structure follows the [intraday subscription prices completion manifest](../davintrade-intraday-subscription-prices/intraday-subscription-prices-manifest-work-completion.md). The [Phase 1 report](2026-10-14-next164-opt-in-phase1-codex.md) and [Path A report](2026-10-14-react19-view-transition-pilot-codex.md) retain their original delivery-time evidence.
 
@@ -18,32 +18,35 @@ This manifest consolidates the work performed across this session by both Codex 
 
 ## 0. Summary
 
-The installed runtime was already Next.js 16.4.0 with React and React DOM 19.3.0 when this work began. Codex reviewed the proposed four-phase adoption against installed framework guides, the live configuration, workspace constraints and repository rules. The review found that the engine options were supported, while static route guards and caching required a broader rendering-design prerequisite.
+The installed runtime was originally Next.js 16.4.0 with React and React DOM 19.3.0 when this work began. Codex reviewed the proposed four-phase adoption against installed framework guides, the live configuration, workspace constraints and repository rules. The review found that the engine options were supported, while static route guards and caching required a broader rendering-design prerequisite.
 
 Phase 1 added three supported experimental Turbopack options. Davin then selected Path A: update development typings to React 19.3, append the reduced-motion safeguard, and wrap the existing Settings content card in React's `<ViewTransition>`. Following initial live testing, Antigravity continued the work under Davin's steering:
 
 1. **Settings Dynamic Keying:** Diagnosed that Next.js persistent layouts suppress `enter`/`exit` transitions on Client Components without dynamic keys; created `app/settings/_components/settings-content-transition.tsx` (`key={pathname}`, `name="settings-subpage-content"`) to ensure smooth crossfades across all Settings tabs (committed in `509c3e77`).
 2. **Snappy UX Tuning:** Diagnosed browser-holding perceptual lag from the default 220ms crossfade; tuned `app/globals.css` to an ultra-snappy **80ms Micro-Fade** (60ms fade-out, 80ms fade-in, 80ms container resize), satisfying sub-100ms instant-feel UX thresholds.
 3. **FinTech UX Categorization & Payment Extension:** Established the architectural standard: 0ms Instant for high-frequency trading/alerts/terminal; 80ms Micro-Fade for deliberate configuration and checkout flows. Extended the 80ms Micro-Fade to Payment & Checkout (`/checkout/*`) via `CheckoutLayout` and `CheckoutContentTransition`.
+4. **Next.js 16.4.1 Security Patch Upgrade (2026-10-17):** Promptly patched to Next.js 16.4.1 following the October 14, 2026 advisory to eliminate critical/high vulnerabilities (Server Actions DoS, Image Optimization SVG RCE, and Cache Components RCE). Verified full system compatibility with exit 0 on `pnpm build` and 518 Jest test suites (18,179 tests).
 
-| Check or outcome                                | Recorded result                                                                          |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Phase 1 final application TypeScript            | Exit 0, including recheck after restoring `next-env.d.ts`                                |
-| Phase 1 final production build                  | Exit 0; existing warnings/diagnostics remain                                             |
-| Phase 1 final full root Jest                    | **383 suites / 11,732 tests**, exit 0; zero failures or skips                            |
-| Phase 1 dev smoke                               | Cold `/disclaimer` returned HTTP 200                                                     |
-| Path A dependency installation                  | Exit 0; root React and React DOM typings locked to 19.3.0                                |
-| Path A application TypeScript                   | Exit 0, including final restored-file recheck                                            |
-| Path A scoped library type compatibility        | Exit 0 with `skipLibCheck: false`                                                        |
-| Path A production build                         | Exit 0; existing warnings/diagnostics remain                                             |
-| Path A full root Jest                           | **383 suites / 11,748 tests**, exit 0; zero failures or skips                            |
-| Lint, all implementation stages                 | Exit 0; zero errors and five existing warnings                                           |
-| Settings dynamic keying TypeScript & build      | Exit 0; 178 routes compiled cleanly; committed in `509c3e77`                             |
-| Settings 80ms Micro-Fade CSS tuning TypeScript  | Exit 0; snappy 60ms/80ms keyframes verified in `globals.css`                             |
-| Checkout extension TypeScript & Turbopack build | Exit 0; all 178 routes compiled cleanly (`CheckoutLayout` + `CheckoutContentTransition`) |
-| Authenticated Settings/native animation         | Unavailable; no signed-in HTTP 200, native playback or zero-console-error claim          |
-| Current local integration                       | Phase 1 (`7d2f452b`); Path A (`820aa640`); Settings keying (`509c3e77`)                  |
-| Publication and deployment                      | Verified locally; remote publication and production behavior per Davin's git push        |
+| Check or outcome                                | Recorded result                                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Phase 1 final application TypeScript            | Exit 0, including recheck after restoring `next-env.d.ts`                                    |
+| Phase 1 final production build                  | Exit 0; existing warnings/diagnostics remain                                                 |
+| Phase 1 final full root Jest                    | **383 suites / 11,732 tests**, exit 0; zero failures or skips                                |
+| Phase 1 dev smoke                               | Cold `/disclaimer` returned HTTP 200                                                         |
+| Path A dependency installation                  | Exit 0; root React and React DOM typings locked to 19.3.0                                    |
+| Path A application TypeScript                   | Exit 0, including final restored-file recheck                                                |
+| Path A scoped library type compatibility        | Exit 0 with `skipLibCheck: false`                                                            |
+| Path A production build                         | Exit 0; existing warnings/diagnostics remain                                                 |
+| Path A full root Jest                           | **383 suites / 11,748 tests**, exit 0; zero failures or skips                                |
+| Lint, all implementation stages                 | Exit 0; zero errors and five existing warnings                                               |
+| Settings dynamic keying TypeScript & build      | Exit 0; 178 routes compiled cleanly; committed in `509c3e77`                                 |
+| Settings 80ms Micro-Fade CSS tuning TypeScript  | Exit 0; snappy 60ms/80ms keyframes verified in `globals.css`                                 |
+| Checkout extension TypeScript & Turbopack build | Exit 0; all 178 routes compiled cleanly (`CheckoutLayout` + `CheckoutContentTransition`)     |
+| Next.js 16.4.1 Security Patch Build             | Exit 0; all 178 dynamic routes compiled cleanly via `pnpm build`                             |
+| Next.js 16.4.1 Full Jest Test Suite             | **518 suites / 18,179 tests passed**, exit 0; 0 failures                                     |
+| Authenticated Settings/native animation         | Unavailable; no signed-in HTTP 200, native playback or zero-console-error claim              |
+| Current local integration                       | Phase 1 (`7d2f452b`); Path A (`820aa640`); Settings keying (`509c3e77`); Tuning (`5d31544c`) |
+| Publication and deployment                      | Verified locally; remote publication and production behavior per Davin's git push            |
 
 These gates reflect verified states across the session stages. Documentation verification for this manifest is recorded in §12.3.
 
@@ -397,4 +400,29 @@ Phase 1 raw logs remain temporary evidence rather than a promised durable report
 
 Only this manifest and its durable task record were added by the consolidation. They remain uncommitted. Application tests/builds are historical gates and were not repeated for this documentation-only change. Temporary verification details are in `verification.json` at the manifest evidence location in §12.2.
 
-**Completion boundary:** The session delivered the approved Phase 1 configuration, Path A typing modernization, Settings dynamic-keying refinement, 80ms Micro-Fade snappiness optimization, and the Payment & Checkout extension, reviewed roadmap feasibility, preserved others' work and produced the requested records. The remaining static/cache roadmap, warning-free build cleanup and authenticated native-animation verification remain separate future work; this manifest documents the completed integration boundary.
+---
+
+## 13. Out-of-Band Security Patch: Next.js 16.4.1 Adoption (2026-10-17)
+
+Following the official Next.js Security Advisory (October 14, 2026), DavinTrade evaluated and upgraded dependencies from Next.js 16.4.0 to 16.4.1.
+
+### 13.1 Security Advisory Summary
+
+- **App Router Server Actions DoS (GHSA-p3m5-59mp-jv5r / High Severity):** Fixes high CPU usage / DoS vulnerability triggered by crafted requests against Server Actions. Crucial for DavinTrade which utilizes Server Actions on App Router.
+- **Image Optimization SVG RCE (CVE-2026-96889 / GHSA-2464-fhr4-w9xw / Critical Severity):** Patches upstream memory corruption vulnerability in `sharp` (<0.35.5) on Linux glibc runtimes.
+- **`use cache` Typed Arrays RCE (GHSA-673q-mjm6-r5xr / Critical Severity):** Hardens Cache Components when returning multiple typed arrays.
+
+### 13.2 Dependency Bumps
+
+- `next`: `16.4.0` -> `16.4.1`
+- `@next/bundle-analyzer`: `16.4.0` -> `16.4.1`
+- `@next/swc-win32-x64-msvc`: `16.4.0` -> `16.4.1`
+- `eslint-config-next`: `16.4.0` -> `16.4.1`
+- `pnpm.overrides`: pinned `next` and `@next/swc-win32-x64-msvc` to `16.4.1`
+
+### 13.3 Verification
+
+- `pnpm build`: Exit 0 (all App Router pages and API routes compiled cleanly).
+- Full Jest test suite: **518 test suites passed / 18,179 tests passed** (0 failed).
+
+**Completion boundary:** The session delivered the approved Phase 1 configuration, Path A typing modernization, Settings dynamic-keying refinement, 80ms Micro-Fade snappiness optimization, Payment & Checkout extension, and the Next.js 16.4.1 Out-of-Band Security Patch, reviewed roadmap feasibility, preserved others' work and produced the requested records. The remaining static/cache roadmap, warning-free build cleanup and authenticated native-animation verification remain separate future work; this manifest documents the completed integration boundary.
