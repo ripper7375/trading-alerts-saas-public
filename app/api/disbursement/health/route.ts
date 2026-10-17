@@ -4,11 +4,21 @@
  * GET /api/disbursement/health
  *
  * Returns health status of the disbursement system.
- * Checks database connectivity, provider status, and system metrics.
- * Public endpoint for monitoring.
+ *
+ * Two answers, by caller:
+ * - A signed-in ADMIN gets the full diagnostic payload: database connectivity,
+ *   provider authentication, batch and transaction counts, the provider name
+ *   and the warnings.
+ * - Everyone else (a monitor, an anonymous visitor, a non-admin user) gets
+ *   only `{ status: 'healthy' | 'unhealthy' }` from a bare `SELECT 1`, with
+ *   200 or 503. The anonymous path never calls the payment provider and
+ *   never says which provider is configured, what is misconfigured or what
+ *   went wrong, so the public URL is neither a way to make the server call
+ *   RiseWorks nor a map of the configuration.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { isAdmin } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { createPaymentProvider } from '@/lib/disbursement/providers/provider-factory';
 import { getDefaultProvider } from '@/lib/disbursement/constants';
@@ -34,9 +44,27 @@ interface HealthResponse {
 const startTime = Date.now();
 
 /**
+ * The answer for anyone who is not a signed-in admin: a database round trip
+ * and one word. Nothing from the error is returned.
+ */
+async function getPublicHealth(): Promise<NextResponse> {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    return NextResponse.json({ status: 'healthy' }, { status: 200 });
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    return NextResponse.json({ status: 'unhealthy' }, { status: 503 });
+  }
+}
+
+/**
  * Get disbursement system health status
  */
 export async function GET(_request: NextRequest): Promise<NextResponse> {
+  if (!(await isAdmin())) {
+    return getPublicHealth();
+  }
+
   const checks: HealthChecks = {
     database: false,
     provider: false,

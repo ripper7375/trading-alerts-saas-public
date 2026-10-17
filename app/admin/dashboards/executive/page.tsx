@@ -5,6 +5,7 @@ import {
   getExecutiveAnalytics,
   type RagStatus,
 } from '@/lib/admin/analytics/executive';
+import { requireAdminPage } from '@/lib/auth/session';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
@@ -32,6 +33,7 @@ const RAG_BADGE_CLASS: Record<RagStatus, string> = {
  * plus a cross-functional RAG health-status matrix.
  */
 export default async function ExecutivePage(): Promise<React.ReactElement> {
+  await requireAdminPage();
   const data = await getExecutiveAnalytics();
   const prefs = await getServerLocalePreferences();
   const { rates: usdRates } = await getDisplayUsdRates();

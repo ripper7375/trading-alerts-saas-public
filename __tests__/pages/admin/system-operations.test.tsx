@@ -61,7 +61,16 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+// Pages that read data call requireAdminPage() first (Next.js remediation
+// T1-e). Admin by default; a test makes it reject the way redirect() does.
+const mockRequireAdminPage = jest.fn();
+jest.mock('@/lib/auth/session', () => ({
+  requireAdminPage: (...args: unknown[]) => mockRequireAdminPage(...args),
+}));
+
 beforeEach(() => {
+  mockRequireAdminPage.mockReset();
+  mockRequireAdminPage.mockResolvedValue({ user: { id: 'admin-1' } });
   localStorage.setItem(
     LOCALE_STORAGE_KEY,
     JSON.stringify({
@@ -305,6 +314,19 @@ describe('AdminSystemOutboxPage', () => {
       screen.queryByRole('button', { name: /Retry/ })
     ).not.toBeInTheDocument();
   });
+
+  it('checks for an admin first and reads nothing when the guard redirects', async () => {
+    mockRequireAdminPage.mockRejectedValue(new Error('NEXT_REDIRECT:/login'));
+
+    await expect(AdminSystemOutboxPage()).rejects.toThrow(
+      'NEXT_REDIRECT:/login'
+    );
+
+    expect(mockRequireAdminPage).toHaveBeenCalledTimes(1);
+    expect(mockGroupBy).not.toHaveBeenCalled();
+    expect(mockOutboxFindMany).not.toHaveBeenCalled();
+    expect(mockOutboxCount).not.toHaveBeenCalled();
+  });
 });
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -345,5 +367,18 @@ describe('AdminSystemConfigHistoryPage', () => {
     expect(
       screen.getByText(/No config changes have been recorded yet/)
     ).toBeInTheDocument();
+  });
+
+  it('checks for an admin first and reads nothing when the guard redirects', async () => {
+    mockRequireAdminPage.mockRejectedValue(
+      new Error('NEXT_REDIRECT:/dashboard?error=forbidden')
+    );
+
+    await expect(AdminSystemConfigHistoryPage()).rejects.toThrow(
+      'NEXT_REDIRECT:/dashboard?error=forbidden'
+    );
+
+    expect(mockRequireAdminPage).toHaveBeenCalledTimes(1);
+    expect(mockConfigFindMany).not.toHaveBeenCalled();
   });
 });

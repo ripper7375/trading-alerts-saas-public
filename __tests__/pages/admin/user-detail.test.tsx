@@ -54,6 +54,13 @@ jest.mock('next/navigation', () => ({
   usePathname: () => '/admin/users/user-1',
 }));
 
+// The page calls requireAdminPage() first (Next.js remediation T1-e). Admin
+// by default; a test makes it reject the way redirect() does.
+const mockRequireAdminPage = jest.fn();
+jest.mock('@/lib/auth/session', () => ({
+  requireAdminPage: (...args: unknown[]) => mockRequireAdminPage(...args),
+}));
+
 const mockUserFindUnique = jest.fn();
 const mockSubscriptionFindUnique = jest.fn();
 const mockUserSessionCount = jest.fn();
@@ -126,6 +133,23 @@ const realAffiliateProfile = {
 describe('AdminUserDetailPage (server component)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRequireAdminPage.mockReset();
+    mockRequireAdminPage.mockResolvedValue({ user: { id: 'admin-1' } });
+  });
+
+  it('checks for an admin first and reads nothing when the guard redirects', async () => {
+    mockRequireAdminPage.mockRejectedValue(new Error('NEXT_REDIRECT:/login'));
+
+    await expect(
+      AdminUserDetailPage({ params: Promise.resolve({ id: 'user-1' }) })
+    ).rejects.toThrow('NEXT_REDIRECT:/login');
+
+    expect(mockRequireAdminPage).toHaveBeenCalledTimes(1);
+    expect(mockUserFindUnique).not.toHaveBeenCalled();
+    expect(mockSubscriptionFindUnique).not.toHaveBeenCalled();
+    expect(mockUserSessionCount).not.toHaveBeenCalled();
+    expect(mockFraudAlertFindMany).not.toHaveBeenCalled();
+    expect(mockAffiliateProfileFindUnique).not.toHaveBeenCalled();
   });
 
   it('renders all 5 sections with real data', async () => {

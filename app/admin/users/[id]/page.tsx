@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { requireAdminPage } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { formatCurrencyAmount } from '@/lib/country-config';
 import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
@@ -91,6 +92,7 @@ const FRAUD_STATUS_CLASS: Record<string, string> = {
 export default async function AdminUserDetailPage({
   params,
 }: AdminUserDetailPageProps): Promise<React.ReactElement> {
+  await requireAdminPage();
   const { id } = await params;
   const prefs = {
     ...(await getServerLocalePreferences()),

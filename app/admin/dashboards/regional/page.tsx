@@ -5,6 +5,7 @@ import { TaxThresholdGauge } from '@/components/admin/analytics/tax-threshold-ga
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { OTHERS_ISO } from '@/lib/admin/analytics/jurisdictions';
 import { getRegionalAnalytics } from '@/lib/admin/analytics/regional';
+import { requireAdminPage } from '@/lib/auth/session';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
@@ -23,6 +24,7 @@ export const metadata = {
  * doc comment on lib/admin/analytics/regional.ts).
  */
 export default async function RegionalPage(): Promise<React.ReactElement> {
+  await requireAdminPage();
   const data = await getRegionalAnalytics();
   const prefs = await getServerLocalePreferences();
   const { rates: usdRates } = await getDisplayUsdRates();

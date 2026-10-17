@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { requireAdminPage } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { formatDateInZone } from '@/lib/i18n/format-datetime';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
@@ -23,6 +24,7 @@ const HISTORY_LIMIT = 50;
  * is empty rather than fabricating audit rows.
  */
 export default async function AdminSystemConfigHistoryPage(): Promise<React.ReactElement> {
+  await requireAdminPage();
   const entries = await prisma.systemConfigHistory.findMany({
     orderBy: { changedAt: 'desc' },
     take: HISTORY_LIMIT,

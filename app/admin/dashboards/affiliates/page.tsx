@@ -7,6 +7,7 @@ import {
   getAffiliatesAnalytics,
   type AffiliateReportPeriod,
 } from '@/lib/admin/analytics/affiliates';
+import { requireAdminPage } from '@/lib/auth/session';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
@@ -27,6 +28,7 @@ interface AffiliatesPageProps {
 export default async function AffiliatesPage({
   searchParams,
 }: AffiliatesPageProps): Promise<React.ReactElement> {
+  await requireAdminPage();
   const params = await searchParams;
   const period = (params.period as AffiliateReportPeriod) || '3months';
   const data = await getAffiliatesAnalytics(period);

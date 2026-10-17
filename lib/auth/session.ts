@@ -1,7 +1,9 @@
 import 'server-only';
 
+import { redirect } from 'next/navigation';
 import { getServerSession as getServerSessionNext } from 'next-auth';
 import type { Session } from 'next-auth';
+import { cache } from 'react';
 
 import type { AffiliateProfile } from '@/lib/affiliate/types';
 import type { UserTier, UserRole } from '@/types';
@@ -330,6 +332,50 @@ export async function requireAdmin(): Promise<Session> {
     );
   }
 }
+
+/**
+ * Page-level admin guard for Server Component pages under app/admin/**.
+ *
+ * `app/admin/layout.tsx` and `middleware.ts` already check the role, but in
+ * the App Router a layout and its page render in parallel and a client
+ * navigation can fetch the page's RSC payload on its own, so a page that
+ * reads data must not rely on the layout alone. Call
+ * `await requireAdminPage()` first in every such page.
+ *
+ * Unlike `requireAdmin()` (route handlers, throws AuthError) this redirects:
+ * a signed-out visitor goes to /login, a signed-in non-admin to /dashboard.
+ * It has the same database fallback as `requireAdmin()` and the layout, so a
+ * freshly promoted admin with a stale JWT role claim is not bounced by the
+ * page while the layout lets them through. A database error is not caught:
+ * the page fails (an error, never admin content), as the layout does.
+ *
+ * Wrapped in React.cache(), so the layout, the page and any component that
+ * calls it in one request share a single session read and one role lookup.
+ *
+ * @returns Promise resolving to the admin session
+ */
+export const requireAdminPage = cache(async (): Promise<Session> => {
+  const session = await getSession();
+
+  if (!session?.user?.id) {
+    redirect('/login');
+  }
+
+  if (session.user.role !== 'ADMIN') {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    if (dbUser?.role !== 'ADMIN') {
+      redirect('/dashboard?error=forbidden');
+    }
+
+    session.user.role = 'ADMIN';
+  }
+
+  return session;
+});
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 5. COMPOSED PERMISSION HELPERS

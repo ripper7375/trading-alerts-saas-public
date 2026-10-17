@@ -7,6 +7,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { RetryFailedEventsButton } from '@/components/admin/system/retry-failed-events-button';
+import { requireAdminPage } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { formatDateInZone } from '@/lib/i18n/format-datetime';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
@@ -38,6 +39,7 @@ function statusBadgeClass(status: string): string {
  * is an honest, expected result, not an error state.
  */
 export default async function AdminSystemOutboxPage(): Promise<React.ReactElement> {
+  await requireAdminPage();
   const [grouped, failedEvents, totalCount] = await Promise.all([
     prisma.outboxEvent.groupBy({
       by: ['status'],

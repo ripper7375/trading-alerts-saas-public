@@ -2,6 +2,7 @@ import { HistoricalTrendChart } from '@/components/admin/analytics/historical-tr
 import { KpiSummaryCard } from '@/components/admin/analytics/kpi-summary-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getUsersAnalytics } from '@/lib/admin/analytics/users';
+import { requireAdminPage } from '@/lib/auth/session';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 
@@ -12,6 +13,7 @@ export const metadata = { title: 'User Base & Funnel | DavinTrade Admin' };
  * Trajectory. Metrics #1-#7, #12.
  */
 export default async function UsersPage(): Promise<React.ReactElement> {
+  await requireAdminPage();
   const data = await getUsersAnalytics();
   const dict = getDictionary(await getServerLanguage());
 

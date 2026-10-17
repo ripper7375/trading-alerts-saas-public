@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
+import { validateOrigin } from '@/lib/csrf';
 import { SESSION_COOKIE_NAME } from '@/lib/operation-service/cookies';
 import {
   COUNTRY_HEADER,
@@ -47,17 +48,88 @@ const PROTECTED_PREFIXES = [
   '/admin',
   '/notifications',
   '/affiliate',
+  // The two workspaces (app/terminal and app/free). Each page redirects a
+  // signed-out visitor itself; gating here first adds the callbackUrl and
+  // puts the check at the edge as well.
+  '/terminal',
+  '/free',
   // The PRO pages (/pro/currency-index and /pro/currency-index/compare).
   // Their layout already requires a session, but a layout cannot see the
   // requested path, so it redirected to a bare /login and the visitor lost
   // their place. Gating here first adds the callbackUrl. The trailing slash
-  // is deliberate: a plain '/pro' prefix would also catch '/pricing'-style
-  // siblings such as a future '/promo' or '/products'.
+  // is deliberate: it means "children only", so a '/pro' prefix cannot also
+  // catch '/pricing'-style siblings such as a future '/promo' or '/products'.
   '/pro/',
 ];
 
+/**
+ * Segment-boundary prefix match: '/free' matches '/free' and '/free/x' but
+ * not '/freebies'. A prefix that ends in '/' matches only paths below it.
+ */
+function matchesPrefix(pathname: string, prefix: string): boolean {
+  if (prefix.endsWith('/')) {
+    return pathname.startsWith(prefix);
+  }
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
 function isProtectedPath(pathname: string): boolean {
-  return PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  return PROTECTED_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix));
+}
+
+// Central CSRF check (Next.js remediation T1-f). The session cookie is shared
+// with sibling subdomains of .davintrade.app, so every state-changing request
+// to /api/** must come from this site: validateOrigin() compares the Origin
+// header (or, without one, Sec-Fetch-Site) with this request's own host.
+const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+// Machine callers authenticated by a signature or a secret, never by the
+// session cookie, so a browser's Origin means nothing for them (a webhook
+// sender has none, or its own). Exempt a route only when its handler checks
+// such a credential: an admin-cookie route called by the admin UI (for
+// example /api/admin/system/jobs/*/trigger) belongs under the check. A
+// trailing '/' means "children only".
+const CSRF_EXEMPT_API_PREFIXES = [
+  '/api/webhooks/stripe', // stripe-signature
+  '/api/webhooks/dlocal', // x-signature
+  '/api/webhooks/riseworks', // x-rise-signature
+  '/api/cron/', // Authorization: Bearer CRON_SECRET
+];
+
+function isApiPath(pathname: string): boolean {
+  const path = pathname.replace(/\/{2,}/g, '/').toLowerCase();
+  return path === '/api' || path.startsWith('/api/');
+}
+
+/**
+ * Whether this request must pass validateOrigin(): a method that can change
+ * state, aimed at /api/**, and not a machine caller. The path is judged raw
+ * AND percent-decoded, so '/%61pi/alerts' or '//api/alerts' cannot dodge it
+ * if the router resolves them to /api/alerts; and only a plain path (no
+ * escapes) can be exempt, so no encoded path reaches an exemption. A path
+ * that cannot be decoded is checked: strict is the safe side.
+ */
+function requiresOriginCheck(method: string, pathname: string): boolean {
+  if (CSRF_SAFE_METHODS.has(method.toUpperCase())) {
+    return false;
+  }
+
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(pathname);
+  } catch {
+    return true;
+  }
+
+  if (!isApiPath(pathname) && !isApiPath(decoded)) {
+    return false;
+  }
+
+  const isPlainPath = decoded === pathname;
+  return !(
+    isPlainPath &&
+    CSRF_EXEMPT_API_PREFIXES.some((prefix) => matchesPrefix(pathname, prefix))
+  );
 }
 
 export async function middleware(request: NextRequest): Promise<NextResponse> {
@@ -74,6 +146,19 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   const targetPathname = countryPrefix
     ? '/' + segments.slice(1).join('/')
     : originalPathname;
+
+  // Before the auth gate and OUTSIDE its try/catch: that catch fails open on
+  // a token decode error, and a failure here (a refusal, or validateOrigin
+  // throwing) must never turn into a pass-through.
+  if (
+    requiresOriginCheck(request.method, targetPathname) &&
+    !(await validateOrigin(request))
+  ) {
+    return NextResponse.json(
+      { error: 'Invalid request origin' },
+      { status: 403 }
+    );
+  }
 
   if (PUBLIC_SETTINGS_PATHS.has(targetPathname)) {
     return finishWithLocale(
