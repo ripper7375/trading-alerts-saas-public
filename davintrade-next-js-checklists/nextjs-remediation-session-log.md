@@ -3,7 +3,7 @@
 - **Document Role:** Living Cross-Session Continuity & Handoff Log (Read at Session Start · Update at Session End)
 - **Implementation Plan Reference:** [`davintrade-next-js-checklists/nextjs-remediation-handoff-for-claude-code.md`](./nextjs-remediation-handoff-for-claude-code.md)
 - **Consensus Master Plan:** [`davintrade-next-js-checklists/nextjs-production-remediation-master-plan.md`](./nextjs-production-remediation-master-plan.md)
-- **Current Overall Status:** `IN_PROGRESS` (1 / 8 Sessions · 4 / 21 Units Completed — Session 1 done, uncommitted)
+- **Current Overall Status:** `IN_PROGRESS` (1 / 8 Sessions · 4 / 21 Units Completed — Session 1 done, committed locally as `f7a9e09b`, not pushed)
 
 ---
 
@@ -74,7 +74,7 @@
   - Red check: run against the old `redirect` callback the new test file fails 18 of 41; run against the old `lib/csrf.ts` it fails 35 of 51 (so the tests do detect the vulnerabilities).
   - `npm run build` was **not** run (Session 1 does not require it).
   - Running a subset with plain `npx jest <file>` prints `"global" coverage threshold … not met` lines because the repo's `jest.config.js` enforces global coverage; use `--coverage=false` for targeted runs.
-- **Git Working Tree State:** **Uncommitted, nothing staged.** The deletion of `app/api/test/seed/route.ts` shows as ` D`. The tree also holds many unrelated changes that were there before this session (deleted `mobile-app/**`, deleted `davintrade-nest-js-checklists/*`, modified `davintrade-next-js-checklists/nextjs-production-remediation-master-plan.md`, untracked folders). I did not touch them.
+- **Git Working Tree State:** **Committed locally on `main` as `f7a9e09b` (on Davin's word, by explicit paths: the 5 source files, the 3 new test files, the guard-test edit, this log and the 4 `.claude/state` files); not pushed, not deployed.** The pre-commit hook (lint-staged: ESLint `--fix` + Prettier) reformatted a few staged files; I re-ran ESLint (exit `0`), `tsc` (exit `0`) and Jest on the committed state: 14 suites, 294 tests, pass. Left uncommitted because they are not Session 1's: the many changes that were already in the tree (deleted `mobile-app/**` and `davintrade-nest-js-checklists/*`, modified `davintrade-next-js-checklists/nextjs-production-remediation-master-plan.md`, the untracked `davintrade-next-js-checklists/nextjs-remediation-handoff-for-claude-code.md` and `nextjs-session-prompts-for-davin.md`, other untracked folders). This log links to the handoff file, which is still untracked.
 - **Read-only production check for Davin (`P0-a`)** — run against the production database. The live route seeded six `@trading-alerts.test` users and `AffiliateCode` rows (not `admin@test.com` / `DiscountCode` as the handoff's example SQL says; that SQL would error or match nothing). Table names assume Prisma's default mapping (no `@@map` on these models). If any row exists, deactivate or delete it; also confirm `TEST_SECRET` is not set to a guessable value in any deployment.
 
   ```sql
