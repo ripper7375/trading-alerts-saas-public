@@ -116,6 +116,11 @@ export async function createPayment(
         Authorization: `V2-HMAC-SHA256, Signature: ${requestSignature}`,
       },
       body,
+      // Write budget (T1-a-writes): longer than a read, and never retried. A
+      // 5 s cut could sever the connection after dLocal has already created
+      // the payment; on a timeout the outcome is unknown and the error is
+      // thrown as it is.
+      signal: AbortSignal.timeout(15_000),
     });
 
     if (!response.ok) {
@@ -208,6 +213,8 @@ export async function getPaymentStatus(paymentId: string): Promise<{
         'Content-Type': 'application/json',
         Authorization: `Bearer ${DLOCAL_API_KEY}`,
       },
+      // Read call: fail fast (T1-a). createPayment gets the longer write budget.
+      signal: AbortSignal.timeout(5_000),
     });
 
     if (!response.ok) {

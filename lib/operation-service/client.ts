@@ -26,6 +26,8 @@ export interface OperationServiceErrorBody {
   // resend-verification's 60s per-user limit) carries this alongside
   // error/message — see operation-service/src/auth/auth-error.filter.ts.
   retryAfter?: number;
+  // Set by this module itself for a timeout: 'GATEWAY_TIMEOUT' (status 504).
+  code?: string;
 }
 
 export class OperationServiceError extends Error {
@@ -38,11 +40,93 @@ export class OperationServiceError extends Error {
   }
 }
 
-async function parseJsonBody(response: Response): Promise<unknown> {
+/**
+ * Read calls (GET/HEAD) fail fast. When MIGRATE_* flags are on, the proxied
+ * route handlers do not fall back to local Prisma on a throw, so a stalled
+ * operation-service would otherwise hang the Vercel function until the
+ * platform kills it.
+ */
+export const READ_TIMEOUT_MS = 5_000;
+
+/**
+ * Writes (POST/PUT/PATCH/DELETE) get a longer budget than the downstream
+ * transaction takes, and are NEVER retried here. A short timeout on a
+ * non-idempotent write could sever the connection after the upstream has
+ * already charged or disbursed; a retry could do it twice. A timed-out write
+ * is an unknown outcome: it is reported as 504 and the caller must not assume
+ * the write did or did not happen.
+ */
+export const WRITE_TIMEOUT_MS = 15_000;
+
+const READ_METHODS = new Set(['GET', 'HEAD']);
+
+function timeoutMsFor(method: string | undefined): number {
+  return READ_METHODS.has((method ?? 'GET').toUpperCase())
+    ? READ_TIMEOUT_MS
+    : WRITE_TIMEOUT_MS;
+}
+
+async function parseJsonBody(
+  response: Response,
+  timeoutSignal: AbortSignal
+): Promise<unknown> {
   try {
     return await response.json();
-  } catch {
+  } catch (error) {
+    // A timeout that fires while the body is still streaming must not be
+    // swallowed into `{}` and returned as a success.
+    if (timeoutSignal.aborted) throw error;
     return {};
+  }
+}
+
+/**
+ * One round trip: fetch (bounded by the method's timeout), parse the JSON
+ * body, throw OperationServiceError for a non-2xx. A timeout becomes
+ * OperationServiceError(504, GATEWAY_TIMEOUT) so every route handler's
+ * existing `.status`/`.body` mapping returns `{ error: 'Gateway timeout' }`.
+ * A caller-supplied `init.signal` still wins: its abort is rethrown as is.
+ */
+async function request(
+  path: string,
+  init: RequestInit
+): Promise<OperationServiceResponse<unknown>> {
+  const timeoutMs = timeoutMsFor(init.method);
+  const timeoutSignal = AbortSignal.timeout(timeoutMs);
+  const signal = init.signal
+    ? AbortSignal.any([init.signal, timeoutSignal])
+    : timeoutSignal;
+
+  try {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      ...init,
+      cache: 'no-store',
+      signal,
+    });
+
+    const body = await parseJsonBody(response, timeoutSignal);
+
+    if (!response.ok) {
+      throw new OperationServiceError(
+        response.status,
+        body as OperationServiceErrorBody
+      );
+    }
+
+    return { status: response.status, body };
+  } catch (error) {
+    if (
+      timeoutSignal.aborted &&
+      !init.signal?.aborted &&
+      !(error instanceof OperationServiceError)
+    ) {
+      throw new OperationServiceError(504, {
+        error: 'Gateway timeout',
+        code: 'GATEWAY_TIMEOUT',
+        message: `The upstream service did not answer within ${timeoutMs} ms`,
+      });
+    }
+    throw error;
   }
 }
 
@@ -58,23 +142,13 @@ export async function callOperationService<T>(
   path: string,
   init: RequestInit = {}
 ): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const { body } = await request(path, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
       ...init.headers,
     },
-    cache: 'no-store',
   });
-
-  const body = await parseJsonBody(response);
-
-  if (!response.ok) {
-    throw new OperationServiceError(
-      response.status,
-      body as OperationServiceErrorBody
-    );
-  }
 
   return body as T;
 }
@@ -111,26 +185,16 @@ export async function callOperationServiceWithTokenStatus<T>(
   accessToken: string,
   init: RequestInit = {}
 ): Promise<OperationServiceResponse<T>> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const { status, body } = await request(path, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
       ...init.headers,
       Authorization: `Bearer ${accessToken}`,
     },
-    cache: 'no-store',
   });
 
-  const body = await parseJsonBody(response);
-
-  if (!response.ok) {
-    throw new OperationServiceError(
-      response.status,
-      body as OperationServiceErrorBody
-    );
-  }
-
-  return { status: response.status, body: body as T };
+  return { status, body: body as T };
 }
 
 /**
@@ -147,26 +211,16 @@ export async function callOperationServiceWithOptionalTokenStatus<T>(
   accessToken: string | null,
   init: RequestInit = {}
 ): Promise<OperationServiceResponse<T>> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const { status, body } = await request(path, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
       ...init.headers,
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
-    cache: 'no-store',
   });
 
-  const body = await parseJsonBody(response);
-
-  if (!response.ok) {
-    throw new OperationServiceError(
-      response.status,
-      body as OperationServiceErrorBody
-    );
-  }
-
-  return { status: response.status, body: body as T };
+  return { status, body: body as T };
 }
 
 /**

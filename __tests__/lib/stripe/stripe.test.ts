@@ -110,6 +110,42 @@ describe('Stripe Client Functions', () => {
       const client2 = getStripeClient();
       expect(client1).toBe(client2);
     });
+
+    describe('request budget (T1-a-writes)', () => {
+      it('gives the SDK a 15 s timeout and one network retry', async () => {
+        jest.resetModules();
+        const { default: StripeConstructor } = await import('stripe');
+        const { getStripeClient, STRIPE_REQUEST_TIMEOUT_MS } = await import(
+          '@/lib/stripe/stripe'
+        );
+
+        getStripeClient();
+
+        expect(STRIPE_REQUEST_TIMEOUT_MS).toBe(15_000);
+        expect(StripeConstructor).toHaveBeenCalledTimes(1);
+        expect(StripeConstructor).toHaveBeenCalledWith(
+          'sk_test_mock',
+          expect.objectContaining({
+            timeout: 15_000,
+            maxNetworkRetries: 1,
+            typescript: true,
+          })
+        );
+      });
+
+      it('keeps the API version it had', async () => {
+        jest.resetModules();
+        const { default: StripeConstructor } = await import('stripe');
+        const { getStripeClient } = await import('@/lib/stripe/stripe');
+
+        getStripeClient();
+
+        expect(StripeConstructor).toHaveBeenCalledWith(
+          'sk_test_mock',
+          expect.objectContaining({ apiVersion: '2024-11-20.acacia' })
+        );
+      });
+    });
   });
 
   describe('buildCheckoutIdempotencyKey', () => {
@@ -493,10 +529,64 @@ describe('Stripe Client Functions', () => {
         ]);
       });
 
-      it('looks the Stripe Price up once per process', async () => {
+      it('looks the Stripe Price up once per process within the hour', async () => {
         await checkout(35);
         await checkout(40);
         expect(mockPricesRetrieve).toHaveBeenCalledTimes(1);
+      });
+
+      describe('cache lifetime (T1-a-writes)', () => {
+        const T0 = 1_800_000_000_000;
+        let nowSpy: jest.SpyInstance<number, []>;
+
+        beforeEach(() => {
+          nowSpy = jest.spyOn(Date, 'now').mockReturnValue(T0);
+        });
+
+        afterEach(() => {
+          nowSpy.mockRestore();
+        });
+
+        it('is one hour', async () => {
+          const { PRO_PRICE_CACHE_TTL_MS } = await import(
+            '@/lib/stripe/stripe'
+          );
+          expect(PRO_PRICE_CACHE_TTL_MS).toBe(60 * 60 * 1000);
+        });
+
+        it('still serves the cached Price one millisecond before the hour is up', async () => {
+          await checkout(35);
+          nowSpy.mockReturnValue(T0 + 60 * 60 * 1000 - 1);
+          await checkout(35);
+          expect(mockPricesRetrieve).toHaveBeenCalledTimes(1);
+        });
+
+        it('fetches the Price again once the hour is up', async () => {
+          await checkout(35);
+          nowSpy.mockReturnValue(T0 + 60 * 60 * 1000);
+          await checkout(35);
+          expect(mockPricesRetrieve).toHaveBeenCalledTimes(2);
+        });
+
+        it('picks up a Price changed in Stripe after the hour', async () => {
+          await checkout(29);
+          mockPricesRetrieve.mockResolvedValue({
+            ...stripePrice,
+            unit_amount: 3500,
+          });
+          nowSpy.mockReturnValue(T0 + 2 * 60 * 60 * 1000);
+          // 29 matched the old 2900 Price (used as-is); 29 no longer matches 3500.
+          expect((await checkout(29))[0]).toHaveProperty('price_data');
+        });
+
+        it('starts a fresh hour from the refetch, not from the first fetch', async () => {
+          await checkout(35);
+          nowSpy.mockReturnValue(T0 + 90 * 60 * 1000);
+          await checkout(35); // refetch at +90 min
+          nowSpy.mockReturnValue(T0 + 90 * 60 * 1000 + 30 * 60 * 1000);
+          await checkout(35); // +120 min: within an hour of the refetch
+          expect(mockPricesRetrieve).toHaveBeenCalledTimes(2);
+        });
       });
 
       it('retries the lookup after a failure instead of caching it', async () => {

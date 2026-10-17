@@ -57,6 +57,16 @@ function getClient(): S3Client {
       accessKeyId: requireEnv('R2_ACCESS_KEY_ID'),
       secretAccessKey: requireEnv('R2_SECRET_ACCESS_KEY'),
     },
+    // Connect and socket-inactivity timeouts only. A wall-clock
+    // AbortSignal.timeout on send() would also cut getChartImage's
+    // transformToByteArray() stream mid-download on a slow cold start.
+    // requestTimeout is the idle time on the socket, not the total duration,
+    // so a slow but progressing stream survives. (Passed as the handler's
+    // options object, which the SDK turns into a NodeHttpHandler.)
+    requestHandler: {
+      connectionTimeout: 3_000,
+      requestTimeout: 10_000,
+    },
   });
   return client;
 }

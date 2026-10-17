@@ -1,7 +1,11 @@
 /**
+ * @jest-environment node
+ *
  * dLocal Payment Service Tests
  *
  * Tests for payment creation, webhook verification, and status mapping.
+ * (Node environment: the service is server-only and its outbound calls use
+ * AbortSignal.timeout(), which jsdom's AbortSignal does not have.)
  */
 
 import crypto from 'crypto';

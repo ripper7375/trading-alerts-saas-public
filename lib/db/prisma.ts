@@ -28,23 +28,38 @@ import { PrismaPg } from '@prisma/adapter-pg';
  * which would otherwise change behavior against Railway's proxy TLS setup.
  */
 
-const adapter = new PrismaPg({
-  connectionString: process.env['DATABASE_URL'],
-  ssl: { rejectUnauthorized: false },
-});
-
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
+/**
+ * Built only when no client is cached on `globalThis`, so a dev hot reload
+ * (which re-evaluates this module) does not construct a new adapter each time.
+ */
+function createPrismaClient(): PrismaClient {
+  const adapter = new PrismaPg({
+    connectionString: process.env['DATABASE_URL'],
+    ssl: { rejectUnauthorized: false },
+    // Pool bounds (Next.js remediation T1-d). Each serverless instance builds its
+    // own pool behind PgBouncer, so a small `max` keeps the fleet's total
+    // connections down; `connectionTimeoutMillis` makes a request that cannot get
+    // a connection fail after 5 s instead of queueing until the function is
+    // killed; `idleTimeoutMillis` returns idle connections after 30 s. The
+    // sibling singleton in lib/db/market-prisma.ts uses the same numbers.
+    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: 30_000,
+    max: 5,
+  });
+
+  return new PrismaClient({
     adapter,
     log:
       process.env['NODE_ENV'] === 'development'
         ? ['query', 'error', 'warn']
         : ['error'],
   });
+}
+
+export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 
 if (process.env['NODE_ENV'] !== 'production') globalForPrisma.prisma = prisma;

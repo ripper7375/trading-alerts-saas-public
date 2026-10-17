@@ -22,11 +22,19 @@
  *    (OpenAI, DeepSeek, Moonshot, Z.AI, Gemini 2.5 implicit) and `NONE` does not. GPT-5.6's
  *    optional explicit mode uses a different field (`prompt_cache_breakpoint`) that is NOT sent here.
  *
- * Time and retries (decision D23): one attempt waits `timeout_ms` (the primary model 25 s, the
- * fallback 20 s; the Understand call keeps its one second). ONE retry for HTTP 429, HTTP 5xx, a
- * timeout or a network error; NONE for any other 4xx, a body that is not a completion, a body that
- * is too large, or a request that was aborted by the caller's own deadline: the same request would
- * fail the same way. The retry is immediate.
+ * Time and retries (decision D23, amended by the Next.js remediation T1-b): one attempt waits
+ * `timeout_ms` (the primary model 25 s, the fallback 20 s; the Understand call keeps its one
+ * second). ONE retry for HTTP 429, HTTP 5xx or a network error; NONE for any other 4xx, a body that
+ * is not a completion, a body that is too large, or a request that was aborted by the caller's own
+ * deadline: the same request would fail the same way. The retry is immediate.
+ *
+ * A TIMEOUT is not retried by a model port (`createOpenRouterModelPort`: the primary and the
+ * fallback). A model that did not answer in 25 s will not answer in the next 25 s, and the second
+ * attempt would eat the deadline the fallback needs: 25 + 25 + 20 s is more than the 55 s of
+ * `REPLY_DEADLINE_MS`, 25 + 20 s is not. The primary gives up at once and `fallback.ts` asks the
+ * other vendor. `callOpenRouter` itself still retries a timeout unless told not to
+ * (`retryOnTimeout`), because the Understand call (one second an attempt, no fallback) keeps its
+ * documented retry.
  *
  * THE KEY. It is read once into the `Authorization` header and appears nowhere else: not in the
  * URL, the body, a header other than that one, a result, a code, an exception, a log line or a
@@ -348,6 +356,11 @@ export interface CallOptions {
   now?: () => number;
   /** retries after the first attempt (default 1; a negative number is none) */
   retries?: number;
+  /**
+   * whether a TIMEOUT is retried (default true for `callOpenRouter`, false for a model port: see
+   * the module comment). It never changes the retry of a 429, a 5xx or a network error.
+   */
+  retryOnTimeout?: boolean;
   /** the largest response read, in characters */
   maxResponseChars?: number;
 }
@@ -539,6 +552,7 @@ export async function callOpenRouter(
   const timeoutMs = request.timeout_ms ?? ANSWER_TIMEOUT_MS;
   const maxChars = options.maxResponseChars ?? GATEWAY_MAX_RESPONSE_CHARS;
   const retries = options.retries ?? GATEWAY_RETRIES;
+  const retryOnTimeout = options.retryOnTimeout ?? true;
 
   let attempts = 1;
   let outcome = await attemptOnce(
@@ -553,6 +567,7 @@ export async function callOpenRouter(
   while (
     outcome.kind === 'failure' &&
     outcome.retry &&
+    (retryOnTimeout || outcome.code !== 'TIMEOUT') &&
     attempts - 1 < retries
   ) {
     if (aborted()) return fail('ABORTED', attempts);
@@ -585,13 +600,21 @@ export async function callOpenRouter(
   };
 }
 
-/** One model as a port. `defaultTimeoutMs` is the wait for an attempt when a request names none. */
+/**
+ * One model as a port. `defaultTimeoutMs` is the wait for an attempt when a request names none. A
+ * port does not retry a timeout (decision D23 as amended: the next model is asked instead), unless
+ * its options say `retryOnTimeout: true`.
+ */
 export function createOpenRouterModelPort(
   config: GatewayConfig | null,
   target: ModelTarget,
   options: CallOptions & { defaultTimeoutMs?: number } = {}
 ): ModelPort {
-  const { defaultTimeoutMs, ...call } = options;
+  const { defaultTimeoutMs, ...rest } = options;
+  const call: CallOptions = {
+    ...rest,
+    retryOnTimeout: rest.retryOnTimeout ?? false,
+  };
   return {
     target,
     complete: (request) =>

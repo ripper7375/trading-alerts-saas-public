@@ -1,8 +1,11 @@
 /**
  * Country Detection Service
  *
- * Detects user's country from request headers or IP address.
- * Supports Cloudflare, Vercel, and fallback IP geolocation.
+ * Detects user's country from request headers: Cloudflare, Vercel, or a manual
+ * override. There is no network lookup. The old fallback sent the visitor's IP
+ * in cleartext to http://ip-api.com (the free tier has no HTTPS) with no
+ * timeout; on Vercel the x-vercel-ip-country header is set on every
+ * production request, so the fallback only fired off-platform.
  */
 
 import { logger } from '@/lib/logger';
@@ -10,52 +13,8 @@ import { logger } from '@/lib/logger';
 const DEFAULT_COUNTRY = 'US';
 
 /**
- * Detects country from IP address using free geolocation API
- */
-export async function detectCountryFromIP(ip: string): Promise<string> {
-  try {
-    // Validate IP format (basic check)
-    if (!ip || ip === '0.0.0.0' || ip === '127.0.0.1' || ip === '::1') {
-      logger.debug('Local or invalid IP address', { ip });
-      return DEFAULT_COUNTRY;
-    }
-
-    // Use ip-api.com (free, no API key required)
-    const response = await fetch(
-      `http://ip-api.com/json/${ip}?fields=status,countryCode`,
-      {
-        next: { revalidate: 86400 }, // Cache for 24 hours
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(`API responded with status ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    if (data.status === 'success' && data.countryCode) {
-      logger.info('Country detected from IP', {
-        ip,
-        country: data.countryCode,
-      });
-      return data.countryCode;
-    }
-
-    logger.warn('Failed to detect country from IP', { ip, data });
-    return DEFAULT_COUNTRY;
-  } catch (error) {
-    logger.error('Error detecting country from IP', {
-      ip,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    return DEFAULT_COUNTRY;
-  }
-}
-
-/**
  * Detects country from request headers
- * Tries Cloudflare, then Vercel headers, then falls back to IP detection
+ * Tries Cloudflare, then Vercel, then a custom header, then the default.
  */
 export async function detectCountry(headers?: Headers): Promise<string> {
   if (!headers) {
@@ -90,14 +49,10 @@ export async function detectCountry(headers?: Headers): Promise<string> {
     return customCountry;
   }
 
-  // Fall back to IP-based detection
-  const forwardedFor = headers.get('x-forwarded-for');
-  const realIp = headers.get('x-real-ip');
-
-  // Get the first IP from x-forwarded-for (client IP)
-  const ip = forwardedFor?.split(',')[0]?.trim() || realIp || '0.0.0.0';
-
-  return await detectCountryFromIP(ip);
+  // No header named a country (local dev, or a request that bypassed the
+  // edge). No IP lookup: see the module comment.
+  logger.debug('No country header present, using default country');
+  return DEFAULT_COUNTRY;
 }
 
 /**

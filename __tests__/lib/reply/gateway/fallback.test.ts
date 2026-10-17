@@ -474,5 +474,131 @@ describe('the launch plan, through the kill switch, to the ports', () => {
         'FALLBACK',
       ]);
     });
+
+    describe('no retry of a timeout (T1-b, ADR-099 D23 amended)', () => {
+      // Real ports, the DEFAULT retry budget (one): the two ports above pass retries: 0 to isolate
+      // the waits. REPLY_DEADLINE_MS (55 s) is pinned in orchestrator.gaps.test.ts.
+      const DEADLINE_MS = 55_000;
+      const slugOf = (c: { init: RequestInit }) =>
+        JSON.parse(String(c.init.body)).model as string;
+
+      it('the waits leave room for both models inside the deadline', () => {
+        expect(ANSWER_TIMEOUT_MS + FALLBACK_TIMEOUT_MS).toBe(45_000);
+        expect(ANSWER_TIMEOUT_MS + FALLBACK_TIMEOUT_MS).toBeLessThan(
+          DEADLINE_MS
+        );
+        // what the old retry cost: 25 + 25 + 20 s
+        expect(ANSWER_TIMEOUT_MS * 2 + FALLBACK_TIMEOUT_MS).toBeGreaterThan(
+          DEADLINE_MS
+        );
+      });
+
+      it('a primary that times out is asked ONCE: the fallback is asked at 25 s, not at 50 s', async () => {
+        const fake = fetchFake((url, init) =>
+          JSON.parse(String(init.body)).model === 'vendor-a/one'
+            ? hanging(url, init)
+            : completion('{"headline":"x"}')
+        );
+        const ports = launchPorts(config, planLaunch(new Set(), rows), {
+          fetchImpl: fake.fetch,
+        });
+        const pending = completeWithFallback(ports, request());
+
+        await jest.advanceTimersByTimeAsync(ANSWER_TIMEOUT_MS - 1);
+        expect(fake.calls.map(slugOf)).toEqual(['vendor-a/one']);
+        await jest.advanceTimersByTimeAsync(1);
+        const outcome = await pending;
+
+        expect(fake.calls.map(slugOf)).toEqual([
+          'vendor-a/one',
+          'vendor-b/two',
+        ]);
+        expect(outcome.answered_by).toBe('FALLBACK');
+        expect(outcomeShape(outcome).attempts).toEqual([
+          ['PRIMARY', 'TIMEOUT'],
+          ['FALLBACK', 'OK'],
+        ]);
+        expect(outcome.attempts[0]?.result).toMatchObject({
+          ok: false,
+          code: 'TIMEOUT',
+          attempts: 1,
+        });
+      });
+
+      it('both models hanging end at 45 s with one call each, inside the 55 s deadline', async () => {
+        const fake = fetchFake(hanging);
+        const ports = launchPorts(config, planLaunch(new Set(), rows), {
+          fetchImpl: fake.fetch,
+        });
+        const pending = completeWithFallback(ports, request());
+
+        await jest.advanceTimersByTimeAsync(
+          ANSWER_TIMEOUT_MS + FALLBACK_TIMEOUT_MS
+        );
+        const outcome = await pending;
+
+        expect(fake.calls.map(slugOf)).toEqual([
+          'vendor-a/one',
+          'vendor-b/two',
+        ]);
+        expect(outcome.failure).toBe('TIMEOUT');
+        expect(outcome.answer).toBeNull();
+        expect(outcome.attempts.map((a) => (a.result as any).attempts)).toEqual(
+          [1, 1]
+        );
+        expect(jest.getTimerCount()).toBe(0);
+      });
+
+      it.each([
+        ['HTTP 429', 429],
+        ['HTTP 503', 503],
+      ])(
+        'a primary that answers %s is still retried once, then the fallback is asked',
+        async (_label, status) => {
+          const fake = fetchFake((_url, init) =>
+            JSON.parse(String(init.body)).model === 'vendor-a/one'
+              ? new Response('busy', { status })
+              : completion('{"headline":"x"}')
+          );
+          const ports = launchPorts(config, planLaunch(new Set(), rows), {
+            fetchImpl: fake.fetch,
+          });
+          const outcome = await completeWithFallback(ports, request());
+
+          expect(fake.calls.map(slugOf)).toEqual([
+            'vendor-a/one',
+            'vendor-a/one',
+            'vendor-b/two',
+          ]);
+          expect(outcome.answered_by).toBe('FALLBACK');
+          expect(outcome.attempts[0]?.result).toMatchObject({
+            ok: false,
+            code: `HTTP_${status}`,
+            attempts: 2,
+          });
+        }
+      );
+
+      it('a primary that answers 429 and then recovers on the retry never reaches the fallback', async () => {
+        let n = 0;
+        const fake = fetchFake((_url, init) => {
+          const slug = JSON.parse(String(init.body)).model as string;
+          if (slug === 'vendor-a/one' && (n += 1) === 1) {
+            return new Response('busy', { status: 429 });
+          }
+          return completion('{"headline":"x"}');
+        });
+        const ports = launchPorts(config, planLaunch(new Set(), rows), {
+          fetchImpl: fake.fetch,
+        });
+        const outcome = await completeWithFallback(ports, request());
+
+        expect(fake.calls.map(slugOf)).toEqual([
+          'vendor-a/one',
+          'vendor-a/one',
+        ]);
+        expect(outcome.answered_by).toBe('PRIMARY');
+      });
+    });
   });
 });

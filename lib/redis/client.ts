@@ -10,10 +10,41 @@ import Redis, { RedisOptions } from 'ioredis';
 // Singleton instance
 let redisClient: Redis | null = null;
 
+// Outside production the instance is also kept on globalThis, so a dev hot
+// reload (which re-evaluates this module and would otherwise open a second
+// socket and leak the first) finds the client it already made.
+const globalForRedis = globalThis as unknown as {
+  redisClient: Redis | undefined;
+};
+
+/** The singleton, recovered from globalThis after a dev hot reload. */
+function currentClient(): Redis | null {
+  if (!redisClient && process.env['NODE_ENV'] !== 'production') {
+    redisClient = globalForRedis.redisClient ?? null;
+  }
+  return redisClient;
+}
+
+function rememberClient(client: Redis | null): void {
+  redisClient = client;
+  if (process.env['NODE_ENV'] !== 'production') {
+    globalForRedis.redisClient = client ?? undefined;
+  }
+}
+
 /**
  * Redis connection options
  */
 const REDIS_OPTIONS: RedisOptions = {
+  // Time limits (Next.js remediation T1-d). `connectTimeout` bounds the TCP
+  // connect; `commandTimeout` makes a command that gets no reply fail with
+  // "Command timed out" after 3 s instead of hanging the request. ioredis
+  // starts that timer when the command is issued, so with `lazyConnect` it
+  // also covers the time a first command waits for the connection. Do NOT set
+  // `enableOfflineQueue: false`: it rejects commands at once while the client
+  // is still 'connecting' on a cold start.
+  connectTimeout: 5_000,
+  commandTimeout: 3_000,
   maxRetriesPerRequest: 3,
   retryStrategy: (times: number): number | null => {
     // Retry with exponential backoff, max 30 seconds
@@ -33,8 +64,9 @@ const REDIS_OPTIONS: RedisOptions = {
  * @throws Error if REDIS_URL is not set
  */
 export function getRedisClient(): Redis {
-  if (redisClient) {
-    return redisClient;
+  const existing = currentClient();
+  if (existing) {
+    return existing;
   }
 
   const redisUrl = process.env['REDIS_URL'];
@@ -43,26 +75,27 @@ export function getRedisClient(): Redis {
     throw new Error('REDIS_URL environment variable is not set');
   }
 
-  redisClient = new Redis(redisUrl, REDIS_OPTIONS);
+  const client = new Redis(redisUrl, REDIS_OPTIONS);
+  rememberClient(client);
 
   // Set up event handlers
-  redisClient.on('connect', () => {
+  client.on('connect', () => {
     if (process.env['NODE_ENV'] !== 'production') {
       console.info('Redis client connected');
     }
   });
 
-  redisClient.on('error', (error: Error) => {
+  client.on('error', (error: Error) => {
     console.error('Redis client error:', error.message);
   });
 
-  redisClient.on('close', () => {
+  client.on('close', () => {
     if (process.env['NODE_ENV'] !== 'production') {
       console.info('Redis client disconnected');
     }
   });
 
-  return redisClient;
+  return client;
 }
 
 /**
@@ -99,9 +132,10 @@ export async function isRedisConnected(): Promise<boolean> {
  * Gracefully disconnect Redis client
  */
 export async function disconnectRedis(): Promise<void> {
-  if (redisClient) {
-    await redisClient.quit();
-    redisClient = null;
+  const existing = currentClient();
+  if (existing) {
+    await existing.quit();
+    rememberClient(null);
   }
 }
 
@@ -112,11 +146,12 @@ export function getRedisStatus(): {
   connected: boolean;
   status: string;
 } {
-  if (!redisClient) {
+  const existing = currentClient();
+  if (!existing) {
     return { connected: false, status: 'not_initialized' };
   }
 
-  const status = redisClient.status;
+  const status = existing.status;
   return {
     connected: status === 'ready',
     status,

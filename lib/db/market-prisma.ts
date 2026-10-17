@@ -20,24 +20,37 @@ import { PrismaPg } from '@prisma/adapter-pg';
  * for the DIRECT_URL vs DATABASE_URL and `rejectUnauthorized` rationale.
  */
 
-const adapter = new PrismaPg({
-  connectionString: process.env['DATABASE_URL'],
-  ssl: { rejectUnauthorized: false },
-});
-
 const globalForMarketPrisma = globalThis as unknown as {
   marketPrisma: PrismaClient | undefined;
 };
 
-export const marketPrisma =
-  globalForMarketPrisma.marketPrisma ??
-  new PrismaClient({
+/**
+ * Built only when no client is cached on `globalThis`, so a dev hot reload
+ * (which re-evaluates this module) does not construct a new adapter each time.
+ */
+function createMarketPrismaClient(): PrismaClient {
+  const adapter = new PrismaPg({
+    connectionString: process.env['DATABASE_URL'],
+    ssl: { rejectUnauthorized: false },
+    // Pool bounds (Next.js remediation T1-d): the same as lib/db/prisma.ts,
+    // which explains them. This singleton has its own pool, so an instance
+    // that uses both can hold up to 2 x max connections.
+    connectionTimeoutMillis: 5_000,
+    idleTimeoutMillis: 30_000,
+    max: 5,
+  });
+
+  return new PrismaClient({
     adapter,
     log:
       process.env['NODE_ENV'] === 'development'
         ? ['query', 'error', 'warn']
         : ['error'],
   });
+}
+
+export const marketPrisma =
+  globalForMarketPrisma.marketPrisma ?? createMarketPrismaClient();
 
 if (process.env['NODE_ENV'] !== 'production')
   globalForMarketPrisma.marketPrisma = marketPrisma;
