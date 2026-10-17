@@ -37,6 +37,7 @@
 import 'server-only';
 
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 
 import { prisma } from '@/lib/db/prisma';
 
@@ -131,26 +132,33 @@ export function isViewAsRequest(request: RequestLike): boolean {
 /**
  * Load a user for viewing, or `null` if they don't exist or are an admin.
  * Admin accounts are never viewable: this tool is for customer support.
+ *
+ * Wrapped in React.cache(), keyed by the primitive `userId` string. That is
+ * why `getAdminUserViewAs()` below stays an uncached wrapper: its argument is
+ * the session user OBJECT, which `cache()` would compare by reference. The
+ * wrapper does the role and cookie checks, then calls this with the id from
+ * the cookie, so the settings layout and the settings page read the target
+ * once per render. Outside a render (the start route) it is a pass-through.
  */
-export async function loadUserViewAsTarget(
-  userId: string
-): Promise<UserViewAsTarget | null> {
-  if (!ID_PATTERN.test(userId)) return null;
+export const loadUserViewAsTarget = cache(
+  async (userId: string): Promise<UserViewAsTarget | null> => {
+    if (!ID_PATTERN.test(userId)) return null;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { id: true, name: true, email: true, tier: true, role: true },
-  });
-  if (!user || user.role === 'ADMIN') return null;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, tier: true, role: true },
+    });
+    if (!user || user.role === 'ADMIN') return null;
 
-  return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    tier: String(user.tier),
-    role: String(user.role),
-  };
-}
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      tier: String(user.tier),
+      role: String(user.role),
+    };
+  }
+);
 
 /**
  * The user the signed-in admin is viewing, or `null` when the caller is not

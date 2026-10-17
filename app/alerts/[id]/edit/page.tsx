@@ -65,10 +65,12 @@ export default async function EditAlertPage({
   }
 
   const tier = (session.user?.tier as Tier) || 'FREE';
-  const dict = getDictionary(await getServerLanguage());
+  // started now, awaited on both paths below; the PRO path reads the alert alongside it
+  const languagePending = getServerLanguage();
 
   // V8: Alerts are PRO-exclusive — show upgrade landing to FREE users
   if (tier !== 'PRO') {
+    const dict = getDictionary(await languagePending);
     return (
       <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
         <AppHeader
@@ -88,17 +90,21 @@ export default async function EditAlertPage({
 
   const { id } = await params;
 
-  const alert = await prisma.alert.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      userId: true,
-      name: true,
-      symbol: true,
-      timeframe: true,
-      condition: true,
-    },
-  });
+  const [language, alert] = await Promise.all([
+    languagePending,
+    prisma.alert.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        userId: true,
+        name: true,
+        symbol: true,
+        timeframe: true,
+        condition: true,
+      },
+    }),
+  ]);
+  const dict = getDictionary(language);
 
   // Non-existent alert AND wrong-owner both 404 — never distinguish
   // "doesn't exist" from "not yours" to another user.

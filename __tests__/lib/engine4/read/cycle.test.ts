@@ -456,6 +456,173 @@ describe('readOfferSnapshot: what goes wrong is reported, never thrown', () => {
   });
 });
 
+/** A promise the test settles by hand, to decide which read finishes first. */
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+const flush = (): Promise<void> =>
+  new Promise((resolve) => setImmediate(resolve));
+
+describe('readOfferSnapshot: the reads that need nothing from each other run together', () => {
+  function handClient() {
+    const newest = deferred<SynthesisRow | null>();
+    const pinned = deferred<SynthesisRow | null>();
+    const cycle = deferred<CycleRow | null>();
+    const asked: string[] = [];
+    const fake: CycleClient = {
+      synthesisReading: {
+        findFirst: (args) => {
+          const isPinned = args.where.cycle_slot !== undefined;
+          asked.push(isPinned ? 'pinned' : 'newest');
+          return isPinned ? pinned.promise : newest.promise;
+        },
+      },
+      entryZone: {
+        findMany: async () => {
+          asked.push('zones');
+          return zoneRows();
+        },
+      },
+      marketCycle: {
+        findFirst: () => {
+          asked.push('cycle');
+          return cycle.promise;
+        },
+      },
+    };
+    return { fake, asked, newest, pinned, cycle };
+  }
+
+  test('with a pinned cycle: newest, pinned and cycle are all asked for before any answers; the zones wait for the pinned reading', async () => {
+    const h = handClient();
+    const pending = readOfferSnapshot(
+      { profile: 'DAY_TRADER', pinnedSlot: SLOT },
+      h.fake
+    );
+    await flush();
+    expect(h.asked).toEqual(['newest', 'pinned', 'cycle']);
+
+    h.newest.resolve(synthesisRow());
+    h.cycle.resolve(CYCLE);
+    await flush();
+    // everything else is back, and the zones still wait for the pinned reading
+    expect(h.asked).toEqual(['newest', 'pinned', 'cycle']);
+
+    h.pinned.resolve(synthesisRow());
+    await flush();
+    expect(h.asked).toEqual(['newest', 'pinned', 'cycle', 'zones']);
+
+    const snapshot = await pending;
+    expect(snapshot.problems).toEqual([]);
+    expect(snapshot.zones).toHaveLength(day.zones.length);
+    expect(snapshot.cycle?.slot).toBe(BigInt(SLOT));
+  });
+
+  test('without a pinned cycle: newest and cycle are asked for together, the zones follow the newest reading', async () => {
+    const h = handClient();
+    const pending = readOfferSnapshot({ profile: 'DAY_TRADER' }, h.fake);
+    await flush();
+    expect(h.asked).toEqual(['newest', 'cycle']);
+
+    h.cycle.resolve(CYCLE);
+    await flush();
+    expect(h.asked).toEqual(['newest', 'cycle']);
+
+    h.newest.resolve(synthesisRow());
+    await flush();
+    expect(h.asked).toEqual(['newest', 'cycle', 'zones']);
+    expect((await pending).problems).toEqual([]);
+  });
+
+  test('the problems keep the order of the sequential version whichever read fails first', async () => {
+    const h = handClient();
+    const pending = readOfferSnapshot(
+      { profile: 'DAY_TRADER', pinnedSlot: SLOT },
+      h.fake
+    );
+    await flush();
+    // they fail in the reverse of the order they were asked in
+    h.cycle.reject(new Error('cycle down'));
+    await flush();
+    h.pinned.resolve(null);
+    await flush();
+    h.newest.reject(new Error('newest down'));
+    const snapshot = await pending;
+
+    expect(snapshot.problems).toEqual([
+      {
+        code: 'DATABASE_ERROR',
+        detail: 'the newest synthesis reading could not be read: newest down',
+      },
+      {
+        code: 'PINNED_READING_MISSING',
+        detail: `there is no synthesis reading for cycle ${SLOT}`,
+      },
+      {
+        code: 'DATABASE_ERROR',
+        detail: 'the newest cycle could not be read: cycle down',
+      },
+    ]);
+    // no pinned reading, so no zones were asked for
+    expect(h.asked).toEqual(['newest', 'pinned', 'cycle']);
+  });
+
+  test('the problems keep the order of the sequential version: pinned, newest, zones, cycle', async () => {
+    const { fake } = client(
+      {
+        newest: synthesisRow({
+          cycle_slot: SLOT + 300,
+          bias: 7 as unknown as string,
+        }),
+        bySlot: { [SLOT]: synthesisRow({ bias: 5 as unknown as string }) },
+      },
+      { zones: true, cycle: true }
+    );
+    const snapshot = await readOfferSnapshot(
+      { profile: 'DAY_TRADER', pinnedSlot: SLOT },
+      fake
+    );
+
+    expect(snapshot.problems).toEqual([
+      {
+        code: 'READING_UNREADABLE',
+        detail: 'the pinned synthesis reading is not well formed',
+      },
+      {
+        code: 'READING_UNREADABLE',
+        detail: 'the newest synthesis reading is not well formed',
+      },
+      {
+        code: 'DATABASE_ERROR',
+        detail: 'the entry zones could not be read: zones down',
+      },
+      {
+        code: 'DATABASE_ERROR',
+        detail: 'the newest cycle could not be read: cycle down',
+      },
+    ]);
+  });
+
+  test('the newest reading failing with no pinned cycle: no zones, the cycle is still read, in that order', async () => {
+    const { fake, calls } = client({}, { newest: true, cycle: true });
+    const snapshot = await readOfferSnapshot({ profile: 'DAY_TRADER' }, fake);
+
+    expect(snapshot.problems.map((p) => p.detail)).toEqual([
+      'the newest synthesis reading could not be read: newest down',
+      'the newest cycle could not be read: cycle down',
+    ]);
+    expect(calls.zones).toEqual([]);
+    expect(snapshot.pinned).toBeNull();
+    expect(snapshot.price).toBeNull();
+  });
+});
+
 describe('what is refused outright', () => {
   test.each(['TRADER', 'OTHER', '', undefined, 'day_trader'])(
     'a profile of %p',

@@ -44,17 +44,20 @@ export default async function CreateAlertPage(): Promise<React.JSX.Element> {
   const limit = PRO_TIER_CONFIG.maxAlerts;
 
   // Count existing active alerts (PRO only -- FREE never reaches CreateAlertClient)
-  const activeAlertCount = isPro
-    ? await prisma.alert.count({
-        where: {
-          userId: session.user.id,
-          isActive: true,
-        },
-      })
-    : 0;
+  const [activeAlertCount, language] = await Promise.all([
+    isPro
+      ? prisma.alert.count({
+          where: {
+            userId: session.user.id,
+            isActive: true,
+          },
+        })
+      : 0,
+    getServerLanguage(),
+  ]);
 
   const canCreate = activeAlertCount < limit;
-  const dict = getDictionary(await getServerLanguage());
+  const dict = getDictionary(language);
 
   return (
     <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">

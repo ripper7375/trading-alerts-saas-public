@@ -7,6 +7,8 @@
  * @module lib/tutorials/service
  */
 
+import { cache } from 'react';
+
 import { prisma } from '@/lib/db/prisma';
 import type { Prisma, TutorialVideo } from '.prisma/non-market-client';
 
@@ -206,23 +208,27 @@ export async function listPublishedTutorials(filters: {
  * site, regardless of a guessed ID). Read-only — safe to call more than
  * once per request (e.g. both `generateMetadata` and the page body), unlike
  * `incrementTutorialViewCount`, which must only ever run once per real view.
+ *
+ * Wrapped in React.cache(), keyed by the primitive `id`: `generateMetadata`
+ * and the page body of /academy/[id] share one query per render. Outside a
+ * render (the admin routes) it is a pass-through.
  */
-export async function getPublishedTutorialById(
-  id: string
-): Promise<TutorialVideo | null> {
-  try {
-    const tutorial = await prisma.tutorialVideo.findUnique({ where: { id } });
+export const getPublishedTutorialById = cache(
+  async (id: string): Promise<TutorialVideo | null> => {
+    try {
+      const tutorial = await prisma.tutorialVideo.findUnique({ where: { id } });
 
-    if (!tutorial || tutorial.status !== 'ACTIVE') {
+      if (!tutorial || tutorial.status !== 'ACTIVE') {
+        return null;
+      }
+
+      return tutorial;
+    } catch (error) {
+      console.error('[Academy Service] Failed to get tutorial by ID:', error);
       return null;
     }
-
-    return tutorial;
-  } catch (error) {
-    console.error('[Academy Service] Failed to get tutorial by ID:', error);
-    return null;
   }
-}
+);
 
 /**
  * Atomically increments a tutorial's view count. Call exactly once per real

@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 
 import UserViewAsBanner from '@/components/admin/user-view-as/user-view-as-banner';
 import { UserViewAsProvider } from '@/components/admin/user-view-as/user-view-as-context';
@@ -7,7 +6,7 @@ import UserViewAsGate from '@/components/admin/user-view-as/user-view-as-gate';
 import { LoginTracker } from '@/components/auth/login-tracker';
 import { TokenRefreshProvider } from '@/components/auth/token-refresh-provider';
 import { getAdminUserViewAs } from '@/lib/admin/user-view-as';
-import { authOptions } from '@/lib/auth/auth-options';
+import { getSession } from '@/lib/auth/session';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
@@ -42,7 +41,7 @@ interface SettingsLayoutProps {
 export default async function SettingsLayout({
   children,
 }: SettingsLayoutProps): Promise<React.ReactElement> {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user) {
     redirect('/login');

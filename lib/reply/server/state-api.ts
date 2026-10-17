@@ -123,11 +123,17 @@ export async function handleState(
   const nowMs = deps.now();
   const allowance = deps.allowanceOf(tier);
   const configured = allowance !== null && allowance > 0;
-  const balance = configured
-    ? await orNull(() =>
-        deps.ledger.balance({ userId, nowMs, allowanceUnits: allowance })
-      )
-    : null;
+  // The ledger balance and the profile are independent reads (both turn a
+  // failure into null), so they are asked for together; the cycle needs the
+  // profile's trader type and follows.
+  const [balance, profileRead] = await Promise.all([
+    configured
+      ? orNull(() =>
+          deps.ledger.balance({ userId, nowMs, allowanceUnits: allowance })
+        )
+      : null,
+    orNull(() => deps.profile(userId)),
+  ]);
   const quota = {
     configured,
     month: monthOf(nowMs),
@@ -137,7 +143,6 @@ export async function handleState(
     available_units: balance?.available ?? null,
   };
 
-  const profileRead = await orNull(() => deps.profile(userId));
   const traderType =
     profileRead !== null && profileRead.ok
       ? profileRead.profile.trader_type

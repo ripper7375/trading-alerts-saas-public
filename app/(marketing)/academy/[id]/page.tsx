@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { after } from 'next/server';
 import { ArrowRight, Eye, Sparkles } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -57,10 +58,12 @@ export async function generateMetadata({ params }: TutorialDetailPageProps) {
 
 /**
  * Public, unauthenticated Academy video-detail page (Davin, 2026-08-31
- * ad-hoc request). `getPublishedTutorialById` is read-only, so it's safe to
- * call again here even though `generateMetadata` already called it for this
- * same request -- only `incrementTutorialViewCount` runs, exactly once,
- * from this page body.
+ * ad-hoc request). `getPublishedTutorialById` is read-only and cached per
+ * request (React.cache), so calling it again here after `generateMetadata`
+ * costs no second query -- only `incrementTutorialViewCount` writes, exactly
+ * once, from this page body, inside `after()` so the UPDATE runs after the
+ * response is sent, not in the render. The `viewCount + 1` shown below comes
+ * from the row read before the write, so deferring it changes nothing visible.
  */
 export default async function TutorialDetailPage({
   params,
@@ -75,7 +78,9 @@ export default async function TutorialDetailPage({
     notFound();
   }
 
-  await incrementTutorialViewCount(id);
+  after(async () => {
+    await incrementTutorialViewCount(id);
+  });
 
   const related = await getRelatedTutorials(tutorial.category, tutorial.id);
   const dict = getDictionary(await getServerLanguage());

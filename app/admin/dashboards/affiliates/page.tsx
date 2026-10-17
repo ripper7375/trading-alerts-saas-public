@@ -31,9 +31,12 @@ export default async function AffiliatesPage({
   await requireAdminPage();
   const params = await searchParams;
   const period = (params.period as AffiliateReportPeriod) || '3months';
-  const data = await getAffiliatesAnalytics(period);
-  const prefs = await getServerLocalePreferences();
-  const { rates: usdRates } = await getDisplayUsdRates();
+  // independent reads, issued together; the guard above stays awaited first
+  const [data, prefs, { rates: usdRates }] = await Promise.all([
+    getAffiliatesAnalytics(period),
+    getServerLocalePreferences(),
+    getDisplayUsdRates(),
+  ]);
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {

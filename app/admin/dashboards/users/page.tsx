@@ -14,8 +14,12 @@ export const metadata = { title: 'User Base & Funnel | DavinTrade Admin' };
  */
 export default async function UsersPage(): Promise<React.ReactElement> {
   await requireAdminPage();
-  const data = await getUsersAnalytics();
-  const dict = getDictionary(await getServerLanguage());
+  // independent reads, issued together; the guard above stays awaited first
+  const [data, language] = await Promise.all([
+    getUsersAnalytics(),
+    getServerLanguage(),
+  ]);
+  const dict = getDictionary(language);
 
   return (
     <div className="space-y-6">

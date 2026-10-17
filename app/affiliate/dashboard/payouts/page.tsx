@@ -65,8 +65,48 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
     redirect('/affiliate/register');
   }
 
-  const prefs = await getServerLocalePreferences();
-  const { rates: usdRates } = await getDisplayUsdRates();
+  // The viewer's locale, the display rates and the payout rows (keyed by the
+  // profile resolved above) do not depend on one another: read them together.
+  const [prefs, { rates: usdRates }, transactions] = await Promise.all([
+    getServerLocalePreferences(),
+    getDisplayUsdRates(),
+    prisma.disbursementTransaction.findMany({
+      where: { commission: { affiliateProfileId: profile.id } },
+      select: {
+        id: true,
+        amount: true,
+        currency: true,
+        status: true,
+        createdAt: true,
+        completedAt: true,
+        commission: {
+          select: {
+            commissionAmount: true,
+            affiliateCode: { select: { code: true } },
+          },
+        },
+        batch: {
+          select: {
+            id: true,
+            batchNumber: true,
+            status: true,
+            scheduledAt: true,
+            completedAt: true,
+            provider: true,
+          },
+        },
+        wiseTransfer: {
+          select: {
+            currentState: true,
+            targetCurrency: true,
+            targetValue: true,
+            reference: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
   const dict = getDictionary(prefs.language);
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
   const usd = (amount: number): string =>
@@ -85,43 +125,6 @@ export default async function AffiliatePayoutsPage(): Promise<React.ReactElement
   };
   const batchStatusLabel = (status: string): string =>
     dt(batchStatusLabelKeys[status] ?? '', status);
-
-  const transactions = await prisma.disbursementTransaction.findMany({
-    where: { commission: { affiliateProfileId: profile.id } },
-    select: {
-      id: true,
-      amount: true,
-      currency: true,
-      status: true,
-      createdAt: true,
-      completedAt: true,
-      commission: {
-        select: {
-          commissionAmount: true,
-          affiliateCode: { select: { code: true } },
-        },
-      },
-      batch: {
-        select: {
-          id: true,
-          batchNumber: true,
-          status: true,
-          scheduledAt: true,
-          completedAt: true,
-          provider: true,
-        },
-      },
-      wiseTransfer: {
-        select: {
-          currentState: true,
-          targetCurrency: true,
-          targetValue: true,
-          reference: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
 
   return (
     <div className="space-y-6">

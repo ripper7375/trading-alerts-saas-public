@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 
 import { Badge } from '@/components/ui/badge';
-import { authOptions } from '@/lib/auth/auth-options';
+import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { getDefaultProvider } from '@/lib/disbursement/constants';
 import { getDisbursementSettings } from '@/lib/disbursement/settings';
@@ -106,7 +105,7 @@ export default async function DisbursementLayout({
   children,
 }: DisbursementLayoutProps): Promise<React.ReactElement> {
   // Get session
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   // Check authentication
   if (!session?.user) {

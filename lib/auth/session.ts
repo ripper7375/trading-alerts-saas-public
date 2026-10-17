@@ -28,16 +28,25 @@ import { AuthError } from './errors';
  * Get server session with NextAuth options
  * Wrapper around getServerSession to ensure consistent configuration
  *
+ * Wrapped in React.cache(): during one Server Component render the root
+ * layout, the segment layout, the page and every helper below share a single
+ * JWE decryption. Outside a render (route handlers, server actions) cache()
+ * is a pass-through, so API routes still read the session fresh on each call.
+ * The returned object is shared within the render: the helpers that promote a
+ * stale JWT claim after a database check (requireAdmin, requireAdminPage,
+ * requireAffiliate) set the claim on it, and later readers in the same render
+ * see the promoted value.
+ *
  * @returns Promise resolving to NextAuth session or null
  */
-export async function getSession(): Promise<Session | null> {
+export const getSession = cache(async (): Promise<Session | null> => {
   try {
     return await getServerSessionNext(authOptions);
   } catch (error) {
     console.error('Failed to get server session:', error);
     return null;
   }
-}
+});
 
 /**
  * Get user session or throw AuthError if not authenticated
@@ -167,107 +176,114 @@ export async function requireAffiliate(): Promise<Session> {
 /**
  * Get affiliate profile for authenticated affiliate user
  *
+ * Wrapped in React.cache(): the affiliate layout and its page share one
+ * lookup (and at most one auto-create) per render. Outside a render it is a
+ * pass-through.
+ *
  * @returns Promise resolving to affiliate profile or null
  */
-export async function getAffiliateProfile(): Promise<AffiliateProfile | null> {
-  try {
-    const session = await getSession();
+export const getAffiliateProfile = cache(
+  async (): Promise<AffiliateProfile | null> => {
+    try {
+      const session = await getSession();
 
-    if (!session?.user?.id) {
-      return null;
-    }
+      if (!session?.user?.id) {
+        return null;
+      }
 
-    let isAff = Boolean(session.user.isAffiliate);
+      let isAff = Boolean(session.user.isAffiliate);
 
-    // Verify against DB to resolve any JWT token latency / race condition
-    let dbUser = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, isAffiliate: true, name: true, email: true },
-    });
-
-    if (!dbUser && session.user.email) {
-      dbUser = await prisma.user.findUnique({
-        where: { email: session.user.email },
+      // Verify against DB to resolve any JWT token latency / race condition
+      let dbUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
         select: { id: true, isAffiliate: true, name: true, email: true },
       });
-    }
 
-    if (dbUser?.isAffiliate) {
-      isAff = true;
-    }
+      if (!dbUser && session.user.email) {
+        dbUser = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { id: true, isAffiliate: true, name: true, email: true },
+        });
+      }
 
-    if (!isAff) {
-      return null;
-    }
+      if (dbUser?.isAffiliate) {
+        isAff = true;
+      }
 
-    const userId = dbUser?.id || session.user.id;
+      if (!isAff) {
+        return null;
+      }
 
-    // Fetch affiliate profile from database
-    let affiliateProfile = await prisma.affiliateProfile.findUnique({
-      where: { userId },
-    });
+      const userId = dbUser?.id || session.user.id;
 
-    if (!affiliateProfile) {
-      try {
-        const baseCode = (
-          dbUser?.name ||
-          session.user.name ||
-          dbUser?.email?.split('@')[0] ||
-          session.user.email?.split('@')[0] ||
-          'AFF'
-        )
-          .toUpperCase()
-          .replace(/[^A-Z0-9]/g, '')
-          .slice(0, 6);
-        const code = `${baseCode}${Math.floor(100 + Math.random() * 900)}`;
+      // Fetch affiliate profile from database
+      let affiliateProfile = await prisma.affiliateProfile.findUnique({
+        where: { userId },
+      });
 
-        affiliateProfile = await prisma.affiliateProfile.upsert({
-          where: { userId },
-          update: {
-            status: 'ACTIVE',
-          },
-          create: {
-            userId,
-            fullName: dbUser?.name || session.user.name || 'Affiliate Partner',
-            country: 'US',
-            paymentMethod: 'PAYPAL',
-            paymentDetails: {},
-            status: 'ACTIVE',
-            verifiedAt: new Date(),
-            affiliateCodes: {
-              create: {
-                code,
-                discountPercent: 10,
-                commissionPercent: 15,
-                status: 'ACTIVE',
-                expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      if (!affiliateProfile) {
+        try {
+          const baseCode = (
+            dbUser?.name ||
+            session.user.name ||
+            dbUser?.email?.split('@')[0] ||
+            session.user.email?.split('@')[0] ||
+            'AFF'
+          )
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '')
+            .slice(0, 6);
+          const code = `${baseCode}${Math.floor(100 + Math.random() * 900)}`;
+
+          affiliateProfile = await prisma.affiliateProfile.upsert({
+            where: { userId },
+            update: {
+              status: 'ACTIVE',
+            },
+            create: {
+              userId,
+              fullName:
+                dbUser?.name || session.user.name || 'Affiliate Partner',
+              country: 'US',
+              paymentMethod: 'PAYPAL',
+              paymentDetails: {},
+              status: 'ACTIVE',
+              verifiedAt: new Date(),
+              affiliateCodes: {
+                create: {
+                  code,
+                  discountPercent: 10,
+                  commissionPercent: 15,
+                  status: 'ACTIVE',
+                  expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+                },
               },
             },
-          },
-        });
-      } catch (createErr) {
-        console.warn(
-          '[Session] Auto-creating affiliate profile fallback:',
-          createErr
-        );
+          });
+        } catch (createErr) {
+          console.warn(
+            '[Session] Auto-creating affiliate profile fallback:',
+            createErr
+          );
+        }
       }
-    }
 
-    if (!affiliateProfile) {
+      if (!affiliateProfile) {
+        return null;
+      }
+
+      return {
+        ...affiliateProfile,
+        totalEarnings: Number(affiliateProfile.totalEarnings ?? 0),
+        pendingCommissions: Number(affiliateProfile.pendingCommissions ?? 0),
+        paidCommissions: Number(affiliateProfile.paidCommissions ?? 0),
+      } as unknown as AffiliateProfile;
+    } catch (error) {
+      console.error('Failed to fetch affiliate profile:', error);
       return null;
     }
-
-    return {
-      ...affiliateProfile,
-      totalEarnings: Number(affiliateProfile.totalEarnings ?? 0),
-      pendingCommissions: Number(affiliateProfile.pendingCommissions ?? 0),
-      paidCommissions: Number(affiliateProfile.paidCommissions ?? 0),
-    } as unknown as AffiliateProfile;
-  } catch (error) {
-    console.error('Failed to fetch affiliate profile:', error);
-    return null;
   }
-}
+);
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 4. ADMIN HELPERS

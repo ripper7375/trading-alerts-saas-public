@@ -357,57 +357,77 @@ export async function runReply<F>(
       const resolution = resolveShape({ packet, gate, zoneIds });
 
       const threadId = request.threadId;
-      const threadContext =
-        threadId === null
-          ? { thread: null, history: [] }
-          : await ports.threads.context(caller.userId, threadId);
       const slotSeconds = secondsOfSlot(packet.data.cycle_slot);
 
-      // what moved since the thread's last cycle, built by code
-      let changes: ReplyFrame['changes'] = [];
-      const last = threadContext.thread?.lastCycleSlot ?? null;
-      if (last !== null && slotSeconds !== null && last !== slotSeconds) {
-        const previous = await ports.previousStates(slotIso(last));
-        changes = stateChanges(previous, statesOfPacket(packet));
-      }
-
       // the day's bars: a model prompt needs them, and so does a fixed answer on live data
-      let dayBars: DayBars | null = null;
       const wantsBars =
         resolution.model ||
         (resolution.shape === 'FIXED_ANSWER' && dataIsLive(packet));
-      if (wantsBars && packet.data.cycle_slot !== null) {
-        const bars = await ports.dayBars(packet.data.cycle_slot);
+
+      // First wave: the thread's context and the day's bars need nothing from
+      // each other, only from the packet, so both are asked for at once.
+      const [threadContext, bars] = await Promise.all([
+        threadId === null
+          ? { thread: null, history: [] }
+          : ports.threads.context(caller.userId, threadId),
+        wantsBars && packet.data.cycle_slot !== null
+          ? ports.dayBars(packet.data.cycle_slot)
+          : null,
+      ]);
+      let dayBars: DayBars | null = null;
+      if (bars !== null) {
         if (bars.ok) dayBars = bars.bars;
         else ports.log('DAY_BARS_UNAVAILABLE', { code: bars.code });
       }
 
-      // the chart rule (5.3): only for a model call, only when the data, the call, the tier and the model allow it
-      let chart: ChartRead = {
+      // Second wave: both need the thread's context (its last cycle; its
+      // history) and nothing from each other. The earlier cycle is read only
+      // when the thread has one and it is not this cycle, so a first question,
+      // and a follow-up in the same cycle, never ask for it.
+      const last = threadContext.thread?.lastCycleSlot ?? null;
+      const earlierSlot =
+        last !== null && slotSeconds !== null && last !== slotSeconds
+          ? last
+          : null;
+      const [previous, chartRead] = await Promise.all([
+        earlierSlot !== null
+          ? ports.previousStates(slotIso(earlierSlot))
+          : null,
+        // the chart rule (5.3): only for a model call, only when the data, the call, the tier and the model allow it
+        resolution.model
+          ? readChart(
+              {
+                cycleSlot: packet.data.cycle_slot,
+                dataAllows: gate.chartAllowed,
+                calledFor: chartCalledFor({
+                  intent,
+                  firstOfCycle: !threadContext.history.some(
+                    (row) =>
+                      row.role === 'ASSISTANT' &&
+                      row.kind === 'REPORT1' &&
+                      row.cycle_slot === slotSeconds
+                  ),
+                }),
+                tierAllows: ports.tierAllowsChart(caller.tier),
+                modelVision: ports.models.primary?.target.vision ?? false,
+              },
+              ports.chart
+            )
+          : null,
+      ]);
+
+      // what moved since the thread's last cycle, built by code
+      const changes: ReplyFrame['changes'] =
+        earlierSlot !== null
+          ? stateChanges(previous, statesOfPacket(packet))
+          : [];
+      const chart: ChartRead = chartRead ?? {
         decision: 'NOT_CALLED_FOR',
         note: null,
         reason: null,
         stamp: null,
         image: null,
       };
-      if (resolution.model) {
-        const firstOfCycle = !threadContext.history.some(
-          (row) =>
-            row.role === 'ASSISTANT' &&
-            row.kind === 'REPORT1' &&
-            row.cycle_slot === slotSeconds
-        );
-        chart = await readChart(
-          {
-            cycleSlot: packet.data.cycle_slot,
-            dataAllows: gate.chartAllowed,
-            calledFor: chartCalledFor({ intent, firstOfCycle }),
-            tierAllows: ports.tierAllowsChart(caller.tier),
-            modelVision: ports.models.primary?.target.vision ?? false,
-          },
-          ports.chart
-        );
-      }
 
       // ---- the model, when the shape needs one --------------------------------------
       let step: AnswerStep | null = null;

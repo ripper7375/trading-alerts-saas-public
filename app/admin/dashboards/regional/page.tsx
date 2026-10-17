@@ -25,9 +25,12 @@ export const metadata = {
  */
 export default async function RegionalPage(): Promise<React.ReactElement> {
   await requireAdminPage();
-  const data = await getRegionalAnalytics();
-  const prefs = await getServerLocalePreferences();
-  const { rates: usdRates } = await getDisplayUsdRates();
+  // independent reads, issued together; the guard above stays awaited first
+  const [data, prefs, { rates: usdRates }] = await Promise.all([
+    getRegionalAnalytics(),
+    getServerLocalePreferences(),
+    getDisplayUsdRates(),
+  ]);
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {

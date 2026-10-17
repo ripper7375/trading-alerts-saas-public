@@ -69,28 +69,31 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const alerts: SecurityAlertItem[] = await prisma.securityAlert.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      skip: offset,
-      select: {
-        id: true,
-        type: true,
-        title: true,
-        message: true,
-        ipAddress: true,
-        deviceInfo: true,
-        location: true,
-        read: true,
-        readAt: true,
-        createdAt: true,
-      },
-    });
-
-    const totalCount = await prisma.securityAlert.count({
-      where: { userId },
-    });
+    // The page of alerts and the total count are independent: read them together
+    const [alerts, totalCount]: [SecurityAlertItem[], number] =
+      await Promise.all([
+        prisma.securityAlert.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          take: limit,
+          skip: offset,
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            message: true,
+            ipAddress: true,
+            deviceInfo: true,
+            location: true,
+            read: true,
+            readAt: true,
+            createdAt: true,
+          },
+        }),
+        prisma.securityAlert.count({
+          where: { userId },
+        }),
+      ]);
 
     return NextResponse.json({
       alerts,

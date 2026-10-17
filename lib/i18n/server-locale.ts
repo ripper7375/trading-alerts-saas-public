@@ -1,4 +1,5 @@
 import { cookies, headers } from 'next/headers';
+import { cache } from 'react';
 import {
   COUNTRY_HEADER,
   CURRENCY_COOKIE,
@@ -54,6 +55,27 @@ export function resolveRequestPreferences(
 }
 
 /**
+ * Full-preference variant of `getServerLanguage()` -- for Server Components
+ * that need `countryCode`/`currency` too (e.g. to format a confirmed-USD
+ * figure via `formatCurrencyAmount()`, since the client-only `formatCurrency()`
+ * from `useLocale()` isn't reachable here). Same resolution, just returning
+ * the whole object instead of only `.language`.
+ *
+ * Wrapped in React.cache(): `generateMetadata()`, the page body and every
+ * component that reads the preferences in one render share one resolution.
+ * Outside a render it is a pass-through.
+ */
+export const getServerLocalePreferences = cache(
+  async (): Promise<LocalePreferences> => {
+    const [cookieStore, headerStore] = await Promise.all([
+      cookies(),
+      headers(),
+    ]);
+    return resolveRequestPreferences(cookieStore, headerStore);
+  }
+);
+
+/**
  * Resolves the request's language for use in `generateMetadata()` (or any
  * other Server Component that runs ahead of the client `LocaleProvider`).
  *
@@ -61,19 +83,9 @@ export function resolveRequestPreferences(
  * set by `middleware.ts`, falling back to the persisted cookie, falling back
  * to the app default) so a page's `<title>`/`<meta description>` always
  * agrees with the language its body actually renders in.
+ *
+ * Wrapped in React.cache() like `getServerLocalePreferences()`, which it reads.
  */
-export async function getServerLanguage(): Promise<string> {
+export const getServerLanguage = cache(async (): Promise<string> => {
   return (await getServerLocalePreferences()).language;
-}
-
-/**
- * Full-preference variant of `getServerLanguage()` -- for Server Components
- * that need `countryCode`/`currency` too (e.g. to format a confirmed-USD
- * figure via `formatCurrencyAmount()`, since the client-only `formatCurrency()`
- * from `useLocale()` isn't reachable here). Same resolution, just returning
- * the whole object instead of only `.language`.
- */
-export async function getServerLocalePreferences(): Promise<LocalePreferences> {
-  const [cookieStore, headerStore] = await Promise.all([cookies(), headers()]);
-  return resolveRequestPreferences(cookieStore, headerStore);
-}
+});

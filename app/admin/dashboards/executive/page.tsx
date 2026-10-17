@@ -34,9 +34,12 @@ const RAG_BADGE_CLASS: Record<RagStatus, string> = {
  */
 export default async function ExecutivePage(): Promise<React.ReactElement> {
   await requireAdminPage();
-  const data = await getExecutiveAnalytics();
-  const prefs = await getServerLocalePreferences();
-  const { rates: usdRates } = await getDisplayUsdRates();
+  // independent reads, issued together; the guard above stays awaited first
+  const [data, prefs, { rates: usdRates }] = await Promise.all([
+    getExecutiveAnalytics(),
+    getServerLocalePreferences(),
+    getDisplayUsdRates(),
+  ]);
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
