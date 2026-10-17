@@ -638,29 +638,73 @@ export const authOptions: NextAuthOptions = {
     },
 
     /**
-     * Redirect Callback - Handle safe redirection across local and production apex/www domains
+     * Redirect Callback - Only same-site destinations are allowed after sign-in
+     * (open-redirect guard).
+     *
+     * Not delegated to safeCallbackUrl(): that helper refuses /login,
+     * /register and /verify-2fa, which are legitimate destinations here
+     * (lib/auth/errors.ts and several pages redirect to
+     * /login?callbackUrl=... and /verify-2fa).
      */
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith('/')) {
+      // A single leading slash is a path on this site. '//host' and '/\host'
+      // are protocol-relative to a browser, so they are refused.
+      if (url.startsWith('/') && !url.startsWith('//') && !url.includes('\\')) {
         return `${baseUrl}${url}`;
       }
+
       try {
-        const targetUrl = new URL(url);
-        const currentBase = new URL(baseUrl);
-        // Normalize apex and www domains (e.g. davintrade.app vs www.davintrade.app)
-        const targetHost = targetUrl.hostname.replace(/^www\./, '');
-        const baseHost = currentBase.hostname.replace(/^www\./, '');
+        const target = new URL(url);
+        const base = new URL(baseUrl);
+
+        // Exact origin (scheme + host + port), not a string prefix:
+        // 'https://davintrade.app.evil.com' must not pass for baseUrl
+        // 'https://davintrade.app'.
+        if (target.origin === base.origin) {
+          return url;
+        }
+
+        // The app is served on both the apex and www hosts: same scheme and
+        // port, host equal once a leading 'www.' is dropped.
+        const withoutWww = (host: string): string =>
+          host.replace(/^www\./i, '');
         if (
-          targetHost === baseHost ||
-          targetHost.endsWith('.vercel.app') ||
-          targetHost === 'localhost' ||
-          targetHost === '127.0.0.1'
+          target.protocol === base.protocol &&
+          target.port === base.port &&
+          withoutWww(target.hostname) === withoutWww(base.hostname)
+        ) {
+          return url;
+        }
+
+        // Preview deployments: this deployment's own hostnames only, never
+        // every *.vercel.app host.
+        if (process.env['VERCEL_ENV'] === 'preview') {
+          const previewHosts = [
+            process.env['VERCEL_URL'],
+            process.env['VERCEL_BRANCH_URL'],
+          ].filter((host): host is string => Boolean(host));
+          if (
+            target.protocol === 'https:' &&
+            previewHosts.includes(target.host)
+          ) {
+            return url;
+          }
+        }
+
+        // Local development only. The scheme check keeps
+        // 'javascript://localhost/...' out.
+        const runtimeNodeEnv = Reflect.get(process.env, 'NODE_ENV') as
+          | string
+          | undefined;
+        if (
+          runtimeNodeEnv !== 'production' &&
+          (target.protocol === 'http:' || target.protocol === 'https:') &&
+          (target.hostname === 'localhost' || target.hostname === '127.0.0.1')
         ) {
           return url;
         }
       } catch {
-        // Fall back to default baseUrl on parsing error
+        // Malformed URL: fall back to baseUrl
       }
       return baseUrl;
     },

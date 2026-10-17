@@ -120,8 +120,6 @@ describe('SystemConfig figures are never hardcoded', () => {
       // Test-mode mock status only (NODE_ENV=test / no API key)
       'lib/dlocal/dlocal-payment.service.ts',
       'money-service/src/dlocal/dlocal-payment.service.ts',
-      // Seed route for local test data
-      'app/api/test/seed/route.ts',
     ]);
     expect(offenders(literalPrice, allow)).toEqual([]);
   });
