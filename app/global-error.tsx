@@ -33,6 +33,13 @@ export default function GlobalError({
   const t = (key: string, fallback: string): string => dict[key] ?? fallback;
 
   useEffect(() => {
+    // The digest ties this to the server log line for the same failure.
+    console.error('Global application error:', error, {
+      digest: error.digest,
+    });
+  }, [error]);
+
+  useEffect(() => {
     const lang = cookieLanguage();
     setLanguage(lang);
     let cancelled = false;

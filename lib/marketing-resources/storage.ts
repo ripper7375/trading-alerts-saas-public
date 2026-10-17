@@ -21,14 +21,40 @@ export interface UploadedAssetFile {
 }
 
 /**
+ * A file name that is safe as the last segment of a Blob pathname: letters,
+ * digits, `.`, `_` and `-` only (a path separator, a space, a control
+ * character or anything non-ASCII becomes `_`), and no leading dot (no hidden
+ * file, no `..` segment). A name that is empty after that is `file`.
+ */
+export function sanitizeAssetFilename(name: string): string {
+  const safe = name.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/^\.+/, '');
+  return safe === '' ? 'file' : safe;
+}
+
+/**
  * Upload a single asset file to Vercel Blob under a stable path prefix.
  * `addRandomSuffix` avoids collisions between assets that share a title.
+ *
+ * Two things keep an uploaded file from running inline in a browser:
+ * the name is sanitized (`sanitizeAssetFilename`), and the content type is the
+ * one the caller already checked against the allow-list
+ * (`ACCEPTED_ASSET_MIME_TYPES`), not one Blob would guess from the file
+ * extension (so an `.html` file cannot be served as `text/html`).
+ *
+ * `put()` in the installed `@vercel/blob` (2.8.0) has no `contentDisposition`
+ * option (the header is on its result, not its input), so this module cannot
+ * ask for `attachment`; the blob's `downloadUrl` is the URL that forces one.
  */
 export async function uploadAssetFile(file: File): Promise<UploadedAssetFile> {
-  const blob = await put(`${BLOB_PATH_PREFIX}/${file.name}`, file, {
-    access: 'public',
-    addRandomSuffix: true,
-  });
+  const blob = await put(
+    `${BLOB_PATH_PREFIX}/${sanitizeAssetFilename(file.name)}`,
+    file,
+    {
+      access: 'public',
+      addRandomSuffix: true,
+      ...(file.type ? { contentType: file.type } : {}),
+    }
+  );
 
   return { url: blob.url, size: file.size };
 }

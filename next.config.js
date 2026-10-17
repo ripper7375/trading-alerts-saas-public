@@ -5,6 +5,10 @@ const withBundleAnalyzer =
     ? require('@next/bundle-analyzer')({ enabled: true })
     : (config) => config;
 
+// `next build` and `next start` run with NODE_ENV=production; `next dev` and
+// Jest do not. Only what production does not need is gated on this below.
+const isProduction = process.env.NODE_ENV === 'production';
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Enable React strict mode for better development experience
@@ -107,10 +111,10 @@ const nextConfig = {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin',
           },
-          // HSTS - Enforce HTTPS (1 year, include subdomains, preload ready)
+          // HSTS - Enforce HTTPS (2 years, include subdomains, preload)
           {
             key: 'Strict-Transport-Security',
-            value: 'max-age=31536000; includeSubDomains; preload',
+            value: 'max-age=63072000; includeSubDomains; preload',
           },
           // Permissions Policy - Restrict browser features
           {
@@ -118,23 +122,25 @@ const nextConfig = {
             value:
               'camera=(), microphone=(), geolocation=(), interest-cohort=()',
           },
-          // XSS Protection for legacy browsers
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
+          // No X-XSS-Protection header: the legacy XSS auditor it controlled is
+          // gone from every current browser, and the filter it enabled was
+          // itself an attack surface in the old ones. The CSP below is the
+          // control.
           // Basic Content Security Policy
-          // Note: Next.js requires 'unsafe-inline' and 'unsafe-eval' for scripts
-          // A stricter CSP with nonces should be implemented for production
+          // Note: Next.js needs 'unsafe-inline' for its inline bootstrap
+          // scripts; a stricter CSP with nonces should be implemented later.
+          // 'unsafe-eval' (React's debugging in development) and the local
+          // development service on localhost:3001 are NOT part of the
+          // production policy.
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://s3.tradingview.com",
+              `script-src 'self' 'unsafe-inline'${isProduction ? '' : " 'unsafe-eval'"} https://js.stripe.com https://checkout.stripe.com https://s3.tradingview.com`,
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://*.googleusercontent.com https://*.githubusercontent.com https://*.stripe.com https://*.public.blob.vercel-storage.com https://i.ytimg.com https://*.tradingview.com",
               "font-src 'self' data:",
-              "connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://operation-service-production.up.railway.app wss://operation-service-production.up.railway.app http://localhost:3001 ws://localhost:3001 https://chat-api.davintrade.app wss://chat-api.davintrade.app https://*.vercel-analytics.com https://ipapi.co https://*.tradingview.com",
+              `connect-src 'self' https://api.stripe.com https://checkout.stripe.com https://operation-service-production.up.railway.app wss://operation-service-production.up.railway.app${isProduction ? '' : ' http://localhost:3001 ws://localhost:3001'} https://chat-api.davintrade.app wss://chat-api.davintrade.app https://*.vercel-analytics.com https://ipapi.co https://*.tradingview.com`,
               "frame-src 'self' https://js.stripe.com https://checkout.stripe.com https://www.youtube-nocookie.com https://www.tradingview-widget.com https://*.tradingview.com",
               "frame-ancestors 'self'",
               "form-action 'self'",

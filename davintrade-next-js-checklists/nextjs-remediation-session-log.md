@@ -3,7 +3,7 @@
 - **Document Role:** Living Cross-Session Continuity & Handoff Log (Read at Session Start · Update at Session End)
 - **Implementation Plan Reference:** [`davintrade-next-js-checklists/nextjs-remediation-handoff-for-claude-code.md`](./nextjs-remediation-handoff-for-claude-code.md)
 - **Consensus Master Plan:** [`davintrade-next-js-checklists/nextjs-production-remediation-master-plan.md`](./nextjs-production-remediation-master-plan.md)
-- **Current Overall Status:** `IN_PROGRESS` (5 / 8 Sessions · 13 / 21 Units Completed — Sessions 1–4 done and committed locally (`f7a9e09b`, `54238457`, `4b6827f2`, `2b712154`), not pushed; Session 5 done, committed locally on `main` by explicit paths (the commit after `2b712154` in `git log`), not pushed)
+- **Current Overall Status:** `IN_PROGRESS` (6 / 8 Sessions · 16 / 21 Units Completed — Sessions 1–5 done and committed locally (`f7a9e09b`, `54238457`, `4b6827f2`, `2b712154`, `18746e60`), not pushed; Session 6 done and committed locally (the commit after `18746e60`), not pushed; full suite 541 suites / 18,666 tests, 0 failed)
 
 ---
 
@@ -24,9 +24,9 @@
 | **Session 4** | **Phase 2 — Part 2C** |    **T1-f**     | `[x]`  | Central CSRF check (`validateOrigin(req)`) in `middleware.ts` for non-GET `/api/**` + unit tests          |
 | **Session 5** | **Phase 3 — Part 3A** |    **T2-a**     | `[x]`  | `React.cache()` deduplication on session/appearance/locale/tutorials + Academy `after()`                  |
 | **Session 5** | **Phase 3 — Part 3A** |    **T2-b**     | `[x]`  | Contract-safe `Promise.all()` waterfall elimination (Stack D readers + Admin BI & Dashboard pages)        |
-| **Session 6** | **Phase 3 — Part 3B** |    **T2-c**     | `[ ]`  | Explicit Prisma `select` on `User` reads, omit `paymentDetails` in affiliate profile, delete dead file    |
-| **Session 6** | **Phase 3 — Part 3B** |    **T2-d**     | `[ ]`  | Sanitize raw `error.message` in `app/error.tsx` & 5 API routes + `global-error.tsx` logging               |
-| **Session 6** | **Phase 3 — Part 3B** |    **T2-e**     | `[ ]`  | Security headers (`X-XSS-Protection` off, 2y HSTS, prod CSP) & Vercel Blob `attachment` hardening         |
+| **Session 6** | **Phase 3 — Part 3B** |    **T2-c**     | `[x]`  | Explicit Prisma `select` on `User` reads, omit `paymentDetails` in affiliate profile, delete dead file    |
+| **Session 6** | **Phase 3 — Part 3B** |    **T2-d**     | `[x]`  | Sanitize raw `error.message` in `app/error.tsx` & 5 API routes + `global-error.tsx` logging               |
+| **Session 6** | **Phase 3 — Part 3B** |    **T2-e**     | `[x]`  | Security headers (`X-XSS-Protection` off, 2y HSTS, prod CSP) & Vercel Blob upload hardening (see Dev. 1)  |
 | **Session 7** | **Phase 4 — Part 4A** |    **T3-a**     | `[ ]`  | Split 1.4 MB static locale bundle into dynamic chunks & wrap heavy charts/modals in `next/dynamic`        |
 | **Session 7** | **Phase 4 — Part 4A** |    **T3-b**     | `[ ]`  | Convert 8 static `'use client'` marketing pages to RSC + narrow Landing `<Suspense>` + client leaves      |
 | **Session 8** | **Phase 4 — Part 4B** |    **T3-c**     | `[ ]`  | Fix `use-currency-index-chart.ts` abort race & add `document.visibilityState` polling pause guards        |
@@ -316,19 +316,47 @@
 
 ### Session 6 Handoff Report — Phase 3, Part 3B (`T2-c`, `T2-d`, `T2-e`)
 
-- **Status:** `PENDING`
-- **Date:** _TBD_
-- **Units Completed:** _None yet_
+- **Status:** `COMPLETED`
+- **Date:** 2026-10-17
+- **Units Completed:** `T2-c`, `T2-d`, `T2-e` (the `⚠` gates of `T2-d` and `T2-e` were authorized in Davin's prompt; one part of `T2-e` could not be done as written, see Deviation 1)
 - **Files Created / Modified / Deleted:**
-  - _To be filled by Session 6_
+  - **`T2-c`**
+    - Modified `app/api/subscription/route.ts` (`select`: `tier`, `trialStatus`, `trialConvertedAt`, `trialCancelledAt`, `hasUsedFreeTrial`), `app/api/subscription/cancel/route.ts` (`tier`, `email`, `name`), `app/api/payments/dlocal/create/route.ts` (`tier`, `hasUsedThreeDayPlan`), `app/api/user/profile/route.ts` (the PATCH email-in-use lookup: `{ id: true }`), `app/api/auth/forgot-password/route.ts` (`id`, `name`).
+    - Modified `app/api/affiliate/profile/route.ts`: a local `toProfileResponse()` removes `paymentDetails` from the three responses (GET existing profile, GET profile created on first read, PUT).
+    - Deleted `lib/candle-data-helpers.ts` (no importer in `app`, `lib`, `components`, `hooks`, `scripts`, `__tests__`, `e2e`; only docs name it).
+    - Created `__tests__/api/user-select-projections.test.ts` (17 tests: a source guard that every `prisma.user.findUnique` of the six routes has a `select` free of `password`, `twoFactorSecret`, `twoFactorBackupCodes`, `resetToken`; the `select` each route really passes; `paymentDetails` absent from the affiliate responses; the dead file is gone).
+  - **`T2-d`**
+    - Modified `app/error.tsx` (fixed translated sentence, never `error.message`; the digest was already shown; logs the error and `{ digest }`) and `app/global-error.tsx` (new `useEffect` logging the error and `{ digest }`).
+    - Modified the five routes: `payments/dlocal/create` (generic `'Failed to create payment'`, the logger also gets the stack), `disbursement/pay` (`'Failed to process payment'`), `disbursement/batches/[batchId]/execute` (see Deviation 3), `webhooks/stripe` (`{ error: 'Invalid webhook signature' }`, 400; the reason stays in the log), `admin/active-indicator` (see Deviation 4).
+    - Tests: created `__tests__/app/error-boundaries.test.tsx` (7), `__tests__/api/error-message-sanitization.test.ts` (dLocal create, quick pay, execute); extended `__tests__/api/webhooks/stripe-route.test.ts` (+1) and `__tests__/api/admin-active-indicator.test.ts` (+2, and a message-shape assertion on an existing case).
+  - **`T2-e`**
+    - Modified `next.config.js`: `X-XSS-Protection` removed; HSTS `max-age=63072000; includeSubDomains; preload`; `'unsafe-eval'` (script-src) and `http://localhost:3001 ws://localhost:3001` (connect-src) only when `NODE_ENV !== 'production'`.
+    - Modified `lib/marketing-resources/storage.ts`: new exported `sanitizeAssetFilename()` used for the blob path; the blob is stored with `contentType: file.type` when the file has one (see Deviation 1).
+    - Tests: created `__tests__/lib/next-config-headers.test.ts` (loads the real `next.config.js` with `NODE_ENV` production and development) and `__tests__/lib/marketing-resources/storage.test.ts`.
 - **Verification Results (Exit Codes & Test Counts):**
-  - `npx tsc --noEmit`: _TBD_
-  - `npx eslint`: _TBD_
-  - `npx jest`: _TBD_
-  - `npm run build`: _TBD_
-- **Git Working Tree State:** _TBD_
-- **Handoff Notes for Session 7:**
-  - _To be filled by Session 6_
+  - `npx tsc --noEmit`: exit `0` after each unit and again at the end (after the build).
+  - `npx eslint <touched files> --max-warnings 0`: exit `0` for all 12 source files and 8 test files together, with `--no-warn-ignored` (ESLint's config ignores `next.config.js`, so without that flag the order's own command prints an "ignored file" warning and exits `1`; that is not a code finding). `prettier --end-of-line auto --check` clean on the new and touched files except `app/api/auth/forgot-password/route.ts`, whose long `console.error` line was already unformatted in `HEAD`.
+  - Targeted `npx jest --coverage=false`: `T2-c` (`__tests__/api`, `lib/auth`, `lib/affiliate`, `integration`) 95 suites, 1,468 tests, pass; `T2-d` (`__tests__/api`, `app`, `integration`, `lib/{disbursement,active-indicator,auth}`) 115 suites, 1,965 tests, pass; `T2-e` plus `__tests__/api` 83 suites, 1,200 tests, pass.
+  - Red checks (temporary reversions, all restored): `T2-c` reverting two fixes fails 3 of the new tests; `T2-d` reverting three fixes fails 3; `T2-e` forcing `isProduction = false` and disabling the sanitizer fails 15.
+  - `npm run build`: **exit `0`**, "Compiled successfully in 3.4min", TypeScript finished, 179 pages generated. `next-env.d.ts` was rewritten by the build and put back.
+  - **Production headers, seen on a real `next start` of that build** (`curl` on `/`): no `X-XSS-Protection`; `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`; the CSP has no `'unsafe-eval'` and no `localhost:3001`. In the built-in browser the landing page (hydrated, TradingView ticker-tape iframes loaded with live prices) and `/econ-news` (TradingView events widget) rendered with **no CSP violation in the console**. **Stripe's embedded checkout was NOT tried** (it needs a signed-in session and a checkout).
+  - **Full repository run (`npx jest --coverage=false`), after the last edit: 541 suites (540 passed, 1 skipped), 18,666 tests (18,639 passed, 27 skipped), 0 failed, exit `0`** (Session 5 ended at 536 suites and 18,600 tests; the difference is this session's 5 new suites and new cases).
+- **Git Working Tree State:** **Committed locally on `main` on Davin's word, by explicit paths (the commit after `18746e60` in `git log`); not pushed, not deployed.** (The report was first written while the tree was uncommitted, per Davin's prompt.) Davin also answered the `T2-e` question: **"keep as built"** (Deviation 1 stands: sanitised names and the validated `contentType`; `downloadUrl` and SVG handling left for a later order). The commit holds: Modified: the 14 source files above, `lib/marketing-resources/storage.ts`, `next.config.js`, `__tests__/api/{admin-active-indicator,webhooks/stripe-route}.test.ts`; deleted `lib/candle-data-helpers.ts`; new: `__tests__/api/{user-select-projections,error-message-sanitization}.test.ts`, `__tests__/app/error-boundaries.test.tsx`, `__tests__/lib/{next-config-headers,marketing-resources/storage}.test.ts`; this log. The unrelated changes already in the tree are untouched. A commit needs explicit paths (the pre-commit hook runs ESLint `--fix` and Prettier). The `.claude/state` files (`current-state.md` entry with the Session 4 rotation into `history/2026-10-sessions.md` and `history/index.md`, and `waiting-on.md`) are in the same commit.
+- **Deviations (plan vs live code — live code won, rule 7):**
+  1. **`⚠` `T2-e` `contentDisposition: 'attachment'` was NOT applied: `put()` in the installed `@vercel/blob` 2.8.0 has no such option.** Its options are `access`, `addRandomSuffix`, `allowOverwrite`, `contentType`, `cacheControlMaxAge`, `ifMatch` (`dist/chunk-YYMLUMXS.js` `putOptionHeaderMap`); `contentDisposition` exists only on the result type, so passing it would be a TypeScript error and ignored at runtime. What I did instead, in the same file and for the same purpose (INP-04): the file name is sanitized (the order's step) and the blob is stored with the content type the route already validated against `ACCEPTED_ASSET_MIME_TYPES`, not one Blob infers from the extension (so a file named `evil.html` that claims `image/png` is not served as `text/html`). **Residual risk, Davin's decision:** a real SVG (allowed) still renders inline if someone opens its URL directly (on the Blob origin, not the app's). The URL that forces `attachment` is the blob's `downloadUrl`; storing that instead of `url` changes stored data, the admin and affiliate previews and `deleteAssetFile`, so I did not do it. Say if you want it, or SVG sanitizing, or SVG removed from the allow-list.
+  2. `T2-c`: `app/api/auth/resend-verification/route.ts` and the GET in `app/api/user/profile/route.ts` already had a `select`; the unselected read in the profile route is the PATCH email lookup (`existingUser`). Resend's `select` includes `verificationToken` because the 60-second rate limit reads it; it is never returned. The source guard allows it there.
+  3. `T2-d` execute route: the plan's L114 is the inner provider-initialisation `catch`, which returned `details: error.message`; the outer catch already answered `'Failed to execute batch'`, but it echoed `error.message` for anything containing `not found` (404) or `Cannot execute` (400), so a database error could pass through. Now: the inner catch logs and answers `{ error: 'Failed to initialize payment provider' }` (kept, not changed to the plan's text, because the text was already fixed); the outer catch logs every failure and answers fixed `'Batch not found'` (404), `'Cannot execute batch'` (400) or `'Failed to execute batch'` (500). The direct refusal `Cannot execute batch with status X` is unchanged.
+  4. `T2-d` active-indicator: the live route has no `500` catch block; the raw text came from `describeGatewayFailure()` (`The gateway could not complete the request (KIND): <error.message>`, 502). Now the message names only the fixed `kind`, and the full error goes to `console.error`. Admin-only route, no secret was known to be in those texts.
+  5. `T2-d`: a dLocal timeout (Session 2's note) now answers the generic 500; it is still **not** mapped to 504 (not in the order).
+  6. `T2-c`: the admin "view as affiliate" path of the profile route still returns its profile as before (`paymentDetails: {}`, pinned by `affiliate-view-as-reads.test.ts`); `getAffiliateProfile()` still returns the whole row to server code.
+  7. `T2-c`: `lib/candle-data-helpers.ts` is still named in docs (`docs/secret-matrix.md`, the file inventories); I did not edit them.
+- **Handoff Notes for Session 7 (`T3-a`, `T3-b`):**
+  - Baseline for Session 7: the full suite is green at 541 suites / 18,666 tests (see above).
+  - **Production CSP has no `'unsafe-eval'`.** Dynamic `import()` chunks and `next/dynamic` need none, but any library that uses `eval` or `new Function` fails in production only (development still allows it). After `T3-a` / `T3-b`, check `npm run build` plus `npm start` (the `nextstart` entry in `.claude/launch.json`) with the console open. `__tests__/lib/next-config-headers.test.ts` pins the production and development policies; a new third-party origin must be added to the CSP in `next.config.js` and to both expectations.
+  - `app/error.tsx` no longer renders `error.message`; a test that expected the message in the DOM would fail (none did). `app/global-error.tsx` and `error.tsx` both log with `{ digest }`.
+  - HSTS is now 2 years with `preload` (header only; it does not submit the domain). Before anyone submits to the preload list, every subdomain must serve HTTPS.
+  - The Academy `<img>` ESLint warning of Session 5 is still there; the fix (`next/image`) would need an `images.remotePatterns` entry in `next.config.js`, which this session did not add (not in the order).
+  - **Still open from earlier sessions:** the stale `frontend/` snapshot (Session 1), the typed generated clients without timeouts (Session 2), the `middleware` to `proxy` rename (Session 3), the preview smoke test of `T1-f`'s central CSRF (Session 4), the Session 5 failure-path changes. Nothing is pushed: `f7a9e09b`, `54238457`, `4b6827f2`, `2b712154`, `18746e60` are local.
 
 ---
 

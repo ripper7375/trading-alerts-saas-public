@@ -246,6 +246,10 @@ describe('/api/admin/active-indicator', () => {
         expect(response.status).toBe(200);
         expect(body.status).toBe('unavailable');
         expect(typeof body.message).toBe('string');
+        // T2-d: the gateway's own words never reach the admin.
+        expect(body.message).toMatch(
+          /^The gateway could not complete the request \([A-Z_]+\)\.$/
+        );
       }
     );
   });
@@ -480,6 +484,36 @@ describe('/api/admin/active-indicator', () => {
       expect(response.status).toBe(502);
       expect((await response.json()).status).toBe('gateway_error');
       expect(console.info).not.toHaveBeenCalled();
+    });
+
+    it('T2-d: the 502 names only the failure kind, never the gateway text, and the error is logged', async () => {
+      mockFetch.mockResolvedValue(
+        reply({ status: 'SET', setting: { nonsense: true } }, 201)
+      );
+      const { POST } = await routes();
+      const response = await POST(post(valid()));
+      const body = await response.json();
+
+      expect(response.status).toBe(502);
+      expect(body).toEqual({
+        status: 'gateway_error',
+        message: 'The gateway could not complete the request (BAD_RESPONSE).',
+      });
+      expect(console.error).toHaveBeenCalledWith(
+        '[admin] active indicator gateway failure:',
+        expect.objectContaining({ kind: 'BAD_RESPONSE' })
+      );
+    });
+
+    it('T2-d: a gateway status code is not echoed either', async () => {
+      mockFetch.mockResolvedValue(reply({}, 500));
+      const { POST } = await routes();
+      const body = await (await POST(post(valid()))).json();
+
+      expect(body.message).toBe(
+        'The gateway could not complete the request (SERVER_ERROR).'
+      );
+      expect(body.message).not.toContain('500');
     });
   });
 });
