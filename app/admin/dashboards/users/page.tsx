@@ -1,4 +1,4 @@
-import { HistoricalTrendChart } from '@/components/admin/analytics/historical-trend-chart';
+import { LazyHistoricalTrendChart } from '@/components/admin/analytics/lazy-charts';
 import { KpiSummaryCard } from '@/components/admin/analytics/kpi-summary-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getUsersAnalytics } from '@/lib/admin/analytics/users';
@@ -75,7 +75,7 @@ export default async function UsersPage(): Promise<React.ReactElement> {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <HistoricalTrendChart data={data.historicalTrajectory} />
+            <LazyHistoricalTrendChart data={data.historicalTrajectory} />
           </CardContent>
         </Card>
 

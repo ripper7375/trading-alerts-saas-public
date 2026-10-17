@@ -12,20 +12,20 @@
  * @module components/currency-index-pro/pro-currency-index-cockpit
  */
 
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { LineChart, Settings } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { ChartSkeleton } from '@/components/ui/chart-skeleton';
 import { useLocale } from '@/lib/context/locale-context';
 import { CURRENCY_INDEX_COMPARE_PATH } from '@/lib/currency-index-comparison/series';
 import type { CurrencyCode } from '@/lib/currency-index-pro/pairs';
 
-import { RelativeStrengthChart } from './chart/relative-strength-chart';
 import { ChartControlHeader } from './chart/chart-control-header';
 import { CurrencyLegendStrip } from './chart/currency-legend-strip';
-import { HrmaSmmaDetailModal } from './chart/hrma-smma-detail-modal';
-import { PairChartModal } from './chart/pair-chart-modal';
+import { RELATIVE_STRENGTH_CHART_HEIGHT } from './chart/relative-strength-config';
 import { IndicatorSettingsModal } from './chart/indicator-settings-modal';
 import { ProPageNav } from './pro-page-nav';
 import { TradingAdvisoryBanner } from './tables/trading-advisory-banner';
@@ -36,6 +36,32 @@ import { useCurrencyIndexChart } from './hooks/use-currency-index-chart';
 import { useCurrencyIndexScreener } from './hooks/use-currency-index-screener';
 import { useCurrencyIndexPreferences } from './hooks/use-currency-index-preferences';
 import { useHiddenCurrencyLines } from './hooks/use-hidden-currency-lines';
+import { useMountedOnceOpen } from './hooks/use-mounted-once-open';
+
+// The chart (lightweight-charts) and the two modals a trader opens on request
+// are loaded on demand, so the page's first bundle carries neither. The chart
+// shows a block of its own height meanwhile, so nothing below it moves.
+const RelativeStrengthChart = dynamic(
+  () =>
+    import('./chart/relative-strength-chart').then(
+      (mod) => mod.RelativeStrengthChart
+    ),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton height={RELATIVE_STRENGTH_CHART_HEIGHT} />,
+  }
+);
+const HrmaSmmaDetailModal = dynamic(
+  () =>
+    import('./chart/hrma-smma-detail-modal').then(
+      (mod) => mod.HrmaSmmaDetailModal
+    ),
+  { ssr: false }
+);
+const PairChartModal = dynamic(
+  () => import('./chart/pair-chart-modal').then((mod) => mod.PairChartModal),
+  { ssr: false }
+);
 
 export function ProCurrencyIndexCockpit(): React.JSX.Element {
   const { t } = useLocale();
@@ -47,6 +73,8 @@ export function ProCurrencyIndexCockpit(): React.JSX.Element {
   const [chartPair, setChartPair] = useState<string | null>(null);
   const [pairChartOpen, setPairChartOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const detailMounted = useMountedOnceOpen(detailOpen);
+  const pairChartMounted = useMountedOnceOpen(pairChartOpen);
 
   const chartData = useCurrencyIndexChart(timeframe);
   const screenerData = useCurrencyIndexScreener();
@@ -153,16 +181,20 @@ export function ProCurrencyIndexCockpit(): React.JSX.Element {
         />
       </div>
 
-      <HrmaSmmaDetailModal
-        open={detailOpen}
-        currency={detailCurrency}
-        onOpenChange={setDetailOpen}
-      />
-      <PairChartModal
-        open={pairChartOpen}
-        pair={chartPair}
-        onOpenChange={setPairChartOpen}
-      />
+      {detailMounted && (
+        <HrmaSmmaDetailModal
+          open={detailOpen}
+          currency={detailCurrency}
+          onOpenChange={setDetailOpen}
+        />
+      )}
+      {pairChartMounted && (
+        <PairChartModal
+          open={pairChartOpen}
+          pair={chartPair}
+          onOpenChange={setPairChartOpen}
+        />
+      )}
       <IndicatorSettingsModal
         open={settingsOpen}
         onOpenChange={setSettingsOpen}

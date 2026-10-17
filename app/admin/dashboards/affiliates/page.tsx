@@ -1,5 +1,5 @@
-import { DonutMarketShare } from '@/components/admin/analytics/donut-market-share';
 import { KpiSummaryCard } from '@/components/admin/analytics/kpi-summary-card';
+import { LazyDonutMarketShare } from '@/components/admin/analytics/lazy-charts';
 import { TimeframeFilter } from '@/components/admin/analytics/timeframe-filter';
 import { TopAffiliatesLeaderboard } from '@/components/admin/analytics/top-affiliates-leaderboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -147,7 +147,7 @@ export default async function AffiliatesPage({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <DonutMarketShare
+            <LazyDonutMarketShare
               data={donutData}
               centerLabel={dict['analytics.partners'] ?? 'Partners'}
               centerValue={data.summary.totalAffiliates.toLocaleString()}

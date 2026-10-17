@@ -1,12 +1,10 @@
-'use client';
-
 import { CheckCircle2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useLocale } from '@/lib/context/locale-context';
+import { getServerLocaleTools } from '@/lib/i18n/server-translator';
 
-export default function ChangelogPage() {
-  const { t, formatDate } = useLocale();
+export default async function ChangelogPage() {
+  const { t, formatDate } = await getServerLocaleTools();
 
   const releases = [
     {

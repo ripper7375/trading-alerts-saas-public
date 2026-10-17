@@ -1,13 +1,11 @@
-'use client';
-
 import Link from 'next/link';
 import { ShieldAlert } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useLocale } from '@/lib/context/locale-context';
+import { getServerTranslator } from '@/lib/i18n/server-translator';
 
-export default function DisclaimerPage() {
-  const { t } = useLocale();
+export default async function DisclaimerPage() {
+  const t = await getServerTranslator();
 
   return (
     <div className="bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">

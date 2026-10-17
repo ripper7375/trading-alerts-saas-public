@@ -136,16 +136,16 @@ import AffiliateLandingPage from '@/app/affiliate/page';
 import AffiliateJoinPage from '@/app/affiliate/join/page';
 
 describe('Public legal pages (F63)', () => {
-  it('renders /terms with the Terms of Service heading', () => {
-    render(withLocale(<TermsPage />));
+  it('renders /terms with the Terms of Service heading', async () => {
+    render(withLocale(await TermsPage()));
     expect(
       screen.getByRole('heading', { name: 'Terms of Service', level: 1 })
     ).toBeInTheDocument();
     expect(screen.getByText(/Financial Disclaimer/)).toBeInTheDocument();
   });
 
-  it('renders /privacy with the DavinTrade Privacy Policy heading', () => {
-    render(withLocale(<PrivacyPage />));
+  it('renders /privacy with the DavinTrade Privacy Policy heading', async () => {
+    render(withLocale(await PrivacyPage()));
     expect(
       screen.getByRole('heading', {
         name: 'DavinTrade AI Privacy Policy',
@@ -157,8 +157,8 @@ describe('Public legal pages (F63)', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders /disclaimer with the risk disclosure heading', () => {
-    render(withLocale(<DisclaimerPage />));
+  it('renders /disclaimer with the risk disclosure heading', async () => {
+    render(withLocale(await DisclaimerPage()));
     expect(
       screen.getByRole('heading', {
         name: 'Financial Risk Disclosure & Legal Disclaimer',
@@ -172,8 +172,8 @@ describe('Public legal pages (F63)', () => {
 });
 
 describe('Public marketing content pages', () => {
-  it('renders /about', () => {
-    render(withLocale(<AboutPage />));
+  it('renders /about', async () => {
+    render(withLocale(await AboutPage()));
     expect(
       screen.getByRole('heading', {
         name: /Precision Gold Analytics Powered by/,
@@ -184,7 +184,7 @@ describe('Public marketing content pages', () => {
 
   it('renders /docs with all topic sections and expands one on click', async () => {
     const user = userEvent.setup();
-    render(withLocale(<DocsPage />));
+    render(withLocale(await DocsPage()));
     expect(
       screen.getByRole('heading', {
         name: 'Documentation & Platform Guides',
@@ -205,8 +205,8 @@ describe('Public marketing content pages', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders /blog with post entries', () => {
-    render(withLocale(<BlogPage />));
+  it('renders /blog with post entries', async () => {
+    render(withLocale(await BlogPage()));
     expect(
       screen.getByRole('heading', {
         name: 'Trading Intelligence Blog',
@@ -218,8 +218,8 @@ describe('Public marketing content pages', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders /changelog with versioned release entries', () => {
-    render(withLocale(<ChangelogPage />));
+  it('renders /changelog with versioned release entries', async () => {
+    render(withLocale(await ChangelogPage()));
     expect(
       screen.getByRole('heading', { name: 'DavinTrade Changelog', level: 1 })
     ).toBeInTheDocument();
@@ -227,16 +227,16 @@ describe('Public marketing content pages', () => {
     expect(screen.getByText('Latest Release')).toBeInTheDocument();
   });
 
-  it('renders /careers with an honest no-open-roles state', () => {
-    render(withLocale(<CareersPage />));
+  it('renders /careers with an honest no-open-roles state', async () => {
+    render(withLocale(await CareersPage()));
     expect(screen.getByText('No open positions right now')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /careers@davintrade\.app/ })
     ).toHaveAttribute('href', 'mailto:careers@davintrade.app');
   });
 
-  it('renders /help with FAQ content and a real email support channel', () => {
-    render(withLocale(<PublicHelpPage />));
+  it('renders /help with FAQ content and a real email support channel', async () => {
+    render(withLocale(await PublicHelpPage()));
     expect(
       screen.getByRole('heading', {
         name: 'How can we help you today?',
@@ -288,8 +288,8 @@ describe('Public status page (B2-12)', () => {
 });
 
 describe('Public affiliate landing page (B2-10, restyled Session 9-7a)', () => {
-  it('renders live commission/discount rates and CTAs to /affiliate/register', () => {
-    render(withLocale(<AffiliateLandingPage />));
+  it('renders live commission/discount rates and CTAs to /affiliate/register', async () => {
+    render(withLocale(await AffiliateLandingPage()));
     expect(
       screen.getByRole('heading', {
         name: 'Partner with the Leader in Quantitative AI Trading',
@@ -309,8 +309,8 @@ describe('Public affiliate landing page (B2-10, restyled Session 9-7a)', () => {
 // its assertion changed for an intentional, approved content change is a
 // finding, not a bug).
 describe('/affiliate/join partner onboarding (B2-11, replaced Session 9-7a)', () => {
-  it('renders the partner onboarding highlights page with a CTA to /affiliate/register', () => {
-    render(withLocale(<AffiliateJoinPage />));
+  it('renders the partner onboarding highlights page with a CTA to /affiliate/register', async () => {
+    render(withLocale(await AffiliateJoinPage()));
     expect(
       screen.getByRole('heading', {
         name: 'Join the DavinTrade Partner Network',

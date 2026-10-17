@@ -9,6 +9,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 
 import { LocaleProvider, useLocale } from '@/lib/context/locale-context';
 import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+import { preloadDictionaries } from '@/lib/i18n/client-dictionaries';
 
 jest.mock('next/navigation', () => ({
   usePathname: () => '/dashboard',
@@ -20,6 +21,14 @@ const mockSync = jest.fn((_prefs: unknown) =>
 jest.mock('@/app/actions/locale', () => ({
   syncLocaleCookiesAction: (prefs: unknown) => mockSync(prefs),
 }));
+
+// These tests are about preferences, not about when a language's chunk
+// arrives (locale-context-dictionaries.test.tsx covers that): with the chunks
+// already in, a language change settles inside act() as it did when the
+// dictionaries were bundled.
+beforeAll(() =>
+  preloadDictionaries(['th', 'ar', 'zh', 'zh-TW', 'it', 'pt', 'es'])
+);
 
 let setPrefs: ReturnType<typeof useLocale>['setLocalePreferences'] = () => {};
 let setCountry: (code: string) => void = () => {};

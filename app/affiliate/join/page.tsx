@@ -1,5 +1,3 @@
-'use client';
-
 /**
  * Partner Onboarding Highlights Page (Row 43, Session 9-7a)
  *
@@ -24,12 +22,11 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MarketingNavbar } from '@/components/marketing/marketing-navbar';
 import { MarketingFooter } from '@/components/marketing/marketing-footer';
-import { useLocale } from '@/lib/context/locale-context';
-import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+import { CommissionPercentText } from '@/components/affiliate/commission-percent-text';
+import { getServerTranslator } from '@/lib/i18n/server-translator';
 
-export default function AffiliateJoinPage(): React.ReactElement {
-  const { t } = useLocale();
-  const { commissionPercent } = useAffiliateConfig();
+export default async function AffiliateJoinPage(): Promise<React.ReactElement> {
+  const t = await getServerTranslator();
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
@@ -45,10 +42,12 @@ export default function AffiliateJoinPage(): React.ReactElement {
               {t('Join the DavinTrade Partner Network')}
             </h1>
             <p className="mx-auto max-w-xl text-sm text-slate-600 dark:text-slate-400">
-              {t(
-                'affiliate.join.subtitle',
-                'Instant partner application. Start creating custom promo codes and earning {percent}% lifetime recurring commissions immediately.'
-              ).replace('{percent}', String(commissionPercent))}
+              <CommissionPercentText
+                template={t(
+                  'affiliate.join.subtitle',
+                  'Instant partner application. Start creating custom promo codes and earning {percent}% lifetime recurring commissions immediately.'
+                )}
+              />
             </p>
           </div>
 
@@ -63,10 +62,12 @@ export default function AffiliateJoinPage(): React.ReactElement {
                   <Percent className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
                   <div>
                     <h4 className="text-xs font-bold text-slate-900 dark:text-slate-200">
-                      {t(
-                        'affiliate.join.recurring_share',
-                        '{percent}% Recurring Monthly Share'
-                      ).replace('{percent}', String(commissionPercent))}
+                      <CommissionPercentText
+                        template={t(
+                          'affiliate.join.recurring_share',
+                          '{percent}% Recurring Monthly Share'
+                        )}
+                      />
                     </h4>
                     <p className="text-[11px] text-slate-600 dark:text-slate-400">
                       {t(

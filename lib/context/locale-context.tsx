@@ -2,12 +2,14 @@
 
 import React, {
   createContext,
+  use,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import { usePathname } from 'next/navigation';
 import { useDisplayUsdRates } from '@/lib/fx/use-display-usd-rates';
@@ -42,24 +44,27 @@ import {
   formatTimeInZone,
 } from '@/lib/i18n/format-datetime';
 
-import thDict from '@/lib/i18n/dictionaries/th.json';
-import enGBDict from '@/lib/i18n/dictionaries/en-GB.json';
-import enUSDict from '@/lib/i18n/dictionaries/en-US.json';
+import {
+  BASE_DICTIONARY,
+  loadDictionary,
+  peekDictionary,
+  type Dictionary,
+} from '@/lib/i18n/client-dictionaries';
+import { translate } from '@/lib/i18n/translate';
+
+const subscribeNever = (): (() => void) => () => {};
 
 /**
- * Dictionaries bundled synchronously so the very first render — server AND
- * client — already has the real translations. An async `import()` inside an
- * effect would leave the first paint in English no matter how correct the
- * resolved language was.
+ * True while React renders on the server and while it hydrates that markup,
+ * false for every render that starts in the browser (`useSyncExternalStore`
+ * uses `getServerSnapshot` for exactly those two cases).
  */
-const staticDictionaries: Record<string, Record<string, string>> = {
-  th: thDict,
-  'en-GB': enGBDict,
-  'en-US': enUSDict,
-};
-
-function dictionaryFor(language: string): Record<string, string> {
-  return staticDictionaries[language] || staticDictionaries['en-GB'] || {};
+function useIsServerOrHydrating(): boolean {
+  return !useSyncExternalStore(
+    subscribeNever,
+    () => true,
+    () => false
+  );
 }
 
 export type { LocalePreferences };
@@ -170,13 +175,7 @@ interface LocaleContextType extends LocalePreferences {
 
 const LocaleContext = createContext<LocaleContextType | null>(null);
 
-export function LocaleProvider({
-  children,
-  initialPreferences,
-  initialLocale,
-  detectedTimezone: serverDetectedTimezone,
-  initialUsdRates,
-}: {
+interface LocaleProviderProps {
   children: React.ReactNode;
   /** Full preference set resolved on the server in `app/layout.tsx`. */
   initialPreferences?: LocalePreferences;
@@ -191,19 +190,87 @@ export function LocaleProvider({
    * the fixed rates in lib/country-config.ts, and no refresh.
    */
   initialUsdRates?: DisplayUsdRates | null;
-}) {
+}
+
+/** What the server resolved, from whichever entry point the caller used. */
+function resolveServerPreferences({
+  initialPreferences,
+  initialLocale,
+}: Pick<
+  LocaleProviderProps,
+  'initialPreferences' | 'initialLocale'
+>): LocalePreferences {
+  if (initialPreferences) return initialPreferences;
+  if (initialLocale) {
+    const match = Object.values(SUPPORTED_COUNTRIES).find(
+      (c) => c.language === initialLocale
+    );
+    if (match) return preferencesFromCountry(match);
+  }
+  return defaultPreferences;
+}
+
+/**
+ * The first render must hold the dictionary the server rendered with, or the
+ * page paints in English and flips (or hydrates over mismatched text). English
+ * (UK and US) is in the bundle; any other language is its own chunk, which the
+ * server awaits here before it streams the page and the browser awaits before
+ * it hydrates that page, so the markup and the first client render agree and
+ * the chunk is never sent as RSC props. A render that starts in the browser (a
+ * test, a client-only mount) never waits: it starts from English and the
+ * provider's effect swaps the language in.
+ *
+ * The waiting is done by `SeedDictionary`, a component with no hooks but the
+ * `use()` itself, and not by the provider body: in React's production build a
+ * component that suspends on `use()` while it is still mounting (hydrating)
+ * and then calls another hook fails with error #467, "Update hook called on
+ * initial render". Keep every hook out of this component and out of whatever
+ * runs after its `use()`.
+ */
+export function LocaleProvider(props: LocaleProviderProps) {
+  const serverOrHydrating = useIsServerOrHydrating();
+  return (
+    <SeedDictionary
+      language={resolveServerPreferences(props).language}
+      wait={serverOrHydrating}
+    >
+      {(seedDictionary) => (
+        <LocaleProviderBody {...props} seedDictionary={seedDictionary} />
+      )}
+    </SeedDictionary>
+  );
+}
+
+function SeedDictionary({
+  language,
+  wait,
+  children,
+}: {
+  language: string;
+  wait: boolean;
+  children: (dictionary: Dictionary) => React.ReactElement;
+}): React.ReactElement {
+  const ready = peekDictionary(language);
+  // `use()` is the last thing this component does, and conditional by design.
+  return children(
+    ready ?? (wait ? use(loadDictionary(language)) : BASE_DICTIONARY)
+  );
+}
+
+function LocaleProviderBody({
+  children,
+  initialPreferences,
+  initialLocale,
+  detectedTimezone: serverDetectedTimezone,
+  initialUsdRates,
+  seedDictionary,
+}: LocaleProviderProps & { seedDictionary: Dictionary }) {
   const pathname = usePathname();
 
-  const serverPreferences = useMemo<LocalePreferences>(() => {
-    if (initialPreferences) return initialPreferences;
-    if (initialLocale) {
-      const match = Object.values(SUPPORTED_COUNTRIES).find(
-        (c) => c.language === initialLocale
-      );
-      if (match) return preferencesFromCountry(match);
-    }
-    return defaultPreferences;
-  }, [initialPreferences, initialLocale]);
+  const serverPreferences = useMemo<LocalePreferences>(
+    () => resolveServerPreferences({ initialPreferences, initialLocale }),
+    [initialPreferences, initialLocale]
+  );
 
   /**
    * Seeded from the server's resolution ONLY — deliberately not from
@@ -218,9 +285,7 @@ export function LocaleProvider({
 
   const usdRates = useDisplayUsdRates(initialUsdRates);
 
-  const [dictionary, setDictionary] = useState<Record<string, string>>(() =>
-    dictionaryFor(serverPreferences.language)
-  );
+  const [dictionary, setDictionary] = useState<Dictionary>(seedDictionary);
 
   const geoLookupAttempted = useRef(false);
 
@@ -306,23 +371,22 @@ export function LocaleProvider({
     }
   }, [preferences.language]);
 
-  // Keep the dictionary in lockstep with the language. Static dictionaries are
-  // applied synchronously; anything else falls back to English while it loads.
+  // Keep the dictionary in lockstep with the language. One that is already
+  // loaded applies at once; another loads as its own chunk and the previous
+  // dictionary stays on screen until it arrives (a chunk that cannot be
+  // fetched leaves English).
   useEffect(() => {
     const language = preferences.language || 'en-GB';
-    if (staticDictionaries[language]) {
-      setDictionary(staticDictionaries[language]);
+    const ready = peekDictionary(language);
+    if (ready) {
+      setDictionary(ready);
       return;
     }
 
     let cancelled = false;
-    import(`@/lib/i18n/dictionaries/${language}.json`)
-      .then((mod) => {
-        if (!cancelled) setDictionary(mod.default || {});
-      })
-      .catch(() => {
-        if (!cancelled) setDictionary(dictionaryFor('en-GB'));
-      });
+    void loadDictionary(language).then((loaded) => {
+      if (!cancelled) setDictionary(loaded);
+    });
 
     return () => {
       cancelled = true;
@@ -436,19 +500,10 @@ export function LocaleProvider({
     []
   );
 
+  // The same lookup rule the server's `getServerTranslator()` uses.
   const t = useCallback(
-    (keyOrText: string, fallback?: string): string => {
-      if (!keyOrText) return '';
-      const direct = dictionary[keyOrText];
-      if (direct) return direct;
-      const trimmed = dictionary[keyOrText.trim()];
-      if (trimmed) return trimmed;
-      const normalizedKey = keyOrText.toLowerCase().replace(/[^a-z0-9]/g, '_');
-      const normalized = dictionary[normalizedKey];
-      if (normalized) return normalized;
-
-      return fallback || keyOrText;
-    },
+    (keyOrText: string, fallback?: string): string =>
+      translate(dictionary, keyOrText, fallback),
     [dictionary]
   );
 

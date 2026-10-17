@@ -53,6 +53,7 @@ import {
 import { currencyColor } from '@/lib/currency-index-pro/colors';
 
 import { HighImpactNewsTooltip } from './high-impact-news-tooltip';
+import { RELATIVE_STRENGTH_CHART_HEIGHT } from './relative-strength-config';
 import type { CurrencyIndexChartData } from '../hooks/use-currency-index-chart';
 import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 
@@ -111,7 +112,7 @@ const EXTREME_LINE_COLOR = 'rgba(239, 68, 68, 0.6)'; // red -- Tier 2 extreme zo
 
 export function RelativeStrengthChart({
   data,
-  height = 480,
+  height = RELATIVE_STRENGTH_CHART_HEIGHT,
   corridorOverride,
   hiddenCurrencies = NONE_HIDDEN,
 }: RelativeStrengthChartProps): React.JSX.Element {

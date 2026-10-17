@@ -1,5 +1,5 @@
-import { DonutMarketShare } from '@/components/admin/analytics/donut-market-share';
 import { KpiSummaryCard } from '@/components/admin/analytics/kpi-summary-card';
+import { LazyDonutMarketShare } from '@/components/admin/analytics/lazy-charts';
 import { RankedCountryTable } from '@/components/admin/analytics/ranked-country-table';
 import { TaxThresholdGauge } from '@/components/admin/analytics/tax-threshold-gauge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -149,7 +149,7 @@ export default async function RegionalPage(): Promise<React.ReactElement> {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <DonutMarketShare
+            <LazyDonutMarketShare
               data={data.donutMarketShare.allUsers}
               centerLabel={dict['analytics.total_users'] ?? 'Total Users'}
               centerValue={realRankings
@@ -166,7 +166,7 @@ export default async function RegionalPage(): Promise<React.ReactElement> {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <DonutMarketShare
+            <LazyDonutMarketShare
               data={data.donutMarketShare.proUsers}
               centerLabel={dict['analytics.pro_users'] ?? 'PRO Users'}
               centerValue={realRankings

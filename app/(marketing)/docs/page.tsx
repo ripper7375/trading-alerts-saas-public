@@ -1,35 +1,23 @@
-'use client';
-
-import { useState } from 'react';
 import {
   Rocket,
   Bell,
   LineChart,
   CreditCard,
   Users,
-  ChevronDown,
-  ChevronUp,
   Brain,
-  Search,
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useLocale } from '@/lib/context/locale-context';
-import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+import { CommissionPercentText } from '@/components/affiliate/commission-percent-text';
+import {
+  DocsSearch,
+  DocsSearchInput,
+  DocsSectionList,
+  type DocsSectionView,
+} from '@/components/marketing/docs-browser';
+import { getServerTranslator } from '@/lib/i18n/server-translator';
 
-export default function DocsPage() {
-  const { t } = useLocale();
-  const { commissionPercent } = useAffiliateConfig();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [openSections, setOpenSections] = useState<Record<number, boolean>>({
-    0: true,
-    1: true,
-  });
-
-  const toggleSection = (index: number) => {
-    setOpenSections((prev) => ({ ...prev, [index]: !prev[index] }));
-  };
+export default async function DocsPage() {
+  const t = await getServerTranslator();
 
   const docSections = [
     {
@@ -131,106 +119,82 @@ export default function DocsPage() {
         t(
           'Create custom discount promo codes for your audience in /affiliate/dashboard/codes.'
         ),
-        t(
-          'docs.affiliate_commission_payouts',
-          'Receive {percent}% recurring commissions disbursed directly to your Wise or RiseWorks account.'
-        ).replace('{percent}', String(commissionPercent)),
+        // The one line that quotes the live commission rate.
+        <CommissionPercentText
+          key="commission"
+          template={t(
+            'docs.affiliate_commission_payouts',
+            'Receive {percent}% recurring commissions disbursed directly to your Wise or RiseWorks account.'
+          )}
+        />,
       ],
     },
   ];
 
-  const filtered = docSections.filter(
-    (s) =>
-      s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      s.summary.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Each section's heading and list are built here, on the server; the list
+  // component only filters them by the search text and opens and closes them.
+  const sections: DocsSectionView[] = docSections.map((section) => {
+    const Icon = section.icon;
+    return {
+      title: section.title,
+      summary: section.summary,
+      header: (
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <Icon className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
+              {section.title}
+            </h3>
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {section.summary}
+            </p>
+          </div>
+        </div>
+      ),
+      body: (
+        <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300 md:text-sm">
+          {section.content.map((point, pIdx) => (
+            <li key={pIdx} className="flex items-start gap-2">
+              <span className="font-bold text-amber-600 dark:text-amber-400">
+                •
+              </span>
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
+      ),
+    };
+  });
 
   return (
     <div className="bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">
       <div className="container mx-auto max-w-5xl px-4 py-16 md:px-6">
-        <div className="space-y-8">
-          <div className="mx-auto max-w-2xl space-y-4 text-center">
-            <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
-              {t('DavinTrade AI Knowledge Hub')}
-            </Badge>
-            <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 md:text-5xl">
-              {t('Documentation & Platform Guides')}
-            </h1>
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              {t(
-                'Complete reference for trading workspaces, algorithmic signals, conversational AI, billing, and API endpoints.'
-              )}
-            </p>
+        <DocsSearch>
+          <div className="space-y-8">
+            <div className="mx-auto max-w-2xl space-y-4 text-center">
+              <Badge className="border-amber-500/40 bg-amber-500/15 px-3 py-1 font-mono text-xs text-amber-700 dark:text-amber-400">
+                {t('DavinTrade AI Knowledge Hub')}
+              </Badge>
+              <h1 className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 md:text-5xl">
+                {t('Documentation & Platform Guides')}
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {t(
+                  'Complete reference for trading workspaces, algorithmic signals, conversational AI, billing, and API endpoints.'
+                )}
+              </p>
 
-            {/* Search Input */}
-            <div className="relative mx-auto max-w-md pt-2">
-              <Search className="absolute left-3.5 top-5 h-4 w-4 text-slate-400" />
-              <Input
+              {/* Search Input */}
+              <DocsSearchInput
                 placeholder={t('Search topics, signals, webhooks...')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-11 border-slate-200 bg-white pl-10 text-slate-900 focus:border-amber-500/60 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
               />
             </div>
+
+            <DocsSectionList sections={sections} />
           </div>
-
-          <div className="space-y-4 pt-4">
-            {filtered.map((section, idx) => {
-              const Icon = section.icon;
-              const isOpen = Boolean(openSections[idx]);
-
-              return (
-                <Card
-                  key={idx}
-                  className="border-slate-200 bg-white shadow-md transition-colors hover:border-slate-300 dark:border-slate-800/80 dark:bg-[#090b14]/90 dark:backdrop-blur-xl dark:hover:border-slate-700"
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleSection(idx)}
-                    aria-expanded={isOpen}
-                    className="flex w-full select-none items-center justify-between p-5 text-left"
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                          {section.title}
-                        </h3>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          {section.summary}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="p-1 text-slate-500 dark:text-slate-400">
-                      {isOpen ? (
-                        <ChevronUp className="h-5 w-5" aria-hidden="true" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5" aria-hidden="true" />
-                      )}
-                    </span>
-                  </button>
-
-                  {isOpen && (
-                    <CardContent className="space-y-2 border-t border-slate-200 bg-slate-50/80 px-6 py-4 dark:border-slate-800/80 dark:bg-[#06080e]/60">
-                      <ul className="space-y-2 text-xs text-slate-700 dark:text-slate-300 md:text-sm">
-                        {section.content.map((point, pIdx) => (
-                          <li key={pIdx} className="flex items-start gap-2">
-                            <span className="font-bold text-amber-600 dark:text-amber-400">
-                              •
-                            </span>
-                            <span>{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </CardContent>
-                  )}
-                </Card>
-              );
-            })}
-          </div>
-        </div>
+        </DocsSearch>
       </div>
     </div>
   );

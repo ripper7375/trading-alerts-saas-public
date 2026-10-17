@@ -1,11 +1,8 @@
-'use client';
-
-import { useState } from 'react';
 import { Search, Mail, CreditCard, User, Zap } from 'lucide-react';
-import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useLocale } from '@/lib/context/locale-context';
+import { HelpSearchBox } from '@/components/marketing/help-search-box';
+import { getServerTranslator } from '@/lib/i18n/server-translator';
 
 /**
  * Public Help Centre.
@@ -16,9 +13,8 @@ import { useLocale } from '@/lib/context/locale-context';
  * Both contact channels below route to the real support inbox until the
  * live chat widget ships.
  */
-export default function HelpPage() {
-  const { t } = useLocale();
-  const [search, setSearch] = useState('');
+export default async function HelpPage() {
+  const t = await getServerTranslator();
 
   const faqs = [
     {
@@ -96,11 +92,8 @@ export default function HelpPage() {
 
             <div className="relative mx-auto max-w-md pt-2">
               <Search className="absolute left-3.5 top-5 h-4 w-4 text-slate-400" />
-              <Input
+              <HelpSearchBox
                 placeholder={t('Search questions, billing, signals...')}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="h-11 border-slate-200 bg-white pl-10 text-slate-900 focus:border-amber-500/60 dark:border-slate-800 dark:bg-[#090b14] dark:text-slate-200"
               />
             </div>
           </div>
