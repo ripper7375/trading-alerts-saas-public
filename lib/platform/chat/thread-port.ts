@@ -15,6 +15,8 @@
  * @module lib/platform/chat/thread-port
  */
 
+import 'server-only';
+
 import { THREAD_ID } from '@/lib/reply/contracts/intake';
 import type { ThreadPort } from '@/lib/reply/contracts/intake';
 

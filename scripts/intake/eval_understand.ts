@@ -27,6 +27,10 @@
  * Exit codes: 0 done, 1 a check or the bars failed, 2 usage or a missing key.
  */
 
+// FIRST import, on purpose: the gateway and the readers below carry `import 'server-only'`, which
+// throws in plain Node. This answers a request for that module with an empty one (see the file).
+import '../server-only-stub';
+
 import {
   existsSync,
   mkdirSync,

@@ -7,6 +7,8 @@
  * @module lib/operation-service/flags
  */
 
+import 'server-only';
+
 /**
  * Check if alert engine evaluation should be routed to operation-service.
  * Default: false (monolith evaluates alerts).

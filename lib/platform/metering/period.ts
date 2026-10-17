@@ -13,6 +13,8 @@
  * @module lib/platform/metering/period
  */
 
+import 'server-only';
+
 /** `YYYY-MM`: the database's own pattern (`ai_quota_periods_month_is_a_month`). */
 export const MONTH = /^[0-9]{4}-(0[1-9]|1[0-2])$/;
 

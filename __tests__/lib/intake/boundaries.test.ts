@@ -27,6 +27,10 @@
  *  4. Nothing outside `lib/intake` imports it except the files named in ALLOWED_IMPORTERS: the two
  *     routes, the dev preview and the Panel C instant prompts (part 10). Each later part that adds a
  *     caller adds that file there on purpose.
+ *  5. What reaches the world carries `import 'server-only'` (Next.js 16 fails the build when a Client
+ *     Component reaches it): every file of `read/` and `server/`, and the knowledge client. No other
+ *     file may carry it, because a client component imports the pure files and the barrel. It is a
+ *     bare import: the marker is not one of the outside modules a file is named for in OUTSIDE_IMPORTS.
  *
  * The guard is itself tested: the snippets below must be caught, and the allowed forms must not.
  */
@@ -148,6 +152,32 @@ const FORBIDDEN_NAMES = new Set([
   'getRandomValues',
 ]);
 
+/** The marker that makes a Client Component's import of a server module a build error. */
+const SERVER_ONLY = 'server-only';
+
+/** The files of `lib/intake` that carry the marker (and must): the readers, the route layer and the knowledge client. */
+const carriesServerOnly = (file: string): boolean =>
+  file.startsWith('read/') ||
+  file.startsWith('server/') ||
+  file === 'knowledge-client.ts';
+
+/** True when the source has a bare `import 'server-only';` among its top-level statements. */
+function importsServerOnly(text: string): boolean {
+  const source = ts.createSourceFile(
+    'x.ts',
+    text,
+    ts.ScriptTarget.ES2020,
+    true
+  );
+  return source.statements.some(
+    (statement) =>
+      ts.isImportDeclaration(statement) &&
+      statement.importClause === undefined &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      statement.moduleSpecifier.text === SERVER_ONLY
+  );
+}
+
 interface Violation {
   file: string;
   line: number;
@@ -262,6 +292,18 @@ function analyse(sources: Map<string, string>): Violation[] {
           } else if (target === 'check' && file === 'index.ts' && !typeOnly) {
             report(node, 'the barrel exports a value of the internal toolkit');
           }
+        } else if (specifier === SERVER_ONLY) {
+          // the marker: a bare import, and only in a file that reaches the world
+          if (
+            !carriesServerOnly(file) ||
+            !ts.isImportDeclaration(node) ||
+            node.importClause !== undefined
+          ) {
+            report(
+              node,
+              `import of ${specifier}: only a bare import in read/, server/ and the knowledge client`
+            );
+          }
         } else if (!(OUTSIDE_IMPORTS[file] ?? []).includes(specifier)) {
           report(node, `import of ${specifier}: not allowed in this file`);
         }
@@ -363,6 +405,23 @@ describe('lib/intake', () => {
     expect(analyse(sources)).toEqual([]);
   });
 
+  it('puts import "server-only" in every reader, every route-layer file and the knowledge client, and in no other file', () => {
+    const wrong = [...sources]
+      .map(([file, text]) => ({
+        file,
+        marked: importsServerOnly(text),
+        expected: carriesServerOnly(file),
+      }))
+      .filter((entry) => entry.marked !== entry.expected);
+    expect(wrong).toEqual([]);
+    // the marked set is not empty and holds all three kinds of file, so the check above is not vacuous
+    const marked = [...sources.keys()].filter(carriesServerOnly);
+    expect(marked.length).toBeGreaterThanOrEqual(10);
+    expect(marked.some((file) => file.startsWith('read/'))).toBe(true);
+    expect(marked.some((file) => file.startsWith('server/'))).toBe(true);
+    expect(marked).toContain('knowledge-client.ts');
+  });
+
   it('exports its public surface from the barrel and not the toolkit’s values', () => {
     const barrel = sources.get('index.ts') as string;
     expect(barrel).toMatch(
@@ -411,6 +470,10 @@ describe('lib/intake', () => {
     }
   });
 
+  // The three "exactly" checks below read `from '…'` specifiers only. The marker is a bare
+  // `import 'server-only';` with no `from`, so it is not one of the outside modules a file is named
+  // for (the guard's `analyse` and the test above hold the marker itself); `import x from 'server-only'`
+  // would show up here as an outside module and fail.
   it('gives the knowledge client no outside module, the Understand adapter exactly the gateway’s, and each server file exactly the modules the guard names', () => {
     for (const file of Object.keys(ADAPTERS)) {
       const text = sources.get(file) as string;
@@ -624,6 +687,47 @@ describe('the guard', () => {
           "import { x } from '../../engine4/profile';\nexport const a = x;",
       }).length
     ).toBeGreaterThan(0);
+  });
+
+  it('lets the readers, the route layer and the knowledge client carry import "server-only", and no other file', () => {
+    const marker = "import 'server-only';\nexport const a = 1;";
+    // allowed: a bare import in read/, server/ and the knowledge client
+    expect(rules({ 'read/events.ts': marker })).toEqual([]);
+    expect(rules({ 'read/profile.ts': marker })).toEqual([]);
+    expect(rules({ 'server/respond.ts': marker })).toEqual([]);
+    expect(rules({ 'server/flags.ts': marker })).toEqual([]);
+    expect(rules({ 'knowledge-client.ts': marker })).toEqual([]);
+    // refused: a pure file is imported by client components
+    for (const file of [
+      'packet.ts',
+      'index.ts',
+      'locales.ts',
+      'pipeline.ts',
+      'text/normalize.ts',
+      'text/understand-model.ts',
+    ]) {
+      expect({ file, rules: rules({ [file]: marker }).length }).toEqual({
+        file,
+        rules: 1,
+      });
+    }
+    // refused: anything but a bare import (a named import, a re-export)
+    expect(
+      rules({
+        'server/respond.ts':
+          "import { x } from 'server-only';\nexport const a = x;",
+      }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules({ 'server/respond.ts': "export * from 'server-only';" }).length
+    ).toBeGreaterThan(0);
+    // the marker is detected only when it is really there
+    expect(importsServerOnly(marker)).toBe(true);
+    expect(
+      importsServerOnly("// import 'server-only';\nexport const a = 1;")
+    ).toBe(false);
+    expect(importsServerOnly("import { x } from 'server-only';")).toBe(false);
+    expect(importsServerOnly("export const a = 'server-only';")).toBe(false);
   });
 
   it('lets the route layer use the clock, the process and the network, but only the outside modules named for each file', () => {

@@ -5,6 +5,8 @@
  * The signature is provided in the x-rise-signature header.
  */
 
+import 'server-only';
+
 import crypto from 'crypto';
 
 /**

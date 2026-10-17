@@ -29,6 +29,8 @@
  * @module lib/reply/gateway/fallback
  */
 
+import 'server-only';
+
 import type { LaunchPlan } from './registry';
 import { vendorOf } from './registry';
 import {

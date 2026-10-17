@@ -26,6 +26,8 @@
  * @module lib/reply/server/errors
  */
 
+import 'server-only';
+
 import {
   ERROR_MESSAGE,
   ERROR_STATUS,

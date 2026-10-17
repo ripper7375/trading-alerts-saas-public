@@ -16,6 +16,8 @@
  * @module lib/admin/analytics/executive
  */
 
+import 'server-only';
+
 import { unstable_cache } from 'next/cache';
 
 import { getRevenueAnalytics } from './revenue';

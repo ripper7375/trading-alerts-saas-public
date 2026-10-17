@@ -11,6 +11,8 @@
  * @module lib/affiliate/code-generator
  */
 
+import 'server-only';
+
 import crypto from 'crypto';
 
 import { prisma } from '@/lib/db/prisma';

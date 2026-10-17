@@ -14,6 +14,8 @@
  * @module lib/admin/analytics/mrr
  */
 
+import 'server-only';
+
 import { getAnnualPriceUsd, getBasePriceUsd } from '@/lib/affiliate/db';
 import { prisma } from '@/lib/db/prisma';
 

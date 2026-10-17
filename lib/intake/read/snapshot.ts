@@ -27,6 +27,8 @@
  * @module lib/intake/read/snapshot
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import {

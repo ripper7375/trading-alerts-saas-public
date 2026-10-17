@@ -10,6 +10,8 @@
  * @module lib/stripe/invoice-plan
  */
 
+import 'server-only';
+
 import type Stripe from 'stripe';
 
 export interface InvoicePlan {

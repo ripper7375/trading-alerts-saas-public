@@ -5,6 +5,8 @@
  * Logs batch creation, execution, payment success/failure events.
  */
 
+import 'server-only';
+
 import {
   PrismaClient,
   AuditLogStatus,

@@ -34,6 +34,8 @@
  * @module lib/admin/user-view-as
  */
 
+import 'server-only';
+
 import { cookies } from 'next/headers';
 
 import { prisma } from '@/lib/db/prisma';

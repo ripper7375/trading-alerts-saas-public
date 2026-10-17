@@ -20,6 +20,8 @@
  * @module lib/affiliate/conversion-processor
  */
 
+import 'server-only';
+
 import { prisma } from '@/lib/db/prisma';
 
 import { calculateFullBreakdown } from './commission-calculator';

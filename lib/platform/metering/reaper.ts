@@ -32,6 +32,8 @@
  * @module lib/platform/metering/reaper
  */
 
+import 'server-only';
+
 import { prisma } from '@/lib/db/prisma';
 
 import type { LedgerClient, LedgerStoreOptions } from './ledger-store';

@@ -17,6 +17,8 @@
  * @module lib/engine4/server/respond
  */
 
+import 'server-only';
+
 import { AuditKeyError } from '../store/user-hash';
 import { StoredProfileError } from '../store/profile-store';
 import {

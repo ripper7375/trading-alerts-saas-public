@@ -15,6 +15,8 @@
  * @module lib/engine4/server/handlers
  */
 
+import 'server-only';
+
 import { buildModalDefinition } from '../modal-definition';
 import { PROFILE_DEFAULTS } from '../profile';
 import { recordConsent } from '../store/consent-store';

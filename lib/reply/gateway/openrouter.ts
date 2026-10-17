@@ -57,6 +57,8 @@
  * @module lib/reply/gateway/openrouter
  */
 
+import 'server-only';
+
 import { withMargin } from '../context/tokens';
 import {
   type ChatMessage,

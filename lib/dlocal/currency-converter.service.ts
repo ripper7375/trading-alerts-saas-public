@@ -9,6 +9,8 @@
  * for a fresh table (`fresh: true`) rather than using an expired one.
  */
 
+import 'server-only';
+
 import type { DLocalCurrency, CurrencyConversionResult } from '@/types/dlocal';
 import { CURRENCY_USD_RATES } from '@/lib/country-config';
 import { clearUsdRateCache, getUsdRateTable } from '@/lib/fx/usd-rates';

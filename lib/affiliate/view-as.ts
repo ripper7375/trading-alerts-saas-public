@@ -26,6 +26,8 @@
  * @module lib/affiliate/view-as
  */
 
+import 'server-only';
+
 import { cookies } from 'next/headers';
 
 import type { AffiliateProfile } from '@/lib/affiliate/types';

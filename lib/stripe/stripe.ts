@@ -7,6 +7,8 @@
  * @module lib/stripe/stripe
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import Stripe from 'stripe';

@@ -22,6 +22,8 @@
  * @module lib/reply/server/state-api
  */
 
+import 'server-only';
+
 import type { AiModel } from '@/config/ai-models';
 import { profilePort } from '@/lib/intake/server/access';
 import { readSnapshot } from '@/lib/intake/read/snapshot';

@@ -17,6 +17,8 @@
  * @module lib/engine4/store/profile-store
  */
 
+import 'server-only';
+
 import { randomUUID } from 'crypto';
 
 import { prisma } from '@/lib/db/prisma';

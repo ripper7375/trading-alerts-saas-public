@@ -25,6 +25,8 @@
  * @module lib/engine4/read/cycle
  */
 
+import 'server-only';
+
 import { marketPrisma } from '@/lib/db/market-prisma';
 
 import type { OfferSynthesis } from '../offer';

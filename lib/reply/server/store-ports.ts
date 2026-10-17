@@ -15,6 +15,8 @@
  * @module lib/reply/server/store-ports
  */
 
+import 'server-only';
+
 import {
   appendExchange,
   listMessages,

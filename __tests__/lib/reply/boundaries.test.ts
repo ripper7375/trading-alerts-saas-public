@@ -34,6 +34,11 @@
  *  3. Nothing outside `lib/reply` and `lib/platform` imports them yet: step 7 part 1 builds
  *     contracts, tables and stores, and wires no route and no component. A later part that
  *     adds a caller adds it to ALLOWED_IMPORTERS on purpose.
+ *  4. What reaches the world carries `import 'server-only'` (Next.js 16 fails the build when a Client
+ *     Component reaches it): every file of `lib/reply/read/`, `lib/reply/gateway/` and `lib/reply/server/`,
+ *     and every file of `lib/platform/`. The rest of `lib/reply` (the pure tree, the orchestrator included,
+ *     which does no I/O of its own) must NOT carry it. It is a bare import, so it is not one of the outside
+ *     modules a file is named for in the tables below.
  *
  * The guard is itself tested: the snippets below must be caught, and the allowed forms must not.
  */
@@ -255,6 +260,26 @@ const REPLY_ALLOWED_NAMES: Readonly<Record<string, readonly string[]>> = {
   'gateway/openrouter.ts': ['fetch', 'setTimeout'],
 };
 
+/** The marker that makes a Client Component's import of a server module a build error. */
+const SERVER_ONLY = 'server-only';
+
+/** True when the source has a bare `import 'server-only';` among its top-level statements. */
+function importsServerOnly(text: string): boolean {
+  const source = ts.createSourceFile(
+    'x.ts',
+    text,
+    ts.ScriptTarget.ES2020,
+    true
+  );
+  return source.statements.some(
+    (statement) =>
+      ts.isImportDeclaration(statement) &&
+      statement.importClause === undefined &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      statement.moduleSpecifier.text === SERVER_ONLY
+  );
+}
+
 interface Violation {
   file: string;
   line: number;
@@ -296,6 +321,8 @@ interface Tree {
   outside: Readonly<Record<string, readonly string[]>>;
   clockFiles: ReadonlySet<string>;
   allowedNames: Readonly<Record<string, readonly string[]>>;
+  /** The files of the tree that carry `import 'server-only'` (and must); no other file may. */
+  carriesServerOnly: (file: string) => boolean;
 }
 
 /** Check files given as `path inside the tree -> source text`. */
@@ -328,6 +355,18 @@ function analyse(tree: Tree, sources: Map<string, string>): Violation[] {
               .startsWith('..')
           ) {
             report(node, `import of ${specifier}: it leaves ${tree.alias}`);
+          }
+        } else if (specifier === SERVER_ONLY) {
+          // the marker: a bare import, and only in a file that reaches the world
+          if (
+            !tree.carriesServerOnly(file) ||
+            !ts.isImportDeclaration(node) ||
+            node.importClause !== undefined
+          ) {
+            report(
+              node,
+              `import of ${specifier}: only a bare import in a file that reaches the world`
+            );
           }
         } else if (specifier.startsWith(`${tree.alias}/`)) {
           // a module of the same tree by alias: allowed
@@ -406,6 +445,9 @@ const REPLY: Tree = {
   outside: REPLY_OUTSIDE,
   clockFiles: REPLY_CLOCK_FILES,
   allowedNames: REPLY_ALLOWED_NAMES,
+  // the readers and the gateway reach the database, the storage and the network; the rest is pure
+  carriesServerOnly: (file) =>
+    file.startsWith(READER_DIR) || file.startsWith('gateway/'),
 };
 const SERVER: Tree = {
   alias: '@/lib/reply',
@@ -420,12 +462,16 @@ const SERVER: Tree = {
     'server/state-api.ts': ['process'],
     'server/threads-api.ts': ['process'],
   },
+  // the whole route layer
+  carriesServerOnly: () => true,
 };
 const PLATFORM: Tree = {
   alias: '@/lib/platform',
   outside: PLATFORM_OUTSIDE,
   clockFiles: PLATFORM_CLOCK_FILES,
   allowedNames: {},
+  // the stores, the ledger and the reaper touch the database; the rest of the platform is their neighbour
+  carriesServerOnly: () => true,
 };
 
 // ---------------------------------------------------------------------------------------
@@ -518,6 +564,22 @@ describe('lib/reply', () => {
 
   it('is pure: no I/O, no clock, no randomness, no database; only its siblings and the one intake door', () => {
     expect(analyse(REPLY, sources)).toEqual([]);
+  });
+
+  it('puts import "server-only" in every reader and every gateway file, and in no other file (the orchestrator and the pure tree stay free of it)', () => {
+    const wrong = [...sources]
+      .map(([file, text]) => ({
+        file,
+        marked: importsServerOnly(text),
+        expected: REPLY.carriesServerOnly(file),
+      }))
+      .filter((entry) => entry.marked !== entry.expected);
+    expect(wrong).toEqual([]);
+    // both folders are not empty, so the check above is not vacuous
+    const marked = [...sources.keys()].filter(REPLY.carriesServerOnly);
+    expect(marked.filter((file) => file.startsWith('read/')).length).toBe(3);
+    expect(marked.filter((file) => file.startsWith('gateway/')).length).toBe(8);
+    expect(marked).not.toContain('orchestrator.ts');
   });
 
   it('lets only the readers touch the database, and each only the client named for it', () => {
@@ -643,6 +705,14 @@ describe('lib/platform', () => {
     expect(analyse(PLATFORM, sources)).toEqual([]);
   });
 
+  it('puts import "server-only" in every file', () => {
+    const unmarked = [...sources]
+      .filter(([, text]) => !importsServerOnly(text))
+      .map(([file]) => file);
+    expect(unmarked).toEqual([]);
+    expect(sources.size).toBe(13);
+  });
+
   it('gives each file exactly the outside modules named for it', () => {
     for (const [file, text] of sources) {
       const outside = [
@@ -681,6 +751,14 @@ describe('lib/reply/server', () => {
 
   it('imports only the modules named for each file, uses no network, console or browser global', () => {
     expect(analyse(SERVER, sources)).toEqual([]);
+  });
+
+  it('puts import "server-only" in every file', () => {
+    const unmarked = [...sources]
+      .filter(([, text]) => !importsServerOnly(text))
+      .map(([file]) => file);
+    expect(unmarked).toEqual([]);
+    expect(sources.size).toBe(9);
   });
 
   it('gives each file exactly the outside modules named for it', () => {
@@ -832,6 +910,52 @@ describe('the guard', () => {
           "import { createHash } from 'crypto';\nexport const a = createHash;",
       })
     ).toEqual([]);
+  });
+
+  it('lets the readers, the gateway, the route layer and the platform carry import "server-only", and the pure tree not', () => {
+    const marker = "import 'server-only';\nexport const a = 1;";
+    // allowed: a bare import where the code reaches the world
+    expect(rules(REPLY, { 'read/day-bars.ts': marker })).toEqual([]);
+    expect(rules(REPLY, { 'gateway/openrouter.ts': marker })).toEqual([]);
+    expect(rules(REPLY, { 'gateway/types.ts': marker })).toEqual([]);
+    expect(rules(SERVER, { 'server/ports.ts': marker })).toEqual([]);
+    expect(rules(PLATFORM, { 'chat/title.ts': marker })).toEqual([]);
+    // refused: the pure tree (a client component imports it), the orchestrator included
+    for (const file of [
+      'orchestrator.ts',
+      'contracts/answer.ts',
+      'context/assemble.ts',
+      'checks/number-check.ts',
+      'run/stages.ts',
+      'meter/units.ts',
+      'report1/compose.ts',
+      'gate/answer-gate.ts',
+      'eval/suite.ts',
+      'version.ts',
+    ]) {
+      expect({ file, rules: rules(REPLY, { [file]: marker }).length }).toEqual({
+        file,
+        rules: 1,
+      });
+    }
+    // refused: anything but a bare import
+    expect(
+      rules(REPLY, {
+        'read/day-bars.ts':
+          "import { x } from 'server-only';\nexport const a = x;",
+      }).length
+    ).toBeGreaterThan(0);
+    expect(
+      rules(PLATFORM, { 'chat/title.ts': "export * from 'server-only';" })
+        .length
+    ).toBeGreaterThan(0);
+    // the marker is detected only when it is really there
+    expect(importsServerOnly(marker)).toBe(true);
+    expect(
+      importsServerOnly("// import 'server-only';\nexport const a = 1;")
+    ).toBe(false);
+    expect(importsServerOnly("import { x } from 'server-only';")).toBe(false);
+    expect(importsServerOnly("export const a = 'server-only';")).toBe(false);
   });
 
   it('lets a reader import its market client, and no other file, and no other client', () => {

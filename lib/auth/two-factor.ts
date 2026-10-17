@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
 import crypto from 'crypto';
@@ -29,7 +31,9 @@ export function generateOtpauthURL(email: string, secret: string): string {
 /**
  * Generate a QR code as a data URL for the authenticator app
  */
-export async function generateQRCodeDataURL(otpauthURL: string): Promise<string> {
+export async function generateQRCodeDataURL(
+  otpauthURL: string
+): Promise<string> {
   return QRCode.toDataURL(otpauthURL, {
     errorCorrectionLevel: 'M',
     margin: 2,
@@ -152,7 +156,9 @@ function getEncryptionKey(): Buffer {
   const key = process.env['TWO_FACTOR_ENCRYPTION_KEY'];
 
   if (!key) {
-    throw new Error('TWO_FACTOR_ENCRYPTION_KEY environment variable is not set');
+    throw new Error(
+      'TWO_FACTOR_ENCRYPTION_KEY environment variable is not set'
+    );
   }
 
   // Ensure the key is 32 bytes (256 bits) for AES-256

@@ -1,3 +1,5 @@
+import 'server-only';
+
 import type { Session } from 'next-auth';
 
 import { prisma } from '@/lib/db/prisma';

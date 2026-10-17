@@ -16,6 +16,8 @@
  * @module lib/platform/entitlements
  */
 
+import 'server-only';
+
 import {
   ENTITLEMENT_FEATURES,
   entitlementOf,

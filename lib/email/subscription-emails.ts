@@ -11,6 +11,8 @@
  * @module lib/email/subscription-emails
  */
 
+import 'server-only';
+
 import { formatEmailUsd, sendEmail } from './email';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

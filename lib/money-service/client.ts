@@ -7,10 +7,12 @@
 // Not exported from lib/api/index.ts — that module is known-broken by design
 // (CLAUDE.md standing do-not-touch list, Phase 7's concern) and out of scope
 // to touch here. Only ever import this from a route handler or server
-// component (never a 'use client' file) — route handlers are inherently
-// server-only in the App Router, so there's no L27-style bundling risk as
-// long as that convention holds; this module doesn't add the `server-only`
-// package to enforce it since it isn't already a project dependency (L6).
+// component (never a 'use client' file). The `import 'server-only'` below
+// enforces it: Next.js 16 fails the build if a Client Component reaches this
+// module (it resolves `server-only` itself, so the package is not a project
+// dependency).
+
+import 'server-only';
 
 const BASE_URL = process.env['MONEY_SERVICE_URL'] ?? 'http://localhost:3002';
 

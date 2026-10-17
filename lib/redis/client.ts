@@ -5,6 +5,8 @@
  * Supports connection URL from environment variables.
  */
 
+import 'server-only';
+
 import Redis, { RedisOptions } from 'ioredis';
 
 // Singleton instance

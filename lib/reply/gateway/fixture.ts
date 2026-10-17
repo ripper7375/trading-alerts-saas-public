@@ -31,6 +31,8 @@
  * @module lib/reply/gateway/fixture
  */
 
+import 'server-only';
+
 import { DEFAULT_CALIBRATION, estimateRawTokens } from '../context/tokens';
 
 import { requestProblem, responseModeFor } from './openrouter';

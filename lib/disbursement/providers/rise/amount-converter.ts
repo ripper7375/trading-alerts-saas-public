@@ -9,6 +9,8 @@
  * - $0.01 USD = 10,000 RiseWorks units
  */
 
+import 'server-only';
+
 import {
   usdToRiseUnits,
   riseUnitsToUsd,

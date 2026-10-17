@@ -12,6 +12,8 @@
  * @module lib/intake/server/reply
  */
 
+import 'server-only';
+
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 
 import type { RefusalCode } from '../refusal';

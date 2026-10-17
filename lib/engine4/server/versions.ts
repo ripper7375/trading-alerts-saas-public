@@ -16,6 +16,8 @@
  * @module lib/engine4/server/versions
  */
 
+import 'server-only';
+
 export {
   REPORT2_DISCLAIMER_VERSION,
   REPORT2_TEMPLATE_VERSION,

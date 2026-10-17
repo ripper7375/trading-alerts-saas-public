@@ -14,6 +14,8 @@
 // Created contract that a bare body-only passthrough would have silently
 // downgraded to 200 (see client.ts's callOperationServiceWithTokenStatus()).
 
+import 'server-only';
+
 import type { NextRequest } from 'next/server';
 
 import {

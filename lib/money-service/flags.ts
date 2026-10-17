@@ -5,6 +5,8 @@
 // flip affiliate-dashboard routes first and admin routes last, each with
 // independent rollback, without a code deploy in between.
 
+import 'server-only';
+
 export function isAffiliateReadApiMigrated(): boolean {
   return process.env['MIGRATE_READ_APIS_MONEY_AFFILIATE'] === 'true';
 }

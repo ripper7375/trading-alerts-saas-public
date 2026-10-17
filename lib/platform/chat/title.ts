@@ -12,6 +12,8 @@
  * @module lib/platform/chat/title
  */
 
+import 'server-only';
+
 import {
   boardStamp,
   instantTimeframe,

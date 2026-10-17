@@ -48,6 +48,8 @@
  * @module lib/platform/metering/ledger-store
  */
 
+import 'server-only';
+
 import { prisma } from '@/lib/db/prisma';
 
 import { isInstant, isMonth } from './period';

@@ -7,6 +7,8 @@
  * @module lib/admin/code-distribution
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import { prisma } from '@/lib/db/prisma';

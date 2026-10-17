@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { PrismaClient } from '.prisma/non-market-client';
 import { PrismaPg } from '@prisma/adapter-pg';
 

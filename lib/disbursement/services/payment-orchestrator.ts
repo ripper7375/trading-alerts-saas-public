@@ -5,6 +5,8 @@
  * Handles payment execution, result processing, and error handling.
  */
 
+import 'server-only';
+
 import { PrismaClient } from '.prisma/non-market-client';
 import { PaymentProvider } from '../providers/base-provider';
 import type { PaymentRequest } from '@/types/disbursement';

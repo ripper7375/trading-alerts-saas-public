@@ -17,6 +17,8 @@
  * @module lib/engine4/read/synthesis
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import { marketPrisma } from '@/lib/db/market-prisma';

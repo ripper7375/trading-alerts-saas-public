@@ -14,6 +14,8 @@
  * @module lib/platform/delivered
  */
 
+import 'server-only';
+
 import {
   INTAKE_REFUSAL_SCHEMA,
   forbiddenKeyPaths,

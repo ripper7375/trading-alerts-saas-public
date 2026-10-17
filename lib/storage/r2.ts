@@ -19,6 +19,8 @@
  * @module lib/storage/r2
  */
 
+import 'server-only';
+
 import {
   GetObjectCommand,
   HeadObjectCommand,

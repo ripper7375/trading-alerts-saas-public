@@ -5,6 +5,8 @@
  * for dLocal payment processing.
  */
 
+import 'server-only';
+
 import crypto from 'crypto';
 import type {
   DLocalPaymentRequest,

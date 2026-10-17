@@ -9,6 +9,8 @@
  * @module lib/dlocal/three-day-validator.service
  */
 
+import 'server-only';
+
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 

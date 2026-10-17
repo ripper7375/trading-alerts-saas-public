@@ -21,6 +21,8 @@
  * @module lib/reply/read/snapshot-at
  */
 
+import 'server-only';
+
 import { marketPrisma } from '@/lib/db/market-prisma';
 
 import {

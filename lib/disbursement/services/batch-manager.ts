@@ -5,6 +5,8 @@
  * Handles batch lifecycle: creation, status updates, retrieval, and deletion.
  */
 
+import 'server-only';
+
 import {
   PrismaClient,
   PaymentBatch,

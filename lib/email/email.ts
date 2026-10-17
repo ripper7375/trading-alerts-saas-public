@@ -5,6 +5,8 @@
  * Supports welcome emails, verification emails, password reset, and alerts.
  */
 
+import 'server-only';
+
 import { Resend } from 'resend';
 
 /**

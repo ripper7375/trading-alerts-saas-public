@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { getServerSession as getServerSessionNext } from 'next-auth';
 import type { Session } from 'next-auth';
 

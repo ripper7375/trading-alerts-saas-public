@@ -18,6 +18,8 @@
  * @module lib/engine4/server/errors
  */
 
+import 'server-only';
+
 import type { RequestTrace } from './trace';
 
 export type Engine4ErrorCode =

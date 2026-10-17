@@ -5,6 +5,8 @@
  * OAuth failures, credential validation, and tier-based access control.
  */
 
+import 'server-only';
+
 /**
  * Base authentication error class
  */

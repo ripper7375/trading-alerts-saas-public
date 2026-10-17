@@ -27,6 +27,8 @@
  * @module lib/engine4/server/idempotency
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import { getRedisClient } from '@/lib/redis/client';

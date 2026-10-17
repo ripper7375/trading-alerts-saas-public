@@ -14,6 +14,8 @@
  * @module lib/platform/traces/hash
  */
 
+import 'server-only';
+
 import {
   AUDIT_KEY_ENV,
   AUDIT_KEY_VERSION_ENV,
