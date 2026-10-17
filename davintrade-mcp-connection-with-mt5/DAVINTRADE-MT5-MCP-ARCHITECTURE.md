@@ -4,7 +4,8 @@
 
 |                           |                                                                                                                                                                                                                                |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Status**                | PROPOSED. Conceptual design, version 0.1, 17 October 2026. Not a build order: nothing here is settled until Davin approves it (§11)                                                                                            |
+| **Status**                | PROPOSED. Conceptual design for later adoption, version 0.2, 17 October 2026. Not a build order. If Davin adopts the MT5 wrapper, the sign-offs in §11 are taken phase by phase; until then nothing here is settled            |
+| **Versions**              | 0.1 (17 Oct 2026): first draft · 0.2 (17 Oct 2026): the desktop technology stack (§4.5); §11 recast as sign-offs at adoption                                                                                                   |
 | **Owner**                 | Davin (approver of every change)                                                                                                                                                                                               |
 | **BEFORE**                | [Stack D architecture](../docs/STACK-D-ARCHITECTURE.md): analysis, Report 1 and Report 2; "DavinTrade places no orders" ([ADR-069])                                                                                            |
 | **AFTER (target)**        | [davintrade-app-as-mt5-wrapper.png](davintrade-app-as-mt5-wrapper.png)                                                                                                                                                         |
@@ -28,7 +29,7 @@ brain, and MCP is the wiring between them.
 8. [Data, privacy and retention](#8-data-privacy-and-retention)
 9. [Lane B: the DavinTrade MCP Server](#9-lane-b-the-davintrade-mcp-server)
 10. [What changes in Stack D and in earlier plans](#10-what-changes-in-stack-d-and-in-earlier-plans)
-11. [Proposed decisions](#11-proposed-decisions)
+11. [Sign-offs at adoption](#11-sign-offs-at-adoption)
 12. [Plan: phases M0 to M6](#12-plan-phases-m0-to-m6)
 13. [Open questions to verify](#13-open-questions-to-verify)
 
@@ -219,23 +220,29 @@ into MT5.
 
 ### 4.1 DavinTrade Desktop (the shell)
 
-- **Why a desktop app.** A web page cannot use Lane A safely. MT5's server listens on 127.0.0.1 and
-  is not built for browser calls (cross-origin rules; browsers now ask before a page may reach the
-  local network), and the API key would sit in page JavaScript, one script injection away from
-  theft. A desktop process can call localhost and keep the key out of the page.
-- **What it is.** A shell that loads the existing DavinTrade web app (same sign-in, same pages) and
-  adds the Local Connector as its main process. One code base for the screens; the desktop adds only
-  the connection, the guard and the journal. Electron is recommended because its Node side runs the
-  official TypeScript MCP SDK, the monorepo's own language; Tauri is the smaller alternative (P-2).
+- **Why a desktop app.** A web page cannot use Lane A safely, for three reasons the codebase
+  confirms:
+
+  1. MT5's server listens on 127.0.0.1 and is not built for browser calls: cross-origin rules apply,
+     and browsers now ask before a page may reach the local network.
+  2. DavinTrade's own content security policy (`next.config.js`) lists no local MT5 port in
+     `connect-src`, so the browser would block the call anyway; opening it would weaken the policy for
+     every visitor.
+  3. The API key would sit in page JavaScript. The same policy still allows `'unsafe-inline'` and
+     `'unsafe-eval'` scripts, so one injected script could read the key and place orders.
+
+  A desktop process can call localhost freely and keep the key where the page cannot reach it.
+
+- **What it is.** A shell that loads the live DavinTrade web app (same sign-in, same pages) and runs
+  the Local Connector in its main process. One code base for the screens; the desktop adds only the
+  connection, the guard, the confirmation and the journal. `mobile-app/` already works this way with
+  Capacitor (its `server.url` points at the live app). The technology is in §4.5.
 - **Windows first**, because MT5 is a Windows program. On macOS MT5 runs under a compatibility
   layer; whether its internal server is reachable there is checked in M0. Until then macOS traders
   use the web app.
 - **The web app in a browser** keeps capabilities 1 and 2, and capability 4 from synced data. It has
   no Lane A. A later "hand-off" can let the web page pass an order ticket to a running Connector,
   which confirms it natively, without moving execution into the browser (§12, later).
-- **Shell security.** A content security policy; only DavinTrade origins load; the page gets a narrow
-  IPC interface (list accounts, read summaries, ask for an order ticket for setup X, read the
-  journal), never the MCP session or the key; updates are signed.
 
 ### 4.2 Local Connector
 
@@ -272,6 +279,166 @@ into MT5.
 | Options → AI Assistant → Trading       | Lane A orders             | Not allowed = DavinTrade can only read. Confirmation required = a second confirmation inside MT5 (its behaviour for outside clients is checked in M0). Allowed = DavinTrade's guard and native confirmation are the controls |
 | Options → MCP → external servers       | Lane B                    | Add DavinTrade's endpoint and the trader's DavinTrade MCP token                                                                                                                                                              |
 | AI Assistant provider and model        | Lane B answers inside MT5 | The trader's choice; DavinTrade does not control that model (§9.3)                                                                                                                                                           |
+
+### 4.5 Desktop technology stack
+
+The desktop app is mostly code DavinTrade already has. It adds one new workspace (`desktop-app/`),
+one shared contracts package, and a few routes in the monolith. Everything new is TypeScript, tested
+with the tools the repository already uses.
+
+#### 4.5.1 What it reuses from the existing codebase
+
+| Existing piece                                                                                                    | Where                                                              | How the desktop uses it                                                                                                                        |
+| ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| The web app: Next.js 16.4.1, React 19.3, Tailwind 3, Radix UI, lucide icons                                       | `app/`, `components/`                                              | Loaded as it is inside the desktop window, so every page, the chart, the chat and the reports are the same code as on the web                  |
+| The shell pattern                                                                                                 | `mobile-app/` (Capacitor 6, `server.url` = the live app)           | The same idea on the desktop: a native shell around the live web app                                                                           |
+| Sign-in: NextAuth 4, JWT session (30 days), cookies on `.davintrade.app`; email and password, Google, X, LinkedIn | `lib/auth/auth-options.ts`                                         | Email and password work inside the window; the OAuth providers go through the system browser (§4.5.5)                                          |
+| The chart: TradingView `lightweight-charts` 5                                                                     | `components/charts/trading-chart.tsx`                              | MT5 positions and pending orders drawn as price lines                                                                                          |
+| Engine 4's exact arithmetic (`Rational` over BigInt; no floats; no dependencies)                                  | `lib/engine4/exact.ts`                                             | The guard's lot-step, basis and drift checks use the same arithmetic, so no price or lot passes through a float on the desktop either (§4.5.4) |
+| Shared types and Zod schemas                                                                                      | `packages/types` (`@trading-alerts/types`), Zod 3                  | The pattern for the new `exec-intent/1` and IPC contracts                                                                                      |
+| One entitlement table                                                                                             | `config/entitlements.ts`, `lib/platform/entitlements.ts`           | New rows decide who sees "Connect MT5" and who may send (P-11)                                                                                 |
+| The 19 language dictionaries                                                                                      | `lib/i18n/dictionaries/*.json`                                     | The confirmation window, consents and kill-switch texts are built into the desktop from the same files                                         |
+| Consent records and the trace                                                                                     | Stack D §6.11 and §7.4; `lib/reply/run/trace.ts`                   | Extended with the execution group and the execution records                                                                                    |
+| Tests: Jest 29 (through `next/jest`) and Playwright                                                               | `jest.config.js`, `e2e/playwright.config.ts`                       | Jest for the Connector; Playwright's Electron mode end to end (§4.5.8)                                                                         |
+| CI: GitHub Actions                                                                                                | `.github/workflows/`                                               | One new workflow on a Windows runner builds and signs the installer                                                                            |
+| Reference only (read-only)                                                                                        | `seed-code/ai-trading-agent/` (Python MCP server, `guardrails.py`) | Ideas for the guard checks; no code copied (`seed-code/**` is read-only)                                                                       |
+
+#### 4.5.2 The stack, layer by layer
+
+| Layer                        | Choice                                                                                                                                                     | Why                                                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Shell                        | Electron, a current supported release (it bundles Chromium and Node 22 or later)                                                                           | One runtime for the web page and for Node; Node runs the MCP SDK; the monorepo's own language and tools |
+| Main window content          | The live web app, loaded over HTTPS                                                                                                                        | No second UI to maintain; every web deploy updates the desktop's screens at once                        |
+| Desktop-only screens         | React 19, Vite and Tailwind, bundled inside the app: the confirmation window, connection settings, consents, kill switch                                   | They must work offline and must never be remote content (§6.3)                                          |
+| MCP client (Lane A)          | `@modelcontextprotocol/sdk` (TypeScript), Streamable HTTP client transport, the API key in a request header (the header's name is confirmed in M0)         | The official SDK; the same package serves Lane B                                                        |
+| MCP server (Lane B)          | The same SDK, server side, as a stateless Next.js route handler in the monolith                                                                            | One SDK on both sides (§9.4)                                                                            |
+| Contracts                    | Zod schemas in a shared workspace package                                                                                                                  | One definition for the monolith (builds and signs intents) and the desktop (checks them)                |
+| Key vault                    | Electron `safeStorage` (Windows DPAPI; macOS Keychain)                                                                                                     | Built in, no native add-on; the key is encrypted for the signed-in Windows user                         |
+| Local journal                | SQLite through `better-sqlite3`, or Node's built-in `node:sqlite` once it is stable                                                                        | Small, reliable, append-only tables; one file per Windows user                                          |
+| Intent signatures            | Ed25519 through Node's `crypto`: the cloud signs with a private key held in its environment; the app ships the public key                                  | Built in; no dependency                                                                                 |
+| Calls to DavinTrade Cloud    | Electron `net.fetch` in the main process, through the same session partition as the window                                                                 | The window's sign-in cookie applies, so the Connector needs no second login and stores no token         |
+| Operating-system integration | Tray icon, global shortcut for the kill switch, notifications, `powerSaveBlocker` while orders are pending, single-instance lock, the `davintrade://` link | All built into Electron                                                                                 |
+| Packaging and updates        | electron-builder (an NSIS installer for Windows) and electron-updater with a signed feed (GitHub Releases or a public Cloudflare R2 bucket)                | The common, mature pair                                                                                 |
+| Code signing                 | A Windows code-signing certificate (or Azure Trusted Signing)                                                                                              | Without it, Windows SmartScreen warns on every install. A yearly cost for Davin                         |
+
+#### 4.5.3 Process model
+
+```
+ Electron app (one install per Windows user)
+ +---------------------------------------------------------------------+
+ | MAIN PROCESS (Node, trusted)                                        |
+ |   Local Connector: discovery, MCP client (Lane A), key vault,       |
+ |   tool adapter, order guard, journal (SQLite), kill switch,         |
+ |   intent signature check, net.fetch to DavinTrade Cloud             |
+ +------------+-------------------------------------+------------------+
+              | IPC: a few typed calls              | IPC: confirm or cancel
+ +------------v-------------------------+  +--------v-------------------+
+ | MAIN WINDOW (sandboxed)              |  | CONFIRM WINDOW (sandboxed) |
+ |   the live DavinTrade web app        |  |   local bundled page,      |
+ |   window.davintradeDesktop:          |  |   always on top, no remote |
+ |     status, accounts, positions,     |  |   content, no network      |
+ |     requestOrderTicket(setupId),     |  +----------------------------+
+ |     journal, onEvent                 |
+ +--------------------------------------+
+```
+
+- The page gets one object, `window.davintradeDesktop`, with a fixed list of calls. In an ordinary
+  browser the object does not exist, and the web app hides every desktop feature.
+- `requestOrderTicket(setupId)` passes an id, never a price or a lot. The Connector fetches the
+  signed intent from the cloud itself, checks it, and opens the confirmation window.
+- The confirmation window is a separate, local page. The web page cannot draw it, read it or press
+  it.
+
+#### 4.5.4 Where the code lives in the monorepo
+
+```
+desktop-app/                    NEW workspace: the Electron app
+  src/main/                       the Local Connector (main process)
+    connector/discovery.ts          port probe, terminal identity
+    connector/mcp-client.ts         one SDK client per terminal
+    connector/tool-adapter.ts       tools/list -> capability map
+    guard/                          checks G1 to G12 as pure functions
+    journal/                        SQLite schema, append-only writes, sync
+    vault.ts                        safeStorage wrapper
+    cloud.ts                        net.fetch to the DavinTrade API
+  src/preload/                    the two narrow window APIs (contextBridge)
+  src/confirm/                    React + Vite: the confirmation window
+  src/settings/                   React + Vite: connections, consents, kill switch
+  electron-builder.yml
+packages/mt5-wrapper/           NEW shared package: Zod contracts and pure logic
+  exec-intent.ts                  exec-intent/1 schema and its signature payload
+  ipc.ts                          the window.davintradeDesktop interface
+  capabilities.ts                 the capability map the adapter fills
+  exact.ts                        Rational, moved from lib/engine4 with its tests
+lib/desktop/                    web side: typed access to window.davintradeDesktop
+components/desktop/             "Connect MT5", account card, positions layer, ticket
+app/api/execution/              intents (build and sign), records, journal sync
+app/api/mcp/route.ts            the Lane B server (§9)
+```
+
+- `desktop-app/` joins the pnpm workspace (`pnpm-workspace.yaml`). Electron and its tools are
+  dependencies of `desktop-app/` only; the web build never contains them. Adding them follows
+  `.claude/rules/security-overrides.md`.
+- Moving `Rational` out of `lib/engine4` touches Engine 4, whose own test bans floats across the
+  folder. The move, or a re-export, is decided in M3's plan; until then the desktop imports nothing
+  from the monolith.
+
+#### 4.5.5 Sign-in inside the desktop
+
+- **Email and password** work in the window as on the web. The NextAuth session cookie lives in the
+  window's persistent session partition, encrypted at rest by Electron.
+- **Google, X and LinkedIn** go through the system browser, because Google refuses sign-in from
+  embedded browsers. After sign-in the web app hands a one-time code to a `davintrade://auth` link;
+  the desktop trades it for a session through a new small route. That route changes how sign-in
+  works, so it escalates to Davin (non-negotiable 5).
+- In production the cookie domain is `.davintrade.app` (`lib/auth/auth-options.ts`), so the desktop
+  loads the production host. Preview deployments on `*.vercel.app` serve tests with email and
+  password sign-in.
+
+#### 4.5.6 Security settings
+
+| Setting                       | Value                                                                                                                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `contextIsolation`, `sandbox` | On, for every window                                                                                                                                                           |
+| `nodeIntegration`             | Off                                                                                                                                                                            |
+| Navigation                    | Only DavinTrade's production origins load in the window; every other link opens in the system browser (`setWindowOpenHandler`, `will-navigate`)                                |
+| Permissions asked by the page | Denied by a permission handler, except what the app needs                                                                                                                      |
+| Electron fuses                | Run-as-Node off, `NODE_OPTIONS` off, inspector arguments off, cookie encryption on, load the app only from the signed archive, with its integrity checked                      |
+| The web app's own policy      | Allows `'unsafe-inline'` and `'unsafe-eval'` scripts today (`next.config.js`). That is why the page gets no power beyond the narrow API, and never hands the Connector a price |
+| The MT5 key                   | Main process only: never in IPC, logs, crash reports or the journal                                                                                                            |
+| Updates                       | Signed; an unsigned update is refused                                                                                                                                          |
+| Electron itself               | Kept on a supported release; a Chromium security fix ships as a desktop update                                                                                                 |
+
+#### 4.5.7 Packaging, updates and release
+
+- **Installer:** NSIS, per-user (no administrator rights), Windows 10 and 11, x64 first.
+- **Updates:** electron-updater checks a signed feed at start and every few hours, with staged
+  rollout. The screens are remote content and update with every web deploy; a desktop release is
+  needed only when the Connector changes.
+- **Version handshake:** the web app reads the Connector's version through the bridge; the cloud
+  refuses intents to a Connector older than the minimum, and the app asks the trader to update.
+- **Release CI:** a GitHub Actions workflow on a Windows runner builds, signs and uploads on a
+  `desktop-v*` tag.
+- **Size:** roughly 100 MB installed, because Chromium is bundled. This is Electron's price.
+
+#### 4.5.8 Testing
+
+| Level      | Tool                                                                    | What it covers                                                                                                                                     |
+| ---------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit       | Jest 29, as in the monolith                                             | Guard checks G1 to G12 as table tests; the tool adapter against the catalog recorded in M0; intent signatures; basis and lot maths with `Rational` |
+| Contract   | A fake MT5 MCP server built with the same SDK, replaying the M0 catalog | Every failure row of §6.6, including a connection that drops during a send (the order must never be sent twice)                                    |
+| End to end | Playwright's Electron mode                                              | Pair, read, request a ticket, confirm, kill switch, against the fake server and a preview deployment                                               |
+| By hand    | A real MT5 demo terminal on a Windows PC or VPS                         | Before every desktop release                                                                                                                       |
+
+#### 4.5.9 Alternatives considered
+
+| Option                                    | For                                                                                                 | Against                                                                                                                                                                                               | Verdict                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Electron**                              | TypeScript end to end; the official MCP SDK in Node; reuses the web app; mature updates and signing | About 100 MB; Electron must be kept current                                                                                                                                                           | Recommended (P-2)                              |
+| Tauri 2                                   | About 10 MB; uses Windows' own WebView2                                                             | The Connector in Rust (Rust MCP SDK) or a Node side process: a second language for a small team                                                                                                       | Smaller, but costlier to build and maintain    |
+| A tray-only Connector next to the browser | No app window to ship                                                                               | The browser must reach a local server (local-network prompts, CORS, the site's policy) or pass through a cloud relay that could reach every trader's PC; the confirmation still needs a native window | Later, as the browser "hand-off" for web users |
+| .NET (WPF or WinUI with WebView2)         | A native Windows feel                                                                               | A new language and stack in the repository; nothing shared with the monolith                                                                                                                          | Not recommended                                |
+| Capacitor's community Electron platform   | The same tool as `mobile-app/`                                                                      | A thin, less maintained layer over Electron                                                                                                                                                           | Use Electron directly                          |
 
 ---
 
@@ -596,44 +763,56 @@ it (P-4).
 
 ---
 
-## 11. Proposed decisions
+## 11. Sign-offs at adoption
 
-None of these is settled. Each becomes an ADR (next free number: 100) once Davin decides.
+**Nothing here needs a decision now.** The MT5 wrapper is a design for later. If and when Davin adopts
+it, these are the sign-offs it needs. Each is taken just before the phase that depends on it (column
+"Needed before"), and then becomes an ADR (the next free number is 100). Until then each row is a
+proposal.
 
-| #    | Decision                    | Recommended                                                                        | Alternative                                             | Sign-off                                     |
-| ---- | --------------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------- | -------------------------------------------- |
-| P-1  | DavinTrade transmits orders | Yes, through Lane A, orders the trader confirms; supersedes ADR-069 in part        | Stay analysis-only                                      | ⚠ NEEDS EXPLICIT SIGN-OFF (money) + counsel |
-| P-2  | Desktop shell               | Electron, loading the web app, with the Local Connector; Windows first             | Tauri; or a tray-only Connector next to the browser     | Davin                                        |
-| P-3  | Source of analysis          | The central feed only; the trader's terminal never feeds a sensor                  | Analysis from each trader's own terminal                | Davin                                        |
-| P-4  | Lane B server               | Yes, read-only, as a monolith route, after Stack D's reply path is live            | No Lane B; or a separate service                        | Davin                                        |
-| P-5  | Lane B scope                | Context and Report 1 only; no Report 2                                             | Include sized Report 2 numbers                          | Davin + counsel                              |
-| P-6  | Live-account gate           | A separate consent, after N filled demo orders                                     | No real money in the first release                      | ⚠ NEEDS EXPLICIT SIGN-OFF + counsel         |
-| P-7  | Confirmation modes          | Manual only at first; Auto later by its own decision; Bypass never                 | Auto at launch                                          | ⚠ NEEDS EXPLICIT SIGN-OFF                   |
-| P-8  | Guard starting values       | As in §7.2                                                                         | —                                                       | Davin                                        |
-| P-9  | Price-gap tolerance         | Move prices by the gap within $0.50; refuse above                                  | Refuse any gap                                          | Davin                                        |
-| P-10 | Records and retention       | Execution records always, 7 years; full history only with sync                     | Sync everything                                         | Davin + counsel                              |
-| P-11 | Tiers                       | Execution and Lane B: Pro. Read-only connector and dashboard: Davin's choice       | —                                                       | Davin                                        |
-| P-12 | Position block in chat      | Positions as distances and R; no money figures (keeps ADR-077)                     | Include the balance, with consent (as the example does) | Davin                                        |
-| P-13 | Order identity              | DavinTrade magic number plus a `DT:<id>` comment tag                               | Comment only                                            | Davin                                        |
-| P-14 | Pending-order expiry        | The earlier of the holding window and N cycles; cancel on invalidation or blackout | Good till cancelled                                     | Davin                                        |
+Adoption is the first sign-off (A-0). M0 may run before it: M0 builds nothing, and gives the adoption
+decision its facts.
+
+| #    | Sign-off                | Recommended                                                                        | Alternative                                             | Needed before                     | Who signs                              |
+| ---- | ----------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------- | --------------------------------- | -------------------------------------- |
+| A-0  | Adopt the MT5 wrapper   | Yes, in the phases of §12                                                          | Stay with Stack D alone                                 | M1                                | Davin                                  |
+| P-1  | DavinTrade sends orders | Yes, through Lane A, only orders the trader confirms; supersedes ADR-069 in part   | Stay analysis-only                                      | M3                                | ⚠ Davin, explicitly (money) + counsel |
+| P-2  | Desktop shell           | Electron loading the web app, with the Local Connector; Windows first (§4.5)       | Tauri; or a tray-only Connector next to the browser     | M1                                | Davin                                  |
+| P-3  | Source of analysis      | The central feed only; the trader's terminal never feeds a sensor                  | Analysis from each trader's own terminal                | M1                                | Davin                                  |
+| P-4  | Lane B server           | Yes, read-only, as a monolith route, once Stack D's reply path is live             | No Lane B; or a separate service                        | M5                                | Davin                                  |
+| P-5  | Lane B scope            | Context and Report 1 only; no Report 2                                             | Include sized Report 2 numbers                          | M5                                | Davin + counsel                        |
+| P-6  | Live-account gate       | A separate consent, after N filled demo orders                                     | No real money in the first release                      | M4                                | ⚠ Davin, explicitly (money) + counsel |
+| P-7  | Confirmation modes      | Manual only at first; Auto later by its own decision; Bypass never                 | Auto at launch                                          | M3                                | ⚠ Davin, explicitly (money)           |
+| P-8  | Guard starting values   | As in §7.2                                                                         | —                                                       | M3                                | Davin                                  |
+| P-9  | Price-gap tolerance     | Move prices by the gap within $0.50; refuse above                                  | Refuse any gap                                          | M3                                | Davin                                  |
+| P-10 | Records and retention   | Execution records always, 7 years; full history only with sync                     | Sync everything                                         | M2 (sync), M3 (records)           | Davin + counsel                        |
+| P-11 | Tiers                   | Execution and Lane B: Pro. Read-only connector and dashboard: Davin's choice       | —                                                       | M1 (read), M3 (send), M5 (Lane B) | Davin                                  |
+| P-12 | Position block in chat  | Positions as distances and R; no money figures (keeps ADR-077)                     | Include the balance, with consent (as the example does) | M6                                | Davin                                  |
+| P-13 | Order identity          | DavinTrade magic number plus a `DT:<id>` comment tag                               | Comment only                                            | M3                                | Davin                                  |
+| P-14 | Pending-order expiry    | The earlier of the holding window and N cycles; cancel on invalidation or blackout | Good till cancelled                                     | M3                                | Davin                                  |
+
+The three rows marked ⚠ involve money: Davin's general approval of a later build order does not cover
+them; each is confirmed on its own (non-negotiable 7, `⚠ NEEDS EXPLICIT SIGN-OFF`).
 
 ---
 
 ## 12. Plan: phases M0 to M6
 
-M1 and M2 do not depend on Stack D being in production, so they can start while Stack D's production
-steps finish. M3 cannot: it needs real cycles and Engine 4 live.
+The phases start only after adoption (A-0), except M0. M1 and M2 do not depend on Stack D being in
+production, so they can run while Stack D's production steps finish. M3 cannot: it needs real cycles
+and Engine 4 live.
 
-| Phase                            | Delivers                                                                                                                                                                                                                     | Depends on                                                        | Done when                                                                                                                                                         |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **M0 Spike**                     | Verified facts on a demo account: the tool catalog (a `tools/list` dump with schemas), discovery and ports, key behaviour, the three trading-permission settings seen from an outside client, error texts, the minimum build | A Windows PC with MT5 6060 or later; a demo account               | A dated tool-catalog file exists; every R and T row of §1.1 is marked verified or corrected; the P-decisions are revisited                                        |
-| **M1 Connect and read**          | Desktop shell, Local Connector, pairing, consent C1, account card, positions on the chart, health chip                                                                                                                       | M0                                                                | Two terminals on one PC are found; a port change is survived; a test shows the key never leaves the keychain; reading works with MT5 trading not allowed          |
-| **M2 Dashboard and reports**     | Journal, history import, reports, optional sync (C4), web dashboard                                                                                                                                                          | M1                                                                | The reports match MT5's own history totals on a fixture account                                                                                                   |
-| **M3 Execution on demo**         | Signed intents, guard, native confirmation, send, read-back, records, expiry, kill switch, consent C2                                                                                                                        | M1; P-1; Stack D build steps 2 and 5 live (real cycles, Engine 4) | Every guard check has a test; a fake MT5 server covers every row of §6.6; the unknown-outcome test never sends twice; two weeks of demo orders are all reconciled |
-| **M4 Real money**                | The live gate (C3)                                                                                                                                                                                                           | M3 on demo; P-6; counsel                                          | Counsel's sign-off is recorded; the live texts exist in all 19 languages                                                                                          |
-| **M5 Lane B**                    | DavinTrade MCP Server, tokens (C5)                                                                                                                                                                                           | Stack D's reply path and metering live (build step 7)             | MT5's own assistant answers "what is the M15 context?" from DavinTrade's tools on a demo terminal; every call is traced and metered                               |
-| **M6 Consultant with positions** | The position block in the intake packet; the "my position" intent                                                                                                                                                            | M1; Stack D §4                                                    | The labelled set is extended and passes; a test shows no money figure ever reaches a prompt                                                                       |
-| **Later**                        | Auto mode (its own decision), the browser-to-Connector hand-off, mobile notifications, macOS, position management by command                                                                                                 | —                                                                 | —                                                                                                                                                                 |
+| Phase                            | Delivers                                                                                                                                                                                                                     | Depends on                                                                                                                | Done when                                                                                                                                                         |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **M0 Spike** (may precede A-0)   | Verified facts on a demo account: the tool catalog (a `tools/list` dump with schemas), discovery and ports, key behaviour, the three trading-permission settings seen from an outside client, error texts, the minimum build | A Windows PC with MT5 6060 or later; a demo account                                                                       | A dated tool-catalog file exists; every R and T row of §1.1 is marked verified or corrected; the sign-offs of §11 are revisited                                   |
+| **Adoption**                     | Davin's decision to build the MT5 wrapper                                                                                                                                                                                    | This design; M0's facts, if M0 ran                                                                                        | A-0 is recorded as an ADR                                                                                                                                         |
+| **M1 Connect and read**          | The desktop app (§4.5), the Local Connector, pairing, consent C1, account card, positions on the chart, health chip                                                                                                          | A-0; P-2, P-3, P-11 (read); M0                                                                                            | Two terminals on one PC are found; a port change is survived; a test shows the key never leaves the keychain; reading works with MT5 trading not allowed          |
+| **M2 Dashboard and reports**     | Journal, history import, reports, optional sync (C4), web dashboard                                                                                                                                                          | M1; P-10 (sync)                                                                                                           | The reports match MT5's own history totals on a fixture account                                                                                                   |
+| **M3 Execution on demo**         | Signed intents, guard, native confirmation, send, read-back, records, expiry, kill switch, consent C2                                                                                                                        | M1; P-1, P-7, P-8, P-9, P-10 (records), P-11 (send), P-13, P-14; Stack D build steps 2 and 5 live (real cycles, Engine 4) | Every guard check has a test; a fake MT5 server covers every row of §6.6; the unknown-outcome test never sends twice; two weeks of demo orders are all reconciled |
+| **M4 Real money**                | The real-money gate (C3)                                                                                                                                                                                                     | M3 on demo; P-6; counsel                                                                                                  | Counsel's sign-off is recorded; the real-money texts exist in all 19 languages                                                                                    |
+| **M5 Lane B**                    | DavinTrade MCP Server, tokens (C5)                                                                                                                                                                                           | P-4, P-5, P-11 (Lane B); Stack D's reply path and metering live (build step 7)                                            | MT5's own assistant answers "what is the M15 context?" from DavinTrade's tools on a demo terminal; every call is traced and metered                               |
+| **M6 Consultant with positions** | The position block in the intake packet; the "my position" intent                                                                                                                                                            | M1; P-12; Stack D §4                                                                                                      | The labelled set is extended and passes; a test shows no money figure ever reaches a prompt                                                                       |
+| **Later**                        | Auto mode (its own decision), the browser-to-Connector hand-off, mobile notifications, macOS, position management by command                                                                                                 | —                                                                                                                         | —                                                                                                                                                                 |
 
 How the phases run follows the Stack D build rules (Stack D §7.10): a plan session, Davin's approval,
 build sessions by part, a fresh check session, and a hand-off report after every session.
