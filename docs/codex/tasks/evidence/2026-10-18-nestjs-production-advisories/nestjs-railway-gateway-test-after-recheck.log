@@ -1,0 +1,96 @@
+
+> railway-gateway@1.0.0 test
+> jest --runInBand
+
+PASS test/sensors-kit-sync.spec.ts (127.209 s)
+PASS test/sensors-replay.spec.ts (58.977 s)
+PASS test/sensors-replay-synthesis-real.spec.ts (40.281 s)
+[Nest] 12656  - 18/10/2026, 12:30:10    WARN [DatabaseInputsSource] Slot 1789764900: M15 left out of the inputs (no READY market_cycles row at slot 1789764300)
+[Nest] 12656  - 18/10/2026, 12:30:15    WARN [DatabaseInputsSource] Slot 1789764900 refused: M5 and M15 both use non_b with a different config_hash: M5 tuned-on-m5, M15 tuned-on-m15
+PASS test/sensors-inputs-runner.spec.ts (33.61 s)
+PASS test/measure-sensors.spec.ts (15.44 s)
+PASS test/measure-sensors-synthesis.spec.ts (10.905 s)
+PASS test/sensors-bundle-types.spec.ts (8.767 s)
+PASS test/sensors-python-runner.spec.ts (9.224 s)
+PASS test/sensors-stale-bundle.spec.ts (5.15 s)
+PASS test/golden-scenarios.spec.ts (5.095 s)
+PASS test/sensors-processor.spec.ts
+PASS test/measure-cycles.spec.ts
+PASS test/sensors-fixture-source.spec.ts
+PASS test/promote-retuning.spec.ts
+PASS test/sensors-database-source.spec.ts
+PASS test/sensors-stats-slot.spec.ts
+PASS test/sensors-writer.spec.ts
+PASS test/sensors-synthesis-writer.spec.ts
+PASS test/no-direct-state-statistics-reads.spec.ts (19.349 s)
+PASS test/measure-synthesis.spec.ts
+PASS test/sensors-envelope-validator.spec.ts
+PASS test/sensors-syn-validator.spec.ts
+PASS test/sensors-disabled-consumes-nothing.spec.ts (10.789 s)
+PASS test/prisma-shutdown.spec.ts
+PASS test/symbol-specs-contract.spec.ts
+PASS test/measure-sensors-real.spec.ts
+PASS test/sensors-replay-synthesis.spec.ts
+PASS test/no-latest-statistics.spec.ts
+PASS test/cycle-manifest.service.spec.ts
+PASS test/sensors-state-statistics-reader.spec.ts
+PASS test/cycle-readers.spec.ts
+PASS test/sensors-replay-details.spec.ts
+PASS test/sensors-synthesis-rows.spec.ts
+PASS test/market-data.processor.spec.ts
+PASS test/symbol-specs.processor.spec.ts
+PASS test/sensors-synthesis.pg.spec.ts
+PASS test/one-day-ohlc.spec.ts
+PASS test/validation.service.spec.ts
+  ● Console
+
+    console.warn
+      Duplicate check failed for XAUUSD_M5_1792301250: redis down
+
+      171 |       }
+      172 |       // Redis/connection errors should not block ingestion — log and proceed.
+    > 173 |       console.warn(`Duplicate check failed for ${jobId}:`, (error as Error).message);
+          |               ^
+      174 |     }
+      175 |   }
+      176 | }
+
+      at ValidationService.checkDuplicates (src/gateway/validation.service.ts:173:15)
+      at ValidationService.validate (src/gateway/validation.service.ts:24:5)
+      at Object.<anonymous> (test/validation.service.spec.ts:172:7)
+
+PASS test/pagination.spec.ts
+PASS test/closed-bars.spec.ts
+PASS test/current-cycle.spec.ts
+PASS test/active-indicator.spec.ts
+PASS test/symbol-specs.service.spec.ts
+PASS test/currency-index-corridor-aggregator.service.spec.ts
+PASS test/dto-contract.spec.ts
+PASS test/cycle-slot.spec.ts
+PASS test/sensors-state-statistics-writer.spec.ts
+PASS test/market-hours.spec.ts
+PASS test/statistics-at-slot.spec.ts
+PASS test/ready-cycle.spec.ts
+PASS test/cycle-manifest-contract.spec.ts
+PASS test/retuning.spec.ts
+PASS test/schema-sync.spec.ts
+PASS test/closed-bars-digest.spec.ts
+PASS test/sensors-state-statistics-series.spec.ts
+PASS test/sensors-statistics-fields.spec.ts
+PASS test/sensors-run-result.spec.ts
+PASS test/data-status.spec.ts
+PASS test/point-in-time-snapshot.spec.ts
+PASS test/manifest-decision.spec.ts
+PASS test/sensors-kit-runner-cleanup.spec.ts
+PASS test/sensors-config.spec.ts
+PASS test/sensors-tuning.spec.ts
+PASS test/manifest-row.spec.ts
+PASS test/sensors-closed-channel.spec.ts
+PASS test/currency-index-corridor-math.spec.ts
+PASS test/main-wiring.spec.ts
+
+Test Suites: 10 skipped, 67 passed, 67 of 77 total
+Tests:       376 skipped, 2764 passed, 3140 total
+Snapshots:   0 total
+Time:        477.78 s
+Ran all test suites.

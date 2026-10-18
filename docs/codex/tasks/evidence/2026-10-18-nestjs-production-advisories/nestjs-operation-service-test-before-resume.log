@@ -1,0 +1,155 @@
+
+> operation-service@0.1.0 test
+> jest --runInBand
+
+[Nest] 7876  - 18/10/2026, 12:07:53     LOG [UsersService] Account deletion requested
+[Nest] 7876  - 18/10/2026, 12:07:53     LOG [UsersService] Object(3) {
+  userId: 'user-1',
+  requestId: 'req-2',
+  expiresAt: 2026-10-25T05:07:53.928Z
+}
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Client socket-1 authenticated as user user-42
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54    WARN [RealtimeGateway] Discarded malformed alerts:fired payload
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] User user-1 disconnected (socket socket-1)
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Unauthenticated client disconnected (socket socket-1)
+[Nest] 7876  - 18/10/2026, 12:08:54     LOG [RealtimeGateway] Subscribed to alerts:fired
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\validations\alert.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\geometry\index.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\geometry\trendline.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\geometry\horizontal.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\geometry\channel.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\geometry\fib.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\geometry\levels.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Starting alert check...
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Found 1 active alerts
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Checking 1 alerts for XAUUSD (price: 1950.5)
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Triggering alert alert-1: XAUUSD price_above 1900 (current: 1950.5)
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Alert alert-1 triggered successfully
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Alert check completed
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Starting alert check...
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Found 1 active alerts
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Checking 1 alerts for XAUUSD (price: 1950.5)
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Triggering alert alert-1: XAUUSD price_above 1900 (current: 1950.5)
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Alert alert-1 triggered successfully
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Alert check completed
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Starting alert check...
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Found 1 active alerts
+[Nest] 7876  - 18/10/2026, 12:09:31   ERROR [AlertCheckerService] Error querying market_data_v6:
+[Nest] 7876  - 18/10/2026, 12:09:31   ERROR [AlertCheckerService] Error: db unreachable
+    at Object.<anonymous> (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\src\alert-engine\alert-checker.service.spec.ts:173:47)
+    at Promise.finally.completed (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:1561:28)
+    at new Promise (<anonymous>)
+    at callAsyncCircusFn (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:1501:10)
+    at _callCircusTest (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:1011:40)
+    at _runTest (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:951:3)
+    at D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:853:7
+    at _runTestsForDescribeBlock (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:866:11)
+    at _runTestsForDescribeBlock (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+    at _runTestsForDescribeBlock (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+    at _runTestsForDescribeBlock (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:861:11)
+    at run (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:765:3)
+    at runAndTransformResultsToJestFormat (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\jestAdapterInit.js:1993:21)
+    at jestAdapter (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-circus\build\runner.js:111:19)
+    at runTestInternal (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-runner\build\index.js:276:16)
+    at runTest (D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\node_modules\jest-runner\build\index.js:344:7)
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Checking 1 alerts for XAUUSD (price: 1950.5)
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Triggering alert alert-1: XAUUSD price_above 1900 (current: 1950.5)
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Alert alert-1 triggered successfully
+[Nest] 7876  - 18/10/2026, 12:09:31     LOG [AlertCheckerService] Alert check completed
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] watches loaded: 0 rows
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] subscribed to prices:* and alerts:changed (queue: on)
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] watches loaded: 0 rows
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] subscribed to prices:* and alerts:changed (queue: on)
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] watches loaded: 1 rows
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] subscribed to prices:* and alerts:changed (queue: on)
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] watches loaded: 0 rows
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] subscribed to prices:* and alerts:changed (queue: on)
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] watches loaded: 0 rows
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] subscribed to prices:* and alerts:changed (queue: off)
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] watches loaded: 0 rows
+[Nest] 7876  - 18/10/2026, 12:09:46     LOG [AlertWorkerService] subscribed to prices:* and alerts:changed (queue: on)
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] alert checker enabled (every 60 seconds)
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check completed in 0ms
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] alert checker enabled (every 60 seconds)
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Manually triggering alert check
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Manually triggering alert check
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert checker already running, skipping...
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check completed in 0ms
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Manually triggering alert check
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check completed in 0ms
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Manually triggering alert check
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check completed in 0ms
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] alert checker enabled (every 60 seconds)
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check completed in 0ms
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] alert checker enabled (every 60 seconds)
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check already taken by another worker, skipping...
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] alert checker enabled (every 60 seconds)
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] alert checker enabled (every 60 seconds)
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check already taken by another worker, skipping...
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check completed in 0ms
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Manually triggering alert check
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check completed in 0ms
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Manually triggering alert check
+[Nest] 7876  - 18/10/2026, 12:09:47     LOG [AlertCronScheduler] Alert check completed in 0ms
+{"level":"info","timestamp":"2026-10-18T05:09:48.921Z","service":"operation-service","name":"alert-engine","correlationId":"fire_e1bc425f-795c-455e-aaaa-bea2b564f903","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"dispatching fire"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.922Z","service":"operation-service","name":"alert-engine","correlationId":"fire_e1bc425f-795c-455e-aaaa-bea2b564f903","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"fire dispatched"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.923Z","service":"operation-service","name":"alert-engine","correlationId":"fire_4cad99b5-0b19-4fc0-91ea-c55939286eb9","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"dispatching fire"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.923Z","service":"operation-service","name":"alert-engine","correlationId":"fire_4cad99b5-0b19-4fc0-91ea-c55939286eb9","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"fire dispatched"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.924Z","service":"operation-service","name":"alert-engine","correlationId":"fire_1e35581b-7245-4e44-ba17-257f3e9d5424","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"dispatching fire"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.924Z","service":"operation-service","name":"alert-engine","correlationId":"fire_1e35581b-7245-4e44-ba17-257f3e9d5424","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"fire dispatched"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.925Z","service":"operation-service","name":"alert-engine","correlationId":"fire_5e1054c0-9347-4dee-a692-e200b8be87e6","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"dispatching fire"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.925Z","service":"operation-service","name":"alert-engine","correlationId":"fire_5e1054c0-9347-4dee-a692-e200b8be87e6","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"fire dispatched"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.926Z","service":"operation-service","name":"alert-engine","correlationId":"fire_824c6aad-044c-4b73-b2a8-22a2a1424478","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"dispatching fire"}
+{"level":"error","timestamp":"2026-10-18T05:09:48.926Z","service":"operation-service","name":"alert-engine","correlationId":"fire_824c6aad-044c-4b73-b2a8-22a2a1424478","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","error":"redis pub/sub down","msg":"live alert push failed after the notification was stored"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.926Z","service":"operation-service","name":"alert-engine","correlationId":"fire_824c6aad-044c-4b73-b2a8-22a2a1424478","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"fire dispatched"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.927Z","service":"operation-service","name":"alert-engine","correlationId":"fire_73cd93ab-49c1-4ca1-a619-14b9ea5fa36b","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"dispatching fire"}
+{"level":"error","timestamp":"2026-10-18T05:09:48.927Z","service":"operation-service","name":"alert-engine","correlationId":"fire_73cd93ab-49c1-4ca1-a619-14b9ea5fa36b","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","error":"redis pub/sub down","msg":"live alert push failed after the notification was stored"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.927Z","service":"operation-service","name":"alert-engine","correlationId":"fire_73cd93ab-49c1-4ca1-a619-14b9ea5fa36b","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"fire dispatched"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.928Z","service":"operation-service","name":"alert-engine","correlationId":"fire_7dfa2712-816d-4a10-bc7a-f713f8e1c514","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"dispatching fire"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.928Z","service":"operation-service","name":"alert-engine","correlationId":"fire_7dfa2712-816d-4a10-bc7a-f713f8e1c514","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"fire dispatched"}
+{"level":"info","timestamp":"2026-10-18T05:09:48.928Z","service":"operation-service","name":"alert-engine","correlationId":"fire_d2fec99d-02ed-4f0d-b19c-33ebee20696b","alertId":"a1","symbol":"XAUUSD","timeframe":"M10","msg":"dispatching fire"}
+{"level":"warn","timestamp":"2026-10-18T05:09:55.286Z","service":"operation-service","correlationId":"test-correlation-1","statusCode":400,"path":"/things","msg":"name must be a string"}
+{"level":"warn","timestamp":"2026-10-18T05:09:55.306Z","service":"operation-service","correlationId":"test-correlation-2","statusCode":404,"path":"/does-not-exist","msg":"Cannot GET /does-not-exist"}
+{"level":"error","timestamp":"2026-10-18T05:09:55.325Z","service":"operation-service","correlationId":"test-correlation-3","statusCode":500,"path":"/boom","stack":"Error: genuinely unhandled\n    at ThrowingController.boom (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\src\\common\\filters\\all-exceptions.filter.e2e.spec.ts:42:11)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\@nestjs\\core\\router\\router-execution-context.js:39:29\n    at InterceptorsConsumer.intercept (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\@nestjs\\core\\interceptors\\interceptors-consumer.js:12:20)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\@nestjs\\core\\router\\router-execution-context.js:54:64\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\@nestjs\\core\\router\\router-proxy.js:9:23\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\lib\\route.js:157:13)\n    at Route.dispatch (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\lib\\route.js:117:3)\n    at handle (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:435:11)\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:295:15\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:582:12)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:291:5)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\src\\common\\middleware\\correlation-id.middleware.ts:24:7\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:63:14)\n    at CorrelationIdMiddleware.use (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\src\\common\\middleware\\correlation-id.middleware.ts:23:31)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\@nestjs\\core\\router\\router-proxy.js:9:23\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at trimPrefix (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:342:13)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:297:9\n    at param (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:600:14)\n    at param (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:610:14)\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:664:3)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:291:5)\n    at read (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\body-parser\\lib\\read.js:53:5)\n    at urlencodedParser (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\body-parser\\lib\\types\\urlencoded.js:51:5)\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at trimPrefix (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:342:13)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:297:9\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:582:12)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:291:5)\n    at read (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\body-parser\\lib\\read.js:53:5)\n    at jsonParser (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\body-parser\\lib\\types\\json.js:60:5)\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at trimPrefix (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:342:13)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:297:9\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:582:12)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:291:5)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\@nestjs\\platform-express\\adapters\\express-adapter.js:34:17\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at trimPrefix (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:342:13)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:297:9\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:582:12)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:291:5)\n    at router.handle (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\router\\index.js:186:3)\n    at app.handle (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\express\\lib\\application.js:177:15)\n    at Server.app (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\operation-service\\node_modules\\express\\lib\\express.js:38:9)\n    at Server.emit (node:events:508:28)\n    at parserOnIncoming (node:_http_server:1210:12)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:123:17)","msg":"Internal server error"}
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\tier\index.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\tier\constants.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+ts-jest[ts-compiler] (WARN) Got a `.js` file to compile while `allowJs` option is not set to `true` (file: D:\SaaS Project\trading-alerts-saas-codex-nestjs\operation-service\packages\types\dist\tier\helpers.js). To fix this:
+  - if you want TypeScript to process JS files, set `allowJs` to `true` in your TypeScript config (usually tsconfig.json)
+  - if you do not want TypeScript to process your `.js` files, in your Jest config change the `transform` key which value is `ts-jest` so that it does not match `.js` files anymore
+[Nest] 7876  - 18/10/2026, 12:09:58     LOG [AlertQueueService] queue closed
+{"level":"error","timestamp":"2026-10-18T05:10:00.290Z","service":"operation-service","name":"alert-engine","jobName":"alert-checker","error":"redis down","msg":"cron lock unavailable, running the job without it"}
+
+Test Suites: 53 passed, 53 total
+Tests:       506 passed, 506 total
+Snapshots:   0 total
+Time:        186.705 s
+Ran all test suites.

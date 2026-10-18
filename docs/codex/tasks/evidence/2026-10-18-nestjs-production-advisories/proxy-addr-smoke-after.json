@@ -1,0 +1,17 @@
+[
+  {
+    "service": "money-service",
+    "version": "2.0.8",
+    "malformed_subnet_trusts_unrelated_ip": false
+  },
+  {
+    "service": "operation-service",
+    "version": "2.0.8",
+    "malformed_subnet_trusts_unrelated_ip": false
+  },
+  {
+    "service": "railway-gateway",
+    "version": "2.0.8",
+    "malformed_subnet_trusts_unrelated_ip": false
+  }
+]

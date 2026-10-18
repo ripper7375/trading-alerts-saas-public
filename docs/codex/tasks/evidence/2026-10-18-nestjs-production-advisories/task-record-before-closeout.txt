@@ -1,0 +1,220 @@
+---
+type: Concept/Task
+status: in_progress
+updated_at: 2026-10-18
+task_id: 2026-10-18-nestjs-production-advisories
+owner: Codex
+integrator: Codex
+reviewer: not-required
+shared_state_writer: handoff-only
+approval: Davin's direct task instruction and Desktop reference prompt
+order_mode: ad-hoc; phase/session unchanged
+base_commit: 5dab316c79c13abd42d024f9291dda667cff755e
+worktree: D:/SaaS Project/trading-alerts-saas-codex-nestjs
+branch: codex/nestjs-security-audit
+---
+
+# Objective
+
+Clear high/critical production advisories in the three isolated npm services,
+or document every unavoidable remaining advisory with its GHSA/CVE and reason.
+Measure unchanged baselines before dependency edits and compare final checks.
+
+## Scope and ownership
+
+- Codex owns dependency lockfiles in `money-service/`, `operation-service/`,
+  `railway-gateway/`, this task and its unique handoff.
+- Davin additionally approved the one-line test-only unknown annotation in
+  money-service/src/stripe/stripe-checkout.controller.spec.ts:368 on resume.
+- Excluded: root manifests/lockfiles, source behavior, migrations, credentials,
+  deployment, commits and pushes. Initial worktree was clean; no nested routers
+  found in the target services or docs.
+- Only lockfile patches are authorized on money/auth paths by the reference
+  prompt. Prisma/NestJS/OpenTelemetry bumps beyond those patches and semver-major
+  changes require Davin's sign-off. Overrides only for exact parent pins; the
+  direct scope permits those, subject to the same money/auth and major gates.
+- No independent reviewer or subagents requested. Codex owns local install/test
+  resources in this isolated worktree; other worktrees are read-only context.
+- Shared Claude state is owned by its existing writer; publish proposed session
+  and waiting-on updates in the handoff rather than overwrite stale shared state.
+
+## Checklist
+
+- [x] Read required rules, prompt, lifecycle, security and verification protocols.
+- [x] Install unchanged service locks locally and measure all baselines.
+- [x] Capture current production audits and identify vulnerable parent chains.
+- [x] Apply authorized compatible lockfile fixes and inspect their scope.
+- [ ] Repeat audit, type checks and tests; compare exact counts and exit codes.
+- [ ] Review diff, run document checks, write handoff and publication instructions.
+
+## Decisions and deviations
+
+- Current resume progress: all raw baselines are captured. Corrected money
+  baseline tsc/Jest exit 0 (74 suites / 838 tests); operation tsc/Jest exit 0
+  (53 / 506); gateway failed-suite recheck exit 0 (3 / 328) and original e2e
+  exit 0 (8 / 156). No new test cases were added: the annotation restores 15
+  previously uncollected Stripe cases; the five gateway failures were CRLF.
+- Applied the saved compatible lockfile patch after checking original hashes:
+  19/23/14 changed or added package entries, respectively. Root lock metadata
+  unchanged, no existing package major changed, all changed resolved packages
+  have npm-registry HTTPS URLs and integrity. Only three locks and the approved
+  test annotation have a real tracked diff. Final installs/checks are pending:
+  sessions money 38680, operation 89286, gateway 77294; TEMP
+  nestjs-<service>-install-after.log. No family bump or override was added.
+- Git stat refresh for LF-only checkout repairs encountered an existing
+  index.lock (exit 128); it was not deleted. Git diff proves zero source changes
+  for those three files and cached diff exit 0 proves no staged changes.
+- Resumed on Davin's explicit "Resume the NestJS advisories task" instruction.
+  Branch/HEAD and all three saved baseline lock hashes still match. The fresh
+  baseline audits are unchanged (67/68/15 total, exits 1). Gateway baseline tsc
+  passed again. Recover partial money/operation installations using npm.cmd
+  install --ignore-scripts --no-save --no-audit --no-fund --prefer-offline;
+  npm's installed config definition confirms --no-save prevents lockfile writes.
+  No dependency candidate is applied until all missing baselines are measured.
+  Active resumed commands: money install session 20605 (TEMP
+  nestjs-money-install-resume.log), operation install 92664
+  (nestjs-operation-install-resume.log), gateway baseline 37316
+  (nestjs-gateway-{tsc,test,e2e}-before-resume.log). Avoid duplicate commands.
+- Recovery installs completed: money exit 0 (43 packages repaired in 5 minutes),
+  operation exit 0 (51 in 4 minutes), all original lock hashes still match.
+  Baseline client generation exits 0 in both; operation's shared types build and
+  baseline tsc exit 0. Active baseline sessions are now money 93793, operation
+  76990 and gateway 37316. Gateway has four pre-existing CRLF assertions so far:
+  replay-cycle.js shebang and three zone_params.yaml regex reads. Both files are
+  LF in Git and CRLF in this checkout. Complete the raw baseline before repairing
+  their checkout bytes, only if normalization exactly equals committed content.
+- Standalone baseline proxy-addr smoke: version 2.0.7 in all three services;
+  compile('::ffff:10.0.0.0/8')('203.0.113.42', 0) returns true, reproducing the
+  advisory's unrelated-address trust bug. Repeat after the compatible update.
+- Completed raw baselines: money tsc 2 (TS7006 in the Stripe controller spec),
+  Jest 1 (73 passed suites, 1 suite failed to compile; 823 collected tests passed).
+  Operation tsc 0 and Jest 0 (53 suites / 506 tests passed). Gateway tsc 0, Jest 1
+  (64 passed / 3 failed / 10 skipped suites; 2759 passed / 5 failed / 376 skipped
+  tests; 3140 total), e2e 0 (8 suites / 156 tests passed).
+- Davin explicitly approved the one-line test-only annotation (v: unknown) at
+  stripe-checkout.controller.spec.ts:368 via the async question. Applied after
+  the raw money baseline completed; preserve original CRLF. Rechecking complete
+  money baseline in session 35487.
+- Normalized exactly three test inputs to their committed LF bytes: gateway
+  replay-cycle.js, sensors.module.ts and Stack D synthesis/zone_params.yaml.
+  Strict byte guard proved differences were only CRLF; git diff exit 0 for all
+  three. Evidence is checkout-normalization.json. Failed gateway suites recheck
+  in session 99334; five failing assertions were checkout artifacts, not a patch.
+- This checkout predates the reference security session. Its state has no
+  2026-10-18 security entry or corresponding waiting-on item. Read that session
+  from the original security worktree instead; do not copy or rotate its state.
+- Service node_modules are absent. An initial `npx tsc --noEmit` had to be
+  interrupted while resolving a missing tool; it is not baseline evidence.
+  Install the unchanged lockfiles before measuring executable baselines.
+- Asked combined versus per-service eventual PR preference asynchronously;
+  Davin chose one combined PR. No PR creation, commit or push is authorized.
+- Fresh registry audits (package-lock-only, unchanged locks): money 48 moderate,
+  18 high, 1 critical (67 total); operation 48 moderate, 19 high, 1 critical
+  (68 total); gateway 4 moderate, 10 high, 1 critical (15 total). All audit
+  commands exit 1. The sandbox's first registry request failed; registry access
+  succeeded after tool escalation. Baseline installations also needed escalation.
+- Exact parents confirmed in each lockfile: platform-express 11.2.3 pins multer
+  2.2.0; Prisma 7.9.1 pins mysql2 3.15.3; @prisma/config pins deepmerge-ts 7.1.5.
+  Money/operation Swagger pins js-yaml 5.2.1; sdk-trace-node pins Jaeger 1.30.1.
+  Compatible updates will target proxy-addr, compression, brace-expansion,
+  browserslist, fast-uri, js-yaml, grpc-js and operation's engine.io.
+- Initial operating-doc checker reports 29 pre-existing issues in old handoff
+  frontmatter/links; none point to the new task. Preserve that unrelated scope.
+- Baseline/final Jest uses `--runInBand` per the verification adapter, with no
+  test selection changes. Python yaml/jsonschema prerequisites are available.
+- Clean installs are unusually slow but I/O counters and extracted file growth
+  confirm progress. Three isolated installers only (no orphaned duplicates):
+  money PID 23792 / tool session 40289; operation PID 24380 / session 53292;
+  gateway PID 29408 / session 88379. Started about 11:06 Bangkok; logs in TEMP:
+  `nestjs-money-install.log`, `nestjs-operation-service-install.log`, and
+  `nestjs-railway-gateway-install.log`. Do not start duplicate installers.
+- Gateway npm ci passed (786 packages, 31 minutes); its local Prisma generation
+  and baseline tsc both exit 0. Unit/e2e baseline is in tool session 56244.
+- While installs ran, generated isolated candidate locks under
+  `C:/Users/WiN/AppData/Local/Temp/nsa-codex-20261018-5dab/` using npm update
+  with `--package-lock-only --ignore-scripts --no-audit --no-fund` targeting
+  proxy-addr, compression, brace-expansion, browserslist, fast-uri, js-yaml,
+  @grpc/grpc-js, engine.io, qs and baseline-browser-mapping. All update exits 0;
+  target service locks remain unchanged until all baselines complete.
+- Candidate audits: money/operation 46 moderate, 13 high, 0 critical (59 total);
+  gateway 3 moderate, 6 high, 0 critical (9 total), audit exits 1. Root lock
+  metadata is identical; no existing package changes major version. Candidates
+  have 19, 23 and 14 added/changed package entries respectively, including the
+  compression fix's new destroy 1.2.0 dependency.
+- PowerShell resolves npm to npm.ps1, which consumed the `--` separator and
+  treated `--runInBand` as npm config. The incomplete parallel gateway run was
+  stopped; use npm.cmd for forwarded Jest flags. Correct serial gateway baseline
+  now runs in session 64486. Generation/tsc from session 56244 remain valid.
+- Fixed parent metadata verified from npm: platform-express 11.2.7 pins multer
+  2.4.0; Prisma 7.10.1 pins mysql2 3.24.4 and config 7.10.1, which pins
+  deepmerge-ts 8.0.2 (a transitive major). No such family bump was applied.
+
+## Residual advisory review (locks applied; final verification pending)
+
+Counts are affected packages, including inherited parent findings, not unique
+vulnerabilities. All remaining unique direct advisory IDs are listed below.
+
+| Services | Package / reason compatible updates cannot fix it | GHSA IDs |
+| --- | --- | --- |
+| All | multer 2.2.0 is exact-pinned by platform-express 11.2.3; parent bump or override is outside this lockfile-only pass | GHSA-wc9g-mqfw-jrwm, GHSA-qfvm-cv95-jqjf, GHSA-535w-7cp7-47q4 (high); GHSA-qvfw-j98x-7q72 (low); GHSA-3pph-fpjx-jg34 (moderate) |
+| All | deepmerge-ts 7.1.5 exact-pinned by Prisma config; fixed 8.x is a major and needs sign-off | GHSA-ggr8-5vv4-36mx (high) |
+| All | mysql2 3.15.3 exact-pinned by Prisma 7.9.1; Prisma bump or manifest override requires sign-off under reference prompt | GHSA-3f6p-5ww8-9rcr (high); GHSA-rgwj-5xj2-c3m3 (moderate) |
+| Money, operation | js-yaml 5.2.1 exact-pinned by Swagger; fixed 5.4.2 needs a parent change or manifest override | GHSA-pm4m-ph32-ghv5 (high); GHSA-r3ph-w7gj-g6xm (moderate) |
+| Money, operation | Legacy OpenTelemetry SDK/auto-instrumentation ranges need coordinated upgrades; Jaeger 1.30.1 is exact-pinned by sdk-trace-node | GHSA-q7rr-3cgh-j5r3, GHSA-45rx-2jwx-cxfr (high); GHSA-8988-4f7v-96qf, GHSA-qqmp-wf37-98f9 (moderate) |
+| All | uuid fixed >=11.1.1 cannot satisfy gaxios ^9.0.1 (money/operation) or Bull ^8.3.0 (gateway); requires parent/major upgrade | GHSA-w5hq-g745-h8pq (moderate) |
+
+## Verification
+
+**Historical credit checkpoint, superseded by the active resume entries above.**
+Execution stopped before any service dependency changes. All known task commands
+were interrupted; incomplete installs remain only in ignored node_modules.
+Do not interpret candidate audit improvement as an applied or verified fix.
+
+| Check | Exit / state | Evidence |
+| --- | --- | --- |
+| Gateway unchanged npm ci | 0; 786 packages in 31 minutes | Saved install log |
+| Gateway Prisma generation | 0; client 7.9.1 generated locally | Saved generation log |
+| Gateway baseline npx tsc --noEmit | 0 | Saved empty tsc log and command result |
+| Gateway npm.cmd test -- --runInBand | Interrupted, tool exit 1; no completed totals | Saved partial log |
+| Gateway baseline e2e | Not run | Must execute on resume |
+| Money/operation unchanged npm ci | Interrupted, tool exits 1; incomplete | Saved partial logs |
+| Money/operation tsc and tests | Not run | Must execute before applying candidates |
+| Three original production audits | 1 each; counts above | Saved JSON |
+| Three temporary candidate updates | 0 each | Commands and candidate patch recorded |
+| Three temporary candidate audits | 1 each; residual IDs above | Saved JSON |
+| Candidate patch git apply --check | 0 | Unapplied patch is applicable to current original locks |
+| Service/root manifest and lock diff | 0 | No dependency files changed |
+| git diff --check | 0 | Checkpoint closeout |
+| Operating-doc check | 1; existing 29 issues; no issue names this task | Saved operating-doc-check.log |
+| Targeted Prettier | Not run; local service binary unavailable | No download for checkpoint formatting |
+| Process cleanup | 0 matching task processes remain | Ctrl-C exited 1 for interrupted commands; no unrelated process touched |
+
+Durable evidence: [checkpoint metadata](evidence/2026-10-18-nestjs-production-advisories/checkpoint.json),
+[unapplied candidate patch](evidence/2026-10-18-nestjs-production-advisories/compatible-lockfile-candidates.patch),
+six audit JSON reports and six log snapshots in the same directory. SHA-256 of
+each original and candidate lock is in checkpoint.json. These preserve the work
+even if TEMP is cleared. No completed test counts exist yet.
+
+## Continuation
+
+- Resume only when Davin asks after replenishment. Re-read this task and the
+  [checkpoint handoff](../../handoffs/2026-10-18-nestjs-production-advisories-codex.md).
+- Inspect branch/HEAD/diff and checkpoint hashes first. Expected tracked service
+  changes: none. Candidate patch is NOT applied; no package.json is changed.
+- Check no old installer/Jest remains. Money/operation node_modules are partial;
+  finish clean installation against their unchanged locks. Gateway install is
+  complete and its generated client is available. Preserve existing partial
+  installs until choosing an install strategy; do not blindly repeat the very
+  slow three-way installation. Consult environment-gotchas.md's short-path note.
+- Run all missing baselines using npm.cmd for forwarded Jest flags, including
+  operation's local shared-types build prerequisite. Capture exact exits/counts.
+  Repeat gateway unit/e2e; retain or reconfirm its completed tsc as appropriate.
+- Only after baselines: apply/reproduce compatible candidate updates, inspect
+  that only three service locks change and no major is introduced, synchronize
+  installed packages, then run all final checks and normal production audits.
+- Candidate patch can be checked with git apply --check; it is evidence, not an
+  instruction to apply before baseline. Re-audit on resume if advisory data moved.
+- Complete the comparison table, final handoff and operating-doc/diff checks.
+  Propose (do not implement) a blocking service CI audit gate. Shared Claude
+  session/waiting-on publication remains with its state owner, via the handoff.
+- Davin chose one combined eventual PR. No commit or push is authorized.

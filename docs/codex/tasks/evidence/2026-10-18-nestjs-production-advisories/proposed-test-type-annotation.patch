@@ -1,0 +1,6 @@
+diff --git a/money-service/src/stripe/stripe-checkout.controller.spec.ts b/money-service/src/stripe/stripe-checkout.controller.spec.ts
+--- a/money-service/src/stripe/stripe-checkout.controller.spec.ts
++++ b/money-service/src/stripe/stripe-checkout.controller.spec.ts
+@@ -368 +368 @@
+-    result$.subscribe((v) => emitted.push(v));
++    result$.subscribe((v: unknown) => emitted.push(v));

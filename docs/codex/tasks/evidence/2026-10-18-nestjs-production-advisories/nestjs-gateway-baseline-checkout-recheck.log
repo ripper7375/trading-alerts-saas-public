@@ -1,0 +1,13 @@
+
+> railway-gateway@1.0.0 test
+> jest --runInBand --runTestsByPath test/sensors-replay.spec.ts test/sensors-synthesis-rows.spec.ts test/sensors-disabled-consumes-nothing.spec.ts
+
+PASS test/sensors-replay.spec.ts (64.57 s)
+PASS test/sensors-disabled-consumes-nothing.spec.ts (6.631 s)
+PASS test/sensors-synthesis-rows.spec.ts
+
+Test Suites: 3 passed, 3 total
+Tests:       328 passed, 328 total
+Snapshots:   0 total
+Time:        72.338 s
+Ran all test suites within paths "test/sensors-replay.spec.ts", "test/sensors-synthesis-rows.spec.ts", "test/sensors-disabled-consumes-nothing.spec.ts".

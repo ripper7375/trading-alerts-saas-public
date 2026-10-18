@@ -1,0 +1,177 @@
+{
+  "state": "verified within authorized scope; remaining advisories require approvals",
+  "date": "2026-10-18",
+  "base_commit": "5dab316c79c13abd42d024f9291dda667cff755e",
+  "candidate_patch_applied": true,
+  "baseline": {
+    "money": {
+      "raw": {
+        "tsc_exit": 2,
+        "jest_exit": 1,
+        "suites_passed": 73,
+        "suites_failed_to_compile": 1,
+        "tests_passed": 823
+      },
+      "approved_test_fix": {
+        "tsc_exit": 0,
+        "jest_exit": 0,
+        "suites_passed": 74,
+        "tests_passed": 838,
+        "tests_added": 0,
+        "previously_uncollected_cases_restored": 15
+      }
+    },
+    "operation": {
+      "tsc_exit": 0,
+      "shared_types_build_exit": 0,
+      "jest_exit": 0,
+      "suites_passed": 53,
+      "tests_passed": 506
+    },
+    "gateway": {
+      "tsc_exit": 0,
+      "raw": {
+        "jest_exit": 1,
+        "suites_passed": 64,
+        "suites_failed": 3,
+        "suites_skipped": 10,
+        "tests_passed": 2759,
+        "tests_failed": 5,
+        "tests_skipped": 376,
+        "tests_total": 3140
+      },
+      "canonical_lf_recheck": {
+        "jest_exit": 0,
+        "suites_passed": 3,
+        "tests_passed": 328
+      },
+      "e2e": {
+        "exit": 0,
+        "suites_passed": 8,
+        "tests_passed": 156
+      }
+    }
+  },
+  "proxy_addr_before": {
+    "version": "2.0.7",
+    "malformed_subnet_trusts_unrelated_ip": true,
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  },
+  "approved_extra_scope": "One test callback annotation v: unknown, explicitly approved by Davin; no assertion or runtime behavior change",
+  "final": {
+    "money": {
+      "audit_exit": 1,
+      "e2e_exit": null,
+      "tsc_exit": 0,
+      "unit_exit": 0,
+      "suites": {
+        "passed": 74,
+        "failed": 0,
+        "skipped": 0,
+        "total": 74
+      },
+      "tests": {
+        "passed": 838,
+        "failed": 0,
+        "skipped": 0,
+        "total": 838
+      },
+      "audit": {
+        "info": 0,
+        "low": 0,
+        "moderate": 46,
+        "high": 13,
+        "critical": 0,
+        "total": 59
+      }
+    },
+    "operation": {
+      "audit_exit": 1,
+      "tsc_exit": 0,
+      "e2e_exit": null,
+      "unit_exit": 0,
+      "suites": {
+        "passed": 53,
+        "failed": 0,
+        "skipped": 0,
+        "total": 53
+      },
+      "tests": {
+        "passed": 506,
+        "failed": 0,
+        "skipped": 0,
+        "total": 506
+      },
+      "audit": {
+        "info": 0,
+        "low": 0,
+        "moderate": 46,
+        "high": 13,
+        "critical": 0,
+        "total": 59
+      }
+    },
+    "gateway": {
+      "unit_exit": 0,
+      "tsc_exit": 0,
+      "audit_exit": 1,
+      "e2e_exit": 0,
+      "initial_unit_exit": 1,
+      "checkout_peer_repaired": true,
+      "suites": {
+        "passed": 67,
+        "failed": 0,
+        "skipped": 10,
+        "total": 77
+      },
+      "tests": {
+        "passed": 2764,
+        "failed": 0,
+        "skipped": 376,
+        "total": 3140
+      },
+      "audit": {
+        "info": 0,
+        "low": 0,
+        "moderate": 3,
+        "high": 6,
+        "critical": 0,
+        "total": 9
+      },
+      "e2e": {
+        "suites": {
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "total": 8
+        },
+        "tests": {
+          "passed": 156,
+          "failed": 0,
+          "skipped": 0,
+          "total": 156
+        }
+      }
+    }
+  },
+  "install_after": {
+    "money": 0,
+    "operation": 0,
+    "gateway": 0
+  },
+  "closeout": {
+    "protected_paths_exit": 0,
+    "diff_check_exit": 0,
+    "no_staged_changes_exit": 0,
+    "operating_docs_exit": 1,
+    "preexisting_operating_doc_issues": 29,
+    "new_operating_doc_issues": 0,
+    "formatting_exit": 0,
+    "shared_state_publication": "pending existing writer via verified handoff",
+    "commit_push_deploy": "not performed"
+  }
+}
