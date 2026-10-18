@@ -86,28 +86,69 @@ jobs:
 
       - name: Scan for secrets
         run: |
-          echo "🔍 Scanning for hardcoded secrets..."
+          echo "🔍 Scanning tracked files for hardcoded secrets..."
 
-          # Check for common secret patterns
           FOUND=0
 
-          # Stripe keys
-          if grep -rE "sk_live_[A-Za-z0-9]{20,}" --include="*.ts" --include="*.tsx" --include="*.js" --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=seed-code .; then
-            echo "❌ Found potential Stripe live key"
-            FOUND=1
-          fi
+          # Tracked source and config files only: `git grep` never reads
+          # node_modules, .next or other build output. seed-code/ (the
+          # read-only reference copy) stays out, as it always has.
+          # Matches are reported by FILE NAME only: printing the matching line
+          # would copy the secret into the CI log.
+          FILES=('*.ts' '*.tsx' '*.js' '*.mjs' '*.cjs' '*.json' '*.yml' '*.yaml' '*.sh' '*.py' ':!seed-code')
 
-          # AWS keys
-          if grep -rE "AKIA[A-Z0-9]{16}" --include="*.ts" --include="*.tsx" --include="*.js" --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=seed-code .; then
-            echo "❌ Found potential AWS key"
-            FOUND=1
-          fi
+          # Test code sets env fixtures (process.env['NEXTAUTH_SECRET'] =
+          # 'test-nextauth-secret'): a pattern keyed on a variable NAME cannot
+          # tell those from a real value, so such patterns skip these paths.
+          # Token-shaped patterns (sk_live_..., whsec_...) scan them too.
+          TEST_PATHS=(
+            ':(exclude,glob)**/__tests__/**'
+            ':(exclude,glob)**/test/**'
+            ':(exclude,glob)**/tests/**'
+            ':(exclude,glob)e2e/**'
+            ':(exclude,glob)**/*.test.*'
+            ':(exclude,glob)**/*.spec.*'
+            ':(exclude,glob)**/*.e2e-spec.*'
+            ':(exclude,glob)**/jest.setup.*'
+          )
 
-          # GitHub tokens
-          if grep -rE "ghp_[A-Za-z0-9]{36}" --include="*.ts" --include="*.tsx" --include="*.js" --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=seed-code .; then
-            echo "❌ Found potential GitHub token"
-            FOUND=1
-          fi
+          # scan LABEL PATTERN [EXTRA PATHSPEC...]
+          scan() {
+            label="$1"
+            pattern="$2"
+            shift 2
+            # -e: several patterns begin with dashes
+            if git grep -lIE -e "$pattern" -- "${FILES[@]}" "$@"; then
+              echo "❌ Found potential $label (files listed above)"
+              FOUND=1
+            fi
+          }
+
+          # A quote character, for the assignment patterns below
+          Q="[\"']"
+
+          # Value-shaped tokens (a prefix that only real keys carry)
+          scan "Stripe live secret key" "sk_live_[A-Za-z0-9]{20,}"
+          scan "Stripe restricted live key" "rk_live_[A-Za-z0-9]{20,}"
+          scan "Stripe webhook signing secret" "whsec_[A-Za-z0-9]{24,}"
+          scan "AWS access key" "AKIA[A-Z0-9]{16}"
+          scan "GitHub token" "ghp_[A-Za-z0-9]{36}"
+          scan "OpenRouter API key" "sk-or-v1-[A-Za-z0-9]{32,}"
+          scan "Resend API key" "re_[A-Za-z0-9]{6,}_[A-Za-z0-9]{20,}"
+          scan "Vercel Blob read-write token" "vercel_blob_rw_[A-Za-z0-9]+_[A-Za-z0-9]+"
+          scan "private key" "-----BEGIN ([A-Z0-9]+ )*PRIVATE KEY( BLOCK)?-----"
+
+          # Secrets with no telltale prefix: only a long LITERAL assigned to
+          # the variable counts (process.env.NAME and "${NAME}" do not match)
+          scan "hardcoded NEXTAUTH_SECRET, INTERNAL_API_KEY, OPENROUTER_API_KEY or dLocal credential" \
+            "(NEXTAUTH_SECRET|INTERNAL_API_KEY|OPENROUTER_API_KEY|DLOCAL_[A-Z_]*(KEY|SECRET|TOKEN|LOGIN))${Q}?\]?[[:space:]]*[:=][[:space:]]*${Q}[A-Za-z0-9_+/=.-]{16,}${Q}" \
+            "${TEST_PATHS[@]}"
+
+          # user:password@host with a real-looking domain. Hosts without a
+          # dot (localhost, a compose service name) and bare IPs are test and
+          # local setups, not matched on purpose.
+          scan "database or queue URL with embedded credentials" \
+            "(postgres(ql)?|mysql|mongodb(\+srv)?|rediss?|amqps?)://[A-Za-z0-9._~%-]+:[A-Za-z0-9._~%!*+=-]{6,}@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}"
 
           if [ $FOUND -eq 0 ]; then
             echo "✅ No hardcoded secrets detected"

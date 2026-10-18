@@ -3,7 +3,7 @@
 /**
  * useCurrencyIndexScreener — polls GET /api/market/currency-index-pro/screener.
  *
- * Same plain fetch+useEffect+setInterval+AbortController shape as
+ * Same plain fetch+useEffect polling (`startVisiblePolling`) as
  * `useCurrencyIndexChart`. Phase 3 only consumes `spreadDelta` (the header's
  * "jackpot meter" gauge); the full response is typed here so Phase 4's
  * screener/analysis tables can reuse this same hook rather than a second,
@@ -13,6 +13,11 @@
  */
 
 import { useEffect, useState } from 'react';
+
+import {
+  startVisiblePolling,
+  type PollRequest,
+} from '@/lib/utils/visible-polling';
 
 const REFRESH_MS = 30 * 1000;
 
@@ -76,30 +81,23 @@ export function useCurrencyIndexScreener(): CurrencyIndexScreenerData | null {
   const [data, setData] = useState<CurrencyIndexScreenerData | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    const load = async (): Promise<void> => {
+    const load = async ({ signal, isStopped }: PollRequest): Promise<void> => {
       try {
         const res = await fetch('/api/market/currency-index-pro/screener', {
-          signal: controller.signal,
+          signal,
         });
-        if (!res.ok) {
-          setData(EMPTY_DATA);
-          return;
-        }
-        setData((await res.json()) as CurrencyIndexScreenerData);
+        const next = res.ok
+          ? ((await res.json()) as CurrencyIndexScreenerData)
+          : EMPTY_DATA;
+        if (!isStopped()) setData(next);
       } catch {
-        setData(EMPTY_DATA);
+        // Unmount aborts the request: stay silent. A timeout or a network
+        // failure degrades to EMPTY_DATA.
+        if (!isStopped()) setData(EMPTY_DATA);
       }
     };
 
-    void load();
-    const timer = setInterval(() => void load(), REFRESH_MS);
-
-    return (): void => {
-      controller.abort();
-      clearInterval(timer);
-    };
+    return startVisiblePolling(load, REFRESH_MS);
   }, []);
 
   return data;

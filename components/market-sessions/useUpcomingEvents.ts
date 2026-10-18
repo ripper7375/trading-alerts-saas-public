@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react';
 
 import type { UpcomingEconomicEvent } from '@/lib/economic-events/queries';
+import {
+  startVisiblePolling,
+  type PollRequest,
+} from '@/lib/utils/visible-polling';
 
 /** Events shift on the order of minutes; re-asking every second is pointless. */
 const REFRESH_MS = 5 * 60 * 1000;
@@ -26,36 +30,25 @@ export function useUpcomingEvents(): UpcomingEconomicEvent[] {
   const [events, setEvents] = useState<UpcomingEconomicEvent[]>([]);
 
   useEffect(() => {
-    // Aborted on unmount so an in-flight request cannot resolve into a
-    // torn-down tree — a floating fetch outliving its test surfaced as a
-    // failure in an unrelated suite once already (LESSONS-LEARNED.md L40).
-    const controller = new AbortController();
-
-    const load = async () => {
+    // `startVisiblePolling` aborts the request on unmount so it cannot resolve
+    // into a torn-down tree — a floating fetch outliving its test surfaced as
+    // a failure in an unrelated suite once already (LESSONS-LEARNED.md L40) —
+    // and skips the tick while the tab is hidden or a request is still open.
+    const load = async ({ signal, isStopped }: PollRequest) => {
       try {
-        const res = await fetch('/api/market/economic-events', {
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          setEvents([]);
-          return;
-        }
-        const data: { events?: UpcomingEconomicEvent[] } = await res.json();
-        setEvents(data.events ?? []);
+        const res = await fetch('/api/market/economic-events', { signal });
+        const data: { events?: UpcomingEconomicEvent[] } = res.ok
+          ? await res.json()
+          : {};
+        if (!isStopped()) setEvents(data.events ?? []);
       } catch {
-        // Includes the AbortError from unmount. Nothing to report: the absence
-        // of a news row is the correct rendering of "we do not know".
-        setEvents([]);
+        // Nothing to report: the absence of a news row is the correct
+        // rendering of "we do not know". (Unmount: nothing to write at all.)
+        if (!isStopped()) setEvents([]);
       }
     };
 
-    void load();
-    const timer = setInterval(() => void load(), REFRESH_MS);
-
-    return () => {
-      controller.abort();
-      clearInterval(timer);
-    };
+    return startVisiblePolling(load, REFRESH_MS);
   }, []);
 
   return events;

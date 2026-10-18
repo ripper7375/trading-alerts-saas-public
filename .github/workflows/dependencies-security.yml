@@ -2,16 +2,28 @@ name: Dependencies Security Scan
 
 # Purpose: Scan npm and Python dependencies for security vulnerabilities
 # Active: Phase 1-4 (always active)
-# Design: Non-blocking, informative feedback for autonomous development
+# Design: Informative feedback, plus ONE gate (production, high and critical)
+#         that is ready to be made blocking but is not yet (see below)
 #
 # IMPORTANT: This is the ONLY workflow that runs pnpm audit.
-# It is intentionally non-blocking (continue-on-error) to prevent a
-# recurring merge-conflict loop where every feature branch independently
-# adds pnpm.overrides, then conflicts with main on merge.
-# See errors/continuous-pr-errors/ for the full history.
+# The all-dependencies scan (moderate and up) stays non-blocking
+# (continue-on-error) to prevent a recurring merge-conflict loop where every
+# feature branch independently adds pnpm.overrides, then conflicts with main
+# on merge. See errors/continuous-pr-errors/ for the full history.
+#
+# THE PRODUCTION GATE ("Production audit gate", T3-e / OPS-01):
+#   `pnpm audit --prod --audit-level=high` must exit 0 before it can fail CI.
+#   On 2026-10-18 it exited 1: 28 high/critical advisories, every one with a
+#   patched release (one critical, in next-auth). Making it blocking today
+#   would turn every run on main and on every PR red, and clearing the
+#   advisories is a dependency / pnpm.overrides change, which belongs to a
+#   dedicated "fix(security): ..." PR on main (.claude/rules/security-overrides.md;
+#   next-auth is also auth, which escalates to Davin). So the step still has
+#   continue-on-error. WHEN IT IS GREEN, DELETE `continue-on-error: true` FROM
+#   THAT STEP ONLY: from then on a regression fails CI.
 #
 # DO NOT add pnpm audit to other workflows (e.g. security-checks.yml).
-# DO NOT remove continue-on-error from the audit steps below.
+# DO NOT remove continue-on-error from the all-dependencies audit step below.
 
 on:
   push:
@@ -67,6 +79,7 @@ jobs:
           # applied even if the lockfile predates the override entries.
           pnpm install --no-frozen-lockfile
 
+      # All dependencies, moderate and up: informative only, never blocking.
       - name: Run pnpm audit
         if: steps.check_npm.outputs.exists == 'true'
         continue-on-error: true
@@ -85,6 +98,29 @@ jobs:
           echo "║                                                             ║"
           echo "║  This scan is INFORMATIVE ONLY and does not block merging.  ║"
           echo "╚══════════════════════════════════════════════════════════════╝"
+
+      # Production dependencies only, high and critical only: the class of
+      # finding that should never reach a release. --ignore-registry-errors
+      # keeps an outage of the advisory endpoint from reading as a finding.
+      # Not blocking yet: see the header. Delete `continue-on-error` below
+      # once this step is green.
+      - name: Production audit gate (high and critical)
+        if: steps.check_npm.outputs.exists == 'true'
+        continue-on-error: true
+        run: |
+          echo "🔍 Running pnpm audit --prod --audit-level=high ..."
+          if pnpm audit --prod --audit-level=high --ignore-registry-errors; then
+            echo "✅ No high or critical production advisories reported."
+            echo "   This gate is clean: remove continue-on-error from this step"
+            echo "   in .github/workflows/dependencies-security.yml to enforce it."
+          else
+            echo ""
+            echo "❌ High or critical advisories in production dependencies (list above)."
+            echo "   Fix them in a dedicated 'fix(security): ...' PR directly on main."
+            echo "   Do NOT add pnpm.overrides on a feature branch"
+            echo "   (.claude/rules/security-overrides.md, check-overrides.yml)."
+            exit 1
+          fi
 
       - name: Check for outdated dependencies
         if: steps.check_npm.outputs.exists == 'true'

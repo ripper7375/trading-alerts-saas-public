@@ -3,8 +3,9 @@
 /**
  * useCurrencyIndexChart — polls GET /api/market/currency-index-pro/chart.
  *
- * Plain fetch+useEffect+setInterval+AbortController, mirroring
- * `useUpcomingEvents.ts`/`useContainmentRates.ts` exactly -- this route is
+ * Plain fetch+useEffect polling through `startVisiblePolling` (paused while
+ * the tab is hidden, never two requests at once, aborted on unmount),
+ * mirroring `useUpcomingEvents.ts`/`useContainmentRates.ts` -- this route is
  * session+PRO-gated, not the genuinely public/cacheable shape SWR is
  * reserved for elsewhere in this codebase (`useCurrencyGoldIndices.ts`).
  *
@@ -12,6 +13,11 @@
  */
 
 import { useEffect, useState } from 'react';
+
+import {
+  startVisiblePolling,
+  type PollRequest,
+} from '@/lib/utils/visible-polling';
 
 const REFRESH_MS = 30 * 1000;
 
@@ -71,32 +77,26 @@ export function useCurrencyIndexChart(
   const [data, setData] = useState<CurrencyIndexChartData | null>(null);
 
   useEffect(() => {
-    const controller = new AbortController();
-
-    const load = async (): Promise<void> => {
+    const load = async ({ signal, isStopped }: PollRequest): Promise<void> => {
       try {
         const res = await fetch(
           `/api/market/currency-index-pro/chart?timeframe=${timeframe}`,
-          { signal: controller.signal }
+          { signal }
         );
-        if (!res.ok) {
-          setData(EMPTY_DATA);
-          return;
-        }
-        setData((await res.json()) as CurrencyIndexChartData);
+        const next = res.ok
+          ? ((await res.json()) as CurrencyIndexChartData)
+          : EMPTY_DATA;
+        if (!isStopped()) setData(next);
       } catch {
-        // Includes the AbortError from unmount/timeframe change.
-        setData(EMPTY_DATA);
+        // An unmount or a timeframe change aborts the request and the next
+        // effect owns `data` from then on: the aborted call must not wipe it
+        // (it used to blank the chart between the switch and the new answer).
+        // A timeout or a network failure still degrades to EMPTY_DATA.
+        if (!isStopped()) setData(EMPTY_DATA);
       }
     };
 
-    void load();
-    const timer = setInterval(() => void load(), REFRESH_MS);
-
-    return (): void => {
-      controller.abort();
-      clearInterval(timer);
-    };
+    return startVisiblePolling(load, REFRESH_MS);
   }, [timeframe]);
 
   return data;

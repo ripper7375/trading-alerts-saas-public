@@ -301,7 +301,11 @@ describe('SessionStatusBanner — news row', () => {
       abort = abort;
     } as unknown as typeof AbortController;
 
-    mockEvent();
+    // The request must really be in flight at unmount: the poller aborts the
+    // request it has open (an answered one has nothing left to abort).
+    global.fetch = jest.fn(
+      () => new Promise<Response>(() => undefined)
+    ) as unknown as typeof fetch;
     const { unmount } = await renderWithEvents('2026-01-14T12:00:00Z');
     unmount();
 

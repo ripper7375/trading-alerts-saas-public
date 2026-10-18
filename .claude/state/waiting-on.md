@@ -2,7 +2,7 @@
 type: Concept/BlockersAndTraps
 status: active
 severity: high
-updated_at: 2026-10-17
+updated_at: 2026-10-18
 tags: [blockers, deploys, migrations, verification, stack-c, stack-d]
 related_docs:
   - ../architecture/database-traps.md
@@ -18,6 +18,8 @@ when you need to know what is still unconfirmed. Items are verbatim from the pre
 to [history/resolved-waiting-on.md](./history/resolved-waiting-on.md).
 
 Quick index (newest first):
+
+- Next.js remediation Session 8 and last (2026-10-18; [log](../../davintrade-next-js-checklists/nextjs-remediation-session-log.md)): `T3-c`, `T3-d`, `T3-e` written and verified (full suite 560 suites, 18,929 tests, 0 failed; `npm run build` exit 0), **committed locally (the commit after `5dab316c`), not pushed or deployed**. **Open (Davin):** (1) **`pnpm audit --prod --audit-level=high` exits 1: 28 high or critical advisories in 14 production packages, every one with a patched release, one critical in `next-auth` `<4.24.15` (GHSA-7rqj-j65f-68wh).** The CI step "Production audit gate" (`.github/workflows/dependencies-security.yml`) therefore still has `continue-on-error: true`; clear the advisories in a dedicated `fix(security)` PR on `main` (`next-auth` first; auth needs his sign-off; `security-overrides.md`), then delete that one `continue-on-error` so a regression fails CI. The full list is in the Session 8 report. (2) Turn on Dependabot security updates in the repository settings; decide whether `money-service`, `operation-service`, `railway-gateway`, `knowledge-service` and `mt5-service` get a `dependabot.yml` entry. (3) The new secret scan and the audit step have not run on a GitHub runner; watch the first run after the push (a false positive would fail `Secrets Detection`). (4) The push of Sessions 1 to 8. (5) `app/error.tsx` (Session 6) still calls `reset`, which re-renders without re-fetching; the new segment boundaries call `retry`. (6) Pollers not moved onto `startVisiblePolling`: `world-gold-market.tsx`, the intervals in `app/admin/errors/page.tsx` and `app/admin/system/terminals/page.tsx`.
 
 - Next.js remediation Session 7 (2026-10-17; [log](../../davintrade-next-js-checklists/nextjs-remediation-session-log.md)): `T3-a` and `T3-b` written and verified (full suite 556 suites, 18,831 tests, 0 failed; `npm run build` exit 0; checked on a real `next start`), committed locally (`45d81559`), **not pushed or deployed**. **Open (Davin):** (1) the push, when he decides; (2) the choices he may reverse: `en-US` is bundled as base + overlay, not a chunk; every other language's chunk is awaited before hydration, so all 19 languages are translated on the first byte but a non-English page waits for one chunk request (104 to 137 KB gzip) with **no preload** (log Deviations 2 and 3); (3) `eslint "app/(marketing)" app/affiliate --max-warnings 0` exits 1 only for the two Academy `<img>` warnings that are in `HEAD` (Deviation: log, verification); (4) **a production-only React error (#467) was found by `next start` and fixed; Jest's development React cannot show it**, so a future `use()` in a client component must be checked in a real build (log Deviation 9); (5) unmeasured: a throttled-network first load, server memory for cached chunks, the PRO cockpit and comparison pages and the three admin BI pages in a browser (login).
 
