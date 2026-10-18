@@ -180,4 +180,33 @@ describe('UpgradeSuccessPage', () => {
       expect(screen.getByText('Activated')).toBeInTheDocument();
     });
   });
+
+  it('calls update() when GET /api/subscription confirms PRO', async () => {
+    const mockUpdate = jest.fn().mockResolvedValue(undefined);
+    mockUseSession.mockReturnValue({
+      data: { user: { id: 'user-1', tier: 'FREE' } },
+      status: 'authenticated',
+      update: mockUpdate,
+    });
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(200, {
+        tier: 'PRO',
+        status: 'active',
+        subscription: { provider: 'STRIPE', planType: null },
+        trial: {
+          status: 'NONE',
+          convertedAt: null,
+          cancelledAt: null,
+          hasUsedFreeTrial: false,
+        },
+      })
+    );
+
+    renderUpgradeSuccess();
+
+    await waitFor(() => {
+      expect(screen.getByText('Welcome to PRO!')).toBeInTheDocument();
+    });
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+  });
 });

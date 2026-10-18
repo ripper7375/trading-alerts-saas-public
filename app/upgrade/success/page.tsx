@@ -13,7 +13,7 @@
  * @module app/upgrade/success/page
  */
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -90,8 +90,9 @@ interface SubscriptionState {
 
 function UpgradeSuccessContent(): React.ReactElement {
   const { t } = useLocale();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const router = useRouter();
+  const sessionUpdatedRef = useRef(false);
 
   const [subscription, setSubscription] = useState<SubscriptionState | null>(
     null
@@ -115,6 +116,22 @@ function UpgradeSuccessContent(): React.ReactElement {
         provider: data.subscription?.provider ?? null,
         planType: data.subscription?.planType ?? null,
       });
+
+      // When the database confirms PRO, refresh the client session token so
+      // subsequent navigations (e.g. /dashboard, /terminal) immediately see PRO
+      // without requiring a manual logout/login cycle.
+      if (
+        data.tier === 'PRO' &&
+        !sessionUpdatedRef.current &&
+        typeof update === 'function'
+      ) {
+        sessionUpdatedRef.current = true;
+        try {
+          await update();
+        } catch (updateErr) {
+          console.error('Failed to refresh session:', updateErr);
+        }
+      }
     } catch (err) {
       console.error('Failed to fetch subscription status:', err);
       setError(
@@ -127,7 +144,7 @@ function UpgradeSuccessContent(): React.ReactElement {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [t]);
+  }, [t, update]);
 
   useEffect(() => {
     if (status === 'authenticated') {
