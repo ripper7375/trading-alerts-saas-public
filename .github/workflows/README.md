@@ -11,7 +11,7 @@
 | Workflow                                              | Status     | Type                | Blocking?  | Active In  | Purpose                                   |
 | ----------------------------------------------------- | ---------- | ------------------- | ---------- | ---------- | ----------------------------------------- |
 | [openapi-validation.yml](#1-openapi-validation)       | ✅ Active  | Development CI      | ❌ No      | Phase 1-4  | Validate OpenAPI specifications           |
-| [dependencies-security.yml](#2-dependencies-security) | ✅ Active  | Development CI      | ❌ No      | Phase 1-4  | Security scans for dependencies           |
+| [dependencies-security.yml](#2-dependencies-security) | ✅ Active  | Development CI      | ⚠️ 1 gate  | Phase 1-4  | Security scans for dependencies           |
 | [ci-flask.yml](#3-flask-ci)                           | ✅ Active  | Development CI      | ❌ No      | Phase 1-4  | Flask app CI (progressive)                |
 | [ci-nextjs-progressive.yml](#4-nextjs-ci-progressive) | ✅ Active  | Development CI      | ❌ No      | Phase 1-4  | Next.js app CI (progressive)              |
 | [api-tests.yml](#5-api-integration-tests)             | ⏭️ Standby | Development CI      | ❌ No      | Phase 3-4  | API integration tests                     |
@@ -19,7 +19,7 @@
 | [deploy.yml](#7-automated-deployment)                 | ✅ Active  | **Deployment Gate** | ✅ **YES** | Phase 4    | **Production deployment with test gates** |
 
 **Total Workflows:** 7
-**Development CI:** 5 workflows (non-blocking, informative)
+**Development CI:** 5 workflows (non-blocking, informative; the one exception is the production audit gate in `dependencies-security.yml`)
 **Deployment Gate:** 2 workflows (blocking, protective)
 **Success Rate:** 100% (all pass or skip gracefully)
 
@@ -35,7 +35,7 @@
 
 ### Non-Blocking
 
-- Security scans are informative, not blocking
+- Security scans are informative, not blocking, except the production audit gate (high and critical advisories in production dependencies), which blocks
 - Linting issues warn but don't fail (during Phase 1-3)
 - Only critical errors block (syntax errors, build failures)
 
@@ -389,7 +389,16 @@ Scans npm and Python dependencies for security vulnerabilities
 - ✅ **Phase 1-2:** Scans existing dependencies (active)
 - ✅ **Phase 3-4:** Continues scanning as dependencies grow (active)
 
-**Note:** All security checks are `continue-on-error: true` during development
+**Production audit gate (blocking since 2026-10-18, T3-e):** the last npm step, `Production audit gate (high and critical)`,
+runs `pnpm audit --prod --audit-level=high --ignore-registry-errors` and **blocks**: it has no `continue-on-error`. It was
+advisory until the dedicated `fix(security)` PR of 2026-10-18 cleared the 28 advisories it reported that day (one critical,
+in `next-auth`). A new high or critical advisory in a production dependency now fails the `npm Security Audit` job on
+`main` and on every PR. Clear it in a dedicated `fix(security)` PR on `main` (`.claude/rules/security-overrides.md`; a PR
+that changes `pnpm.overrides` needs the `security-override` label for `check-overrides.yml`). Whether a failed check also
+blocks a merge depends on the repository's branch protection rules.
+
+**Note:** every other security check is `continue-on-error: true` (informative): the all-dependencies
+`pnpm audit --audit-level=moderate`, the outdated-packages list, `pip-audit` and `bandit`.
 
 ---
 
