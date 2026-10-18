@@ -22,6 +22,8 @@
  * @module lib/engine4/store/consent-store
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import { prisma } from '@/lib/db/prisma';

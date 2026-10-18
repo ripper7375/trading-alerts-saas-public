@@ -918,3 +918,91 @@ describe('what the reader is exact about', () => {
     ]);
   });
 });
+
+describe('the sensors’ rows and the synthesis reading are read together', () => {
+  const flush = (): Promise<void> =>
+    new Promise((resolve) => setImmediate(resolve));
+  const gate = () => {
+    let open!: () => void;
+    const opened = new Promise<void>((resolve) => (open = resolve));
+    return { opened, open };
+  };
+
+  it('asks for both before either answers', async () => {
+    const { deps } = depsFor(world('01-'));
+    const mcd = gate();
+    const synthesis = gate();
+    const asked: string[] = [];
+    const { findMany } = deps.client.mcdOutput;
+    const { findFirst } = deps.client.synthesisReading;
+    deps.client.mcdOutput.findMany = async (args) => {
+      asked.push('sensors');
+      await mcd.opened;
+      return findMany(args);
+    };
+    deps.client.synthesisReading.findFirst = async (args) => {
+      asked.push('synthesis');
+      await synthesis.opened;
+      return findFirst(args);
+    };
+
+    const pending = readSnapshot({ traderType: 'DAY_TRADER' }, deps);
+    await flush();
+    expect(asked).toEqual(['sensors', 'synthesis']);
+
+    // the synthesis answers first; the snapshot is the same as ever
+    synthesis.open();
+    await flush();
+    mcd.open();
+    const snapshot = await pending;
+    expect(snapshot.problems).toEqual([]);
+    expect(snapshot.live_ids.length).toBeGreaterThan(0);
+    expect(snapshot.synthesis?.profile).toBe('DAY_TRADER');
+  });
+
+  it('lists the problems in the order of the sequential version: the cycle, the sensors, the synthesis', async () => {
+    const { deps } = depsFor(world('01-'), {
+      gateway: 'THROWS',
+      failMcd: true,
+      failSynthesis: true,
+    });
+    // the sensors fail LAST
+    const mcd = gate();
+    const { findMany } = deps.client.mcdOutput;
+    deps.client.mcdOutput.findMany = async (args) => {
+      await mcd.opened;
+      return findMany(args);
+    };
+
+    const pending = readSnapshot({ traderType: 'DAY_TRADER' }, deps);
+    await flush();
+    mcd.open();
+    const snapshot = await pending;
+
+    expect(snapshot.problems).toEqual([
+      {
+        code: 'GATEWAY_UNREACHABLE',
+        detail: 'UNREACHABLE: the gateway could not be reached',
+      },
+      {
+        code: 'DATABASE_ERROR',
+        detail: "the sensors' readings could not be read: connection refused",
+      },
+      {
+        code: 'DATABASE_ERROR',
+        detail: 'the synthesis reading could not be read: connection refused',
+      },
+    ]);
+  });
+
+  it('asks for neither without a pinned cycle', async () => {
+    const { deps, calls } = depsFor(world('01-'), {
+      gateway: 'THROWS',
+      newestReady: null,
+    });
+    const snapshot = await readSnapshot({ traderType: 'DAY_TRADER' }, deps);
+    expect(calls.mcd).toEqual([]);
+    expect(calls.synthesis).toEqual([]);
+    expect(snapshot.synthesis).toBeNull();
+  });
+});

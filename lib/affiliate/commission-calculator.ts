@@ -13,6 +13,8 @@
  * @module lib/affiliate/commission-calculator
  */
 
+import 'server-only';
+
 import { AFFILIATE_CONFIG } from './constants';
 import { getAffiliateConfigFromDB } from './db';
 

@@ -109,8 +109,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.error('[Webhook] Signature verification failed:', errorMessage);
+      // The reason stays in the log; the sender gets a fixed text.
       return NextResponse.json(
-        { error: `Webhook signature verification failed: ${errorMessage}` },
+        { error: 'Invalid webhook signature' },
         { status: 400 }
       );
     }

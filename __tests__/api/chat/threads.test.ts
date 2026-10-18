@@ -760,6 +760,61 @@ describe('the state of the chat panel', () => {
     expect(body.cycle).toBeNull();
   });
 
+  it('asks the ledger and the profile together, and the cycle only once the profile has answered', async () => {
+    const flush = (): Promise<void> =>
+      new Promise((resolve) => setImmediate(resolve));
+    const asked: string[] = [];
+    let releaseLedger!: () => void;
+    let releaseProfile!: () => void;
+    const ledgerGate = new Promise<void>((r) => (releaseLedger = r));
+    const profileGate = new Promise<void>((r) => (releaseProfile = r));
+    const base = deps().built;
+    const { built } = deps({
+      ledger: {
+        balance: async () => {
+          asked.push('ledger');
+          await ledgerGate;
+          return balance();
+        },
+        reserve: jest.fn(),
+        settle: jest.fn(),
+        release: jest.fn(),
+      },
+      profile: async (userId) => {
+        asked.push('profile');
+        await profileGate;
+        return base.profile(userId);
+      },
+      cycle: async (traderType) => {
+        asked.push('cycle');
+        return base.cycle(traderType);
+      },
+    });
+
+    const pending = handleState(get(), built);
+    await flush();
+    // both are in flight before either answers; the cycle needs the trader type
+    expect(asked).toEqual(['ledger', 'profile']);
+
+    releaseLedger();
+    await flush();
+    expect(asked).toEqual(['ledger', 'profile']);
+
+    releaseProfile();
+    const body = await json(await pending);
+    expect(asked).toEqual(['ledger', 'profile', 'cycle']);
+    // the answer is what the sequential version gave
+    expect(body.quota).toMatchObject({
+      configured: true,
+      available_units: 3_800_000,
+    });
+    expect(body.profile).toEqual({ trader_type: 'SCALPER' });
+    expect(body.cycle).toEqual({
+      slot: '2026-09-18T20:55Z',
+      data_status: 'FRESH',
+    });
+  });
+
   it('asks for the same things the other routes do: off is 404, anonymous 401, Free 403, and nothing is read', async () => {
     const off = deps({}, undefined);
     off.built.auth = authFor(undefined, { enabled: () => false });

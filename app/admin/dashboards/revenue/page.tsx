@@ -5,6 +5,7 @@ import {
   getRevenueAnalytics,
   type RevenueTimeframe,
 } from '@/lib/admin/analytics/revenue';
+import { requireAdminPage } from '@/lib/auth/session';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
@@ -24,11 +25,15 @@ interface RevenuePageProps {
 export default async function RevenuePage({
   searchParams,
 }: RevenuePageProps): Promise<React.ReactElement> {
+  await requireAdminPage();
   const params = await searchParams;
   const timeframe = (params.timeframe as RevenueTimeframe) || '6M';
-  const data = await getRevenueAnalytics(timeframe);
-  const prefs = await getServerLocalePreferences();
-  const { rates: usdRates } = await getDisplayUsdRates();
+  // independent reads, issued together; the guard above stays awaited first
+  const [data, prefs, { rates: usdRates }] = await Promise.all([
+    getRevenueAnalytics(timeframe),
+    getServerLocalePreferences(),
+    getDisplayUsdRates(),
+  ]);
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {

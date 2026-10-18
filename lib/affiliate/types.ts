@@ -7,6 +7,8 @@
  * @module lib/affiliate/types
  */
 
+import 'server-only';
+
 import type { Prisma } from '.prisma/non-market-client';
 
 type JsonValue = Prisma.JsonValue;

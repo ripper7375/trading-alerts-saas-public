@@ -21,6 +21,8 @@
  * @module lib/admin/analytics/revenue
  */
 
+import 'server-only';
+
 import { unstable_cache } from 'next/cache';
 
 import { prisma } from '@/lib/db/prisma';

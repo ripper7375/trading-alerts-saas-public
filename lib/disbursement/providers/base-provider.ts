@@ -5,6 +5,8 @@
  * Implementations include MockPaymentProvider and RisePaymentProvider.
  */
 
+import 'server-only';
+
 import type {
   AuthToken,
   PaymentRequest,

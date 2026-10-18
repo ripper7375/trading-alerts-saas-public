@@ -66,7 +66,11 @@ type AdminActiveIndicatorResponse =
   | { status: 'gateway_error'; message: string }
   | { status: 'set'; setting: ActiveIndicatorRecord };
 
-/** What a gateway failure means for the admin: not configured here, or the gateway did not complete the request. */
+/**
+ * What a gateway failure means for the admin: not configured here, or the gateway did not complete the request.
+ * The answer names the failure `kind` (a fixed set), never `error.message`, which can carry the
+ * gateway's own words; the full error goes to the server log.
+ */
 function describeGatewayFailure(error: GatewayError): {
   httpStatus: 503 | 502;
   kind: 'not_configured' | 'gateway_error';
@@ -80,10 +84,11 @@ function describeGatewayFailure(error: GatewayError): {
         'MARKET_GATEWAY_URL and MARKET_GATEWAY_API_KEY are not both set in this environment -- the gateway cannot be reached.',
     };
   }
+  console.error('[admin] active indicator gateway failure:', error);
   return {
     httpStatus: 502,
     kind: 'gateway_error',
-    message: `The gateway could not complete the request (${error.kind}): ${error.message}`,
+    message: `The gateway could not complete the request (${error.kind}).`,
   };
 }
 

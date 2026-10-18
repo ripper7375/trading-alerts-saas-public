@@ -19,6 +19,8 @@
  * @module lib/intake/read/profile
  */
 
+import 'server-only';
+
 import {
   StoredProfileError,
   readProfile,

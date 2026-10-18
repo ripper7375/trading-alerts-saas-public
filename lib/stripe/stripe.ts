@@ -7,6 +7,8 @@
  * @module lib/stripe/stripe
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import Stripe from 'stripe';
@@ -20,6 +22,9 @@ import Stripe from 'stripe';
  * This prevents errors during Next.js build when env vars are not available.
  */
 let stripeClient: Stripe | null = null;
+
+/** Per-request timeout of the Stripe SDK, in milliseconds. */
+export const STRIPE_REQUEST_TIMEOUT_MS = 15_000;
 
 /**
  * Get the Stripe SDK client instance (lazy initialization)
@@ -41,6 +46,12 @@ export function getStripeClient(): Stripe {
   stripeClient = new Stripe(secretKey, {
     apiVersion: '2024-11-20.acacia' as Stripe.LatestApiVersion,
     typescript: true,
+    // Without these the SDK waits 80 s per attempt (its default), well past a
+    // Vercel function's budget. One network retry only: the SDK sends the same
+    // Idempotency-Key on the retry, so a POST that did reach Stripe is not
+    // executed twice.
+    timeout: STRIPE_REQUEST_TIMEOUT_MS,
+    maxNetworkRetries: 1,
   });
 
   return stripeClient;
@@ -57,17 +68,28 @@ export function getStripeClient(): Stripe {
  */
 export const STRIPE_PRO_PRICE_ID = process.env['STRIPE_PRO_PRICE_ID'];
 
-/** STRIPE_PRO_PRICE_ID's Price object, fetched once per process. */
-let proPriceCache: { id: string; price: Promise<Stripe.Price> } | null = null;
+/** How long STRIPE_PRO_PRICE_ID's Price object is trusted before it is fetched again. */
+export const PRO_PRICE_CACHE_TTL_MS = 60 * 60 * 1000;
+
+/** STRIPE_PRO_PRICE_ID's Price object, fetched once per process per hour. */
+let proPriceCache: {
+  id: string;
+  price: Promise<Stripe.Price>;
+  expiresAt: number;
+} | null = null;
 
 function getProPrice(priceId: string): Promise<Stripe.Price> {
-  if (proPriceCache?.id !== priceId) {
+  if (proPriceCache?.id !== priceId || Date.now() >= proPriceCache.expiresAt) {
     const price = getStripeClient().prices.retrieve(priceId);
     // A failed lookup must not be cached: the next checkout retries.
     price.catch(() => {
       if (proPriceCache?.price === price) proPriceCache = null;
     });
-    proPriceCache = { id: priceId, price };
+    proPriceCache = {
+      id: priceId,
+      price,
+      expiresAt: Date.now() + PRO_PRICE_CACHE_TTL_MS,
+    };
   }
   return proPriceCache.price;
 }

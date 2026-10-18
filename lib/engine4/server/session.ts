@@ -14,6 +14,8 @@
  * @module lib/engine4/server/session
  */
 
+import 'server-only';
+
 import { getSession } from '@/lib/auth/session';
 import { canAccessAiAnalyst, type Tier } from '@/lib/tier-validation';
 

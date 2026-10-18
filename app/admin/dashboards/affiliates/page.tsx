@@ -1,5 +1,5 @@
-import { DonutMarketShare } from '@/components/admin/analytics/donut-market-share';
 import { KpiSummaryCard } from '@/components/admin/analytics/kpi-summary-card';
+import { LazyDonutMarketShare } from '@/components/admin/analytics/lazy-charts';
 import { TimeframeFilter } from '@/components/admin/analytics/timeframe-filter';
 import { TopAffiliatesLeaderboard } from '@/components/admin/analytics/top-affiliates-leaderboard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import {
   getAffiliatesAnalytics,
   type AffiliateReportPeriod,
 } from '@/lib/admin/analytics/affiliates';
+import { requireAdminPage } from '@/lib/auth/session';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
@@ -27,11 +28,15 @@ interface AffiliatesPageProps {
 export default async function AffiliatesPage({
   searchParams,
 }: AffiliatesPageProps): Promise<React.ReactElement> {
+  await requireAdminPage();
   const params = await searchParams;
   const period = (params.period as AffiliateReportPeriod) || '3months';
-  const data = await getAffiliatesAnalytics(period);
-  const prefs = await getServerLocalePreferences();
-  const { rates: usdRates } = await getDisplayUsdRates();
+  // independent reads, issued together; the guard above stays awaited first
+  const [data, prefs, { rates: usdRates }] = await Promise.all([
+    getAffiliatesAnalytics(period),
+    getServerLocalePreferences(),
+    getDisplayUsdRates(),
+  ]);
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {
@@ -142,7 +147,7 @@ export default async function AffiliatesPage({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <DonutMarketShare
+            <LazyDonutMarketShare
               data={donutData}
               centerLabel={dict['analytics.partners'] ?? 'Partners'}
               centerValue={data.summary.totalAffiliates.toLocaleString()}

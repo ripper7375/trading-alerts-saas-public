@@ -86,34 +86,34 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    // Fetch login history
-    const loginHistory = await prisma.loginHistory.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      skip: offset,
-      select: {
-        id: true,
-        status: true,
-        provider: true,
-        deviceType: true,
-        browser: true,
-        browserVersion: true,
-        os: true,
-        osVersion: true,
-        ipAddress: true,
-        country: true,
-        city: true,
-        region: true,
-        isNewDevice: true,
-        createdAt: true,
-      },
-    });
-
-    // Get total count for pagination
-    const totalCount = await prisma.loginHistory.count({
-      where: { userId },
-    });
+    // Fetch login history and the total count for pagination together
+    const [loginHistory, totalCount] = await Promise.all([
+      prisma.loginHistory.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        skip: offset,
+        select: {
+          id: true,
+          status: true,
+          provider: true,
+          deviceType: true,
+          browser: true,
+          browserVersion: true,
+          os: true,
+          osVersion: true,
+          ipAddress: true,
+          country: true,
+          city: true,
+          region: true,
+          isNewDevice: true,
+          createdAt: true,
+        },
+      }),
+      prisma.loginHistory.count({
+        where: { userId },
+      }),
+    ]);
 
     // Format the response
     const formattedHistory: LoginHistoryItem[] = (

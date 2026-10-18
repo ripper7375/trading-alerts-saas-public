@@ -5,6 +5,8 @@
  * Implements exponential backoff and max retry limits.
  */
 
+import 'server-only';
+
 import { PrismaClient } from '.prisma/non-market-client';
 import { DEFAULT_RETRY_CONFIG } from '../constants';
 

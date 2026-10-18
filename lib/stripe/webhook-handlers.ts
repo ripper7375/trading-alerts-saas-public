@@ -11,6 +11,8 @@
  * @module lib/stripe/webhook-handlers
  */
 
+import 'server-only';
+
 import type Stripe from 'stripe';
 
 import { prisma } from '@/lib/db/prisma';

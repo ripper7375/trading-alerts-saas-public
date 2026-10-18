@@ -14,6 +14,8 @@
  * @module lib/engine4/server/setup
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import { decideBadge, type BadgeResult } from '../badge';

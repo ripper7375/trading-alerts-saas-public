@@ -21,6 +21,8 @@ let loaded = null;
 
 function boot() {
   if (loaded !== null) return loaded;
+  // the gateway, the readers and the route layer carry `import 'server-only'`, which throws in plain Node
+  require('../server-only-stub');
   require('tsx/cjs');
   const load = Module._load;
   Module._load = function patched(request, ...rest) {

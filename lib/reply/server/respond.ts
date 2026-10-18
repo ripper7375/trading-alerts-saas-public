@@ -28,6 +28,8 @@
  * @module lib/reply/server/respond
  */
 
+import 'server-only';
+
 import type { GateCaller } from '../contracts/intake';
 import type { StageEvent, StreamEvent } from '../contracts/stage-events';
 import { runReply } from '../orchestrator';

@@ -18,6 +18,8 @@
  * @module lib/platform/traces/retention
  */
 
+import 'server-only';
+
 /** Days a trace stays in PostgreSQL before it is due for the archive. */
 export const TRACE_LIVE_DAYS = 90;
 /** Years the archive keeps a trace (ADR-076). */

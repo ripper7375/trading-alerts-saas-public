@@ -25,7 +25,9 @@ export default function Error({
 }: ErrorPageProps): React.ReactElement {
   const { t } = useLocale();
   useEffect(() => {
-    console.error('Application error:', error);
+    // The browser console (and any client log collector) gets the full error;
+    // the digest is what ties it to the server log line for the same failure.
+    console.error('Application error:', error, { digest: error.digest });
   }, [error]);
 
   return (
@@ -39,12 +41,13 @@ export default function Error({
           <h1 className="mb-2 text-2xl font-bold text-foreground">
             {t('errors.page.title', 'Something went wrong')}
           </h1>
+          {/* Never `error.message`: a server error can carry internals. The
+              digest below is what support uses to find the real cause. */}
           <p className="mb-6 text-muted-foreground">
-            {error.message ||
-              t(
-                'errors.page.unexpected',
-                'An unexpected error occurred. Please try again.'
-              )}
+            {t(
+              'errors.page.unexpected',
+              'An unexpected error occurred. Please try again.'
+            )}
           </p>
 
           {error.digest && (

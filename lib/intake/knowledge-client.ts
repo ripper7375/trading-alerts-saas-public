@@ -33,6 +33,8 @@
  * @module lib/intake/knowledge-client
  */
 
+import 'server-only';
+
 import type { PacketIntent } from './intents';
 import { validateKnowledge, type Knowledge } from './packet';
 

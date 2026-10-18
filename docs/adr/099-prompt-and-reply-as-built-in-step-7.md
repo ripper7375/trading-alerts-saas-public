@@ -100,9 +100,11 @@ The board's `summary_line` is one free-text English line each sensor writes and 
 
 `config/entitlements.ts` and its readers; the gate, the quota port and the chat routes read it. Engine 4's routes and the chart download still decide in their own way (part 6, reading 11).
 
-### D23. A request has a deadline of 55 seconds (the plan's own figure)
+### D23. A request has a deadline of 55 seconds (the plan's own figure) (⚠ amended 2026-10-17, Next.js remediation T1-b)
 
 Per-call timeouts of 25 s (primary) and 20 s (fallback), `maxDuration = 60` on the message route; past the deadline the answer is the board-only fixed answer and the reservation is settled for what was spent. **The Vercel plan's limit was not checked.**
+
+**Amendment (2026-10-17; Davin authorised it in the session prompt of remediation Session 2): a model that times out is not asked again; the next vendor is.** As built, every model port retried once after a timeout as it did after a 429, a 5xx or a network error. The worst case was then 25 s + 25 s + 20 s = 70 s, past the 55 s deadline: after two primary timeouts the fallback started at 50 s with 5 s left and could not answer. Now a model port (`createOpenRouterModelPort`: the primary and the fallback alike) makes ONE attempt when it times out and returns `TIMEOUT` at once, and `completeWithFallback` asks the other vendor: 25 s + 20 s = 45 s, inside the deadline. The ONE immediate retry stays for HTTP 429, HTTP 5xx and a network error (fast failures, as built; the retry was never delayed, so there is no jitter to keep). The Understand call (`callOpenRouter` called directly: one second an attempt, no fallback behind it) keeps its one retry on a timeout, because there it costs one second and nothing waits after it. The 25 s and 20 s timeouts and the 55 s deadline are unchanged. Shown by `__tests__/lib/reply/gateway/openrouter.test.ts` and `fallback.test.ts`, which fail against the old behaviour. The module comment of `lib/reply/gateway/openrouter.ts` says the same.
 
 ### D24. The stream is stage events and one whole result (refines ADR-054)
 

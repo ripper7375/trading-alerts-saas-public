@@ -32,6 +32,8 @@
  * @module lib/admin/analytics/jurisdictions
  */
 
+import 'server-only';
+
 export type AlertLevel =
   | 'LEVEL_0_SAFE'
   | 'LEVEL_1_WARN'

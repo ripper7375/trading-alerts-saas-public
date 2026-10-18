@@ -24,6 +24,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Find user by email
     const user = await prisma.user.findUnique({
       where: { email: validated.email },
+      select: { id: true, name: true },
     });
 
     // If user exists, generate reset token and send email
@@ -47,7 +48,10 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
 
       if (!emailResult.success) {
-        console.error('Failed to send password reset email:', emailResult.error);
+        console.error(
+          'Failed to send password reset email:',
+          emailResult.error
+        );
       }
     }
 

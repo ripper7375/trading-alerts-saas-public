@@ -17,6 +17,8 @@
  * @module lib/engine4/server/trace
  */
 
+import 'server-only';
+
 import { randomUUID } from 'crypto';
 
 import { ENGINE4_VERSION } from '../version';

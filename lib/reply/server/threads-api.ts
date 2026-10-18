@@ -21,6 +21,8 @@
  * @module lib/reply/server/threads-api
  */
 
+import 'server-only';
+
 import {
   listMessages,
   type MessageRow,

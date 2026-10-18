@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 
-import { authOptions } from '@/lib/auth/auth-options';
+import { getSession } from '@/lib/auth/session';
 import { localizedMetadata } from '@/lib/i18n/server-metadata';
 import { isInstantPromptsEnabled } from '@/lib/intake/server/flags';
 import { isReplyEnabled } from '@/lib/reply/server/flags';
@@ -30,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * routes FREE users to `/free` instead of `/terminal`.
  */
 export default async function TerminalPage(): Promise<React.ReactElement> {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user) {
     redirect('/login');

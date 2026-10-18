@@ -6,6 +6,8 @@
  * @module lib/affiliate/validators
  */
 
+import 'server-only';
+
 import { z } from 'zod';
 
 import { AFFILIATE_CONFIG, CODE_GENERATION } from './constants';

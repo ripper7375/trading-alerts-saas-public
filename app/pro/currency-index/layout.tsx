@@ -1,9 +1,8 @@
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 
 import { LoginTracker } from '@/components/auth/login-tracker';
 import { TokenRefreshProvider } from '@/components/auth/token-refresh-provider';
-import { authOptions } from '@/lib/auth/auth-options';
+import { getSession } from '@/lib/auth/session';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
 
 interface CurrencyIndexProLayoutProps {
@@ -20,7 +19,7 @@ interface CurrencyIndexProLayoutProps {
 export default async function CurrencyIndexProLayout({
   children,
 }: CurrencyIndexProLayoutProps): Promise<React.ReactElement> {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user) {
     redirect('/login');

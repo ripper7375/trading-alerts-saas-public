@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 
-import { authOptions } from '@/lib/auth/auth-options';
+import { getSession } from '@/lib/auth/session';
 import { localizedMetadata } from '@/lib/i18n/server-metadata';
 import type { Tier } from '@/lib/tier-config';
 import { ProCurrencyIndexCockpit } from '@/components/currency-index-pro/pro-currency-index-cockpit';
@@ -30,7 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * page entirely, matching `MtfToggle.tsx`'s own upsell-click destination.
  */
 export default async function CurrencyIndexProPage(): Promise<React.ReactElement> {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user) {
     redirect('/login');

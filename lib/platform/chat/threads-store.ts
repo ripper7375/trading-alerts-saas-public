@@ -14,6 +14,8 @@
  * @module lib/platform/chat/threads-store
  */
 
+import 'server-only';
+
 import { prisma } from '@/lib/db/prisma';
 import { TRADER_TYPES } from '@/lib/reply/contracts/intake';
 import type { TraderType } from '@/lib/reply/contracts/intake';

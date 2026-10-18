@@ -17,6 +17,8 @@
  * @module lib/engine4/store/user-hash
  */
 
+import 'server-only';
+
 import { createHmac, timingSafeEqual } from 'crypto';
 
 export const AUDIT_KEY_ENV = 'ENGINE4_AUDIT_HMAC_KEY';

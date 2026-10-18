@@ -82,10 +82,7 @@ import {
   smmaSeries,
   type IndicatorPoint,
 } from '@/lib/currency-index-comparison/indicators';
-import type {
-  ComparisonIndexName,
-  IndexCandle,
-} from '@/lib/currency-index-comparison/series';
+import type { IndexCandle } from '@/lib/currency-index-comparison/series';
 import {
   classifyZigZagSegments,
   detectZigZagPivots,
@@ -96,31 +93,35 @@ import {
 import {
   isHighlightedZScoreClass,
   zscoreCandleClasses,
-  type HighlightedZScoreClass,
   type ZScoreCandleClass,
 } from '@/lib/currency-index-comparison/zscore-candle';
 import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
+import {
+  COMPARISON_CHART_HEIGHT,
+  REBASE_DEFAULT,
+  SLOT_IDS,
+  ZIGZAG_CLASSES,
+  ZIGZAG_LINE_WIDTH,
+  ZSCORE_HIGHLIGHT_CLASSES,
+  slotColor,
+  zscoreClassColors,
+  type ChartSlot,
+  type PlotType,
+  type SlotId,
+} from './comparison-config';
 
-export type PlotType = 'none' | 'line' | 'ohlc' | 'heikin-ashi';
-export type SlotId = 'A' | 'B';
-
-export const SLOT_IDS: readonly SlotId[] = ['A', 'B'];
-
-export interface ChartSlot {
-  symbol: ComparisonIndexName;
-  /**
-   * Price-scale title: the symbol, or e.g. "XAUX (A)" when both slots hold
-   * the same index, so their labels stay distinguishable.
-   */
-  label: string;
-  candles: IndexCandle[];
-  /** Display-only rebase base, 50-150 (100 = real values). */
-  base: number;
-  showHrma: boolean;
-  showSmma: boolean;
-  showZigzag: boolean;
-  showZscore: boolean;
-}
+// The plain values live in comparison-config.ts, which the workspace imports
+// directly so this chart can be loaded on demand; re-exported for everyone else.
+export {
+  REBASE_DEFAULT,
+  SLOT_IDS,
+  ZIGZAG_CLASSES,
+  ZIGZAG_LINE_WIDTH,
+  ZSCORE_HIGHLIGHT_CLASSES,
+  slotColor,
+  zscoreClassColors,
+};
+export type { ChartSlot, PlotType, SlotId };
 
 interface CurrencyIndexComparisonChartProps {
   /** Slot B may be null (only one index selected). */
@@ -137,63 +138,7 @@ interface CurrencyIndexComparisonChartProps {
   height?: number;
 }
 
-export const REBASE_DEFAULT = 100;
-
-const SLOT_COLORS: Record<SlotId, { light: string; dark: string }> = {
-  A: { light: '#c98500', dark: '#c98500' },
-  B: { light: '#2a78d6', dark: '#3987e5' },
-};
-
-export function slotColor(slot: SlotId, theme: 'light' | 'dark'): string {
-  return SLOT_COLORS[slot][theme];
-}
-
 const HOLLOW = 'rgba(0, 0, 0, 0)';
-
-export const ZIGZAG_CLASSES: readonly ZigZagClass[] = [
-  'normal',
-  'large',
-  'extreme',
-];
-
-export const ZIGZAG_LINE_WIDTH: Record<ZigZagClass, 1 | 2 | 4> = {
-  normal: 1,
-  large: 2,
-  extreme: 4,
-};
-
-export const ZSCORE_HIGHLIGHT_CLASSES: readonly HighlightedZScoreClass[] = [
-  'up-large',
-  'up-extreme',
-  'down-large',
-  'down-extreme',
-];
-
-const ZSCORE_COLORS: Record<
-  'light' | 'dark',
-  Record<HighlightedZScoreClass, { body: string; outline: string }>
-> = {
-  // Tints: 60% of the hue over the chart surface (#ffffff / #0a0e17).
-  light: {
-    'up-large': { body: '#66b566', outline: '#008300' },
-    'up-extreme': { body: '#008300', outline: '#008300' },
-    'down-large': { body: '#e697b3', outline: '#d55181' },
-    'down-extreme': { body: '#d55181', outline: '#d55181' },
-  },
-  dark: {
-    'up-large': { body: '#045409', outline: '#008300' },
-    'up-extreme': { body: '#008300', outline: '#008300' },
-    'down-large': { body: '#843657', outline: '#d55181' },
-    'down-extreme': { body: '#d55181', outline: '#d55181' },
-  },
-};
-
-export function zscoreClassColors(
-  cls: HighlightedZScoreClass,
-  theme: 'light' | 'dark'
-): { body: string; outline: string } {
-  return ZSCORE_COLORS[theme][cls];
-}
 
 /** Mirrors xaux-usdx-comparison-chart.tsx's chartChromeColors(). */
 function chartChromeColors(
@@ -376,7 +321,7 @@ export function CurrencyIndexComparisonChart({
   zscoreThreshold1,
   zscoreThreshold2,
   fitKey,
-  height = 520,
+  height = COMPARISON_CHART_HEIGHT,
 }: CurrencyIndexComparisonChartProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);

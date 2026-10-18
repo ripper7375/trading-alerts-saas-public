@@ -1,11 +1,10 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 
 import { LoginTracker } from '@/components/auth/login-tracker';
 import { TokenRefreshProvider } from '@/components/auth/token-refresh-provider';
 import { Badge } from '@/components/ui/badge';
-import { authOptions } from '@/lib/auth/auth-options';
+import { getSession } from '@/lib/auth/session';
 import { getServerAppearance } from '@/lib/appearance/server-appearance';
 import { prisma } from '@/lib/db/prisma';
 import { cn } from '@/lib/utils';
@@ -192,7 +191,7 @@ export default async function AdminLayout({
   children,
 }: AdminLayoutProps): Promise<React.ReactElement> {
   // Get session
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   // Check authentication
   if (!session?.user) {

@@ -24,6 +24,8 @@
  * @module lib/reply/gateway/understand-adapter
  */
 
+import 'server-only';
+
 import type { AiModel } from '@/config/ai-models';
 
 import type { UnderstandPort, UnderstandRequest } from '../contracts/intake';

@@ -4,6 +4,8 @@
  * GET /api/affiliate/profile - Get current affiliate profile
  * PUT /api/affiliate/profile - Update profile details
  *
+ * Neither response carries `paymentDetails` (bank / wallet data).
+ *
  * @module app/api/affiliate/profile/route
  */
 
@@ -14,12 +16,28 @@ import { requireAffiliate, getAffiliateProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { affiliateProfileUpdateSchema } from '@/lib/affiliate/validators';
 
+/**
+ * Response shape of this route: the profile row without `paymentDetails`.
+ *
+ * `paymentDetails` holds the affiliate's bank / wallet data. It is written
+ * through the registration and payout-settings flows and read server-side
+ * only; this route's callers (the profile page) never use it, so it is never
+ * serialized into the response body.
+ */
+function toProfileResponse<T extends { paymentDetails: unknown }>(
+  row: T
+): Omit<T, 'paymentDetails'> {
+  const safe: Partial<T> = { ...row };
+  delete safe.paymentDetails;
+  return safe as Omit<T, 'paymentDetails'>;
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET /api/affiliate/profile
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
- * Get current affiliate profile
+ * Get current affiliate profile (without `paymentDetails`)
  *
  * @returns JSON response with affiliate profile
  */
@@ -72,14 +90,14 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       });
 
       return NextResponse.json({
-        ...created,
+        ...toProfileResponse(created),
         totalEarnings: Number(created.totalEarnings ?? 0),
         pendingCommissions: Number(created.pendingCommissions ?? 0),
         paidCommissions: Number(created.paidCommissions ?? 0),
       });
     }
 
-    return NextResponse.json(profile);
+    return NextResponse.json(toProfileResponse(profile));
   } catch (error) {
     console.error('[Affiliate Profile GET] Error:', error);
 
@@ -177,7 +195,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     });
 
     return NextResponse.json({
-      ...updated,
+      ...toProfileResponse(updated),
       totalEarnings: Number(updated.totalEarnings ?? 0),
       pendingCommissions: Number(updated.pendingCommissions ?? 0),
       paidCommissions: Number(updated.paidCommissions ?? 0),

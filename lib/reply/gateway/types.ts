@@ -13,6 +13,8 @@
  * @module lib/reply/gateway/types
  */
 
+import 'server-only';
+
 import type { AiModel } from '@/config/ai-models';
 
 /** One chat message, after the chart has been fetched: text, and images by URL. */

@@ -4,6 +4,8 @@
  * @module lib/admin/analytics/date-windows
  */
 
+import 'server-only';
+
 const MONTH_LABEL_FORMAT: Intl.DateTimeFormatOptions = {
   month: 'short',
   year: 'numeric',

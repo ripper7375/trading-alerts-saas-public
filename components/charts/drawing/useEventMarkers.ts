@@ -19,6 +19,10 @@ import type { IChartApi, ISeriesApi, UTCTimestamp } from 'lightweight-charts';
 import { useEffect, useRef } from 'react';
 
 import type { UpcomingEconomicEvent } from '@/lib/economic-events/queries';
+import {
+  startVisiblePolling,
+  type PollRequest,
+} from '@/lib/utils/visible-polling';
 
 import { EventVerticalLine } from './EventVerticalLine';
 
@@ -35,25 +39,25 @@ export function useEventMarkers(
   useEffect(() => {
     if (!chart || !series || !enabled) return;
 
-    // Aborted on unmount/dep-change so an in-flight request cannot resolve
-    // into a torn-down chart -- the same shape as useUpcomingEvents.
-    const controller = new AbortController();
-
     const clearLines = (): void => {
       linesRef.current.forEach((line) => series.detachPrimitive(line));
       linesRef.current = [];
     };
 
-    const load = async (): Promise<void> => {
+    // `startVisiblePolling` aborts the request on unmount/dep-change so it
+    // cannot resolve into a torn-down chart, skips the tick while the tab is
+    // hidden or a request is still open -- the same shape as useUpcomingEvents.
+    const load = async ({ signal, isStopped }: PollRequest): Promise<void> => {
       try {
-        const res = await fetch('/api/market/economic-events', {
-          signal: controller.signal,
-        });
+        const res = await fetch('/api/market/economic-events', { signal });
         if (!res.ok) {
-          clearLines();
+          if (!isStopped()) clearLines();
           return;
         }
         const data: { events?: UpcomingEconomicEvent[] } = await res.json();
+        // The effect is gone (unmount or a new chart/series): its cleanup has
+        // already detached the lines, and these would attach to a dead chart.
+        if (isStopped()) return;
         const lines = (data.events ?? []).map((event) => {
           const line = new EventVerticalLine(
             chart,
@@ -68,19 +72,18 @@ export function useEventMarkers(
         linesRef.current.forEach((line) => series.detachPrimitive(line));
         linesRef.current = lines;
       } catch {
-        // Includes the AbortError from unmount/dep-change. No markers is the
-        // correct rendering of "we do not know", matching the banner's own
-        // news row.
-        clearLines();
+        // No markers is the correct rendering of "we do not know", matching
+        // the banner's own news row. An abort from unmount/dep-change is not
+        // that: the cleanup already cleared, and `linesRef` may by now hold
+        // the next effect's lines.
+        if (!isStopped()) clearLines();
       }
     };
 
-    void load();
-    const timer = setInterval(() => void load(), REFRESH_MS);
+    const stopPolling = startVisiblePolling(load, REFRESH_MS);
 
     return (): void => {
-      controller.abort();
-      clearInterval(timer);
+      stopPolling();
       clearLines();
     };
   }, [chart, series, enabled]);

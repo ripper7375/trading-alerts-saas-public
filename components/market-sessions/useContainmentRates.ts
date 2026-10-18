@@ -3,6 +3,10 @@
 import { useEffect, useState } from 'react';
 
 import type { LatestContainmentRate } from '@/lib/indicator-statistics/queries';
+import {
+  startVisiblePolling,
+  type PollRequest,
+} from '@/lib/utils/visible-polling';
 
 /** Statistics update on the order of minutes; re-asking every second is pointless. */
 const REFRESH_MS = 5 * 60 * 1000;
@@ -21,34 +25,23 @@ export function useContainmentRates(): LatestContainmentRate[] {
 
   useEffect(() => {
     // Aborted on unmount so an in-flight request cannot resolve into a
-    // torn-down tree -- same shape as useUpcomingEvents.
-    const controller = new AbortController();
-
-    const load = async () => {
+    // torn-down tree, paused while the tab is hidden, one request at a time
+    // -- same shape as useUpcomingEvents.
+    const load = async ({ signal, isStopped }: PollRequest) => {
       try {
-        const res = await fetch('/api/market/indicator-statistics', {
-          signal: controller.signal,
-        });
-        if (!res.ok) {
-          setRates([]);
-          return;
-        }
-        const data: { rates?: LatestContainmentRate[] } = await res.json();
-        setRates(data.rates ?? []);
+        const res = await fetch('/api/market/indicator-statistics', { signal });
+        const data: { rates?: LatestContainmentRate[] } = res.ok
+          ? await res.json()
+          : {};
+        if (!isStopped()) setRates(data.rates ?? []);
       } catch {
-        // Includes the AbortError from unmount. Nothing to report: an empty
-        // panel is the correct rendering of "we do not know".
-        setRates([]);
+        // Nothing to report: an empty panel is the correct rendering of
+        // "we do not know". (Unmount: nothing to write at all.)
+        if (!isStopped()) setRates([]);
       }
     };
 
-    void load();
-    const timer = setInterval(() => void load(), REFRESH_MS);
-
-    return () => {
-      controller.abort();
-      clearInterval(timer);
-    };
+    return startVisiblePolling(load, REFRESH_MS);
   }, []);
 
   return rates;

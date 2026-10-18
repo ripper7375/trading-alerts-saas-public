@@ -5,6 +5,8 @@
  * Supports MOCK provider for testing and RISE provider for production.
  */
 
+import 'server-only';
+
 import type { DisbursementProvider } from '@/types/disbursement';
 import { PaymentProvider } from './base-provider';
 import { MockPaymentProvider, MockProviderConfig } from './mock-provider';

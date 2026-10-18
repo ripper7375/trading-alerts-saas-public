@@ -1,5 +1,3 @@
-'use client';
-
 import Link from 'next/link';
 import {
   Target,
@@ -12,11 +10,11 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useLocale } from '@/lib/context/locale-context';
+import { getServerTranslator } from '@/lib/i18n/server-translator';
 import { FxRateAttribution } from '@/components/payments/fx-rate-attribution';
 
-export default function AboutPage() {
-  const { t } = useLocale();
+export default async function AboutPage() {
+  const t = await getServerTranslator();
 
   const values = [
     {

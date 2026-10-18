@@ -18,6 +18,8 @@
  * @module lib/intake/server/flags
  */
 
+import 'server-only';
+
 export type Env = Readonly<Record<string, string | undefined>>;
 
 /**

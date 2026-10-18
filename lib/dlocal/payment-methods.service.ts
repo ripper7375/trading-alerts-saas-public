@@ -4,6 +4,8 @@
  * Handles retrieval and validation of payment methods by country.
  */
 
+import 'server-only';
+
 import type { DLocalCountry, PaymentMethodInfo } from '@/types/dlocal';
 import {
   getPaymentMethods as getCountryPaymentMethods,

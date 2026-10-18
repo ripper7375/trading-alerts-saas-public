@@ -24,6 +24,8 @@
 // typed client (so Step 3's lint rule sees no raw fetch() here). Flagged in
 // this order's own Deviations for a possible future Zod-to-OpenAPI session.
 
+import 'server-only';
+
 import { cookies } from 'next/headers';
 
 import {

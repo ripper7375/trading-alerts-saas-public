@@ -27,6 +27,8 @@
  * @module lib/intake/read/snapshot
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import {
@@ -523,22 +525,27 @@ export async function readSnapshot(
   let synthesis: SynthesisSnapshot | null = null;
 
   if (pinned.slot !== null) {
-    const sensors = await readSensorRows(
-      deps,
-      symbol,
-      pinned.slot,
-      roster,
-      problems
-    );
+    // The sensors' rows and the synthesis reading are keyed by the pinned slot
+    // alone and read different tables, so they are read together. Each reader
+    // writes its problems into a list of its own, and the lists are appended
+    // below in the order the readers used to run one after the other (sensors,
+    // then synthesis), so `problems` keeps its order.
+    const sensorProblems: SnapshotProblem[] = [];
+    const synthesisProblems: SnapshotProblem[] = [];
+    const [sensors, read] = await Promise.all([
+      readSensorRows(deps, symbol, pinned.slot, roster, sensorProblems),
+      readSynthesis(
+        deps,
+        symbol,
+        pinned.slot,
+        request.traderType,
+        synthesisProblems
+      ),
+    ]);
+    problems.push(...sensorProblems, ...synthesisProblems);
     rowIds = sensors.ids;
     rows = sensors.rows;
-    synthesis = await readSynthesis(
-      deps,
-      symbol,
-      pinned.slot,
-      request.traderType,
-      problems
-    );
+    synthesis = read;
   }
 
   const liveIds = liveSensorIds(rowIds, roster);

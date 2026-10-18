@@ -26,7 +26,10 @@
  * @module lib/affiliate/view-as
  */
 
+import 'server-only';
+
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 
 import type { AffiliateProfile } from '@/lib/affiliate/types';
 import { getSession } from '@/lib/auth/session';
@@ -137,8 +140,13 @@ export async function loadViewAsTarget(profileId: string): Promise<{
 /**
  * The affiliate the signed-in admin is currently viewing, or `null` when the
  * caller is not an admin, has no valid view-as cookie, or anything fails.
+ *
+ * Wrapped in React.cache(): the affiliate dashboard layout and its page share
+ * one cookie read and one profile load per render. It takes no argument, so
+ * the whole lookup is the cache key's value; outside a render it is a
+ * pass-through.
  */
-export async function getAdminViewAs(): Promise<AdminViewAs | null> {
+export const getAdminViewAs = cache(async (): Promise<AdminViewAs | null> => {
   try {
     const session = await getSession();
     if (session?.user?.role !== 'ADMIN' || !session.user.id) return null;
@@ -156,4 +164,4 @@ export async function getAdminViewAs(): Promise<AdminViewAs | null> {
   } catch {
     return null;
   }
-}
+});

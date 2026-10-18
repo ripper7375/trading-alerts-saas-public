@@ -11,6 +11,8 @@
  * 4. Submit signature to RiseWorks to get JWT token
  */
 
+import 'server-only';
+
 /**
  * SIWE authentication configuration
  */

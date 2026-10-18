@@ -29,6 +29,8 @@
  * @module lib/platform/traces/store
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import { prisma } from '@/lib/db/prisma';

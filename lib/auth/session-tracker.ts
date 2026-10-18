@@ -7,6 +7,8 @@
  * @module lib/auth/session-tracker
  */
 
+import 'server-only';
+
 import { prisma } from '@/lib/db/prisma';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -162,9 +164,7 @@ function extractVersion(userAgent: string, regex: RegExp): string {
  * @param data - Session tracking data
  * @returns Created/updated session ID
  */
-export async function trackSession(
-  data: SessionTrackingData
-): Promise<string> {
+export async function trackSession(data: SessionTrackingData): Promise<string> {
   const { userId, sessionToken, userAgent, ipAddress } = data;
 
   // Parse user agent
@@ -292,7 +292,9 @@ export async function revokeAllSessions(
     where: {
       userId,
       isActive: true,
-      sessionToken: exceptSessionToken ? { not: exceptSessionToken } : undefined,
+      sessionToken: exceptSessionToken
+        ? { not: exceptSessionToken }
+        : undefined,
     },
     select: { sessionToken: true },
   });
@@ -302,7 +304,9 @@ export async function revokeAllSessions(
     where: {
       userId,
       isActive: true,
-      sessionToken: exceptSessionToken ? { not: exceptSessionToken } : undefined,
+      sessionToken: exceptSessionToken
+        ? { not: exceptSessionToken }
+        : undefined,
     },
     data: { isActive: false },
   });
@@ -361,10 +365,7 @@ function formatDevice(browser?: string | null, os?: string | null): string {
 /**
  * Format location string from city and country
  */
-function formatLocation(
-  city?: string | null,
-  country?: string | null
-): string {
+function formatLocation(city?: string | null, country?: string | null): string {
   if (city && country) {
     return `${city}, ${country}`;
   }

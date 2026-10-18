@@ -12,6 +12,8 @@
  * @module lib/engine4/read/specs
  */
 
+import 'server-only';
+
 import { marketPrisma } from '@/lib/db/market-prisma';
 
 import {

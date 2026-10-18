@@ -20,6 +20,8 @@
  * @module lib/engine4/read/events
  */
 
+import 'server-only';
+
 import tier1Config from '@/config/engine4/tier1-events.json';
 import { marketPrisma } from '@/lib/db/market-prisma';
 

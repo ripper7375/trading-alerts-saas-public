@@ -18,6 +18,8 @@
  * @module lib/reply/server/flags
  */
 
+import 'server-only';
+
 import type { SessionPort } from '../contracts/intake';
 
 export type Env = Readonly<Record<string, string | undefined>>;

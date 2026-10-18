@@ -7,10 +7,11 @@
  */
 import React from 'react';
 import { act, render as rtlRender } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeAll, beforeEach } from '@jest/globals';
 
 import { LocaleProvider, useLocale } from '@/lib/context/locale-context';
 import { LOCALE_STORAGE_KEY } from '@/lib/i18n/locale-resolver';
+import { preloadDictionaries } from '@/lib/i18n/client-dictionaries';
 import type { CurrencyCode } from '@/lib/currency-index-pro/pairs';
 import type { CurrencyIndexChartData } from '@/components/currency-index-pro/hooks/use-currency-index-chart';
 
@@ -233,6 +234,10 @@ describe('RelativeStrengthChart', () => {
 
   // The band titles are drawn on the canvas, so they do not re-render with
   // React; they must be redrawn when the language changes.
+  // Thai is a chunk of its own; with it already loaded the switch below is
+  // synchronous, which is what this test is about (the redraw, not the fetch).
+  beforeAll(() => preloadDictionaries(['th']));
+
   it('redraws the corridor band titles in a new language', () => {
     let setPrefs: ReturnType<
       typeof useLocale

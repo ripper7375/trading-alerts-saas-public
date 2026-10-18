@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 
-import { authOptions } from '@/lib/auth/auth-options';
+import { getSession } from '@/lib/auth/session';
 import { localizedMetadata } from '@/lib/i18n/server-metadata';
 import { prisma } from '@/lib/db/prisma';
 import { CURRENCY_INDEX_COMPARE_PATH } from '@/lib/currency-index-comparison/series';
@@ -34,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
  * would be sent to /pricing for a feature they have already paid for.
  */
 export default async function CurrencyIndexComparePage(): Promise<React.ReactElement> {
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user) {
     redirect(

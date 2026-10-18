@@ -364,18 +364,17 @@ describe('Integration: Payment Creation Flow', () => {
       expect(country).toBe('TH');
     });
 
-    it('should fall back to IP detection', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'success', countryCode: 'NG' }),
-      });
-
+    it('should use the default country, with no IP lookup, when no geo header is present', async () => {
+      // Next.js remediation T1-a: the cleartext http://ip-api.com fallback is gone.
       const headers = new Headers({
         'x-forwarded-for': '41.58.0.1',
       });
+      const fetchCallsBefore = mockFetch.mock.calls.length;
 
       const country = await detectCountry(headers);
-      expect(country).toBe('NG');
+
+      expect(country).toBe('US');
+      expect(mockFetch.mock.calls.length).toBe(fetchCallsBefore);
     });
   });
 });

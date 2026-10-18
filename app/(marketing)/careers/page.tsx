@@ -1,9 +1,7 @@
-'use client';
-
 import { Mail, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useLocale } from '@/lib/context/locale-context';
+import { getServerTranslator } from '@/lib/i18n/server-translator';
 
 /**
  * Public Careers Page.
@@ -16,8 +14,8 @@ import { useLocale } from '@/lib/context/locale-context';
  *
  * @module app/careers/page
  */
-export default function CareersPage() {
-  const { t } = useLocale();
+export default async function CareersPage() {
+  const t = await getServerTranslator();
 
   return (
     <div className="bg-slate-50 text-slate-900 dark:bg-[#050609] dark:text-slate-100">

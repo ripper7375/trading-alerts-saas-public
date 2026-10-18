@@ -15,6 +15,8 @@
  * @module lib/admin/analytics/affiliates
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 
 import { unstable_cache } from 'next/cache';

@@ -8,7 +8,6 @@ import {
   LineChart,
 } from 'lucide-react';
 import { redirect } from 'next/navigation';
-import { getServerSession } from 'next-auth';
 
 // Database entity types for TypeScript (Prisma types may not be generated yet)
 interface DbAlert {
@@ -30,7 +29,7 @@ import { UpgradePrompt } from '@/components/dashboard/upgrade-prompt';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { authOptions } from '@/lib/auth/auth-options';
+import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
@@ -48,7 +47,7 @@ import { getDictionary } from '@/lib/i18n/get-dictionary';
  */
 export default async function DashboardPage(): Promise<React.ReactElement> {
   // Get session
-  const session = await getServerSession(authOptions);
+  const session = await getSession();
 
   if (!session?.user) {
     redirect('/login');
@@ -74,17 +73,18 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   }[] = [];
 
   try {
-    // Fetch alert count
-    alertCount = await prisma.alert.count({
-      where: { userId },
-    });
-
-    // Fetch recent alerts (last 5)
-    const dbAlerts = await prisma.alert.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
+    // Alert count and the last 5 alerts are independent: read them together
+    const [count, dbAlerts] = await Promise.all([
+      prisma.alert.count({
+        where: { userId },
+      }),
+      prisma.alert.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      }),
+    ]);
+    alertCount = count;
 
     recentAlerts = (dbAlerts as DbAlert[]).map((alert: DbAlert) => {
       // Derive status from isActive and lastTriggered

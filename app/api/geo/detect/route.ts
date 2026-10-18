@@ -3,7 +3,7 @@
  *
  * Thin wrapper around lib/geo/detect-country.ts's detectCountry(). Detects
  * the caller's country from Cloudflare/Vercel geo headers, falling back to
- * IP geolocation.
+ * the default country (there is no IP lookup).
  *
  * Response:
  * - 200: { country, countryCode }

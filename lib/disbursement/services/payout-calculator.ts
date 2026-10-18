@@ -5,6 +5,8 @@
  * fee calculations for commission disbursements.
  */
 
+import 'server-only';
+
 import type { CommissionAggregate } from '@/types/disbursement';
 import { MINIMUM_PAYOUT_USD } from '../constants';
 

@@ -25,6 +25,8 @@
  * @module lib/intake/read/events
  */
 
+import 'server-only';
+
 import tier1File from '@/config/engine4/tier1-events.json';
 import { marketPrisma } from '@/lib/db/market-prisma';
 

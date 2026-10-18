@@ -10,6 +10,8 @@
 // monolith auth check FIRST (unchanged) and only reach this after it
 // passes — same convention as routes.ts.
 
+import 'server-only';
+
 import type { NextRequest } from 'next/server';
 
 import { callMoneyServiceWithToken, MoneyServiceError } from './client';

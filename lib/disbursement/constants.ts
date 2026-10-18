@@ -5,6 +5,8 @@
  * default values for the disbursement system.
  */
 
+import 'server-only';
+
 import crypto from 'crypto';
 
 import { DisbursementProvider } from '@/types/disbursement';

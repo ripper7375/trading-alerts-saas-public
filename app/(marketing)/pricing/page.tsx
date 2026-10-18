@@ -1,5 +1,3 @@
-'use client';
-
 import { TierComparison } from '@/components/pricing/tier-comparison';
 
 export default function PricingPage() {

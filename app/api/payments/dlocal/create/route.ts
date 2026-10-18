@@ -121,6 +121,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Check if user is already PRO
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: { tier: true, hasUsedThreeDayPlan: true },
     });
 
     if (!user) {
@@ -311,15 +312,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json(error.body, { status: error.status });
     }
 
+    // The full error stays in the server log; the caller gets a fixed message
+    // (a provider or database error can carry internals).
     logger.error('Failed to create payment', {
       error: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
     });
 
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : 'Failed to create payment',
-      },
+      { error: 'Failed to create payment' },
       { status: 500 }
     );
   }

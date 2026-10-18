@@ -6,6 +6,8 @@
  * configurable behavior including failure rates and delays.
  */
 
+import 'server-only';
+
 import { PaymentProvider, PaymentProviderError } from './base-provider';
 import type {
   AuthToken,

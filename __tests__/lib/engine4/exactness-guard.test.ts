@@ -17,6 +17,11 @@
  *  - an import of anything but a sibling file (the engine has no dependency
  *    and does no I/O).
  *
+ * The three folders that do touch the world (`read/`, `store/`, `server/`) carry
+ * `import 'server-only'` (Next.js 16 fails the build when a Client Component reaches
+ * them); every other file, the pure ones above all, must NOT carry it, because a
+ * client component imports the pure files. The guard holds both ways.
+ *
  * The guard is itself tested: the snippets below must be caught, and the
  * allowed forms must not be.
  */
@@ -134,16 +139,29 @@ function numberish(type: ts.Type): boolean {
 }
 
 /**
+ * The marker that turns a Client Component's import of a server module into a build
+ * error. Only the folders that touch the world may carry it (and each must): the pure
+ * files are imported by client components and must stay free of it.
+ */
+const SERVER_ONLY = 'server-only';
+const SERVER_ONLY_FOLDERS: readonly string[] = [
+  '/read/',
+  '/store/',
+  '/server/',
+];
+
+/**
  * The pure modules import sibling files only: no dependency, no I/O. The one
  * place that reads a database is `read/`, which may also import its parent's
  * files (`../`), the database client, the Tier-1 config file, `crypto` and
- * `zlib`, and nothing else.
+ * `zlib`, and `server-only`, and nothing else.
  */
 const READER_IMPORTS: readonly string[] = [
   '@/lib/db/market-prisma',
   '@/config/engine4/tier1-events.json',
   'crypto',
   'zlib',
+  SERVER_ONLY,
 ];
 
 function isTypeOnly(
@@ -156,14 +174,19 @@ function isTypeOnly(
 
 /**
  * The stores (`store/`, part 5) write the audit tables: they may import the user
- * database client, `crypto` and the parent's files, and nothing else.
+ * database client, `crypto`, `server-only` and the parent's files, and nothing else.
  */
-const STORE_IMPORTS: readonly string[] = ['@/lib/db/prisma', 'crypto'];
+const STORE_IMPORTS: readonly string[] = [
+  '@/lib/db/prisma',
+  'crypto',
+  SERVER_ONLY,
+];
 
 /**
  * The route layer (`server/`, part 6) reaches the world through the session, the tier
  * helper, the language list, the gateway client and Redis, and through the readers and
- * stores of its parent (`../`). It never imports a database client itself.
+ * stores of its parent (`../`). It never imports a database client itself. It carries
+ * `server-only` like the readers and the stores.
  */
 const SERVER_IMPORTS: readonly string[] = [
   '@/lib/auth/session',
@@ -172,7 +195,29 @@ const SERVER_IMPORTS: readonly string[] = [
   '@/lib/active-indicator/gateway-client',
   '@/lib/redis/client',
   'crypto',
+  SERVER_ONLY,
 ];
+
+/** True when the source has a bare `import 'server-only';` among its top-level statements. */
+function importsServerOnly(text: string): boolean {
+  const source = ts.createSourceFile(
+    'x.ts',
+    text,
+    ts.ScriptTarget.ES2020,
+    true
+  );
+  return source.statements.some(
+    (statement) =>
+      ts.isImportDeclaration(statement) &&
+      statement.importClause === undefined &&
+      ts.isStringLiteral(statement.moduleSpecifier) &&
+      statement.moduleSpecifier.text === SERVER_ONLY
+  );
+}
+
+/** True for a file (a path inside `lib/engine4`) that sits in `read/`, `store/` or `server/`. */
+const inServerFolder = (file: string): boolean =>
+  SERVER_ONLY_FOLDERS.some((folder) => file.includes(folder));
 
 function importAllowed(
   file: string,
@@ -358,7 +403,7 @@ const BAD_IN_READ: Record<string, string> = {
 };
 const GOOD_IN_READ: Record<string, string> = {
   'client.ts':
-    "import { createHash } from 'crypto';\nimport { gunzipSync } from 'zlib';\nimport { marketPrisma } from '@/lib/db/market-prisma';\nimport { x } from '../parent';\nexport const a = [createHash, gunzipSync, marketPrisma, x];",
+    "import 'server-only';\nimport { createHash } from 'crypto';\nimport { gunzipSync } from 'zlib';\nimport { marketPrisma } from '@/lib/db/market-prisma';\nimport { x } from '../parent';\nexport const a = [createHash, gunzipSync, marketPrisma, x];",
   'tier1-config.ts':
     "import config from '@/config/engine4/tier1-events.json';\nexport const a = config;",
 };
@@ -375,7 +420,7 @@ const BAD_IN_STORE: Record<string, string> = {
 };
 const GOOD_IN_STORE: Record<string, string> = {
   'client.ts':
-    "import { createHmac } from 'crypto';\nimport { prisma } from '@/lib/db/prisma';\nimport { x } from '../parent';\nimport { y } from './sibling';\nexport const a = [createHmac, prisma, x, y];",
+    "import 'server-only';\nimport { createHmac } from 'crypto';\nimport { prisma } from '@/lib/db/prisma';\nimport { x } from '../parent';\nimport { y } from './sibling';\nexport const a = [createHmac, prisma, x, y];",
 };
 
 /** Snippets in a `server/` folder: the session, tier, language, gateway and Redis modules, crypto and the parent's files only. */
@@ -397,7 +442,7 @@ const BAD_IN_SERVER: Record<string, string> = {
 };
 const GOOD_IN_SERVER: Record<string, string> = {
   'modules.ts':
-    "import { randomUUID } from 'crypto';\nimport { getSession } from '@/lib/auth/session';\nimport { canAccessAiAnalyst } from '@/lib/tier-validation';\nimport { isSupportedLanguage } from '@/lib/i18n/languages';\nimport { fetchCurrentCycle } from '@/lib/active-indicator/gateway-client';\nimport { getRedisClient } from '@/lib/redis/client';\nimport { x } from '../parent';\nimport { y } from './sibling';\nexport const a = [randomUUID, getSession, canAccessAiAnalyst, isSupportedLanguage, fetchCurrentCycle, getRedisClient, x, y];",
+    "import 'server-only';\nimport { randomUUID } from 'crypto';\nimport { getSession } from '@/lib/auth/session';\nimport { canAccessAiAnalyst } from '@/lib/tier-validation';\nimport { isSupportedLanguage } from '@/lib/i18n/languages';\nimport { fetchCurrentCycle } from '@/lib/active-indicator/gateway-client';\nimport { getRedisClient } from '@/lib/redis/client';\nimport { x } from '../parent';\nimport { y } from './sibling';\nexport const a = [randomUUID, getSession, canAccessAiAnalyst, isSupportedLanguage, fetchCurrentCycle, getRedisClient, x, y];",
   'bigint-time.ts':
     'const began = BigInt(Date.now());\nexport const ms = Number(BigInt(Date.now()) - began);',
 };
@@ -426,6 +471,8 @@ const BAD_IN_TEMPLATES: Record<string, string> = {
   'length-arithmetic.ts':
     "const text = 'a.b';\nexport const a = text.length - text.indexOf('.') - 1;",
   'to-locale-string.ts': 'export const a = (1).toLocaleString();',
+  // the templates are imported by client components: the marker would break the browser's bundle
+  'server-only.ts': "import 'server-only';\nexport const a = 1n;",
 };
 const GOOD_IN_TEMPLATES: Record<string, string> = {
   'parent-and-sibling.ts':
@@ -476,6 +523,9 @@ Object.assign(BAD, {
     "import { authorize } from './server/session';\nexport const a = authorize;",
   'value-reexport-of-the-route-layer.ts':
     "export { authorize } from './server/session';",
+  // a pure file is imported by client components: it must not carry the marker
+  'server-only-in-a-pure-file.ts':
+    "import 'server-only';\nexport const a = 1n;",
 });
 
 describe('the guard itself', () => {
@@ -603,6 +653,28 @@ describe('the guard itself', () => {
       found.filter((v) => v.file === `/guard-self-test/good/${name}`)
     ).toEqual([]);
   });
+
+  test('tells a bare import of server-only from every other mention of it', () => {
+    expect(importsServerOnly("import 'server-only';")).toBe(true);
+    expect(
+      importsServerOnly(
+        "// header\nimport 'server-only';\nexport const a = 1n;"
+      )
+    ).toBe(true);
+    expect(importsServerOnly('export const a = 1n;')).toBe(false);
+    expect(importsServerOnly("import 'other';")).toBe(false);
+    expect(importsServerOnly("import { x } from 'server-only';")).toBe(false);
+    expect(importsServerOnly("// import 'server-only';")).toBe(false);
+    expect(importsServerOnly("export const a = 'server-only';")).toBe(false);
+  });
+
+  test('names the three folders that carry the marker', () => {
+    expect(inServerFolder('/lib/engine4/read/bars.ts')).toBe(true);
+    expect(inServerFolder('/lib/engine4/store/profile-store.ts')).toBe(true);
+    expect(inServerFolder('/lib/engine4/server/session.ts')).toBe(true);
+    expect(inServerFolder('/lib/engine4/templates/report2.ts')).toBe(false);
+    expect(inServerFolder('/lib/engine4/sizing.ts')).toBe(false);
+  });
 });
 
 describe('lib/engine4', () => {
@@ -664,5 +736,23 @@ describe('lib/engine4', () => {
     const sources = new Map<string, string>();
     for (const file of files) sources.set(file, readFileSync(file, 'utf8'));
     expect(analyse(sources)).toEqual([]);
+  });
+
+  test('puts import "server-only" in every file of read/, store/ and server/, and in no other file', () => {
+    const base = normal(ENGINE_DIR);
+    const wrong = files
+      .map((file) => ({
+        file: file.slice(base.length + 1),
+        marked: importsServerOnly(readFileSync(file, 'utf8')),
+        expected: inServerFolder(file.slice(base.length)),
+      }))
+      .filter((entry) => entry.marked !== entry.expected);
+    expect(wrong).toEqual([]);
+    // the three folders are not empty, so the check above is not vacuous
+    for (const folder of SERVER_ONLY_FOLDERS) {
+      expect(
+        files.filter((file) => file.slice(base.length).includes(folder)).length
+      ).toBeGreaterThan(0);
+    }
   });
 });

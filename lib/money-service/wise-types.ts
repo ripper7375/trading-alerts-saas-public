@@ -4,6 +4,8 @@
 // OpenAPI prose. Keep in sync manually; money-service owns the source of
 // truth (no shared package between the two services yet).
 
+import 'server-only';
+
 export interface WiseAccountRequirementFieldGroup {
   key: string;
   name: string;

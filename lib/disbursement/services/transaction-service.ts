@@ -5,6 +5,8 @@
  * Bridges Commission records with disbursement transactions.
  */
 
+import 'server-only';
+
 import {
   PrismaClient,
   DisbursementProvider,

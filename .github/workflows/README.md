@@ -400,6 +400,21 @@ blocks a merge depends on the repository's branch protection rules.
 **Note:** every other security check is `continue-on-error: true` (informative): the all-dependencies
 `pnpm audit --audit-level=moderate`, the outdated-packages list, `pip-audit` and `bandit`.
 
+**Production audit gate (added 2026-10-18, T3-e):** a separate npm step, `Production audit gate (high and critical)`,
+runs `pnpm audit --prod --audit-level=high --ignore-registry-errors`. It is **still advisory**: the command exits 1
+today (28 advisories, each with a patched release, one critical in `next-auth`), and clearing them is a
+`package.json` / `pnpm.overrides` change that belongs in a dedicated `fix(security)` PR on `main`
+(`.claude/rules/security-overrides.md`). When the step is green, delete its `continue-on-error: true` and it
+blocks. The all-dependencies `pnpm audit --audit-level=moderate` step stays informative.
+
+**Secret scan (`security-checks.yml`, job `secrets-scan`):** `git grep` over tracked source and config files;
+live Stripe keys and webhook secrets, AWS, GitHub, OpenRouter, Resend and Vercel Blob tokens, private keys, a
+literal assigned to `NEXTAUTH_SECRET` / `INTERNAL_API_KEY` / `OPENROUTER_API_KEY` / `DLOCAL_*`, and
+database or queue URLs with credentials. It lists file names only (never the matching line) and blocks.
+
+**Dependabot (`.github/dependabot.yml`):** weekly `npm` (pnpm) and `github-actions` version updates, minor and
+patch grouped into one PR per ecosystem. Security updates are a repository setting.
+
 ---
 
 ### 3. Flask CI

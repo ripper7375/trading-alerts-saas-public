@@ -25,10 +25,13 @@ import zhTWDict from '@/lib/i18n/dictionaries/zh-TW.json';
  * no React) rather than importing from locale-context.tsx directly, so server
  * code never pulls client-context internals into its module graph.
  *
- * Unlike the client provider — which only bundles `en-GB`/`en-US`/`th`
- * synchronously and lazy-loads the rest to keep the client bundle small —
- * this loads every dictionary eagerly. There is no bundle-size concern on the
- * server, and metadata generation needs a synchronous, deterministic result.
+ * Unlike the client — which keeps only `en-GB` (plus the small `en-US`
+ * overlay) in its bundle and fetches every other language as a chunk of its
+ * own, see `lib/i18n/client-dictionaries.ts` — this loads every dictionary
+ * eagerly. There is no bundle-size concern on the server, and metadata
+ * generation needs a synchronous, deterministic result. Server Components
+ * write their text through `getServerTranslator()`
+ * (`lib/i18n/server-translator.ts`), which reads from here.
  */
 const dictionaries: Record<string, Record<string, string>> = {
   'en-GB': enGBDict,

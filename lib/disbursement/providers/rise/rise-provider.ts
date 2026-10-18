@@ -8,6 +8,8 @@
  * Full API integration will be completed in Part 19B.
  */
 
+import 'server-only';
+
 import { PaymentProvider, PaymentProviderError } from '../base-provider';
 import type {
   AuthToken,

@@ -24,6 +24,8 @@
  * @module lib/reply/server/request
  */
 
+import 'server-only';
+
 import { readJsonBody } from '@/lib/intake/server/request';
 import type { RequestFailure } from '@/lib/intake/server/errors';
 

@@ -23,6 +23,8 @@
  * @module lib/engine4/read/structure-levels
  */
 
+import 'server-only';
+
 import { createHash } from 'crypto';
 import { gunzipSync } from 'zlib';
 

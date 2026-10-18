@@ -98,10 +98,12 @@ export default async function AlertsPage(): Promise<React.JSX.Element> {
   }
 
   const tier = (session.user?.tier as Tier) || 'FREE';
-  const dict = getDictionary(await getServerLanguage());
+  // started now, awaited on both paths below; the PRO path reads the alerts alongside it
+  const languagePending = getServerLanguage();
 
   // V8: Alerts are PRO-exclusive — show upgrade landing to FREE users
   if (tier !== 'PRO') {
+    const dict = getDictionary(await languagePending);
     return (
       <div className="flex h-screen w-full flex-col overflow-y-auto bg-background">
         <AppHeader
@@ -122,10 +124,14 @@ export default async function AlertsPage(): Promise<React.JSX.Element> {
   const limit = PRO_TIER_CONFIG.maxAlerts;
 
   // Fetch user's alerts
-  const alerts = await prisma.alert.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: 'desc' },
-  });
+  const [language, alerts] = await Promise.all([
+    languagePending,
+    prisma.alert.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+  const dict = getDictionary(language);
 
   // Transform alerts with computed status
   const alertsWithStatus: AlertWithStatus[] = (alerts as PrismaAlert[]).map(

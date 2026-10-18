@@ -15,11 +15,13 @@
  * @module components/currency-index-comparison/currency-index-comparison-workspace
  */
 
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { LineChart } from 'lucide-react';
 
 import { ProPageNav } from '@/components/currency-index-pro/pro-page-nav';
 import { Badge } from '@/components/ui/badge';
+import { ChartSkeleton } from '@/components/ui/chart-skeleton';
 import {
   Select,
   SelectContent,
@@ -64,7 +66,7 @@ import {
 } from '@/lib/currency-index-comparison/zscore-candle';
 
 import {
-  CurrencyIndexComparisonChart,
+  COMPARISON_CHART_HEIGHT,
   REBASE_DEFAULT,
   SLOT_IDS,
   ZIGZAG_CLASSES,
@@ -75,8 +77,23 @@ import {
   type ChartSlot,
   type PlotType,
   type SlotId,
-} from './currency-index-comparison-chart';
+} from './comparison-config';
 import { useCurrencyIndexComparison } from './use-currency-index-comparison';
+
+// The chart (lightweight-charts and the drawing layer) is loaded on demand; the
+// values this workspace needs from it are in comparison-config.ts, which a
+// value import from the chart module would otherwise pull back in. The skeleton
+// has the chart's own height, so nothing below it moves when the chart arrives.
+const CurrencyIndexComparisonChart = dynamic(
+  () =>
+    import('./currency-index-comparison-chart').then(
+      (mod) => mod.CurrencyIndexComparisonChart
+    ),
+  {
+    ssr: false,
+    loading: () => <ChartSkeleton height={COMPARISON_CHART_HEIGHT} />,
+  }
+);
 
 const TIMEFRAMES: ComparisonTimeframe[] = ['M5', 'M15'];
 const NONE = 'NONE';

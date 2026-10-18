@@ -23,6 +23,8 @@
  * @module lib/intake/server/errors
  */
 
+import 'server-only';
+
 import type { IntakePacket } from '../packet';
 import type { IntakeRefusal, RefusalCode } from '../refusal';
 import type { IntakeTrace } from '../trace';

@@ -35,6 +35,8 @@
  * @module lib/reply/read/chart
  */
 
+import 'server-only';
+
 import { chartMatchesCycle } from '@/lib/storage/chart-keys';
 import type { ChartStamp, ChartVariant } from '@/lib/storage/chart-keys';
 

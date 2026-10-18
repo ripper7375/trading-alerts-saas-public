@@ -10,6 +10,8 @@
  * @module lib/platform/metering/ledger-port
  */
 
+import 'server-only';
+
 import type {
   Balance as MeterBalance,
   LedgerPort,

@@ -7,6 +7,8 @@
  * @module lib/admin/affiliate-management
  */
 
+import 'server-only';
+
 import { prisma } from '@/lib/db/prisma';
 import type { AffiliateStatus } from '@/lib/affiliate/constants';
 

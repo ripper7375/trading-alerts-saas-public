@@ -20,6 +20,8 @@
  * @module lib/engine4/server/context
  */
 
+import 'server-only';
+
 import {
   fetchCurrentCycle,
   type CurrentCycleResponse,

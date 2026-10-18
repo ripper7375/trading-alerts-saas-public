@@ -25,6 +25,8 @@
  * @module lib/engine4/read/cycle
  */
 
+import 'server-only';
+
 import { marketPrisma } from '@/lib/db/market-prisma';
 
 import type { OfferSynthesis } from '../offer';
@@ -218,51 +220,110 @@ export async function readOfferSnapshot(
     problems.push({ code, detail });
   };
 
+  // The newest reading, the pinned reading and the newest ready cycle do not
+  // depend on one another, so they are started together, in this order, and
+  // joined once. Each read catches its own failure, so the join never rejects,
+  // and writes into a list of its own; the lists are merged below in the order
+  // the reads used to run one after the other (newest, pinned, the checks on
+  // the readings, zones, cycle), so `problems` keeps its order. The zones need
+  // the pinned row and so follow the join.
+  const newestProblems: OfferReadProblem[] = [];
+  const pinnedProblems: OfferReadProblem[] = [];
+  const cycleProblems: OfferReadProblem[] = [];
+
   // -- the newest reading of the profile: the newest price, and the candidate for a refresh --
-  let newestRow: SynthesisRow | null = null;
-  try {
-    newestRow = await client.synthesisReading.findFirst({
-      where: { symbol, profile: request.profile },
-      orderBy: { cycle_slot: 'desc' },
-      select: SYNTHESIS_SELECT,
-    });
-    if (newestRow === null) {
-      problem('NO_READING', 'there is no synthesis reading for this profile');
+  const readNewestRow = async (): Promise<SynthesisRow | null> => {
+    try {
+      const row = await client.synthesisReading.findFirst({
+        where: { symbol, profile: request.profile },
+        orderBy: { cycle_slot: 'desc' },
+        select: SYNTHESIS_SELECT,
+      });
+      if (row === null) {
+        newestProblems.push({
+          code: 'NO_READING',
+          detail: 'there is no synthesis reading for this profile',
+        });
+      }
+      return row;
+    } catch (error) {
+      newestProblems.push({
+        code: 'DATABASE_ERROR',
+        detail: `the newest synthesis reading could not be read: ${messageOf(error)}`,
+      });
+      return null;
     }
-  } catch (error) {
-    problem(
-      'DATABASE_ERROR',
-      `the newest synthesis reading could not be read: ${messageOf(error)}`
-    );
-  }
+  };
 
   // -- the pinned reading ------------------------------------------------------------------
-  let pinnedRow: SynthesisRow | null = newestRow;
-  if (request.pinnedSlot !== undefined) {
-    pinnedRow = null;
+  const readPinnedRow = async (
+    pinnedSlot: number
+  ): Promise<SynthesisRow | null> => {
     try {
-      pinnedRow = await client.synthesisReading.findFirst({
+      const row = await client.synthesisReading.findFirst({
         where: {
           symbol,
           profile: request.profile,
-          cycle_slot: request.pinnedSlot,
+          cycle_slot: pinnedSlot,
         },
         orderBy: { cycle_slot: 'desc' },
         select: SYNTHESIS_SELECT,
       });
-      if (pinnedRow === null) {
-        problem(
-          'PINNED_READING_MISSING',
-          `there is no synthesis reading for cycle ${request.pinnedSlot}`
-        );
+      if (row === null) {
+        pinnedProblems.push({
+          code: 'PINNED_READING_MISSING',
+          detail: `there is no synthesis reading for cycle ${pinnedSlot}`,
+        });
       }
+      return row;
     } catch (error) {
-      problem(
-        'DATABASE_ERROR',
-        `the pinned synthesis reading could not be read: ${messageOf(error)}`
-      );
+      pinnedProblems.push({
+        code: 'DATABASE_ERROR',
+        detail: `the pinned synthesis reading could not be read: ${messageOf(error)}`,
+      });
+      return null;
     }
-  }
+  };
+
+  // -- the newest ready cycle ------------------------------------------------------------------
+  const readCycle = async (): Promise<CycleFacts | null> => {
+    try {
+      const row = await client.marketCycle.findFirst({
+        where: { symbol, state: 'READY' },
+        orderBy: { slot: 'desc' },
+        select: {
+          slot: true,
+          data_status: true,
+          retuning: true,
+          ready_at: true,
+        },
+      });
+      if (row === null) return null;
+      return {
+        slot: readSeconds('slot', row.slot),
+        storedDataStatus: row.data_status,
+        retuning: row.retuning,
+        readyAt:
+          row.ready_at === null ? null : readSeconds('ready_at', row.ready_at),
+      };
+    } catch (error) {
+      cycleProblems.push({
+        code: 'DATABASE_ERROR',
+        detail: `the newest cycle could not be read: ${messageOf(error)}`,
+      });
+      return null;
+    }
+  };
+
+  const [newestRow, requestedPinnedRow, cycle] = await Promise.all([
+    readNewestRow(),
+    request.pinnedSlot === undefined ? null : readPinnedRow(request.pinnedSlot),
+    readCycle(),
+  ]);
+  const pinnedRow =
+    request.pinnedSlot === undefined ? newestRow : requestedPinnedRow;
+  problems.push(...newestProblems, ...pinnedProblems);
+
   const pinned = pinnedRow === null ? null : toOfferSynthesis(pinnedRow);
   if (pinnedRow !== null && pinned === null) {
     problem(
@@ -333,29 +394,7 @@ export async function readOfferSnapshot(
     }
   }
 
-  // -- the newest ready cycle ------------------------------------------------------------------
-  let cycle: CycleFacts | null = null;
-  try {
-    const row = await client.marketCycle.findFirst({
-      where: { symbol, state: 'READY' },
-      orderBy: { slot: 'desc' },
-      select: { slot: true, data_status: true, retuning: true, ready_at: true },
-    });
-    if (row !== null) {
-      cycle = {
-        slot: readSeconds('slot', row.slot),
-        storedDataStatus: row.data_status,
-        retuning: row.retuning,
-        readyAt:
-          row.ready_at === null ? null : readSeconds('ready_at', row.ready_at),
-      };
-    }
-  } catch (error) {
-    problem(
-      'DATABASE_ERROR',
-      `the newest cycle could not be read: ${messageOf(error)}`
-    );
-  }
+  problems.push(...cycleProblems);
 
   return {
     pinned,

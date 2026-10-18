@@ -159,10 +159,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     }
 
+    // The error is logged above; the caller gets a fixed message.
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : 'Internal server error',
-      },
+      { error: 'Failed to process payment' },
       { status: 500 }
     );
   }

@@ -13,6 +13,8 @@
  * @module lib/storage/chart-keys
  */
 
+import 'server-only';
+
 /** The two renders produced per cycle. Both are PRO-only artifacts. */
 export type ChartVariant = 'overlay' | 'standard';
 

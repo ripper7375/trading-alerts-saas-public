@@ -19,6 +19,8 @@
  * @module lib/affiliate/db
  */
 
+import 'server-only';
+
 import { prisma } from '@/lib/db/prisma';
 
 import { AFFILIATE_CONFIG, type DynamicAffiliateConfig } from './constants';

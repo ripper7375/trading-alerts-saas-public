@@ -130,6 +130,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       // Check if email already exists
       const existingUser = await prisma.user.findUnique({
         where: { email },
+        select: { id: true },
       });
 
       if (existingUser) {

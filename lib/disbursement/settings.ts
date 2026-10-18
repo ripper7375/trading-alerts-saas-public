@@ -22,6 +22,8 @@
  * @module lib/disbursement/settings
  */
 
+import 'server-only';
+
 import type { PrismaClient } from '.prisma/non-market-client';
 
 // SHARED-BEGIN — keep byte-identical with money-service/src/disbursement/disbursement-settings.constants.ts

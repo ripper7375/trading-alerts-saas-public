@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { requireAdminPage } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { formatCurrencyAmount } from '@/lib/country-config';
 import { getDisplayUsdRates } from '@/lib/fx/usd-rates';
@@ -91,46 +92,51 @@ const FRAUD_STATUS_CLASS: Record<string, string> = {
 export default async function AdminUserDetailPage({
   params,
 }: AdminUserDetailPageProps): Promise<React.ReactElement> {
+  await requireAdminPage();
   const { id } = await params;
-  const prefs = {
-    ...(await getServerLocalePreferences()),
-    // live rate, same table dLocal uses
-    rates: (await getDisplayUsdRates()).rates,
-  };
+
+  // The viewer's locale, the display rates and the user row do not depend on
+  // one another, so they are read together (the guard above stays awaited
+  // first). The tables keyed by this user's id are read after the 404 check.
+  const [localePrefs, { rates: usdRates }, user] = await Promise.all([
+    getServerLocalePreferences(),
+    getDisplayUsdRates(), // live rate, same table dLocal uses
+    prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        tier: true,
+        isActive: true,
+        isAffiliate: true,
+        emailVerified: true,
+        trialStatus: true,
+        trialStartDate: true,
+        trialEndDate: true,
+        twoFactorEnabled: true,
+        twoFactorVerifiedAt: true,
+        createdAt: true,
+        sessions: {
+          select: { expires: true },
+          orderBy: { expires: 'desc' },
+          take: 1,
+        },
+      },
+    }),
+  ]);
+
+  if (!user) {
+    notFound();
+  }
+
+  const prefs = { ...localePrefs, rates: usdRates };
   const dict = getDictionary(prefs.language);
   // Dates in the admin's own timezone and date format.
   const formatDate = (value: Date | string): string =>
     formatDateInZone(value, prefs);
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
-
-  const user = await prisma.user.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      tier: true,
-      isActive: true,
-      isAffiliate: true,
-      emailVerified: true,
-      trialStatus: true,
-      trialStartDate: true,
-      trialEndDate: true,
-      twoFactorEnabled: true,
-      twoFactorVerifiedAt: true,
-      createdAt: true,
-      sessions: {
-        select: { expires: true },
-        orderBy: { expires: 'desc' },
-        take: 1,
-      },
-    },
-  });
-
-  if (!user) {
-    notFound();
-  }
 
   const [subscription, activeSessionCount, fraudAlerts, affiliateProfile] =
     await Promise.all([

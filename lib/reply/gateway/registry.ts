@@ -34,6 +34,8 @@
  * @module lib/reply/gateway/registry
  */
 
+import 'server-only';
+
 import {
   AI_MODELS,
   AI_MODEL_STATUSES,

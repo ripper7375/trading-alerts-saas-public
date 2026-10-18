@@ -126,6 +126,26 @@ describe('POST /api/webhooks/stripe', () => {
     expect(mockClaim).not.toHaveBeenCalled();
   });
 
+  it('answers a bad signature with a fixed text and logs the reason (T2-d)', async () => {
+    mockConstructWebhookEvent.mockImplementation(() => {
+      throw new Error(
+        'No signatures found matching the expected signature for payload (whsec_live_secret)'
+      );
+    });
+
+    const result = await call();
+
+    expect(result).toEqual({
+      status: 400,
+      body: { error: 'Invalid webhook signature' },
+    });
+    expect(JSON.stringify(result.body)).not.toContain('whsec_live_secret');
+    expect(errorSpy).toHaveBeenCalledWith(
+      '[Webhook] Signature verification failed:',
+      expect.stringContaining('No signatures found')
+    );
+  });
+
   it('claims the event by its id, runs the handler, and marks it completed', async () => {
     mockConstructWebhookEvent.mockReturnValue(
       event('invoice.payment_succeeded')

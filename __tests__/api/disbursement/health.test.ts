@@ -1,7 +1,9 @@
 /**
- * Health Check API Tests (Part 19C)
+ * Health Check API Tests (Part 19C; hardened in Next.js remediation T1-e)
  *
- * Minimal smoke tests for health check endpoint.
+ * GET /api/disbursement/health answers by caller: a signed-in admin gets the
+ * full diagnostic payload; anyone else gets only `{ status }` from a bare
+ * `SELECT 1`, and the payment provider is never called for them.
  */
 
 // Mock Next.js server globals
@@ -81,20 +83,39 @@ jest.mock('@/lib/disbursement/constants', () => ({
   getDefaultProvider: jest.fn().mockReturnValue('MOCK'),
 }));
 
+// The caller's role: the real isAdmin() is covered by session.test.ts
+jest.mock('@/lib/auth/session', () => ({
+  __esModule: true,
+  isAdmin: jest.fn(),
+}));
+
+import { isAdmin } from '@/lib/auth/session';
+import { prisma } from '@/lib/db/prisma';
+import { getDefaultProvider } from '@/lib/disbursement/constants';
+import { createPaymentProvider } from '@/lib/disbursement/providers/provider-factory';
+
+const mockIsAdmin = isAdmin as jest.Mock;
+const mockQueryRaw = prisma.$queryRaw as unknown as jest.Mock;
+
+function healthRequest(): MockRequest {
+  return new MockRequest('http://localhost:3000/api/disbursement/health');
+}
+
 describe('Health Check API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockQueryRaw.mockResolvedValue([{ '?column?': 1 }]);
   });
 
-  describe('GET /api/disbursement/health', () => {
+  describe('GET /api/disbursement/health (signed-in admin)', () => {
+    beforeEach(() => {
+      mockIsAdmin.mockResolvedValue(true);
+    });
+
     it('should return health status', async () => {
       const { GET } = await import('@/app/api/disbursement/health/route');
 
-      const request = new MockRequest(
-        'http://localhost:3000/api/disbursement/health'
-      );
-
-      const response = await GET(request as any);
+      const response = await GET(healthRequest() as any);
       const data = await response.json();
 
       expect(data).toHaveProperty('healthy');
@@ -107,11 +128,7 @@ describe('Health Check API', () => {
     it('should report healthy when all checks pass', async () => {
       const { GET } = await import('@/app/api/disbursement/health/route');
 
-      const request = new MockRequest(
-        'http://localhost:3000/api/disbursement/health'
-      );
-
-      const response = await GET(request as any);
+      const response = await GET(healthRequest() as any);
       expect(response.status).toBe(200);
 
       const data = await response.json();
@@ -123,11 +140,7 @@ describe('Health Check API', () => {
     it('should include pending batch count', async () => {
       const { GET } = await import('@/app/api/disbursement/health/route');
 
-      const request = new MockRequest(
-        'http://localhost:3000/api/disbursement/health'
-      );
-
-      const response = await GET(request as any);
+      const response = await GET(healthRequest() as any);
       const data = await response.json();
 
       expect(typeof data.checks.pendingBatches).toBe('number');
@@ -136,15 +149,102 @@ describe('Health Check API', () => {
     it('should include uptime', async () => {
       const { GET } = await import('@/app/api/disbursement/health/route');
 
-      const request = new MockRequest(
-        'http://localhost:3000/api/disbursement/health'
-      );
-
-      const response = await GET(request as any);
+      const response = await GET(healthRequest() as any);
       const data = await response.json();
 
       expect(typeof data.uptime).toBe('number');
       expect(data.uptime).toBeGreaterThanOrEqual(0);
+    });
+
+    it('authenticates against the provider and names it', async () => {
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const response = await GET(healthRequest() as any);
+      const data = await response.json();
+
+      expect(createPaymentProvider).toHaveBeenCalledTimes(1);
+      expect(data.provider).toBe('MOCK');
+    });
+
+    it('still returns the diagnostic payload, with a 503, when the database is down', async () => {
+      mockQueryRaw.mockRejectedValue(new Error('db down'));
+      const consoleError = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const response = await GET(healthRequest() as any);
+      const data = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(data.healthy).toBe(false);
+      expect(data.checks.database).toBe(false);
+      expect(data.warnings).toContain('Database connection failed');
+      consoleError.mockRestore();
+    });
+  });
+
+  describe('GET /api/disbursement/health (anonymous or non-admin caller)', () => {
+    beforeEach(() => {
+      mockIsAdmin.mockResolvedValue(false);
+    });
+
+    it('returns only { status: "healthy" } with 200', async () => {
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const response = await GET(healthRequest() as any);
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ status: 'healthy' });
+    });
+
+    it('returns only { status: "unhealthy" } with 503 when the database check fails, without the error', async () => {
+      mockQueryRaw.mockRejectedValue(
+        new Error('connect ECONNREFUSED db.internal.example:5432')
+      );
+      const consoleError = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const response = await GET(healthRequest() as any);
+      const body = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(body).toEqual({ status: 'unhealthy' });
+      expect(JSON.stringify(body)).not.toContain('ECONNREFUSED');
+      consoleError.mockRestore();
+    });
+
+    it('runs only the SELECT 1 check: no provider call, no counts, no provider name', async () => {
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      await GET(healthRequest() as any);
+
+      expect(mockQueryRaw).toHaveBeenCalledTimes(1);
+      expect(createPaymentProvider).not.toHaveBeenCalled();
+      expect(getDefaultProvider).not.toHaveBeenCalled();
+      expect(prisma.paymentBatch.count).not.toHaveBeenCalled();
+      expect(prisma.disbursementTransaction.count).not.toHaveBeenCalled();
+      expect(prisma.riseWorksWebhookEvent.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('leaks none of the diagnostic fields', async () => {
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const data = await (await GET(healthRequest() as any)).json();
+
+      expect(Object.keys(data)).toEqual(['status']);
+      for (const field of [
+        'healthy',
+        'checks',
+        'warnings',
+        'provider',
+        'uptime',
+        'timestamp',
+      ]) {
+        expect(data).not.toHaveProperty(field);
+      }
     });
   });
 });

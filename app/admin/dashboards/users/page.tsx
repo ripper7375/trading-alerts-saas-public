@@ -1,7 +1,8 @@
-import { HistoricalTrendChart } from '@/components/admin/analytics/historical-trend-chart';
+import { LazyHistoricalTrendChart } from '@/components/admin/analytics/lazy-charts';
 import { KpiSummaryCard } from '@/components/admin/analytics/kpi-summary-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getUsersAnalytics } from '@/lib/admin/analytics/users';
+import { requireAdminPage } from '@/lib/auth/session';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 
@@ -12,8 +13,13 @@ export const metadata = { title: 'User Base & Funnel | DavinTrade Admin' };
  * Trajectory. Metrics #1-#7, #12.
  */
 export default async function UsersPage(): Promise<React.ReactElement> {
-  const data = await getUsersAnalytics();
-  const dict = getDictionary(await getServerLanguage());
+  await requireAdminPage();
+  // independent reads, issued together; the guard above stays awaited first
+  const [data, language] = await Promise.all([
+    getUsersAnalytics(),
+    getServerLanguage(),
+  ]);
+  const dict = getDictionary(language);
 
   return (
     <div className="space-y-6">
@@ -69,7 +75,7 @@ export default async function UsersPage(): Promise<React.ReactElement> {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <HistoricalTrendChart data={data.historicalTrajectory} />
+            <LazyHistoricalTrendChart data={data.historicalTrajectory} />
           </CardContent>
         </Card>
 

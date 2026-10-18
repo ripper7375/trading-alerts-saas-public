@@ -12,6 +12,8 @@
  * money-service/src/disbursement/commission-aggregator.service.ts (E4).
  */
 
+import 'server-only';
+
 import { PrismaClient } from '.prisma/non-market-client';
 import type {
   CommissionAggregate,

@@ -5,6 +5,7 @@ import {
   getExecutiveAnalytics,
   type RagStatus,
 } from '@/lib/admin/analytics/executive';
+import { requireAdminPage } from '@/lib/auth/session';
 import { getServerLocalePreferences } from '@/lib/i18n/server-locale';
 import { getDictionary } from '@/lib/i18n/get-dictionary';
 import { formatCurrencyAmount } from '@/lib/country-config';
@@ -32,9 +33,13 @@ const RAG_BADGE_CLASS: Record<RagStatus, string> = {
  * plus a cross-functional RAG health-status matrix.
  */
 export default async function ExecutivePage(): Promise<React.ReactElement> {
-  const data = await getExecutiveAnalytics();
-  const prefs = await getServerLocalePreferences();
-  const { rates: usdRates } = await getDisplayUsdRates();
+  await requireAdminPage();
+  // independent reads, issued together; the guard above stays awaited first
+  const [data, prefs, { rates: usdRates }] = await Promise.all([
+    getExecutiveAnalytics(),
+    getServerLocalePreferences(),
+    getDisplayUsdRates(),
+  ]);
   const dict = getDictionary(prefs.language);
   const usd = (amount: number): string =>
     formatCurrencyAmount(amount, {

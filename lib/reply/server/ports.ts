@@ -23,6 +23,8 @@
  * @module lib/reply/server/ports
  */
 
+import 'server-only';
+
 import { randomUUID } from 'crypto';
 
 import { getChartImage, getChartStamp } from '@/lib/storage/r2';

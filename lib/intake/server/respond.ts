@@ -12,6 +12,8 @@
  * @module lib/intake/server/respond
  */
 
+import 'server-only';
+
 import { randomUUID } from 'crypto';
 
 import type { IntakePorts } from '../pipeline';

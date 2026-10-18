@@ -16,6 +16,8 @@
  * @module lib/reply/server/stream
  */
 
+import 'server-only';
+
 import { encodeEvent } from '../contracts/stage-events';
 import type { StreamEvent, TerminalEvent } from '../contracts/stage-events';
 import type { ReplyRun } from '../run/types';

@@ -76,8 +76,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const userId = session.user.id;
 
     // Get user with subscription
+    // Explicit select: the tier check and the cancellation email need only
+    // these three fields.
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: { tier: true, email: true, name: true },
     });
 
     if (!user) {

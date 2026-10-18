@@ -116,8 +116,17 @@ export async function GET(
     const userId = subject.userId;
 
     // Get user with subscription from database
+    // Explicit select: only the tier and trial fields this route returns
+    // (never `password`, `twoFactorSecret`, tokens, ...).
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      select: {
+        tier: true,
+        trialStatus: true,
+        trialConvertedAt: true,
+        trialCancelledAt: true,
+        hasUsedFreeTrial: true,
+      },
     });
 
     if (!user) {

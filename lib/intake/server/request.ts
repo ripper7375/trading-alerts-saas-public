@@ -21,6 +21,8 @@
  * @module lib/intake/server/request
  */
 
+import 'server-only';
+
 import { INSTANT_INTENTS, isInstantIntent } from '../intents';
 import type { IntakeRequest } from '../pipeline';
 import type { RequestRead } from '../gate';

@@ -36,6 +36,8 @@
  * @module lib/intake/server/access
  */
 
+import 'server-only';
+
 import { getSession } from '@/lib/auth/session';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
 import { createThreadPort } from '@/lib/platform/chat/thread-port';

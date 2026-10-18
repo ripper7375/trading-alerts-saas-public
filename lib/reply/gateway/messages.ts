@@ -19,6 +19,8 @@
  * @module lib/reply/gateway/messages
  */
 
+import 'server-only';
+
 import type { Prompt } from '../context/segments';
 
 import type { ChatMessage, ContentPart } from './types';

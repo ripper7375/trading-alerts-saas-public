@@ -6,78 +6,17 @@
 
 import {
   detectCountry,
-  detectCountryFromIP,
   isValidCountryCode,
   getGeoHeaders,
 } from '@/lib/geo/detect-country';
 
-// Mock fetch
+// The lookup is header-only now (Next.js remediation T1-a): any fetch is a regression.
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
 
 describe('Country Detection Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-  });
-
-  describe('detectCountryFromIP', () => {
-    it('should detect country from valid IP', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'success', countryCode: 'IN' }),
-      });
-
-      const country = await detectCountryFromIP('103.21.244.0');
-      expect(country).toBe('IN');
-    });
-
-    it('should return default for localhost IP', async () => {
-      const country = await detectCountryFromIP('127.0.0.1');
-      expect(country).toBe('US');
-      expect(mockFetch).not.toHaveBeenCalled();
-    });
-
-    it('should return default for IPv6 localhost', async () => {
-      const country = await detectCountryFromIP('::1');
-      expect(country).toBe('US');
-    });
-
-    it('should return default for empty IP', async () => {
-      const country = await detectCountryFromIP('');
-      expect(country).toBe('US');
-    });
-
-    it('should return default for 0.0.0.0', async () => {
-      const country = await detectCountryFromIP('0.0.0.0');
-      expect(country).toBe('US');
-    });
-
-    it('should return default on API error', async () => {
-      mockFetch.mockRejectedValueOnce(new Error('Network error'));
-
-      const country = await detectCountryFromIP('8.8.8.8');
-      expect(country).toBe('US');
-    });
-
-    it('should return default on non-ok response', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-      });
-
-      const country = await detectCountryFromIP('8.8.8.8');
-      expect(country).toBe('US');
-    });
-
-    it('should return default when API returns fail status', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'fail', message: 'reserved range' }),
-      });
-
-      const country = await detectCountryFromIP('192.168.1.1');
-      expect(country).toBe('US');
-    });
   });
 
   describe('detectCountry', () => {
@@ -118,14 +57,10 @@ describe('Country Detection Service', () => {
       expect(country).toBe('IN');
     });
 
-    it('should ignore Cloudflare XX (unknown) country', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'success', countryCode: 'PK' }),
-      });
-
+    it('should ignore Cloudflare XX (unknown) country and use the Vercel header', async () => {
       const mockHeaders = new Headers({
         'cf-ipcountry': 'XX',
+        'x-vercel-ip-country': 'PK',
         'x-forwarded-for': '203.0.113.1',
       });
 
@@ -133,14 +68,10 @@ describe('Country Detection Service', () => {
       expect(country).toBe('PK');
     });
 
-    it('should ignore Cloudflare T1 (Tor) country', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'success', countryCode: 'VN' }),
-      });
-
+    it('should ignore Cloudflare T1 (Tor) country and use the Vercel header', async () => {
       const mockHeaders = new Headers({
         'cf-ipcountry': 'T1',
+        'x-vercel-ip-country': 'VN',
         'x-forwarded-for': '203.0.113.1',
       });
 
@@ -148,35 +79,23 @@ describe('Country Detection Service', () => {
       expect(country).toBe('VN');
     });
 
-    it('should fall back to IP detection when no headers match', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'success', countryCode: 'ID' }),
-      });
-
-      const mockHeaders = new Headers({
-        'x-forwarded-for': '203.0.113.1',
-      });
-
-      const country = await detectCountry(mockHeaders);
-      expect(country).toBe('ID');
-    });
-
-    it('should use first IP from x-forwarded-for chain', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ status: 'success', countryCode: 'ZA' }),
-      });
-
+    it('should return the default, with no network lookup, when only an IP is present', async () => {
       const mockHeaders = new Headers({
         'x-forwarded-for': '41.0.0.1, 10.0.0.1, 192.168.1.1',
+        'x-real-ip': '41.0.0.1',
       });
 
       const country = await detectCountry(mockHeaders);
-      expect(mockFetch).toHaveBeenCalledWith(
-        'http://ip-api.com/json/41.0.0.1?fields=status,countryCode',
-        expect.any(Object)
+      expect(country).toBe('US');
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should return the default when Cloudflare says unknown and nothing else is present', async () => {
+      const country = await detectCountry(
+        new Headers({ 'cf-ipcountry': 'XX', 'x-forwarded-for': '203.0.113.1' })
       );
+      expect(country).toBe('US');
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('should return default for undefined headers', async () => {

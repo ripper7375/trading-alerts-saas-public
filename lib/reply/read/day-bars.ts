@@ -25,6 +25,8 @@
  * @module lib/reply/read/day-bars
  */
 
+import 'server-only';
+
 import { marketPrisma } from '@/lib/db/market-prisma';
 
 import { PACKET_SYMBOL, secondsOfSlot } from '../contracts/intake';

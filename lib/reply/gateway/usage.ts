@@ -28,6 +28,8 @@
  * @module lib/reply/gateway/usage
  */
 
+import 'server-only';
+
 import { GATEWAY_COST_FLAG, type UsageCapture } from './types';
 
 /** The most one call can plausibly cost, in micro-dollars: $100. A larger "reported" cost is not believed. */

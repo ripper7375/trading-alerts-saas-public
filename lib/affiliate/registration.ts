@@ -12,6 +12,8 @@
  * @module lib/affiliate/registration
  */
 
+import 'server-only';
+
 import type { Prisma } from '.prisma/non-market-client';
 
 type InputJsonValue = Prisma.InputJsonValue;

@@ -33,6 +33,12 @@ import { useChartAppearance } from '@/components/providers/appearance-provider';
 import type { CurrencyGoldIndexHistorySeries } from '@/lib/currency-gold-indices/queries';
 
 import { ComparisonDrawingLayer } from './comparison-drawing-layer';
+import {
+  REBASE_DEFAULT,
+  REBASE_MAX,
+  REBASE_MIN,
+  XAUX_USDX_CHART_HEIGHT,
+} from './xaux-usdx-chart-config';
 import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 
 interface XauxUsdxComparisonChartProps {
@@ -52,10 +58,9 @@ interface XauxUsdxComparisonChartProps {
   rebase?: Partial<Record<string, number>>;
 }
 
-/** Slider bounds for the rebase controls -- matches the feature's own request. */
-export const REBASE_MIN = 50;
-export const REBASE_MAX = 150;
-export const REBASE_DEFAULT = 100;
+// The slider bounds live in xaux-usdx-chart-config.ts, which the page imports directly
+// so this chart can be loaded on demand; re-exported for everyone else.
+export { REBASE_DEFAULT, REBASE_MAX, REBASE_MIN };
 
 // Gold for XAUX (matches this app's own amber brand accent), blue for USDX
 // (the same USD slot currency-index-pro/colors.ts already uses) -- two
@@ -126,7 +131,7 @@ function chartChromeColors(
 
 export function XauxUsdxComparisonChart({
   series,
-  height = 480,
+  height = XAUX_USDX_CHART_HEIGHT,
   rebase,
 }: XauxUsdxComparisonChartProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null);

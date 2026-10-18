@@ -1170,6 +1170,184 @@ describe('the wait', () => {
   });
 });
 
+describe('a timeout is not retried by a model port (decision D23, amended by T1-b)', () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => jest.useRealTimers());
+
+  const hanging: Handler = (_url, init) =>
+    new Promise((_resolve, reject) => {
+      (init.signal as AbortSignal).addEventListener('abort', () =>
+        reject(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+      );
+    });
+
+  describe('callOpenRouter, called directly (the Understand call)', () => {
+    it('still retries a timeout by default: two attempts, 2 x the wait', async () => {
+      const fake = fetchFake(hanging);
+      const pending = callOpenRouter(CONFIG, TARGET, request(), {
+        fetchImpl: fake.fetch,
+      });
+      await jest.advanceTimersByTimeAsync(ANSWER_TIMEOUT_MS);
+      expect(fake.calls).toHaveLength(2);
+      await jest.advanceTimersByTimeAsync(ANSWER_TIMEOUT_MS);
+      expect(failed(await pending)).toMatchObject({
+        code: 'TIMEOUT',
+        attempts: 2,
+      });
+    });
+
+    it('makes one attempt when told retryOnTimeout: false', async () => {
+      const fake = fetchFake(hanging);
+      const pending = callOpenRouter(CONFIG, TARGET, request(), {
+        fetchImpl: fake.fetch,
+        retryOnTimeout: false,
+      });
+      await jest.advanceTimersByTimeAsync(ANSWER_TIMEOUT_MS);
+      expect(failed(await pending)).toMatchObject({
+        code: 'TIMEOUT',
+        attempts: 1,
+      });
+      expect(fake.calls).toHaveLength(1);
+    });
+
+    it('retryOnTimeout: false does not touch the retry of a 429, a 5xx or a network error', async () => {
+      for (const make of [
+        () => new Response('busy', { status: 429 }),
+        () => new Response('down', { status: 503 }),
+        () => {
+          throw new TypeError('fetch failed');
+        },
+      ]) {
+        let n = 0;
+        const fake = fetchFake(() => ((n += 1) === 1 ? make() : ok()));
+        const result = await callOpenRouter(CONFIG, TARGET, request(), {
+          fetchImpl: fake.fetch,
+          retryOnTimeout: false,
+        });
+        expect(answered(result).attempts).toBe(2);
+        expect(fake.calls).toHaveLength(2);
+      }
+    });
+  });
+
+  describe('a model port (the primary and the fallback)', () => {
+    it('makes ONE attempt when the primary times out, and fails with TIMEOUT at exactly 25 s', async () => {
+      const fake = fetchFake(hanging);
+      const port = createOpenRouterModelPort(CONFIG, TARGET, {
+        fetchImpl: fake.fetch,
+        defaultTimeoutMs: ANSWER_TIMEOUT_MS,
+      });
+      let settled = false;
+      const pending = port.complete(request()).then((r) => {
+        settled = true;
+        return r;
+      });
+
+      await jest.advanceTimersByTimeAsync(ANSWER_TIMEOUT_MS - 1);
+      expect(settled).toBe(false);
+      await jest.advanceTimersByTimeAsync(1);
+      expect(failed(await pending)).toMatchObject({
+        code: 'TIMEOUT',
+        attempts: 1,
+      });
+      expect(fake.calls).toHaveLength(1);
+
+      // and nothing is sent later
+      await jest.advanceTimersByTimeAsync(ANSWER_TIMEOUT_MS * 2);
+      expect(fake.calls).toHaveLength(1);
+    });
+
+    it('does the same for the fallback slot: one attempt, TIMEOUT at 20 s', async () => {
+      const fake = fetchFake(hanging);
+      const port = createOpenRouterModelPort(CONFIG, TARGET, {
+        fetchImpl: fake.fetch,
+        defaultTimeoutMs: FALLBACK_TIMEOUT_MS,
+      });
+      const pending = port.complete(request());
+      await jest.advanceTimersByTimeAsync(FALLBACK_TIMEOUT_MS);
+      expect(failed(await pending)).toMatchObject({
+        code: 'TIMEOUT',
+        attempts: 1,
+      });
+      expect(fake.calls).toHaveLength(1);
+    });
+
+    it.each([
+      ['HTTP 429', () => new Response('busy', { status: 429 })],
+      ['HTTP 503', () => new Response('down', { status: 503 })],
+      ['HTTP 500', () => new Response('oops', { status: 500 })],
+      [
+        'a network error',
+        () => {
+          throw new TypeError('fetch failed');
+        },
+      ],
+    ])('still retries once after %s, then answers', async (_label, first) => {
+      let n = 0;
+      const fake = fetchFake(() => ((n += 1) === 1 ? first() : ok()));
+      const port = createOpenRouterModelPort(CONFIG, TARGET, {
+        fetchImpl: fake.fetch,
+      });
+      const result = await port.complete(request());
+      expect(answered(result).attempts).toBe(2);
+      expect(fake.calls).toHaveLength(2);
+    });
+
+    it.each([
+      ['HTTP 429', () => new Response('busy', { status: 429 }), 'HTTP_429'],
+      ['HTTP 503', () => new Response('down', { status: 503 }), 'HTTP_503'],
+    ])(
+      'gives up after one retry on %s that stays down: two attempts',
+      async (_label, make, code) => {
+        const fake = fetchFake(make);
+        const port = createOpenRouterModelPort(CONFIG, TARGET, {
+          fetchImpl: fake.fetch,
+        });
+        expect(failed(await port.complete(request()))).toMatchObject({
+          code,
+          attempts: 2,
+        });
+        expect(fake.calls).toHaveLength(2);
+      }
+    );
+
+    it('spends no time on the retry that a timeout would have cost', async () => {
+      // 429 first (fast, retried), then a hang: the wait is ONE timeout, not two.
+      let n = 0;
+      const fake = fetchFake((url, init) =>
+        (n += 1) === 1
+          ? new Response('busy', { status: 429 })
+          : hanging(url, init)
+      );
+      const port = createOpenRouterModelPort(CONFIG, TARGET, {
+        fetchImpl: fake.fetch,
+      });
+      const pending = port.complete(request());
+      await jest.advanceTimersByTimeAsync(ANSWER_TIMEOUT_MS);
+      expect(failed(await pending)).toMatchObject({
+        code: 'TIMEOUT',
+        attempts: 2,
+      });
+      expect(fake.calls).toHaveLength(2);
+    });
+
+    it('can be told to retry a timeout (retryOnTimeout: true): two attempts', async () => {
+      const fake = fetchFake(hanging);
+      const port = createOpenRouterModelPort(CONFIG, TARGET, {
+        fetchImpl: fake.fetch,
+        retryOnTimeout: true,
+      });
+      const pending = port.complete(request());
+      await jest.advanceTimersByTimeAsync(ANSWER_TIMEOUT_MS * 2);
+      expect(failed(await pending)).toMatchObject({
+        code: 'TIMEOUT',
+        attempts: 2,
+      });
+      expect(fake.calls).toHaveLength(2);
+    });
+  });
+});
+
 describe('the request’s own deadline (the caller’s abort signal)', () => {
   const hanging: Handler = (_url, init) =>
     new Promise((_resolve, reject) => {

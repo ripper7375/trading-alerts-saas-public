@@ -18,6 +18,8 @@
  * @module lib/engine4/read/bars
  */
 
+import 'server-only';
+
 import { marketPrisma } from '@/lib/db/market-prisma';
 
 import { M5_SECONDS, type DayBar } from '../entry-bound';

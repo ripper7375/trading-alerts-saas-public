@@ -43,7 +43,11 @@ export function parseUserAgent(userAgent: string): DeviceInfo {
 
   // Detect device type
   let deviceType: DeviceInfo['deviceType'] = 'desktop';
-  if (/mobile|android(?!.*tablet)|iphone|ipod|blackberry|iemobile|opera mini/i.test(ua)) {
+  if (
+    /mobile|android(?!.*tablet)|iphone|ipod|blackberry|iemobile|opera mini/i.test(
+      ua
+    )
+  ) {
     deviceType = 'mobile';
   } else if (/tablet|ipad|android.*tab|kindle|silk/i.test(ua)) {
     deviceType = 'tablet';
@@ -133,52 +137,49 @@ export async function getClientIP(): Promise<string> {
 }
 
 /**
- * Get geolocation from IP address
- * Uses ip-api.com free service (no API key required for non-commercial use)
+ * Get geolocation from the platform's edge headers (Vercel, then Cloudflare).
+ *
+ * No network call: the old lookup sent the visitor's IP in cleartext to
+ * http://ip-api.com (the free tier has no HTTPS) with no timeout, on the
+ * login, password and 2FA paths. An absent header gives 'Unknown', so a
+ * request that bypassed the edge never blocks or slows the caller.
+ * Vercel percent-encodes the city, and sends the region as a subdivision code
+ * (for example 'CA'), not a name.
  */
-export async function getGeoLocation(ipAddress: string): Promise<GeoLocation> {
-  const defaultLocation: GeoLocation = {
-    country: 'Unknown',
-    city: 'Unknown',
-    region: 'Unknown',
+export function getGeoLocation(headersList: {
+  get(name: string): string | null;
+}): GeoLocation {
+  const countryCode = (
+    headersList.get('x-vercel-ip-country') ||
+    headersList.get('cf-ipcountry') ||
+    ''
+  ).toUpperCase();
+
+  return {
+    country: countryNameFromCode(countryCode),
+    city: decodeHeaderValue(headersList.get('x-vercel-ip-city')),
+    region: decodeHeaderValue(headersList.get('x-vercel-ip-country-region')),
   };
+}
 
-  // Skip for localhost/private IPs
-  if (
-    ipAddress === 'Unknown' ||
-    ipAddress === '127.0.0.1' ||
-    ipAddress === '::1' ||
-    ipAddress.startsWith('192.168.') ||
-    ipAddress.startsWith('10.') ||
-    ipAddress.startsWith('172.')
-  ) {
-    return defaultLocation;
-  }
-
+function decodeHeaderValue(value: string | null): string {
+  if (!value) return 'Unknown';
   try {
-    const response = await fetch(
-      `http://ip-api.com/json/${ipAddress}?fields=status,country,regionName,city`,
-      { next: { revalidate: 86400 } } // Cache for 24 hours
-    );
+    return decodeURIComponent(value) || 'Unknown';
+  } catch {
+    return value;
+  }
+}
 
-    if (!response.ok) {
-      return defaultLocation;
-    }
-
-    const data = await response.json();
-
-    if (data.status === 'success') {
-      return {
-        country: data.country || 'Unknown',
-        city: data.city || 'Unknown',
-        region: data.regionName || 'Unknown',
-      };
-    }
-
-    return defaultLocation;
-  } catch (error) {
-    console.error('Geolocation lookup failed:', error);
-    return defaultLocation;
+/** 'US' becomes 'United States'; Cloudflare's 'XX' (unknown) and 'T1' (Tor) and anything not a country code become 'Unknown'. */
+function countryNameFromCode(code: string): string {
+  if (!/^[A-Z]{2}$/.test(code) || code === 'XX' || code === 'T1') {
+    return 'Unknown';
+  }
+  try {
+    return new Intl.DisplayNames(['en'], { type: 'region' }).of(code) ?? code;
+  } catch {
+    return code;
   }
 }
 
@@ -196,7 +197,11 @@ export function generateDeviceFingerprint(
   // client-side fingerprinting libraries like FingerprintJS
   // IP is not included in fingerprint to allow same device from different networks
   const fingerprintBase = `${device.browser}|${device.os}|${device.deviceType}|${userAgent.substring(0, 100)}`;
-  return crypto.createHash('sha256').update(fingerprintBase).digest('hex').substring(0, 32);
+  return crypto
+    .createHash('sha256')
+    .update(fingerprintBase)
+    .digest('hex')
+    .substring(0, 32);
 }
 
 /**
@@ -207,7 +212,7 @@ export async function getLoginContext(): Promise<LoginContext> {
   const userAgent = headersList.get('user-agent') || 'Unknown';
   const ipAddress = await getClientIP();
   const device = parseUserAgent(userAgent);
-  const location = await getGeoLocation(ipAddress);
+  const location = getGeoLocation(headersList);
   const deviceFingerprint = generateDeviceFingerprint(userAgent, ipAddress);
 
   return {
@@ -274,7 +279,10 @@ export async function recordLoginAttempt(
   context: LoginContext,
   failureReason?: string
 ): Promise<{ isNewDevice: boolean }> {
-  const newDevice = status === 'SUCCESS' ? await isNewDevice(userId, context.deviceFingerprint) : false;
+  const newDevice =
+    status === 'SUCCESS'
+      ? await isNewDevice(userId, context.deviceFingerprint)
+      : false;
 
   await prisma.loginHistory.create({
     data: {
@@ -329,9 +337,17 @@ export async function sendNewDeviceAlert(
   if (!prefs.newDeviceAlerts) return;
 
   const details: NewDeviceLoginDetails = {
-    device: context.device.deviceType.charAt(0).toUpperCase() + context.device.deviceType.slice(1),
-    browser: context.device.browser + (context.device.browserVersion ? ` ${context.device.browserVersion}` : ''),
-    os: context.device.os + (context.device.osVersion ? ` ${context.device.osVersion}` : ''),
+    device:
+      context.device.deviceType.charAt(0).toUpperCase() +
+      context.device.deviceType.slice(1),
+    browser:
+      context.device.browser +
+      (context.device.browserVersion
+        ? ` ${context.device.browserVersion}`
+        : ''),
+    os:
+      context.device.os +
+      (context.device.osVersion ? ` ${context.device.osVersion}` : ''),
     location: `${context.location.city}, ${context.location.region}, ${context.location.country}`,
     ipAddress: context.ipAddress,
     timestamp: new Date(),

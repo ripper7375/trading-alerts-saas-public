@@ -634,6 +634,8 @@ async function run(argv, env, io = {}) {
 
     // the TypeScript registry and adapter, read as they are in production
     const root = path.resolve(__dirname, '..', '..');
+    // the gateway carries `import 'server-only'`, which throws in plain Node
+    require('../server-only-stub');
     require('tsx/cjs');
     const registry = require(
       path.join(root, 'lib/reply/gateway/registry.ts')

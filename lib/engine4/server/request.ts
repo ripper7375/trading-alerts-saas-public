@@ -19,6 +19,8 @@
  * @module lib/engine4/server/request
  */
 
+import 'server-only';
+
 import { isSupportedLanguage } from '@/lib/i18n/languages';
 
 import type { SetupFields } from '../validate';

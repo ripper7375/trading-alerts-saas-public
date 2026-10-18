@@ -110,11 +110,10 @@ export async function POST(
     try {
       provider = createPaymentProvider(batch.provider);
     } catch (error) {
+      // The cause (credentials, endpoint, SDK text) stays in the server log.
+      console.error('Error initializing payment provider:', error);
       return NextResponse.json(
-        {
-          error: 'Failed to initialize payment provider',
-          details: error instanceof Error ? error.message : 'Unknown error',
-        },
+        { error: 'Failed to initialize payment provider' },
         { status: 500 }
       );
     }
@@ -163,17 +162,23 @@ export async function POST(
       return NextResponse.json(error.body, { status: error.status });
     }
 
+    // Logged for every failure below; the caller only ever gets a fixed text
+    // (a message that merely contains "not found" can be a database error).
+    console.error('Error executing batch:', error);
+
     // Handle specific error types
     if (error instanceof Error) {
       if (error.message.includes('not found')) {
-        return NextResponse.json({ error: error.message }, { status: 404 });
+        return NextResponse.json({ error: 'Batch not found' }, { status: 404 });
       }
       if (error.message.includes('Cannot execute')) {
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Cannot execute batch' },
+          { status: 400 }
+        );
       }
     }
 
-    console.error('Error executing batch:', error);
     return NextResponse.json(
       { error: 'Failed to execute batch' },
       { status: 500 }
