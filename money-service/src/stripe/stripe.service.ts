@@ -213,8 +213,12 @@ export class StripeService {
         },
         trial_period_days: 7,
       },
-      // Multi-jurisdiction tax automation (davintrade-vat-stack, Section 3.1)
-      automatic_tax: { enabled: true },
+      // Multi-jurisdiction tax automation (davintrade-vat-stack, Section 3.1).
+      // Enabled when STRIPE_TAX_ENABLED=true (e.g. UK Ltd entity with Stripe Tax).
+      // Disabled for jurisdictions/accounts without Stripe Tax support (e.g. Thailand).
+      ...(this.configService.get<string>('STRIPE_TAX_ENABLED') === 'true' && {
+        automatic_tax: { enabled: true },
+      }),
       tax_id_collection: { enabled: true },
       billing_address_collection: 'required',
       ...(existingStripeCustomerId && {

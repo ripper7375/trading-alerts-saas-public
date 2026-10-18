@@ -274,7 +274,11 @@ export async function createCheckoutSession(
     // address, and card BIN in real time (EU B2C, UK, dLocal-adjacent
     // markets), and validates any EU VAT number entered against VIES,
     // applying 0% reverse charge automatically when valid.
-    automatic_tax: { enabled: true },
+    // Enabled when STRIPE_TAX_ENABLED=true (e.g. UK Ltd entity with Stripe Tax).
+    // Disabled for jurisdictions/accounts without Stripe Tax support (e.g. Thailand).
+    ...(process.env['STRIPE_TAX_ENABLED'] === 'true' && {
+      automatic_tax: { enabled: true },
+    }),
     tax_id_collection: { enabled: true },
     billing_address_collection: 'required',
     ...(existingStripeCustomerId && {

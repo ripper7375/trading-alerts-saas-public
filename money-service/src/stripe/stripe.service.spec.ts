@@ -84,13 +84,39 @@ describe('StripeService', () => {
           mode: 'subscription',
           line_items: [{ price: 'price_pro_123', quantity: 1 }],
           allow_promotion_codes: true,
-          automatic_tax: { enabled: true },
           tax_id_collection: { enabled: true },
           billing_address_collection: 'required',
         })
       );
+      expect(mockSessionsCreate.mock.calls[0][0].automatic_tax).toBeUndefined();
       // Called with exactly one arg (no options) when no idempotency key.
       expect(mockSessionsCreate.mock.calls[0]).toHaveLength(1);
+    });
+
+    it('enables automatic_tax when STRIPE_TAX_ENABLED is true', async () => {
+      configMock.get.mockImplementation((key: string) => {
+        if (key === 'STRIPE_TAX_ENABLED') return 'true';
+        const values: Record<string, string> = {
+          STRIPE_SECRET_KEY: 'sk_test_123',
+          STRIPE_PRO_PRICE_ID: 'price_pro_123',
+          STRIPE_WEBHOOK_SECRET: 'whsec_123',
+        };
+        return values[key];
+      });
+      mockSessionsCreate.mockResolvedValue({ id: 'cs_tax' });
+
+      await service.createCheckoutSession(
+        'user-1',
+        'user@example.com',
+        'https://app/success',
+        'https://app/cancel'
+      );
+
+      expect(mockSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          automatic_tax: { enabled: true },
+        })
+      );
     });
 
     it('attaches customer + customer_update when an existing Stripe customer ID is passed (davintrade-vat-stack)', async () => {

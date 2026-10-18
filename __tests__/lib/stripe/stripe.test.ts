@@ -374,8 +374,37 @@ describe('Stripe Client Functions', () => {
       );
     });
 
-    it('should enable automatic tax, tax ID collection, and required billing address (davintrade-vat-stack)', async () => {
+    it('should enable tax ID collection and required billing address by default (davintrade-vat-stack)', async () => {
       jest.resetModules();
+      const prevEnv = process.env['STRIPE_TAX_ENABLED'];
+      delete process.env['STRIPE_TAX_ENABLED'];
+      mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test_tax' });
+
+      const { createCheckoutSession } = await import('@/lib/stripe/stripe');
+
+      await createCheckoutSession(
+        'user-123',
+        'user@example.com',
+        'https://example.com/success',
+        'https://example.com/cancel'
+      );
+
+      expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tax_id_collection: { enabled: true },
+          billing_address_collection: 'required',
+        })
+      );
+      expect(
+        mockCheckoutSessionsCreate.mock.calls[0][0].automatic_tax
+      ).toBeUndefined();
+      if (prevEnv !== undefined) process.env['STRIPE_TAX_ENABLED'] = prevEnv;
+    });
+
+    it('should enable automatic tax when STRIPE_TAX_ENABLED=true (davintrade-vat-stack)', async () => {
+      jest.resetModules();
+      const prevEnv = process.env['STRIPE_TAX_ENABLED'];
+      process.env['STRIPE_TAX_ENABLED'] = 'true';
       mockCheckoutSessionsCreate.mockResolvedValue({ id: 'cs_test_tax' });
 
       const { createCheckoutSession } = await import('@/lib/stripe/stripe');
@@ -394,6 +423,11 @@ describe('Stripe Client Functions', () => {
           billing_address_collection: 'required',
         })
       );
+      if (prevEnv !== undefined) {
+        process.env['STRIPE_TAX_ENABLED'] = prevEnv;
+      } else {
+        delete process.env['STRIPE_TAX_ENABLED'];
+      }
     });
 
     it('should use customer_email (not customer_update) when no existing Stripe customer is known', async () => {
