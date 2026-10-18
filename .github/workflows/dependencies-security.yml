@@ -2,16 +2,27 @@ name: Dependencies Security Scan
 
 # Purpose: Scan npm and Python dependencies for security vulnerabilities
 # Active: Phase 1-4 (always active)
-# Design: Non-blocking, informative feedback for autonomous development
+# Design: Informative feedback, plus ONE blocking gate: high and critical
+#         advisories in production dependencies (see below)
 #
 # IMPORTANT: This is the ONLY workflow that runs pnpm audit.
-# It is intentionally non-blocking (continue-on-error) to prevent a
-# recurring merge-conflict loop where every feature branch independently
-# adds pnpm.overrides, then conflicts with main on merge.
-# See errors/continuous-pr-errors/ for the full history.
+# The all-dependencies scan (moderate and up) stays non-blocking
+# (continue-on-error) to prevent a recurring merge-conflict loop where every
+# feature branch independently adds pnpm.overrides, then conflicts with main
+# on merge. See errors/continuous-pr-errors/ for the full history.
+#
+# THE PRODUCTION GATE ("Production audit gate (high and critical)", T3-e / OPS-01):
+#   `pnpm audit --prod --audit-level=high` is BLOCKING (no continue-on-error)
+#   since 2026-10-18, when the dedicated "fix(security): ..." PR cleared the
+#   28 advisories it reported that day (one critical, in next-auth). A new
+#   high or critical advisory in a production dependency now fails this job on
+#   main and on every PR. Clear it in a dedicated "fix(security): ..." PR on
+#   main: dependency and pnpm.overrides changes are not allowed on feature
+#   branches (.claude/rules/security-overrides.md, check-overrides.yml), and a
+#   next-auth change is also auth, which escalates to Davin.
 #
 # DO NOT add pnpm audit to other workflows (e.g. security-checks.yml).
-# DO NOT remove continue-on-error from the audit steps below.
+# DO NOT remove continue-on-error from the all-dependencies audit step below.
 
 on:
   push:
@@ -67,6 +78,7 @@ jobs:
           # applied even if the lockfile predates the override entries.
           pnpm install --no-frozen-lockfile
 
+      # All dependencies, moderate and up: informative only, never blocking.
       - name: Run pnpm audit
         if: steps.check_npm.outputs.exists == 'true'
         continue-on-error: true
@@ -94,6 +106,27 @@ jobs:
           pnpm outdated || true
           echo ""
           echo "Note: Consider updating packages periodically"
+
+      # Production dependencies only, high and critical only: the class of
+      # finding that should never reach a release. BLOCKING: there is no
+      # continue-on-error on this step (see the header). It is the last step of
+      # the job so that the informative output above is always printed first.
+      # --ignore-registry-errors keeps an outage of the advisory endpoint from
+      # reading as a finding.
+      - name: Production audit gate (high and critical)
+        if: steps.check_npm.outputs.exists == 'true'
+        run: |
+          echo "🔍 Running pnpm audit --prod --audit-level=high ..."
+          if pnpm audit --prod --audit-level=high --ignore-registry-errors; then
+            echo "✅ No high or critical production advisories reported."
+          else
+            echo ""
+            echo "❌ High or critical advisories in production dependencies (list above)."
+            echo "   Fix them in a dedicated 'fix(security): ...' PR directly on main."
+            echo "   Do NOT add pnpm.overrides on a feature branch"
+            echo "   (.claude/rules/security-overrides.md, check-overrides.yml)."
+            exit 1
+          fi
 
   python-security:
     name: Python Security Audit
@@ -187,9 +220,10 @@ jobs:
           echo "✅ Security scans completed"
           echo ""
           echo "📝 Notes:"
-          echo "  - Security scans are informative during development (Phase 1-3)"
-          echo "  - They do not block commits or pull requests"
+          echo "  - The production audit gate (high and critical advisories in"
+          echo "    production dependencies) is BLOCKING: see the npm-security job"
+          echo "  - Every other scan here is informative and does not block"
           echo "  - Review findings and address critical vulnerabilities"
-          echo "  - Vulnerabilities will be enforced in Phase 4 (production prep)"
+          echo "  - Moderate and low findings stay informative"
           echo ""
           echo "🔗 Check the 'npm-security' and 'python-security' job outputs for details"
