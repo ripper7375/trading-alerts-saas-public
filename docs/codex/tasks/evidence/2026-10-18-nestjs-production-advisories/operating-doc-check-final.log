@@ -1,0 +1,30 @@
+FAIL: 29 operating-document issue(s).
+- docs/codex/state/current-state.md:13 [broken-link] Local link target does not exist: ../../handoffs/2026-10-11-pr478-ci-repair.md (docs/handoffs/2026-10-11-pr478-ci-repair.md).
+- docs/codex/tasks/2026-10-11-codex-collaboration-system.md:58 [broken-link] Local link target does not exist: ../../handoffs/2026-10-11-codex-collaboration-system.md (docs/handoffs/2026-10-11-codex-collaboration-system.md).
+- docs/agent-collaboration/README.md:222 [broken-link] Local link target does not exist: ../handoffs/2026-10-11-codex-collaboration-system.md (docs/handoffs/2026-10-11-codex-collaboration-system.md).
+- docs/codex/handoffs/2026-10-11-antigravity-advisor-onboarding.md [frontmatter] Missing YAML frontmatter.
+- docs/codex/handoffs/2026-10-11-antigravity-advisor-onboarding.md:4 [broken-link] Local link target does not exist: ../codex/tasks/2026-10-11-antigravity-advisor-onboarding.md (docs/codex/codex/tasks/2026-10-11-antigravity-advisor-onboarding.md).
+- docs/codex/handoffs/2026-10-11-antigravity-advisor-onboarding.md:18 [broken-link] Local link target does not exist: ../agent-collaboration/OPENING-PROMPT-TO-ANTIGRAVITY.md (docs/codex/agent-collaboration/OPENING-PROMPT-TO-ANTIGRAVITY.md).
+- docs/codex/handoffs/2026-10-11-antigravity-advisor-onboarding.md:24 [broken-link] Local link target does not exist: ../agent-collaboration/ADVISOR-PROTOCOL.md (docs/codex/agent-collaboration/ADVISOR-PROTOCOL.md).
+- docs/codex/handoffs/2026-10-11-codex-collaboration-system.md [frontmatter] Missing YAML frontmatter.
+- docs/codex/handoffs/2026-10-11-codex-collaboration-system.md:5 [broken-link] Local link target does not exist: ../codex/tasks/2026-10-11-codex-collaboration-system.md (docs/codex/codex/tasks/2026-10-11-codex-collaboration-system.md).
+- docs/codex/handoffs/2026-10-11-codex-collaboration-system.md:19 [broken-link] Local link target does not exist: ../agent-collaboration/README.md (docs/codex/agent-collaboration/README.md).
+- docs/codex/handoffs/2026-10-11-codex-documentation-package.md [frontmatter] Missing YAML frontmatter.
+- docs/codex/handoffs/2026-10-11-codex-documentation-package.md:5 [broken-link] Local link target does not exist: ../codex/tasks/2026-10-11-codex-documentation-package.md (docs/codex/codex/tasks/2026-10-11-codex-documentation-package.md).
+- docs/codex/handoffs/2026-10-11-codex-documentation-package.md:19 [broken-link] Local link target does not exist: ../../davintrade-claude-md-okf-management/codex/README.md (docs/davintrade-claude-md-okf-management/codex/README.md).
+- docs/codex/handoffs/2026-10-11-codex-documentation-package.md:97 [broken-link] Local link target does not exist: ../../davintrade-claude-md-okf-management/codex/OPENING_PROMPT_TO_ANTIGRAVITY.md (docs/davintrade-claude-md-okf-management/codex/OPENING_PROMPT_TO_ANTIGRAVITY.md).
+- docs/codex/handoffs/2026-10-11-english-agent-workflow.md [frontmatter] Missing YAML frontmatter.
+- docs/codex/handoffs/2026-10-11-english-agent-workflow.md:5 [broken-link] Local link target does not exist: ../codex/tasks/2026-10-11-english-agent-workflow.md (docs/codex/codex/tasks/2026-10-11-english-agent-workflow.md).
+- docs/codex/handoffs/2026-10-11-english-agent-workflow.md:19 [broken-link] Local link target does not exist: ../agent-collaboration/LANGUAGE-POLICY.md (docs/codex/agent-collaboration/LANGUAGE-POLICY.md).
+- docs/codex/handoffs/2026-10-11-english-agent-workflow.md:96 [broken-link] Local link target does not exist: ../agent-collaboration/OPENING-PROMPT-TO-ANTIGRAVITY.md (docs/codex/agent-collaboration/OPENING-PROMPT-TO-ANTIGRAVITY.md).
+- docs/codex/handoffs/2026-10-11-pr478-ci-repair.md [frontmatter] Missing YAML frontmatter.
+- docs/codex/handoffs/2026-10-11-pr478-ci-repair.md:5 [broken-link] Local link target does not exist: ../codex/tasks/2026-10-11-pr478-ci-repair.md (docs/codex/codex/tasks/2026-10-11-pr478-ci-repair.md).
+- docs/codex/handoffs/2026-10-11-publish-codex-workflow.md [frontmatter] Missing YAML frontmatter.
+- docs/codex/handoffs/2026-10-11-publish-codex-workflow.md:5 [broken-link] Local link target does not exist: ../codex/tasks/2026-10-11-publish-codex-workflow.md (docs/codex/codex/tasks/2026-10-11-publish-codex-workflow.md).
+- docs/codex/handoffs/2026-10-11-publish-codex-workflow.md:29 [broken-link] Local link target does not exist: ../../davintrade-claude-md-okf-management/codex/README.md (docs/davintrade-claude-md-okf-management/codex/README.md).
+- docs/codex/handoffs/2026-10-11-publish-codex-workflow.md:75 [broken-link] Local link target does not exist: ../../davintrade-claude-md-okf-management/codex/OPENING_PROMPT_TO_ANTIGRAVITY.md (docs/davintrade-claude-md-okf-management/codex/OPENING_PROMPT_TO_ANTIGRAVITY.md).
+- docs/codex/tasks/2026-10-11-antigravity-advisor-onboarding.md:42 [broken-link] Local link target does not exist: ../../handoffs/2026-10-11-antigravity-advisor-onboarding.md (docs/handoffs/2026-10-11-antigravity-advisor-onboarding.md).
+- docs/codex/tasks/2026-10-11-codex-documentation-package.md:81 [broken-link] Local link target does not exist: ../../handoffs/2026-10-11-codex-documentation-package.md (docs/handoffs/2026-10-11-codex-documentation-package.md).
+- docs/codex/tasks/2026-10-11-english-agent-workflow.md:76 [broken-link] Local link target does not exist: ../../handoffs/2026-10-11-english-agent-workflow.md (docs/handoffs/2026-10-11-english-agent-workflow.md).
+- docs/codex/tasks/2026-10-11-pr478-ci-repair.md:121 [broken-link] Local link target does not exist: ../../handoffs/2026-10-11-pr478-ci-repair.md (docs/handoffs/2026-10-11-pr478-ci-repair.md).
+- docs/codex/tasks/2026-10-11-publish-codex-workflow.md:103 [broken-link] Local link target does not exist: ../../handoffs/2026-10-11-publish-codex-workflow.md (docs/handoffs/2026-10-11-publish-codex-workflow.md).

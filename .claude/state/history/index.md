@@ -1,7 +1,7 @@
 ---
 type: Concept/HistoryIndex
 status: active
-updated_at: 2026-10-17
+updated_at: 2026-10-18
 tags: [history, index]
 ---
 

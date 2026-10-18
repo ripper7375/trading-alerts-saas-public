@@ -1,0 +1,199 @@
+[
+  {
+    "id": "GHSA-q7rr-3cgh-j5r3",
+    "url": "https://github.com/advisories/GHSA-q7rr-3cgh-j5r3",
+    "severity": "high",
+    "packages": [
+      "@opentelemetry/auto-instrumentations-node",
+      "@opentelemetry/exporter-prometheus",
+      "@opentelemetry/sdk-node"
+    ],
+    "services": [
+      "money-service",
+      "operation-service"
+    ]
+  },
+  {
+    "id": "GHSA-8988-4f7v-96qf",
+    "url": "https://github.com/advisories/GHSA-8988-4f7v-96qf",
+    "severity": "moderate",
+    "packages": [
+      "@opentelemetry/core"
+    ],
+    "services": [
+      "money-service",
+      "operation-service"
+    ]
+  },
+  {
+    "id": "GHSA-qqmp-wf37-98f9",
+    "url": "https://github.com/advisories/GHSA-qqmp-wf37-98f9",
+    "severity": "moderate",
+    "packages": [
+      "@opentelemetry/instrumentation-cassandra-driver",
+      "@opentelemetry/instrumentation-knex",
+      "@opentelemetry/instrumentation-mongoose",
+      "@opentelemetry/instrumentation-mysql",
+      "@opentelemetry/instrumentation-mysql2",
+      "@opentelemetry/instrumentation-pg",
+      "@opentelemetry/instrumentation-tedious"
+    ],
+    "services": [
+      "money-service",
+      "operation-service"
+    ]
+  },
+  {
+    "id": "GHSA-45rx-2jwx-cxfr",
+    "url": "https://github.com/advisories/GHSA-45rx-2jwx-cxfr",
+    "severity": "high",
+    "packages": [
+      "@opentelemetry/propagator-jaeger"
+    ],
+    "services": [
+      "money-service",
+      "operation-service"
+    ]
+  },
+  {
+    "id": "GHSA-ggr8-5vv4-36mx",
+    "url": "https://github.com/advisories/GHSA-ggr8-5vv4-36mx",
+    "severity": "high",
+    "packages": [
+      "deepmerge-ts"
+    ],
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  },
+  {
+    "id": "GHSA-pm4m-ph32-ghv5",
+    "url": "https://github.com/advisories/GHSA-pm4m-ph32-ghv5",
+    "severity": "high",
+    "packages": [
+      "js-yaml"
+    ],
+    "services": [
+      "money-service",
+      "operation-service"
+    ]
+  },
+  {
+    "id": "GHSA-r3ph-w7gj-g6xm",
+    "url": "https://github.com/advisories/GHSA-r3ph-w7gj-g6xm",
+    "severity": "moderate",
+    "packages": [
+      "js-yaml"
+    ],
+    "services": [
+      "money-service",
+      "operation-service"
+    ]
+  },
+  {
+    "id": "GHSA-wc9g-mqfw-jrwm",
+    "url": "https://github.com/advisories/GHSA-wc9g-mqfw-jrwm",
+    "severity": "high",
+    "packages": [
+      "multer"
+    ],
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  },
+  {
+    "id": "GHSA-qfvm-cv95-jqjf",
+    "url": "https://github.com/advisories/GHSA-qfvm-cv95-jqjf",
+    "severity": "high",
+    "packages": [
+      "multer"
+    ],
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  },
+  {
+    "id": "GHSA-qvfw-j98x-7q72",
+    "url": "https://github.com/advisories/GHSA-qvfw-j98x-7q72",
+    "severity": "low",
+    "packages": [
+      "multer"
+    ],
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  },
+  {
+    "id": "GHSA-535w-7cp7-47q4",
+    "url": "https://github.com/advisories/GHSA-535w-7cp7-47q4",
+    "severity": "high",
+    "packages": [
+      "multer"
+    ],
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  },
+  {
+    "id": "GHSA-3pph-fpjx-jg34",
+    "url": "https://github.com/advisories/GHSA-3pph-fpjx-jg34",
+    "severity": "moderate",
+    "packages": [
+      "multer"
+    ],
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  },
+  {
+    "id": "GHSA-3f6p-5ww8-9rcr",
+    "url": "https://github.com/advisories/GHSA-3f6p-5ww8-9rcr",
+    "severity": "high",
+    "packages": [
+      "mysql2"
+    ],
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  },
+  {
+    "id": "GHSA-rgwj-5xj2-c3m3",
+    "url": "https://github.com/advisories/GHSA-rgwj-5xj2-c3m3",
+    "severity": "moderate",
+    "packages": [
+      "mysql2"
+    ],
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  },
+  {
+    "id": "GHSA-w5hq-g745-h8pq",
+    "url": "https://github.com/advisories/GHSA-w5hq-g745-h8pq",
+    "severity": "moderate",
+    "packages": [
+      "uuid"
+    ],
+    "services": [
+      "money-service",
+      "operation-service",
+      "railway-gateway"
+    ]
+  }
+]

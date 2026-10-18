@@ -365,7 +365,7 @@ describe('StripeCheckoutController + IdempotencyInterceptor (duplicate header ca
 
     const result$ = await interceptor.intercept(contextStub, next as never);
     const emitted: unknown[] = [];
-    result$.subscribe((v) => emitted.push(v));
+    result$.subscribe((v: unknown) => emitted.push(v));
 
     expect(next.handle).not.toHaveBeenCalled();
     expect(emitted).toEqual([handlerBody]);

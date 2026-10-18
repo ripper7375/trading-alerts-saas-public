@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-18",
+  "reason": "Davin requested checkpoint before credit exhaustion",
+  "base_commit": "5dab316c79c13abd42d024f9291dda667cff755e",
+  "branch": "codex/nestjs-security-audit",
+  "candidate_patch_applied": false,
+  "hashes": {
+    "money-service": {
+      "baseline": "da70ed2b9feacf33cc7ac6ad7a4f3a5b9e226b5687d3273265520d9fc193ef6d",
+      "candidate": "e643eaeff18cd977c35ba90f62eeaa6724d582ea4b7bb5b75e37160235e26c3c"
+    },
+    "operation-service": {
+      "baseline": "4e6429c00cc414076b7f4df17270c7a7e5d456f1b22f4d22c80f033e52e903aa",
+      "candidate": "db57e3e6598c5c46a12ace6426a291860b15b85381957fcbac2fe8580e2226ec"
+    },
+    "railway-gateway": {
+      "baseline": "6e3069713fd39309178b1382178f68d560139a602a854cda300d957a8a064b87",
+      "candidate": "703e1ff2467572e454a9dd07031c4102d94fa4be5cfac1c19534bfd65b1996c2"
+    }
+  },
+  "baseline": {
+    "money": "install interrupted; tsc/tests not run",
+    "operation": "install interrupted; tsc/tests not run",
+    "gateway": "install/generation/tsc exit 0; Jest interrupted; e2e not run"
+  },
+  "task_processes_stopped": true,
+  "candidate_patch_check_exit": 0,
+  "service_and_root_unchanged_exit": 0,
+  "diff_check_exit": 0,
+  "operating_docs_exit": 1,
+  "preexisting_operating_doc_issues": 29,
+  "patch_sha256": "a865844b906dccae4eb403798676e38e759a693cb5d869d48d38d866a940448a"
+}
