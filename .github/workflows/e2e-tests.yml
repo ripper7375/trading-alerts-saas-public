@@ -127,7 +127,7 @@ jobs:
 
       - name: Cache Playwright browsers
         if: steps.check-config.outputs.has-config == 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -204,7 +204,7 @@ jobs:
 
       - name: Restore Playwright browsers
         if: env.SKIP_BROWSER != 'true'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ needs.setup.outputs.playwright-version }}
