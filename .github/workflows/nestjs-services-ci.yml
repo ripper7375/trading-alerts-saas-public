@@ -43,7 +43,7 @@ jobs:
         working-directory: operation-service
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -80,7 +80,7 @@ jobs:
         working-directory: money-service
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -113,7 +113,7 @@ jobs:
       # The gateway specs read files outside the package (the Stack D engine, the standard, the
       # migrations), so the whole repository is checked out.
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Deploy to Vercel
         id: deploy
@@ -76,7 +76,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Deploy Flask to Railway
         uses: bervProject/railway-deploy@main
@@ -109,7 +109,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Wait for services to be ready
         run: |

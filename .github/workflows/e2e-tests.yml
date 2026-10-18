@@ -90,7 +90,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Check for Playwright config
         id: check-config
@@ -187,7 +187,7 @@ jobs:
 
       - name: Checkout code
         if: env.SKIP_BROWSER != 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install pnpm
         if: env.SKIP_BROWSER != 'true'
