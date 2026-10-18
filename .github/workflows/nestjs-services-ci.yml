@@ -125,7 +125,7 @@ jobs:
       # The sensor specs run the Python cycle runner (`python -m mcd_worker.cli`) and skip
       # silently when `import yaml, jsonschema` fails. Same pins as tests.yml.
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
