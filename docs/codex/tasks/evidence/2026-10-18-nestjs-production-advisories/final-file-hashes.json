@@ -1,0 +1,6 @@
+{
+  "money-service/package-lock.json": "e643eaeff18cd977c35ba90f62eeaa6724d582ea4b7bb5b75e37160235e26c3c",
+  "operation-service/package-lock.json": "db57e3e6598c5c46a12ace6426a291860b15b85381957fcbac2fe8580e2226ec",
+  "railway-gateway/package-lock.json": "703e1ff2467572e454a9dd07031c4102d94fa4be5cfac1c19534bfd65b1996c2",
+  "money-service/src/stripe/stripe-checkout.controller.spec.ts": "0a82f71598311c18bb1f72fdf5bcb33d03b46cc0a776722b915a60ee51b2c26f"
+}

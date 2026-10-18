@@ -1,0 +1,400 @@
+{
+  "money-service": [
+    {
+      "path": "node_modules/@grpc/grpc-js",
+      "before": "1.14.4",
+      "after": "1.14.6",
+      "integrity": "sha512-SgC/B3/VZ8lTyOZ4Cwk6f1skWhmkNAaVfiX90qd5u1rRXGKk1//8FTUEN9GvOUq7rfWIqAYkA3CoyumYVpOS6g==",
+      "resolved": "https://registry.npmjs.org/@grpc/grpc-js/-/grpc-js-1.14.6.tgz"
+    },
+    {
+      "path": "node_modules/@istanbuljs/load-nyc-config/node_modules/js-yaml",
+      "before": "3.15.0",
+      "after": "3.15.2",
+      "integrity": "sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w==",
+      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.15.2.tgz"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/brace-expansion",
+      "before": "2.1.2",
+      "after": "2.1.7",
+      "integrity": "sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.1.7.tgz"
+    },
+    {
+      "path": "node_modules/baseline-browser-mapping",
+      "before": "2.10.44",
+      "after": "2.11.29",
+      "integrity": "sha512-YeesxhUmR4h5y5V8KF8iBCqJb8YFrBJ++XBTeGcWIaQOYXGN19JM0FoiOjAhwuDoln8owMgXcWBmgHtYSkky2w==",
+      "resolved": "https://registry.npmjs.org/baseline-browser-mapping/-/baseline-browser-mapping-2.11.29.tgz"
+    },
+    {
+      "path": "node_modules/brace-expansion",
+      "before": "1.1.16",
+      "after": "1.1.21",
+      "integrity": "sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.21.tgz"
+    },
+    {
+      "path": "node_modules/browserslist",
+      "before": "4.28.6",
+      "after": "4.29.3",
+      "integrity": "sha512-1R4kiYKXGViqEN0CnoDrXc1StD9niAwu+j2dukWzrD4bJgsD4lDmEp0CRbc6E/vYJIfTHwPmwyaKtVSudICdPA==",
+      "resolved": "https://registry.npmjs.org/browserslist/-/browserslist-4.29.3.tgz"
+    },
+    {
+      "path": "node_modules/caniuse-lite",
+      "before": "1.0.30001806",
+      "after": "1.0.30001816",
+      "integrity": "sha512-+8Yx7BXCoqk6IF8yTicjfUR6D/ldJzdlsodlEOiOSPmhK844WIgk67/zIQaGAOxNkZyyvBlrRFnLvqKIoqbAFw==",
+      "resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001816.tgz"
+    },
+    {
+      "path": "node_modules/compression",
+      "before": "1.8.1",
+      "after": "1.8.2",
+      "integrity": "sha512-o8vI5RE5A6EVVOd9o41jKp41aJom+QTEO/Bx8MYNjexMo/Bv2WOjUfZr+aL0WnYSgymUy6zeguqLTsIhV0gMvQ==",
+      "resolved": "https://registry.npmjs.org/compression/-/compression-1.8.2.tgz"
+    },
+    {
+      "path": "node_modules/destroy",
+      "before": null,
+      "after": "1.2.0",
+      "integrity": "sha512-2sJGJTaXIIaR1w4iJSNoN0hnMY7Gpc/n8D4qSCJw8QqFWXf7cuAgnEHxBpweaVcPevC2l3KpjYCx3NypQQgaJg==",
+      "resolved": "https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz"
+    },
+    {
+      "path": "node_modules/electron-to-chromium",
+      "before": "1.5.394",
+      "after": "1.5.459",
+      "integrity": "sha512-4SC9HHSFjO/liAhifpdOL5hG9b4BP7/5G3y3UPZVO8trlAXr1CaUEEJL0gWK3kOcYcZrOA5rkwG45Gra/lTIgg==",
+      "resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.459.tgz"
+    },
+    {
+      "path": "node_modules/fast-uri",
+      "before": "3.1.4",
+      "after": "3.1.8",
+      "integrity": "sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==",
+      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.8.tgz"
+    },
+    {
+      "path": "node_modules/glob/node_modules/brace-expansion",
+      "before": "5.0.7",
+      "after": "5.0.12",
+      "integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/brace-expansion",
+      "before": "2.1.2",
+      "after": "2.1.7",
+      "integrity": "sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.1.7.tgz"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/brace-expansion",
+      "before": "2.1.2",
+      "after": "2.1.7",
+      "integrity": "sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.1.7.tgz"
+    },
+    {
+      "path": "node_modules/js-yaml",
+      "before": "4.3.0",
+      "after": "4.3.2",
+      "integrity": "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==",
+      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.2.tgz"
+    },
+    {
+      "path": "node_modules/node-releases",
+      "before": "2.0.51",
+      "after": "2.0.59",
+      "integrity": "sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==",
+      "resolved": "https://registry.npmjs.org/node-releases/-/node-releases-2.0.59.tgz"
+    },
+    {
+      "path": "node_modules/proxy-addr",
+      "before": "2.0.7",
+      "after": "2.0.8",
+      "integrity": "sha512-5nnx0yGyVUcY6t9RnWcARWtwT9F1D8O9rt08htPvnd49W1IgZtmLkhu9WfMzQj1cFxjHIO6connUNVW5k7AVyQ==",
+      "resolved": "https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.8.tgz"
+    },
+    {
+      "path": "node_modules/qs",
+      "before": "6.15.3",
+      "after": "6.16.1",
+      "integrity": "sha512-5Px6J7rfHBAGUhNQ3es4YzcOdBBw0SDcVtThJml4RdnKw4tKs2epA0kPZ+K8X+WiHktT93RHVcQ/3ym5aTCgtg==",
+      "resolved": "https://registry.npmjs.org/qs/-/qs-6.16.1.tgz"
+    },
+    {
+      "path": "node_modules/update-browserslist-db",
+      "before": "1.2.3",
+      "after": "1.3.4",
+      "integrity": "sha512-t8wonIOdQyOjtPd2VktlBu6QjTVTks6v8bSi7kd0r2Vll8TK1JYDZtRRdbmCHOAMphkZgrzK+L+vXK4pyZ8t4A==",
+      "resolved": "https://registry.npmjs.org/update-browserslist-db/-/update-browserslist-db-1.3.4.tgz"
+    }
+  ],
+  "operation-service": [
+    {
+      "path": "node_modules/@grpc/grpc-js",
+      "before": "1.14.4",
+      "after": "1.14.6",
+      "integrity": "sha512-SgC/B3/VZ8lTyOZ4Cwk6f1skWhmkNAaVfiX90qd5u1rRXGKk1//8FTUEN9GvOUq7rfWIqAYkA3CoyumYVpOS6g==",
+      "resolved": "https://registry.npmjs.org/@grpc/grpc-js/-/grpc-js-1.14.6.tgz"
+    },
+    {
+      "path": "node_modules/@istanbuljs/load-nyc-config/node_modules/js-yaml",
+      "before": "3.15.0",
+      "after": "3.15.2",
+      "integrity": "sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w==",
+      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.15.2.tgz"
+    },
+    {
+      "path": "node_modules/@jest/reporters/node_modules/brace-expansion",
+      "before": "2.1.2",
+      "after": "2.1.7",
+      "integrity": "sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.1.7.tgz"
+    },
+    {
+      "path": "node_modules/baseline-browser-mapping",
+      "before": "2.10.44",
+      "after": "2.11.29",
+      "integrity": "sha512-YeesxhUmR4h5y5V8KF8iBCqJb8YFrBJ++XBTeGcWIaQOYXGN19JM0FoiOjAhwuDoln8owMgXcWBmgHtYSkky2w==",
+      "resolved": "https://registry.npmjs.org/baseline-browser-mapping/-/baseline-browser-mapping-2.11.29.tgz"
+    },
+    {
+      "path": "node_modules/brace-expansion",
+      "before": "1.1.16",
+      "after": "1.1.21",
+      "integrity": "sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.21.tgz"
+    },
+    {
+      "path": "node_modules/browserslist",
+      "before": "4.28.6",
+      "after": "4.29.3",
+      "integrity": "sha512-1R4kiYKXGViqEN0CnoDrXc1StD9niAwu+j2dukWzrD4bJgsD4lDmEp0CRbc6E/vYJIfTHwPmwyaKtVSudICdPA==",
+      "resolved": "https://registry.npmjs.org/browserslist/-/browserslist-4.29.3.tgz"
+    },
+    {
+      "path": "node_modules/caniuse-lite",
+      "before": "1.0.30001806",
+      "after": "1.0.30001816",
+      "integrity": "sha512-+8Yx7BXCoqk6IF8yTicjfUR6D/ldJzdlsodlEOiOSPmhK844WIgk67/zIQaGAOxNkZyyvBlrRFnLvqKIoqbAFw==",
+      "resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001816.tgz"
+    },
+    {
+      "path": "node_modules/compression",
+      "before": "1.8.1",
+      "after": "1.8.2",
+      "integrity": "sha512-o8vI5RE5A6EVVOd9o41jKp41aJom+QTEO/Bx8MYNjexMo/Bv2WOjUfZr+aL0WnYSgymUy6zeguqLTsIhV0gMvQ==",
+      "resolved": "https://registry.npmjs.org/compression/-/compression-1.8.2.tgz"
+    },
+    {
+      "path": "node_modules/destroy",
+      "before": null,
+      "after": "1.2.0",
+      "integrity": "sha512-2sJGJTaXIIaR1w4iJSNoN0hnMY7Gpc/n8D4qSCJw8QqFWXf7cuAgnEHxBpweaVcPevC2l3KpjYCx3NypQQgaJg==",
+      "resolved": "https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz"
+    },
+    {
+      "path": "node_modules/editorconfig/node_modules/brace-expansion",
+      "before": "2.1.2",
+      "after": "2.1.7",
+      "integrity": "sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.1.7.tgz"
+    },
+    {
+      "path": "node_modules/electron-to-chromium",
+      "before": "1.5.393",
+      "after": "1.5.459",
+      "integrity": "sha512-4SC9HHSFjO/liAhifpdOL5hG9b4BP7/5G3y3UPZVO8trlAXr1CaUEEJL0gWK3kOcYcZrOA5rkwG45Gra/lTIgg==",
+      "resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.459.tgz"
+    },
+    {
+      "path": "node_modules/engine.io",
+      "before": "6.6.9",
+      "after": "6.6.11",
+      "integrity": "sha512-z34mGpLoY/82ZbkX1LqGMIaf3wjVMPL6gVC681QDqnmzJ26synI8qAE32P+a7UazmpJZ8UGrFIeAavgRfXzYrg==",
+      "resolved": "https://registry.npmjs.org/engine.io/-/engine.io-6.6.11.tgz"
+    },
+    {
+      "path": "node_modules/fast-uri",
+      "before": "3.1.4",
+      "after": "3.1.8",
+      "integrity": "sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==",
+      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.8.tgz"
+    },
+    {
+      "path": "node_modules/glob/node_modules/brace-expansion",
+      "before": "5.0.7",
+      "after": "5.0.12",
+      "integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz"
+    },
+    {
+      "path": "node_modules/jest-config/node_modules/brace-expansion",
+      "before": "2.1.2",
+      "after": "2.1.7",
+      "integrity": "sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.1.7.tgz"
+    },
+    {
+      "path": "node_modules/jest-runtime/node_modules/brace-expansion",
+      "before": "2.1.2",
+      "after": "2.1.7",
+      "integrity": "sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.1.7.tgz"
+    },
+    {
+      "path": "node_modules/js-beautify/node_modules/brace-expansion",
+      "before": "2.1.2",
+      "after": "2.1.7",
+      "integrity": "sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.1.7.tgz"
+    },
+    {
+      "path": "node_modules/js-yaml",
+      "before": "4.3.0",
+      "after": "4.3.2",
+      "integrity": "sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==",
+      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-4.3.2.tgz"
+    },
+    {
+      "path": "node_modules/node-releases",
+      "before": "2.0.51",
+      "after": "2.0.59",
+      "integrity": "sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==",
+      "resolved": "https://registry.npmjs.org/node-releases/-/node-releases-2.0.59.tgz"
+    },
+    {
+      "path": "node_modules/proxy-addr",
+      "before": "2.0.7",
+      "after": "2.0.8",
+      "integrity": "sha512-5nnx0yGyVUcY6t9RnWcARWtwT9F1D8O9rt08htPvnd49W1IgZtmLkhu9WfMzQj1cFxjHIO6connUNVW5k7AVyQ==",
+      "resolved": "https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.8.tgz"
+    },
+    {
+      "path": "node_modules/qs",
+      "before": "6.15.3",
+      "after": "6.16.1",
+      "integrity": "sha512-5Px6J7rfHBAGUhNQ3es4YzcOdBBw0SDcVtThJml4RdnKw4tKs2epA0kPZ+K8X+WiHktT93RHVcQ/3ym5aTCgtg==",
+      "resolved": "https://registry.npmjs.org/qs/-/qs-6.16.1.tgz"
+    },
+    {
+      "path": "node_modules/rimraf/node_modules/brace-expansion",
+      "before": "2.1.4",
+      "after": "2.1.7",
+      "integrity": "sha512-uZbew1NqdmPDTMJ8ah1y+b+9QEJrfkXFk3RcTQw3X0jW/xRUvFKsg1CfQdSYGdTbXZWExtU3J3ccxtnfw1Fi0g==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-2.1.7.tgz"
+    },
+    {
+      "path": "node_modules/update-browserslist-db",
+      "before": "1.2.3",
+      "after": "1.3.4",
+      "integrity": "sha512-t8wonIOdQyOjtPd2VktlBu6QjTVTks6v8bSi7kd0r2Vll8TK1JYDZtRRdbmCHOAMphkZgrzK+L+vXK4pyZ8t4A==",
+      "resolved": "https://registry.npmjs.org/update-browserslist-db/-/update-browserslist-db-1.3.4.tgz"
+    }
+  ],
+  "railway-gateway": [
+    {
+      "path": "node_modules/@istanbuljs/load-nyc-config/node_modules/js-yaml",
+      "before": "3.15.0",
+      "after": "3.15.2",
+      "integrity": "sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w==",
+      "resolved": "https://registry.npmjs.org/js-yaml/-/js-yaml-3.15.2.tgz"
+    },
+    {
+      "path": "node_modules/baseline-browser-mapping",
+      "before": "2.10.42",
+      "after": "2.11.29",
+      "integrity": "sha512-YeesxhUmR4h5y5V8KF8iBCqJb8YFrBJ++XBTeGcWIaQOYXGN19JM0FoiOjAhwuDoln8owMgXcWBmgHtYSkky2w==",
+      "resolved": "https://registry.npmjs.org/baseline-browser-mapping/-/baseline-browser-mapping-2.11.29.tgz"
+    },
+    {
+      "path": "node_modules/brace-expansion",
+      "before": "1.1.15",
+      "after": "1.1.21",
+      "integrity": "sha512-9zeA+KLZNNzglF2TPKRQEDyx6Yby7daAkuy8MiPzpXPsYDWi/DRM8jmwUDxokQjYqBpv5DgPiwD4h4ZZSy1Ujw==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.21.tgz"
+    },
+    {
+      "path": "node_modules/browserslist",
+      "before": "4.28.4",
+      "after": "4.29.3",
+      "integrity": "sha512-1R4kiYKXGViqEN0CnoDrXc1StD9niAwu+j2dukWzrD4bJgsD4lDmEp0CRbc6E/vYJIfTHwPmwyaKtVSudICdPA==",
+      "resolved": "https://registry.npmjs.org/browserslist/-/browserslist-4.29.3.tgz"
+    },
+    {
+      "path": "node_modules/caniuse-lite",
+      "before": "1.0.30001800",
+      "after": "1.0.30001816",
+      "integrity": "sha512-+8Yx7BXCoqk6IF8yTicjfUR6D/ldJzdlsodlEOiOSPmhK844WIgk67/zIQaGAOxNkZyyvBlrRFnLvqKIoqbAFw==",
+      "resolved": "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001816.tgz"
+    },
+    {
+      "path": "node_modules/compression",
+      "before": "1.8.1",
+      "after": "1.8.2",
+      "integrity": "sha512-o8vI5RE5A6EVVOd9o41jKp41aJom+QTEO/Bx8MYNjexMo/Bv2WOjUfZr+aL0WnYSgymUy6zeguqLTsIhV0gMvQ==",
+      "resolved": "https://registry.npmjs.org/compression/-/compression-1.8.2.tgz"
+    },
+    {
+      "path": "node_modules/destroy",
+      "before": null,
+      "after": "1.2.0",
+      "integrity": "sha512-2sJGJTaXIIaR1w4iJSNoN0hnMY7Gpc/n8D4qSCJw8QqFWXf7cuAgnEHxBpweaVcPevC2l3KpjYCx3NypQQgaJg==",
+      "resolved": "https://registry.npmjs.org/destroy/-/destroy-1.2.0.tgz"
+    },
+    {
+      "path": "node_modules/electron-to-chromium",
+      "before": "1.5.387",
+      "after": "1.5.459",
+      "integrity": "sha512-4SC9HHSFjO/liAhifpdOL5hG9b4BP7/5G3y3UPZVO8trlAXr1CaUEEJL0gWK3kOcYcZrOA5rkwG45Gra/lTIgg==",
+      "resolved": "https://registry.npmjs.org/electron-to-chromium/-/electron-to-chromium-1.5.459.tgz"
+    },
+    {
+      "path": "node_modules/fast-uri",
+      "before": "3.1.6",
+      "after": "3.1.8",
+      "integrity": "sha512-GZMtZUTNRpOVIECoXwLNZS5xUGE+mVNbTB8h/7Rwh2TFWcBQiPzTgyZi05BF9UMZKkLJv8XBRJTlU7zg8+ZfMg==",
+      "resolved": "https://registry.npmjs.org/fast-uri/-/fast-uri-3.1.8.tgz"
+    },
+    {
+      "path": "node_modules/glob/node_modules/brace-expansion",
+      "before": "5.0.9",
+      "after": "5.0.12",
+      "integrity": "sha512-YovQ3rzhaLMIrDjNDMkNS01tea93qhEhG5xy8f6+R0l+dw3Ki+5sCoIoI942iuLZTHWogWktgwVDhU09iNEimQ==",
+      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-5.0.12.tgz"
+    },
+    {
+      "path": "node_modules/node-releases",
+      "before": "2.0.50",
+      "after": "2.0.59",
+      "integrity": "sha512-5qr2okC4ItAI0hG5SaV0HoYMpnM/Y6+Oqr7AmPYy/2uEoGvS+GbSKLeRxSS1uAdu59yz0ouzcuXievSgg///WA==",
+      "resolved": "https://registry.npmjs.org/node-releases/-/node-releases-2.0.59.tgz"
+    },
+    {
+      "path": "node_modules/proxy-addr",
+      "before": "2.0.7",
+      "after": "2.0.8",
+      "integrity": "sha512-5nnx0yGyVUcY6t9RnWcARWtwT9F1D8O9rt08htPvnd49W1IgZtmLkhu9WfMzQj1cFxjHIO6connUNVW5k7AVyQ==",
+      "resolved": "https://registry.npmjs.org/proxy-addr/-/proxy-addr-2.0.8.tgz"
+    },
+    {
+      "path": "node_modules/qs",
+      "before": "6.16.0",
+      "after": "6.16.1",
+      "integrity": "sha512-5Px6J7rfHBAGUhNQ3es4YzcOdBBw0SDcVtThJml4RdnKw4tKs2epA0kPZ+K8X+WiHktT93RHVcQ/3ym5aTCgtg==",
+      "resolved": "https://registry.npmjs.org/qs/-/qs-6.16.1.tgz"
+    },
+    {
+      "path": "node_modules/update-browserslist-db",
+      "before": "1.2.3",
+      "after": "1.3.4",
+      "integrity": "sha512-t8wonIOdQyOjtPd2VktlBu6QjTVTks6v8bSi7kd0r2Vll8TK1JYDZtRRdbmCHOAMphkZgrzK+L+vXK4pyZ8t4A==",
+      "resolved": "https://registry.npmjs.org/update-browserslist-db/-/update-browserslist-db-1.3.4.tgz"
+    }
+  ]
+}

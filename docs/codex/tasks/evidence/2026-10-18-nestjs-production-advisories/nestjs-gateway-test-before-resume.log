@@ -1,0 +1,259 @@
+
+> railway-gateway@1.0.0 test
+> jest --runInBand
+
+PASS test/measure-sensors.spec.ts (81.788 s)
+FAIL test/sensors-replay.spec.ts (65.119 s)
+  ● scripts/replay-cycle.js › is plain JavaScript outside the TypeScript build (tsconfig compiles scripts/**/*.ts) and passes the syntax check
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1740 |     expect(
+      1741 |       fs.readFileSync(script, 'utf8').startsWith('#!/usr/bin/env node\n')
+    > 1742 |     ).toBe(true);
+           |       ^
+      1743 |   });
+      1744 |
+      1745 |   it('--help prints the usage and exits 0', () => {
+
+      at Object.<anonymous> (test/sensors-replay.spec.ts:1742:7)
+
+PASS test/sensors-replay-synthesis.spec.ts
+PASS test/promote-retuning.spec.ts (61.879 s)
+PASS test/measure-synthesis.spec.ts
+PASS test/schema-sync.spec.ts
+PASS test/sensors-database-source.spec.ts
+PASS test/measure-sensors-real.spec.ts (17.332 s)
+PASS test/measure-sensors-synthesis.spec.ts (15.325 s)
+PASS test/cycle-manifest.service.spec.ts
+PASS test/measure-cycles.spec.ts (6.685 s)
+PASS test/sensors-processor.spec.ts
+PASS test/active-indicator.spec.ts
+PASS test/sensors-synthesis.pg.spec.ts
+PASS test/sensors-replay-details.spec.ts
+PASS test/sensors-kit-sync.spec.ts (14.547 s)
+FAIL test/sensors-synthesis-rows.spec.ts
+  ● the constants of the twin are the migration’s and the zone parameters’ (a change is a new decision and a new migration) › zone_params.yaml min_stop_distance is the 13 the database refuses less than, and the twin’s
+
+    parameter min_stop_distance not found
+
+      126 |       params
+      127 |     );
+    > 128 |     if (!match) throw new Error(`parameter ${name} not found`);
+          |                       ^
+      129 |     return Number(match[1]);
+      130 |   };
+      131 |
+
+      at parameter (test/sensors-synthesis-rows.spec.ts:128:23)
+      at Object.<anonymous> (test/sensors-synthesis-rows.spec.ts:133:12)
+
+  ● the constants of the twin are the migration’s and the zone parameters’ (a change is a new decision and a new migration) › zone_params.yaml max_zones is the 5 the database caps rank and zone_count at, and the twin’s
+
+    parameter max_zones not found
+
+      126 |       params
+      127 |     );
+    > 128 |     if (!match) throw new Error(`parameter ${name} not found`);
+          |                       ^
+      129 |     return Number(match[1]);
+      130 |   };
+      131 |
+
+      at parameter (test/sensors-synthesis-rows.spec.ts:128:23)
+      at Object.<anonymous> (test/sensors-synthesis-rows.spec.ts:141:12)
+
+  ● the constants of the twin are the migration’s and the zone parameters’ (a change is a new decision and a new migration) › zone_params.yaml price_decimals is the cent grid whose half is the tolerance of the two distance checks
+
+    parameter price_decimals not found
+
+      126 |       params
+      127 |     );
+    > 128 |     if (!match) throw new Error(`parameter ${name} not found`);
+          |                       ^
+      129 |     return Number(match[1]);
+      130 |   };
+      131 |
+
+      at parameter (test/sensors-synthesis-rows.spec.ts:128:23)
+      at Object.<anonymous> (test/sensors-synthesis-rows.spec.ts:152:22)
+
+PASS test/sensors-synthesis-writer.spec.ts
+PASS test/sensors-python-runner.spec.ts (9.608 s)
+PASS test/sensors-state-statistics-reader.spec.ts
+PASS test/no-direct-state-statistics-reads.spec.ts (68.925 s)
+PASS test/retuning.spec.ts
+PASS test/sensors-replay-synthesis-real.spec.ts (43.659 s)
+PASS test/sensors-writer.spec.ts
+PASS test/sensors-state-statistics-series.spec.ts
+PASS test/one-day-ohlc.spec.ts
+PASS test/sensors-state-statistics-writer.spec.ts
+PASS test/symbol-specs.processor.spec.ts
+PASS test/current-cycle.spec.ts
+PASS test/symbol-specs-contract.spec.ts (31.273 s)
+PASS test/closed-bars.spec.ts
+PASS test/sensors-bundle-types.spec.ts (11.044 s)
+PASS test/manifest-decision.spec.ts
+PASS test/no-latest-statistics.spec.ts
+PASS test/data-status.spec.ts
+PASS test/sensors-tuning.spec.ts
+PASS test/statistics-at-slot.spec.ts
+FAIL test/sensors-disabled-consumes-nothing.spec.ts
+  ● nothing but the sensors module can register the consumer › the registration is inside the branch that checks the switch, after it returns the empty module
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 2253
+    Received:   -1
+
+      320 |     const registration = text.indexOf('CycleReadyProcessor,\n      ],');
+      321 |     expect(guard).toBeGreaterThan(-1);
+    > 322 |     expect(registration).toBeGreaterThan(guard);
+          |                          ^
+      323 |     expect(text.slice(guard, text.indexOf('\n    }\n', guard))).toContain(
+      324 |       'return { module: SensorsModule };'
+      325 |     );
+
+      at Object.<anonymous> (test/sensors-disabled-consumes-nothing.spec.ts:322:26)
+
+PASS test/point-in-time-snapshot.spec.ts
+PASS test/closed-bars-digest.spec.ts
+PASS test/cycle-readers.spec.ts
+PASS test/golden-scenarios.spec.ts (6.971 s)
+PASS test/sensors-syn-validator.spec.ts
+PASS test/sensors-run-result.spec.ts
+PASS test/sensors-envelope-validator.spec.ts
+PASS test/ready-cycle.spec.ts
+PASS test/cycle-manifest-contract.spec.ts
+PASS test/market-data.processor.spec.ts
+PASS test/market-hours.spec.ts
+PASS test/dto-contract.spec.ts
+PASS test/currency-index-corridor-math.spec.ts
+PASS test/cycle-slot.spec.ts
+PASS test/sensors-fixture-source.spec.ts (5.352 s)
+PASS test/sensors-statistics-fields.spec.ts
+PASS test/sensors-stats-slot.spec.ts
+PASS test/validation.service.spec.ts
+  ● Console
+
+    console.warn
+      Duplicate check failed for XAUUSD_M5_1792299773: redis down
+
+      171 |       }
+      172 |       // Redis/connection errors should not block ingestion — log and proceed.
+    > 173 |       console.warn(`Duplicate check failed for ${jobId}:`, (error as Error).message);
+          |               ^
+      174 |     }
+      175 |   }
+      176 | }
+
+      at ValidationService.checkDuplicates (src/gateway/validation.service.ts:173:15)
+      at ValidationService.validate (src/gateway/validation.service.ts:24:5)
+      at Object.<anonymous> (test/validation.service.spec.ts:172:7)
+
+PASS test/symbol-specs.service.spec.ts
+PASS test/currency-index-corridor-aggregator.service.spec.ts
+PASS test/manifest-row.spec.ts
+PASS test/sensors-stale-bundle.spec.ts (5.582 s)
+PASS test/sensors-kit-runner-cleanup.spec.ts
+PASS test/sensors-closed-channel.spec.ts
+PASS test/prisma-shutdown.spec.ts (23.224 s)
+PASS test/sensors-config.spec.ts
+PASS test/pagination.spec.ts
+PASS test/main-wiring.spec.ts
+[Nest] 5104  - 18/10/2026, 12:08:56    WARN [DatabaseInputsSource] Slot 1789764900: M15 left out of the inputs (no READY market_cycles row at slot 1789764300)
+[Nest] 5104  - 18/10/2026, 12:09:03    WARN [DatabaseInputsSource] Slot 1789764900 refused: M5 and M15 both use non_b with a different config_hash: M5 tuned-on-m5, M15 tuned-on-m15
+PASS test/sensors-inputs-runner.spec.ts (36.53 s)
+
+Summary of all failing tests
+FAIL test/sensors-replay.spec.ts (65.119 s)
+  ● scripts/replay-cycle.js › is plain JavaScript outside the TypeScript build (tsconfig compiles scripts/**/*.ts) and passes the syntax check
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      1740 |     expect(
+      1741 |       fs.readFileSync(script, 'utf8').startsWith('#!/usr/bin/env node\n')
+    > 1742 |     ).toBe(true);
+           |       ^
+      1743 |   });
+      1744 |
+      1745 |   it('--help prints the usage and exits 0', () => {
+
+      at Object.<anonymous> (test/sensors-replay.spec.ts:1742:7)
+
+FAIL test/sensors-synthesis-rows.spec.ts
+  ● the constants of the twin are the migration’s and the zone parameters’ (a change is a new decision and a new migration) › zone_params.yaml min_stop_distance is the 13 the database refuses less than, and the twin’s
+
+    parameter min_stop_distance not found
+
+      126 |       params
+      127 |     );
+    > 128 |     if (!match) throw new Error(`parameter ${name} not found`);
+          |                       ^
+      129 |     return Number(match[1]);
+      130 |   };
+      131 |
+
+      at parameter (test/sensors-synthesis-rows.spec.ts:128:23)
+      at Object.<anonymous> (test/sensors-synthesis-rows.spec.ts:133:12)
+
+  ● the constants of the twin are the migration’s and the zone parameters’ (a change is a new decision and a new migration) › zone_params.yaml max_zones is the 5 the database caps rank and zone_count at, and the twin’s
+
+    parameter max_zones not found
+
+      126 |       params
+      127 |     );
+    > 128 |     if (!match) throw new Error(`parameter ${name} not found`);
+          |                       ^
+      129 |     return Number(match[1]);
+      130 |   };
+      131 |
+
+      at parameter (test/sensors-synthesis-rows.spec.ts:128:23)
+      at Object.<anonymous> (test/sensors-synthesis-rows.spec.ts:141:12)
+
+  ● the constants of the twin are the migration’s and the zone parameters’ (a change is a new decision and a new migration) › zone_params.yaml price_decimals is the cent grid whose half is the tolerance of the two distance checks
+
+    parameter price_decimals not found
+
+      126 |       params
+      127 |     );
+    > 128 |     if (!match) throw new Error(`parameter ${name} not found`);
+          |                       ^
+      129 |     return Number(match[1]);
+      130 |   };
+      131 |
+
+      at parameter (test/sensors-synthesis-rows.spec.ts:128:23)
+      at Object.<anonymous> (test/sensors-synthesis-rows.spec.ts:152:22)
+
+FAIL test/sensors-disabled-consumes-nothing.spec.ts
+  ● nothing but the sensors module can register the consumer › the registration is inside the branch that checks the switch, after it returns the empty module
+
+    expect(received).toBeGreaterThan(expected)
+
+    Expected: > 2253
+    Received:   -1
+
+      320 |     const registration = text.indexOf('CycleReadyProcessor,\n      ],');
+      321 |     expect(guard).toBeGreaterThan(-1);
+    > 322 |     expect(registration).toBeGreaterThan(guard);
+          |                          ^
+      323 |     expect(text.slice(guard, text.indexOf('\n    }\n', guard))).toContain(
+      324 |       'return { module: SensorsModule };'
+      325 |     );
+
+      at Object.<anonymous> (test/sensors-disabled-consumes-nothing.spec.ts:322:26)
+
+
+Test Suites: 3 failed, 10 skipped, 64 passed, 67 of 77 total
+Tests:       5 failed, 376 skipped, 2759 passed, 3140 total
+Snapshots:   0 total
+Time:        604.39 s
+Ran all test suites.

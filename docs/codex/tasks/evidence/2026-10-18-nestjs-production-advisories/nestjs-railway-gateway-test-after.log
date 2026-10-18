@@ -1,0 +1,207 @@
+
+> railway-gateway@1.0.0 test
+> jest --runInBand
+
+PASS test/measure-sensors.spec.ts (22.903 s)
+PASS test/no-direct-state-statistics-reads.spec.ts
+PASS test/sensors-replay.spec.ts (55.094 s)
+PASS test/promote-retuning.spec.ts
+PASS test/sensors-replay-synthesis-real.spec.ts (37.745 s)
+[Nest] 36400  - 18/10/2026, 12:21:36    WARN [DatabaseInputsSource] Slot 1789764900: M15 left out of the inputs (no READY market_cycles row at slot 1789764300)
+[Nest] 36400  - 18/10/2026, 12:21:41    WARN [DatabaseInputsSource] Slot 1789764900 refused: M5 and M15 both use non_b with a different config_hash: M5 tuned-on-m5, M15 tuned-on-m15
+PASS test/sensors-inputs-runner.spec.ts (30.782 s)
+PASS test/symbol-specs-contract.spec.ts
+PASS test/prisma-shutdown.spec.ts
+PASS test/measure-sensors-real.spec.ts
+PASS test/measure-sensors-synthesis.spec.ts (13.371 s)
+FAIL test/sensors-kit-sync.spec.ts (10.964 s)
+  ● railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this block fails) › mcd_worker/synthesis/zone_params.yaml equals the engine’s file byte for byte
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      169 |     const source = fs.readFileSync(path.join(ENGINE_DIR, f));
+      170 |     const copy = fs.readFileSync(path.join(COPY_DIR, f));
+    > 171 |     expect(source.equals(copy)).toBe(true);
+          |                                 ^
+      172 |   });
+      173 |
+      174 |   it('`node scripts/sync-sensor-kit.js --check` passes and says what it checked', () => {
+
+      at test/sensors-kit-sync.spec.ts:171:33
+
+  ● railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this block fails) › `node scripts/sync-sensor-kit.js --check` passes and says what it checked
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "sensor kit: sensors has drifted from the engine
+      different  mcd_worker/synthesis/zone_params.yaml (engine 2,619 bytes, copy 2,664 bytes)
+    run `npm run sync:sensor-kit` (a file not listed is removed by hand)
+    "
+
+      174 |   it('`node scripts/sync-sensor-kit.js --check` passes and says what it checked', () => {
+      175 |     const r = runScript(SCRIPT, '--check');
+    > 176 |     expect(r.stderr).toBe('');
+          |                      ^
+      177 |     expect(r.status).toBe(0);
+      178 |     expect(r.stdout).toContain(
+      179 |       `45 files, ${TOTAL_BYTES.toLocaleString('en-US')} bytes`
+
+      at Object.<anonymous> (test/sensors-kit-sync.spec.ts:176:22)
+
+  ● railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this block fails) › `npm run check:sensor-kit` passes
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      187 |       shell: true,
+      188 |     });
+    > 189 |     expect(r.status).toBe(0);
+          |                      ^
+      190 |     expect(r.stdout).toContain('45 files');
+      191 |   });
+      192 |
+
+      at Object.<anonymous> (test/sensors-kit-sync.spec.ts:189:22)
+
+PASS test/sensors-bundle-types.spec.ts (8.748 s)
+PASS test/sensors-python-runner.spec.ts (8.52 s)
+PASS test/golden-scenarios.spec.ts
+PASS test/measure-cycles.spec.ts
+PASS test/sensors-disabled-consumes-nothing.spec.ts
+PASS test/sensors-stale-bundle.spec.ts
+PASS test/sensors-fixture-source.spec.ts
+PASS test/sensors-processor.spec.ts
+PASS test/current-cycle.spec.ts
+PASS test/sensors-database-source.spec.ts
+PASS test/measure-synthesis.spec.ts
+PASS test/sensors-stats-slot.spec.ts
+PASS test/sensors-synthesis-writer.spec.ts
+PASS test/sensors-writer.spec.ts
+PASS test/sensors-envelope-validator.spec.ts
+PASS test/sensors-syn-validator.spec.ts
+PASS test/active-indicator.spec.ts
+PASS test/cycle-manifest-contract.spec.ts
+PASS test/symbol-specs.processor.spec.ts
+PASS test/cycle-manifest.service.spec.ts
+PASS test/sensors-state-statistics-reader.spec.ts
+PASS test/market-data.processor.spec.ts
+PASS test/cycle-slot.spec.ts
+PASS test/sensors-replay-details.spec.ts
+PASS test/data-status.spec.ts
+PASS test/sensors-replay-synthesis.spec.ts
+PASS test/no-latest-statistics.spec.ts
+PASS test/closed-bars.spec.ts
+PASS test/statistics-at-slot.spec.ts
+PASS test/sensors-synthesis.pg.spec.ts
+PASS test/dto-contract.spec.ts
+PASS test/cycle-readers.spec.ts
+PASS test/validation.service.spec.ts
+  ● Console
+
+    console.warn
+      Duplicate check failed for XAUUSD_M5_1792300691: redis down
+
+      171 |       }
+      172 |       // Redis/connection errors should not block ingestion — log and proceed.
+    > 173 |       console.warn(`Duplicate check failed for ${jobId}:`, (error as Error).message);
+          |               ^
+      174 |     }
+      175 |   }
+      176 | }
+
+      at ValidationService.checkDuplicates (src/gateway/validation.service.ts:173:15)
+      at ValidationService.validate (src/gateway/validation.service.ts:24:5)
+      at Object.<anonymous> (test/validation.service.spec.ts:172:7)
+
+PASS test/one-day-ohlc.spec.ts
+PASS test/pagination.spec.ts
+PASS test/retuning.spec.ts
+PASS test/market-hours.spec.ts
+PASS test/ready-cycle.spec.ts
+PASS test/sensors-config.spec.ts
+PASS test/sensors-state-statistics-series.spec.ts
+PASS test/symbol-specs.service.spec.ts
+PASS test/sensors-state-statistics-writer.spec.ts
+PASS test/sensors-tuning.spec.ts
+PASS test/closed-bars-digest.spec.ts
+PASS test/currency-index-corridor-aggregator.service.spec.ts
+PASS test/sensors-synthesis-rows.spec.ts
+PASS test/currency-index-corridor-math.spec.ts
+PASS test/sensors-statistics-fields.spec.ts
+PASS test/manifest-row.spec.ts
+PASS test/manifest-decision.spec.ts
+PASS test/sensors-run-result.spec.ts
+PASS test/main-wiring.spec.ts
+PASS test/point-in-time-snapshot.spec.ts
+PASS test/sensors-kit-runner-cleanup.spec.ts
+PASS test/sensors-closed-channel.spec.ts
+PASS test/schema-sync.spec.ts
+
+Summary of all failing tests
+FAIL test/sensors-kit-sync.spec.ts (10.964 s)
+  ● railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this block fails) › mcd_worker/synthesis/zone_params.yaml equals the engine’s file byte for byte
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      169 |     const source = fs.readFileSync(path.join(ENGINE_DIR, f));
+      170 |     const copy = fs.readFileSync(path.join(COPY_DIR, f));
+    > 171 |     expect(source.equals(copy)).toBe(true);
+          |                                 ^
+      172 |   });
+      173 |
+      174 |   it('`node scripts/sync-sensor-kit.js --check` passes and says what it checked', () => {
+
+      at test/sensors-kit-sync.spec.ts:171:33
+
+  ● railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this block fails) › `node scripts/sync-sensor-kit.js --check` passes and says what it checked
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: ""
+    Received: "sensor kit: sensors has drifted from the engine
+      different  mcd_worker/synthesis/zone_params.yaml (engine 2,619 bytes, copy 2,664 bytes)
+    run `npm run sync:sensor-kit` (a file not listed is removed by hand)
+    "
+
+      174 |   it('`node scripts/sync-sensor-kit.js --check` passes and says what it checked', () => {
+      175 |     const r = runScript(SCRIPT, '--check');
+    > 176 |     expect(r.stderr).toBe('');
+          |                      ^
+      177 |     expect(r.status).toBe(0);
+      178 |     expect(r.stdout).toContain(
+      179 |       `45 files, ${TOTAL_BYTES.toLocaleString('en-US')} bytes`
+
+      at Object.<anonymous> (test/sensors-kit-sync.spec.ts:176:22)
+
+  ● railway-gateway/sensors/ (run `npm run sync:sensor-kit` when this block fails) › `npm run check:sensor-kit` passes
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      187 |       shell: true,
+      188 |     });
+    > 189 |     expect(r.status).toBe(0);
+          |                      ^
+      190 |     expect(r.stdout).toContain('45 files');
+      191 |   });
+      192 |
+
+      at Object.<anonymous> (test/sensors-kit-sync.spec.ts:189:22)
+
+
+Test Suites: 1 failed, 10 skipped, 66 passed, 67 of 77 total
+Tests:       3 failed, 376 skipped, 2761 passed, 3140 total
+Snapshots:   0 total
+Time:        254.714 s, estimated 580 s
+Ran all test suites.

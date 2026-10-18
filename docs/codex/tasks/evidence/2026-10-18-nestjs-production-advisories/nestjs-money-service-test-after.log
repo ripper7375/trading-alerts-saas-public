@@ -1,0 +1,741 @@
+
+> money-service@0.1.0 test
+> jest --runInBand
+
+{"level":"warn","timestamp":"2026-10-18T05:19:18.298Z","service":"money-service","id":"event-1","eventType":"TIER_UPGRADED","attemptCount":2,"msg":"[OutboxPublisher] Delivery attempt failed, will retry"}
+{"level":"error","timestamp":"2026-10-18T05:19:25.334Z","service":"money-service","id":"event-1","eventType":"TIER_UPGRADED","attemptCount":5,"msg":"[OutboxPublisher] Event dead-lettered"}
+{"level":"warn","timestamp":"2026-10-18T05:19:25.339Z","service":"money-service","id":"event-1","eventType":"TIER_UPGRADED","attemptCount":1,"msg":"[OutboxPublisher] Delivery attempt failed, will retry"}
+{"level":"warn","timestamp":"2026-10-18T05:19:26.364Z","service":"money-service","count":2,"msg":"[OutboxPublisher] Recovered events stuck in PROCESSING"}
+{"level":"error","timestamp":"2026-10-18T05:19:26.370Z","service":"money-service","error":"db blip","msg":"[OutboxPublisher] Could not recover stuck events"}
+{"level":"error","timestamp":"2026-10-18T05:19:26.395Z","service":"money-service","runningForMs":121000,"msg":"[OutboxPublisher] Previous tick exceeded its limit, starting a new one"}
+{"level":"error","timestamp":"2026-10-18T05:19:26.397Z","service":"money-service","runningForMs":121000,"msg":"[OutboxPublisher] Previous tick exceeded its limit, starting a new one"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.102Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.102Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.107Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.107Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.112Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.112Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.115Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.116Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.119Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.120Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.124Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.124Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.130Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.130Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.136Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.136Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.141Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.141Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.145Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.145Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.149Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.149Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.153Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.153Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.159Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.159Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.166Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.166Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.172Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.172Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.178Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.178Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.184Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.185Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.191Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.192Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.198Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.199Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.204Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.204Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.210Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.210Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.216Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.217Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.221Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.221Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.225Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.226Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.230Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.230Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.234Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.234Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.238Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.238Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.241Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.241Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.246Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.246Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.251Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.251Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.255Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.256Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.260Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.260Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.264Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.265Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.272Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.272Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.277Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.277Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.282Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.282Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.286Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.287Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.291Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.291Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.296Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.297Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.302Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.302Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.308Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.308Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.313Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.313Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.318Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.318Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.324Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.325Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.332Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.332Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.339Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.339Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.345Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.345Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.350Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.350Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.354Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.354Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.358Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.358Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.366Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.366Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.371Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.371Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.375Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.375Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.380Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.380Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.384Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.384Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.388Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.388Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.392Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.392Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.396Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.396Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.401Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.401Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.405Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.405Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.408Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.409Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.412Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.412Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.416Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.416Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.421Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.421Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.432Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.432Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.438Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.438Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.443Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.443Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.447Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.447Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.451Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.451Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.456Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.456Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.460Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.460Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.464Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.464Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.467Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.468Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.474Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.474Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.480Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.480Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.487Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.487Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.493Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.494Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.500Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.500Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.508Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.509Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.513Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.514Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.518Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.519Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.523Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.524Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.530Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.531Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.535Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.535Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.539Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.539Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.543Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.543Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.547Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.548Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.553Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.554Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.559Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.559Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.564Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.564Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.569Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.569Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.573Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.574Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.580Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.580Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.585Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.585Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.589Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.589Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.593Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.593Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.597Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.598Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.602Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.602Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.608Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.609Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.615Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.615Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.621Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.621Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.626Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.627Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.632Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.632Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.638Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.638Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.644Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.644Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.656Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.657Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.665Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.665Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.669Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.669Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.673Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.673Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.677Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.678Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.683Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.684Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.689Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.689Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.693Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.693Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.697Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.698Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.702Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.702Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.708Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.708Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.711Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.712Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.715Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.715Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.719Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.720Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.724Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.724Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.729Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.729Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.733Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.733Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.737Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.737Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.742Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.742Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.746Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.746Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.751Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.751Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.755Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.755Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.759Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.759Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.764Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.764Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.769Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.769Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.774Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.774Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.780Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.780Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.786Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.787Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.793Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.793Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.798Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.798Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.802Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.802Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.806Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.807Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.812Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.812Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.819Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.819Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.826Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.827Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.833Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.833Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.839Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.839Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.845Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.845Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.852Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.853Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.860Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.860Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.866Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.866Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.872Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.873Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.878Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.878Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.884Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.884Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:28.890Z","service":"money-service","paymentId":"throttle-test","status":"PAID","orderId":"order-throttle-test","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:28.890Z","service":"money-service","paymentId":"throttle-test","orderId":"order-throttle-test","msg":"Payment record not found for webhook"}
+{"level":"warn","timestamp":"2026-10-18T05:19:30.706Z","service":"money-service","correlationId":"test-correlation-1","statusCode":400,"path":"/things","msg":"name must be a string"}
+{"level":"warn","timestamp":"2026-10-18T05:19:30.716Z","service":"money-service","correlationId":"test-correlation-2","statusCode":404,"path":"/does-not-exist","msg":"Cannot GET /does-not-exist"}
+{"level":"error","timestamp":"2026-10-18T05:19:30.741Z","service":"money-service","correlationId":"test-correlation-3","statusCode":500,"path":"/boom","stack":"Error: genuinely unhandled\n    at ThrowingController.boom (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\src\\common\\filters\\all-exceptions.filter.e2e.spec.ts:43:11)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\@nestjs\\core\\router\\router-execution-context.js:39:29\n    at InterceptorsConsumer.intercept (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\@nestjs\\core\\interceptors\\interceptors-consumer.js:12:20)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\@nestjs\\core\\router\\router-execution-context.js:54:64\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\@nestjs\\core\\router\\router-proxy.js:9:23\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\lib\\route.js:157:13)\n    at Route.dispatch (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\lib\\route.js:117:3)\n    at handle (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:435:11)\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:295:15\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:582:12)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:291:5)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\src\\common\\middleware\\correlation-id.middleware.ts:24:7\n    at AsyncLocalStorage.run (node:internal/async_local_storage/async_context_frame:63:14)\n    at CorrelationIdMiddleware.use (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\src\\common\\middleware\\correlation-id.middleware.ts:23:31)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\@nestjs\\core\\router\\router-proxy.js:9:23\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at trimPrefix (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:342:13)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:297:9\n    at param (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:600:14)\n    at param (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:610:14)\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:664:3)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:291:5)\n    at read (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\body-parser\\lib\\read.js:53:5)\n    at urlencodedParser (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\body-parser\\lib\\types\\urlencoded.js:51:5)\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at trimPrefix (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:342:13)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:297:9\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:582:12)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:291:5)\n    at read (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\body-parser\\lib\\read.js:53:5)\n    at jsonParser (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\body-parser\\lib\\types\\json.js:60:5)\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at trimPrefix (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:342:13)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:297:9\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:582:12)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:291:5)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\@nestjs\\platform-express\\adapters\\express-adapter.js:34:17\n    at Layer.handleRequest (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\lib\\layer.js:152:17)\n    at trimPrefix (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:342:13)\n    at D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:297:9\n    at processParams (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:582:12)\n    at next (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:291:5)\n    at router.handle (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\router\\index.js:186:3)\n    at app.handle (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\express\\lib\\application.js:177:15)\n    at Server.app (D:\\SaaS Project\\trading-alerts-saas-codex-nestjs\\money-service\\node_modules\\express\\lib\\express.js:38:9)\n    at Server.emit (node:events:508:28)\n    at parserOnIncoming (node:_http_server:1210:12)\n    at HTTPParser.parserOnHeadersComplete (node:_http_common:123:17)","msg":"Internal server error"}
+{"level":"warn","timestamp":"2026-10-18T05:19:30.750Z","service":"money-service","correlationId":"req_4f9470ec-c647-4d0b-944d-70040b6df992","statusCode":409,"path":"/paused","msg":"Conflict Exception"}
+{"level":"warn","timestamp":"2026-10-18T05:19:30.757Z","service":"money-service","correlationId":"req_c9265c47-4c34-4a7f-bc25-dc23eca69c58","statusCode":404,"path":"/does-not-exist","msg":"Cannot GET /does-not-exist"}
+{"level":"warn","timestamp":"2026-10-18T05:19:32.341Z","service":"money-service","deliveryId":"delivery-tampered","msg":"Wise webhook signature verification failed"}
+{"level":"info","timestamp":"2026-10-18T05:19:32.348Z","service":"money-service","deliveryId":"delivery-dup","msg":"Wise webhook duplicate delivery, not re-queuing"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.001Z","service":"money-service","msg":"[CRON] Starting daily maintenance..."}
+{"level":"info","timestamp":"2026-10-18T05:19:33.001Z","service":"money-service","msg":"[CRON] Expired 5 affiliate codes"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.001Z","service":"money-service","msg":"[CRON] Found 3 expiring, 1 reminders marked"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.001Z","service":"money-service","msg":"[CRON] Processed 10, downgraded 1"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.001Z","service":"money-service","msg":"[CRON] Daily maintenance completed in 0ms"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.006Z","service":"money-service","msg":"[CRON] Starting daily maintenance..."}
+{"level":"error","timestamp":"2026-10-18T05:19:33.006Z","service":"money-service","error":"expiry failed","msg":"[CRON] Error expiring codes:"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.006Z","service":"money-service","msg":"[CRON] Found 0 expiring, 0 reminders marked"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.007Z","service":"money-service","msg":"[CRON] Processed 0, downgraded 0"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.007Z","service":"money-service","msg":"[CRON] Daily maintenance completed in 1ms"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.010Z","service":"money-service","msg":"[CRON] Skipped check-expiring-subscriptions — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.014Z","service":"money-service","msg":"[CRON] Skipped daily-maintenance — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.018Z","service":"money-service","msg":"[CRON] Skipped distribute-codes — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.024Z","service":"money-service","msg":"[CRON] Skipped downgrade-expired-subscriptions — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.031Z","service":"money-service","msg":"[CRON] Skipped expire-codes — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.038Z","service":"money-service","msg":"[CRON] Skipped process-pending-disbursements — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.046Z","service":"money-service","msg":"[CRON] Skipped approve-matured-commissions — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.051Z","service":"money-service","msg":"[CRON] Skipped send-monthly-reports — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.057Z","service":"money-service","msg":"[CRON] Skipped sync-riseworks-accounts — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.063Z","service":"money-service","msg":"[CRON] Skipped purge-processed-webhook-events — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.068Z","service":"money-service","msg":"[CRON] Skipped check-expiring-subscriptions — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.072Z","service":"money-service","msg":"[CRON] Skipped daily-maintenance — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.077Z","service":"money-service","msg":"[CRON] Skipped distribute-codes — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.082Z","service":"money-service","msg":"[CRON] Skipped downgrade-expired-subscriptions — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.086Z","service":"money-service","msg":"[CRON] Skipped expire-codes — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.092Z","service":"money-service","msg":"[CRON] Skipped process-pending-disbursements — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.098Z","service":"money-service","msg":"[CRON] Skipped approve-matured-commissions — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.104Z","service":"money-service","msg":"[CRON] Skipped send-monthly-reports — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.109Z","service":"money-service","msg":"[CRON] Skipped sync-riseworks-accounts — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.132Z","service":"money-service","msg":"[CRON] Skipped purge-processed-webhook-events — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.167Z","service":"money-service","msg":"[CRON] Found 0 expiring subscriptions, 0 reminders marked"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.171Z","service":"money-service","msg":"[CRON] Downgraded 0 users"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.176Z","service":"money-service","msg":"[CRON] Distributed codes to 0 affiliates"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.183Z","service":"money-service","msg":"[CRON] Auto-approved 4 matured commissions"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.186Z","service":"money-service","msg":"[CRON] Purged 3 processed webhook events"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.234Z","service":"money-service","msg":"[CRON] Skipped check-expiring-subscriptions — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.236Z","service":"money-service","msg":"[CRON] Skipped daily-maintenance — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.239Z","service":"money-service","msg":"[CRON] Skipped distribute-codes — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.241Z","service":"money-service","msg":"[CRON] Skipped downgrade-expired-subscriptions — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.243Z","service":"money-service","msg":"[CRON] Skipped expire-codes — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.246Z","service":"money-service","msg":"[CRON] Skipped process-pending-disbursements — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.248Z","service":"money-service","msg":"[CRON] Skipped approve-matured-commissions — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.252Z","service":"money-service","msg":"[CRON] Skipped send-monthly-reports — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.255Z","service":"money-service","msg":"[CRON] Skipped sync-riseworks-accounts — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.258Z","service":"money-service","msg":"[CRON] Skipped wise-reconciliation — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.261Z","service":"money-service","msg":"[CRON] Skipped purge-processed-webhook-events — another instance already took this run"}
+{"level":"info","timestamp":"2026-10-18T05:19:33.263Z","service":"money-service","msg":"[CRON] Skipped process-pending-disbursements — CRON_ENABLED is not \"true\""}
+{"level":"info","timestamp":"2026-10-18T05:19:33.266Z","service":"money-service","msg":"[CRON] Skipped process-pending-disbursements — another instance already took this run"}
+{"level":"warn","timestamp":"2026-10-18T05:19:33.847Z","service":"money-service","webhookEventId":"evt-4","eventType":"profiles#state-change","msg":"Unhandled Wise webhook event type, skipping"}
+{"level":"error","timestamp":"2026-10-18T05:19:33.865Z","service":"money-service","webhookEventId":"evt-5","attemptsMade":2,"error":"db down","msg":"Wise webhook processing failed"}
+{"level":"error","timestamp":"2026-10-18T05:19:33.910Z","service":"money-service","webhookEventId":"does-not-exist","msg":"Wise webhook job references a missing WiseWebhookEvent row"}
+{"level":"error","timestamp":"2026-10-18T05:19:34.412Z","service":"money-service","msg":"[Webhook] Missing stripe-signature header"}
+{"level":"error","timestamp":"2026-10-18T05:19:34.419Z","service":"money-service","errorMessage":"invalid signature","msg":"[Webhook] Signature verification failed"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.425Z","service":"money-service","type":"checkout.session.completed","msg":"[Webhook] Received event"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.430Z","service":"money-service","type":"invoice.payment_succeeded","msg":"[Webhook] Received event"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.434Z","service":"money-service","type":"customer.created","msg":"[Webhook] Received event"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.434Z","service":"money-service","type":"customer.created","msg":"[Webhook] Unhandled event type"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.460Z","service":"money-service","type":"checkout.session.completed","msg":"[Webhook] Received event"}
+{"level":"error","timestamp":"2026-10-18T05:19:34.461Z","service":"money-service","type":"checkout.session.completed","error":"db down","msg":"[Webhook] Handler error"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.481Z","service":"money-service","type":"customer.subscription.deleted","msg":"[Webhook] Received event"}
+{"level":"error","timestamp":"2026-10-18T05:19:34.481Z","service":"money-service","type":"customer.subscription.deleted","error":"db down","msg":"[Webhook] Handler error"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.489Z","service":"money-service","type":"invoice.payment_succeeded","msg":"[Webhook] Received event"}
+{"level":"error","timestamp":"2026-10-18T05:19:34.489Z","service":"money-service","type":"invoice.payment_succeeded","error":"db down","msg":"[Webhook] Handler error"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.494Z","service":"money-service","type":"invoice.payment_failed","msg":"[Webhook] Received event"}
+{"level":"error","timestamp":"2026-10-18T05:19:34.494Z","service":"money-service","type":"invoice.payment_failed","error":"email service down","msg":"[Webhook] Handler error"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.500Z","service":"money-service","type":"invoice.payment_succeeded","msg":"[Webhook] Received event"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.505Z","service":"money-service","type":"invoice.payment_succeeded","msg":"[Webhook] Received event"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.505Z","service":"money-service","type":"invoice.payment_succeeded","eventId":"evt_123","msg":"[Webhook] Duplicate event skipped"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.538Z","service":"money-service","type":"invoice.payment_succeeded","msg":"[Webhook] Received event"}
+{"level":"error","timestamp":"2026-10-18T05:19:34.538Z","service":"money-service","type":"invoice.payment_succeeded","error":"db down","msg":"[Webhook] Handler error"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.543Z","service":"money-service","type":"checkout.session.completed","msg":"[Webhook] Received event"}
+{"level":"error","timestamp":"2026-10-18T05:19:34.543Z","service":"money-service","type":"checkout.session.completed","error":"db down","msg":"[Webhook] Handler error"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.546Z","service":"money-service","type":"invoice.payment_succeeded","msg":"[Webhook] Received event"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.550Z","service":"money-service","type":"customer.created","msg":"[Webhook] Received event"}
+{"level":"info","timestamp":"2026-10-18T05:19:34.550Z","service":"money-service","type":"customer.created","msg":"[Webhook] Unhandled event type"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.119Z","service":"money-service","userId":"user-1","billingPeriod":"monthly","msg":"[Webhook] User upgraded to PRO"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.129Z","service":"money-service","msg":"[Webhook] No userId in checkout session metadata"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.135Z","service":"money-service","userId":"user-1","billingPeriod":"monthly","msg":"[Webhook] User upgraded to PRO"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.141Z","service":"money-service","userId":"user-1","billingPeriod":"monthly","msg":"[Webhook] User upgraded to PRO"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.148Z","service":"money-service","error":"db blip","msg":"[Webhook] Error reserving affiliate code"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.148Z","service":"money-service","userId":"user-1","billingPeriod":"monthly","msg":"[Webhook] User upgraded to PRO"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.154Z","service":"money-service","userId":"user-1","stripeStatus":"past_due","msg":"[Webhook] User downgraded due to subscription status"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.154Z","service":"money-service","subscriptionId":"sub_123","status":"PAST_DUE","msg":"[Webhook] Subscription updated"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.159Z","service":"money-service","subscriptionId":"sub_123","status":"TRIALING","msg":"[Webhook] Subscription updated"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.163Z","service":"money-service","subscriptionId":"sub_unknown","msg":"[Webhook] Subscription not found"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.168Z","service":"money-service","userId":"user-1","stripeStatus":"past_due","msg":"[Webhook] User downgraded due to subscription status"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.168Z","service":"money-service","subscriptionId":"sub_123","status":"PAST_DUE","msg":"[Webhook] Subscription updated"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.173Z","service":"money-service","userId":"user-1","stripeStatus":"past_due","msg":"[Webhook] User downgraded due to subscription status"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.173Z","service":"money-service","subscriptionId":"sub_123","status":"PAST_DUE","msg":"[Webhook] Subscription updated"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.176Z","service":"money-service","error":"db blip","msg":"[Webhook] Error handling subscription updated"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.202Z","service":"money-service","subscriptionId":"sub_123","msg":"[Webhook] Subscription not found"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.204Z","service":"money-service","userId":"user-1","msg":"[Webhook] User subscription deleted, downgraded to FREE"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.208Z","service":"money-service","userId":"user-1","failureReason":"card_declined","msg":"[Webhook] Payment failed"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.211Z","service":"money-service","msg":"[Webhook] Skipping $0 invoice (trial period)"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.214Z","service":"money-service","userId":"user-1","amountUsd":29,"msg":"[Webhook] Payment succeeded"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.218Z","service":"money-service","userId":"user-1","amountUsd":300,"msg":"[Webhook] Payment succeeded"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.221Z","service":"money-service","userId":"user-1","amountUsd":290,"msg":"[Webhook] Payment succeeded"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.224Z","service":"money-service","userId":"user-1","amountUsd":29,"msg":"[Webhook] Payment succeeded"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.228Z","service":"money-service","userId":"user-1","amountUsd":29,"msg":"[Webhook] Payment succeeded"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.231Z","service":"money-service","userId":"user-1","commissionId":"comm-1","commissionAmount":5.8,"msg":"[Webhook] Affiliate commission credited"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.231Z","service":"money-service","userId":"user-1","amountUsd":29,"msg":"[Webhook] Payment succeeded"}
+{"level":"warn","timestamp":"2026-10-18T05:19:35.235Z","service":"money-service","userId":"user-1","reason":"CODE_NOT_FOUND","msg":"[Webhook] Affiliate commission not credited"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.235Z","service":"money-service","userId":"user-1","amountUsd":290,"msg":"[Webhook] Payment succeeded"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.238Z","service":"money-service","userId":"user-1","commissionId":"comm-24","commissionAmount":5.8,"msg":"[Webhook] Affiliate commission credited"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.238Z","service":"money-service","userId":"user-1","amountUsd":29,"msg":"[Webhook] Payment succeeded"}
+{"level":"warn","timestamp":"2026-10-18T05:19:35.241Z","service":"money-service","userId":"user-1","reason":"CAP_REACHED","msg":"[Webhook] Affiliate commission not credited"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.241Z","service":"money-service","userId":"user-1","amountUsd":29,"msg":"[Webhook] Payment succeeded"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.245Z","service":"money-service","userId":"user-1","amountUsd":29,"msg":"[Webhook] Payment succeeded"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.248Z","service":"money-service","userId":"user-1","error":"db blip","msg":"[Webhook] Affiliate commission crediting failed"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.248Z","service":"money-service","userId":"user-1","amountUsd":29,"msg":"[Webhook] Payment succeeded"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.253Z","service":"money-service","commissionId":"commission-1","amount":5.8,"msg":"[Webhook] Commission cancelled due to refund"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.256Z","service":"money-service","commissionId":"commission-1","amount":5.8,"msg":"[Webhook] Commission cancelled due to refund"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.259Z","service":"money-service","commissionId":"commission-1","amount":5.8,"msg":"[Webhook] Commission cancelled due to refund"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.264Z","service":"money-service","commissionId":"commission-1","affiliateProfileId":"aff-1","amount":5.8,"msg":"[Webhook] Commission already PAID -- created a clawback deduction for the next payout due to refund"}
+{"level":"warn","timestamp":"2026-10-18T05:19:35.275Z","service":"money-service","commissionId":"commission-1","msg":"[Webhook] Commission was no longer PENDING/APPROVED when the refund arrived -- not cancelled again"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.278Z","service":"money-service","error":"db blip","msg":"[Webhook] Error cancelling commission for refund"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.281Z","service":"money-service","commissionId":"commission-1","msg":"[Webhook] Clawback already recorded for this commission -- skipping duplicate refund"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.284Z","service":"money-service","error":"db blip","msg":"[Webhook] Error cancelling commission for refund"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.286Z","service":"money-service","msg":"[Webhook] No customer ID on refund event"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.289Z","service":"money-service","error":"db blip","msg":"[Webhook] Error cancelling commission for refund"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.292Z","service":"money-service","commissionId":"commission-1","amount":5.8,"msg":"[Webhook] Commission cancelled due to dispute"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.296Z","service":"money-service","error":"stripe api down","msg":"[Webhook] Error resolving disputed charge"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.839Z","service":"money-service","userId":"user-1","country":"IN","paymentMethod":"UPI","planType":"MONTHLY","usdAmount":35,"localAmount":2412.5,"msg":"Creating payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.840Z","service":"money-service","paymentId":"payment-1","userId":"user-1","msg":"Payment record created"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.840Z","service":"money-service","paymentId":"dlocal-pay-1","orderId":"order-user-1-123","userId":"user-1","msg":"dLocal payment created"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.848Z","service":"money-service","userId":"user-1","country":"IN","paymentMethod":"UPI","planType":"MONTHLY","usdAmount":35,"localAmount":2412.5,"msg":"Creating payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.848Z","service":"money-service","paymentId":"payment-1","userId":"user-1","msg":"Payment record created"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.848Z","service":"money-service","paymentId":"dlocal-pay-1","orderId":"order-user-1-123","userId":"user-1","msg":"dLocal payment created"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.854Z","service":"money-service","userId":"user-1","country":"IN","paymentMethod":"UPI","planType":"YEARLY","usdAmount":350,"localAmount":2412.5,"msg":"Creating payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.854Z","service":"money-service","paymentId":"payment-1","userId":"user-1","msg":"Payment record created"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.854Z","service":"money-service","paymentId":"dlocal-pay-1","orderId":"order-user-1-123","userId":"user-1","msg":"dLocal payment created"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.859Z","service":"money-service","missing":["DLOCAL_API_KEY"],"msg":"dLocal payments are not configured; refusing checkout"}
+{"level":"error","timestamp":"2026-10-18T05:19:35.864Z","service":"money-service","missing":["DLOCAL_API_KEY","NEXTAUTH_URL"],"msg":"dLocal payments are not configured; refusing checkout"}
+{"level":"info","timestamp":"2026-10-18T05:19:35.896Z","service":"money-service","userId":"user-1","country":"IN","paymentMethod":"UPI","planType":"MONTHLY","usdAmount":35,"localAmount":2412.5,"msg":"Creating payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.240Z","service":"money-service","targetDate":"2026-10-21T05:19:36.240Z","windowStart":"2026-10-20T17:19:36.240Z","windowEnd":"2026-10-21T17:19:36.240Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.240Z","service":"money-service","msg":"Found 1 expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.240Z","service":"money-service","userId":"user-expiring","subscriptionId":"sub-1","expiresAt":"2026-10-21T05:19:36.239Z","dryRun":false,"msg":"Renewal reminder marked for sending"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.241Z","service":"money-service","processed":1,"remindersSent":1,"errors":0,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.246Z","service":"money-service","targetDate":"2026-10-21T05:19:36.246Z","windowStart":"2026-10-20T17:19:36.246Z","windowEnd":"2026-10-21T17:19:36.246Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.247Z","service":"money-service","msg":"Found 1 expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.247Z","service":"money-service","userId":"user-reminder","subscriptionId":"sub-mark","expiresAt":"2026-10-21T05:19:36.246Z","dryRun":false,"msg":"Renewal reminder marked for sending"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.247Z","service":"money-service","processed":1,"remindersSent":1,"errors":0,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.250Z","service":"money-service","targetDate":"2026-10-21T05:19:36.250Z","windowStart":"2026-10-20T17:19:36.250Z","windowEnd":"2026-10-21T17:19:36.250Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.251Z","service":"money-service","msg":"Found 0 expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.251Z","service":"money-service","processed":0,"remindersSent":0,"errors":0,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.253Z","service":"money-service","targetDate":"2026-10-21T05:19:36.253Z","windowStart":"2026-10-20T17:19:36.253Z","windowEnd":"2026-10-21T17:19:36.253Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.254Z","service":"money-service","msg":"Found 0 expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.254Z","service":"money-service","processed":0,"remindersSent":0,"errors":0,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.257Z","service":"money-service","targetDate":"2026-10-21T05:19:36.257Z","windowStart":"2026-10-20T17:19:36.257Z","windowEnd":"2026-10-21T17:19:36.257Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.257Z","service":"money-service","msg":"Found 2 expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.257Z","service":"money-service","userId":"user-1","subscriptionId":"sub-1","expiresAt":"2026-10-21T05:19:36.257Z","dryRun":false,"msg":"Renewal reminder marked for sending"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.258Z","service":"money-service","userId":"user-2","subscriptionId":"sub-2","expiresAt":"2026-10-21T05:19:36.257Z","dryRun":false,"msg":"Renewal reminder marked for sending"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.258Z","service":"money-service","processed":2,"remindersSent":2,"errors":0,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.261Z","service":"money-service","targetDate":"2026-10-21T05:19:36.260Z","windowStart":"2026-10-20T17:19:36.260Z","windowEnd":"2026-10-21T17:19:36.260Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.261Z","service":"money-service","msg":"Found 1 expiring subscriptions"}
+{"level":"warn","timestamp":"2026-10-18T05:19:36.261Z","service":"money-service","subscriptionId":"sub-no-email","msg":"Skipping subscription - missing user, email or expiry"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.261Z","service":"money-service","processed":1,"remindersSent":0,"errors":0,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.263Z","service":"money-service","targetDate":"2026-10-21T05:19:36.263Z","windowStart":"2026-10-20T17:19:36.263Z","windowEnd":"2026-10-21T17:19:36.263Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.263Z","service":"money-service","msg":"Found 0 expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.263Z","service":"money-service","processed":0,"remindersSent":0,"errors":0,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.266Z","service":"money-service","targetDate":"2026-10-21T05:19:36.265Z","windowStart":"2026-10-20T17:19:36.265Z","windowEnd":"2026-10-21T17:19:36.265Z","dryRun":true,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.266Z","service":"money-service","msg":"Found 1 expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.266Z","service":"money-service","userId":"user-dryrun","subscriptionId":"sub-dryrun","expiresAt":"2026-10-21T05:19:36.265Z","dryRun":true,"msg":"Renewal reminder marked for sending"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.266Z","service":"money-service","processed":1,"remindersSent":1,"errors":0,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.268Z","service":"money-service","targetDate":"2026-10-21T05:19:36.268Z","windowStart":"2026-10-20T17:19:36.268Z","windowEnd":"2026-10-21T17:19:36.268Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.268Z","service":"money-service","msg":"Found 1 expiring subscriptions"}
+{"level":"error","timestamp":"2026-10-18T05:19:36.268Z","service":"money-service","subscriptionId":"sub-error","error":"Update failed","msg":"Error processing subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.268Z","service":"money-service","processed":1,"remindersSent":0,"errors":1,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.271Z","service":"money-service","targetDate":"2026-10-21T05:19:36.271Z","windowStart":"2026-10-20T17:19:36.271Z","windowEnd":"2026-10-21T17:19:36.271Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"error","timestamp":"2026-10-18T05:19:36.271Z","service":"money-service","error":"Database connection failed","msg":"Failed to check expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.288Z","service":"money-service","targetDate":"2026-10-23T05:19:36.288Z","windowStart":"2026-10-22T17:19:36.288Z","windowEnd":"2026-10-23T17:19:36.288Z","dryRun":false,"msg":"Checking for expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.288Z","service":"money-service","msg":"Found 0 expiring subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.288Z","service":"money-service","processed":0,"remindersSent":0,"errors":0,"msg":"Check expiring subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.292Z","service":"money-service","currentTime":"2026-10-18T05:19:36.292Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.292Z","service":"money-service","msg":"Found 1 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.292Z","service":"money-service","userId":"user-expired","subscriptionId":"sub-expired","expiredAt":"2026-10-17T05:19:36.291Z","dryRun":false,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.293Z","service":"money-service","processed":1,"downgrades":1,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.297Z","service":"money-service","currentTime":"2026-10-18T05:19:36.297Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.297Z","service":"money-service","msg":"Found 1 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.297Z","service":"money-service","userId":"user-downgrade","subscriptionId":"sub-downgrade","expiredAt":"2026-10-17T05:19:36.297Z","dryRun":false,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.297Z","service":"money-service","processed":1,"downgrades":1,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.300Z","service":"money-service","currentTime":"2026-10-18T05:19:36.300Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.300Z","service":"money-service","msg":"Found 1 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.300Z","service":"money-service","userId":"user-cancel","subscriptionId":"sub-cancel","expiredAt":"2026-10-17T05:19:36.300Z","dryRun":false,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.300Z","service":"money-service","processed":1,"downgrades":1,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.302Z","service":"money-service","currentTime":"2026-10-18T05:19:36.302Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.302Z","service":"money-service","msg":"Found 1 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.302Z","service":"money-service","userId":"user-notify","subscriptionId":"sub-notify","expiredAt":"2026-10-17T05:19:36.302Z","dryRun":false,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.303Z","service":"money-service","processed":1,"downgrades":1,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.305Z","service":"money-service","currentTime":"2026-10-18T05:19:36.305Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.305Z","service":"money-service","msg":"Found 1 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.305Z","service":"money-service","userId":"user-outbox","subscriptionId":"sub-outbox","expiredAt":"2026-10-17T05:19:36.305Z","dryRun":false,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.305Z","service":"money-service","processed":1,"downgrades":1,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.308Z","service":"money-service","currentTime":"2026-10-18T05:19:36.308Z","dryRun":true,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.308Z","service":"money-service","msg":"Found 1 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.308Z","service":"money-service","userId":"user-dry","subscriptionId":"sub-dry","expiredAt":"2026-10-17T05:19:36.308Z","dryRun":true,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.308Z","service":"money-service","processed":1,"downgrades":1,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.310Z","service":"money-service","currentTime":"2026-10-18T05:19:36.310Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.310Z","service":"money-service","msg":"Found 0 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.311Z","service":"money-service","processed":0,"downgrades":0,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.312Z","service":"money-service","currentTime":"2026-10-18T05:19:36.312Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.313Z","service":"money-service","msg":"Found 0 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.313Z","service":"money-service","processed":0,"downgrades":0,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.315Z","service":"money-service","currentTime":"2026-10-18T05:19:36.315Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.315Z","service":"money-service","msg":"Found 2 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.315Z","service":"money-service","userId":"user-1","subscriptionId":"sub-1","expiredAt":"2026-10-17T05:19:36.315Z","dryRun":false,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.315Z","service":"money-service","userId":"user-2","subscriptionId":"sub-2","expiredAt":"2026-10-17T05:19:36.315Z","dryRun":false,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.315Z","service":"money-service","processed":2,"downgrades":2,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.318Z","service":"money-service","currentTime":"2026-10-18T05:19:36.318Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.318Z","service":"money-service","msg":"Found 0 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.318Z","service":"money-service","processed":0,"downgrades":0,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.321Z","service":"money-service","currentTime":"2026-10-18T05:19:36.321Z","dryRun":true,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.321Z","service":"money-service","msg":"Found 1 expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.321Z","service":"money-service","userId":"user-dryrun","subscriptionId":"sub-dryrun","expiredAt":"2026-10-17T05:19:36.321Z","dryRun":true,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.321Z","service":"money-service","processed":1,"downgrades":1,"errors":0,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.324Z","service":"money-service","currentTime":"2026-10-18T05:19:36.324Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.324Z","service":"money-service","msg":"Found 2 expired subscriptions"}
+{"level":"error","timestamp":"2026-10-18T05:19:36.325Z","service":"money-service","userId":"user-error","subscriptionId":"sub-error","error":"Update failed","msg":"Error downgrading user"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.325Z","service":"money-service","userId":"user-ok","subscriptionId":"sub-ok","expiredAt":"2026-10-17T05:19:36.324Z","dryRun":false,"msg":"User downgraded due to expired subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.325Z","service":"money-service","processed":2,"downgrades":1,"errors":1,"msg":"Downgrade expired subscriptions completed"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.327Z","service":"money-service","currentTime":"2026-10-18T05:19:36.327Z","dryRun":false,"msg":"Checking for expired subscriptions"}
+{"level":"error","timestamp":"2026-10-18T05:19:36.327Z","service":"money-service","error":"Database connection failed","msg":"Failed to downgrade expired subscriptions"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.765Z","service":"money-service","stripeSubscriptionId":"sub_stripe_123","msg":"[Cancel] Cancelled Stripe subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.765Z","service":"money-service","userId":"user-1","msg":"[Cancel] User cancelled subscription"}
+{"level":"error","timestamp":"2026-10-18T05:19:36.779Z","service":"money-service","error":"already canceled","msg":"[Cancel] Error cancelling Stripe subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.780Z","service":"money-service","userId":"user-1","msg":"[Cancel] User cancelled subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.785Z","service":"money-service","stripeSubscriptionId":"sub_stripe_123","msg":"[Cancel] Cancelled Stripe subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.785Z","service":"money-service","userId":"user-1","msg":"[Cancel] User cancelled subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.786Z","service":"money-service","stripeSubscriptionId":"sub_stripe_123","msg":"[Cancel] Cancelled Stripe subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:36.786Z","service":"money-service","userId":"user-1","msg":"[Cancel] User cancelled subscription"}
+{"level":"info","timestamp":"2026-10-18T05:19:41.666Z","service":"money-service","userId":"user-new","msg":"User eligible for 3-day plan"}
+{"level":"info","timestamp":"2026-10-18T05:19:41.670Z","service":"money-service","userId":"user-used","usedAt":"2024-01-01T00:00:00.000Z","msg":"User already used 3-day plan"}
+{"level":"info","timestamp":"2026-10-18T05:19:41.675Z","service":"money-service","userId":"user-active-sub","subscriptionId":"sub-123","msg":"User has active subscription, cannot purchase 3-day plan"}
+{"level":"info","timestamp":"2026-10-18T05:19:41.678Z","service":"money-service","userId":"user-expired-sub","msg":"User eligible for 3-day plan"}
+{"level":"info","timestamp":"2026-10-18T05:19:41.680Z","service":"money-service","userId":"user-cancelled-sub","msg":"User eligible for 3-day plan"}
+{"level":"error","timestamp":"2026-10-18T05:19:41.682Z","service":"money-service","userId":"nonexistent-user","msg":"User not found for 3-day plan validation"}
+{"level":"error","timestamp":"2026-10-18T05:19:41.684Z","service":"money-service","userId":"user-123","error":"Database connection failed","msg":"Error checking 3-day plan eligibility"}
+{"level":"info","timestamp":"2026-10-18T05:19:41.692Z","service":"money-service","userId":"user-123","msg":"Marked 3-day plan as used"}
+{"level":"error","timestamp":"2026-10-18T05:19:41.695Z","service":"money-service","userId":"user-123","error":"Update failed","msg":"Error marking 3-day plan as used"}
+{"level":"info","timestamp":"2026-10-18T05:19:41.697Z","service":"money-service","userId":"user-validate","msg":"User eligible for 3-day plan"}
+{"level":"warn","timestamp":"2026-10-18T05:19:42.052Z","service":"money-service","msg":"Wise webhook signature: empty body"}
+{"level":"warn","timestamp":"2026-10-18T05:19:42.052Z","service":"money-service","msg":"Wise webhook signature: empty body"}
+{"level":"warn","timestamp":"2026-10-18T05:19:42.052Z","service":"money-service","msg":"Wise webhook signature: missing signature header"}
+{"level":"error","timestamp":"2026-10-18T05:19:42.414Z","service":"money-service","error":"db down","msg":"[disbursement-settings] SystemConfig read failed — using defaults"}
+{"level":"warn","timestamp":"2026-10-18T05:19:43.188Z","service":"money-service","webhookEventId":"evt-1","wiseTransferId":"555","occurredAt":"2026-07-26T10:00:00.000Z","lastEventOccurredAt":"2026-07-26T12:00:00.000Z","msg":"Wise transfer state-change event is stale (occurred_at <= lastEventOccurredAt), skipping mutation"}
+{"level":"error","timestamp":"2026-10-18T05:19:43.205Z","service":"money-service","wiseTransferId":"555","currentState":"bounced_back","msg":"Wise transfer needs admin attention"}
+{"level":"error","timestamp":"2026-10-18T05:19:43.210Z","service":"money-service","webhookEventId":"evt-2","msg":"Wise transfer state-change event is missing required fields, skipping"}
+{"level":"warn","timestamp":"2026-10-18T05:19:43.216Z","service":"money-service","webhookEventId":"evt-1","wiseTransferId":"555","msg":"Wise transfer state-change event for unknown transfer"}
+{"level":"error","timestamp":"2026-10-18T05:19:43.761Z","service":"money-service","wiseTransferId":"4567890","currentState":"bounced_back","msg":"Wise transfer needs admin attention"}
+{"level":"warn","timestamp":"2026-10-18T05:19:44.163Z","service":"money-service","signaturePrefix":"","hasAuthHeader":true,"hasXDate":true,"hasXLogin":true,"msg":"Invalid webhook signature"}
+{"level":"error","timestamp":"2026-10-18T05:19:44.170Z","service":"money-service","payload":"not valid json","msg":"Invalid webhook payload"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.176Z","service":"money-service","paymentId":"unknown-payment","status":"PAID","orderId":"order-x","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:44.176Z","service":"money-service","paymentId":"unknown-payment","orderId":"order-x","msg":"Payment record not found for webhook"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.180Z","service":"money-service","paymentId":"payment-1","status":"PAID","orderId":"order-user-1-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.181Z","service":"money-service","paymentId":"payment-1","userId":"user-1","planType":"MONTHLY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.182Z","service":"money-service","paymentId":"payment-1","userId":"user-1","planType":"MONTHLY","expiresAt":"2026-11-17T05:19:44.181Z","msg":"Payment completed and subscription created"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.182Z","service":"money-service","paymentId":"payment-1","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.187Z","service":"money-service","paymentId":"payment-y","status":"PAID","orderId":"order-user-1-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.187Z","service":"money-service","paymentId":"payment-y","userId":"user-1","planType":"YEARLY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.188Z","service":"money-service","paymentId":"payment-y","userId":"user-1","planType":"YEARLY","expiresAt":"2027-10-18T05:19:44.187Z","msg":"Payment completed and subscription created"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.188Z","service":"money-service","paymentId":"payment-y","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.191Z","service":"money-service","paymentId":"payment-2","status":"PAID","orderId":"order-user-2-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.192Z","service":"money-service","paymentId":"payment-2","userId":"user-2","planType":"THREE_DAY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.192Z","service":"money-service","userId":"user-2","msg":"3-day plan marked as used"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.192Z","service":"money-service","paymentId":"payment-2","userId":"user-2","planType":"THREE_DAY","expiresAt":"2026-10-21T05:19:44.192Z","msg":"Payment completed and subscription created"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.192Z","service":"money-service","paymentId":"payment-2","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.198Z","service":"money-service","paymentId":"payment-3","status":"PAID","orderId":"order-user-3-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.199Z","service":"money-service","paymentId":"payment-3","userId":"user-3","planType":"MONTHLY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.199Z","service":"money-service","paymentId":"payment-3","commissionId":"commission-1","commissionAmount":4.64,"msg":"Affiliate commission created for dLocal payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.199Z","service":"money-service","paymentId":"payment-3","userId":"user-3","planType":"MONTHLY","expiresAt":"2026-11-17T05:19:44.199Z","msg":"Payment completed and subscription created"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.200Z","service":"money-service","paymentId":"payment-3","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.203Z","service":"money-service","paymentId":"payment-4","status":"PAID","orderId":"order-user-4-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.203Z","service":"money-service","paymentId":"payment-4","userId":"user-4","planType":"MONTHLY","msg":"Processing payment completion"}
+{"level":"error","timestamp":"2026-10-18T05:19:44.204Z","service":"money-service","paymentId":"payment-4","error":"boom","msg":"Affiliate conversion processing failed"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.204Z","service":"money-service","paymentId":"payment-4","userId":"user-4","planType":"MONTHLY","expiresAt":"2026-11-17T05:19:44.203Z","msg":"Payment completed and subscription created"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.204Z","service":"money-service","paymentId":"payment-4","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.209Z","service":"money-service","paymentId":"payment-5","status":"REJECTED","orderId":"order-user-5-123","msg":"dLocal webhook received"}
+{"level":"warn","timestamp":"2026-10-18T05:19:44.209Z","service":"money-service","paymentId":"payment-5","userId":"user-5","reason":"Insufficient funds","msg":"Processing payment failure"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.209Z","service":"money-service","paymentId":"payment-5","msg":"Payment marked as failed"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.209Z","service":"money-service","paymentId":"payment-5","status":"FAILED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.212Z","service":"money-service","paymentId":"payment-6","status":"CANCELLED","orderId":"order-user-6-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.212Z","service":"money-service","paymentId":"payment-6","userId":"user-6","msg":"Processing payment cancellation"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.212Z","service":"money-service","paymentId":"payment-6","msg":"Payment marked as cancelled"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.212Z","service":"money-service","paymentId":"payment-6","status":"CANCELLED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.216Z","service":"money-service","paymentId":"payment-replay","status":"PAID","orderId":"order-user-replay-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.216Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","planType":"MONTHLY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.217Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","planType":"MONTHLY","expiresAt":"2026-11-17T05:19:44.216Z","msg":"Payment completed and subscription created"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.217Z","service":"money-service","paymentId":"payment-replay","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.217Z","service":"money-service","paymentId":"payment-replay","status":"PAID","orderId":"order-user-replay-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.217Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","planType":"MONTHLY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.217Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","msg":"Payment was already COMPLETED — nothing to apply (subscription, tier, 3-day-plan mark, affiliate conversion, notification) on replay"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.217Z","service":"money-service","paymentId":"payment-replay","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.222Z","service":"money-service","paymentId":"payment-replay","status":"PAID","orderId":"order-user-replay-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.222Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","planType":"THREE_DAY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.222Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","msg":"Payment was already COMPLETED — nothing to apply (subscription, tier, 3-day-plan mark, affiliate conversion, notification) on replay"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.222Z","service":"money-service","paymentId":"payment-replay","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.226Z","service":"money-service","paymentId":"payment-replay","status":"PAID","orderId":"order-user-replay-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.226Z","service":"money-service","paymentId":"payment-replay","status":"PAID","orderId":"order-user-replay-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.226Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","planType":"MONTHLY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.226Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","planType":"MONTHLY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.227Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","msg":"Payment was already COMPLETED — nothing to apply (subscription, tier, 3-day-plan mark, affiliate conversion, notification) on replay"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.227Z","service":"money-service","paymentId":"payment-replay","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.227Z","service":"money-service","paymentId":"payment-replay","commissionId":"c-1","commissionAmount":5.8,"msg":"Affiliate commission created for dLocal payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.227Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","planType":"MONTHLY","expiresAt":"2026-11-17T05:19:44.226Z","msg":"Payment completed and subscription created"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.227Z","service":"money-service","paymentId":"payment-replay","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.230Z","service":"money-service","paymentId":"payment-replay","status":"PAID","orderId":"order-user-replay-123","msg":"dLocal webhook received"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.230Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","planType":"MONTHLY","msg":"Processing payment completion"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.231Z","service":"money-service","paymentId":"payment-replay","userId":"user-replay","planType":"MONTHLY","expiresAt":"2026-11-17T05:19:44.231Z","msg":"Payment completed and subscription created"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.231Z","service":"money-service","paymentId":"payment-replay","status":"COMPLETED","msg":"Webhook processed successfully"}
+{"level":"info","timestamp":"2026-10-18T05:19:44.233Z","service":"money-service","paymentId":"payment-7","status":"PAID","orderId":"order-user-7-123","msg":"dLocal webhook received"}
+{"level":"error","timestamp":"2026-10-18T05:19:44.233Z","service":"money-service","error":"db down","msg":"Webhook processing error"}
+[Nest] 19068  - 18/10/2026, 12:19:45   ERROR [WebhookEventProcessorService] Payment completed webhook missing providerTxId
+[Nest] 19068  - 18/10/2026, 12:19:45   ERROR [WebhookEventProcessorService] Transaction not found for providerTxId: missing-tx
+[Nest] 19068  - 18/10/2026, 12:19:45   ERROR [WebhookEventProcessorService] Payment failed webhook missing providerTxId
+[Nest] 19068  - 18/10/2026, 12:19:45   ERROR [WebhookEventProcessorService] Invite accepted webhook missing email
+{"level":"info","timestamp":"2026-10-18T05:19:45.918Z","service":"money-service","msg":"PrismaService disconnected cleanly on module shutdown"}
+{"level":"info","timestamp":"2026-10-18T05:19:45.933Z","service":"money-service","msg":"PrismaService disconnected cleanly on module shutdown"}
+[Nest] 19068  - 18/10/2026, 12:19:46   ERROR [RiseworksWebhookController] RISE_WEBHOOK_SECRET not configured
+{"level":"info","timestamp":"2026-10-18T05:19:46.954Z","service":"money-service","orderId":"order-user-123-1792300786954","country":"IN","msg":"Creating dLocal payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:46.954Z","service":"money-service","orderId":"order-user-123-1792300786954","msg":"Using mock dLocal response (test mode)"}
+{"level":"info","timestamp":"2026-10-18T05:19:46.956Z","service":"money-service","orderId":"order-user-456-1792300786956","country":"TH","msg":"Creating dLocal payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:46.956Z","service":"money-service","orderId":"order-user-456-1792300786956","msg":"Using mock dLocal response (test mode)"}
+{"level":"info","timestamp":"2026-10-18T05:19:46.957Z","service":"money-service","orderId":"order-user-123-1792300786957","country":"IN","msg":"Creating dLocal payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:46.957Z","service":"money-service","orderId":"order-user-123-1792300786957","msg":"Using mock dLocal response (test mode)"}
+{"level":"error","timestamp":"2026-10-18T05:19:46.995Z","service":"money-service","error":"dLocal is not configured: missing DLOCAL_API_KEY","orderId":"order-user-1-1792300786995","msg":"Failed to create dLocal payment"}
+{"level":"error","timestamp":"2026-10-18T05:19:47.019Z","service":"money-service","error":"dLocal is not configured: missing NEXTAUTH_URL","orderId":"order-user-1-1792300787019","msg":"Failed to create dLocal payment"}
+{"level":"error","timestamp":"2026-10-18T05:19:47.101Z","service":"money-service","error":"dLocal is not configured: missing DLOCAL_API_KEY, NEXTAUTH_URL","orderId":"order-user-1-1792300787101","msg":"Failed to create dLocal payment"}
+{"level":"error","timestamp":"2026-10-18T05:19:47.127Z","service":"money-service","paymentId":"pay-1","error":"dLocal is not configured: missing DLOCAL_API_KEY","msg":"Failed to get payment status"}
+{"level":"info","timestamp":"2026-10-18T05:19:47.150Z","service":"money-service","orderId":"order-user-1-1792300787150","country":"IN","msg":"Creating dLocal payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:47.199Z","service":"money-service","orderId":"order-user-789-1792300787198","country":"TH","msg":"Creating dLocal payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:47.224Z","service":"money-service","orderId":"order-user-790-1792300787224","country":"TH","msg":"Creating dLocal payment"}
+{"level":"error","timestamp":"2026-10-18T05:19:47.251Z","service":"money-service","error":"No dLocal method code mapped for payment method \"Bitcoin\" in country \"IN\"","orderId":"order-user-791-1792300787251","msg":"Failed to create dLocal payment"}
+(node:19068) MaxListenersExceededWarning: Possible EventEmitter memory leak detected. 11 exit listeners added to [process]. MaxListeners is 10. Use emitter.setMaxListeners() to increase limit
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"level":"info","timestamp":"2026-10-18T05:19:46.969Z","service":"money-service","orderId":"order-user-123-1792300786969","country":"IN","msg":"Creating dLocal payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:46.969Z","service":"money-service","orderId":"order-user-123-1792300786969","msg":"Using mock dLocal response (test mode)"}
+{"level":"info","timestamp":"2026-10-18T05:19:46.971Z","service":"money-service","orderId":"order-user-123-1792300786971","country":"IN","msg":"Creating dLocal payment"}
+{"level":"info","timestamp":"2026-10-18T05:19:46.971Z","service":"money-service","orderId":"order-user-123-1792300786971","msg":"Using mock dLocal response (test mode)"}
+{"level":"warn","timestamp":"2026-10-18T05:19:47.255Z","service":"money-service","expectedPrefix":"188eb9387e","receivedPrefix":"invalid-si","msg":"Webhook signature mismatch"}
+{"level":"warn","timestamp":"2026-10-18T05:19:47.256Z","service":"money-service","expectedPrefix":"9ca6b90454","receivedPrefix":"188eb9387e","msg":"Webhook signature mismatch"}
+{"level":"warn","timestamp":"2026-10-18T05:19:47.256Z","service":"money-service","expectedPrefix":"e6878b5d74","receivedPrefix":"188eb9387e","msg":"Webhook signature mismatch"}
+{"level":"warn","timestamp":"2026-10-18T05:19:47.257Z","service":"money-service","msg":"No webhook secret configured"}
+{"level":"warn","timestamp":"2026-10-18T05:19:47.257Z","service":"money-service","msg":"No signature provided on webhook request"}
+{"level":"error","timestamp":"2026-10-18T05:19:47.265Z","service":"money-service","error":"ECONNREFUSED","msg":"[Idempotency] Redis lock check failed, failing open"}
+{"level":"info","timestamp":"2026-10-18T05:19:47.150Z","service":"money-service","orderId":"order-user-1-1792300787150","msg":"Using mock dLocal response (test mode)"}
+{"level":"info","timestamp":"2026-10-18T05:19:47.199Z","service":"money-service","paymentId":"dlocal-payment-1","orderId":"order-user-789-1792300787198","msg":"dLocal payment created"}
+{"level":"info","timestamp":"2026-10-18T05:19:47.225Z","service":"money-service","paymentId":"dlocal-payment-2","orderId":"order-user-790-1792300787224","msg":"dLocal payment created"}
+{"level":"error","timestamp":"2026-10-18T05:19:49.601Z","service":"money-service","count":1,"slaHours":72,"msg":"Funding-SLA breach: Wise batch group(s) awaiting manual funding past the SLA"}
+{"level":"error","timestamp":"2026-10-18T05:19:49.623Z","service":"money-service","count":1,"slaHours":72,"msg":"Funding-SLA breach: Wise batch group(s) awaiting manual funding past the SLA"}
+{"level":"error","timestamp":"2026-10-18T05:19:49.623Z","service":"money-service","breachedCount":1,"msg":"Funding-SLA alert could NOT be sent: RESEND_API_KEY / WISE_FUNDING_ALERT_EMAIL not configured on money-service"}
+{"level":"error","timestamp":"2026-10-18T05:19:50.339Z","service":"money-service","wiseTransferId":"555","failureReasonCode":"WRONG_ID_NUMBER","msg":"Wise transfer payout failure"}
+{"level":"warn","timestamp":"2026-10-18T05:19:50.348Z","service":"money-service","webhookEventId":"evt-1","wiseTransferId":"555","msg":"Wise payout-failure event for unknown transfer"}
+{"level":"warn","timestamp":"2026-10-18T05:19:50.358Z","service":"money-service","webhookEventId":"evt-2","matchCount":0,"amount":500,"currency":"USD","msg":"Wise balances#update best-effort match found zero or multiple candidate batch groups, skipping"}
+{"level":"warn","timestamp":"2026-10-18T05:19:50.362Z","service":"money-service","webhookEventId":"evt-2","matchCount":2,"amount":500,"currency":"USD","msg":"Wise balances#update best-effort match found zero or multiple candidate batch groups, skipping"}
+{"level":"warn","timestamp":"2026-10-18T05:19:50.612Z","service":"money-service","correlationId":"money-service-1efcb6d0-6e56-42c5-bdd3-2cfc53fa3c62","path":"/v1/profiles","method":"GET","status":429,"attempt":0,"delayMs":500,"msg":"Wise API retryable error, backing off"}
+{"level":"warn","timestamp":"2026-10-18T05:19:51.112Z","service":"money-service","correlationId":"money-service-1efcb6d0-6e56-42c5-bdd3-2cfc53fa3c62","path":"/v1/profiles","method":"GET","status":429,"attempt":1,"delayMs":1000,"msg":"Wise API retryable error, backing off"}
+{"level":"info","timestamp":"2026-10-18T05:19:52.112Z","service":"money-service","correlationId":"money-service-1efcb6d0-6e56-42c5-bdd3-2cfc53fa3c62","path":"/v1/profiles","method":"GET","status":200,"msg":"Wise API request succeeded"}
+{"level":"warn","timestamp":"2026-10-18T05:19:50.628Z","service":"money-service","correlationId":"money-service-0fdd93b8-ba26-47ac-b260-1be1fabe45d6","path":"/v1/profiles","method":"GET","status":429,"attempt":0,"delayMs":2000,"msg":"Wise API retryable error, backing off"}
+{"level":"info","timestamp":"2026-10-18T05:19:52.628Z","service":"money-service","correlationId":"money-service-0fdd93b8-ba26-47ac-b260-1be1fabe45d6","path":"/v1/profiles","method":"GET","status":200,"msg":"Wise API request succeeded"}
+{"level":"warn","timestamp":"2026-10-18T05:19:50.632Z","service":"money-service","correlationId":"money-service-841a6309-7ddc-4aca-a91b-640d8a0ada15","path":"/v1/profiles","method":"GET","status":500,"attempt":0,"delayMs":500,"msg":"Wise API retryable error, backing off"}
+{"level":"warn","timestamp":"2026-10-18T05:19:51.132Z","service":"money-service","correlationId":"money-service-841a6309-7ddc-4aca-a91b-640d8a0ada15","path":"/v1/profiles","method":"GET","status":500,"attempt":1,"delayMs":1000,"msg":"Wise API retryable error, backing off"}
+{"level":"warn","timestamp":"2026-10-18T05:19:52.132Z","service":"money-service","correlationId":"money-service-841a6309-7ddc-4aca-a91b-640d8a0ada15","path":"/v1/profiles","method":"GET","status":500,"attempt":2,"delayMs":2000,"msg":"Wise API retryable error, backing off"}
+{"level":"error","timestamp":"2026-10-18T05:19:54.132Z","service":"money-service","correlationId":"money-service-841a6309-7ddc-4aca-a91b-640d8a0ada15","path":"/v1/profiles","method":"GET","status":500,"msg":"Wise API request failed"}
+{"level":"error","timestamp":"2026-10-18T05:19:51.352Z","service":"money-service","error":"redis down","msg":"Idempotency cache read failed, proceeding uncached"}
+{"level":"error","timestamp":"2026-10-18T05:19:51.353Z","service":"money-service","error":"redis down","msg":"Idempotency claim failed, proceeding uncached"}
+{"level":"error","timestamp":"2026-10-18T05:19:51.751Z","service":"money-service","provider":"stripe","eventId":"evt_1","error":"relation does not exist","msg":"[Webhook] Event claim unavailable; processing without deduplication"}
+{"level":"error","timestamp":"2026-10-18T05:19:51.752Z","service":"money-service","provider":"stripe","eventId":"evt_1","error":"permission denied for table","msg":"[Webhook] Event claim unavailable; processing without deduplication"}
+{"level":"error","timestamp":"2026-10-18T05:19:51.753Z","service":"money-service","provider":"stripe","eventId":"evt_1","error":"connection refused","msg":"[Webhook] Event claim unavailable; processing without deduplication"}
+{"level":"error","timestamp":"2026-10-18T05:19:51.753Z","service":"money-service","provider":"stripe","eventId":"evt_1","error":"Unknown error","msg":"[Webhook] Event claim unavailable; processing without deduplication"}
+{"level":"error","timestamp":"2026-10-18T05:19:51.757Z","service":"money-service","provider":"stripe","eventId":"evt_1","error":"connection reset","msg":"[Webhook] Event claim unavailable; processing without deduplication"}
+{"level":"error","timestamp":"2026-10-18T05:19:51.762Z","service":"money-service","provider":"stripe","eventId":"evt_1","error":"db blip","msg":"[Webhook] Could not mark event completed"}
+{"level":"error","timestamp":"2026-10-18T05:19:51.768Z","service":"money-service","provider":"stripe","eventId":"evt_1","error":"db blip","msg":"[Webhook] Could not release event claim"}
+{"level":"error","timestamp":"2026-10-18T05:19:53.192Z","service":"money-service","jobName":"job","error":"redis down","msg":"[CRON] Lock unavailable, running the job without it"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.093Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.092Z","fetchedAt":"2026-10-18T05:19:54.092Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.096Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.096Z","fetchedAt":"2026-10-18T05:19:54.096Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.099Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.098Z","fetchedAt":"2026-10-18T05:19:54.098Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.100Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.100Z","fetchedAt":"2026-10-18T05:19:54.100Z","msg":"[fx] USD rate table fetched"}
+{"level":"warn","timestamp":"2026-10-18T05:19:54.116Z","service":"money-service","msg":"[fx] CurrencyBeacon unavailable; trying Frankfurter"}
+{"level":"warn","timestamp":"2026-10-18T05:19:54.116Z","service":"money-service","msg":"[fx] Frankfurter unavailable; using bounded prior or fixed rates"}
+{"level":"warn","timestamp":"2026-10-18T05:19:54.117Z","service":"money-service","msg":"[fx] CurrencyBeacon unavailable; trying Frankfurter"}
+{"level":"warn","timestamp":"2026-10-18T05:19:54.118Z","service":"money-service","msg":"[fx] Frankfurter unavailable; using bounded prior or fixed rates"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.119Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.119Z","fetchedAt":"2026-10-18T05:19:54.119Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.121Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.120Z","fetchedAt":"2026-10-18T05:19:54.121Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.122Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.122Z","fetchedAt":"2026-10-18T05:19:54.122Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.126Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.126Z","fetchedAt":"2026-10-18T05:19:54.126Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.127Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.127Z","fetchedAt":"2026-10-18T05:19:54.127Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.128Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.128Z","fetchedAt":"2026-10-18T05:19:54.128Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.129Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.129Z","fetchedAt":"2026-10-18T05:19:54.129Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.129Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.129Z","fetchedAt":"2026-10-18T05:19:54.129Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.130Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.130Z","fetchedAt":"2026-10-18T05:19:54.130Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.130Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.130Z","fetchedAt":"2026-10-18T05:19:54.130Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.131Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.131Z","fetchedAt":"2026-10-18T05:19:54.131Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.132Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.132Z","fetchedAt":"2026-10-18T05:19:54.132Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.132Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.132Z","fetchedAt":"2026-10-18T05:19:54.132Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.138Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.138Z","fetchedAt":"2026-10-18T05:19:54.138Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.138Z","service":"money-service","provider":"currencybeacon","rateUpdatedAt":"2026-10-18T05:19:54.138Z","fetchedAt":"2026-10-18T05:19:54.138Z","msg":"[fx] USD rate table fetched"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.928Z","service":"money-service","country":"IN","methodCount":4,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.930Z","service":"money-service","country":"ID","methodCount":4,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.931Z","service":"money-service","country":"TH","methodCount":3,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.932Z","service":"money-service","country":"NG","methodCount":3,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.932Z","service":"money-service","country":"PK","methodCount":2,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.933Z","service":"money-service","country":"VN","methodCount":3,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.933Z","service":"money-service","country":"ZA","methodCount":2,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.934Z","service":"money-service","country":"TR","methodCount":2,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.934Z","service":"money-service","country":"AE","methodCount":3,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.935Z","service":"money-service","country":"BR","methodCount":4,"msg":"Retrieved payment methods"}
+{"level":"error","timestamp":"2026-10-18T05:19:54.935Z","service":"money-service","country":"US","msg":"Unsupported country requested"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.948Z","service":"money-service","country":"IN","methodCount":4,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.948Z","service":"money-service","country":"NG","methodCount":3,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.948Z","service":"money-service","country":"PK","methodCount":2,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.949Z","service":"money-service","country":"VN","methodCount":3,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.949Z","service":"money-service","country":"ID","methodCount":4,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.949Z","service":"money-service","country":"TH","methodCount":3,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.949Z","service":"money-service","country":"ZA","methodCount":2,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.949Z","service":"money-service","country":"TR","methodCount":2,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.949Z","service":"money-service","country":"AE","methodCount":3,"msg":"Retrieved payment methods"}
+{"level":"info","timestamp":"2026-10-18T05:19:54.949Z","service":"money-service","country":"BR","methodCount":4,"msg":"Retrieved payment methods"}
+
+Test Suites: 74 passed, 74 total
+Tests:       838 passed, 838 total
+Snapshots:   0 total
+Time:        52.607 s, estimated 69 s
+Ran all test suites.

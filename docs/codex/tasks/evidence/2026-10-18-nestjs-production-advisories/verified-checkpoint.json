@@ -1,0 +1,131 @@
+{
+  "saved_at": "2026-10-18T12:35:09.8457661+07:00",
+  "reason": "Davin requested durable checkpoint before credit replenishment",
+  "state": "ready_for_review; authorized implementation and verification complete",
+  "branch": "codex/nestjs-security-audit",
+  "head": "5dab316c79c13abd42d024f9291dda667cff755e",
+  "task": "docs/codex/tasks/2026-10-18-nestjs-production-advisories.md",
+  "handoff": "docs/handoffs/2026-10-18-nestjs-production-advisories-codex-verified.md",
+  "verification": "verification-results.json",
+  "file_hashes": "final-file-hashes.json",
+  "final_results": {
+    "money": {
+      "audit_exit": 1,
+      "e2e_exit": null,
+      "tsc_exit": 0,
+      "unit_exit": 0,
+      "suites": {
+        "passed": 74,
+        "failed": 0,
+        "skipped": 0,
+        "total": 74
+      },
+      "tests": {
+        "passed": 838,
+        "failed": 0,
+        "skipped": 0,
+        "total": 838
+      },
+      "audit": {
+        "info": 0,
+        "low": 0,
+        "moderate": 46,
+        "high": 13,
+        "critical": 0,
+        "total": 59
+      }
+    },
+    "operation": {
+      "audit_exit": 1,
+      "tsc_exit": 0,
+      "e2e_exit": null,
+      "unit_exit": 0,
+      "suites": {
+        "passed": 53,
+        "failed": 0,
+        "skipped": 0,
+        "total": 53
+      },
+      "tests": {
+        "passed": 506,
+        "failed": 0,
+        "skipped": 0,
+        "total": 506
+      },
+      "audit": {
+        "info": 0,
+        "low": 0,
+        "moderate": 46,
+        "high": 13,
+        "critical": 0,
+        "total": 59
+      }
+    },
+    "gateway": {
+      "unit_exit": 0,
+      "tsc_exit": 0,
+      "audit_exit": 1,
+      "e2e_exit": 0,
+      "initial_unit_exit": 1,
+      "checkout_peer_repaired": true,
+      "suites": {
+        "passed": 67,
+        "failed": 0,
+        "skipped": 10,
+        "total": 77
+      },
+      "tests": {
+        "passed": 2764,
+        "failed": 0,
+        "skipped": 376,
+        "total": 3140
+      },
+      "audit": {
+        "info": 0,
+        "low": 0,
+        "moderate": 3,
+        "high": 6,
+        "critical": 0,
+        "total": 9
+      },
+      "e2e": {
+        "suites": {
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0,
+          "total": 8
+        },
+        "tests": {
+          "passed": 156,
+          "failed": 0,
+          "skipped": 0,
+          "total": 156
+        }
+      }
+    }
+  },
+  "payload_files": [
+    "money-service/package-lock.json",
+    "operation-service/package-lock.json",
+    "railway-gateway/package-lock.json",
+    "money-service/src/stripe/stripe-checkout.controller.spec.ts"
+  ],
+  "active_task_commands": [],
+  "remaining": [
+    "Documented residual advisories require owner decisions for parent, major, or override changes",
+    "Existing shared-state writer may publish the verified handoff"
+  ],
+  "resume": [
+    "Read task and verified handoff first",
+    "Verify branch, HEAD, working-tree diff, and final-file-hashes.json before further edits",
+    "Do not reapply candidate patch or repeat completed baselines",
+    "Require explicit applicable owner approval before deferred dependency changes",
+    "Do not remove existing index.lock; four checkout EOL normalizations have no Git content diff",
+    "Commit and push remain unauthorized; one combined eventual PR is the preference"
+  ],
+  "constraints": [
+    "No commit, push, deploy, or production migration performed",
+    "Root package.json, root pnpm-lock.yaml, and service manifests unchanged",
+    "Claude shared state not overwritten"
+  ]
+}

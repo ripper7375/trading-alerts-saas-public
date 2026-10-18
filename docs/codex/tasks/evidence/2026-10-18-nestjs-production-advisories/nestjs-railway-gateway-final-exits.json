@@ -1,0 +1,8 @@
+{
+  "unit_exit": 0,
+  "tsc_exit": 0,
+  "audit_exit": 1,
+  "e2e_exit": 0,
+  "initial_unit_exit": 1,
+  "checkout_peer_repaired": true
+}
