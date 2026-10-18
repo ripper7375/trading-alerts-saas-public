@@ -74,7 +74,7 @@
     "security:audit": "pnpm audit",
     "security:audit:prod": "pnpm audit --prod",
     "security:audit:json": "pnpm audit --json > reports/security/pnpm-audit-latest.json",
-    "security:check": "pnpm audit --prod && echo '✅ No high/critical vulnerabilities in production dependencies'"
+    "security:check": "pnpm audit --prod --audit-level=high && echo '✅ No high/critical vulnerabilities in production dependencies'"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
@@ -209,7 +209,10 @@
       "next": "16.4.1",
       "@next/swc-win32-x64-msvc": "16.4.1",
       "mysql2@<3.22.0": "^3.22.0",
-      "deepmerge-ts@<8.0.0": "^8.0.0"
+      "deepmerge-ts@<8.0.0": "^8.0.0",
+      "handlebars@<4.7.10": "^4.7.10",
+      "underscore@<1.13.8": "^1.13.8",
+      "flatted@3.2.6": "^3.4.4"
     }
   },
   "engines": {

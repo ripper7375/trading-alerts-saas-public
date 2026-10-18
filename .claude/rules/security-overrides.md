@@ -25,6 +25,13 @@ rule — see `errors/continuous-pr-errors/`).
 - **2026-09-11 React 19.2.3 → 19.3.0:** `overrides` pinned `react`/`react-dom` to `^19.2.1`, so
   bumping `dependencies` alone would have been silently forced back. It was escalated with
   `AskUserQuestion`; Davin chose to bump the override in lockstep. Ask first, every time.
+- **2026-10-18 advisories below the gate:** `handlebars@<4.7.10`, `underscore@<1.13.8` and
+  `flatted@3.2.6` are overrides only because `newman`'s tree pins them exactly (`postman-runtime`
+  `handlebars 4.7.8`, `newman-reporter-htmlextra` `4.7.7`, `httpntlm` `underscore ~1.12.1`, `uvm`
+  `flatted 3.2.6`); every other fix was a lockfile-only lift. Drop each when its parent ships a
+  fixed pin. `@faker-js/faker` GHSA-qxc2-j82w-r537 (patched in 10.5.0) is deliberately NOT
+  overridden: `postman-collection` pins 5.5.3 and calls `faker.name.*` / `faker.random.*`, which
+  10.x removed, so the override would break newman's `{{$random…}}` variables.
 - This is a **pnpm workspace**: add root dependencies with `pnpm add -w <pkg>`. Plain
   `npm install` fails on the `workspace:*` protocol. The NestJS services (`money-service/`,
   `operation-service/`, `railway-gateway/`) use their own npm `package-lock.json`.
