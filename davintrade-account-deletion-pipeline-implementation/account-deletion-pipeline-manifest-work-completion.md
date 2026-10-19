@@ -4,7 +4,7 @@
 - **Owner / Approver:** Davin.
 - **Advisor:** Antigravity (wrote the remediation plan that left gap F21 open). This order was issued by Davin directly, as a pasted task.
 - **Originating Gap:** F21, the TODO that [`docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md`](../docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md) left open (Unit 1.1, Section 2 item 4): confirming a deletion deleted nothing and queued no job.
-- **Product Decision (Davin):** **Option B, soft delete and deactivation with an admin audit trail**, for all users for now. Full GDPR hard deletion stays a future extension for Eurozone users.
+- **Product Decision (Davin):** **Option B, soft delete and deactivation with an admin audit trail**, for all users for now. Full GDPR hard deletion / PII anonymization is scheduled as a dedicated future customization for Eurozone users (see detailed roadmap in Section 6).
 - **Execution Report:** [`docs/handoffs/2026-10-19-account-deletion-pipeline-f21.md`](../docs/handoffs/2026-10-19-account-deletion-pipeline-f21.md).
 - **Session Continuity Record:** the `2026-10-19 account-deletion-pipeline-f21` entry in [`.claude/state/current-state.md`](../.claude/state/current-state.md) and the first item of [`.claude/state/waiting-on.md`](../.claude/state/waiting-on.md).
 - **Overall Execution State:** **BUILT, VERIFIED, APPROVED AND COMMITTED LOCALLY (9 / 9 Units; commit `7c8f1ebe` on `main`, 66 files). NOT PUSHED, NOT APPLIED, NOT DEPLOYED.** Davin signed off the report and ordered the commit by explicit paths with no push. The migration `20261019000000_add_user_deleted_at` is a file only: it must be applied **before** any deploy. **Follow-up F21-F1 (the admin list shows "deleted" and returns `deletedAt`) was built afterwards on Davin's word and committed locally in a second commit on `main`, after `7c8f1ebe`** (6 files, section 6); this manifest is a third, docs-only commit. **Nothing of this work is pushed.**
@@ -254,9 +254,37 @@ Nothing in this work ran against a real service. To be observed in staging or on
 | 2   | **money-service crons ignore `isActive`.** A dLocal subscription has no recurring charge, but `checkExpiringSubscriptions` can still send a renewal reminder to a deleted user until the row expires. money-service's `User` mirror has no `isActive` or `deletedAt`.                                                                                           | `money-service/src/crons/subscription.service.ts`, `money-service/prisma/schema.prisma`                         |
 | 3   | **Confirmation and cancellation e-mails are still TODO** (preserved from the original source in both stacks).                                                                                                                                                                                                                                                   | `UsersService`, both monolith routes                                                                            |
 | 4   | **Residual reactivation** of an admin-suspended user who confirms and then cancels from an old link (section 3). Closing it needs another column (a reason for deactivation).                                                                                                                                                                                   | schema                                                                                                          |
-| 5   | **GDPR hard deletion for Eurozone users** is the future extension Davin named; this work keeps the `User`, `Account`, `Payment` and `Commission` rows by design.                                                                                                                                                                                                | product decision                                                                                                |
+| 5   | **GDPR hard deletion / PII anonymization for Eurozone users** is the planned customization Davin confirmed; this current work implements Option B (preserving `User`, `Account`, `Payment` and `Commission` rows for admin audit) globally, while Eurozone users will be routed to a dedicated GDPR-compliant pipeline in a future phase (see roadmap below).   | product decision / compliance                                                                                   |
 | 6   | **Two address-printing log lines** remain in `users.service.ts` (profile e-mail change, password change).                                                                                                                                                                                                                                                       | `operation-service/src/users/users.service.ts`                                                                  |
 | 7   | **`prisma/roles/roles.sql` looks out of date** (no `Drawing`, `DrawingAlert`, `RefreshToken`, which `operation-service` already writes). Worth reconciling with production after the grant check.                                                                                                                                                               | `prisma/roles/roles.sql`                                                                                        |
+
+### Eurozone User Customization & GDPR Compliance Roadmap (Future Specification)
+
+**Context & Legal Background:**
+While Option B (soft delete, account deactivation, and admin audit trail) is enforced globally for all users currently, European Union / Eurozone users are protected under **GDPR Article 17 ("Right to Erasure / Right to be Forgotten")**. To balance the Right to be Forgotten with statutory retention mandates (e.g. EU accounting, anti-money laundering, and tax directives requiring 5–10 years retention of financial transaction records under GDPR Art. 17(3)(b)), Davin has decided on a tailored Eurozone deletion architecture for future development:
+
+1. **User Jurisdiction Detection & Classification:**
+   - Detect whether an account falls under Eurozone/EU jurisdiction via:
+     - Billing country associated with Stripe / dLocal customer profiles (`country` code in EU/EEA).
+     - Registration IP geolocation tagged at initial account creation.
+     - User explicit residence setting in profile.
+   - Users tagged with `jurisdiction: 'EU'` will trigger the Eurozone deletion workflow upon confirming account deletion.
+
+2. **Differentiated Pipeline Execution (Option A Hybrid / Cryptographic Anonymization):**
+   - **Phase 1 (Lockout & Grace Period):** Retains the standard 24-hour grace window allowing user cancellation. Immediate token revocation and session invalidation (`isActive = false`) occur exactly as in Option B.
+   - **Phase 2 (Hard Delete & PII Scrubbing Worker):**
+     - **Irreversible PII Anonymization:** For the core `User` row, personal identifiers will be permanently scrubbed:
+       - `email` -> replaced with irreversible pseudonymous hash (e.g., `gdpr-deleted-[sha256]@deleted.davintrade.com`).
+       - `name` / `firstName` / `lastName` -> replaced with `GDPR Anonymized User`.
+       - `passwordHash` / `twoFactorSecret` / backup codes / phone numbers -> permanently set to `NULL`.
+       - Linked third-party OAuth `Account` records -> hard deleted.
+     - **Non-Statutory Artifact Hard Deletion:** All operational, analytical, and telemetry records (`Alert`, `DrawingAlert`, `Drawing`, `Notification`, `UserSession`, `Session`, `RefreshToken`, user preference settings) will be completely removed from the database (`DELETE CASCADE`).
+     - **Statutory Financial Record Preservation:** `Payment` and `Commission` ledger rows will remain in the database to satisfy legal accounting requirements, but all direct links to identifiable personal information will point only to the pseudonymized `User` record.
+     - **Worker Status:** The `AccountDeletionRequest` will be stamped as `COMPLETED_GDPR_ANONYMIZED`.
+
+3. **Admin Dashboard Visibility:**
+   - In the admin user interface (`app/admin/users`), Eurozone deleted accounts will display a distinct badge: **"GDPR Erased"** with a purple or neutral marker.
+   - Sensitive personal information will be completely inaccessible, confirming to administrators that GDPR compliance has been fulfilled while preserving financial aggregates and balance sheet integrity.
 
 ### Pre-existing changes left untouched
 
