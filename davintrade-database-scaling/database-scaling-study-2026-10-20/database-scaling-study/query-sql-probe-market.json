@@ -1,0 +1,112 @@
+{
+  "clientRelativePath": "node_modules/.prisma/market-client",
+  "prismaVersion": {
+    "client": "7.9.1",
+    "engine": "e922089b7d7502aff4249d5da3420f6fa55fc6ad"
+  },
+  "marketDataScalarFieldCount": 106,
+  "records": [
+    {
+      "case": "currency-latest-distinct-ordered",
+      "method": "queryRaw",
+      "sql": "SELECT \"public\".\"currency_gold_indices\".\"id\", \"public\".\"currency_gold_indices\".\"index_name\", \"public\".\"currency_gold_indices\".\"bar_time\", \"public\".\"currency_gold_indices\".\"value\", \"public\".\"currency_gold_indices\".\"change_pct\", \"public\".\"currency_gold_indices\".\"session_open_bar_time\" FROM \"public\".\"currency_gold_indices\" WHERE 1=1 ORDER BY \"public\".\"currency_gold_indices\".\"index_name\" ASC, \"public\".\"currency_gold_indices\".\"bar_time\" DESC OFFSET $1",
+      "args": ["0"]
+    },
+    {
+      "case": "pro-session-latest-distinct-ordered",
+      "method": "queryRaw",
+      "sql": "SELECT \"public\".\"currency_gold_indices\".\"id\", \"public\".\"currency_gold_indices\".\"index_name\", \"public\".\"currency_gold_indices\".\"session_open_bar_time\" FROM \"public\".\"currency_gold_indices\" WHERE \"public\".\"currency_gold_indices\".\"index_name\" IN ($1,$2) ORDER BY \"public\".\"currency_gold_indices\".\"index_name\" ASC, \"public\".\"currency_gold_indices\".\"bar_time\" DESC OFFSET $3",
+      "args": ["USDX", "EURX", "0"]
+    },
+    {
+      "case": "indicator-latest-distinct-ordered",
+      "method": "queryRaw",
+      "sql": "SELECT \"public\".\"indicator_statistics\".\"id\", \"public\".\"indicator_statistics\".\"symbol\", \"public\".\"indicator_statistics\".\"timeframe\", \"public\".\"indicator_statistics\".\"source\", \"public\".\"indicator_statistics\".\"captured_at\", \"public\".\"indicator_statistics\".\"containment_rate\", \"public\".\"indicator_statistics\".\"containment_count\", \"public\".\"indicator_statistics\".\"containment_n\" FROM \"public\".\"indicator_statistics\" WHERE 1=1 ORDER BY \"public\".\"indicator_statistics\".\"symbol\" ASC, \"public\".\"indicator_statistics\".\"timeframe\" ASC, \"public\".\"indicator_statistics\".\"source\" ASC, \"public\".\"indicator_statistics\".\"captured_at\" DESC OFFSET $1",
+      "args": ["0"]
+    },
+    {
+      "case": "channel-current",
+      "method": "queryRaw",
+      "sql": "SELECT \"public\".\"market_data_v6\".\"id\", \"public\".\"market_data_v6\".\"terminal_id\", \"public\".\"market_data_v6\".\"timestamp\", \"public\".\"market_data_v6\".\"symbol\", \"public\".\"market_data_v6\".\"timeframe\", \"public\".\"market_data_v6\".\"open\", \"public\".\"market_data_v6\".\"high\", \"public\".\"market_data_v6\".\"low\", \"public\".\"market_data_v6\".\"close\", \"public\".\"market_data_v6\".\"volume\", \"public\".\"market_data_v6\".\"best_fit_a_horiz_high_map\", \"public\".\"market_data_v6\".\"best_fit_a_horiz_low_map\", \"public\".\"market_data_v6\".\"best_fit_a_ssa\", \"public\".\"market_data_v6\".\"best_fit_a_ema_ssa\", \"public\".\"market_data_v6\".\"best_fit_a_crossing\", \"public\".\"market_data_v6\".\"best_fit_a_base_fl\", \"public\".\"market_data_v6\".\"best_fit_a_uoedt\", \"public\".\"market_data_v6\".\"best_fit_a_loedt\", \"public\".\"market_data_v6\".\"best_fit_b_horiz_high_map\", \"public\".\"market_data_v6\".\"best_fit_b_horiz_low_map\", \"public\".\"market_data_v6\".\"best_fit_b_ssa\", \"public\".\"market_data_v6\".\"best_fit_b_ema_ssa\", \"public\".\"market_data_v6\".\"best_fit_b_crossing\", \"public\".\"market_data_v6\".\"best_fit_b_base_fl\", \"public\".\"market_data_v6\".\"best_fit_b_uoedt\", \"public\".\"market_data_v6\".\"best_fit_b_loedt\", \"public\".\"market_data_v6\".\"cherry_a_horiz_high_map\", \"public\".\"market_data_v6\".\"cherry_a_horiz_low_map\", \"public\".\"market_data_v6\".\"cherry_a_ssa\", \"public\".\"market_data_v6\".\"cherry_a_ema_ssa\", \"public\".\"market_data_v6\".\"cherry_a_crossing\", \"public\".\"market_data_v6\".\"cherry_a_base_fl\", \"public\".\"market_data_v6\".\"cherry_a_uoedt\", \"public\".\"market_data_v6\".\"cherry_a_loedt\", \"public\".\"market_data_v6\".\"cherry_b_horiz_high_map\", \"public\".\"market_data_v6\".\"cherry_b_horiz_low_map\", \"public\".\"market_data_v6\".\"cherry_b_ssa\", \"public\".\"market_data_v6\".\"cherry_b_ema_ssa\", \"public\".\"market_data_v6\".\"cherry_b_crossing\", \"public\".\"market_data_v6\".\"cherry_b_base_fl\", \"public\".\"market_data_v6\".\"cherry_b_uoedt\", \"public\".\"market_data_v6\".\"cherry_b_loedt\", \"public\".\"market_data_v6\".\"most_recent_horiz_high_map\", \"public\".\"market_data_v6\".\"most_recent_horiz_low_map\", \"public\".\"market_data_v6\".\"most_recent_ssa\", \"public\".\"market_data_v6\".\"most_recent_ema_ssa\", \"public\".\"market_data_v6\".\"most_recent_crossing\", \"public\".\"market_data_v6\".\"most_recent_base_fl\", \"public\".\"market_data_v6\".\"most_recent_uoedt\", \"public\".\"market_data_v6\".\"most_recent_loedt\", \"public\".\"market_data_v6\".\"non_a_horiz_high_map\", \"public\".\"market_data_v6\".\"non_a_horiz_low_map\", \"public\".\"market_data_v6\".\"non_a_ssa\", \"public\".\"market_data_v6\".\"non_a_ema_ssa\", \"public\".\"market_data_v6\".\"non_a_crossing\", \"public\".\"market_data_v6\".\"non_a_base_fl\", \"public\".\"market_data_v6\".\"non_a_uoedt\", \"public\".\"market_data_v6\".\"non_a_loedt\", \"public\".\"market_data_v6\".\"non_b_horiz_high_map\", \"public\".\"market_data_v6\".\"non_b_horiz_low_map\", \"public\".\"market_data_v6\".\"non_b_ssa\", \"public\".\"market_data_v6\".\"non_b_ema_ssa\", \"public\".\"market_data_v6\".\"non_b_crossing\", \"public\".\"market_data_v6\".\"non_b_base_fl\", \"public\".\"market_data_v6\".\"non_b_uoedt\", \"public\".\"market_data_v6\".\"non_b_loedt\", \"public\".\"market_data_v6\".\"fractal_best_fl\", \"public\".\"market_data_v6\".\"fractal_uoedt\", \"public\".\"market_data_v6\".\"fractal_loedt\", \"public\".\"market_data_v6\".\"best_resistance\", \"public\".\"market_data_v6\".\"best_support\", \"public\".\"market_data_v6\".\"sr_1\", \"public\".\"market_data_v6\".\"sr_2\", \"public\".\"market_data_v6\".\"sr_3\", \"public\".\"market_data_v6\".\"sr_4\", \"public\".\"market_data_v6\".\"sr_5\", \"public\".\"market_data_v6\".\"sr_6\", \"public\".\"market_data_v6\".\"sr_7\", \"public\".\"market_data_v6\".\"sr_8\", \"public\".\"market_data_v6\".\"sr_9\", \"public\".\"market_data_v6\".\"sr_10\", \"public\".\"market_data_v6\".\"sr_11\", \"public\".\"market_data_v6\".\"sr_12\", \"public\".\"market_data_v6\".\"sr_13\", \"public\".\"market_data_v6\".\"sr_14\", \"public\".\"market_data_v6\".\"sr_15\", \"public\".\"market_data_v6\".\"sr_16\", \"public\".\"market_data_v6\".\"body_direction\", \"public\".\"market_data_v6\".\"body_size\", \"public\".\"market_data_v6\".\"body_classification\", \"public\".\"market_data_v6\".\"zigzag_point_type\", \"public\".\"market_data_v6\".\"zigzag_current_point\", \"public\".\"market_data_v6\".\"zigzag_price_change\", \"public\".\"market_data_v6\".\"zigzag_pct_change\", \"public\".\"market_data_v6\".\"zigzag_pct_change_class\", \"public\".\"market_data_v6\".\"zigzag_bars\", \"public\".\"market_data_v6\".\"zigzag_bars_class\", \"public\".\"market_data_v6\".\"zigzag_price_per_bar\", \"public\".\"market_data_v6\".\"zigzag_price_per_bar_class\", \"public\".\"market_data_v6\".\"zigzag_slope\", \"public\".\"market_data_v6\".\"zigzag_category\", \"public\".\"market_data_v6\".\"cycle_id\", \"public\".\"market_data_v6\".\"collected_at\", \"public\".\"market_data_v6\".\"calculated_at\", \"public\".\"market_data_v6\".\"createdAt\", \"public\".\"market_data_v6\".\"updatedAt\" FROM \"public\".\"market_data_v6\" WHERE (\"public\".\"market_data_v6\".\"symbol\" = $1 AND \"public\".\"market_data_v6\".\"timeframe\" = $2) ORDER BY \"public\".\"market_data_v6\".\"timestamp\" DESC LIMIT $3 OFFSET $4",
+      "args": ["XAUUSD", "M5", "300", "0"]
+    },
+    {
+      "case": "channel-projected",
+      "method": "queryRaw",
+      "sql": "SELECT \"public\".\"market_data_v6\".\"id\", \"public\".\"market_data_v6\".\"timestamp\", \"public\".\"market_data_v6\".\"best_fit_a_uoedt\", \"public\".\"market_data_v6\".\"best_fit_a_base_fl\", \"public\".\"market_data_v6\".\"best_fit_a_loedt\" FROM \"public\".\"market_data_v6\" WHERE (\"public\".\"market_data_v6\".\"symbol\" = $1 AND \"public\".\"market_data_v6\".\"timeframe\" = $2) ORDER BY \"public\".\"market_data_v6\".\"timestamp\" DESC LIMIT $3 OFFSET $4",
+      "args": ["XAUUSD", "M5", "300", "0"]
+    },
+    {
+      "case": "gateway-upsert-current",
+      "method": "queryRaw",
+      "sql": "INSERT INTO \"public\".\"market_data_v6\" (\"id\",\"terminal_id\",\"timestamp\",\"symbol\",\"timeframe\",\"open\",\"high\",\"low\",\"close\",\"volume\",\"cycle_id\",\"collected_at\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (\"symbol\",\"timeframe\",\"timestamp\") DO UPDATE SET \"terminal_id\" = $15, \"timestamp\" = $16, \"symbol\" = $17, \"timeframe\" = $18, \"open\" = $19, \"high\" = $20, \"low\" = $21, \"close\" = $22, \"volume\" = $23, \"cycle_id\" = $24, \"collected_at\" = $25, \"updatedAt\" = $26 WHERE ((\"public\".\"market_data_v6\".\"symbol\" = $27 AND \"public\".\"market_data_v6\".\"timeframe\" = $28 AND \"public\".\"market_data_v6\".\"timestamp\" = $29) AND 1=1) RETURNING \"public\".\"market_data_v6\".\"id\", \"public\".\"market_data_v6\".\"terminal_id\", \"public\".\"market_data_v6\".\"timestamp\", \"public\".\"market_data_v6\".\"symbol\", \"public\".\"market_data_v6\".\"timeframe\", \"public\".\"market_data_v6\".\"open\", \"public\".\"market_data_v6\".\"high\", \"public\".\"market_data_v6\".\"low\", \"public\".\"market_data_v6\".\"close\", \"public\".\"market_data_v6\".\"volume\", \"public\".\"market_data_v6\".\"best_fit_a_horiz_high_map\", \"public\".\"market_data_v6\".\"best_fit_a_horiz_low_map\", \"public\".\"market_data_v6\".\"best_fit_a_ssa\", \"public\".\"market_data_v6\".\"best_fit_a_ema_ssa\", \"public\".\"market_data_v6\".\"best_fit_a_crossing\", \"public\".\"market_data_v6\".\"best_fit_a_base_fl\", \"public\".\"market_data_v6\".\"best_fit_a_uoedt\", \"public\".\"market_data_v6\".\"best_fit_a_loedt\", \"public\".\"market_data_v6\".\"best_fit_b_horiz_high_map\", \"public\".\"market_data_v6\".\"best_fit_b_horiz_low_map\", \"public\".\"market_data_v6\".\"best_fit_b_ssa\", \"public\".\"market_data_v6\".\"best_fit_b_ema_ssa\", \"public\".\"market_data_v6\".\"best_fit_b_crossing\", \"public\".\"market_data_v6\".\"best_fit_b_base_fl\", \"public\".\"market_data_v6\".\"best_fit_b_uoedt\", \"public\".\"market_data_v6\".\"best_fit_b_loedt\", \"public\".\"market_data_v6\".\"cherry_a_horiz_high_map\", \"public\".\"market_data_v6\".\"cherry_a_horiz_low_map\", \"public\".\"market_data_v6\".\"cherry_a_ssa\", \"public\".\"market_data_v6\".\"cherry_a_ema_ssa\", \"public\".\"market_data_v6\".\"cherry_a_crossing\", \"public\".\"market_data_v6\".\"cherry_a_base_fl\", \"public\".\"market_data_v6\".\"cherry_a_uoedt\", \"public\".\"market_data_v6\".\"cherry_a_loedt\", \"public\".\"market_data_v6\".\"cherry_b_horiz_high_map\", \"public\".\"market_data_v6\".\"cherry_b_horiz_low_map\", \"public\".\"market_data_v6\".\"cherry_b_ssa\", \"public\".\"market_data_v6\".\"cherry_b_ema_ssa\", \"public\".\"market_data_v6\".\"cherry_b_crossing\", \"public\".\"market_data_v6\".\"cherry_b_base_fl\", \"public\".\"market_data_v6\".\"cherry_b_uoedt\", \"public\".\"market_data_v6\".\"cherry_b_loedt\", \"public\".\"market_data_v6\".\"most_recent_horiz_high_map\", \"public\".\"market_data_v6\".\"most_recent_horiz_low_map\", \"public\".\"market_data_v6\".\"most_recent_ssa\", \"public\".\"market_data_v6\".\"most_recent_ema_ssa\", \"public\".\"market_data_v6\".\"most_recent_crossing\", \"public\".\"market_data_v6\".\"most_recent_base_fl\", \"public\".\"market_data_v6\".\"most_recent_uoedt\", \"public\".\"market_data_v6\".\"most_recent_loedt\", \"public\".\"market_data_v6\".\"non_a_horiz_high_map\", \"public\".\"market_data_v6\".\"non_a_horiz_low_map\", \"public\".\"market_data_v6\".\"non_a_ssa\", \"public\".\"market_data_v6\".\"non_a_ema_ssa\", \"public\".\"market_data_v6\".\"non_a_crossing\", \"public\".\"market_data_v6\".\"non_a_base_fl\", \"public\".\"market_data_v6\".\"non_a_uoedt\", \"public\".\"market_data_v6\".\"non_a_loedt\", \"public\".\"market_data_v6\".\"non_b_horiz_high_map\", \"public\".\"market_data_v6\".\"non_b_horiz_low_map\", \"public\".\"market_data_v6\".\"non_b_ssa\", \"public\".\"market_data_v6\".\"non_b_ema_ssa\", \"public\".\"market_data_v6\".\"non_b_crossing\", \"public\".\"market_data_v6\".\"non_b_base_fl\", \"public\".\"market_data_v6\".\"non_b_uoedt\", \"public\".\"market_data_v6\".\"non_b_loedt\", \"public\".\"market_data_v6\".\"fractal_best_fl\", \"public\".\"market_data_v6\".\"fractal_uoedt\", \"public\".\"market_data_v6\".\"fractal_loedt\", \"public\".\"market_data_v6\".\"best_resistance\", \"public\".\"market_data_v6\".\"best_support\", \"public\".\"market_data_v6\".\"sr_1\", \"public\".\"market_data_v6\".\"sr_2\", \"public\".\"market_data_v6\".\"sr_3\", \"public\".\"market_data_v6\".\"sr_4\", \"public\".\"market_data_v6\".\"sr_5\", \"public\".\"market_data_v6\".\"sr_6\", \"public\".\"market_data_v6\".\"sr_7\", \"public\".\"market_data_v6\".\"sr_8\", \"public\".\"market_data_v6\".\"sr_9\", \"public\".\"market_data_v6\".\"sr_10\", \"public\".\"market_data_v6\".\"sr_11\", \"public\".\"market_data_v6\".\"sr_12\", \"public\".\"market_data_v6\".\"sr_13\", \"public\".\"market_data_v6\".\"sr_14\", \"public\".\"market_data_v6\".\"sr_15\", \"public\".\"market_data_v6\".\"sr_16\", \"public\".\"market_data_v6\".\"body_direction\", \"public\".\"market_data_v6\".\"body_size\", \"public\".\"market_data_v6\".\"body_classification\", \"public\".\"market_data_v6\".\"zigzag_point_type\", \"public\".\"market_data_v6\".\"zigzag_current_point\", \"public\".\"market_data_v6\".\"zigzag_price_change\", \"public\".\"market_data_v6\".\"zigzag_pct_change\", \"public\".\"market_data_v6\".\"zigzag_pct_change_class\", \"public\".\"market_data_v6\".\"zigzag_bars\", \"public\".\"market_data_v6\".\"zigzag_bars_class\", \"public\".\"market_data_v6\".\"zigzag_price_per_bar\", \"public\".\"market_data_v6\".\"zigzag_price_per_bar_class\", \"public\".\"market_data_v6\".\"zigzag_slope\", \"public\".\"market_data_v6\".\"zigzag_category\", \"public\".\"market_data_v6\".\"cycle_id\", \"public\".\"market_data_v6\".\"collected_at\", \"public\".\"market_data_v6\".\"calculated_at\", \"public\".\"market_data_v6\".\"createdAt\", \"public\".\"market_data_v6\".\"updatedAt\"",
+      "args": [
+        "cmvfukqlz00000ov2i5wfzpxc",
+        "AUDIT",
+        1700000000,
+        "XAUUSD",
+        "M5",
+        1,
+        1,
+        1,
+        1,
+        0,
+        1,
+        1700000000,
+        "2026-10-19T22:50:11.256Z",
+        "2026-10-19T22:50:11.256Z",
+        "AUDIT",
+        1700000000,
+        "XAUUSD",
+        "M5",
+        1,
+        1,
+        1,
+        1,
+        0,
+        1,
+        1700000000,
+        "2026-10-19T22:50:11.256Z",
+        "XAUUSD",
+        "M5",
+        1700000000
+      ]
+    },
+    {
+      "case": "gateway-upsert-projected",
+      "method": "queryRaw",
+      "sql": "INSERT INTO \"public\".\"market_data_v6\" (\"id\",\"terminal_id\",\"timestamp\",\"symbol\",\"timeframe\",\"open\",\"high\",\"low\",\"close\",\"volume\",\"cycle_id\",\"collected_at\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) ON CONFLICT (\"symbol\",\"timeframe\",\"timestamp\") DO UPDATE SET \"terminal_id\" = $15, \"timestamp\" = $16, \"symbol\" = $17, \"timeframe\" = $18, \"open\" = $19, \"high\" = $20, \"low\" = $21, \"close\" = $22, \"volume\" = $23, \"cycle_id\" = $24, \"collected_at\" = $25, \"updatedAt\" = $26 WHERE ((\"public\".\"market_data_v6\".\"symbol\" = $27 AND \"public\".\"market_data_v6\".\"timeframe\" = $28 AND \"public\".\"market_data_v6\".\"timestamp\" = $29) AND 1=1) RETURNING \"public\".\"market_data_v6\".\"id\"",
+      "args": [
+        "cmvfukqmd00010ov20yhf9gy1",
+        "AUDIT",
+        1700000000,
+        "XAUUSD",
+        "M5",
+        1,
+        1,
+        1,
+        1,
+        0,
+        1,
+        1700000000,
+        "2026-10-19T22:50:11.269Z",
+        "2026-10-19T22:50:11.269Z",
+        "AUDIT",
+        1700000000,
+        "XAUUSD",
+        "M5",
+        1,
+        1,
+        1,
+        1,
+        0,
+        1,
+        1700000000,
+        "2026-10-19T22:50:11.269Z",
+        "XAUUSD",
+        "M5",
+        1700000000
+      ]
+    }
+  ]
+}

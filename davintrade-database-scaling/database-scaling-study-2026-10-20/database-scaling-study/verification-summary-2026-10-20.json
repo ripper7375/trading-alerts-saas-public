@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-20",
+  "status": "passed",
+  "sourceFilesUnchanged": 23,
+  "compilerObservationGroups": 10,
+  "checks": [
+    {
+      "client": "market",
+      "case": "currency-latest-distinct-ordered",
+      "sqlDistinct": false,
+      "sqlLimit": false
+    },
+    {
+      "client": "market",
+      "case": "pro-session-latest-distinct-ordered",
+      "sqlDistinct": false,
+      "sqlLimit": false
+    },
+    {
+      "client": "market",
+      "case": "indicator-latest-distinct-ordered",
+      "sqlDistinct": false,
+      "sqlLimit": false
+    },
+    {
+      "client": "market",
+      "case": "channel-projection",
+      "before": 106,
+      "after": 5,
+      "filterOrderLimitUnchanged": true
+    },
+    {
+      "client": "market",
+      "case": "upsert-returning",
+      "before": 106,
+      "after": 1,
+      "sqlBeforeReturningUnchanged": true
+    },
+    {
+      "client": "gateway",
+      "case": "currency-latest-distinct-ordered",
+      "sqlDistinct": false,
+      "sqlLimit": false
+    },
+    {
+      "client": "gateway",
+      "case": "pro-session-latest-distinct-ordered",
+      "sqlDistinct": false,
+      "sqlLimit": false
+    },
+    {
+      "client": "gateway",
+      "case": "indicator-latest-distinct-ordered",
+      "sqlDistinct": false,
+      "sqlLimit": false
+    },
+    {
+      "client": "gateway",
+      "case": "channel-projection",
+      "before": 106,
+      "after": 5,
+      "filterOrderLimitUnchanged": true
+    },
+    {
+      "client": "gateway",
+      "case": "upsert-returning",
+      "before": 106,
+      "after": 1,
+      "sqlBeforeReturningUnchanged": true
+    }
+  ],
+  "limitation": "SQL compilation only. No live SQL execution, runtime performance, deployed topology or result equivalence is established."
+}

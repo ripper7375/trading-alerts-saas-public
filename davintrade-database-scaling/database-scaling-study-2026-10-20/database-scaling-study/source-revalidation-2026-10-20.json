@@ -1,0 +1,117 @@
+[
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\lib\\db\\prisma.ts",
+    "unchanged": true,
+    "sha256": "A8CE17C726D51D47BE590325DEEC4D388C4886709AC93E516695825682B32E5B"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\lib\\db\\market-prisma.ts",
+    "unchanged": true,
+    "sha256": "66F28C5CD5B77EDFCAFCB0EF2C027289701C2DC6829817FCBEA224F13164CA77"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\lib\\redis\\client.ts",
+    "unchanged": true,
+    "sha256": "43F57FD8DC8016779E1A9452227BF4F323675C874839F2027C17E556E31E4258"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\lib\\cache\\cache-manager.ts",
+    "unchanged": true,
+    "sha256": "E8D43EDEF3DC0EC39630F749D254A55981254320C80F1583EBED7DFB6722AE3D"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\lib\\currency-index-pro\\queries.ts",
+    "unchanged": true,
+    "sha256": "72748D8325F0658B7827DD81D7F391F0E2215DC619733BE346760C61A1634C52"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\lib\\currency-gold-indices\\queries.ts",
+    "unchanged": true,
+    "sha256": "986B858CC0755D95D18F3C1E2FA163B102147933F770313C932004B55A970D2F"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\lib\\indicator-statistics\\queries.ts",
+    "unchanged": true,
+    "sha256": "6E77D2752AA35528EE4B2601D71AE89B66480D3FE4EA8ED37B951B19BC232D03"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\app\\api\\market-data\\channel\\route.ts",
+    "unchanged": true,
+    "sha256": "FA99C94760EA8BA7562F8BD5EBDC2744D9B376A3C98C187896211067D344A484"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\operation-service\\src\\market-data\\market-data.service.ts",
+    "unchanged": true,
+    "sha256": "A7B8B61A01A1C48A869F1ACC6E7E98659F0331AB44AE6E3AC36777C35864D946"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\railway-gateway\\src\\worker\\market-data.processor.ts",
+    "unchanged": true,
+    "sha256": "F50F547D6101BC0B34A6890D2FA93C79BE84FD8DB5372870D200A4ECBB782AE3"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\prisma\\market-data\\schema.prisma",
+    "unchanged": true,
+    "sha256": "22C1B060BB8E51AD2F6CC42CB5BFE585B58810303E0550439D98A9BA0C02E9F6"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\railway-gateway\\src\\prisma\\prisma.service.ts",
+    "unchanged": true,
+    "sha256": "B26CA59EC650422DE9E7D1464620AF13E3977F26CC25C47059DE746435A9A274"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\operation-service\\src\\prisma\\prisma.service.ts",
+    "unchanged": true,
+    "sha256": "80FE44A87EAD73696716BA5AAB45DAB1AC62B1C0E80CCACED37E6C2983D125AC"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\money-service\\src\\prisma\\prisma.service.ts",
+    "unchanged": true,
+    "sha256": "19C326833E5696BC3F1C54F9B3C6CF71CDD09A81960B5471C6F825E3E1DBF778"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\app\\api\\market\\currency-index-pro\\chart\\route.ts",
+    "unchanged": true,
+    "sha256": "A09958CD15E124103C8079FD151EA3FDC1C783977CB11C54B9D5EAF82EE166C1"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\app\\api\\market\\currency-index-pro\\screener\\route.ts",
+    "unchanged": true,
+    "sha256": "8E2E5390254A5EEA1CB2D84EBACBDC7557E688354891060D68326D81BD8BEB8B"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\app\\api\\market\\currency-index-pro\\detail\\route.ts",
+    "unchanged": true,
+    "sha256": "CD0A35D431312EA39F116BB595FFFE28229878E74E960FACF9650FB7A08F6CC7"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\app\\api\\market\\currency-gold-indices\\route.ts",
+    "unchanged": true,
+    "sha256": "604CF506E59B65A4F24F8C8EF18C0893AEA5B51C8574904D34BD9F96FE4701E3"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\app\\api\\market\\currency-gold-indices\\history\\route.ts",
+    "unchanged": true,
+    "sha256": "D71D54CF205646F40404D8E14490DBF77CEF5D1807C9BF7775C79F72F52A3837"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\app\\api\\market\\currency-index-pro\\comparison\\route.ts",
+    "unchanged": true,
+    "sha256": "F27691A30AE1705FC9BA940C3B1ECE43FDCDAF3ACE8191686CBA49674984512C"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\components\\currency-index-pro\\hooks\\use-currency-index-chart.ts",
+    "unchanged": true,
+    "sha256": "2054939F15F6689D609CBE6C152A524BA4B5BB36D472825F32E879BE411654DB"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\components\\currency-index-pro\\hooks\\use-currency-index-screener.ts",
+    "unchanged": true,
+    "sha256": "0C8FF4AECFAE4681DE7759187001AFFB76833F7FA718CFE249023483910D6654"
+  },
+  {
+    "path": "D:\\SaaS Project\\trading-alerts-saas-public\\components\\charts\\mtf\\useMtfOverlay.ts",
+    "unchanged": true,
+    "sha256": "58AA75554AD452606D3CFE6290E7D3CC55E4EBE0BB037BC00057CD7379872E98"
+  }
+]
