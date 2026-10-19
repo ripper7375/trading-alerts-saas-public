@@ -263,6 +263,7 @@ describe('dLocal Payment Service', () => {
         ok: true,
         json: async () => ({
           id: 'dlocal-payment-1',
+          status: 'PENDING',
           redirect_url: 'https://sandbox.dlocal.com/pay/1',
         }),
       });
@@ -303,6 +304,7 @@ describe('dLocal Payment Service', () => {
         ok: true,
         json: async () => ({
           id: 'dlocal-payment-2',
+          status: 'PENDING',
           redirect_url: 'https://sandbox.dlocal.com/pay/2',
         }),
       });
@@ -360,6 +362,161 @@ describe('dLocal Payment Service', () => {
       ).rejects.toThrow(/No dLocal method code mapped/);
 
       expect(freshFetch).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createPayment response handling (dLocal REJECTED / no redirect_url)', () => {
+    const ORIGINAL_ENV = process.env;
+    const ORIGINAL_FETCH = global.fetch;
+    const request = {
+      userId: 'user-900',
+      amount: 29.0,
+      currency: 'THB' as const,
+      country: 'TH' as const,
+      paymentMethod: 'TrueMoney',
+      planType: 'MONTHLY' as const,
+    };
+
+    // Loads a fresh service with dLocal answering `body` (HTTP 200) and
+    // returns createPayment plus the fetch spy.
+    const loadWithDLocalReply = (
+      body: Record<string, unknown>,
+      extraEnv: Record<string, string> = {}
+    ) => {
+      jest.resetModules();
+      process.env = {
+        ...ORIGINAL_ENV,
+        NODE_ENV: 'production',
+        NEXTAUTH_URL: 'https://app.example.test',
+        DLOCAL_API_KEY: 'test-api-key',
+        DLOCAL_LOGIN: 'test-login',
+        DLOCAL_SECRET_KEY: 'test-secret',
+        ...extraEnv,
+      };
+      const freshFetch = jest
+        .fn()
+        .mockResolvedValue({ ok: true, json: async () => body });
+      global.fetch = freshFetch as unknown as typeof fetch;
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const service = require('./dlocal-payment.service');
+      return {
+        createPaymentFresh: service.createPayment as typeof createPayment,
+        freshFetch,
+      };
+    };
+
+    afterEach(() => {
+      process.env = ORIGINAL_ENV;
+      global.fetch = ORIGINAL_FETCH;
+      jest.resetModules();
+    });
+
+    it("throws dLocal's status_detail when dLocal answers 200 with status REJECTED (no fabricated URL)", async () => {
+      const { createPaymentFresh } = loadWithDLocalReply({
+        id: 'R-1804074-abc',
+        status: 'REJECTED',
+        status_detail: 'The payment was rejected.',
+        status_code: '300',
+        payment_method_flow: 'REDIRECT',
+      });
+
+      await expect(createPaymentFresh(request)).rejects.toThrow(
+        'The payment was rejected.'
+      );
+    });
+
+    it('falls back to the status code when a rejection carries no status_detail', async () => {
+      const { createPaymentFresh } = loadWithDLocalReply({
+        id: 'R-1804074-abc',
+        status: 'REJECTED',
+        status_code: '300',
+      });
+
+      await expect(createPaymentFresh(request)).rejects.toThrow(
+        'Payment rejected by dLocal with code 300'
+      );
+    });
+
+    it.each(['PAID', 'CANCELLED', 'EXPIRED', undefined])(
+      'refuses any status other than PENDING (%s)',
+      async (status) => {
+        const { createPaymentFresh } = loadWithDLocalReply({
+          id: 'pay-1',
+          status,
+          redirect_url: 'https://sandbox.dlocal.com/pay/1',
+        });
+
+        await expect(createPaymentFresh(request)).rejects.toBeDefined();
+      }
+    );
+
+    it('throws instead of building a sandbox.dlocal.com/payment/<id> URL when redirect_url is missing', async () => {
+      const { createPaymentFresh } = loadWithDLocalReply({
+        id: 'pay-2',
+        status: 'PENDING',
+        payment_method_flow: 'REDIRECT',
+      });
+
+      await expect(createPaymentFresh(request)).rejects.toThrow(
+        /No redirect URL was provided/
+      );
+    });
+
+    it('throws when redirect_url is an empty string', async () => {
+      const { createPaymentFresh } = loadWithDLocalReply({
+        id: 'pay-3',
+        status: 'PENDING',
+        redirect_url: '',
+      });
+
+      await expect(createPaymentFresh(request)).rejects.toThrow(
+        /No redirect URL was provided/
+      );
+    });
+
+    it("returns dLocal's own redirect_url and status for a PENDING payment", async () => {
+      const { createPaymentFresh } = loadWithDLocalReply({
+        id: 'pay-4',
+        status: 'PENDING',
+        redirect_url: 'https://checkout.dlocal.com/real/pay-4',
+      });
+
+      await expect(createPaymentFresh(request)).resolves.toMatchObject({
+        paymentId: 'pay-4',
+        paymentUrl: 'https://checkout.dlocal.com/real/pay-4',
+        status: 'PENDING',
+      });
+    });
+
+    it('trims whitespace and newlines from the dLocal environment variables', async () => {
+      const { createPaymentFresh, freshFetch } = loadWithDLocalReply(
+        {
+          id: 'pay-5',
+          status: 'PENDING',
+          redirect_url: 'https://checkout.dlocal.com/real/pay-5',
+        },
+        {
+          DLOCAL_API_URL: 'https://sandbox.dlocal.com \n',
+          DLOCAL_LOGIN: '  test-login\n',
+          DLOCAL_API_KEY: 'test-api-key \r\n',
+          DLOCAL_SECRET_KEY: ' test-secret\n',
+        }
+      );
+
+      await createPaymentFresh(request);
+
+      const [url, init] = freshFetch.mock.calls[0];
+      expect(url).toBe('https://sandbox.dlocal.com/payments');
+      expect(init.headers['X-Login']).toBe('test-login');
+      expect(init.headers['X-Trans-Key']).toBe('test-api-key');
+
+      const expectedSignature = crypto
+        .createHmac('sha256', 'test-secret')
+        .update(`test-login${init.headers['X-Date']}${init.body}`)
+        .digest('hex');
+      expect(init.headers.Authorization).toBe(
+        `V2-HMAC-SHA256, Signature: ${expectedSignature}`
+      );
     });
   });
 

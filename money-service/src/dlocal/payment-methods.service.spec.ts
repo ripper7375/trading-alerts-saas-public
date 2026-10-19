@@ -260,6 +260,11 @@ describe('Payment Methods Service', () => {
       expect(getDLocalMethodCode('TH', 'TrueMoney')).toBe('TM');
     });
 
+    it("maps the other Thai methods to the codes dLocal accepts: 'Thai QR' -> 'QR', 'Rabbit LINE Pay' -> 'LP' (TH_QR and RLP were rejected with 5010)", () => {
+      expect(getDLocalMethodCode('TH', 'Thai QR')).toBe('QR');
+      expect(getDLocalMethodCode('TH', 'Rabbit LINE Pay')).toBe('LP');
+    });
+
     it('throws a descriptive error for an unmapped display name, never sending it verbatim', () => {
       expect(() => getDLocalMethodCode('IN', 'Bitcoin')).toThrow(
         /No dLocal method code mapped/

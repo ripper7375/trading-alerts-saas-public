@@ -80,6 +80,9 @@ export class DlocalPaymentController {
     @Req() request: AuthenticatedRequest,
     @Body() body: unknown
   ): Promise<Record<string, unknown>> {
+    // Set once the PENDING Payment row exists, so the catch below can close it.
+    let pendingPaymentId: string | null = null;
+
     try {
       // Remediation Tier 2 §6.5: refuse before any Payment row or lock exists.
       // Without the dLocal key (or NEXTAUTH_URL, which builds the webhook URL)
@@ -240,6 +243,8 @@ export class DlocalPaymentController {
         },
       });
 
+      pendingPaymentId = payment.id;
+
       logger.info('Payment record created', { paymentId: payment.id, userId });
 
       const dLocalPayment = await createPayment({
@@ -280,6 +285,26 @@ export class DlocalPaymentController {
         planDuration: getPlanDuration(planType),
       };
     } catch (error) {
+      // A rejected or failed attempt must not linger as PENDING. Done before
+      // the HttpException early return so every failure after the row exists
+      // is covered. A failure here must never hide the original error.
+      if (pendingPaymentId) {
+        try {
+          await this.prisma.payment.update({
+            where: { id: pendingPaymentId },
+            data: { status: 'FAILED' },
+          });
+        } catch (updateError) {
+          logger.error('Failed to mark payment FAILED', {
+            paymentId: pendingPaymentId,
+            error:
+              updateError instanceof Error
+                ? updateError.message
+                : 'Unknown error',
+          });
+        }
+      }
+
       if (error instanceof HttpException) throw error;
 
       logger.error('Failed to create payment', {

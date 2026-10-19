@@ -282,4 +282,65 @@ describe('DlocalPaymentController', () => {
     });
     expect(prismaMock.payment.create).not.toHaveBeenCalled();
   });
+
+  describe('a failed dLocal attempt does not linger as PENDING', () => {
+    it("marks the Payment row FAILED and still answers with dLocal's reason when dLocal rejects the payment", async () => {
+      (createPayment as jest.Mock).mockRejectedValue(
+        new Error('The payment was rejected.')
+      );
+
+      await expect(
+        controller.create(makeRequest(), validBody)
+      ).rejects.toMatchObject({
+        status: 500,
+        response: { error: 'The payment was rejected.' },
+      });
+
+      expect(prismaMock.payment.update).toHaveBeenCalledTimes(1);
+      expect(prismaMock.payment.update).toHaveBeenCalledWith({
+        where: { id: 'payment-1' },
+        data: { status: 'FAILED' },
+      });
+    });
+
+    it('marks the row FAILED when saving the dLocal payment id fails after dLocal accepted it', async () => {
+      prismaMock.payment.update
+        .mockRejectedValueOnce(new Error('db down'))
+        .mockResolvedValueOnce({} as never);
+
+      await expect(
+        controller.create(makeRequest(), validBody)
+      ).rejects.toMatchObject({ status: 500, response: { error: 'db down' } });
+
+      expect(prismaMock.payment.update).toHaveBeenLastCalledWith({
+        where: { id: 'payment-1' },
+        data: { status: 'FAILED' },
+      });
+    });
+
+    it('still throws the original error when marking the row FAILED itself fails', async () => {
+      (createPayment as jest.Mock).mockRejectedValue(
+        new Error('The payment was rejected.')
+      );
+      prismaMock.payment.update.mockRejectedValue(new Error('db down'));
+
+      await expect(
+        controller.create(makeRequest(), validBody)
+      ).rejects.toMatchObject({
+        status: 500,
+        response: { error: 'The payment was rejected.' },
+      });
+    });
+
+    it('touches no Payment row when the failure happens before one exists', async () => {
+      (convertUSDToLocal as jest.Mock).mockRejectedValue(new Error('no rate'));
+
+      await expect(
+        controller.create(makeRequest(), validBody)
+      ).rejects.toMatchObject({ status: 500 });
+
+      expect(prismaMock.payment.create).not.toHaveBeenCalled();
+      expect(prismaMock.payment.update).not.toHaveBeenCalled();
+    });
+  });
 });

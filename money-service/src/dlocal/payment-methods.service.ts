@@ -27,7 +27,7 @@ export const DLOCAL_METHOD_CODE_MAP: Record<
   Record<string, string>
 > = {
   IN: { UPI: 'UP', Paytm: 'PAYTM', PhonePe: 'PHONEPE', 'Net Banking': 'NB' },
-  TH: { TrueMoney: 'TM', 'Rabbit LINE Pay': 'RLP', 'Thai QR': 'TH_QR' },
+  TH: { TrueMoney: 'TM', 'Rabbit LINE Pay': 'LP', 'Thai QR': 'QR' },
   VN: { VNPay: 'VNPAY', MoMo: 'MOMO', ZaloPay: 'ZALOPAY' },
   ID: { GoPay: 'GOPAY', OVO: 'OVO', Dana: 'DANA', ShopeePay: 'SHOPEEPAY' },
   NG: {

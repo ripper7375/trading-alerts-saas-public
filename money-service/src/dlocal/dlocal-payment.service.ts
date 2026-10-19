@@ -24,13 +24,21 @@ import type {
 } from './dlocal.types';
 import { getDLocalMethodCode } from './payment-methods.service';
 
+/**
+ * Reads an environment variable trimmed. A value pasted into a hosting
+ * dashboard often carries a trailing space or newline, which would silently
+ * break the HMAC signature and the X-Login / X-Trans-Key headers.
+ */
+function readEnv(name: string): string {
+  return (process.env[name] ?? '').trim();
+}
+
 const DLOCAL_API_URL =
-  process.env['DLOCAL_API_URL'] || 'https://sandbox.dlocal.com';
-const DLOCAL_LOGIN =
-  process.env['DLOCAL_LOGIN'] || process.env['DLOCAL_API_KEY'] || '';
-const DLOCAL_API_KEY = process.env['DLOCAL_API_KEY'] || '';
-const DLOCAL_SECRET_KEY = process.env['DLOCAL_SECRET_KEY'] || '';
-const DLOCAL_WEBHOOK_SECRET = process.env['DLOCAL_WEBHOOK_SECRET'] || '';
+  readEnv('DLOCAL_API_URL') || 'https://sandbox.dlocal.com';
+const DLOCAL_LOGIN = readEnv('DLOCAL_LOGIN') || readEnv('DLOCAL_API_KEY');
+const DLOCAL_API_KEY = readEnv('DLOCAL_API_KEY');
+const DLOCAL_SECRET_KEY = readEnv('DLOCAL_SECRET_KEY');
+const DLOCAL_WEBHOOK_SECRET = readEnv('DLOCAL_WEBHOOK_SECRET');
 
 /**
  * Remediation Tier 2 §6.5: thrown when a real dLocal payment is asked for but
@@ -203,14 +211,39 @@ export async function createPayment(
 
     const data = await response.json();
 
+    // dLocal answers HTTP 200 even when it refuses the payment (for example
+    // status REJECTED, code 300, with no redirect_url). Only a PENDING payment
+    // that carries a redirect URL can be handed to the customer.
+    if (data.status !== 'PENDING') {
+      logger.error('dLocal did not accept the payment', {
+        paymentId: data.id,
+        orderId,
+        status: data.status,
+        statusCode: data.status_code,
+        statusDetail: data.status_detail,
+      });
+      throw new Error(
+        data.status_detail ||
+          `Payment rejected by dLocal with code ${data.status_code}`
+      );
+    }
+
+    if (!data.redirect_url) {
+      logger.error('dLocal returned no redirect URL for a REDIRECT payment', {
+        paymentId: data.id,
+        orderId,
+        paymentMethodFlow: data.payment_method_flow,
+      });
+      throw new Error('No redirect URL was provided by the payment gateway');
+    }
+
     logger.info('dLocal payment created', { paymentId: data.id, orderId });
 
     return {
       paymentId: data.id || `dlocal-${Date.now()}`,
       orderId,
-      paymentUrl:
-        data.redirect_url || `https://sandbox.dlocal.com/payment/${data.id}`,
-      status: 'PENDING' as PaymentStatus,
+      paymentUrl: data.redirect_url,
+      status: data.status as PaymentStatus,
       amount: request.amount,
       currency: request.currency,
     };
