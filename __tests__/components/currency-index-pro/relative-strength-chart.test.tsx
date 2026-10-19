@@ -160,6 +160,44 @@ describe('RelativeStrengthChart', () => {
     ]);
   });
 
+  // lightweight-charts cancels every vertical wheel event to zoom, so with the
+  // pointer over a chart as wide as the page the page could not be scrolled.
+  it('lets the wheel scroll the page over the chart, and Ctrl+wheel zoom it', () => {
+    const { container, unmount } = render(
+      <RelativeStrengthChart data={data} />
+    );
+    // The element createChart() receives; the chart's own DOM goes inside it.
+    const chartHost = container.querySelector(
+      'div.relative > div.w-full'
+    ) as HTMLElement;
+    const chartElement = document.createElement('div');
+    chartHost.appendChild(chartElement);
+    const chartSaw = jest.fn();
+    chartElement.addEventListener('wheel', chartSaw);
+
+    chartElement.dispatchEvent(
+      new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true })
+    );
+    expect(chartSaw).not.toHaveBeenCalled();
+
+    chartElement.dispatchEvent(
+      new WheelEvent('wheel', {
+        deltaY: 100,
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      })
+    );
+    expect(chartSaw).toHaveBeenCalledTimes(1);
+
+    // The interception goes with the chart: nothing is left on the container.
+    unmount();
+    chartElement.dispatchEvent(
+      new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true })
+    );
+    expect(chartSaw).toHaveBeenCalledTimes(2);
+  });
+
   it('gives the host every bar time any currency has', () => {
     render(<RelativeStrengthChart data={data} />);
     expect(host().setData).toHaveBeenLastCalledWith([

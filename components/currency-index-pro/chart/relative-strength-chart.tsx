@@ -45,6 +45,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useChartAppearance } from '@/components/providers/appearance-provider';
 import { useLocale } from '@/lib/context/locale-context';
 import { EventVerticalLine } from '@/components/charts/drawing/EventVerticalLine';
+import { releaseWheelToPage } from '@/components/charts/release-wheel-to-page';
 import {
   ALL_CURRENCIES,
   indexNameForCurrency,
@@ -200,6 +201,10 @@ export function RelativeStrengthChart({
     chartTime.applyTo(chart);
     setChartApi(chart);
 
+    // The chart would otherwise take every wheel event to zoom, so the page
+    // could not be scrolled with the pointer over it. Ctrl/Cmd+wheel zooms.
+    const releaseWheel = releaseWheelToPage(containerRef.current);
+
     const handleResize = (): void => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
@@ -210,6 +215,7 @@ export function RelativeStrengthChart({
     window.addEventListener('resize', handleResize);
 
     return (): void => {
+      releaseWheel();
       window.removeEventListener('resize', handleResize);
       chart.remove();
       chartRef.current = null;
