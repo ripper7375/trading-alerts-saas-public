@@ -50,6 +50,21 @@ Read before any schema change, migration, or query against a real database.
 - **`prisma migrate deploy` applies every pending migration in history order**, not just yours.
   Run `prisma migrate status` first. To apply one migration alone:
   `prisma db execute --file <migration.sql>` then `prisma migrate resolve --applied <name>`.
+- **A new column on a table the app reads whole is a login outage until the migration is applied** (2026-10-19, `User.deletedAt`).
+  Prisma lists every column of the generated client in a `findUnique` with no `select`, so one missing column fails every such read:
+  `The column User.deletedAt does not exist in the current database` on the credentials provider, the OAuth `signIn` callback and the
+  adapter (the browser sees `/login?error=Callback` after a successful Google or X consent). `main` deploys on push and `next build` does
+  not migrate, so **apply the migration to production BEFORE the push** (and say so in the hand-off). Reproduced on a scratch PostgreSQL 18:
+  36 earlier migrations applied, the three reads fail, then pass once `20261019000000_add_user_deleted_at` is applied. Apply that one
+  migration alone (`prisma db execute --file` then `prisma migrate resolve --applied`, with `--config prisma.production.config.ts`: the
+  default config points at the staging clone), never a bare `migrate deploy`.
+  **Sign-in no longer depends on it** (built 2026-10-19, uncommitted): every `User` call in `lib/auth/`, `app/api/auth/`,
+  `app/api/user/{2fa,password}/`, `lib/security/device-detection.ts` and operation-service's `src/auth/` (plus its two `UsersService`
+  calls) names its columns (`lib/auth/user-select.ts`, `operation-service/src/auth/user-select.ts`), and the NextAuth adapter's user
+  methods are overridden with a `select`. Held by `__tests__/lib/auth/user-select-guard.test.ts` and
+  `operation-service/src/auth/user-select.guard.spec.ts` (a source guard plus sign-in against a database that rejects a bare `User`
+  call). **A new `User` read or write in those files must name its columns.** What is NOT covered: 16 other whole-row `User`
+  calls in the monolith (Stripe and dLocal webhook handlers, affiliate registration, the crons) still need the migration first.
 - Verify hand-written SQL against Prisma's own DDL:
   `prisma migrate diff --from-empty --to-schema <file> --script` (`--to-schema-datamodel` was
   removed in Prisma 7.9.1). When Docker Desktop is up, replay on a throwaway `postgres:16-alpine`.

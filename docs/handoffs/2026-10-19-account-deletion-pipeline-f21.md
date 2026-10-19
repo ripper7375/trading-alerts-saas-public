@@ -7,6 +7,18 @@
 full GDPR hard deletion stays a future extension for Eurozone users). It closes the open TODO of
 [the Tier 0 to Tier 2 report](./2026-10-16-nestjs-tier0-tier2-execution.md) (Unit 1.1, Section 2 item 4, gap F21).
 
+> **Update 2026-10-19 (after the push): login failed on davintrade.app for Google, X and e-mail (`/login?error=Callback`).** The commits
+> reached `main` and Vercel deployed them, but item 1 below (apply the migration first) had not been done: every full-row read of
+> `"User"` then fails with `The column User.deletedAt does not exist in the current database`. Reproduced on a scratch PostgreSQL 18
+> (before: the credentials read, the OAuth read and the adapter read fail; after applying the committed migration file: they pass, which
+> also shows the migration SQL is valid). Fix: apply that one migration to **production** (see
+> [waiting-on](../../.claude/state/waiting-on.md) and [database-traps](../../.claude/architecture/database-traps.md)). Not yet confirmed on
+> production's own logs. **Hardening F21-H1, built afterwards and pushed on Davin's order:** sign-in no longer depends on any column it does not use: each
+> `User` call on the sign-in paths of both stacks names its columns, and the NextAuth adapter's user methods are overridden with a
+> `select` (`lib/auth/user-select.ts`, `operation-service/src/auth/user-select.ts`; guards in `__tests__/lib/auth/user-select-guard.test.ts`
+> and `operation-service/src/auth/user-select.guard.spec.ts`). Applying the migration is still required before the admin list, the
+> worker and the other whole-row reads work.
+
 ## 1. Needs from Davin
 
 Before anything is deployed, in this order:
@@ -148,7 +160,7 @@ If the role operation-service connects as lacks any of them, the worker fails cl
   a renewal reminder to a deleted user until the row expires. money-service's `User` mirror has no `isActive` or `deletedAt`.
 - **The edge middleware** still lets a stale cookie reach a page; the first server-side session read then clears it. It cannot query the database.
 - **The admin list** (`app/api/admin/users/route.ts`) showed these users as `suspended` and did not return `deletedAt`. **Fixed afterwards
-  as follow-up F21-F1 on Davin's word, in its own commit after `7c8f1ebe` (not pushed):** the API says `deleted` and returns `deletedAt`,
+  as follow-up F21-F1 on Davin's word, in its own commit (`4217e43a` on `origin/main`):** the API says `deleted` and returns `deletedAt`,
   the list shows a grey dot with the date as a tooltip, the user detail page shows a Deleted badge and a "Deleted on" row (8 new tests;
   see the manifest, section 6).
 - The Tier 2 report's open item (4) said `confirmDeletion` queues no job; that is now closed (see waiting-on).
