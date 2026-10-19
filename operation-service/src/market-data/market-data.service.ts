@@ -6,10 +6,11 @@ import {
 
 import { PrismaService } from '../prisma/prisma.service';
 import {
-  CENTROID_VARIANTS,
+  CHANNEL_SOURCES,
   SYMBOLS,
   TIMEFRAMES,
-  type CentroidVariant,
+  channelColumns,
+  type ChannelSource,
   type Tier,
 } from './market-data.schemas';
 
@@ -75,17 +76,17 @@ export class MarketDataService {
       });
     }
 
-    if (!(CENTROID_VARIANTS as readonly string[]).includes(variant)) {
+    // Every channel source, the fractal EDT included: the monolith forwards
+    // the active source as the variant (step 2 part 6, item (c)).
+    if (!(CHANNEL_SOURCES as readonly string[]).includes(variant)) {
       throw new BadRequestException({
         success: false,
-        error: `Invalid variant. Available: ${CENTROID_VARIANTS.join(', ')}`,
+        error: `Invalid variant. Available: ${CHANNEL_SOURCES.join(', ')}`,
       });
     }
 
-    const validVariant = variant as CentroidVariant;
-    const upper = `${validVariant}_uoedt`;
-    const mid = `${validVariant}_base_fl`;
-    const lower = `${validVariant}_loedt`;
+    const validVariant = variant as ChannelSource;
+    const { upper, mid, lower } = channelColumns(validVariant);
 
     // Name the four columns the overlay draws. A read with no `select` asks for
     // every column of the generated client, so one column added to the schema

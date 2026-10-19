@@ -27,6 +27,42 @@ export const CENTROID_VARIANTS = [
 
 export type CentroidVariant = (typeof CENTROID_VARIANTS)[number];
 
+/**
+ * The channel indicators the endpoint serves — mirrors the monolith's
+ * `lib/active-indicator/sources.ts`: the seven centroid variants and the
+ * fractal EDT. The monolith forwards the ACTIVE source as `variant` when
+ * `ACTIVE_INDICATOR_FROM_GATEWAY` is on, so this must accept every source the
+ * active-indicator setting can name (step 2 part 6, item (c)).
+ */
+export const CHANNEL_SOURCES = [...CENTROID_VARIANTS, 'fractal_edt'] as const;
+
+export type ChannelSource = (typeof CHANNEL_SOURCES)[number];
+
+/**
+ * The market_data_v6 columns of a source's channel: upper EDT, the base fit
+ * line, lower EDT. The centroid variants share one naming
+ * (`<variant>_uoedt`, `<variant>_base_fl`, `<variant>_loedt`); the fractal EDT
+ * names them differently (`fractal_uoedt`, `fractal_best_fl`, `fractal_loedt`).
+ */
+export function channelColumns(source: ChannelSource): {
+  upper: string;
+  mid: string;
+  lower: string;
+} {
+  if (source === 'fractal_edt') {
+    return {
+      upper: 'fractal_uoedt',
+      mid: 'fractal_best_fl',
+      lower: 'fractal_loedt',
+    };
+  }
+  return {
+    upper: `${source}_uoedt`,
+    mid: `${source}_base_fl`,
+    lower: `${source}_loedt`,
+  };
+}
+
 const DEFAULT_LIMIT = 300;
 const MAX_LIMIT = 1000;
 

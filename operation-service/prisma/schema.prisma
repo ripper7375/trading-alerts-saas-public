@@ -431,6 +431,14 @@ model MarketDataV6 {
   non_b_uoedt         Float?
   non_b_loedt         Float?
 
+  // The fractal EDT's three channel lines (its own names, not `<source>_*`),
+  // for an active `fractal_edt` forwarded by the monolith (step 2 part 6
+  // item (c)). They exist in the live table since
+  // 20260705000000_add_market_data_v6: prisma generate only.
+  fractal_best_fl Float?
+  fractal_uoedt   Float?
+  fractal_loedt   Float?
+
   @@unique([symbol, timeframe, timestamp])
   @@index([symbol, timeframe, timestamp])
   @@map("market_data_v6")

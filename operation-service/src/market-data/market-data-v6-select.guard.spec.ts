@@ -5,7 +5,7 @@ import * as ts from 'typescript';
 
 import { AlertCheckerService } from '../alert-engine/alert-checker.service';
 import type { PrismaService } from '../prisma/prisma.service';
-import { CENTROID_VARIANTS } from './market-data.schemas';
+import { CHANNEL_SOURCES, channelColumns } from './market-data.schemas';
 import { MarketDataService } from './market-data.service';
 
 /**
@@ -17,8 +17,10 @@ import { MarketDataService } from './market-data.service';
  * way `User.deletedAt` broke sign-in on 2026-10-19. Three kinds of evidence, as in the monolith's
  * `__tests__/lib/db/market-data-v6-select-guard.test.ts`:
  *  1. a source guard: every `<x>.marketDataV6.<call>(...)` under `src/` names its columns;
- *  2. each variant's three channel columns are in this service's narrower mirror of the model (a
- *     `select` naming a field the client does not have is a Prisma error, not a `null`);
+ *  2. each channel source's three columns are in this service's narrower mirror of the model and
+ *     in the monolith's full one (a `select` naming a field the client does not have is a Prisma
+ *     error, not a `null`), and the sources are the monolith's (the monolith forwards the active
+ *     one, the fractal EDT included, as the variant);
  *  3. both services run against a database that rejects a read with no `select`, or one naming a
  *     column the database does not have yet.
  */
@@ -85,9 +87,9 @@ function productionFiles(dir: string): string[] {
   return out;
 }
 
-/** The field names of this service's `model MarketDataV6` mirror. */
-function mirrorColumns(): Set<string> {
-  const schema = readFileSync(join(SRC, '../prisma/schema.prisma'), 'utf8');
+/** The field names of `model MarketDataV6` in a schema file (no field has an `@map`). */
+function modelColumns(schemaPath: string): Set<string> {
+  const schema = readFileSync(schemaPath, 'utf8');
   const block = /^model MarketDataV6 \{([\s\S]*?)^\}/m.exec(schema);
   if (!block) throw new Error('model MarketDataV6 not found');
   const columns = new Set<string>();
@@ -140,16 +142,55 @@ describe('source guard: operation-service names the market_data_v6 columns it re
     expect(violations).toEqual([]);
   });
 
-  it("every variant's three channel columns are in the mirror schema", () => {
-    const columns = mirrorColumns();
-    expect(columns.has('timestamp')).toBe(true);
-    expect(columns.has('close')).toBe(true);
-    for (const variant of CENTROID_VARIANTS) {
-      for (const suffix of ['uoedt', 'base_fl', 'loedt']) {
-        const column = `${variant}_${suffix}`;
-        expect(`${column} ${columns.has(column)}`).toBe(`${column} true`);
+  it("every channel source's three columns are in the mirror schema and in the monolith's", () => {
+    const schemas = {
+      mirror: modelColumns(join(SRC, '../prisma/schema.prisma')),
+      monolith: modelColumns(
+        join(SRC, '../../prisma/market-data/schema.prisma')
+      ),
+    };
+    expect(schemas.monolith.size).toBeGreaterThan(100);
+    for (const [name, columns] of Object.entries(schemas)) {
+      for (const column of ['timestamp', 'close']) {
+        expect(`${name}: ${column} ${columns.has(column)}`).toBe(
+          `${name}: ${column} true`
+        );
+      }
+      for (const source of CHANNEL_SOURCES) {
+        for (const column of Object.values(channelColumns(source))) {
+          expect(`${name}: ${source} ${column} ${columns.has(column)}`).toBe(
+            `${name}: ${source} ${column} true`
+          );
+        }
       }
     }
+  });
+
+  it("the channel sources are the monolith's: its centroid variants plus the fractal EDT, with the same columns", () => {
+    const indicator = readFileSync(
+      join(SRC, '../../types/indicator.ts'),
+      'utf8'
+    );
+    const block = indicator.slice(
+      indicator.indexOf('export const CENTROID_VARIANTS')
+    );
+    const variants = [
+      ...block.slice(0, block.indexOf('] as const')).matchAll(/'([a-z_]+)'/g),
+    ].map((m) => m[1]);
+    expect([...CHANNEL_SOURCES]).toEqual([...variants, 'fractal_edt']);
+    // the monolith's channelColumns names the fractal EDT's columns this way
+    const sources = readFileSync(
+      join(SRC, '../../lib/active-indicator/sources.ts'),
+      'utf8'
+    );
+    expect(sources).toContain("upper: 'fractal_uoedt'");
+    expect(sources).toContain("mid: 'fractal_best_fl'");
+    expect(sources).toContain("lower: 'fractal_loedt'");
+    expect(channelColumns('fractal_edt')).toEqual({
+      upper: 'fractal_uoedt',
+      mid: 'fractal_best_fl',
+      lower: 'fractal_loedt',
+    });
   });
 });
 
@@ -196,7 +237,7 @@ describe('behaviour: against a database that lacks a column the code knows about
     ).rejects.toThrow(`market_data_v6.${MISSING_COLUMN} does not exist`);
   });
 
-  it.each(CENTROID_VARIANTS.map((variant) => [variant]))(
+  it.each(CHANNEL_SOURCES.map((source) => [source]))(
     'the channel proxy answers the channel of %s',
     async (variant) => {
       const result = await new MarketDataService(prisma).getChannelData(
@@ -209,11 +250,12 @@ describe('behaviour: against a database that lacks a column the code knows about
       expect(result.points).toEqual([
         { time: 100, upper: 1001, mid: 1002, lower: 1003 },
       ]);
+      const { upper, mid, lower } = channelColumns(variant);
       expect(Object.keys(calls[0]!['select'] as object)).toEqual([
         'timestamp',
-        `${variant}_uoedt`,
-        `${variant}_base_fl`,
-        `${variant}_loedt`,
+        upper,
+        mid,
+        lower,
       ]);
     }
   );

@@ -15,8 +15,10 @@
  * `activeIndicator` (the source, the slot it took effect at, the slot it was
  * resolved at). If the gateway cannot say, the route answers 503 rather than
  * show a different indicator than the sensors use. With the flag off (the
- * default) the variant comes from the query string, defaulting to `best_fit_a`,
- * exactly as before.
+ * default) the variant comes from the query string, defaulting to `best_fit_a`:
+ * any channel source, the fractal EDT included, so this route and
+ * operation-service's port (which the active source is forwarded to as the
+ * variant) accept the same list.
  *
  * PRO-exclusive: this endpoint powers multi-timeframe visualization. Regular
  * single-timeframe data access remains identical for both tiers elsewhere.
@@ -34,8 +36,10 @@ import {
   type ResolvedChannel,
 } from '@/lib/active-indicator/resolve';
 import {
+  CHANNEL_SOURCES,
   channelColumns,
   isActiveIndicatorTimeframe,
+  isChannelSource,
   type ChannelSource,
 } from '@/lib/active-indicator/sources';
 import { authOptions } from '@/lib/auth/auth-options';
@@ -46,7 +50,6 @@ import {
   OperationServiceError,
 } from '@/lib/operation-service/write-routes';
 import { SYMBOLS, TIMEFRAMES, type Tier } from '@/lib/tier-config';
-import { CENTROID_VARIANTS, type CentroidVariant } from '@/types/indicator';
 
 interface ChannelPoint {
   time: number;
@@ -195,13 +198,12 @@ export async function GET(
     if (active) {
       variant = active.source;
     } else {
-      const requested = (searchParams.get('variant') ??
-        'best_fit_a') as CentroidVariant;
-      if (!CENTROID_VARIANTS.includes(requested)) {
+      const requested = searchParams.get('variant') ?? 'best_fit_a';
+      if (!isChannelSource(requested)) {
         return NextResponse.json(
           {
             success: false,
-            error: `Invalid variant. Available: ${CENTROID_VARIANTS.join(', ')}`,
+            error: `Invalid variant. Available: ${CHANNEL_SOURCES.join(', ')}`,
           },
           { status: 400 }
         );

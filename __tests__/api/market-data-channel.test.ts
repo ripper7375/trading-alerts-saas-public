@@ -206,7 +206,7 @@ describe('GET /api/market-data/channel', () => {
     expect(data.error).toBe('Unsupported timeframe (M5, M15 only)');
   });
 
-  it('returns 400 listing all 7 variants for an invalid variant (PRO caller)', async () => {
+  it('returns 400 listing all 8 channel sources for an invalid variant (PRO caller)', async () => {
     mockGetServerSession.mockResolvedValue({
       user: { id: 'user-123', tier: 'PRO' },
     });
@@ -221,7 +221,38 @@ describe('GET /api/market-data/channel', () => {
 
     expect(response.status).toBe(400);
     expect(data.error).toBe(
-      'Invalid variant. Available: best_fit_a, best_fit_b, cherry_a, cherry_b, most_recent, non_a, non_b'
+      'Invalid variant. Available: best_fit_a, best_fit_b, cherry_a, cherry_b, most_recent, non_a, non_b, fractal_edt'
+    );
+  });
+
+  it('serves the fractal EDT asked in the query string, from its own column names', async () => {
+    mockGetServerSession.mockResolvedValue({
+      user: { id: 'user-123', tier: 'PRO' },
+    });
+    mockFindMany.mockResolvedValue([
+      makeRow({ fractal_uoedt: 7, fractal_best_fl: 6, fractal_loedt: 5 }),
+    ]);
+
+    const { GET } = await import('@/app/api/market-data/channel/route');
+    const response = await GET(
+      makeRequest(
+        'http://localhost/api/market-data/channel?variant=fractal_edt'
+      )
+    );
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data.variant).toBe('fractal_edt');
+    expect(data.points).toEqual([{ time: 100, upper: 7, mid: 6, lower: 5 }]);
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          timestamp: true,
+          fractal_uoedt: true,
+          fractal_best_fl: true,
+          fractal_loedt: true,
+        },
+      })
     );
   });
 
