@@ -46,7 +46,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       console.log('[Resend] User not found:', validated.email);
       return NextResponse.json({
         success: true,
-        message: 'If your email is registered, you will receive a verification email.',
+        message:
+          'If your email is registered, you will receive a verification email.',
       });
     }
 
@@ -55,7 +56,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       console.log('[Resend] Email already verified:', validated.email);
       return NextResponse.json({
         success: true,
-        message: 'If your email is registered, you will receive a verification email.',
+        message:
+          'If your email is registered, you will receive a verification email.',
       });
     }
 
@@ -64,7 +66,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     const RATE_LIMIT_MS = 60 * 1000; // 60 seconds
 
     if (user.verificationToken && timeSinceLastUpdate < RATE_LIMIT_MS) {
-      const waitSeconds = Math.ceil((RATE_LIMIT_MS - timeSinceLastUpdate) / 1000);
+      const waitSeconds = Math.ceil(
+        (RATE_LIMIT_MS - timeSinceLastUpdate) / 1000
+      );
       return NextResponse.json(
         {
           error: `Please wait ${waitSeconds} seconds before requesting another verification email.`,
@@ -84,6 +88,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         verificationToken,
         updatedAt: new Date(),
       },
+      select: { id: true },
     });
 
     // Send verification email
@@ -94,7 +99,10 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
 
     if (!emailResult.success) {
-      console.error('[Resend] Failed to send verification email:', emailResult.error);
+      console.error(
+        '[Resend] Failed to send verification email:',
+        emailResult.error
+      );
       return NextResponse.json(
         { error: 'Failed to send verification email. Please try again.' },
         { status: 500 }

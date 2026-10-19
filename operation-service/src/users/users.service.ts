@@ -21,6 +21,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { formatLocation, getGeoLocation } from '../security/geo-location.util';
 import { TwoFactorService } from '../auth/two-factor.service';
+import { ID_ONLY_SELECT } from '../auth/user-select';
 import {
   ChangePasswordInput,
   DEFAULT_PREFERENCES,
@@ -112,6 +113,7 @@ export class UsersService {
     if (email && email !== currentEmail) {
       const existingUser = await this.prisma.user.findUnique({
         where: { email },
+        select: ID_ONLY_SELECT,
       });
       if (existingUser) {
         throw new ConflictException('Email already in use');
@@ -238,6 +240,7 @@ export class UsersService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
+      select: ID_ONLY_SELECT,
     });
 
     console.log(`[Password] Password changed for user: ${user.email}`);

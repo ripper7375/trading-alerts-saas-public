@@ -27,6 +27,12 @@ import {
   RefreshTokenContext,
   RefreshTokenService,
 } from './refresh-token.service';
+import {
+  ID_ONLY_SELECT,
+  LOGIN_USER_SELECT,
+  REGISTERED_USER_SELECT,
+  SESSION_USER_SELECT,
+} from './user-select';
 
 // 2FA-completion sentinel — ported from lib/auth/auth-options.ts's
 // authorize(): the special email value the frontend re-submits, with the
@@ -91,6 +97,7 @@ export class AuthService {
   ): Promise<RegisterResult> {
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
+      select: ID_ONLY_SELECT,
     });
     if (existingUser) {
       throw new AccountExistsError('User with this email already exists');
@@ -111,6 +118,7 @@ export class AuthService {
         emailVerified: autoVerify ? new Date() : null,
         verificationToken: autoVerify ? null : verificationToken,
       },
+      select: REGISTERED_USER_SELECT,
     });
 
     if (!autoVerify) {
@@ -234,6 +242,7 @@ export class AuthService {
             emailVerified: new Date(),
             isActive: true,
           },
+          select: LOGIN_USER_SELECT,
         });
 
         return dbUser;
@@ -281,6 +290,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { email: normalizedEmail },
+      select: LOGIN_USER_SELECT,
     });
 
     if (!user || !user.password) {
@@ -335,6 +345,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: decoded.userId },
+      select: SESSION_USER_SELECT,
     });
     if (!user) {
       throw new InvalidCredentialsError('Invalid or expired 2FA token');
@@ -403,7 +414,10 @@ export class AuthService {
       context
     );
 
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: SESSION_USER_SELECT,
+    });
     if (!user) {
       throw new InvalidTokenError(
         'User for this refresh token no longer exists'
@@ -462,7 +476,10 @@ export class AuthService {
   async forgotPassword(
     email: string
   ): Promise<{ success: true; message: string }> {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: { id: true, name: true },
+    });
 
     if (user) {
       const resetToken = randomBytes(32).toString('hex');
@@ -471,6 +488,7 @@ export class AuthService {
       await this.prisma.user.update({
         where: { id: user.id },
         data: { resetToken, resetTokenExpiry },
+        select: ID_ONLY_SELECT,
       });
 
       const emailResult = await sendPasswordResetEmail(
@@ -503,6 +521,7 @@ export class AuthService {
   ): Promise<{ success: true; message: string }> {
     const user = await this.prisma.user.findFirst({
       where: { resetToken: token },
+      select: { id: true, resetTokenExpiry: true },
     });
 
     if (!user) {
@@ -522,6 +541,7 @@ export class AuthService {
         resetToken: null,
         resetTokenExpiry: null,
       },
+      select: ID_ONLY_SELECT,
     });
 
     return {
@@ -542,6 +562,7 @@ export class AuthService {
   ): Promise<{ success: true; message: string }> {
     const user = await this.prisma.user.findFirst({
       where: { verificationToken: token },
+      select: { id: true, email: true, name: true, updatedAt: true },
     });
 
     if (!user) {
@@ -565,6 +586,7 @@ export class AuthService {
         emailVerified: new Date(),
         verificationToken: null,
       },
+      select: ID_ONLY_SELECT,
     });
 
     try {
@@ -643,6 +665,7 @@ export class AuthService {
         verificationToken,
         updatedAt: new Date(),
       },
+      select: ID_ONLY_SELECT,
     });
 
     const emailResult = await sendVerificationEmail(

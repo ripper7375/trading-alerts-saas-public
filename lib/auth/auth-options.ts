@@ -11,6 +11,12 @@ import LinkedInProvider from 'next-auth/providers/linkedin';
 import TwitterProvider from 'next-auth/providers/twitter';
 
 import { ACCOUNT_DEACTIVATED_CODE } from '@/lib/account/deletion';
+import {
+  ADAPTER_USER_SELECT,
+  CREDENTIALS_USER_SELECT,
+  ID_ONLY_SELECT,
+  SESSION_USER_SELECT,
+} from '@/lib/auth/user-select';
 import { isUserActive } from '@/lib/auth/user-active';
 import { prisma } from '@/lib/db/prisma';
 import type { UserTier, UserRole } from '@/types';
@@ -60,6 +66,25 @@ if (process.env.NODE_ENV === 'development') {
  * Custom Prisma Adapter that extends the default adapter to set default values
  * for new OAuth users (tier: FREE, role: USER, emailVerified: now)
  */
+/** The columns `ADAPTER_USER_SELECT` returns. */
+type AdapterUserRow = {
+  id: string;
+  name: string | null;
+  email: string;
+  emailVerified: Date | null;
+  image: string | null;
+};
+
+/**
+ * This app's `AdapterUser` also declares tier, role, isAffiliate, isActive and the two dates, but
+ * NextAuth only reads id, email, name, image and emailVerified from an adapter user, and the `jwt`
+ * callback below reads the rest fresh from the database (its fallback tests `'tier' in user`).
+ * So the narrow row is handed over as it is.
+ */
+const toAdapterUser = (row: AdapterUserRow): AdapterUser => row as AdapterUser;
+const toAdapterUserOrNull = (row: AdapterUserRow | null): AdapterUser | null =>
+  row ? toAdapterUser(row) : null;
+
 function CustomPrismaAdapter(): Adapter {
   // @next-auth/prisma-adapter's PrismaAdapter() signature is hardcoded to
   // the default '@prisma/client' PrismaClient type (not generic) — it never
@@ -86,17 +111,72 @@ function CustomPrismaAdapter(): Adapter {
             role: 'USER',
             isAffiliate: false,
           },
+          // Only what NextAuth needs back: the INSERT must not RETURN columns the
+          // database may not have yet (see lib/auth/user-select.ts).
+          select: ADAPTER_USER_SELECT,
         });
         console.log('[OAuth] User created successfully:', user.id);
-        return user as AdapterUser;
+        return toAdapterUser(user);
       } catch (error) {
         console.error('[OAuth] Error creating user:', error);
         throw error;
       }
     },
-    // Diagnostic wrappers only (delegate straight to the base adapter) - a
-    // failure in either of these during the OAuth callback used to bubble up
-    // as a bare `error=Callback` with nothing in the server logs to say why.
+    // The base adapter reads and returns whole `User` rows (`findUnique` with no
+    // `select`, `account.select.user = true`, `include: { user: true }`). Each method
+    // that returns a user is replaced here by the same call with an explicit
+    // `select`, so a column the sign-in does not use can be added to the schema ahead
+    // of its migration without breaking sign-in (lib/auth/user-select.ts).
+    getUser: async (id: string) =>
+      toAdapterUserOrNull(
+        await prisma.user.findUnique({
+          where: { id },
+          select: ADAPTER_USER_SELECT,
+        })
+      ),
+    getUserByEmail: async (email: string) =>
+      toAdapterUserOrNull(
+        await prisma.user.findUnique({
+          where: { email },
+          select: ADAPTER_USER_SELECT,
+        })
+      ),
+    updateUser: async ({
+      id,
+      ...data
+    }: Partial<AdapterUser> & Pick<AdapterUser, 'id'>) =>
+      toAdapterUser(
+        await prisma.user.update({
+          where: { id },
+          data,
+          select: ADAPTER_USER_SELECT,
+        })
+      ),
+    deleteUser: async (id: string) =>
+      toAdapterUser(
+        await prisma.user.delete({
+          where: { id },
+          select: ADAPTER_USER_SELECT,
+        })
+      ),
+    // Only used by a database session strategy (this app uses JWT); kept correct anyway.
+    getSessionAndUser: async (sessionToken: string) => {
+      const row = await prisma.session.findUnique({
+        where: { sessionToken },
+        select: {
+          id: true,
+          sessionToken: true,
+          userId: true,
+          expires: true,
+          user: { select: ADAPTER_USER_SELECT },
+        },
+      });
+      if (!row) return null;
+      const { user, ...session } = row;
+      return { user: toAdapterUser(user), session };
+    },
+    // Diagnostic wrappers (a failure in these during the OAuth callback used to bubble
+    // up as a bare `error=Callback` with nothing in the server logs to say why).
     linkAccount: async (account: AdapterAccount) => {
       try {
         console.log(
@@ -121,7 +201,11 @@ function CustomPrismaAdapter(): Adapter {
       providerAccountId: Pick<AdapterAccount, 'provider' | 'providerAccountId'>
     ) => {
       try {
-        const user = await baseAdapter.getUserByAccount!(providerAccountId);
+        const account = await prisma.account.findUnique({
+          where: { provider_providerAccountId: providerAccountId },
+          select: { user: { select: ADAPTER_USER_SELECT } },
+        });
+        const user = toAdapterUserOrNull(account?.user ?? null);
         console.log(
           '[OAuth] getUserByAccount:',
           providerAccountId.provider,
@@ -266,6 +350,7 @@ export const authOptions: NextAuthOptions = {
                 emailVerified: new Date(),
                 isActive: true,
               },
+              select: SESSION_USER_SELECT,
             });
 
             if (fixed.isAffiliate) {
@@ -338,6 +423,7 @@ export const authOptions: NextAuthOptions = {
         // 2. Regular user database lookup
         const user = await prisma.user.findUnique({
           where: { email },
+          select: CREDENTIALS_USER_SELECT,
         });
 
         if (!user || !user.password) {
@@ -490,8 +576,13 @@ export const authOptions: NextAuthOptions = {
 
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email },
-            include: {
-              accounts: true, // Include linked accounts
+            // Only what this callback reads (see lib/auth/user-select.ts).
+            select: {
+              id: true,
+              isActive: true,
+              emailVerified: true,
+              image: true,
+              accounts: { select: { id: true } }, // linked accounts
             },
           });
 
@@ -531,6 +622,7 @@ export const authOptions: NextAuthOptions = {
             await prisma.user.update({
               where: { id: existingUser.id },
               data: { emailVerified: new Date() },
+              select: ID_ONLY_SELECT,
             });
             console.log('[SignIn] Auto-verified email for OAuth user');
           }
@@ -540,6 +632,7 @@ export const authOptions: NextAuthOptions = {
             await prisma.user.update({
               where: { id: existingUser.id },
               data: { image: user.image },
+              select: ID_ONLY_SELECT,
             });
             console.log('[SignIn] Updated user profile image');
           }

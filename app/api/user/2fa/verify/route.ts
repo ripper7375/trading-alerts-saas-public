@@ -144,6 +144,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         data: {
           twoFactorBackupCodes: JSON.stringify(backupCodes),
         },
+        select: { id: true },
       });
 
       // Count remaining backup codes

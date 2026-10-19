@@ -24,6 +24,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Find user by reset token
     const user = await prisma.user.findFirst({
       where: { resetToken: validated.token },
+      select: { id: true, resetTokenExpiry: true },
     });
 
     if (!user) {
@@ -46,6 +47,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         resetToken: null,
         resetTokenExpiry: null,
       },
+      select: { id: true },
     });
 
     return NextResponse.json({

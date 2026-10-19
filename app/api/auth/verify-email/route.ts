@@ -19,6 +19,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     // Find user with matching verification token
     const user = await prisma.user.findFirst({
       where: { verificationToken: token },
+      select: { id: true, email: true, name: true, updatedAt: true },
     });
 
     if (!user) {
@@ -48,6 +49,7 @@ export async function GET(request: Request): Promise<NextResponse> {
         emailVerified: new Date(),
         verificationToken: null,
       },
+      select: { id: true },
     });
 
     // Send welcome email after successful verification

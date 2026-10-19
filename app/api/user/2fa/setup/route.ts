@@ -99,6 +99,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         twoFactorSecret: encryptedSecret,
         // Don't set twoFactorEnabled to true yet
       },
+      select: { id: true },
     });
 
     console.log(`[2FA] Setup initiated for user: ${user.email}`);

@@ -38,6 +38,7 @@ export async function POST(request: Request): Promise<NextResponse> {
           resetToken,
           resetTokenExpiry,
         },
+        select: { id: true },
       });
 
       // Send password reset email

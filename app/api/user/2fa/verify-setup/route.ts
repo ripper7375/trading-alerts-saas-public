@@ -150,6 +150,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         twoFactorBackupCodes: JSON.stringify(hashedCodes),
         twoFactorVerifiedAt: new Date(),
       },
+      select: { id: true },
     });
 
     console.log(`[2FA] Enabled for user: ${user.email}`);

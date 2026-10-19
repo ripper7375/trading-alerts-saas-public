@@ -157,6 +157,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         twoFactorBackupCodes: null,
         twoFactorVerifiedAt: null,
       },
+      select: { id: true },
     });
 
     console.log(`[2FA] Disabled for user: ${user.email}`);

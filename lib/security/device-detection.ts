@@ -313,6 +313,7 @@ export async function recordLoginAttempt(
         lastLoginIP: context.ipAddress,
         deviceFingerprint: context.deviceFingerprint,
       },
+      select: { id: true },
     });
   }
 

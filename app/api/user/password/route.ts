@@ -129,6 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     await prisma.user.update({
       where: { id: session.user.id },
       data: { password: hashedPassword },
+      select: { id: true },
     });
 
     console.log(`[Password] Password changed for user: ${user.email}`);

@@ -129,6 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       data: {
         twoFactorBackupCodes: JSON.stringify(hashedCodes),
       },
+      select: { id: true },
     });
 
     console.log(`[2FA] Backup codes regenerated for user: ${user.email}`);

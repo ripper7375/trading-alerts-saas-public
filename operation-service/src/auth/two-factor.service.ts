@@ -14,6 +14,7 @@ import {
 } from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatLocation, getGeoLocation } from '../security/geo-location.util';
+import { ID_ONLY_SELECT } from './user-select';
 import {
   decryptSecret,
   encryptSecret,
@@ -107,6 +108,7 @@ export class TwoFactorService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { twoFactorSecret: encryptedSecret },
+      select: ID_ONLY_SELECT,
     });
 
     return {
@@ -171,6 +173,7 @@ export class TwoFactorService {
         twoFactorBackupCodes: JSON.stringify(hashedCodes),
         twoFactorVerifiedAt: new Date(),
       },
+      select: ID_ONLY_SELECT,
     });
 
     try {
@@ -267,6 +270,7 @@ export class TwoFactorService {
       await this.prisma.user.update({
         where: { id: user.id },
         data: { twoFactorBackupCodes: JSON.stringify(backupCodes) },
+        select: ID_ONLY_SELECT,
       });
 
       const remainingCodes = backupCodes.filter((c) => c !== '').length;
@@ -353,6 +357,7 @@ export class TwoFactorService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { twoFactorBackupCodes: JSON.stringify(hashedCodes) },
+      select: ID_ONLY_SELECT,
     });
 
     return {
@@ -418,6 +423,7 @@ export class TwoFactorService {
         twoFactorBackupCodes: null,
         twoFactorVerifiedAt: null,
       },
+      select: ID_ONLY_SELECT,
     });
 
     try {
