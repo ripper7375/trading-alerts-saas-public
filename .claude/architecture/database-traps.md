@@ -65,6 +65,12 @@ Read before any schema change, migration, or query against a real database.
   `operation-service/src/auth/user-select.guard.spec.ts` (a source guard plus sign-in against a database that rejects a bare `User`
   call). **A new `User` read or write in those files must name its columns.** What is NOT covered: 16 other whole-row `User`
   calls in the monolith (Stripe and dLocal webhook handlers, affiliate registration, the crons) still need the migration first.
+- **`market_data_v6` reads name their columns too** (2026-10-19, the "fail open" proposal reviewed: only this part was kept, no
+  OHLCV fallback). The monolith's channel route and operation-service's channel proxy (the live copy, `MIGRATE_MARKET_DATA_CHANNEL=true`)
+  and alert-checker price read had no `select`; every `marketDataV6` read under `app/`, `lib/` and operation-service's `src/` now
+  names its columns, held by `__tests__/lib/db/market-data-v6-select-guard.test.ts` and
+  `operation-service/src/market-data/market-data-v6-select.guard.spec.ts`. The gateway's reads already did (not guarded by a test); its
+  upsert writes every column, so the rollout order below still holds, and a read that USES a new column still needs its migration first.
 - Verify hand-written SQL against Prisma's own DDL:
   `prisma migrate diff --from-empty --to-schema <file> --script` (`--to-schema-datamodel` was
   removed in Prisma 7.9.1). When Docker Desktop is up, replay on a throwaway `postgres:16-alpine`.
