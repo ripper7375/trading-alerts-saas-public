@@ -147,8 +147,10 @@ If the role operation-service connects as lacks any of them, the worker fails cl
 - **money-service crons ignore `isActive`.** A dLocal subscription has no recurring charge, but `checkExpiringSubscriptions` can still send
   a renewal reminder to a deleted user until the row expires. money-service's `User` mirror has no `isActive` or `deletedAt`.
 - **The edge middleware** still lets a stale cookie reach a page; the first server-side session read then clears it. It cannot query the database.
-- **The admin list** (`app/api/admin/users/route.ts`) shows these users as `suspended` and does not return `deletedAt`; the row is there
-  and not filtered out, so the audit trail is intact, but "deleted" is not a status yet. A small follow-up if you want it.
+- **The admin list** (`app/api/admin/users/route.ts`) showed these users as `suspended` and did not return `deletedAt`. **Fixed afterwards
+  as follow-up F21-F1 on Davin's word, in its own commit after `7c8f1ebe` (not pushed):** the API says `deleted` and returns `deletedAt`,
+  the list shows a grey dot with the date as a tooltip, the user detail page shows a Deleted badge and a "Deleted on" row (8 new tests;
+  see the manifest, section 6).
 - The Tier 2 report's open item (4) said `confirmDeletion` queues no job; that is now closed (see waiting-on).
 - Pre-existing, untouched: `.claude/rules/security-overrides.md`, `app/upgrade/success/page.tsx`, its test and several docs folders were
   already modified or untracked when this session started; none of them is part of this work.

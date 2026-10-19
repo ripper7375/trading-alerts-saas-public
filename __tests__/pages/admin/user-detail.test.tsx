@@ -195,6 +195,53 @@ describe('AdminUserDetailPage (server component)', () => {
     );
   });
 
+  it('shows a soft-deleted account as Deleted, with the date, not as Inactive (F21)', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      ...realUser,
+      isActive: false,
+      deletedAt: new Date('2026-10-20T08:30:00.000Z'),
+    });
+    mockSubscriptionFindUnique.mockResolvedValue(null);
+    mockUserSessionCount.mockResolvedValue(0);
+    mockFraudAlertFindMany.mockResolvedValue([]);
+    mockAffiliateProfileFindUnique.mockResolvedValue(null);
+
+    const jsx = await AdminUserDetailPage({
+      params: Promise.resolve({ id: 'user-1' }),
+    });
+    renderPage(jsx);
+
+    expect(screen.getByText('Deleted')).toBeInTheDocument();
+    expect(screen.getByText('Deleted on')).toBeInTheDocument();
+    expect(screen.queryByText('Inactive')).not.toBeInTheDocument();
+    expect(mockUserFindUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({ deletedAt: true }),
+      })
+    );
+  });
+
+  it('keeps Inactive for an admin suspension and shows no deletion row', async () => {
+    mockUserFindUnique.mockResolvedValue({
+      ...realUser,
+      isActive: false,
+      deletedAt: null,
+    });
+    mockSubscriptionFindUnique.mockResolvedValue(null);
+    mockUserSessionCount.mockResolvedValue(0);
+    mockFraudAlertFindMany.mockResolvedValue([]);
+    mockAffiliateProfileFindUnique.mockResolvedValue(null);
+
+    const jsx = await AdminUserDetailPage({
+      params: Promise.resolve({ id: 'user-1' }),
+    });
+    renderPage(jsx);
+
+    expect(screen.getByText('Inactive')).toBeInTheDocument();
+    expect(screen.queryByText('Deleted')).not.toBeInTheDocument();
+    expect(screen.queryByText('Deleted on')).not.toBeInTheDocument();
+  });
+
   it('shows "Not an affiliate" when isAffiliate is false', async () => {
     mockUserFindUnique.mockResolvedValue({ ...realUser, isAffiliate: false });
     mockSubscriptionFindUnique.mockResolvedValue(null);

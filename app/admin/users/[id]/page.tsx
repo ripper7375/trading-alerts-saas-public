@@ -110,6 +110,7 @@ export default async function AdminUserDetailPage({
         role: true,
         tier: true,
         isActive: true,
+        deletedAt: true,
         isAffiliate: true,
         emailVerified: true,
         trialStatus: true,
@@ -239,10 +240,22 @@ export default async function AdminUserDetailPage({
               <span className="text-muted-foreground">
                 {dt('admin.users.account_status', 'Account Status')}
               </span>
-              {user.isActive
-                ? badge(dt('admin.users.active', 'Active'), 'bg-emerald-600')
-                : badge(dt('admin.users.inactive', 'Inactive'), 'bg-red-600')}
+              {user.deletedAt
+                ? badge(dt('admin.users.deleted', 'Deleted'), 'bg-slate-500')
+                : user.isActive
+                  ? badge(dt('admin.users.active', 'Active'), 'bg-emerald-600')
+                  : badge(dt('admin.users.inactive', 'Inactive'), 'bg-red-600')}
             </div>
+            {user.deletedAt && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">
+                  {dt('admin.users.deleted_on', 'Deleted on')}
+                </span>
+                <span className="text-foreground">
+                  {formatDate(user.deletedAt)}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between">
               <span className="text-muted-foreground">
                 {dt('admin.users.registered', 'Registered')}

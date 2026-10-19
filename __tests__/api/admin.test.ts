@@ -153,6 +153,98 @@ describe('Admin API Routes', () => {
       expect(data.total).toBe(2);
     });
 
+    describe('status of a deleted account (F21)', () => {
+      const deletedAt = new Date('2026-10-20T08:30:00.000Z');
+      const row = (
+        id: string,
+        isActive: boolean,
+        deleted: Date | null | undefined
+      ) => ({
+        id,
+        name: id,
+        email: `${id}@example.com`,
+        tier: 'FREE',
+        role: 'USER',
+        isActive,
+        ...(deleted === undefined ? {} : { deletedAt: deleted }),
+        createdAt: new Date('2026-01-01'),
+        sessions: [],
+        _count: { alerts: 0 },
+      });
+
+      async function listUsers() {
+        mockGetServerSession.mockResolvedValue({
+          user: { id: 'admin-1', role: 'ADMIN' },
+        });
+        const { GET } = await import('@/app/api/admin/users/route');
+        const response = await GET(
+          new MockRequest(
+            'http://localhost/api/admin/users'
+          ) as unknown as Request
+        );
+        return response.json();
+      }
+
+      it('labels a soft-deleted user "deleted" and returns when it happened', async () => {
+        mockUserCount.mockResolvedValue(1);
+        mockUserFindMany.mockResolvedValue([row('gone', false, deletedAt)]);
+
+        const data = await listUsers();
+
+        expect(data.users[0]).toMatchObject({
+          id: 'gone',
+          status: 'deleted',
+          deletedAt,
+        });
+      });
+
+      it('keeps "suspended" for an admin suspension and "active" for a live user, with deletedAt null', async () => {
+        mockUserCount.mockResolvedValue(2);
+        mockUserFindMany.mockResolvedValue([
+          row('suspended-user', false, null),
+          row('live-user', true, null),
+        ]);
+
+        const data = await listUsers();
+
+        expect(
+          data.users.map((u: { id: string; status: string }) => [
+            u.id,
+            u.status,
+          ])
+        ).toEqual([
+          ['suspended-user', 'suspended'],
+          ['live-user', 'active'],
+        ]);
+        expect(
+          data.users.map((u: { deletedAt: unknown }) => u.deletedAt)
+        ).toEqual([null, null]);
+      });
+
+      it('treats a row with no deletedAt at all as not deleted (older mocks)', async () => {
+        mockUserCount.mockResolvedValue(1);
+        mockUserFindMany.mockResolvedValue([row('plain', true, undefined)]);
+
+        const data = await listUsers();
+
+        expect(data.users[0]).toMatchObject({
+          status: 'active',
+          deletedAt: null,
+        });
+      });
+
+      it('lists the deleted user in the same query as everyone else (the audit row is not filtered out)', async () => {
+        mockUserCount.mockResolvedValue(1);
+        mockUserFindMany.mockResolvedValue([row('gone', false, deletedAt)]);
+
+        await listUsers();
+
+        const query = mockUserFindMany.mock.calls[0][0];
+        expect(query.select.deletedAt).toBe(true);
+        expect(query.where).toEqual({});
+      });
+    });
+
     it('should handle database errors', async () => {
       mockGetServerSession.mockResolvedValue({
         user: { id: 'admin-1', role: 'ADMIN' },

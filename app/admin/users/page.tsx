@@ -35,6 +35,7 @@ interface AdminUser {
   role: string;
   status: string;
   createdAt: string;
+  deletedAt: string | null;
   lastLoginAt: string | null;
   alertCount: number;
 }
@@ -353,10 +354,19 @@ export default function UsersPage(): React.ReactElement {
                             className={`h-2 w-2 rounded-full ${
                               user.status === 'active'
                                 ? 'bg-emerald-500'
-                                : 'bg-red-500'
+                                : user.status === 'deleted'
+                                  ? 'bg-slate-400'
+                                  : 'bg-red-500'
                             }`}
                           />
-                          <span className="text-sm capitalize text-muted-foreground">
+                          <span
+                            className="text-sm capitalize text-muted-foreground"
+                            title={
+                              user.deletedAt
+                                ? formatDate(user.deletedAt)
+                                : undefined
+                            }
+                          >
                             {user.status}
                           </span>
                         </div>

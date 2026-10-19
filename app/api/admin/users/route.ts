@@ -28,8 +28,11 @@ interface AdminUser {
   email: string;
   tier: 'FREE' | 'PRO';
   role: string;
+  /** `deleted` (soft-deleted, F21), `suspended` (inactive) or `active`. */
   status: string;
   createdAt: Date;
+  /** When the 24 h deletion worker completed this account; null for every other user. */
+  deletedAt: Date | null;
   lastLoginAt: Date | null;
   alertCount: number;
 }
@@ -137,6 +140,7 @@ export async function GET(
         tier: true,
         role: true,
         isActive: true,
+        deletedAt: true,
         createdAt: true,
         // Include most recent session to estimate last login
         sessions: {
@@ -181,8 +185,15 @@ export async function GET(
         email: user.email,
         tier: user.tier as 'FREE' | 'PRO',
         role: user.role,
-        status: user.isActive ? 'active' : 'suspended',
+        // A completed deletion (F21) keeps the row, locked, with `deletedAt` set: show it as
+        // deleted, not as one of the admin's own suspensions.
+        status: user.deletedAt
+          ? 'deleted'
+          : user.isActive
+            ? 'active'
+            : 'suspended',
         createdAt: user.createdAt,
+        deletedAt: user.deletedAt ?? null,
         lastLoginAt,
         alertCount: user._count?.alerts ?? 0,
       };
