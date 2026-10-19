@@ -5,6 +5,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import Redis from 'ioredis';
 
+import { AccountDeletionModule } from './account-deletion/account-deletion.module';
 import { AlertEngineModule } from './alert-engine/alert-engine.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { AuthModule } from './auth/auth.module';
@@ -47,6 +48,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     OutboxModule,
     AlertEngineModule,
+    AccountDeletionModule,
     AlertsModule,
     DrawingsModule,
     NotificationsModule,

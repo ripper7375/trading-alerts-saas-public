@@ -12,10 +12,11 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signIn, getSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { ACCOUNT_DEACTIVATED_CODE } from '@/lib/account/deletion';
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { navigateAfterLogin } from '@/lib/auth/post-login-navigation';
 import {
@@ -37,7 +38,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 type ErrorType =
   | 'invalid'
-  | 'locked'
+  | 'deactivated'
   | 'server'
   | 'unverified'
   | '2fa_required'
@@ -51,6 +52,14 @@ export default function LoginForm(): React.JSX.Element {
   const [error, setError] = useState<ErrorType>(null);
   const [isSuccess, setIsSuccess] = useState(false);
   const [currentEmail, setCurrentEmail] = useState('');
+
+  // An OAuth sign-in for a deactivated account comes back as /login?error=ACCOUNT_DEACTIVATED
+  // (the `signIn` callback of lib/auth/auth-options.ts). Read after mount, not in the initial
+  // state, so the server and the first client render agree.
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('error');
+    if (code === ACCOUNT_DEACTIVATED_CODE) setError('deactivated');
+  }, []);
 
   const {
     register,
@@ -117,6 +126,8 @@ export default function LoginForm(): React.JSX.Element {
 
         if (body?.error === 'EMAIL_NOT_VERIFIED') {
           setError('unverified');
+        } else if (body?.error === ACCOUNT_DEACTIVATED_CODE) {
+          setError('deactivated');
         } else {
           setError('invalid');
         }
@@ -145,8 +156,8 @@ export default function LoginForm(): React.JSX.Element {
           return;
         } else if (result.error.includes('EMAIL_NOT_VERIFIED')) {
           setError('unverified');
-        } else if (result.error.includes('locked')) {
-          setError('locked');
+        } else if (result.error.includes(ACCOUNT_DEACTIVATED_CODE)) {
+          setError('deactivated');
         } else {
           setError('invalid');
         }
@@ -175,13 +186,14 @@ export default function LoginForm(): React.JSX.Element {
           subtitle: t('Check your inbox for the verification link.'),
           action: 'verify',
         };
-      case 'locked':
+      case 'deactivated':
         return {
           title: t(
-            'Your account has been locked due to too many failed login attempts.'
+            'This account has been deactivated or is scheduled for deletion.'
           ),
-          subtitle: t('Please reset your password or contact support.'),
-          action: 'reset',
+          subtitle: t(
+            'If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.'
+          ),
         };
       case 'server':
         return { title: t('Something went wrong. Please try again later.') };

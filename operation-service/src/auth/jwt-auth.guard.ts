@@ -8,7 +8,10 @@ import { Request } from 'express';
 
 import type { Tier } from '@trading-alerts/types/tier';
 
+import { ACCOUNT_DEACTIVATED_CODE } from '../account-deletion/account-deletion.constants';
+import { PrismaService } from '../prisma/prisma.service';
 import { decodeNextAuthToken, NextAuthTokenClaims } from './next-auth-jwt.util';
+import { isUserActive } from './user-active.util';
 
 export interface RequestUser {
   id: string;
@@ -28,6 +31,9 @@ export interface AuthenticatedRequest extends Request {
 // it never writes/re-issues tokens.
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  // PrismaModule is @Global, so every module that uses this guard resolves it.
+  constructor(private readonly prisma: PrismaService) {}
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractBearerToken(request);
@@ -52,6 +58,17 @@ export class JwtAuthGuard implements CanActivate {
 
     if (!claims.id || !claims.email) {
       throw new UnauthorizedException('Token missing required claims');
+    }
+
+    // A valid token is not enough: an account locked by a confirmed deletion (or by an
+    // admin) must stop working now, not when the token expires. 401, so a client that
+    // clears its tokens on 401 signs the user out.
+    if (!(await isUserActive(this.prisma, claims.id))) {
+      throw new UnauthorizedException({
+        statusCode: 401,
+        error: ACCOUNT_DEACTIVATED_CODE,
+        message: 'This account is deactivated',
+      });
     }
 
     (request as AuthenticatedRequest).user = {

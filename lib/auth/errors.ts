@@ -40,6 +40,16 @@ export class InvalidCredentialsError extends AuthError {
 }
 
 /**
+ * Account deactivated error: locked by a confirmed deletion request (F21) or suspended by an
+ * admin. Keep in step with operation-service/src/auth/errors.ts.
+ */
+export class AccountDeactivatedError extends AuthError {
+  constructor(message: string = 'This account is deactivated') {
+    super(message, 'ACCOUNT_DEACTIVATED', 403);
+  }
+}
+
+/**
  * Email not verified error
  */
 export class EmailNotVerifiedError extends AuthError {

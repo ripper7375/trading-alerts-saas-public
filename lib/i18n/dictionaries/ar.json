@@ -5312,5 +5312,7 @@
   "worldGold.notes.ch": "سبائك مرجعية؛ يساوي الكيلوغرام الواحد 32.1507466 أونصة تروي.",
   "worldGold.country.au": "أستراليا",
   "worldGold.hours.au": "الاثنين–الجمعة 09:00–17:00",
-  "worldGold.notes.au": "سبائك مرجعية؛ يساوي الكيلوغرام الواحد 32.1507466 أونصة تروي."
+  "worldGold.notes.au": "سبائك مرجعية؛ يساوي الكيلوغرام الواحد 32.1507466 أونصة تروي.",
+  "This account has been deactivated or is scheduled for deletion.": "تم إلغاء تفعيل هذا الحساب أو أنه مجدول للحذف.",
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "إذا طلبت حذفه عن طريق الخطأ، فاستخدم رابط الإلغاء في بريدك الإلكتروني خلال 24 ساعة أو تواصل مع الدعم."
 }

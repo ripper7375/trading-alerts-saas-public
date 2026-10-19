@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { DELETION_GRACE_PERIOD_MS } from '@/lib/account/deletion';
 import { prisma } from '@/lib/db/prisma';
 import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
 import {
@@ -16,13 +17,13 @@ import {
  * Flow:
  * 1. User clicks link in email
  * 2. Verify token from email
- * 3. Schedule account deletion (24 hours)
- * 4. Return success
+ * 3. Lock the account at once: isActive = false, every session and refresh token removed
+ * 4. Return success; the 24 h worker (operation-service) does the soft delete
  *
  * Security:
  * - Token-based verification
- * - 24-hour grace period before actual deletion
- * - GDPR compliance: all user data deleted
+ * - 24-hour grace period (cancellable from the e-mail) before the soft delete
+ * - Soft delete (F21, Option B): the User row, Account, Payment and Commission stay for the admin
  */
 
 // Validation schema
@@ -104,33 +105,57 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Update request to confirmed
-    const confirmedRequest = await prisma.accountDeletionRequest.update({
-      where: { id: deletionRequest.id },
-      data: {
-        status: 'CONFIRMED',
-        confirmedAt: new Date(),
-      },
+    // Confirming locks the account at once (F21, Option B): the status flip, the
+    // deactivation and the sign-out of every device commit together. The flip is
+    // conditional on PENDING, so two clicks cannot both win. The 24 h worker in
+    // operation-service (AccountDeletionWorker) finishes the job; it mirrors this
+    // route, which only runs while the operation-service flag is off.
+    const confirmedAt = new Date();
+    const confirmed = await prisma.$transaction(async (tx) => {
+      const claim = await tx.accountDeletionRequest.updateMany({
+        where: { id: deletionRequest.id, status: 'PENDING' },
+        data: { status: 'CONFIRMED', confirmedAt },
+      });
+      if (claim.count === 0) return false;
+
+      await tx.user.updateMany({
+        where: { id: deletionRequest.userId },
+        data: { isActive: false },
+      });
+      await tx.session.deleteMany({
+        where: { userId: deletionRequest.userId },
+      });
+      await tx.refreshToken.deleteMany({
+        where: { userId: deletionRequest.userId },
+      });
+      await tx.userSession.updateMany({
+        where: { userId: deletionRequest.userId, isActive: true },
+        data: { isActive: false },
+      });
+      return true;
     });
 
-    // Get user information
-    const user = await prisma.user.findUnique({
-      where: { id: deletionRequest.userId },
-      select: { email: true, name: true },
-    });
+    if (!confirmed) {
+      return NextResponse.json(
+        {
+          error: 'Request already processed',
+          message: 'This deletion request has already been processed.',
+        },
+        { status: 400 }
+      );
+    }
 
-    // In production, schedule actual deletion for 24 hours later
-    // This gives user time to cancel if they change their mind
-    const scheduledDeletionTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const scheduledDeletionTime = new Date(
+      confirmedAt.getTime() + DELETION_GRACE_PERIOD_MS
+    );
 
+    // No address, no token: stdout is shipped to the log store.
     console.log('[AccountDeletion] Deletion confirmed:', {
       userId: deletionRequest.userId,
-      userEmail: user?.email,
-      requestId: confirmedRequest.id,
+      requestId: deletionRequest.id,
       scheduledDeletionTime,
     });
 
-    // TODO: Queue deletion job for 24 hours later
     // TODO: Send confirmation email
 
     return NextResponse.json({

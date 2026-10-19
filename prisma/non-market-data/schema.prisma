@@ -110,6 +110,10 @@ model User {
   tier          UserTier  @default(FREE)
   role          String    @default("USER")
   isActive      Boolean   @default(true)
+  // Soft delete (account-deletion pipeline, F21): set when the 24 h deletion worker
+  // completes a CONFIRMED AccountDeletionRequest. The row stays for the admin audit
+  // trail; isActive is already false from the moment the user confirmed.
+  deletedAt     DateTime?
 
   // Affiliate System (Unified Auth)
   isAffiliate Boolean @default(false) // Can be both SaaS user AND affiliate

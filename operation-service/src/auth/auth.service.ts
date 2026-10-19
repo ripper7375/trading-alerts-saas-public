@@ -12,6 +12,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 
 import {
+  AccountDeactivatedError,
   AccountExistsError,
   AuthError,
   EmailNotVerifiedError,
@@ -291,6 +292,12 @@ export class AuthService {
       throw new InvalidCredentialsError();
     }
 
+    // After the password check, so only someone who knows the password learns the state of the
+    // account, and before the 2FA challenge, so a locked account is not asked for a code.
+    if (!user.isActive) {
+      throw new AccountDeactivatedError();
+    }
+
     if (!user.emailVerified) {
       throw new EmailNotVerifiedError();
     }
@@ -331,6 +338,11 @@ export class AuthService {
     });
     if (!user) {
       throw new InvalidCredentialsError('Invalid or expired 2FA token');
+    }
+
+    // The account can be locked between the password step and the code.
+    if (!user.isActive) {
+      throw new AccountDeactivatedError();
     }
 
     return user;
@@ -396,6 +408,13 @@ export class AuthService {
       throw new InvalidTokenError(
         'User for this refresh token no longer exists'
       );
+    }
+    if (!user.isActive) {
+      // A confirmed deletion already deleted this user's refresh tokens; this covers a token
+      // that survived (an admin suspension, a race). Revoke the one rotate() just issued so
+      // nothing usable is left behind.
+      await this.refreshTokens.revokeByRawToken(issued.rawToken);
+      throw new AccountDeactivatedError();
     }
 
     const accessToken = await encodeNextAuthToken(

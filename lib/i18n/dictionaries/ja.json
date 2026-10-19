@@ -5312,5 +5312,7 @@
   "worldGold.notes.ch": "地金の参考価格です。1キログラムは32.1507466トロイオンスに相当します。",
   "worldGold.country.au": "オーストラリア",
   "worldGold.hours.au": "月～金 09:00–17:00",
-  "worldGold.notes.au": "地金の参考価格です。1キログラムは32.1507466トロイオンスに相当します。"
+  "worldGold.notes.au": "地金の参考価格です。1キログラムは32.1507466トロイオンスに相当します。",
+  "This account has been deactivated or is scheduled for deletion.": "このアカウントは無効化されたか、削除が予定されています。",
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "誤って削除を申請した場合は、24時間以内にメールのキャンセルリンクを使用するか、サポートにお問い合わせください。"
 }

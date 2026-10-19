@@ -45,6 +45,16 @@ export class EmailNotVerifiedError extends AuthError {
   }
 }
 
+/**
+ * The account is deactivated: locked by a confirmed deletion request (F21) or suspended by an
+ * admin. Added after the verbatim port; keep in step with lib/auth/errors.ts.
+ */
+export class AccountDeactivatedError extends AuthError {
+  constructor(message: string = 'This account is deactivated') {
+    super(message, 'ACCOUNT_DEACTIVATED', 403);
+  }
+}
+
 export class AccountExistsError extends AuthError {
   constructor(message: string = 'An account with this email already exists') {
     super(message, 'ACCOUNT_EXISTS', 409);

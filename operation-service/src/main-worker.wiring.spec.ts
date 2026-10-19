@@ -24,4 +24,13 @@ describe('main-worker.ts wiring', () => {
     expect(source).not.toMatch(/NestFactory\.create</);
     expect(source).not.toMatch(/\.listen\(/);
   });
+
+  it('starts the account deletion worker (F21) here, and only here', () => {
+    expect(source).toMatch(
+      /app\.get\(AccountDeletionScheduler\)[\s\S]*\.enable\(\)/
+    );
+    expect(source).toMatch(/deletionScheduler\.enable\(\)/);
+    const mainSource = readFileSync(join(__dirname, 'main.ts'), 'utf8');
+    expect(mainSource).not.toMatch(/AccountDeletionScheduler/);
+  });
 });

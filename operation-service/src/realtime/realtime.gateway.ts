@@ -10,11 +10,14 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import type { Redis } from 'ioredis';
 import type { Server, Socket } from 'socket.io';
 
+import { ACCOUNT_DEACTIVATED_CODE } from '../account-deletion/account-deletion.constants';
 import { decodeNextAuthToken } from '../auth/next-auth-jwt.util';
+import { isUserActive } from '../auth/user-active.util';
 import {
   parseAlertFired,
   type AlertFiredMessage,
 } from '../alert-engine/notify-bridge.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
 const ALERTS_FIRED_CHANNEL = 'alerts:fired';
@@ -71,7 +74,10 @@ export class RealtimeGateway
   private subClient?: Redis;
   private alertsSubscriber?: Redis;
 
-  constructor(private readonly redisService: RedisService) {}
+  constructor(
+    private readonly redisService: RedisService,
+    private readonly prisma: PrismaService
+  ) {}
 
   async afterInit(server: Server): Promise<void> {
     // Multi-replica fan-out: route room emits across operation-service
@@ -134,6 +140,13 @@ export class RealtimeGateway
       const claims = await decodeNextAuthToken(token, secret);
       if (!claims.id) {
         client.emit('error', { message: 'Token missing required claims' });
+        client.disconnect(true);
+        return;
+      }
+      // Same rule as JwtAuthGuard: a locked account (F21) gets no new socket. A socket that
+      // is already open stays until it closes; the alerts behind it are deleted by the worker.
+      if (!(await isUserActive(this.prisma, claims.id))) {
+        client.emit('error', { message: ACCOUNT_DEACTIVATED_CODE });
         client.disconnect(true);
         return;
       }

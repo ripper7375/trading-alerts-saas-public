@@ -5312,5 +5312,7 @@
   "worldGold.notes.ch": "Reference bullion; one kilogram equals 32.1507466 troy ounces.",
   "worldGold.country.au": "Australia",
   "worldGold.hours.au": "Mon–Fri 09:00–17:00",
-  "worldGold.notes.au": "Reference bullion; one kilogram equals 32.1507466 troy ounces."
+  "worldGold.notes.au": "Reference bullion; one kilogram equals 32.1507466 troy ounces.",
+  "This account has been deactivated or is scheduled for deletion.": "This account has been deactivated or is scheduled for deletion.",
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support."
 }

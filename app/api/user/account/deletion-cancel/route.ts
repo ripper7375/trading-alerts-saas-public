@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 
+import { DELETION_GRACE_PERIOD_MS } from '@/lib/account/deletion';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
@@ -22,7 +23,9 @@ import {
  *
  * Security:
  * - Can cancel via token (from email) or session (logged in)
- * - Only pending/confirmed requests can be cancelled
+ * - Only pending requests, or confirmed ones inside the 24 h grace period, can be cancelled
+ * - Cancelling a confirmed request gives the account back (isActive = true); the user was
+ *   locked out and signed out when they confirmed, so the e-mail link is how they return
  */
 
 // Validation schema
@@ -116,25 +119,62 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Update request to cancelled
-    const cancelledRequest = await prisma.accountDeletionRequest.update({
-      where: { id: deletionRequest.id },
-      data: {
-        status: 'CANCELLED',
-        cancelledAt: new Date(),
+    // The 24 h after confirmation is the whole grace period. Past it the worker owns the
+    // request (and may already have cancelled the subscription), so a late click is refused.
+    const now = new Date();
+    const graceCutoff = new Date(now.getTime() - DELETION_GRACE_PERIOD_MS);
+    const refused = NextResponse.json(
+      {
+        error: 'Cannot cancel this request',
+        message:
+          'The 24-hour cancellation window has ended, so this deletion can no longer be cancelled.',
       },
-    });
+      { status: 400 }
+    );
+    if (
+      deletionRequest.status === 'CONFIRMED' &&
+      deletionRequest.confirmedAt !== null &&
+      deletionRequest.confirmedAt <= graceCutoff
+    ) {
+      return refused;
+    }
 
-    // Get user information for logging
-    const user = await prisma.user.findUnique({
-      where: { id: deletionRequest.userId },
-      select: { email: true, name: true },
-    });
+    // One transaction: the conditional flip to CANCELLED and the reactivation. The grace test
+    // is in the WHERE too, so a request the worker is about to take cannot also be cancelled.
+    // `confirmedAt` is read back after the flip: a click that raced a confirm still gets the
+    // account back.
+    const cancelled = await prisma.$transaction(async (tx) => {
+      const flip = await tx.accountDeletionRequest.updateMany({
+        where: {
+          id: deletionRequest.id,
+          OR: [
+            { status: 'PENDING' },
+            { status: 'CONFIRMED', confirmedAt: { gt: graceCutoff } },
+          ],
+        },
+        data: { status: 'CANCELLED', cancelledAt: now },
+      });
+      if (flip.count === 0) return false;
 
+      const after = await tx.accountDeletionRequest.findUnique({
+        where: { id: deletionRequest.id },
+        select: { confirmedAt: true },
+      });
+      if (after?.confirmedAt) {
+        // `deletedAt: null` keeps a completed deletion from being undone by a stale call.
+        await tx.user.updateMany({
+          where: { id: deletionRequest.userId, deletedAt: null },
+          data: { isActive: true },
+        });
+      }
+      return true;
+    });
+    if (!cancelled) return refused;
+
+    // No address: stdout is shipped to the log store.
     console.log('[AccountDeletion] Deletion cancelled:', {
       userId: deletionRequest.userId,
-      userEmail: user?.email,
-      requestId: cancelledRequest.id,
+      requestId: deletionRequest.id,
     });
 
     // TODO: Send cancellation confirmation email

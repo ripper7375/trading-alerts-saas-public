@@ -27,7 +27,7 @@ jest.mock('../security/geo-location.util', () => ({
 // the established Session 4B-2/4B-5/4B-8 convention for this service.
 describe('UsersService', () => {
   const mockPrisma = {
-    user: { findUnique: jest.fn(), update: jest.fn() },
+    user: { findUnique: jest.fn(), update: jest.fn(), updateMany: jest.fn() },
     userPreferences: { findUnique: jest.fn(), upsert: jest.fn() },
     userSession: {
       upsert: jest.fn(),
@@ -36,6 +36,7 @@ describe('UsersService', () => {
       findUnique: jest.fn(),
     },
     session: { deleteMany: jest.fn() },
+    refreshToken: { deleteMany: jest.fn() },
     loginHistory: { findMany: jest.fn(), count: jest.fn() },
     securityAlert: {
       create: jest.fn(),
@@ -49,7 +50,10 @@ describe('UsersService', () => {
       create: jest.fn(),
       findUnique: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
+    // Interactive transaction: the callback gets the same mock as its client.
+    $transaction: jest.fn(),
   };
 
   const mockTwoFactorService = {
@@ -68,6 +72,10 @@ describe('UsersService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockPrisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof mockPrisma) => Promise<unknown>) =>
+        callback(mockPrisma)
+    );
   });
 
   describe('getProfile', () => {
@@ -581,21 +589,131 @@ describe('UsersService', () => {
   });
 
   describe('confirmDeletion', () => {
+    const pendingRequest = () => ({
+      id: 'req-1',
+      status: 'PENDING',
+      expiresAt: new Date(Date.now() + 60_000),
+      userId: 'user-1',
+    });
+
+    function wonClaim() {
+      mockPrisma.accountDeletionRequest.updateMany.mockResolvedValue({
+        count: 1,
+      });
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.session.deleteMany.mockResolvedValue({ count: 2 });
+      mockPrisma.refreshToken.deleteMany.mockResolvedValue({ count: 3 });
+      mockPrisma.userSession.updateMany.mockResolvedValue({ count: 2 });
+    }
+
     it('is callable without a userId (unauthenticated, token-only)', async () => {
-      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValue({
-        id: 'req-1',
-        status: 'PENDING',
-        expiresAt: new Date(Date.now() + 60_000),
-        userId: 'user-1',
-      });
-      mockPrisma.accountDeletionRequest.update.mockResolvedValue({
-        id: 'req-1',
-      });
-      mockPrisma.user.findUnique.mockResolvedValue({ email: 'a@b.com' });
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValue(
+        pendingRequest()
+      );
+      wonClaim();
 
       const result = await makeService().confirmDeletion('tok-1');
       expect(result.success).toBe(true);
       expect(result.scheduledDeletionTime).toBeInstanceOf(Date);
+    });
+
+    it('schedules the deletion 24 h after the confirmation it stored', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValue(
+        pendingRequest()
+      );
+      wonClaim();
+
+      const result = await makeService().confirmDeletion('tok-1');
+
+      const claim = mockPrisma.accountDeletionRequest.updateMany.mock
+        .calls[0][0] as { data: { confirmedAt: Date } };
+      expect(result.scheduledDeletionTime.getTime()).toBe(
+        claim.data.confirmedAt.getTime() + 24 * 60 * 60 * 1000
+      );
+    });
+
+    it('flips PENDING to CONFIRMED, deactivates the user and signs out every device in one transaction', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValue(
+        pendingRequest()
+      );
+      wonClaim();
+
+      await makeService().confirmDeletion('tok-1');
+
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.accountDeletionRequest.updateMany).toHaveBeenCalledWith(
+        {
+          where: { id: 'req-1', status: 'PENDING' },
+          data: { status: 'CONFIRMED', confirmedAt: expect.any(Date) },
+        }
+      );
+      expect(mockPrisma.user.updateMany).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { isActive: false },
+      });
+      expect(mockPrisma.session.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+      });
+      expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+      });
+      expect(mockPrisma.userSession.updateMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', isActive: true },
+        data: { isActive: false },
+      });
+    });
+
+    it('changes nothing when another click already won the claim', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValue(
+        pendingRequest()
+      );
+      mockPrisma.accountDeletionRequest.updateMany.mockResolvedValue({
+        count: 0,
+      });
+
+      await expect(
+        makeService().confirmDeletion('tok-1')
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.user.updateMany).not.toHaveBeenCalled();
+      expect(mockPrisma.session.deleteMany).not.toHaveBeenCalled();
+      expect(mockPrisma.refreshToken.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('rejects a request that is already CONFIRMED without touching the account', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValue({
+        ...pendingRequest(),
+        status: 'CONFIRMED',
+      });
+
+      await expect(
+        makeService().confirmDeletion('tok-1')
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('does not log the address or the token', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValue(
+        pendingRequest()
+      );
+      wonClaim();
+      const loggerLog = jest
+        .spyOn(Logger.prototype, 'log')
+        .mockImplementation(() => undefined);
+      const consoleLog = jest
+        .spyOn(console, 'log')
+        .mockImplementation(() => undefined);
+
+      await makeService().confirmDeletion('secret-token-value');
+
+      const everything = JSON.stringify([
+        loggerLog.mock.calls,
+        consoleLog.mock.calls,
+      ]);
+      expect(everything).not.toContain('secret-token-value');
+      expect(everything).not.toContain('@');
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+      loggerLog.mockRestore();
+      consoleLog.mockRestore();
     });
 
     it('throws NotFoundException for an unknown token', async () => {
@@ -620,6 +738,7 @@ describe('UsersService', () => {
         where: { id: 'req-1' },
         data: { status: 'EXPIRED' },
       });
+      expect(mockPrisma.user.updateMany).not.toHaveBeenCalled();
     });
   });
 
@@ -630,16 +749,26 @@ describe('UsersService', () => {
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
+    const HOUR = 60 * 60 * 1000;
+
+    function flipWon(confirmedAtAfterFlip: Date | null) {
+      mockPrisma.accountDeletionRequest.updateMany.mockResolvedValue({
+        count: 1,
+      });
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValueOnce({
+        confirmedAt: confirmedAtAfterFlip,
+      });
+      mockPrisma.user.updateMany.mockResolvedValue({ count: 1 });
+    }
+
     it('cancels by session userId when no token is given', async () => {
       mockPrisma.accountDeletionRequest.findFirst.mockResolvedValue({
         id: 'req-1',
         userId: 'user-1',
         status: 'PENDING',
+        confirmedAt: null,
       });
-      mockPrisma.accountDeletionRequest.update.mockResolvedValue({
-        id: 'req-1',
-      });
-      mockPrisma.user.findUnique.mockResolvedValue({ email: 'a@b.com' });
+      flipWon(null);
 
       const result = await makeService().cancelDeletion(undefined, 'user-1');
       expect(result.success).toBe(true);
@@ -648,6 +777,100 @@ describe('UsersService', () => {
           where: { userId: 'user-1', status: { in: ['PENDING', 'CONFIRMED'] } },
         })
       );
+    });
+
+    it('leaves isActive alone when the request was only PENDING', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValueOnce({
+        id: 'req-1',
+        userId: 'user-1',
+        status: 'PENDING',
+        confirmedAt: null,
+      });
+      flipWon(null);
+
+      await makeService().cancelDeletion('tok-1', undefined);
+
+      expect(mockPrisma.user.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('cancels a CONFIRMED request inside the grace period and gives the account back', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValueOnce({
+        id: 'req-1',
+        userId: 'user-1',
+        status: 'CONFIRMED',
+        confirmedAt: new Date(Date.now() - 2 * HOUR),
+      });
+      flipWon(new Date(Date.now() - 2 * HOUR));
+
+      const result = await makeService().cancelDeletion('tok-1', undefined);
+
+      expect(result.success).toBe(true);
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.accountDeletionRequest.updateMany).toHaveBeenCalledWith(
+        {
+          where: {
+            id: 'req-1',
+            OR: [
+              { status: 'PENDING' },
+              { status: 'CONFIRMED', confirmedAt: { gt: expect.any(Date) } },
+            ],
+          },
+          data: { status: 'CANCELLED', cancelledAt: expect.any(Date) },
+        }
+      );
+      expect(mockPrisma.user.updateMany).toHaveBeenCalledWith({
+        where: { id: 'user-1', deletedAt: null },
+        data: { isActive: true },
+      });
+    });
+
+    it('still gives the account back when a confirm landed between the read and the flip', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValueOnce({
+        id: 'req-1',
+        userId: 'user-1',
+        status: 'PENDING',
+        confirmedAt: null,
+      });
+      flipWon(new Date());
+
+      await makeService().cancelDeletion('tok-1', undefined);
+
+      expect(mockPrisma.user.updateMany).toHaveBeenCalledWith({
+        where: { id: 'user-1', deletedAt: null },
+        data: { isActive: true },
+      });
+    });
+
+    it('refuses once the 24 h grace period is over and touches nothing', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValueOnce({
+        id: 'req-1',
+        userId: 'user-1',
+        status: 'CONFIRMED',
+        confirmedAt: new Date(Date.now() - 25 * HOUR),
+      });
+
+      await expect(
+        makeService().cancelDeletion('tok-1', undefined)
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+      expect(mockPrisma.user.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('refuses when the conditional flip loses (the worker took the request first)', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValueOnce({
+        id: 'req-1',
+        userId: 'user-1',
+        status: 'CONFIRMED',
+        confirmedAt: new Date(Date.now() - 23.99 * HOUR),
+      });
+      mockPrisma.accountDeletionRequest.updateMany.mockResolvedValue({
+        count: 0,
+      });
+
+      await expect(
+        makeService().cancelDeletion('tok-1', undefined)
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.user.updateMany).not.toHaveBeenCalled();
     });
 
     it('rejects cancelling an already-cancelled request', async () => {
@@ -660,6 +883,44 @@ describe('UsersService', () => {
       await expect(
         makeService().cancelDeletion('tok-1', undefined)
       ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('rejects cancelling a COMPLETED request', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValue({
+        id: 'req-1',
+        userId: 'user-1',
+        status: 'COMPLETED',
+      });
+
+      await expect(
+        makeService().cancelDeletion('tok-1', undefined)
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled();
+    });
+
+    it('does not log the address', async () => {
+      mockPrisma.accountDeletionRequest.findUnique.mockResolvedValueOnce({
+        id: 'req-1',
+        userId: 'user-1',
+        status: 'PENDING',
+        confirmedAt: null,
+      });
+      flipWon(null);
+      const loggerLog = jest
+        .spyOn(Logger.prototype, 'log')
+        .mockImplementation(() => undefined);
+      const consoleLog = jest
+        .spyOn(console, 'log')
+        .mockImplementation(() => undefined);
+
+      await makeService().cancelDeletion('tok-1', undefined);
+
+      expect(
+        JSON.stringify([loggerLog.mock.calls, consoleLog.mock.calls])
+      ).not.toContain('@');
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
+      loggerLog.mockRestore();
+      consoleLog.mockRestore();
     });
   });
 });

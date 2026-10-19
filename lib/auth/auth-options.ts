@@ -10,6 +10,8 @@ import GoogleProvider from 'next-auth/providers/google';
 import LinkedInProvider from 'next-auth/providers/linkedin';
 import TwitterProvider from 'next-auth/providers/twitter';
 
+import { ACCOUNT_DEACTIVATED_CODE } from '@/lib/account/deletion';
+import { isUserActive } from '@/lib/auth/user-active';
 import { prisma } from '@/lib/db/prisma';
 import type { UserTier, UserRole } from '@/types';
 
@@ -351,8 +353,10 @@ export const authOptions: NextAuthOptions = {
           throw new Error('INVALID_CREDENTIALS');
         }
 
+        // Locked by a confirmed account deletion (F21) or suspended by an admin. After the
+        // password check, so only someone who knows the password learns the account's state.
         if (!user.isActive) {
-          throw new Error('locked');
+          throw new Error(ACCOUNT_DEACTIVATED_CODE);
         }
 
         if (user.emailVerified === null || user.emailVerified === undefined) {
@@ -493,6 +497,13 @@ export const authOptions: NextAuthOptions = {
 
           console.log('[SignIn] Existing user found:', !!existingUser);
 
+          // A locked account (confirmed deletion, F21, or an admin suspension) gets no
+          // session through OAuth either. The login form reads the code from the URL.
+          if (existingUser && !existingUser.isActive) {
+            console.warn('[SignIn] Refused a deactivated account');
+            return `/login?error=${ACCOUNT_DEACTIVATED_CODE}`;
+          }
+
           // SECURITY: Prevent account takeover via unverified OAuth
           // Only block if:
           // 1. User exists
@@ -549,6 +560,16 @@ export const authOptions: NextAuthOptions = {
      * tier, role, and isAffiliate are correctly populated in the JWT token.
      */
     async jwt({ token, user, trigger }) {
+      // Every session read after sign-in: is the account still live? (F21.) Outside the
+      // try below on purpose: it swallows errors and returns the token, and this one must
+      // escape. NextAuth turns a throw from this callback into "no session" and clears the
+      // cookie, so a user who confirmed a deletion is signed out on their next request.
+      if (!user && typeof token.id === 'string') {
+        if (!(await isUserActive(token.id))) {
+          throw new Error(ACCOUNT_DEACTIVATED_CODE);
+        }
+      }
+
       try {
         console.log('[JWT] Trigger:', trigger, 'Has user:', !!user);
 

@@ -10,6 +10,11 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 
 import {
+  DELETION_GRACE_PERIOD_MS,
+  DELETION_STATUS,
+} from '../account-deletion/account-deletion.constants';
+import { revokeAllUserAccess } from '../account-deletion/revoke-user-access';
+import {
   sendAccountDeletionEmail,
   sendPasswordChangedEmail,
 } from '../email/email.util';
@@ -695,7 +700,9 @@ export class UsersService {
     );
   }
 
-  // ─── Account Deletion (F21 stays OPEN; ports the existing 7-day flow) ──
+  // ─── Account Deletion (F21: lock at confirm, soft delete after 24 h) ───
+  // requestDeletion/confirmDeletion/cancelDeletion are the user-facing half; the 24 h half is
+  // AccountDeletionWorker (src/account-deletion/).
 
   async requestDeletion(userId: string) {
     const existingRequest = await this.prisma.accountDeletionRequest.findFirst({
@@ -802,29 +809,45 @@ export class UsersService {
       });
     }
 
-    const confirmedRequest = await this.prisma.accountDeletionRequest.update({
-      where: { id: deletionRequest.id },
-      data: { status: 'CONFIRMED', confirmedAt: new Date() },
+    // Confirming locks the account at once (F21, Option B): the status flip, the
+    // deactivation and the sign-out of every device commit together or not at all. The
+    // flip is conditional on PENDING, so two clicks on the link (or a click racing a
+    // cancel) cannot both win. The 24 h worker (AccountDeletionWorker) finishes the job.
+    const confirmedAt = new Date();
+    const confirmed = await this.prisma.$transaction(async (tx) => {
+      const claim = await tx.accountDeletionRequest.updateMany({
+        where: { id: deletionRequest.id, status: DELETION_STATUS.PENDING },
+        data: { status: DELETION_STATUS.CONFIRMED, confirmedAt },
+      });
+      if (claim.count === 0) return false;
+
+      // updateMany, not update: a request whose user is already gone must not
+      // roll the confirmation back with a "record not found".
+      await tx.user.updateMany({
+        where: { id: deletionRequest.userId },
+        data: { isActive: false },
+      });
+      await revokeAllUserAccess(tx, deletionRequest.userId);
+      return true;
     });
+    if (!confirmed) {
+      throw new BadRequestException({
+        error: 'Request already processed',
+        message: 'This deletion request has already been processed.',
+      });
+    }
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: deletionRequest.userId },
-      select: { email: true, name: true },
-    });
+    const scheduledDeletionTime = new Date(
+      confirmedAt.getTime() + DELETION_GRACE_PERIOD_MS
+    );
 
-    // SOURCE computes and returns this 24h figure but never persists or
-    // enforces it (no `scheduledDeletionAt` field, no queued job) — the
-    // literal "TODO: Queue deletion job for 24 hours later" from SOURCE is
-    // preserved as-is, not implemented here (F21 stays OPEN).
-    const scheduledDeletionTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
-
-    console.log('[AccountDeletion] Deletion confirmed:', {
+    // No address, no token: stdout is shipped to the log store (see requestDeletion).
+    this.logger.log('Account deletion confirmed', {
       userId: deletionRequest.userId,
-      userEmail: user?.email,
-      requestId: confirmedRequest.id,
+      requestId: deletionRequest.id,
       scheduledDeletionTime,
     });
-    // TODO (preserved from SOURCE): queue deletion job; send confirmation email.
+    // TODO (preserved from SOURCE): send a confirmation email.
 
     return {
       success: true,
@@ -871,19 +894,60 @@ export class UsersService {
       });
     }
 
-    const cancelledRequest = await this.prisma.accountDeletionRequest.update({
-      where: { id: deletionRequest.id },
-      data: { status: 'CANCELLED', cancelledAt: new Date() },
-    });
+    // The 24 h after confirmation is the whole grace period. Past it the worker owns the
+    // request (and may already have cancelled the subscription), so a late click on the link
+    // is refused instead of racing the worker.
+    const now = new Date();
+    const graceCutoff = new Date(now.getTime() - DELETION_GRACE_PERIOD_MS);
+    const graceEnded =
+      deletionRequest.status === DELETION_STATUS.CONFIRMED &&
+      deletionRequest.confirmedAt !== null &&
+      deletionRequest.confirmedAt <= graceCutoff;
+    const refused = {
+      error: 'Cannot cancel this request',
+      message:
+        'The 24-hour cancellation window has ended, so this deletion can no longer be cancelled.',
+    };
+    if (graceEnded) throw new BadRequestException(refused);
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: deletionRequest.userId },
-      select: { email: true, name: true },
+    // One transaction: the conditional flip to CANCELLED and the reactivation. The same
+    // grace test is in the WHERE, so a request the worker is about to take cannot also be
+    // cancelled. `confirmedAt` is read back after the flip: a click that raced a confirm
+    // (PENDING when we looked, CONFIRMED when we wrote) still gets its account back.
+    const cancelled = await this.prisma.$transaction(async (tx) => {
+      const flip = await tx.accountDeletionRequest.updateMany({
+        where: {
+          id: deletionRequest.id,
+          OR: [
+            { status: DELETION_STATUS.PENDING },
+            {
+              status: DELETION_STATUS.CONFIRMED,
+              confirmedAt: { gt: graceCutoff },
+            },
+          ],
+        },
+        data: { status: DELETION_STATUS.CANCELLED, cancelledAt: now },
+      });
+      if (flip.count === 0) return false;
+
+      const after = await tx.accountDeletionRequest.findUnique({
+        where: { id: deletionRequest.id },
+        select: { confirmedAt: true },
+      });
+      if (after?.confirmedAt) {
+        // `deletedAt: null` keeps a completed deletion from being undone by a stale call.
+        await tx.user.updateMany({
+          where: { id: deletionRequest.userId, deletedAt: null },
+          data: { isActive: true },
+        });
+      }
+      return true;
     });
-    console.log('[AccountDeletion] Deletion cancelled:', {
+    if (!cancelled) throw new BadRequestException(refused);
+
+    this.logger.log('Account deletion cancelled', {
       userId: deletionRequest.userId,
-      userEmail: user?.email,
-      requestId: cancelledRequest.id,
+      requestId: deletionRequest.id,
     });
     // TODO (preserved from SOURCE): send cancellation confirmation email.
 

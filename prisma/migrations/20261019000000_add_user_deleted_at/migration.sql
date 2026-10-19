@@ -1,0 +1,24 @@
+-- Account-deletion pipeline (F21): soft delete with an admin audit trail.
+--
+-- NOT APPLIED by the Executor (CLAUDE.md: the Executor never applies a migration to a live
+-- database). Davin applies it; see "Rollout order" below.
+--
+-- What it adds (purely additive, no existing row is changed):
+--   "User"."deletedAt": NULL for every account. The 24 h deletion worker in operation-service sets it
+--   when it completes a CONFIRMED "AccountDeletionRequest". The User row, its "Account", "Payment"
+--   and "Commission" rows stay (accounting and admin inspection); only the live artifacts go.
+--
+-- Rollout order: apply this migration FIRST, then deploy operation-service and the monolith.
+-- This one is not optional, unlike the additive tables of earlier migrations: the regenerated
+-- Prisma clients select "deletedAt" in every full-row read of "User" (a findUnique with no select),
+-- so code deployed before the column exists fails on login, not only on deletion.
+-- The old code is safe against the new schema (a nullable column nobody reads).
+--
+-- Before applying (read-only): `prisma migrate status` and confirm the column is absent:
+--   SELECT column_name FROM information_schema.columns
+--   WHERE table_name = 'User' AND column_name = 'deletedAt';   -- expect ZERO rows
+--
+-- Rollback: ALTER TABLE "User" DROP COLUMN "deletedAt";  (only before any account is completed;
+-- afterwards it holds the only record of when the deletion ran).
+
+ALTER TABLE "User" ADD COLUMN "deletedAt" TIMESTAMP(3);

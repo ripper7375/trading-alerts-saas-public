@@ -5312,5 +5312,7 @@
   "worldGold.notes.ch": "Lingots de référence ; un kilogramme équivaut à 32,1507466 onces troy.",
   "worldGold.country.au": "Australie",
   "worldGold.hours.au": "Lun–ven 09:00–17:00",
-  "worldGold.notes.au": "Lingots de référence ; un kilogramme équivaut à 32,1507466 onces troy."
+  "worldGold.notes.au": "Lingots de référence ; un kilogramme équivaut à 32,1507466 onces troy.",
+  "This account has been deactivated or is scheduled for deletion.": "Ce compte a été désactivé ou est programmé pour suppression.",
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "Si vous avez demandé sa suppression par erreur, utilisez le lien d'annulation de votre e-mail dans les 24 heures ou contactez le support."
 }

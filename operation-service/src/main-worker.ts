@@ -4,6 +4,7 @@ initOtel('operation-service');
 
 import { NestFactory } from '@nestjs/core';
 
+import { AccountDeletionScheduler } from './account-deletion/account-deletion.scheduler';
 import { AlertCronScheduler } from './alert-engine/alert-cron.scheduler';
 import { AlertWorkerService } from './alert-engine/alert-worker.service';
 import { AppModule } from './app.module';
@@ -37,9 +38,12 @@ async function bootstrap(): Promise<void> {
 
   const worker = app.get(AlertWorkerService);
   const scheduler = app.get(AlertCronScheduler);
+  const deletionScheduler = app.get(AccountDeletionScheduler);
 
   await worker.start();
   scheduler.enable();
+  // F21: the 24 h half of account deletion runs here, never in the HTTP process.
+  deletionScheduler.enable();
 
   console.warn('[alert-worker] running');
 }

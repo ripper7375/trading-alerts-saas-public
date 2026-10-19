@@ -385,6 +385,7 @@ declare module '@prisma/client' {
     tier: UserTier;
     role: string;
     isActive: boolean;
+    deletedAt: Date | null;
     isAffiliate: boolean;
     trialStatus: TrialStatus;
     trialStartDate: Date | null;

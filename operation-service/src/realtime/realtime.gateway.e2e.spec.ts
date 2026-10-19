@@ -26,6 +26,7 @@ import type { AddressInfo } from 'net';
 import { io, type Socket as ClientSocket } from 'socket.io-client';
 
 import type { AlertFiredMessage } from '../alert-engine/notify-bridge.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
 import { RealtimeGateway } from './realtime.gateway';
@@ -120,6 +121,13 @@ describe('RealtimeGateway (real socket.io-client end-to-end)', () => {
           provide: RedisService,
           useValue: {
             getClient: () => new FakeRedisClient(bus),
+          },
+        },
+        {
+          // The handshake now checks User.isActive (F21); every test user is active.
+          provide: PrismaService,
+          useValue: {
+            user: { findUnique: async () => ({ isActive: true }) },
           },
         },
       ],

@@ -45,6 +45,7 @@ model User {
   tier                 UserTier  @default(FREE)
   role                 String    @default("USER")
   isActive             Boolean   @default(true)
+  deletedAt            DateTime?
   isAffiliate          Boolean   @default(false)
   verificationToken    String?   @unique
   resetToken           String?   @unique
@@ -357,6 +358,28 @@ model DrawingAlert {
   updatedAt DateTime @updatedAt
 
   @@index([drawingId])
+}
+
+// F21 (account-deletion worker): READ-ONLY, NARROW mirror of the monolith's Subscription, so the
+// worker can tell whether a user still has a Stripe subscription to stop before the account is
+// completed. This service never writes it: Subscription belongs to money-service (the roles file
+// grants core_app SELECT only, on purpose). Only the columns the worker reads are declared.
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIALING
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeSubscriptionId String?            @unique
+  status               SubscriptionStatus
+
+  @@index([userId])
 }
 
 // Session 4B-2: NARROW subset mirror of prisma/market-data/schema.prisma's

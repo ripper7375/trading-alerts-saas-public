@@ -333,4 +333,59 @@ describe('LoginForm', () => {
       ).not.toBeInTheDocument();
     });
   });
+  describe('deactivated account (F21)', () => {
+    const TITLE =
+      'This account has been deactivated or is scheduled for deletion.';
+
+    afterEach(() => {
+      window.history.replaceState(null, '', '/');
+    });
+
+    it('explains a deactivated account when NextAuth answers ACCOUNT_DEACTIVATED', async () => {
+      mockIsAuthBridgeEnabled.mockReturnValue(false);
+      mockSignIn.mockResolvedValue({ ok: false, error: 'ACCOUNT_DEACTIVATED' });
+
+      render(withLocale(<LoginForm />));
+      await fillAndSubmit();
+
+      expect(await screen.findByText(TITLE)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Invalid email or password/i)
+      ).not.toBeInTheDocument();
+    });
+
+    it('explains a deactivated account when token-login answers ACCOUNT_DEACTIVATED', async () => {
+      mockIsAuthBridgeEnabled.mockReturnValue(true);
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: false,
+        json: async () => ({
+          error: 'ACCOUNT_DEACTIVATED',
+          message: 'This account is deactivated',
+        }),
+      });
+
+      render(withLocale(<LoginForm />));
+      await fillAndSubmit();
+
+      expect(await screen.findByText(TITLE)).toBeInTheDocument();
+    });
+
+    it('explains it after an OAuth sign-in comes back as /login?error=ACCOUNT_DEACTIVATED', async () => {
+      mockIsAuthBridgeEnabled.mockReturnValue(false);
+      window.history.replaceState(null, '', '/login?error=ACCOUNT_DEACTIVATED');
+
+      render(withLocale(<LoginForm />));
+
+      expect(await screen.findByText(TITLE)).toBeInTheDocument();
+    });
+
+    it('shows no deactivation notice for any other error code in the URL', () => {
+      mockIsAuthBridgeEnabled.mockReturnValue(false);
+      window.history.replaceState(null, '', '/login?error=AccessDenied');
+
+      render(withLocale(<LoginForm />));
+
+      expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
+    });
+  });
 });

@@ -12,6 +12,8 @@ import type { Redis } from 'ioredis';
 import type { Server, Socket } from 'socket.io';
 
 import type { AlertFiredMessage } from '../alert-engine/notify-bridge.service';
+import { clearUserActiveCache } from '../auth/user-active.util';
+import type { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
 import { RealtimeGateway, resolveRealtimeCorsOrigin } from './realtime.gateway';
@@ -109,10 +111,15 @@ describe('RealtimeGateway', () => {
   let redisService: jest.Mocked<RedisService>;
   let fakeRedis: jest.Mocked<Redis>;
   let fakeServer: jest.Mocked<Server>;
+  let prisma: { user: { findUnique: jest.Mock } };
 
   beforeEach(async () => {
     process.env['NEXTAUTH_SECRET'] = 'test-secret';
     jest.clearAllMocks();
+    clearUserActiveCache();
+    prisma = {
+      user: { findUnique: jest.fn().mockResolvedValue({ isActive: true }) },
+    };
 
     fakeRedis = makeFakeRedis();
     redisService = {
@@ -124,7 +131,10 @@ describe('RealtimeGateway', () => {
       to: jest.fn().mockReturnValue({ emit: jest.fn() }),
     } as unknown as jest.Mocked<Server>;
 
-    gateway = new RealtimeGateway(redisService);
+    gateway = new RealtimeGateway(
+      redisService,
+      prisma as unknown as PrismaService
+    );
     gateway.server = fakeServer;
     await gateway.afterInit(fakeServer);
   });
@@ -194,6 +204,27 @@ describe('RealtimeGateway', () => {
         userId: 'user-42',
       });
       expect(socket.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('refuses a socket whose account is deactivated (F21) without joining any room', async () => {
+      mockDecodeNextAuthToken.mockResolvedValueOnce({
+        id: 'user-42',
+        email: 'a@b.com',
+      } as never);
+      prisma.user.findUnique.mockResolvedValueOnce({ isActive: false });
+      const socket = makeFakeSocket({ token: 'a-valid-jwe' });
+
+      await gateway.handleConnection(socket);
+
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-42' },
+        select: { isActive: true },
+      });
+      expect(socket.emit).toHaveBeenCalledWith('error', {
+        message: 'ACCOUNT_DEACTIVATED',
+      });
+      expect(socket.disconnect).toHaveBeenCalledWith(true);
+      expect(socket.join).not.toHaveBeenCalled();
     });
 
     it('registers a raw disconnect listener that logs the reason string (F55 diagnostic)', async () => {

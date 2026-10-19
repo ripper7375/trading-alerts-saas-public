@@ -19,6 +19,7 @@ import { sendVerificationEmail } from '../email/email.util';
 
 import { AuthService } from './auth.service';
 import {
+  AccountDeactivatedError,
   AccountExistsError,
   EmailNotVerifiedError,
   InvalidCredentialsError,
@@ -223,6 +224,63 @@ describe('AuthService', () => {
       ).rejects.toThrow(EmailNotVerifiedError);
     });
 
+    it('rejects a deactivated account with ACCOUNT_DEACTIVATED once the password is right (F21)', async () => {
+      const hashed = await bcrypt.hash('correct-password', 10);
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ password: hashed, isActive: false })
+      );
+
+      await expect(
+        service.login('alice@example.com', 'correct-password')
+      ).rejects.toMatchObject({
+        code: 'ACCOUNT_DEACTIVATED',
+        statusCode: 403,
+      });
+      expect(refreshTokens.issue).not.toHaveBeenCalled();
+    });
+
+    it('does not reveal a deactivated account to a wrong password', async () => {
+      const hashed = await bcrypt.hash('correct-password', 10);
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ password: hashed, isActive: false })
+      );
+
+      await expect(
+        service.login('alice@example.com', 'wrong-password')
+      ).rejects.toThrow(InvalidCredentialsError);
+    });
+
+    it('does not start the 2FA challenge for a deactivated account', async () => {
+      const hashed = await bcrypt.hash('correct-password', 10);
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ password: hashed, isActive: false, twoFactorEnabled: true })
+      );
+
+      await expect(
+        service.login('alice@example.com', 'correct-password')
+      ).rejects.toThrow(AccountDeactivatedError);
+    });
+
+    it('refuses to complete a 2FA login if the account was locked in between', async () => {
+      const twoFactorToken = jwt.sign(
+        {
+          userId: 'user-1',
+          email: 'alice@example.com',
+          purpose: '2fa_verification',
+        },
+        TEST_SECRET,
+        { expiresIn: '5m' }
+      );
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ twoFactorEnabled: true, isActive: false })
+      );
+
+      await expect(
+        service.login('__2fa_verified__', twoFactorToken)
+      ).rejects.toThrow(AccountDeactivatedError);
+      expect(refreshTokens.issue).not.toHaveBeenCalled();
+    });
+
     it('throws TwoFactorRequiredError with a usable temp token when 2FA is enabled', async () => {
       const hashed = await bcrypt.hash('correct-password', 10);
       prisma.user.findUnique.mockResolvedValue(
@@ -399,6 +457,21 @@ describe('AuthService', () => {
       expect(result.refreshToken).toBe('new-raw-token');
       const claims = await decryptAccessToken(result.accessToken);
       expect(claims.id).toBe('user-1');
+    });
+
+    it('refuses a deactivated account and revokes the token it just rotated in (F21)', async () => {
+      refreshTokens.rotate.mockResolvedValue({
+        userId: 'user-1',
+        issued: { rawToken: 'new-raw-token', expiresAt: new Date() },
+      });
+      prisma.user.findUnique.mockResolvedValue(makeUser({ isActive: false }));
+
+      await expect(service.refresh('old-raw-token')).rejects.toMatchObject({
+        code: 'ACCOUNT_DEACTIVATED',
+      });
+      expect(refreshTokens.revokeByRawToken).toHaveBeenCalledWith(
+        'new-raw-token'
+      );
     });
   });
 
