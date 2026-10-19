@@ -133,6 +133,12 @@ describe('MarketDataService', () => {
         where: { symbol: 'XAUUSD', timeframe: 'M5' },
         orderBy: { timestamp: 'desc' },
         take: 300,
+        select: {
+          timestamp: true,
+          best_fit_a_uoedt: true,
+          best_fit_a_base_fl: true,
+          best_fit_a_loedt: true,
+        },
       });
       // Rows come back desc (newest first) from Prisma; SOURCE reverses
       // them to chronological order for chart rendering.

@@ -239,13 +239,19 @@ describe('GET /api/market-data/channel with ACTIVE_INDICATOR_FROM_GATEWAY on', (
       );
     });
 
-    it('the channel query itself is unchanged: the same symbol, timeframe, order and limit', async () => {
+    it('the channel query: the same symbol, timeframe, order and limit, and only the active source columns', async () => {
       gatewayAnswers(AFTER);
       await call('?timeframe=M5&limit=50');
       expect(mockFindMany).toHaveBeenCalledWith({
         where: { symbol: 'XAUUSD', timeframe: 'M5' },
         orderBy: { timestamp: 'desc' },
         take: 50,
+        select: {
+          timestamp: true,
+          cherry_a_uoedt: true,
+          cherry_a_base_fl: true,
+          cherry_a_loedt: true,
+        },
       });
     });
   });

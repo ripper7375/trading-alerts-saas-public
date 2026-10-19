@@ -83,18 +83,26 @@ export class MarketDataService {
     }
 
     const validVariant = variant as CentroidVariant;
+    const upper = `${validVariant}_uoedt`;
+    const mid = `${validVariant}_base_fl`;
+    const lower = `${validVariant}_loedt`;
 
+    // Name the four columns the overlay draws. A read with no `select` asks for
+    // every column of the generated client, so one column added to the schema
+    // before its migration is applied would fail this endpoint (the monolith's
+    // .claude/architecture/database-traps.md, the `User.deletedAt` outage).
     const rows = (await this.prisma.marketDataV6.findMany({
       where: { symbol, timeframe },
       orderBy: { timestamp: 'desc' },
       take: limit,
+      select: { timestamp: true, [upper]: true, [mid]: true, [lower]: true },
     })) as unknown as Array<Record<string, unknown>>;
 
     const points: ChannelPoint[] = rows.reverse().map((row) => ({
       time: row['timestamp'] as number,
-      upper: (row[`${validVariant}_uoedt`] as number | null) ?? null,
-      mid: (row[`${validVariant}_base_fl`] as number | null) ?? null,
-      lower: (row[`${validVariant}_loedt`] as number | null) ?? null,
+      upper: (row[upper] as number | null) ?? null,
+      mid: (row[mid] as number | null) ?? null,
+      lower: (row[lower] as number | null) ?? null,
     }));
 
     return {

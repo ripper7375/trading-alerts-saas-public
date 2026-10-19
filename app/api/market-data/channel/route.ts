@@ -210,10 +210,20 @@ export async function GET(
     }
     const columns = channelColumns(variant);
 
+    // Name the four columns the overlay draws. A read with no `select` asks for
+    // every column of the generated client, so one column added to the schema
+    // before its migration is applied would fail this route
+    // (.claude/architecture/database-traps.md, the `User.deletedAt` outage).
     const rows = (await marketPrisma.marketDataV6.findMany({
       where: { symbol, timeframe },
       orderBy: { timestamp: 'desc' },
       take: limit,
+      select: {
+        timestamp: true,
+        [columns.upper]: true,
+        [columns.mid]: true,
+        [columns.lower]: true,
+      },
     })) as unknown as Array<Record<string, unknown>>;
 
     const points: ChannelPoint[] = rows.reverse().map((row) => ({

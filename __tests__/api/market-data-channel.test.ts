@@ -240,6 +240,12 @@ describe('GET /api/market-data/channel', () => {
       where: { symbol: 'XAUUSD', timeframe: 'M5' },
       orderBy: { timestamp: 'desc' },
       take: 300,
+      select: {
+        timestamp: true,
+        best_fit_a_uoedt: true,
+        best_fit_a_base_fl: true,
+        best_fit_a_loedt: true,
+      },
     });
     expect(data.success).toBe(true);
     expect(data.symbol).toBe('XAUUSD');
@@ -273,6 +279,16 @@ describe('GET /api/market-data/channel', () => {
 
     expect(data.variant).toBe('cherry_b');
     expect(data.points).toEqual([{ time: 100, upper: 5, mid: 4, lower: 3 }]);
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: {
+          timestamp: true,
+          cherry_b_uoedt: true,
+          cherry_b_base_fl: true,
+          cherry_b_loedt: true,
+        },
+      })
+    );
   });
 
   it('clamps a limit above 1000 down to the MAX_LIMIT', async () => {

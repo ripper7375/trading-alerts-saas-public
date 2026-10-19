@@ -106,9 +106,12 @@ export class AlertCheckerService {
     timeframe: string
   ): Promise<number | null> {
     try {
+      // Only `close`: a read with no select asks for every column, and one
+      // column not yet migrated would send every XAUUSD check to Flask.
       const row = await this.prisma.marketDataV6.findFirst({
         where: { symbol: 'XAUUSD', timeframe },
         orderBy: { timestamp: 'desc' },
+        select: { close: true },
       });
       return row?.close ?? null;
     } catch (error) {
