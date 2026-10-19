@@ -39,6 +39,7 @@ import {
   REBASE_MIN,
   XAUX_USDX_CHART_HEIGHT,
 } from './xaux-usdx-chart-config';
+import { releaseWheelToPage } from '@/components/charts/release-wheel-to-page';
 import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 
 interface XauxUsdxComparisonChartProps {
@@ -216,6 +217,10 @@ export function XauxUsdxComparisonChart({
     setChartApi(chart);
     setPrimarySeries(seriesMap.get('XAUX') ?? null);
 
+    // The chart would otherwise take every wheel event to zoom, so the page
+    // could not be scrolled with the pointer over it. Ctrl/Cmd+wheel zooms.
+    const releaseWheel = releaseWheelToPage(containerRef.current);
+
     const handleResize = (): void => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
@@ -226,6 +231,7 @@ export function XauxUsdxComparisonChart({
     window.addEventListener('resize', handleResize);
 
     return (): void => {
+      releaseWheel();
       window.removeEventListener('resize', handleResize);
       watermarkRef.current?.detach();
       watermarkRef.current = null;

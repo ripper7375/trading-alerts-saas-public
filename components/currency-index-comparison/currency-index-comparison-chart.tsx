@@ -95,6 +95,7 @@ import {
   zscoreCandleClasses,
   type ZScoreCandleClass,
 } from '@/lib/currency-index-comparison/zscore-candle';
+import { releaseWheelToPage } from '@/components/charts/release-wheel-to-page';
 import { useChartTimeOptions } from '@/components/charts/use-chart-time-options';
 import {
   COMPARISON_CHART_HEIGHT,
@@ -454,6 +455,10 @@ export function CurrencyIndexComparisonChart({
     setChartApi(chart);
     setHostSeries(host);
 
+    // The chart would otherwise take every wheel event to zoom, so the page
+    // could not be scrolled with the pointer over it. Ctrl/Cmd+wheel zooms.
+    const releaseWheel = releaseWheelToPage(containerRef.current);
+
     const handleResize = (): void => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
@@ -465,6 +470,7 @@ export function CurrencyIndexComparisonChart({
 
     const seriesMap = seriesRef.current;
     return (): void => {
+      releaseWheel();
       window.removeEventListener('resize', handleResize);
       chart.remove();
       chartRef.current = null;
