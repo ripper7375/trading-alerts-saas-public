@@ -28,9 +28,22 @@ const EARLIER = Date.UTC(2026, 8, 18, 20, 50) / 1000;
 const flush = (): Promise<void> =>
   new Promise((resolve) => setImmediate(resolve));
 
-/** Let the run go on until `done()` holds (every wait here is a promise, so a few ticks do it). */
-async function until(done: () => boolean): Promise<void> {
-  for (let i = 0; i < 200 && !done(); i += 1) await flush();
+/**
+ * Let the run go on until `done()` holds. A fixed number of ticks is not enough: the intake hashes
+ * with Web Crypto (`crypto.subtle.digest` runs on the thread pool), and under CPU load 200 ticks
+ * ran out before it answered, so the next assertion failed on an empty order. Wait on the clock
+ * instead, and say so when the condition never holds.
+ */
+async function until(done: () => boolean, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!done()) {
+    if (Date.now() > deadline) {
+      throw new Error(
+        `until: the condition did not hold within ${timeoutMs} ms`
+      );
+    }
+    await flush();
+  }
 }
 
 function gate() {
@@ -123,7 +136,7 @@ describe('the orchestrator reads in two waves', () => {
     expect(order).toEqual(['context:start', 'bars:start']);
 
     held.bars.open();
-    await flush();
+    await until(() => order.includes('bars:end'));
     // the bars are back, the thread is not: wave 2 waits for the thread
     expect(order).toEqual(['context:start', 'bars:start', 'bars:end']);
 

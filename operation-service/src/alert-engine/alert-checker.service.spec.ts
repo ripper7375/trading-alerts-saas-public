@@ -134,6 +134,7 @@ describe('Alert Checker Job', () => {
         expect(marketDataFindFirst).toHaveBeenCalledWith({
           where: { symbol: 'XAUUSD', timeframe: 'M5' },
           orderBy: { timestamp: 'desc' },
+          select: { close: true },
         });
         expect(fetchSpy).not.toHaveBeenCalled();
         expect(update).toHaveBeenCalledWith(

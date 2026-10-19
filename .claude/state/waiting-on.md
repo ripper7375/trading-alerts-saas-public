@@ -386,8 +386,7 @@ Quick index (newest first):
   write route before this goes live (the part 6 hand-off, decision 1).
   (b) **The renderer and the sensor-input loader do not follow the setting yet.** The loader (step 3) will call `ActiveIndicatorService.resolveAll(cycleSlot)` in process; the VPS renderer (part 7) will call
   `GET /api/v1/cycles/current`. Until part 7, the chart image served by `/api/chart/download` is rendered on the VPS with the renderer's own choice, so after a change the downloaded overlay can differ from the on-screen one.
-  (c) With `MIGRATE_MARKET_DATA_CHANNEL=true` the route resolves the setting first and forwards the indicator to operation-service, but operation-service does not know `fractal_edt`: with the fractal EDT active
-  that path answers 400. The flag defaults off; operation-service was not touched (out of scope).
+  (c) RESOLVED 2026-10-19: operation-service's channel proxy now accepts `fractal_edt` (the monolith forwards the active source as the variant), see [resolved-waiting-on](./history/resolved-waiting-on.md).
   (d) The setting is changed through the admin route only (no page): `POST /api/admin/active-indicator` with `{ timeframe, source, effectiveSlot, reason }` as a signed-in administrator; the author is taken from the session.
   Part 6 hand-off: `docs/handoffs/2026-10-02-0536-step2-part6.md`.
 

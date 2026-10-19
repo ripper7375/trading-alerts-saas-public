@@ -73,7 +73,7 @@ describe('MarketDataService', () => {
       });
     });
 
-    it('rejects an unsupported variant, listing all 7 available variants', async () => {
+    it('rejects an unsupported variant, listing all 8 channel sources', async () => {
       const service = makeService();
 
       await expect(
@@ -83,7 +83,7 @@ describe('MarketDataService', () => {
         response: {
           success: false,
           error:
-            'Invalid variant. Available: best_fit_a, best_fit_b, cherry_a, cherry_b, most_recent, non_a, non_b',
+            'Invalid variant. Available: best_fit_a, best_fit_b, cherry_a, cherry_b, most_recent, non_a, non_b, fractal_edt',
         },
       });
     });
@@ -133,6 +133,12 @@ describe('MarketDataService', () => {
         where: { symbol: 'XAUUSD', timeframe: 'M5' },
         orderBy: { timestamp: 'desc' },
         take: 300,
+        select: {
+          timestamp: true,
+          best_fit_a_uoedt: true,
+          best_fit_a_base_fl: true,
+          best_fit_a_loedt: true,
+        },
       });
       // Rows come back desc (newest first) from Prisma; SOURCE reverses
       // them to chronological order for chart rendering.
@@ -188,6 +194,44 @@ describe('MarketDataService', () => {
       expect(result.points).toEqual([
         { time: 100, upper: 5, mid: 4, lower: 3 },
       ]);
+    });
+
+    it('serves the fractal EDT the monolith forwards as the active source, from its own column names', async () => {
+      mockPrisma.marketDataV6.findMany.mockResolvedValue([
+        {
+          timestamp: 100,
+          fractal_uoedt: 7,
+          fractal_best_fl: 6,
+          fractal_loedt: 5,
+        },
+      ]);
+      const service = makeService();
+
+      const result = await service.getChannelData(
+        'PRO',
+        'XAUUSD',
+        'M15',
+        'fractal_edt',
+        300
+      );
+
+      expect(result).toEqual({
+        success: true,
+        symbol: 'XAUUSD',
+        timeframe: 'M15',
+        variant: 'fractal_edt',
+        points: [{ time: 100, upper: 7, mid: 6, lower: 5 }],
+      });
+      expect(mockPrisma.marketDataV6.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          select: {
+            timestamp: true,
+            fractal_uoedt: true,
+            fractal_best_fl: true,
+            fractal_loedt: true,
+          },
+        })
+      );
     });
   });
 });
