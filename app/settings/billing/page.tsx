@@ -303,7 +303,7 @@ export default function BillingSettingsPage(): React.ReactElement {
       )}
 
       {subscriptionError && (
-        <div className="border-destructive/50 bg-destructive/10 mb-6 rounded-lg border p-4 text-sm text-destructive">
+        <div className="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-sm text-destructive">
           {subscriptionError}
         </div>
       )}
@@ -319,7 +319,7 @@ export default function BillingSettingsPage(): React.ReactElement {
         </div>
       )}
       {trial && trial.status === 'CANCELLED' && trial.cancelledAt && (
-        <div className="bg-muted/40 mb-6 rounded-lg border border-border p-4">
+        <div className="mb-6 rounded-lg border border-border bg-muted/40 p-4">
           <p className="text-sm text-muted-foreground">
             {t(
               'billing.trial_cancelled_on',
@@ -334,7 +334,7 @@ export default function BillingSettingsPage(): React.ReactElement {
       <Card
         className={
           userTier === 'PRO'
-            ? 'border-primary/40 bg-primary/5 mb-8 border-2'
+            ? 'mb-8 border-2 border-primary/40 bg-primary/5'
             : 'mb-8 border-2 border-border'
         }
       >
@@ -686,7 +686,7 @@ export default function BillingSettingsPage(): React.ReactElement {
 
       {/* Upgrade Prompt for FREE users (not in admin view: marketing only) */}
       {userTier === 'FREE' && !viewing && (
-        <Card className="border-0 bg-gradient-to-r from-primary to-amber-600 text-primary-foreground">
+        <Card className="border-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
           <CardContent className="p-6">
             <div className="flex flex-col items-center gap-6 sm:flex-row">
               <div className="text-4xl">🚀</div>
@@ -694,14 +694,14 @@ export default function BillingSettingsPage(): React.ReactElement {
                 <h3 className="mb-2 text-xl font-bold">
                   {t('billing.unlock_more_with_pro', 'Unlock More with PRO')}
                 </h3>
-                <p className="text-primary-foreground/90 mb-4">
+                <p className="mb-4 opacity-90">
                   {t(
                     'billing.upgrade_prompt',
                     'Get 100 price alerts, drawing engine line alerts, multi-timeframe visualization, and priority support for just {price}/month.'
                   ).replace('{price}', formatCurrency(regularPrice))}
                 </p>
                 <Link href="/pricing">
-                  <Button className="bg-white font-semibold text-foreground hover:bg-white/90">
+                  <Button className="bg-white font-semibold text-zinc-900 hover:bg-white/90">
                     {t('billing.view_pricing_plans', 'View Pricing Plans')}
                   </Button>
                 </Link>

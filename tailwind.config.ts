@@ -18,69 +18,71 @@ const config: Config = {
     extend: {
       colors: {
         // oklch color format for better perceptual uniformity
-        border: 'oklch(var(--border))',
-        input: 'oklch(var(--input))',
-        ring: 'oklch(var(--ring))',
-        background: 'oklch(var(--background))',
-        foreground: 'oklch(var(--foreground))',
+        border: 'oklch(var(--border) / <alpha-value>)',
+        input: 'oklch(var(--input) / <alpha-value>)',
+        ring: 'oklch(var(--ring) / <alpha-value>)',
+        background: 'oklch(var(--background) / <alpha-value>)',
+        foreground: 'oklch(var(--foreground) / <alpha-value>)',
         primary: {
-          DEFAULT: 'oklch(var(--primary))',
-          foreground: 'oklch(var(--primary-foreground))',
+          DEFAULT: 'oklch(var(--primary) / <alpha-value>)',
+          foreground: 'oklch(var(--primary-foreground) / <alpha-value>)',
         },
         secondary: {
-          DEFAULT: 'oklch(var(--secondary))',
-          foreground: 'oklch(var(--secondary-foreground))',
+          DEFAULT: 'oklch(var(--secondary) / <alpha-value>)',
+          foreground: 'oklch(var(--secondary-foreground) / <alpha-value>)',
         },
         destructive: {
-          DEFAULT: 'oklch(var(--destructive))',
-          foreground: 'oklch(var(--destructive-foreground))',
+          DEFAULT: 'oklch(var(--destructive) / <alpha-value>)',
+          foreground: 'oklch(var(--destructive-foreground) / <alpha-value>)',
         },
         muted: {
-          DEFAULT: 'oklch(var(--muted))',
-          foreground: 'oklch(var(--muted-foreground))',
+          DEFAULT: 'oklch(var(--muted) / <alpha-value>)',
+          foreground: 'oklch(var(--muted-foreground) / <alpha-value>)',
         },
         accent: {
-          DEFAULT: 'oklch(var(--accent))',
-          foreground: 'oklch(var(--accent-foreground))',
+          DEFAULT: 'oklch(var(--accent) / <alpha-value>)',
+          foreground: 'oklch(var(--accent-foreground) / <alpha-value>)',
         },
         popover: {
-          DEFAULT: 'oklch(var(--popover))',
-          foreground: 'oklch(var(--popover-foreground))',
+          DEFAULT: 'oklch(var(--popover) / <alpha-value>)',
+          foreground: 'oklch(var(--popover-foreground) / <alpha-value>)',
         },
         card: {
-          DEFAULT: 'oklch(var(--card))',
-          foreground: 'oklch(var(--card-foreground))',
+          DEFAULT: 'oklch(var(--card) / <alpha-value>)',
+          foreground: 'oklch(var(--card-foreground) / <alpha-value>)',
         },
         // Trading-specific colors
         success: {
-          DEFAULT: 'oklch(var(--success))',
-          foreground: 'oklch(var(--success-foreground))',
+          DEFAULT: 'oklch(var(--success) / <alpha-value>)',
+          foreground: 'oklch(var(--success-foreground) / <alpha-value>)',
         },
         warning: {
-          DEFAULT: 'oklch(var(--warning))',
-          foreground: 'oklch(var(--warning-foreground))',
+          DEFAULT: 'oklch(var(--warning) / <alpha-value>)',
+          foreground: 'oklch(var(--warning-foreground) / <alpha-value>)',
         },
         info: {
-          DEFAULT: 'oklch(var(--info))',
-          foreground: 'oklch(var(--info-foreground))',
+          DEFAULT: 'oklch(var(--info) / <alpha-value>)',
+          foreground: 'oklch(var(--info-foreground) / <alpha-value>)',
         },
         // Chart colors
         chart: {
-          bullish: 'oklch(var(--chart-bullish))',
-          bearish: 'oklch(var(--chart-bearish))',
-          grid: 'oklch(var(--chart-grid))',
-          crosshair: 'oklch(var(--chart-crosshair))',
+          bullish: 'oklch(var(--chart-bullish) / <alpha-value>)',
+          bearish: 'oklch(var(--chart-bearish) / <alpha-value>)',
+          grid: 'oklch(var(--chart-grid) / <alpha-value>)',
+          crosshair: 'oklch(var(--chart-crosshair) / <alpha-value>)',
         },
         // Sidebar (ChatSidebar)
         sidebar: {
-          DEFAULT: 'oklch(var(--sidebar))',
-          foreground: 'oklch(var(--sidebar-foreground))',
-          border: 'oklch(var(--sidebar-border))',
-          primary: 'oklch(var(--sidebar-primary))',
-          'primary-foreground': 'oklch(var(--sidebar-primary-foreground))',
-          accent: 'oklch(var(--sidebar-accent))',
-          'accent-foreground': 'oklch(var(--sidebar-accent-foreground))',
-          ring: 'oklch(var(--sidebar-ring))',
+          DEFAULT: 'oklch(var(--sidebar) / <alpha-value>)',
+          foreground: 'oklch(var(--sidebar-foreground) / <alpha-value>)',
+          border: 'oklch(var(--sidebar-border) / <alpha-value>)',
+          primary: 'oklch(var(--sidebar-primary) / <alpha-value>)',
+          'primary-foreground':
+            'oklch(var(--sidebar-primary-foreground) / <alpha-value>)',
+          accent: 'oklch(var(--sidebar-accent) / <alpha-value>)',
+          'accent-foreground':
+            'oklch(var(--sidebar-accent-foreground) / <alpha-value>)',
+          ring: 'oklch(var(--sidebar-ring) / <alpha-value>)',
         },
       },
       borderRadius: {
