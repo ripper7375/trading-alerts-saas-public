@@ -34,6 +34,8 @@ import {
 import { getComparisonCandles } from '@/lib/currency-index-comparison/queries';
 import { GET } from '@/app/api/market/currency-index-pro/comparison/route';
 
+import { deferred, flushPromises } from '../helpers/async-helpers';
+
 const findMany = marketPrisma.currencyGoldIndex
   .findMany as unknown as jest.Mock;
 const findUniqueUser = prisma.user.findUnique as unknown as jest.Mock;
@@ -239,5 +241,144 @@ describe('GET /api/market/currency-index-pro/comparison', () => {
     asPro();
     const res = await GET(makeRequest('?indices=EURX'));
     expect(res.headers.get('Cache-Control')).toBe('private, max-age=30');
+  });
+
+  describe('concurrent requests (one in-flight fill per index and timeframe per process)', () => {
+    it('shares one Postgres read per index between PRO requests that all miss the cache', async () => {
+      asPro();
+      const gate = deferred<unknown[]>();
+      findMany.mockImplementation(() => gate.promise);
+
+      const pending = [
+        GET(makeRequest('?indices=EURX,JPYX&timeframe=M5')),
+        GET(makeRequest('?indices=EURX,JPYX&timeframe=M5')),
+      ];
+      await flushPromises();
+      gate.resolve([row(SESSION, 100)]);
+      const responses = await Promise.all(pending);
+      const bodies = await Promise.all(responses.map((r) => r.json()));
+
+      // two indices, so two reads in total (not four), and one cache read each
+      expect(findMany).toHaveBeenCalledTimes(2);
+      expect(getCachedMock).toHaveBeenCalledTimes(2);
+      expect(cacheSetMock).toHaveBeenCalledTimes(2);
+      expect(responses.map((r) => r.status)).toEqual([200, 200]);
+      expect(bodies[1]).toEqual(bodies[0]);
+      expect(
+        (bodies[0] as { series: Array<{ symbol: string }> }).series.map(
+          (s) => s.symbol
+        )
+      ).toEqual(['EURX', 'JPYX']);
+    });
+
+    it('shares only the index two overlapping requests have in common', async () => {
+      asPro();
+      const gate = deferred<unknown[]>();
+      findMany.mockImplementation(() => gate.promise);
+
+      const pending = [
+        GET(makeRequest('?indices=EURX,JPYX&timeframe=M5')),
+        GET(makeRequest('?indices=JPYX,GBPX&timeframe=M5')),
+      ];
+      await flushPromises();
+      gate.resolve([row(SESSION, 100)]);
+      await Promise.all(pending);
+
+      const read = findMany.mock.calls
+        .map(
+          (call) =>
+            (call[0] as { where: { index_name: string } }).where.index_name
+        )
+        .sort();
+      expect(read).toEqual(['EURX', 'GBPX', 'JPYX']);
+    });
+
+    it('keeps the two timeframes of one index independent', async () => {
+      asPro();
+      const gate = deferred<unknown[]>();
+      findMany.mockImplementation(() => gate.promise);
+
+      const pending = [
+        GET(makeRequest('?indices=EURX&timeframe=M5')),
+        GET(makeRequest('?indices=EURX&timeframe=M15')),
+      ];
+      await flushPromises();
+      gate.resolve([row(SESSION, 100)]);
+      await Promise.all(pending);
+
+      expect(findMany).toHaveBeenCalledTimes(2);
+      expect(cacheSetMock.mock.calls.map((call) => call[1]).sort()).toEqual([
+        'M15',
+        'M5',
+      ]);
+    });
+
+    it('never lets an anonymous or FREE caller reach the cache or join a PRO fill that is open', async () => {
+      const pro = { user: { id: 'u1', tier: 'PRO' } };
+      const free = { user: { id: 'u2', tier: 'FREE' } };
+      getServerSessionMock
+        .mockResolvedValueOnce(pro)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(free);
+      hasPermissionMock.mockReturnValueOnce(true).mockReturnValueOnce(false);
+      findUniqueUser.mockResolvedValue({ tier: 'FREE' });
+      const gate = deferred<unknown[]>();
+      findMany.mockImplementation(() => gate.promise);
+
+      const proRequest = GET(makeRequest('?indices=EURX&timeframe=M5'));
+      await flushPromises(); // the PRO request now owns an open fill for EURX M5
+      const anonymous = await GET(makeRequest('?indices=EURX&timeframe=M5'));
+      const freeUser = await GET(makeRequest('?indices=EURX&timeframe=M5'));
+
+      expect(anonymous.status).toBe(401);
+      expect(freeUser.status).toBe(403);
+
+      gate.resolve([row(SESSION, 100)]);
+      expect((await proRequest).status).toBe(200);
+      // only the PRO request ever touched the cache or Postgres
+      expect(getCachedMock).toHaveBeenCalledTimes(1);
+      expect(findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('serves the healthy index when the other one fails, for every request that shared the fills', async () => {
+      asPro();
+      findMany.mockImplementation((args: { where: { index_name: string } }) =>
+        args.where.index_name === 'EURX'
+          ? Promise.reject(
+              new Error('relation "currency_gold_indices" does not exist')
+            )
+          : Promise.resolve([row(SESSION, 100)])
+      );
+
+      const responses = await Promise.all([
+        GET(makeRequest('?indices=EURX,JPYX&timeframe=M5')),
+        GET(makeRequest('?indices=EURX,JPYX&timeframe=M5')),
+      ]);
+      const bodies = (await Promise.all(
+        responses.map((r) => r.json())
+      )) as Array<{
+        series: Array<{ symbol: string; candles: unknown[] }>;
+      }>;
+
+      expect(responses.map((r) => r.status)).toEqual([200, 200]);
+      for (const body of bodies) {
+        expect(body.series[0]?.symbol).toBe('EURX');
+        expect(body.series[0]?.candles).toEqual([]);
+        expect(body.series[1]?.symbol).toBe('JPYX');
+        expect(body.series[1]?.candles).toHaveLength(1);
+      }
+      expect(findMany).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps nothing after a fill: the next request starts its own', async () => {
+      asPro();
+      findMany.mockResolvedValue([row(SESSION, 100)]);
+
+      await GET(makeRequest('?indices=EURX&timeframe=M5'));
+      await GET(makeRequest('?indices=EURX&timeframe=M5'));
+
+      expect(findMany).toHaveBeenCalledTimes(2);
+      expect(cacheSetMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

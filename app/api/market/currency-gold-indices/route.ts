@@ -27,6 +27,7 @@ import {
   getCachedCurrencyGoldIndices,
   cacheCurrencyGoldIndices,
 } from '@/lib/cache/cache-manager';
+import { singleFlight } from '@/lib/cache/single-flight';
 import {
   getCurrencyGoldIndexSnapshots,
   type CurrencyGoldIndexSnapshot,
@@ -39,16 +40,16 @@ export const dynamic = 'force-dynamic';
 // so `public` is correct, not an oversight.
 const RESPONSE_CACHE_CONTROL = 'public, s-maxage=60, stale-while-revalidate=30';
 
-export async function GET(): Promise<NextResponse> {
+// One fill per warm process: requests that all miss the cache before any of
+// them has written it share a single Postgres read instead of one each
+// (lib/cache/single-flight.ts). Nothing is kept once the fill settles.
+const SNAPSHOT_FLIGHT_KEY = 'market:currency-gold:snapshot';
+
+async function loadSnapshots(): Promise<CurrencyGoldIndexSnapshot[]> {
   try {
     const cached =
       await getCachedCurrencyGoldIndices<CurrencyGoldIndexSnapshot[]>();
-    if (cached) {
-      return NextResponse.json(
-        { indices: cached },
-        { headers: { 'Cache-Control': RESPONSE_CACHE_CONTROL } }
-      );
-    }
+    if (cached) return cached;
   } catch (error) {
     // Redis being unreachable must never break this route -- fall through to
     // Postgres, the same "an absent cache is not an absent answer" principle
@@ -68,6 +69,12 @@ export async function GET(): Promise<NextResponse> {
   } catch (error) {
     console.warn('[currency-gold-indices] cache write failed:', error);
   }
+
+  return indices;
+}
+
+export async function GET(): Promise<NextResponse> {
+  const indices = await singleFlight(SNAPSHOT_FLIGHT_KEY, loadSnapshots);
 
   return NextResponse.json(
     { indices },

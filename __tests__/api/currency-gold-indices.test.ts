@@ -35,6 +35,8 @@ import {
 import { getCurrencyGoldIndexSnapshots } from '@/lib/currency-gold-indices/queries';
 import { GET } from '@/app/api/market/currency-gold-indices/route';
 
+import { deferred, flushPromises } from '../helpers/async-helpers';
+
 const findMany = marketPrisma.currencyGoldIndex
   .findMany as unknown as jest.Mock;
 const getCachedMock = getCachedCurrencyGoldIndices as unknown as jest.Mock;
@@ -246,5 +248,63 @@ describe('GET /api/market/currency-gold-indices', () => {
     const res = await GET();
     expect(res.headers.get('Cache-Control')).toContain('public');
     expect(res.headers.get('Cache-Control')).not.toContain('private');
+  });
+
+  describe('concurrent requests (one in-flight fill per process)', () => {
+    it('shares one Postgres fill between requests that all miss the cache', async () => {
+      getCachedMock.mockResolvedValue(null);
+      findMany.mockReset();
+      const latest = deferred<unknown[]>();
+      findMany
+        .mockReturnValueOnce(latest.promise)
+        .mockResolvedValueOnce([{ index_name: 'USDX', value: 100.14 }]);
+
+      const pending = [GET(), GET(), GET()];
+      await flushPromises();
+      latest.resolve([latestRow()]);
+      const responses = await Promise.all(pending);
+      const bodies = await Promise.all(responses.map((r) => r.json()));
+
+      // one fill = the latest-bar read plus the sparkline read, once for all three
+      expect(findMany).toHaveBeenCalledTimes(2);
+      expect(getCachedMock).toHaveBeenCalledTimes(1);
+      expect(cacheSetMock).toHaveBeenCalledTimes(1);
+      expect(responses.map((r) => r.status)).toEqual([200, 200, 200]);
+      expect(bodies[1]).toEqual(bodies[0]);
+      expect(bodies[2]).toEqual(bodies[0]);
+      expect((bodies[0] as { indices: unknown[] }).indices).toHaveLength(1);
+    });
+
+    it('still shares one fill when Redis is down (one bounded cache wait, one Postgres read)', async () => {
+      getCachedMock.mockRejectedValue(new Error('ECONNREFUSED'));
+      findMany.mockReset();
+      const latest = deferred<unknown[]>();
+      findMany
+        .mockReturnValueOnce(latest.promise)
+        .mockResolvedValueOnce([{ index_name: 'USDX', value: 100.14 }]);
+
+      const pending = [GET(), GET()];
+      await flushPromises();
+      latest.resolve([latestRow()]);
+      const responses = await Promise.all(pending);
+
+      expect(responses.map((r) => r.status)).toEqual([200, 200]);
+      expect(getCachedMock).toHaveBeenCalledTimes(1);
+      expect(findMany).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps nothing after a fill: the next request starts its own', async () => {
+      getCachedMock.mockResolvedValue(null);
+      // beforeEach queued one full fill; queue a second one
+      findMany
+        .mockResolvedValueOnce([latestRow()])
+        .mockResolvedValueOnce([{ index_name: 'USDX', value: 100.14 }]);
+
+      await GET();
+      await GET();
+
+      expect(findMany).toHaveBeenCalledTimes(4);
+      expect(cacheSetMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

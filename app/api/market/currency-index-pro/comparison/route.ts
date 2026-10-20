@@ -30,6 +30,7 @@ import {
   cacheCurrencyIndexComparison,
   getCachedCurrencyIndexComparison,
 } from '@/lib/cache/cache-manager';
+import { singleFlight } from '@/lib/cache/single-flight';
 import { getComparisonCandles } from '@/lib/currency-index-comparison/queries';
 import {
   COMPARISON_INDEX_NAMES,
@@ -77,7 +78,7 @@ function parseIndices(value: string | null): ComparisonIndexName[] | null {
   return unique as ComparisonIndexName[];
 }
 
-async function candlesFor(
+async function fillCandles(
   indexName: ComparisonIndexName,
   timeframe: ComparisonTimeframe
 ): Promise<IndexCandle[]> {
@@ -106,6 +107,22 @@ async function candlesFor(
     console.warn('[currency-index-comparison] cache write failed:', error);
   }
   return candles;
+}
+
+// One fill per (index, timeframe) per warm process: PRO viewers who all miss
+// the cache before any of them has written it share a single Postgres read
+// (up to ~9000 rows for M15) instead of one each (lib/cache/single-flight.ts).
+// Called only AFTER the session and tier checks in GET, and the key and the
+// shared candles carry nothing user-specific. Nothing is kept once the fill
+// settles; each index is its own flight, so one index failing never blanks the other.
+function candlesFor(
+  indexName: ComparisonIndexName,
+  timeframe: ComparisonTimeframe
+): Promise<IndexCandle[]> {
+  return singleFlight(
+    `market:currency-gold:comparison:${indexName}:${timeframe}`,
+    () => fillCandles(indexName, timeframe)
+  );
 }
 
 export async function GET(request: NextRequest): Promise<NextResponse> {

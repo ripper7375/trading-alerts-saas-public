@@ -28,6 +28,8 @@ import {
 import { getCurrencyGoldIndexHistory } from '@/lib/currency-gold-indices/queries';
 import { GET } from '@/app/api/market/currency-gold-indices/history/route';
 
+import { deferred, flushPromises } from '../helpers/async-helpers';
+
 const findMany = marketPrisma.currencyGoldIndex
   .findMany as unknown as jest.Mock;
 const getCachedMock = getCachedCurrencyGoldIndexHistory as unknown as jest.Mock;
@@ -206,5 +208,63 @@ describe('GET /api/market/currency-gold-indices/history', () => {
     const res = await GET(makeRequest('M5'));
     expect(res.headers.get('Cache-Control')).toContain('public');
     expect(res.headers.get('Cache-Control')).not.toContain('private');
+  });
+
+  describe('concurrent requests (one in-flight fill per timeframe per process)', () => {
+    it('shares one fill between requests for the same timeframe that all miss the cache', async () => {
+      getCachedMock.mockResolvedValue(null);
+      const gate = deferred<unknown[]>();
+      findMany.mockImplementation(() => gate.promise);
+
+      const pending = [
+        GET(makeRequest('M5')),
+        GET(makeRequest('M5')),
+        GET(makeRequest('M5')),
+      ];
+      await flushPromises();
+      gate.resolve([row(SESSION_OPEN, 100.0)]);
+      const responses = await Promise.all(pending);
+      const bodies = await Promise.all(responses.map((r) => r.json()));
+
+      // one fill = one read each for XAUX and USDX, not three of each
+      expect(findMany).toHaveBeenCalledTimes(2);
+      expect(getCachedMock).toHaveBeenCalledTimes(1);
+      expect(cacheSetMock).toHaveBeenCalledTimes(1);
+      expect(responses.map((r) => r.status)).toEqual([200, 200, 200]);
+      expect(bodies[1]).toEqual(bodies[0]);
+      expect(bodies[2]).toEqual(bodies[0]);
+    });
+
+    it('keeps M5 and M15 independent', async () => {
+      getCachedMock.mockResolvedValue(null);
+      const gate = deferred<unknown[]>();
+      findMany.mockImplementation(() => gate.promise);
+
+      const pending = [GET(makeRequest('M5')), GET(makeRequest('M15'))];
+      await flushPromises();
+      gate.resolve([row(SESSION_OPEN, 100.0)]);
+      const bodies = await Promise.all(
+        (await Promise.all(pending)).map((r) => r.json())
+      );
+
+      expect(findMany).toHaveBeenCalledTimes(4);
+      expect(
+        (bodies as Array<{ timeframe: string }>).map((b) => b.timeframe)
+      ).toEqual(['M5', 'M15']);
+      expect(cacheSetMock.mock.calls.map((call) => call[0]).sort()).toEqual([
+        'M15',
+        'M5',
+      ]);
+    });
+
+    it('keeps nothing after a fill: the next request starts its own', async () => {
+      getCachedMock.mockResolvedValue(null);
+
+      await GET(makeRequest('M5'));
+      await GET(makeRequest('M5'));
+
+      expect(findMany).toHaveBeenCalledTimes(4);
+      expect(cacheSetMock).toHaveBeenCalledTimes(2);
+    });
   });
 });

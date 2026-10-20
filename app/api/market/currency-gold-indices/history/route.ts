@@ -24,6 +24,7 @@ import {
   getCachedCurrencyGoldIndexHistory,
   cacheCurrencyGoldIndexHistory,
 } from '@/lib/cache/cache-manager';
+import { singleFlight } from '@/lib/cache/single-flight';
 import {
   getCurrencyGoldIndexHistory,
   type CurrencyGoldIndexHistorySeries,
@@ -38,22 +39,19 @@ function parseTimeframe(value: string | null): ComparisonTimeframe {
   return value === 'M5' ? 'M5' : 'M15';
 }
 
-export async function GET(request: NextRequest): Promise<NextResponse> {
-  const timeframe = parseTimeframe(
-    request.nextUrl.searchParams.get('timeframe')
-  );
-
+// One fill per timeframe per warm process: requests that all miss the cache
+// before any of them has written it share a single Postgres read instead of
+// one each (lib/cache/single-flight.ts). Nothing is kept once the fill settles.
+// The loader takes only the validated timeframe -- never the request.
+async function loadHistory(
+  timeframe: ComparisonTimeframe
+): Promise<CurrencyGoldIndexHistorySeries[]> {
   try {
     const cached =
       await getCachedCurrencyGoldIndexHistory<CurrencyGoldIndexHistorySeries[]>(
         timeframe
       );
-    if (cached) {
-      return NextResponse.json(
-        { timeframe, series: cached },
-        { headers: { 'Cache-Control': RESPONSE_CACHE_CONTROL } }
-      );
-    }
+    if (cached) return cached;
   } catch (error) {
     // Redis being unreachable must never break this route -- fall through to
     // Postgres, same principle as the sibling snapshot route.
@@ -70,6 +68,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   } catch (error) {
     console.warn('[currency-gold-indices] history cache write failed:', error);
   }
+
+  return series;
+}
+
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  const timeframe = parseTimeframe(
+    request.nextUrl.searchParams.get('timeframe')
+  );
+
+  const series = await singleFlight(
+    `market:currency-gold:history:${timeframe}`,
+    () => loadHistory(timeframe)
+  );
 
   return NextResponse.json(
     { timeframe, series },
