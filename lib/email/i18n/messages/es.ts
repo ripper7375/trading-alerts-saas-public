@@ -28,6 +28,7 @@ export const es: EmailMessages = {
 
   'billing.perMonth': '{price}/mes',
   'billing.perYear': '{price}/año',
+  'billing.perThreeDays': '{price}/3 días',
 
   'security.changePassword': 'Cambia tu contraseña de inmediato',
   'security.secureButton': 'Proteger mi cuenta',

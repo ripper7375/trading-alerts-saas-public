@@ -26,6 +26,7 @@ export const zhTW: EmailMessages = {
 
   'billing.perMonth': '{price}/月',
   'billing.perYear': '{price}/年',
+  'billing.perThreeDays': '{price}/3天',
 
   'security.changePassword': '立即變更您的密碼',
   'security.secureButton': '保護我的帳戶',

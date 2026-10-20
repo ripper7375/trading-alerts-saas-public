@@ -29,6 +29,7 @@ export const tr: EmailMessages = {
 
   'billing.perMonth': '{price}/ay',
   'billing.perYear': '{price}/yıl',
+  'billing.perThreeDays': '{price}/3 gün',
 
   'security.changePassword': 'Parolanızı hemen değiştirin',
   'security.secureButton': 'Hesabımı Güvene Al',

@@ -234,7 +234,11 @@ export class OutboxConsumerService {
         // An event without a billingPeriod (one from before money-service
         // sent it) is shown as monthly rather than rejected.
         const billingPeriod =
-          payload['billingPeriod'] === 'yearly' ? 'yearly' : 'monthly';
+          payload['billingPeriod'] === 'yearly'
+            ? 'yearly'
+            : payload['billingPeriod'] === 'three_day'
+              ? 'three_day'
+              : 'monthly';
         return sendSubscriptionConfirmationEmail(
           email,
           name,
@@ -278,7 +282,11 @@ export class OutboxConsumerService {
             ? (payload['failureReason'] as string)
             : 'Payment method declined';
         const billingPeriod =
-          payload['billingPeriod'] === 'yearly' ? 'yearly' : 'monthly';
+          payload['billingPeriod'] === 'yearly'
+            ? 'yearly'
+            : payload['billingPeriod'] === 'three_day'
+              ? 'three_day'
+              : 'monthly';
         return sendPaymentFailedEmail(
           email,
           name,

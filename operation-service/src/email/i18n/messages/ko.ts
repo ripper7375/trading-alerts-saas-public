@@ -28,6 +28,7 @@ export const ko: EmailMessages = {
 
   'billing.perMonth': '월 {price}',
   'billing.perYear': '연 {price}',
+  'billing.perThreeDays': '3일 {price}',
 
   'security.changePassword': '즉시 비밀번호를 변경하세요',
   'security.secureButton': '내 계정 보호하기',

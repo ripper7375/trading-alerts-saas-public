@@ -28,6 +28,7 @@ export const th: EmailMessages = {
 
   'billing.perMonth': '{price}/เดือน',
   'billing.perYear': '{price}/ปี',
+  'billing.perThreeDays': '{price}/3 วัน',
 
   'security.changePassword': 'เปลี่ยนรหัสผ่านของคุณทันที',
   'security.secureButton': 'รักษาความปลอดภัยบัญชีของฉัน',

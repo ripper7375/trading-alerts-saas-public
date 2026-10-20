@@ -93,6 +93,13 @@ const BUILDERS: Record<string, (locale: EmailLocale) => BuiltEmail> = {
       billingPeriod: 'monthly',
       priceUsd: 35,
     }),
+  subscriptionProThreeDay: (l) =>
+    buildSubscriptionConfirmationEmail(l, {
+      name: 'Ada',
+      plan: 'PRO',
+      billingPeriod: 'three_day',
+      priceUsd: 1.99,
+    }),
   subscriptionFree: (l) =>
     buildSubscriptionConfirmationEmail(l, {
       name: 'Ada',
@@ -107,6 +114,13 @@ const BUILDERS: Record<string, (locale: EmailLocale) => BuiltEmail> = {
       reason: 'Your card was declined.',
       price: 35,
       billingPeriod: 'monthly',
+    }),
+  paymentFailedThreeDay: (l) =>
+    buildPaymentFailedEmail(l, {
+      name: 'Ada',
+      reason: 'Your card was declined.',
+      price: 1.99,
+      billingPeriod: 'three_day',
     }),
   paymentReceipt: (l) =>
     buildPaymentReceiptEmail(l, {
@@ -306,6 +320,51 @@ describe("the reader's formats reach the message", () => {
     expect(pro('en-US', 'yearly')).toContain('$350/year');
     expect(pro('de', 'monthly')).toMatch(/35\s?\$\/Monat/);
     expect(pro('fr', 'yearly')).toMatch(/350[\s  ]?\$US\/an/);
+  });
+
+  it('prices the 3-day plan per 3 days, in every locale', () => {
+    const billing = (language: EmailLanguage): string =>
+      buildSubscriptionConfirmationEmail(
+        { language },
+        { name: 'Ada', plan: 'PRO', billingPeriod: 'three_day', priceUsd: 1.99 }
+      ).html;
+    expect(billing('en-US')).toContain('$1.99/3 days');
+    expect(billing('en-GB')).toContain('$1.99/3 days');
+    expect(billing('de')).toMatch(/1,99\s?\$\/3 Tage/);
+    expect(billing('ja')).toContain('／3日');
+    expect(billing('ko')).toContain('3일 US$1.99');
+    for (const language of EMAIL_LANGUAGES) {
+      expect(billing(language)).not.toContain('{price}');
+    }
+    const failed = buildPaymentFailedEmail(
+      { language: 'en-US' },
+      {
+        name: 'Ada',
+        reason: 'Declined',
+        price: 1.99,
+        billingPeriod: 'three_day',
+      }
+    );
+    expect(failed.html).toContain('$1.99/3 days');
+    expect(failed.html).not.toContain('/month');
+  });
+
+  it('leaves the free-trial notice out of the 3-day plan, which is charged at checkout', () => {
+    const trialNotice = 'color: #22c55e; font-weight: 600;';
+    const build = (
+      language: EmailLanguage,
+      billingPeriod: 'monthly' | 'yearly' | 'three_day'
+    ): string =>
+      buildSubscriptionConfirmationEmail(
+        { language },
+        { name: 'Ada', plan: 'PRO', billingPeriod, priceUsd: 35 }
+      ).html;
+    for (const language of EMAIL_LANGUAGES) {
+      expect(build(language, 'monthly')).toContain(trialNotice);
+      expect(build(language, 'yearly')).toContain(trialNotice);
+      expect(build(language, 'three_day')).not.toContain(trialNotice);
+    }
+    expect(build('en-US', 'three_day')).not.toContain('7-Day Free Trial');
   });
 
   it('leaves the commission rate out when it is not known, instead of guessing', () => {

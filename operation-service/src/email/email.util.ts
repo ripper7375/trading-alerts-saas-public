@@ -255,7 +255,7 @@ export async function sendPasswordResetEmail(
  *
  * @param name - User's name
  * @param plan - Subscription plan ('FREE' or 'PRO')
- * @param billingPeriod - Billing period ('monthly' or 'yearly')
+ * @param billingPeriod - Billing period ('monthly', 'yearly' or 'three_day')
  * @param priceUsd - PRO price per billing period, as charged (the admin's
  *   SystemConfig price at subscription time)
  * @param locale - Reader's language and formats (English when omitted)
@@ -264,7 +264,7 @@ export async function sendPasswordResetEmail(
 export function getSubscriptionConfirmationEmail(
   name: string,
   plan: 'FREE' | 'PRO',
-  billingPeriod: 'monthly' | 'yearly',
+  billingPeriod: 'monthly' | 'yearly' | 'three_day',
   priceUsd: number,
   locale: EmailLocale = DEFAULT_EMAIL_LOCALE
 ): string {
@@ -283,7 +283,7 @@ export async function sendSubscriptionConfirmationEmail(
   to: string,
   name: string,
   plan: 'FREE' | 'PRO',
-  billingPeriod: 'monthly' | 'yearly',
+  billingPeriod: 'monthly' | 'yearly' | 'three_day',
   priceUsd: number,
   locale?: EmailLocale
 ): Promise<{ success: boolean; error?: string }> {

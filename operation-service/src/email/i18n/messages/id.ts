@@ -28,6 +28,7 @@ export const id: EmailMessages = {
 
   'billing.perMonth': '{price}/bulan',
   'billing.perYear': '{price}/tahun',
+  'billing.perThreeDays': '{price}/3 hari',
 
   'security.changePassword': 'Segera ubah kata sandi Anda',
   'security.secureButton': 'Amankan akun saya',

@@ -26,6 +26,7 @@ export const zh: EmailMessages = {
 
   'billing.perMonth': '{price}/月',
   'billing.perYear': '{price}/年',
+  'billing.perThreeDays': '{price}/3天',
 
   'security.changePassword': '立即修改您的密码',
   'security.secureButton': '保护我的账户',

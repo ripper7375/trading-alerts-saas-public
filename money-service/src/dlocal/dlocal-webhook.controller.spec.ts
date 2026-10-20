@@ -347,6 +347,16 @@ describe('DlocalWebhookController', () => {
     expect(threeDayValidatorMock.markThreeDayPlanUsed).toHaveBeenCalledWith(
       'user-2'
     );
+    expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
+      prismaMock,
+      expect.objectContaining({
+        eventType: 'TIER_UPGRADED',
+        payload: expect.objectContaining({
+          billingPeriod: 'three_day',
+          priceUsd: 1.99,
+        }),
+      })
+    );
   });
 
   it('should process an affiliate conversion for a MONTHLY payment carrying a discount code', async () => {

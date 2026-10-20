@@ -28,6 +28,7 @@ export const hi: EmailMessages = {
 
   'billing.perMonth': '{price}/माह',
   'billing.perYear': '{price}/वर्ष',
+  'billing.perThreeDays': '{price}/3 दिन',
 
   'security.changePassword': 'तुरंत अपना पासवर्ड बदलें',
   'security.secureButton': 'मेरा खाता सुरक्षित करें',

@@ -29,6 +29,7 @@ export const ar: EmailMessages = {
 
   'billing.perMonth': '{price}/شهريًا',
   'billing.perYear': '{price}/سنويًا',
+  'billing.perThreeDays': '{price}/3 أيام',
 
   'security.changePassword': 'غيّر كلمة المرور فورًا',
   'security.secureButton': 'تأمين حسابي',

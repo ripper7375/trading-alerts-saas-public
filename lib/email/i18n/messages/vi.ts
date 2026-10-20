@@ -28,6 +28,7 @@ export const vi: EmailMessages = {
 
   'billing.perMonth': '{price}/tháng',
   'billing.perYear': '{price}/năm',
+  'billing.perThreeDays': '{price}/3 ngày',
 
   'security.changePassword': 'Đổi mật khẩu của bạn ngay lập tức',
   'security.secureButton': 'Bảo vệ tài khoản của tôi',

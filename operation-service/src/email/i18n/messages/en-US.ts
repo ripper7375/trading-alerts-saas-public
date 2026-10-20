@@ -35,6 +35,7 @@ export const enUS = {
 
   'billing.perMonth': '{price}/month',
   'billing.perYear': '{price}/year',
+  'billing.perThreeDays': '{price}/3 days',
 
   'security.changePassword': 'Change your password immediately',
   'security.secureButton': 'Secure My Account',

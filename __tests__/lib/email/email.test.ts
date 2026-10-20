@@ -177,6 +177,19 @@ describe('Email Service', () => {
       expect(html).toContain('Full Indicator Data');
     });
 
+    it('should price the 3-day plan per 3 days and omit the free trial', () => {
+      const html = getSubscriptionConfirmationEmail(
+        'User',
+        'PRO',
+        'three_day',
+        1.99
+      );
+
+      expect(html).toContain('$1.99/3 days');
+      expect(html).not.toContain('/month');
+      expect(html).not.toContain('7-Day Free Trial');
+    });
+
     it('should not include trial info for FREE plan', () => {
       const html = getSubscriptionConfirmationEmail(
         'User',

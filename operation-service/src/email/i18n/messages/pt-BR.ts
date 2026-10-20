@@ -29,6 +29,7 @@ export const ptBR: EmailMessages = {
 
   'billing.perMonth': '{price}/mês',
   'billing.perYear': '{price}/ano',
+  'billing.perThreeDays': '{price}/3 dias',
 
   'security.changePassword': 'Altere sua senha imediatamente',
   'security.secureButton': 'Proteger minha conta',

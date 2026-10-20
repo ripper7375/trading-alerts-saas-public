@@ -302,7 +302,12 @@ export class DlocalWebhookController {
           provider: 'DLOCAL',
           // Same fields as the Stripe event: the plan's billing period and
           // the USD price of this payment, for the confirmation e-mail.
-          billingPeriod: payment.planType === 'YEARLY' ? 'yearly' : 'monthly',
+          billingPeriod:
+            payment.planType === 'THREE_DAY'
+              ? 'three_day'
+              : payment.planType === 'YEARLY'
+                ? 'yearly'
+                : 'monthly',
           priceUsd: planAmountUsd,
         },
       });

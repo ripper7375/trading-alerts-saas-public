@@ -417,7 +417,7 @@ export function buildSubscriptionConfirmationEmail(
   input: {
     name: string | null | undefined;
     plan: 'FREE' | 'PRO';
-    billingPeriod: 'monthly' | 'yearly';
+    billingPeriod: 'monthly' | 'yearly' | 'three_day';
     /** PRO price per billing period, as charged. */
     priceUsd: number;
   }
@@ -432,13 +432,16 @@ export function buildSubscriptionConfirmationEmail(
       ? ctx.p(
           input.billingPeriod === 'yearly'
             ? 'billing.perYear'
-            : 'billing.perMonth',
+            : input.billingPeriod === 'three_day'
+              ? 'billing.perThreeDays'
+              : 'billing.perMonth',
           { price: formatEmailUsd(input.priceUsd, locale, 0) }
         )
       : formatEmailUsd(0, locale, 0);
 
+  // The 3-day plan is charged at checkout, so it has no 7-day free trial.
   const trial =
-    plan === 'PRO'
+    plan === 'PRO' && input.billingPeriod !== 'three_day'
       ? `<p style="color: #22c55e; font-weight: 600;">${ctx.h('subscription.trial')}</p>`
       : '';
 
@@ -539,14 +542,18 @@ export function buildPaymentFailedEmail(
     reason: string;
     /** The subscriber's own price per billing period, in USD. */
     price: number;
-    billingPeriod?: 'monthly' | 'yearly';
+    billingPeriod?: 'monthly' | 'yearly' | 'three_day';
   }
 ): BuiltEmail {
   const ctx = createContext(locale);
   const name = displayName(ctx, input.name);
   const url = appUrl(BANNER_URL_FALLBACK);
   const amount = ctx.p(
-    input.billingPeriod === 'yearly' ? 'billing.perYear' : 'billing.perMonth',
+    input.billingPeriod === 'yearly'
+      ? 'billing.perYear'
+      : input.billingPeriod === 'three_day'
+        ? 'billing.perThreeDays'
+        : 'billing.perMonth',
     { price: formatEmailUsd(input.price, locale, 0) }
   );
   const support = textLink(

@@ -28,6 +28,7 @@ export const ja: EmailMessages = {
 
   'billing.perMonth': '{price}／月',
   'billing.perYear': '{price}／年',
+  'billing.perThreeDays': '{price}／3日',
 
   'security.changePassword': 'ただちにパスワードを変更する',
   'security.secureButton': 'アカウントを保護する',

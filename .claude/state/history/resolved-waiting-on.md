@@ -13,7 +13,7 @@ Open items live in [../waiting-on.md](../waiting-on.md).
 
 <!-- operation-service e-mail prices, resolved 2026-10-20 -->
 
-- **RESOLVED 2026-10-20 (working tree, not committed) — item (5) of the localized-e-mails entry of `waiting-on.md`.** What was open (verbatim): (5) operation-service still prints the PRO list price ($29 / $290) in its subscription and payment-failed e-mails (pre-existing, its outbox events carry no price; the SystemConfig guard does not scan it). Deploy order does not matter (the services are independent).
+- **RESOLVED 2026-10-20 (committed as `74797dbe` and pushed) — item (5) of the localized-e-mails entry of `waiting-on.md`.** What was open (verbatim): (5) operation-service still prints the PRO list price ($29 / $290) in its subscription and payment-failed e-mails (pre-existing, its outbox events carry no price; the SystemConfig guard does not scan it). Deploy order does not matter (the services are independent).
   **How it closed:** money-service puts `priceUsd` and `billingPeriod` in the `TIER_UPGRADED` and `PAYMENT_FAILED` outbox events, the operation-service consumer passes them to the e-mails, and `LEGACY_PRO_PRICE_USD` and the `monthlyPrice = 29` default are removed (newest entry of `current-state.md`). The services are no longer independent for these two events: money-service must be deployed first.
 
 <!-- NestJS remediation plan review, P0 auth, resolved 2026-10-16 -->

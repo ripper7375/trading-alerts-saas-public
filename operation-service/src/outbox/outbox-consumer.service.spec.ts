@@ -141,6 +141,24 @@ describe('OutboxConsumerService', () => {
     expect(result).toEqual({ status: 'processed' });
   });
 
+  it('passes a three_day billingPeriod on TIER_UPGRADED through to the confirmation email', async () => {
+    await service.processEvent(
+      makeEvent('TIER_UPGRADED', {
+        tier: 'PRO',
+        provider: 'DLOCAL',
+        billingPeriod: 'three_day',
+        priceUsd: 1.99,
+      })
+    );
+    expect(mockSendSubscriptionConfirmationEmail).toHaveBeenCalledWith(
+      'ada@example.com',
+      'Ada',
+      'PRO',
+      'three_day',
+      1.99
+    );
+  });
+
   it('defaults TIER_UPGRADED to monthly billing when the payload has no billingPeriod, keeping its priceUsd', async () => {
     await service.processEvent(
       makeEvent('TIER_UPGRADED', {
@@ -230,6 +248,24 @@ describe('OutboxConsumerService', () => {
       'Card declined',
       350,
       'yearly'
+    );
+  });
+
+  it('passes a three_day billingPeriod on PAYMENT_FAILED through to the payment failed email', async () => {
+    await service.processEvent(
+      makeEvent('PAYMENT_FAILED', {
+        provider: 'DLOCAL',
+        failureReason: 'Card declined',
+        billingPeriod: 'three_day',
+        priceUsd: 1.99,
+      })
+    );
+    expect(mockSendPaymentFailedEmail).toHaveBeenCalledWith(
+      'ada@example.com',
+      'Ada',
+      'Card declined',
+      1.99,
+      'three_day'
     );
   });
 

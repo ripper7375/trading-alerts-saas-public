@@ -29,6 +29,7 @@ export const ur: EmailMessages = {
 
   'billing.perMonth': '{price}/ماہانہ',
   'billing.perYear': '{price}/سالانہ',
+  'billing.perThreeDays': '{price}/3 دن',
 
   'security.changePassword': 'فوراً اپنا پاس ورڈ تبدیل کریں',
   'security.secureButton': 'میرا اکاؤنٹ محفوظ کریں',
