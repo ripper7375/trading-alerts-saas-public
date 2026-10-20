@@ -241,6 +241,13 @@ describe('DlocalWebhookController', () => {
         aggregateType: 'User',
         aggregateId: 'user-1',
         eventType: 'TIER_UPGRADED',
+        payload: {
+          tier: 'PRO',
+          paymentId: 'payment-1',
+          provider: 'DLOCAL',
+          billingPeriod: 'monthly',
+          priceUsd: 29,
+        },
       })
     );
     expect(response.status).toHaveBeenCalledWith(200);
@@ -291,6 +298,16 @@ describe('DlocalWebhookController', () => {
     const days = (data.expiresAt.getTime() - before) / 86_400_000;
     expect(days).toBeGreaterThan(364.9);
     expect(days).toBeLessThan(365.1);
+    expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
+      prismaMock,
+      expect.objectContaining({
+        eventType: 'TIER_UPGRADED',
+        payload: expect.objectContaining({
+          billingPeriod: 'yearly',
+          priceUsd: 350,
+        }),
+      })
+    );
   });
 
   it('should mark the 3-day plan used for a completed THREE_DAY payment', async () => {

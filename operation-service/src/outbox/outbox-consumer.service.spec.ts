@@ -123,30 +123,59 @@ describe('OutboxConsumerService', () => {
     });
   });
 
-  it('dispatches TIER_UPGRADED to the subscription confirmation email with billingPeriod from the payload', async () => {
+  it('dispatches TIER_UPGRADED to the subscription confirmation email with billingPeriod and priceUsd from the payload', async () => {
     const result = await service.processEvent(
-      makeEvent('TIER_UPGRADED', { tier: 'PRO', billingPeriod: 'yearly' })
+      makeEvent('TIER_UPGRADED', {
+        tier: 'PRO',
+        billingPeriod: 'yearly',
+        priceUsd: 350,
+      })
     );
     expect(mockSendSubscriptionConfirmationEmail).toHaveBeenCalledWith(
       'ada@example.com',
       'Ada',
       'PRO',
-      'yearly'
+      'yearly',
+      350
     );
     expect(result).toEqual({ status: 'processed' });
   });
 
-  it('defaults TIER_UPGRADED to monthly billing when the payload has no billingPeriod (dLocal case)', async () => {
+  it('defaults TIER_UPGRADED to monthly billing when the payload has no billingPeriod, keeping its priceUsd', async () => {
     await service.processEvent(
-      makeEvent('TIER_UPGRADED', { tier: 'PRO', provider: 'DLOCAL' })
+      makeEvent('TIER_UPGRADED', {
+        tier: 'PRO',
+        provider: 'DLOCAL',
+        priceUsd: 35,
+      })
     );
     expect(mockSendSubscriptionConfirmationEmail).toHaveBeenCalledWith(
       'ada@example.com',
       'Ada',
       'PRO',
-      'monthly'
+      'monthly',
+      35
     );
   });
+
+  it.each([
+    ['is absent', {}],
+    ['is a string', { priceUsd: '35' }],
+    ['is zero', { priceUsd: 0 }],
+    ['is negative', { priceUsd: -35 }],
+    ['is not finite', { priceUsd: Infinity }],
+  ])(
+    'skips TIER_UPGRADED without sending when priceUsd %s',
+    async (_label, extra) => {
+      const result = await service.processEvent(
+        makeEvent('TIER_UPGRADED', { tier: 'PRO', ...extra })
+      );
+      expect(result).toEqual({ status: 'skipped', reason: 'missing-price' });
+      expect(mockSendSubscriptionConfirmationEmail).not.toHaveBeenCalled();
+      expect(findUnique).not.toHaveBeenCalled();
+      expect(redis.set).not.toHaveBeenCalled();
+    }
+  );
 
   it('dispatches SUBSCRIPTION_CANCELLED with cancelAt to the 4-arg canceled-email template', async () => {
     await service.processEvent(
@@ -186,18 +215,50 @@ describe('OutboxConsumerService', () => {
     );
   });
 
-  it('dispatches PAYMENT_FAILED with the failure reason', async () => {
+  it('dispatches PAYMENT_FAILED with the failure reason, the subscriber price and the billing period', async () => {
     await service.processEvent(
       makeEvent('PAYMENT_FAILED', {
         provider: 'STRIPE',
         failureReason: 'Card declined',
+        billingPeriod: 'yearly',
+        priceUsd: 350,
       })
     );
     expect(mockSendPaymentFailedEmail).toHaveBeenCalledWith(
       'ada@example.com',
       'Ada',
-      'Card declined'
+      'Card declined',
+      350,
+      'yearly'
     );
+  });
+
+  it('shows a PAYMENT_FAILED without a billingPeriod as monthly', async () => {
+    await service.processEvent(
+      makeEvent('PAYMENT_FAILED', {
+        provider: 'STRIPE',
+        failureReason: 'Card declined',
+        priceUsd: 35,
+      })
+    );
+    expect(mockSendPaymentFailedEmail).toHaveBeenCalledWith(
+      'ada@example.com',
+      'Ada',
+      'Card declined',
+      35,
+      'monthly'
+    );
+  });
+
+  it('skips PAYMENT_FAILED without sending when the payload has no usable priceUsd', async () => {
+    const result = await service.processEvent(
+      makeEvent('PAYMENT_FAILED', {
+        provider: 'STRIPE',
+        failureReason: 'Card declined',
+      })
+    );
+    expect(result).toEqual({ status: 'skipped', reason: 'missing-price' });
+    expect(mockSendPaymentFailedEmail).not.toHaveBeenCalled();
   });
 
   it('dispatches PAYMENT_SUCCEEDED with the amount and next billing date', async () => {

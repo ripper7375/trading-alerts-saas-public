@@ -110,6 +110,30 @@ describe('StripeWebhookService', () => {
         expect.objectContaining({
           eventType: 'TIER_UPGRADED',
           aggregateId: 'user-1',
+          payload: {
+            tier: 'PRO',
+            provider: 'STRIPE',
+            billingPeriod: 'monthly',
+            priceUsd: 35,
+          },
+        })
+      );
+    });
+
+    it('carries the yearly SystemConfig price in the TIER_UPGRADED payload for a yearly checkout', async () => {
+      await service.handleCheckoutCompleted({
+        ...baseSession,
+        metadata: { userId: 'user-1', billingPeriod: 'yearly' },
+      } as unknown as Stripe.Checkout.Session);
+
+      expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
+        prismaMock,
+        expect.objectContaining({
+          eventType: 'TIER_UPGRADED',
+          payload: expect.objectContaining({
+            billingPeriod: 'yearly',
+            priceUsd: 350,
+          }),
         })
       );
     });
@@ -328,16 +352,20 @@ describe('StripeWebhookService', () => {
   });
 
   describe('handleInvoiceFailed', () => {
-    it('marks the subscription PAST_DUE and emits PAYMENT_FAILED', async () => {
+    const failedInvoice = {
+      customer: 'cus_123',
+      last_finalization_error: { message: 'card_declined' },
+    } as unknown as Stripe.Invoice;
+
+    it("marks the subscription PAST_DUE and emits PAYMENT_FAILED with the subscriber's own price and period", async () => {
       prismaMock.subscription.findFirst.mockResolvedValue({
         id: 'sub-row-1',
         userId: 'user-1',
+        planType: 'MONTHLY',
+        amountUsd: 29,
       } as never);
 
-      await service.handleInvoiceFailed({
-        customer: 'cus_123',
-        last_finalization_error: { message: 'card_declined' },
-      } as unknown as Stripe.Invoice);
+      await service.handleInvoiceFailed(failedInvoice);
 
       expect(prismaMock.subscription.update).toHaveBeenCalledWith({
         where: { id: 'sub-row-1' },
@@ -347,7 +375,54 @@ describe('StripeWebhookService', () => {
         prismaMock,
         expect.objectContaining({
           eventType: 'PAYMENT_FAILED',
-          payload: expect.objectContaining({ failureReason: 'card_declined' }),
+          payload: {
+            provider: 'STRIPE',
+            failureReason: 'card_declined',
+            billingPeriod: 'monthly',
+            priceUsd: 29,
+          },
+        })
+      );
+    });
+
+    it('reports a yearly subscriber as yearly, at the amount stored on the subscription', async () => {
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-row-1',
+        userId: 'user-1',
+        planType: 'YEARLY',
+        amountUsd: 290,
+      } as never);
+
+      await service.handleInvoiceFailed(failedInvoice);
+
+      expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
+        prismaMock,
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            billingPeriod: 'yearly',
+            priceUsd: 290,
+          }),
+        })
+      );
+    });
+
+    it('falls back to the SystemConfig price of the plan when the subscription has no amount', async () => {
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-row-1',
+        userId: 'user-1',
+        planType: 'YEARLY',
+        amountUsd: 0,
+      } as never);
+
+      await service.handleInvoiceFailed(failedInvoice);
+
+      expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
+        prismaMock,
+        expect.objectContaining({
+          payload: expect.objectContaining({
+            billingPeriod: 'yearly',
+            priceUsd: 350,
+          }),
         })
       );
     });

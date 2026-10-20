@@ -183,7 +183,14 @@ export class StripeWebhookService {
           aggregateType: 'User',
           aggregateId: userId,
           eventType: 'TIER_UPGRADED',
-          payload: { tier: 'PRO', provider: 'STRIPE', billingPeriod },
+          // priceUsd: what checkout charged per period, for the confirmation
+          // e-mail (operation-service must not print a list price of its own).
+          payload: {
+            tier: 'PRO',
+            provider: 'STRIPE',
+            billingPeriod,
+            priceUsd: amountUsd,
+          },
         });
       });
 
@@ -347,6 +354,16 @@ export class StripeWebhookService {
       const failureReason =
         invoice.last_finalization_error?.message || 'Payment method declined';
 
+      // This subscriber's own price and period (existing subscribers keep
+      // theirs), as lib/stripe/webhook-handlers.ts passes to the e-mail.
+      const billingPeriod =
+        dbSubscription.planType === 'YEARLY' ? 'yearly' : 'monthly';
+      const priceUsd =
+        Number(dbSubscription.amountUsd) ||
+        (billingPeriod === 'yearly'
+          ? await this.affiliateConfig.getAnnualPriceUsd()
+          : await this.affiliateConfig.getBasePriceUsd());
+
       await this.prisma.$transaction(async (tx) => {
         await tx.subscription.update({
           where: { id: dbSubscription.id },
@@ -357,7 +374,12 @@ export class StripeWebhookService {
           aggregateType: 'User',
           aggregateId: dbSubscription.userId,
           eventType: 'PAYMENT_FAILED',
-          payload: { provider: 'STRIPE', failureReason },
+          payload: {
+            provider: 'STRIPE',
+            failureReason,
+            billingPeriod,
+            priceUsd,
+          },
         });
       });
 

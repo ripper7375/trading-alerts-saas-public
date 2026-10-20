@@ -52,11 +52,16 @@ describe('subscription-email.util', () => {
   });
 
   describe('getPaymentFailedEmailTemplate', () => {
-    it('renders the reason and default monthly price', () => {
-      const template = getPaymentFailedEmailTemplate('Ada', 'Card declined');
+    it('renders the reason and the price it is given, monthly unless told otherwise', () => {
+      const template = getPaymentFailedEmailTemplate(
+        'Ada',
+        'Card declined',
+        35
+      );
       expect(template.subject).toBe('Payment Failed - Action Required');
       expect(template.html).toContain('Card declined');
-      expect(template.html).toContain('$29/month');
+      expect(template.html).toContain('$35/month');
+      expect(template.html).not.toContain('$29');
       expect(template.text).toContain('Reason: Card declined');
     });
 
@@ -68,15 +73,46 @@ describe('subscription-email.util', () => {
       );
       expect(template.html).toContain('$49/month');
     });
+
+    it('prints a yearly subscriber price per year', () => {
+      const template = getPaymentFailedEmailTemplate(
+        'Ada',
+        'Card declined',
+        350,
+        'yearly'
+      );
+      expect(template.html).toContain('$350/year');
+      expect(template.html).not.toContain('/month');
+    });
   });
 
   describe('sendPaymentFailedEmail', () => {
-    it('sends with the template subject and html', async () => {
-      await sendPaymentFailedEmail('ada@example.com', 'Ada', 'Card declined');
+    it('sends with the template subject, html and the price it is given', async () => {
+      await sendPaymentFailedEmail(
+        'ada@example.com',
+        'Ada',
+        'Card declined',
+        35
+      );
       expect(mockSendEmail).toHaveBeenCalledWith(
         'ada@example.com',
         'Payment Failed - Action Required',
-        expect.stringContaining('Card declined')
+        expect.stringContaining('$35/month')
+      );
+    });
+
+    it('passes the billing period through', async () => {
+      await sendPaymentFailedEmail(
+        'ada@example.com',
+        'Ada',
+        'Card declined',
+        350,
+        'yearly'
+      );
+      expect(mockSendEmail).toHaveBeenCalledWith(
+        'ada@example.com',
+        'Payment Failed - Action Required',
+        expect.stringContaining('$350/year')
       );
     });
   });

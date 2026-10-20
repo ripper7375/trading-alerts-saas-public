@@ -2,6 +2,8 @@ import {
   getAccountDeletionEmail,
   getPasswordChangedEmail,
   getSubscriptionConfirmationEmail,
+  getTrialReminderEmail,
+  getUpgradePromptEmail,
   sendAccountDeletionEmail,
   sendVerificationEmail,
 } from './email.util';
@@ -57,22 +59,30 @@ describe("operation-service e-mail is written in the reader's language", () => {
     expect(html).toContain('<html lang="ar" dir="rtl">');
   });
 
-  it('prices the confirmation with the list price this port has always shown', () => {
-    expect(getSubscriptionConfirmationEmail('Ada', 'PRO', 'monthly')).toContain(
-      '$29/month'
-    );
-    expect(getSubscriptionConfirmationEmail('Ada', 'PRO', 'yearly')).toContain(
-      '$290/year'
-    );
+  it('prints the price it is given on the confirmation, never one of its own', () => {
     expect(
-      getSubscriptionConfirmationEmail(
-        'Ada',
-        'PRO',
-        'monthly',
-        { language: 'en-US' },
-        35
-      )
+      getSubscriptionConfirmationEmail('Ada', 'PRO', 'monthly', 35)
     ).toContain('$35/month');
+    expect(
+      getSubscriptionConfirmationEmail('Ada', 'PRO', 'yearly', 350)
+    ).toContain('$350/year');
+    expect(
+      getSubscriptionConfirmationEmail('Ada', 'PRO', 'monthly', 35, {
+        language: 'en-US',
+      })
+    ).toContain('$35/month');
+  });
+
+  it('prints the monthly price it is given on the trial reminder and the upgrade prompt', () => {
+    const trial = getTrialReminderEmail('Ada', 3, 35);
+    expect(trial).toContain('$35/month');
+    expect(trial).not.toContain('$29');
+    expect(trial).not.toContain('$290');
+
+    const prompt = getUpgradePromptEmail('Ada', 'alert_limit', 35);
+    expect(prompt).toContain('Only $35/month');
+    expect(prompt).not.toContain('$29');
+    expect(prompt).not.toContain('$290');
   });
 
   it("builds the billing templates in the reader's language, with a text part", () => {
@@ -81,6 +91,7 @@ describe("operation-service e-mail is written in the reader's language", () => {
       'Ada',
       'Card declined',
       29,
+      'monthly',
       de
     );
     expect(failed.subject).toBe(
@@ -176,6 +187,33 @@ describe("the senders find the recipient's language through the registered resol
     expect((send.mock.calls[0]?.[0] as { subject: string }).subject).toBe(
       'Verify Your Email - Trading Alerts'
     );
+  });
+
+  it('sends the subscription confirmation with the price it is given, in the resolved language', async () => {
+    const { send, email, registry } = isolatedSender();
+
+    await email.sendSubscriptionConfirmationEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      'yearly',
+      350
+    );
+    expect((send.mock.calls[0]?.[0] as { html: string }).html).toContain(
+      '$350/year'
+    );
+
+    registry.setRecipientLocaleResolver(async () => ({ language: 'de' }));
+    await email.sendSubscriptionConfirmationEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      'monthly',
+      35
+    );
+    const german = (send.mock.calls[1]?.[0] as { html: string }).html;
+    expect(german).toMatch(/35\s?\$/);
+    expect(german).not.toContain('$35/month');
   });
 
   it('greets an account with no name by the localized word', async () => {

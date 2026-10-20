@@ -57,22 +57,23 @@ export function getCancellationEmailTemplate(
  *
  * @param name - User's display name
  * @param reason - Failure reason from Stripe
- * @param monthlyPrice - PRO monthly price in USD (list price by default: the
- *   outbox event does not carry the subscriber's own)
+ * @param price - The subscriber's price per billing period (USD)
+ * @param billingPeriod - 'monthly' or 'yearly'
  * @param locale - Reader's language and formats (English when omitted)
  * @returns Email template with subject, HTML, and text content
  */
 export function getPaymentFailedEmailTemplate(
   name: string,
   reason: string,
-  monthlyPrice: number = 29,
+  price: number,
+  billingPeriod: 'monthly' | 'yearly' = 'monthly',
   locale: EmailLocale = DEFAULT_EMAIL_LOCALE
 ): EmailTemplate {
   return buildPaymentFailedEmail(locale, {
     name,
     reason,
-    price: monthlyPrice,
-    billingPeriod: 'monthly',
+    price,
+    billingPeriod,
   });
 }
 
@@ -183,6 +184,8 @@ export async function sendCancellationEmail(
  * @param email - Recipient email address
  * @param name - User's display name
  * @param reason - Failure reason
+ * @param price - The subscriber's own price per billing period (USD)
+ * @param billingPeriod - The subscriber's billing period
  * @param locale - Reader's language and formats (the recipient's own by default)
  * @returns Email result with success status
  */
@@ -190,12 +193,15 @@ export async function sendPaymentFailedEmail(
   email: string,
   name: string,
   reason: string,
+  price: number,
+  billingPeriod: 'monthly' | 'yearly' = 'monthly',
   locale?: EmailLocale
 ): Promise<EmailResult> {
   const template = getPaymentFailedEmailTemplate(
     name,
     reason,
-    undefined,
+    price,
+    billingPeriod,
     await localeFor(email, locale)
   );
 

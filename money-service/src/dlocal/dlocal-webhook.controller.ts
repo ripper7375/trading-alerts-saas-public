@@ -296,7 +296,15 @@ export class DlocalWebhookController {
         aggregateType: 'User',
         aggregateId: payment.userId,
         eventType: 'TIER_UPGRADED',
-        payload: { tier: 'PRO', paymentId: payment.id, provider: 'DLOCAL' },
+        payload: {
+          tier: 'PRO',
+          paymentId: payment.id,
+          provider: 'DLOCAL',
+          // Same fields as the Stripe event: the plan's billing period and
+          // the USD price of this payment, for the confirmation e-mail.
+          billingPeriod: payment.planType === 'YEARLY' ? 'yearly' : 'monthly',
+          priceUsd: planAmountUsd,
+        },
       });
 
       return true;

@@ -28,11 +28,20 @@ import {
   buildVerificationEmail,
   buildWelcomeEmail,
   DEFAULT_EMAIL_LOCALE,
+  formatEmailUsd as formatUsdForLocale,
   type BuiltEmail,
   type EmailLocale,
   type NewDeviceDetails,
 } from './i18n';
 import { localeFor } from './recipient-locale';
+
+/**
+ * A USD amount for an email: "$29", "$29.50". Prices stay in USD, as charged;
+ * the localized e-mails write them in the reader's number format instead.
+ */
+export function formatEmailUsd(amount: number): string {
+  return formatUsdForLocale(amount, DEFAULT_EMAIL_LOCALE, 0);
+}
 
 async function sendBuilt(
   to: string,
@@ -241,27 +250,23 @@ export async function sendPasswordResetEmail(
   );
 }
 
-/** PRO list prices this older port has always shown (monthly, yearly). */
-const LEGACY_PRO_PRICE_USD = { monthly: 29, yearly: 290 } as const;
-
 /**
  * Generate subscription confirmation email HTML
  *
  * @param name - User's name
  * @param plan - Subscription plan ('FREE' or 'PRO')
  * @param billingPeriod - Billing period ('monthly' or 'yearly')
+ * @param priceUsd - PRO price per billing period, as charged (the admin's
+ *   SystemConfig price at subscription time)
  * @param locale - Reader's language and formats (English when omitted)
- * @param priceUsd - PRO price per billing period, as charged. This port was
- *   never given one (the outbox event carries none), so it falls back to the
- *   list price it always printed; the monolith's copy reads SystemConfig.
  * @returns HTML string for subscription confirmation email
  */
 export function getSubscriptionConfirmationEmail(
   name: string,
   plan: 'FREE' | 'PRO',
   billingPeriod: 'monthly' | 'yearly',
-  locale: EmailLocale = DEFAULT_EMAIL_LOCALE,
-  priceUsd: number = LEGACY_PRO_PRICE_USD[billingPeriod]
+  priceUsd: number,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
 ): string {
   return buildSubscriptionConfirmationEmail(locale, {
     name,
@@ -279,8 +284,8 @@ export async function sendSubscriptionConfirmationEmail(
   name: string,
   plan: 'FREE' | 'PRO',
   billingPeriod: 'monthly' | 'yearly',
-  locale?: EmailLocale,
-  priceUsd: number = LEGACY_PRO_PRICE_USD[billingPeriod]
+  priceUsd: number,
+  locale?: EmailLocale
 ): Promise<{ success: boolean; error?: string }> {
   return sendBuilt(
     to,
@@ -588,11 +593,13 @@ export async function sendAlertEmail(
  *
  * @param name - User's name
  * @param daysRemaining - Number of days remaining in trial
+ * @param monthlyPriceUsd - PRO monthly price (SystemConfig getBasePriceUsd())
  * @returns HTML string for trial reminder email
  */
 export function getTrialReminderEmail(
   name: string,
-  daysRemaining: number
+  daysRemaining: number,
+  monthlyPriceUsd: number
 ): string {
   return `
     <!DOCTYPE html>
@@ -611,7 +618,7 @@ export function getTrialReminderEmail(
           Hi ${name}, your <strong>7-day Pro trial</strong> ends in <strong>${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}</strong>.
         </p>
         <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          After your trial ends, you'll be charged <strong>$29/month</strong> or <strong>$290/year</strong> depending on your selected plan.
+          After your trial ends, you'll be charged <strong>${formatEmailUsd(monthlyPriceUsd)}/month</strong>.
         </p>
         <p style="color: #52525b; line-height: 1.6; margin: 0 0 24px 0;">
           You can cancel anytime before the trial ends to avoid charges.
@@ -634,9 +641,10 @@ export function getTrialReminderEmail(
 export async function sendTrialReminderEmail(
   to: string,
   name: string,
-  daysRemaining: number
+  daysRemaining: number,
+  monthlyPriceUsd: number
 ): Promise<{ success: boolean; error?: string }> {
-  const html = getTrialReminderEmail(name, daysRemaining);
+  const html = getTrialReminderEmail(name, daysRemaining, monthlyPriceUsd);
   return sendEmail(to, `Pro Trial Ending in ${daysRemaining} Days`, html);
 }
 
@@ -645,11 +653,17 @@ export async function sendTrialReminderEmail(
  *
  * @param name - User's name
  * @param reason - Reason for upgrade prompt
+ * @param monthlyPriceUsd - PRO monthly price (SystemConfig getBasePriceUsd())
  * @returns HTML string for upgrade prompt email
  */
 export function getUpgradePromptEmail(
   name: string,
-  reason: 'alert_limit' | 'symbol_limit' | 'timeframe_limit' | 'indicator_limit'
+  reason:
+    | 'alert_limit'
+    | 'symbol_limit'
+    | 'timeframe_limit'
+    | 'indicator_limit',
+  monthlyPriceUsd: number
 ): string {
   const reasons = {
     alert_limit: 'Price alerts are a Pro feature',
@@ -694,7 +708,7 @@ export function getUpgradePromptEmail(
         </ul>
 
         <p style="color: #18181b; font-weight: 600; margin: 0 0 24px 0;">
-          Only $29/month or save with $290/year
+          Only ${formatEmailUsd(monthlyPriceUsd)}/month
         </p>
 
         <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/pricing" style="display: inline-block; background: #22c55e; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
@@ -716,8 +730,13 @@ export function getUpgradePromptEmail(
 export async function sendUpgradePromptEmail(
   to: string,
   name: string,
-  reason: 'alert_limit' | 'symbol_limit' | 'timeframe_limit' | 'indicator_limit'
+  reason:
+    | 'alert_limit'
+    | 'symbol_limit'
+    | 'timeframe_limit'
+    | 'indicator_limit',
+  monthlyPriceUsd: number
 ): Promise<{ success: boolean; error?: string }> {
-  const html = getUpgradePromptEmail(name, reason);
+  const html = getUpgradePromptEmail(name, reason, monthlyPriceUsd);
   return sendEmail(to, 'Upgrade to Pro - 7-Day Free Trial', html);
 }

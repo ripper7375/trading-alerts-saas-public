@@ -67,6 +67,22 @@ const KNOWN_EVENT_TYPES = new Set([
   'TIER_DOWNGRADED',
 ]);
 
+/**
+ * These two e-mails print the subscriber's price, and money-service puts it in
+ * the payload as `priceUsd` (USD per billing period). There is no price of this
+ * service's own to fall back on, so an event without one is skipped rather than
+ * sent with a wrong figure (an event queued before money-service started
+ * sending it can only be one of these).
+ */
+const PRICED_EVENT_TYPES = new Set(['TIER_UPGRADED', 'PAYMENT_FAILED']);
+
+function priceUsdOf(payload: Record<string, unknown>): number | null {
+  const price = payload['priceUsd'];
+  return typeof price === 'number' && Number.isFinite(price) && price > 0
+    ? price
+    : null;
+}
+
 @Injectable()
 export class OutboxConsumerService {
   constructor(
@@ -136,6 +152,15 @@ export class OutboxConsumerService {
       return { status: 'skipped', reason: 'unrecognized-event-type' };
     }
 
+    const priceUsd = priceUsdOf(event.payload);
+    if (PRICED_EVENT_TYPES.has(event.eventType) && priceUsd === null) {
+      console.warn(
+        `[Outbox] ${event.eventType} event has no usable priceUsd, skipping`,
+        { outboxEventId: event.id }
+      );
+      return { status: 'skipped', reason: 'missing-price' };
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: event.aggregateId },
       select: { email: true, name: true },
@@ -168,7 +193,13 @@ export class OutboxConsumerService {
     }
 
     try {
-      const result = await this.dispatch(event.eventType, email, name, payload);
+      const result = await this.dispatch(
+        event.eventType,
+        email,
+        name,
+        payload,
+        priceUsd
+      );
 
       if (!result.success) {
         throw new InternalServerErrorException(
@@ -189,22 +220,27 @@ export class OutboxConsumerService {
     eventType: string,
     email: string,
     name: string,
-    payload: Record<string, unknown>
+    payload: Record<string, unknown>,
+    priceUsd: number | null
   ): Promise<EmailSendResult> {
     switch (eventType) {
       case 'TIER_UPGRADED': {
-        // dLocal's TIER_UPGRADED payload has no billingPeriod field (it has
-        // no recurring monthly/yearly concept the way Stripe does) --
-        // default to 'monthly' rather than reject the event. Cosmetic only
-        // (affects displayed pricing text), and this consumer carries zero
-        // production traffic until 4A-12 flips OUTBOX_PUBLISHER_ENABLED.
+        // processEvent skipped the event already when priceUsd is missing.
+        if (priceUsd === null) {
+          throw new InternalServerErrorException(
+            `${eventType} reached dispatch without a priceUsd`
+          );
+        }
+        // An event without a billingPeriod (one from before money-service
+        // sent it) is shown as monthly rather than rejected.
         const billingPeriod =
           payload['billingPeriod'] === 'yearly' ? 'yearly' : 'monthly';
         return sendSubscriptionConfirmationEmail(
           email,
           name,
           'PRO',
-          billingPeriod
+          billingPeriod,
+          priceUsd
         );
       }
       case 'SUBSCRIPTION_CANCELLED': {
@@ -232,11 +268,24 @@ export class OutboxConsumerService {
         // never sent email before this session).
         return sendCancellationEmail(email, name);
       case 'PAYMENT_FAILED': {
+        if (priceUsd === null) {
+          throw new InternalServerErrorException(
+            `${eventType} reached dispatch without a priceUsd`
+          );
+        }
         const reason =
           typeof payload['failureReason'] === 'string'
             ? (payload['failureReason'] as string)
             : 'Payment method declined';
-        return sendPaymentFailedEmail(email, name, reason);
+        const billingPeriod =
+          payload['billingPeriod'] === 'yearly' ? 'yearly' : 'monthly';
+        return sendPaymentFailedEmail(
+          email,
+          name,
+          reason,
+          priceUsd,
+          billingPeriod
+        );
       }
       case 'PAYMENT_SUCCEEDED': {
         const amount =

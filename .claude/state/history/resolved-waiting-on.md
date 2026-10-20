@@ -11,6 +11,11 @@ Blocks are verbatim copies from the pre-OKF `CLAUDE.md` (backup: `CLAUDE-480KB-P
 
 Open items live in [../waiting-on.md](../waiting-on.md).
 
+<!-- operation-service e-mail prices, resolved 2026-10-20 -->
+
+- **RESOLVED 2026-10-20 (working tree, not committed) — item (5) of the localized-e-mails entry of `waiting-on.md`.** What was open (verbatim): (5) operation-service still prints the PRO list price ($29 / $290) in its subscription and payment-failed e-mails (pre-existing, its outbox events carry no price; the SystemConfig guard does not scan it). Deploy order does not matter (the services are independent).
+  **How it closed:** money-service puts `priceUsd` and `billingPeriod` in the `TIER_UPGRADED` and `PAYMENT_FAILED` outbox events, the operation-service consumer passes them to the e-mails, and `LEGACY_PRO_PRICE_USD` and the `monthlyPrice = 29` default are removed (newest entry of `current-state.md`). The services are no longer independent for these two events: money-service must be deployed first.
+
 <!-- NestJS remediation plan review, P0 auth, resolved 2026-10-16 -->
 
 - **RESOLVED 2026-10-16 — the P0 auth finding of the NestJS remediation plan review.** What was open (verbatim from the quick index of `waiting-on.md`): **P0, auth, needs Davin:** `FIXED_TEST_ACCOUNTS` in `operation-service` and in the monolith's still-registered `CredentialsProvider` accept hard-coded passwords for `admin@tradingalerts.com` in production and skip 2FA, and the production `/login` page shows them ("Quick Test Credentials", `components/auth/login-form.tsx:266-348`). Davin's production click-throughs use these accounts, so a fix needs a replacement (review §2; relates to F80). Also open: whether the monolith Stripe webhook endpoint still receives events next to money-service's (double-commission race, review §4.6). The plan goes back to the Advisor for revision (review §6).
