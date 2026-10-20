@@ -235,6 +235,17 @@ Each of these cost a past session real time. Search `state/history/` for the inc
 - **`next dev` rewrites the tracked `next-env.d.ts`** (double quotes and `./.next/dev/types/...` paths instead of the committed
   `'./.next/types/...'`): after any session that started the dev server, `git status` shows ` M next-env.d.ts`. It is not part of any
   change: restore it with `git checkout -- next-env.d.ts` before committing (build step 6 part 5, the intake preview).
+- **Tailwind colour tokens carry `<alpha-value>` since 2026-10-21; before that an opacity modifier on a token emitted NO CSS**
+  (`/settings/billing` colour fix): `tailwind.config.ts` defined the tokens as `oklch(var(--primary))`, so `bg-primary/20`,
+  `border-primary/40`, `bg-muted/40`, `hover:bg-primary/90` and 79 other classes (113 files under `app/` and `components/`) compiled to
+  nothing: no hover state on `Button`, a transparent sticky header, an invisible `Progress` track. Each token is now
+  `oklch(var(--x) / <alpha-value>)`; a NEW token added to the config needs the same suffix or the trap is back. Check a class with
+  `npx tailwindcss -c tailwind.config.ts --content <file> -i <css with @tailwind utilities>`. The other Tailwind configs (`frontend/`,
+  `mobile-app/`, `seed-code/`) were not changed. `prettier-plugin-tailwindcss` used to sort the dead classes to the FRONT of a class list;
+  now it sorts them normally, so `prettier --check` flags class order in files written before the fix (non-blocking in CI; lint-staged
+  re-sorts each file when it is staged; never `--write` a directory, see the memory note). Also: a hard-coded `text-foreground` on a
+  hard-coded `bg-white` is invisible in dark mode. The browser pane refuses `http://localhost:3000` (https upgrade): to check CSS from
+  `next dev`, `curl` the page, then its `/_next/static/chunks/*.css`.
 
 ## YAML registry files
 
