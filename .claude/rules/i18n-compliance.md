@@ -3,6 +3,8 @@ paths:
   - 'app/**/*.tsx'
   - 'components/**/*.tsx'
   - 'lib/i18n/**'
+  - 'lib/email/**'
+  - 'operation-service/src/email/**'
   - 'lib/context/locale-context.tsx'
   - 'lib/country-config.ts'
 type: Concept/StandingRules
@@ -60,5 +62,9 @@ frontend UI. The recurring failure class is "new UI ships with zero locale wirin
   rate table (`lib/fx/usd-rates.ts`). SystemConfig figures (price, % discount, % commission,
   codes per month) must never be hardcoded — `__tests__/lib/systemconfig-figures-guard.test.ts`
   guards this.
+- **E-mail:** every e-mail is built from `lib/email/i18n/` in the recipient's language and formats (saved Settings,
+  then the request's cookies, then English/UTC); `operation-service/src/email/i18n/` is a byte copy of it (a test
+  fails on a difference). A new text goes in all 19 `messages/*.ts`; never format a date or a price inside a
+  template. Policy §2.D.
 - **Formatting check:** this checkout is CRLF while Prettier expects LF; use
   `prettier --check --end-of-line auto` to see real issues.

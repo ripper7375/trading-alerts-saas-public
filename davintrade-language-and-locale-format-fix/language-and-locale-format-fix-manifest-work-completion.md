@@ -96,6 +96,10 @@ for any code without a rate, rather than a USD figure behind a foreign symbol.
   values, not display prices.
 - **Emails, PDF receipts and `lib/auth/session-tracker.ts`:** sent or stored, so there is no viewer
   whose settings could apply. They could read the user's saved database preferences if wanted.
+  _(Update 2026-10-20: **e-mails now do**: every one is written in the recipient's language, timezone,
+  date format and time format. See policy `08-locale-i18n-compliance.md` §2.D and
+  [the localized e-mails manifest](../davintrade-localized-emails/localized-emails-manifest-work-completion.md).
+  PDF receipts and the session tracker are unchanged.)_
 - **Admin BI month buckets** (`lib/admin/analytics/date-windows.ts`) and the affiliate statements'
   month labels: whole months, so the timezone does not matter.
 

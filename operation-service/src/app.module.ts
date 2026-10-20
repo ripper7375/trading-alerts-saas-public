@@ -14,6 +14,8 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { LoggingModule } from './common/logging/logging.module';
 import { CorrelationIdMiddleware } from './common/middleware/correlation-id.middleware';
 import { DrawingsModule } from './drawings/drawings.module';
+import { EmailLocaleContextMiddleware } from './email/email-locale.context';
+import { EmailModule } from './email/email.module';
 import { HealthModule } from './health/health.module';
 import { MarketDataModule } from './market-data/market-data.module';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -34,6 +36,7 @@ import { UsersModule } from './users/users.module';
     ConfigModule.forRoot({ isGlobal: true }),
     LoggingModule,
     PrismaModule,
+    EmailModule,
     RedisModule,
     CacheModule,
     ThrottlerModule.forRootAsync({
@@ -74,6 +77,8 @@ export class AppModule implements NestModule {
     // removed bare '*' wildcard support — '/{*splat}' is the documented
     // replacement, verified against the real installed path-to-regexp to
     // match every path including bare '/'.
-    consumer.apply(CorrelationIdMiddleware).forRoutes('/{*splat}');
+    consumer
+      .apply(CorrelationIdMiddleware, EmailLocaleContextMiddleware)
+      .forRoutes('/{*splat}');
   }
 }

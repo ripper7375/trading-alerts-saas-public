@@ -31,16 +31,30 @@ function mockFetchResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status });
 }
 
-function makePostRequest(body: unknown): NextRequest {
+function headersOf(values: Record<string, string>): {
+  get: (name: string) => string | null;
+} {
+  const map = new Headers(values);
+  return { get: (name) => map.get(name) };
+}
+
+function makePostRequest(
+  body: unknown,
+  headers: Record<string, string> = {}
+): NextRequest {
   return {
     json: async () => body,
-    headers: { get: () => null },
+    headers: headersOf(headers),
   } as unknown as NextRequest;
 }
 
-function makeGetRequest(searchParams: Record<string, string>): NextRequest {
+function makeGetRequest(
+  searchParams: Record<string, string>,
+  headers: Record<string, string> = {}
+): NextRequest {
   return {
     nextUrl: { searchParams: new URLSearchParams(searchParams) },
+    headers: headersOf(headers),
   } as unknown as NextRequest;
 }
 
@@ -163,4 +177,63 @@ describe('token-verify-email (GET, unauthenticated, no CSRF)', () => {
     expect(response.status).toBe(429);
     expect(body.retryAfter).toBe(3);
   });
+});
+
+describe('the e-mail these routes trigger is written in the reader language', () => {
+  /** The headers of the request the route made to operation-service. */
+  function sentHeaders(): Headers {
+    const [input, init] = (global.fetch as jest.Mock).mock.calls[0] as [
+      Request | string,
+      RequestInit | undefined,
+    ];
+    return input instanceof Request
+      ? input.headers
+      : new Headers(init?.headers);
+  }
+
+  const browser = {
+    cookie:
+      'next-auth.session-token=secret; davintrade-locale=th; davintrade-formats=DMY.24h',
+    'user-agent': 'Browser/1.0',
+    'x-forwarded-for': '203.0.113.7',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    global.fetch = jest.fn();
+    (validateOrigin as jest.Mock).mockResolvedValue(true);
+  });
+
+  it.each([
+    [
+      'token-forgot-password',
+      () => forgotPassword(makePostRequest({ email: 'a@b.com' }, browser)),
+    ],
+    [
+      'token-resend-verification',
+      () => resendVerification(makePostRequest({ email: 'a@b.com' }, browser)),
+    ],
+    [
+      'token-verify-email',
+      () => verifyEmail(makeGetRequest({ token: 'abc' }, browser)),
+    ],
+  ])(
+    '%s forwards the language and formats, and nothing else of the request',
+    async (_name, call) => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce(
+        mockFetchResponse(200, { success: true, message: 'ok' })
+      );
+      await call();
+
+      const headers = sentHeaders();
+      expect(headers.get('x-email-language')).toBe('th');
+      expect(headers.get('x-email-formats')).toBe('DMY.24h');
+      // Not the session cookie, and not the caller's address or agent: those
+      // would change what operation-service's rate limits and audit fields see.
+      expect(headers.get('cookie')).toBeNull();
+      expect(headers.get('x-forwarded-for')).toBeNull();
+      expect(headers.get('user-agent')).not.toBe('Browser/1.0');
+      expect([...headers.values()].join(' ')).not.toContain('secret');
+    }
+  );
 });

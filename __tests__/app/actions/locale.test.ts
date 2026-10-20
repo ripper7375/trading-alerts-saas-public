@@ -11,6 +11,23 @@ jest.mock('next/headers', () => ({
   cookies: () => Promise.resolve({ set: mockSet }),
 }));
 
+// Only reached when a change is to be remembered on the account.
+const mockGetServerSession = jest.fn();
+jest.mock('next-auth', () => ({
+  getServerSession: (...args: unknown[]) => mockGetServerSession(...args),
+}));
+jest.mock('@/lib/auth/auth-options', () => ({ authOptions: {} }));
+const mockFindUnique = jest.fn();
+const mockUpsert = jest.fn();
+jest.mock('@/lib/db/prisma', () => ({
+  prisma: {
+    userPreferences: {
+      findUnique: (...args: unknown[]) => mockFindUnique(...args),
+      upsert: (...args: unknown[]) => mockUpsert(...args),
+    },
+  },
+}));
+
 import { syncLocaleCookiesAction } from '@/app/actions/locale';
 
 const valid = {
@@ -69,5 +86,99 @@ describe('syncLocaleCookiesAction', () => {
       syncLocaleCookiesAction({ ...valid, ...(bad as object) } as typeof valid)
     ).resolves.toEqual({ success: false });
     expect(mockSet).not.toHaveBeenCalled();
+  });
+});
+
+describe('syncLocaleCookiesAction: remembering the choice on the account', () => {
+  beforeEach(() => {
+    mockSet.mockClear();
+    mockGetServerSession.mockReset();
+    mockFindUnique.mockReset();
+    mockUpsert.mockReset();
+    mockFindUnique.mockResolvedValue(null);
+    mockUpsert.mockResolvedValue({});
+  });
+
+  it('touches no account when the change was only detected', async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
+    await expect(syncLocaleCookiesAction(valid)).resolves.toEqual({
+      success: true,
+    });
+    await syncLocaleCookiesAction({ ...valid, saveToAccount: false });
+    expect(mockGetServerSession).not.toHaveBeenCalled();
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  it('saves the language, formats, currency and a pinned timezone for a signed-in user', async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
+    mockFindUnique.mockResolvedValue({ preferences: { theme: 'dark' } });
+
+    await expect(
+      syncLocaleCookiesAction({
+        ...valid,
+        currency: 'gbp',
+        saveToAccount: true,
+      })
+    ).resolves.toEqual({ success: true });
+
+    const preferences = {
+      theme: 'dark',
+      language: 'th',
+      currency: 'GBP',
+      dateFormat: 'MDY',
+      timeFormat: '12h',
+      timezone: 'Asia/Tokyo',
+    };
+    expect(mockUpsert).toHaveBeenCalledWith({
+      where: { userId: 'u1' },
+      create: { userId: 'u1', preferences },
+      update: { preferences },
+    });
+  });
+
+  it('does not save an IP-detected timezone as if the user had chosen it', async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
+    mockFindUnique.mockResolvedValue({
+      preferences: { timezone: 'Europe/Rome' },
+    });
+
+    await syncLocaleCookiesAction({
+      ...valid,
+      timezoneSetByUser: false,
+      saveToAccount: true,
+    });
+
+    expect(mockUpsert.mock.calls[0]?.[0].update.preferences.timezone).toBe(
+      'Europe/Rome'
+    );
+  });
+
+  it('saves nothing for a visitor who is not signed in', async () => {
+    mockGetServerSession.mockResolvedValue(null);
+    await expect(
+      syncLocaleCookiesAction({ ...valid, saveToAccount: true })
+    ).resolves.toEqual({ success: true });
+    expect(mockUpsert).not.toHaveBeenCalled();
+  });
+
+  it('still writes the cookies when the account cannot be saved', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
+    mockUpsert.mockRejectedValue(new Error('db down'));
+
+    await expect(
+      syncLocaleCookiesAction({ ...valid, saveToAccount: true })
+    ).resolves.toEqual({ success: true });
+    expect(mockSet).toHaveBeenCalled();
+  });
+
+  it('saves nothing when the values do not validate', async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: 'u1' } });
+    await syncLocaleCookiesAction({
+      ...valid,
+      language: 'klingon',
+      saveToAccount: true,
+    });
+    expect(mockUpsert).not.toHaveBeenCalled();
   });
 });

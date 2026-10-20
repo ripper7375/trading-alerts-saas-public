@@ -316,11 +316,17 @@ function LocaleProviderBody({
   // cookies through a Server Action: Next.js re-renders the current route in
   // the same round trip and drops its cached routes.
   const serverRendered = useRef(serverRenderKey(serverPreferences));
+  // Set by the user's own choices (header country, language modal, Settings),
+  // never by detection: only those are remembered on the signed-in account.
+  const explicitChange = useRef(false);
   useEffect(() => {
+    const explicit = explicitChange.current;
+    explicitChange.current = false;
     const key = serverRenderKey(preferences);
     if (key === serverRendered.current) return;
     serverRendered.current = key;
     void syncLocaleCookiesAction({
+      saveToAccount: explicit,
       language: preferences.language,
       currency: preferences.currency,
       dateFormat: preferences.dateFormat,
@@ -460,6 +466,7 @@ function LocaleProviderBody({
     (code: string) => {
       // The header's country sets language, date/time format and currency;
       // the timezone stays IP-detected (or the user's own pick).
+      explicitChange.current = true;
       applyPreferences(
         (prev) =>
           keepTimezone(preferencesFromCountry(getCountryByCode(code)), prev),
@@ -471,6 +478,7 @@ function LocaleProviderBody({
 
   const updatePreferences = useCallback(
     (newPrefs: Partial<LocalePreferences>) => {
+      explicitChange.current = true;
       setPreferences((prev) => {
         let updated: LocalePreferences = { ...prev, ...newPrefs };
         // A new language brings its country's date/time format and currency

@@ -16,6 +16,11 @@ import 'server-only';
 
 import { cookies } from 'next/headers';
 
+import {
+  emailHintFromCookieHeader,
+  emailHintToHeaders,
+} from '@/lib/email/i18n/languages';
+
 import { SESSION_COOKIE_NAME } from './cookies';
 
 const BASE_URL =
@@ -278,5 +283,30 @@ export function forwardedRequestContext(request: {
     const value = request.headers.get(name);
     if (value) headers[name] = value;
   }
+
+  Object.assign(headers, forwardedEmailLocale(request));
+
   return headers;
+}
+
+/**
+ * The reader's language and formats, as headers, so operation-service can
+ * write the e-mails it sends (verification, password reset, account deletion,
+ * ...) in them. Taken from the same `davintrade-*` cookies the app renders
+ * from (and the IP-derived timezone), and validated before they are forwarded
+ * (lib/email/i18n/languages.ts): nothing else of the request goes with them.
+ *
+ * Part of `forwardedRequestContext()`; routes that call operation-service
+ * without forwarding the whole context (so its rate limits and audit fields
+ * keep seeing the monolith) pass this alone.
+ */
+export function forwardedEmailLocale(request: {
+  headers: { get(name: string): string | null };
+}): Record<string, string> {
+  const hint = emailHintFromCookieHeader(request.headers.get('cookie'));
+  hint.timezone ??=
+    request.headers.get('x-vercel-ip-timezone') ??
+    request.headers.get('cf-timezone') ??
+    undefined;
+  return emailHintToHeaders(hint);
 }

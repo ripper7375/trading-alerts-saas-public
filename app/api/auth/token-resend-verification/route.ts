@@ -5,7 +5,10 @@ import {
   unwrapOperationApi,
 } from '@/lib/api/generated/operation-api/client';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
-import { OperationServiceError } from '@/lib/operation-service/client';
+import {
+  forwardedEmailLocale,
+  OperationServiceError,
+} from '@/lib/operation-service/client';
 
 interface ResendVerificationSuccessBody {
   success: true;
@@ -41,6 +44,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const api = createOperationApi(null);
     const apiResult = await api.POST('/auth/resend-verification', {
       body: { email } as never,
+      // The verification e-mail is written in the reader's language
+      headers: forwardedEmailLocale(request),
     });
     const result =
       await unwrapOperationApi<ResendVerificationSuccessBody>(apiResult);

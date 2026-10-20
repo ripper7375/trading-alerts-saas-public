@@ -297,6 +297,35 @@ describe('LocaleProvider: server-rendered parts follow a change', () => {
     expect(mockSync).not.toHaveBeenCalled();
   });
 
+  it("asks for the user's own change to be remembered on the account", async () => {
+    renderServer();
+    act(() => setPrefs({ language: 'th' }));
+    await waitFor(() =>
+      expect(mockSync).toHaveBeenCalledWith(
+        expect.objectContaining({ language: 'th', saveToAccount: true })
+      )
+    );
+  });
+
+  it('asks the same for a country picked in the header', async () => {
+    renderServer();
+    act(() => setCountry('TH'));
+    await waitFor(() =>
+      expect(mockSync).toHaveBeenCalledWith(
+        expect.objectContaining({ language: 'th', saveToAccount: true })
+      )
+    );
+  });
+
+  it('does not let a change the user did not make ride on the last one', async () => {
+    renderServer();
+    // Same language: nothing changes, so nothing is synced...
+    act(() => setPrefs({ language: 'en-GB' }));
+    // ...and a later change (a detected timezone) is not the user's choice.
+    await waitFor(() => expect(probe()).toHaveTextContent('en-GB|GBP'));
+    expect(mockSync).not.toHaveBeenCalled();
+  });
+
   it('syncs a timezone the user picks', async () => {
     renderServer();
     act(() => setPrefs({ timezone: 'Asia/Tokyo', timezoneSetByUser: true }));

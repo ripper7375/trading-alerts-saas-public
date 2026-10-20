@@ -5,7 +5,10 @@ import {
   unwrapOperationApi,
 } from '@/lib/api/generated/operation-api/client';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
-import { OperationServiceError } from '@/lib/operation-service/client';
+import {
+  forwardedEmailLocale,
+  OperationServiceError,
+} from '@/lib/operation-service/client';
 
 interface ForgotPasswordSuccessBody {
   success: true;
@@ -44,6 +47,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const api = createOperationApi(null);
     const apiResult = await api.POST('/auth/forgot-password', {
       body: { email } as never,
+      // The reset e-mail is written in the reader's language (locale only: the
+      // rest of the request is deliberately not forwarded here)
+      headers: forwardedEmailLocale(request),
     });
     const result =
       await unwrapOperationApi<ForgotPasswordSuccessBody>(apiResult);

@@ -3,20 +3,68 @@
  *
  * Send emails using Resend API with reusable templates.
  * Supports welcome emails, verification emails, password reset, and alerts.
+ *
+ * Every e-mail the app sends is written in the recipient's own language and
+ * date / time / number formats (`lib/email/i18n/`). A sender takes an optional
+ * trailing `locale`; without one it looks the recipient up
+ * (`lib/email/recipient-locale.ts`: their saved Settings, then the request's
+ * cookies, then English), so callers stay as they were. The three templates at
+ * the end of this file that nothing calls (alert triggered, trial reminder,
+ * upgrade prompt) are still English only.
  */
 
 import 'server-only';
 
 import { Resend } from 'resend';
 
+import {
+  buildAffiliateWelcomeEmail,
+  buildNewDeviceLoginEmail,
+  buildPasswordChangedEmail,
+  buildPasswordResetEmail,
+  buildSubscriptionConfirmationEmail,
+  buildTwoFactorDisabledEmail,
+  buildTwoFactorEnabledEmail,
+  buildVerificationEmail,
+  buildWelcomeEmail,
+  DEFAULT_EMAIL_LOCALE,
+  formatEmailUsd as formatUsdForLocale,
+  type BuiltEmail,
+  type EmailLocale,
+  type NewDeviceDetails,
+} from './i18n';
+
 /**
- * A USD amount for an email: "$29", "$29.50". Emails go out without the
- * reader's locale preferences, so prices stay in USD, as charged.
+ * A USD amount for an email: "$29", "$29.50". Prices stay in USD, as charged;
+ * the localized e-mails write them in the reader's number format instead.
  */
 export function formatEmailUsd(amount: number): string {
-  return `$${Number.isInteger(amount) ? amount : amount.toFixed(2)}`;
+  return formatUsdForLocale(amount, DEFAULT_EMAIL_LOCALE, 0);
 }
 
+/**
+ * The locale to write an e-mail to `to` in: the one given, else the
+ * recipient's own. Never throws; English is the floor.
+ */
+async function localeFor(
+  to: string,
+  locale: EmailLocale | undefined
+): Promise<EmailLocale> {
+  if (locale) return locale;
+  try {
+    const { emailLocaleForRecipient } = await import('./recipient-locale');
+    return await emailLocaleForRecipient(to);
+  } catch {
+    return DEFAULT_EMAIL_LOCALE;
+  }
+}
+
+async function sendBuilt(
+  to: string,
+  email: BuiltEmail
+): Promise<{ success: boolean; error?: string }> {
+  return sendEmail(to, email.subject, email.html);
+}
 // Lazy initialization to prevent build-time errors
 let resendClient: Resend | null = null;
 
@@ -116,43 +164,22 @@ export async function sendEmail(
   }
 }
 
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ACCOUNT EMAILS (localized)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 /**
  * Generate welcome email HTML
  *
  * @param name - User's name
+ * @param locale - Reader's language and formats (English when omitted)
  * @returns HTML string for welcome email
  */
-export function getWelcomeEmail(name: string): string {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome to Trading Alerts</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h1 style="color: #18181b; margin: 0 0 16px 0; font-size: 24px;">Welcome to Trading Alerts, ${name}!</h1>
-        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          Your account has been created successfully. You're now ready to set up your first trading alert!
-        </p>
-        <h2 style="color: #18181b; font-size: 18px; margin: 24px 0 12px 0;">Get Started:</h2>
-        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-          <li>Open the XAUUSD chart on M5 or M15</li>
-          <li>Explore channel and structure overlays</li>
-          <li>Customize your notification preferences</li>
-        </ul>
-        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/dashboard" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
-          Go to Dashboard
-        </a>
-        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
-          If you have any questions, reply to this email or visit our help center.
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
+export function getWelcomeEmail(
+  name: string,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): string {
+  return buildWelcomeEmail(locale, { name }).html;
 }
 
 /**
@@ -160,36 +187,15 @@ export function getWelcomeEmail(name: string): string {
  *
  * @param name - Affiliate's name
  * @param codesDistributed - Number of codes distributed on registration
+ * @param locale - Reader's language and formats (English when omitted)
  * @returns HTML string for affiliate welcome email
  */
 export function getAffiliateWelcomeEmail(
   name: string,
-  codesDistributed: number
+  codesDistributed: number,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
 ): string {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome to the Affiliate Program</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h1 style="color: #18181b; margin: 0 0 16px 0; font-size: 24px;">You're an Affiliate Partner, ${name}!</h1>
-        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          Your affiliate account is active. We've generated your first ${codesDistributed} referral codes — they're ready in your dashboard now.
-        </p>
-        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/affiliate/dashboard" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
-          Go to Affiliate Dashboard
-        </a>
-        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
-          Payouts are sent via Wise once your balance crosses the monthly minimum. If you have any questions, reply to this email or visit our help center.
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
+  return buildAffiliateWelcomeEmail(locale, { name, codesDistributed }).html;
 }
 
 /**
@@ -197,39 +203,15 @@ export function getAffiliateWelcomeEmail(
  *
  * @param name - User's name
  * @param verificationUrl - URL to verify email
+ * @param locale - Reader's language and formats (English when omitted)
  * @returns HTML string for verification email
  */
 export function getVerificationEmail(
   name: string,
-  verificationUrl: string
+  verificationUrl: string,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
 ): string {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Verify Your Email</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h1 style="color: #18181b; margin: 0 0 16px 0; font-size: 24px;">Verify Your Email Address</h1>
-        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          Hi ${name}, please click the button below to verify your email address and activate your account.
-        </p>
-        <a href="${verificationUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; margin: 16px 0;">
-          Verify Email Address
-        </a>
-        <p style="color: #71717a; font-size: 14px; margin: 24px 0 0 0;">
-          If you didn't create an account with Trading Alerts, you can safely ignore this email.
-        </p>
-        <p style="color: #71717a; font-size: 14px; margin: 8px 0 0 0;">
-          This link will expire in 24 hours.
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
+  return buildVerificationEmail(locale, { name, verificationUrl }).html;
 }
 
 /**
@@ -237,37 +219,292 @@ export function getVerificationEmail(
  *
  * @param name - User's name
  * @param resetUrl - URL to reset password
+ * @param locale - Reader's language and formats (English when omitted)
  * @returns HTML string for password reset email
  */
-export function getPasswordResetEmail(name: string, resetUrl: string): string {
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Reset Your Password</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h1 style="color: #18181b; margin: 0 0 16px 0; font-size: 24px;">Reset Your Password</h1>
-        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          Hi ${name}, we received a request to reset your password. Click the button below to create a new password.
-        </p>
-        <a href="${resetUrl}" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; margin: 16px 0;">
-          Reset Password
-        </a>
-        <p style="color: #71717a; font-size: 14px; margin: 24px 0 0 0;">
-          If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.
-        </p>
-        <p style="color: #71717a; font-size: 14px; margin: 8px 0 0 0;">
-          This link will expire in 1 hour.
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
+export function getPasswordResetEmail(
+  name: string,
+  resetUrl: string,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): string {
+  return buildPasswordResetEmail(locale, { name, resetUrl }).html;
 }
+
+/**
+ * Send welcome email to new user
+ */
+export async function sendWelcomeEmail(
+  to: string,
+  name: string,
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  return sendBuilt(
+    to,
+    buildWelcomeEmail(await localeFor(to, locale), { name })
+  );
+}
+
+/**
+ * Send affiliate welcome email
+ */
+export async function sendAffiliateWelcomeEmail(
+  to: string,
+  name: string,
+  codesDistributed: number,
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  return sendBuilt(
+    to,
+    buildAffiliateWelcomeEmail(await localeFor(to, locale), {
+      name,
+      codesDistributed,
+    })
+  );
+}
+
+/**
+ * Send email verification email
+ */
+export async function sendVerificationEmail(
+  to: string,
+  name: string,
+  token: string,
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
+  const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
+  return sendBuilt(
+    to,
+    buildVerificationEmail(await localeFor(to, locale), {
+      name,
+      verificationUrl,
+    })
+  );
+}
+
+/**
+ * Send password reset email
+ */
+export async function sendPasswordResetEmail(
+  to: string,
+  name: string,
+  token: string,
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
+  const resetUrl = `${baseUrl}/reset-password?token=${token}`;
+  return sendBuilt(
+    to,
+    buildPasswordResetEmail(await localeFor(to, locale), { name, resetUrl })
+  );
+}
+
+/**
+ * Generate subscription confirmation email HTML
+ *
+ * @param name - User's name
+ * @param plan - Subscription plan ('FREE' or 'PRO')
+ * @param billingPeriod - Billing period ('monthly' or 'yearly')
+ * @param priceUsd - PRO price per billing period, as charged (the admin's
+ *   SystemConfig price at subscription time)
+ * @param locale - Reader's language and formats (English when omitted)
+ * @returns HTML string for subscription confirmation email
+ */
+export function getSubscriptionConfirmationEmail(
+  name: string,
+  plan: 'FREE' | 'PRO',
+  billingPeriod: 'monthly' | 'yearly',
+  priceUsd: number,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): string {
+  return buildSubscriptionConfirmationEmail(locale, {
+    name,
+    plan,
+    billingPeriod,
+    priceUsd,
+  }).html;
+}
+
+/**
+ * Send subscription confirmation email
+ */
+export async function sendSubscriptionConfirmationEmail(
+  to: string,
+  name: string,
+  plan: 'FREE' | 'PRO',
+  billingPeriod: 'monthly' | 'yearly',
+  priceUsd: number,
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  return sendBuilt(
+    to,
+    buildSubscriptionConfirmationEmail(await localeFor(to, locale), {
+      name,
+      plan,
+      billingPeriod,
+      priceUsd,
+    })
+  );
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SECURITY ALERT EMAILS (localized)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export type NewDeviceLoginDetails = NewDeviceDetails;
+
+/**
+ * Generate new device login alert email HTML
+ */
+export function getNewDeviceLoginEmail(
+  name: string,
+  details: NewDeviceLoginDetails,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): string {
+  return buildNewDeviceLoginEmail(locale, { name, details }).html;
+}
+
+/**
+ * Send new device login alert email
+ */
+export async function sendNewDeviceLoginEmail(
+  to: string,
+  name: string,
+  details: NewDeviceLoginDetails,
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  return sendBuilt(
+    to,
+    buildNewDeviceLoginEmail(await localeFor(to, locale), { name, details })
+  );
+}
+
+/**
+ * Generate password changed alert email HTML
+ */
+export function getPasswordChangedEmail(
+  name: string,
+  ipAddress: string,
+  location: string,
+  timestamp: Date,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): string {
+  return buildPasswordChangedEmail(locale, {
+    name,
+    ipAddress,
+    location,
+    timestamp,
+  }).html;
+}
+
+/**
+ * Send password changed alert email
+ */
+export async function sendPasswordChangedEmail(
+  to: string,
+  name: string,
+  ipAddress: string,
+  location: string,
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  return sendBuilt(
+    to,
+    buildPasswordChangedEmail(await localeFor(to, locale), {
+      name,
+      ipAddress,
+      location,
+      timestamp: new Date(),
+    })
+  );
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TWO-FACTOR AUTHENTICATION EMAILS (localized)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * Generate 2FA enabled alert email HTML
+ */
+export function getTwoFactorEnabledEmail(
+  name: string,
+  ipAddress: string,
+  location: string,
+  timestamp: Date,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): string {
+  return buildTwoFactorEnabledEmail(locale, {
+    name,
+    ipAddress,
+    location,
+    timestamp,
+  }).html;
+}
+
+/**
+ * Send 2FA enabled alert email
+ */
+export async function sendTwoFactorEnabledEmail(
+  to: string,
+  name: string,
+  ipAddress: string,
+  location: string,
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  return sendBuilt(
+    to,
+    buildTwoFactorEnabledEmail(await localeFor(to, locale), {
+      name,
+      ipAddress,
+      location,
+      timestamp: new Date(),
+    })
+  );
+}
+
+/**
+ * Generate 2FA disabled alert email HTML
+ */
+export function getTwoFactorDisabledEmail(
+  name: string,
+  ipAddress: string,
+  location: string,
+  timestamp: Date,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): string {
+  return buildTwoFactorDisabledEmail(locale, {
+    name,
+    ipAddress,
+    location,
+    timestamp,
+  }).html;
+}
+
+/**
+ * Send 2FA disabled alert email
+ */
+export async function sendTwoFactorDisabledEmail(
+  to: string,
+  name: string,
+  ipAddress: string,
+  location: string,
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  return sendBuilt(
+    to,
+    buildTwoFactorDisabledEmail(await localeFor(to, locale), {
+      name,
+      ipAddress,
+      location,
+      timestamp: new Date(),
+    })
+  );
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// NOT SENT BY ANYTHING YET (English only)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Alert triggered, trial reminder and upgrade prompt have no caller. Move them
+// onto the localized builders (lib/email/i18n/) when one is wired up.
 
 /**
  * Generate alert triggered email HTML
@@ -332,57 +569,6 @@ export function getAlertTriggeredEmail(
 }
 
 /**
- * Send welcome email to new user
- */
-export async function sendWelcomeEmail(
-  to: string,
-  name: string
-): Promise<{ success: boolean; error?: string }> {
-  const html = getWelcomeEmail(name);
-  return sendEmail(to, 'Welcome to Trading Alerts!', html);
-}
-
-/**
- * Send affiliate welcome email
- */
-export async function sendAffiliateWelcomeEmail(
-  to: string,
-  name: string,
-  codesDistributed: number
-): Promise<{ success: boolean; error?: string }> {
-  const html = getAffiliateWelcomeEmail(name, codesDistributed);
-  return sendEmail(to, "You're an Affiliate Partner - Trading Alerts", html);
-}
-
-/**
- * Send email verification email
- */
-export async function sendVerificationEmail(
-  to: string,
-  name: string,
-  token: string
-): Promise<{ success: boolean; error?: string }> {
-  const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
-  const verificationUrl = `${baseUrl}/verify-email?token=${token}`;
-  const html = getVerificationEmail(name, verificationUrl);
-  return sendEmail(to, 'Verify Your Email - Trading Alerts', html);
-}
-
-/**
- * Send password reset email
- */
-export async function sendPasswordResetEmail(
-  to: string,
-  name: string,
-  token: string
-): Promise<{ success: boolean; error?: string }> {
-  const baseUrl = process.env['NEXTAUTH_URL'] || 'http://localhost:3000';
-  const resetUrl = `${baseUrl}/reset-password?token=${token}`;
-  const html = getPasswordResetEmail(name, resetUrl);
-  return sendEmail(to, 'Reset Your Password - Trading Alerts', html);
-}
-
-/**
  * Send alert triggered email
  */
 export async function sendAlertEmail(
@@ -401,112 +587,6 @@ export async function sendAlertEmail(
     currentPrice
   );
   return sendEmail(to, `Alert Triggered: ${symbol} ${timeframe}`, html);
-}
-
-/**
- * Generate subscription confirmation email HTML
- *
- * @param name - User's name
- * @param plan - Subscription plan ('FREE' or 'PRO')
- * @param billingPeriod - Billing period ('monthly' or 'yearly')
- * @param priceUsd - PRO price per billing period, as charged (the admin's
- *   SystemConfig price at subscription time)
- * @returns HTML string for subscription confirmation email
- */
-export function getSubscriptionConfirmationEmail(
-  name: string,
-  plan: 'FREE' | 'PRO',
-  billingPeriod: 'monthly' | 'yearly',
-  priceUsd: number
-): string {
-  const billing =
-    plan === 'PRO'
-      ? `${formatEmailUsd(priceUsd)}/${billingPeriod === 'yearly' ? 'year' : 'month'}`
-      : '$0';
-
-  const trialInfo =
-    plan === 'PRO'
-      ? '<p style="color: #22c55e; font-weight: 600;">7-Day Free Trial: Your card will not be charged until your trial ends.</p>'
-      : '';
-
-  const proFeatures = `
-    <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">What You Get with Pro:</h3>
-    <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-      <li><strong>100 Price Alerts</strong> - Never miss a trading opportunity</li>
-      <li><strong>Drawing Engine Line Alerts</strong> - Draw a line on the chart, get alerted when price touches it</li>
-      <li><strong>Multi-Timeframe Visualization</strong> - Overlay M5 structure on M15 charts</li>
-      <li><strong>Exclusive XAUUSD Insights</strong> - Full M5/M15 indicator data (all 79 columns)</li>
-      <li><strong>300 API Requests/Hour</strong></li>
-      <li><strong>Priority Support & Data Export</strong></li>
-    </ul>
-  `;
-
-  const freeFeatures = `
-    <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">Your Free Plan Includes:</h3>
-    <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-      <li><strong>XAUUSD (Gold)</strong> - M5 and M15 charts</li>
-      <li><strong>Full Indicator Data</strong> - Same market data as Pro</li>
-      <li><strong>60 API Requests/Hour</strong></li>
-    </ul>
-    <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
-      <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/pricing" style="color: #2563eb; font-weight: 500;">Upgrade to Pro</a> for alerts, line alerts, and multi-timeframe view!
-    </p>
-  `;
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Subscription Confirmed</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <h1 style="color: #18181b; margin: 0 0 16px 0; font-size: 24px;">Subscription Confirmed!</h1>
-        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          Hi ${name}, your <strong>${plan}</strong> subscription is now active.
-        </p>
-
-        <div style="background: #f4f4f5; border-radius: 8px; padding: 20px; margin: 20px 0;">
-          <h3 style="color: #18181b; margin: 0 0 12px 0; font-size: 16px;">Plan Details</h3>
-          <p style="color: #52525b; margin: 4px 0;"><strong>Tier:</strong> ${plan}</p>
-          <p style="color: #52525b; margin: 4px 0;"><strong>Billing:</strong> ${billing}</p>
-          ${trialInfo}
-        </div>
-
-        ${plan === 'PRO' ? proFeatures : freeFeatures}
-
-        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/dashboard" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
-          Go to Dashboard
-        </a>
-
-        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
-          If you have any questions, reply to this email or visit our help center.
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
-}
-
-/**
- * Send subscription confirmation email
- */
-export async function sendSubscriptionConfirmationEmail(
-  to: string,
-  name: string,
-  plan: 'FREE' | 'PRO',
-  billingPeriod: 'monthly' | 'yearly',
-  priceUsd: number
-): Promise<{ success: boolean; error?: string }> {
-  const html = getSubscriptionConfirmationEmail(
-    name,
-    plan,
-    billingPeriod,
-    priceUsd
-  );
-  return sendEmail(to, `${plan} Subscription Confirmed`, html);
 }
 
 /**
@@ -660,419 +740,4 @@ export async function sendUpgradePromptEmail(
 ): Promise<{ success: boolean; error?: string }> {
   const html = getUpgradePromptEmail(name, reason, monthlyPriceUsd);
   return sendEmail(to, 'Upgrade to Pro - 7-Day Free Trial', html);
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SECURITY ALERT EMAILS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-export interface NewDeviceLoginDetails {
-  device: string;
-  browser: string;
-  os: string;
-  location: string;
-  ipAddress: string;
-  timestamp: Date;
-}
-
-/**
- * Generate new device login alert email HTML
- */
-export function getNewDeviceLoginEmail(
-  name: string,
-  details: NewDeviceLoginDetails
-): string {
-  const formattedTime = details.timestamp.toLocaleString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>New Device Login</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <div style="background: #fef3c7; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
-          <h1 style="color: #92400e; margin: 0; font-size: 20px;">New Device Login Detected</h1>
-        </div>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          Hi ${name}, we noticed a login to your Trading Alerts account from a new device:
-        </p>
-
-        <div style="background: #f4f4f5; border-radius: 6px; padding: 16px; margin: 16px 0;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Device:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.device}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Browser:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.browser}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Operating System:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.os}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Location:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.location}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">IP Address:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${details.ipAddress}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Time:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${formattedTime}</td>
-            </tr>
-          </table>
-        </div>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
-          <strong>If this was you:</strong> No action is needed. You can safely ignore this email.
-        </p>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
-          <strong>If this wasn't you:</strong> Someone may have access to your account. We recommend:
-        </p>
-
-        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-          <li>Change your password immediately</li>
-          <li>Review your active sessions and sign out unknown devices</li>
-          <li>Enable two-factor authentication for added security</li>
-        </ul>
-
-        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="display: inline-block; background: #dc2626; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500; margin-right: 8px;">
-          Secure My Account
-        </a>
-
-        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
-          You're receiving this email because you have security alerts enabled.
-          <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="color: #2563eb;">Manage notification preferences</a>
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
-}
-
-/**
- * Send new device login alert email
- */
-export async function sendNewDeviceLoginEmail(
-  to: string,
-  name: string,
-  details: NewDeviceLoginDetails
-): Promise<{ success: boolean; error?: string }> {
-  const html = getNewDeviceLoginEmail(name, details);
-  return sendEmail(to, 'Security Alert: New Device Login Detected', html);
-}
-
-/**
- * Generate password changed alert email HTML
- */
-export function getPasswordChangedEmail(
-  name: string,
-  ipAddress: string,
-  location: string,
-  timestamp: Date
-): string {
-  const formattedTime = timestamp.toLocaleString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Password Changed</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <div style="background: #dbeafe; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
-          <h1 style="color: #1e40af; margin: 0; font-size: 20px;">Password Changed Successfully</h1>
-        </div>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          Hi ${name}, your Trading Alerts account password was changed.
-        </p>
-
-        <div style="background: #f4f4f5; border-radius: 6px; padding: 16px; margin: 16px 0;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Time:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${formattedTime}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Location:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${location}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">IP Address:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${ipAddress}</td>
-            </tr>
-          </table>
-        </div>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
-          <strong>If you made this change:</strong> No action is needed. Your account is secure.
-        </p>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
-          <strong>If you didn't make this change:</strong> Your account may be compromised. Please:
-        </p>
-
-        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-          <li>Reset your password immediately using the "Forgot Password" feature</li>
-          <li>Review your account for any unauthorized changes</li>
-          <li>Contact our support team if you need assistance</li>
-        </ul>
-
-        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/forgot-password" style="display: inline-block; background: #dc2626; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
-          Reset Password
-        </a>
-
-        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
-          You're receiving this email because you have security alerts enabled.
-          <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="color: #2563eb;">Manage notification preferences</a>
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
-}
-
-/**
- * Send password changed alert email
- */
-export async function sendPasswordChangedEmail(
-  to: string,
-  name: string,
-  ipAddress: string,
-  location: string
-): Promise<{ success: boolean; error?: string }> {
-  const html = getPasswordChangedEmail(name, ipAddress, location, new Date());
-  return sendEmail(to, 'Security Alert: Password Changed', html);
-}
-
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TWO-FACTOR AUTHENTICATION EMAILS
-//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-/**
- * Generate 2FA enabled alert email HTML
- */
-export function getTwoFactorEnabledEmail(
-  name: string,
-  ipAddress: string,
-  location: string,
-  timestamp: Date
-): string {
-  const formattedTime = timestamp.toLocaleString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Two-Factor Authentication Enabled</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <div style="background: #dcfce7; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
-          <h1 style="color: #166534; margin: 0; font-size: 20px;">Two-Factor Authentication Enabled</h1>
-        </div>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          Hi ${name}, two-factor authentication has been successfully enabled on your Trading Alerts account.
-        </p>
-
-        <div style="background: #f4f4f5; border-radius: 6px; padding: 16px; margin: 16px 0;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Time:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${formattedTime}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Location:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${location}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">IP Address:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${ipAddress}</td>
-            </tr>
-          </table>
-        </div>
-
-        <h3 style="color: #18181b; font-size: 16px; margin: 24px 0 12px 0;">Important Reminders:</h3>
-        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-          <li>Keep your backup codes in a safe place</li>
-          <li>You'll need your authenticator app to sign in</li>
-          <li>If you lose access to your authenticator, use a backup code</li>
-        </ul>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
-          <strong>If you didn't enable 2FA:</strong> Your account may be compromised. Please contact support immediately.
-        </p>
-
-        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="display: inline-block; background: #2563eb; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
-          Manage Security Settings
-        </a>
-
-        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
-          You're receiving this email because you have security alerts enabled.
-          <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="color: #2563eb;">Manage notification preferences</a>
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
-}
-
-/**
- * Send 2FA enabled alert email
- */
-export async function sendTwoFactorEnabledEmail(
-  to: string,
-  name: string,
-  ipAddress: string,
-  location: string
-): Promise<{ success: boolean; error?: string }> {
-  const html = getTwoFactorEnabledEmail(name, ipAddress, location, new Date());
-  return sendEmail(
-    to,
-    'Security Alert: Two-Factor Authentication Enabled',
-    html
-  );
-}
-
-/**
- * Generate 2FA disabled alert email HTML
- */
-export function getTwoFactorDisabledEmail(
-  name: string,
-  ipAddress: string,
-  location: string,
-  timestamp: Date
-): string {
-  const formattedTime = timestamp.toLocaleString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZoneName: 'short',
-  });
-
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Two-Factor Authentication Disabled</title>
-    </head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f4f4f5;">
-      <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 8px; padding: 32px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <div style="background: #fef3c7; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
-          <h1 style="color: #92400e; margin: 0; font-size: 20px;">Two-Factor Authentication Disabled</h1>
-        </div>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 0 0 16px 0;">
-          Hi ${name}, two-factor authentication has been disabled on your Trading Alerts account.
-        </p>
-
-        <div style="background: #f4f4f5; border-radius: 6px; padding: 16px; margin: 16px 0;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Time:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${formattedTime}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">Location:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${location}</td>
-            </tr>
-            <tr>
-              <td style="color: #71717a; padding: 8px 0;">IP Address:</td>
-              <td style="color: #18181b; font-weight: 600; padding: 8px 0; text-align: right;">${ipAddress}</td>
-            </tr>
-          </table>
-        </div>
-
-        <p style="color: #dc2626; line-height: 1.6; margin: 16px 0; font-weight: 500;">
-          Your account is now less secure without two-factor authentication.
-        </p>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
-          <strong>If you disabled 2FA:</strong> We recommend re-enabling it for maximum security.
-        </p>
-
-        <p style="color: #52525b; line-height: 1.6; margin: 16px 0;">
-          <strong>If you didn't disable 2FA:</strong> Your account may be compromised. Please:
-        </p>
-
-        <ul style="color: #52525b; line-height: 1.8; padding-left: 20px; margin: 0 0 24px 0;">
-          <li>Change your password immediately</li>
-          <li>Re-enable two-factor authentication</li>
-          <li>Review your account for unauthorized changes</li>
-        </ul>
-
-        <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="display: inline-block; background: #dc2626; color: white; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 500;">
-          Secure My Account
-        </a>
-
-        <p style="color: #71717a; font-size: 14px; margin: 32px 0 0 0;">
-          You're receiving this email because you have security alerts enabled.
-          <a href="${process.env['NEXTAUTH_URL'] || 'http://localhost:3000'}/settings/security" style="color: #2563eb;">Manage notification preferences</a>
-        </p>
-      </div>
-    </body>
-    </html>
-  `;
-}
-
-/**
- * Send 2FA disabled alert email
- */
-export async function sendTwoFactorDisabledEmail(
-  to: string,
-  name: string,
-  ipAddress: string,
-  location: string
-): Promise<{ success: boolean; error?: string }> {
-  const html = getTwoFactorDisabledEmail(name, ipAddress, location, new Date());
-  return sendEmail(
-    to,
-    'Security Alert: Two-Factor Authentication Disabled',
-    html
-  );
 }

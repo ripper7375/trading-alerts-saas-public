@@ -4,7 +4,10 @@ import {
   createOperationApi,
   unwrapOperationApi,
 } from '@/lib/api/generated/operation-api/client';
-import { OperationServiceError } from '@/lib/operation-service/client';
+import {
+  forwardedEmailLocale,
+  OperationServiceError,
+} from '@/lib/operation-service/client';
 
 interface VerifyEmailSuccessBody {
   success: true;
@@ -28,6 +31,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const api = createOperationApi(null);
     const apiResult = await api.GET('/auth/verify-email', {
       params: { query: { token } },
+      // The welcome e-mail it sends is written in the reader's language
+      headers: forwardedEmailLocale(request),
     });
     const result = await unwrapOperationApi<VerifyEmailSuccessBody>(apiResult);
     return NextResponse.json(result);

@@ -37,7 +37,8 @@ describe('Email Service', () => {
       const html = getWelcomeEmail('Test User');
 
       expect(html).toContain('<!DOCTYPE html>');
-      expect(html).toContain('<html>');
+      // The language is stamped on the document (screen readers, CJK fonts)
+      expect(html).toContain('<html lang="en-US">');
       expect(html).toContain('</html>');
       expect(html).toContain('<body');
     });
@@ -45,8 +46,10 @@ describe('Email Service', () => {
     it('should escape special characters in name', () => {
       const html = getWelcomeEmail('John <script>alert("xss")</script>');
 
-      // The template should include the name as-is (React/Next.js handles escaping)
-      expect(html).toContain('John <script>');
+      // E-mail HTML is not escaped by React: the template does it, so a name
+      // can never put markup into a message.
+      expect(html).not.toContain('<script>');
+      expect(html).toContain('John &lt;script&gt;');
     });
   });
 

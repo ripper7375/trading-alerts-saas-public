@@ -1081,7 +1081,10 @@ async function processAffiliateCommission(
         affiliateUser.name || 'Affiliate',
         affiliateCode.code,
         breakdown.commissionAmount,
-        Number(updatedProfile.totalEarnings)
+        Number(updatedProfile.totalEarnings),
+        undefined,
+        // The rate this commission was computed with, not a fixed 20%
+        breakdown.commissionPercent
       );
     }
   } catch (error) {

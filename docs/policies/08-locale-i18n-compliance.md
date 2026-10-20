@@ -380,6 +380,38 @@ const usd = (amountInUSD: number): string =>
 - **`app/global-error.tsx`** replaces the root layout, so it has no provider: it reads the
   `davintrade-locale` cookie and imports that dictionary itself.
 
+### 2.D E-mail — written in the recipient's language and formats (2026-10-20)
+
+An e-mail has no browser, so none of the above reaches it. Every e-mail the app sends is built from
+**`lib/email/i18n/`** (pure TypeScript: one typed catalog per locale, `messages/<locale>.ts`, the date, time
+and USD formatters, and the template builders) and is written in the language, timezone, date format and
+time format of the person it goes to. USD stays USD (the money charged); only the number format follows the
+reader (`29,00 $`, `US$29.00`).
+
+- **Where the locale comes from, field by field:** what the person saved in Settings → Language & Region
+  (`UserPreferences.preferences`), then the `davintrade-*` cookies (and the IP-derived timezone) of the request
+  that triggered the mail, then English and UTC. The saved choice wins on purpose: a sign-in alert or a reset
+  link goes to the account owner, and the browser that triggered it may be someone else's.
+- **Keeping the saved choice current:** `syncLocaleCookiesAction` also saves it to the signed-in account when the
+  user changed it (`saveToAccount`: header country, language modal, Settings); `POST /api/auth/track-login` saves
+  the browser's language once if the account has none (`rememberAccountLocaleIfAbsent`, never overwrites). Mail no
+  request triggers (a Stripe receipt, a commission notice) can only read what is saved.
+- **Two senders, one folder:** `lib/email/email.ts` / `subscription-emails.ts` (monolith) and
+  `operation-service/src/email/` (its own deploy). `operation-service/src/email/i18n/` is a **byte-for-byte copy** of
+  `lib/email/i18n/`; `__tests__/lib/email/i18n/mirror.test.ts` fails when they differ. Edit `lib/`, then copy the
+  folder over. The monolith forwards the reader's locale to operation-service as `x-email-*` headers
+  (`forwardedRequestContext()`); operation-service reads them with `EmailLocaleContextMiddleware`.
+- **A new e-mail or a new text:** add the key to `messages/en-US.ts`, then to **all 18 other files** (a missing key
+  fails `tsc`; `__tests__/lib/email/i18n/catalog.test.ts` also fails an untranslated text, a changed placeholder or
+  an HTML tag in a text). Use `{name}`-style placeholders and `**bold**` only. Never write a price, a rate or a limit
+  that SystemConfig owns into a text: pass it in (`{percent}`, `{price}`).
+- **Do not** call `toLocaleString('en-US')`, hard-code `$`, or interpolate a value into the HTML yourself: the
+  builders escape every value, localize dates and money, and set `lang` / `dir="rtl"` (Arabic, Urdu).
+- **Status of the translations:** drafts, like the chat panel's; no native reader has seen them. They need a read
+  before anyone relies on them for legal or billing wording.
+- Not covered: the alert-triggered, trial-reminder and upgrade-prompt templates (nothing sends them yet; still
+  English), and PDF receipts.
+
 ## 3. The three verified failure modes
 
 Confirmed live in this codebase's own recently-shipped code (2026-08-31

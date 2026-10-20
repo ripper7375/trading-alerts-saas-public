@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { rememberAccountLocaleIfAbsent } from '@/lib/email/recipient-locale';
 import {
   getLoginContext,
   recordLoginAttempt,
@@ -56,6 +57,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       provider,
       context
     );
+
+    // Start the account's saved language from this browser's, if it has none
+    // yet: the mail no request triggers (receipts, commissions) is written in it.
+    await rememberAccountLocaleIfAbsent(session.user.id);
 
     // If this is a new device, send an alert
     if (isNewDevice) {
