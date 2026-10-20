@@ -5,10 +5,16 @@
  * an append-only revision stream: (index_name, bar_time) has exactly one
  * correct, deterministically-recomputed value (see
  * currency_gold_index_engine.py's index_value() docstring), so there is
- * nothing to collapse via `distinct` in the append-only sense those two
- * queries use it for. `distinct` is still used here, but only to pick the
- * latest BAR per index -- a genuinely different bar, not a revision of the
- * same one.
+ * nothing to collapse in the append-only sense those two queries do. What is
+ * still needed here is the latest BAR per index -- a genuinely different bar,
+ * not a revision of the same one. Prisma's `distinct` cannot be used for it:
+ * the installed client sends no DISTINCT and no LIMIT (ORDER BY ... OFFSET
+ * only) and removes the duplicates in the application, so the whole history of
+ * every index crosses the driver. A plain `DISTINCT ON` saves that transfer but
+ * still walks every index entry and heap row. The lookup below is one SQL
+ * statement that finds each index name with a seek and then takes its newest
+ * bar with another; its cost depends on the number of indices, not on the
+ * history (measured: docs/handoffs/2026-10-20-b1-explain.md).
  *
  * @module lib/currency-gold-indices/queries
  */
@@ -53,26 +59,55 @@ const ALL_INDEX_NAMES = [
   'CHFX',
 ] as const;
 
+/** The newest bar of one index, as the lookup in getCurrencyGoldIndexSnapshots() returns it. */
+interface LatestBarRow {
+  index_name: string;
+  bar_time: number;
+  value: number;
+  change_pct: number;
+  session_open_bar_time: number;
+}
+
 export async function getCurrencyGoldIndexSnapshots(): Promise<
   CurrencyGoldIndexSnapshot[]
 > {
   try {
-    // Latest bar per index. Also carries THAT index's own current
-    // session_open_bar_time, which bounds the sparkline query below --
-    // currency indices and XAUX can be mid-different-sessions at the same
-    // instant (independent daily inceptions: 00:00 vs 01:01 server time), so
-    // this must be read per-index rather than assumed shared.
-    const latest = await marketPrisma.currencyGoldIndex.findMany({
-      orderBy: [{ index_name: 'asc' }, { bar_time: 'desc' }],
-      distinct: ['index_name'],
-      select: {
-        index_name: true,
-        bar_time: true,
-        value: true,
-        change_pct: true,
-        session_open_bar_time: true,
-      },
-    });
+    // Latest bar per index, in ONE statement and ordered by index_name. Also
+    // carries THAT index's own current session_open_bar_time, which bounds the
+    // sparkline query below -- currency indices and XAUX can be
+    // mid-different-sessions at the same instant (independent daily
+    // inceptions: 00:00 vs 01:01 server time), so this must be read per-index
+    // rather than assumed shared.
+    //
+    // `names` walks the distinct index_name values with one index seek each
+    // ("the next name above the previous one", a loose index scan), so every
+    // index name in the table is found, listed or not. The lateral subquery
+    // then takes that index's newest bar from the (index_name, bar_time)
+    // index. No bind parameter, no interpolation: the text is constant.
+    const latest = await marketPrisma.$queryRaw<LatestBarRow[]>`
+      WITH RECURSIVE names AS (
+        (SELECT "index_name" FROM "currency_gold_indices" ORDER BY "index_name" LIMIT 1)
+        UNION ALL
+        SELECT (
+          SELECT "index_name" FROM "currency_gold_indices"
+          WHERE "index_name" > names."index_name"
+          ORDER BY "index_name" LIMIT 1
+        )
+        FROM names
+        WHERE names."index_name" IS NOT NULL
+      )
+      SELECT l."index_name", l."bar_time", l."value", l."change_pct", l."session_open_bar_time"
+      FROM names
+      CROSS JOIN LATERAL (
+        SELECT c."index_name", c."bar_time", c."value", c."change_pct", c."session_open_bar_time"
+        FROM "currency_gold_indices" c
+        WHERE c."index_name" = names."index_name"
+        ORDER BY c."bar_time" DESC
+        LIMIT 1
+      ) l
+      WHERE names."index_name" IS NOT NULL
+      ORDER BY l."index_name" ASC
+    `;
 
     if (latest.length === 0) return [];
 

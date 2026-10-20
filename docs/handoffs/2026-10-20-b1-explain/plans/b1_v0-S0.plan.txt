@@ -1,0 +1,10 @@
+Sort  (cost=1120.83..1150.35 rows=11809 width=62) (actual time=15.454..15.804 rows=11809.00 loops=1)
+  Sort Key: index_name, bar_time DESC
+  Sort Method: quicksort  Memory: 1399kB
+  Buffers: shared hit=210
+  ->  Seq Scan on currency_gold_indices  (cost=0.00..322.09 rows=11809 width=62) (actual time=0.022..2.010 rows=11809.00 loops=1)
+        Buffers: shared hit=204
+Planning:
+  Buffers: shared hit=157
+Planning Time: 0.919 ms
+Execution Time: 16.292 ms

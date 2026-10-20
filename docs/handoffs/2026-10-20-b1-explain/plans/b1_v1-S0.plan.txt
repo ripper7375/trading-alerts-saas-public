@@ -1,0 +1,7 @@
+Index Scan using currency_gold_indices_index_name_bar_time_idx on currency_gold_indices  (cost=0.42..73519.04 rows=662401 width=62) (actual time=0.029..229.807 rows=662401.00 loops=1)
+  Index Searches: 1
+  Buffers: shared hit=105733
+Planning:
+  Buffers: shared hit=157
+Planning Time: 1.049 ms
+Execution Time: 248.383 ms

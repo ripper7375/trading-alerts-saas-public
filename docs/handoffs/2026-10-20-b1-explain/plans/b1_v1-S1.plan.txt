@@ -1,0 +1,9 @@
+Unique  (cost=0.42..75175.04 rows=9 width=29) (actual time=0.036..256.789 rows=10.00 loops=1)
+  Buffers: shared hit=105733
+  ->  Index Scan using currency_gold_indices_index_name_bar_time_idx on currency_gold_indices  (cost=0.42..73519.04 rows=662401 width=29) (actual time=0.033..218.613 rows=662401.00 loops=1)
+        Index Searches: 1
+        Buffers: shared hit=105733
+Planning:
+  Buffers: shared hit=128
+Planning Time: 0.811 ms
+Execution Time: 256.874 ms
