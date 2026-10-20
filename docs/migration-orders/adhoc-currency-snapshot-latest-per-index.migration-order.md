@@ -17,8 +17,7 @@
 
 **Session:** Ad-hoc (outside playbook numbering) · **Phase:** unchanged · **Variant:** behaviour-preserving query
 refactor with a measured choice, `TEMPLATE-PORT.md` posture (dial **Low**) plus a scratch-database evidence step ·
-**Status:** EXECUTED, verified, committed locally (not pushed) · **Generated:** 2026-10-20 (Executor drafted, Advisor upgraded) · **Basis:** `main` @ `6eca87f4` (Unit 1 committed locally,
-not pushed) · **Flags touched:** none · **Estimated time:** ~3 h (split at the evidence step if it runs long).
+**Status:** EXECUTED, verified, committed (`bfef7e74`) · **Generated:** 2026-10-20 (Executor drafted, Advisor upgraded) · **Basis:** `main` @ `6eca87f4` (Unit 1 committed locally at the time of writing) · **Flags touched:** none · **Estimated time:** ~3 h (split at the evidence step if it runs long).
 
 **Source:** `davintrade-database-scaling/.../FINAL-RECOMMENDATIONS-2026-10-20.md`, item **B**, first helper. Direction from
 Davin and the Advisor (2026-10-20): build B1 now; **one SQL statement** for the lookup (the market pool is `max: 5`,
@@ -177,8 +176,7 @@ sparkline read fails after the lookup succeeded`), because the new shape made bo
 - Scratch server stopped by PID, data directory deleted, no process of ours left; port 5432 (Davin's own service) never touched.
   `next-env.d.ts`, rewritten by the build, restored.
 
-**Not done / not claimed:** nothing about production plans or latency; no index or DDL change; B2 and B3 untouched; not pushed or
-deployed. (Committed locally on Davin's word after this section was written.)
+**Not done / not claimed:** nothing about production plans or latency; no index or DDL change; B2 and B3 untouched; not deployed. (Committed as `bfef7e74` on Davin's word, and a push of the three local commits ordered, after this section was written.)
 
 ## Next-session handoff (notes for the following order, not a plan)
 

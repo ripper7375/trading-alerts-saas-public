@@ -1,0 +1,20 @@
+Sort  (cost=1.06..1.07 rows=1 width=9) (actual time=0.097..0.097 rows=1.00 loops=1)
+  Sort Key: c.index_name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=6
+  ->  Nested Loop  (cost=0.30..1.05 rows=1 width=9) (actual time=0.050..0.051 rows=1.00 loops=1)
+        Buffers: shared hit=3
+        ->  HashAggregate  (cost=0.02..0.03 rows=1 width=32) (actual time=0.014..0.015 rows=1.00 loops=1)
+              Group Key: u.n
+              Batches: 1  Memory Usage: 32kB
+              ->  Function Scan on unnest u  (cost=0.00..0.01 rows=1 width=32) (actual time=0.008..0.008 rows=1.00 loops=1)
+        ->  Limit  (cost=0.29..1.01 rows=1 width=13) (actual time=0.033..0.033 rows=1.00 loops=1)
+              Buffers: shared hit=3
+              ->  Index Scan Backward using currency_gold_indices_index_name_bar_time_key on currency_gold_indices c  (cost=0.29..851.45 rows=1181 width=13) (actual time=0.032..0.032 rows=1.00 loops=1)
+                    Index Cond: (index_name = u.n)
+                    Index Searches: 1
+                    Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=122
+Planning Time: 1.047 ms
+Execution Time: 0.175 ms

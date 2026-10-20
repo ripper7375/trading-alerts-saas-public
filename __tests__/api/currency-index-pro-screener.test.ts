@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 jest.mock('@/lib/db/market-prisma', () => ({
   marketPrisma: {
     currencyGoldIndex: { findMany: jest.fn() },
+    $queryRaw: jest.fn(),
     dailyVolatilityCorridor: { findFirst: jest.fn() },
   },
 }));
@@ -24,6 +25,8 @@ import { GET } from '@/app/api/market/currency-index-pro/screener/route';
 
 const findManyCgi = marketPrisma.currencyGoldIndex
   .findMany as unknown as jest.Mock;
+// the latest-bar lookup is one raw statement, not a findMany
+const queryRaw = marketPrisma.$queryRaw as unknown as jest.Mock;
 const findFirstCorridor = marketPrisma.dailyVolatilityCorridor
   .findFirst as unknown as jest.Mock;
 const findUniqueUser = prisma.user.findUnique as unknown as jest.Mock;
@@ -36,6 +39,7 @@ describe('GET /api/market/currency-index-pro/screener', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     findManyCgi.mockResolvedValue([]);
+    queryRaw.mockResolvedValue([]);
     findFirstCorridor.mockResolvedValue(null);
     findUniquePreference.mockResolvedValue(null); // no saved prefs -> defaults
   });
@@ -45,6 +49,7 @@ describe('GET /api/market/currency-index-pro/screener', () => {
     const res = await GET();
     expect(res.status).toBe(401);
     expect(findManyCgi).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
   });
 
   it('serves a PRO user and returns all 4 sections', async () => {
@@ -60,6 +65,25 @@ describe('GET /api/market/currency-index-pro/screener', () => {
     expect(body.top5Trades).toHaveLength(5);
   });
 
+  it('asks the latest-bar lookup for exactly the eight FX indices', async () => {
+    getServerSessionMock.mockResolvedValue({ user: { id: 'u1', tier: 'PRO' } });
+    hasPermissionMock.mockReturnValue(true);
+
+    await GET();
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect([...(queryRaw.mock.calls[0]?.[1] as string[])].sort()).toEqual([
+      'AUDX',
+      'CADX',
+      'CHFX',
+      'EURX',
+      'GBPX',
+      'JPYX',
+      'NZDX',
+      'USDX',
+    ]);
+  });
+
   it('403s a genuine FREE user without ever querying market data', async () => {
     getServerSessionMock.mockResolvedValue({
       user: { id: 'u1', tier: 'FREE' },
@@ -70,6 +94,7 @@ describe('GET /api/market/currency-index-pro/screener', () => {
     const res = await GET();
     expect(res.status).toBe(403);
     expect(findManyCgi).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
   });
 
   it('serves a user whose token is stale but the DB confirms PRO', async () => {
@@ -117,15 +142,15 @@ describe('GET /api/market/currency-index-pro/screener', () => {
       'NZDX',
     ];
 
-    // First call: the "latest bar per index" distinct query.
-    findManyCgi.mockResolvedValueOnce(
+    // The lookup of the latest bar per index (one raw statement).
+    queryRaw.mockResolvedValueOnce(
       ALL_INDEX_NAMES.map((index_name) => ({
         index_name,
         session_open_bar_time: SESSION_OPEN,
       }))
     );
 
-    // Second call: every bar since each index's own session open. EUR gets 4
+    // The one findMany: every bar since each index's own session open. EUR gets 4
     // M5 bars spanning past one full M15 window -- offsets 0/300/600/900.
     // Offset 600 is the M15-boundary close ((600) % 900 === 600); offset 900
     // starts a NEW M15 window and is NOT a boundary bar itself, but IS the

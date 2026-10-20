@@ -1,0 +1,18 @@
+Unique  (cost=65886.35..66998.68 rows=9 width=13) (actual time=456.381..499.084 rows=1.00 loops=1)
+  Buffers: shared hit=6 read=35523, temp read=716 written=719
+  ->  Sort  (cost=65886.35..66442.51 rows=222466 width=13) (actual time=456.378..482.706 rows=224640.00 loops=1)
+        Sort Key: index_name, bar_time DESC
+        Sort Method: external merge  Disk: 5728kB
+        Buffers: shared hit=6 read=35523, temp read=716 written=719
+        ->  Bitmap Heap Scan on currency_gold_indices  (cost=5160.54..42323.28 rows=222466 width=13) (actual time=25.535..141.006 rows=224640.00 loops=1)
+              Recheck Cond: (index_name = ANY ('{EURX}'::text[]))
+              Heap Blocks: exact=34660
+              Buffers: shared read=35523
+              ->  Bitmap Index Scan on currency_gold_indices_index_name_bar_time_key  (cost=0.00..5104.92 rows=222466 width=0) (actual time=20.899..20.899 rows=224640.00 loops=1)
+                    Index Cond: (index_name = ANY ('{EURX}'::text[]))
+                    Index Searches: 1
+                    Buffers: shared read=863
+Planning:
+  Buffers: shared hit=101 read=21
+Planning Time: 1.641 ms
+Execution Time: 501.980 ms

@@ -13,7 +13,7 @@
 > **562 suites passed, 5 skipped (567); 18,691 tests passed, 315 skipped (19,006).**
 
 **Session:** Ad-hoc (outside playbook numbering) · **Phase:** unchanged · **Variant:** behaviour-preserving
-refactor, closest to `TEMPLATE-PORT.md` (dial **Low**; confirmed by Advisor) · **Status:** EXECUTED, verified, committed locally (`6eca87f4`), not pushed ·
+refactor, closest to `TEMPLATE-PORT.md` (dial **Low**; confirmed by Advisor) · **Status:** EXECUTED, verified, committed (`6eca87f4`) ·
 **Generated:** 2026-10-20 (Executor drafted, Advisor upgraded) · **Basis:** `main` @ `a76b6347` (local checkout equals `origin/main`) ·
 **Flags touched:** none · **Estimated time:** ~1.5 h (one helper, three routes, tests).
 
@@ -145,7 +145,7 @@ After: `tsc` exit 0; `npm run lint` exit 0 (0 errors, 5 existing warnings in fou
 passed (5 skipped), 18,711 of 19,026 tests passed (315 skipped), 0 failed** (+1 suite, +20 tests: 8 helper, 3 snapshot, 3 history, 6
 comparison); `npm run build` exit 0 ("Compiled successfully"; the known "Dynamic server usage" log lines for pages that read the session).
 **Not done / not claimed:** no measured speed-up (the tables hold 0 rows); nothing run against Redis, a real database or a browser;
-not pushed or deployed. (Committed locally as `6eca87f4` on Davin's word after this section was written.)
+not deployed. (Committed as `6eca87f4` on Davin's word, and a push of the three local commits ordered, after this section was written.)
 
 ## Next-session handoff (PRE-DRAFT notes for the following order, not a plan)
 

@@ -1,0 +1,10 @@
+Unique  (cost=0.43..207538.32 rows=9 width=13) (actual time=0.079..2966.568 rows=8.00 loops=1)
+  Buffers: shared read=287918
+  ->  Index Scan using currency_gold_indices_index_name_bar_time_idx on currency_gold_indices  (cost=0.43..203078.45 rows=1783950 width=13) (actual time=0.076..2840.178 rows=1785600.00 loops=1)
+        Index Cond: (index_name = ANY ('{USDX,EURX,GBPX,JPYX,AUDX,CADX,CHFX,NZDX}'::text[]))
+        Index Searches: 1
+        Buffers: shared read=287918
+Planning:
+  Buffers: shared hit=98 read=24
+Planning Time: 1.641 ms
+Execution Time: 2966.711 ms

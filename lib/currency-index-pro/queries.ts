@@ -51,27 +51,56 @@ export interface IndexSessionBars {
   bars: CurrencyIndexBar[];
 }
 
+/** The newest bar of one requested index, reduced to what the second read needs. */
+interface LatestSessionOpenRow {
+  index_name: string;
+  session_open_bar_time: number;
+}
+
 /**
  * Every bar from each index's OWN current session-open bar through the
- * latest bar, for a set of indices at once -- one `distinct` query for the
- * latest bar per index (which also carries that index's own
+ * latest bar, for a set of indices at once -- one statement for the latest
+ * bar per requested index (which also carries that index's own
  * session_open_bar_time), then one OR-clause query for the bars, mirroring
  * `getCurrencyGoldIndexSnapshots()`'s own established 2-query shape rather
  * than round-tripping once per index. `sessionOpenBarTime` is returned
  * directly from the query rather than left for the caller to infer from
  * `bars[0]` -- a real data gap at exactly the open bar would otherwise
  * silently mislabel the session boundary.
+ *
+ * The lookup does NOT use Prisma's `distinct`: the installed client sends no
+ * DISTINCT and no LIMIT for it and removes the duplicates in the application,
+ * so every historical row of the requested indices crossed the driver on
+ * each call (and the PRO chart and screener call this about four times a
+ * minute per open cockpit). The caller's names ARE the filter here, so the
+ * statement seeks the newest bar of each requested name directly in the
+ * (index_name, bar_time) index: its cost depends on the number of requested
+ * names, not on the history (measured:
+ * docs/handoffs/2026-10-20-b2-explain.md). The result is ordered by
+ * index_name, which the chart route relies on (it reads the first entry).
  */
 export async function getTodaysSessionBarsForIndices(
   indexNames: readonly string[]
 ): Promise<Map<string, IndexSessionBars>> {
+  // Nothing requested, nothing to look up: no database round trip.
+  if (indexNames.length === 0) return new Map();
+
   try {
-    const latest = await marketPrisma.currencyGoldIndex.findMany({
-      where: { index_name: { in: [...indexNames] } },
-      orderBy: [{ index_name: 'asc' }, { bar_time: 'desc' }],
-      distinct: ['index_name'],
-      select: { index_name: true, session_open_bar_time: true },
-    });
+    // `names` is the distinct set of requested names (a repeated name must not
+    // give a repeated row); a name with no rows yields no row. No string is
+    // built from the names: they are one bound text[] parameter.
+    const latest = await marketPrisma.$queryRaw<LatestSessionOpenRow[]>`
+      SELECT l."index_name", l."session_open_bar_time"
+      FROM (SELECT DISTINCT n FROM unnest(${[...indexNames]}::text[]) AS u(n)) AS names
+      CROSS JOIN LATERAL (
+        SELECT c."index_name", c."session_open_bar_time"
+        FROM "currency_gold_indices" c
+        WHERE c."index_name" = names.n
+        ORDER BY c."bar_time" DESC
+        LIMIT 1
+      ) l
+      ORDER BY l."index_name" ASC
+    `;
 
     if (latest.length === 0) return new Map();
 

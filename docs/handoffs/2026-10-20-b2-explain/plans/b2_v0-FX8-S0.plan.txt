@@ -1,0 +1,12 @@
+Sort  (cost=1131.72..1157.64 rows=10368 width=46) (actual time=15.329..15.632 rows=10368.00 loops=1)
+  Sort Key: index_name, bar_time DESC
+  Sort Method: quicksort  Memory: 1033kB
+  Buffers: shared hit=210
+  ->  Seq Scan on currency_gold_indices  (cost=0.00..440.18 rows=10368 width=46) (actual time=0.023..3.497 rows=10368.00 loops=1)
+        Filter: (index_name = ANY ('{USDX,EURX,GBPX,JPYX,AUDX,CADX,CHFX,NZDX}'::text[]))
+        Rows Removed by Filter: 1441
+        Buffers: shared hit=204
+Planning:
+  Buffers: shared hit=151
+Planning Time: 0.999 ms
+Execution Time: 16.353 ms

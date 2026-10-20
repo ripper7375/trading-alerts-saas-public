@@ -1,0 +1,428 @@
+{
+  "b2_v0": {
+    "rows": 11809,
+    "groups": 10,
+    "heap_pages": 204,
+    "filters": {
+      "FX8": {
+        "names": [
+          "USDX",
+          "EURX",
+          "GBPX",
+          "JPYX",
+          "AUDX",
+          "CADX",
+          "CHFX",
+          "NZDX"
+        ],
+        "reference": "0f8ffe894cc503b45277f387c8af334d|8",
+        "statements": {
+          "S0": {
+            "equal_to_reference": true,
+            "buffers_median": 210,
+            "buffers_pct_of_heap_pages": 102.9,
+            "exec_ms_median": 16.48,
+            "exec_ms_all": [16.52, 16.48, 16.37, 16.57, 16.12],
+            "client_rows": 10368,
+            "client_bytes": 518400
+          },
+          "S1": {
+            "equal_to_reference": true,
+            "buffers_median": 210,
+            "buffers_pct_of_heap_pages": 102.9,
+            "exec_ms_median": 12.91,
+            "exec_ms_all": [12.85, 12.96, 12.91, 12.78, 13.11],
+            "client_rows": 8,
+            "client_bytes": 136
+          },
+          "S2": {
+            "equal_to_reference": true,
+            "buffers_median": 27,
+            "buffers_pct_of_heap_pages": 13.2,
+            "exec_ms_median": 0.26,
+            "exec_ms_all": [0.26, 0.27, 0.26, 0.26, 0.27],
+            "client_rows": 8,
+            "client_bytes": 136
+          },
+          "S3": {
+            "equal_to_reference": true,
+            "buffers_median": 53,
+            "buffers_pct_of_heap_pages": 26,
+            "exec_ms_median": 0.62,
+            "exec_ms_all": [0.59, 0.65, 0.59, 0.62, 0.62],
+            "client_rows": 8,
+            "client_bytes": 136
+          }
+        }
+      },
+      "ONE": {
+        "names": ["EURX"],
+        "reference": "640212bcfb7e96f2d126ac11fea75ce8|1",
+        "statements": {
+          "S0": {
+            "equal_to_reference": true,
+            "buffers_median": 214,
+            "buffers_pct_of_heap_pages": 104.9,
+            "exec_ms_median": 1.61,
+            "exec_ms_all": [1.69, 1.61, 1.59, 1.67, 1.59],
+            "client_rows": 1440,
+            "client_bytes": 72000
+          },
+          "S1": {
+            "equal_to_reference": true,
+            "buffers_median": 217,
+            "buffers_pct_of_heap_pages": 106.4,
+            "exec_ms_median": 2.7,
+            "exec_ms_all": [2.65, 2.62, 2.95, 2.7, 2.92],
+            "client_rows": 1,
+            "client_bytes": 17
+          },
+          "S2": {
+            "equal_to_reference": true,
+            "buffers_median": 6,
+            "buffers_pct_of_heap_pages": 2.9,
+            "exec_ms_median": 0.17,
+            "exec_ms_all": [0.16, 0.17, 0.17, 0.19, 0.18],
+            "client_rows": 1,
+            "client_bytes": 17
+          },
+          "S3": {
+            "equal_to_reference": true,
+            "buffers_median": 10,
+            "buffers_pct_of_heap_pages": 4.9,
+            "exec_ms_median": 0.38,
+            "exec_ms_all": [0.4, 0.38, 0.37, 0.38, 0.37],
+            "client_rows": 1,
+            "client_bytes": 17
+          }
+        }
+      },
+      "MIXED": {
+        "names": ["EURX", "EURX", "NOPE", "ZZ1X", "USDX"],
+        "reference": "6edb8406ee983543c2cfe1a6d6ae713c|3",
+        "statements": {
+          "S0": {
+            "equal_to_reference": true,
+            "buffers_median": 210,
+            "buffers_pct_of_heap_pages": 102.9,
+            "exec_ms_median": 7.03,
+            "exec_ms_all": [6.95, 8.27, 6.85, 7.03, 11.11],
+            "client_rows": 2881,
+            "client_bytes": 144050
+          },
+          "S1": {
+            "equal_to_reference": true,
+            "buffers_median": 210,
+            "buffers_pct_of_heap_pages": 102.9,
+            "exec_ms_median": 5.72,
+            "exec_ms_all": [5.54, 5.72, 5.86, 5.69, 5.77],
+            "client_rows": 3,
+            "client_bytes": 51
+          },
+          "S2": {
+            "equal_to_reference": true,
+            "buffers_median": 14,
+            "buffers_pct_of_heap_pages": 6.9,
+            "exec_ms_median": 0.21,
+            "exec_ms_all": [0.29, 0.21, 0.2, 0.21, 0.3],
+            "client_rows": 3,
+            "client_bytes": 51
+          },
+          "S3": {
+            "equal_to_reference": true,
+            "buffers_median": 25,
+            "buffers_pct_of_heap_pages": 12.3,
+            "exec_ms_median": 0.45,
+            "exec_ms_all": [0.45, 0.44, 1.03, 0.43, 0.47],
+            "client_rows": 3,
+            "client_bytes": 51
+          }
+        }
+      }
+    }
+  },
+  "b2_v1": {
+    "rows": 662401,
+    "groups": 10,
+    "heap_pages": 11421,
+    "filters": {
+      "FX8": {
+        "names": [
+          "USDX",
+          "EURX",
+          "GBPX",
+          "JPYX",
+          "AUDX",
+          "CADX",
+          "CHFX",
+          "NZDX"
+        ],
+        "reference": "5fd9eb469de43bbe1e22d740a6ae932a|8",
+        "statements": {
+          "S0": {
+            "equal_to_reference": true,
+            "buffers_median": 93798,
+            "buffers_pct_of_heap_pages": 821.3,
+            "exec_ms_median": 265.78,
+            "exec_ms_all": [276.97, 334.45, 265.78, 225.03, 241.54],
+            "client_rows": 587520,
+            "client_bytes": 29376000
+          },
+          "S1": {
+            "equal_to_reference": true,
+            "buffers_median": 93798,
+            "buffers_pct_of_heap_pages": 821.3,
+            "exec_ms_median": 231.94,
+            "exec_ms_all": [230.55, 234.14, 231.93, 231.94, 242.01],
+            "client_rows": 8,
+            "client_bytes": 136
+          },
+          "S2": {
+            "equal_to_reference": true,
+            "buffers_median": 35,
+            "buffers_pct_of_heap_pages": 0.3,
+            "exec_ms_median": 0.35,
+            "exec_ms_all": [0.35, 0.34, 0.35, 0.34, 0.39],
+            "client_rows": 8,
+            "client_bytes": 136
+          },
+          "S3": {
+            "equal_to_reference": true,
+            "buffers_median": 69,
+            "buffers_pct_of_heap_pages": 0.6,
+            "exec_ms_median": 0.69,
+            "exec_ms_all": [1.06, 0.69, 0.68, 0.67, 0.69],
+            "client_rows": 8,
+            "client_bytes": 136
+          }
+        }
+      },
+      "ONE": {
+        "names": ["EURX"],
+        "reference": "26a4d0f5cf63d84b761ad949f3166e66|1",
+        "statements": {
+          "S0": {
+            "equal_to_reference": true,
+            "buffers_median": 11713,
+            "buffers_pct_of_heap_pages": 102.6,
+            "exec_ms_median": 92.38,
+            "exec_ms_all": [92.86, 92.03, 96.13, 92.38, 91.54],
+            "client_rows": 74880,
+            "client_bytes": 3744000
+          },
+          "S1": {
+            "equal_to_reference": true,
+            "buffers_median": 11716,
+            "buffers_pct_of_heap_pages": 102.6,
+            "exec_ms_median": 163.61,
+            "exec_ms_all": [166.05, 166.15, 162.63, 163.61, 163.53],
+            "client_rows": 1,
+            "client_bytes": 17
+          },
+          "S2": {
+            "equal_to_reference": true,
+            "buffers_median": 7,
+            "buffers_pct_of_heap_pages": 0.1,
+            "exec_ms_median": 0.18,
+            "exec_ms_all": [0.19, 0.19, 0.18, 0.18, 0.18],
+            "client_rows": 1,
+            "client_bytes": 17
+          },
+          "S3": {
+            "equal_to_reference": true,
+            "buffers_median": 12,
+            "buffers_pct_of_heap_pages": 0.1,
+            "exec_ms_median": 0.42,
+            "exec_ms_all": [0.42, 0.41, 0.5, 0.43, 0.4],
+            "client_rows": 1,
+            "client_bytes": 17
+          }
+        }
+      },
+      "MIXED": {
+        "names": ["EURX", "EURX", "NOPE", "ZZ1X", "USDX"],
+        "reference": "323d45449da70d2790482ba5a4fda57a|3",
+        "statements": {
+          "S0": {
+            "equal_to_reference": true,
+            "buffers_median": 12014,
+            "buffers_pct_of_heap_pages": 105.2,
+            "exec_ms_median": 350.44,
+            "exec_ms_all": [349.79, 345.75, 387.74, 350.44, 360.64],
+            "client_rows": 149761,
+            "client_bytes": 7488050
+          },
+          "S1": {
+            "equal_to_reference": true,
+            "buffers_median": 12014,
+            "buffers_pct_of_heap_pages": 105.2,
+            "exec_ms_median": 265.24,
+            "exec_ms_all": [269.19, 303.86, 265.08, 265.24, 263.53],
+            "client_rows": 3,
+            "client_bytes": 51
+          },
+          "S2": {
+            "equal_to_reference": true,
+            "buffers_median": 18,
+            "buffers_pct_of_heap_pages": 0.2,
+            "exec_ms_median": 0.24,
+            "exec_ms_all": [0.25, 0.24, 0.24, 0.25, 0.23],
+            "client_rows": 3,
+            "client_bytes": 51
+          },
+          "S3": {
+            "equal_to_reference": true,
+            "buffers_median": 32,
+            "buffers_pct_of_heap_pages": 0.3,
+            "exec_ms_median": 0.51,
+            "exec_ms_all": [0.51, 0.52, 0.51, 0.48, 0.48],
+            "client_rows": 3,
+            "client_bytes": 51
+          }
+        }
+      }
+    }
+  },
+  "b2_v2": {
+    "rows": 2010241,
+    "groups": 10,
+    "heap_pages": 34660,
+    "filters": {
+      "FX8": {
+        "names": [
+          "USDX",
+          "EURX",
+          "GBPX",
+          "JPYX",
+          "AUDX",
+          "CADX",
+          "CHFX",
+          "NZDX"
+        ],
+        "reference": "11b0d26e88a4781956058148c7c0974f|8",
+        "statements": {
+          "S0": {
+            "equal_to_reference": true,
+            "buffers_median": 287918,
+            "buffers_pct_of_heap_pages": 830.7,
+            "exec_ms_median": 2910.76,
+            "exec_ms_all": [2907.83, 2894.82, 2910.76, 3087.3, 2932.47],
+            "client_rows": 1785600,
+            "client_bytes": 89280000
+          },
+          "S1": {
+            "equal_to_reference": true,
+            "buffers_median": 287918,
+            "buffers_pct_of_heap_pages": 830.7,
+            "exec_ms_median": 2976.7,
+            "exec_ms_all": [2980.62, 2976.7, 2969.2, 2971.48, 2994.01],
+            "client_rows": 8,
+            "client_bytes": 136
+          },
+          "S2": {
+            "equal_to_reference": true,
+            "buffers_median": 35,
+            "buffers_pct_of_heap_pages": 0.1,
+            "exec_ms_median": 0.29,
+            "exec_ms_all": [0.47, 0.3, 0.29, 0.29, 0.29],
+            "client_rows": 8,
+            "client_bytes": 136
+          },
+          "S3": {
+            "equal_to_reference": true,
+            "buffers_median": 69,
+            "buffers_pct_of_heap_pages": 0.2,
+            "exec_ms_median": 0.63,
+            "exec_ms_all": [0.63, 0.63, 0.7, 0.64, 0.63],
+            "client_rows": 8,
+            "client_bytes": 136
+          }
+        }
+      },
+      "ONE": {
+        "names": ["EURX"],
+        "reference": "2d497da140af6a8c58a10e044036e68b|1",
+        "statements": {
+          "S0": {
+            "equal_to_reference": true,
+            "buffers_median": 35526,
+            "buffers_pct_of_heap_pages": 102.5,
+            "exec_ms_median": 245.44,
+            "exec_ms_all": [244.62, 245.4, 247.61, 245.44, 272.45],
+            "client_rows": 224640,
+            "client_bytes": 11232000
+          },
+          "S1": {
+            "equal_to_reference": true,
+            "buffers_median": 35529,
+            "buffers_pct_of_heap_pages": 102.5,
+            "exec_ms_median": 497.11,
+            "exec_ms_all": [498.02, 497.11, 530.18, 496.29, 492.13],
+            "client_rows": 1,
+            "client_bytes": 17
+          },
+          "S2": {
+            "equal_to_reference": true,
+            "buffers_median": 7,
+            "buffers_pct_of_heap_pages": 0,
+            "exec_ms_median": 0.17,
+            "exec_ms_all": [0.17, 0.17, 0.17, 0.19, 0.18],
+            "client_rows": 1,
+            "client_bytes": 17
+          },
+          "S3": {
+            "equal_to_reference": true,
+            "buffers_median": 12,
+            "buffers_pct_of_heap_pages": 0,
+            "exec_ms_median": 0.38,
+            "exec_ms_all": [0.4, 0.38, 0.37, 0.41, 0.37],
+            "client_rows": 1,
+            "client_bytes": 17
+          }
+        }
+      },
+      "MIXED": {
+        "names": ["EURX", "EURX", "NOPE", "ZZ1X", "USDX"],
+        "reference": "fffa0694d8698cb0a7bdba5dbb157856|3",
+        "statements": {
+          "S0": {
+            "equal_to_reference": true,
+            "buffers_median": 36401,
+            "buffers_pct_of_heap_pages": 105,
+            "exec_ms_median": 1045.86,
+            "exec_ms_all": [1060.76, 1041.63, 1043.61, 1078.33, 1045.86],
+            "client_rows": 449281,
+            "client_bytes": 22464050
+          },
+          "S1": {
+            "equal_to_reference": true,
+            "buffers_median": 36401,
+            "buffers_pct_of_heap_pages": 105,
+            "exec_ms_median": 824.98,
+            "exec_ms_all": [824.98, 786.87, 947.78, 833.77, 781.52],
+            "client_rows": 3,
+            "client_bytes": 51
+          },
+          "S2": {
+            "equal_to_reference": true,
+            "buffers_median": 18,
+            "buffers_pct_of_heap_pages": 0.1,
+            "exec_ms_median": 0.21,
+            "exec_ms_all": [0.21, 0.21, 0.21, 0.22, 0.22],
+            "client_rows": 3,
+            "client_bytes": 51
+          },
+          "S3": {
+            "equal_to_reference": true,
+            "buffers_median": 32,
+            "buffers_pct_of_heap_pages": 0.1,
+            "exec_ms_median": 0.45,
+            "exec_ms_all": [0.45, 0.45, 0.45, 0.47, 0.44],
+            "client_rows": 3,
+            "client_bytes": 51
+          }
+        }
+      }
+    }
+  }
+}

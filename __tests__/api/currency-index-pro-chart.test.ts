@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 jest.mock('@/lib/db/market-prisma', () => ({
   marketPrisma: {
     currencyGoldIndex: { findMany: jest.fn() },
+    $queryRaw: jest.fn(),
     dailyVolatilityCorridor: { findFirst: jest.fn() },
     economicEvent: { findMany: jest.fn() },
   },
@@ -26,6 +27,8 @@ import { GET } from '@/app/api/market/currency-index-pro/chart/route';
 
 const findManyCgi = marketPrisma.currencyGoldIndex
   .findMany as unknown as jest.Mock;
+// the latest-bar lookup is one raw statement, not a findMany
+const queryRaw = marketPrisma.$queryRaw as unknown as jest.Mock;
 const findFirstCorridor = marketPrisma.dailyVolatilityCorridor
   .findFirst as unknown as jest.Mock;
 const findManyEvents = marketPrisma.economicEvent
@@ -44,6 +47,7 @@ describe('GET /api/market/currency-index-pro/chart', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     findManyCgi.mockResolvedValue([]); // no Lane 4 data -> empty series, not a crash
+    queryRaw.mockResolvedValue([]);
     findFirstCorridor.mockResolvedValue(null);
     findManyEvents.mockResolvedValue([]);
   });
@@ -53,6 +57,7 @@ describe('GET /api/market/currency-index-pro/chart', () => {
     const res = await GET(makeRequest());
     expect(res.status).toBe(401);
     expect(findManyCgi).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
   });
 
   it('serves a PRO user whose token already says PRO', async () => {
@@ -65,6 +70,25 @@ describe('GET /api/market/currency-index-pro/chart', () => {
     const body = await res.json();
     expect(body.timeframe).toBe('M15');
     expect(body.series).toBeDefined();
+  });
+
+  it('asks the latest-bar lookup for exactly the eight FX indices', async () => {
+    getServerSessionMock.mockResolvedValue({ user: { id: 'u1', tier: 'PRO' } });
+    hasPermissionMock.mockReturnValue(true);
+
+    await GET(makeRequest());
+
+    expect(queryRaw).toHaveBeenCalledTimes(1);
+    expect([...(queryRaw.mock.calls[0]?.[1] as string[])].sort()).toEqual([
+      'AUDX',
+      'CADX',
+      'CHFX',
+      'EURX',
+      'GBPX',
+      'JPYX',
+      'NZDX',
+      'USDX',
+    ]);
   });
 
   it('serves a user who JUST upgraded, whose token is still stale', async () => {
@@ -89,6 +113,7 @@ describe('GET /api/market/currency-index-pro/chart', () => {
     const res = await GET(makeRequest());
     expect(res.status).toBe(403);
     expect(findManyCgi).not.toHaveBeenCalled();
+    expect(queryRaw).not.toHaveBeenCalled();
   });
 
   it('does not cache across users', async () => {

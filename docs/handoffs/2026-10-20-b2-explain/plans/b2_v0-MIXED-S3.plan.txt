@@ -1,0 +1,44 @@
+Sort  (cost=200.76..201.01 rows=100 width=9) (actual time=0.342..0.344 rows=3.00 loops=1)
+  Sort Key: c.index_name
+  Sort Method: quicksort  Memory: 25kB
+  Buffers: shared hit=25
+  CTE names
+    ->  Recursive Union  (cost=0.29..92.84 rows=101 width=32) (actual time=0.128..0.186 rows=4.00 loops=1)
+          Storage: Memory  Maximum Storage: 33kB
+          Buffers: shared hit=13
+          ->  Limit  (cost=0.29..0.51 rows=1 width=5) (actual time=0.127..0.127 rows=1.00 loops=1)
+                Buffers: shared hit=4
+                ->  Index Only Scan using currency_gold_indices_index_name_bar_time_key on currency_gold_indices currency_gold_indices_1  (cost=0.29..968.19 rows=4322 width=5) (actual time=0.126..0.126 rows=1.00 loops=1)
+                      Index Cond: (index_name = ANY ('{EURX,EURX,NOPE,ZZ1X,USDX}'::text[]))
+                      Heap Fetches: 1
+                      Index Searches: 1
+                      Buffers: shared hit=4
+          ->  WorkTable Scan on names names_1  (cost=0.00..9.13 rows=10 width=32) (actual time=0.014..0.014 rows=0.75 loops=4)
+                Filter: (index_name IS NOT NULL)
+                Rows Removed by Filter: 0
+                Buffers: shared hit=9
+                SubPlan 1
+                  ->  Limit  (cost=0.29..0.89 rows=1 width=5) (actual time=0.015..0.015 rows=0.67 loops=3)
+                        Buffers: shared hit=9
+                        ->  Index Only Scan using currency_gold_indices_index_name_bar_time_key on currency_gold_indices  (cost=0.29..876.78 rows=1441 width=5) (actual time=0.014..0.014 rows=0.67 loops=3)
+                              Index Cond: ((index_name > names_1.index_name) AND (index_name = ANY ('{EURX,EURX,NOPE,ZZ1X,USDX}'::text[])))
+                              Heap Fetches: 2
+                              Index Searches: 3
+                              Buffers: shared hit=9
+  ->  Nested Loop  (cost=0.29..104.59 rows=100 width=9) (actual time=0.161..0.240 rows=3.00 loops=1)
+        Buffers: shared hit=22
+        ->  CTE Scan on names  (cost=0.00..2.02 rows=100 width=32) (actual time=0.130..0.189 rows=3.00 loops=1)
+              Filter: (index_name IS NOT NULL)
+              Rows Removed by Filter: 1
+              Storage: Memory  Maximum Storage: 17kB
+              Buffers: shared hit=13
+        ->  Limit  (cost=0.29..1.01 rows=1 width=13) (actual time=0.016..0.017 rows=1.00 loops=3)
+              Buffers: shared hit=9
+              ->  Index Scan Backward using currency_gold_indices_index_name_bar_time_key on currency_gold_indices c  (cost=0.29..851.45 rows=1181 width=13) (actual time=0.016..0.016 rows=1.00 loops=3)
+                    Index Cond: (index_name = names.index_name)
+                    Index Searches: 3
+                    Buffers: shared hit=9
+Planning:
+  Buffers: shared hit=125
+Planning Time: 1.103 ms
+Execution Time: 0.456 ms
