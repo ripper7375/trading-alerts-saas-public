@@ -25,6 +25,7 @@ import {
   buildPaymentFailedEmail,
   buildPaymentReceiptEmail,
   buildSubscriptionCanceledEmail,
+  buildSubscriptionResumedEmail,
   DEFAULT_EMAIL_LOCALE,
   type BuiltEmail,
   type EmailLocale,
@@ -146,6 +147,27 @@ export function getSubscriptionCanceledEmailTemplate(
   locale: EmailLocale = DEFAULT_EMAIL_LOCALE
 ): EmailTemplate {
   return buildSubscriptionCanceledEmail(locale, { name, plan, cancelAt });
+}
+
+/**
+ * Generate the "subscription resumed" email template
+ *
+ * Sent when a user withdraws a scheduled cancellation: the subscription
+ * continues and renews on `nextBillingDate`.
+ *
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param nextBillingDate - Date the subscription renews
+ * @param locale - Reader's language and formats (English when omitted)
+ * @returns Email template with subject, HTML, and text content
+ */
+export function getSubscriptionResumedEmailTemplate(
+  name: string,
+  plan: 'FREE' | 'PRO',
+  nextBillingDate: Date,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): EmailTemplate {
+  return buildSubscriptionResumedEmail(locale, { name, plan, nextBillingDate });
 }
 
 /**
@@ -296,6 +318,35 @@ export async function sendSubscriptionCanceledEmail(
   );
 
   console.log(`[Email] Sending subscription canceled email to ${email}`);
+
+  return sendEmail(email, template.subject, template.html);
+}
+
+/**
+ * Send the "subscription resumed" email
+ *
+ * @param email - Recipient email address
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param nextBillingDate - Date the subscription renews
+ * @param locale - Reader's language and formats (the recipient's own by default)
+ * @returns Email result with success status
+ */
+export async function sendSubscriptionResumedEmail(
+  email: string,
+  name: string,
+  plan: 'FREE' | 'PRO',
+  nextBillingDate: Date,
+  locale?: EmailLocale
+): Promise<EmailResult> {
+  const template = getSubscriptionResumedEmailTemplate(
+    name,
+    plan,
+    nextBillingDate,
+    await localeFor(email, locale)
+  );
+
+  console.log(`[Email] Sending subscription resumed email to ${email}`);
 
   return sendEmail(email, template.subject, template.html);
 }

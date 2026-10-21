@@ -10,6 +10,7 @@ import {
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
   sendSubscriptionCanceledEmail,
+  sendSubscriptionResumedEmail,
 } from '../email/subscription-email.util';
 import { OutboxEventDto } from './dto/outbox-event.dto';
 import { OutboxConsumerService } from './outbox-consumer.service';
@@ -23,6 +24,7 @@ jest.mock('../email/subscription-email.util', () => ({
   sendPaymentFailedEmail: jest.fn(),
   sendPaymentReceiptEmail: jest.fn(),
   sendSubscriptionCanceledEmail: jest.fn(),
+  sendSubscriptionResumedEmail: jest.fn(),
 }));
 
 const mockSendSubscriptionConfirmationEmail =
@@ -41,6 +43,10 @@ const mockSendPaymentReceiptEmail =
 const mockSendSubscriptionCanceledEmail =
   sendSubscriptionCanceledEmail as jest.MockedFunction<
     typeof sendSubscriptionCanceledEmail
+  >;
+const mockSendSubscriptionResumedEmail =
+  sendSubscriptionResumedEmail as jest.MockedFunction<
+    typeof sendSubscriptionResumedEmail
   >;
 const mockSendAffiliateCommissionEmail =
   sendAffiliateCommissionEmail as jest.MockedFunction<
@@ -116,6 +122,7 @@ describe('OutboxConsumerService', () => {
     mockSendPaymentFailedEmail.mockResolvedValue({ success: true });
     mockSendPaymentReceiptEmail.mockResolvedValue({ success: true });
     mockSendSubscriptionCanceledEmail.mockResolvedValue({ success: true });
+    mockSendSubscriptionResumedEmail.mockResolvedValue({ success: true });
     mockSendAffiliateCommissionEmail.mockResolvedValue({ success: true });
     findUnique.mockResolvedValue({
       email: 'ada@example.com',
@@ -210,6 +217,122 @@ describe('OutboxConsumerService', () => {
       new Date('2026-08-15T00:00:00.000Z')
     );
     expect(mockSendCancellationEmail).not.toHaveBeenCalled();
+  });
+
+  // Manage Subscription S2 (W3): a cancellation at the period end keeps PRO,
+  // so money-service sends the date PRO ends and the same e-mail is used.
+  it('dispatches a scheduled SUBSCRIPTION_CANCELLED (tier still PRO, cancelAt = the period end) to the canceled-email template', async () => {
+    const result = await service.processEvent(
+      makeEvent('SUBSCRIPTION_CANCELLED', {
+        tier: 'PRO',
+        subscriptionId: 'row_1',
+        provider: 'STRIPE',
+        cancelAt: '2026-11-21T00:00:00.000Z',
+        scheduled: true,
+      })
+    );
+    expect(result).toEqual({ status: 'processed' });
+    expect(mockSendSubscriptionCanceledEmail).toHaveBeenCalledWith(
+      'ada@example.com',
+      'Ada',
+      'PRO',
+      new Date('2026-11-21T00:00:00.000Z')
+    );
+    expect(mockSendCancellationEmail).not.toHaveBeenCalled();
+  });
+
+  describe('SUBSCRIPTION_RESUMED (S2, W4)', () => {
+    it('dispatches to the resumed e-mail with the renewal date', async () => {
+      const result = await service.processEvent(
+        makeEvent('SUBSCRIPTION_RESUMED', {
+          tier: 'PRO',
+          subscriptionId: 'row_1',
+          provider: 'STRIPE',
+          renewsAt: '2026-11-21T00:00:00.000Z',
+        })
+      );
+      expect(result).toEqual({ status: 'processed' });
+      expect(mockSendSubscriptionResumedEmail).toHaveBeenCalledWith(
+        'ada@example.com',
+        'Ada',
+        'PRO',
+        new Date('2026-11-21T00:00:00.000Z')
+      );
+    });
+
+    it('is a known event type: it is not skipped as unrecognised', async () => {
+      const result = await service.processEvent(
+        makeEvent('SUBSCRIPTION_RESUMED', {
+          renewsAt: '2026-11-21T00:00:00.000Z',
+        })
+      );
+      expect(result).not.toEqual({
+        status: 'skipped',
+        reason: 'unrecognized-event-type',
+      });
+    });
+
+    it.each([
+      ['is absent', {}],
+      ['is a number', { renewsAt: 1795305600 }],
+      ['is not a date', { renewsAt: 'soon' }],
+      ['is empty', { renewsAt: '' }],
+    ])(
+      'skips the event, without sending or claiming it, when renewsAt %s',
+      async (_label, payload) => {
+        const result = await service.processEvent(
+          makeEvent('SUBSCRIPTION_RESUMED', payload)
+        );
+        expect(result).toEqual({
+          status: 'skipped',
+          reason: 'missing-renews-at',
+        });
+        expect(mockSendSubscriptionResumedEmail).not.toHaveBeenCalled();
+        expect(findUnique).not.toHaveBeenCalled();
+        expect(redis.set).not.toHaveBeenCalled();
+      }
+    );
+
+    it('sends once when the publisher delivers the same event again (at-least-once)', async () => {
+      const event = makeEvent('SUBSCRIPTION_RESUMED', {
+        renewsAt: '2026-11-21T00:00:00.000Z',
+      });
+
+      const first = await service.processEvent(event);
+      const second = await service.processEvent(event);
+
+      expect(first).toEqual({ status: 'processed' });
+      expect(second).toEqual({ status: 'skipped', reason: 'duplicate' });
+      expect(mockSendSubscriptionResumedEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('lets the publisher retry when the send fails', async () => {
+      mockSendSubscriptionResumedEmail.mockResolvedValue({
+        success: false,
+        error: 'resend down',
+      });
+
+      await expect(
+        service.processEvent(
+          makeEvent('SUBSCRIPTION_RESUMED', {
+            renewsAt: '2026-11-21T00:00:00.000Z',
+          })
+        )
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+
+    it('skips when the user cannot be found', async () => {
+      findUnique.mockResolvedValue(null);
+
+      const result = await service.processEvent(
+        makeEvent('SUBSCRIPTION_RESUMED', {
+          renewsAt: '2026-11-21T00:00:00.000Z',
+        })
+      );
+
+      expect(result).toEqual({ status: 'skipped', reason: 'user-not-found' });
+      expect(mockSendSubscriptionResumedEmail).not.toHaveBeenCalled();
+    });
   });
 
   it('dispatches SUBSCRIPTION_CANCELLED without cancelAt to the 2-arg cancellation email', async () => {

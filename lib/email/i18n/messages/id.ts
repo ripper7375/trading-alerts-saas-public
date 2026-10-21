@@ -215,6 +215,17 @@ export const id: EmailMessages = {
   'canceled.reactivateLink': 'Aktifkan kembali langganan Anda',
   'canceled.subject': 'Langganan dibatalkan - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Langganan dilanjutkan',
+  'resumed.body': 'Langganan **{plan}** Anda akan tetap berlanjut.',
+  'resumed.nextBilling': '**Tanggal penagihan berikutnya:** {date}',
+  'resumed.note':
+    'Pembatalan Anda telah ditarik. Anda tetap memiliki akses {plan} penuh dan langganan Anda diperpanjang otomatis pada {date}.',
+  'resumed.manage': 'Anda dapat meninjau langganan Anda kapan saja. {link}',
+  'resumed.manageLink': 'Buka pengaturan penagihan',
+  'resumed.subject':
+    'Langganan {plan} Anda akan tetap berlanjut - Trading Alerts',
+
   'commission.heading': 'Komisi diterima!',
   'commission.body':
     'Kabar baik! Kode afiliasi Anda baru saja digunakan dan Anda mendapatkan komisi.',

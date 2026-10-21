@@ -54,6 +54,11 @@ related_docs:
   (first push will show). No `npm run lint` for the gateway: the script matches no files. Report: `docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md`.
 - **money-service refuses to guess its public URL or its dLocal key** (Remediation 6.5): Stripe checkout needs `NEXTAUTH_URL`, dLocal create-payment needs
   `DLOCAL_API_KEY` and `NEXTAUTH_URL`; without them they answer 503, and mock mode exists only under `NODE_ENV=test`.
+- **Manage Subscription S2 deploy order: migration, then operation-service, then money-service, then the monolith** (2026-10-21). The migration
+  `20261021000000_add_subscription_management_fields` first (database-traps.md). operation-service BEFORE money-service this time, the opposite of the
+  price events: money-service's new `SUBSCRIPTION_RESUMED` outbox event reaching an operation-service that does not know it is answered `skipped`
+  (`unrecognized-event-type`), and the publisher counts any 2xx as delivered, so the "your subscription will continue" e-mail is lost and never retried.
+  The cancel-scheduled e-mail needs no new consumer code (it is `SUBSCRIPTION_CANCELLED` with `cancelAt`, as before).
 - **"Update card" needs `STRIPE_PORTAL_CONFIGURATION_ID` on BOTH the monolith and money-service** (Manage Subscription S1, 2026-10-21): `POST
 /api/subscription/payment-method-session` answers 503 `PORTAL_NOT_CONFIGURED` without it or without `NEXTAUTH_URL`, and creates nothing. With
   `MIGRATE_WRITE_APIS_MONEY_STRIPE=true` (set in the local `.env.local`) the monolith route only forwards to money-service, so a local browser check also needs

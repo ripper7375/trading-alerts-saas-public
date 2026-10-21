@@ -204,6 +204,16 @@ export const ko: EmailMessages = {
   'canceled.reactivateLink': '구독 다시 시작하기',
   'canceled.subject': '구독이 취소되었습니다 - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': '구독이 재개되었습니다',
+  'resumed.body': '**{plan}** 구독이 계속 유지됩니다.',
+  'resumed.nextBilling': '**다음 결제일:** {date}',
+  'resumed.note':
+    '취소 요청이 철회되었습니다. {plan}을(를) 계속 모두 이용하실 수 있으며, 구독은 {date}에 자동으로 갱신됩니다.',
+  'resumed.manage': '구독 내용은 언제든지 확인하실 수 있습니다. {link}',
+  'resumed.manageLink': '결제 설정 열기',
+  'resumed.subject': '{plan} 구독이 계속 유지됩니다 - Trading Alerts',
+
   'commission.heading': '수수료를 받았습니다!',
   'commission.body':
     '좋은 소식입니다! 회원님의 제휴 코드가 방금 사용되어 수수료를 받게 되었습니다.',

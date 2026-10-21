@@ -218,6 +218,17 @@ export const tr: EmailMessages = {
   'canceled.reactivateLink': 'Aboneliğinizi yeniden etkinleştirin',
   'canceled.subject': 'Abonelik İptal Edildi - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Abonelik Devam Ediyor',
+  'resumed.body': '**{plan}** aboneliğiniz devam edecek.',
+  'resumed.nextBilling': '**Sonraki Fatura Tarihi:** {date}',
+  'resumed.note':
+    'İptal talebiniz geri çekildi. {plan} erişiminiz tam olarak devam ediyor ve aboneliğiniz {date} tarihinde otomatik olarak yenilenecek.',
+  'resumed.manage':
+    'Aboneliğinizi istediğiniz zaman inceleyebilirsiniz. {link}',
+  'resumed.manageLink': 'Fatura ayarlarını aç',
+  'resumed.subject': '{plan} aboneliğiniz devam edecek - Trading Alerts',
+
   'commission.heading': 'Komisyon Kazandınız!',
   'commission.body':
     'Harika haber! Ortaklık kodunuz az önce kullanıldı ve komisyon kazandınız.',

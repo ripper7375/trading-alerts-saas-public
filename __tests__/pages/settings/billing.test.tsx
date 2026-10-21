@@ -13,6 +13,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import BillingSettingsPage from '@/app/settings/billing/page';
+import { UserViewAsProvider } from '@/components/admin/user-view-as/user-view-as-context';
 import { LocaleProvider } from '@/lib/context/locale-context';
 import ar from '@/lib/i18n/dictionaries/ar.json';
 import de from '@/lib/i18n/dictionaries/de.json';
@@ -119,8 +120,7 @@ function mockFetchImplementation(overrides: {
   invoices?: unknown[];
   invoicesOk?: boolean;
   alertCount?: number;
-  cancelOk?: boolean;
-  cancelBody?: unknown;
+  resumeOk?: boolean;
   portalOk?: boolean;
   portalBody?: unknown;
 }) {
@@ -130,21 +130,17 @@ function mockFetchImplementation(overrides: {
     invoices = [],
     invoicesOk = true,
     alertCount = 0,
-    cancelOk = true,
-    cancelBody = {
-      success: true,
-      message: 'Subscription cancelled successfully',
-      tier: 'FREE',
-    },
+    resumeOk = true,
     portalOk = true,
     portalBody = { url: 'https://billing.stripe.com/p/session/bps_1' },
   } = overrides;
 
-  let cancelled = false;
+  let resumed = false;
 
   return jest.fn((url: string, init?: RequestInit) => {
     if (url === '/api/subscription') {
-      const body = cancelled ? freeSubscription : subscription;
+      // After a resume the same user reads as an ordinary active PRO.
+      const body = resumed ? proSubscription : subscription;
       return Promise.resolve({
         ok: subscriptionOk,
         json: async () =>
@@ -182,19 +178,16 @@ function mockFetchImplementation(overrides: {
             : { error: 'Card update failed', code: 'PORTAL_SESSION_ERROR' },
       });
     }
-    if (url === '/api/subscription/cancel' && init?.method === 'POST') {
-      if (cancelOk) {
-        cancelled = true;
+    if (url === '/api/subscription/resume' && init?.method === 'POST') {
+      if (resumeOk) {
+        resumed = true;
       }
       return Promise.resolve({
-        ok: cancelOk,
+        ok: resumeOk,
         json: async () =>
-          cancelOk
-            ? cancelBody
-            : {
-                error: 'Cancellation failed',
-                message: 'Failed to cancel subscription. Please try again.',
-              },
+          resumeOk
+            ? { success: true, cancelAtPeriodEnd: false }
+            : { error: 'Resume failed', code: 'RESUME_ERROR' },
       });
     }
     return Promise.reject(new Error(`Unexpected fetch: ${url}`));
@@ -350,7 +343,7 @@ describe('BillingSettingsPage', () => {
     expect(screen.queryByText('Invoice History')).not.toBeInTheDocument();
   });
 
-  it('cancels the subscription and reflects the FREE downgrade without a page reload', async () => {
+  it('sends "Cancel Plan" to the three-step cancel page and cancels nothing from here (S2)', async () => {
     const user = userEvent.setup();
     mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
     global.fetch = mockFetchImplementation({}) as unknown as typeof fetch;
@@ -358,43 +351,17 @@ describe('BillingSettingsPage', () => {
     renderBilling();
     await screen.findByText('PRO TIER');
 
-    await user.click(screen.getByRole('button', { name: 'Cancel Plan' }));
-    await user.click(
-      screen.getByRole('button', { name: 'Confirm Cancellation' })
-    );
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/subscription/cancel', {
-        method: 'POST',
-      });
-    });
-
-    expect(await screen.findByText('FREE TIER')).toBeInTheDocument();
+    const link = screen.getByRole('link', { name: 'Cancel Plan' });
+    expect(link).toHaveAttribute('href', '/settings/billing/cancel');
+    // The old immediate-cancel dialog is gone: no confirm button, no POST.
+    await user.click(link);
     expect(
       screen.queryByRole('button', { name: 'Confirm Cancellation' })
     ).not.toBeInTheDocument();
-  });
-
-  it('shows a real error and stays PRO when cancellation fails', async () => {
-    const user = userEvent.setup();
-    mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
-    global.fetch = mockFetchImplementation({
-      cancelOk: false,
-    }) as unknown as typeof fetch;
-
-    renderBilling();
-    await screen.findByText('PRO TIER');
-
-    await user.click(screen.getByRole('button', { name: 'Cancel Plan' }));
-    await user.click(
-      screen.getByRole('button', { name: 'Confirm Cancellation' })
+    expect(global.fetch).not.toHaveBeenCalledWith(
+      '/api/subscription/cancel',
+      expect.anything()
     );
-
-    expect(
-      await screen.findByText(
-        'Failed to cancel subscription. Please try again.'
-      )
-    ).toBeInTheDocument();
     expect(screen.getByText('PRO TIER')).toBeInTheDocument();
   });
 
@@ -627,9 +594,10 @@ describe('BillingSettingsPage -- Manage Subscription S1', () => {
         .some((a) => a.getAttribute('href') === '/settings/billing')
     ).toBe(false);
     // The rest of the action row is intact.
-    expect(
-      screen.getByRole('button', { name: 'Cancel Plan' })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Cancel Plan' })).toHaveAttribute(
+      'href',
+      '/settings/billing/cancel'
+    );
   });
 
   it('shows no banner and an "Update card" button in the payment method block for a healthy Stripe subscriber', async () => {
@@ -671,7 +639,7 @@ describe('BillingSettingsPage -- Manage Subscription S1', () => {
     expect(screen.getByText('Payment overdue')).toBeInTheDocument();
     expect(screen.queryByText('Active')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Cancel Plan' })
+      screen.queryByRole('link', { name: 'Cancel Plan' })
     ).not.toBeInTheDocument();
   });
 
@@ -935,7 +903,7 @@ describe('BillingSettingsPage -- Manage Subscription S1', () => {
     await screen.findByText('PRO TIER');
 
     expect(
-      screen.queryByRole('button', { name: 'Cancel Plan' })
+      screen.queryByRole('link', { name: 'Cancel Plan' })
     ).not.toBeInTheDocument();
   });
 
@@ -961,4 +929,385 @@ describe('BillingSettingsPage -- Manage Subscription S1', () => {
     expect(screen.getByText(/Paid via dLocal/)).toBeInTheDocument();
     expect(screen.queryByText('Update card')).not.toBeInTheDocument();
   });
+});
+
+//━━ Manage Subscription S2 (W3 cancel page link, W4 resume, D8 dLocal) ━━
+
+const PERIOD_END_ISO = '2026-11-21T00:00:00.000Z';
+
+const scheduledSubscription = {
+  ...proSubscription,
+  allowedActions: ['resume', 'update_card'],
+  displayState: 'CANCEL_SCHEDULED',
+  subscription: {
+    ...proSubscription.subscription,
+    currentPeriodEnd: PERIOD_END_ISO,
+    cancelAtPeriodEnd: true,
+  },
+};
+
+const dLocalSubscription = {
+  ...proSubscription,
+  allowedActions: [],
+  displayState: 'ACTIVE',
+  subscription: {
+    ...proSubscription.subscription,
+    provider: 'DLOCAL',
+    currentPeriodEnd: null,
+    expiresAt: '2026-12-05T00:00:00.000Z',
+    paymentMethod: null,
+    dLocalPaymentMethod: 'UPI',
+    dLocalCountry: 'IN',
+  },
+};
+
+describe('BillingSettingsPage -- Manage Subscription S2', () => {
+  const originalLocation = window.location;
+
+  function setSearch(search: string): void {
+    delete (window as unknown as { location?: Location }).location;
+    (window as unknown as { location: unknown }).location = {
+      ...originalLocation,
+      pathname: '/settings/billing',
+      search,
+      assign: jest.fn(),
+    };
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.setItem(LOCALE_STORAGE_KEY, JSON.stringify(US_PREFERENCES));
+    setSearch('');
+    mockUseSession.mockReturnValue({ data: { user: { tier: 'PRO' } } });
+  });
+
+  afterEach(() => {
+    (window as unknown as { location: unknown }).location = originalLocation;
+  });
+
+  describe('a scheduled cancellation', () => {
+    it('says when PRO ends, keeps PRO, and offers Resume instead of Cancel', async () => {
+      global.fetch = mockFetchImplementation({
+        subscription: scheduledSubscription,
+      }) as unknown as typeof fetch;
+
+      renderBilling();
+
+      const banner = await screen.findByRole('status');
+      expect(banner).toHaveTextContent('Your PRO plan ends on');
+      expect(banner).toHaveTextContent('2026');
+      expect(banner).toHaveTextContent(/You keep full PRO access/);
+      expect(
+        within(banner).getByRole('button', { name: 'Resume subscription' })
+      ).toBeInTheDocument();
+
+      expect(screen.getByText('PRO TIER')).toBeInTheDocument();
+      expect(screen.getByText('Cancellation scheduled')).toBeInTheDocument();
+      expect(screen.queryByText('Active')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: 'Cancel Plan' })
+      ).not.toBeInTheDocument();
+      // The label says what the date is.
+      expect(screen.getByText(/PRO ends on:/)).toBeInTheDocument();
+      expect(screen.queryByText(/Next billing date:/)).not.toBeInTheDocument();
+      // The card can still be changed.
+      expect(
+        screen.getByRole('button', { name: 'Update card' })
+      ).toBeInTheDocument();
+    });
+
+    it('offers Resume in the plan card as well as in the banner', async () => {
+      global.fetch = mockFetchImplementation({
+        subscription: scheduledSubscription,
+      }) as unknown as typeof fetch;
+
+      renderBilling();
+      await screen.findByRole('status');
+
+      expect(
+        screen.getAllByRole('button', { name: 'Resume subscription' })
+      ).toHaveLength(2);
+    });
+
+    it('says the trial ends with no charge when the cancelled subscription is still in its trial', async () => {
+      global.fetch = mockFetchImplementation({
+        subscription: {
+          ...scheduledSubscription,
+          trial: { ...scheduledSubscription.trial, status: 'ACTIVE' },
+          subscription: {
+            ...scheduledSubscription.subscription,
+            trialEnd: PERIOD_END_ISO,
+          },
+        },
+      }) as unknown as typeof fetch;
+
+      renderBilling();
+
+      const banner = await screen.findByText(/Your free trial ends then/);
+      expect(banner).toHaveTextContent(/you will not be charged/);
+    });
+
+    it('hides Resume once the server stops offering it (the period has ended)', async () => {
+      global.fetch = mockFetchImplementation({
+        subscription: {
+          ...scheduledSubscription,
+          allowedActions: ['update_card'],
+        },
+      }) as unknown as typeof fetch;
+
+      renderBilling();
+      await screen.findByRole('status');
+
+      expect(
+        screen.queryByRole('button', { name: 'Resume subscription' })
+      ).not.toBeInTheDocument();
+    });
+
+    it('shows no Resume and no Cancel in admin view, whatever the server sent', async () => {
+      global.fetch = mockFetchImplementation({
+        subscription: scheduledSubscription,
+      }) as unknown as typeof fetch;
+
+      render(
+        <LocaleProvider>
+          <UserViewAsProvider
+            value={{
+              id: 'user_42',
+              name: 'Carol Customer',
+              email: 'carol@example.com',
+              tier: 'PRO',
+              role: 'USER',
+            }}
+          >
+            <BillingSettingsPage />
+          </UserViewAsProvider>
+        </LocaleProvider>
+      );
+
+      await screen.findByText('PRO TIER');
+      expect(
+        screen.queryByRole('button', { name: 'Resume subscription' })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: 'Cancel Plan' })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('resume (W4)', () => {
+    it('asks first, and says what resuming does', async () => {
+      const user = userEvent.setup();
+      const fetchMock = mockFetchImplementation({
+        subscription: scheduledSubscription,
+      });
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      renderBilling();
+      const banner = await screen.findByRole('status');
+
+      await user.click(
+        within(banner).getByRole('button', { name: 'Resume subscription' })
+      );
+
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toHaveTextContent('Resume your subscription?');
+      expect(dialog).toHaveTextContent(/cancellation will be withdrawn/);
+      expect(dialog).toHaveTextContent('2026');
+      // Nothing is sent until the user says yes.
+      expect(fetchMock).not.toHaveBeenCalledWith(
+        '/api/subscription/resume',
+        expect.anything()
+      );
+    });
+
+    it('resumes, re-reads the subscription and shows the normal PRO view with a notice', async () => {
+      const user = userEvent.setup();
+      const fetchMock = mockFetchImplementation({
+        subscription: scheduledSubscription,
+      });
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      renderBilling();
+      const banner = await screen.findByRole('status');
+      await user.click(
+        within(banner).getByRole('button', { name: 'Resume subscription' })
+      );
+      await user.click(
+        within(await screen.findByRole('dialog')).getByRole('button', {
+          name: 'Yes, resume',
+        })
+      );
+
+      await waitFor(() => {
+        expect(fetchMock).toHaveBeenCalledWith('/api/subscription/resume', {
+          method: 'POST',
+        });
+      });
+      expect(
+        await screen.findByText(
+          'Your subscription will continue. PRO renews as normal.'
+        )
+      ).toBeInTheDocument();
+      // Back to an ordinary active subscription, with Cancel offered again.
+      expect(screen.getByText('Active')).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', { name: 'Cancel Plan' })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Your PRO plan ends on', { exact: false })
+      ).toBeNull();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
+    it('keeps the cancellation and says so when the server refuses', async () => {
+      const user = userEvent.setup();
+      global.fetch = mockFetchImplementation({
+        subscription: scheduledSubscription,
+        resumeOk: false,
+      }) as unknown as typeof fetch;
+
+      renderBilling();
+      const banner = await screen.findByRole('status');
+      await user.click(
+        within(banner).getByRole('button', { name: 'Resume subscription' })
+      );
+      await user.click(
+        within(await screen.findByRole('dialog')).getByRole('button', {
+          name: 'Yes, resume',
+        })
+      );
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'We could not resume your subscription. Please try again.'
+      );
+      // Still scheduled, and the dialog stays open to try again.
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Yes, resume' })).toBeEnabled();
+    });
+
+    it('closes without sending anything on "Not now"', async () => {
+      const user = userEvent.setup();
+      const fetchMock = mockFetchImplementation({
+        subscription: scheduledSubscription,
+      });
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      renderBilling();
+      const banner = await screen.findByRole('status');
+      await user.click(
+        within(banner).getByRole('button', { name: 'Resume subscription' })
+      );
+      await user.click(
+        within(await screen.findByRole('dialog')).getByRole('button', {
+          name: 'Not now',
+        })
+      );
+
+      await waitFor(() =>
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      );
+      expect(fetchMock).not.toHaveBeenCalledWith(
+        '/api/subscription/resume',
+        expect.anything()
+      );
+    });
+  });
+
+  describe('coming back from the cancel page (?done=cancel)', () => {
+    it('says when PRO ends, and drops the marker from the address', async () => {
+      const replaceState = jest.spyOn(window.history, 'replaceState');
+      setSearch('?done=cancel');
+      global.fetch = mockFetchImplementation({
+        subscription: scheduledSubscription,
+      }) as unknown as typeof fetch;
+
+      renderBilling();
+
+      const notice = await screen.findByText(/Your cancellation is scheduled/);
+      expect(notice).toHaveTextContent(/You keep PRO until .*2026/);
+      expect(replaceState).toHaveBeenCalledWith(null, '', '/settings/billing');
+      replaceState.mockRestore();
+    });
+
+    it('claims nothing when the fresh data shows no scheduled cancellation', async () => {
+      setSearch('?done=cancel');
+      global.fetch = mockFetchImplementation({}) as unknown as typeof fetch;
+
+      renderBilling();
+      await screen.findByText('PRO TIER');
+
+      expect(
+        screen.queryByText(/Your cancellation is scheduled/)
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  describe('a dLocal plan (D8: prepaid, no cancel)', () => {
+    it('shows when it ends and that it does not renew, with no cancel and no resume', async () => {
+      global.fetch = mockFetchImplementation({
+        subscription: dLocalSubscription,
+      }) as unknown as typeof fetch;
+
+      renderBilling();
+      await screen.findByText('PRO TIER');
+
+      expect(
+        screen.getByText(
+          /This plan is prepaid\. It ends on .*2026 and does not renew automatically\./
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', { name: 'Cancel Plan' })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Resume subscription' })
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Update card' })
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  // The new keys exist in every dictionary (compulsory-translation-coverage);
+  // this holds that the page asks for the right ones, in a script that is not
+  // English and in the one that reads right to left.
+  it.each([
+    ['ar', ar],
+    ['de', de],
+    ['ja', ja],
+  ] as const)(
+    'shows the scheduled-cancellation banner and Resume in %s, from the dictionary',
+    async (language, dictionary) => {
+      const words = dictionary as Record<string, string>;
+      localStorage.setItem(
+        LOCALE_STORAGE_KEY,
+        JSON.stringify({ ...US_PREFERENCES, language })
+      );
+      global.fetch = mockFetchImplementation({
+        subscription: scheduledSubscription,
+      }) as unknown as typeof fetch;
+
+      renderBilling();
+      const banner = await screen.findByRole('status');
+
+      await waitFor(() => {
+        expect(banner).toHaveTextContent(
+          words['billing.banner.cancel_scheduled_title']!.split(
+            '{date}'
+          )[0]!.trim()
+        );
+      });
+      expect(banner).toHaveTextContent(
+        words['billing.banner.cancel_scheduled_body']!
+      );
+      expect(
+        within(banner).getByRole('button', {
+          name: words['billing.action.resume'],
+        })
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(words['billing.status.cancel_scheduled']!)
+      ).toBeInTheDocument();
+    }
+  );
 });

@@ -56,12 +56,13 @@ jest.mock('@/lib/admin/user-view-as', () => ({
     userId: user.id,
   }),
 }));
+const mockSetCancelAtPeriodEnd = jest.fn();
 jest.mock('@/lib/stripe/stripe', () => ({
   __esModule: true,
   getSubscription: jest.fn(),
   getCustomerPaymentMethods: jest.fn(),
   getOpenInvoiceUrl: jest.fn(),
-  cancelSubscription: jest.fn(),
+  setCancelAtPeriodEnd: (...a: unknown[]) => mockSetCancelAtPeriodEnd(...a),
 }));
 
 // subscription cancel
@@ -74,10 +75,11 @@ jest.mock('@/lib/money-service/write-routes', () => ({
   forwardWriteRequestToMoneyService: jest.fn(),
   MoneyServiceError: class MoneyServiceError extends Error {},
 }));
-const mockSendCancellationEmail = jest.fn();
+const mockSendCanceledEmail = jest.fn();
 jest.mock('@/lib/email/subscription-emails', () => ({
   __esModule: true,
-  sendCancellationEmail: (...a: unknown[]) => mockSendCancellationEmail(...a),
+  sendSubscriptionCanceledEmail: (...a: unknown[]) =>
+    mockSendCanceledEmail(...a),
 }));
 
 // forgot-password
@@ -260,7 +262,7 @@ describe('GET /api/subscription', () => {
 });
 
 describe('POST /api/subscription/cancel', () => {
-  it('reads only tier, email and name, and still cancels and emails', async () => {
+  it('reads only tier, email and name, and still schedules the cancellation and emails', async () => {
     mockUserFindUnique.mockResolvedValue({
       tier: 'PRO',
       email: 'u1@example.com',
@@ -268,13 +270,22 @@ describe('POST /api/subscription/cancel', () => {
     });
     mockSubscriptionFindUnique.mockResolvedValue({
       id: 'sub1',
-      stripeSubscriptionId: null,
+      status: 'ACTIVE',
+      stripeSubscriptionId: 'sub_stripe_1',
+      stripeCurrentPeriodEnd: null,
+      dLocalPaymentId: null,
+      expiresAt: null,
+      cancelAtPeriodEnd: false,
     });
     mockUserUpdate.mockResolvedValue({});
     mockSubscriptionUpdate.mockResolvedValue({});
-    mockSendCancellationEmail.mockResolvedValue(undefined);
+    mockSetCancelAtPeriodEnd.mockResolvedValue({
+      cancel_at: 1795305600,
+      current_period_end: 1795305600,
+    });
+    mockSendCanceledEmail.mockResolvedValue(undefined);
 
-    const res = await cancelSubscription({} as never);
+    const res = await cancelSubscription({ json: async () => ({}) } as never);
 
     expect(selectOf(mockUserFindUnique)).toEqual({
       tier: true,
@@ -284,11 +295,15 @@ describe('POST /api/subscription/cancel', () => {
     expect(res.status).toBe(200);
     await expect(res.json()).resolves.toMatchObject({
       success: true,
-      tier: 'FREE',
+      tier: 'PRO',
+      cancelAtPeriodEnd: true,
     });
-    expect(mockSendCancellationEmail).toHaveBeenCalledWith(
+    expect(mockUserUpdate).not.toHaveBeenCalled();
+    expect(mockSendCanceledEmail).toHaveBeenCalledWith(
       'u1@example.com',
-      'U One'
+      'U One',
+      'PRO',
+      new Date(1795305600 * 1000)
     );
   });
 
@@ -300,7 +315,7 @@ describe('POST /api/subscription/cancel', () => {
     });
     mockSubscriptionFindUnique.mockResolvedValue(null);
 
-    const res = await cancelSubscription({} as never);
+    const res = await cancelSubscription({ json: async () => ({}) } as never);
 
     expect(res.status).toBe(400);
     await expect(res.json()).resolves.toMatchObject({

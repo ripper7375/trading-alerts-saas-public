@@ -254,6 +254,16 @@ model Subscription {
   expiresAt           DateTime?
   renewalReminderSent Boolean            @default(false)
 
+  // Manage Subscription S2. Hand-mirrored from the root
+  // prisma/non-market-data/schema.prisma (same types and defaults; a test
+  // compares the two models).
+  cancelAtPeriodEnd      Boolean   @default(false)
+  cancelRequestedAt      DateTime?
+  cancellationReason     String?
+  pendingPlanType        String?
+  pendingPlanEffectiveAt DateTime?
+  stripeScheduleId       String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -166,6 +166,11 @@ export class StripeWebhookService {
             stripeCurrentPeriodEnd: nextBillingDate,
             expiresAt: nextBillingDate,
             affiliateCodeId: reservedAffiliateCodeId,
+            // A user who cancelled and subscribes again reuses this row: the
+            // new subscription is not scheduled to end (S2).
+            cancelAtPeriodEnd: false,
+            cancelRequestedAt: null,
+            cancellationReason: null,
           },
           create: {
             userId,
@@ -224,6 +229,12 @@ export class StripeWebhookService {
 
       const status = this.mapStripeStatus(subscription.status);
 
+      // `cancelAtPeriodEnd` follows Stripe (B9), so a cancellation scheduled or
+      // undone outside the cancel and resume routes (Stripe's dashboard, a
+      // repair) is mirrored; when it is off, the "when" and "why" of an earlier
+      // request go with it.
+      const cancelAtPeriodEnd = subscription.cancel_at_period_end === true;
+
       // Remediation Tier 2 §6.4 (4A-13 audit item b): the subscription row and
       // the user's tier change together or not at all. As two separate writes,
       // a failure between them left the subscription cancelled/unpaid while the
@@ -237,6 +248,11 @@ export class StripeWebhookService {
               subscription.current_period_end * 1000
             ),
             expiresAt: new Date(subscription.current_period_end * 1000),
+            cancelAtPeriodEnd,
+            ...(!cancelAtPeriodEnd && {
+              cancelRequestedAt: null,
+              cancellationReason: null,
+            }),
           },
         });
 

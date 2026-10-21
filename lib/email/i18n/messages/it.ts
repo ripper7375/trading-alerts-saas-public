@@ -222,6 +222,17 @@ export const it: EmailMessages = {
   'canceled.reactivateLink': 'Riattiva il tuo abbonamento',
   'canceled.subject': 'Abbonamento annullato - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Abbonamento ripreso',
+  'resumed.body': 'Il tuo abbonamento **{plan}** continuerà.',
+  'resumed.nextBilling': '**Prossima data di fatturazione:** {date}',
+  'resumed.note':
+    "L'annullamento è stato ritirato. Mantieni l'accesso completo a {plan} e il tuo abbonamento si rinnoverà automaticamente il {date}.",
+  'resumed.manage':
+    'Puoi rivedere il tuo abbonamento in qualsiasi momento. {link}',
+  'resumed.manageLink': 'Apri le impostazioni di fatturazione',
+  'resumed.subject': 'Il tuo abbonamento {plan} continuerà - Trading Alerts',
+
   'commission.heading': 'Commissione guadagnata!',
   'commission.body':
     'Ottime notizie! Il tuo codice affiliato è stato appena utilizzato e hai guadagnato una commissione.',

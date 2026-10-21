@@ -221,6 +221,16 @@ export const de: EmailMessages = {
   'canceled.reactivateLink': 'Abonnement reaktivieren',
   'canceled.subject': 'Abonnement gekündigt - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Abonnement fortgesetzt',
+  'resumed.body': 'Ihr Abonnement **{plan}** läuft weiter.',
+  'resumed.nextBilling': '**Nächstes Abrechnungsdatum:** {date}',
+  'resumed.note':
+    'Ihre Kündigung wurde zurückgenommen. Sie behalten den vollen {plan}-Zugang, und Ihr Abonnement verlängert sich am {date} automatisch.',
+  'resumed.manage': 'Sie können Ihr Abonnement jederzeit einsehen. {link}',
+  'resumed.manageLink': 'Abrechnungseinstellungen öffnen',
+  'resumed.subject': 'Ihr Abonnement {plan} läuft weiter - Trading Alerts',
+
   'commission.heading': 'Provision verdient!',
   'commission.body':
     'Gute Neuigkeiten! Ihr Affiliate-Code wurde gerade verwendet und Sie haben eine Provision verdient.',

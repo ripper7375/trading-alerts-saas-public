@@ -476,6 +476,17 @@ model Subscription {
   expiresAt           DateTime? // Explicit expiry date (critical for dLocal)
   renewalReminderSent Boolean            @default(false)
 
+  // Manage Subscription S2: cancel at period end (W3/W4) and the scheduled
+  // plan switch S3 will use. Stripe-only; all additive. The same six fields,
+  // types and defaults are hand-mirrored in money-service/prisma/schema.prisma
+  // and types/prisma-stubs.d.ts (operation-service's narrow model needs none).
+  cancelAtPeriodEnd      Boolean   @default(false) // Stripe cancel_at_period_end, kept in sync by the webhook
+  cancelRequestedAt      DateTime? // when the user asked to cancel
+  cancellationReason     String? // the reason they gave (free text, capped by the route)
+  pendingPlanType        String? // S3: 'MONTHLY' | 'YEARLY' to start at pendingPlanEffectiveAt
+  pendingPlanEffectiveAt DateTime? // S3
+  stripeScheduleId       String? // S3: the Stripe Subscription Schedule holding the switch
+
   payments Payment[]
 
   createdAt DateTime @default(now())

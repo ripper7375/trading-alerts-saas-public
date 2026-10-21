@@ -6,6 +6,10 @@
  * when the tier is FREE (UNPAID, or a PAST_DUE row downgraded before the grace
  * fix), so the billing page can offer "Pay now" and "Update card".
  *
+ * Manage Subscription S2 added: an explicit `select` on the Subscription read
+ * (F21), the scheduled cancellation (`cancelAtPeriodEnd`, CANCEL_SCHEDULED and
+ * its `resume` action), Stripe's live period end, and no cancel for dLocal (D8).
+ *
  * @module __tests__/api/subscription-get.test
  */
 
@@ -73,6 +77,7 @@ function stripeRow(status: string): Record<string, unknown> {
     dLocalPaymentId: null,
     dLocalPaymentMethod: null,
     dLocalCountry: null,
+    cancelAtPeriodEnd: false,
   };
 }
 
@@ -195,7 +200,7 @@ describe('GET /api/subscription -- failed payments (B2)', () => {
 });
 
 describe('GET /api/subscription -- other providers and view-as', () => {
-  it('offers cancel only (no card update, no invoice) for a dLocal subscription', async () => {
+  it('offers nothing (no card update, no cancel, no invoice) for a dLocal subscription (D8)', async () => {
     mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
     mockSubscriptionFindUnique.mockResolvedValue({
       ...stripeRow('ACTIVE'),
@@ -207,7 +212,7 @@ describe('GET /api/subscription -- other providers and view-as', () => {
     const { body } = await get();
 
     expect(body.subscription.provider).toBe('DLOCAL');
-    expect(body.allowedActions).toEqual(['cancel']);
+    expect(body.allowedActions).toEqual([]);
     expect(mockGetSubscription).not.toHaveBeenCalled();
     expect(mockGetOpenInvoiceUrl).not.toHaveBeenCalled();
   });
@@ -239,5 +244,177 @@ describe('GET /api/subscription -- other providers and view-as', () => {
     const { status } = await get();
 
     expect(status).toBe(401);
+  });
+});
+
+describe('GET /api/subscription -- scheduled cancellation (S2, W3/W4)', () => {
+  const PERIOD_END = '2027-01-01T00:00:00.000Z';
+  const FUTURE = new Date(Date.now() + 5 * 86_400_000);
+  const FUTURE_SECONDS = Math.floor(FUTURE.getTime() / 1000);
+
+  function scheduledRow(
+    overrides: Record<string, unknown> = {}
+  ): Record<string, unknown> {
+    return {
+      ...stripeRow('ACTIVE'),
+      stripeCurrentPeriodEnd: FUTURE,
+      cancelAtPeriodEnd: true,
+      ...overrides,
+    };
+  }
+
+  it('reads the Subscription with an explicit select, never a full row (F21)', async () => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+    mockSubscriptionFindUnique.mockResolvedValue(stripeRow('ACTIVE'));
+
+    await get();
+
+    expect(mockSubscriptionFindUnique).toHaveBeenCalledWith({
+      where: { userId: 'u1' },
+      select: {
+        id: true,
+        status: true,
+        planType: true,
+        amountUsd: true,
+        expiresAt: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        stripeCurrentPeriodEnd: true,
+        dLocalPaymentId: true,
+        dLocalPaymentMethod: true,
+        dLocalCountry: true,
+        cancelAtPeriodEnd: true,
+      },
+    });
+  });
+
+  it('shows CANCEL_SCHEDULED with resume and update card, no second cancel', async () => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+    mockSubscriptionFindUnique.mockResolvedValue(scheduledRow());
+    mockGetSubscription.mockResolvedValue({
+      cancel_at_period_end: true,
+      current_period_end: FUTURE_SECONDS,
+      trial_end: null,
+    });
+
+    const { body } = await get();
+
+    expect(body.tier).toBe('PRO');
+    expect(body.displayState).toBe('CANCEL_SCHEDULED');
+    expect(body.allowedActions).toEqual(['resume', 'update_card']);
+    expect(body.subscription.cancelAtPeriodEnd).toBe(true);
+  });
+
+  it("takes Stripe's answer over the stored flag: a cancellation scheduled outside this app shows", async () => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+    mockSubscriptionFindUnique.mockResolvedValue(
+      scheduledRow({ cancelAtPeriodEnd: false })
+    );
+    mockGetSubscription.mockResolvedValue({
+      cancel_at_period_end: true,
+      current_period_end: FUTURE_SECONDS,
+      trial_end: null,
+    });
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('CANCEL_SCHEDULED');
+  });
+
+  it("takes Stripe's answer over the stored flag: a resume done outside this app shows", async () => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+    mockSubscriptionFindUnique.mockResolvedValue(scheduledRow());
+    mockGetSubscription.mockResolvedValue({
+      cancel_at_period_end: false,
+      current_period_end: FUTURE_SECONDS,
+      trial_end: null,
+    });
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('ACTIVE');
+    expect(body.allowedActions).toEqual(['update_card', 'cancel']);
+  });
+
+  it('falls back to the stored flag and period end when Stripe cannot be reached', async () => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+    mockSubscriptionFindUnique.mockResolvedValue(scheduledRow());
+    mockGetSubscription.mockRejectedValue(new Error('stripe is down'));
+
+    const { status, body } = await get();
+
+    expect(status).toBe(200);
+    expect(body.displayState).toBe('CANCEL_SCHEDULED');
+    expect(body.subscription.cancelAtPeriodEnd).toBe(true);
+    expect(body.subscription.currentPeriodEnd).toBe(FUTURE.toISOString());
+  });
+
+  it("promises Stripe's own period end, not the stored estimate (a trial's stored end is only a guess until the first webhook)", async () => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+    mockSubscriptionFindUnique.mockResolvedValue(
+      scheduledRow({ status: 'TRIALING', stripeCurrentPeriodEnd: FUTURE })
+    );
+    mockGetSubscription.mockResolvedValue({
+      cancel_at_period_end: true,
+      current_period_end: Math.floor(new Date(PERIOD_END).getTime() / 1000),
+      trial_end: Math.floor(new Date(PERIOD_END).getTime() / 1000),
+    });
+
+    const { body } = await get();
+
+    expect(body.subscription.currentPeriodEnd).toBe(PERIOD_END);
+  });
+
+  it('withdraws resume once the period end has passed', async () => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+    mockSubscriptionFindUnique.mockResolvedValue(scheduledRow());
+    mockGetSubscription.mockResolvedValue({
+      cancel_at_period_end: true,
+      current_period_end: Math.floor(Date.now() / 1000) - 60,
+      trial_end: null,
+    });
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('CANCEL_SCHEDULED');
+    expect(body.allowedActions).toEqual(['update_card']);
+  });
+
+  it('keeps the payment problem first when a cancellation is also scheduled', async () => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+    mockSubscriptionFindUnique.mockResolvedValue(
+      scheduledRow({ status: 'PAST_DUE' })
+    );
+    mockGetSubscription.mockResolvedValue({
+      cancel_at_period_end: true,
+      current_period_end: FUTURE_SECONDS,
+      trial_end: null,
+    });
+    mockGetOpenInvoiceUrl.mockResolvedValue(INVOICE_URL);
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('PAST_DUE');
+    expect(body.allowedActions).toEqual(['pay_now', 'update_card']);
+  });
+
+  it('shows no actions in admin view-as, even for a scheduled cancellation', async () => {
+    mockResolveViewAsSubject.mockResolvedValue({
+      kind: 'view-as',
+      userId: 'u2',
+      target: {},
+    });
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+    mockSubscriptionFindUnique.mockResolvedValue(scheduledRow());
+    mockGetSubscription.mockResolvedValue({
+      cancel_at_period_end: true,
+      current_period_end: FUTURE_SECONDS,
+      trial_end: null,
+    });
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('CANCEL_SCHEDULED');
+    expect(body.allowedActions).toEqual([]);
   });
 });

@@ -82,6 +82,21 @@ describe('StripeWebhookService', () => {
       subscription: 'sub_123',
     } as unknown as Stripe.Checkout.Session;
 
+    it('starts a re-subscribing user clean: the row of an earlier cancellation is not scheduled to end (S2)', async () => {
+      await service.handleCheckoutCompleted(baseSession);
+
+      // The update branch is what a returning user hits (Subscription.userId is
+      // unique); the create branch gets the column defaults.
+      const { update, create } =
+        prismaMock.subscription.upsert.mock.calls[0]![0]!;
+      expect(update).toMatchObject({
+        cancelAtPeriodEnd: false,
+        cancelRequestedAt: null,
+        cancellationReason: null,
+      });
+      expect(create).not.toHaveProperty('cancelAtPeriodEnd');
+    });
+
     it('upgrades the user to PRO, upserts the subscription, and emits TIER_UPGRADED', async () => {
       await service.handleCheckoutCompleted(baseSession);
 
@@ -229,6 +244,80 @@ describe('StripeWebhookService', () => {
       expect(prismaMock.user.update).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         data: { tier: 'FREE' },
+      });
+    });
+
+    // Manage Subscription S2, defect B9: cancel_at_period_end follows Stripe.
+    describe('cancel_at_period_end (B9)', () => {
+      const row = { id: 'sub-row-1', userId: 'user-1' } as never;
+
+      it('stores the scheduled cancellation and leaves the request details the cancel route wrote', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(row);
+
+        await service.handleSubscriptionUpdated({
+          id: 'sub_123',
+          status: 'active',
+          current_period_end: 1234567890,
+          cancel_at_period_end: true,
+        } as unknown as Stripe.Subscription);
+
+        const { data } = prismaMock.subscription.update.mock.calls[0]![0]!;
+        expect(data).toMatchObject({ cancelAtPeriodEnd: true });
+        expect(data).not.toHaveProperty('cancelRequestedAt');
+        expect(data).not.toHaveProperty('cancellationReason');
+        // A scheduled cancellation is still PRO until Stripe ends it.
+        expect(prismaMock.user.update).not.toHaveBeenCalled();
+      });
+
+      it('clears the flag and the details of the earlier request when Stripe says it is off', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(row);
+
+        await service.handleSubscriptionUpdated({
+          id: 'sub_123',
+          status: 'active',
+          current_period_end: 1234567890,
+          cancel_at_period_end: false,
+        } as unknown as Stripe.Subscription);
+
+        expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+          where: { id: 'sub-row-1' },
+          data: expect.objectContaining({
+            cancelAtPeriodEnd: false,
+            cancelRequestedAt: null,
+            cancellationReason: null,
+          }),
+        });
+      });
+
+      it('reads a missing field as off, never as scheduled', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(row);
+
+        await service.handleSubscriptionUpdated({
+          id: 'sub_123',
+          status: 'active',
+          current_period_end: 1234567890,
+        } as unknown as Stripe.Subscription);
+
+        expect(
+          prismaMock.subscription.update.mock.calls[0]![0]!.data
+        ).toMatchObject({ cancelAtPeriodEnd: false });
+      });
+
+      it('writes the flag in the same transaction as the tier, and still downgrades a subscription Stripe has ended', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(row);
+
+        await service.handleSubscriptionUpdated({
+          id: 'sub_123',
+          status: 'canceled',
+          current_period_end: 1234567890,
+          cancel_at_period_end: true,
+        } as unknown as Stripe.Subscription);
+
+        expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+        expect(prismaMock.user.update).toHaveBeenCalledWith({
+          where: { id: 'user-1' },
+          data: { tier: 'FREE' },
+        });
       });
     });
 

@@ -263,6 +263,22 @@ export class StripeService {
   }
 
   /**
+   * End a subscription at the end of the paid period, or stop that from
+   * happening (W3 cancel, W4 resume). PRO continues until the period ends; in
+   * a trial the period is the trial, so it ends then with no charge.
+   * Idempotent: Stripe returns the subscription unchanged when the flag already
+   * has that value. Mirrors lib/stripe/stripe.ts setCancelAtPeriodEnd().
+   */
+  async setCancelAtPeriodEnd(
+    subscriptionId: string,
+    cancelAtPeriodEnd: boolean
+  ): Promise<Stripe.Subscription> {
+    return this.getClient().subscriptions.update(subscriptionId, {
+      cancel_at_period_end: cancelAtPeriodEnd,
+    });
+  }
+
+  /**
    * Create a Billing Portal session that opens ONLY the card form (W1,
    * decision D4): `flow_data.type = payment_method_update`, under the portal
    * configuration kept with every other feature off (D5). Mirrors

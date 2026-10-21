@@ -133,6 +133,11 @@ export async function handleCheckoutCompleted(
         stripeCurrentPeriodEnd: nextBillingDate,
         expiresAt: nextBillingDate,
         affiliateCodeId: reservedAffiliateCode?.id ?? null,
+        // A user who cancelled and subscribes again reuses this row: the new
+        // subscription is not scheduled to end (S2).
+        cancelAtPeriodEnd: false,
+        cancelRequestedAt: null,
+        cancellationReason: null,
       },
       create: {
         userId,
@@ -198,7 +203,11 @@ export async function handleSubscriptionUpdated(
     // Map Stripe status to our SubscriptionStatus enum
     const status = mapStripeStatus(subscription.status);
 
-    // Update subscription details
+    // Update subscription details. `cancelAtPeriodEnd` follows Stripe (B9), so
+    // a cancellation scheduled or undone outside the cancel and resume routes
+    // (Stripe's dashboard, a repair) is mirrored; when it is off, the "when"
+    // and "why" of an earlier request go with it.
+    const cancelAtPeriodEnd = subscription.cancel_at_period_end === true;
     await prisma.subscription.update({
       where: { id: dbSubscription.id },
       data: {
@@ -207,6 +216,11 @@ export async function handleSubscriptionUpdated(
           subscription.current_period_end * 1000
         ),
         expiresAt: new Date(subscription.current_period_end * 1000),
+        cancelAtPeriodEnd,
+        ...(!cancelAtPeriodEnd && {
+          cancelRequestedAt: null,
+          cancellationReason: null,
+        }),
       },
     });
 

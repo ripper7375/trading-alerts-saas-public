@@ -365,6 +365,25 @@ export async function updateSubscription(
   return subscription;
 }
 
+/**
+ * End a subscription at the end of the paid period, or stop that from
+ * happening (W3 cancel, W4 resume). PRO continues until the period ends. In
+ * a trial the period is the trial: the trial ends and nothing is charged.
+ * Idempotent: Stripe returns the subscription unchanged when the flag already
+ * has that value.
+ *
+ * @param subscriptionId - Stripe subscription ID
+ * @param cancelAtPeriodEnd - true to schedule the cancellation, false to undo it
+ */
+export async function setCancelAtPeriodEnd(
+  subscriptionId: string,
+  cancelAtPeriodEnd: boolean
+): Promise<Stripe.Subscription> {
+  return updateSubscription(subscriptionId, {
+    cancel_at_period_end: cancelAtPeriodEnd,
+  });
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CUSTOMER FUNCTIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

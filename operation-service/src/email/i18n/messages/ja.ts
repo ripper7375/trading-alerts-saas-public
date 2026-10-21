@@ -215,6 +215,17 @@ export const ja: EmailMessages = {
   'canceled.reactivateLink': 'サブスクリプションを再開する',
   'canceled.subject': 'サブスクリプションを解約しました - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'サブスクリプションを再開しました',
+  'resumed.body': '**{plan}**サブスクリプションは継続されます。',
+  'resumed.nextBilling': '**次回のお支払い日：** {date}',
+  'resumed.note':
+    '解約のお手続きは取り消されました。引き続き{plan}をすべてご利用いただけ、サブスクリプションは{date}に自動更新されます。',
+  'resumed.manage':
+    'サブスクリプションの内容はいつでもご確認いただけます。{link}',
+  'resumed.manageLink': 'お支払い設定を開く',
+  'resumed.subject': '{plan}サブスクリプションは継続されます - Trading Alerts',
+
   'commission.heading': 'コミッションを獲得しました！',
   'commission.body':
     'あなたのアフィリエイトコードが使用され、コミッションを獲得しました。',

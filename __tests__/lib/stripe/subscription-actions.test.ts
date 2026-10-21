@@ -83,6 +83,53 @@ describe('displayStateOf', () => {
   ] as const)('%j -> %s', (input, expected) => {
     expect(displayStateOf(input)).toBe(expected);
   });
+
+  describe('CANCEL_SCHEDULED (W3)', () => {
+    it.each([
+      ['ACTIVE', 'CANCEL_SCHEDULED'],
+      // Cancelling during the trial ends the trial with no charge.
+      ['TRIALING', 'CANCEL_SCHEDULED'],
+      // A failed payment outranks a scheduled cancellation.
+      ['PAST_DUE', 'PAST_DUE'],
+      ['UNPAID', 'UNPAID'],
+    ] as const)(
+      'a Stripe %s subscription with the flag set -> %s',
+      (status, expected) => {
+        const tier = status === 'UNPAID' ? 'FREE' : 'PRO';
+        expect(
+          displayStateOf({
+            tier,
+            status,
+            provider: 'STRIPE',
+            cancelAtPeriodEnd: true,
+          })
+        ).toBe(expected);
+      }
+    );
+
+    it('ignores the flag when it is false or absent', () => {
+      const base = {
+        tier: 'PRO',
+        status: 'ACTIVE',
+        provider: 'STRIPE',
+      } as const;
+      expect(displayStateOf({ ...base, cancelAtPeriodEnd: false })).toBe(
+        'ACTIVE'
+      );
+      expect(displayStateOf(base)).toBe('ACTIVE');
+    });
+
+    it('ignores the flag for a FREE user with no failed payment', () => {
+      expect(
+        displayStateOf({
+          tier: 'FREE',
+          status: 'CANCELED',
+          provider: 'STRIPE',
+          cancelAtPeriodEnd: true,
+        })
+      ).toBe('FREE');
+    });
+  });
 });
 
 describe('allowedActionsOf (plan §6)', () => {
@@ -97,12 +144,18 @@ describe('allowedActionsOf (plan §6)', () => {
     ]);
   });
 
-  it('ACTIVE dLocal: cancel only (today’s button; S2 removes it, D8)', () => {
-    expect(allowedActionsOf(facts({ provider: 'DLOCAL' }))).toEqual(['cancel']);
+  it('ACTIVE dLocal: nothing (D8: a prepaid plan has no cancel and just ends)', () => {
+    expect(allowedActionsOf(facts({ provider: 'DLOCAL' }))).toEqual([]);
   });
 
-  it('PRO with no provider on the row: cancel only', () => {
-    expect(allowedActionsOf(facts({ provider: null }))).toEqual(['cancel']);
+  it('a dLocal row is never CANCEL_SCHEDULED, whatever the column holds', () => {
+    const dLocal = facts({ provider: 'DLOCAL', cancelAtPeriodEnd: true });
+    expect(displayStateOf(dLocal)).toBe('ACTIVE');
+    expect(allowedActionsOf(dLocal)).toEqual([]);
+  });
+
+  it('PRO with no provider on the row: nothing to cancel or update', () => {
+    expect(allowedActionsOf(facts({ provider: null }))).toEqual([]);
   });
 
   it('PAST_DUE with an open invoice: pay now and update card, no cancel', () => {
@@ -151,6 +204,101 @@ describe('allowedActionsOf (plan §6)', () => {
     ['FREE', 'INACTIVE'],
   ] as const)('FREE with status %s / %s: nothing', (tier, status) => {
     expect(allowedActionsOf(facts({ tier, status }))).toEqual([]);
+  });
+
+  describe('CANCEL_SCHEDULED: resume and update card, no second cancel (W4)', () => {
+    const NOW = new Date('2026-11-01T12:00:00.000Z');
+    const scheduled = (
+      overrides: Partial<SubscriptionFacts>
+    ): SubscriptionFacts =>
+      facts({ cancelAtPeriodEnd: true, now: NOW, ...overrides });
+
+    it('offers resume and update card before the period ends', () => {
+      expect(
+        allowedActionsOf(
+          scheduled({ currentPeriodEnd: new Date('2026-11-05T00:00:00.000Z') })
+        )
+      ).toEqual(['resume', 'update_card']);
+    });
+
+    it('accepts the period end as an ISO string, as the database client returns it over JSON', () => {
+      expect(
+        allowedActionsOf(
+          scheduled({ currentPeriodEnd: '2026-11-05T00:00:00.000Z' })
+        )
+      ).toEqual(['resume', 'update_card']);
+    });
+
+    it('offers resume while the trial is running too', () => {
+      expect(
+        allowedActionsOf(
+          scheduled({
+            status: 'TRIALING',
+            currentPeriodEnd: new Date('2026-11-03T00:00:00.000Z'),
+          })
+        )
+      ).toEqual(['resume', 'update_card']);
+    });
+
+    it('withdraws resume once the period end has passed, keeping update card', () => {
+      expect(
+        allowedActionsOf(
+          scheduled({ currentPeriodEnd: new Date('2026-11-01T11:59:59.000Z') })
+        )
+      ).toEqual(['update_card']);
+    });
+
+    it('withdraws resume at the exact period end (the subscription ends then)', () => {
+      expect(allowedActionsOf(scheduled({ currentPeriodEnd: NOW }))).toEqual([
+        'update_card',
+      ]);
+    });
+
+    it.each([null, undefined, 'not a date'])(
+      'treats an unknown period end (%s) as not yet ended and lets Stripe judge',
+      (currentPeriodEnd) => {
+        expect(
+          allowedActionsOf(
+            scheduled({ currentPeriodEnd: currentPeriodEnd as never })
+          )
+        ).toEqual(['resume', 'update_card']);
+      }
+    );
+
+    it('never offers cancel again', () => {
+      expect(allowedActionsOf(scheduled({}))).not.toContain('cancel');
+    });
+
+    it('offers nothing in admin view-as', () => {
+      expect(
+        allowedActionsOf(
+          scheduled({
+            currentPeriodEnd: new Date('2026-11-05T00:00:00.000Z'),
+            viewing: true,
+          })
+        )
+      ).toEqual([]);
+    });
+
+    it('offers resume to nobody on a failed payment: pay first (plan §6)', () => {
+      expect(
+        allowedActionsOf(
+          scheduled({ status: 'PAST_DUE', openInvoiceUrl: INVOICE })
+        )
+      ).toEqual(['pay_now', 'update_card']);
+    });
+
+    it('uses the real clock when none is passed', () => {
+      const future = new Date(Date.now() + 86_400_000);
+      const past = new Date(Date.now() - 86_400_000);
+      const base = facts({ cancelAtPeriodEnd: true });
+      expect(allowedActionsOf({ ...base, currentPeriodEnd: future })).toContain(
+        'resume'
+      );
+      expect(
+        allowedActionsOf({ ...base, currentPeriodEnd: past })
+      ).not.toContain('resume');
+    });
   });
 
   it.each([

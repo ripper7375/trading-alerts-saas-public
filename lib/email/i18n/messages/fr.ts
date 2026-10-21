@@ -222,6 +222,17 @@ export const fr: EmailMessages = {
   'canceled.reactivateLink': 'Réactivez votre abonnement',
   'canceled.subject': 'Abonnement résilié - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Abonnement repris',
+  'resumed.body': 'Votre abonnement **{plan}** se poursuit.',
+  'resumed.nextBilling': '**Prochaine date de facturation :** {date}',
+  'resumed.note':
+    "Votre résiliation a été annulée. Vous conservez l'accès complet à {plan} et votre abonnement sera renouvelé automatiquement le {date}.",
+  'resumed.manage':
+    'Vous pouvez consulter votre abonnement à tout moment. {link}',
+  'resumed.manageLink': 'Ouvrir les paramètres de facturation',
+  'resumed.subject': 'Votre abonnement {plan} se poursuit - Trading Alerts',
+
   'commission.heading': 'Commission gagnée !',
   'commission.body':
     "Bonne nouvelle ! Votre code d'affilié vient d'être utilisé et vous avez gagné une commission.",

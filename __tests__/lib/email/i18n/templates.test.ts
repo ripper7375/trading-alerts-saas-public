@@ -25,6 +25,7 @@ import {
   buildPaymentReceiptEmail,
   buildSubscriptionCanceledEmail,
   buildSubscriptionConfirmationEmail,
+  buildSubscriptionResumedEmail,
   buildTwoFactorDisabledEmail,
   buildTwoFactorEnabledEmail,
   buildVerificationEmail,
@@ -135,6 +136,12 @@ const BUILDERS: Record<string, (locale: EmailLocale) => BuiltEmail> = {
       plan: 'PRO',
       cancelAt: when,
     }),
+  subscriptionResumed: (l) =>
+    buildSubscriptionResumedEmail(l, {
+      name: 'Ada',
+      plan: 'PRO',
+      nextBillingDate: when,
+    }),
   affiliateCommission: (l) =>
     buildAffiliateCommissionEmail(l, {
       name: 'Ada',
@@ -190,6 +197,80 @@ describe('the payment-failed button (Manage Subscription B4)', () => {
       }
     }
   );
+});
+
+describe('the cancellation and resume e-mails (Manage Subscription S2, W3/W4)', () => {
+  // "Cancel scheduled" is the existing "canceled" e-mail with the date PRO ends.
+  it.each([...EMAIL_LANGUAGES])(
+    'the cancel-scheduled mail names the date PRO ends, in %s',
+    (language) => {
+      const email = BUILDERS['subscriptionCanceled']!({ language });
+      expect(email.html).toContain('2026');
+      expect(email.text).toContain('2026');
+      expect(email.html).toMatch(/href="[^"]*\/settings\/billing"/);
+    }
+  );
+
+  it.each([...EMAIL_LANGUAGES])(
+    'the resume mail names the renewal date and links to billing, in %s',
+    (language) => {
+      const email = BUILDERS['subscriptionResumed']!({ language });
+      expect(email.html).toContain('2026');
+      expect(email.text).toContain('2026');
+      expect(email.html).toMatch(/href="[^"]*\/settings\/billing"/);
+      expect(email.html).toContain('PRO');
+    }
+  );
+
+  it.each([...EMAIL_LANGUAGES].filter((l) => l !== 'en-US' && l !== 'en-GB'))(
+    'the resume mail is written in the reader’s language, not English, in %s',
+    (language) => {
+      const english = BUILDERS['subscriptionResumed']!({ language: 'en-US' });
+      const email = BUILDERS['subscriptionResumed']!({ language });
+      expect(email.subject).not.toBe(english.subject);
+      expect(email.html).not.toContain('Subscription Resumed');
+      expect(email.html).not.toContain('Open billing settings');
+    }
+  );
+
+  it('writes the resume mail in English exactly as agreed', () => {
+    const email = BUILDERS['subscriptionResumed']!({ language: 'en-US' });
+    expect(email.subject).toBe(
+      'Your PRO subscription will continue - Trading Alerts'
+    );
+    expect(email.html).toContain('Subscription Resumed');
+    expect(email.html).toContain(
+      'Your <strong>PRO</strong> subscription will continue.'
+    );
+    expect(email.html).toContain(
+      '<strong>Next Billing Date:</strong> October 23, 2026'
+    );
+    expect(email.html).toContain(
+      'Your cancellation has been withdrawn. You keep full PRO access and your subscription renews automatically on October 23, 2026.'
+    );
+  });
+
+  it("prints the renewal date in the reader's own date format and timezone", () => {
+    const email = buildSubscriptionResumedEmail(
+      { language: 'de', timezone: 'Asia/Bangkok', dateFormat: 'DMY' },
+      { name: 'Ada', plan: 'PRO', nextBillingDate: when }
+    );
+    expect(email.html).toContain('23/10/2026');
+    expect(email.html).not.toContain('October 23, 2026');
+  });
+
+  it('escapes the name a person supplied', () => {
+    const email = buildSubscriptionResumedEmail(
+      { language: 'en-US' },
+      {
+        name: '<img src=x onerror=alert(1)>',
+        plan: 'PRO',
+        nextBillingDate: when,
+      }
+    );
+    expect(email.html).not.toContain('<img src=x');
+    expect(email.html).toContain('&lt;img');
+  });
 });
 
 describe("the reader's language reaches the message", () => {

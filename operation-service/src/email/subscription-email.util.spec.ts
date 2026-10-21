@@ -10,11 +10,13 @@ import {
   getPaymentFailedEmailTemplate,
   getPaymentReceiptEmailTemplate,
   getSubscriptionCanceledEmailTemplate,
+  getSubscriptionResumedEmailTemplate,
   sendAffiliateCommissionEmail,
   sendCancellationEmail,
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
   sendSubscriptionCanceledEmail,
+  sendSubscriptionResumedEmail,
 } from './subscription-email.util';
 
 jest.mock('./email.util', () => ({
@@ -184,6 +186,53 @@ describe('subscription-email.util', () => {
         'ada@example.com',
         'Subscription Canceled - Trading Alerts',
         expect.stringContaining('August 15, 2026')
+      );
+    });
+  });
+
+  describe('getSubscriptionResumedEmailTemplate (S2, W4)', () => {
+    it('says the subscription continues, names the renewal date and links to billing', () => {
+      const template = getSubscriptionResumedEmailTemplate(
+        'Ada',
+        'PRO',
+        new Date('2026-11-21T00:00:00Z')
+      );
+      expect(template.subject).toBe(
+        'Your PRO subscription will continue - Trading Alerts'
+      );
+      expect(template.html).toContain('Subscription Resumed');
+      expect(template.html).toContain('November 21, 2026');
+      expect(template.html).toContain('/settings/billing');
+    });
+
+    it('is written in the language it is given', () => {
+      const template = getSubscriptionResumedEmailTemplate(
+        'Ada',
+        'PRO',
+        new Date('2026-11-21T00:00:00Z'),
+        { language: 'de' }
+      );
+      expect(template.subject).toBe(
+        'Ihr Abonnement PRO läuft weiter - Trading Alerts'
+      );
+      expect(template.html).toContain('Abonnement fortgesetzt');
+      expect(template.html).not.toContain('Subscription Resumed');
+    });
+  });
+
+  describe('sendSubscriptionResumedEmail (S2, W4)', () => {
+    it('sends with the template subject and html', async () => {
+      await sendSubscriptionResumedEmail(
+        'ada@example.com',
+        'Ada',
+        'PRO',
+        new Date('2026-11-21T00:00:00Z'),
+        { language: 'en-US' }
+      );
+      expect(mockSendEmail).toHaveBeenCalledWith(
+        'ada@example.com',
+        'Your PRO subscription will continue - Trading Alerts',
+        expect.stringContaining('November 21, 2026')
       );
     });
   });

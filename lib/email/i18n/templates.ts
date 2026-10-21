@@ -728,6 +728,69 @@ export function buildSubscriptionCanceledEmail(
   );
 }
 
+/**
+ * Sent when a subscriber withdraws a scheduled cancellation (Manage
+ * Subscription S2, workflow W4): the subscription continues and renews on
+ * `nextBillingDate`.
+ */
+export function buildSubscriptionResumedEmail(
+  locale: EmailLocale,
+  input: {
+    name: string | null | undefined;
+    plan: 'FREE' | 'PRO';
+    nextBillingDate: Date;
+  }
+): BuiltEmail {
+  const ctx = createContext(locale);
+  const name = displayName(ctx, input.name);
+  const url = appUrl(BANNER_URL_FALLBACK);
+  const { plan } = input;
+  const date = formatEmailDate(input.nextBillingDate, locale);
+  const manage = textLink(
+    `${url}/settings/billing`,
+    ctx.p('resumed.manageLink'),
+    'color: #0066cc; font-weight: 600;'
+  );
+  const support = textLink(
+    `mailto:${SUPPORT_EMAIL}`,
+    SUPPORT_EMAIL,
+    'color: #2563eb;'
+  );
+
+  const inner = `${banner.header(
+    'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+    'white',
+    ctx.h('resumed.heading')
+  )}
+
+  ${banner.content(`${banner.p(ctx.h('common.greeting', { name }))}
+
+    ${banner.p(ctx.h('resumed.body', { plan }))}
+
+    ${banner.callout(
+      ctx,
+      '#22c55e',
+      `<p style="margin: 0; font-size: 14px;">
+        ${ctx.h('resumed.nextBilling', { date })}<br>
+        ${ctx.h('resumed.note', { plan, date })}
+      </p>`,
+      '#f0fdf4'
+    )}
+
+    ${banner.p(ctx.h('resumed.manage', { link: raw(manage) }))}
+
+    ${banner.signature(
+      ctx,
+      url,
+      `${ctx.h('common.needHelpContact', { email: raw(support) })}<br><br>`
+    )}`)}`;
+
+  return finish(
+    ctx.p('resumed.subject', { plan }),
+    documentShell(ctx, ctx.p('resumed.heading'), banner.bodyStyle, inner)
+  );
+}
+
 export function buildAffiliateCommissionEmail(
   locale: EmailLocale,
   input: {

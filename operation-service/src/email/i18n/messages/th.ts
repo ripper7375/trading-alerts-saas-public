@@ -214,6 +214,17 @@ export const th: EmailMessages = {
   'canceled.reactivateLink': 'เปิดใช้งานการสมัครสมาชิกอีกครั้ง',
   'canceled.subject': 'ยกเลิกการสมัครสมาชิกแล้ว - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'เปิดใช้งานการสมัครสมาชิกต่อแล้ว',
+  'resumed.body': 'การสมัครสมาชิก **{plan}** ของคุณจะดำเนินต่อไป',
+  'resumed.nextBilling': '**วันเรียกเก็บเงินครั้งถัดไป:** {date}',
+  'resumed.note':
+    'คำขอยกเลิกของคุณถูกเพิกถอนแล้ว คุณยังใช้งาน {plan} ได้เต็มรูปแบบ และการสมัครสมาชิกจะต่ออายุอัตโนมัติในวันที่ {date}',
+  'resumed.manage': 'คุณสามารถตรวจสอบการสมัครสมาชิกของคุณได้ทุกเมื่อ {link}',
+  'resumed.manageLink': 'เปิดการตั้งค่าการเรียกเก็บเงิน',
+  'resumed.subject':
+    'การสมัครสมาชิก {plan} ของคุณจะดำเนินต่อไป - Trading Alerts',
+
   'commission.heading': 'คุณได้รับค่าคอมมิชชันแล้ว!',
   'commission.body':
     'ข่าวดี! รหัสพันธมิตรของคุณเพิ่งถูกใช้งาน และคุณได้รับค่าคอมมิชชัน',

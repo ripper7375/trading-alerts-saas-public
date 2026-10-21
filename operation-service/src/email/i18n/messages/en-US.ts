@@ -231,6 +231,16 @@ export const enUS = {
   'canceled.reactivateLink': 'Reactivate your subscription',
   'canceled.subject': 'Subscription Canceled - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Subscription Resumed',
+  'resumed.body': 'Your **{plan}** subscription will continue.',
+  'resumed.nextBilling': '**Next Billing Date:** {date}',
+  'resumed.note':
+    'Your cancellation has been withdrawn. You keep full {plan} access and your subscription renews automatically on {date}.',
+  'resumed.manage': 'You can review your subscription at any time. {link}',
+  'resumed.manageLink': 'Open billing settings',
+  'resumed.subject': 'Your {plan} subscription will continue - Trading Alerts',
+
   // ── Affiliate commission ──────────────────────────────────────────────────
   'commission.heading': 'Commission Earned!',
   'commission.body':

@@ -1,10 +1,14 @@
 /**
- * Stripe Subscription Controller Tests (Session 4A-9, File 3/10)
+ * Stripe Subscription Controller Tests (Session 4A-9, File 3/10; Manage
+ * Subscription S1 for the card portal, S2 for cancel at period end and resume)
  */
+import { INTERCEPTORS_METADATA } from '@nestjs/common/constants';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
+import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
+import { IdempotencyStore } from '../common/idempotency/idempotency.store';
 import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
@@ -16,7 +20,7 @@ describe('StripeSubscriptionController', () => {
   let controller: StripeSubscriptionController;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let stripeServiceMock: {
-    cancelSubscription: jest.Mock;
+    setCancelAtPeriodEnd: jest.Mock;
     createPaymentMethodUpdateSession: jest.Mock;
   };
   let outboxServiceMock: { recordInTransaction: jest.Mock };
@@ -39,7 +43,7 @@ describe('StripeSubscriptionController', () => {
       (cb as (tx: unknown) => unknown)(prismaMock)
     );
     stripeServiceMock = {
-      cancelSubscription: jest.fn().mockResolvedValue({}),
+      setCancelAtPeriodEnd: jest.fn().mockResolvedValue({}),
       createPaymentMethodUpdateSession: jest
         .fn()
         .mockResolvedValue({ url: 'https://billing.stripe.com/p/session/x' }),
@@ -62,112 +66,578 @@ describe('StripeSubscriptionController', () => {
           provide: ConfigService,
           useValue: { get: (key: string) => env[key] },
         },
+        IdempotencyInterceptor,
+        {
+          provide: IdempotencyStore,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            claim: jest.fn().mockResolvedValue(true),
+            save: jest.fn().mockResolvedValue(undefined),
+            release: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
     controller = moduleRef.get(StripeSubscriptionController);
   });
 
-  it('downgrades the user to FREE, cancels in Stripe, and emits SUBSCRIPTION_CANCELLED', async () => {
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 'user-1',
-      tier: 'PRO',
-    } as never);
-    prismaMock.subscription.findUnique.mockResolvedValue({
+  // ───────────────────────────────────────────────────────────────────────────
+  // Manage Subscription S2: cancel at the END of the period (W3, D1), resume
+  // (W4), and no cancel for a dLocal plan (D8).
+  // ───────────────────────────────────────────────────────────────────────────
+
+  const PERIOD_END = new Date('2026-11-21T00:00:00.000Z');
+  const PERIOD_END_SECONDS = PERIOD_END.getTime() / 1000;
+
+  const stripeRow = (overrides: Record<string, unknown> = {}): never =>
+    ({
       id: 'sub-row-1',
-      userId: 'user-1',
+      status: 'ACTIVE',
       stripeSubscriptionId: 'sub_stripe_123',
-    } as never);
+      stripeCurrentPeriodEnd: new Date(Date.now() + 5 * 86_400_000),
+      dLocalPaymentId: null,
+      expiresAt: PERIOD_END,
+      cancelAtPeriodEnd: false,
+      ...overrides,
+    }) as never;
 
-    const result = await controller.cancel(makeRequest());
-
-    expect(result).toEqual({
-      success: true,
-      message: 'Subscription cancelled successfully',
-      tier: 'FREE',
+  describe('cancel (W3)', () => {
+    beforeEach(() => {
+      prismaMock.user.findUnique.mockResolvedValue({ tier: 'PRO' } as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(stripeRow());
+      stripeServiceMock.setCancelAtPeriodEnd.mockResolvedValue({
+        cancel_at: PERIOD_END_SECONDS,
+        current_period_end: PERIOD_END_SECONDS,
+      });
     });
-    expect(stripeServiceMock.cancelSubscription).toHaveBeenCalledWith(
-      'sub_stripe_123'
+
+    it('asks Stripe to cancel at the period end, records the request, keeps the user on PRO, and emits SUBSCRIPTION_CANCELLED with the date', async () => {
+      const result = await controller.cancel(makeRequest(), {
+        reason: 'too_expensive',
+      });
+
+      expect(stripeServiceMock.setCancelAtPeriodEnd).toHaveBeenCalledWith(
+        'sub_stripe_123',
+        true
+      );
+      expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub-row-1' },
+        data: {
+          cancelAtPeriodEnd: true,
+          cancelRequestedAt: expect.any(Date),
+          cancellationReason: 'too_expensive',
+        },
+      });
+      // Tier and status stay: the deleted webhook ends PRO at the period end.
+      expect(prismaMock.user.update).not.toHaveBeenCalled();
+      expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
+        prismaMock,
+        {
+          aggregateType: 'User',
+          aggregateId: 'user-1',
+          eventType: 'SUBSCRIPTION_CANCELLED',
+          payload: {
+            tier: 'PRO',
+            subscriptionId: 'sub-row-1',
+            provider: 'STRIPE',
+            cancelAt: '2026-11-21T00:00:00.000Z',
+            scheduled: true,
+          },
+        }
+      );
+      expect(result).toEqual({
+        success: true,
+        message:
+          'Your subscription will end at the close of the current period',
+        tier: 'PRO',
+        cancelAtPeriodEnd: true,
+        cancelAt: '2026-11-21T00:00:00.000Z',
+      });
+    });
+
+    it('calls Stripe before it writes anything, so a refusal leaves no trace', async () => {
+      await controller.cancel(makeRequest(), {});
+
+      const stripeOrder =
+        stripeServiceMock.setCancelAtPeriodEnd.mock.invocationCallOrder[0]!;
+      const writeOrder =
+        prismaMock.subscription.update.mock.invocationCallOrder[0]!;
+      expect(stripeOrder).toBeLessThan(writeOrder);
+    });
+
+    it('writes the subscription row and the outbox event in ONE transaction', async () => {
+      await controller.cancel(makeRequest(), {});
+
+      expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('reads the user and the subscription with explicit selects (F21)', async () => {
+      await controller.cancel(makeRequest(), {});
+
+      expect(prismaMock.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        select: { tier: true },
+      });
+      expect(prismaMock.subscription.findUnique).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        select: {
+          id: true,
+          status: true,
+          stripeSubscriptionId: true,
+          stripeCurrentPeriodEnd: true,
+          dLocalPaymentId: true,
+          expiresAt: true,
+          cancelAtPeriodEnd: true,
+        },
+      });
+    });
+
+    it('uses current_period_end when Stripe sends no cancel_at', async () => {
+      stripeServiceMock.setCancelAtPeriodEnd.mockResolvedValue({
+        cancel_at: null,
+        current_period_end: PERIOD_END_SECONDS,
+      });
+
+      const result = await controller.cancel(makeRequest(), {});
+
+      expect(result.cancelAt).toBe('2026-11-21T00:00:00.000Z');
+    });
+
+    it('cancels a trial the same way: it ends at the trial end, with no charge', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        stripeRow({ status: 'TRIALING' })
+      );
+
+      const result = await controller.cancel(makeRequest(), {});
+
+      expect(result.success).toBe(true);
+      expect(stripeServiceMock.setCancelAtPeriodEnd).toHaveBeenCalledWith(
+        'sub_stripe_123',
+        true
+      );
+    });
+
+    describe('the reason (B6)', () => {
+      it.each([
+        ['a code', { reason: 'not_using' }, 'not_using'],
+        [
+          'free text, trimmed',
+          { reason: '  other: too slow ' },
+          'other: too slow',
+        ],
+        [
+          'control characters become spaces',
+          { reason: 'a\u0000b\nc' },
+          'a b c',
+        ],
+        ['an empty string', { reason: '   ' }, null],
+        ['no reason', {}, null],
+        ['no body', undefined, null],
+        ['a null body', null, null],
+        ['a body that is not an object', 'just text', null],
+      ])('%s', async (_name, body, expected) => {
+        await controller.cancel(makeRequest(), body);
+
+        expect(
+          prismaMock.subscription.update.mock.calls[0]![0]!.data
+        ).toMatchObject({ cancellationReason: expected });
+      });
+
+      it.each([
+        ['501 characters', { reason: 'x'.repeat(501) }],
+        ['a number', { reason: 5 }],
+        ['an object', { reason: { code: 'x' } }],
+      ])('refuses %s before it reads anything', async (_name, body) => {
+        await expect(
+          controller.cancel(makeRequest(), body)
+        ).rejects.toMatchObject({
+          response: { code: 'INVALID_REASON' },
+          status: 400,
+        });
+        expect(prismaMock.user.findUnique).not.toHaveBeenCalled();
+        expect(stripeServiceMock.setCancelAtPeriodEnd).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('refusals (nothing is called or written)', () => {
+      const expectUntouched = (): void => {
+        expect(stripeServiceMock.setCancelAtPeriodEnd).not.toHaveBeenCalled();
+        expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+        expect(prismaMock.user.update).not.toHaveBeenCalled();
+        expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
+      };
+
+      it('DLOCAL_NO_CANCEL for a dLocal plan, with its expiry (D8, B7)', async () => {
+        prismaMock.subscription.findUnique.mockResolvedValue(
+          stripeRow({ dLocalPaymentId: 'dl_1', stripeSubscriptionId: null })
+        );
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: {
+            code: 'DLOCAL_NO_CANCEL',
+            expiresAt: '2026-11-21T00:00:00.000Z',
+          },
+          status: 400,
+        });
+        expectUntouched();
+      });
+
+      it('treats a row with both ids as dLocal, the precedence the page has always had', async () => {
+        prismaMock.subscription.findUnique.mockResolvedValue(
+          stripeRow({ dLocalPaymentId: 'dl_1' })
+        );
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: { code: 'DLOCAL_NO_CANCEL' },
+        });
+        expectUntouched();
+      });
+
+      it('NO_SUBSCRIPTION for a FREE user', async () => {
+        prismaMock.user.findUnique.mockResolvedValue({ tier: 'FREE' } as never);
+        prismaMock.subscription.findUnique.mockResolvedValue(null);
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: { code: 'NO_SUBSCRIPTION' },
+          status: 400,
+        });
+        expectUntouched();
+      });
+
+      it('NO_SUBSCRIPTION when there is no row', async () => {
+        prismaMock.subscription.findUnique.mockResolvedValue(null);
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: { code: 'NO_SUBSCRIPTION' },
+        });
+      });
+
+      it('USER_NOT_FOUND when the user record is missing', async () => {
+        prismaMock.user.findUnique.mockResolvedValue(null);
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: { code: 'USER_NOT_FOUND' },
+          status: 404,
+        });
+      });
+
+      it('NO_STRIPE_SUBSCRIPTION for a row with neither provider', async () => {
+        prismaMock.subscription.findUnique.mockResolvedValue(
+          stripeRow({ stripeSubscriptionId: null })
+        );
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: { code: 'NO_STRIPE_SUBSCRIPTION' },
+          status: 400,
+        });
+        expectUntouched();
+      });
+
+      it('ALREADY_SCHEDULED when the cancellation is already recorded (a second call changes nothing)', async () => {
+        prismaMock.subscription.findUnique.mockResolvedValue(
+          stripeRow({ cancelAtPeriodEnd: true })
+        );
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: { code: 'ALREADY_SCHEDULED' },
+          status: 400,
+        });
+        expectUntouched();
+      });
+
+      it.each(['PAST_DUE', 'UNPAID'])(
+        'ACTION_NOT_ALLOWED while the payment is %s: pay first (plan §6)',
+        async (status) => {
+          prismaMock.subscription.findUnique.mockResolvedValue(
+            stripeRow({ status })
+          );
+
+          await expect(
+            controller.cancel(makeRequest(), {})
+          ).rejects.toMatchObject({
+            response: { code: 'ACTION_NOT_ALLOWED' },
+            status: 400,
+          });
+          expectUntouched();
+        }
+      );
+    });
+
+    describe('failures', () => {
+      it('records and emits nothing when Stripe refuses, and the user can try again', async () => {
+        stripeServiceMock.setCancelAtPeriodEnd.mockRejectedValue(
+          new Error('stripe down')
+        );
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: { code: 'CANCEL_ERROR' },
+          status: 500,
+        });
+        expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+        expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
+      });
+
+      it('answers CANCEL_ERROR when the transaction fails after Stripe agreed (a retry is allowed: the flag is still off in the row)', async () => {
+        prismaMock.subscription.update.mockRejectedValue(new Error('db down'));
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: { code: 'CANCEL_ERROR' },
+          status: 500,
+        });
+      });
+
+      it('does not leak Stripe’s message', async () => {
+        stripeServiceMock.setCancelAtPeriodEnd.mockRejectedValue(
+          new Error('No such subscription: sub_stripe_123')
+        );
+
+        await expect(
+          controller.cancel(makeRequest(), {})
+        ).rejects.toMatchObject({
+          response: {
+            message: 'Failed to cancel subscription. Please try again.',
+          },
+        });
+      });
+    });
+  });
+
+  describe('resume (W4)', () => {
+    beforeEach(() => {
+      prismaMock.user.findUnique.mockResolvedValue({ tier: 'PRO' } as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        stripeRow({ cancelAtPeriodEnd: true })
+      );
+      stripeServiceMock.setCancelAtPeriodEnd.mockResolvedValue({
+        current_period_end: PERIOD_END_SECONDS,
+      });
+    });
+
+    it('tells Stripe to stop cancelling, clears the three columns, and emits SUBSCRIPTION_RESUMED with the renewal date', async () => {
+      const result = await controller.resume(makeRequest());
+
+      expect(stripeServiceMock.setCancelAtPeriodEnd).toHaveBeenCalledWith(
+        'sub_stripe_123',
+        false
+      );
+      expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub-row-1' },
+        data: {
+          cancelAtPeriodEnd: false,
+          cancelRequestedAt: null,
+          cancellationReason: null,
+        },
+      });
+      expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
+        prismaMock,
+        {
+          aggregateType: 'User',
+          aggregateId: 'user-1',
+          eventType: 'SUBSCRIPTION_RESUMED',
+          payload: {
+            tier: 'PRO',
+            subscriptionId: 'sub-row-1',
+            provider: 'STRIPE',
+            renewsAt: '2026-11-21T00:00:00.000Z',
+          },
+        }
+      );
+      expect(result).toEqual({
+        success: true,
+        message: 'Your subscription will continue',
+        tier: 'PRO',
+        cancelAtPeriodEnd: false,
+        renewsAt: '2026-11-21T00:00:00.000Z',
+      });
+    });
+
+    it('calls Stripe before it writes anything, and writes in ONE transaction', async () => {
+      await controller.resume(makeRequest());
+
+      expect(
+        stripeServiceMock.setCancelAtPeriodEnd.mock.invocationCallOrder[0]!
+      ).toBeLessThan(
+        prismaMock.subscription.update.mock.invocationCallOrder[0]!
+      );
+      expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it('never touches the user’s tier', async () => {
+      await controller.resume(makeRequest());
+
+      expect(prismaMock.user.update).not.toHaveBeenCalled();
+    });
+
+    it('resumes a trial that was set to end', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        stripeRow({ cancelAtPeriodEnd: true, status: 'TRIALING' })
+      );
+
+      await expect(controller.resume(makeRequest())).resolves.toMatchObject({
+        success: true,
+      });
+    });
+
+    it('resumes when the stored period end is unknown and lets Stripe judge', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        stripeRow({ cancelAtPeriodEnd: true, stripeCurrentPeriodEnd: null })
+      );
+
+      await expect(controller.resume(makeRequest())).resolves.toMatchObject({
+        success: true,
+      });
+    });
+
+    describe('refusals (nothing is called or written)', () => {
+      const expectUntouched = (): void => {
+        expect(stripeServiceMock.setCancelAtPeriodEnd).not.toHaveBeenCalled();
+        expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+        expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
+      };
+
+      it('NOT_SCHEDULED when no cancellation is recorded', async () => {
+        prismaMock.subscription.findUnique.mockResolvedValue(stripeRow());
+
+        await expect(controller.resume(makeRequest())).rejects.toMatchObject({
+          response: { code: 'NOT_SCHEDULED' },
+          status: 400,
+        });
+        expectUntouched();
+      });
+
+      it('PERIOD_ENDED once the period end has passed', async () => {
+        prismaMock.subscription.findUnique.mockResolvedValue(
+          stripeRow({
+            cancelAtPeriodEnd: true,
+            stripeCurrentPeriodEnd: new Date(Date.now() - 1000),
+          })
+        );
+
+        await expect(controller.resume(makeRequest())).rejects.toMatchObject({
+          response: { code: 'PERIOD_ENDED' },
+          status: 400,
+        });
+        expectUntouched();
+      });
+
+      it('NO_STRIPE_SUBSCRIPTION for a dLocal plan: nothing to resume (D8)', async () => {
+        prismaMock.subscription.findUnique.mockResolvedValue(
+          stripeRow({
+            cancelAtPeriodEnd: true,
+            dLocalPaymentId: 'dl_1',
+            stripeSubscriptionId: null,
+          })
+        );
+
+        await expect(controller.resume(makeRequest())).rejects.toMatchObject({
+          response: { code: 'NO_STRIPE_SUBSCRIPTION' },
+          status: 400,
+        });
+        expectUntouched();
+      });
+
+      it('NO_SUBSCRIPTION for a FREE user or a missing row', async () => {
+        prismaMock.user.findUnique.mockResolvedValue({ tier: 'FREE' } as never);
+        await expect(controller.resume(makeRequest())).rejects.toMatchObject({
+          response: { code: 'NO_SUBSCRIPTION' },
+        });
+
+        prismaMock.user.findUnique.mockResolvedValue({ tier: 'PRO' } as never);
+        prismaMock.subscription.findUnique.mockResolvedValue(null);
+        await expect(controller.resume(makeRequest())).rejects.toMatchObject({
+          response: { code: 'NO_SUBSCRIPTION' },
+        });
+        expectUntouched();
+      });
+
+      it('USER_NOT_FOUND when the user record is missing', async () => {
+        prismaMock.user.findUnique.mockResolvedValue(null);
+
+        await expect(controller.resume(makeRequest())).rejects.toMatchObject({
+          response: { code: 'USER_NOT_FOUND' },
+          status: 404,
+        });
+      });
+
+      it.each(['PAST_DUE', 'UNPAID'])(
+        'ACTION_NOT_ALLOWED while the payment is %s: pay first',
+        async (status) => {
+          prismaMock.subscription.findUnique.mockResolvedValue(
+            stripeRow({ cancelAtPeriodEnd: true, status })
+          );
+
+          await expect(controller.resume(makeRequest())).rejects.toMatchObject({
+            response: { code: 'ACTION_NOT_ALLOWED' },
+            status: 400,
+          });
+          expectUntouched();
+        }
+      );
+    });
+
+    describe('failures', () => {
+      it('records and emits nothing when Stripe refuses (for example the subscription just ended)', async () => {
+        stripeServiceMock.setCancelAtPeriodEnd.mockRejectedValue(
+          new Error('No such subscription')
+        );
+
+        await expect(controller.resume(makeRequest())).rejects.toMatchObject({
+          response: { code: 'RESUME_ERROR' },
+          status: 500,
+        });
+        expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+        expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
+      });
+
+      it('answers RESUME_ERROR when the transaction fails after Stripe agreed', async () => {
+        prismaMock.subscription.update.mockRejectedValue(new Error('db down'));
+
+        await expect(controller.resume(makeRequest())).rejects.toMatchObject({
+          response: { code: 'RESUME_ERROR' },
+          status: 500,
+        });
+      });
+    });
+  });
+
+  describe('idempotency', () => {
+    it.each(['cancel', 'resume'] as const)(
+      'the %s route is behind the Idempotency-Key interceptor, like the other write routes',
+      (name) => {
+        const interceptors = Reflect.getMetadata(
+          INTERCEPTORS_METADATA,
+          StripeSubscriptionController.prototype[name]
+        ) as unknown[];
+        expect(interceptors).toContain(IdempotencyInterceptor);
+      }
     );
-    expect(prismaMock.user.update).toHaveBeenCalledWith({
-      where: { id: 'user-1' },
-      data: expect.objectContaining({
-        tier: 'FREE',
-        trialStatus: 'CANCELLED',
-      }),
+
+    it('the card-update route is not: a cached portal link would be dead within minutes', () => {
+      const interceptors = Reflect.getMetadata(
+        INTERCEPTORS_METADATA,
+        StripeSubscriptionController.prototype.createPaymentMethodSession
+      ) as unknown[] | undefined;
+      expect(interceptors ?? []).not.toContain(IdempotencyInterceptor);
     });
-    expect(prismaMock.subscription.update).toHaveBeenCalledWith({
-      where: { id: 'sub-row-1' },
-      data: { status: 'CANCELED' },
-    });
-    expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
-      prismaMock,
-      expect.objectContaining({
-        aggregateType: 'User',
-        aggregateId: 'user-1',
-        eventType: 'SUBSCRIPTION_CANCELLED',
-      })
-    );
-  });
-
-  it('returns 400 NO_SUBSCRIPTION when the user is already FREE', async () => {
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 'user-1',
-      tier: 'FREE',
-    } as never);
-    prismaMock.subscription.findUnique.mockResolvedValue(null);
-
-    await expect(controller.cancel(makeRequest())).rejects.toMatchObject({
-      response: { code: 'NO_SUBSCRIPTION' },
-      status: 400,
-    });
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
-  });
-
-  it('returns 404 USER_NOT_FOUND when the user record is missing', async () => {
-    prismaMock.user.findUnique.mockResolvedValue(null);
-
-    await expect(controller.cancel(makeRequest())).rejects.toMatchObject({
-      response: { code: 'USER_NOT_FOUND' },
-      status: 404,
-    });
-  });
-
-  it('continues local cancellation even if the Stripe API call fails (idempotent-by-construction, 4A-W4)', async () => {
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 'user-1',
-      tier: 'PRO',
-    } as never);
-    prismaMock.subscription.findUnique.mockResolvedValue({
-      id: 'sub-row-1',
-      userId: 'user-1',
-      stripeSubscriptionId: 'sub_stripe_123',
-    } as never);
-    stripeServiceMock.cancelSubscription.mockRejectedValue(
-      new Error('already canceled')
-    );
-
-    const result = await controller.cancel(makeRequest());
-
-    expect(result.success).toBe(true);
-    expect(prismaMock.user.update).toHaveBeenCalled();
-  });
-
-  it('is safe to call twice in a row (idempotent by construction)', async () => {
-    prismaMock.user.findUnique.mockResolvedValue({
-      id: 'user-1',
-      tier: 'PRO',
-    } as never);
-    prismaMock.subscription.findUnique.mockResolvedValue({
-      id: 'sub-row-1',
-      userId: 'user-1',
-      stripeSubscriptionId: 'sub_stripe_123',
-    } as never);
-
-    const first = await controller.cancel(makeRequest());
-    const second = await controller.cancel(makeRequest());
-
-    expect(first).toEqual(second);
   });
 
   describe('createPaymentMethodSession (Manage Subscription S1, W1)', () => {

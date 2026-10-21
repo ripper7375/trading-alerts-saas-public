@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import {
   AlertTriangle,
+  Clock,
   CreditCard,
   CheckCircle,
   Loader2,
@@ -25,7 +26,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useUserViewAs } from '@/components/admin/user-view-as/user-view-as-context';
 import { InvoiceList, type Invoice } from '@/components/billing/invoice-list';
@@ -51,20 +51,17 @@ import { useLocale } from '@/lib/context/locale-context';
  *   `allowedActions`, so the page never offers what the server would refuse;
  * - removal of the old "Manage Subscription" button, which linked to this page.
  *
+ * Manage Subscription S2 (plan v2.1, workflows W3 and W4):
+ * - "Cancel Plan" is a link to the three-step page /settings/billing/cancel.
+ *   Cancelling no longer ends PRO at once: the subscription is cancelled at the
+ *   end of the paid period, and this page then shows a "PRO ends on {date}"
+ *   banner with "Resume subscription" (a confirm dialog, no extra page;
+ *   POST /api/subscription/resume). dLocal plans are prepaid and have no
+ *   cancel (D8), so they get a note instead of a button.
+ * - Every flow returns here with `?done=<action>`; the marker only triggers
+ *   the notice, the data is always read fresh from the API.
+ *
  * - Current subscription card (FREE/PRO), driven by GET /api/subscription
- * - Cancel wired to the real POST /api/subscription/cancel (Closes F64's
- *   UI-binding scope for this session) -- this endpoint cancels the Stripe
- *   subscription and downgrades to FREE immediately, it does not set
- *   cancelAtPeriodEnd, so there is no "Undo" grace window here (the
- *   confirm-before-cancel dialog below IS the safeguard). Once cancelled,
- *   the FREE-tier branch further down automatically shows the
- *   Upgrade-to-PRO / pricing CTAs, satisfying the "re-subscribe link to
- *   /pricing" requirement without any extra wiring. Full Stripe
- *   reactivation flow is deferred to Session 9-6 per Decision 2 --
- *   components/billing/subscription-card.tsx (named in the order) is NOT
- *   used here: it is unmounted dead code with F64's original broken-Undo
- *   bug still in it; this page's own inline cancel flow (below) is what
- *   is actually live and does not have that bug. See Deviations.
  * - Invoice history table, driven by GET /api/invoices (via `InvoiceList`)
  * - Usage statistics (alerts, from GET /api/alerts)
  * - Admin "view as user" (lib/admin/user-view-as.ts): every GET adds
@@ -140,15 +137,18 @@ export default function BillingSettingsPage(): React.ReactElement {
   const [usageError, setUsageError] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
-  const [cancellationReason, setCancellationReason] = useState('');
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [cancelling, setCancelling] = useState(false);
-  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const [resuming, setResuming] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const [openingCard, setOpeningCard] = useState(false);
   const [cardError, setCardError] = useState<string | null>(null);
-  // Set when Stripe sends the user back with ?done=card. It proves nothing
-  // (the user may have closed the form); the page re-fetches either way.
-  const [returnedFromCard, setReturnedFromCard] = useState(false);
+  // Set when another page sends the user back with ?done=card (Stripe's card
+  // form) or ?done=cancel (the cancel page), and after a resume here. It
+  // proves nothing (the user may have closed the form); the page re-fetches
+  // either way and a notice is drawn only when the fresh data agrees.
+  const [returnedFrom, setReturnedFrom] = useState<
+    'card' | 'cancel' | 'resumed' | null
+  >(null);
 
   const userTier = (subscriptionData?.tier ??
     (viewAs ? viewAs.tier : session?.user?.tier) ??
@@ -163,6 +163,7 @@ export default function BillingSettingsPage(): React.ReactElement {
     subscriptionData?.displayState ?? 'FREE';
   const paymentProblem =
     displayState === 'PAST_DUE' || displayState === 'UNPAID';
+  const cancelScheduled = displayState === 'CANCEL_SCHEDULED';
   // The server decides what is offered (plan §6); admin view-as hides every
   // action whatever the server sent, because it would act on the admin.
   const allowedActions: SubscriptionAction[] = viewing
@@ -258,13 +259,15 @@ export default function BillingSettingsPage(): React.ReactElement {
     void loadAll();
   }, [fetchSubscription, viewing]);
 
-  // Back from Stripe's card form (/settings/billing?done=card). Arriving here
-  // is a full page load, so the fetch above already re-read the subscription;
-  // this only says so and drops the marker from the address bar.
+  // Back from Stripe's card form (/settings/billing?done=card) or from the
+  // cancel page (?done=cancel). Arriving here is a full page load, so the
+  // fetch above already re-read the subscription; this only says so and drops
+  // the marker from the address bar.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('done') !== 'card') return;
-    setReturnedFromCard(true);
+    const done = params.get('done');
+    if (done !== 'card' && done !== 'cancel') return;
+    setReturnedFrom(done);
     params.delete('done');
     const query = params.toString();
     window.history.replaceState(
@@ -316,29 +319,30 @@ export default function BillingSettingsPage(): React.ReactElement {
     }
   };
 
-  const handleConfirmCancellation = async (): Promise<void> => {
-    setCancelling(true);
-    setCancelError(null);
+  // W4: withdraw a scheduled cancellation. One step that charges nothing, so a
+  // confirm dialog and no page of its own.
+  const handleResume = async (): Promise<void> => {
+    setResuming(true);
+    setResumeError(null);
     try {
-      const response = await fetch('/api/subscription/cancel', {
+      const response = await fetch('/api/subscription/resume', {
         method: 'POST',
       });
-      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(
-          data.message || data.error || 'Failed to cancel subscription'
-        );
+        throw new Error('Could not resume the subscription');
       }
-      setCancelDialogOpen(false);
-      setCancellationReason('');
-      // Reflect the FREE downgrade without a page reload.
+      setResumeDialogOpen(false);
+      setReturnedFrom('resumed');
       await fetchSubscription();
-    } catch (error) {
-      setCancelError(
-        error instanceof Error ? error.message : 'Failed to cancel subscription'
+    } catch {
+      setResumeError(
+        t(
+          'billing.error.resume',
+          'We could not resume your subscription. Please try again.'
+        )
       );
     } finally {
-      setCancelling(false);
+      setResuming(false);
     }
   };
 
@@ -357,6 +361,17 @@ export default function BillingSettingsPage(): React.ReactElement {
   const isYearlyPlan = subscription?.planType === 'YEARLY';
   const planPriceUsd =
     subscription?.amountUsd ?? (isYearlyPlan ? annualPrice : regularPrice);
+  // When a cancellation is scheduled: the date PRO ends (the end of the paid
+  // period, or of the trial). The server sends Stripe's own date.
+  const periodEndText = subscription?.currentPeriodEnd
+    ? formatDate(subscription.currentPeriodEnd)
+    : '';
+  // A dLocal plan is prepaid (D8): no cancel, it just ends. Shown with the date.
+  const prepaidEndsOn =
+    userTier === 'PRO' && subscription?.provider === 'DLOCAL'
+      ? (subscription.expiresAt ?? null)
+      : null;
+  const inTrial = trial?.status === 'ACTIVE' && Boolean(subscription?.trialEnd);
 
   return (
     <div className="animate-fade-in">
@@ -485,7 +500,50 @@ export default function BillingSettingsPage(): React.ReactElement {
         </div>
       )}
 
-      {returnedFromCard && (
+      {/* Status banner for a scheduled cancellation (W3). PRO continues until
+          the date shown; "Resume" is drawn from allowedActions, so it is
+          absent in admin view and after the period has ended. */}
+      {cancelScheduled && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-900/20"
+        >
+          <div className="flex items-start gap-3">
+            <Clock
+              className="mt-0.5 h-5 w-5 shrink-0 text-amber-700 dark:text-amber-300"
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-amber-900 dark:text-amber-100">
+                {t(
+                  'billing.banner.cancel_scheduled_title',
+                  'Your PRO plan ends on {date}'
+                ).replace('{date}', periodEndText)}
+              </p>
+              <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                {inTrial
+                  ? t(
+                      'billing.banner.cancel_scheduled_trial_body',
+                      'Your free trial ends then and you will not be charged. Changed your mind? Resume your subscription and it continues as planned.'
+                    )
+                  : t(
+                      'billing.banner.cancel_scheduled_body',
+                      'You keep full PRO access until then and you will not be charged again. Changed your mind? Resume your subscription and nothing changes.'
+                    )}
+              </p>
+              {can('resume') && (
+                <div className="mt-3">
+                  <Button size="sm" onClick={() => setResumeDialogOpen(true)}>
+                    {t('billing.action.resume', 'Resume subscription')}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {returnedFrom === 'card' && (
         <div
           role="status"
           className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground"
@@ -499,6 +557,32 @@ export default function BillingSettingsPage(): React.ReactElement {
                 'billing.notice.card_done',
                 'Back from Stripe. Your latest card details are shown below.'
               )}
+        </div>
+      )}
+
+      {/* Said only when the fresh data agrees, so a hand-typed ?done=cancel
+          cannot claim a cancellation that does not exist. */}
+      {returnedFrom === 'cancel' && cancelScheduled && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground"
+        >
+          {t(
+            'billing.notice.cancel_scheduled',
+            'Your cancellation is scheduled. You keep PRO until {date}, and you can resume before then.'
+          ).replace('{date}', periodEndText)}
+        </div>
+      )}
+
+      {returnedFrom === 'resumed' && !cancelScheduled && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground"
+        >
+          {t(
+            'billing.notice.resumed',
+            'Your subscription will continue. PRO renews as normal.'
+          )}
         </div>
       )}
 
@@ -550,6 +634,10 @@ export default function BillingSettingsPage(): React.ReactElement {
                 {displayState === 'UNPAID'
                   ? t('billing.status.unpaid', 'PRO paused')
                   : t('billing.status.past_due', 'Payment overdue')}
+              </Badge>
+            ) : cancelScheduled ? (
+              <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
+                {t('billing.status.cancel_scheduled', 'Cancellation scheduled')}
               </Badge>
             ) : (
               <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
@@ -650,117 +738,90 @@ export default function BillingSettingsPage(): React.ReactElement {
                 </Button>
               </Link>
             )
-          ) : can('cancel') ? (
-            <div className="flex flex-wrap gap-3">
-              <AlertDialog
-                open={cancelDialogOpen}
-                onOpenChange={(open) => {
-                  setCancelDialogOpen(open);
-                  if (!open) {
-                    setCancelError(null);
-                  }
-                }}
-              >
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="text-red-600 hover:text-red-700"
-                  >
+          ) : can('cancel') || can('resume') || prepaidEndsOn ? (
+            <div className="flex flex-wrap items-center gap-3">
+              {can('resume') && (
+                <Button onClick={() => setResumeDialogOpen(true)}>
+                  {t('billing.action.resume', 'Resume subscription')}
+                </Button>
+              )}
+              {can('cancel') && (
+                <Button
+                  asChild
+                  variant="ghost"
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Link href="/settings/billing/cancel">
                     {t('billing.cancel_plan', 'Cancel Plan')}
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      {t('billing.cancel_subscription', 'Cancel Subscription')}
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t(
-                        'billing.cancel_confirm_body',
-                        'Are you sure you want to cancel your PRO subscription? Your subscription will be cancelled immediately and you will be downgraded to the FREE tier. You can re-subscribe any time from the Pricing page.'
-                      )}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <div className="py-4">
-                    <label
-                      htmlFor="cancellation-reason"
-                      className="mb-2 block text-sm font-medium text-foreground"
-                    >
-                      {t(
-                        'billing.cancellation_reason_label',
-                        'Reason for cancellation (optional)'
-                      )}
-                    </label>
-                    <select
-                      id="cancellation-reason"
-                      value={cancellationReason}
-                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                        setCancellationReason(e.target.value)
-                      }
-                      className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">
-                        {t('billing.select_a_reason', 'Select a reason...')}
-                      </option>
-                      <option value="too_expensive">
-                        {t('billing.reason.too_expensive', 'Too expensive')}
-                      </option>
-                      <option value="not_using">
-                        {t('billing.reason.not_using', 'Not using enough')}
-                      </option>
-                      <option value="missing_features">
-                        {t(
-                          'billing.reason.missing_features',
-                          'Missing features'
-                        )}
-                      </option>
-                      <option value="switching">
-                        {t(
-                          'billing.reason.switching',
-                          'Switching to competitor'
-                        )}
-                      </option>
-                      <option value="other">
-                        {t('billing.reason.other', 'Other')}
-                      </option>
-                    </select>
-                    {cancelError && (
-                      <p className="mt-3 text-sm text-red-600">{cancelError}</p>
-                    )}
-                  </div>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel disabled={cancelling}>
-                      {t('billing.keep_subscription', 'Keep Subscription')}
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-red-600 hover:bg-red-700"
-                      disabled={cancelling}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        void handleConfirmCancellation();
-                      }}
-                    >
-                      {cancelling
-                        ? t('billing.cancelling', 'Cancelling...')
-                        : t(
-                            'billing.confirm_cancellation',
-                            'Confirm Cancellation'
-                          )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                  </Link>
+                </Button>
+              )}
+              {prepaidEndsOn && (
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    'billing.dlocal_prepaid_note',
+                    'This plan is prepaid. It ends on {date} and does not renew automatically.'
+                  ).replace('{date}', formatDate(prepaidEndsOn))}
+                </p>
+              )}
             </div>
           ) : null}
 
           {userTier === 'PRO' && subscription?.currentPeriodEnd && (
             <p className="mt-4 text-sm text-muted-foreground">
-              {t('billing.next_billing_date', 'Next billing date:')}{' '}
+              {cancelScheduled
+                ? t('billing.ends_on', 'PRO ends on:')
+                : t('billing.next_billing_date', 'Next billing date:')}{' '}
               {formatDate(subscription.currentPeriodEnd)}
             </p>
           )}
         </CardContent>
       </Card>
+
+      {/* W4: confirm before withdrawing the cancellation. Opened from the
+          banner and from the plan card; nothing is charged by resuming. */}
+      <AlertDialog
+        open={resumeDialogOpen}
+        onOpenChange={(open) => {
+          setResumeDialogOpen(open);
+          if (!open) setResumeError(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('billing.resume.title', 'Resume your subscription?')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                'billing.resume.body',
+                'Your cancellation will be withdrawn and your PRO subscription will continue. Next billing date: {date}.'
+              ).replace('{date}', periodEndText)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {resumeError && (
+            <p role="alert" className="text-sm text-destructive">
+              {resumeError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={resuming}>
+              {t('billing.resume.dismiss', 'Not now')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={resuming}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleResume();
+              }}
+            >
+              {resuming
+                ? t('billing.action.resuming', 'Resuming...')
+                : t('billing.resume.confirm', 'Yes, resume')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Payment Method -- also for UNPAID (tier FREE), where the card is
           exactly what has to be fixed; the API sends `subscription` only for

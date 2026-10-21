@@ -207,6 +207,16 @@ export const ar: EmailMessages = {
   'canceled.reactivateLink': 'أعد تفعيل اشتراكك',
   'canceled.subject': 'تم إلغاء الاشتراك - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'تم استئناف الاشتراك',
+  'resumed.body': 'سيستمر اشتراكك **{plan}**.',
+  'resumed.nextBilling': '**تاريخ الفوترة التالي:** {date}',
+  'resumed.note':
+    'تم سحب طلب الإلغاء. ستحتفظ بإمكانية الوصول الكاملة إلى {plan} وسيتجدد اشتراكك تلقائيًا في {date}.',
+  'resumed.manage': 'يمكنك مراجعة اشتراكك في أي وقت. {link}',
+  'resumed.manageLink': 'افتح إعدادات الفوترة',
+  'resumed.subject': 'سيستمر اشتراكك {plan} - Trading Alerts',
+
   'commission.heading': 'لقد ربحت عمولة!',
   'commission.body':
     'أخبار سارة! تم استخدام رمز الشراكة الخاص بك للتو وربحت عمولة.',

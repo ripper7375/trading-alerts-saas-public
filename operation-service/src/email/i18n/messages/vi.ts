@@ -213,6 +213,16 @@ export const vi: EmailMessages = {
   'canceled.reactivateLink': 'Kích hoạt lại gói đăng ký',
   'canceled.subject': 'Đã hủy gói đăng ký - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Đã tiếp tục gói đăng ký',
+  'resumed.body': 'Gói đăng ký **{plan}** của bạn sẽ tiếp tục.',
+  'resumed.nextBilling': '**Ngày thanh toán tiếp theo:** {date}',
+  'resumed.note':
+    'Yêu cầu hủy của bạn đã được rút lại. Bạn vẫn giữ toàn bộ quyền truy cập {plan} và gói đăng ký sẽ tự động gia hạn vào {date}.',
+  'resumed.manage': 'Bạn có thể xem lại gói đăng ký bất cứ lúc nào. {link}',
+  'resumed.manageLink': 'Mở cài đặt thanh toán',
+  'resumed.subject': 'Gói đăng ký {plan} của bạn sẽ tiếp tục - Trading Alerts',
+
   'commission.heading': 'Bạn đã nhận được hoa hồng!',
   'commission.body':
     'Tin vui! Mã liên kết của bạn vừa được sử dụng và bạn đã nhận được hoa hồng.',

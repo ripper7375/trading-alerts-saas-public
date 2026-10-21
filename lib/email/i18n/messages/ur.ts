@@ -215,6 +215,16 @@ export const ur: EmailMessages = {
   'canceled.reactivateLink': 'اپنی سبسکرپشن دوبارہ فعال کریں',
   'canceled.subject': 'سبسکرپشن منسوخ ہو گئی - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'سبسکرپشن بحال ہو گئی',
+  'resumed.body': 'آپ کی **{plan}** سبسکرپشن جاری رہے گی۔',
+  'resumed.nextBilling': '**اگلی بلنگ کی تاریخ:** {date}',
+  'resumed.note':
+    'آپ کی منسوخی واپس لے لی گئی ہے۔ آپ کو {plan} کی مکمل رسائی حاصل رہے گی اور آپ کی سبسکرپشن {date} کو خودکار طور پر تجدید ہو جائے گی۔',
+  'resumed.manage': 'آپ کسی بھی وقت اپنی سبسکرپشن دیکھ سکتے ہیں۔ {link}',
+  'resumed.manageLink': 'بلنگ کی سیٹنگز کھولیں',
+  'resumed.subject': 'آپ کی {plan} سبسکرپشن جاری رہے گی - Trading Alerts',
+
   'commission.heading': 'کمیشن مل گیا!',
   'commission.body':
     'خوشخبری! آپ کا ایفیلی ایٹ کوڈ ابھی استعمال ہوا ہے اور آپ نے کمیشن کمایا ہے۔',

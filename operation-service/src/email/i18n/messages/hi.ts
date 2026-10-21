@@ -209,6 +209,16 @@ export const hi: EmailMessages = {
   'canceled.reactivateLink': 'अपनी सदस्यता फिर से चालू करें',
   'canceled.subject': 'सदस्यता रद्द हो गई - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'सदस्यता फिर से शुरू हो गई',
+  'resumed.body': 'आपकी **{plan}** सदस्यता जारी रहेगी।',
+  'resumed.nextBilling': '**अगली बिलिंग तारीख:** {date}',
+  'resumed.note':
+    'आपका रद्दीकरण वापस ले लिया गया है। आपके पास {plan} की पूरी पहुँच बनी रहेगी और आपकी सदस्यता {date} को अपने-आप नवीनीकृत होगी।',
+  'resumed.manage': 'आप कभी भी अपनी सदस्यता देख सकते हैं। {link}',
+  'resumed.manageLink': 'बिलिंग सेटिंग खोलें',
+  'resumed.subject': 'आपकी {plan} सदस्यता जारी रहेगी - Trading Alerts',
+
   'commission.heading': 'कमीशन मिला!',
   'commission.body':
     'खुशखबरी! आपका एफ़िलिएट कोड अभी इस्तेमाल हुआ है और आपने कमीशन कमाया है।',

@@ -160,8 +160,25 @@ export async function GET(
 
     // User no longer carries a `subscription` relation (Session 2-3 FK
     // audit) — look it up separately by userId.
+    // Explicit select (F21): a full-row read breaks the moment a column is
+    // added and this code is deployed before its migration. Only what the
+    // response below uses.
     const userSubscription = await prisma.subscription.findUnique({
       where: { userId },
+      select: {
+        id: true,
+        status: true,
+        planType: true,
+        amountUsd: true,
+        expiresAt: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        stripeCurrentPeriodEnd: true,
+        dLocalPaymentId: true,
+        dLocalPaymentMethod: true,
+        dLocalCountry: true,
+        cancelAtPeriodEnd: true,
+      },
     });
 
     const trial = {
@@ -244,12 +261,28 @@ export async function GET(
       }
     }
 
+    // Stripe's own answer wins when it was read (a cancellation can also be
+    // scheduled or undone outside this app, and the webhook may lag); the
+    // stored columns are the fallback. The period end matters twice: it is the
+    // date the page promises ("PRO until ..."), and during a trial the stored
+    // value is only an estimate until the first webhook corrects it.
+    const cancelAtPeriodEnd =
+      typeof stripeSubscription?.cancel_at_period_end === 'boolean'
+        ? stripeSubscription.cancel_at_period_end
+        : userSubscription.cancelAtPeriodEnd;
+    const currentPeriodEnd =
+      typeof stripeSubscription?.current_period_end === 'number'
+        ? new Date(stripeSubscription.current_period_end * 1000)
+        : userSubscription.stripeCurrentPeriodEnd;
+
     const actionFacts = {
       tier: user.tier,
       status: userSubscription.status,
       provider,
       openInvoiceUrl,
       viewing: subject.kind !== 'self',
+      cancelAtPeriodEnd,
+      currentPeriodEnd,
     };
 
     // Build unified response
@@ -265,10 +298,9 @@ export async function GET(
         planType: userSubscription.planType,
         amountUsd:
           userSubscription.amountUsd > 0 ? userSubscription.amountUsd : null,
-        currentPeriodEnd:
-          userSubscription.stripeCurrentPeriodEnd?.toISOString() || null,
+        currentPeriodEnd: currentPeriodEnd?.toISOString() || null,
         expiresAt: userSubscription.expiresAt?.toISOString() || null,
-        cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end || false,
+        cancelAtPeriodEnd,
         trialEnd: stripeSubscription?.trial_end
           ? new Date(stripeSubscription.trial_end * 1000).toISOString()
           : null,

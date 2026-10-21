@@ -222,6 +222,16 @@ export const pt: EmailMessages = {
   'canceled.reactivateLink': 'Reative a sua subscrição',
   'canceled.subject': 'Subscrição cancelada - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Subscrição retomada',
+  'resumed.body': 'A sua subscrição **{plan}** vai continuar.',
+  'resumed.nextBilling': '**Próxima data de faturação:** {date}',
+  'resumed.note':
+    'O seu cancelamento foi retirado. Mantém o acesso completo ao {plan} e a sua subscrição será renovada automaticamente em {date}.',
+  'resumed.manage': 'Pode rever a sua subscrição em qualquer altura. {link}',
+  'resumed.manageLink': 'Abrir as definições de faturação',
+  'resumed.subject': 'A sua subscrição {plan} vai continuar - Trading Alerts',
+
   'commission.heading': 'Comissão ganha!',
   'commission.body':
     'Boas notícias! O seu código de afiliado acabou de ser utilizado e ganhou uma comissão.',

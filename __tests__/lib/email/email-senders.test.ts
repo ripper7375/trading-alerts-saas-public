@@ -31,6 +31,8 @@ import {
 import {
   sendAffiliateCommissionEmail,
   sendPaymentReceiptEmail,
+  sendSubscriptionCanceledEmail,
+  sendSubscriptionResumedEmail,
 } from '@/lib/email/subscription-emails';
 
 const thai = {
@@ -78,6 +80,14 @@ describe("a sender finds the recipient's language itself", () => {
       'commission',
       () => sendAffiliateCommissionEmail('a@b.test', 'Ada', 'X', 1, 2),
     ],
+    [
+      'cancel scheduled (S2)',
+      () => sendSubscriptionCanceledEmail('a@b.test', 'Ada', 'PRO', new Date()),
+    ],
+    [
+      'subscription resumed (S2)',
+      () => sendSubscriptionResumedEmail('a@b.test', 'Ada', 'PRO', new Date()),
+    ],
   ])('%s', async (_label, send) => {
     mockLocaleFor.mockResolvedValue(thai);
     await send();
@@ -106,6 +116,36 @@ describe("a sender finds the recipient's language itself", () => {
       timestamp: new Date('2026-10-23T09:30:00.000Z'),
     });
     expect(sent().html).toContain('23/10/2026 16:30 GMT+7');
+  });
+});
+
+describe('the resume mail (Manage Subscription S2, W4)', () => {
+  it("names the renewal date in the recipient's timezone and format, and links to billing", async () => {
+    mockLocaleFor.mockResolvedValue(thai);
+    await sendSubscriptionResumedEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      new Date('2026-10-23T20:30:00.000Z')
+    );
+    // 20:30 UTC is already the 24th in Bangkok.
+    expect(sent().html).toContain('24/10/2026');
+    expect(sent().html).toContain('/settings/billing');
+  });
+
+  it('is sent in English, with the renewal date, when the language cannot be found', async () => {
+    mockLocaleFor.mockRejectedValue(new Error('db down'));
+    const result = await sendSubscriptionResumedEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      new Date('2026-10-23T09:30:00.000Z')
+    );
+    expect(result.success).toBe(true);
+    expect(sent().subject).toBe(
+      'Your PRO subscription will continue - Trading Alerts'
+    );
+    expect(sent().html).toContain('October 23, 2026');
   });
 });
 

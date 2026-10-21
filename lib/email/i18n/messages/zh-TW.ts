@@ -189,6 +189,16 @@ export const zhTW: EmailMessages = {
   'canceled.reactivateLink': '重新啟用訂閱',
   'canceled.subject': '訂閱已取消 - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': '訂閱已恢復',
+  'resumed.body': '您的 **{plan}** 訂閱將繼續。',
+  'resumed.nextBilling': '**下次扣款日期：** {date}',
+  'resumed.note':
+    '您的取消請求已撤回。您仍可完整使用 {plan}，訂閱將於 {date} 自動續訂。',
+  'resumed.manage': '您可以隨時查看您的訂閱。{link}',
+  'resumed.manageLink': '開啟帳單設定',
+  'resumed.subject': '您的 {plan} 訂閱將繼續 - Trading Alerts',
+
   'commission.heading': '您獲得了佣金！',
   'commission.body': '好消息！您的聯盟碼剛剛被使用，您獲得了一筆佣金。',
   'commission.codeUsed': '被使用的代碼',

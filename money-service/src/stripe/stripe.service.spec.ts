@@ -9,6 +9,7 @@ import { StripeService } from './stripe.service';
 const mockCouponsCreate = jest.fn();
 const mockSessionsCreate = jest.fn();
 const mockSubscriptionsCancel = jest.fn();
+const mockSubscriptionsUpdate = jest.fn();
 const mockPortalSessionsCreate = jest.fn();
 const mockWebhooksConstructEvent = jest.fn();
 const mockPricesRetrieve = jest.fn();
@@ -18,7 +19,10 @@ jest.mock('stripe', () => {
     coupons: { create: mockCouponsCreate },
     checkout: { sessions: { create: mockSessionsCreate } },
     billingPortal: { sessions: { create: mockPortalSessionsCreate } },
-    subscriptions: { cancel: mockSubscriptionsCancel },
+    subscriptions: {
+      cancel: mockSubscriptionsCancel,
+      update: mockSubscriptionsUpdate,
+    },
     webhooks: { constructEvent: mockWebhooksConstructEvent },
     prices: { retrieve: mockPricesRetrieve },
   }));
@@ -294,6 +298,49 @@ describe('StripeService', () => {
 
       expect(mockSubscriptionsCancel).toHaveBeenCalledWith('sub_123');
       expect(result.status).toBe('canceled');
+    });
+  });
+
+  describe('setCancelAtPeriodEnd (S2, W3/W4)', () => {
+    it('schedules the cancellation at the end of the period, and only that', async () => {
+      mockSubscriptionsUpdate.mockResolvedValue({
+        id: 'sub_123',
+        status: 'active',
+        cancel_at_period_end: true,
+      });
+
+      const result = await service.setCancelAtPeriodEnd('sub_123', true);
+
+      expect(mockSubscriptionsUpdate).toHaveBeenCalledTimes(1);
+      expect(mockSubscriptionsUpdate).toHaveBeenCalledWith('sub_123', {
+        cancel_at_period_end: true,
+      });
+      expect(result.cancel_at_period_end).toBe(true);
+      // Not the immediate cancel.
+      expect(mockSubscriptionsCancel).not.toHaveBeenCalled();
+    });
+
+    it('withdraws it when asked to', async () => {
+      mockSubscriptionsUpdate.mockResolvedValue({
+        id: 'sub_123',
+        cancel_at_period_end: false,
+      });
+
+      await service.setCancelAtPeriodEnd('sub_123', false);
+
+      expect(mockSubscriptionsUpdate).toHaveBeenCalledWith('sub_123', {
+        cancel_at_period_end: false,
+      });
+    });
+
+    it('passes Stripe’s refusal on to the caller', async () => {
+      mockSubscriptionsUpdate.mockRejectedValue(
+        new Error('No such subscription')
+      );
+
+      await expect(service.setCancelAtPeriodEnd('sub_x', true)).rejects.toThrow(
+        'No such subscription'
+      );
     });
   });
 

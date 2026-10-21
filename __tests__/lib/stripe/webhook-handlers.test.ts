@@ -165,6 +165,28 @@ describe('Stripe Webhook Handlers', () => {
       );
     });
 
+    it('starts a re-subscribing user clean: the row of an earlier cancellation is not scheduled to end (S2)', async () => {
+      mockUserUpdate.mockResolvedValue({
+        id: 'user-123',
+        email: 'user@example.com',
+        name: 'Test User',
+      });
+      mockSubscriptionUpsert.mockResolvedValue({ id: 'sub-db-123' });
+      mockSendSubscriptionConfirmationEmail.mockResolvedValue(undefined);
+
+      await handleCheckoutCompleted(mockSession);
+
+      // The update branch is what a returning user hits (Subscription.userId
+      // is unique); the create branch gets the column defaults.
+      const { update, create } = mockSubscriptionUpsert.mock.calls[0][0];
+      expect(update).toMatchObject({
+        cancelAtPeriodEnd: false,
+        cancelRequestedAt: null,
+        cancellationReason: null,
+      });
+      expect(create).not.toHaveProperty('cancelAtPeriodEnd');
+    });
+
     it('should upgrade user to PRO and create subscription', async () => {
       const mockUser = {
         id: 'user-123',
@@ -578,6 +600,74 @@ describe('Stripe Webhook Handlers', () => {
       await expect(handleSubscriptionUpdated(mockSubscription)).rejects.toThrow(
         'Database error'
       );
+    });
+
+    // Manage Subscription S2, defect B9: cancel_at_period_end follows Stripe.
+    describe('cancel_at_period_end (B9)', () => {
+      it('stores the scheduled cancellation and keeps the request details the cancel route wrote', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+        mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+
+        await handleSubscriptionUpdated({
+          ...mockSubscription,
+          cancel_at_period_end: true,
+        } as unknown as Stripe.Subscription);
+
+        const { data } = mockSubscriptionUpdate.mock.calls[0][0];
+        expect(data.cancelAtPeriodEnd).toBe(true);
+        // "When" and "why" are set by the cancel route; the webhook leaves them.
+        expect(data).not.toHaveProperty('cancelRequestedAt');
+        expect(data).not.toHaveProperty('cancellationReason');
+        // A scheduled cancellation is still PRO until Stripe ends it.
+        expect(mockUserUpdate).not.toHaveBeenCalled();
+      });
+
+      it('clears the flag and the details of the earlier request when Stripe says it is off', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+        mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+
+        await handleSubscriptionUpdated({
+          ...mockSubscription,
+          cancel_at_period_end: false,
+        } as unknown as Stripe.Subscription);
+
+        expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+          where: { id: 'sub-db-123' },
+          data: expect.objectContaining({
+            cancelAtPeriodEnd: false,
+            cancelRequestedAt: null,
+            cancellationReason: null,
+          }),
+        });
+      });
+
+      it('reads a missing field as off, never as scheduled', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+        mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+
+        await handleSubscriptionUpdated(mockSubscription);
+
+        expect(mockSubscriptionUpdate.mock.calls[0][0].data).toMatchObject({
+          cancelAtPeriodEnd: false,
+        });
+      });
+
+      it('still downgrades a subscription that Stripe has ended, scheduled or not', async () => {
+        mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+        mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+        mockUserUpdate.mockResolvedValue({ id: 'user-123' });
+
+        await handleSubscriptionUpdated({
+          ...mockSubscription,
+          status: 'canceled',
+          cancel_at_period_end: true,
+        } as unknown as Stripe.Subscription);
+
+        expect(mockUserUpdate).toHaveBeenCalledWith({
+          where: { id: 'user-123' },
+          data: { tier: 'FREE' },
+        });
+      });
     });
   });
 

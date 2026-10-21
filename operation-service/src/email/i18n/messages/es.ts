@@ -220,6 +220,17 @@ export const es: EmailMessages = {
   'canceled.reactivateLink': 'Reactiva tu suscripción',
   'canceled.subject': 'Suscripción cancelada - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Suscripción reanudada',
+  'resumed.body': 'Tu suscripción **{plan}** continuará.',
+  'resumed.nextBilling': '**Próxima fecha de facturación:** {date}',
+  'resumed.note':
+    'Se ha retirado tu cancelación. Mantienes el acceso completo a {plan} y tu suscripción se renovará automáticamente el {date}.',
+  'resumed.manage':
+    'Puedes revisar tu suscripción en cualquier momento. {link}',
+  'resumed.manageLink': 'Abrir los ajustes de facturación',
+  'resumed.subject': 'Tu suscripción {plan} continuará - Trading Alerts',
+
   'commission.heading': '¡Comisión ganada!',
   'commission.body':
     '¡Buenas noticias! Se acaba de usar tu código de afiliado y has ganado una comisión.',

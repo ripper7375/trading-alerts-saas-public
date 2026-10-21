@@ -31,6 +31,7 @@ import {
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
   sendSubscriptionCanceledEmail,
+  sendSubscriptionResumedEmail,
 } from '../email/subscription-email.util';
 import { sendSubscriptionConfirmationEmail } from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -61,6 +62,7 @@ type ClaimResult = 'claimed' | 'done' | 'in-flight' | 'unavailable';
 const KNOWN_EVENT_TYPES = new Set([
   'TIER_UPGRADED',
   'SUBSCRIPTION_CANCELLED',
+  'SUBSCRIPTION_RESUMED',
   'PAYMENT_FAILED',
   'PAYMENT_SUCCEEDED',
   'COMMISSION_CREDITED',
@@ -81,6 +83,19 @@ function priceUsdOf(payload: Record<string, unknown>): number | null {
   return typeof price === 'number' && Number.isFinite(price) && price > 0
     ? price
     : null;
+}
+
+/**
+ * The "subscription resumed" e-mail names the date the subscription renews
+ * (`renewsAt`, set by money-service). There is no date of this service's own
+ * to fall back on, so an event without a readable one is skipped rather than
+ * sent with a made-up date.
+ */
+function renewsAtOf(payload: Record<string, unknown>): Date | null {
+  const raw = payload['renewsAt'];
+  if (typeof raw !== 'string') return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 @Injectable()
@@ -159,6 +174,17 @@ export class OutboxConsumerService {
         { outboxEventId: event.id }
       );
       return { status: 'skipped', reason: 'missing-price' };
+    }
+
+    if (
+      event.eventType === 'SUBSCRIPTION_RESUMED' &&
+      renewsAtOf(event.payload) === null
+    ) {
+      console.warn(
+        `[Outbox] ${event.eventType} event has no usable renewsAt, skipping`,
+        { outboxEventId: event.id }
+      );
+      return { status: 'skipped', reason: 'missing-renews-at' };
     }
 
     const user = await this.prisma.user.findUnique({
@@ -265,6 +291,17 @@ export class OutboxConsumerService {
           );
         }
         return sendCancellationEmail(email, name);
+      }
+      case 'SUBSCRIPTION_RESUMED': {
+        // Manage Subscription S2 (W4): a scheduled cancellation was withdrawn.
+        // processEvent skipped the event already when `renewsAt` is missing.
+        const renewsAt = renewsAtOf(payload);
+        if (renewsAt === null) {
+          throw new InternalServerErrorException(
+            `${eventType} reached dispatch without a renewsAt`
+          );
+        }
+        return sendSubscriptionResumedEmail(email, name, 'PRO', renewsAt);
       }
       case 'TIER_DOWNGRADED':
         // Design decisions point 3: reuse the cancellation copy -- no
