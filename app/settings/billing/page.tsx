@@ -3,7 +3,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import { CreditCard, CheckCircle, Loader2, ArrowUpRight } from 'lucide-react';
+import {
+  AlertTriangle,
+  CreditCard,
+  CheckCircle,
+  Loader2,
+  ArrowUpRight,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,11 +32,24 @@ import { InvoiceList, type Invoice } from '@/components/billing/invoice-list';
 import { withViewAsQuery } from '@/lib/admin/user-view-as-paths';
 import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+import type {
+  SubscriptionAction,
+  SubscriptionDisplayState,
+} from '@/lib/stripe/subscription-actions';
 import { TIER_CONFIG, type Tier } from '@/types/tier';
 import { useLocale } from '@/lib/context/locale-context';
 
 /**
  * Billing Settings Page (Row 75)
+ *
+ * This page IS the Manage Subscription page (plan v2.1, §8; there is no
+ * separate hub). Manage Subscription S1 added:
+ * - a status banner for a failed payment (PAST_DUE / UNPAID) with "Pay now"
+ *   (Stripe's hosted invoice) and "Update card" (Stripe's portal, card form
+ *   only, via POST /api/subscription/payment-method-session);
+ * - an action row and an "Update card" button drawn from the server's
+ *   `allowedActions`, so the page never offers what the server would refuse;
+ * - removal of the old "Manage Subscription" button, which linked to this page.
  *
  * - Current subscription card (FREE/PRO), driven by GET /api/subscription
  * - Cancel wired to the real POST /api/subscription/cancel (Closes F64's
@@ -59,6 +78,9 @@ const INVOICE_PAGE_SIZE = 12;
 interface SubscriptionData {
   tier: 'FREE' | 'PRO';
   status: string;
+  /** What the server will accept for this user; empty in admin view. */
+  allowedActions?: SubscriptionAction[];
+  displayState?: SubscriptionDisplayState;
   subscription: {
     id: string;
     status: string;
@@ -78,6 +100,8 @@ interface SubscriptionData {
     } | null;
     dLocalPaymentMethod: string | null;
     dLocalCountry: string | null;
+    /** Stripe's hosted page for the open invoice ("Pay now"). */
+    openInvoiceUrl?: string | null;
   } | null;
   trial: {
     status: 'NOT_STARTED' | 'ACTIVE' | 'EXPIRED' | 'CONVERTED' | 'CANCELLED';
@@ -120,6 +144,11 @@ export default function BillingSettingsPage(): React.ReactElement {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [openingCard, setOpeningCard] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
+  // Set when Stripe sends the user back with ?done=card. It proves nothing
+  // (the user may have closed the form); the page re-fetches either way.
+  const [returnedFromCard, setReturnedFromCard] = useState(false);
 
   const userTier = (subscriptionData?.tier ??
     (viewAs ? viewAs.tier : session?.user?.tier) ??
@@ -129,6 +158,18 @@ export default function BillingSettingsPage(): React.ReactElement {
     : (session?.user as { role?: string } | undefined)?.role;
   const tierConfig = TIER_CONFIG[userTier] ?? TIER_CONFIG.FREE;
   const { regularPrice, annualPrice } = useAffiliateConfig();
+
+  const displayState: SubscriptionDisplayState =
+    subscriptionData?.displayState ?? 'FREE';
+  const paymentProblem =
+    displayState === 'PAST_DUE' || displayState === 'UNPAID';
+  // The server decides what is offered (plan §6); admin view-as hides every
+  // action whatever the server sent, because it would act on the admin.
+  const allowedActions: SubscriptionAction[] = viewing
+    ? []
+    : (subscriptionData?.allowedActions ?? []);
+  const can = (action: SubscriptionAction): boolean =>
+    allowedActions.includes(action);
 
   const fetchSubscription = useCallback(async (): Promise<void> => {
     try {
@@ -216,6 +257,64 @@ export default function BillingSettingsPage(): React.ReactElement {
 
     void loadAll();
   }, [fetchSubscription, viewing]);
+
+  // Back from Stripe's card form (/settings/billing?done=card). Arriving here
+  // is a full page load, so the fetch above already re-read the subscription;
+  // this only says so and drops the marker from the address bar.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('done') !== 'card') return;
+    setReturnedFromCard(true);
+    params.delete('done');
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${query ? `?${query}` : ''}`
+    );
+  }, []);
+
+  // "Pay now" opens Stripe in another tab: look again when the user returns,
+  // so a paid invoice clears the banner without a manual reload.
+  useEffect(() => {
+    if (!paymentProblem) return;
+    const onVisible = (): void => {
+      if (document.visibilityState === 'visible') {
+        void fetchSubscription();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [paymentProblem, fetchSubscription]);
+
+  // W1: open Stripe's card form (and nothing else of Stripe's portal).
+  const handleUpdateCard = async (): Promise<void> => {
+    setOpeningCard(true);
+    setCardError(null);
+    try {
+      const response = await fetch('/api/subscription/payment-method-session', {
+        method: 'POST',
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || typeof data.url !== 'string') {
+        throw new Error('Could not create the card update session');
+      }
+      const target = new URL(data.url);
+      if (target.protocol !== 'https:') {
+        throw new Error('Unexpected card update address');
+      }
+      // The button keeps its "opening" state: this page is about to be left.
+      window.location.assign(target.toString());
+    } catch {
+      setCardError(
+        t(
+          'billing.error.card_session',
+          'We could not open the card update page. Please try again.'
+        )
+      );
+      setOpeningCard(false);
+    }
+  };
 
   const handleConfirmCancellation = async (): Promise<void> => {
     setCancelling(true);
@@ -308,6 +407,101 @@ export default function BillingSettingsPage(): React.ReactElement {
         </div>
       )}
 
+      {/* Status banner, first because a failed payment outranks everything
+          else on this page (plan §8). PAST_DUE keeps PRO while Stripe retries;
+          UNPAID has paused it. Both end the same way: pay the invoice, or fix
+          the card. Buttons come from allowedActions, so they are absent in
+          admin view. */}
+      {paymentProblem && (
+        <div
+          role="alert"
+          className="mb-6 rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+        >
+          <div className="flex items-start gap-3">
+            <AlertTriangle
+              className="mt-0.5 h-5 w-5 shrink-0 text-destructive"
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-foreground">
+                {displayState === 'UNPAID'
+                  ? t('billing.banner.unpaid_title', 'Your PRO plan is paused')
+                  : t(
+                      'billing.banner.past_due_title',
+                      'Your last payment failed'
+                    )}
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {displayState === 'UNPAID'
+                  ? t(
+                      'billing.banner.unpaid_body',
+                      'We could not collect your last payment, so PRO is paused. Pay the open invoice to restore PRO right away, or update your card first.'
+                    )
+                  : t(
+                      'billing.banner.past_due_body',
+                      'Your PRO access continues while we retry the charge, but it ends if the payment is not completed. Pay the invoice now or update your card.'
+                    )}
+              </p>
+              {(can('pay_now') || can('update_card')) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {can('pay_now') && subscription?.openInvoiceUrl && (
+                    <Button asChild size="sm" variant="destructive">
+                      <a
+                        href={subscription.openInvoiceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {t('billing.action.pay_now', 'Pay now')}
+                      </a>
+                    </Button>
+                  )}
+                  {can('update_card') && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={openingCard}
+                      onClick={() => void handleUpdateCard()}
+                    >
+                      {openingCard ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {t(
+                            'billing.action.opening_stripe',
+                            'Opening Stripe...'
+                          )}
+                        </>
+                      ) : (
+                        t('billing.action.update_card', 'Update card')
+                      )}
+                    </Button>
+                  )}
+                </div>
+              )}
+              {cardError && (
+                <p className="mt-3 text-sm text-destructive">{cardError}</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {returnedFromCard && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground"
+        >
+          {paymentProblem
+            ? t(
+                'billing.notice.card_done_overdue',
+                'Back from Stripe. Your latest card details are shown below. The overdue payment is retried automatically, or you can pay it now.'
+              )
+            : t(
+                'billing.notice.card_done',
+                'Back from Stripe. Your latest card details are shown below.'
+              )}
+        </div>
+      )}
+
       {trial && trial.status === 'ACTIVE' && subscription?.trialEnd && (
         <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-900/20">
           <p className="text-sm text-blue-800 dark:text-blue-200">
@@ -351,9 +545,17 @@ export default function BillingSettingsPage(): React.ReactElement {
                 ? t('billing.pro_tier', 'PRO TIER')
                 : t('billing.free_tier', 'FREE TIER')}
             </Badge>
-            <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
-              {t('Active')}
-            </Badge>
+            {paymentProblem ? (
+              <Badge variant="destructive">
+                {displayState === 'UNPAID'
+                  ? t('billing.status.unpaid', 'PRO paused')
+                  : t('billing.status.past_due', 'Payment overdue')}
+              </Badge>
+            ) : (
+              <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
+                {t('Active')}
+              </Badge>
+            )}
           </div>
 
           <h3 className="mb-2 text-2xl font-bold text-foreground">
@@ -427,8 +629,11 @@ export default function BillingSettingsPage(): React.ReactElement {
             )}
           </ul>
 
-          {/* Action Buttons -- FREE tier always shows a real re-subscribe
-              path to /pricing, including immediately after a cancel below */}
+          {/* Action row -- drawn from the server's allowedActions. FREE tier
+              shows a real re-subscribe path to /pricing, including
+              immediately after a cancel below, EXCEPT while a failed payment
+              is waiting: that user must pay the open invoice (the banner
+              above), not start a second subscription. */}
           {viewing ? (
             <p className="text-sm italic text-muted-foreground">
               {t(
@@ -437,19 +642,16 @@ export default function BillingSettingsPage(): React.ReactElement {
               )}
             </p>
           ) : userTier === 'FREE' ? (
-            <Link href="/pricing">
-              <Button>
-                {t('billing.upgrade_to_pro', 'Upgrade to PRO')}
-                <ArrowUpRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          ) : (
-            <div className="flex gap-3">
-              <Button variant="outline" asChild>
-                <Link href="/settings/billing">
-                  {t('billing.manage_subscription', 'Manage Subscription')}
-                </Link>
-              </Button>
+            paymentProblem ? null : (
+              <Link href="/pricing">
+                <Button>
+                  {t('billing.upgrade_to_pro', 'Upgrade to PRO')}
+                  <ArrowUpRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            )
+          ) : can('cancel') ? (
+            <div className="flex flex-wrap gap-3">
               <AlertDialog
                 open={cancelDialogOpen}
                 onOpenChange={(open) => {
@@ -549,7 +751,7 @@ export default function BillingSettingsPage(): React.ReactElement {
                 </AlertDialogContent>
               </AlertDialog>
             </div>
-          )}
+          ) : null}
 
           {userTier === 'PRO' && subscription?.currentPeriodEnd && (
             <p className="mt-4 text-sm text-muted-foreground">
@@ -560,8 +762,10 @@ export default function BillingSettingsPage(): React.ReactElement {
         </CardContent>
       </Card>
 
-      {/* Payment Method */}
-      {userTier === 'PRO' && subscription && (
+      {/* Payment Method -- also for UNPAID (tier FREE), where the card is
+          exactly what has to be fixed; the API sends `subscription` only for
+          PRO or a failed payment. */}
+      {subscription && (
         <>
           <section className="mb-8">
             <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold text-foreground">
@@ -613,8 +817,32 @@ export default function BillingSettingsPage(): React.ReactElement {
                     )}
                   </p>
                 )}
+                {subscription.provider === 'STRIPE' && can('update_card') && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={openingCard}
+                    onClick={() => void handleUpdateCard()}
+                  >
+                    {openingCard ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {t(
+                          'billing.action.opening_stripe',
+                          'Opening Stripe...'
+                        )}
+                      </>
+                    ) : (
+                      t('billing.action.update_card', 'Update card')
+                    )}
+                  </Button>
+                )}
               </CardContent>
             </Card>
+            {/* The banner shows this error while a payment is failed. */}
+            {cardError && !paymentProblem && (
+              <p className="mt-2 text-sm text-destructive">{cardError}</p>
+            )}
           </section>
 
           <Separator className="my-8" />
@@ -685,7 +913,7 @@ export default function BillingSettingsPage(): React.ReactElement {
       )}
 
       {/* Upgrade Prompt for FREE users (not in admin view: marketing only) */}
-      {userTier === 'FREE' && !viewing && (
+      {userTier === 'FREE' && !viewing && !paymentProblem && (
         <Card className="border-0 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground">
           <CardContent className="p-6">
             <div className="flex flex-col items-center gap-6 sm:flex-row">

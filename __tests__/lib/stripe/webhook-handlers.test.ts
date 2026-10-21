@@ -490,7 +490,7 @@ describe('Stripe Webhook Handlers', () => {
       });
     });
 
-    it('should handle past_due status', async () => {
+    it('keeps the user on PRO while the subscription is past_due (B1: Stripe retry window)', async () => {
       const pastDueSubscription = {
         ...mockSubscription,
         status: 'past_due',
@@ -509,8 +509,58 @@ describe('Stripe Webhook Handlers', () => {
         }),
       });
 
-      // Should downgrade for past_due
-      expect(mockUserUpdate).toHaveBeenCalled();
+      // The grace period: no tier write at all, so PRO stays.
+      expect(mockUserUpdate).not.toHaveBeenCalled();
+    });
+
+    // The tier rule of the Manage Subscription plan §5, driven through the
+    // real handler. The same table runs against money-service's handler in
+    // money-service/src/stripe/stripe-webhook.service.spec.ts.
+    it.each([
+      ['active', 'ACTIVE', false],
+      ['trialing', 'TRIALING', false],
+      ['past_due', 'PAST_DUE', false],
+      ['unpaid', 'UNPAID', true],
+      ['canceled', 'CANCELED', true],
+      ['incomplete', 'INACTIVE', true],
+      ['incomplete_expired', 'INACTIVE', true],
+      ['paused', 'INACTIVE', true],
+    ])(
+      'status %s is stored as %s and removes PRO: %s',
+      async (stripeStatus, dbStatus, removesPro) => {
+        mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+        mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+        mockUserUpdate.mockResolvedValue({ id: 'user-123' });
+
+        await handleSubscriptionUpdated({
+          ...mockSubscription,
+          status: stripeStatus,
+        } as unknown as Stripe.Subscription);
+
+        expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+          where: { id: 'sub-db-123' },
+          data: expect.objectContaining({ status: dbStatus }),
+        });
+        if (removesPro) {
+          expect(mockUserUpdate).toHaveBeenCalledWith({
+            where: { id: 'user-123' },
+            data: { tier: 'FREE' },
+          });
+        } else {
+          expect(mockUserUpdate).not.toHaveBeenCalled();
+        }
+      }
+    );
+
+    it('never grants PRO from a subscription.updated event (invoice.payment_succeeded does)', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(mockDbSubscription);
+      mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+
+      await handleSubscriptionUpdated(mockSubscription);
+
+      expect(mockUserUpdate).not.toHaveBeenCalledWith(
+        expect.objectContaining({ data: { tier: 'PRO' } })
+      );
     });
 
     it('should return early if subscription not found', async () => {

@@ -19,7 +19,17 @@ import { prisma } from '@/lib/db/prisma';
 import {
   getSubscription,
   getCustomerPaymentMethods,
+  getOpenInvoiceUrl,
 } from '@/lib/stripe/stripe';
+import {
+  allowedActionsOf,
+  displayStateOf,
+  isPaymentProblem,
+  providerOf,
+  showsSubscription,
+  type SubscriptionAction,
+  type SubscriptionDisplayState,
+} from '@/lib/stripe/subscription-actions';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -31,6 +41,12 @@ import {
 interface SubscriptionResponse {
   tier: 'FREE' | 'PRO';
   status: string;
+  /**
+   * What the billing page may offer, decided here (plan §6): the server
+   * refuses any action that is not in this list. Empty in admin view-as.
+   */
+  allowedActions: SubscriptionAction[];
+  displayState: SubscriptionDisplayState;
   subscription: {
     id: string;
     status: string;
@@ -51,6 +67,11 @@ interface SubscriptionResponse {
     // NEW: dLocal-specific fields
     dLocalPaymentMethod: string | null;
     dLocalCountry: string | null;
+    /**
+     * Hosted invoice page of the latest open invoice ("Pay now"); only set
+     * for a Stripe subscription whose renewal failed (PAST_DUE or UNPAID).
+     */
+    openInvoiceUrl: string | null;
   } | null;
   // NEW (Session 6-1b): trial state, read from the User model. Additive
   // only — every existing consumer of this response is unaffected.
@@ -75,6 +96,8 @@ interface SubscriptionResponse {
  * {
  *   "tier": "FREE",
  *   "status": "none",
+ *   "allowedActions": [],
+ *   "displayState": "FREE",
  *   "subscription": null
  * }
  *
@@ -82,6 +105,8 @@ interface SubscriptionResponse {
  * {
  *   "tier": "PRO",
  *   "status": "active",
+ *   "allowedActions": ["update_card", "cancel"],
+ *   "displayState": "ACTIVE",
  *   "subscription": {
  *     "id": "sub_xxx",
  *     "status": "active",
@@ -146,11 +171,18 @@ export async function GET(
       hasUsedFreeTrial: user.hasUsedFreeTrial,
     };
 
-    // If no subscription or FREE tier, return basic response
-    if (!userSubscription || user.tier === 'FREE') {
+    // No subscription block for a FREE user, unless a failed payment is
+    // waiting to be resolved: after UNPAID (or a PAST_DUE row downgraded before
+    // the grace fix) the user must still see "Pay now" and "Update card" (B2).
+    if (
+      !userSubscription ||
+      !showsSubscription(user.tier, userSubscription.status)
+    ) {
       return NextResponse.json({
         tier: user.tier,
         status: 'none',
+        allowedActions: [],
+        displayState: 'FREE',
         subscription: null,
         trial,
       });
@@ -190,17 +222,42 @@ export async function GET(
     }
 
     // Determine payment provider
-    const provider: 'STRIPE' | 'DLOCAL' | null =
-      userSubscription.dLocalPaymentId
-        ? 'DLOCAL'
-        : userSubscription.stripeSubscriptionId
-          ? 'STRIPE'
-          : null;
+    const provider = providerOf(userSubscription);
+
+    // W2: the page for paying the failed renewal. Looked up only for a Stripe
+    // subscription in a failed-payment state, and not in admin view-as (the
+    // admin cannot act on it; its absence also hides "Pay now").
+    let openInvoiceUrl: string | null = null;
+    if (
+      subject.kind === 'self' &&
+      provider === 'STRIPE' &&
+      userSubscription.stripeSubscriptionId &&
+      isPaymentProblem(userSubscription.status)
+    ) {
+      try {
+        openInvoiceUrl = await getOpenInvoiceUrl(
+          userSubscription.stripeSubscriptionId
+        );
+      } catch (error) {
+        console.error('[Subscription] Error fetching open invoice:', error);
+        // "Update card" still works; only "Pay now" is missing.
+      }
+    }
+
+    const actionFacts = {
+      tier: user.tier,
+      status: userSubscription.status,
+      provider,
+      openInvoiceUrl,
+      viewing: subject.kind !== 'self',
+    };
 
     // Build unified response
     const response: SubscriptionResponse = {
       tier: user.tier,
       status: userSubscription.status,
+      allowedActions: allowedActionsOf(actionFacts),
+      displayState: displayStateOf(actionFacts),
       subscription: {
         id: userSubscription.id,
         status: userSubscription.status,
@@ -218,6 +275,7 @@ export async function GET(
         paymentMethod,
         dLocalPaymentMethod: userSubscription.dLocalPaymentMethod,
         dLocalCountry: userSubscription.dLocalCountry,
+        openInvoiceUrl,
       },
       trial,
     };

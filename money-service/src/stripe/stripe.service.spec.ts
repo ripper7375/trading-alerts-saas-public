@@ -9,6 +9,7 @@ import { StripeService } from './stripe.service';
 const mockCouponsCreate = jest.fn();
 const mockSessionsCreate = jest.fn();
 const mockSubscriptionsCancel = jest.fn();
+const mockPortalSessionsCreate = jest.fn();
 const mockWebhooksConstructEvent = jest.fn();
 const mockPricesRetrieve = jest.fn();
 
@@ -16,6 +17,7 @@ jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
     coupons: { create: mockCouponsCreate },
     checkout: { sessions: { create: mockSessionsCreate } },
+    billingPortal: { sessions: { create: mockPortalSessionsCreate } },
     subscriptions: { cancel: mockSubscriptionsCancel },
     webhooks: { constructEvent: mockWebhooksConstructEvent },
     prices: { retrieve: mockPricesRetrieve },
@@ -292,6 +294,38 @@ describe('StripeService', () => {
 
       expect(mockSubscriptionsCancel).toHaveBeenCalledWith('sub_123');
       expect(result.status).toBe('canceled');
+    });
+  });
+
+  describe('createPaymentMethodUpdateSession (W1)', () => {
+    it('scopes the portal to the card form, under the given configuration, with a redirect after completion', async () => {
+      mockPortalSessionsCreate.mockResolvedValue({
+        url: 'https://billing.stripe.com/p/session/x',
+      });
+
+      const result = await service.createPaymentMethodUpdateSession(
+        'cus_1',
+        'bpc_test_1',
+        'https://app.example.com/settings/billing',
+        'https://app.example.com/settings/billing?done=card'
+      );
+
+      expect(result.url).toBe('https://billing.stripe.com/p/session/x');
+      expect(mockPortalSessionsCreate).toHaveBeenCalledTimes(1);
+      expect(mockPortalSessionsCreate).toHaveBeenCalledWith({
+        customer: 'cus_1',
+        configuration: 'bpc_test_1',
+        return_url: 'https://app.example.com/settings/billing',
+        flow_data: {
+          type: 'payment_method_update',
+          after_completion: {
+            type: 'redirect',
+            redirect: {
+              return_url: 'https://app.example.com/settings/billing?done=card',
+            },
+          },
+        },
+      });
     });
   });
 

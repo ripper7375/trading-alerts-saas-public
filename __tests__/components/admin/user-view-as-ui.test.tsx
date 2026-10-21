@@ -3,7 +3,7 @@
  *
  * - Billing and Security Activity read the viewed user (every GET carries
  *   ?view_as=user) and hide the controls that would act on the ADMIN's own
- *   account (Cancel Plan, Manage Subscription, Mark read).
+ *   account (Cancel Plan, Update card, Pay now, Mark read).
  * - The settings nav shows only the pages that render the viewed user, and
  *   the gate replaces every other settings page with a notice.
  * - Outside view mode all three behave exactly as before.
@@ -55,9 +55,13 @@ function renderIn(
   );
 }
 
+// Shaped like GET /api/subscription for the viewer's OWN account. In view mode
+// the real route sends no actions; the page must hide them either way.
 const PRO_SUBSCRIPTION = {
   tier: 'PRO',
   status: 'active',
+  allowedActions: ['update_card', 'cancel'],
+  displayState: 'ACTIVE',
   subscription: {
     id: 'sub_1',
     status: 'active',
@@ -145,6 +149,8 @@ describe('billing page', () => {
     );
     expect(screen.queryByText('Cancel Plan')).not.toBeInTheDocument();
     expect(screen.queryByText('Manage Subscription')).not.toBeInTheDocument();
+    // Update card would open Stripe for the admin's own customer: hidden too.
+    expect(screen.queryByText('Update card')).not.toBeInTheDocument();
     expect(screen.getByText(/Plan actions are hidden/)).toBeInTheDocument();
     expect(screen.getByText('2/100')).toBeInTheDocument();
   });
@@ -153,7 +159,9 @@ describe('billing page', () => {
     renderIn(<BillingSettingsPage />, null);
 
     expect(await screen.findByText('Cancel Plan')).toBeInTheDocument();
-    expect(screen.getByText('Manage Subscription')).toBeInTheDocument();
+    expect(screen.getByText('Update card')).toBeInTheDocument();
+    // The old "Manage Subscription" button linked to this very page (B3).
+    expect(screen.queryByText('Manage Subscription')).not.toBeInTheDocument();
     expect(requestedUrls().some((url) => url.includes('view_as'))).toBe(false);
   });
 });

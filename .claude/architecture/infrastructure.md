@@ -54,3 +54,10 @@ related_docs:
   (first push will show). No `npm run lint` for the gateway: the script matches no files. Report: `docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md`.
 - **money-service refuses to guess its public URL or its dLocal key** (Remediation 6.5): Stripe checkout needs `NEXTAUTH_URL`, dLocal create-payment needs
   `DLOCAL_API_KEY` and `NEXTAUTH_URL`; without them they answer 503, and mock mode exists only under `NODE_ENV=test`.
+- **"Update card" needs `STRIPE_PORTAL_CONFIGURATION_ID` on BOTH the monolith and money-service** (Manage Subscription S1, 2026-10-21): `POST
+/api/subscription/payment-method-session` answers 503 `PORTAL_NOT_CONFIGURED` without it or without `NEXTAUTH_URL`, and creates nothing. With
+  `MIGRATE_WRITE_APIS_MONEY_STRIPE=true` (set in the local `.env.local`) the monolith route only forwards to money-service, so a local browser check also needs
+  money-service running with the same variable. Use a test-mode ID with test keys, a live ID in production.
+- **Two Stripe rule files are byte copies across the stacks** (a test fails on any difference): `lib/stripe/tier-rule.ts` and
+  `lib/stripe/subscription-actions.ts` are mirrored in `money-service/src/stripe/`. Edit one, copy it over the other. `invoice-plan.ts` is also mirrored, by
+  hand, with no test.

@@ -60,6 +60,7 @@ jest.mock('@/lib/stripe/stripe', () => ({
   __esModule: true,
   getSubscription: jest.fn(),
   getCustomerPaymentMethods: jest.fn(),
+  getOpenInvoiceUrl: jest.fn(),
   cancelSubscription: jest.fn(),
 }));
 
@@ -245,6 +246,8 @@ describe('GET /api/subscription', () => {
     await expect(res.json()).resolves.toEqual({
       tier: 'FREE',
       status: 'none',
+      allowedActions: [],
+      displayState: 'FREE',
       subscription: null,
       trial: {
         status: 'NOT_STARTED',

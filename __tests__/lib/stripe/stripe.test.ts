@@ -899,4 +899,83 @@ describe('Stripe Client Functions', () => {
       });
     });
   });
+
+  describe('createPaymentMethodUpdateSession (Manage Subscription W1)', () => {
+    it('opens only the card form, under the given configuration, with a redirect after completion', async () => {
+      mockBillingPortalSessionsCreate.mockResolvedValue({
+        id: 'bps_test_1',
+        url: 'https://billing.stripe.com/p/session/bps_test_1',
+      });
+
+      const { createPaymentMethodUpdateSession } = await import(
+        '@/lib/stripe/stripe'
+      );
+      const result = await createPaymentMethodUpdateSession(
+        'cus_test_123',
+        'bpc_test_1',
+        'https://example.com/settings/billing',
+        'https://example.com/settings/billing?done=card'
+      );
+
+      expect(result.url).toBe(
+        'https://billing.stripe.com/p/session/bps_test_1'
+      );
+      expect(mockBillingPortalSessionsCreate).toHaveBeenCalledTimes(1);
+      expect(mockBillingPortalSessionsCreate).toHaveBeenCalledWith({
+        customer: 'cus_test_123',
+        configuration: 'bpc_test_1',
+        return_url: 'https://example.com/settings/billing',
+        flow_data: {
+          type: 'payment_method_update',
+          after_completion: {
+            type: 'redirect',
+            redirect: {
+              return_url: 'https://example.com/settings/billing?done=card',
+            },
+          },
+        },
+      });
+    });
+  });
+
+  describe('getOpenInvoiceUrl (Manage Subscription W2)', () => {
+    it('asks Stripe for the single newest open invoice of the subscription and returns its hosted page', async () => {
+      mockInvoicesList.mockResolvedValue({
+        data: [
+          {
+            id: 'in_open_1',
+            hosted_invoice_url: 'https://invoice.stripe.com/i/acct_1/test_1',
+          },
+        ],
+      });
+
+      const { getOpenInvoiceUrl } = await import('@/lib/stripe/stripe');
+      const url = await getOpenInvoiceUrl('sub_test_123');
+
+      expect(url).toBe('https://invoice.stripe.com/i/acct_1/test_1');
+      expect(mockInvoicesList).toHaveBeenCalledWith({
+        subscription: 'sub_test_123',
+        status: 'open',
+        limit: 1,
+      });
+    });
+
+    it('returns null when no invoice is open', async () => {
+      mockInvoicesList.mockResolvedValue({ data: [] });
+
+      const { getOpenInvoiceUrl } = await import('@/lib/stripe/stripe');
+
+      await expect(getOpenInvoiceUrl('sub_test_123')).resolves.toBeNull();
+    });
+
+    it('returns null when the open invoice has no hosted page', async () => {
+      mockInvoicesList.mockResolvedValue({
+        data: [{ id: 'in_open_2', hosted_invoice_url: null }],
+      });
+
+      const { getOpenInvoiceUrl } = await import('@/lib/stripe/stripe');
+
+      await expect(getOpenInvoiceUrl('sub_test_123')).resolves.toBeNull();
+    });
+  });
 });

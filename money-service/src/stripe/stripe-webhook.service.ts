@@ -32,6 +32,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 import { invoicePlan } from './invoice-plan';
 import { StripeService } from './stripe.service';
+import { tierForStripeStatus } from './tier-rule';
 
 type SubscriptionStatusValue =
   | 'ACTIVE'
@@ -239,10 +240,12 @@ export class StripeWebhookService {
           },
         });
 
-        if (
-          subscription.status !== 'active' &&
-          subscription.status !== 'trialing'
-        ) {
+        // Remove PRO only when the tier rule says FREE (canceled, unpaid, ...).
+        // `past_due` keeps PRO through Stripe's retry window (B1, decision
+        // E1). PRO is never granted here: invoice.payment_succeeded restores
+        // it, and a late `past_due` event must not undo
+        // customer.subscription.deleted.
+        if (tierForStripeStatus(subscription.status) === 'FREE') {
           await tx.user.update({
             where: { id: dbSubscription.userId },
             data: { tier: 'FREE' },

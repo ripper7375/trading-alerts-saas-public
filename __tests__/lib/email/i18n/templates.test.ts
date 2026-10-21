@@ -172,6 +172,26 @@ describe.each([...EMAIL_LANGUAGES])('%s', (language) => {
   });
 });
 
+describe('the payment-failed button (Manage Subscription B4)', () => {
+  // It used to open /settings?tab=billing, which the settings hub ignores: the
+  // reader landed on the hub, one more click from the page that holds
+  // "Pay now" and "Update card".
+  it.each([...EMAIL_LANGUAGES])(
+    'opens the billing page itself, for the monthly and the 3-day plan, in %s',
+    (language) => {
+      for (const name of ['paymentFailed', 'paymentFailedThreeDay']) {
+        const email = (BUILDERS[name] as (l: EmailLocale) => BuiltEmail)({
+          language,
+        });
+        expect(email.html).toMatch(/href="[^"]*\/settings\/billing"/);
+        expect(email.html).not.toContain('tab=billing');
+        expect(email.text).toContain('/settings/billing');
+        expect(email.text).not.toContain('tab=billing');
+      }
+    }
+  );
+});
+
 describe("the reader's language reaches the message", () => {
   it('writes the sign-in alert in Thai', () => {
     const email = BUILDERS['newDevice']!({ language: 'th' });

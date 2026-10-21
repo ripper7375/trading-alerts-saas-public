@@ -208,7 +208,31 @@ describe('StripeWebhookService', () => {
   });
 
   describe('handleSubscriptionUpdated', () => {
-    it('downgrades the user to FREE when Stripe status is inactive', async () => {
+    it('downgrades the user to FREE when Stripe status is unpaid', async () => {
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-row-1',
+        userId: 'user-1',
+      } as never);
+
+      await service.handleSubscriptionUpdated({
+        id: 'sub_123',
+        status: 'unpaid',
+        current_period_end: 1234567890,
+      } as unknown as Stripe.Subscription);
+
+      expect(prismaMock.subscription.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'sub-row-1' },
+          data: expect.objectContaining({ status: 'UNPAID' }),
+        })
+      );
+      expect(prismaMock.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        data: { tier: 'FREE' },
+      });
+    });
+
+    it('keeps the user on PRO while the subscription is past_due (B1: Stripe retry window)', async () => {
       prismaMock.subscription.findFirst.mockResolvedValue({
         id: 'sub-row-1',
         userId: 'user-1',
@@ -226,10 +250,65 @@ describe('StripeWebhookService', () => {
           data: expect.objectContaining({ status: 'PAST_DUE' }),
         })
       );
-      expect(prismaMock.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
-        data: { tier: 'FREE' },
-      });
+      // The grace period: no tier write at all, so PRO stays.
+      expect(prismaMock.user.update).not.toHaveBeenCalled();
+    });
+
+    // The tier rule of the Manage Subscription plan §5, driven through the
+    // real handler. The same table runs against the monolith's handler in
+    // __tests__/lib/stripe/webhook-handlers.test.ts.
+    it.each([
+      ['active', 'ACTIVE', false],
+      ['trialing', 'TRIALING', false],
+      ['past_due', 'PAST_DUE', false],
+      ['unpaid', 'UNPAID', true],
+      ['canceled', 'CANCELED', true],
+      ['incomplete', 'INACTIVE', true],
+      ['incomplete_expired', 'INACTIVE', true],
+      ['paused', 'INACTIVE', true],
+    ])(
+      'status %s is stored as %s and removes PRO: %s',
+      async (stripeStatus, dbStatus, removesPro) => {
+        prismaMock.subscription.findFirst.mockResolvedValue({
+          id: 'sub-row-1',
+          userId: 'user-1',
+        } as never);
+
+        await service.handleSubscriptionUpdated({
+          id: 'sub_123',
+          status: stripeStatus,
+          current_period_end: 1234567890,
+        } as unknown as Stripe.Subscription);
+
+        expect(prismaMock.subscription.update).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ status: dbStatus }),
+          })
+        );
+        if (removesPro) {
+          expect(prismaMock.user.update).toHaveBeenCalledWith({
+            where: { id: 'user-1' },
+            data: { tier: 'FREE' },
+          });
+        } else {
+          expect(prismaMock.user.update).not.toHaveBeenCalled();
+        }
+      }
+    );
+
+    it('never grants PRO from a subscription.updated event (invoice.payment_succeeded does)', async () => {
+      prismaMock.subscription.findFirst.mockResolvedValue({
+        id: 'sub-row-1',
+        userId: 'user-1',
+      } as never);
+
+      await service.handleSubscriptionUpdated({
+        id: 'sub_123',
+        status: 'active',
+        current_period_end: 1234567890,
+      } as unknown as Stripe.Subscription);
+
+      expect(prismaMock.user.update).not.toHaveBeenCalled();
     });
 
     it('does not downgrade the user while trialing', async () => {
@@ -260,9 +339,11 @@ describe('StripeWebhookService', () => {
     });
 
     describe('atomic write (Remediation Tier 2 §6.4, 4A-13 audit item b)', () => {
-      const pastDue = {
+      // `unpaid` is a status that removes PRO, so it has a tier write to make
+      // atomic (a `past_due` event writes none, see above).
+      const unpaid = {
         id: 'sub_123',
-        status: 'past_due',
+        status: 'unpaid',
         current_period_end: 1234567890,
       } as unknown as Stripe.Subscription;
 
@@ -274,13 +355,13 @@ describe('StripeWebhookService', () => {
       });
 
       it('writes the subscription and the user tier inside ONE transaction', async () => {
-        await service.handleSubscriptionUpdated(pastDue);
+        await service.handleSubscriptionUpdated(unpaid);
 
         expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
       });
 
       it('writes the subscription first and the downgrade second, in that transaction', async () => {
-        await service.handleSubscriptionUpdated(pastDue);
+        await service.handleSubscriptionUpdated(unpaid);
 
         const subscriptionWrite = prismaMock.subscription.update.mock
           .invocationCallOrder[0] as number;
@@ -302,9 +383,9 @@ describe('StripeWebhookService', () => {
           }
         });
 
-        await expect(
-          service.handleSubscriptionUpdated(pastDue)
-        ).rejects.toThrow('db blip');
+        await expect(service.handleSubscriptionUpdated(unpaid)).rejects.toThrow(
+          'db blip'
+        );
 
         expect(rolledBack).toBe(true);
       });
@@ -312,7 +393,7 @@ describe('StripeWebhookService', () => {
       it('does not open a transaction at all when the subscription is unknown', async () => {
         prismaMock.subscription.findFirst.mockResolvedValue(null);
 
-        await service.handleSubscriptionUpdated(pastDue);
+        await service.handleSubscriptionUpdated(unpaid);
 
         expect(prismaMock.$transaction).not.toHaveBeenCalled();
       });

@@ -580,7 +580,7 @@ export function buildPaymentFailedEmail(
     ${banner.p(ctx.h('paymentFailed.action'))}
 
     ${banner.button(
-      `${url}/settings?tab=billing`,
+      `${url}/settings/billing`,
       ctx.h('paymentFailed.button'),
       '#dc2626'
     )}

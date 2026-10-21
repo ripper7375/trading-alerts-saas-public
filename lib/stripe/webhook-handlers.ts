@@ -31,6 +31,7 @@ import {
 } from '@/lib/affiliate/constants';
 import { getAnnualPriceUsd, getBasePriceUsd } from '@/lib/affiliate/db';
 import { invoicePlan } from '@/lib/stripe/invoice-plan';
+import { tierForStripeStatus } from '@/lib/stripe/tier-rule';
 
 /**
  * Subscription/AffiliateProfile no longer carry a `user` relation (Session
@@ -209,11 +210,11 @@ export async function handleSubscriptionUpdated(
       },
     });
 
-    // If subscription became inactive, downgrade user to FREE
-    if (
-      subscription.status !== 'active' &&
-      subscription.status !== 'trialing'
-    ) {
+    // Remove PRO only when the tier rule says FREE (canceled, unpaid, ...).
+    // `past_due` keeps PRO through Stripe's retry window (B1, decision E1).
+    // PRO is never granted here: invoice.payment_succeeded restores it, and a
+    // late `past_due` event must not undo customer.subscription.deleted.
+    if (tierForStripeStatus(subscription.status) === 'FREE') {
       await prisma.user.update({
         where: { id: dbSubscription.userId },
         data: { tier: 'FREE' },

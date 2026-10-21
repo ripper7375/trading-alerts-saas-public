@@ -370,6 +370,24 @@ export async function updateSubscription(
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
+ * The hosted invoice page of a subscription's latest open invoice: where a
+ * subscriber with a failed renewal pays it ("Pay now", W2). Null when no
+ * invoice is open or Stripe has no hosted page for it.
+ *
+ * @param subscriptionId - Stripe subscription ID
+ */
+export async function getOpenInvoiceUrl(
+  subscriptionId: string
+): Promise<string | null> {
+  const invoices = await getStripeClient().invoices.list({
+    subscription: subscriptionId,
+    status: 'open',
+    limit: 1,
+  });
+  return invoices.data[0]?.hosted_invoice_url ?? null;
+}
+
+/**
  * Get customer's invoices from Stripe
  *
  * @param customerId - Stripe customer ID
@@ -490,4 +508,35 @@ export async function createBillingPortalSession(
     return_url: returnUrl,
   });
   return session;
+}
+
+/**
+ * Create a Stripe Billing Portal session that opens ONLY the card form
+ * (W1, decision D4): `flow_data.type = payment_method_update`, under the
+ * portal configuration Davin keeps with every other feature off (D5). Stripe
+ * sends the customer to `completedUrl` when the new card is saved.
+ *
+ * @param customerId - Stripe customer ID
+ * @param configurationId - STRIPE_PORTAL_CONFIGURATION_ID
+ * @param returnUrl - Where the portal's own "return" link goes
+ * @param completedUrl - Where Stripe redirects after the card is saved
+ */
+export async function createPaymentMethodUpdateSession(
+  customerId: string,
+  configurationId: string,
+  returnUrl: string,
+  completedUrl: string
+): Promise<Stripe.BillingPortal.Session> {
+  return getStripeClient().billingPortal.sessions.create({
+    customer: customerId,
+    configuration: configurationId,
+    return_url: returnUrl,
+    flow_data: {
+      type: 'payment_method_update',
+      after_completion: {
+        type: 'redirect',
+        redirect: { return_url: completedUrl },
+      },
+    },
+  });
 }

@@ -23,8 +23,10 @@ import {
   NotFoundException,
   Post,
   Req,
+  ServiceUnavailableException,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
@@ -33,6 +35,7 @@ import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { StripeService } from './stripe.service';
+import { allowedActionsOf, providerOf } from './subscription-actions';
 
 @Controller('stripe/subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -40,8 +43,109 @@ export class StripeSubscriptionController {
   constructor(
     private readonly stripeService: StripeService,
     private readonly prisma: PrismaService,
-    private readonly outboxService: OutboxService
+    private readonly outboxService: OutboxService,
+    private readonly configService: ConfigService
   ) {}
+
+  /**
+   * Manage Subscription S1, workflow W1. Ports
+   * app/api/subscription/payment-method-session/route.ts: a Billing Portal
+   * session that opens only the card form. Writes nothing and charges
+   * nothing, so it has no outbox event; and no idempotency cache, because a
+   * portal URL expires within minutes and a cached one would be a dead link.
+   */
+  @Post('payment-method-session')
+  async createPaymentMethodSession(
+    @Req() request: AuthenticatedRequest
+  ): Promise<{ url: string }> {
+    try {
+      const userId = request.user.id;
+
+      // Refused before anything is created. No localhost fallback (Tier 2
+      // §6.5): a missing NEXTAUTH_URL would send the user back to localhost.
+      const configurationId = this.configService.get<string>(
+        'STRIPE_PORTAL_CONFIGURATION_ID'
+      );
+      const baseUrl = this.configService.get<string>('NEXTAUTH_URL');
+      if (!configurationId || !baseUrl) {
+        logger.error(
+          '[CardUpdate] STRIPE_PORTAL_CONFIGURATION_ID or NEXTAUTH_URL is not set; refusing to open the portal'
+        );
+        throw new ServiceUnavailableException({
+          error: 'Configuration error',
+          message:
+            'Card updates are temporarily unavailable. Please try again later.',
+          code: 'PORTAL_NOT_CONFIGURED',
+        });
+      }
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { tier: true },
+      });
+
+      if (!user) {
+        throw new NotFoundException({
+          error: 'User not found',
+          message: 'User account not found',
+          code: 'USER_NOT_FOUND',
+        });
+      }
+
+      const subscription = await this.prisma.subscription.findUnique({
+        where: { userId },
+        select: {
+          status: true,
+          stripeCustomerId: true,
+          stripeSubscriptionId: true,
+          dLocalPaymentId: true,
+        },
+      });
+
+      if (!subscription?.stripeCustomerId) {
+        throw new BadRequestException({
+          error: 'No card on file',
+          message: 'You do not have a card subscription to update',
+          code: 'NO_STRIPE_SUBSCRIPTION',
+        });
+      }
+
+      const allowed = allowedActionsOf({
+        tier: user.tier,
+        status: subscription.status,
+        provider: providerOf(subscription),
+        openInvoiceUrl: null,
+      });
+      if (!allowed.includes('update_card')) {
+        throw new BadRequestException({
+          error: 'Not allowed',
+          message: 'You cannot update your card for this subscription',
+          code: 'ACTION_NOT_ALLOWED',
+        });
+      }
+
+      const portal = await this.stripeService.createPaymentMethodUpdateSession(
+        subscription.stripeCustomerId,
+        configurationId,
+        `${baseUrl}/settings/billing`,
+        `${baseUrl}/settings/billing?done=card`
+      );
+
+      return { url: portal.url };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+
+      logger.error('[CardUpdate] Error creating the portal session', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+
+      throw new InternalServerErrorException({
+        error: 'Card update failed',
+        message: 'Failed to open the card update page. Please try again.',
+        code: 'PORTAL_SESSION_ERROR',
+      });
+    }
+  }
 
   @Post('cancel')
   async cancel(

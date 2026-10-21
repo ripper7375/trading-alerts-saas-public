@@ -60,6 +60,10 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   `@jest/globals`, inside hoisted factories.
 - `jest.clearAllMocks()` does not clear queued `mockResolvedValueOnce` values; use
   `resetAllMocks()` when a function may call a mock a variable number of times.
+- **money-service has no `node_modules` in this checkout.** Run its `tsc` and Jest from a scratch copy: `robocopy D:\SaaS\money-service <scratch> /MIR /XD node_modules dist .git`,
+  then either `npm ci` there (about 40 s) or `mklink /J <scratch>\node_modules <an installed copy>\node_modules`; copy again after each edit (`/MIR`). Remove a junction with
+  `rmdir` (`cmd /c rmdir <path>`), never a recursive delete, which can follow it into the install. Use `--coverage=false` for a single suite: the root `jest` config's
+  global coverage thresholds fail any partial run.
 - A mutation test only counts if the mutation landed where you think; restore byte-exact.
 - `money-service` `prisma.shutdown.spec.ts` times out under full parallel runs
   (`LESSONS-LEARNED.md` L24); rerun it alone with `--runInBand` before calling it a regression.

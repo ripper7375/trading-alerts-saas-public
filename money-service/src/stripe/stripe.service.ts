@@ -263,6 +263,32 @@ export class StripeService {
   }
 
   /**
+   * Create a Billing Portal session that opens ONLY the card form (W1,
+   * decision D4): `flow_data.type = payment_method_update`, under the portal
+   * configuration kept with every other feature off (D5). Mirrors
+   * lib/stripe/stripe.ts createPaymentMethodUpdateSession().
+   */
+  async createPaymentMethodUpdateSession(
+    customerId: string,
+    configurationId: string,
+    returnUrl: string,
+    completedUrl: string
+  ): Promise<Stripe.BillingPortal.Session> {
+    return this.getClient().billingPortal.sessions.create({
+      customer: customerId,
+      configuration: configurationId,
+      return_url: returnUrl,
+      flow_data: {
+        type: 'payment_method_update',
+        after_completion: {
+          type: 'redirect',
+          redirect: { return_url: completedUrl },
+        },
+      },
+    });
+  }
+
+  /**
    * Retrieve a Charge by id. Used by the refund/dispute commission-clawback
    * path: a `charge.dispute.created` payload only carries the charge id,
    * not the customer, so the charge is fetched to resolve it.

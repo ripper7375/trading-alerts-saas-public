@@ -35,12 +35,13 @@ below because they appear in in-scope files, but its code was not read).
 
 ## Payments — Stripe
 
-| Name                                 | Consumed by                                                                                                              | Found in                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| `STRIPE_SECRET_KEY`                  | Server-side Stripe API calls — `lib/stripe/stripe.ts`                                                                    | `.env.example`, `.env`, `.env.local`                        |
-| `STRIPE_WEBHOOK_SECRET`              | Webhook signature verification (`constructWebhookEvent`) — `app/api/webhooks/stripe/route.ts` via `lib/stripe/stripe.ts` | `.env.example`, `.env`, `.env.local` — **confirmed-live ✓** |
-| `STRIPE_PRO_PRICE_ID`                | Pro-tier Stripe Price ID (identifier, not a credential) — `lib/stripe/stripe.ts`                                         | `.env.example`, `.env`, `.env.local`                        |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Public, client-side Stripe key                                                                                           | `.env.example`, `.env`, `.env.local`                        |
+| Name                                 | Consumed by                                                                                                                                                      | Found in                                                                       |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `STRIPE_SECRET_KEY`                  | Server-side Stripe API calls — `lib/stripe/stripe.ts`                                                                                                            | `.env.example`, `.env`, `.env.local`                                           |
+| `STRIPE_WEBHOOK_SECRET`              | Webhook signature verification (`constructWebhookEvent`) — `app/api/webhooks/stripe/route.ts` via `lib/stripe/stripe.ts`                                         | `.env.example`, `.env`, `.env.local` — **confirmed-live ✓**                    |
+| `STRIPE_PRO_PRICE_ID`                | Pro-tier Stripe Price ID (identifier, not a credential) — `lib/stripe/stripe.ts`                                                                                 | `.env.example`, `.env`, `.env.local`                                           |
+| `STRIPE_PORTAL_CONFIGURATION_ID`     | Billing Portal configuration for "Update card" only (identifier, not a credential) — `POST /api/subscription/payment-method-session`, monolith and money-service | `.env.example`, `.env.local` (a test-mode ID locally, a live ID in production) |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Public, client-side Stripe key                                                                                                                                   | `.env.example`, `.env`, `.env.local`                                           |
 
 ## Payments — dLocal
 
