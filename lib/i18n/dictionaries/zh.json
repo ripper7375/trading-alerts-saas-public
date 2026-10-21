@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "将撤销切换为按月计费，您的套餐将每年在 {date} 续订。",
   "billing.keep_yearly.dismiss": "稍后再说",
   "billing.action.keeping_yearly": "正在保持按年...",
-  "billing.keep_yearly.confirm": "是，保持按年"
+  "billing.keep_yearly.confirm": "是，保持按年",
+  "billing.banner.expiring_title": "您的套餐将于 {date} 到期",
+  "billing.banner.expiring_body": "立即续订以继续使用 PRO 功能。剩余天数将累加到新的周期中。",
+  "billing.action.renew_now": "立即续订",
+  "billing.notice.renewed": "您的套餐已续订。PRO 有效期现已延长至 {date}。",
+  "billing.status.expiring": "即将到期",
+  "checkout.renew_note": "您正在续订 PRO 套餐。当前套餐将于 {date} 结束，剩余天数将累加到您现在支付的新周期中。"
 }

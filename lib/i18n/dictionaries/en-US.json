@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "The switch to monthly billing will be withdrawn and your plan will renew yearly on {date}.",
   "billing.keep_yearly.dismiss": "Not now",
   "billing.action.keeping_yearly": "Keeping yearly...",
-  "billing.keep_yearly.confirm": "Yes, keep yearly"
+  "billing.keep_yearly.confirm": "Yes, keep yearly",
+  "billing.banner.expiring_title": "Your plan expires on {date}",
+  "billing.banner.expiring_body": "Renew now to keep your PRO features. The days you have left are added to the new period.",
+  "billing.action.renew_now": "Renew now",
+  "billing.notice.renewed": "Your plan has been renewed. PRO now runs until {date}.",
+  "billing.status.expiring": "Expires soon",
+  "checkout.renew_note": "You are renewing your PRO plan. It ends on {date}, and the days you have left are added to the new period you pay for now."
 }

@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "ماہانہ بلنگ پر منتقلی واپس لے لی جائے گی اور آپ کا پلان ہر سال {date} کو تجدید ہوگا۔",
   "billing.keep_yearly.dismiss": "ابھی نہیں",
   "billing.action.keeping_yearly": "سالانہ برقرار رکھا جا رہا ہے...",
-  "billing.keep_yearly.confirm": "ہاں، سالانہ برقرار رکھیں"
+  "billing.keep_yearly.confirm": "ہاں، سالانہ برقرار رکھیں",
+  "billing.banner.expiring_title": "آپ کا پلان {date} کو ختم ہو رہا ہے",
+  "billing.banner.expiring_body": "اپنی PRO خصوصیات برقرار رکھنے کے لیے ابھی تجدید کریں۔ آپ کے باقی دن نئی مدت میں شامل کر دیے جاتے ہیں۔",
+  "billing.action.renew_now": "ابھی تجدید کریں",
+  "billing.notice.renewed": "آپ کے پلان کی تجدید ہو گئی ہے۔ PRO اب {date} تک فعال ہے۔",
+  "billing.status.expiring": "جلد ختم ہو رہا ہے",
+  "checkout.renew_note": "آپ اپنے PRO پلان کی تجدید کر رہے ہیں۔ یہ {date} کو ختم ہو گا، اور آپ کے باقی دن اس نئی مدت میں شامل کر دیے جائیں گے جس کی ادائیگی آپ ابھی کر رہے ہیں۔"
 }

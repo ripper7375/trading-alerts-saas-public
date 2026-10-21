@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "月額払いへの切り替えを取り消し、プランは毎年{date}に更新されます。",
   "billing.keep_yearly.dismiss": "今はしない",
   "billing.action.keeping_yearly": "継続しています...",
-  "billing.keep_yearly.confirm": "はい、年額を継続"
+  "billing.keep_yearly.confirm": "はい、年額を継続",
+  "billing.banner.expiring_title": "プランは{date}に期限が切れます",
+  "billing.banner.expiring_body": "PRO機能を引き続きご利用いただくには、今すぐ更新してください。残りの日数は新しい期間に加算されます。",
+  "billing.action.renew_now": "今すぐ更新",
+  "billing.notice.renewed": "プランを更新しました。PROは{date}まで有効です。",
+  "billing.status.expiring": "まもなく期限切れ",
+  "checkout.renew_note": "PROプランを更新しています。現在のプランは{date}に終了し、残りの日数は今回お支払いいただく新しい期間に加算されます。"
 }

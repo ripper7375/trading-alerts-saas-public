@@ -10,6 +10,9 @@
  * (F21), the scheduled cancellation (`cancelAtPeriodEnd`, CANCEL_SCHEDULED and
  * its `resume` action), Stripe's live period end, and no cancel for dLocal (D8).
  *
+ * Manage Subscription S4 added `renewsAutomatically`, the dLocal EXPIRING state
+ * (three days before `expiresAt`) and `renew_now` (W6).
+ *
  * @module __tests__/api/subscription-get.test
  */
 
@@ -206,19 +209,20 @@ describe('GET /api/subscription -- failed payments (B2)', () => {
 });
 
 describe('GET /api/subscription -- other providers and view-as', () => {
-  it('offers nothing (no card update, no cancel, no invoice) for a dLocal subscription (D8)', async () => {
+  it('offers only renew now (no card update, no cancel, no invoice) for a dLocal subscription (D8, W6)', async () => {
     mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
     mockSubscriptionFindUnique.mockResolvedValue({
       ...stripeRow('ACTIVE'),
       stripeCustomerId: null,
       stripeSubscriptionId: null,
       dLocalPaymentId: 'dl_1',
+      expiresAt: new Date(Date.now() + 20 * 86_400_000),
     });
 
     const { body } = await get();
 
     expect(body.subscription.provider).toBe('DLOCAL');
-    expect(body.allowedActions).toEqual([]);
+    expect(body.allowedActions).toEqual(['renew_now']);
     expect(mockGetSubscription).not.toHaveBeenCalled();
     expect(mockGetOpenInvoiceUrl).not.toHaveBeenCalled();
   });
@@ -649,6 +653,129 @@ describe('GET /api/subscription -- billing period (S3, W5a/W5b)', () => {
     const { body } = await get();
 
     expect(body.displayState).toBe('ACTIVE');
+    expect(body.allowedActions).toEqual(['renew_now']);
+  });
+});
+
+describe('GET /api/subscription -- dLocal renewal (S4, W6, B10)', () => {
+  const DAY = 86_400_000;
+
+  function dLocalRow(expiresAt: Date | null): Record<string, unknown> {
+    return {
+      ...stripeRow('ACTIVE'),
+      stripeCustomerId: null,
+      stripeSubscriptionId: null,
+      stripeCurrentPeriodEnd: null,
+      dLocalPaymentId: 'dl_1',
+      dLocalPaymentMethod: 'UPI',
+      dLocalCountry: 'IN',
+      expiresAt,
+    };
+  }
+
+  beforeEach(() => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+  });
+
+  it('says a dLocal plan does not renew automatically', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(
+      dLocalRow(new Date(Date.now() + 20 * DAY))
+    );
+
+    const { body } = await get();
+
+    expect(body.subscription.renewsAutomatically).toBe(false);
+    expect(body.subscription.provider).toBe('DLOCAL');
+  });
+
+  it('is ACTIVE with 20 days left, and offers renew now already', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(
+      dLocalRow(new Date(Date.now() + 20 * DAY))
+    );
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('ACTIVE');
+    expect(body.allowedActions).toEqual(['renew_now']);
+  });
+
+  it('is EXPIRING within three days of expiresAt', async () => {
+    const expiresAt = new Date(Date.now() + 2 * DAY);
+    mockSubscriptionFindUnique.mockResolvedValue(dLocalRow(expiresAt));
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('EXPIRING');
+    expect(body.allowedActions).toEqual(['renew_now']);
+    expect(body.subscription.expiresAt).toBe(expiresAt.toISOString());
+    expect(body.subscription.renewsAutomatically).toBe(false);
+  });
+
+  it('is still ACTIVE 4 days before expiresAt', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(
+      dLocalRow(new Date(Date.now() + 4 * DAY))
+    );
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('ACTIVE');
+  });
+
+  it('a plan past its date that the cron has not downgraded yet is EXPIRING and renewable', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(
+      dLocalRow(new Date(Date.now() - 3 * 3_600_000))
+    );
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('EXPIRING');
+    expect(body.allowedActions).toEqual(['renew_now']);
+  });
+
+  it('is never EXPIRING when the row has no date', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(dLocalRow(null));
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('ACTIVE');
+  });
+
+  it('hides renew now in admin view-as', async () => {
+    mockResolveViewAsSubject.mockResolvedValue({
+      kind: 'view-as',
+      userId: 'u2',
+      target: {},
+    });
+    mockSubscriptionFindUnique.mockResolvedValue(
+      dLocalRow(new Date(Date.now() + 1 * DAY))
+    );
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('EXPIRING');
     expect(body.allowedActions).toEqual([]);
+  });
+
+  it('a Stripe subscription renews automatically, until its cancellation is scheduled', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(stripeRow('ACTIVE'));
+    expect((await get()).body.subscription.renewsAutomatically).toBe(true);
+
+    mockGetSubscription.mockResolvedValue({
+      cancel_at_period_end: true,
+      trial_end: null,
+    });
+    expect((await get()).body.subscription.renewsAutomatically).toBe(false);
+  });
+
+  it('a Stripe subscription whose stored date is near is NOT EXPIRING (dLocal only)', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue({
+      ...stripeRow('ACTIVE'),
+      expiresAt: new Date(Date.now() + 1 * DAY),
+    });
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('ACTIVE');
+    expect(body.allowedActions).not.toContain('renew_now');
   });
 });

@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "การเปลี่ยนเป็นการเรียกเก็บเงินรายเดือนจะถูกยกเลิก และแผนของคุณจะต่ออายุทุกปีในวันที่ {date}",
   "billing.keep_yearly.dismiss": "ไว้ภายหลัง",
   "billing.action.keeping_yearly": "กำลังคงรายปีไว้...",
-  "billing.keep_yearly.confirm": "ใช่ คงรายปีไว้"
+  "billing.keep_yearly.confirm": "ใช่ คงรายปีไว้",
+  "billing.banner.expiring_title": "แผนของคุณจะหมดอายุในวันที่ {date}",
+  "billing.banner.expiring_body": "ต่ออายุตอนนี้เพื่อใช้ฟีเจอร์ PRO ต่อไป จำนวนวันที่เหลือจะถูกบวกเข้ากับระยะเวลาใหม่",
+  "billing.action.renew_now": "ต่ออายุเลย",
+  "billing.notice.renewed": "ต่ออายุแผนของคุณแล้ว ตอนนี้ PRO ใช้งานได้ถึงวันที่ {date}",
+  "billing.status.expiring": "ใกล้หมดอายุ",
+  "checkout.renew_note": "คุณกำลังต่ออายุแผน PRO แผนปัจจุบันจะสิ้นสุดในวันที่ {date} และจำนวนวันที่เหลือจะถูกบวกเข้ากับระยะเวลาใหม่ที่คุณชำระในตอนนี้"
 }

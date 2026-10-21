@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "मासिक बिलिंग पर स्विच वापस ले लिया जाएगा और आपका प्लान हर साल {date} को नवीनीकृत होगा।",
   "billing.keep_yearly.dismiss": "अभी नहीं",
   "billing.action.keeping_yearly": "वार्षिक बनाए रखा जा रहा है...",
-  "billing.keep_yearly.confirm": "हाँ, वार्षिक बनाए रखें"
+  "billing.keep_yearly.confirm": "हाँ, वार्षिक बनाए रखें",
+  "billing.banner.expiring_title": "आपका प्लान {date} को समाप्त हो रहा है",
+  "billing.banner.expiring_body": "अपनी PRO सुविधाएँ बनाए रखने के लिए अभी नवीनीकरण करें। आपके शेष दिन नई अवधि में जोड़ दिए जाते हैं।",
+  "billing.action.renew_now": "अभी नवीनीकरण करें",
+  "billing.notice.renewed": "आपके प्लान का नवीनीकरण हो गया है। PRO अब {date} तक चालू है।",
+  "billing.status.expiring": "जल्द समाप्त होगा",
+  "checkout.renew_note": "आप अपने PRO प्लान का नवीनीकरण कर रहे हैं। यह {date} को समाप्त होता है, और आपके शेष दिन उस नई अवधि में जोड़ दिए जाएँगे जिसका भुगतान आप अभी कर रहे हैं।"
 }

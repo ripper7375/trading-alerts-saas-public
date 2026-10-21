@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "A passagem para a faturação mensal será retirada e o seu plano renovar-se-á anualmente em {date}.",
   "billing.keep_yearly.dismiss": "Agora não",
   "billing.action.keeping_yearly": "A manter anual...",
-  "billing.keep_yearly.confirm": "Sim, manter anual"
+  "billing.keep_yearly.confirm": "Sim, manter anual",
+  "billing.banner.expiring_title": "O seu plano expira em {date}",
+  "billing.banner.expiring_body": "Renove agora para manter as suas funcionalidades PRO. Os dias que lhe restam são acrescentados ao novo período.",
+  "billing.action.renew_now": "Renovar agora",
+  "billing.notice.renewed": "O seu plano foi renovado. O PRO está agora ativo até {date}.",
+  "billing.status.expiring": "Expira em breve",
+  "checkout.renew_note": "Está a renovar o seu plano PRO. Termina em {date}, e os dias que lhe restam são acrescentados ao novo período que paga agora."
 }

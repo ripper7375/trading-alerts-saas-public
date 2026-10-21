@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
+import { redirect, useSearchParams } from 'next/navigation';
 import { ArrowLeft, CreditCard, Globe } from 'lucide-react';
 import Link from 'next/link';
 
@@ -27,6 +27,8 @@ import {
 import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
 import { useLocale } from '@/lib/context/locale-context';
 import { FxRateAttribution } from '@/components/payments/fx-rate-attribution';
+import { rememberRenewalPayment } from '@/lib/billing/renew';
+import { useCheckoutRenewal } from './checkout-access';
 import { useCheckoutHref } from './checkout-navigation';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
@@ -44,6 +46,7 @@ export function ProviderCheckout({
     formatCurrency,
     currency: displayCurrency,
     language,
+    formatDate,
   } = useLocale();
   // PRO and 3-day prices from SystemConfig (admin-editable), as charged.
   const { regularPrice, threeDayPrice, annualPrice, annualSavingsPercent } =
@@ -51,6 +54,12 @@ export function ProviderCheckout({
   const { data: session } = useSession();
   const checkoutHref = useCheckoutHref();
   const searchParams = useSearchParams();
+  // A dLocal subscriber renewing early (S4, W6); verified by CheckoutAccess.
+  const { renewing, expiresAt: renewalExpiresAt } = useCheckoutRenewal();
+  // Stripe would start a second subscription; a renewal can only be paid here.
+  if (provider === 'stripe' && renewing) {
+    redirect(checkoutHref('/checkout/dlocal'));
+  }
 
   // Form state
   const [country, setCountry] = useState<DLocalCountry | null>(null);
@@ -125,10 +134,12 @@ export function ProviderCheckout({
       if (!paramPlan) setPlanType('YEARLY');
     }
 
-    if (paramRef) {
+    // No affiliate discount on a renewal (the code was used at the first
+    // purchase).
+    if (paramRef && !renewing) {
       setDiscountCode(paramRef);
     }
-  }, [searchParams]);
+  }, [searchParams, renewing]);
 
   // Reset payment method when country changes
   useEffect(() => {
@@ -168,7 +179,8 @@ export function ProviderCheckout({
           paymentMethod,
           planType,
           currency,
-          discountCode: discountCode || undefined,
+          discountCode: renewing ? undefined : discountCode || undefined,
+          renew: renewing ? true : undefined,
         }),
       });
 
@@ -184,6 +196,10 @@ export function ProviderCheckout({
 
       // Redirect to dLocal payment page
       if (data.paymentUrl) {
+        // The return page uses this to offer "Back to billing" (W6).
+        if (renewing && typeof data.paymentId === 'string') {
+          rememberRenewalPayment(data.paymentId);
+        }
         window.location.href = data.paymentUrl;
       } else {
         throw new Error(
@@ -277,40 +293,44 @@ export function ProviderCheckout({
   const isFormComplete = country && paymentMethod;
 
   return (
-    <div className="bg-muted/30 min-h-screen py-8">
+    <div className="min-h-screen bg-muted/30 py-8">
       <div className="container mx-auto max-w-2xl px-4 lg:max-w-3xl">
         {/* Back link */}
         <Link
-          href="/pricing"
+          href={renewing ? '/settings/billing' : '/pricing'}
           className="mb-6 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          {t('checkout.back_to_pricing', 'Back to Pricing')}
+          {renewing
+            ? t('billing.cancel_flow.back_to_billing', 'Back to billing')
+            : t('checkout.back_to_pricing', 'Back to Pricing')}
         </Link>
 
         {/* Header */}
         <div className="mb-8">
-          <Link
-            href={checkoutHref(
-              '/checkout',
-              provider === 'stripe'
-                ? {
-                    billing: stripeBilling,
-                    plan: stripeBilling === 'yearly' ? 'YEARLY' : 'MONTHLY',
-                    ref: discountCode || null,
-                  }
-                : {
-                    country,
-                    plan: planType,
-                    billing: planType === 'YEARLY' ? 'yearly' : 'monthly',
-                    ref: discountCode || null,
-                  }
-            )}
-            className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-          >
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            {t('checkout.change_provider', 'Change payment method')}
-          </Link>
+          {!renewing && (
+            <Link
+              href={checkoutHref(
+                '/checkout',
+                provider === 'stripe'
+                  ? {
+                      billing: stripeBilling,
+                      plan: stripeBilling === 'yearly' ? 'YEARLY' : 'MONTHLY',
+                      ref: discountCode || null,
+                    }
+                  : {
+                      country,
+                      plan: planType,
+                      billing: planType === 'YEARLY' ? 'yearly' : 'monthly',
+                      ref: discountCode || null,
+                    }
+              )}
+              className="mb-4 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+              {t('checkout.change_provider', 'Change payment method')}
+            </Link>
+          )}
           <h1 className="text-3xl font-bold text-foreground">
             {provider === 'stripe'
               ? t('checkout.stripe_checkout_title', 'Stripe checkout')
@@ -319,6 +339,20 @@ export function ProviderCheckout({
           <p className="text-muted-foreground">
             {t('checkout.complete_purchase', 'Complete Your Purchase')}
           </p>
+          {renewing && (
+            <p
+              role="note"
+              className="mt-4 rounded-lg border border-border bg-primary/5 p-3 text-sm text-foreground"
+            >
+              {t(
+                'checkout.renew_note',
+                'You are renewing your PRO plan. It ends on {date}, and the days you have left are added to the new period you pay for now.'
+              ).replace(
+                '{date}',
+                renewalExpiresAt ? formatDate(renewalExpiresAt) : ''
+              )}
+            </p>
+          )}
         </div>
 
         {/* Only the selected provider's payment form is mounted. */}
@@ -363,8 +397,8 @@ export function ProviderCheckout({
                       onClick={() => setStripeBilling(period)}
                       className={`rounded-lg border-2 px-3 py-2 text-sm font-semibold transition-all ${
                         stripeBilling === period
-                          ? 'bg-primary/10 border-primary text-foreground'
-                          : 'hover:border-primary/40 border-border text-muted-foreground'
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border text-muted-foreground hover:border-primary/40'
                       }`}
                     >
                       {period === 'monthly'
@@ -383,7 +417,7 @@ export function ProviderCheckout({
                 </div>
 
                 {/* Price display */}
-                <div className="bg-muted/30 rounded-lg border border-border p-4">
+                <div className="rounded-lg border border-border bg-muted/30 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <span className="text-lg font-semibold text-foreground">
                       {stripeBilling === 'yearly'
@@ -449,7 +483,7 @@ export function ProviderCheckout({
 
                 {/* Error display */}
                 {error && (
-                  <div className="border-destructive/50 bg-destructive/10 rounded-lg border p-4">
+                  <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
                     <p className="text-sm text-destructive">{error}</p>
                   </div>
                 )}
@@ -506,7 +540,7 @@ export function ProviderCheckout({
                     value={planType}
                     onChange={setPlanType}
                     canUseThreeDayPlan={canUseThreeDayPlan}
-                    showThreeDayPlan={true}
+                    showThreeDayPlan={!renewing}
                     currency={currency}
                   />
 
@@ -517,16 +551,18 @@ export function ProviderCheckout({
                     onChange={setPaymentMethod}
                   />
 
-                  {/* Discount Code (monthly only) */}
-                  <DiscountCodeInput
-                    value={discountCode}
-                    onChange={setDiscountCode}
-                    planType={planType}
-                    onValidationChange={handleDiscountValidation}
-                  />
+                  {/* Discount Code (monthly only; not on a renewal) */}
+                  {!renewing && (
+                    <DiscountCodeInput
+                      value={discountCode}
+                      onChange={setDiscountCode}
+                      planType={planType}
+                      onValidationChange={handleDiscountValidation}
+                    />
+                  )}
 
                   {/* Price Summary */}
-                  <div className="bg-muted/30 rounded-lg border border-border p-4">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4">
                     <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                       <span className="text-lg font-semibold text-foreground">
                         {t('checkout.total', 'Total')}
@@ -551,7 +587,7 @@ export function ProviderCheckout({
 
                   {/* Error display */}
                   {error && (
-                    <div className="border-destructive/50 bg-destructive/10 rounded-lg border p-4">
+                    <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
                       <p className="text-sm text-destructive">{error}</p>
                     </div>
                   )}

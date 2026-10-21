@@ -62,6 +62,11 @@ related_docs:
 - **Manage Subscription S3 deploy order: the same, migration (S2's), operation-service, money-service, the monolith** (2026-10-21). money-service's new
   `SUBSCRIPTION_UPGRADED` and `SUBSCRIPTION_DOWNGRADE_SCHEDULED` outbox events are `unrecognized-event-type` to an operation-service that does not know them: answered
   `skipped`, counted as delivered, lost. No migration and no new variable; a plan change needs `STRIPE_PRO_PRICE_ID` on both services (503 `PLAN_CHANGE_UNAVAILABLE` without it).
+- **Manage Subscription S4 deploy: BOTH money-service and the monolith, no migration beyond S2's** (2026-10-21). dLocal calls whichever webhook its dashboard points at, so both
+  dLocal webhooks and both `/payments/dlocal/create` guards changed and neither may be skipped; operation-service is unchanged.
+- **A dLocal payment STACKS onto the days left, so the dLocal webhook must stay claim-guarded** (S4, 2026-10-21; [S4 report](../../docs/handoffs/2026-10-21-manage-subscription-s4.md) §2
+  items 2 to 4). `expiresAt = max(now, current expiry) + duration`, taken only from a LIVE dLocal row (a Stripe row also stores `expiresAt`). The payment is claimed
+  (`updateMany ... status: { not: 'COMPLETED' }`) inside the transaction in both stacks, so a replayed webhook adds nothing; remove that claim and every dLocal retry adds a period.
 - **Stripe refuses `cancel_at_period_end` while a Subscription Schedule manages the subscription, and a schedule stays attached through its last phase** (verified in test mode,
   2026-10-21; [S3 report](../../docs/handoffs/2026-10-21-manage-subscription-s3.md) §3.2). After "switch to monthly at renewal" the schedule is still attached for the whole first
   monthly period, so anything that cancels or changes the subscription (cancel, upgrade) must release a live schedule first; the webhook releases it when phase 2 starts.

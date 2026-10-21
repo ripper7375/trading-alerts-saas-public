@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "Il passaggio alla fatturazione mensile verrà annullato e il tuo piano si rinnoverà ogni anno il {date}.",
   "billing.keep_yearly.dismiss": "Non ora",
   "billing.action.keeping_yearly": "Mantenimento in corso...",
-  "billing.keep_yearly.confirm": "Sì, mantieni annuale"
+  "billing.keep_yearly.confirm": "Sì, mantieni annuale",
+  "billing.banner.expiring_title": "Il tuo piano scade il {date}",
+  "billing.banner.expiring_body": "Rinnova ora per mantenere le tue funzionalità PRO. I giorni rimanenti vengono aggiunti al nuovo periodo.",
+  "billing.action.renew_now": "Rinnova ora",
+  "billing.notice.renewed": "Il tuo piano è stato rinnovato. PRO è ora attivo fino al {date}.",
+  "billing.status.expiring": "In scadenza",
+  "checkout.renew_note": "Stai rinnovando il tuo piano PRO. Termina il {date} e i giorni rimanenti vengono aggiunti al nuovo periodo che paghi adesso."
 }

@@ -35,6 +35,7 @@ import { logger } from '../common/logger.util';
 import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { allowedActionsOf, providerOf } from '../stripe/subscription-actions';
 
 import { convertUSDToLocal } from './currency-converter.service';
 import { getPlanDuration } from './dlocal.constants';
@@ -63,6 +64,9 @@ const createPaymentSchema = z.object({
     'BRL',
   ]),
   discountCode: z.string().optional(),
+  // Manage Subscription S4 (W6): an active dLocal subscriber paying for another
+  // period before the current one ends. Only a request; the server decides.
+  renew: z.boolean().optional(),
 });
 
 @Controller('payments/dlocal')
@@ -112,8 +116,14 @@ export class DlocalPaymentController {
         });
       }
 
-      const { country, paymentMethod, planType, currency, discountCode } =
-        validationResult.data;
+      const {
+        country,
+        paymentMethod,
+        planType,
+        currency,
+        discountCode: requestedDiscountCode,
+        renew,
+      } = validationResult.data;
 
       if (!isValidPaymentMethod(country as DLocalCountry, paymentMethod)) {
         throw new BadRequestException({
@@ -135,11 +145,29 @@ export class DlocalPaymentController {
         where: { userId },
       });
 
+      // An active PRO subscriber cannot start a second subscription. The one
+      // exception (S4, W6) is a dLocal subscriber who renews early: the server
+      // reads their subscription and offers `renew_now` only for a live dLocal
+      // plan, so the request's `renew` flag alone proves nothing.
+      let renewing = false;
       if (user.tier === 'PRO' && userSubscription?.status === 'ACTIVE') {
-        throw new ForbiddenException({
-          error: 'You already have an active subscription',
-        });
+        renewing =
+          renew === true &&
+          allowedActionsOf({
+            tier: user.tier,
+            status: userSubscription.status,
+            provider: providerOf(userSubscription),
+            openInvoiceUrl: null,
+          }).includes('renew_now');
+        if (!renewing) {
+          throw new ForbiddenException({
+            error: 'You already have an active subscription',
+          });
+        }
       }
+      // No affiliate discount on a renewal (the code was used at the first
+      // purchase).
+      const discountCode = renewing ? undefined : requestedDiscountCode;
 
       if (planType === 'THREE_DAY' && user.hasUsedThreeDayPlan) {
         throw new ForbiddenException({

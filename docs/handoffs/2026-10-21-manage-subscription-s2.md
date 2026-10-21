@@ -1,6 +1,6 @@
 # Manage Subscription S2: execution report
 
-**Date:** 2026-10-21 · **Branch:** `main` (on `48bf2bcf`, the committed S1) · **Status:** BUILT and verified locally. **NOT committed, NOT pushed, NOT
+**Date:** 2026-10-21 · **Branch:** `main` (on `48bf2bcf`, the committed S1) · **Status:** BUILT and verified locally, COMMITTED locally as `1f0b9755` (it said "NOT committed" when written; corrected in S4). **NOT pushed, NOT
 deployed; one migration FILE, NOT applied to any real database.** Spec: [plan v2.1](./2026-10-21-manage-subscription-proposal.md) §10 row S2, §9.3, §7 W3 and W4
 (the order was the pasted task; it carries decisions D1 to D8 and E1 to E4, all settled).
 

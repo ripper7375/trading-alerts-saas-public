@@ -32,6 +32,7 @@ import {
   getThreeDayPriceUsd,
 } from '@/lib/affiliate/db';
 import { PLAN_DURATION } from '@/lib/dlocal/constants';
+import { currentExpiryOf, stackedExpiry } from '@/lib/dlocal/stacked-expiry';
 import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 import type { DLocalWebhookPayload } from '@/types/dlocal';
@@ -157,20 +158,14 @@ async function handlePaymentCompleted(
     planType: payment.planType,
   });
 
-  // Calculate subscription expiry based on plan type
-  const now = new Date();
-  const expiresAt = new Date(
-    now.getTime() +
-      PLAN_DURATION[
-        payment.planType === 'THREE_DAY' || payment.planType === 'YEARLY'
-          ? payment.planType
-          : 'MONTHLY'
-      ] *
-        24 *
-        60 *
-        60 *
-        1000
-  ); // 3, 30 or 365 days
+  // Plan length in days (3, 30 or 365). The expiry itself is worked out inside
+  // the transaction, from the subscription row as it stands (B10, D6).
+  const durationDays =
+    PLAN_DURATION[
+      payment.planType === 'THREE_DAY' || payment.planType === 'YEARLY'
+        ? payment.planType
+        : 'MONTHLY'
+    ];
 
   // USD amount recorded at payment creation; a row without one falls back to
   // the current SystemConfig price for its plan.
@@ -182,17 +177,24 @@ async function handlePaymentCompleted(
         ? await getAnnualPriceUsd()
         : await getBasePriceUsd());
 
-  // Use a transaction to ensure all updates succeed or fail together
-  await prisma.$transaction(async (tx) => {
-    // 1. Update payment status
-    await tx.payment.update({
-      where: { id: payment.id },
+  // Use a transaction to ensure all updates succeed or fail together.
+  // Resolves to the new expiry, or null when this delivery was a replay.
+  const appliedExpiresAt = await prisma.$transaction(async (tx) => {
+    // 1. Claim the completion (B10). The expiry now STACKS onto the days left,
+    // so applying the same payment twice would add its period twice: only the
+    // delivery that still finds the payment not COMPLETED goes on, and a retry
+    // or the loser of a race matches nothing and changes nothing. The updates
+    // below run in this transaction, so a failure rolls the claim back and the
+    // retry starts clean.
+    const claimed = await tx.payment.updateMany({
+      where: { id: payment.id, status: { not: 'COMPLETED' } },
       data: {
         status: 'COMPLETED',
         providerStatus: webhookData.status,
         updatedAt: new Date(),
       },
     });
+    if (claimed.count === 0) return null;
 
     // 2. Upgrade user to PRO tier
     await tx.user.update({
@@ -204,6 +206,14 @@ async function handlePaymentCompleted(
     const existingSubscription = await tx.subscription.findUnique({
       where: { userId: payment.userId },
     });
+
+    // D6: a customer who pays before the plan ends keeps the days they have
+    // left, `max(now, current expiry) + duration`. Only a live dLocal plan
+    // counts as "current" (a Stripe row's date is not a dLocal expiry).
+    const expiresAt = stackedExpiry(
+      currentExpiryOf(existingSubscription),
+      durationDays
+    );
 
     if (existingSubscription) {
       // Update existing subscription
@@ -250,7 +260,16 @@ async function handlePaymentCompleted(
         data: { subscriptionId: subscription.id },
       });
     }
+
+    return expiresAt;
   });
+
+  if (appliedExpiresAt === null) {
+    logger.info(
+      'Payment was already COMPLETED -- subscription left as it is on replay',
+      { paymentId: payment.id, userId: payment.userId }
+    );
+  }
 
   // 5. Mark 3-day plan as used if applicable (outside transaction for isolation)
   if (payment.planType === 'THREE_DAY') {
@@ -314,7 +333,7 @@ async function handlePaymentCompleted(
     paymentId: payment.id,
     userId: payment.userId,
     planType: payment.planType,
-    expiresAt: expiresAt.toISOString(),
+    expiresAt: appliedExpiresAt?.toISOString() ?? null,
   });
 }
 

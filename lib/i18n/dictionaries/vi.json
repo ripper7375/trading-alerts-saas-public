@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "Việc chuyển sang thanh toán hằng tháng sẽ được hủy và gói của bạn sẽ gia hạn hằng năm vào {date}.",
   "billing.keep_yearly.dismiss": "Để sau",
   "billing.action.keeping_yearly": "Đang giữ gói năm...",
-  "billing.keep_yearly.confirm": "Có, giữ gói năm"
+  "billing.keep_yearly.confirm": "Có, giữ gói năm",
+  "billing.banner.expiring_title": "Gói của bạn sẽ hết hạn vào {date}",
+  "billing.banner.expiring_body": "Hãy gia hạn ngay để tiếp tục dùng các tính năng PRO. Số ngày còn lại sẽ được cộng vào kỳ mới.",
+  "billing.action.renew_now": "Gia hạn ngay",
+  "billing.notice.renewed": "Gói của bạn đã được gia hạn. PRO hiện có hiệu lực đến {date}.",
+  "billing.status.expiring": "Sắp hết hạn",
+  "checkout.renew_note": "Bạn đang gia hạn gói PRO. Gói hiện tại kết thúc vào {date}, và số ngày còn lại sẽ được cộng vào kỳ mới mà bạn thanh toán bây giờ."
 }

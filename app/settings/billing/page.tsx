@@ -31,6 +31,7 @@ import { useUserViewAs } from '@/components/admin/user-view-as/user-view-as-cont
 import { InvoiceList, type Invoice } from '@/components/billing/invoice-list';
 import { withViewAsQuery } from '@/lib/admin/user-view-as-paths';
 import { formatChargedAmount } from '@/lib/billing/invoice-amounts';
+import { renewCheckoutHref } from '@/lib/billing/renew';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 import type {
   SubscriptionAction,
@@ -70,6 +71,13 @@ import { useLocale } from '@/lib/context/locale-context';
  *   a confirm dialog that withdraws it (DELETE /api/subscription/change-plan).
  *   It charges nothing, so it needs no page of its own.
  *
+ * Manage Subscription S4 (plan v2.1, workflow W6, dLocal):
+ * - A dLocal plan within three days of its end shows a status banner ("Your
+ *   plan expires on {date}") and "Renew now" (from `allowedActions`), which
+ *   opens /checkout with the period preselected and a renew marker. The days
+ *   left are added to the new period (D6). `?done=renewed` brings the user
+ *   back after paying and says so, once the fresh data agrees.
+ *
  * - Current subscription card (FREE/PRO), driven by GET /api/subscription
  * - Invoice history table, driven by GET /api/invoices (via `InvoiceList`)
  * - Usage statistics (alerts, from GET /api/alerts)
@@ -96,6 +104,8 @@ interface SubscriptionData {
     amountUsd?: number | null;
     currentPeriodEnd: string | null;
     expiresAt: string | null;
+    /** False for a dLocal plan: it is prepaid and ends at `expiresAt`. */
+    renewsAutomatically?: boolean;
     cancelAtPeriodEnd: boolean;
     trialEnd: string | null;
     paymentMethod: {
@@ -164,7 +174,14 @@ export default function BillingSettingsPage(): React.ReactElement {
   // proves nothing (the user may have closed the form); the page re-fetches
   // either way and a notice is drawn only when the fresh data agrees.
   const [returnedFrom, setReturnedFrom] = useState<
-    'card' | 'cancel' | 'resumed' | 'upgraded' | 'switch' | 'kept' | null
+    | 'card'
+    | 'cancel'
+    | 'resumed'
+    | 'upgraded'
+    | 'switch'
+    | 'kept'
+    | 'renewed'
+    | null
   >(null);
 
   const userTier = (subscriptionData?.tier ??
@@ -182,6 +199,7 @@ export default function BillingSettingsPage(): React.ReactElement {
     displayState === 'PAST_DUE' || displayState === 'UNPAID';
   const cancelScheduled = displayState === 'CANCEL_SCHEDULED';
   const downgradePending = displayState === 'DOWNGRADE_PENDING';
+  const expiring = displayState === 'EXPIRING';
   // The server decides what is offered (plan §6); admin view-as hides every
   // action whatever the server sent, because it would act on the admin.
   const allowedActions: SubscriptionAction[] = viewing
@@ -279,7 +297,8 @@ export default function BillingSettingsPage(): React.ReactElement {
 
   // Back from Stripe's card form (/settings/billing?done=card), from the
   // cancel page (?done=cancel) or from the change-plan page (?done=upgraded or
-  // ?done=switch). Arriving here is a full page load, so the fetch above
+  // ?done=switch) or from the dLocal renewal (?done=renewed). Arriving here is
+  // a full page load, so the fetch above
   // already re-read the subscription; this only says so and drops the marker
   // from the address bar.
   useEffect(() => {
@@ -289,7 +308,8 @@ export default function BillingSettingsPage(): React.ReactElement {
       done !== 'card' &&
       done !== 'cancel' &&
       done !== 'upgraded' &&
-      done !== 'switch'
+      done !== 'switch' &&
+      done !== 'renewed'
     ) {
       return;
     }
@@ -436,6 +456,14 @@ export default function BillingSettingsPage(): React.ReactElement {
       ? (subscription.expiresAt ?? null)
       : null;
   const inTrial = trial?.status === 'ACTIVE' && Boolean(subscription?.trialEnd);
+  // W6: where "Renew now" goes, and the date the dLocal plan ends.
+  const renewHref = renewCheckoutHref(
+    subscription?.planType,
+    subscription?.dLocalCountry
+  );
+  const expiresText = subscription?.expiresAt
+    ? formatDate(subscription.expiresAt)
+    : '';
 
   return (
     <div className="animate-fade-in">
@@ -645,6 +673,46 @@ export default function BillingSettingsPage(): React.ReactElement {
         </div>
       )}
 
+      {/* Status banner for a dLocal plan close to its end (W6). Nothing renews
+          by itself, so the way to keep PRO is to pay again; "Renew now" is
+          drawn from allowedActions, so it is absent in admin view. */}
+      {expiring && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-900/20"
+        >
+          <div className="flex items-start gap-3">
+            <Clock
+              className="mt-0.5 h-5 w-5 shrink-0 text-amber-700 dark:text-amber-300"
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-amber-900 dark:text-amber-100">
+                {t(
+                  'billing.banner.expiring_title',
+                  'Your plan expires on {date}'
+                ).replace('{date}', expiresText)}
+              </p>
+              <p className="mt-1 text-sm text-amber-800 dark:text-amber-200">
+                {t(
+                  'billing.banner.expiring_body',
+                  'Renew now to keep your PRO features. The days you have left are added to the new period.'
+                )}
+              </p>
+              {can('renew_now') && (
+                <div className="mt-3">
+                  <Button asChild size="sm">
+                    <Link href={renewHref}>
+                      {t('billing.action.renew_now', 'Renew now')}
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {returnedFrom === 'card' && (
         <div
           role="status"
@@ -711,6 +779,20 @@ export default function BillingSettingsPage(): React.ReactElement {
             'billing.notice.switch_scheduled',
             'Your plan will switch to monthly billing on {date}. You keep yearly PRO access until then.'
           ).replace('{date}', pendingText)}
+        </div>
+      )}
+
+      {/* Said only when the fresh data agrees: a dLocal plan that is PRO and
+          no longer close to its end. */}
+      {returnedFrom === 'renewed' && prepaidEndsOn && !expiring && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground"
+        >
+          {t(
+            'billing.notice.renewed',
+            'Your plan has been renewed. PRO now runs until {date}.'
+          ).replace('{date}', formatDate(prepaidEndsOn))}
         </div>
       )}
 
@@ -782,6 +864,10 @@ export default function BillingSettingsPage(): React.ReactElement {
             ) : downgradePending ? (
               <Badge className="bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200">
                 {t('billing.status.switch_pending', 'Switching to monthly')}
+              </Badge>
+            ) : expiring ? (
+              <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
+                {t('billing.status.expiring', 'Expires soon')}
               </Badge>
             ) : (
               <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
@@ -887,6 +973,7 @@ export default function BillingSettingsPage(): React.ReactElement {
             can('keep_yearly') ||
             can('upgrade_to_yearly') ||
             can('switch_to_monthly') ||
+            can('renew_now') ||
             prepaidEndsOn ? (
             <div className="flex flex-wrap items-center gap-3">
               {can('resume') && (
@@ -897,6 +984,13 @@ export default function BillingSettingsPage(): React.ReactElement {
               {can('keep_yearly') && (
                 <Button onClick={() => setKeepDialogOpen(true)}>
                   {t('billing.action.keep_yearly', 'Keep yearly')}
+                </Button>
+              )}
+              {can('renew_now') && (
+                <Button asChild>
+                  <Link href={renewHref}>
+                    {t('billing.action.renew_now', 'Renew now')}
+                  </Link>
                 </Button>
               )}
               {(can('upgrade_to_yearly') || can('switch_to_monthly')) && (

@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "Peralihan ke penagihan bulanan akan dibatalkan dan paket Anda akan diperpanjang setiap tahun pada {date}.",
   "billing.keep_yearly.dismiss": "Nanti saja",
   "billing.action.keeping_yearly": "Mempertahankan tahunan...",
-  "billing.keep_yearly.confirm": "Ya, tetap tahunan"
+  "billing.keep_yearly.confirm": "Ya, tetap tahunan",
+  "billing.banner.expiring_title": "Paket Anda berakhir pada {date}",
+  "billing.banner.expiring_body": "Perpanjang sekarang untuk tetap menikmati fitur PRO. Sisa hari Anda ditambahkan ke periode baru.",
+  "billing.action.renew_now": "Perpanjang sekarang",
+  "billing.notice.renewed": "Paket Anda telah diperpanjang. PRO kini aktif hingga {date}.",
+  "billing.status.expiring": "Segera berakhir",
+  "checkout.renew_note": "Anda memperpanjang paket PRO. Paket ini berakhir pada {date}, dan sisa hari Anda ditambahkan ke periode baru yang Anda bayar sekarang."
 }

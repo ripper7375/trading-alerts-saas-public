@@ -13,8 +13,9 @@
  * away from dLocal (D8: a dLocal plan is prepaid and simply ends at
  * `expiresAt`). S3 added the billing-period actions (W5a upgrade now, W5b
  * switch to monthly at renewal, and the undo), the DOWNGRADE_PENDING display
- * state, and the checks both stacks share for a change-plan request. S4 extends
- * this file by renew.
+ * state, and the checks both stacks share for a change-plan request. S4 added
+ * the dLocal side: `renew_now`, the EXPIRING display state (a dLocal plan
+ * within three days of `expiresAt`) and `renewsAutomatically`.
  *
  * @module lib/stripe/subscription-actions
  */
@@ -57,6 +58,8 @@ export function parseCancellationReason(
  * - `upgrade_to_yearly`: monthly to yearly, charged now with proration (W5a).
  * - `switch_to_monthly`: yearly to monthly at the renewal date (W5b).
  * - `keep_yearly`: withdraw a switch to monthly that is scheduled (W5b undo).
+ * - `renew_now`: pay for another dLocal period before the current one ends;
+ *   the days left are added to it (W6, decision D6).
  */
 export type SubscriptionAction =
   | 'update_card'
@@ -65,12 +68,14 @@ export type SubscriptionAction =
   | 'resume'
   | 'upgrade_to_yearly'
   | 'switch_to_monthly'
-  | 'keep_yearly';
+  | 'keep_yearly'
+  | 'renew_now';
 
 /**
- * `CANCEL_SCHEDULED` and `DOWNGRADE_PENDING` are display states derived from
- * stored data (`cancelAtPeriodEnd`, `pendingPlanType`), not statuses of their
- * own: the subscription is still ACTIVE or TRIALING in Stripe and PRO.
+ * `CANCEL_SCHEDULED`, `DOWNGRADE_PENDING` and `EXPIRING` are display states
+ * derived from stored data (`cancelAtPeriodEnd`, `pendingPlanType`,
+ * `expiresAt`), not statuses of their own: the subscription is still ACTIVE or
+ * TRIALING and PRO.
  */
 export type SubscriptionDisplayState =
   | 'FREE'
@@ -78,6 +83,7 @@ export type SubscriptionDisplayState =
   | 'ACTIVE'
   | 'CANCEL_SCHEDULED'
   | 'DOWNGRADE_PENDING'
+  | 'EXPIRING'
   | 'PAST_DUE'
   | 'UNPAID';
 
@@ -111,8 +117,46 @@ export interface SubscriptionFacts {
    * else null. Counts for a Stripe subscription only.
    */
   pendingPlanType?: string | null;
+  /**
+   * End of a dLocal plan (`Subscription.expiresAt`). EXPIRING is decided from
+   * it; unknown (null or missing) is never EXPIRING.
+   */
+  expiresAt?: Date | string | null;
   /** The clock; tests pass one. */
   now?: Date;
+}
+
+/**
+ * How close to `expiresAt` a dLocal plan is called EXPIRING: three days, the
+ * same lead time as the renewal reminder cron (W6).
+ */
+export const EXPIRING_WINDOW_HOURS = 72;
+
+/**
+ * True when a dLocal plan ends within EXPIRING_WINDOW_HOURS. A plan whose date
+ * has passed but is not yet downgraded by the daily cron still counts: it is
+ * still PRO and can still be renewed. An unreadable or missing date is not.
+ */
+export function isWithinExpiringWindow(
+  expiresAt: Date | string | null | undefined,
+  now: Date | undefined
+): boolean {
+  if (expiresAt === null || expiresAt === undefined) return false;
+  const end = new Date(expiresAt).getTime();
+  if (Number.isNaN(end)) return false;
+  const clock = (now ?? new Date()).getTime();
+  return end - clock <= EXPIRING_WINDOW_HOURS * 60 * 60 * 1000;
+}
+
+/**
+ * Whether the plan renews by itself (`renewsAutomatically` in
+ * `GET /api/subscription`). A Stripe subscription does, until its
+ * cancellation is scheduled; a dLocal plan is prepaid and never does (D8).
+ */
+export function renewsAutomatically(
+  facts: Pick<SubscriptionFacts, 'provider' | 'cancelAtPeriodEnd'>
+): boolean {
+  return facts.provider === 'STRIPE' && facts.cancelAtPeriodEnd !== true;
 }
 
 /** Same precedence the billing page has always used: dLocal, then Stripe. */
@@ -165,13 +209,26 @@ export function displayStateOf(
     Partial<
       Pick<
         SubscriptionFacts,
-        'provider' | 'cancelAtPeriodEnd' | 'pendingPlanType'
+        | 'provider'
+        | 'cancelAtPeriodEnd'
+        | 'pendingPlanType'
+        | 'expiresAt'
+        | 'now'
       >
     >
 ): SubscriptionDisplayState {
   if (!showsSubscription(facts.tier, facts.status)) return 'FREE';
   if (facts.status === 'PAST_DUE') return 'PAST_DUE';
   if (facts.status === 'UNPAID') return 'UNPAID';
+  // A dLocal plan close to its end (W6). It cannot be cancelled or switched, so
+  // nothing below applies to it.
+  if (
+    facts.provider === 'DLOCAL' &&
+    facts.status === 'ACTIVE' &&
+    isWithinExpiringWindow(facts.expiresAt, facts.now)
+  ) {
+    return 'EXPIRING';
+  }
   // A failed payment outranks a scheduled cancellation (checked above): the
   // user has to resolve it first. Only a Stripe subscription can be scheduled
   // to cancel; a dLocal row keeps whatever the column held.
@@ -209,10 +266,14 @@ export function allowedActionsOf(
       : ['update_card'];
   }
 
-  // TRIALING, ACTIVE or DOWNGRADE_PENDING. Cancel, update card and the
-  // billing-period actions exist for a Stripe subscription only: a dLocal plan
-  // is prepaid and ends at `expiresAt` (D8), and a row with no provider has
-  // nothing to cancel.
+  // TRIALING, ACTIVE, DOWNGRADE_PENDING or EXPIRING. Cancel, update card and
+  // the billing-period actions exist for a Stripe subscription only: a dLocal
+  // plan is prepaid and ends at `expiresAt` (D8), and a row with no provider
+  // has nothing to cancel. A live dLocal plan can be renewed at any time, not
+  // only inside the EXPIRING window; the days left are added (W6, D6).
+  if (facts.provider === 'DLOCAL') {
+    return facts.status === 'ACTIVE' ? ['renew_now'] : [];
+  }
   if (facts.provider !== 'STRIPE') return [];
 
   if (state === 'DOWNGRADE_PENDING') {

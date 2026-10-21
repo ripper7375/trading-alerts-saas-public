@@ -29,6 +29,7 @@ import {
   liveIntervalOf,
   planTypeForInterval,
   providerOf,
+  renewsAutomatically,
   scheduleIdOf,
   showsSubscription,
   type SubscriptionAction,
@@ -60,6 +61,12 @@ interface SubscriptionResponse {
     amountUsd: number | null;
     currentPeriodEnd: string | null; // For Stripe
     expiresAt: string | null; // NEW: For dLocal explicit expiry
+    /**
+     * Whether the plan renews by itself: a Stripe subscription does until its
+     * cancellation is scheduled; a dLocal plan is prepaid and never does
+     * (S4, W6).
+     */
+    renewsAutomatically: boolean;
     cancelAtPeriodEnd: boolean;
     trialEnd: string | null;
     paymentMethod: {
@@ -331,6 +338,7 @@ export async function GET(
       currentPeriodEnd,
       planType,
       pendingPlanType: pendingPlan?.planType ?? null,
+      expiresAt: userSubscription.expiresAt,
     };
 
     // Build unified response
@@ -348,6 +356,7 @@ export async function GET(
           userSubscription.amountUsd > 0 ? userSubscription.amountUsd : null,
         currentPeriodEnd: currentPeriodEnd?.toISOString() || null,
         expiresAt: userSubscription.expiresAt?.toISOString() || null,
+        renewsAutomatically: renewsAutomatically(actionFacts),
         cancelAtPeriodEnd,
         trialEnd: stripeSubscription?.trial_end
           ? new Date(stripeSubscription.trial_end * 1000).toISOString()

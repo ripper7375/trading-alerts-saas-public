@@ -1,6 +1,6 @@
 # Manage Subscription S3: execution report
 
-**Date:** 2026-10-21 · **Branch:** `main` (on `1f0b9755`, the committed S2) · **Status:** BUILT and verified locally. **NOT committed, NOT pushed, NOT
+**Date:** 2026-10-21 · **Branch:** `main` (on `1f0b9755`, the committed S2) · **Status:** BUILT and verified locally, COMMITTED locally as `e02c8b08` (it said "NOT committed" when written; corrected in S4). **NOT pushed, NOT
 deployed; NO migration** (the three switch columns were added by S2's migration, `20261021000000_add_subscription_management_fields`, which still has to be
 applied before any deploy). Spec: [plan v2.1](./2026-10-21-manage-subscription-proposal.md) §10 row S3, §7 W5a and W5b, §3 decisions D2, D3, E2, E3 and E4
 (the order was the pasted task; it carries those decisions, all settled).

@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "Die Umstellung auf monatliche Abrechnung wird zurückgenommen, und Ihr Tarif verlängert sich jährlich am {date}.",
   "billing.keep_yearly.dismiss": "Jetzt nicht",
   "billing.action.keeping_yearly": "Wird beibehalten...",
-  "billing.keep_yearly.confirm": "Ja, jährlich beibehalten"
+  "billing.keep_yearly.confirm": "Ja, jährlich beibehalten",
+  "billing.banner.expiring_title": "Ihr Tarif läuft am {date} ab",
+  "billing.banner.expiring_body": "Verlängern Sie jetzt, um Ihre PRO-Funktionen zu behalten. Die verbleibenden Tage werden dem neuen Zeitraum hinzugefügt.",
+  "billing.action.renew_now": "Jetzt verlängern",
+  "billing.notice.renewed": "Ihr Tarif wurde verlängert. PRO läuft jetzt bis zum {date}.",
+  "billing.status.expiring": "Läuft bald ab",
+  "checkout.renew_note": "Sie verlängern Ihren PRO-Tarif. Er endet am {date}, und die verbleibenden Tage werden dem neuen Zeitraum hinzugefügt, den Sie jetzt bezahlen."
 }

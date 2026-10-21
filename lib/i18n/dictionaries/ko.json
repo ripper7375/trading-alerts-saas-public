@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "월간 결제로의 전환이 취소되고 플랜은 매년 {date}에 갱신됩니다.",
   "billing.keep_yearly.dismiss": "나중에",
   "billing.action.keeping_yearly": "유지하는 중...",
-  "billing.keep_yearly.confirm": "예, 연간 유지"
+  "billing.keep_yearly.confirm": "예, 연간 유지",
+  "billing.banner.expiring_title": "플랜이 {date}에 만료됩니다",
+  "billing.banner.expiring_body": "PRO 기능을 계속 사용하려면 지금 갱신하세요. 남은 일수는 새 기간에 더해집니다.",
+  "billing.action.renew_now": "지금 갱신",
+  "billing.notice.renewed": "플랜이 갱신되었습니다. PRO는 {date}까지 이용할 수 있습니다.",
+  "billing.status.expiring": "곧 만료",
+  "checkout.renew_note": "PRO 플랜을 갱신하고 있습니다. 현재 플랜은 {date}에 종료되며, 남은 일수는 지금 결제하는 새 기간에 더해집니다."
 }

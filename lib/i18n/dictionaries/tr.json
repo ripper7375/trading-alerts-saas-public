@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "Aylık faturalandırmaya geçiş geri alınacak ve planınız her yıl {date} tarihinde yenilenecek.",
   "billing.keep_yearly.dismiss": "Şimdi değil",
   "billing.action.keeping_yearly": "Yıllık sürdürülüyor...",
-  "billing.keep_yearly.confirm": "Evet, yıllık kalsın"
+  "billing.keep_yearly.confirm": "Evet, yıllık kalsın",
+  "billing.banner.expiring_title": "Planınızın süresi {date} tarihinde doluyor",
+  "billing.banner.expiring_body": "PRO özelliklerinizi korumak için şimdi yenileyin. Kalan günleriniz yeni döneme eklenir.",
+  "billing.action.renew_now": "Şimdi yenile",
+  "billing.notice.renewed": "Planınız yenilendi. PRO artık {date} tarihine kadar geçerli.",
+  "billing.status.expiring": "Yakında bitiyor",
+  "checkout.renew_note": "PRO planınızı yeniliyorsunuz. Plan {date} tarihinde sona eriyor ve kalan günleriniz şimdi ödediğiniz yeni döneme eklenir."
 }

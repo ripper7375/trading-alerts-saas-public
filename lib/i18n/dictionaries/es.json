@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "Se retirará el paso a facturación mensual y tu plan se renovará cada año el {date}.",
   "billing.keep_yearly.dismiss": "Ahora no",
   "billing.action.keeping_yearly": "Manteniendo anual...",
-  "billing.keep_yearly.confirm": "Sí, mantener anual"
+  "billing.keep_yearly.confirm": "Sí, mantener anual",
+  "billing.banner.expiring_title": "Tu plan caduca el {date}",
+  "billing.banner.expiring_body": "Renueva ahora para conservar tus funciones PRO. Los días que te quedan se suman al nuevo periodo.",
+  "billing.action.renew_now": "Renovar ahora",
+  "billing.notice.renewed": "Tu plan se ha renovado. PRO ahora está activo hasta el {date}.",
+  "billing.status.expiring": "Caduca pronto",
+  "checkout.renew_note": "Estás renovando tu plan PRO. Termina el {date}, y los días que te quedan se suman al nuevo periodo que pagas ahora."
 }

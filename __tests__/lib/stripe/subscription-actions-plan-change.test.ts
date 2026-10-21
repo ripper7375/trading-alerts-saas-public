@@ -121,7 +121,7 @@ describe('allowedActionsOf: billing-period actions (plan §6)', () => {
   it('a dLocal plan has no billing-period action (no dLocal switch)', () => {
     expect(
       allowedActionsOf(facts({ provider: 'DLOCAL', planType: 'MONTHLY' }))
-    ).toEqual([]);
+    ).toEqual(['renew_now']);
     expect(
       allowedActionsOf(
         facts({
@@ -130,7 +130,7 @@ describe('allowedActionsOf: billing-period actions (plan §6)', () => {
           pendingPlanType: 'MONTHLY',
         })
       )
-    ).toEqual([]);
+    ).toEqual(['renew_now']);
   });
 
   it('admin view-as hides every billing-period action', () => {

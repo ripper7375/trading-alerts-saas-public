@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "سيتم سحب التحويل إلى الفوترة الشهرية وستُجدَّد خطتك سنويًا في {date}.",
   "billing.keep_yearly.dismiss": "ليس الآن",
   "billing.action.keeping_yearly": "جارٍ الإبقاء على السنوي...",
-  "billing.keep_yearly.confirm": "نعم، الإبقاء على السنوي"
+  "billing.keep_yearly.confirm": "نعم، الإبقاء على السنوي",
+  "billing.banner.expiring_title": "تنتهي صلاحية خطتك في {date}",
+  "billing.banner.expiring_body": "جدّد الآن للاحتفاظ بميزات PRO. تُضاف الأيام المتبقية لديك إلى الفترة الجديدة.",
+  "billing.action.renew_now": "جدّد الآن",
+  "billing.notice.renewed": "تم تجديد خطتك. تعمل PRO الآن حتى {date}.",
+  "billing.status.expiring": "تنتهي قريبًا",
+  "checkout.renew_note": "أنت تجدّد خطة PRO الخاصة بك. تنتهي في {date}، وتُضاف الأيام المتبقية لديك إلى الفترة الجديدة التي تدفع مقابلها الآن."
 }

@@ -144,14 +144,16 @@ describe('allowedActionsOf (plan §6)', () => {
     ]);
   });
 
-  it('ACTIVE dLocal: nothing (D8: a prepaid plan has no cancel and just ends)', () => {
-    expect(allowedActionsOf(facts({ provider: 'DLOCAL' }))).toEqual([]);
+  it('ACTIVE dLocal: renew now only (D8: a prepaid plan has no cancel and just ends)', () => {
+    expect(allowedActionsOf(facts({ provider: 'DLOCAL' }))).toEqual([
+      'renew_now',
+    ]);
   });
 
   it('a dLocal row is never CANCEL_SCHEDULED, whatever the column holds', () => {
     const dLocal = facts({ provider: 'DLOCAL', cancelAtPeriodEnd: true });
     expect(displayStateOf(dLocal)).toBe('ACTIVE');
-    expect(allowedActionsOf(dLocal)).toEqual([]);
+    expect(allowedActionsOf(dLocal)).toEqual(['renew_now']);
   });
 
   it('PRO with no provider on the row: nothing to cancel or update', () => {

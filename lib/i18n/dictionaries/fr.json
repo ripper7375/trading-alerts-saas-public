@@ -5421,5 +5421,11 @@
   "billing.keep_yearly.body": "Le passage à la facturation mensuelle sera annulé et votre forfait se renouvellera chaque année le {date}.",
   "billing.keep_yearly.dismiss": "Pas maintenant",
   "billing.action.keeping_yearly": "Conservation en cours...",
-  "billing.keep_yearly.confirm": "Oui, garder l'annuel"
+  "billing.keep_yearly.confirm": "Oui, garder l'annuel",
+  "billing.banner.expiring_title": "Votre forfait expire le {date}",
+  "billing.banner.expiring_body": "Renouvelez dès maintenant pour conserver vos fonctionnalités PRO. Les jours restants sont ajoutés à la nouvelle période.",
+  "billing.action.renew_now": "Renouveler maintenant",
+  "billing.notice.renewed": "Votre forfait a été renouvelé. PRO est désormais actif jusqu'au {date}.",
+  "billing.status.expiring": "Expire bientôt",
+  "checkout.renew_note": "Vous renouvelez votre forfait PRO. Il se termine le {date}, et les jours restants sont ajoutés à la nouvelle période que vous payez maintenant."
 }
