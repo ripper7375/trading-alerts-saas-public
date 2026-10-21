@@ -6,6 +6,7 @@ import { INTERCEPTORS_METADATA } from '@nestjs/common/constants';
 import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 
+import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
 import { IdempotencyStore } from '../common/idempotency/idempotency.store';
@@ -22,6 +23,16 @@ describe('StripeSubscriptionController', () => {
   let stripeServiceMock: {
     setCancelAtPeriodEnd: jest.Mock;
     createPaymentMethodUpdateSession: jest.Mock;
+    getSubscription: jest.Mock;
+    releaseSubscriptionSchedule: jest.Mock;
+    proLineItemFor: jest.Mock;
+    previewYearlyUpgrade: jest.Mock;
+    upgradeToYearlyNow: jest.Mock;
+    scheduleSwitchToMonthly: jest.Mock;
+  };
+  let affiliateConfigMock: {
+    getAnnualPriceUsd: jest.Mock;
+    getBasePriceUsd: jest.Mock;
   };
   let outboxServiceMock: { recordInTransaction: jest.Mock };
   let env: Record<string, string | undefined>;
@@ -47,6 +58,17 @@ describe('StripeSubscriptionController', () => {
       createPaymentMethodUpdateSession: jest
         .fn()
         .mockResolvedValue({ url: 'https://billing.stripe.com/p/session/x' }),
+      // No schedule attached unless a test says so (S3).
+      getSubscription: jest.fn().mockResolvedValue({ schedule: null }),
+      releaseSubscriptionSchedule: jest.fn().mockResolvedValue('released'),
+      proLineItemFor: jest.fn().mockResolvedValue({ price: 'price_pro' }),
+      previewYearlyUpgrade: jest.fn(),
+      upgradeToYearlyNow: jest.fn(),
+      scheduleSwitchToMonthly: jest.fn(),
+    };
+    affiliateConfigMock = {
+      getAnnualPriceUsd: jest.fn().mockResolvedValue(290),
+      getBasePriceUsd: jest.fn().mockResolvedValue(29),
     };
     outboxServiceMock = {
       recordInTransaction: jest.fn().mockResolvedValue(undefined),
@@ -54,6 +76,7 @@ describe('StripeSubscriptionController', () => {
     env = {
       STRIPE_PORTAL_CONFIGURATION_ID: 'bpc_test_1',
       NEXTAUTH_URL: 'https://app.example.com',
+      STRIPE_PRO_PRICE_ID: 'price_pro',
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -62,6 +85,7 @@ describe('StripeSubscriptionController', () => {
         { provide: StripeService, useValue: stripeServiceMock },
         { provide: PrismaService, useValue: prismaMock },
         { provide: OutboxService, useValue: outboxServiceMock },
+        { provide: AffiliateConfigService, useValue: affiliateConfigMock },
         {
           provide: ConfigService,
           useValue: { get: (key: string) => env[key] },
@@ -189,6 +213,8 @@ describe('StripeSubscriptionController', () => {
           dLocalPaymentId: true,
           expiresAt: true,
           cancelAtPeriodEnd: true,
+          pendingPlanType: true,
+          stripeScheduleId: true,
         },
       });
     });
@@ -807,6 +833,180 @@ describe('StripeSubscriptionController', () => {
       expect(prismaMock.user.update).not.toHaveBeenCalled();
       expect(prismaMock.subscription.update).not.toHaveBeenCalled();
       expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
+    });
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Manage Subscription S3: cancelling releases a plan-switch schedule first.
+  // Stripe refuses `cancel_at_period_end` while a schedule manages the
+  // subscription (observed in test mode), including the finished phase 2 of a
+  // switch to monthly.
+  // ───────────────────────────────────────────────────────────────────────────
+  describe('cancel with a plan-switch schedule (S3, W3)', () => {
+    beforeEach(() => {
+      prismaMock.user.findUnique.mockResolvedValue({ tier: 'PRO' } as never);
+      stripeServiceMock.setCancelAtPeriodEnd.mockResolvedValue({
+        cancel_at: PERIOD_END_SECONDS,
+        current_period_end: PERIOD_END_SECONDS,
+      });
+    });
+
+    it('releases the schedule Stripe shows, clears the pending fields, and only then cancels', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        stripeRow({
+          pendingPlanType: 'MONTHLY',
+          stripeScheduleId: 'sub_sched_1',
+        })
+      );
+      stripeServiceMock.getSubscription.mockResolvedValue({
+        schedule: 'sub_sched_1',
+      });
+      const calls: string[] = [];
+      stripeServiceMock.releaseSubscriptionSchedule.mockImplementation(
+        async () => {
+          calls.push('release');
+          return 'released';
+        }
+      );
+      prismaMock.subscription.update.mockImplementation((async (args: {
+        data: Record<string, unknown>;
+      }) => {
+        calls.push(
+          'cancelAtPeriodEnd' in args.data ? 'row-cancel' : 'row-clear'
+        );
+        return {};
+      }) as never);
+      stripeServiceMock.setCancelAtPeriodEnd.mockImplementation(async () => {
+        calls.push('stripe-cancel');
+        return {
+          cancel_at: PERIOD_END_SECONDS,
+          current_period_end: PERIOD_END_SECONDS,
+        };
+      });
+
+      await controller.cancel(makeRequest(), { reason: 'too_expensive' });
+
+      expect(stripeServiceMock.getSubscription).toHaveBeenCalledWith(
+        'sub_stripe_123'
+      );
+      expect(
+        stripeServiceMock.releaseSubscriptionSchedule
+      ).toHaveBeenCalledWith('sub_sched_1');
+      expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub-row-1' },
+        data: {
+          pendingPlanType: null,
+          pendingPlanEffectiveAt: null,
+          stripeScheduleId: null,
+        },
+      });
+      expect(calls).toEqual([
+        'release',
+        'row-clear',
+        'stripe-cancel',
+        'row-cancel',
+      ]);
+    });
+
+    it('releases a schedule the row does not know about (the finished phase 2), since it blocks the cancel the same way', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(stripeRow());
+      stripeServiceMock.getSubscription.mockResolvedValue({
+        schedule: { id: 'sub_sched_orphan' },
+      });
+
+      await controller.cancel(makeRequest(), {});
+
+      expect(
+        stripeServiceMock.releaseSubscriptionSchedule
+      ).toHaveBeenCalledWith('sub_sched_orphan');
+      expect(stripeServiceMock.setCancelAtPeriodEnd).toHaveBeenCalled();
+    });
+
+    it('releases the schedule the row names when Stripe no longer shows one', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        stripeRow({
+          pendingPlanType: 'MONTHLY',
+          stripeScheduleId: 'sub_sched_1',
+        })
+      );
+      stripeServiceMock.getSubscription.mockResolvedValue({ schedule: null });
+
+      await controller.cancel(makeRequest(), {});
+
+      expect(
+        stripeServiceMock.releaseSubscriptionSchedule
+      ).toHaveBeenCalledWith('sub_sched_1');
+    });
+
+    it('clears pending fields that name no schedule, without calling Stripe to release one', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        stripeRow({ pendingPlanType: 'MONTHLY', stripeScheduleId: null })
+      );
+
+      await controller.cancel(makeRequest(), {});
+
+      expect(
+        stripeServiceMock.releaseSubscriptionSchedule
+      ).not.toHaveBeenCalled();
+      expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub-row-1' },
+        data: {
+          pendingPlanType: null,
+          pendingPlanEffectiveAt: null,
+          stripeScheduleId: null,
+        },
+      });
+    });
+
+    it('with no schedule anywhere it releases nothing and makes no extra write', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(stripeRow());
+
+      await controller.cancel(makeRequest(), {});
+
+      expect(
+        stripeServiceMock.releaseSubscriptionSchedule
+      ).not.toHaveBeenCalled();
+      // One write only: the cancellation itself.
+      expect(prismaMock.subscription.update).toHaveBeenCalledTimes(1);
+    });
+
+    it('answers CANCEL_ERROR and does not cancel when the schedule cannot be released', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        stripeRow({
+          pendingPlanType: 'MONTHLY',
+          stripeScheduleId: 'sub_sched_1',
+        })
+      );
+      stripeServiceMock.getSubscription.mockResolvedValue({
+        schedule: 'sub_sched_1',
+      });
+      stripeServiceMock.releaseSubscriptionSchedule.mockRejectedValue(
+        new Error('Stripe is down')
+      );
+
+      await expect(controller.cancel(makeRequest(), {})).rejects.toMatchObject({
+        response: { code: 'CANCEL_ERROR' },
+        status: 500,
+      });
+      expect(stripeServiceMock.setCancelAtPeriodEnd).not.toHaveBeenCalled();
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+      expect(outboxServiceMock.recordInTransaction).not.toHaveBeenCalled();
+    });
+
+    it('a pending switch does not stop the cancel being offered or accepted', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        stripeRow({
+          pendingPlanType: 'MONTHLY',
+          stripeScheduleId: 'sub_sched_1',
+        })
+      );
+      stripeServiceMock.getSubscription.mockResolvedValue({
+        schedule: 'sub_sched_1',
+      });
+
+      await expect(controller.cancel(makeRequest(), {})).resolves.toMatchObject(
+        { success: true, cancelAtPeriodEnd: true }
+      );
     });
   });
 });

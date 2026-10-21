@@ -232,6 +232,33 @@ export const pt: EmailMessages = {
   'resumed.manageLink': 'Abrir as definições de faturação',
   'resumed.subject': 'A sua subscrição {plan} vai continuar - Trading Alerts',
 
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Mudança para faturação anual',
+  'upgraded.body':
+    'A sua subscrição **{plan}** passa a ser faturada anualmente.',
+  'upgraded.charged': '**Cobrado hoje:** {amount}',
+  'upgraded.price': '**Preço anual:** {price}',
+  'upgraded.nextBilling': '**Próxima data de faturação:** {date}',
+  'upgraded.firstCharge': '**Primeira cobrança:** {date}',
+  'upgraded.note':
+    'A cobrança de hoje é o preço anual menos o crédito pela parte não utilizada do seu período mensal atual.',
+  'upgraded.trialNote':
+    'O seu período de teste gratuito continua e hoje não foi cobrado nada. A sua primeira cobrança, ao preço anual, será em {date}.',
+  'upgraded.subject': 'Passou a ter faturação anual - Trading Alerts',
+  'switchScheduled.heading': 'Mudança para faturação mensal agendada',
+  'switchScheduled.body':
+    'A sua subscrição **{plan}** passará para a faturação mensal em {date}.',
+  'switchScheduled.date': '**Data da mudança:** {date}',
+  'switchScheduled.price': '**Preço mensal a partir dessa data:** {price}',
+  'switchScheduled.note':
+    'Mantém o seu acesso anual até {date}. Neste momento não é cobrado nem reembolsado nada e não há crédito pelo ano em curso.',
+  'switchScheduled.keep':
+    'Mudou de ideias? Pode manter a faturação anual antes dessa data. {link}',
+  'switchScheduled.subject':
+    'A sua mudança para faturação mensal está agendada - Trading Alerts',
+  'planChange.manage': 'Pode rever a sua subscrição em qualquer altura. {link}',
+  'planChange.manageLink': 'Abrir as definições de faturação',
+
   'commission.heading': 'Comissão ganha!',
   'commission.body':
     'Boas notícias! O seu código de afiliado acabou de ser utilizado e ganhou uma comissão.',

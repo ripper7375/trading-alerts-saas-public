@@ -9,8 +9,10 @@ import {
   sendCancellationEmail,
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
+  sendPlanSwitchScheduledEmail,
   sendSubscriptionCanceledEmail,
   sendSubscriptionResumedEmail,
+  sendSubscriptionUpgradedEmail,
 } from '../email/subscription-email.util';
 import { OutboxEventDto } from './dto/outbox-event.dto';
 import { OutboxConsumerService } from './outbox-consumer.service';
@@ -23,8 +25,10 @@ jest.mock('../email/subscription-email.util', () => ({
   sendCancellationEmail: jest.fn(),
   sendPaymentFailedEmail: jest.fn(),
   sendPaymentReceiptEmail: jest.fn(),
+  sendPlanSwitchScheduledEmail: jest.fn(),
   sendSubscriptionCanceledEmail: jest.fn(),
   sendSubscriptionResumedEmail: jest.fn(),
+  sendSubscriptionUpgradedEmail: jest.fn(),
 }));
 
 const mockSendSubscriptionConfirmationEmail =
@@ -47,6 +51,14 @@ const mockSendSubscriptionCanceledEmail =
 const mockSendSubscriptionResumedEmail =
   sendSubscriptionResumedEmail as jest.MockedFunction<
     typeof sendSubscriptionResumedEmail
+  >;
+const mockSendSubscriptionUpgradedEmail =
+  sendSubscriptionUpgradedEmail as jest.MockedFunction<
+    typeof sendSubscriptionUpgradedEmail
+  >;
+const mockSendPlanSwitchScheduledEmail =
+  sendPlanSwitchScheduledEmail as jest.MockedFunction<
+    typeof sendPlanSwitchScheduledEmail
   >;
 const mockSendAffiliateCommissionEmail =
   sendAffiliateCommissionEmail as jest.MockedFunction<
@@ -123,6 +135,8 @@ describe('OutboxConsumerService', () => {
     mockSendPaymentReceiptEmail.mockResolvedValue({ success: true });
     mockSendSubscriptionCanceledEmail.mockResolvedValue({ success: true });
     mockSendSubscriptionResumedEmail.mockResolvedValue({ success: true });
+    mockSendSubscriptionUpgradedEmail.mockResolvedValue({ success: true });
+    mockSendPlanSwitchScheduledEmail.mockResolvedValue({ success: true });
     mockSendAffiliateCommissionEmail.mockResolvedValue({ success: true });
     findUnique.mockResolvedValue({
       email: 'ada@example.com',
@@ -332,6 +346,208 @@ describe('OutboxConsumerService', () => {
 
       expect(result).toEqual({ status: 'skipped', reason: 'user-not-found' });
       expect(mockSendSubscriptionResumedEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('SUBSCRIPTION_UPGRADED (S3, W5a)', () => {
+    const payload = (over: Record<string, unknown> = {}) => ({
+      tier: 'PRO',
+      subscriptionId: 'row_1',
+      provider: 'STRIPE',
+      amountChargedUsd: 270.35,
+      yearlyPriceUsd: 290,
+      nextBillingDate: '2027-10-31T03:15:00.000Z',
+      inTrial: false,
+      ...over,
+    });
+
+    it('dispatches to the upgraded e-mail with the amount charged, the yearly price and the next billing date', async () => {
+      const result = await service.processEvent(
+        makeEvent('SUBSCRIPTION_UPGRADED', payload())
+      );
+      expect(result).toEqual({ status: 'processed' });
+      expect(mockSendSubscriptionUpgradedEmail).toHaveBeenCalledWith(
+        'ada@example.com',
+        'Ada',
+        'PRO',
+        270.35,
+        290,
+        new Date('2027-10-31T03:15:00.000Z'),
+        false
+      );
+    });
+
+    it('a free-trial switch charged nothing: 0 is a valid amount and the trial flag reaches the e-mail', async () => {
+      await service.processEvent(
+        makeEvent(
+          'SUBSCRIPTION_UPGRADED',
+          payload({ amountChargedUsd: 0, inTrial: true })
+        )
+      );
+      expect(mockSendSubscriptionUpgradedEmail).toHaveBeenCalledWith(
+        'ada@example.com',
+        'Ada',
+        'PRO',
+        0,
+        290,
+        new Date('2027-10-31T03:15:00.000Z'),
+        true
+      );
+    });
+
+    it('reads anything but true as not in a trial', async () => {
+      await service.processEvent(
+        makeEvent('SUBSCRIPTION_UPGRADED', payload({ inTrial: 'yes' }))
+      );
+      expect(mockSendSubscriptionUpgradedEmail.mock.calls[0]![6]).toBe(false);
+    });
+
+    it('is a known event type: it is not skipped as unrecognised', async () => {
+      const result = await service.processEvent(
+        makeEvent('SUBSCRIPTION_UPGRADED', payload())
+      );
+      expect(result).not.toEqual({
+        status: 'skipped',
+        reason: 'unrecognized-event-type',
+      });
+    });
+
+    it.each([
+      ['no amount charged', { amountChargedUsd: undefined }],
+      ['a negative amount charged', { amountChargedUsd: -1 }],
+      ['an amount charged that is not a number', { amountChargedUsd: '270' }],
+      ['no yearly price', { yearlyPriceUsd: undefined }],
+      ['a yearly price of 0', { yearlyPriceUsd: 0 }],
+      ['no billing date', { nextBillingDate: undefined }],
+      ['a billing date that is not a date', { nextBillingDate: 'soon' }],
+    ])(
+      'skips the event, without sending or claiming it, with %s',
+      async (_label, over) => {
+        const result = await service.processEvent(
+          makeEvent('SUBSCRIPTION_UPGRADED', payload(over))
+        );
+        expect(result).toEqual({
+          status: 'skipped',
+          reason: 'missing-upgrade-details',
+        });
+        expect(mockSendSubscriptionUpgradedEmail).not.toHaveBeenCalled();
+        expect(findUnique).not.toHaveBeenCalled();
+        expect(redis.set).not.toHaveBeenCalled();
+      }
+    );
+
+    it('sends once when the publisher delivers the same event again (at-least-once)', async () => {
+      const event = makeEvent('SUBSCRIPTION_UPGRADED', payload());
+      const first = await service.processEvent(event);
+      const second = await service.processEvent(event);
+      expect(first).toEqual({ status: 'processed' });
+      expect(second).toEqual({ status: 'skipped', reason: 'duplicate' });
+      expect(mockSendSubscriptionUpgradedEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('lets the publisher retry when the send fails', async () => {
+      mockSendSubscriptionUpgradedEmail.mockResolvedValue({
+        success: false,
+        error: 'resend down',
+      });
+      await expect(
+        service.processEvent(makeEvent('SUBSCRIPTION_UPGRADED', payload()))
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+
+    it('skips when the user cannot be found', async () => {
+      findUnique.mockResolvedValue(null);
+      const result = await service.processEvent(
+        makeEvent('SUBSCRIPTION_UPGRADED', payload())
+      );
+      expect(result).toEqual({ status: 'skipped', reason: 'user-not-found' });
+      expect(mockSendSubscriptionUpgradedEmail).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('SUBSCRIPTION_DOWNGRADE_SCHEDULED (S3, W5b)', () => {
+    const payload = (over: Record<string, unknown> = {}) => ({
+      tier: 'PRO',
+      subscriptionId: 'row_1',
+      provider: 'STRIPE',
+      effectiveAt: '2027-10-31T00:00:00.000Z',
+      monthlyPriceUsd: 29,
+      ...over,
+    });
+
+    it('dispatches to the switch-scheduled e-mail with the switch date and the monthly price', async () => {
+      const result = await service.processEvent(
+        makeEvent('SUBSCRIPTION_DOWNGRADE_SCHEDULED', payload())
+      );
+      expect(result).toEqual({ status: 'processed' });
+      expect(mockSendPlanSwitchScheduledEmail).toHaveBeenCalledWith(
+        'ada@example.com',
+        'Ada',
+        'PRO',
+        new Date('2027-10-31T00:00:00.000Z'),
+        29
+      );
+    });
+
+    it('is a known event type: it is not skipped as unrecognised', async () => {
+      const result = await service.processEvent(
+        makeEvent('SUBSCRIPTION_DOWNGRADE_SCHEDULED', payload())
+      );
+      expect(result).not.toEqual({
+        status: 'skipped',
+        reason: 'unrecognized-event-type',
+      });
+    });
+
+    it.each([
+      ['no switch date', { effectiveAt: undefined }],
+      ['a switch date that is not a date', { effectiveAt: 'soon' }],
+      ['a switch date that is a number', { effectiveAt: 1795305600 }],
+      ['no monthly price', { monthlyPriceUsd: undefined }],
+      ['a monthly price of 0', { monthlyPriceUsd: 0 }],
+      ['a monthly price that is not a number', { monthlyPriceUsd: '29' }],
+    ])(
+      'skips the event, without sending or claiming it, with %s',
+      async (_label, over) => {
+        const result = await service.processEvent(
+          makeEvent('SUBSCRIPTION_DOWNGRADE_SCHEDULED', payload(over))
+        );
+        expect(result).toEqual({
+          status: 'skipped',
+          reason: 'missing-switch-details',
+        });
+        expect(mockSendPlanSwitchScheduledEmail).not.toHaveBeenCalled();
+        expect(findUnique).not.toHaveBeenCalled();
+        expect(redis.set).not.toHaveBeenCalled();
+      }
+    );
+
+    it('sends once when the publisher delivers the same event again (at-least-once)', async () => {
+      const event = makeEvent('SUBSCRIPTION_DOWNGRADE_SCHEDULED', payload());
+      await service.processEvent(event);
+      const second = await service.processEvent(event);
+      expect(second).toEqual({ status: 'skipped', reason: 'duplicate' });
+      expect(mockSendPlanSwitchScheduledEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('lets the publisher retry when the send fails', async () => {
+      mockSendPlanSwitchScheduledEmail.mockResolvedValue({
+        success: false,
+        error: 'resend down',
+      });
+      await expect(
+        service.processEvent(
+          makeEvent('SUBSCRIPTION_DOWNGRADE_SCHEDULED', payload())
+        )
+      ).rejects.toBeInstanceOf(InternalServerErrorException);
+    });
+
+    it('does not send the cancellation or the upgrade mail', async () => {
+      await service.processEvent(
+        makeEvent('SUBSCRIPTION_DOWNGRADE_SCHEDULED', payload())
+      );
+      expect(mockSendCancellationEmail).not.toHaveBeenCalled();
+      expect(mockSendSubscriptionUpgradedEmail).not.toHaveBeenCalled();
     });
   });
 

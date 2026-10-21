@@ -57,9 +57,12 @@ jest.mock('@/lib/admin/user-view-as', () => ({
   }),
 }));
 const mockSetCancelAtPeriodEnd = jest.fn();
+const mockGetSubscription = jest.fn();
 jest.mock('@/lib/stripe/stripe', () => ({
   __esModule: true,
-  getSubscription: jest.fn(),
+  // S3: cancel reads Stripe's subscription and releases a plan-switch schedule.
+  getSubscription: (...a: unknown[]) => mockGetSubscription(...a),
+  releaseSubscriptionSchedule: jest.fn(),
   getCustomerPaymentMethods: jest.fn(),
   getOpenInvoiceUrl: jest.fn(),
   setCancelAtPeriodEnd: (...a: unknown[]) => mockSetCancelAtPeriodEnd(...a),
@@ -279,6 +282,7 @@ describe('POST /api/subscription/cancel', () => {
     });
     mockUserUpdate.mockResolvedValue({});
     mockSubscriptionUpdate.mockResolvedValue({});
+    mockGetSubscription.mockResolvedValue({ schedule: null });
     mockSetCancelAtPeriodEnd.mockResolvedValue({
       cancel_at: 1795305600,
       current_period_end: 1795305600,

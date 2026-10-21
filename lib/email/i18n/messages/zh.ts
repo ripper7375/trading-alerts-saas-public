@@ -199,6 +199,28 @@ export const zh: EmailMessages = {
   'resumed.manageLink': '打开账单设置',
   'resumed.subject': '您的 {plan} 订阅将继续 - Trading Alerts',
 
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': '已切换为年度付费',
+  'upgraded.body': '您的 **{plan}** 订阅现在按年计费。',
+  'upgraded.charged': '**今日扣款：** {amount}',
+  'upgraded.price': '**年度价格：** {price}',
+  'upgraded.nextBilling': '**下次扣款日期：** {date}',
+  'upgraded.firstCharge': '**首次扣款：** {date}',
+  'upgraded.note': '今日扣款为年度价格减去当前月度周期未使用部分的抵扣额。',
+  'upgraded.trialNote':
+    '您的免费试用仍在继续，今天未产生任何扣款。您的首次扣款（按年度价格）将在 {date} 进行。',
+  'upgraded.subject': '您已切换为年度付费 - Trading Alerts',
+  'switchScheduled.heading': '已预约切换为月度付费',
+  'switchScheduled.body': '您的 **{plan}** 订阅将于 {date} 切换为按月计费。',
+  'switchScheduled.date': '**切换日期：** {date}',
+  'switchScheduled.price': '**此后的月度价格：** {price}',
+  'switchScheduled.note':
+    '在 {date} 之前您仍可使用年度权益。现在不会产生扣款或退款，当前年度也没有抵扣额。',
+  'switchScheduled.keep': '改变主意了？在此之前您可以继续保持年度付费。{link}',
+  'switchScheduled.subject': '已为您预约切换为月度付费 - Trading Alerts',
+  'planChange.manage': '您可以随时查看您的订阅。{link}',
+  'planChange.manageLink': '打开账单设置',
+
   'commission.heading': '您获得了佣金！',
   'commission.body': '好消息！您的联盟码刚刚被使用，您获得了一笔佣金。',
   'commission.codeUsed': '被使用的代码',

@@ -229,6 +229,33 @@ export const tr: EmailMessages = {
   'resumed.manageLink': 'Fatura ayarlarını aç',
   'resumed.subject': '{plan} aboneliğiniz devam edecek - Trading Alerts',
 
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Yıllık Faturalandırmaya Geçildi',
+  'upgraded.body': '**{plan}** aboneliğiniz artık yıllık faturalandırılıyor.',
+  'upgraded.charged': '**Bugün tahsil edilen:** {amount}',
+  'upgraded.price': '**Yıllık fiyat:** {price}',
+  'upgraded.nextBilling': '**Sonraki fatura tarihi:** {date}',
+  'upgraded.firstCharge': '**İlk tahsilat:** {date}',
+  'upgraded.note':
+    'Bugünkü tahsilat, yıllık fiyattan mevcut aylık döneminizin kullanılmayan kısmı için verilen kredinin düşülmesiyle bulunur.',
+  'upgraded.trialNote':
+    'Ücretsiz deneme süreniz devam ediyor ve bugün hiçbir tutar tahsil edilmedi. Yıllık fiyat üzerinden ilk tahsilatınız {date} tarihinde yapılacak.',
+  'upgraded.subject': 'Artık yıllık faturalandırmadasınız - Trading Alerts',
+  'switchScheduled.heading': 'Aylık Faturalandırmaya Geçiş Planlandı',
+  'switchScheduled.body':
+    '**{plan}** aboneliğiniz {date} tarihinde aylık faturalandırmaya geçecek.',
+  'switchScheduled.date': '**Geçiş tarihi:** {date}',
+  'switchScheduled.price': '**O tarihten sonraki aylık fiyat:** {price}',
+  'switchScheduled.note':
+    'Yıllık erişiminiz {date} tarihine kadar devam eder. Şimdi hiçbir tutar tahsil edilmez veya iade edilmez ve mevcut yıl için kredi yoktur.',
+  'switchScheduled.keep':
+    'Fikrinizi mi değiştirdiniz? O tarihten önce yıllık faturalandırmayı sürdürebilirsiniz. {link}',
+  'switchScheduled.subject':
+    'Aylık faturalandırmaya geçişiniz planlandı - Trading Alerts',
+  'planChange.manage':
+    'Aboneliğinizi istediğiniz zaman inceleyebilirsiniz. {link}',
+  'planChange.manageLink': 'Fatura ayarlarını aç',
+
   'commission.heading': 'Komisyon Kazandınız!',
   'commission.body':
     'Harika haber! Ortaklık kodunuz az önce kullanıldı ve komisyon kazandınız.',

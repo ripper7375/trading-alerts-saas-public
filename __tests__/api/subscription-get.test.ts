@@ -78,6 +78,8 @@ function stripeRow(status: string): Record<string, unknown> {
     dLocalPaymentMethod: null,
     dLocalCountry: null,
     cancelAtPeriodEnd: false,
+    pendingPlanType: null,
+    pendingPlanEffectiveAt: null,
   };
 }
 
@@ -193,7 +195,11 @@ describe('GET /api/subscription -- failed payments (B2)', () => {
     const { body } = await get();
 
     expect(body.displayState).toBe('ACTIVE');
-    expect(body.allowedActions).toEqual(['update_card', 'cancel']);
+    expect(body.allowedActions).toEqual([
+      'update_card',
+      'upgrade_to_yearly',
+      'cancel',
+    ]);
     expect(body.subscription.openInvoiceUrl).toBeNull();
     expect(mockGetOpenInvoiceUrl).not.toHaveBeenCalled();
   });
@@ -284,6 +290,8 @@ describe('GET /api/subscription -- scheduled cancellation (S2, W3/W4)', () => {
         dLocalPaymentMethod: true,
         dLocalCountry: true,
         cancelAtPeriodEnd: true,
+        pendingPlanType: true,
+        pendingPlanEffectiveAt: true,
       },
     });
   });
@@ -333,7 +341,11 @@ describe('GET /api/subscription -- scheduled cancellation (S2, W3/W4)', () => {
     const { body } = await get();
 
     expect(body.displayState).toBe('ACTIVE');
-    expect(body.allowedActions).toEqual(['update_card', 'cancel']);
+    expect(body.allowedActions).toEqual([
+      'update_card',
+      'upgrade_to_yearly',
+      'cancel',
+    ]);
   });
 
   it('falls back to the stored flag and period end when Stripe cannot be reached', async () => {
@@ -415,6 +427,228 @@ describe('GET /api/subscription -- scheduled cancellation (S2, W3/W4)', () => {
     const { body } = await get();
 
     expect(body.displayState).toBe('CANCEL_SCHEDULED');
+    expect(body.allowedActions).toEqual([]);
+  });
+});
+
+describe('GET /api/subscription -- billing period (S3, W5a/W5b)', () => {
+  const NEXT = new Date('2027-10-31T00:00:00.000Z');
+  const NEXT_SECONDS = NEXT.getTime() / 1000;
+
+  const yearlyRow = (over: Record<string, unknown> = {}) => ({
+    ...stripeRow('ACTIVE'),
+    planType: 'YEARLY',
+    amountUsd: 290,
+    stripeCurrentPeriodEnd: NEXT,
+    ...over,
+  });
+  const pendingRow = (over: Record<string, unknown> = {}) =>
+    yearlyRow({
+      pendingPlanType: 'MONTHLY',
+      pendingPlanEffectiveAt: NEXT,
+      ...over,
+    });
+  const live = (
+    interval: 'month' | 'year',
+    over: Record<string, unknown> = {}
+  ) => ({
+    status: 'active',
+    cancel_at_period_end: false,
+    current_period_end: NEXT_SECONDS,
+    trial_end: null,
+    schedule: null,
+    items: { data: [{ id: 'si_1', price: { recurring: { interval } } }] },
+    ...over,
+  });
+
+  beforeEach(() => {
+    mockUserFindUnique.mockResolvedValue({ tier: 'PRO', ...TRIAL_FIELDS });
+  });
+
+  it('a yearly plan offers the switch to monthly at renewal', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(yearlyRow());
+    mockGetSubscription.mockResolvedValue(live('year'));
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('ACTIVE');
+    expect(body.allowedActions).toEqual([
+      'update_card',
+      'switch_to_monthly',
+      'cancel',
+    ]);
+    expect(body.subscription.planType).toBe('YEARLY');
+    expect(body.subscription.pendingPlanChange).toBeNull();
+  });
+
+  it('a pending switch to monthly: DOWNGRADE_PENDING, keep yearly, the date, no second switch', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(pendingRow());
+    mockGetSubscription.mockResolvedValue(
+      live('year', { schedule: 'sub_sched_1' })
+    );
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('DOWNGRADE_PENDING');
+    expect(body.allowedActions).toEqual([
+      'keep_yearly',
+      'update_card',
+      'cancel',
+    ]);
+    expect(body.subscription.pendingPlanChange).toEqual({
+      planType: 'MONTHLY',
+      effectiveAt: NEXT.toISOString(),
+    });
+    // The user still pays and uses the yearly plan until then.
+    expect(body.subscription.planType).toBe('YEARLY');
+    expect(body.tier).toBe('PRO');
+  });
+
+  it('uses the end of the paid period when the stored switch has no date', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(
+      pendingRow({ pendingPlanEffectiveAt: null })
+    );
+    mockGetSubscription.mockResolvedValue(
+      live('year', { schedule: 'sub_sched_1' })
+    );
+
+    const { body } = await get();
+
+    expect(body.subscription.pendingPlanChange.effectiveAt).toBe(
+      NEXT.toISOString()
+    );
+  });
+
+  it('Stripe wins: a schedule released in its dashboard is not shown as pending', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(pendingRow());
+    mockGetSubscription.mockResolvedValue(live('year', { schedule: null }));
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('ACTIVE');
+    expect(body.subscription.pendingPlanChange).toBeNull();
+    expect(body.allowedActions).toContain('switch_to_monthly');
+  });
+
+  it('Stripe wins: once the subscription bills monthly (phase 2, webhook late) the switch is done, not pending, and the plan is MONTHLY', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(pendingRow());
+    mockGetSubscription.mockResolvedValue(
+      live('month', { schedule: 'sub_sched_1' })
+    );
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('ACTIVE');
+    expect(body.subscription.pendingPlanChange).toBeNull();
+    expect(body.subscription.planType).toBe('MONTHLY');
+    expect(body.allowedActions).toEqual([
+      'update_card',
+      'upgrade_to_yearly',
+      'cancel',
+    ]);
+  });
+
+  it('Stripe wins on the plan: a row still saying MONTHLY on a subscription Stripe bills yearly shows YEARLY', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(stripeRow('ACTIVE'));
+    mockGetSubscription.mockResolvedValue(live('year'));
+
+    const { body } = await get();
+
+    expect(body.subscription.planType).toBe('YEARLY');
+    expect(body.allowedActions).toContain('switch_to_monthly');
+    expect(body.allowedActions).not.toContain('upgrade_to_yearly');
+  });
+
+  it('without Stripe it falls back to the stored switch while its date is in the future', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(
+      pendingRow({ pendingPlanEffectiveAt: new Date(Date.now() + 86_400_000) })
+    );
+    mockGetSubscription.mockRejectedValue(new Error('Stripe is down'));
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('DOWNGRADE_PENDING');
+    expect(body.subscription.pendingPlanChange).not.toBeNull();
+  });
+
+  it('without Stripe a stored switch whose date has passed is not shown', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(
+      pendingRow({ pendingPlanEffectiveAt: new Date(Date.now() - 86_400_000) })
+    );
+    mockGetSubscription.mockRejectedValue(new Error('Stripe is down'));
+
+    const { body } = await get();
+
+    expect(body.subscription.pendingPlanChange).toBeNull();
+  });
+
+  it('a row that says ACTIVE during a trial is read as TRIALING from Stripe: the upgrade is offered, the switch to monthly is not', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(stripeRow('ACTIVE'));
+    mockGetSubscription.mockResolvedValue(
+      live('month', { status: 'trialing', trial_end: NEXT_SECONDS })
+    );
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('TRIALING');
+    expect(body.allowedActions).toEqual([
+      'update_card',
+      'upgrade_to_yearly',
+      'cancel',
+    ]);
+  });
+
+  it('a failed payment comes first: no billing-period action', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue(stripeRow('PAST_DUE'));
+    mockGetSubscription.mockResolvedValue(live('month'));
+    mockGetOpenInvoiceUrl.mockResolvedValue(INVOICE_URL);
+
+    const { body } = await get();
+
+    expect(body.allowedActions).toEqual(['pay_now', 'update_card']);
+  });
+
+  it('a scheduled cancellation comes first: no billing-period action', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue({
+      ...stripeRow('ACTIVE'),
+      cancelAtPeriodEnd: true,
+    });
+    mockGetSubscription.mockResolvedValue(
+      live('month', { cancel_at_period_end: true })
+    );
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('CANCEL_SCHEDULED');
+    expect(body.allowedActions).toEqual(['resume', 'update_card']);
+  });
+
+  it('admin view-as shows the state but offers nothing', async () => {
+    mockResolveViewAsSubject.mockResolvedValue({
+      kind: 'view-as',
+      userId: 'u2',
+    });
+    mockSubscriptionFindUnique.mockResolvedValue(pendingRow());
+    mockGetSubscription.mockResolvedValue(
+      live('year', { schedule: 'sub_sched_1' })
+    );
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('DOWNGRADE_PENDING');
+    expect(body.allowedActions).toEqual([]);
+  });
+
+  it('a dLocal row ignores a stale pending column and offers no billing-period action', async () => {
+    mockSubscriptionFindUnique.mockResolvedValue({
+      ...pendingRow(),
+      dLocalPaymentId: 'dl_1',
+      stripeSubscriptionId: null,
+    });
+
+    const { body } = await get();
+
+    expect(body.displayState).toBe('ACTIVE');
     expect(body.allowedActions).toEqual([]);
   });
 });

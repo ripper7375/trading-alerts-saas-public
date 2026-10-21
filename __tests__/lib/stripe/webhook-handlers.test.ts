@@ -103,12 +103,18 @@ jest.mock('@/lib/affiliate/commission-calculator', () => ({
 }));
 
 const mockChargesRetrieve = jest.fn();
+const mockGetInvoiceMonthsById = jest.fn();
+const mockReleaseSchedule = jest.fn();
 
 jest.mock('@/lib/stripe/stripe', () => ({
   __esModule: true,
   getStripeClient: () => ({
     charges: { retrieve: (...args: unknown[]) => mockChargesRetrieve(...args) },
   }),
+  getInvoiceMonthsById: (...args: unknown[]) =>
+    mockGetInvoiceMonthsById(...args),
+  releaseSubscriptionSchedule: (...args: unknown[]) =>
+    mockReleaseSchedule(...args),
 }));
 
 import {
@@ -124,6 +130,8 @@ import {
 describe('Stripe Webhook Handlers', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetInvoiceMonthsById.mockResolvedValue({});
+    mockReleaseSchedule.mockResolvedValue('released');
   });
 
   describe('handleCheckoutCompleted', () => {
@@ -185,6 +193,26 @@ describe('Stripe Webhook Handlers', () => {
         cancellationReason: null,
       });
       expect(create).not.toHaveProperty('cancelAtPeriodEnd');
+    });
+
+    it('...and with no switch to monthly waiting on the old subscription (S3)', async () => {
+      mockUserUpdate.mockResolvedValue({
+        id: 'user-123',
+        email: 'user@example.com',
+        name: 'Test User',
+      });
+      mockSubscriptionUpsert.mockResolvedValue({ id: 'sub-db-123' });
+      mockSendSubscriptionConfirmationEmail.mockResolvedValue(undefined);
+
+      await handleCheckoutCompleted(mockSession);
+
+      const { update, create } = mockSubscriptionUpsert.mock.calls[0][0];
+      expect(update).toMatchObject({
+        pendingPlanType: null,
+        pendingPlanEffectiveAt: null,
+        stripeScheduleId: null,
+      });
+      expect(create).not.toHaveProperty('pendingPlanType');
     });
 
     it('should upgrade user to PRO and create subscription', async () => {
@@ -776,6 +804,118 @@ describe('Stripe Webhook Handlers', () => {
     });
   });
 
+  // Manage Subscription S3, defect B9 (switch part): phase 2 of a scheduled
+  // switch to monthly has started when the subscription bills monthly while the
+  // row still holds the pending switch. Observed in test mode: the event carries
+  // the item moving from the yearly to the monthly price, and the schedule stays
+  // attached through phase 2.
+  describe('handleSubscriptionUpdated: a scheduled switch to monthly takes effect (S3)', () => {
+    const pendingRow = (over: Record<string, unknown> = {}) => ({
+      id: 'sub-db-123',
+      userId: 'user-123',
+      stripeSubscriptionId: 'sub_test_123',
+      pendingPlanType: 'MONTHLY',
+      pendingPlanEffectiveAt: new Date('2027-10-31T00:00:00.000Z'),
+      stripeScheduleId: 'sub_sched_1',
+      ...over,
+    });
+    const billing = (
+      interval: 'month' | 'year',
+      over: Record<string, unknown> = {}
+    ) =>
+      ({
+        id: 'sub_test_123',
+        status: 'active',
+        current_period_end: 1234567890,
+        schedule: 'sub_sched_1',
+        items: { data: [{ price: { recurring: { interval } } }] },
+        ...over,
+      }) as unknown as Stripe.Subscription;
+
+    beforeEach(() => {
+      mockSubscriptionUpdate.mockResolvedValue({ id: 'sub-db-123' });
+    });
+
+    it('clears the three pending columns in the same write as the status, and releases the finished schedule', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(pendingRow());
+
+      await handleSubscriptionUpdated(billing('month'));
+
+      expect(mockSubscriptionUpdate).toHaveBeenCalledTimes(1);
+      expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+        where: { id: 'sub-db-123' },
+        data: expect.objectContaining({
+          status: 'ACTIVE',
+          pendingPlanType: null,
+          pendingPlanEffectiveAt: null,
+          stripeScheduleId: null,
+        }),
+      });
+      expect(mockReleaseSchedule).toHaveBeenCalledWith('sub_sched_1');
+    });
+
+    it('leaves the pending switch alone while the subscription still bills yearly', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(pendingRow());
+
+      await handleSubscriptionUpdated(billing('year'));
+
+      const { data } = mockSubscriptionUpdate.mock.calls[0]![0] as {
+        data: Record<string, unknown>;
+      };
+      expect(data).not.toHaveProperty('pendingPlanType');
+      expect(data).not.toHaveProperty('stripeScheduleId');
+      expect(mockReleaseSchedule).not.toHaveBeenCalled();
+    });
+
+    it('does nothing about a switch when none is pending (an ordinary monthly event)', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(
+        pendingRow({ pendingPlanType: null, stripeScheduleId: null })
+      );
+
+      await handleSubscriptionUpdated(billing('month'));
+
+      const { data } = mockSubscriptionUpdate.mock.calls[0]![0] as {
+        data: Record<string, unknown>;
+      };
+      expect(data).not.toHaveProperty('pendingPlanType');
+      expect(mockReleaseSchedule).not.toHaveBeenCalled();
+    });
+
+    it('releases the schedule the row names when the event carries none, and reads an expanded schedule object', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(pendingRow());
+      await handleSubscriptionUpdated(billing('month', { schedule: null }));
+      expect(mockReleaseSchedule).toHaveBeenLastCalledWith('sub_sched_1');
+
+      mockSubscriptionFindFirst.mockResolvedValue(pendingRow());
+      await handleSubscriptionUpdated(
+        billing('month', { schedule: { id: 'sub_sched_9' } })
+      );
+      expect(mockReleaseSchedule).toHaveBeenLastCalledWith('sub_sched_9');
+    });
+
+    it('a schedule that cannot be released does not fail the event: the row is already right', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(pendingRow());
+      mockReleaseSchedule.mockRejectedValue(new Error('Stripe is down'));
+      const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await expect(
+        handleSubscriptionUpdated(billing('month'))
+      ).resolves.toBeUndefined();
+
+      expect(mockSubscriptionUpdate).toHaveBeenCalled();
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+
+    it('never touches the tier: the user stays PRO through the switch', async () => {
+      mockSubscriptionFindFirst.mockResolvedValue(pendingRow());
+
+      await handleSubscriptionUpdated(billing('month'));
+
+      expect(mockUserUpdate).not.toHaveBeenCalled();
+    });
+  });
+
   describe('handleInvoiceFailed', () => {
     const mockInvoice = {
       id: 'inv_test_123',
@@ -1318,8 +1458,12 @@ describe('Stripe Webhook Handlers', () => {
           });
         });
 
+        // A yearly subscriber's row says YEARLY, so an earlier invoice Stripe
+        // cannot resolve counts as 12 months (decision E4's fallback).
+        const yearlyRow = { ...dbSubscriptionWithCode, planType: 'YEARLY' };
+
         it('credits the 2nd annual invoice and clears the attribution (24 months reached)', async () => {
-          mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+          mockSubscriptionFindFirst.mockResolvedValue(yearlyRow);
           mockCommissionFindMany.mockResolvedValue([
             { stripeInvoiceId: 'inv_year_1' },
           ]);
@@ -1335,7 +1479,7 @@ describe('Stripe Webhook Handlers', () => {
         });
 
         it('does not credit a 3rd annual invoice', async () => {
-          mockSubscriptionFindFirst.mockResolvedValue(dbSubscriptionWithCode);
+          mockSubscriptionFindFirst.mockResolvedValue(yearlyRow);
           mockCommissionFindMany.mockResolvedValue([
             { stripeInvoiceId: 'inv_year_1' },
             { stripeInvoiceId: 'inv_year_2' },
@@ -1348,6 +1492,187 @@ describe('Stripe Webhook Handlers', () => {
             where: { id: 'sub-db-123' },
             data: { affiliateCodeId: null },
           });
+        });
+      });
+
+      // Decision E4: the cap counts months of lifetime covered, so a switch of
+      // billing period neither stops the commission early nor stretches it.
+      describe('months of lifetime across a switch (E4)', () => {
+        const creditThenYearly = [
+          {
+            type: 'invoiceitem',
+            proration: true,
+            amount: -1965,
+            tax_rates: [],
+            price: {
+              currency: 'usd',
+              unit_amount: 2900,
+              recurring: { interval: 'month' },
+            },
+          },
+          {
+            type: 'subscription',
+            proration: false,
+            amount: 29000,
+            tax_rates: [],
+            price: {
+              currency: 'usd',
+              unit_amount: 29000,
+              recurring: { interval: 'year' },
+            },
+          },
+        ];
+        // The prorated invoice of a monthly to yearly upgrade: the credit line
+        // for the unused month first (as Stripe lists it), $270.35 collected.
+        const upgradeInvoice = {
+          ...mockInvoice,
+          id: 'inv_upgrade',
+          amount_paid: 27035,
+          total: 27035,
+          lines: { data: creditThenYearly },
+        } as unknown as Stripe.Invoice;
+        const monthlyRow = { ...dbSubscriptionWithCode, planType: 'MONTHLY' };
+        const earlier = (n: number) =>
+          Array.from({ length: n }, (_, i) => `inv_m${i}`);
+        const asPriors = (ids: string[]) =>
+          mockCommissionFindMany.mockResolvedValue(
+            ids.map((stripeInvoiceId) => ({ stripeInvoiceId }))
+          );
+        const oneMonthEach = (ids: string[]) =>
+          Object.fromEntries(ids.map((id) => [id, 1]));
+
+        it('pays the upgrade invoice at invoice 5 on the amount actually collected, undiscounted, and keeps the attribution', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue(monthlyRow);
+          asPriors(earlier(4));
+          mockGetInvoiceMonthsById.mockResolvedValue(oneMonthEach(earlier(4)));
+
+          await handleInvoiceSucceeded(upgradeInvoice);
+
+          expect(mockGetInvoiceMonthsById).toHaveBeenCalledWith('sub_test_123');
+          expect(mockCalculateFullBreakdown).toHaveBeenCalledWith(
+            270.35,
+            0,
+            20
+          );
+          expect(mockCommissionCreate).toHaveBeenCalled();
+          // 4 + 12 = 16 months: below the cap, the next renewal still counts.
+          expect(mockSubscriptionUpdate).not.toHaveBeenCalledWith({
+            where: { id: 'sub-db-123' },
+            data: { affiliateCodeId: null },
+          });
+        });
+
+        it('B8: the upgrade invoice is recorded YEARLY at the yearly price although its credit line comes first', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue(monthlyRow);
+
+          await handleInvoiceSucceeded(upgradeInvoice);
+
+          expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+            where: { id: 'sub-db-123' },
+            data: expect.objectContaining({
+              planType: 'YEARLY',
+              amountUsd: 290,
+            }),
+          });
+        });
+
+        it('an invoice that crosses month 24 is paid in full and clears the attribution', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue(monthlyRow);
+          asPriors(earlier(23));
+          mockGetInvoiceMonthsById.mockResolvedValue(oneMonthEach(earlier(23)));
+
+          await handleInvoiceSucceeded(upgradeInvoice);
+
+          expect(mockCommissionCreate).toHaveBeenCalled();
+          expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+            where: { id: 'sub-db-123' },
+            data: { affiliateCodeId: null },
+          });
+        });
+
+        it('the invoice after the cap is not paid: after 12 monthly invoices and a yearly one, nothing more', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue({
+            ...dbSubscriptionWithCode,
+            planType: 'YEARLY',
+          });
+          const ids = [...earlier(12), 'inv_year'];
+          asPriors(ids);
+          mockGetInvoiceMonthsById.mockResolvedValue({
+            ...oneMonthEach(earlier(12)),
+            inv_year: 12,
+          });
+
+          await handleInvoiceSucceeded(mockInvoice); // a monthly invoice after a downgrade
+
+          expect(mockCommissionCreate).not.toHaveBeenCalled();
+          expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+            where: { id: 'sub-db-123' },
+            data: { affiliateCodeId: null },
+          });
+        });
+
+        it('after a downgrade the monthly invoices run on to month 24', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue({
+            ...dbSubscriptionWithCode,
+            planType: 'MONTHLY',
+          });
+          const ids = ['inv_year', ...earlier(11)];
+          asPriors(ids);
+          mockGetInvoiceMonthsById.mockResolvedValue({
+            inv_year: 12,
+            ...oneMonthEach(earlier(11)),
+          });
+
+          await handleInvoiceSucceeded(mockInvoice);
+
+          // 12 + 11 = 23 months before: this invoice reaches 24.
+          expect(mockCommissionCreate).toHaveBeenCalled();
+          expect(mockSubscriptionUpdate).toHaveBeenCalledWith({
+            where: { id: 'sub-db-123' },
+            data: { affiliateCodeId: null },
+          });
+        });
+
+        it('asks Stripe only when an earlier commission exists', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue(monthlyRow);
+          mockCommissionFindMany.mockResolvedValue([]);
+
+          await handleInvoiceSucceeded(mockInvoice);
+
+          expect(mockGetInvoiceMonthsById).not.toHaveBeenCalled();
+          expect(mockCommissionCreate).toHaveBeenCalled();
+        });
+
+        it('when Stripe cannot be read it counts the earlier invoices as the plan the row had, and still credits', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue(monthlyRow);
+          asPriors(earlier(4));
+          mockGetInvoiceMonthsById.mockRejectedValue(
+            new Error('Stripe is down')
+          );
+          const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+          await handleInvoiceSucceeded(upgradeInvoice);
+
+          // 4 x 1 month before: the upgrade invoice is still paid.
+          expect(mockCommissionCreate).toHaveBeenCalled();
+          expect(errorSpy).toHaveBeenCalled();
+          errorSpy.mockRestore();
+        });
+
+        it('an earlier commission with no invoice id counts as the plan the row had', async () => {
+          mockSubscriptionFindFirst.mockResolvedValue({
+            ...dbSubscriptionWithCode,
+            planType: 'YEARLY',
+          });
+          mockCommissionFindMany.mockResolvedValue([
+            { stripeInvoiceId: null },
+            { stripeInvoiceId: null },
+          ]);
+
+          await handleInvoiceSucceeded(mockInvoice);
+
+          // 2 x 12 months before: the cap is already reached.
+          expect(mockCommissionCreate).not.toHaveBeenCalled();
         });
       });
 

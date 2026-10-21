@@ -24,8 +24,12 @@ import {
 import {
   allowedActionsOf,
   displayStateOf,
+  effectivePendingPlan,
   isPaymentProblem,
+  liveIntervalOf,
+  planTypeForInterval,
   providerOf,
+  scheduleIdOf,
   showsSubscription,
   type SubscriptionAction,
   type SubscriptionDisplayState,
@@ -72,6 +76,14 @@ interface SubscriptionResponse {
      * for a Stripe subscription whose renewal failed (PAST_DUE or UNPAID).
      */
     openInvoiceUrl: string | null;
+    /**
+     * A switch to monthly billing waiting for the renewal date (W5b), else
+     * null. `effectiveAt` is that date.
+     */
+    pendingPlanChange: {
+      planType: 'MONTHLY';
+      effectiveAt: string | null;
+    } | null;
   } | null;
   // NEW (Session 6-1b): trial state, read from the User model. Additive
   // only — every existing consumer of this response is unaffected.
@@ -178,6 +190,8 @@ export async function GET(
         dLocalPaymentMethod: true,
         dLocalCountry: true,
         cancelAtPeriodEnd: true,
+        pendingPlanType: true,
+        pendingPlanEffectiveAt: true,
       },
     });
 
@@ -275,14 +289,48 @@ export async function GET(
         ? new Date(stripeSubscription.current_period_end * 1000)
         : userSubscription.stripeCurrentPeriodEnd;
 
+    // The billing period the subscription runs on, and the switch to monthly
+    // that is really waiting, both by Stripe's word when it was read (a schedule
+    // released in its dashboard, or a renewal whose webhook is late, must not
+    // leave a switch on the page).
+    const liveInterval = stripeSubscription
+      ? liveIntervalOf(stripeSubscription)
+      : null;
+    const planType =
+      planTypeForInterval(liveInterval) ?? userSubscription.planType;
+    const pendingPlan = effectivePendingPlan(
+      userSubscription,
+      stripeSubscription
+        ? {
+            hasSchedule: scheduleIdOf(stripeSubscription.schedule) !== null,
+            interval: liveInterval,
+          }
+        : null
+    );
+    // The row can say ACTIVE for a while after a trial checkout; Stripe's word
+    // decides, so the trial-only wording and actions are right.
+    const status =
+      userSubscription.status === 'ACTIVE' &&
+      stripeSubscription?.status === 'trialing'
+        ? 'TRIALING'
+        : userSubscription.status;
+
+    // The date the switch takes effect: the one stored with it, else the end of
+    // the paid period (the renewal).
+    const pendingEffectiveAt = pendingPlan
+      ? (pendingPlan.effectiveAt ?? currentPeriodEnd)
+      : null;
+
     const actionFacts = {
       tier: user.tier,
-      status: userSubscription.status,
+      status,
       provider,
       openInvoiceUrl,
       viewing: subject.kind !== 'self',
       cancelAtPeriodEnd,
       currentPeriodEnd,
+      planType,
+      pendingPlanType: pendingPlan?.planType ?? null,
     };
 
     // Build unified response
@@ -295,7 +343,7 @@ export async function GET(
         id: userSubscription.id,
         status: userSubscription.status,
         provider,
-        planType: userSubscription.planType,
+        planType,
         amountUsd:
           userSubscription.amountUsd > 0 ? userSubscription.amountUsd : null,
         currentPeriodEnd: currentPeriodEnd?.toISOString() || null,
@@ -308,6 +356,12 @@ export async function GET(
         dLocalPaymentMethod: userSubscription.dLocalPaymentMethod,
         dLocalCountry: userSubscription.dLocalCountry,
         openInvoiceUrl,
+        pendingPlanChange: pendingPlan
+          ? {
+              planType: pendingPlan.planType,
+              effectiveAt: pendingEffectiveAt?.toISOString() ?? null,
+            }
+          : null,
       },
       trial,
     };

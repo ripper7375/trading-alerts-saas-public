@@ -59,6 +59,12 @@ related_docs:
   price events: money-service's new `SUBSCRIPTION_RESUMED` outbox event reaching an operation-service that does not know it is answered `skipped`
   (`unrecognized-event-type`), and the publisher counts any 2xx as delivered, so the "your subscription will continue" e-mail is lost and never retried.
   The cancel-scheduled e-mail needs no new consumer code (it is `SUBSCRIPTION_CANCELLED` with `cancelAt`, as before).
+- **Manage Subscription S3 deploy order: the same, migration (S2's), operation-service, money-service, the monolith** (2026-10-21). money-service's new
+  `SUBSCRIPTION_UPGRADED` and `SUBSCRIPTION_DOWNGRADE_SCHEDULED` outbox events are `unrecognized-event-type` to an operation-service that does not know them: answered
+  `skipped`, counted as delivered, lost. No migration and no new variable; a plan change needs `STRIPE_PRO_PRICE_ID` on both services (503 `PLAN_CHANGE_UNAVAILABLE` without it).
+- **Stripe refuses `cancel_at_period_end` while a Subscription Schedule manages the subscription, and a schedule stays attached through its last phase** (verified in test mode,
+  2026-10-21; [S3 report](../../docs/handoffs/2026-10-21-manage-subscription-s3.md) §3.2). After "switch to monthly at renewal" the schedule is still attached for the whole first
+  monthly period, so anything that cancels or changes the subscription (cancel, upgrade) must release a live schedule first; the webhook releases it when phase 2 starts.
 - **"Update card" needs `STRIPE_PORTAL_CONFIGURATION_ID` on BOTH the monolith and money-service** (Manage Subscription S1, 2026-10-21): `POST
 /api/subscription/payment-method-session` answers 503 `PORTAL_NOT_CONFIGURED` without it or without `NEXTAUTH_URL`, and creates nothing. With
   `MIGRATE_WRITE_APIS_MONEY_STRIPE=true` (set in the local `.env.local`) the monolith route only forwards to money-service, so a local browser check also needs

@@ -23,9 +23,11 @@ import {
   buildPasswordResetEmail,
   buildPaymentFailedEmail,
   buildPaymentReceiptEmail,
+  buildPlanSwitchScheduledEmail,
   buildSubscriptionCanceledEmail,
   buildSubscriptionConfirmationEmail,
   buildSubscriptionResumedEmail,
+  buildSubscriptionUpgradedEmail,
   buildTwoFactorDisabledEmail,
   buildTwoFactorEnabledEmail,
   buildVerificationEmail,
@@ -141,6 +143,31 @@ const BUILDERS: Record<string, (locale: EmailLocale) => BuiltEmail> = {
       name: 'Ada',
       plan: 'PRO',
       nextBillingDate: when,
+    }),
+  subscriptionUpgraded: (l) =>
+    buildSubscriptionUpgradedEmail(l, {
+      name: 'Ada',
+      plan: 'PRO',
+      amountCharged: 270.35,
+      yearlyPriceUsd: 290,
+      nextBillingDate: when,
+      inTrial: false,
+    }),
+  subscriptionUpgradedInTrial: (l) =>
+    buildSubscriptionUpgradedEmail(l, {
+      name: 'Ada',
+      plan: 'PRO',
+      amountCharged: 0,
+      yearlyPriceUsd: 290,
+      nextBillingDate: when,
+      inTrial: true,
+    }),
+  planSwitchScheduled: (l) =>
+    buildPlanSwitchScheduledEmail(l, {
+      name: 'Ada',
+      plan: 'PRO',
+      effectiveDate: when,
+      monthlyPriceUsd: 29,
     }),
   affiliateCommission: (l) =>
     buildAffiliateCommissionEmail(l, {
@@ -270,6 +297,168 @@ describe('the cancellation and resume e-mails (Manage Subscription S2, W3/W4)', 
     );
     expect(email.html).not.toContain('<img src=x');
     expect(email.html).toContain('&lt;img');
+  });
+});
+
+describe('the plan-change e-mails (Manage Subscription S3, W5a/W5b)', () => {
+  it.each([...EMAIL_LANGUAGES])(
+    'the upgrade mail names what was charged, the yearly price, the next billing date and links to billing, in %s',
+    (language) => {
+      const email = BUILDERS['subscriptionUpgraded']!({ language });
+      expect(email.html).toContain('2026');
+      expect(email.html).toMatch(/270|２７０/);
+      expect(email.html).toMatch(/290|２９０/);
+      expect(email.html).toMatch(/href="[^"]*\/settings\/billing"/);
+      expect(email.html).toContain('PRO');
+      expect(email.text).toContain('2026');
+    }
+  );
+
+  it.each([...EMAIL_LANGUAGES])(
+    'the free-trial upgrade mail says nothing was charged and gives the first charge date, in %s',
+    (language) => {
+      const trial = BUILDERS['subscriptionUpgradedInTrial']!({ language });
+      const paid = BUILDERS['subscriptionUpgraded']!({ language });
+      expect(trial.html).toContain('2026');
+      expect(trial.html).not.toBe(paid.html);
+    }
+  );
+
+  it.each([...EMAIL_LANGUAGES])(
+    'the switch-scheduled mail names the switch date and the monthly price and links to billing, in %s',
+    (language) => {
+      const email = BUILDERS['planSwitchScheduled']!({ language });
+      expect(email.html).toContain('2026');
+      expect(email.html).toMatch(/29|２９/);
+      expect(email.html).toMatch(/href="[^"]*\/settings\/billing"/);
+      expect(email.html).toContain('PRO');
+      expect(email.text).toContain('2026');
+    }
+  );
+
+  it.each([...EMAIL_LANGUAGES].filter((l) => l !== 'en-US' && l !== 'en-GB'))(
+    'both mails are written in the reader’s language, not English, in %s',
+    (language) => {
+      for (const name of [
+        'subscriptionUpgraded',
+        'subscriptionUpgradedInTrial',
+        'planSwitchScheduled',
+      ]) {
+        const english = BUILDERS[name]!({ language: 'en-US' });
+        const email = BUILDERS[name]!({ language });
+        expect(email.subject).not.toBe(english.subject);
+        expect(email.html).not.toContain('Switched to Yearly Billing');
+        expect(email.html).not.toContain('Switch to Monthly Billing Scheduled');
+        expect(email.html).not.toContain('Open billing settings');
+      }
+    }
+  );
+
+  it('writes the upgrade mail in English exactly as agreed', () => {
+    const email = BUILDERS['subscriptionUpgraded']!({ language: 'en-US' });
+    expect(email.subject).toBe(
+      'You are now on yearly billing - Trading Alerts'
+    );
+    expect(email.html).toContain('Switched to Yearly Billing');
+    expect(email.html).toContain(
+      'Your <strong>PRO</strong> subscription now bills yearly.'
+    );
+    expect(email.html).toContain('<strong>Charged today:</strong> $270.35');
+    expect(email.html).toContain('<strong>Yearly price:</strong> $290.00');
+    expect(email.html).toContain(
+      '<strong>Next billing date:</strong> October 23, 2026'
+    );
+    expect(email.html).toContain(
+      "Today's charge is the yearly price minus the credit for the unused part of your current monthly period."
+    );
+  });
+
+  it('writes the free-trial upgrade mail in English: nothing charged, first charge on the date', () => {
+    const email = BUILDERS['subscriptionUpgradedInTrial']!({
+      language: 'en-US',
+    });
+    expect(email.html).toContain('<strong>Charged today:</strong> $0.00');
+    expect(email.html).toContain(
+      '<strong>First charge:</strong> October 23, 2026'
+    );
+    expect(email.html).toContain(
+      'Your free trial continues and nothing was charged today. Your first charge, at the yearly price, is on October 23, 2026.'
+    );
+    expect(email.html).not.toContain('Next billing date');
+  });
+
+  it('writes the switch-scheduled mail in English exactly as agreed', () => {
+    const email = BUILDERS['planSwitchScheduled']!({ language: 'en-US' });
+    expect(email.subject).toBe(
+      'Your switch to monthly billing is scheduled - Trading Alerts'
+    );
+    expect(email.html).toContain('Switch to Monthly Billing Scheduled');
+    expect(email.html).toContain(
+      'Your <strong>PRO</strong> subscription will switch to monthly billing on October 23, 2026.'
+    );
+    expect(email.html).toContain(
+      '<strong>Switch date:</strong> October 23, 2026'
+    );
+    expect(email.html).toContain(
+      '<strong>Monthly price from then:</strong> $29.00'
+    );
+    expect(email.html).toContain(
+      'You keep your yearly access until October 23, 2026. Nothing is charged or refunded now, and there is no credit for the current year.'
+    );
+    expect(email.html).toContain(
+      'Changed your mind? You can keep yearly billing before then.'
+    );
+  });
+
+  it("prints the dates in the reader's own date format and timezone, and the amounts in USD formats of the language", () => {
+    const upgraded = buildSubscriptionUpgradedEmail(
+      { language: 'de', timezone: 'Asia/Bangkok', dateFormat: 'DMY' },
+      {
+        name: 'Ada',
+        plan: 'PRO',
+        amountCharged: 270.35,
+        yearlyPriceUsd: 290,
+        nextBillingDate: when,
+        inTrial: false,
+      }
+    );
+    expect(upgraded.html).toContain('23/10/2026');
+    expect(upgraded.html).not.toContain('October 23, 2026');
+    expect(upgraded.html).toContain('270,35');
+
+    const switched = buildPlanSwitchScheduledEmail(
+      { language: 'de', timezone: 'Asia/Bangkok', dateFormat: 'DMY' },
+      { name: 'Ada', plan: 'PRO', effectiveDate: when, monthlyPriceUsd: 29 }
+    );
+    expect(switched.html).toContain('23/10/2026');
+    expect(switched.html).toContain('29,00');
+  });
+
+  it('escapes the name a person supplied', () => {
+    const upgraded = buildSubscriptionUpgradedEmail(
+      { language: 'en-US' },
+      {
+        name: '<img src=x onerror=alert(1)>',
+        plan: 'PRO',
+        amountCharged: 1,
+        yearlyPriceUsd: 290,
+        nextBillingDate: when,
+        inTrial: false,
+      }
+    );
+    const switched = buildPlanSwitchScheduledEmail(
+      { language: 'en-US' },
+      {
+        name: '<img src=x onerror=alert(1)>',
+        plan: 'PRO',
+        effectiveDate: when,
+        monthlyPriceUsd: 29,
+      }
+    );
+    for (const email of [upgraded, switched]) {
+      expect(email.html).not.toContain('<img src=x');
+      expect(email.html).toContain('&lt;img');
+    }
   });
 });
 

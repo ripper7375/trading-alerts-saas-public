@@ -30,8 +30,12 @@ import { Injectable } from '@nestjs/common';
 import { isUniqueConstraintError } from '../common/prisma-errors.util';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { logger } from '../common/logger.util';
+
 import {
-  getMaxCommissionCycles,
+  commissionMonthsBefore,
+  commissionMonthsForInterval,
+  commissionWindow,
   type CommissionBillingInterval,
 } from './affiliate.constants';
 import { AffiliateConfigService } from './affiliate-config.service';
@@ -99,14 +103,27 @@ export interface CreditInput {
   /** The Stripe invoice this billing cycle's commission is for -- per-cycle
    * idempotency key (recurring-commission follow-up). */
   stripeInvoiceId: string;
-  /** Billing interval of this invoice -- sets the cycle cap (24 monthly or
-   * 2 annual invoices, i.e. MAX_RECURRING_COMMISSION_MONTHS). */
+  /** Billing interval of this invoice -- the months of lifetime it covers (1
+   * monthly, 12 yearly, the prorated upgrade invoice included; decision E4). */
   interval: CommissionBillingInterval;
+  /**
+   * Looks up how many months each of the subscription's invoices covered, keyed
+   * by Stripe invoice id (E4). Called only when an earlier commission exists. If
+   * it is missing or throws, the earlier invoices count as `fallbackPriorMonths`.
+   */
+  resolvePriorInvoiceMonths?: () => Promise<Record<string, number>>;
+  /**
+   * Months an earlier invoice that cannot be resolved counts for: the months of
+   * the plan the subscription had before this invoice. Defaults to this
+   * invoice's own months, which is the pre-E4 behaviour (24 monthly or 2 annual
+   * invoices) for a subscription that never switched.
+   */
+  fallbackPriorMonths?: number;
 }
 
 export interface CreditResult extends ConversionResult {
-  /** True once getMaxCommissionCycles(interval) has been reached on this
-   * code -- callers use this to clear Subscription.affiliateCodeId. */
+  /** True once the 24-month cap is reached -- on this invoice or an earlier one
+   * -- callers use this to clear Subscription.affiliateCodeId. */
   capReached?: boolean;
 }
 
@@ -291,8 +308,10 @@ export class ConversionProcessorService {
    * invoice, not just the first (recurring-commission follow-up).
    *
    * Cycle 1 (the original discounted signup) applies the code's
-   * discountPercent; cycles 2..getMaxCommissionCycles(interval) (24
-   * monthly or 2 annual invoices, i.e. 24 months of lifetime) pay
+   * discountPercent; later invoices, for as long as fewer than 24 months of
+   * lifetime came before them (decision E4: a monthly invoice covers 1
+   * month, a yearly one 12, the prorated upgrade invoice 12; an invoice that
+   * crosses month 24 is paid in full and the next one is not), pay
    * commission on the FULL, undiscounted price (the Stripe coupon is
    * `duration: 'once'`, so only the affiliate's commission recurs, not the
    * customer's discount). Idempotent per invoice, not per code: a
@@ -326,14 +345,33 @@ export class ConversionProcessorService {
       return { processed: false, reason: 'ALREADY_CREDITED' };
     }
 
-    const cycleNumber = priorCommissions.length + 1;
-    const maxCycles = getMaxCommissionCycles(input.interval);
+    // E4: the cap counts months of lifetime covered, not invoices, so a switch
+    // of billing period neither stops the commission early nor stretches it.
+    let monthsByInvoiceId: Record<string, number> | null = null;
+    if (priorCommissions.length > 0 && input.resolvePriorInvoiceMonths) {
+      try {
+        monthsByInvoiceId = await input.resolvePriorInvoiceMonths();
+      } catch (error) {
+        logger.warn(
+          '[Commission] Could not read the months of the earlier invoices; counting them as the previous plan',
+          {
+            error: error instanceof Error ? error.message : 'Unknown error',
+          }
+        );
+      }
+    }
+    const monthsBefore = commissionMonthsBefore(
+      priorCommissions.map((c) => c.stripeInvoiceId),
+      monthsByInvoiceId,
+      input.fallbackPriorMonths ?? commissionMonthsForInterval(input.interval)
+    );
+    const window = commissionWindow(monthsBefore, input.interval);
 
-    if (cycleNumber > maxCycles) {
+    if (!window.payable) {
       return { processed: false, reason: 'CAP_REACHED', capReached: true };
     }
 
-    const isFirstCycle = cycleNumber === 1;
+    const isFirstCycle = priorCommissions.length === 0;
     const breakdown = calculateFullBreakdown(
       input.grossRevenueUsd,
       isFirstCycle ? affiliateCode.discountPercent : 0,
@@ -393,7 +431,7 @@ export class ConversionProcessorService {
       affiliateUserId: affiliateCode.affiliateProfile.userId,
       code: affiliateCode.code,
       totalEarnings: Number(updatedProfile.totalEarnings),
-      capReached: cycleNumber >= maxCycles,
+      capReached: window.capReached,
     };
   }
 }

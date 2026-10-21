@@ -31,8 +31,10 @@ import {
 import {
   sendAffiliateCommissionEmail,
   sendPaymentReceiptEmail,
+  sendPlanSwitchScheduledEmail,
   sendSubscriptionCanceledEmail,
   sendSubscriptionResumedEmail,
+  sendSubscriptionUpgradedEmail,
 } from '@/lib/email/subscription-emails';
 
 const thai = {
@@ -87,6 +89,24 @@ describe("a sender finds the recipient's language itself", () => {
     [
       'subscription resumed (S2)',
       () => sendSubscriptionResumedEmail('a@b.test', 'Ada', 'PRO', new Date()),
+    ],
+    [
+      'upgraded to yearly (S3)',
+      () =>
+        sendSubscriptionUpgradedEmail(
+          'a@b.test',
+          'Ada',
+          'PRO',
+          270.35,
+          290,
+          new Date(),
+          false
+        ),
+    ],
+    [
+      'switch to monthly scheduled (S3)',
+      () =>
+        sendPlanSwitchScheduledEmail('a@b.test', 'Ada', 'PRO', new Date(), 29),
     ],
   ])('%s', async (_label, send) => {
     mockLocaleFor.mockResolvedValue(thai);
@@ -146,6 +166,100 @@ describe('the resume mail (Manage Subscription S2, W4)', () => {
       'Your PRO subscription will continue - Trading Alerts'
     );
     expect(sent().html).toContain('October 23, 2026');
+  });
+});
+
+describe('the plan-change mails (Manage Subscription S3, W5a/W5b)', () => {
+  it("the upgrade mail names what was charged and the next billing date in the recipient's timezone and format, and links to billing", async () => {
+    mockLocaleFor.mockResolvedValue(thai);
+    await sendSubscriptionUpgradedEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      270.35,
+      290,
+      new Date('2027-10-23T20:30:00.000Z'),
+      false
+    );
+    // 20:30 UTC is already the 24th in Bangkok.
+    expect(sent().html).toContain('24/10/2027');
+    expect(sent().html).toContain('270.35');
+    expect(sent().html).toContain('/settings/billing');
+  });
+
+  it('the free-trial upgrade mail says the first charge date, not a next billing date', async () => {
+    await sendSubscriptionUpgradedEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      0,
+      290,
+      new Date('2026-10-28T09:30:00.000Z'),
+      true
+    );
+    expect(sent().html).toContain('First charge:');
+    expect(sent().html).toContain('October 28, 2026');
+    expect(sent().html).toContain('$0.00');
+    expect(sent().html).not.toContain('Next billing date');
+  });
+
+  it("the switch mail names the switch date in the recipient's timezone and format and the monthly price", async () => {
+    mockLocaleFor.mockResolvedValue(thai);
+    await sendPlanSwitchScheduledEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      new Date('2027-10-23T20:30:00.000Z'),
+      29
+    );
+    expect(sent().html).toContain('24/10/2027');
+    expect(sent().html).toContain('29.00');
+    expect(sent().html).toContain('/settings/billing');
+  });
+
+  it('both are sent in English when the language cannot be found', async () => {
+    mockLocaleFor.mockRejectedValue(new Error('db down'));
+    const upgraded = await sendSubscriptionUpgradedEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      270.35,
+      290,
+      new Date('2027-10-23T09:30:00.000Z'),
+      false
+    );
+    expect(upgraded.success).toBe(true);
+    expect(sent().subject).toBe(
+      'You are now on yearly billing - Trading Alerts'
+    );
+
+    mockSend.mockClear();
+    const switched = await sendPlanSwitchScheduledEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      new Date('2027-10-23T09:30:00.000Z'),
+      29
+    );
+    expect(switched.success).toBe(true);
+    expect(sent().subject).toBe(
+      'Your switch to monthly billing is scheduled - Trading Alerts'
+    );
+  });
+
+  it('uses an explicit locale as given, with no lookup', async () => {
+    await sendPlanSwitchScheduledEmail(
+      'a@b.test',
+      'Ada',
+      'PRO',
+      new Date('2027-10-23T09:30:00.000Z'),
+      29,
+      { language: 'de' }
+    );
+    expect(mockLocaleFor).not.toHaveBeenCalled();
+    expect(sent().subject).toBe(
+      'Ihre Umstellung auf monatliche Abrechnung ist geplant - Trading Alerts'
+    );
   });
 });
 

@@ -55,9 +55,13 @@ jest.mock('@/lib/money-service/write-routes', () => ({
 }));
 
 const mockSetCancelAtPeriodEnd = jest.fn();
+const mockGetSubscription = jest.fn();
+const mockReleaseSchedule = jest.fn();
 jest.mock('@/lib/stripe/stripe', () => ({
   __esModule: true,
   setCancelAtPeriodEnd: (...a: unknown[]) => mockSetCancelAtPeriodEnd(...a),
+  getSubscription: (...a: unknown[]) => mockGetSubscription(...a),
+  releaseSubscriptionSchedule: (...a: unknown[]) => mockReleaseSchedule(...a),
 }));
 
 const mockSendCanceled = jest.fn();
@@ -121,6 +125,9 @@ beforeEach(() => {
     cancel_at: PERIOD_END_SECONDS,
     current_period_end: PERIOD_END_SECONDS,
   });
+  // No schedule attached unless a test says so (S3).
+  mockGetSubscription.mockResolvedValue({ schedule: null });
+  mockReleaseSchedule.mockResolvedValue('released');
   mockSendCanceled.mockResolvedValue({ success: true });
 });
 
@@ -228,8 +235,130 @@ describe('POST /api/subscription/cancel', () => {
           dLocalPaymentId: true,
           expiresAt: true,
           cancelAtPeriodEnd: true,
+          pendingPlanType: true,
+          stripeScheduleId: true,
         },
       });
+    });
+  });
+
+  // Manage Subscription S3: Stripe refuses `cancel_at_period_end` while a
+  // schedule manages the subscription (observed in test mode, also in the
+  // finished phase 2 of a switch to monthly), so cancelling releases it first.
+  describe('a plan-switch schedule (S3, W3)', () => {
+    const pending = (over: Record<string, unknown> = {}) =>
+      stripeRow({
+        pendingPlanType: 'MONTHLY',
+        stripeScheduleId: 'sub_sched_1',
+        ...over,
+      });
+    const clearPending = {
+      where: { id: 'row_1' },
+      data: {
+        pendingPlanType: null,
+        pendingPlanEffectiveAt: null,
+        stripeScheduleId: null,
+      },
+    };
+
+    it('releases the schedule Stripe shows, clears the pending fields, and only then cancels', async () => {
+      mockSubscriptionFindUnique.mockResolvedValue(pending());
+      mockGetSubscription.mockResolvedValue({ schedule: 'sub_sched_1' });
+      const calls: string[] = [];
+      mockReleaseSchedule.mockImplementation(async () => {
+        calls.push('release');
+        return 'released';
+      });
+      mockSubscriptionUpdate.mockImplementation(
+        async (args: { data: Record<string, unknown> }) => {
+          calls.push(
+            'cancelAtPeriodEnd' in args.data ? 'row-cancel' : 'row-clear'
+          );
+          return {};
+        }
+      );
+      mockSetCancelAtPeriodEnd.mockImplementation(async () => {
+        calls.push('stripe-cancel');
+        return {
+          cancel_at: PERIOD_END_SECONDS,
+          current_period_end: PERIOD_END_SECONDS,
+        };
+      });
+
+      const { status } = await post();
+
+      expect(status).toBe(200);
+      expect(mockGetSubscription).toHaveBeenCalledWith('sub_1');
+      expect(mockReleaseSchedule).toHaveBeenCalledWith('sub_sched_1');
+      expect(mockSubscriptionUpdate).toHaveBeenCalledWith(clearPending);
+      expect(calls).toEqual([
+        'release',
+        'row-clear',
+        'stripe-cancel',
+        'row-cancel',
+      ]);
+    });
+
+    it('releases a schedule the row does not know about (the finished phase 2), since it blocks the cancel the same way', async () => {
+      mockGetSubscription.mockResolvedValue({
+        schedule: { id: 'sub_sched_orphan' },
+      });
+
+      const { status } = await post();
+
+      expect(status).toBe(200);
+      expect(mockReleaseSchedule).toHaveBeenCalledWith('sub_sched_orphan');
+    });
+
+    it('releases the schedule the row names when Stripe no longer shows one', async () => {
+      mockSubscriptionFindUnique.mockResolvedValue(pending());
+      mockGetSubscription.mockResolvedValue({ schedule: null });
+
+      await post();
+
+      expect(mockReleaseSchedule).toHaveBeenCalledWith('sub_sched_1');
+    });
+
+    it('clears pending fields that name no schedule without releasing anything', async () => {
+      mockSubscriptionFindUnique.mockResolvedValue(
+        pending({ stripeScheduleId: null })
+      );
+
+      await post();
+
+      expect(mockReleaseSchedule).not.toHaveBeenCalled();
+      expect(mockSubscriptionUpdate).toHaveBeenCalledWith(clearPending);
+    });
+
+    it('with no schedule anywhere it releases nothing and makes only the one write', async () => {
+      await post();
+
+      expect(mockReleaseSchedule).not.toHaveBeenCalled();
+      expect(mockSubscriptionUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    it('answers CANCEL_ERROR and does not cancel when the schedule cannot be released', async () => {
+      mockSubscriptionFindUnique.mockResolvedValue(pending());
+      mockGetSubscription.mockResolvedValue({ schedule: 'sub_sched_1' });
+      mockReleaseSchedule.mockRejectedValue(new Error('Stripe is down'));
+
+      const { status, body } = await post();
+
+      expect(status).toBe(500);
+      expect(body.code).toBe('CANCEL_ERROR');
+      expect(mockSetCancelAtPeriodEnd).not.toHaveBeenCalled();
+      expect(mockSubscriptionUpdate).not.toHaveBeenCalled();
+      expect(mockSendCanceled).not.toHaveBeenCalled();
+    });
+
+    it('answers CANCEL_ERROR when Stripe’s subscription cannot be read', async () => {
+      mockGetSubscription.mockRejectedValue(new Error('Stripe is down'));
+
+      const { status, body } = await post();
+
+      expect(status).toBe(500);
+      expect(body.code).toBe('CANCEL_ERROR');
+      expect(mockSetCancelAtPeriodEnd).not.toHaveBeenCalled();
     });
   });
 

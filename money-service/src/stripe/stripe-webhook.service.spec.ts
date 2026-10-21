@@ -22,7 +22,11 @@ describe('StripeWebhookService', () => {
     creditAffiliateCommission: jest.Mock;
   };
   let outboxServiceMock: { recordInTransaction: jest.Mock };
-  let stripeServiceMock: { retrieveCharge: jest.Mock };
+  let stripeServiceMock: {
+    retrieveCharge: jest.Mock;
+    getInvoiceMonthsById: jest.Mock;
+    releaseSubscriptionSchedule: jest.Mock;
+  };
 
   beforeEach(async () => {
     prismaMock = createPrismaMock();
@@ -48,6 +52,8 @@ describe('StripeWebhookService', () => {
     };
     stripeServiceMock = {
       retrieveCharge: jest.fn(),
+      getInvoiceMonthsById: jest.fn().mockResolvedValue({}),
+      releaseSubscriptionSchedule: jest.fn().mockResolvedValue('released'),
     };
 
     const moduleRef = await Test.createTestingModule({
@@ -95,6 +101,19 @@ describe('StripeWebhookService', () => {
         cancellationReason: null,
       });
       expect(create).not.toHaveProperty('cancelAtPeriodEnd');
+    });
+
+    it('...and with no switch to monthly waiting on the old subscription (S3)', async () => {
+      await service.handleCheckoutCompleted(baseSession);
+
+      const { update, create } =
+        prismaMock.subscription.upsert.mock.calls[0]![0]!;
+      expect(update).toMatchObject({
+        pendingPlanType: null,
+        pendingPlanEffectiveAt: null,
+        stripeScheduleId: null,
+      });
+      expect(create).not.toHaveProperty('pendingPlanType');
     });
 
     it('upgrades the user to PRO, upserts the subscription, and emits TIER_UPGRADED', async () => {
@@ -425,6 +444,146 @@ describe('StripeWebhookService', () => {
       } as unknown as Stripe.Subscription);
 
       expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+    });
+
+    // Manage Subscription S3, defect B9 (switch part): phase 2 of a scheduled
+    // switch to monthly has started when the subscription bills monthly while
+    // the row still holds the pending switch. Observed in test mode: the event
+    // carries the item moving from the yearly to the monthly price, and the
+    // schedule stays attached through phase 2.
+    describe('a scheduled switch to monthly takes effect (B9, W5b)', () => {
+      const pendingRow = (over: Record<string, unknown> = {}) =>
+        ({
+          id: 'sub-row-1',
+          userId: 'user-1',
+          pendingPlanType: 'MONTHLY',
+          pendingPlanEffectiveAt: new Date('2027-10-31T00:00:00.000Z'),
+          stripeScheduleId: 'sub_sched_1',
+          ...over,
+        }) as never;
+      const subscriptionBilling = (
+        interval: 'month' | 'year',
+        over: Record<string, unknown> = {}
+      ) =>
+        ({
+          id: 'sub_123',
+          status: 'active',
+          current_period_end: 1234567890,
+          schedule: 'sub_sched_1',
+          items: { data: [{ price: { recurring: { interval } } }] },
+          ...over,
+        }) as unknown as Stripe.Subscription;
+
+      it('clears the three pending columns in the same write as the status, and releases the finished schedule', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(pendingRow());
+
+        await service.handleSubscriptionUpdated(subscriptionBilling('month'));
+
+        expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+          where: { id: 'sub-row-1' },
+          data: expect.objectContaining({
+            status: 'ACTIVE',
+            pendingPlanType: null,
+            pendingPlanEffectiveAt: null,
+            stripeScheduleId: null,
+          }),
+        });
+        expect(prismaMock.subscription.update).toHaveBeenCalledTimes(1);
+        expect(
+          stripeServiceMock.releaseSubscriptionSchedule
+        ).toHaveBeenCalledWith('sub_sched_1');
+      });
+
+      it('leaves the pending switch alone while the subscription still bills yearly (the schedule just changed, the renewal has not come)', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(pendingRow());
+
+        await service.handleSubscriptionUpdated(subscriptionBilling('year'));
+
+        const { data } = prismaMock.subscription.update.mock.calls[0]![0]!;
+        expect(data).not.toHaveProperty('pendingPlanType');
+        expect(data).not.toHaveProperty('pendingPlanEffectiveAt');
+        expect(data).not.toHaveProperty('stripeScheduleId');
+        expect(
+          stripeServiceMock.releaseSubscriptionSchedule
+        ).not.toHaveBeenCalled();
+      });
+
+      it('does nothing about a switch when none is pending (an ordinary monthly renewal)', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(
+          pendingRow({ pendingPlanType: null, stripeScheduleId: null })
+        );
+
+        await service.handleSubscriptionUpdated(subscriptionBilling('month'));
+
+        const { data } = prismaMock.subscription.update.mock.calls[0]![0]!;
+        expect(data).not.toHaveProperty('pendingPlanType');
+        expect(
+          stripeServiceMock.releaseSubscriptionSchedule
+        ).not.toHaveBeenCalled();
+      });
+
+      it('releases the schedule the row names when the event does not carry one', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(pendingRow());
+
+        await service.handleSubscriptionUpdated(
+          subscriptionBilling('month', { schedule: null })
+        );
+
+        expect(
+          stripeServiceMock.releaseSubscriptionSchedule
+        ).toHaveBeenCalledWith('sub_sched_1');
+      });
+
+      it('reads the schedule id from an expanded schedule object too', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(pendingRow());
+
+        await service.handleSubscriptionUpdated(
+          subscriptionBilling('month', { schedule: { id: 'sub_sched_9' } })
+        );
+
+        expect(
+          stripeServiceMock.releaseSubscriptionSchedule
+        ).toHaveBeenCalledWith('sub_sched_9');
+      });
+
+      it('releases nothing when there is no schedule id anywhere', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(
+          pendingRow({ stripeScheduleId: null })
+        );
+
+        await service.handleSubscriptionUpdated(
+          subscriptionBilling('month', { schedule: null })
+        );
+
+        expect(
+          stripeServiceMock.releaseSubscriptionSchedule
+        ).not.toHaveBeenCalled();
+        // ...but the pending columns are still cleared.
+        expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+          where: { id: 'sub-row-1' },
+          data: expect.objectContaining({ pendingPlanType: null }),
+        });
+      });
+
+      it('a schedule that cannot be released does not fail the event: the row is already right and the cancel flow releases any schedule it finds', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(pendingRow());
+        stripeServiceMock.releaseSubscriptionSchedule.mockRejectedValue(
+          new Error('Stripe is down')
+        );
+
+        await expect(
+          service.handleSubscriptionUpdated(subscriptionBilling('month'))
+        ).resolves.toBeUndefined();
+        expect(prismaMock.subscription.update).toHaveBeenCalled();
+      });
+
+      it('never touches the tier: the user stays PRO through the switch', async () => {
+        prismaMock.subscription.findFirst.mockResolvedValue(pendingRow());
+
+        await service.handleSubscriptionUpdated(subscriptionBilling('month'));
+
+        expect(prismaMock.user.update).not.toHaveBeenCalled();
+      });
     });
 
     describe('atomic write (Remediation Tier 2 §6.4, 4A-13 audit item b)', () => {
@@ -767,6 +926,136 @@ describe('StripeWebhookService', () => {
     });
 
     describe('affiliate commission crediting (commission-timing fix + recurring-commission follow-up)', () => {
+      // Decision E4: the cap counts months of lifetime covered, so the webhook
+      // gives the commission service a way to ask Stripe what each earlier
+      // invoice covered, and the plan the row had before this invoice as the
+      // fallback.
+      describe('months of lifetime (E4)', () => {
+        const row = (over: Record<string, unknown> = {}) =>
+          ({
+            id: 'sub-row-1',
+            userId: 'user-1',
+            stripeSubscriptionId: 'sub_123',
+            affiliateCodeId: 'code-1',
+            planType: 'MONTHLY',
+            ...over,
+          }) as never;
+
+        it('hands over a lookup that asks Stripe for the subscription’s own invoices, and runs it only when called', async () => {
+          prismaMock.subscription.findFirst.mockResolvedValue(row());
+          stripeServiceMock.getInvoiceMonthsById.mockResolvedValue({
+            inv_1: 1,
+            inv_2: 12,
+          });
+
+          await service.handleInvoiceSucceeded({
+            ...baseInvoice,
+            amount_paid: 2900,
+          } as unknown as Stripe.Invoice);
+
+          expect(stripeServiceMock.getInvoiceMonthsById).not.toHaveBeenCalled();
+          const input =
+            conversionProcessorMock.creditAffiliateCommission.mock
+              .calls[0]![0]!;
+          await expect(input.resolvePriorInvoiceMonths()).resolves.toEqual({
+            inv_1: 1,
+            inv_2: 12,
+          });
+          expect(stripeServiceMock.getInvoiceMonthsById).toHaveBeenCalledWith(
+            'sub_123'
+          );
+        });
+
+        it('falls back to the plan the row had BEFORE this invoice: a monthly row paid by a yearly upgrade invoice counts earlier invoices as 1 month', async () => {
+          prismaMock.subscription.findFirst.mockResolvedValue(
+            row({ planType: 'MONTHLY' })
+          );
+
+          await service.handleInvoiceSucceeded({
+            ...baseInvoice,
+            amount_paid: 27035,
+            lines: priceLine(29000, 'year'),
+          } as unknown as Stripe.Invoice);
+
+          expect(
+            conversionProcessorMock.creditAffiliateCommission
+          ).toHaveBeenCalledWith(
+            expect.objectContaining({
+              interval: 'year',
+              grossRevenueUsd: 270.35,
+              fallbackPriorMonths: 1,
+            })
+          );
+        });
+
+        it('...and a yearly row paid by a monthly invoice (after the switch) counts earlier invoices as 12 months', async () => {
+          prismaMock.subscription.findFirst.mockResolvedValue(
+            row({ planType: 'YEARLY' })
+          );
+
+          await service.handleInvoiceSucceeded({
+            ...baseInvoice,
+            amount_paid: 2900,
+          } as unknown as Stripe.Invoice);
+
+          expect(
+            conversionProcessorMock.creditAffiliateCommission
+          ).toHaveBeenCalledWith(
+            expect.objectContaining({
+              interval: 'month',
+              fallbackPriorMonths: 12,
+            })
+          );
+        });
+
+        it('the upgrade invoice is recorded as YEARLY at the yearly price even when its credit line comes first (B8)', async () => {
+          prismaMock.subscription.findFirst.mockResolvedValue(row());
+          const creditThenYearly = [
+            {
+              type: 'invoiceitem',
+              proration: true,
+              amount: -1965,
+              price: {
+                currency: 'usd',
+                unit_amount: 2900,
+                recurring: { interval: 'month' },
+              },
+            },
+            {
+              type: 'subscription',
+              proration: false,
+              amount: 29000,
+              price: {
+                currency: 'usd',
+                unit_amount: 29000,
+                recurring: { interval: 'year' },
+              },
+            },
+          ];
+
+          await service.handleInvoiceSucceeded({
+            ...baseInvoice,
+            amount_paid: 27035,
+            lines: { data: creditThenYearly },
+          } as unknown as Stripe.Invoice);
+
+          expect(prismaMock.subscription.update).toHaveBeenCalledWith({
+            where: { id: 'sub-row-1' },
+            data: expect.objectContaining({
+              planType: 'YEARLY',
+              amountUsd: 290,
+            }),
+          });
+          expect(
+            conversionProcessorMock.creditAffiliateCommission
+          ).toHaveBeenCalledWith(
+            expect.objectContaining({
+              interval: 'year',
+              grossRevenueUsd: 270.35,
+            })
+          );
+        });
+      });
       it('credits the commission but leaves the attribution in place when the cap has not been reached', async () => {
         prismaMock.subscription.findFirst.mockResolvedValue({
           id: 'sub-row-1',
@@ -798,6 +1087,8 @@ describe('StripeWebhookService', () => {
           grossRevenueUsd: 29,
           stripeInvoiceId: 'inv_123',
           interval: 'month',
+          resolvePriorInvoiceMonths: expect.any(Function),
+          fallbackPriorMonths: 1,
         });
         expect(outboxServiceMock.recordInTransaction).toHaveBeenCalledWith(
           prismaMock,

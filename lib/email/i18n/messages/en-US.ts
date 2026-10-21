@@ -241,6 +241,32 @@ export const enUS = {
   'resumed.manageLink': 'Open billing settings',
   'resumed.subject': 'Your {plan} subscription will continue - Trading Alerts',
 
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Switched to Yearly Billing',
+  'upgraded.body': 'Your **{plan}** subscription now bills yearly.',
+  'upgraded.charged': '**Charged today:** {amount}',
+  'upgraded.price': '**Yearly price:** {price}',
+  'upgraded.nextBilling': '**Next billing date:** {date}',
+  'upgraded.firstCharge': '**First charge:** {date}',
+  'upgraded.note':
+    "Today's charge is the yearly price minus the credit for the unused part of your current monthly period.",
+  'upgraded.trialNote':
+    'Your free trial continues and nothing was charged today. Your first charge, at the yearly price, is on {date}.',
+  'upgraded.subject': 'You are now on yearly billing - Trading Alerts',
+  'switchScheduled.heading': 'Switch to Monthly Billing Scheduled',
+  'switchScheduled.body':
+    'Your **{plan}** subscription will switch to monthly billing on {date}.',
+  'switchScheduled.date': '**Switch date:** {date}',
+  'switchScheduled.price': '**Monthly price from then:** {price}',
+  'switchScheduled.note':
+    'You keep your yearly access until {date}. Nothing is charged or refunded now, and there is no credit for the current year.',
+  'switchScheduled.keep':
+    'Changed your mind? You can keep yearly billing before then. {link}',
+  'switchScheduled.subject':
+    'Your switch to monthly billing is scheduled - Trading Alerts',
+  'planChange.manage': 'You can review your subscription at any time. {link}',
+  'planChange.manageLink': 'Open billing settings',
+
   // ── Affiliate commission ──────────────────────────────────────────────────
   'commission.heading': 'Commission Earned!',
   'commission.body':

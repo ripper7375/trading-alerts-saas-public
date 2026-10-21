@@ -18,11 +18,16 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth/auth-options';
 import { prisma } from '@/lib/db/prisma';
 import { sendSubscriptionCanceledEmail } from '@/lib/email/subscription-emails';
-import { setCancelAtPeriodEnd } from '@/lib/stripe/stripe';
+import {
+  getSubscription,
+  releaseSubscriptionSchedule,
+  setCancelAtPeriodEnd,
+} from '@/lib/stripe/stripe';
 import {
   allowedActionsOf,
   parseCancellationReason,
   providerOf,
+  scheduleIdOf,
 } from '@/lib/stripe/subscription-actions';
 import { shouldUseMoneyServiceForStripeWrite } from '@/lib/money-service/flags';
 import {
@@ -133,6 +138,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         dLocalPaymentId: true,
         expiresAt: true,
         cancelAtPeriodEnd: true,
+        pendingPlanType: true,
+        stripeScheduleId: true,
       },
     });
 
@@ -205,6 +212,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           code: 'ACTION_NOT_ALLOWED',
         },
         { status: 400 }
+      );
+    }
+
+    // A schedule managing the subscription (a scheduled switch to monthly, W5b,
+    // or the finished phase 2 of one) makes Stripe refuse `cancel_at_period_end`,
+    // and cancelling makes the switch pointless: release it first (W3) and drop
+    // the pending fields at once, so a failure below cannot leave a switch the
+    // row remembers and Stripe no longer has. Stripe's own subscription is read
+    // too, because a schedule the row does not know about blocks the cancel the
+    // same way.
+    try {
+      const live = await getSubscription(userSubscription.stripeSubscriptionId);
+      const scheduleId =
+        scheduleIdOf(live.schedule) ?? userSubscription.stripeScheduleId;
+      if (scheduleId) {
+        await releaseSubscriptionSchedule(scheduleId);
+      }
+      if (scheduleId || userSubscription.pendingPlanType) {
+        await prisma.subscription.update({
+          where: { id: userSubscription.id },
+          data: {
+            pendingPlanType: null,
+            pendingPlanEffectiveAt: null,
+            stripeScheduleId: null,
+          },
+        });
+      }
+    } catch (error) {
+      console.error(
+        '[Cancel] Error releasing the plan-switch schedule:',
+        error
+      );
+      return NextResponse.json(
+        {
+          error: 'Cancellation failed',
+          message: 'Failed to cancel subscription. Please try again.',
+          code: 'CANCEL_ERROR',
+        },
+        { status: 500 }
       );
     }
 

@@ -217,6 +217,32 @@ export const ar: EmailMessages = {
   'resumed.manageLink': 'افتح إعدادات الفوترة',
   'resumed.subject': 'سيستمر اشتراكك {plan} - Trading Alerts',
 
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'تم التحويل إلى الفوترة السنوية',
+  'upgraded.body': 'أصبح اشتراكك **{plan}** يُفوتر سنويًا.',
+  'upgraded.charged': '**المبلغ المحصَّل اليوم:** {amount}',
+  'upgraded.price': '**السعر السنوي:** {price}',
+  'upgraded.nextBilling': '**تاريخ الفوترة التالي:** {date}',
+  'upgraded.firstCharge': '**أول عملية دفع:** {date}',
+  'upgraded.note':
+    'مبلغ اليوم هو السعر السنوي مطروحًا منه رصيد الجزء غير المستخدم من فترتك الشهرية الحالية.',
+  'upgraded.trialNote':
+    'تجربتك المجانية مستمرة ولم يُحصَّل أي مبلغ اليوم. ستكون أول عملية دفع، بالسعر السنوي، في {date}.',
+  'upgraded.subject': 'أصبحت الآن على الفوترة السنوية - Trading Alerts',
+  'switchScheduled.heading': 'تمت جدولة التحويل إلى الفوترة الشهرية',
+  'switchScheduled.body':
+    'سيتحول اشتراكك **{plan}** إلى الفوترة الشهرية في {date}.',
+  'switchScheduled.date': '**تاريخ التحويل:** {date}',
+  'switchScheduled.price': '**السعر الشهري بعد ذلك:** {price}',
+  'switchScheduled.note':
+    'تحتفظ بوصولك السنوي حتى {date}. لن يُحصَّل أو يُردّ أي مبلغ الآن، ولا يوجد رصيد عن السنة الحالية.',
+  'switchScheduled.keep':
+    'غيّرت رأيك؟ يمكنك الإبقاء على الفوترة السنوية قبل ذلك. {link}',
+  'switchScheduled.subject':
+    'تمت جدولة تحويلك إلى الفوترة الشهرية - Trading Alerts',
+  'planChange.manage': 'يمكنك مراجعة اشتراكك في أي وقت. {link}',
+  'planChange.manageLink': 'افتح إعدادات الفوترة',
+
   'commission.heading': 'لقد ربحت عمولة!',
   'commission.body':
     'أخبار سارة! تم استخدام رمز الشراكة الخاص بك للتو وربحت عمولة.',

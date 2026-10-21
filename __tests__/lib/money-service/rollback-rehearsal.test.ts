@@ -92,6 +92,10 @@ jest.mock('@/lib/stripe/stripe', () => ({
     cancel_at: 1795305600,
     current_period_end: 1795305600,
   })),
+  // Manage Subscription S3: cancel reads Stripe's subscription and releases a
+  // plan-switch schedule first; none is attached here.
+  getSubscription: jest.fn(async () => ({ schedule: null })),
+  releaseSubscriptionSchedule: jest.fn(async () => 'released'),
 }));
 
 // Mock dLocal services

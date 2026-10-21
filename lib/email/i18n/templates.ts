@@ -791,6 +791,154 @@ export function buildSubscriptionResumedEmail(
   );
 }
 
+/**
+ * Sent when a subscriber moves from monthly to yearly billing and the switch has
+ * been made (Manage Subscription S3, workflow W5a). `amountCharged` is what the
+ * prorated invoice took today (the yearly price minus the credit for the unused
+ * monthly time); it is 0 during a free trial, where the price changes now and
+ * the first charge is the yearly price on `nextBillingDate`.
+ */
+export function buildSubscriptionUpgradedEmail(
+  locale: EmailLocale,
+  input: {
+    name: string | null | undefined;
+    plan: 'FREE' | 'PRO';
+    /** Charged for the switch, in USD. */
+    amountCharged: number;
+    /** The yearly price, in USD. */
+    yearlyPriceUsd: number;
+    /** The next billing date; in a free trial, the date of the first charge. */
+    nextBillingDate: Date;
+    inTrial: boolean;
+  }
+): BuiltEmail {
+  const ctx = createContext(locale);
+  const name = displayName(ctx, input.name);
+  const url = appUrl(BANNER_URL_FALLBACK);
+  const { plan } = input;
+  const amount = formatEmailUsd(input.amountCharged, locale);
+  const price = formatEmailUsd(input.yearlyPriceUsd, locale);
+  const date = formatEmailDate(input.nextBillingDate, locale);
+  const manage = textLink(
+    `${url}/settings/billing`,
+    ctx.p('planChange.manageLink'),
+    'color: #0066cc; font-weight: 600;'
+  );
+  const support = textLink(
+    `mailto:${SUPPORT_EMAIL}`,
+    SUPPORT_EMAIL,
+    'color: #2563eb;'
+  );
+
+  const inner = `${banner.header(
+    'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+    'white',
+    ctx.h('upgraded.heading')
+  )}
+
+  ${banner.content(`${banner.p(ctx.h('common.greeting', { name }))}
+
+    ${banner.p(ctx.h('upgraded.body', { plan }))}
+
+    ${banner.callout(
+      ctx,
+      '#22c55e',
+      `<p style="margin: 0; font-size: 14px;">
+        ${ctx.h('upgraded.charged', { amount })}<br>
+        ${ctx.h('upgraded.price', { price })}<br>
+        ${ctx.h(input.inTrial ? 'upgraded.firstCharge' : 'upgraded.nextBilling', { date })}<br>
+        ${ctx.h(input.inTrial ? 'upgraded.trialNote' : 'upgraded.note', { date })}
+      </p>`,
+      '#f0fdf4'
+    )}
+
+    ${banner.p(ctx.h('planChange.manage', { link: raw(manage) }))}
+
+    ${banner.signature(
+      ctx,
+      url,
+      `${ctx.h('common.needHelpContact', { email: raw(support) })}<br><br>`
+    )}`)}`;
+
+  return finish(
+    ctx.p('upgraded.subject'),
+    documentShell(ctx, ctx.p('upgraded.heading'), banner.bodyStyle, inner)
+  );
+}
+
+/**
+ * Sent when a yearly subscriber schedules the switch to monthly billing
+ * (Manage Subscription S3, workflow W5b). Nothing is charged or refunded now:
+ * yearly access continues until `effectiveDate`, when the monthly price applies.
+ */
+export function buildPlanSwitchScheduledEmail(
+  locale: EmailLocale,
+  input: {
+    name: string | null | undefined;
+    plan: 'FREE' | 'PRO';
+    /** The renewal date, when monthly billing starts. */
+    effectiveDate: Date;
+    /** The monthly price that applies from then, in USD. */
+    monthlyPriceUsd: number;
+  }
+): BuiltEmail {
+  const ctx = createContext(locale);
+  const name = displayName(ctx, input.name);
+  const url = appUrl(BANNER_URL_FALLBACK);
+  const { plan } = input;
+  const date = formatEmailDate(input.effectiveDate, locale);
+  const price = formatEmailUsd(input.monthlyPriceUsd, locale);
+  const manage = textLink(
+    `${url}/settings/billing`,
+    ctx.p('planChange.manageLink'),
+    'color: #0066cc; font-weight: 600;'
+  );
+  const support = textLink(
+    `mailto:${SUPPORT_EMAIL}`,
+    SUPPORT_EMAIL,
+    'color: #2563eb;'
+  );
+
+  const inner = `${banner.header(
+    'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    'white',
+    ctx.h('switchScheduled.heading')
+  )}
+
+  ${banner.content(`${banner.p(ctx.h('common.greeting', { name }))}
+
+    ${banner.p(ctx.h('switchScheduled.body', { plan, date }))}
+
+    ${banner.callout(
+      ctx,
+      '#3b82f6',
+      `<p style="margin: 0; font-size: 14px;">
+        ${ctx.h('switchScheduled.date', { date })}<br>
+        ${ctx.h('switchScheduled.price', { price })}<br>
+        ${ctx.h('switchScheduled.note', { date })}
+      </p>`,
+      '#eff6ff'
+    )}
+
+    ${banner.p(ctx.h('switchScheduled.keep', { link: raw(manage) }))}
+
+    ${banner.signature(
+      ctx,
+      url,
+      `${ctx.h('common.needHelpContact', { email: raw(support) })}<br><br>`
+    )}`)}`;
+
+  return finish(
+    ctx.p('switchScheduled.subject'),
+    documentShell(
+      ctx,
+      ctx.p('switchScheduled.heading'),
+      banner.bodyStyle,
+      inner
+    )
+  );
+}
+
 export function buildAffiliateCommissionEmail(
   locale: EmailLocale,
   input: {

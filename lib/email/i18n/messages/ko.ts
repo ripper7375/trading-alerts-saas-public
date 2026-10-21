@@ -214,6 +214,31 @@ export const ko: EmailMessages = {
   'resumed.manageLink': '결제 설정 열기',
   'resumed.subject': '{plan} 구독이 계속 유지됩니다 - Trading Alerts',
 
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': '연간 결제로 전환되었습니다',
+  'upgraded.body': '**{plan}** 구독이 이제 연간으로 결제됩니다.',
+  'upgraded.charged': '**오늘 결제 금액:** {amount}',
+  'upgraded.price': '**연간 요금:** {price}',
+  'upgraded.nextBilling': '**다음 결제일:** {date}',
+  'upgraded.firstCharge': '**첫 결제일:** {date}',
+  'upgraded.note':
+    '오늘 결제 금액은 연간 요금에서 현재 월간 기간의 미사용 부분에 대한 크레딧을 뺀 금액입니다.',
+  'upgraded.trialNote':
+    '무료 체험은 계속되며 오늘은 아무것도 결제되지 않았습니다. 연간 요금으로 첫 결제는 {date}에 이루어집니다.',
+  'upgraded.subject': '이제 연간 결제를 이용 중입니다 - Trading Alerts',
+  'switchScheduled.heading': '월간 결제 전환이 예약되었습니다',
+  'switchScheduled.body': '**{plan}** 구독이 {date}에 월간 결제로 전환됩니다.',
+  'switchScheduled.date': '**전환일:** {date}',
+  'switchScheduled.price': '**이후 월간 요금:** {price}',
+  'switchScheduled.note':
+    '{date}까지 연간 이용 권한이 유지됩니다. 지금은 결제나 환불이 이루어지지 않으며, 올해 분에 대한 크레딧도 없습니다.',
+  'switchScheduled.keep':
+    '마음이 바뀌셨나요? 그 전에는 연간 결제를 유지할 수 있습니다. {link}',
+  'switchScheduled.subject':
+    '월간 결제로의 전환이 예약되었습니다 - Trading Alerts',
+  'planChange.manage': '구독 내용은 언제든지 확인하실 수 있습니다. {link}',
+  'planChange.manageLink': '결제 설정 열기',
+
   'commission.heading': '수수료를 받았습니다!',
   'commission.body':
     '좋은 소식입니다! 회원님의 제휴 코드가 방금 사용되어 수수료를 받게 되었습니다.',

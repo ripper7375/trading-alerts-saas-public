@@ -61,6 +61,15 @@ import { useLocale } from '@/lib/context/locale-context';
  * - Every flow returns here with `?done=<action>`; the marker only triggers
  *   the notice, the data is always read fresh from the API.
  *
+ * Manage Subscription S3 (plan v2.1, workflows W5a and W5b):
+ * - "Change billing period" (from `allowedActions`) links to the page
+ *   /settings/billing/change-plan, where the upgrade to yearly is quoted and
+ *   confirmed and the switch to monthly is scheduled.
+ * - A switch to monthly that waits for the renewal date shows a status banner
+ *   ("Your plan switches to monthly billing on {date}") with "Keep yearly",
+ *   a confirm dialog that withdraws it (DELETE /api/subscription/change-plan).
+ *   It charges nothing, so it needs no page of its own.
+ *
  * - Current subscription card (FREE/PRO), driven by GET /api/subscription
  * - Invoice history table, driven by GET /api/invoices (via `InvoiceList`)
  * - Usage statistics (alerts, from GET /api/alerts)
@@ -99,6 +108,11 @@ interface SubscriptionData {
     dLocalCountry: string | null;
     /** Stripe's hosted page for the open invoice ("Pay now"). */
     openInvoiceUrl?: string | null;
+    /** A switch to monthly billing waiting for the renewal date (W5b). */
+    pendingPlanChange?: {
+      planType: 'MONTHLY';
+      effectiveAt: string | null;
+    } | null;
   } | null;
   trial: {
     status: 'NOT_STARTED' | 'ACTIVE' | 'EXPIRED' | 'CONVERTED' | 'CANCELLED';
@@ -140,6 +154,9 @@ export default function BillingSettingsPage(): React.ReactElement {
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
   const [resuming, setResuming] = useState(false);
   const [resumeError, setResumeError] = useState<string | null>(null);
+  const [keepDialogOpen, setKeepDialogOpen] = useState(false);
+  const [keeping, setKeeping] = useState(false);
+  const [keepError, setKeepError] = useState<string | null>(null);
   const [openingCard, setOpeningCard] = useState(false);
   const [cardError, setCardError] = useState<string | null>(null);
   // Set when another page sends the user back with ?done=card (Stripe's card
@@ -147,7 +164,7 @@ export default function BillingSettingsPage(): React.ReactElement {
   // proves nothing (the user may have closed the form); the page re-fetches
   // either way and a notice is drawn only when the fresh data agrees.
   const [returnedFrom, setReturnedFrom] = useState<
-    'card' | 'cancel' | 'resumed' | null
+    'card' | 'cancel' | 'resumed' | 'upgraded' | 'switch' | 'kept' | null
   >(null);
 
   const userTier = (subscriptionData?.tier ??
@@ -164,6 +181,7 @@ export default function BillingSettingsPage(): React.ReactElement {
   const paymentProblem =
     displayState === 'PAST_DUE' || displayState === 'UNPAID';
   const cancelScheduled = displayState === 'CANCEL_SCHEDULED';
+  const downgradePending = displayState === 'DOWNGRADE_PENDING';
   // The server decides what is offered (plan §6); admin view-as hides every
   // action whatever the server sent, because it would act on the admin.
   const allowedActions: SubscriptionAction[] = viewing
@@ -259,14 +277,22 @@ export default function BillingSettingsPage(): React.ReactElement {
     void loadAll();
   }, [fetchSubscription, viewing]);
 
-  // Back from Stripe's card form (/settings/billing?done=card) or from the
-  // cancel page (?done=cancel). Arriving here is a full page load, so the
-  // fetch above already re-read the subscription; this only says so and drops
-  // the marker from the address bar.
+  // Back from Stripe's card form (/settings/billing?done=card), from the
+  // cancel page (?done=cancel) or from the change-plan page (?done=upgraded or
+  // ?done=switch). Arriving here is a full page load, so the fetch above
+  // already re-read the subscription; this only says so and drops the marker
+  // from the address bar.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const done = params.get('done');
-    if (done !== 'card' && done !== 'cancel') return;
+    if (
+      done !== 'card' &&
+      done !== 'cancel' &&
+      done !== 'upgraded' &&
+      done !== 'switch'
+    ) {
+      return;
+    }
     setReturnedFrom(done);
     params.delete('done');
     const query = params.toString();
@@ -346,6 +372,38 @@ export default function BillingSettingsPage(): React.ReactElement {
     }
   };
 
+  // W5b undo: withdraw the switch to monthly. One step that charges nothing, so
+  // a confirm dialog and no page of its own.
+  const handleKeepYearly = async (): Promise<void> => {
+    setKeeping(true);
+    setKeepError(null);
+    try {
+      const response = await fetch('/api/subscription/change-plan', {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        // Nothing left to withdraw (done in another tab, or the renewal
+        // passed): the fresh read below shows what is true now.
+        if (body?.code !== 'NOT_PENDING') {
+          throw new Error('Could not keep the yearly plan');
+        }
+      }
+      setKeepDialogOpen(false);
+      setReturnedFrom('kept');
+      await fetchSubscription();
+    } catch {
+      setKeepError(
+        t(
+          'billing.error.keep_yearly',
+          'We could not keep your yearly plan. Please try again.'
+        )
+      );
+    } finally {
+      setKeeping(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex min-h-[400px] items-center justify-center">
@@ -366,6 +424,12 @@ export default function BillingSettingsPage(): React.ReactElement {
   const periodEndText = subscription?.currentPeriodEnd
     ? formatDate(subscription.currentPeriodEnd)
     : '';
+  // When a switch to monthly is waiting: the renewal date it takes effect on.
+  const pendingEffectiveAt =
+    subscription?.pendingPlanChange?.effectiveAt ??
+    subscription?.currentPeriodEnd ??
+    null;
+  const pendingText = pendingEffectiveAt ? formatDate(pendingEffectiveAt) : '';
   // A dLocal plan is prepaid (D8): no cancel, it just ends. Shown with the date.
   const prepaidEndsOn =
     userTier === 'PRO' && subscription?.provider === 'DLOCAL'
@@ -543,6 +607,44 @@ export default function BillingSettingsPage(): React.ReactElement {
         </div>
       )}
 
+      {/* Status banner for a switch to monthly billing waiting for the renewal
+          date (W5b). The yearly plan carries on until then; "Keep yearly" is
+          drawn from allowedActions, so it is absent in admin view. */}
+      {downgradePending && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900 dark:bg-blue-900/20"
+        >
+          <div className="flex items-start gap-3">
+            <Clock
+              className="mt-0.5 h-5 w-5 shrink-0 text-blue-700 dark:text-blue-300"
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold text-blue-900 dark:text-blue-100">
+                {t(
+                  'billing.banner.switch_pending_title',
+                  'Your plan switches to monthly billing on {date}'
+                ).replace('{date}', pendingText)}
+              </p>
+              <p className="mt-1 text-sm text-blue-800 dark:text-blue-200">
+                {t(
+                  'billing.banner.switch_pending_body',
+                  'You keep your yearly PRO access until then. Nothing is charged or refunded now, and from {date} you pay the monthly price.'
+                ).replace('{date}', pendingText)}
+              </p>
+              {can('keep_yearly') && (
+                <div className="mt-3">
+                  <Button size="sm" onClick={() => setKeepDialogOpen(true)}>
+                    {t('billing.action.keep_yearly', 'Keep yearly')}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {returnedFrom === 'card' && (
         <div
           role="status"
@@ -582,6 +684,44 @@ export default function BillingSettingsPage(): React.ReactElement {
           {t(
             'billing.notice.resumed',
             'Your subscription will continue. PRO renews as normal.'
+          )}
+        </div>
+      )}
+
+      {/* Said only when the fresh data agrees, so a hand-typed marker cannot
+          claim a change that did not happen. */}
+      {returnedFrom === 'upgraded' && isYearlyPlan && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground"
+        >
+          {t(
+            'billing.notice.upgraded',
+            'You are now on the yearly plan. Thank you!'
+          )}
+        </div>
+      )}
+
+      {returnedFrom === 'switch' && downgradePending && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground"
+        >
+          {t(
+            'billing.notice.switch_scheduled',
+            'Your plan will switch to monthly billing on {date}. You keep yearly PRO access until then.'
+          ).replace('{date}', pendingText)}
+        </div>
+      )}
+
+      {returnedFrom === 'kept' && !downgradePending && (
+        <div
+          role="status"
+          className="mb-6 rounded-lg border border-border bg-muted/40 p-4 text-sm text-foreground"
+        >
+          {t(
+            'billing.notice.keep_yearly_done',
+            'Your plan stays yearly. The scheduled switch was withdrawn.'
           )}
         </div>
       )}
@@ -638,6 +778,10 @@ export default function BillingSettingsPage(): React.ReactElement {
             ) : cancelScheduled ? (
               <Badge className="bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200">
                 {t('billing.status.cancel_scheduled', 'Cancellation scheduled')}
+              </Badge>
+            ) : downgradePending ? (
+              <Badge className="bg-blue-100 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200">
+                {t('billing.status.switch_pending', 'Switching to monthly')}
               </Badge>
             ) : (
               <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">
@@ -738,11 +882,28 @@ export default function BillingSettingsPage(): React.ReactElement {
                 </Button>
               </Link>
             )
-          ) : can('cancel') || can('resume') || prepaidEndsOn ? (
+          ) : can('cancel') ||
+            can('resume') ||
+            can('keep_yearly') ||
+            can('upgrade_to_yearly') ||
+            can('switch_to_monthly') ||
+            prepaidEndsOn ? (
             <div className="flex flex-wrap items-center gap-3">
               {can('resume') && (
                 <Button onClick={() => setResumeDialogOpen(true)}>
                   {t('billing.action.resume', 'Resume subscription')}
+                </Button>
+              )}
+              {can('keep_yearly') && (
+                <Button onClick={() => setKeepDialogOpen(true)}>
+                  {t('billing.action.keep_yearly', 'Keep yearly')}
+                </Button>
+              )}
+              {(can('upgrade_to_yearly') || can('switch_to_monthly')) && (
+                <Button asChild variant="outline">
+                  <Link href="/settings/billing/change-plan">
+                    {t('billing.action.change_period', 'Change billing period')}
+                  </Link>
                 </Button>
               )}
               {can('cancel') && (
@@ -818,6 +979,51 @@ export default function BillingSettingsPage(): React.ReactElement {
               {resuming
                 ? t('billing.action.resuming', 'Resuming...')
                 : t('billing.resume.confirm', 'Yes, resume')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* W5b undo: confirm before withdrawing the switch to monthly. Opened
+          from the banner and from the plan card; nothing is charged by it. */}
+      <AlertDialog
+        open={keepDialogOpen}
+        onOpenChange={(open) => {
+          setKeepDialogOpen(open);
+          if (!open) setKeepError(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('billing.keep_yearly.title', 'Keep yearly billing?')}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t(
+                'billing.keep_yearly.body',
+                'The switch to monthly billing will be withdrawn and your plan will renew yearly on {date}.'
+              ).replace('{date}', pendingText)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {keepError && (
+            <p role="alert" className="text-sm text-destructive">
+              {keepError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={keeping}>
+              {t('billing.keep_yearly.dismiss', 'Not now')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={keeping}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleKeepYearly();
+              }}
+            >
+              {keeping
+                ? t('billing.action.keeping_yearly', 'Keeping yearly...')
+                : t('billing.keep_yearly.confirm', 'Yes, keep yearly')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
