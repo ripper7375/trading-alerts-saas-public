@@ -59,12 +59,23 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
+        url: '/favicon.ico',
+        sizes: 'any',
       },
       {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
+        url: '/icons/icon-72x72.png',
+        sizes: '72x72',
+        type: 'image/png',
+      },
+      {
+        url: '/icons/icon-96x96.png',
+        sizes: '96x96',
+        type: 'image/png',
+      },
+      {
+        url: '/icons/icon-192x192.png',
+        sizes: '192x192',
+        type: 'image/png',
       },
       {
         url: '/icon.svg',
@@ -72,6 +83,7 @@ export const metadata: Metadata = {
       },
     ],
     apple: '/apple-icon.png',
+    shortcut: '/favicon.ico',
   },
 };
 
