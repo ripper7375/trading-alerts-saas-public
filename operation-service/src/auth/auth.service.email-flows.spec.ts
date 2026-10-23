@@ -34,10 +34,69 @@ function makeUser(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+/**
+ * An in-memory stand-in for the Redis the e-mail request counters live in (INCR, TTL, EXPIRE,
+ * DECR, DEL; CODE-01B).
+ */
+function makeRedis() {
+  const store = new Map<string, { value: string; ttl: number | null }>();
+  const state = { down: false };
+  const guard = (): void => {
+    if (state.down) throw new Error('redis down');
+  };
+  const client = {
+    incr: jest.fn(async (key: string) => {
+      guard();
+      const entry = store.get(key);
+      const next = Number(entry?.value ?? '0') + 1;
+      store.set(key, { value: String(next), ttl: entry?.ttl ?? null });
+      return next;
+    }),
+    decr: jest.fn(async (key: string) => {
+      guard();
+      const entry = store.get(key);
+      const next = Number(entry?.value ?? '0') - 1;
+      store.set(key, { value: String(next), ttl: entry?.ttl ?? null });
+      return next;
+    }),
+    ttl: jest.fn(async (key: string) => {
+      guard();
+      const entry = store.get(key);
+      if (!entry) return -2;
+      return entry.ttl ?? -1;
+    }),
+    expire: jest.fn(async (key: string, ttl: number) => {
+      guard();
+      const entry = store.get(key);
+      if (entry) entry.ttl = ttl;
+      return entry ? 1 : 0;
+    }),
+    del: jest.fn(async (...keys: string[]) => {
+      guard();
+      let removed = 0;
+      for (const key of keys) {
+        if (store.delete(key)) removed += 1;
+      }
+      return removed;
+    }),
+  };
+  return {
+    service: { getClient: () => client } as unknown as RedisService,
+    store,
+    state,
+  };
+}
+
+// sha256('alice@example.com'), spelled out: the e-mail part of every account key the monolith's
+// direct routes write too (the contract is asserted in auth-throttle.util.spec.ts)
+const ALICE_HASH =
+  'ff8d9819fc0e12bf0d24892e45987e249a28dce836a85cad60e28eaaa8c6d976';
+
 describe('AuthService — email-dependent flows (Session 3-4, F29)', () => {
   let prisma: {
     user: { findUnique: jest.Mock; findFirst: jest.Mock; update: jest.Mock };
   };
+  let redis: ReturnType<typeof makeRedis>;
   let service: AuthService;
 
   beforeEach(() => {
@@ -49,10 +108,11 @@ describe('AuthService — email-dependent flows (Session 3-4, F29)', () => {
         update: jest.fn(),
       },
     };
+    redis = makeRedis();
     service = new AuthService(
       prisma as unknown as PrismaService,
       {} as unknown as RefreshTokenService,
-      {} as unknown as RedisService
+      redis.service
     );
   });
 
@@ -200,6 +260,152 @@ describe('AuthService — email-dependent flows (Session 3-4, F29)', () => {
         'Alice',
         updateArgs.data.verificationToken
       );
+    });
+  });
+
+  // CODE-01B: three requests an hour per e-mail address. A limited request is answered exactly
+  // like a normal one, so the limit cannot tell a registered address from an unknown one
+  // (checklist 8B-14). The client address is limited in the monolith (this service only sees
+  // Vercel's address, D-4).
+  describe('request limits (CODE-01B)', () => {
+    let consoleWarn: jest.SpyInstance;
+
+    beforeEach(() => {
+      consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleWarn.mockRestore();
+    });
+
+    describe('forgotPassword', () => {
+      it('sends three reset e-mails an hour to one address; the 4th is answered the same and sends nothing', async () => {
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+
+        const results = [];
+        for (let i = 0; i < 3; i += 1) {
+          results.push(await service.forgotPassword('alice@example.com'));
+        }
+        expect(sendPasswordResetEmail).toHaveBeenCalledTimes(3);
+        prisma.user.findUnique.mockClear();
+
+        const fourth = await service.forgotPassword('alice@example.com');
+        expect(fourth).toEqual(results[0]);
+        expect(sendPasswordResetEmail).toHaveBeenCalledTimes(3);
+        expect(prisma.user.findUnique).not.toHaveBeenCalled();
+        expect(prisma.user.update).toHaveBeenCalledTimes(3);
+      });
+
+      it('answers a known and an unknown address with the same result (8B-14)', async () => {
+        prisma.user.findUnique.mockResolvedValueOnce(makeUser());
+        const known = await service.forgotPassword('alice@example.com');
+        prisma.user.findUnique.mockResolvedValueOnce(null);
+        const unknown = await service.forgotPassword('nobody@example.com');
+        expect(JSON.stringify(known)).toBe(JSON.stringify(unknown));
+      });
+
+      it('counts a mixed-case, padded address as the same one, on the key the monolith uses', async () => {
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+        await service.forgotPassword(' Alice@Example.com ');
+        expect(redis.store.get(`authmail:forgot:acct:${ALICE_HASH}`)).toEqual({
+          value: '1',
+          ttl: 3600,
+        });
+      });
+
+      it("shares one budget with the monolith's direct route", async () => {
+        redis.store.set(`authmail:forgot:acct:${ALICE_HASH}`, {
+          value: '3',
+          ttl: 1200,
+        });
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+        await service.forgotPassword('alice@example.com');
+        expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+      });
+
+      it('fails OPEN when Redis is down (D-1): the e-mail is sent and a warning is logged', async () => {
+        redis.state.down = true;
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+        await service.forgotPassword('alice@example.com');
+        expect(sendPasswordResetEmail).toHaveBeenCalledTimes(1);
+        expect(consoleWarn).toHaveBeenCalled();
+      });
+
+      it('stores a reset token that lives at most 60 minutes', async () => {
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+        const before = Date.now();
+        await service.forgotPassword('alice@example.com');
+        const { resetTokenExpiry } = prisma.user.update.mock.calls[0][0]
+          .data as { resetTokenExpiry: Date };
+        expect(resetTokenExpiry.getTime() - before).toBeLessThanOrEqual(
+          60 * 60 * 1000 + 1000
+        );
+        expect(resetTokenExpiry.getTime()).toBeGreaterThan(before);
+      });
+    });
+
+    describe('resendVerification', () => {
+      it('sends three verification e-mails an hour to one address; the 4th is answered the same and sends nothing', async () => {
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+
+        const results = [];
+        for (let i = 0; i < 3; i += 1) {
+          results.push(await service.resendVerification('alice@example.com'));
+        }
+        expect(sendVerificationEmail).toHaveBeenCalledTimes(3);
+        prisma.user.findUnique.mockClear();
+
+        const fourth = await service.resendVerification('alice@example.com');
+        expect(fourth).toEqual(results[0]);
+        expect(sendVerificationEmail).toHaveBeenCalledTimes(3);
+        expect(prisma.user.findUnique).not.toHaveBeenCalled();
+      });
+
+      it('answers a registered, a verified and an unknown address with the same result (8B-14)', async () => {
+        prisma.user.findUnique.mockResolvedValueOnce(makeUser());
+        const registered =
+          await service.resendVerification('alice@example.com');
+        prisma.user.findUnique.mockResolvedValueOnce(
+          makeUser({ emailVerified: new Date() })
+        );
+        const verified = await service.resendVerification('bob@example.com');
+        prisma.user.findUnique.mockResolvedValueOnce(null);
+        const unknown = await service.resendVerification('nobody@example.com');
+
+        expect(JSON.stringify(registered)).toBe(JSON.stringify(unknown));
+        expect(JSON.stringify(verified)).toBe(JSON.stringify(unknown));
+        expect(sendVerificationEmail).toHaveBeenCalledTimes(1);
+      });
+
+      it("shares one budget with the monolith's direct route", async () => {
+        redis.store.set(`authmail:resend:acct:${ALICE_HASH}`, {
+          value: '3',
+          ttl: 1200,
+        });
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+        await service.resendVerification('alice@example.com');
+        expect(sendVerificationEmail).not.toHaveBeenCalled();
+      });
+
+      it('fails OPEN when Redis is down (D-1): the e-mail is sent and a warning is logged', async () => {
+        redis.state.down = true;
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+        await service.resendVerification('alice@example.com');
+        expect(sendVerificationEmail).toHaveBeenCalledTimes(1);
+        expect(consoleWarn).toHaveBeenCalled();
+      });
+    });
+
+    describe('resetPassword', () => {
+      it('is not limited here: the client address is limited in the monolith (D-4)', async () => {
+        prisma.user.findFirst.mockResolvedValue(null);
+        for (let i = 0; i < 12; i += 1) {
+          await expect(
+            service.resetPassword('bad-token', 'newpassword123')
+          ).rejects.toThrow(InvalidTokenError);
+        }
+        expect(redis.store.size).toBe(0);
+      });
     });
   });
 });

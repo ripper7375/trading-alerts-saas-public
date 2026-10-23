@@ -235,6 +235,23 @@ export class RateLimitError extends AuthError {
   }
 }
 
+/**
+ * Added after the verbatim port (CODE-01B): a sign-in budget is used up. Its own code, the same
+ * word the monolith's credentials provider throws (`RATE_LIMITED`), so no client has to tell
+ * the two stacks apart; `RateLimitError` keeps `RATE_LIMIT_EXCEEDED` for the 5 s and 60 s guards.
+ */
+export class TooManyAttemptsError extends AuthError {
+  public readonly retryAfter?: number;
+
+  constructor(
+    message: string = 'Too many attempts. Please try again later.',
+    retryAfter?: number
+  ) {
+    super(message, 'RATE_LIMITED', 429);
+    this.retryAfter = retryAfter;
+  }
+}
+
 export class AccountError extends AuthError {
   constructor(message: string, code: string = 'ACCOUNT_ERROR') {
     super(message, code, 403);
@@ -325,6 +342,7 @@ export const ERROR_CODE_TO_STATUS: Record<string, number> = {
   NOT_ADMIN: 403,
 
   RATE_LIMIT_EXCEEDED: 429,
+  RATE_LIMITED: 429,
 
   ACCOUNT_ERROR: 403,
   ACCOUNT_INACTIVE: 403,

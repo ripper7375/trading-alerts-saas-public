@@ -1,7 +1,12 @@
 import { ArgumentsHost } from '@nestjs/common';
 
 import { AuthErrorFilter } from './auth-error.filter';
-import { InvalidCredentialsError, TwoFactorRequiredError } from './errors';
+import {
+  InvalidCredentialsError,
+  RateLimitError,
+  TooManyAttemptsError,
+  TwoFactorRequiredError,
+} from './errors';
 
 function mockHost() {
   const json = jest.fn();
@@ -36,6 +41,30 @@ describe('AuthErrorFilter', () => {
     expect(json).toHaveBeenCalledWith({
       twoFactorRequired: true,
       token: 'temp-token',
+    });
+  });
+
+  it('maps TooManyAttemptsError (CODE-01B) to 429 + {error, message, retryAfter}', () => {
+    const { host, status, json } = mockHost();
+    filter.catch(new TooManyAttemptsError(undefined, 600), host);
+
+    expect(status).toHaveBeenCalledWith(429);
+    expect(json).toHaveBeenCalledWith({
+      error: 'RATE_LIMITED',
+      message: 'Too many attempts. Please try again later.',
+      retryAfter: 600,
+    });
+  });
+
+  it('leaves RateLimitError (the 5s and 60s guards) as it was: its own code, with retryAfter', () => {
+    const { host, status, json } = mockHost();
+    filter.catch(new RateLimitError('Please wait 42 seconds.', 42), host);
+
+    expect(status).toHaveBeenCalledWith(429);
+    expect(json).toHaveBeenCalledWith({
+      error: 'RATE_LIMIT_EXCEEDED',
+      message: 'Please wait 42 seconds.',
+      retryAfter: 42,
     });
   });
 });

@@ -25,6 +25,7 @@ import {
   AccountExistsError,
   EmailNotVerifiedError,
   InvalidCredentialsError,
+  TooManyAttemptsError,
   TwoFactorRequiredError,
 } from './errors';
 import { RefreshTokenService } from './refresh-token.service';
@@ -65,16 +66,59 @@ function makeUser(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
-/** An in-memory stand-in for the Redis the 2FA markers live in (SET ... EX ... NX only). */
+/**
+ * An in-memory stand-in for the Redis the 2FA markers (SET ... EX ... NX) and the sign-in failure
+ * counters (INCR, TTL, EXPIRE, DECR, DEL; CODE-01B) live in.
+ */
 function makeRedis() {
-  const store = new Map<string, { ttl: number | null }>();
+  const store = new Map<string, { value: string; ttl: number | null }>();
   const state = { down: false };
+  const guard = (): void => {
+    if (state.down) throw new Error('redis down');
+  };
   const client = {
-    set: jest.fn(async (key: string, _value: string, ...args: unknown[]) => {
-      if (state.down) throw new Error('redis down');
+    set: jest.fn(async (key: string, value: string, ...args: unknown[]) => {
+      guard();
       if (args.includes('NX') && store.has(key)) return null;
-      store.set(key, { ttl: args[0] === 'EX' ? (args[1] as number) : null });
+      store.set(key, {
+        value,
+        ttl: args[0] === 'EX' ? (args[1] as number) : null,
+      });
       return 'OK';
+    }),
+    incr: jest.fn(async (key: string) => {
+      guard();
+      const entry = store.get(key);
+      const next = Number(entry?.value ?? '0') + 1;
+      store.set(key, { value: String(next), ttl: entry?.ttl ?? null });
+      return next;
+    }),
+    decr: jest.fn(async (key: string) => {
+      guard();
+      const entry = store.get(key);
+      const next = Number(entry?.value ?? '0') - 1;
+      store.set(key, { value: String(next), ttl: entry?.ttl ?? null });
+      return next;
+    }),
+    ttl: jest.fn(async (key: string) => {
+      guard();
+      const entry = store.get(key);
+      if (!entry) return -2;
+      return entry.ttl ?? -1;
+    }),
+    expire: jest.fn(async (key: string, ttl: number) => {
+      guard();
+      const entry = store.get(key);
+      if (entry) entry.ttl = ttl;
+      return entry ? 1 : 0;
+    }),
+    del: jest.fn(async (...keys: string[]) => {
+      guard();
+      let removed = 0;
+      for (const key of keys) {
+        if (store.delete(key)) removed += 1;
+      }
+      return removed;
     }),
   };
   return {
@@ -84,6 +128,12 @@ function makeRedis() {
     state,
   };
 }
+
+// sha256('alice@example.com'), spelled out: the e-mail part of every account key the monolith's
+// credentials provider writes too (the contract is asserted in auth-throttle.util.spec.ts)
+const ALICE_HASH =
+  'ff8d9819fc0e12bf0d24892e45987e249a28dce836a85cad60e28eaaa8c6d976';
+const ALICE_LOGIN_KEY = `authfail:login:acct:${ALICE_HASH}`;
 
 /**
  * A 2FA token as the verify step mints it, spelled out with the contract's literals (not the util
@@ -633,6 +683,180 @@ describe('AuthService', () => {
       expect(prisma.user.upsert).toHaveBeenCalledTimes(1);
       expect(result.user.email).toBe('free-test@trading-alerts.test');
       expect(result.user.role).toBe('USER');
+    });
+  });
+
+  // CODE-01B: the account half of the sign-in limits. The client address is limited in the
+  // monolith (this service only sees Vercel's address, D-4); the keys below are the ones the
+  // monolith's credentials provider writes, so one budget covers both ways in.
+  describe('login throttling (CODE-01B)', () => {
+    let hashed: string;
+    let consoleWarn: jest.SpyInstance;
+
+    beforeAll(async () => {
+      hashed = await bcrypt.hash('correct-password', 4);
+    });
+
+    beforeEach(() => {
+      consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      prisma.user.findUnique.mockImplementation(
+        async ({ where }: { where: { email?: string } }) =>
+          where.email === 'alice@example.com'
+            ? makeUser({ password: hashed })
+            : null
+      );
+    });
+
+    afterEach(() => {
+      consoleWarn.mockRestore();
+    });
+
+    async function attempt(email: string, password: string): Promise<string> {
+      try {
+        await service.login(email, password);
+        return 'OK';
+      } catch (error) {
+        return (error as { code?: string }).code ?? (error as Error).message;
+      }
+    }
+
+    it('refuses the 6th failed password for one account, even with the right password (8B-8)', async () => {
+      for (let i = 0; i < 5; i += 1) {
+        expect(await attempt('alice@example.com', 'wrong-password')).toBe(
+          'INVALID_CREDENTIALS'
+        );
+      }
+      prisma.user.findUnique.mockClear();
+
+      await expect(
+        service.login('alice@example.com', 'correct-password')
+      ).rejects.toBeInstanceOf(TooManyAttemptsError);
+      // refused before any database or bcrypt work
+      expect(prisma.user.findUnique).not.toHaveBeenCalled();
+      expect(refreshTokens.issue).not.toHaveBeenCalled();
+    });
+
+    it('answers 429 RATE_LIMITED with the time left in the window', async () => {
+      for (let i = 0; i < 5; i += 1) {
+        await attempt('alice@example.com', 'wrong-password');
+      }
+      redis.store.get(ALICE_LOGIN_KEY)!.ttl = 600;
+
+      await expect(
+        service.login('alice@example.com', 'correct-password')
+      ).rejects.toMatchObject({
+        code: 'RATE_LIMITED',
+        statusCode: 429,
+        retryAfter: 600,
+      });
+    });
+
+    it('shares one budget with the monolith: its counter blocks /auth/login too', async () => {
+      redis.store.set(ALICE_LOGIN_KEY, { value: '5', ttl: 600 });
+
+      expect(await attempt('alice@example.com', 'correct-password')).toBe(
+        'RATE_LIMITED'
+      );
+    });
+
+    it('writes the counter the monolith reads: the same key, a 15 minute window', async () => {
+      await attempt('alice@example.com', 'wrong-password');
+      expect(redis.store.get(ALICE_LOGIN_KEY)).toEqual({
+        value: '1',
+        ttl: 900,
+      });
+    });
+
+    it('counts a mixed-case, padded address as the same account', async () => {
+      for (let i = 0; i < 5; i += 1) {
+        await attempt(' Alice@Example.com ', 'wrong-password');
+      }
+      expect(await attempt('alice@example.com', 'correct-password')).toBe(
+        'RATE_LIMITED'
+      );
+    });
+
+    it('counts an unknown address like a wrong password (nothing tells the two apart)', async () => {
+      for (let i = 0; i < 5; i += 1) {
+        expect(await attempt('nobody@example.com', 'whatever')).toBe(
+          'INVALID_CREDENTIALS'
+        );
+      }
+      expect(await attempt('nobody@example.com', 'whatever')).toBe(
+        'RATE_LIMITED'
+      );
+    });
+
+    it('a success clears the account counter', async () => {
+      for (let i = 0; i < 4; i += 1) {
+        await attempt('alice@example.com', 'wrong-password');
+      }
+      expect(await attempt('alice@example.com', 'correct-password')).toBe('OK');
+      expect(redis.store.has(ALICE_LOGIN_KEY)).toBe(false);
+      for (let i = 0; i < 5; i += 1) {
+        expect(await attempt('alice@example.com', 'wrong-password')).toBe(
+          'INVALID_CREDENTIALS'
+        );
+      }
+      expect(await attempt('alice@example.com', 'wrong-password')).toBe(
+        'RATE_LIMITED'
+      );
+    });
+
+    it('a right password clears the counter for a 2FA user too (the code step has its own limits)', async () => {
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ password: hashed, twoFactorEnabled: true })
+      );
+      for (let i = 0; i < 3; i += 1) {
+        await attempt('alice@example.com', 'wrong-password');
+      }
+      await expect(
+        service.login('alice@example.com', 'correct-password')
+      ).rejects.toBeInstanceOf(TwoFactorRequiredError);
+      expect(redis.store.has(ALICE_LOGIN_KEY)).toBe(false);
+    });
+
+    it('lets only five of a parallel burst reach the password check', async () => {
+      const results = await Promise.all(
+        Array.from({ length: 12 }, () =>
+          attempt('alice@example.com', 'wrong-password')
+        )
+      );
+      expect(results.filter((r) => r === 'INVALID_CREDENTIALS')).toHaveLength(
+        5
+      );
+      expect(results.filter((r) => r === 'RATE_LIMITED')).toHaveLength(7);
+      expect(prisma.user.findUnique).toHaveBeenCalledTimes(5);
+    });
+
+    it('a database error is not a failed password: the reservation is given back', async () => {
+      prisma.user.findUnique.mockRejectedValueOnce(
+        new Error('connection reset')
+      );
+      await expect(
+        service.login('alice@example.com', 'correct-password')
+      ).rejects.toThrow('connection reset');
+      expect(redis.store.has(ALICE_LOGIN_KEY)).toBe(false);
+    });
+
+    it('does not count the 2FA completion step (the 2FA limits cover it)', async () => {
+      for (let i = 0; i < 12; i += 1) {
+        expect(await attempt('__2fa_verified__', 'not-a-token')).toBe(
+          'INVALID_CREDENTIALS'
+        );
+      }
+      expect(
+        [...redis.store.keys()].filter((k) => k.startsWith('authfail:'))
+      ).toEqual([]);
+    });
+
+    it('fails OPEN when Redis is down (D-1): the sign-in works and a warning is logged', async () => {
+      redis.state.down = true;
+      expect(await attempt('alice@example.com', 'correct-password')).toBe('OK');
+      expect(await attempt('alice@example.com', 'wrong-password')).toBe(
+        'INVALID_CREDENTIALS'
+      );
+      expect(consoleWarn).toHaveBeenCalled();
     });
   });
 

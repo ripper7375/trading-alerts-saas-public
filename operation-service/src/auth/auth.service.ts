@@ -12,6 +12,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
 import {
+  LOGIN_ACCOUNT_LIMIT,
+  LOGIN_WINDOW_SECONDS,
+  MAIL_LIMIT,
+  MAIL_WINDOW_SECONDS,
+  clear,
+  release,
+  reserve,
+  throttleKeys,
+} from './auth-throttle.util';
+import {
   AccountDeactivatedError,
   AccountExistsError,
   AuthError,
@@ -20,6 +30,7 @@ import {
   InvalidCredentialsError,
   InvalidTokenError,
   RateLimitError,
+  TooManyAttemptsError,
   TwoFactorRequiredError,
 } from './errors';
 import { encodeNextAuthToken } from './next-auth-jwt-encode.util';
@@ -298,10 +309,35 @@ export class AuthService {
       }
     }
 
-    const user = await this.prisma.user.findUnique({
-      where: { email: normalizedEmail },
-      select: LOGIN_USER_SELECT,
-    });
+    // CODE-01B: the attempt is counted BEFORE the password is looked at, so a parallel burst
+    // cannot get past the limit, and a right password gives the budget back. An unknown e-mail
+    // is counted like a wrong password, so nothing tells the two apart. Refused here, even for
+    // the right password, before any database or bcrypt work. The client address is limited in
+    // the monolith (this service sees Vercel's address, D-4); the key is the one the monolith's
+    // credentials provider writes, so one budget covers both ways in. Redis down: open (D-1).
+    const redis = this.redis.getClient();
+    const accountKey = throttleKeys.loginAccount(normalizedEmail);
+    const attempt = await reserve(redis, [
+      {
+        key: accountKey,
+        limit: LOGIN_ACCOUNT_LIMIT,
+        windowSeconds: LOGIN_WINDOW_SECONDS,
+      },
+    ]);
+    if (attempt.blocked) {
+      throw new TooManyAttemptsError(undefined, attempt.retryAfterSeconds);
+    }
+
+    const user = await this.prisma.user
+      .findUnique({
+        where: { email: normalizedEmail },
+        select: LOGIN_USER_SELECT,
+      })
+      .catch(async (error: unknown) => {
+        // The database failed, not the password: the attempt does not count.
+        await release(redis, [accountKey]);
+        throw error;
+      });
 
     if (!user || !user.password) {
       throw new InvalidCredentialsError();
@@ -311,6 +347,9 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new InvalidCredentialsError();
     }
+
+    // The password is right (whatever else is wrong with the account): the run of failures ends.
+    await clear(redis, [accountKey]);
 
     // After the password check, so only someone who knows the password learns the state of the
     // account, and before the 2FA challenge, so a locked account is not asked for a code.
@@ -501,10 +540,23 @@ export class AuthService {
   async forgotPassword(
     email: string
   ): Promise<{ success: true; message: string }> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-      select: { id: true, name: true },
-    });
+    // CODE-01B: three requests an hour per e-mail address. Past that the answer is the one
+    // every request gets and nothing is looked up or sent, so the limit tells nothing about the
+    // address. The client address is limited in the monolith (D-4). Redis down: open (D-1).
+    const throttled = await reserve(this.redis.getClient(), [
+      {
+        key: throttleKeys.forgotAccount(email),
+        limit: MAIL_LIMIT,
+        windowSeconds: MAIL_WINDOW_SECONDS,
+      },
+    ]);
+
+    const user = throttled.blocked
+      ? null
+      : await this.prisma.user.findUnique({
+          where: { email },
+          select: { id: true, name: true },
+        });
 
     if (user) {
       const resetToken = randomBytes(32).toString('hex');
@@ -642,11 +694,33 @@ export class AuthService {
    * Ported from app/api/auth/resend-verification/route.ts (Session 3-4,
    * F29). Anti-enumeration (unknown email / already-verified both return
    * the same generic success message) and the 60s per-user rate limit are
-   * both preserved exactly.
+   * both preserved exactly. CODE-01B: the success message of an address
+   * that did get an e-mail is now that same generic one, and an address
+   * past its three requests an hour is answered with it too.
    */
   async resendVerification(
     email: string
   ): Promise<{ success: true; message: string }> {
+    const genericSuccess = {
+      success: true as const,
+      message:
+        'If your email is registered, you will receive a verification email.',
+    };
+
+    // CODE-01B: three requests an hour per e-mail address, answered like any other request once
+    // used up (nothing looked up or sent), so the limit tells nothing about the address. The
+    // client address is limited in the monolith (D-4). Redis down: open (D-1).
+    const throttled = await reserve(this.redis.getClient(), [
+      {
+        key: throttleKeys.resendAccount(email),
+        limit: MAIL_LIMIT,
+        windowSeconds: MAIL_WINDOW_SECONDS,
+      },
+    ]);
+    if (throttled.blocked) {
+      return genericSuccess;
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { email },
       select: {
@@ -658,12 +732,6 @@ export class AuthService {
         updatedAt: true,
       },
     });
-
-    const genericSuccess = {
-      success: true as const,
-      message:
-        'If your email is registered, you will receive a verification email.',
-    };
 
     if (!user || user.emailVerified) {
       return genericSuccess;
@@ -707,9 +775,8 @@ export class AuthService {
       );
     }
 
-    return {
-      success: true,
-      message: 'Verification email sent. Please check your inbox.',
-    };
+    // The same words an unknown or verified address gets (checklist 8B-14): the answer must not
+    // tell a registered address from an unknown one.
+    return genericSuccess;
   }
 }
