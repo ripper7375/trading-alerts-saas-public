@@ -71,6 +71,13 @@ Read before any schema change, migration, or query against a real database.
   names its columns, held by `__tests__/lib/db/market-data-v6-select-guard.test.ts` and
   `operation-service/src/market-data/market-data-v6-select.guard.spec.ts`. The gateway's reads already did (not guarded by a test); its
   upsert writes every column, so the rollout order below still holds, and a read that USES a new column still needs its migration first.
+- **`User.sessionVersion` and `RefreshToken.sessionStartedAt`** (WS-4, migration FILE `20261024000000_add_session_version`, NOT applied):
+  apply it **before** any of the three stacks deploys. The monolith's `jwt` callback reads `sessionVersion` at sign-in inside the
+  existing `try { … } catch { return token }`, so a deploy first does not fail loudly: sign-in returns a token with no id, tier or role.
+  money-service's `User` model was a narrow mirror and now also maps `role`, `isActive`, `deletedAt` and `sessionVersion`, so every
+  whole-row `User` call there needs `20261019000000_add_user_deleted_at` too. Checked on a scratch PostgreSQL 18.0 (37 earlier migrations +
+  this one, drift against the new schema identical to the baseline) and with each stack's generated client against the real tables;
+  the order and its Deviations live in the gitignored security plan (§5 WS-4).
 - Verify hand-written SQL against Prisma's own DDL:
   `prisma migrate diff --from-empty --to-schema <file> --script` (`--to-schema-datamodel` was
   removed in Prisma 7.9.1). When Docker Desktop is up, replay on a throwaway `postgres:16-alpine`.
