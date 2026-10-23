@@ -157,6 +157,18 @@ export async function createPayment(
 }
 
 /**
+ * SHA-256 both strings, then `timingSafeEqual`: the two buffers always have the same length, so
+ * neither the content nor the length of a signature shows in the time the comparison takes
+ * (CODE-04).
+ */
+function safeEqual(a: string, b: string): boolean {
+  return crypto.timingSafeEqual(
+    crypto.createHash('sha256').update(a).digest(),
+    crypto.createHash('sha256').update(b).digest()
+  );
+}
+
+/**
  * Verifies webhook signature from dLocal
  */
 export function verifyWebhookSignature(
@@ -176,7 +188,7 @@ export function verifyWebhookSignature(
     .update(payload)
     .digest('hex');
 
-  const isValid = signature === expectedSignature;
+  const isValid = safeEqual(signature, expectedSignature);
 
   if (!isValid) {
     logger.warn('Webhook signature mismatch', {

@@ -11,6 +11,7 @@ import {
   throttleKeys,
 } from '@/lib/auth/auth-throttle';
 import { ExpiredTokenError, InvalidTokenError } from '@/lib/auth/errors';
+import { BCRYPT_COST } from '@/lib/auth/password-hash';
 import { withSessionBump } from '@/lib/auth/session-version';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import { prisma } from '@/lib/db/prisma';
@@ -76,7 +77,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Hash new password
-    const hashedPassword = await bcrypt.hash(validated.password, 10);
+    const hashedPassword = await bcrypt.hash(validated.password, BCRYPT_COST);
 
     // Update user: set new password and clear reset token fields. Every session of the account
     // ends with it (CODE-02B): the new password, the new session version and the deleted refresh

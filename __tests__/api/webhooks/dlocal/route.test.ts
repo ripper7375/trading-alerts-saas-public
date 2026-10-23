@@ -117,6 +117,68 @@ describe('dLocal Webhook Handler', () => {
     });
   });
 
+  // CODE-04: the signature is compared in constant time. Timing cannot be measured in a unit test,
+  // so `crypto.timingSafeEqual` is observed (it still runs) and the strings that used to be
+  // compared with `===` must now be rejected without an error, whatever their length.
+  describe('Constant-time signature comparison', () => {
+    const payload = JSON.stringify({ id: 'payment-ct-1', status: 'PAID' });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('compares with crypto.timingSafeEqual on two buffers of the same length, whatever the lengths of the signatures', () => {
+      const spy = jest.spyOn(crypto, 'timingSafeEqual');
+
+      expect(verifyWebhookSignature(payload, 'x', WEBHOOK_SECRET)).toBe(false);
+
+      expect(spy).toHaveBeenCalledTimes(1);
+      const [left, right] = spy.mock.calls[0] as [Buffer, Buffer];
+      expect(left.length).toBe(32);
+      expect(right.length).toBe(32);
+    });
+
+    it('compares digests, not the received signature or the expected one themselves', () => {
+      const spy = jest.spyOn(crypto, 'timingSafeEqual');
+      const signature = generateSignature(payload);
+
+      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(
+        true
+      );
+
+      const [left, right] = spy.mock.calls[0] as [Buffer, Buffer];
+      expect(left.equals(Buffer.from(signature))).toBe(false);
+      expect(right.equals(Buffer.from(signature))).toBe(false);
+    });
+
+    it.each<[string, (good: string) => string]>([
+      ['an empty signature', () => ''],
+      ['a prefix of the right signature', (good) => good.slice(0, -1)],
+      [
+        'a signature of the right length with one character changed',
+        (good) => `${good.slice(0, -1)}${good.endsWith('0') ? '1' : '0'}`,
+      ],
+      ['the right signature in upper case', (good) => good.toUpperCase()],
+      ['the right signature with a trailing space', (good) => `${good} `],
+      ['the right signature twice', (good) => `${good}${good}`],
+    ])('rejects %s without an error', (_label, mutate) => {
+      const signature = mutate(generateSignature(payload));
+
+      expect(verifyWebhookSignature(payload, signature, WEBHOOK_SECRET)).toBe(
+        false
+      );
+    });
+
+    it('does not compare anything when no webhook secret is configured', () => {
+      const spy = jest.spyOn(crypto, 'timingSafeEqual');
+
+      expect(
+        verifyWebhookSignature(payload, generateSignature(payload), '')
+      ).toBe(false);
+      expect(spy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('Status Mapping', () => {
     it('should map PAID to COMPLETED', () => {
       expect(mapDLocalStatus('PAID')).toBe('COMPLETED');

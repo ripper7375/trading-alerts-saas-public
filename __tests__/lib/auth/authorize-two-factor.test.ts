@@ -514,5 +514,28 @@ describe('authorize() asks for the second factor', () => {
         expect(mockUserUpsert).toHaveBeenCalledTimes(1);
       }
     );
+
+    it('hashes the stored test password at bcrypt cost 12 (CODE-13)', async () => {
+      setEnv('NODE_ENV', 'test');
+      mockUserUpsert.mockResolvedValue({
+        id: 'user-pro',
+        email,
+        name: 'Pro Test User',
+        image: null,
+        tier: 'PRO',
+        role: 'USER',
+        isAffiliate: false,
+        emailVerified: new Date(),
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await credentialsAuthorize()({ email, password: PASSWORD });
+
+      const args = mockUserUpsert.mock.calls[0][0];
+      expect(bcrypt.getRounds(args.create.password)).toBe(12);
+      expect(bcrypt.getRounds(args.update.password)).toBe(12);
+    });
   });
 });

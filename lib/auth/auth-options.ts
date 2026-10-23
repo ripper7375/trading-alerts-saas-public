@@ -21,6 +21,7 @@ import {
   reserve,
   throttleKeys,
 } from '@/lib/auth/auth-throttle';
+import { BCRYPT_COST } from '@/lib/auth/password-hash';
 import {
   COMPLETION_USED_TTL_SECONDS,
   TWO_FACTOR_VERIFIED,
@@ -442,7 +443,7 @@ export const authOptions: NextAuthOptions = {
           }
 
           try {
-            const hashed = await bcrypt.hash(credentials.password, 10);
+            const hashed = await bcrypt.hash(credentials.password, BCRYPT_COST);
             const dbUser = await prisma.user.upsert({
               where: { email },
               update: {

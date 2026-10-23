@@ -114,6 +114,8 @@ import {
   createAccountDbFake,
   type AccountDbFake,
 } from '../../helpers/account-db-fake';
+import bcrypt from 'bcryptjs';
+
 import { POST as forgotPassword } from '@/app/api/auth/forgot-password/route';
 import { POST as resendVerification } from '@/app/api/auth/resend-verification/route';
 import { POST as resetPassword } from '@/app/api/auth/reset-password/route';
@@ -577,6 +579,17 @@ describe('CODE-02B: a password reset ends every session of the account', () => {
     expect(alice['sessionVersion']).toBe(1);
     expect(fake.refreshTokensOf('user-1')).toEqual([]);
     expect(fake.writesOutsideTransaction()).toEqual([]);
+  });
+
+  it('hashes the new password at bcrypt cost 12 (CODE-13)', async () => {
+    const res = await resetPassword(post(path, resetBody));
+
+    expect(res.status).toBe(200);
+    const stored = fake.user('user-1')['password'] as string;
+    expect(bcrypt.getRounds(stored)).toBe(12);
+    await expect(bcrypt.compare(resetBody.password, stored)).resolves.toBe(
+      true
+    );
   });
 
   it('leaves every other account alone', async () => {
