@@ -71,9 +71,12 @@ export async function POST(
     // to the same PaymentOrchestratorService/provider-factory logic -- forward
     // the raw request instead of running this logic twice.
     if (shouldUseMoneyServiceForDisbursementWrite()) {
+      // CODE-06B: money-service refuses the execution without the admin's fresh step-up
+      // token, so it travels with the forward (see /api/admin/payout-step-up).
       const data = await forwardWriteRequestToMoneyService(
         request,
-        `/v1/disbursement/batches/${encodeURIComponent(batchId)}/execute`
+        `/v1/disbursement/batches/${encodeURIComponent(batchId)}/execute`,
+        { forwardHeaders: ['X-Payout-Step-Up'] }
       );
       return NextResponse.json(data);
     }

@@ -24,6 +24,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  PAYOUT_STEP_UP_HEADER,
+  PayoutStepUpCodeField,
+  isStepUpCode,
+  requestPayoutStepUp,
+} from '@/app/admin/disbursement/batches/payout-step-up';
 import { useLocale } from '@/lib/context/locale-context';
 import type {
   PaymentBatchStatus,
@@ -264,6 +270,8 @@ export default function BatchDetailsPage(): React.ReactElement {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // CODE-06B: the authenticator code typed into the execute confirm dialog.
+  const [stepUpCode, setStepUpCode] = useState('');
 
   const fetchBatch = useCallback(async (): Promise<void> => {
     try {
@@ -305,16 +313,21 @@ export default function BatchDetailsPage(): React.ReactElement {
     void fetchBatch();
   }, [fetchBatch]);
 
-  const handleExecuteBatch = async (): Promise<void> => {
+  const handleExecuteBatch = async (code: string): Promise<void> => {
     try {
       setIsProcessing(true);
       setError(null);
       setSuccessMessage(null);
 
+      // CODE-06B: a current authenticator code buys a 120-second token; money-service
+      // refuses the execution without it.
+      const stepUpToken = await requestPayoutStepUp(code);
+
       const response = await fetch(
         `/api/disbursement/batches/${batchId}/execute`,
         {
           method: 'POST',
+          headers: { [PAYOUT_STEP_UP_HEADER]: stepUpToken },
         }
       );
 
@@ -441,7 +454,11 @@ export default function BatchDetailsPage(): React.ReactElement {
           </Button>
           {batch.status === 'PENDING' && (
             <>
-              <AlertDialog>
+              <AlertDialog
+                onOpenChange={(open) => {
+                  if (!open) setStepUpCode('');
+                }}
+              >
                 <AlertDialogTrigger asChild>
                   <Button disabled={isProcessing}>
                     {isProcessing
@@ -476,12 +493,17 @@ export default function BatchDetailsPage(): React.ReactElement {
                       )}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
+                  <PayoutStepUpCodeField
+                    value={stepUpCode}
+                    onChange={setStepUpCode}
+                  />
                   <AlertDialogFooter>
                     <AlertDialogCancel>
                       {t('Cancel', 'Cancel')}
                     </AlertDialogCancel>
                     <AlertDialogAction
-                      onClick={() => void handleExecuteBatch()}
+                      disabled={!isStepUpCode(stepUpCode)}
+                      onClick={() => void handleExecuteBatch(stepUpCode)}
                     >
                       {t('admin.disbursement.execute', 'Execute')}
                     </AlertDialogAction>

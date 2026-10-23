@@ -41,10 +41,32 @@ export const TOTP_REPLAY_TTL_SECONDS = 90;
 /** Wrong or right, the 6th code presented against one challenge burns it. */
 export const MAX_CODE_ATTEMPTS = 5;
 
+/**
+ * The payout step-up (CODE-06B): a 120-second token that opens ONE money-service call that moves
+ * payout money (an admin approving or executing a batch) or changes where it goes (an affiliate
+ * adding or removing a Wise recipient). The monolith mints it after a fresh TOTP code (admin) or
+ * the current password plus a TOTP code when 2FA is on (affiliate, decision D9-4);
+ * `money-service/src/auth/step-up.guard.ts` verifies it with `NEXTAUTH_SECRET`, checks the caller
+ * is the subject and spends its `jti` in Redis. Not a sign-in token: no sign-in step accepts it,
+ * and money-service accepts no sign-in token.
+ */
+export const TWO_FACTOR_PAYOUT_STEP_UP = 'payout_stepup';
+export const PAYOUT_STEP_UP_TTL_SECONDS = 120;
+export const PAYOUT_STEP_UP_AUDIENCE_APPROVAL = 'money-service:payout-approval';
+export const PAYOUT_STEP_UP_AUDIENCE_WISE_RECIPIENT =
+  'money-service:wise-recipient';
+/** The header the browser sends the token in; the monolith's proxy routes forward it. */
+export const PAYOUT_STEP_UP_HEADER = 'X-Payout-Step-Up';
+/** Wrong or right, the 6th step-up attempt of one user inside the window is refused. */
+export const PAYOUT_STEP_UP_ATTEMPT_LIMIT = 5;
+export const PAYOUT_STEP_UP_ATTEMPT_WINDOW_SECONDS = 15 * 60;
+
 export const twoFactorKeys = {
   attempts: (challengeJti: string): string => `2fa:attempts:${challengeJti}`,
   used: (jti: string): string => `2fa:used:${jti}`,
   totp: (userId: string, code: string): string => `2fa:totp:${userId}:${code}`,
+  stepUpAttempts: (userId: string): string =>
+    `payout-stepup:attempts:${userId}`,
 } as const;
 
 export type TwoFactorPurpose =
@@ -115,6 +137,28 @@ export function signCompletion(input: {
   );
 }
 
+export type PayoutStepUpAudience =
+  | typeof PAYOUT_STEP_UP_AUDIENCE_APPROVAL
+  | typeof PAYOUT_STEP_UP_AUDIENCE_WISE_RECIPIENT;
+
+/** A payout step-up token for one user and one audience; every token has its own `jti`. */
+export function signPayoutStepUp(input: {
+  userId: string;
+  audience: PayoutStepUpAudience;
+}): string {
+  return jwt.sign(
+    { purpose: TWO_FACTOR_PAYOUT_STEP_UP, jti: randomUUID() },
+    getSecret(),
+    {
+      algorithm: 'HS256',
+      expiresIn: PAYOUT_STEP_UP_TTL_SECONDS,
+      issuer: TWO_FACTOR_ISSUER,
+      subject: input.userId,
+      audience: input.audience,
+    }
+  );
+}
+
 /**
  * The claims of a token of the expected purpose. Throws for anything else: another purpose
  * (including the `2fa_verification` of an earlier version), another secret, issuer or algorithm, an expired
@@ -180,6 +224,43 @@ export function consumeOnce(
 
 export function isConsumed(key: string): Promise<boolean> {
   return withRedis(async (redis) => (await redis.exists(key)) === 1);
+}
+
+export interface StepUpAttemptVerdict {
+  blocked: boolean;
+  /** Seconds until the window ends; 0 when not blocked. */
+  retryAfterSeconds: number;
+}
+
+/**
+ * Counts one step-up attempt of a user and says whether the budget is used up (5 per 15 minutes).
+ * The attempt is COUNTED FIRST, so a parallel burst cannot all look at a counter still at zero;
+ * a right check gives the budget back with `clearStepUpAttempts`. Fails CLOSED when Redis is
+ * down (`TwoFactorUnavailableError`): unlike the sign-in counters, a step-up that cannot be
+ * metered must not run, because it is what stands between a stolen session and the payout.
+ */
+export function reserveStepUpAttempt(
+  userId: string
+): Promise<StepUpAttemptVerdict> {
+  return withRedis(async (redis) => {
+    const key = twoFactorKeys.stepUpAttempts(userId);
+    const count = await redis.incr(key);
+    let ttl = await redis.ttl(key);
+    if (ttl < 0) {
+      // A counter with no lifetime (a lost EXPIRE) is given one, so a blip cannot lock for good.
+      await redis.expire(key, PAYOUT_STEP_UP_ATTEMPT_WINDOW_SECONDS);
+      ttl = PAYOUT_STEP_UP_ATTEMPT_WINDOW_SECONDS;
+    }
+    const blocked = count > PAYOUT_STEP_UP_ATTEMPT_LIMIT;
+    return { blocked, retryAfterSeconds: blocked ? Math.max(1, ttl) : 0 };
+  });
+}
+
+/** Forgets the step-up failures of a user (the check succeeded). */
+export function clearStepUpAttempts(userId: string): Promise<void> {
+  return withRedis(async (redis) => {
+    await redis.del(twoFactorKeys.stepUpAttempts(userId));
+  });
 }
 
 /** Counts one code attempt against a challenge; returns the count including this one. */

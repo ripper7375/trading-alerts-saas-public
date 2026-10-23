@@ -36,7 +36,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const body = (await request.json()) as CreateWiseRecipientPayload;
 
-    const data = await createWiseRecipient<WiseRecipientSummary>(token, body);
+    // CODE-06B: money-service refuses a recipient change without the affiliate's fresh step-up
+    // token (see /api/affiliate/payout-step-up), so it travels with the call.
+    const data = await createWiseRecipient<WiseRecipientSummary>(token, body, {
+      stepUpToken: request.headers.get('X-Payout-Step-Up') ?? undefined,
+    });
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {

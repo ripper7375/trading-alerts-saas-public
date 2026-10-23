@@ -66,6 +66,12 @@ export default function WiseRecipientForm({
   const [details, setDetails] = useState<Record<string, string>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // CODE-06B: saving payout details asks for the current password first (and an authenticator
+  // code when the account has two-factor on; the server says so, then the code field appears).
+  const [password, setPassword] = useState('');
+  const [stepUpCode, setStepUpCode] = useState('');
+  const [needsCode, setNeedsCode] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -206,8 +212,86 @@ export default function WiseRecipientForm({
       );
     }
 
+    if (!password) {
+      errors['__password'] = t(
+        'affiliate.payouts.password_required',
+        'Enter your current password'
+      );
+    }
+    if (needsCode && !/^\d{6}$/.test(stepUpCode.trim())) {
+      errors['__stepUpCode'] = t(
+        'affiliate.payouts.step_up_code_required',
+        'Enter the 6-digit code from your authenticator app'
+      );
+    }
+
     setFieldErrors(errors);
     return Object.keys(errors).length === 0;
+  }
+
+  /** What the step-up route refused with, in the affiliate's words. Keeps the form on its fields. */
+  function showStepUpFailure(code: unknown): void {
+    switch (code) {
+      case 'TWO_FACTOR_CODE_REQUIRED':
+        setNeedsCode(true);
+        setError(
+          t(
+            'affiliate.payouts.error_step_up_code_needed',
+            'Enter the 6-digit code from your authenticator app.'
+          )
+        );
+        break;
+      case 'INVALID_CODE':
+        setStepUpCode('');
+        setError(
+          t(
+            'affiliate.payouts.error_step_up_invalid_code',
+            'That code is not valid. Check your authenticator app and try again.'
+          )
+        );
+        break;
+      case 'INVALID_PASSWORD':
+        setPassword('');
+        setError(
+          t(
+            'affiliate.payouts.error_step_up_invalid_password',
+            'That password is not correct.'
+          )
+        );
+        break;
+      case 'PASSWORD_REQUIRED':
+        setError(
+          t(
+            'affiliate.payouts.error_step_up_password_required',
+            'Set a password in your account settings before changing payout details.'
+          )
+        );
+        break;
+      case 'STEP_UP_RATE_LIMITED':
+        setError(
+          t(
+            'affiliate.payouts.error_step_up_rate_limited',
+            'Too many attempts. Try again in a few minutes.'
+          )
+        );
+        break;
+      case 'STEP_UP_UNAVAILABLE':
+        setError(
+          t(
+            'affiliate.payouts.error_step_up_unavailable',
+            'The identity check is temporarily unavailable. Please try again shortly.'
+          )
+        );
+        break;
+      default:
+        setError(
+          t(
+            'affiliate.payouts.error_step_up_failed',
+            'We could not confirm your identity. Please try again.'
+          )
+        );
+    }
+    setStep('fill-details');
   }
 
   async function handleSubmit(): Promise<void> {
@@ -217,9 +301,28 @@ export default function WiseRecipientForm({
     setError(null);
 
     try {
-      const res = await fetch('/api/wise/recipients', {
+      // CODE-06B: the password (and the code, when asked) buys a 120-second token; money-service
+      // refuses the recipient without it. The password goes to this route only.
+      const stepUpRes = await fetch('/api/affiliate/payout-step-up', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          needsCode ? { password, code: stepUpCode.trim() } : { password }
+        ),
+      });
+      const stepUpBody: { stepUpToken?: unknown; code?: unknown } =
+        await stepUpRes.json().catch(() => ({}));
+      if (!stepUpRes.ok || typeof stepUpBody.stepUpToken !== 'string') {
+        showStepUpFailure(stepUpBody.code);
+        return;
+      }
+
+      const res = await fetch('/api/wise/recipients', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Payout-Step-Up': stepUpBody.stepUpToken,
+        },
         body: JSON.stringify({
           targetCurrency,
           recipientCountry,
@@ -232,9 +335,28 @@ export default function WiseRecipientForm({
 
       if (res.status === 201) {
         const recipient: WiseRecipientSummary = await res.json();
+        setPassword('');
+        setStepUpCode('');
         setStep('done');
         onSubmitted?.(recipient);
         return;
+      }
+
+      if (res.status === 403) {
+        const refusal: { code?: unknown } = await res.json().catch(() => ({}));
+        if (refusal.code === 'PAYOUT_STEP_UP_REQUIRED') {
+          // The token ran out (or was spent) before the call: one more check, one more token.
+          setPassword('');
+          setStepUpCode('');
+          setError(
+            t(
+              'affiliate.payouts.error_step_up_expired',
+              'Please confirm your password again to save your payout details.'
+            )
+          );
+          setStep('fill-details');
+          return;
+        }
       }
 
       // Graceful handling of the confirmed live 403/500 (read-only token
@@ -473,6 +595,72 @@ export default function WiseRecipientForm({
           </div>
 
           {allFields.map(renderField)}
+
+          <div className="space-y-4 rounded-md border border-border bg-muted/30 p-4">
+            <p className="text-sm text-muted-foreground">
+              {t(
+                'affiliate.payouts.confirm_identity_hint',
+                'For your security, confirm your identity to save payout details.'
+              )}
+            </p>
+            <div>
+              <label
+                htmlFor="payoutStepUpPassword"
+                className="mb-1 block text-sm font-medium text-foreground"
+              >
+                {t('affiliate.payouts.current_password', 'Current password')}
+                <span className="text-red-500"> *</span>
+              </label>
+              <input
+                id="payoutStepUpPassword"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className={`w-full rounded-md border bg-background px-3 py-2 text-foreground ${
+                  fieldErrors['__password'] ? 'border-red-400' : 'border-border'
+                }`}
+              />
+              {fieldErrors['__password'] && (
+                <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                  {fieldErrors['__password']}
+                </p>
+              )}
+            </div>
+            {needsCode && (
+              <div>
+                <label
+                  htmlFor="payoutStepUpCode"
+                  className="mb-1 block text-sm font-medium text-foreground"
+                >
+                  {t(
+                    'affiliate.payouts.authenticator_code',
+                    'Authenticator code'
+                  )}
+                  <span className="text-red-500"> *</span>
+                </label>
+                <input
+                  id="payoutStepUpCode"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={stepUpCode}
+                  onChange={(e) => setStepUpCode(e.target.value)}
+                  className={`w-full rounded-md border bg-background px-3 py-2 text-foreground ${
+                    fieldErrors['__stepUpCode']
+                      ? 'border-red-400'
+                      : 'border-border'
+                  }`}
+                />
+                {fieldErrors['__stepUpCode'] && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {fieldErrors['__stepUpCode']}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="flex gap-3 pt-2">
             <button

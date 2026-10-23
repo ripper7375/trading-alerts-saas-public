@@ -30,12 +30,19 @@ jest.mock('@/lib/money-service/client', () => ({
     mockCallMoneyServiceWithToken(...args),
 }));
 
-function makeRequest(opts: { body?: string; idempotencyKey?: string }): {
+function makeRequest(opts: {
+  body?: string;
+  idempotencyKey?: string;
+  headers?: Record<string, string>;
+}): {
   headers: Headers;
   text: () => Promise<string>;
 } {
   const headers = new Headers();
   if (opts.idempotencyKey) headers.set('Idempotency-Key', opts.idempotencyKey);
+  for (const [name, value] of Object.entries(opts.headers ?? {})) {
+    headers.set(name, value);
+  }
   return {
     headers,
     text: async () => opts.body ?? '',
@@ -84,8 +91,9 @@ describe('forwardWriteRequestToMoneyService', () => {
 
   it('throws a 401 MoneyServiceError when no session token is available', async () => {
     mockGetMoneyServiceToken.mockResolvedValue(null);
-    const { forwardWriteRequestToMoneyService } =
-      await import('@/lib/money-service/write-routes');
+    const { forwardWriteRequestToMoneyService } = await import(
+      '@/lib/money-service/write-routes'
+    );
 
     await expect(
       forwardWriteRequestToMoneyService(
@@ -99,8 +107,9 @@ describe('forwardWriteRequestToMoneyService', () => {
 
   it('forwards the Bearer token, method, and raw body', async () => {
     mockCallMoneyServiceWithToken.mockResolvedValue({ ok: true });
-    const { forwardWriteRequestToMoneyService } =
-      await import('@/lib/money-service/write-routes');
+    const { forwardWriteRequestToMoneyService } = await import(
+      '@/lib/money-service/write-routes'
+    );
 
     const result = await forwardWriteRequestToMoneyService(
       makeRequest({ body: '{"affiliateCode":"ABC"}' }) as never,
@@ -120,8 +129,9 @@ describe('forwardWriteRequestToMoneyService', () => {
 
   it('propagates the Idempotency-Key header when present', async () => {
     mockCallMoneyServiceWithToken.mockResolvedValue({ ok: true });
-    const { forwardWriteRequestToMoneyService } =
-      await import('@/lib/money-service/write-routes');
+    const { forwardWriteRequestToMoneyService } = await import(
+      '@/lib/money-service/write-routes'
+    );
 
     await forwardWriteRequestToMoneyService(
       makeRequest({ body: '{}', idempotencyKey: 'key-123' }) as never,
@@ -139,8 +149,9 @@ describe('forwardWriteRequestToMoneyService', () => {
 
   it('sends no Idempotency-Key header when the client sent none', async () => {
     mockCallMoneyServiceWithToken.mockResolvedValue({ ok: true });
-    const { forwardWriteRequestToMoneyService } =
-      await import('@/lib/money-service/write-routes');
+    const { forwardWriteRequestToMoneyService } = await import(
+      '@/lib/money-service/write-routes'
+    );
 
     await forwardWriteRequestToMoneyService(
       makeRequest({ body: '{}' }) as never,
@@ -154,10 +165,58 @@ describe('forwardWriteRequestToMoneyService', () => {
     );
   });
 
+  // CODE-06B: the payout step-up token rides in a header the caller names; nothing else of the
+  // browser's request (cookies, its own Authorization) is copied across.
+  it('forwards only the headers the caller names, next to the Idempotency-Key', async () => {
+    mockCallMoneyServiceWithToken.mockResolvedValue({ ok: true });
+    const { forwardWriteRequestToMoneyService } = await import(
+      '@/lib/money-service/write-routes'
+    );
+
+    await forwardWriteRequestToMoneyService(
+      makeRequest({
+        idempotencyKey: 'key-9',
+        headers: {
+          'X-Payout-Step-Up': 'step-up-token',
+          Cookie: 'next-auth.session-token=secret',
+          Authorization: 'Bearer browser-token',
+        },
+      }) as never,
+      '/v1/disbursement/batches/b1/execute',
+      { forwardHeaders: ['X-Payout-Step-Up'] }
+    );
+
+    const options = mockCallMoneyServiceWithToken.mock.calls[0]?.[2] as {
+      headers: Record<string, string>;
+    };
+    expect(options.headers).toEqual({
+      'Idempotency-Key': 'key-9',
+      'X-Payout-Step-Up': 'step-up-token',
+    });
+  });
+
+  it('sends a named header only when the client sent it', async () => {
+    mockCallMoneyServiceWithToken.mockResolvedValue({ ok: true });
+    const { forwardWriteRequestToMoneyService } = await import(
+      '@/lib/money-service/write-routes'
+    );
+
+    await forwardWriteRequestToMoneyService(
+      makeRequest({}) as never,
+      '/v1/disbursement/batches/b1/execute',
+      { forwardHeaders: ['X-Payout-Step-Up'] }
+    );
+
+    expect(mockCallMoneyServiceWithToken.mock.calls[0]?.[2]).toEqual(
+      expect.objectContaining({ headers: {} })
+    );
+  });
+
   it('omits the body entirely for a genuinely bodyless request (0ms fallback shape for cancel/execute routes)', async () => {
     mockCallMoneyServiceWithToken.mockResolvedValue({ success: true });
-    const { forwardWriteRequestToMoneyService } =
-      await import('@/lib/money-service/write-routes');
+    const { forwardWriteRequestToMoneyService } = await import(
+      '@/lib/money-service/write-routes'
+    );
 
     await forwardWriteRequestToMoneyService(
       makeRequest({}) as never,
@@ -170,8 +229,9 @@ describe('forwardWriteRequestToMoneyService', () => {
 
   it('respects a custom HTTP method override', async () => {
     mockCallMoneyServiceWithToken.mockResolvedValue({ ok: true });
-    const { forwardWriteRequestToMoneyService } =
-      await import('@/lib/money-service/write-routes');
+    const { forwardWriteRequestToMoneyService } = await import(
+      '@/lib/money-service/write-routes'
+    );
 
     await forwardWriteRequestToMoneyService(
       makeRequest({}) as never,
@@ -190,8 +250,9 @@ describe('forwardWriteRequestToMoneyService', () => {
     mockCallMoneyServiceWithToken.mockRejectedValue(
       new MockMoneyServiceError(409, { error: 'Duplicate request' })
     );
-    const { forwardWriteRequestToMoneyService } =
-      await import('@/lib/money-service/write-routes');
+    const { forwardWriteRequestToMoneyService } = await import(
+      '@/lib/money-service/write-routes'
+    );
 
     await expect(
       forwardWriteRequestToMoneyService(

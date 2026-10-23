@@ -9,11 +9,16 @@
 class MockRequest {
   url: string;
   method: string;
+  headers: Headers;
   private bodyContent: string | null;
 
-  constructor(url: string, init?: { method?: string; body?: string }) {
+  constructor(
+    url: string,
+    init?: { method?: string; body?: string; headers?: Record<string, string> }
+  ) {
     this.url = url;
     this.method = init?.method ?? 'GET';
+    this.headers = new Headers(init?.headers);
     this.bodyContent = init?.body ?? null;
   }
 
@@ -121,8 +126,9 @@ describe('Wise Recipients API Routes', () => {
         new MockAuthError('Affiliate access required', 403)
       );
 
-      const { GET } =
-        await import('@/app/api/wise/recipients/requirements/route');
+      const { GET } = await import(
+        '@/app/api/wise/recipients/requirements/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/wise/recipients/requirements?targetCurrency=GBP'
       );
@@ -134,8 +140,9 @@ describe('Wise Recipients API Routes', () => {
     it('returns 400 when targetCurrency is missing', async () => {
       mockRequireAffiliate.mockResolvedValue({ user: { id: 'u1' } });
 
-      const { GET } =
-        await import('@/app/api/wise/recipients/requirements/route');
+      const { GET } = await import(
+        '@/app/api/wise/recipients/requirements/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/wise/recipients/requirements'
       );
@@ -149,8 +156,9 @@ describe('Wise Recipients API Routes', () => {
       const payload = { quoteId: null, groups: [{ type: 'aba', title: 'x' }] };
       mockFetchWiseRecipientRequirements.mockResolvedValue(payload);
 
-      const { GET } =
-        await import('@/app/api/wise/recipients/requirements/route');
+      const { GET } = await import(
+        '@/app/api/wise/recipients/requirements/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/wise/recipients/requirements?targetCurrency=GBP&recipientCountry=GB'
       );
@@ -174,8 +182,9 @@ describe('Wise Recipients API Routes', () => {
         new MockMoneyServiceError(500, { error: 'Wise provider error' })
       );
 
-      const { GET } =
-        await import('@/app/api/wise/recipients/requirements/route');
+      const { GET } = await import(
+        '@/app/api/wise/recipients/requirements/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/wise/recipients/requirements?targetCurrency=GBP'
       );
@@ -195,8 +204,9 @@ describe('Wise Recipients API Routes', () => {
         new MockAuthError('Unauthorized', 401)
       );
 
-      const { POST } =
-        await import('@/app/api/wise/recipients/requirements/refresh/route');
+      const { POST } = await import(
+        '@/app/api/wise/recipients/requirements/refresh/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/wise/recipients/requirements/refresh',
         { method: 'POST', body: JSON.stringify({}) }
@@ -209,8 +219,9 @@ describe('Wise Recipients API Routes', () => {
     it('returns 400 when quoteId/partial are missing', async () => {
       mockRequireAffiliate.mockResolvedValue({ user: { id: 'u1' } });
 
-      const { POST } =
-        await import('@/app/api/wise/recipients/requirements/refresh/route');
+      const { POST } = await import(
+        '@/app/api/wise/recipients/requirements/refresh/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/wise/recipients/requirements/refresh',
         { method: 'POST', body: JSON.stringify({ quoteId: 'q1' }) }
@@ -224,8 +235,9 @@ describe('Wise Recipients API Routes', () => {
       mockRequireAffiliate.mockResolvedValue({ user: { id: 'u1' } });
       mockRefreshWiseRecipientRequirements.mockResolvedValue({ groups: [] });
 
-      const { POST } =
-        await import('@/app/api/wise/recipients/requirements/refresh/route');
+      const { POST } = await import(
+        '@/app/api/wise/recipients/requirements/refresh/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/wise/recipients/requirements/refresh',
         {
@@ -320,6 +332,53 @@ describe('Wise Recipients API Routes', () => {
       expect(data).toEqual(created);
     });
 
+    // CODE-06B: money-service refuses a recipient change without the step-up token, so the
+    // route has to carry the browser's X-Payout-Step-Up header across.
+    it('passes the step-up token header on to money-service', async () => {
+      mockRequireAffiliate.mockResolvedValue({ user: { id: 'u1' } });
+      mockCreateWiseRecipient.mockResolvedValue({ id: 'r1' });
+      const body = { targetCurrency: 'GBP' };
+
+      const { POST } = await import('@/app/api/wise/recipients/route');
+      const request = new MockRequest('http://localhost/api/wise/recipients', {
+        method: 'POST',
+        body: JSON.stringify(body),
+        headers: { 'X-Payout-Step-Up': 'step-up-token' },
+      });
+      await POST(request as unknown as Request);
+
+      expect(mockCreateWiseRecipient).toHaveBeenCalledWith('test-token', body, {
+        stepUpToken: 'step-up-token',
+      });
+    });
+
+    it('sends no step-up token when the browser sent none (money-service answers 403)', async () => {
+      mockRequireAffiliate.mockResolvedValue({ user: { id: 'u1' } });
+      mockCreateWiseRecipient.mockRejectedValue(
+        new MockMoneyServiceError(403, {
+          error: 'A fresh identity check is required for this action',
+          code: 'PAYOUT_STEP_UP_REQUIRED',
+        })
+      );
+
+      const { POST } = await import('@/app/api/wise/recipients/route');
+      const request = new MockRequest('http://localhost/api/wise/recipients', {
+        method: 'POST',
+        body: JSON.stringify({ targetCurrency: 'GBP' }),
+      });
+      const response = await POST(request as unknown as Request);
+
+      expect(mockCreateWiseRecipient).toHaveBeenCalledWith(
+        'test-token',
+        { targetCurrency: 'GBP' },
+        { stepUpToken: undefined }
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({
+        code: 'PAYOUT_STEP_UP_REQUIRED',
+      });
+    });
+
     it('maps the confirmed live 403 (read-only token scope) through', async () => {
       mockRequireAffiliate.mockResolvedValue({ user: { id: 'u1' } });
       mockCreateWiseRecipient.mockRejectedValue(
@@ -384,8 +443,9 @@ describe('Wise Recipients API Routes', () => {
         new MockAuthError('Unauthorized', 401)
       );
 
-      const { POST } =
-        await import('@/app/api/wise/recipients/[id]/revalidate/route');
+      const { POST } = await import(
+        '@/app/api/wise/recipients/[id]/revalidate/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/wise/recipients/r1/revalidate',
         { method: 'POST' }
@@ -402,8 +462,9 @@ describe('Wise Recipients API Routes', () => {
       const updated = { id: 'r1', status: 'ACTIVE' };
       mockRevalidateWiseRecipient.mockResolvedValue(updated);
 
-      const { POST } =
-        await import('@/app/api/wise/recipients/[id]/revalidate/route');
+      const { POST } = await import(
+        '@/app/api/wise/recipients/[id]/revalidate/route'
+      );
       const request = new MockRequest(
         'http://localhost/api/wise/recipients/r1/revalidate',
         { method: 'POST' }

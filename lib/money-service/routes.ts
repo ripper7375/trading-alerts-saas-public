@@ -288,11 +288,19 @@ export async function createWiseRecipient<T>(
     accountHolderName: string;
     requirementsType: string;
     details: Record<string, unknown>;
-  }
+  },
+  /**
+   * CODE-06B: the affiliate's fresh step-up token (`/api/affiliate/payout-step-up`), sent in
+   * `X-Payout-Step-Up`. Without it money-service answers 403 `PAYOUT_STEP_UP_REQUIRED`.
+   */
+  options: { stepUpToken?: string } = {}
 ): Promise<T> {
   const api = createMoneyApi(token);
   const result = await api.POST('/v1/wise/recipients', {
     body: body as never,
+    ...(options.stepUpToken
+      ? { headers: { 'X-Payout-Step-Up': options.stepUpToken } }
+      : {}),
   });
   return unwrapMoneyApi<T>(result);
 }

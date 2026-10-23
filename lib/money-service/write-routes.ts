@@ -22,6 +22,12 @@ export { MoneyServiceError };
 export interface ForwardWriteRequestOptions {
   /** HTTP method to use against money-service. Defaults to 'POST' — every Slice 4 write route this transport serves is a POST. */
   method?: string;
+  /**
+   * Names of request headers to copy to money-service as they arrived, when the client sent them
+   * (the payout step-up token, CODE-06B). Only these are copied: the browser's cookies and its own
+   * Authorization header never cross.
+   */
+  forwardHeaders?: readonly string[];
 }
 
 /**
@@ -47,12 +53,20 @@ export async function forwardWriteRequestToMoneyService<T>(
   const idempotencyKey = request.headers.get('Idempotency-Key');
   const rawBody = await request.text();
 
+  const headers: Record<string, string> = idempotencyKey
+    ? { 'Idempotency-Key': idempotencyKey }
+    : {};
+  for (const name of options.forwardHeaders ?? []) {
+    const value = request.headers.get(name);
+    if (value) headers[name] = value;
+  }
+
   return callMoneyServiceWithToken<T>(path, token, {
     method: options.method ?? 'POST',
     // Omit the body entirely when the request had none, rather than
     // forwarding an empty string — matches how a genuinely bodyless POST
     // (e.g. subscription cancel, batch execute) is actually sent.
     ...(rawBody ? { body: rawBody } : {}),
-    headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {},
+    headers,
   });
 }

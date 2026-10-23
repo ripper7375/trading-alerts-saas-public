@@ -23,6 +23,12 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  PAYOUT_STEP_UP_HEADER,
+  PayoutStepUpCodeField,
+  isStepUpCode,
+  requestPayoutStepUp,
+} from '@/app/admin/disbursement/batches/payout-step-up';
 import { useLocale } from '@/lib/context/locale-context';
 import type {
   PaymentBatchStatus,
@@ -145,6 +151,8 @@ export default function PaymentBatchesPage(): React.ReactElement {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  // CODE-06B: the authenticator code typed into the execute confirm dialog.
+  const [stepUpCode, setStepUpCode] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [preview, setPreview] = useState<{
     items: BatchPreviewItem[];
@@ -277,16 +285,24 @@ export default function PaymentBatchesPage(): React.ReactElement {
     }
   };
 
-  const handleExecuteBatch = async (batchId: string): Promise<void> => {
+  const handleExecuteBatch = async (
+    batchId: string,
+    code: string
+  ): Promise<void> => {
     try {
       setIsProcessing(true);
       setError(null);
       setSuccessMessage(null);
 
+      // CODE-06B: a current authenticator code buys a 120-second token; money-service
+      // refuses the execution without it.
+      const stepUpToken = await requestPayoutStepUp(code);
+
       const response = await fetch(
         `/api/disbursement/batches/${batchId}/execute`,
         {
           method: 'POST',
+          headers: { [PAYOUT_STEP_UP_HEADER]: stepUpToken },
         }
       );
 
@@ -486,12 +502,12 @@ export default function PaymentBatchesPage(): React.ReactElement {
                   {batches.map((batch) => (
                     <tr
                       key={batch.id}
-                      className="border-border/50 hover:bg-accent/30 border-b"
+                      className="border-b border-border/50 hover:bg-accent/30"
                     >
                       <td className="px-4 py-3">
                         <Link
                           href={`/admin/disbursement/batches/${batch.id}`}
-                          className="hover:text-primary/80 font-medium text-primary"
+                          className="font-medium text-primary hover:text-primary/80"
                         >
                           {batch.batchNumber}
                         </Link>
@@ -517,7 +533,11 @@ export default function PaymentBatchesPage(): React.ReactElement {
                       </td>
                       <td className="space-x-2 px-4 py-3 text-right">
                         {batch.status === 'PENDING' && (
-                          <AlertDialog>
+                          <AlertDialog
+                            onOpenChange={(open) => {
+                              if (!open) setStepUpCode('');
+                            }}
+                          >
                             <AlertDialogTrigger asChild>
                               <Button size="sm" disabled={isProcessing}>
                                 {t('admin.disbursement.execute', 'Execute')}
@@ -562,13 +582,21 @@ export default function PaymentBatchesPage(): React.ReactElement {
                                   )}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
+                              <PayoutStepUpCodeField
+                                value={stepUpCode}
+                                onChange={setStepUpCode}
+                              />
                               <AlertDialogFooter>
                                 <AlertDialogCancel>
                                   {t('Cancel', 'Cancel')}
                                 </AlertDialogCancel>
                                 <AlertDialogAction
+                                  disabled={!isStepUpCode(stepUpCode)}
                                   onClick={() =>
-                                    void handleExecuteBatch(batch.id)
+                                    void handleExecuteBatch(
+                                      batch.id,
+                                      stepUpCode
+                                    )
                                   }
                                 >
                                   {t('admin.disbursement.execute', 'Execute')}
@@ -680,7 +708,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
             <CardContent className="space-y-4">
               {/* Summary */}
               <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="bg-accent/50 rounded-lg p-3">
+                <div className="rounded-lg bg-accent/50 p-3">
                   <p className="text-sm text-muted-foreground">
                     {t(
                       'admin.disbursement.total_affiliates',
@@ -691,7 +719,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                     {preview.summary.totalAffiliates}
                   </p>
                 </div>
-                <div className="bg-accent/50 rounded-lg p-3">
+                <div className="rounded-lg bg-accent/50 p-3">
                   <p className="text-sm text-muted-foreground">
                     {t('admin.disbursement.eligible', 'Eligible')}
                   </p>
@@ -699,7 +727,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                     {preview.summary.eligibleAffiliates}
                   </p>
                 </div>
-                <div className="bg-accent/50 rounded-lg p-3">
+                <div className="rounded-lg bg-accent/50 p-3">
                   <p className="text-sm text-muted-foreground">
                     {t('admin.disbursement.total_amount', 'Total Amount')}
                   </p>
@@ -733,7 +761,7 @@ export default function PaymentBatchesPage(): React.ReactElement {
                       {preview.items.map((item) => (
                         <tr
                           key={item.affiliateId}
-                          className="border-border/50 border-b"
+                          className="border-b border-border/50"
                         >
                           <td className="px-3 py-2 text-xs text-foreground">
                             {item.affiliateId}

@@ -379,9 +379,11 @@ describe('POST /api/disbursement/batches/[batchId]/execute — pause gate (E11, 
     const response = await callExecute();
 
     expect(response.status).toBe(200);
+    // CODE-06B: the step-up header travels with the forward; money-service checks it.
     expect(forwardWriteRequestToMoneyService).toHaveBeenCalledWith(
       expect.anything(),
-      '/v1/disbursement/batches/batch-1/execute'
+      '/v1/disbursement/batches/batch-1/execute',
+      { forwardHeaders: ['X-Payout-Step-Up'] }
     );
   });
 });
