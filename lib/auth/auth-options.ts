@@ -36,7 +36,7 @@ import {
   ID_ONLY_SELECT,
   SESSION_USER_SELECT,
 } from '@/lib/auth/user-select';
-import { isUserActive } from '@/lib/auth/user-active';
+import { getSessionState, judgeSession } from '@/lib/auth/user-active';
 import { prisma } from '@/lib/db/prisma';
 import type { UserTier, UserRole } from '@/types';
 
@@ -672,9 +672,12 @@ export const authOptions: NextAuthOptions = {
   // SESSION STRATEGY
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+  // 7 days, renewed once a day while the person is active (D-5). `maxAge` is global in NextAuth, so
+  // the shorter life of an ADMIN session is enforced by `authTime` in the jwt callback instead.
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+    updateAge: 24 * 60 * 60, // 24 hours
   },
 
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -805,13 +808,21 @@ export const authOptions: NextAuthOptions = {
      * tier, role, and isAffiliate are correctly populated in the JWT token.
      */
     async jwt({ token, user, trigger }) {
-      // Every session read after sign-in: is the account still live? (F21.) Outside the
+      // Every session read after sign-in: is the account still live, and is this still the session
+      // it was minted for? (F21, CODE-02A; the rules are in lib/auth/user-active.ts.) Outside the
       // try below on purpose: it swallows errors and returns the token, and this one must
       // escape. NextAuth turns a throw from this callback into "no session" and clears the
       // cookie, so a user who confirmed a deletion is signed out on their next request.
       if (!user && typeof token.id === 'string') {
-        if (!(await isUserActive(token.id))) {
-          throw new Error(ACCOUNT_DEACTIVATED_CODE);
+        const verdict = judgeSession(token, await getSessionState(token.id));
+        if (!verdict.ok) {
+          throw new Error(verdict.code);
+        }
+        // Role and tier follow the database (within the 30 s cache window): a demotion or a PRO
+        // expiry shows without a new sign-in.
+        if (verdict.state) {
+          token.role = verdict.state.role as UserRole;
+          token.tier = verdict.state.tier as UserTier;
         }
       }
 
@@ -822,6 +833,9 @@ export const authOptions: NextAuthOptions = {
         // This is needed because OAuth adapter creates users without tier/role
         if (user) {
           console.log('[JWT] User ID:', user.id);
+
+          // When the person signed in: an ADMIN session ends 12 hours after it.
+          token.authTime = Math.floor(Date.now() / 1000);
 
           // Always fetch fresh from the database - OAuth's own user object
           // never carries tier/role.
@@ -835,6 +849,7 @@ export const authOptions: NextAuthOptions = {
               tier: true,
               role: true,
               isAffiliate: true,
+              sessionVersion: true,
             },
           });
 
@@ -848,6 +863,7 @@ export const authOptions: NextAuthOptions = {
             token.tier = dbUser.tier as UserTier;
             token.role = dbUser.role as UserRole;
             token.isAffiliate = dbUser.isAffiliate;
+            token.sessionVersion = dbUser.sessionVersion;
             console.log('[JWT] Token populated from DB');
           } else {
             // Fallback: the DB lookup above found nothing (shouldn't happen

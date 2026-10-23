@@ -114,6 +114,9 @@ model User {
   // completes a CONFIRMED AccountDeletionRequest. The row stays for the admin audit
   // trail; isActive is already false from the moment the user confirmed.
   deletedAt     DateTime?
+  // Session version (CODE-02A): every session token carries the version it was minted for and is
+  // refused once this differs. 0 for every account until a security change raises it.
+  sessionVersion Int      @default(0)
 
   // Affiliate System (Unified Auth)
   isAffiliate Boolean @default(false) // Can be both SaaS user AND affiliate
@@ -1525,6 +1528,9 @@ model RefreshToken {
   expiresAt   DateTime
   revokedAt   DateTime?
   createdAt   DateTime  @default(now())
+  // When the person signed in (CODE-02A): carried forward by every rotation. NULL for tokens issued
+  // before the column existed.
+  sessionStartedAt DateTime?
 
   @@index([userId])
   @@index([expiresAt])

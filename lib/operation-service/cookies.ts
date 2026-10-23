@@ -24,11 +24,13 @@ export const REFRESH_COOKIE_NAME = isProduction
   ? '__Secure-operation-refresh-token'
   : 'operation-refresh-token';
 
-// Both match their respective backing tokens' real expiry: the access JWE's
-// own exp claim (next-auth-jwt-encode.util.ts's SESSION_MAX_AGE_SECONDS) and
-// the RefreshToken row's TTL (refresh-token.service.ts's REFRESH_TOKEN_TTL_MS)
-// — both 30 days, both already matched to auth-options.ts's session.maxAge.
-export const SESSION_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
+// Both match their respective backing tokens' real expiry. The session cookie
+// follows the access JWE's own exp claim (next-auth-jwt-encode.util.ts's
+// SESSION_MAX_AGE_SECONDS), 7 days like auth-options.ts's session.maxAge
+// (CODE-02A, D-5). The refresh cookie stays at the RefreshToken row's own TTL
+// (refresh-token.service.ts's REFRESH_TOKEN_TTL_MS), 30 days: it outlives the
+// access token on purpose, since it is what renews it.
+export const SESSION_COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
 export const REFRESH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
 
 export function tokenCookieOptions(maxAge: number): {

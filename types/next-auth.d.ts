@@ -37,5 +37,9 @@ declare module 'next-auth/jwt' {
     tier: 'FREE' | 'PRO';
     role: 'USER' | 'ADMIN';
     isAffiliate: boolean;
+    /** The user's `sessionVersion` when the token was minted; a missing claim counts as 0. */
+    sessionVersion?: number;
+    /** Unix seconds of the sign-in; an ADMIN session ends 12 hours after it. */
+    authTime?: number;
   }
 }

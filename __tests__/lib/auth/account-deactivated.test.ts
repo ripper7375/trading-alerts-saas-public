@@ -40,6 +40,18 @@ jest.mock('@/lib/auth/auth-throttle', () => ({
 import { authOptions } from '@/lib/auth/auth-options';
 import { clearUserActiveCache, isUserActive } from '@/lib/auth/user-active';
 
+/** What the session-state read selects (CODE-02A): the state of the account behind a token. */
+function stateRow(overrides: Record<string, unknown> = {}) {
+  return {
+    isActive: true,
+    deletedAt: null,
+    sessionVersion: 0,
+    role: 'USER',
+    tier: 'FREE',
+    ...overrides,
+  };
+}
+
 type Authorize = (credentials: {
   email: string;
   password: string;
@@ -179,17 +191,24 @@ describe('F21: deactivated accounts', () => {
     const token = { id: 'user-1', email: 'alice@example.com' };
 
     it('throws once the account is deactivated, which NextAuth turns into no session', async () => {
-      mockUserFindUnique.mockResolvedValue({ isActive: false });
+      mockUserFindUnique.mockResolvedValue(stateRow({ isActive: false }));
 
       await expect(runJwt(token)).rejects.toThrow('ACCOUNT_DEACTIVATED');
+      // CODE-02A: one read answers the account's state, version, role and tier together.
       expect(mockUserFindUnique).toHaveBeenCalledWith({
         where: { id: 'user-1' },
-        select: { isActive: true },
+        select: {
+          isActive: true,
+          deletedAt: true,
+          sessionVersion: true,
+          role: true,
+          tier: true,
+        },
       });
     });
 
     it('returns the token while the account is active, asking the database once per window', async () => {
-      mockUserFindUnique.mockResolvedValue({ isActive: true });
+      mockUserFindUnique.mockResolvedValue(stateRow());
 
       await expect(runJwt(token)).resolves.toMatchObject({ id: 'user-1' });
       await runJwt(token);
@@ -199,10 +218,10 @@ describe('F21: deactivated accounts', () => {
     });
 
     it('reads a deactivated account again every time, so a cancelled deletion lets them back in', async () => {
-      mockUserFindUnique.mockResolvedValueOnce({ isActive: false });
+      mockUserFindUnique.mockResolvedValueOnce(stateRow({ isActive: false }));
       await expect(runJwt(token)).rejects.toThrow('ACCOUNT_DEACTIVATED');
 
-      mockUserFindUnique.mockResolvedValueOnce({ isActive: true });
+      mockUserFindUnique.mockResolvedValueOnce(stateRow());
       await expect(runJwt(token)).resolves.toMatchObject({ id: 'user-1' });
     });
 
@@ -247,7 +266,7 @@ describe('F21: deactivated accounts', () => {
 
   describe('isUserActive', () => {
     it('does not cache a negative answer', async () => {
-      mockUserFindUnique.mockResolvedValue({ isActive: false });
+      mockUserFindUnique.mockResolvedValue(stateRow({ isActive: false }));
 
       await expect(isUserActive('user-1')).resolves.toBe(false);
       await expect(isUserActive('user-1')).resolves.toBe(false);
@@ -255,10 +274,23 @@ describe('F21: deactivated accounts', () => {
       expect(mockUserFindUnique).toHaveBeenCalledTimes(2);
     });
 
+    it('answers false for a soft-deleted account and true when the lookup fails or the row is missing', async () => {
+      mockUserFindUnique.mockResolvedValueOnce(
+        stateRow({ deletedAt: new Date('2026-10-01') })
+      );
+      await expect(isUserActive('user-1')).resolves.toBe(false);
+
+      mockUserFindUnique.mockRejectedValueOnce(new Error('connection reset'));
+      await expect(isUserActive('user-1')).resolves.toBe(true);
+
+      mockUserFindUnique.mockResolvedValueOnce(null);
+      await expect(isUserActive('user-2')).resolves.toBe(true);
+    });
+
     it('forgets an answer after 30 seconds', async () => {
       jest.useFakeTimers({ now: 1_000_000 });
       try {
-        mockUserFindUnique.mockResolvedValue({ isActive: true });
+        mockUserFindUnique.mockResolvedValue(stateRow());
         await isUserActive('user-1');
 
         jest.setSystemTime(1_000_000 + 29_000);
