@@ -138,6 +138,11 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   child fails with `0xC0000142` (the log says "client backend ... was terminated by exception 0xC0000142" and the server shuts down). Start
   `postgres.exe` with `Start-Process -WindowStyle Hidden -RedirectStandardError <file>` so it owns its console, poll `pg_isready`, and stop it
   with `pg_ctl stop -m fast` or by PID. A `role "WiN" does not exist` FATAL in its log is only `pg_isready`'s default-user probe.
+- **A scratch PostgreSQL for a service that forces TLS (operation-service: `ssl: { rejectUnauthorized: false }`)** (database scaling second wave, Unit P-operation, 2026-10-24): `initdb -A trust -U postgres`, a self-signed
+  certificate (`openssl req -new -x509 -nodes -days 2 -subj /CN=localhost`), `postgres.exe` started hidden with `-c ssl=on -c ssl_cert_file=... -c ssl_key_file=...`. Then replace `pg_hba.conf` by `hostnossl all all 127.0.0.1/32 reject` and
+  `hostssl all all 127.0.0.1/32 trust` and run `SELECT pg_reload_conf()`: the default `host ... trust` lines accept plain connections too, so a build that dropped `ssl` would still pass. **Do not put `sslmode=` in the fixture URL**: the
+  installed `pg-connection-string` parses `sslmode=require` to `ssl: {}` (an alias of verify-full) and that REPLACES the service's own `ssl` option, so the self-signed certificate is refused (installed-driver probe,
+  `pg` 8.22.0). The recipe and the fixture are `operation-service/src/prisma/prisma.pool.pg.spec.ts` (gated by `OPS_POOL_PG_URL` and `OPS_POOL_PG_ALLOW_WIPE=yes`).
 - **Shell cwd drifts**: a `cd` inside one Bash call changes the primary working directory for later calls (it moved to `railway-gateway/` and to a fixtures
   folder in one session). Use absolute paths or `git -C`. A subshell, `( cd <dir> && npx jest ... )`, does not move it (used throughout build step 3 part 3).
 - **`python -m mcd_worker.cli` runs nothing with the committed config**: `worker_config.yaml` has every MCD `off` (as it must until a person records evidence), so the result has `order: []` and `results: []`. A spec that wants readings passes `--config` with

@@ -829,5 +829,22 @@ describe('OutboxConsumerService', () => {
 
       expect(redis.set).not.toHaveBeenCalled();
     });
+
+    it('fails the delivery with no claim and no e-mail when the user read cannot get a pool connection, and the retry then sends once', async () => {
+      findUnique.mockRejectedValueOnce(
+        new Error('timeout exceeded when trying to connect')
+      );
+
+      await expect(
+        service.processEvent(makeEvent('TIER_DOWNGRADED'))
+      ).rejects.toThrow('timeout exceeded when trying to connect');
+      expect(redis.set).not.toHaveBeenCalled();
+      expect(redis.store.size).toBe(0);
+      expect(mockSendCancellationEmail).not.toHaveBeenCalled();
+
+      const retry = await service.processEvent(makeEvent('TIER_DOWNGRADED'));
+      expect(retry).toEqual({ status: 'processed' });
+      expect(mockSendCancellationEmail).toHaveBeenCalledTimes(1);
+    });
   });
 });
