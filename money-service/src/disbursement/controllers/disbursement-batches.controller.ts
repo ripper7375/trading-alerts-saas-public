@@ -21,6 +21,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  ServiceUnavailableException,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -32,6 +33,10 @@ import { WisePaymentProvider } from '../../wise/providers/wise-payment.provider'
 import { BatchManagerService } from '../batch-manager.service';
 import { PaymentOrchestratorService } from '../payment-orchestrator.service';
 import { DisbursementSettingsService } from '../disbursement-settings.service';
+import {
+  DISBURSEMENT_NOT_CONFIGURED_BODY,
+  DisbursementConfigError,
+} from '../disbursement.constants';
 import type { PaymentProvider } from '../providers/base-provider';
 import {
   createPaymentProvider,
@@ -88,6 +93,14 @@ export class DisbursementBatchesController {
             : undefined
         );
       } catch (error) {
+        if (error instanceof DisbursementConfigError) {
+          // CODE-03: the payout provider is not configured here. A fixed 503,
+          // no details; the cause goes to the server log only.
+          console.error('Payout provider is not configured:', error);
+          throw new ServiceUnavailableException({
+            ...DISBURSEMENT_NOT_CONFIGURED_BODY,
+          });
+        }
         throw new InternalServerErrorException({
           error: 'Failed to initialize payment provider',
           details: error instanceof Error ? error.message : 'Unknown error',

@@ -382,4 +382,70 @@ describe('DisbursementProcessorService', () => {
       expect(result.accountsUpdated).toBe(0);
     });
   });
+  // CODE-03 (WS-1): the provider is read before any aggregation or batch, so an
+  // unconfigured provider ends the tick with nothing created and nothing paid.
+  describe('payout provider fails closed (CODE-03)', () => {
+    const KEYS = ['NODE_ENV', 'DISBURSEMENT_PROVIDER', 'VERCEL_ENV'] as const;
+    const saved = new Map<string, string | undefined>();
+    const FIXED_MESSAGE =
+      'DISBURSEMENT_PROVIDER must be set to a real provider outside development and test';
+
+    const setEnv = (key: (typeof KEYS)[number], value: string | undefined) => {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    };
+
+    beforeEach(() => {
+      for (const key of KEYS) saved.set(key, process.env[key]);
+      setEnv('NODE_ENV', 'production');
+      setEnv('DISBURSEMENT_PROVIDER', undefined);
+      setEnv('VERCEL_ENV', undefined);
+    });
+
+    afterEach(() => {
+      for (const key of KEYS) setEnv(key, saved.get(key));
+    });
+
+    it.each([
+      ['unset', undefined],
+      ['MOCK', 'MOCK'],
+    ])(
+      'ends the tick as a failure with no batch and no payment when DISBURSEMENT_PROVIDER is %s in production',
+      async (_label, value) => {
+        setEnv('DISBURSEMENT_PROVIDER', value);
+        prismaMock.commission.updateMany.mockResolvedValue({
+          count: 0,
+        } as never);
+        const aggregator = service[
+          'commissionAggregator'
+        ] as CommissionAggregatorService;
+        const aggregateSpy = jest.spyOn(
+          aggregator,
+          'getAllPayableAffiliatesForProvider'
+        );
+
+        const result = await service.processAutomatedDisbursements();
+
+        expect(result.success).toBe(false);
+        expect(result.batchesCreated).toBe(0);
+        expect(result.batchesExecuted).toBe(0);
+        expect(result.totalAmount).toBe(0);
+        expect(result.errors).toEqual([FIXED_MESSAGE]);
+        expect(aggregateSpy).not.toHaveBeenCalled();
+        expect(prismaMock.paymentBatch.create).not.toHaveBeenCalled();
+        expect(
+          prismaMock.disbursementTransaction.update
+        ).not.toHaveBeenCalled();
+        expect(prismaMock.commission.update).not.toHaveBeenCalled();
+        const actions = prismaMock.disbursementAuditLog.create.mock.calls.map(
+          (call) =>
+            (call[0] as { data: Record<string, unknown> }).data['action']
+        );
+        expect(actions).toContain('cron.disbursement_error');
+      }
+    );
+  });
 });

@@ -165,6 +165,11 @@ describe('PaymentOrchestratorService', () => {
      * marking commissions `PAID` under `MOCK` in production, which nothing
      * receives) — flagging for Davin/Advisor rather than changing it as a
      * drive-by inside this session.
+     *
+     * UPDATE (WS-1, CODE-03): the premise no longer holds. Outside development
+     * and test the provider factory refuses `MOCK` (and an unset or unknown
+     * `DISBURSEMENT_PROVIDER`) with a DisbursementConfigError, so the mock
+     * provider cannot run in production at all; this test builds it directly.
      */
     it('KNOWN GAP: MockPaymentProvider mints its own transactionId, so the result never matches and the "successful" payment is silently skipped', async () => {
       prismaMock.paymentBatch.findUnique.mockResolvedValue(baseBatch as never);

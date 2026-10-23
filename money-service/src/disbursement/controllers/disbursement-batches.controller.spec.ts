@@ -5,6 +5,7 @@ import { Test } from '@nestjs/testing';
 
 import { BatchManagerService } from '../batch-manager.service';
 import { PaymentOrchestratorService } from '../payment-orchestrator.service';
+import * as providerFactory from '../providers/provider-factory';
 
 import { DisbursementBatchesController } from './disbursement-batches.controller';
 import { WisePaymentProvider } from '../../wise/providers/wise-payment.provider';
@@ -202,6 +203,88 @@ describe('DisbursementBatchesController', () => {
         if (original === undefined) delete process.env['DISBURSEMENT_ENABLED'];
         else process.env['DISBURSEMENT_ENABLED'] = original;
       }
+    });
+  });
+  // CODE-03 (WS-1): the mock provider exists only in development and test.
+  describe('payout provider fails closed (CODE-03)', () => {
+    const KEYS = ['NODE_ENV', 'DISBURSEMENT_PROVIDER', 'VERCEL_ENV'] as const;
+    const saved = new Map<string, string | undefined>();
+    const pendingMockBatch = {
+      id: 'batch-1',
+      status: 'PENDING',
+      provider: 'MOCK',
+    };
+
+    const setEnv = (key: (typeof KEYS)[number], value: string | undefined) => {
+      if (value === undefined) {
+        delete process.env[key];
+      } else {
+        process.env[key] = value;
+      }
+    };
+
+    beforeEach(() => {
+      for (const key of KEYS) saved.set(key, process.env[key]);
+      setEnv('NODE_ENV', 'production');
+      setEnv('DISBURSEMENT_PROVIDER', undefined);
+      setEnv('VERCEL_ENV', undefined);
+    });
+
+    afterEach(() => {
+      for (const key of KEYS) setEnv(key, saved.get(key));
+      jest.restoreAllMocks();
+    });
+
+    it('refuses a stored MOCK batch in production with a 400, before any provider is built', async () => {
+      batchManagerMock.getBatchById.mockResolvedValue(pendingMockBatch);
+
+      await expect(controller.execute('batch-1')).rejects.toMatchObject({
+        status: 400,
+      });
+      expect(orchestratorMock.executeBatch).not.toHaveBeenCalled();
+    });
+
+    it('answers a fixed 503 with no details when the factory reports a configuration error', async () => {
+      // Force the availability check open so the factory itself is reached.
+      jest.spyOn(providerFactory, 'isProviderAvailable').mockReturnValue(true);
+      const consoleError = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+      batchManagerMock.getBatchById.mockResolvedValue(pendingMockBatch);
+
+      let caught: unknown;
+      try {
+        await controller.execute('batch-1');
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toMatchObject({ status: 503 });
+      expect((caught as { getResponse: () => unknown }).getResponse()).toEqual({
+        error: 'Disbursement is not configured',
+      });
+      expect(orchestratorMock.executeBatch).not.toHaveBeenCalled();
+      expect(consoleError).toHaveBeenCalled();
+    });
+
+    it('still executes a MOCK batch in test', async () => {
+      setEnv('NODE_ENV', 'test');
+      batchManagerMock.getBatchById
+        .mockResolvedValueOnce(pendingMockBatch)
+        .mockResolvedValueOnce(null);
+      orchestratorMock.executeBatch.mockResolvedValue({
+        success: true,
+        batchId: 'batch-1',
+        batchNumber: 'B-001',
+        totalAmount: 100,
+        successCount: 1,
+        failedCount: 0,
+        errors: [],
+      });
+
+      await expect(controller.execute('batch-1')).resolves.toMatchObject({
+        success: true,
+      });
     });
   });
 });

@@ -34,17 +34,71 @@ export const SUPPORTED_PROVIDERS: DisbursementProvider[] = [
 ];
 
 /**
- * Get the default payment provider from environment
+ * Thrown when the payout provider is not configured for the environment.
+ * Refusing happens at use, never at boot: a service that refuses to start would
+ * also stop checkout and webhooks (CODE-03, D-9).
+ */
+export class DisbursementConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'DisbursementConfigError';
+  }
+}
+
+/**
+ * Body of the 503 that a money-moving route answers with when the payout
+ * provider is not configured. Fixed text: the cause stays in the server log.
+ */
+export const DISBURSEMENT_NOT_CONFIGURED_BODY = {
+  error: 'Disbursement is not configured',
+} as const;
+
+/**
+ * The mock provider exists only in development and test. Only NODE_ENV decides:
+ * on Vercel Preview NODE_ENV is "production", so Preview is refused too.
+ */
+export function isMockProviderAllowed(): boolean {
+  const env = process.env['NODE_ENV'];
+  return env === 'development' || env === 'test';
+}
+
+/**
+ * Get the default payment provider from environment.
+ *
+ * Fails closed: outside development and test an unset, MOCK or unknown
+ * DISBURSEMENT_PROVIDER throws a DisbursementConfigError instead of silently
+ * falling back to the mock provider.
  */
 export function getDefaultProvider(): DisbursementProvider {
-  const envProvider = process.env['DISBURSEMENT_PROVIDER'];
+  const envProvider = (process.env['DISBURSEMENT_PROVIDER'] ?? '')
+    .trim()
+    .toUpperCase();
   if (envProvider === 'RISE') {
     return 'RISE';
   }
   if (envProvider === 'WISE') {
     return 'WISE';
   }
-  return 'MOCK';
+  if (isMockProviderAllowed()) {
+    return 'MOCK';
+  }
+  throw new DisbursementConfigError(
+    'DISBURSEMENT_PROVIDER must be set to a real provider outside development and test'
+  );
+}
+
+/**
+ * The configured provider for displays (health, settings, admin header).
+ * Never throws: an unconfigured provider is reported as 'UNCONFIGURED'.
+ */
+export function getConfiguredProviderName():
+  | DisbursementProvider
+  | 'UNCONFIGURED' {
+  try {
+    return getDefaultProvider();
+  } catch {
+    return 'UNCONFIGURED';
+  }
 }
 
 // RiseWorks API URLs
