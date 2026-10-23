@@ -22,6 +22,7 @@ import {
   buildNewDeviceLoginEmail,
   buildPasswordChangedEmail,
   buildPasswordResetEmail,
+  buildPayoutDetailsChangedEmail,
   buildSubscriptionConfirmationEmail,
   buildTwoFactorDisabledEmail,
   buildTwoFactorEnabledEmail,
@@ -447,6 +448,28 @@ export async function sendTwoFactorDisabledEmail(
       ipAddress,
       location,
       timestamp: new Date(),
+    })
+  );
+}
+
+/**
+ * Send the payout-details notice (WS-9, CODE-06A): payout details were added or
+ * changed on an affiliate account and payouts to them are on hold. The text
+ * carries no bank detail; it only has the two moments and the hold length.
+ */
+export async function sendPayoutDetailsChangedEmail(
+  to: string,
+  name: string,
+  input: { changedAt: Date; holdUntil: Date; holdHours: number },
+  locale?: EmailLocale
+): Promise<{ success: boolean; error?: string }> {
+  return sendBuilt(
+    to,
+    buildPayoutDetailsChangedEmail(await localeFor(to, locale), {
+      name,
+      changedAt: input.changedAt,
+      holdUntil: input.holdUntil,
+      holdHours: input.holdHours,
     })
   );
 }

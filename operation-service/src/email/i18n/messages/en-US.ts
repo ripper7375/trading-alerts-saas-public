@@ -142,6 +142,20 @@ export const enUS = {
   'twoFactorDisabled.subject':
     'Security Alert: Two-Factor Authentication Disabled',
 
+  // ── Payout details added or changed (affiliate payouts) ──────────────────
+  'payoutDetails.heading': 'Payout Details Changed',
+  'payoutDetails.body':
+    'Hi {name}, payout details were added or changed on your Trading Alerts affiliate account.',
+  'payoutDetails.holdLabel': 'Payouts on hold until:',
+  'payoutDetails.hold':
+    'For your protection, payouts to these details are on hold for {hours} hours. Your earnings are safe and will be paid once the hold ends.',
+  'payoutDetails.ifYou': '**If you made this change:** no action is needed.',
+  'payoutDetails.ifNotYou':
+    "**If you didn't make this change:** your account may be compromised. Please:",
+  'payoutDetails.tip2': 'Contact our support team before the hold ends',
+  'payoutDetails.tip3': 'Review your account for unauthorized changes',
+  'payoutDetails.subject': 'Security Alert: Your Payout Details Were Changed',
+
   // ── Account deletion (confirm or cancel) ──────────────────────────────────
   'accountDeletion.heading': 'Confirm Your Account Deletion',
   'accountDeletion.body':

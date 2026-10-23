@@ -135,6 +135,23 @@ export const it: EmailMessages = {
   'twoFactorDisabled.subject':
     'Avviso di sicurezza: autenticazione a due fattori disattivata',
 
+  'payoutDetails.heading': 'Dati di pagamento modificati',
+  'payoutDetails.body':
+    'Ciao {name}, i dati di pagamento del tuo account affiliato Trading Alerts sono stati aggiunti o modificati.',
+  'payoutDetails.holdLabel': 'Pagamenti sospesi fino a:',
+  'payoutDetails.hold':
+    'Per la tua protezione, i pagamenti verso questi dati sono sospesi per {hours} ore. I tuoi guadagni sono al sicuro e verranno pagati al termine della sospensione.',
+  'payoutDetails.ifYou':
+    '**Se hai fatto tu questa modifica:** non devi fare nulla.',
+  'payoutDetails.ifNotYou':
+    '**Se non hai fatto tu questa modifica:** il tuo account potrebbe essere compromesso. Per favore:',
+  'payoutDetails.tip2':
+    'Contatta il nostro team di assistenza prima che finisca la sospensione',
+  'payoutDetails.tip3':
+    'Controlla il tuo account per eventuali modifiche non autorizzate',
+  'payoutDetails.subject':
+    'Avviso di sicurezza: i tuoi dati di pagamento sono stati modificati',
+
   'accountDeletion.heading': "Conferma l'eliminazione del tuo account",
   'accountDeletion.body':
     'Ciao {name}, abbiamo ricevuto una richiesta di eliminazione definitiva del tuo account Trading Alerts.',

@@ -115,6 +115,19 @@ export const zhTW: EmailMessages = {
   'twoFactorDisabled.tip3': '檢查您的帳戶是否有未經授權的變更',
   'twoFactorDisabled.subject': '安全提醒：雙重認證已停用',
 
+  'payoutDetails.heading': '收款資訊已變更',
+  'payoutDetails.body':
+    '{name}，您好：您的 Trading Alerts 聯盟帳戶已新增或變更收款資訊。',
+  'payoutDetails.holdLabel': '付款暫緩至：',
+  'payoutDetails.hold':
+    '為了保護您的帳戶，向這些收款資訊付款將暫緩 {hours} 小時。您的收益是安全的，暫緩期結束後將會支付。',
+  'payoutDetails.ifYou': '**如果是您本人所做的變更：** 無需任何操作。',
+  'payoutDetails.ifNotYou':
+    '**如果不是您本人所做的變更：** 您的帳戶可能已遭盜用。請：',
+  'payoutDetails.tip2': '在暫緩期結束前聯絡我們的支援團隊',
+  'payoutDetails.tip3': '檢查您的帳戶是否有未經授權的變更',
+  'payoutDetails.subject': '安全提醒：您的收款資訊已變更',
+
   'accountDeletion.heading': '確認刪除您的帳戶',
   'accountDeletion.body':
     '{name}，您好：我們收到了永久刪除您的 Trading Alerts 帳戶的請求。',

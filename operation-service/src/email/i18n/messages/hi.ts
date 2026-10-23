@@ -126,6 +126,21 @@ export const hi: EmailMessages = {
   'twoFactorDisabled.tip3': 'अपने खाते में किसी अनधिकृत बदलाव की जाँच करें',
   'twoFactorDisabled.subject': 'सुरक्षा अलर्ट: द्वि-चरणीय प्रमाणीकरण बंद हुआ',
 
+  'payoutDetails.heading': 'भुगतान विवरण बदले गए',
+  'payoutDetails.body':
+    'नमस्ते {name}, आपके Trading Alerts एफ़िलिएट खाते में भुगतान विवरण जोड़े या बदले गए हैं।',
+  'payoutDetails.holdLabel': 'भुगतान इस समय तक रोके गए हैं:',
+  'payoutDetails.hold':
+    'आपकी सुरक्षा के लिए, इन विवरणों पर भुगतान {hours} घंटे के लिए रोके गए हैं। आपकी कमाई सुरक्षित है और रोक समाप्त होने के बाद उसका भुगतान कर दिया जाएगा।',
+  'payoutDetails.ifYou':
+    '**यदि यह बदलाव आपने किया:** तो किसी कार्रवाई की आवश्यकता नहीं है।',
+  'payoutDetails.ifNotYou':
+    '**यदि यह बदलाव आपने नहीं किया:** आपका खाता असुरक्षित हो सकता है। कृपया:',
+  'payoutDetails.tip2':
+    'रोक समाप्त होने से पहले हमारी सहायता टीम से संपर्क करें',
+  'payoutDetails.tip3': 'अपने खाते में किसी अनधिकृत बदलाव की जाँच करें',
+  'payoutDetails.subject': 'सुरक्षा अलर्ट: आपके भुगतान विवरण बदले गए',
+
   'accountDeletion.heading': 'अपने खाते को हटाने की पुष्टि करें',
   'accountDeletion.body':
     'नमस्ते {name}, हमें आपका Trading Alerts खाता स्थायी रूप से हटाने का अनुरोध मिला है।',

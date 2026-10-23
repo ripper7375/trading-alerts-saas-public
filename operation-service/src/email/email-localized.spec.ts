@@ -216,6 +216,39 @@ describe("the senders find the recipient's language through the registered resol
     expect(german).not.toContain('$35/month');
   });
 
+  it('sends the payout-details notice in the resolved language, with the hold it is told about (WS-9)', async () => {
+    const { send, email, registry } = isolatedSender();
+    registry.setRecipientLocaleResolver(async () => ({
+      language: 'de',
+      timezone: 'Europe/Berlin',
+      dateFormat: 'DMY',
+      timeFormat: '24h',
+    }));
+
+    const result = await email.sendPayoutDetailsChangedEmail(
+      'a@b.test',
+      'Ada',
+      {
+        changedAt: new Date('2026-10-23T09:30:00.000Z'),
+        holdUntil: new Date('2026-10-26T09:30:00.000Z'),
+        holdHours: 72,
+      }
+    );
+
+    expect(result.success).toBe(true);
+    const sent = send.mock.calls[0]?.[0] as {
+      to: string;
+      subject: string;
+      html: string;
+    };
+    expect(sent.subject).toBe(
+      'Sicherheitshinweis: Ihre Auszahlungsdaten wurden geändert'
+    );
+    expect(sent.html).toContain('für 72 Stunden gesperrt');
+    expect(sent.html).toContain('26/10/2026');
+    expect(sent.html).toContain('/settings/security');
+  });
+
   it('greets an account with no name by the localized word', async () => {
     const { send, email, registry } = isolatedSender();
     registry.setRecipientLocaleResolver(async () => ({ language: 'de' }));

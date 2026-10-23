@@ -10,4 +10,5 @@ export const enGB: EmailMessages = {
     'Payouts are sent via Wise once your balance crosses the monthly minimum. If you have any questions, reply to this email or visit our help centre.',
   'passwordChanged.tip2': 'Review your account for any unauthorised changes',
   'twoFactorDisabled.tip3': 'Review your account for unauthorised changes',
+  'payoutDetails.tip3': 'Review your account for unauthorised changes',
 };

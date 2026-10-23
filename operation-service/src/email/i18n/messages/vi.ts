@@ -128,6 +128,23 @@ export const vi: EmailMessages = {
     'Kiểm tra tài khoản xem có thay đổi trái phép nào không',
   'twoFactorDisabled.subject': 'Cảnh báo bảo mật: đã tắt xác thực hai lớp',
 
+  'payoutDetails.heading': 'Thông tin thanh toán đã thay đổi',
+  'payoutDetails.body':
+    'Xin chào {name}, thông tin thanh toán trên tài khoản đối tác Trading Alerts của bạn đã được thêm hoặc thay đổi.',
+  'payoutDetails.holdLabel': 'Khoản thanh toán bị giữ đến:',
+  'payoutDetails.hold':
+    'Để bảo vệ bạn, các khoản thanh toán đến thông tin này bị giữ trong {hours} giờ. Thu nhập của bạn vẫn an toàn và sẽ được thanh toán khi hết thời gian giữ.',
+  'payoutDetails.ifYou':
+    '**Nếu bạn thực hiện thay đổi này:** bạn không cần làm gì thêm.',
+  'payoutDetails.ifNotYou':
+    '**Nếu bạn không thực hiện thay đổi này:** tài khoản của bạn có thể đã bị xâm nhập. Vui lòng:',
+  'payoutDetails.tip2':
+    'Liên hệ đội ngũ hỗ trợ của chúng tôi trước khi hết thời gian giữ',
+  'payoutDetails.tip3':
+    'Kiểm tra tài khoản xem có thay đổi trái phép nào không',
+  'payoutDetails.subject':
+    'Cảnh báo bảo mật: thông tin thanh toán của bạn đã thay đổi',
+
   'accountDeletion.heading': 'Xác nhận xóa tài khoản của bạn',
   'accountDeletion.body':
     'Xin chào {name}, chúng tôi đã nhận được yêu cầu xóa vĩnh viễn tài khoản Trading Alerts của bạn.',

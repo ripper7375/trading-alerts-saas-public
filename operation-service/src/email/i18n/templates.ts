@@ -410,6 +410,58 @@ export function buildTwoFactorDisabledEmail(
   );
 }
 
+/**
+ * Told to the owner of an affiliate account when payout details are added or
+ * changed (WS-9, CODE-06A), together with the fact that payouts to them are on
+ * hold. It takes no bank detail by design: only the name and the two moments.
+ * The button goes to the security settings, never to a payout page: a person
+ * who did not make the change should secure the account first.
+ */
+export function buildPayoutDetailsChangedEmail(
+  locale: EmailLocale,
+  input: {
+    name: string | null | undefined;
+    /** When the details were added or changed. */
+    changedAt: Date;
+    /** When payouts to them may start. */
+    holdUntil: Date;
+    /** The length of the hold, in hours. */
+    holdHours: number;
+  }
+): BuiltEmail {
+  const ctx = createContext(locale);
+  const name = displayName(ctx, input.name);
+  const settingsUrl = `${appUrl(CARD_URL_FALLBACK)}/settings/security`;
+
+  const inner = card.wrap(
+    ctx,
+    `${card.banner('#fef3c7', '#92400e', ctx.h('payoutDetails.heading'))}
+        ${card.p(ctx.h('payoutDetails.body', { name }))}
+        ${card.facts(ctx, [
+          [ctx.p('label.time'), formatEmailDateTime(input.changedAt, locale)],
+          [
+            ctx.p('payoutDetails.holdLabel'),
+            formatEmailDateTime(input.holdUntil, locale),
+          ],
+        ])}
+        ${card.p(ctx.h('payoutDetails.hold', { hours: input.holdHours }), '16px 0')}
+        ${card.p(ctx.h('payoutDetails.ifYou'), '16px 0')}
+        ${card.p(ctx.h('payoutDetails.ifNotYou'), '16px 0')}
+        ${card.ul(ctx, [
+          ctx.h('security.changePassword'),
+          ctx.h('payoutDetails.tip2'),
+          ctx.h('payoutDetails.tip3'),
+        ])}
+        ${card.button(settingsUrl, ctx.h('security.secureButton'), '#dc2626')}
+        ${card.securityFooter(ctx, settingsUrl)}`
+  );
+
+  return finish(
+    ctx.p('payoutDetails.subject'),
+    documentShell(ctx, ctx.p('payoutDetails.heading'), card.bodyStyle, inner)
+  );
+}
+
 // ─── Subscription mail ──────────────────────────────────────────────────────
 
 export function buildSubscriptionConfirmationEmail(

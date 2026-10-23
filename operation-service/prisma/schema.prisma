@@ -229,6 +229,7 @@ enum SecurityAlertType {
   TWO_FACTOR_DISABLED
   SUSPICIOUS_LOGIN
   ACCOUNT_LOCKED
+  PAYOUT_DETAILS_CHANGED
 }
 
 model SecurityAlert {

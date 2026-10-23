@@ -124,6 +124,19 @@ export const ko: EmailMessages = {
   'twoFactorDisabled.tip3': '계정에 허가되지 않은 변경이 없는지 확인하세요',
   'twoFactorDisabled.subject': '보안 알림: 이중 인증이 꺼졌습니다',
 
+  'payoutDetails.heading': '지급 정보가 변경되었습니다',
+  'payoutDetails.body':
+    '{name}님, Trading Alerts 제휴 계정에 지급 정보가 추가되거나 변경되었습니다.',
+  'payoutDetails.holdLabel': '지급 보류 기한:',
+  'payoutDetails.hold':
+    '고객님을 보호하기 위해 이 정보로의 지급은 {hours}시간 동안 보류됩니다. 수익은 안전하게 보관되며 보류가 끝나면 지급됩니다.',
+  'payoutDetails.ifYou': '**본인이 변경한 경우:** 별도로 하실 일은 없습니다.',
+  'payoutDetails.ifNotYou':
+    '**본인이 변경하지 않은 경우:** 계정이 도용되었을 수 있습니다. 다음을 진행해 주세요:',
+  'payoutDetails.tip2': '보류가 끝나기 전에 고객 지원팀에 문의하세요',
+  'payoutDetails.tip3': '계정에 허가되지 않은 변경이 없는지 확인하세요',
+  'payoutDetails.subject': '보안 알림: 지급 정보가 변경되었습니다',
+
   'accountDeletion.heading': '계정 삭제를 확인해 주세요',
   'accountDeletion.body':
     '{name}님, Trading Alerts 계정을 영구적으로 삭제해 달라는 요청을 받았습니다.',

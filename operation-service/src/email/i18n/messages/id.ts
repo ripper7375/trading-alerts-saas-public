@@ -130,6 +130,21 @@ export const id: EmailMessages = {
   'twoFactorDisabled.subject':
     'Peringatan keamanan: autentikasi dua faktor dinonaktifkan',
 
+  'payoutDetails.heading': 'Detail Pembayaran Diubah',
+  'payoutDetails.body':
+    'Halo {name}, detail pembayaran di akun afiliasi Trading Alerts Anda telah ditambahkan atau diubah.',
+  'payoutDetails.holdLabel': 'Pembayaran ditahan hingga:',
+  'payoutDetails.hold':
+    'Demi perlindungan Anda, pembayaran ke detail ini ditahan selama {hours} jam. Pendapatan Anda aman dan akan dibayarkan setelah masa penahanan berakhir.',
+  'payoutDetails.ifYou':
+    '**Jika Anda yang melakukan perubahan ini:** tidak ada tindakan yang diperlukan.',
+  'payoutDetails.ifNotYou':
+    '**Jika bukan Anda yang melakukan perubahan ini:** akun Anda mungkin telah diretas. Mohon:',
+  'payoutDetails.tip2':
+    'Hubungi tim dukungan kami sebelum masa penahanan berakhir',
+  'payoutDetails.tip3': 'Periksa akun Anda dari perubahan yang tidak sah',
+  'payoutDetails.subject': 'Peringatan keamanan: detail pembayaran Anda diubah',
+
   'accountDeletion.heading': 'Konfirmasi penghapusan akun Anda',
   'accountDeletion.body':
     'Halo {name}, kami menerima permintaan untuk menghapus akun Trading Alerts Anda secara permanen.',

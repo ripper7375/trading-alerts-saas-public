@@ -3,7 +3,10 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
-import { sendSubscriptionConfirmationEmail } from '../email/email.util';
+import {
+  sendPayoutDetailsChangedEmail,
+  sendSubscriptionConfirmationEmail,
+} from '../email/email.util';
 import {
   sendAffiliateCommissionEmail,
   sendCancellationEmail,
@@ -16,6 +19,7 @@ import { OutboxConsumerService } from './outbox-consumer.service';
 
 jest.mock('../email/email.util', () => ({
   sendSubscriptionConfirmationEmail: jest.fn(),
+  sendPayoutDetailsChangedEmail: jest.fn(),
 }));
 jest.mock('../email/subscription-email.util', () => ({
   sendAffiliateCommissionEmail: jest.fn(),
@@ -28,6 +32,10 @@ jest.mock('../email/subscription-email.util', () => ({
 const mockSendSubscriptionConfirmationEmail =
   sendSubscriptionConfirmationEmail as jest.MockedFunction<
     typeof sendSubscriptionConfirmationEmail
+  >;
+const mockSendPayoutDetailsChangedEmail =
+  sendPayoutDetailsChangedEmail as jest.MockedFunction<
+    typeof sendPayoutDetailsChangedEmail
   >;
 const mockSendCancellationEmail = sendCancellationEmail as jest.MockedFunction<
   typeof sendCancellationEmail
@@ -96,13 +104,16 @@ class FakeRedis {
 describe('OutboxConsumerService', () => {
   let service: OutboxConsumerService;
   let findUnique: jest.Mock;
+  let createAlert: jest.Mock;
   let redis: FakeRedis;
 
   beforeEach(() => {
     jest.clearAllMocks();
     findUnique = jest.fn();
+    createAlert = jest.fn().mockResolvedValue({ id: 'alert_1' });
     const prisma = {
       user: { findUnique },
+      securityAlert: { create: createAlert },
     } as unknown as ConstructorParameters<typeof OutboxConsumerService>[0];
     redis = new FakeRedis();
     service = new OutboxConsumerService(prisma, {
@@ -113,6 +124,7 @@ describe('OutboxConsumerService', () => {
       success: true,
     });
     mockSendCancellationEmail.mockResolvedValue({ success: true });
+    mockSendPayoutDetailsChangedEmail.mockResolvedValue({ success: true });
     mockSendPaymentFailedEmail.mockResolvedValue({ success: true });
     mockSendPaymentReceiptEmail.mockResolvedValue({ success: true });
     mockSendSubscriptionCanceledEmail.mockResolvedValue({ success: true });
@@ -345,6 +357,138 @@ describe('OutboxConsumerService', () => {
       123.45
     );
     expect(result).toEqual({ status: 'processed' });
+  });
+
+  describe('PAYOUT_DETAILS_CHANGED (WS-9, CODE-06A)', () => {
+    const payload = {
+      affiliateProfileId: 'aff_profile_1',
+      changeKind: 'REPLACED',
+      changedAt: '2026-10-23T09:30:00.000Z',
+      holdUntil: '2026-10-26T09:30:00.000Z',
+      holdHours: 72,
+    };
+
+    it('sends the notice to the User named by aggregateId, with the moments and the length of the hold', async () => {
+      findUnique.mockResolvedValue({
+        email: 'affiliate@example.com',
+        name: 'Affiliate Ada',
+      });
+
+      const result = await service.processEvent(
+        makeEvent('PAYOUT_DETAILS_CHANGED', payload, 'affiliate_user_1')
+      );
+
+      expect(findUnique).toHaveBeenCalledWith({
+        where: { id: 'affiliate_user_1' },
+        select: { email: true, name: true },
+      });
+      expect(mockSendPayoutDetailsChangedEmail).toHaveBeenCalledWith(
+        'affiliate@example.com',
+        'Affiliate Ada',
+        {
+          changedAt: new Date('2026-10-23T09:30:00.000Z'),
+          holdUntil: new Date('2026-10-26T09:30:00.000Z'),
+          holdHours: 72,
+        }
+      );
+      expect(result).toEqual({ status: 'processed' });
+    });
+
+    it('then writes the in-app alert for the same User, with no bank detail in it', async () => {
+      await service.processEvent(
+        makeEvent('PAYOUT_DETAILS_CHANGED', payload, 'affiliate_user_1')
+      );
+
+      expect(createAlert).toHaveBeenCalledTimes(1);
+      const data = (
+        createAlert.mock.calls[0][0] as { data: Record<string, unknown> }
+      ).data;
+      expect(data).toMatchObject({
+        userId: 'affiliate_user_1',
+        type: 'PAYOUT_DETAILS_CHANGED',
+        title: 'Payout Details Changed',
+        emailSent: true,
+      });
+      expect(data['emailSentAt']).toBeInstanceOf(Date);
+      expect(String(data['message'])).toContain('72 hours');
+      expect(JSON.stringify(data)).not.toContain('aff_profile_1');
+      // the e-mail went out first
+      expect(
+        mockSendPayoutDetailsChangedEmail.mock.invocationCallOrder[0]
+      ).toBeLessThan(createAlert.mock.invocationCallOrder[0] as number);
+    });
+
+    it('writes no alert, and lets the publisher retry, when the e-mail fails', async () => {
+      mockSendPayoutDetailsChangedEmail.mockResolvedValue({
+        success: false,
+        error: 'Resend API error',
+      });
+
+      await expect(
+        service.processEvent(makeEvent('PAYOUT_DETAILS_CHANGED', payload))
+      ).rejects.toThrow(InternalServerErrorException);
+      expect(createAlert).not.toHaveBeenCalled();
+    });
+
+    it('does not fail, and does not send twice, when only the alert write fails', async () => {
+      createAlert.mockRejectedValue(new Error('database down'));
+
+      const result = await service.processEvent(
+        makeEvent('PAYOUT_DETAILS_CHANGED', payload)
+      );
+      const again = await service.processEvent(
+        makeEvent('PAYOUT_DETAILS_CHANGED', payload)
+      );
+
+      expect(result).toEqual({ status: 'processed' });
+      expect(again).toEqual({ status: 'skipped', reason: 'duplicate' });
+      expect(mockSendPayoutDetailsChangedEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends and writes once when the publisher delivers the event twice', async () => {
+      await service.processEvent(makeEvent('PAYOUT_DETAILS_CHANGED', payload));
+      const again = await service.processEvent(
+        makeEvent('PAYOUT_DETAILS_CHANGED', payload)
+      );
+
+      expect(again).toEqual({ status: 'skipped', reason: 'duplicate' });
+      expect(mockSendPayoutDetailsChangedEmail).toHaveBeenCalledTimes(1);
+      expect(createAlert).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['no dates', {}],
+      ['an unreadable changedAt', { ...payload, changedAt: 'yesterday' }],
+      ['no holdUntil', { ...payload, holdUntil: undefined }],
+      ['a non-numeric holdHours', { ...payload, holdHours: '72' }],
+      ['a non-positive holdHours', { ...payload, holdHours: 0 }],
+    ])(
+      'skips an event with %s instead of sending a wrong notice',
+      async (_label, bad) => {
+        const result = await service.processEvent(
+          makeEvent('PAYOUT_DETAILS_CHANGED', bad as Record<string, unknown>)
+        );
+
+        expect(result).toEqual({
+          status: 'skipped',
+          reason: 'invalid-payload',
+        });
+        expect(mockSendPayoutDetailsChangedEmail).not.toHaveBeenCalled();
+        expect(createAlert).not.toHaveBeenCalled();
+      }
+    );
+
+    it('skips when the User is gone, without a claim, an e-mail or an alert', async () => {
+      findUnique.mockResolvedValue(null);
+
+      const result = await service.processEvent(
+        makeEvent('PAYOUT_DETAILS_CHANGED', payload)
+      );
+
+      expect(result).toEqual({ status: 'skipped', reason: 'user-not-found' });
+      expect(mockSendPayoutDetailsChangedEmail).not.toHaveBeenCalled();
+      expect(createAlert).not.toHaveBeenCalled();
+    });
   });
 
   it('skips an unrecognized eventType without throwing', async () => {

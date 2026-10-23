@@ -32,7 +32,10 @@ import {
   sendPaymentReceiptEmail,
   sendSubscriptionCanceledEmail,
 } from '../email/subscription-email.util';
-import { sendSubscriptionConfirmationEmail } from '../email/email.util';
+import {
+  sendPayoutDetailsChangedEmail,
+  sendSubscriptionConfirmationEmail,
+} from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 
@@ -65,6 +68,7 @@ const KNOWN_EVENT_TYPES = new Set([
   'PAYMENT_SUCCEEDED',
   'COMMISSION_CREDITED',
   'TIER_DOWNGRADED',
+  'PAYOUT_DETAILS_CHANGED',
 ]);
 
 /**
@@ -81,6 +85,40 @@ function priceUsdOf(payload: Record<string, unknown>): number | null {
   return typeof price === 'number' && Number.isFinite(price) && price > 0
     ? price
     : null;
+}
+
+/**
+ * What the PAYOUT_DETAILS_CHANGED notice needs from money-service's payload
+ * (WS-9, CODE-06A): when the details changed, when payouts to them may start,
+ * and how many hours the hold is. A payload without all three readable is
+ * skipped rather than sent with a wrong date.
+ */
+interface PayoutNotice {
+  changedAt: Date;
+  holdUntil: Date;
+  holdHours: number;
+}
+
+function payoutNoticeOf(payload: Record<string, unknown>): PayoutNotice | null {
+  const changedAt = parseDate(payload['changedAt']);
+  const holdUntil = parseDate(payload['holdUntil']);
+  const holdHours = payload['holdHours'];
+  if (
+    changedAt === null ||
+    holdUntil === null ||
+    typeof holdHours !== 'number' ||
+    !Number.isFinite(holdHours) ||
+    holdHours <= 0
+  ) {
+    return null;
+  }
+  return { changedAt, holdUntil, holdHours };
+}
+
+function parseDate(value: unknown): Date | null {
+  if (typeof value !== 'string') return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 @Injectable()
@@ -161,6 +199,16 @@ export class OutboxConsumerService {
       return { status: 'skipped', reason: 'missing-price' };
     }
 
+    const isPayoutEvent = event.eventType === 'PAYOUT_DETAILS_CHANGED';
+    const payoutNotice = isPayoutEvent ? payoutNoticeOf(event.payload) : null;
+    if (isPayoutEvent && payoutNotice === null) {
+      console.warn(
+        `[Outbox] ${event.eventType} event has no usable dates or hold length, skipping`,
+        { outboxEventId: event.id }
+      );
+      return { status: 'skipped', reason: 'invalid-payload' };
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { id: event.aggregateId },
       select: { email: true, name: true },
@@ -198,7 +246,8 @@ export class OutboxConsumerService {
         email,
         name,
         payload,
-        priceUsd
+        priceUsd,
+        payoutNotice
       );
 
       if (!result.success) {
@@ -212,8 +261,43 @@ export class OutboxConsumerService {
       throw error;
     }
 
+    // The in-app alert goes after the e-mail and never fails the event: a
+    // retry would send the e-mail a second time.
+    if (payoutNotice) {
+      await this.recordPayoutAlert(event, payoutNotice);
+    }
+
     if (claim === 'claimed') await this.markDone(event.id);
     return { status: 'processed' };
+  }
+
+  /**
+   * The in-app side of the PAYOUT_DETAILS_CHANGED notice: a SecurityAlert on
+   * the account (shown at /settings/security/activity). Title and message are
+   * stored in English, as for every existing alert; the page labels the type
+   * in the reader's language. Nothing about the bank account is stored.
+   */
+  private async recordPayoutAlert(
+    event: OutboxEventDto,
+    notice: PayoutNotice
+  ): Promise<void> {
+    try {
+      await this.prisma.securityAlert.create({
+        data: {
+          userId: event.aggregateId,
+          type: 'PAYOUT_DETAILS_CHANGED',
+          title: 'Payout Details Changed',
+          message: `Payout details were added or changed on your affiliate account. Payouts to them are on hold for ${notice.holdHours} hours. If this was not you, secure your account now.`,
+          emailSent: true,
+          emailSentAt: new Date(),
+        },
+      });
+    } catch (error) {
+      console.warn('[Outbox] Could not write the payout-details alert', {
+        outboxEventId: event.id,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   }
 
   private async dispatch(
@@ -221,7 +305,8 @@ export class OutboxConsumerService {
     email: string,
     name: string,
     payload: Record<string, unknown>,
-    priceUsd: number | null
+    priceUsd: number | null,
+    payoutNotice: PayoutNotice | null
   ): Promise<EmailSendResult> {
     switch (eventType) {
       case 'TIER_UPGRADED': {
@@ -326,6 +411,15 @@ export class OutboxConsumerService {
           commissionAmount,
           totalEarnings
         );
+      }
+      case 'PAYOUT_DETAILS_CHANGED': {
+        // processEvent skipped the event already when the payload is unusable.
+        if (payoutNotice === null) {
+          throw new InternalServerErrorException(
+            `${eventType} reached dispatch without a usable payload`
+          );
+        }
+        return sendPayoutDetailsChangedEmail(email, name, payoutNotice);
       }
       default:
         // Unreachable: KNOWN_EVENT_TYPES already filtered to exactly this
