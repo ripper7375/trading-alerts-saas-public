@@ -4,7 +4,7 @@
   "description": "Trading-alerts MONEY service (Railway, NestJS). Session 4A-1: skeleton + deploy only — health, NextAuth JWE auth guard (same bridge as operation-service, F7), Prisma service. No domain business logic yet (affiliate/billing/payments/disbursement land in later BUILD sessions, 4A-4 onward). See docs/migration/money-service-migration-blueprint.md §5.2 and docs/migration-orders/4a-1-money-service-skeleton-deploy.migration-order.md.",
   "private": true,
   "engines": {
-    "node": ">=20.0.0",
+    "node": "22.x",
     "npm": ">=9.0.0"
   },
   "scripts": {

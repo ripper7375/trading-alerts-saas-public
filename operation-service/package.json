@@ -4,7 +4,7 @@
   "description": "Trading-alerts CORE service (Railway, NestJS). Auth bridge (Session 3-1: JwtAuthGuard verifying NextAuth-issued tokens) plus, in later sessions, the alert engine and drawing persistence ported from the monolith. See docs/migration-orders/3-1-auth-decisions-operation-service-skeleton.migration-order.md.",
   "private": true,
   "engines": {
-    "node": ">=20.0.0",
+    "node": "22.x",
     "npm": ">=9.0.0"
   },
   "scripts": {
