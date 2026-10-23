@@ -12,6 +12,14 @@ Entries rotated out of `current-state.md` by [session-lifecycle](../../protocols
 
 Back to [history index](./index.md).
 
+<!-- session 2026-10-23 pre-launch-security-checklist -->
+
+> **Ad-hoc session (2026-10-23), `main` on `dcd4f8d7`, docs only: Antigravity's pre-launch security checklist checked against the live code and upgraded to v2.1.0 at Davin's request.** The checklist lives only in the gitignored `davintrade-pre-launch-security-check-lists/` folder (the repository is public). No code, platform console or credential was touched; the only outside contact was a DNS lookup and one `HEAD` request per public host.
+> **Needs from Davin:** the checklist's operational Phase 0 items and the code orders it lists, carried forward by the newer entry and its plan.
+> **Changed & verified:** only the checklist (502 → 812 lines in v2.1.0): findings with file:line evidence, corrections of v2.0 items, a verified-as-described list, a prioritized roadmap of code orders, new operational phases and adversarial tests; it reproduces no secret value. _(Sanitized on 2026-10-23 before its first commit, on Davin's instruction: the finding details were taken out of this tracked file; they are in the checklist.)_
+> **Unconfirmed / found:** recorded in the checklist.
+> The oldest entry (B2, PRO session bars) was rotated into `history/2026-10-sessions.md`.
+
 <!-- session 2026-10-22 node-runtime-pins -->
 
 > **Ad-hoc session (2026-10-22), `main` on `dcd4f8d7`, Node runtime pins after the Node.js 21 October 2026 security release (fixed in 22.23.4 and 24.22.1): `engines.node` and the CI `setup-node` versions moved off Node 18 and 20, EDITED and checked, NOT committed, NOT pushed, NOT deployed.** Davin asked whether the release concerns this codebase. It does (the exposure analysis is in the gitignored security checklist, §6.1). The change list was proposed first and applied on his "Apply it". Davin reported that Railway has an outage and a security incident and that deploys are paused: nothing in this session connected to Railway.
