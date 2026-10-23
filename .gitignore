@@ -198,3 +198,6 @@ scratch/
 CLAUDE*-BACKUP*.md
 # In-flight multi-step checklist (per checkout; see .claude/protocols/session-lifecycle.md)
 .claude/state/active-tasks.md
+# Pre-launch security blueprints: never commit while the repository is public (checklist F-10)
+davintrade-pre-launch-security-check-lists/
+docs/runbooks/pre-launch-security-checklist.md
