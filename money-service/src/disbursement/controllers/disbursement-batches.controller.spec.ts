@@ -11,6 +11,7 @@ import { DisbursementBatchesController } from './disbursement-batches.controller
 import { WisePaymentProvider } from '../../wise/providers/wise-payment.provider';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { IdempotencyStore } from '../../common/idempotency/idempotency.store';
+import { PrismaService } from '../../prisma/prisma.service';
 import { DisbursementSettingsService } from '../disbursement-settings.service';
 import {
   createDisbursementSettingsService,
@@ -35,6 +36,9 @@ describe('DisbursementBatchesController', () => {
         { provide: BatchManagerService, useValue: batchManagerMock },
         { provide: PaymentOrchestratorService, useValue: orchestratorMock },
         { provide: WisePaymentProvider, useValue: {} },
+        // JwtAuthGuard (declared on the controller) reads the user's row (CODE-02A); the guards
+        // themselves are tested in jwt-auth.guard.spec.ts, so nothing here calls the database.
+        { provide: PrismaService, useValue: {} },
         {
           provide: DisbursementSettingsService,
           useFactory: () => createDisbursementSettingsService(settingRows),

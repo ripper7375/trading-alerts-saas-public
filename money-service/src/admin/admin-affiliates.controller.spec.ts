@@ -9,6 +9,7 @@ import { Test } from '@nestjs/testing';
 
 import { IdempotencyInterceptor } from '../common/idempotency/idempotency.interceptor';
 import { IdempotencyStore } from '../common/idempotency/idempotency.store';
+import { PrismaService } from '../prisma/prisma.service';
 
 import { AdminAffiliatesController } from './admin-affiliates.controller';
 import { AdminCodeDistributionService } from './admin-code-distribution.service';
@@ -37,6 +38,9 @@ describe('AdminAffiliatesController', () => {
           useValue: codeDistributionMock,
         },
         IdempotencyInterceptor,
+        // JwtAuthGuard (declared on the controller) reads the user's row (CODE-02A); the guards
+        // themselves are tested in jwt-auth.guard.spec.ts, so nothing here calls the database.
+        { provide: PrismaService, useValue: {} },
         {
           provide: IdempotencyStore,
           useValue: {

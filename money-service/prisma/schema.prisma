@@ -215,6 +215,13 @@ model User {
   name      String?
   tier      UserTier @default(FREE)
 
+  // The columns the session check reads (CODE-02A): mirrors of prisma/non-market-data/schema.prisma.
+  // `role`, `isActive` and `deletedAt` are not changed here; `sessionVersion` is the new column.
+  role           String    @default("USER")
+  isActive       Boolean   @default(true)
+  deletedAt      DateTime?
+  sessionVersion Int       @default(0)
+
   hasUsedThreeDayPlan Boolean   @default(false)
   threeDayPlanUsedAt  DateTime?
 
