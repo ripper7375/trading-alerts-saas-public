@@ -12,6 +12,15 @@ import TwitterProvider from 'next-auth/providers/twitter';
 
 import { ACCOUNT_DEACTIVATED_CODE } from '@/lib/account/deletion';
 import {
+  COMPLETION_USED_TTL_SECONDS,
+  TWO_FACTOR_VERIFIED,
+  TwoFactorUnavailableError,
+  consumeOnce,
+  signChallenge,
+  twoFactorKeys,
+  verifyTwoFactorToken,
+} from '@/lib/auth/two-factor-token';
+import {
   ADAPTER_USER_SELECT,
   CREDENTIALS_USER_SELECT,
   ID_ONLY_SELECT,
@@ -226,6 +235,95 @@ function CustomPrismaAdapter(): Adapter {
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 0. CREDENTIALS SIGN-IN HELPERS
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * The `email` the verify-2fa page sends, with the one-use completion token in `password`, to finish
+ * a sign-in that already passed the password step. Compared before any e-mail normalization: it is
+ * never an address.
+ */
+const TWO_FACTOR_VERIFIED_SENTINEL = '__2fa_verified__';
+
+/** What the credentials sign-in reads of a `User` to build the object NextAuth gets. */
+interface CredentialsUserRow {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  tier: string;
+  role: string;
+  isAffiliate: boolean;
+  emailVerified: Date | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+function toAuthUser(user: CredentialsUserRow): User {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    image: user.image,
+    tier: user.tier as 'FREE' | 'PRO',
+    role: (user.role === 'ADMIN' ? 'ADMIN' : 'USER') as 'USER' | 'ADMIN',
+    isAffiliate: user.isAffiliate,
+    emailVerified: user.emailVerified,
+    isActive: user.isActive,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+}
+
+/**
+ * The second step of a 2FA sign-in (CODE-01A). The token must be a COMPLETION minted by the verify
+ * step (a challenge, a `2fa_verification` token of an earlier version or any other JWT is refused)
+ * and is spent by this call. Any token or Redis failure is the same `INVALID_CREDENTIALS`: the
+ * client learns nothing about why.
+ */
+async function completeTwoFactorSignIn(completionToken: string): Promise<User> {
+  let userId: string;
+  try {
+    const claims = verifyTwoFactorToken(completionToken, TWO_FACTOR_VERIFIED);
+    const first = await consumeOnce(
+      twoFactorKeys.used(claims.jti),
+      COMPLETION_USED_TTL_SECONDS
+    );
+    if (!first) {
+      throw new Error('completion already used');
+    }
+    userId = claims.userId;
+  } catch (error) {
+    if (error instanceof TwoFactorUnavailableError) {
+      console.error('[Auth] Two-factor state unavailable; sign-in refused');
+    }
+    throw new Error('INVALID_CREDENTIALS');
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: CREDENTIALS_USER_SELECT,
+  });
+  if (!user) {
+    throw new Error('INVALID_CREDENTIALS');
+  }
+
+  // The account can be locked, or lose its 2FA, between the code and this call.
+  if (!user.isActive) {
+    throw new Error(ACCOUNT_DEACTIVATED_CODE);
+  }
+  if (user.emailVerified === null || user.emailVerified === undefined) {
+    throw new Error('EMAIL_NOT_VERIFIED');
+  }
+  if (!user.twoFactorEnabled) {
+    throw new Error('INVALID_CREDENTIALS');
+  }
+
+  return toAuthUser(user);
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 1. NEXT AUTH CONFIGURATION
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -265,9 +363,15 @@ export const authOptions: NextAuthOptions = {
           throw new Error('INVALID_CREDENTIALS');
         }
 
+        // The second step of a 2FA sign-in (see completeTwoFactorSignIn).
+        if (credentials.email === TWO_FACTOR_VERIFIED_SENTINEL) {
+          return completeTwoFactorSignIn(credentials.password);
+        }
+
         const email = credentials.email.toLowerCase().trim();
 
-        // 1. Check if email matches a predefined non-admin test account (dev/test/preview only)
+        // 1. Check if email matches a predefined non-admin test account (local development and
+        // tests only)
         const FIXED_TEST_ACCOUNTS: Record<
           string,
           {
@@ -311,11 +415,11 @@ export const authOptions: NextAuthOptions = {
         const runtimeNodeEnv = Reflect.get(process.env, 'NODE_ENV') as
           | string
           | undefined;
+        // CODE-08: these passwords are in the source. Any Vercel deployment sets VERCEL_ENV, Preview
+        // included, so on one of them the account must come from the database like any other.
         const isTestAccountsAllowed =
-          (runtimeNodeEnv === 'development' ||
-            runtimeNodeEnv === 'test' ||
-            process.env['VERCEL_ENV'] === 'preview') &&
-          process.env['VERCEL_ENV'] !== 'production';
+          (runtimeNodeEnv === 'development' || runtimeNodeEnv === 'test') &&
+          !process.env['VERCEL_ENV'];
         const fixed = isTestAccountsAllowed
           ? FIXED_TEST_ACCOUNTS[email]
           : undefined;
@@ -449,19 +553,16 @@ export const authOptions: NextAuthOptions = {
           throw new Error('EMAIL_NOT_VERIFIED');
         }
 
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          tier: user.tier as 'FREE' | 'PRO',
-          role: (user.role === 'ADMIN' ? 'ADMIN' : 'USER') as 'USER' | 'ADMIN',
-          isAffiliate: user.isAffiliate,
-          emailVerified: user.emailVerified,
-          isActive: user.isActive,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        };
+        // CODE-01A: a user with 2FA is asked for a code. The challenge travels in the error
+        // message to login-form.tsx, which sends the user to /verify-2fa; the session comes from
+        // the completion step above.
+        if (user.twoFactorEnabled) {
+          throw new Error(
+            `TWO_FACTOR_REQUIRED:${signChallenge({ userId: user.id, email: user.email })}`
+          );
+        }
+
+        return toAuthUser(user);
       },
     }),
 

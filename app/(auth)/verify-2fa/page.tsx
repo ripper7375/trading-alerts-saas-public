@@ -167,6 +167,15 @@ function TwoFactorVerificationContent(): React.JSX.Element {
         return;
       }
 
+      // The code was right: the verify step answers with a one-use completion
+      // token. The challenge in the URL only proved the password step and is
+      // not a login, so it is never sent to the sign-in.
+      const completionToken: unknown = data.completionToken;
+      if (typeof completionToken !== 'string' || completionToken === '') {
+        setError(t('Something went wrong. Please try again.'));
+        return;
+      }
+
       if (isAuthBridgeEnabled()) {
         // Bridge path (Session 4B-21, DECISION-LOG.md F56/F57): token-login's
         // AuthService.login() handles this exact '__2fa_verified__' sentinel
@@ -177,12 +186,18 @@ function TwoFactorVerificationContent(): React.JSX.Element {
         const bridgeResponse = await fetch('/api/auth/token-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: '__2fa_verified__', password: token }),
+          body: JSON.stringify({
+            email: '__2fa_verified__',
+            password: completionToken,
+          }),
         });
 
-        if (bridgeResponse.ok) {
-          await getSession();
+        if (!bridgeResponse.ok) {
+          setError(t('Session expired. Please log in again.'));
+          return;
         }
+
+        await getSession();
         setIsSuccess(true);
         setTimeout(() => {
           navigateAfterLogin(destination);
@@ -193,16 +208,16 @@ function TwoFactorVerificationContent(): React.JSX.Element {
       // 2FA verified, complete login with special 2FA-verified credential
       const result = await signIn('credentials', {
         email: '__2fa_verified__',
-        password: token,
+        password: completionToken,
         redirect: false,
       });
 
       if (result?.error) {
-        setIsSuccess(true);
-        setTimeout(() => {
-          navigateAfterLogin(destination);
-        }, 1500);
-      } else if (result?.ok) {
+        setError(t('Session expired. Please log in again.'));
+        return;
+      }
+
+      if (result?.ok) {
         setIsSuccess(true);
         setTimeout(() => {
           navigateAfterLogin(destination);

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import jwt from 'jsonwebtoken';
 
 import { prisma } from '@/lib/db/prisma';
 import {
@@ -9,6 +8,19 @@ import {
   verifyBackupCode,
   isBackupCode,
 } from '@/lib/auth/two-factor';
+import {
+  CHALLENGE_USED_TTL_SECONDS,
+  MAX_CODE_ATTEMPTS,
+  TOTP_REPLAY_TTL_SECONDS,
+  TWO_FACTOR_CHALLENGE,
+  TwoFactorUnavailableError,
+  consumeOnce,
+  isConsumed,
+  registerAttempt,
+  signCompletion,
+  twoFactorKeys,
+  verifyTwoFactorToken,
+} from '@/lib/auth/two-factor-token';
 import { shouldUseOperationServiceForUser2FA } from '@/lib/operation-service/flags';
 import {
   forwardRequestToOperationServiceOptionalAuth,
@@ -29,17 +41,31 @@ interface UserWith2FA {
  *
  * POST: Verify TOTP or backup code during login
  *
- * Security:
- * - Uses temporary 2FA token from login flow
- * - Validates TOTP or backup code
+ * Security (CODE-01A):
+ * - Takes the CHALLENGE from the password step (`2fa_challenge`, 5 minutes); any other
+ *   token is a 401
+ * - Counts the attempts against that challenge: the 6th is a 429 and burns it
+ * - Validates TOTP (each code once) or backup code
  * - Marks backup codes as used
- * - Returns session token on success
+ * - On success spends the challenge and returns a one-use COMPLETION token
+ *   (`2fa_verified`, 60 seconds); the sign-in itself (authorize() or
+ *   operation-service) accepts only that
+ * - Redis down: 503 (the step fails closed)
  */
 
 const verifySchema = z.object({
   code: z.string().min(6, 'Code is required'),
   token: z.string().min(1, 'Token is required'),
 });
+
+function invalidTokenResponse(): NextResponse {
+  return NextResponse.json(
+    {
+      error: 'Invalid or expired verification token. Please log in again.',
+    },
+    { status: 401 }
+  );
+}
 
 /**
  * POST /api/user/2fa/verify
@@ -75,27 +101,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     const { code, token } = validation.data;
 
-    // Verify the temporary 2FA token
-    let tokenPayload: { userId: string; email: string; exp: number };
+    // Verify the challenge from the password step: right purpose, issuer and algorithm.
+    let challenge: { userId: string; jti: string };
     try {
-      const secret = process.env.NEXTAUTH_SECRET;
-      if (!secret) {
-        throw new Error('NEXTAUTH_SECRET not configured');
-      }
-
-      tokenPayload = jwt.verify(token, secret) as typeof tokenPayload;
+      challenge = verifyTwoFactorToken(token, TWO_FACTOR_CHALLENGE);
     } catch {
+      return invalidTokenResponse();
+    }
+
+    // A spent challenge is dead, and a challenge gets MAX_CODE_ATTEMPTS codes.
+    if (await isConsumed(twoFactorKeys.used(challenge.jti))) {
+      return invalidTokenResponse();
+    }
+
+    if ((await registerAttempt(challenge.jti)) > MAX_CODE_ATTEMPTS) {
+      await consumeOnce(twoFactorKeys.used(challenge.jti));
       return NextResponse.json(
-        {
-          error: 'Invalid or expired verification token. Please log in again.',
-        },
-        { status: 401 }
+        { error: 'Too many attempts. Please log in again.' },
+        { status: 429 }
       );
     }
 
     // Get user with 2FA data
     const user = (await prisma.user.findUnique({
-      where: { id: tokenPayload.userId },
+      where: { id: challenge.userId },
       select: {
         id: true,
         email: true,
@@ -154,10 +183,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         `[2FA] Backup code used for user: ${user.email}. Remaining: ${remainingCodes}`
       );
 
+      // Spend the challenge. Losing this race to a concurrent request means that one got the
+      // completion, not this one.
+      if (
+        !(await consumeOnce(
+          twoFactorKeys.used(challenge.jti),
+          CHALLENGE_USED_TTL_SECONDS
+        ))
+      ) {
+        return invalidTokenResponse();
+      }
+
       return NextResponse.json({
         success: true,
         verified: true,
         method: 'backup_code',
+        completionToken: signCompletion({
+          userId: user.id,
+          challengeJti: challenge.jti,
+        }),
         remainingBackupCodes: remainingCodes,
         message:
           remainingCodes <= 2
@@ -178,7 +222,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       const isValid = verifyTOTP(normalizedCode, secret);
 
-      if (!isValid) {
+      // A TOTP code is good once: the same code on another challenge is refused.
+      if (
+        !isValid ||
+        !(await consumeOnce(
+          twoFactorKeys.totp(user.id, normalizedCode),
+          TOTP_REPLAY_TTL_SECONDS
+        ))
+      ) {
         return NextResponse.json(
           { error: 'Invalid verification code' },
           { status: 400 }
@@ -187,15 +238,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
       console.log(`[2FA] TOTP verified for user: ${user.email}`);
 
+      if (
+        !(await consumeOnce(
+          twoFactorKeys.used(challenge.jti),
+          CHALLENGE_USED_TTL_SECONDS
+        ))
+      ) {
+        return invalidTokenResponse();
+      }
+
       return NextResponse.json({
         success: true,
         verified: true,
         method: 'totp',
+        completionToken: signCompletion({
+          userId: user.id,
+          challengeJti: challenge.jti,
+        }),
       });
     }
   } catch (error) {
     if (error instanceof OperationServiceError) {
       return NextResponse.json(error.body, { status: error.status });
+    }
+    if (error instanceof TwoFactorUnavailableError) {
+      console.error('[POST /api/user/2fa/verify] Redis unavailable');
+      return NextResponse.json(
+        { error: 'Verification is temporarily unavailable. Please try again.' },
+        { status: 503 }
+      );
     }
     console.error('[POST /api/user/2fa/verify] Error:', error);
     return NextResponse.json(

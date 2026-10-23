@@ -39,10 +39,15 @@ export const SESSION_USER_SELECT = {
   updatedAt: true,
 } as const;
 
-/** The same, plus the hash the credentials provider compares the typed password with. */
+/**
+ * The same, plus the hash the credentials provider compares the typed password with and whether a
+ * 2FA code is due (`twoFactorEnabled`: the password step asks for one, the completion step checks
+ * the user still has one).
+ */
 export const CREDENTIALS_USER_SELECT = {
   ...SESSION_USER_SELECT,
   password: true,
+  twoFactorEnabled: true,
 } as const;
 
 /** The only column a write on the sign-in path needs back. */

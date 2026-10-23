@@ -5,6 +5,10 @@
  * branch (calls /api/auth/token-login with the '__2fa_verified__' sentinel
  * instead of next-auth/react's signIn) and confirms the default (flag off)
  * path is unchanged.
+ *
+ * CODE-01A: the page posts the one-use COMPLETION token the verify step
+ * returns, never the challenge from the URL, and it shows success only when
+ * the sign-in itself succeeded.
  */
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
@@ -76,7 +80,22 @@ function typeCode(): void {
   });
 }
 
+/** What POST /api/user/2fa/verify answers once the code was right. */
+const VERIFIED_BODY = {
+  success: true,
+  verified: true,
+  method: 'totp',
+  completionToken: 'completion-token-xyz',
+};
+
+/** The page navigates 1.5 s after a successful sign-in. */
+const NAVIGATION_DELAY_MS = 1500;
+
 describe('verify-2fa page', () => {
+  // A test that ends in success leaves that 1.5 s navigation timer running; it would fire during a
+  // later test and fake a navigation there. Each test clears the ones it started.
+  const navigationTimers: ReturnType<typeof setTimeout>[] = [];
+
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = jest.fn();
@@ -86,13 +105,28 @@ describe('verify-2fa page', () => {
       LOCALE_STORAGE_KEY,
       JSON.stringify(defaultPreferences)
     );
+    const realSetTimeout = global.setTimeout;
+    jest.spyOn(global, 'setTimeout').mockImplementation(((
+      handler: TimerHandler,
+      delay?: number,
+      ...args: unknown[]
+    ) => {
+      const id = realSetTimeout(handler as () => void, delay, ...args);
+      if (delay === NAVIGATION_DELAY_MS) navigationTimers.push(id);
+      return id;
+    }) as unknown as typeof setTimeout);
   });
 
-  it('calls signIn (unchanged behavior) when the bridge flag is off', async () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    navigationTimers.splice(0).forEach((id) => clearTimeout(id));
+  });
+
+  it('calls signIn with the completion token (not the challenge) when the bridge flag is off', async () => {
     mockIsAuthBridgeEnabled.mockReturnValue(false);
     (global.fetch as jest.Mock).mockResolvedValue({
       ok: true,
-      json: async () => ({ success: true, verified: true, method: 'totp' }),
+      json: async () => VERIFIED_BODY,
     });
     mockSignIn.mockResolvedValue({ ok: true, error: null });
 
@@ -102,19 +136,26 @@ describe('verify-2fa page', () => {
     await waitFor(() =>
       expect(mockSignIn).toHaveBeenCalledWith('credentials', {
         email: '__2fa_verified__',
-        password: 'login-token-abc',
+        password: 'completion-token-xyz',
         redirect: false,
       })
     );
     expect(global.fetch).toHaveBeenCalledTimes(1); // only /api/user/2fa/verify
+    // The challenge from the URL went to the verify step and nowhere else.
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/user/2fa/verify',
+      expect.objectContaining({
+        body: JSON.stringify({ code: '123456', token: 'login-token-abc' }),
+      })
+    );
   });
 
-  it('calls token-login instead of signIn when the bridge flag is on, then refreshes the session', async () => {
+  it('calls token-login with the completion token instead of signIn when the bridge flag is on, then refreshes the session', async () => {
     mockIsAuthBridgeEnabled.mockReturnValue(true);
     (global.fetch as jest.Mock)
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ success: true, verified: true, method: 'totp' }),
+        json: async () => VERIFIED_BODY,
       })
       .mockResolvedValueOnce({
         ok: true,
@@ -132,7 +173,7 @@ describe('verify-2fa page', () => {
           method: 'POST',
           body: JSON.stringify({
             email: '__2fa_verified__',
-            password: 'login-token-abc',
+            password: 'completion-token-xyz',
           }),
         })
       )
@@ -140,6 +181,73 @@ describe('verify-2fa page', () => {
     await waitFor(() => expect(mockGetSession).toHaveBeenCalled());
     expect(mockSignIn).not.toHaveBeenCalled();
   });
+
+  it('shows an error and does not navigate when NextAuth refuses the sign-in', async () => {
+    mockIsAuthBridgeEnabled.mockReturnValue(false);
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => VERIFIED_BODY,
+    });
+    mockSignIn.mockResolvedValue({ ok: false, error: 'INVALID_CREDENTIALS' });
+
+    render(withLocale(<TwoFactorVerificationPage />));
+    typeCode();
+
+    expect(
+      await screen.findByText('Session expired. Please log in again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Verified!')).not.toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 1700));
+    expect(mockNavigateAfterLogin).not.toHaveBeenCalled();
+  });
+
+  it('shows an error and does not navigate when the bridge sign-in is refused', async () => {
+    mockIsAuthBridgeEnabled.mockReturnValue(true);
+    (global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => VERIFIED_BODY,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: 'INVALID_CREDENTIALS' }),
+      });
+
+    render(withLocale(<TwoFactorVerificationPage />));
+    typeCode();
+
+    expect(
+      await screen.findByText('Session expired. Please log in again.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Verified!')).not.toBeInTheDocument();
+    expect(mockGetSession).not.toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 1700));
+    expect(mockNavigateAfterLogin).not.toHaveBeenCalled();
+  });
+
+  it.each([[false], [true]])(
+    'shows an error and signs nobody in when the verify answer carries no completion token (bridge %s)',
+    async (bridge) => {
+      mockIsAuthBridgeEnabled.mockReturnValue(bridge);
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ success: true, verified: true, method: 'totp' }),
+      });
+
+      render(withLocale(<TwoFactorVerificationPage />));
+      typeCode();
+
+      expect(
+        await screen.findByText('Something went wrong. Please try again.')
+      ).toBeInTheDocument();
+      expect(mockSignIn).not.toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalledTimes(1); // no token-login call either
+      expect(screen.queryByText('Verified!')).not.toBeInTheDocument();
+      await new Promise((resolve) => setTimeout(resolve, 1700));
+      expect(mockNavigateAfterLogin).not.toHaveBeenCalled();
+    }
+  );
 
   it.each([
     ['a safe callbackUrl forwarded by the login form', '/alerts', '/alerts'],
@@ -158,7 +266,7 @@ describe('verify-2fa page', () => {
       mockIsAuthBridgeEnabled.mockReturnValue(false);
       (global.fetch as jest.Mock).mockResolvedValue({
         ok: true,
-        json: async () => ({ success: true, verified: true, method: 'totp' }),
+        json: async () => VERIFIED_BODY,
       });
       mockSignIn.mockResolvedValue({ ok: true, error: null });
 
