@@ -9,6 +9,8 @@ import bcrypt from 'bcryptjs';
 import { authenticator } from 'otplib';
 import * as QRCode from 'qrcode';
 
+import { BACKUP_CODE_BCRYPT_COST } from '../auth/password-hash.const';
+
 // Configure TOTP settings
 authenticator.options = {
   digits: 6,
@@ -78,7 +80,7 @@ export async function generateBackupCodes(): Promise<{
     plainCodes.push(code);
 
     // Hash the code for storage
-    const hashedCode = await bcrypt.hash(code, 10);
+    const hashedCode = await bcrypt.hash(code, BACKUP_CODE_BCRYPT_COST);
     hashedCodes.push(hashedCode);
   }
 

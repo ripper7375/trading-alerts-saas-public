@@ -237,6 +237,8 @@ describe('AuthService', () => {
       expect(
         await bcrypt.compare('Sup3r$ecret', createArgs.data.password)
       ).toBe(true);
+      // CODE-13: new passwords are hashed at bcrypt cost 12.
+      expect(bcrypt.getRounds(createArgs.data.password)).toBe(12);
       expect(createArgs.data.emailVerified).toBeNull();
       expect(createArgs.data.verificationToken).toEqual(expect.any(String));
       expect(result).toEqual({
@@ -729,6 +731,39 @@ describe('AuthService', () => {
       expect(prisma.user.upsert).toHaveBeenCalledTimes(1);
       expect(result.user.email).toBe('free-test@trading-alerts.test');
       expect(result.user.role).toBe('USER');
+    });
+
+    it('hashes the stored test password at bcrypt cost 12 (CODE-13)', async () => {
+      process.env['NODE_ENV'] = 'test';
+      prisma.user.upsert.mockResolvedValue(
+        makeUser({
+          id: 'free-test-id',
+          email: 'free-test@trading-alerts.test',
+          tier: 'FREE',
+          role: 'USER',
+        })
+      );
+
+      await service.login('free-test@trading-alerts.test', 'TestPassword123!');
+
+      const args = prisma.user.upsert.mock.calls[0][0];
+      expect(bcrypt.getRounds(args.create.password)).toBe(12);
+      expect(bcrypt.getRounds(args.update.password)).toBe(12);
+    });
+
+    it('hashes the password of the in-memory fallback user at bcrypt cost 12 when the upsert fails (CODE-13)', async () => {
+      process.env['NODE_ENV'] = 'test';
+      prisma.user.upsert.mockRejectedValue(new Error('database down'));
+      const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      const hash = jest.spyOn(bcrypt, 'hash');
+
+      await service.login('free-test@trading-alerts.test', 'TestPassword123!');
+
+      const costs = hash.mock.calls.map((call) => call[1]);
+      hash.mockRestore();
+      warn.mockRestore();
+      // the upsert's own hash and the in-memory user's
+      expect(costs).toEqual([12, 12]);
     });
   });
 

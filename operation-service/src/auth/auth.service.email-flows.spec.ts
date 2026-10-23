@@ -194,6 +194,8 @@ describe('AuthService — email-dependent flows (Session 3-4, F29)', () => {
       expect(
         await bcrypt.compare('newpassword123', updateArgs.data.password)
       ).toBe(true);
+      // CODE-13: new passwords are hashed at bcrypt cost 12.
+      expect(bcrypt.getRounds(updateArgs.data.password)).toBe(12);
     });
   });
 

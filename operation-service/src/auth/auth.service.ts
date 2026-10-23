@@ -34,6 +34,7 @@ import {
   TwoFactorRequiredError,
 } from './errors';
 import { encodeNextAuthToken } from './next-auth-jwt-encode.util';
+import { BCRYPT_COST } from './password-hash.const';
 import {
   RefreshTokenContext,
   RefreshTokenService,
@@ -126,7 +127,7 @@ export class AuthService {
       throw new AccountExistsError('User with this email already exists');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
     const verificationToken = randomBytes(32).toString('hex');
     const autoVerify = process.env['NODE_ENV'] === 'development';
 
@@ -243,7 +244,7 @@ export class AuthService {
       }
 
       try {
-        const hashedPassword = await bcrypt.hash(password, 10);
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
         const dbUser = await this.prisma.user.upsert({
           where: { email: normalizedEmail },
           update: {
@@ -277,7 +278,7 @@ export class AuthService {
         return {
           id: `test-user-${normalizedEmail.replace(/[^a-zA-Z0-9]/g, '-')}`,
           email: normalizedEmail,
-          password: await bcrypt.hash(password, 10),
+          password: await bcrypt.hash(password, BCRYPT_COST),
           name: fixed.name,
           image: null,
           tier: fixed.tier,
@@ -639,7 +640,7 @@ export class AuthService {
       throw new ExpiredTokenError('Reset token has expired');
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_COST);
 
     // Every session of the account ends with the new password (CODE-02B): the password, the new
     // session version and the deleted refresh tokens commit together.
