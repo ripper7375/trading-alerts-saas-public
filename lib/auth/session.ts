@@ -11,6 +11,7 @@ import { prisma } from '@/lib/db/prisma';
 
 import { authOptions } from './auth-options';
 import { AuthError } from './errors';
+import { getSessionState } from './user-active';
 
 /**
  * Session Helper Functions
@@ -304,8 +305,36 @@ export async function isAdmin(): Promise<boolean> {
   }
 }
 
+/** CODE-09: what an ADMIN without two-factor authentication is refused with (403). */
+export const ADMIN_2FA_REQUIRED_CODE = 'ADMIN_2FA_REQUIRED';
+
+/**
+ * CODE-09: does the account that holds the ADMIN role have two-factor authentication switched on?
+ * Answered by the 30 s snapshot of `getSessionState` (the same read that refreshed the role into the
+ * token), so for a signed-in admin it costs no query. Fails closed: only a flag that is exactly true
+ * passes.
+ */
+type AdminTwoFactorVerdict =
+  | 'ok'
+  | 'two-factor-required'
+  | 'no-such-account'
+  | 'unverifiable';
+
+async function judgeAdminTwoFactor(
+  userId: string
+): Promise<AdminTwoFactorVerdict> {
+  const lookup = await getSessionState(userId);
+  if (lookup === 'error') return 'unverifiable';
+  if (lookup === 'missing') return 'no-such-account';
+  return lookup.twoFactorEnabled === true ? 'ok' : 'two-factor-required';
+}
+
 /**
  * Require admin access or throw AuthError
+ *
+ * An ADMIN whose account has no two-factor authentication (CODE-09) is refused with 403
+ * `ADMIN_2FA_REQUIRED`; so is one whose state cannot be read (`ADMIN_ERROR`). Such an admin can still
+ * sign in and reach /settings/security (nothing there calls this), where they switch it on.
  *
  * @returns Promise resolving to authenticated session
  * @throws {AuthError} If user is not an admin
@@ -313,6 +342,7 @@ export async function isAdmin(): Promise<boolean> {
 export async function requireAdmin(): Promise<Session> {
   try {
     const session = await requireAuth();
+    let promote = false;
 
     if (session.user?.role !== 'ADMIN') {
       // Check database directly to eliminate JWT stale session race condition
@@ -330,9 +360,34 @@ export async function requireAdmin(): Promise<Session> {
         );
       }
 
-      // Update session user in-memory
-      session.user.role = 'ADMIN';
+      promote = true;
     }
+
+    const twoFactor = await judgeAdminTwoFactor(session.user.id);
+    if (twoFactor === 'two-factor-required') {
+      throw new AuthError(
+        'Two-factor authentication is required for administrator access',
+        ADMIN_2FA_REQUIRED_CODE,
+        403
+      );
+    }
+    if (twoFactor === 'no-such-account') {
+      throw new AuthError(
+        'You must be an administrator to access this resource',
+        'ADMIN_REQUIRED',
+        403
+      );
+    }
+    if (twoFactor === 'unverifiable') {
+      throw new AuthError(
+        'Unable to verify administrator status',
+        'ADMIN_ERROR',
+        403
+      );
+    }
+
+    // Update session user in-memory, only for an admin who passed every check
+    if (promote) session.user.role = 'ADMIN';
 
     return session;
   } catch (error) {
@@ -359,7 +414,9 @@ export async function requireAdmin(): Promise<Session> {
  * `await requireAdminPage()` first in every such page.
  *
  * Unlike `requireAdmin()` (route handlers, throws AuthError) this redirects:
- * a signed-out visitor goes to /login, a signed-in non-admin to /dashboard.
+ * a signed-out visitor goes to /login, a signed-in non-admin to /dashboard,
+ * and (CODE-09) an admin without two-factor authentication to
+ * /settings/security, where they switch it on.
  * It has the same database fallback as `requireAdmin()` and the layout, so a
  * freshly promoted admin with a stale JWT role claim is not bounced by the
  * page while the layout lets them through. A database error is not caught:
@@ -377,6 +434,8 @@ export const requireAdminPage = cache(async (): Promise<Session> => {
     redirect('/login');
   }
 
+  let promote = false;
+
   if (session.user.role !== 'ADMIN') {
     const dbUser = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -387,8 +446,22 @@ export const requireAdminPage = cache(async (): Promise<Session> => {
       redirect('/dashboard?error=forbidden');
     }
 
-    session.user.role = 'ADMIN';
+    promote = true;
   }
+
+  const twoFactor = await judgeAdminTwoFactor(session.user.id);
+  if (twoFactor === 'two-factor-required') {
+    redirect('/settings/security');
+  }
+  if (twoFactor === 'no-such-account') {
+    redirect('/dashboard?error=forbidden');
+  }
+  if (twoFactor === 'unverifiable') {
+    throw new Error('Unable to verify administrator status');
+  }
+
+  // Promote the shared session object only for an admin who passed every check
+  if (promote) session.user.role = 'ADMIN';
 
   return session;
 });

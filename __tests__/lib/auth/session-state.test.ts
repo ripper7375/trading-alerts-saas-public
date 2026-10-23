@@ -78,6 +78,7 @@ function userRow(
     sessionVersion: 0,
     role: 'USER',
     tier: 'FREE',
+    twoFactorEnabled: false,
     ...overrides,
   };
 }
@@ -132,7 +133,7 @@ afterEach(() => {
 });
 
 describe('getSessionState', () => {
-  it('reads exactly the five columns the check needs', async () => {
+  it('reads exactly the six columns the checks need', async () => {
     await getSessionState('user-1');
 
     expect(mockFindUnique).toHaveBeenCalledWith({
@@ -143,12 +144,18 @@ describe('getSessionState', () => {
         sessionVersion: true,
         role: true,
         tier: true,
+        twoFactorEnabled: true,
       },
     });
   });
 
   it('returns the snapshot of an active user', async () => {
-    db.row = userRow({ sessionVersion: 4, role: 'ADMIN', tier: 'PRO' });
+    db.row = userRow({
+      sessionVersion: 4,
+      role: 'ADMIN',
+      tier: 'PRO',
+      twoFactorEnabled: true,
+    });
 
     await expect(getSessionState('user-1')).resolves.toEqual({
       isActive: true,
@@ -156,6 +163,15 @@ describe('getSessionState', () => {
       sessionVersion: 4,
       role: 'ADMIN',
       tier: 'PRO',
+      twoFactorEnabled: true,
+    });
+  });
+
+  it('carries a false twoFactorEnabled as false, never as a missing value', async () => {
+    db.row = userRow({ role: 'ADMIN', twoFactorEnabled: false });
+
+    await expect(getSessionState('user-1')).resolves.toMatchObject({
+      twoFactorEnabled: false,
     });
   });
 
@@ -215,6 +231,7 @@ describe('judgeSession', () => {
     sessionVersion: 0,
     role: 'USER',
     tier: 'FREE',
+    twoFactorEnabled: false,
     ...overrides,
   });
 
@@ -505,7 +522,12 @@ describe('a demoted admin behind requireAdmin() and requireAdminPage()', () => {
 
   it('is refused by requireAdmin() once the 30 s cache window has passed', async () => {
     jest.useFakeTimers({ now: Date.now() });
-    db.row = userRow({ id: 'admin-1', role: 'ADMIN', tier: 'PRO' });
+    db.row = userRow({
+      id: 'admin-1',
+      role: 'ADMIN',
+      tier: 'PRO',
+      twoFactorEnabled: true,
+    });
     serveCookieToken(adminCookie());
 
     await expect(requireAdmin()).resolves.toMatchObject({
@@ -539,9 +561,106 @@ describe('a demoted admin behind requireAdmin() and requireAdminPage()', () => {
   });
 
   it('no longer reaches the page once the session itself was revoked (version bumped)', async () => {
-    db.row = userRow({ id: 'admin-1', role: 'ADMIN', sessionVersion: 1 });
+    db.row = userRow({
+      id: 'admin-1',
+      role: 'ADMIN',
+      sessionVersion: 1,
+      twoFactorEnabled: true,
+    });
     serveCookieToken({ ...adminCookie(), sessionVersion: 0 });
 
     await expect(requireAdminPage()).rejects.toThrow('NEXT_REDIRECT:/login');
+  });
+});
+
+describe('an admin without two-factor authentication behind the real callbacks (CODE-09)', () => {
+  function serveAdminCookie(): void {
+    mockGetServerSession.mockImplementation(async () => {
+      const token = await runJwt({
+        id: 'admin-1',
+        email: 'admin@example.com',
+        role: 'ADMIN',
+        tier: 'PRO',
+        isAffiliate: false,
+        authTime: nowSec(),
+      });
+      const callback = authOptions.callbacks?.session;
+      if (!callback) throw new Error('session callback missing');
+      return callback({
+        session: { user: { email: token['email'] }, expires: '2099-01-01' },
+        token,
+      } as never);
+    });
+  }
+
+  it('is refused by requireAdmin() with ADMIN_2FA_REQUIRED, and still signs in', async () => {
+    db.row = userRow({ id: 'admin-1', role: 'ADMIN', twoFactorEnabled: false });
+    serveAdminCookie();
+
+    // The session itself is alive: the admin must be able to reach /settings/security.
+    await expect(mockGetServerSession()).resolves.toMatchObject({
+      user: { role: 'ADMIN' },
+    });
+
+    const refused = requireAdmin();
+    await expect(refused).rejects.toBeInstanceOf(AuthError);
+    await expect(refused).rejects.toMatchObject({
+      code: 'ADMIN_2FA_REQUIRED',
+      statusCode: 403,
+    });
+  });
+
+  it('is sent to /settings/security by requireAdminPage()', async () => {
+    db.row = userRow({ id: 'admin-1', role: 'ADMIN', twoFactorEnabled: false });
+    serveAdminCookie();
+
+    await expect(requireAdminPage()).rejects.toThrow(
+      'NEXT_REDIRECT:/settings/security'
+    );
+  });
+
+  it('is let in within 30 s of switching two-factor authentication on, and refused again within 30 s of switching it off', async () => {
+    jest.useFakeTimers({ now: Date.now() });
+    db.row = userRow({ id: 'admin-1', role: 'ADMIN', twoFactorEnabled: false });
+    serveAdminCookie();
+    await expect(requireAdmin()).rejects.toMatchObject({
+      code: 'ADMIN_2FA_REQUIRED',
+    });
+
+    db.row = userRow({ id: 'admin-1', role: 'ADMIN', twoFactorEnabled: true });
+    forgetSessionState('admin-1');
+    await expect(requireAdmin()).resolves.toMatchObject({
+      user: { role: 'ADMIN' },
+    });
+
+    db.row = userRow({ id: 'admin-1', role: 'ADMIN', twoFactorEnabled: false });
+    jest.setSystemTime(Date.now() + 31_000);
+    await expect(requireAdmin()).rejects.toMatchObject({
+      code: 'ADMIN_2FA_REQUIRED',
+    });
+  });
+
+  it('does not touch a USER: no two-factor requirement for anyone but an ADMIN', async () => {
+    db.row = userRow({ id: 'user-1', role: 'USER', twoFactorEnabled: false });
+    mockGetServerSession.mockImplementation(async () => {
+      const token = await runJwt({
+        id: 'user-1',
+        email: 'alice@example.com',
+        role: 'USER',
+        tier: 'FREE',
+        isAffiliate: false,
+      });
+      const callback = authOptions.callbacks?.session;
+      if (!callback) throw new Error('session callback missing');
+      return callback({
+        session: { user: { email: token['email'] }, expires: '2099-01-01' },
+        token,
+      } as never);
+    });
+
+    await expect(requireAdmin()).rejects.toMatchObject({
+      code: 'ADMIN_REQUIRED',
+      statusCode: 403,
+    });
   });
 });

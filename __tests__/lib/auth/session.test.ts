@@ -30,6 +30,40 @@ jest.mock('@/lib/auth/auth-options', () => ({
   authOptions: {},
 }));
 
+import { prisma } from '@/lib/db/prisma';
+import { clearUserActiveCache } from '@/lib/auth/user-active';
+
+const mockFindUnique = prisma.user.findUnique as unknown as jest.Mock;
+
+/** What the database holds for one account; only the selected columns come back, like the client. */
+function accountRow(
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> {
+  return {
+    id: 'admin-1',
+    isActive: true,
+    deletedAt: null,
+    sessionVersion: 0,
+    role: 'ADMIN',
+    tier: 'PRO',
+    twoFactorEnabled: true,
+    ...overrides,
+  };
+}
+
+function serveAccount(row: Record<string, unknown> | null): void {
+  mockFindUnique.mockImplementation(
+    async (args: { select: Record<string, boolean> }) => {
+      if (!row) return null;
+      return Object.fromEntries(
+        Object.entries(args.select)
+          .filter(([, wanted]) => wanted)
+          .map(([column]) => [column, row[column]])
+      );
+    }
+  );
+}
+
 // Import after mocks are set up
 import {
   getSession,
@@ -365,13 +399,19 @@ describe('Session Helper Functions', () => {
   });
 
   describe('requireAdmin', () => {
-    it('should return session when user is admin', async () => {
+    beforeEach(() => {
+      mockFindUnique.mockReset();
+      clearUserActiveCache();
+    });
+
+    it('should return session when user is admin and has two-factor authentication', async () => {
       const mockSession = {
         user: { id: 'user-123', role: 'ADMIN' },
         expires: '2025-12-31',
       };
 
       mockGetServerSession.mockResolvedValue(mockSession);
+      serveAccount(accountRow({ role: 'ADMIN', twoFactorEnabled: true }));
 
       const session = await requireAdmin();
 
@@ -402,6 +442,142 @@ describe('Session Helper Functions', () => {
       mockGetServerSession.mockResolvedValue(null);
 
       await expect(requireAdmin()).rejects.toThrow(AuthError);
+    });
+  });
+
+  // CODE-09 (WS-8): an ADMIN account without two-factor authentication is refused. The flag comes
+  // from the same 30 s snapshot as the session version, role and tier (lib/auth/user-active.ts).
+  describe('requireAdmin and two-factor authentication (CODE-09)', () => {
+    const adminSession = (role = 'ADMIN') => ({
+      user: { id: 'admin-1', role },
+      expires: '2025-12-31',
+    });
+
+    async function refusal(): Promise<AuthError> {
+      try {
+        await requireAdmin();
+      } catch (error) {
+        return error as AuthError;
+      }
+      throw new Error('requireAdmin() did not refuse');
+    }
+
+    beforeEach(() => {
+      mockFindUnique.mockReset();
+      clearUserActiveCache();
+      jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('refuses an ADMIN without two-factor authentication with 403 ADMIN_2FA_REQUIRED', async () => {
+      mockGetServerSession.mockResolvedValue(adminSession());
+      serveAccount(accountRow({ role: 'ADMIN', twoFactorEnabled: false }));
+
+      const error = await refusal();
+
+      expect(error).toBeInstanceOf(AuthError);
+      expect(error.code).toBe('ADMIN_2FA_REQUIRED');
+      expect(error.statusCode).toBe(403);
+      expect(error.message).toBe(
+        'Two-factor authentication is required for administrator access'
+      );
+    });
+
+    it('refuses a freshly promoted admin (stale USER claim, ADMIN in the database) who has no two-factor authentication', async () => {
+      mockGetServerSession.mockResolvedValue(adminSession('USER'));
+      serveAccount(accountRow({ role: 'ADMIN', twoFactorEnabled: false }));
+
+      const error = await refusal();
+
+      expect(error.code).toBe('ADMIN_2FA_REQUIRED');
+      expect(error.statusCode).toBe(403);
+    });
+
+    it('does not promote the shared session to ADMIN in memory when it refuses, so later readers in the same render do not see an admin', async () => {
+      const session = adminSession('USER');
+      mockGetServerSession.mockResolvedValue(session);
+      serveAccount(accountRow({ role: 'ADMIN', twoFactorEnabled: false }));
+
+      await refusal();
+
+      expect(session.user.role).toBe('USER');
+    });
+
+    it('lets a freshly promoted admin through once they have two-factor authentication, and promotes the session in memory', async () => {
+      const session = adminSession('USER');
+      mockGetServerSession.mockResolvedValue(session);
+      serveAccount(accountRow({ role: 'ADMIN', twoFactorEnabled: true }));
+
+      await expect(requireAdmin()).resolves.toBe(session);
+
+      expect(session.user.role).toBe('ADMIN');
+    });
+
+    it('keeps the role check first: a USER without two-factor authentication gets ADMIN_REQUIRED, not the two-factor code', async () => {
+      mockGetServerSession.mockResolvedValue(adminSession('USER'));
+      serveAccount(accountRow({ role: 'USER', twoFactorEnabled: false }));
+
+      const error = await refusal();
+
+      expect(error.code).toBe('ADMIN_REQUIRED');
+      expect(error.statusCode).toBe(403);
+    });
+
+    it('fails closed when the account state cannot be read: never returns the session', async () => {
+      mockGetServerSession.mockResolvedValue(adminSession());
+      mockFindUnique.mockRejectedValue(new Error('connection reset'));
+
+      const error = await refusal();
+
+      expect(error.code).toBe('ADMIN_ERROR');
+      expect(error.statusCode).toBe(403);
+    });
+
+    it('refuses a token that claims ADMIN when the account no longer exists', async () => {
+      mockGetServerSession.mockResolvedValue(adminSession());
+      serveAccount(null);
+
+      const error = await refusal();
+
+      expect(error.code).toBe('ADMIN_REQUIRED');
+      expect(error.statusCode).toBe(403);
+    });
+
+    it('treats a flag that is not exactly true as no two-factor authentication', async () => {
+      mockGetServerSession.mockResolvedValue(adminSession());
+      for (const flag of [undefined, null, 0, 'true', 1]) {
+        clearUserActiveCache();
+        serveAccount(accountRow({ role: 'ADMIN', twoFactorEnabled: flag }));
+
+        const error = await refusal();
+
+        expect(error.code).toBe('ADMIN_2FA_REQUIRED');
+      }
+    });
+
+    it('asks the database once for the check inside the 30 s window', async () => {
+      mockGetServerSession.mockResolvedValue(adminSession());
+      serveAccount(accountRow({ role: 'ADMIN', twoFactorEnabled: true }));
+
+      await requireAdmin();
+      await requireAdmin();
+      await requireAdmin();
+
+      expect(mockFindUnique).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not read the account for a signed-out visitor', async () => {
+      mockGetServerSession.mockResolvedValue(null);
+
+      await expect(requireAdmin()).rejects.toMatchObject({
+        code: 'UNAUTHORIZED',
+        statusCode: 401,
+      });
+
+      expect(mockFindUnique).not.toHaveBeenCalled();
     });
   });
 

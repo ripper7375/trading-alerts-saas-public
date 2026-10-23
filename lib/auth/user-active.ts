@@ -18,6 +18,10 @@ import { prisma } from '@/lib/db/prisma';
  *  - `role` and `tier` are not compared but REFRESHED from the row into the token, so a demotion or a
  *    PRO expiry takes effect within the cache window without ending the session.
  *  - An ADMIN session ends 12 hours after sign-in (`token.authTime`, set by the `jwt` callback).
+ *  - CODE-09: `twoFactorEnabled` rides in the same snapshot. It is not part of the session verdict (an
+ *    admin without two-factor authentication must still be able to sign in and switch it on); only
+ *    `requireAdmin()` and `requireAdminPage()` read it, and refuse an ADMIN whose flag is not true.
+ *    money-service's `AdminGuard` does the same from its own copy of this module.
  *
  * The row is read once and cached as a snapshot for 30 s per server instance: one query per user per
  * half minute (the Prisma pool is small), and a change is felt within 30 s. Only a snapshot of an
@@ -44,6 +48,7 @@ export interface SessionState {
   sessionVersion: number;
   role: string;
   tier: string;
+  twoFactorEnabled: boolean;
 }
 
 /** The row's state, `'missing'` when there is no such user, `'error'` when the lookup failed. */
@@ -65,6 +70,7 @@ const SESSION_STATE_SELECT = {
   sessionVersion: true,
   role: true,
   tier: true,
+  twoFactorEnabled: true,
 } as const;
 
 const snapshots = new Map<string, { state: SessionState; until: number }>();
@@ -87,6 +93,7 @@ export async function getSessionState(userId: string): Promise<SessionLookup> {
       sessionVersion: row.sessionVersion,
       role: row.role,
       tier: row.tier,
+      twoFactorEnabled: row.twoFactorEnabled,
     };
   } catch (error) {
     console.error(

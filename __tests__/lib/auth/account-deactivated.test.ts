@@ -48,6 +48,7 @@ function stateRow(overrides: Record<string, unknown> = {}) {
     sessionVersion: 0,
     role: 'USER',
     tier: 'FREE',
+    twoFactorEnabled: false,
     ...overrides,
   };
 }
@@ -199,7 +200,8 @@ describe('F21: deactivated accounts', () => {
       mockUserFindUnique.mockResolvedValue(stateRow({ isActive: false }));
 
       await expect(runJwt(token)).rejects.toThrow('ACCOUNT_DEACTIVATED');
-      // CODE-02A: one read answers the account's state, version, role and tier together.
+      // CODE-02A: one read answers the account's state, version, role and tier together; CODE-09
+      // adds the two-factor flag to the same read.
       expect(mockUserFindUnique).toHaveBeenCalledWith({
         where: { id: 'user-1' },
         select: {
@@ -208,6 +210,7 @@ describe('F21: deactivated accounts', () => {
           sessionVersion: true,
           role: true,
           tier: true,
+          twoFactorEnabled: true,
         },
       });
     });
