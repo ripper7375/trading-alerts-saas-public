@@ -19,9 +19,10 @@
 //
 // `User` is a NARROW subset (like operation-service's own convention): only
 // id/email/name/tier are ever read or written by these 8 crons (verified by
-// reading every `prisma.user.*` call site) — no password/2FA/trial/fraud
+// reading every `prisma.user.*` call site) — no password/trial/fraud
 // fields, which have zero business reason to exist in a money service's
-// schema. The other 10 models are money-service's own domain tables per
+// schema. (Later additions are read-only mirrors for the auth checks: the
+// session columns of CODE-02A and the `twoFactorEnabled` flag of CODE-09.) The other 10 models are money-service's own domain tables per
 // blueprint §5.1's `money_svc` grant list, so they're copied in full.
 //
 // Relations: kept ONLY where a real Prisma relation (`include`, or a
@@ -217,10 +218,12 @@ model User {
 
   // The columns the session check reads (CODE-02A): mirrors of prisma/non-market-data/schema.prisma.
   // `role`, `isActive` and `deletedAt` are not changed here; `sessionVersion` is the new column.
-  role           String    @default("USER")
-  isActive       Boolean   @default(true)
-  deletedAt      DateTime?
-  sessionVersion Int       @default(0)
+  // `twoFactorEnabled` (CODE-09) is read by AdminGuard; the column already exists, this is a mirror only.
+  role             String    @default("USER")
+  isActive         Boolean   @default(true)
+  deletedAt        DateTime?
+  sessionVersion   Int       @default(0)
+  twoFactorEnabled Boolean   @default(false)
 
   hasUsedThreeDayPlan Boolean   @default(false)
   threeDayPlanUsedAt  DateTime?

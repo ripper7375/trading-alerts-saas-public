@@ -15,7 +15,9 @@ import type { PrismaService } from '../prisma/prisma.service';
  *    `sessionVersion`,
  *  - `role` and `tier` are not compared but REFRESHED from the row: the guard overwrites them on the
  *    request, so AdminGuard and the tier checks see the current values within the cache window,
- *  - an ADMIN session ends 12 hours after sign-in (`token.authTime`).
+ *  - an ADMIN session ends 12 hours after sign-in (`token.authTime`),
+ *  - CODE-09: `twoFactorEnabled` rides in the same snapshot. It is not part of the session verdict;
+ *    only AdminGuard reads it, and refuses an ADMIN whose flag is not true.
  *
  * The row is read once and cached as a snapshot for 30 s per process: one query per user per half
  * minute. Only a snapshot of an active, not deleted account is cached, so a locked account is read
@@ -40,6 +42,7 @@ export interface SessionState {
   sessionVersion: number;
   role: string;
   tier: string;
+  twoFactorEnabled: boolean;
 }
 
 /** The row's state, `'missing'` when there is no such user, `'error'` when the lookup failed. */
@@ -61,6 +64,7 @@ const SESSION_STATE_SELECT = {
   sessionVersion: true,
   role: true,
   tier: true,
+  twoFactorEnabled: true,
 } as const;
 
 const logger = new Logger('UserActiveCheck');
@@ -87,6 +91,7 @@ export async function getSessionState(
       sessionVersion: row.sessionVersion,
       role: row.role,
       tier: row.tier,
+      twoFactorEnabled: row.twoFactorEnabled,
     };
   } catch (error) {
     logger.error('session state lookup failed, letting the request through', {

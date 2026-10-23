@@ -56,6 +56,7 @@ function stateRow(overrides: Record<string, unknown> = {}) {
     sessionVersion: 0,
     role: 'USER',
     tier: 'PRO',
+    twoFactorEnabled: false,
     ...overrides,
   };
 }
@@ -221,7 +222,7 @@ describe('JwtAuthGuard', () => {
       };
     }
 
-    it('reads exactly the five columns the check needs', async () => {
+    it('reads exactly the six columns the checks need', async () => {
       const { result } = await request(claims);
       await result;
 
@@ -233,6 +234,7 @@ describe('JwtAuthGuard', () => {
           sessionVersion: true,
           role: true,
           tier: true,
+          twoFactorEnabled: true,
         },
       });
     });
@@ -385,6 +387,7 @@ describe('judgeSession (CODE-02A)', () => {
     sessionVersion: 0,
     role: 'ADMIN',
     tier: 'PRO',
+    twoFactorEnabled: true,
   };
   const nowMs = 2_000_000_000_000;
 
