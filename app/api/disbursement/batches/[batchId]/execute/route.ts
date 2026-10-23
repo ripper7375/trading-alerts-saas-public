@@ -18,6 +18,10 @@ import {
   isProviderAvailable,
 } from '@/lib/disbursement/providers/provider-factory';
 import {
+  DISBURSEMENT_NOT_CONFIGURED_BODY,
+  DisbursementConfigError,
+} from '@/lib/disbursement/constants';
+import {
   DISBURSEMENTS_PAUSED_BODY,
   getDisbursementSettings,
 } from '@/lib/disbursement/settings';
@@ -112,6 +116,11 @@ export async function POST(
     } catch (error) {
       // The cause (credentials, endpoint, SDK text) stays in the server log.
       console.error('Error initializing payment provider:', error);
+      if (error instanceof DisbursementConfigError) {
+        return NextResponse.json(DISBURSEMENT_NOT_CONFIGURED_BODY, {
+          status: 503,
+        });
+      }
       return NextResponse.json(
         { error: 'Failed to initialize payment provider' },
         { status: 500 }

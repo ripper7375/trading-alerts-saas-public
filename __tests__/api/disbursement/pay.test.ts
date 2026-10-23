@@ -193,6 +193,113 @@ describe('Quick Payment API', () => {
   });
 });
 
+type EnvKey = 'NODE_ENV' | 'DISBURSEMENT_PROVIDER' | 'VERCEL_ENV';
+
+// NODE_ENV is typed read-only in Next; same pattern as redirect-callback.test.ts
+function setEnv(key: EnvKey, value: string | undefined): void {
+  if (value === undefined) {
+    Reflect.deleteProperty(process.env, key);
+  } else {
+    Reflect.set(process.env, key, value);
+  }
+}
+
+// CODE-03 (WS-1): the mock provider exists only in development and test; in
+// production the route refuses before it reads or writes anything.
+describe('Quick Payment API — payout provider fails closed (CODE-03)', () => {
+  const keys: EnvKey[] = ['NODE_ENV', 'DISBURSEMENT_PROVIDER', 'VERCEL_ENV'];
+  const saved = new Map<EnvKey, string | undefined>();
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    for (const key of keys) saved.set(key, process.env[key]);
+    setEnv('NODE_ENV', 'production');
+    setEnv('DISBURSEMENT_PROVIDER', undefined);
+    setEnv('VERCEL_ENV', undefined);
+    mockSession.mockResolvedValue({
+      user: { id: 'admin-123', role: 'ADMIN' },
+    });
+  });
+
+  afterEach(() => {
+    for (const key of keys) setEnv(key, saved.get(key));
+    // the suites below assert on call counts of the shared prisma mock
+    jest.clearAllMocks();
+    mockSession.mockReset();
+  });
+
+  const payRequest = (body: Record<string, unknown>): MockRequest =>
+    new MockRequest('http://localhost:3000/api/disbursement/pay', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+  it.each([
+    [
+      'no provider named (the route defaults to MOCK)',
+      { affiliateId: 'aff-1' },
+    ],
+    ['MOCK named', { affiliateId: 'aff-1', provider: 'MOCK' }],
+  ])(
+    'refuses with a generic 503 and writes nothing: %s',
+    async (_name, body) => {
+      const { POST } = await import('@/app/api/disbursement/pay/route');
+      const { prisma } = await import('@/lib/db/prisma');
+      const { createPaymentProvider } = await import(
+        '@/lib/disbursement/providers/provider-factory'
+      );
+      const consoleError = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+
+      const response = await POST(payRequest(body) as never);
+
+      expect(response.status).toBe(503);
+      expect(await response.json()).toEqual({
+        error: 'Disbursement is not configured',
+      });
+      expect(prisma.affiliateProfile.findUnique).not.toHaveBeenCalled();
+      expect(prisma.commission.findMany).not.toHaveBeenCalled();
+      expect(prisma.paymentBatch.create).not.toHaveBeenCalled();
+      expect(prisma.paymentBatch.update).not.toHaveBeenCalled();
+      expect(prisma.disbursementTransaction.create).not.toHaveBeenCalled();
+      expect(createPaymentProvider).not.toHaveBeenCalled();
+      consoleError.mockRestore();
+    }
+  );
+
+  it('refuses on Preview too, where NODE_ENV is production', async () => {
+    setEnv('VERCEL_ENV', 'preview');
+    const { POST } = await import('@/app/api/disbursement/pay/route');
+    const { prisma } = await import('@/lib/db/prisma');
+    const consoleError = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+
+    const response = await POST(
+      payRequest({ affiliateId: 'aff-1', provider: 'MOCK' }) as never
+    );
+
+    expect(response.status).toBe(503);
+    expect(prisma.paymentBatch.create).not.toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it('does not refuse in test, where MOCK is allowed (it goes on to look the affiliate up)', async () => {
+    setEnv('NODE_ENV', 'test');
+    const { POST } = await import('@/app/api/disbursement/pay/route');
+    const { prisma } = await import('@/lib/db/prisma');
+    (prisma.affiliateProfile.findUnique as jest.Mock).mockResolvedValue(null);
+
+    const response = await POST(
+      payRequest({ affiliateId: 'aff-1', provider: 'MOCK' }) as never
+    );
+
+    expect(response.status).toBe(404);
+    expect(prisma.affiliateProfile.findUnique).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('Quick Payment API — pause gate (E10, DECISION-LOG F83)', () => {
   it('returns 409 DISBURSEMENTS_PAUSED while payouts are paused, before any payout work', async () => {
     const { POST } = await import('@/app/api/disbursement/pay/route');

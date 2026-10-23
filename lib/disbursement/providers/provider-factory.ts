@@ -10,7 +10,12 @@ import 'server-only';
 import type { DisbursementProvider } from '@/types/disbursement';
 import { PaymentProvider } from './base-provider';
 import { MockPaymentProvider, MockProviderConfig } from './mock-provider';
-import { getDefaultProvider, isValidProvider } from '../constants';
+import {
+  DisbursementConfigError,
+  getDefaultProvider,
+  isMockProviderAllowed,
+  isValidProvider,
+} from '../constants';
 
 /**
  * Configuration for provider factory
@@ -34,6 +39,8 @@ export interface ProviderFactoryConfig {
  * @param providerType Optional provider type. If not specified, uses environment config
  * @param config Optional provider-specific configuration
  * @returns PaymentProvider instance
+ * @throws DisbursementConfigError if the mock provider is requested (or is the
+ *   default) outside development and test
  * @throws Error if provider type is invalid or not implemented
  */
 export function createPaymentProvider(
@@ -48,6 +55,11 @@ export function createPaymentProvider(
 
   switch (provider) {
     case 'MOCK':
+      if (!isMockProviderAllowed()) {
+        throw new DisbursementConfigError(
+          'The mock payment provider is only available in development and test'
+        );
+      }
       return new MockPaymentProvider(config?.mockConfig);
 
     case 'RISE':
@@ -86,7 +98,9 @@ export function getDefaultProviderName(): DisbursementProvider {
 export function isProviderAvailable(provider: DisbursementProvider): boolean {
   switch (provider) {
     case 'MOCK':
-      return true;
+      // Only in development and test (CODE-03): a stored MOCK batch must not
+      // be executable in production.
+      return isMockProviderAllowed();
     case 'RISE':
       // Archived (Part 19.5, F42) — rows retained, provider deactivated
       return false;

@@ -20,6 +20,11 @@ import { CommissionAggregator } from '@/lib/disbursement/services/commission-agg
 import { BatchManager } from '@/lib/disbursement/services/batch-manager';
 import { createPaymentProvider } from '@/lib/disbursement/providers/provider-factory';
 import {
+  DISBURSEMENT_NOT_CONFIGURED_BODY,
+  DisbursementConfigError,
+  isMockProviderAllowed,
+} from '@/lib/disbursement/constants';
+import {
   DISBURSEMENTS_PAUSED_BODY,
   getDisbursementSettings,
 } from '@/lib/disbursement/settings';
@@ -62,6 +67,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { error: 'Invalid provider. Must be MOCK or RISE' },
         { status: 400 }
       );
+    }
+
+    // CODE-03: the mock provider exists only in development and test. Refuse
+    // before anything is read or written; the cause stays in the server log.
+    if (provider === 'MOCK' && !isMockProviderAllowed()) {
+      console.error(
+        'Quick payment refused: the mock payout provider is not allowed outside development and test'
+      );
+      return NextResponse.json(DISBURSEMENT_NOT_CONFIGURED_BODY, {
+        status: 503,
+      });
     }
 
     // Check if affiliate exists
@@ -148,6 +164,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     });
   } catch (error) {
     console.error('Quick payment error:', error);
+
+    if (error instanceof DisbursementConfigError) {
+      return NextResponse.json(DISBURSEMENT_NOT_CONFIGURED_BODY, {
+        status: 503,
+      });
+    }
 
     if (error instanceof Error) {
       // Handle specific error types

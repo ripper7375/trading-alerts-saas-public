@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { getDefaultProvider } from '@/lib/disbursement/constants';
+import { getConfiguredProviderName } from '@/lib/disbursement/constants';
 import { getDisbursementSettings } from '@/lib/disbursement/settings';
 import { cn } from '@/lib/utils';
 import { getServerLanguage } from '@/lib/i18n/server-locale';
@@ -128,7 +128,9 @@ export default async function DisbursementLayout({
   }
 
   const userName = session.user.name || session.user.email || 'Admin';
-  const activeProvider = getDefaultProvider();
+  // CODE-03: never throws; 'UNCONFIGURED' when the provider is not named
+  // outside development and test (the monolith's intended production state).
+  const activeProvider = getConfiguredProviderName();
   const payoutSettings = await getDisbursementSettings(prisma);
   const dict = getDictionary(await getServerLanguage());
   const dt = (key: string, fallback: string): string => dict[key] ?? fallback;
@@ -142,7 +144,14 @@ export default async function DisbursementLayout({
             <h1 className="text-lg font-bold sm:text-xl">
               {dt('admin.disbursement.title', 'Disbursement Admin')}
             </h1>
-            <Badge className="bg-emerald-500/10 px-2 py-0.5 text-xs font-bold text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400">
+            <Badge
+              className={cn(
+                'px-2 py-0.5 text-xs font-bold',
+                activeProvider === 'UNCONFIGURED'
+                  ? 'bg-amber-500/10 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400'
+                  : 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400'
+              )}
+            >
               {activeProvider}
             </Badge>
             {!payoutSettings.effectiveEnabled && (
@@ -199,12 +208,19 @@ export default async function DisbursementLayout({
           <div className="my-4 border-t border-border" />
 
           {/* System Info */}
-          <div className="bg-accent/50 hidden rounded-lg px-4 py-3 sm:block">
+          <div className="hidden rounded-lg bg-accent/50 px-4 py-3 sm:block">
             <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
               {dt('admin.disbursement.payment_provider', 'Payment Provider')}
             </p>
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              <span
+                className={cn(
+                  'h-2 w-2 animate-pulse rounded-full',
+                  activeProvider === 'UNCONFIGURED'
+                    ? 'bg-amber-500'
+                    : 'bg-emerald-500'
+                )}
+              />
               <span className="text-sm text-foreground">
                 {activeProvider === 'WISE'
                   ? dt('admin.disbursement.provider_wise', 'Wise')
@@ -213,7 +229,15 @@ export default async function DisbursementLayout({
                         'admin.disbursement.provider_rise_archived',
                         'RiseWorks (archived)'
                       )
-                    : dt('admin.disbursement.provider_mock', 'MOCK (testing)')}
+                    : activeProvider === 'UNCONFIGURED'
+                      ? dt(
+                          'admin.disbursement.provider_unconfigured',
+                          'Not configured'
+                        )
+                      : dt(
+                          'admin.disbursement.provider_mock',
+                          'MOCK (testing)'
+                        )}
               </span>
             </div>
           </div>

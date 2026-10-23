@@ -9,6 +9,18 @@ import {
   getAvailableProviders,
 } from '@/lib/disbursement/providers/provider-factory';
 import { MockPaymentProvider } from '@/lib/disbursement/providers/mock-provider';
+import { DisbursementConfigError } from '@/lib/disbursement/constants';
+
+type EnvKey = 'NODE_ENV' | 'DISBURSEMENT_PROVIDER' | 'VERCEL_ENV';
+
+// NODE_ENV is typed read-only in Next; same pattern as redirect-callback.test.ts
+function setEnv(key: EnvKey, value: string | undefined): void {
+  if (value === undefined) {
+    Reflect.deleteProperty(process.env, key);
+  } else {
+    Reflect.set(process.env, key, value);
+  }
+}
 
 describe('Provider Factory', () => {
   const originalEnv = process.env;
@@ -117,6 +129,61 @@ describe('Provider Factory', () => {
 
       expect(Array.isArray(providers)).toBe(true);
       expect(providers.length).toBeGreaterThan(0);
+    });
+  });
+
+  // CODE-03 (WS-1): the mock provider exists only in development and test.
+  describe('fails closed outside development and test', () => {
+    afterEach(() => {
+      setEnv('NODE_ENV', 'test');
+    });
+
+    beforeEach(() => {
+      setEnv('NODE_ENV', 'production');
+      setEnv('VERCEL_ENV', undefined);
+    });
+
+    it('refuses createPaymentProvider(MOCK) in production', () => {
+      expect(() => createPaymentProvider('MOCK')).toThrow(
+        DisbursementConfigError
+      );
+    });
+
+    it('refuses createPaymentProvider(MOCK) on Preview', () => {
+      setEnv('VERCEL_ENV', 'preview');
+      expect(() => createPaymentProvider('MOCK')).toThrow(
+        DisbursementConfigError
+      );
+    });
+
+    it('refuses the default provider in production when the variable is unset', () => {
+      delete process.env['DISBURSEMENT_PROVIDER'];
+      expect(() => createPaymentProvider()).toThrow(DisbursementConfigError);
+    });
+
+    it('refuses the default provider in production when the variable is MOCK', () => {
+      process.env['DISBURSEMENT_PROVIDER'] = 'MOCK';
+      expect(() => createPaymentProvider()).toThrow(DisbursementConfigError);
+    });
+
+    it('refuses getDefaultProviderName() in production when the variable is unset', () => {
+      delete process.env['DISBURSEMENT_PROVIDER'];
+      expect(() => getDefaultProviderName()).toThrow(DisbursementConfigError);
+    });
+
+    it('reports MOCK as unavailable in production, so a stored MOCK batch is refused', () => {
+      expect(isProviderAvailable('MOCK')).toBe(false);
+    });
+
+    it('lists only WISE as available in production', () => {
+      expect(getAvailableProviders()).toEqual(['WISE']);
+    });
+
+    it('reports MOCK as available in test and development', () => {
+      setEnv('NODE_ENV', 'test');
+      expect(isProviderAvailable('MOCK')).toBe(true);
+      setEnv('NODE_ENV', 'development');
+      expect(isProviderAvailable('MOCK')).toBe(true);
     });
   });
 

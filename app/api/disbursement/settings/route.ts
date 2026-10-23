@@ -26,7 +26,7 @@ import { Prisma } from '.prisma/non-market-client';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
-import { getDefaultProvider } from '@/lib/disbursement/constants';
+import { getConfiguredProviderName } from '@/lib/disbursement/constants';
 import { isProviderAvailable } from '@/lib/disbursement/providers/provider-factory';
 import {
   DISBURSEMENT_SETTING_DEFINITIONS,
@@ -199,9 +199,9 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
         envKillSwitch: settings.envKillSwitch,
       },
       provider: {
-        active: getDefaultProvider(),
+        active: getConfiguredProviderName(),
         available: [
-          'MOCK',
+          isProviderAvailable('MOCK') ? 'MOCK' : null,
           isProviderAvailable('RISE') ? 'RISE' : null,
           isProviderAvailable('WISE') ? 'WISE' : null,
         ].filter(Boolean),

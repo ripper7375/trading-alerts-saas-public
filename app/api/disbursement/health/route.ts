@@ -21,7 +21,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAdmin } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
 import { createPaymentProvider } from '@/lib/disbursement/providers/provider-factory';
-import { getDefaultProvider } from '@/lib/disbursement/constants';
+import {
+  DisbursementConfigError,
+  getConfiguredProviderName,
+} from '@/lib/disbursement/constants';
 
 interface HealthChecks {
   database: boolean;
@@ -75,6 +78,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
   };
 
   const warnings: string[] = [];
+  let providerUnconfigured = false;
 
   try {
     // Check database connectivity
@@ -93,16 +97,28 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       await provider.authenticate();
       checks.provider = true;
     } catch (providerError) {
-      console.error('Provider health check failed:', providerError);
       checks.provider = false;
-      // This is expected if RISE is not implemented
-      if (
-        providerError instanceof Error &&
-        providerError.message.includes('not yet implemented')
-      ) {
-        checks.provider = true; // MOCK provider is fine
+      if (providerError instanceof DisbursementConfigError) {
+        // CODE-03: outside development and test the provider must be named.
+        // On the monolith that is the intended production state (money-service
+        // owns payouts), so it is a warning, not an outage.
+        console.warn(
+          'Payout provider is not configured:',
+          providerError.message
+        );
+        providerUnconfigured = true;
+        warnings.push('Payout provider is not configured');
       } else {
-        warnings.push('Provider authentication failed');
+        console.error('Provider health check failed:', providerError);
+        // This is expected if RISE is not implemented
+        if (
+          providerError instanceof Error &&
+          providerError.message.includes('not yet implemented')
+        ) {
+          checks.provider = true; // MOCK provider is fine
+        } else {
+          warnings.push('Provider authentication failed');
+        }
       }
     }
 
@@ -163,14 +179,15 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       // Not critical
     }
 
-    const healthy = checks.database && checks.provider;
+    const healthy =
+      checks.database && (checks.provider || providerUnconfigured);
 
     const response: HealthResponse = {
       healthy,
       timestamp: new Date().toISOString(),
       checks,
       warnings,
-      provider: getDefaultProvider(),
+      provider: getConfiguredProviderName(),
       uptime: Math.floor((Date.now() - startTime) / 1000),
     };
 
@@ -186,7 +203,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
         ...warnings,
         error instanceof Error ? error.message : 'Unknown error',
       ],
-      provider: getDefaultProvider(),
+      provider: getConfiguredProviderName(),
     };
 
     return NextResponse.json(response, { status: 503 });

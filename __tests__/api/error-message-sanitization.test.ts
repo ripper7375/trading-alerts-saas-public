@@ -16,6 +16,8 @@
 
 import { NextRequest } from 'next/server';
 
+import { DisbursementConfigError } from '@/lib/disbursement/constants';
+
 const mockGetServerSession = jest.fn();
 jest.mock('next-auth', () => ({
   __esModule: true,
@@ -216,6 +218,24 @@ describe('POST /api/disbursement/pay', () => {
     );
   });
 
+  it('a payout provider that is not configured: a fixed 503 that names nothing', async () => {
+    mockAffiliateFindUnique.mockRejectedValue(
+      new DisbursementConfigError(
+        'DISBURSEMENT_PROVIDER must be set to a real provider outside development and test'
+      )
+    );
+
+    const res = await call();
+
+    expect(res.status).toBe(503);
+    const text = await res.text();
+    expect(JSON.parse(text)).toEqual({
+      error: 'Disbursement is not configured',
+    });
+    expect(text).not.toContain('DISBURSEMENT_PROVIDER');
+    expect(errorSpy).toHaveBeenCalled();
+  });
+
   it('the "not yet implemented" provider case keeps its fixed 400 text', async () => {
     mockAffiliateFindUnique.mockRejectedValue(
       new Error('RISE provider not yet implemented')
@@ -257,6 +277,28 @@ describe('POST /api/disbursement/batches/[batchId]/execute', () => {
       expect.objectContaining({
         message: expect.stringContaining('sk_live_abc123'),
       })
+    );
+  });
+
+  it('a payout provider that is not configured: a fixed 503, no details, nothing executed', async () => {
+    mockCreateProvider.mockImplementation(() => {
+      throw new DisbursementConfigError(
+        'DISBURSEMENT_PROVIDER must be set to a real provider outside development and test'
+      );
+    });
+
+    const res = await callExecute();
+
+    expect(res.status).toBe(503);
+    const text = await res.text();
+    expect(JSON.parse(text)).toEqual({
+      error: 'Disbursement is not configured',
+    });
+    expect(text).not.toContain('DISBURSEMENT_PROVIDER');
+    expect(mockExecuteBatch).not.toHaveBeenCalled();
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(DisbursementConfigError)
     );
   });
 

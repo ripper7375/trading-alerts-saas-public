@@ -30,6 +30,17 @@ const db = prisma as unknown as {
   $transaction: jest.Mock;
 };
 
+type EnvKey = 'NODE_ENV' | 'DISBURSEMENT_PROVIDER' | 'VERCEL_ENV';
+
+// NODE_ENV is typed read-only in Next; same pattern as redirect-callback.test.ts
+function setEnv(key: EnvKey, value: string | undefined): void {
+  if (value === undefined) {
+    Reflect.deleteProperty(process.env, key);
+  } else {
+    Reflect.set(process.env, key, value);
+  }
+}
+
 const ADMIN = { user: { id: 'admin-1', email: 'admin@davintrade.app' } };
 const V1 = new Date('2026-09-20T10:00:00.000Z');
 const V2 = new Date('2026-09-23T10:00:00.000Z');
@@ -155,6 +166,66 @@ describe('/api/disbursement/settings', () => {
       process.env['DISBURSEMENT_ENABLED'] = 'false';
       const body = await (await GET(getRequest())).json();
       expect(body.effective).toEqual({ enabled: false, envKillSwitch: true });
+    });
+  });
+
+  // CODE-03 (WS-1): the provider shown to the admin is the one that can run
+  describe('GET provider (payout provider fails closed)', () => {
+    const keys: EnvKey[] = ['NODE_ENV', 'DISBURSEMENT_PROVIDER', 'VERCEL_ENV'];
+    const saved = new Map<EnvKey, string | undefined>();
+
+    beforeEach(() => {
+      for (const key of keys) saved.set(key, process.env[key]);
+      setEnv('NODE_ENV', 'production');
+      setEnv('VERCEL_ENV', undefined);
+    });
+
+    afterEach(() => {
+      for (const key of keys) setEnv(key, saved.get(key));
+    });
+
+    it('answers 200 with UNCONFIGURED when the provider is unset in production', async () => {
+      setEnv('DISBURSEMENT_PROVIDER', undefined);
+
+      const response = await GET(getRequest());
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.provider.active).toBe('UNCONFIGURED');
+      expect(body.provider.available).not.toContain('MOCK');
+    });
+
+    it('answers UNCONFIGURED when MOCK is named in production', async () => {
+      setEnv('DISBURSEMENT_PROVIDER', 'MOCK');
+
+      const response = await GET(getRequest());
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.provider.active).toBe('UNCONFIGURED');
+      expect(body.provider.available).not.toContain('MOCK');
+    });
+
+    it('shows WISE as the active provider when it is configured in production', async () => {
+      setEnv('DISBURSEMENT_PROVIDER', 'WISE');
+
+      const response = await GET(getRequest());
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.provider.active).toBe('WISE');
+      expect(body.provider.available).toEqual(['WISE']);
+    });
+
+    it('still shows MOCK as the active provider in test when nothing is set', async () => {
+      setEnv('NODE_ENV', 'test');
+      setEnv('DISBURSEMENT_PROVIDER', undefined);
+
+      const response = await GET(getRequest());
+      const body = await response.json();
+
+      expect(body.provider.active).toBe('MOCK');
+      expect(body.provider.available).toContain('MOCK');
     });
   });
 

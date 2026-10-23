@@ -78,9 +78,12 @@ jest.mock('@/lib/disbursement/providers/provider-factory', () => ({
   }),
 }));
 
-// Mock constants
+// Mock constants (the rest stays real: the CODE-03 cases below use the real
+// provider rules)
 jest.mock('@/lib/disbursement/constants', () => ({
+  ...jest.requireActual('@/lib/disbursement/constants'),
   getDefaultProvider: jest.fn().mockReturnValue('MOCK'),
+  getConfiguredProviderName: jest.fn().mockReturnValue('MOCK'),
 }));
 
 // The caller's role: the real isAdmin() is covered by session.test.ts
@@ -91,8 +94,22 @@ jest.mock('@/lib/auth/session', () => ({
 
 import { isAdmin } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
-import { getDefaultProvider } from '@/lib/disbursement/constants';
+import {
+  getConfiguredProviderName,
+  getDefaultProvider,
+} from '@/lib/disbursement/constants';
 import { createPaymentProvider } from '@/lib/disbursement/providers/provider-factory';
+
+type EnvKey = 'NODE_ENV' | 'DISBURSEMENT_PROVIDER' | 'VERCEL_ENV';
+
+// NODE_ENV is typed read-only in Next; same pattern as redirect-callback.test.ts
+function setEnv(key: EnvKey, value: string | undefined): void {
+  if (value === undefined) {
+    Reflect.deleteProperty(process.env, key);
+  } else {
+    Reflect.set(process.env, key, value);
+  }
+}
 
 const mockIsAdmin = isAdmin as jest.Mock;
 const mockQueryRaw = prisma.$queryRaw as unknown as jest.Mock;
@@ -184,6 +201,119 @@ describe('Health Check API', () => {
     });
   });
 
+  // CODE-03 (WS-1): on the monolith the payout provider is intentionally left
+  // unset in production (money-service owns payouts). That is a warning, not an
+  // outage, and the provider is reported as UNCONFIGURED instead of crashing.
+  describe('GET /api/disbursement/health (payout provider not configured)', () => {
+    const realFactory = jest.requireActual(
+      '@/lib/disbursement/providers/provider-factory'
+    ) as typeof import('@/lib/disbursement/providers/provider-factory');
+    const realConstants = jest.requireActual(
+      '@/lib/disbursement/constants'
+    ) as typeof import('@/lib/disbursement/constants');
+    const saved = new Map<EnvKey, string | undefined>();
+    const keys: EnvKey[] = ['NODE_ENV', 'DISBURSEMENT_PROVIDER', 'VERCEL_ENV'];
+
+    beforeEach(() => {
+      for (const key of keys) saved.set(key, process.env[key]);
+      mockIsAdmin.mockResolvedValue(true);
+      (createPaymentProvider as jest.Mock).mockImplementation(
+        realFactory.createPaymentProvider
+      );
+      (getConfiguredProviderName as jest.Mock).mockImplementation(
+        realConstants.getConfiguredProviderName
+      );
+      setEnv('NODE_ENV', 'production');
+      setEnv('DISBURSEMENT_PROVIDER', undefined);
+      setEnv('VERCEL_ENV', undefined);
+    });
+
+    afterEach(() => {
+      for (const key of keys) setEnv(key, saved.get(key));
+      (createPaymentProvider as jest.Mock).mockReset().mockReturnValue({
+        authenticate: jest.fn().mockResolvedValue({ token: 'mock-token' }),
+      });
+      (getConfiguredProviderName as jest.Mock)
+        .mockReset()
+        .mockReturnValue('MOCK');
+    });
+
+    it('answers 200 with UNCONFIGURED and a warning when the provider is unset in production', async () => {
+      const consoleWarn = jest
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const response = await GET(healthRequest() as any);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.provider).toBe('UNCONFIGURED');
+      expect(data.healthy).toBe(true);
+      expect(data.checks.database).toBe(true);
+      expect(data.checks.provider).toBe(false);
+      expect(data.warnings).toContain('Payout provider is not configured');
+      consoleWarn.mockRestore();
+    });
+
+    it('treats a named MOCK in production the same way', async () => {
+      setEnv('DISBURSEMENT_PROVIDER', 'MOCK');
+      const consoleWarn = jest
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const response = await GET(healthRequest() as any);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.provider).toBe('UNCONFIGURED');
+      consoleWarn.mockRestore();
+    });
+
+    it('does not put the configuration error text in the response', async () => {
+      const consoleWarn = jest
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const data = await (await GET(healthRequest() as any)).json();
+
+      expect(JSON.stringify(data)).not.toContain('DISBURSEMENT_PROVIDER');
+      consoleWarn.mockRestore();
+    });
+
+    it('is still a 503 when the database is down', async () => {
+      mockQueryRaw.mockRejectedValue(new Error('db down'));
+      const consoleError = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+      const consoleWarn = jest
+        .spyOn(console, 'warn')
+        .mockImplementation(() => undefined);
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const response = await GET(healthRequest() as any);
+      const data = await response.json();
+
+      expect(response.status).toBe(503);
+      expect(data.healthy).toBe(false);
+      expect(data.provider).toBe('UNCONFIGURED');
+      consoleError.mockRestore();
+      consoleWarn.mockRestore();
+    });
+
+    it('does not change the public answer for anyone else', async () => {
+      mockIsAdmin.mockResolvedValue(false);
+      const { GET } = await import('@/app/api/disbursement/health/route');
+
+      const response = await GET(healthRequest() as any);
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ status: 'healthy' });
+    });
+  });
+
   describe('GET /api/disbursement/health (anonymous or non-admin caller)', () => {
     beforeEach(() => {
       mockIsAdmin.mockResolvedValue(false);
@@ -224,6 +354,7 @@ describe('Health Check API', () => {
       expect(mockQueryRaw).toHaveBeenCalledTimes(1);
       expect(createPaymentProvider).not.toHaveBeenCalled();
       expect(getDefaultProvider).not.toHaveBeenCalled();
+      expect(getConfiguredProviderName).not.toHaveBeenCalled();
       expect(prisma.paymentBatch.count).not.toHaveBeenCalled();
       expect(prisma.disbursementTransaction.count).not.toHaveBeenCalled();
       expect(prisma.riseWorksWebhookEvent.findFirst).not.toHaveBeenCalled();

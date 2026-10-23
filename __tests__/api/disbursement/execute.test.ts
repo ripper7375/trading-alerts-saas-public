@@ -217,6 +217,106 @@ describe('POST /api/disbursement/batches/[batchId]/execute', () => {
   });
 });
 
+type EnvKey = 'NODE_ENV' | 'DISBURSEMENT_PROVIDER' | 'VERCEL_ENV';
+
+// NODE_ENV is typed read-only in Next; same pattern as redirect-callback.test.ts
+function setEnv(key: EnvKey, value: string | undefined): void {
+  if (value === undefined) {
+    Reflect.deleteProperty(process.env, key);
+  } else {
+    Reflect.set(process.env, key, value);
+  }
+}
+
+// CODE-03 (WS-1): a stored MOCK batch cannot be executed outside development
+// and test. The refusal comes from the availability check, before a provider
+// is built and before anything is written.
+describe('POST /api/disbursement/batches/[batchId]/execute — payout provider fails closed (CODE-03)', () => {
+  const keys: EnvKey[] = ['NODE_ENV', 'DISBURSEMENT_PROVIDER', 'VERCEL_ENV'];
+  const saved = new Map<EnvKey, string | undefined>();
+
+  const callExecute = () =>
+    POST(
+      new NextRequest(
+        'http://localhost:3000/api/disbursement/batches/batch-1/execute',
+        { method: 'POST' }
+      ),
+      { params: Promise.resolve({ batchId: 'batch-1' }) }
+    );
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    for (const key of keys) saved.set(key, process.env[key]);
+    (shouldUseMoneyServiceForDisbursementWrite as jest.Mock).mockReturnValue(
+      false
+    );
+    const { requireAdmin } = await import('@/lib/auth/session');
+    (requireAdmin as jest.Mock).mockResolvedValue({
+      user: { id: 'admin-123', role: 'ADMIN' },
+    });
+  });
+
+  afterEach(() => {
+    for (const key of keys) setEnv(key, saved.get(key));
+  });
+
+  it.each([
+    ['production', undefined],
+    ['production', 'preview'],
+  ])(
+    'refuses a stored MOCK batch when NODE_ENV is %s and VERCEL_ENV is %s, and writes nothing',
+    async (nodeEnv, vercelEnv) => {
+      const { prisma } = await import('@/lib/db/prisma');
+      setEnv('NODE_ENV', nodeEnv);
+      setEnv('VERCEL_ENV', vercelEnv);
+      (prisma.paymentBatch.findUnique as jest.Mock).mockResolvedValue({
+        id: 'batch-1',
+        batchNumber: 'BATCH-2026-ABC',
+        status: 'PENDING',
+        provider: 'MOCK',
+        totalAmount: 100,
+        transactions: [],
+        auditLogs: [],
+      });
+
+      const response = await callExecute();
+
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.success).not.toBe(true);
+      expect(data.error).toBe('Provider MOCK is not available');
+      expect(prisma.paymentBatch.update).not.toHaveBeenCalled();
+      expect(prisma.disbursementTransaction.update).not.toHaveBeenCalled();
+      expect(prisma.commission.update).not.toHaveBeenCalled();
+      expect(prisma.disbursementAuditLog.create).not.toHaveBeenCalled();
+    }
+  );
+
+  it('still executes a MOCK batch in test', async () => {
+    const { prisma } = await import('@/lib/db/prisma');
+    setEnv('NODE_ENV', 'test');
+    const batch = {
+      id: 'batch-1',
+      batchNumber: 'BATCH-2026-ABC',
+      status: 'PENDING',
+      provider: 'MOCK',
+      totalAmount: 100,
+      transactions: [],
+      auditLogs: [],
+    };
+    (prisma.paymentBatch.findUnique as jest.Mock)
+      .mockResolvedValueOnce(batch)
+      .mockResolvedValueOnce(batch)
+      .mockResolvedValueOnce({ ...batch, status: 'COMPLETED' });
+    (prisma.paymentBatch.update as jest.Mock).mockResolvedValue({});
+    (prisma.disbursementAuditLog.create as jest.Mock).mockResolvedValue({});
+
+    const response = await callExecute();
+
+    expect(response.status).toBe(200);
+  });
+});
+
 describe('POST /api/disbursement/batches/[batchId]/execute — pause gate (E11, DECISION-LOG F83)', () => {
   const callExecute = () =>
     POST(
