@@ -2,6 +2,14 @@ import bcrypt from 'bcryptjs';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import {
+  RESET_IP_LIMIT,
+  RESET_WINDOW_SECONDS,
+  clientIp,
+  release,
+  reserve,
+  throttleKeys,
+} from '@/lib/auth/auth-throttle';
 import { ExpiredTokenError, InvalidTokenError } from '@/lib/auth/errors';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import { prisma } from '@/lib/db/prisma';
@@ -17,9 +25,39 @@ export async function POST(request: Request): Promise<NextResponse> {
     return csrfErrorResponse() as NextResponse;
   }
 
+  // The client address whose count a request that is no failed token gives back (CODE-01B).
+  let countedKey: string | null = null;
+
   try {
     const body = await request.json();
     const validated = resetPasswordSchema.parse(body);
+
+    // CODE-01B: ten rejected tokens per quarter hour per client address. The attempt is counted
+    // before the token is looked at, so a parallel burst cannot get past the limit; a reset that
+    // works, or fails for a reason of ours, gives its count back. Redis down: open (D-1).
+    const ip = clientIp(request.headers);
+    if (ip) {
+      const attempt = await reserve([
+        {
+          key: throttleKeys.resetIp(ip),
+          limit: RESET_IP_LIMIT,
+          windowSeconds: RESET_WINDOW_SECONDS,
+        },
+      ]);
+      if (attempt.blocked) {
+        return NextResponse.json(
+          {
+            error: 'Too many attempts. Please try again later.',
+            retryAfter: attempt.retryAfterSeconds,
+          },
+          {
+            status: 429,
+            headers: { 'Retry-After': String(attempt.retryAfterSeconds) },
+          }
+        );
+      }
+      countedKey = throttleKeys.resetIp(ip);
+    }
 
     // Find user by reset token
     const user = await prisma.user.findFirst({
@@ -50,6 +88,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       select: { id: true },
     });
 
+    if (countedKey) await release([countedKey]);
+
     return NextResponse.json({
       success: true,
       message:
@@ -76,6 +116,9 @@ export async function POST(request: Request): Promise<NextResponse> {
         { status: 400 }
       );
     }
+
+    // Not a rejected token: a failure of ours does not count against the address.
+    if (countedKey) await release([countedKey]);
 
     console.error('Password reset failed:', error);
     return NextResponse.json(

@@ -28,6 +28,15 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+// CODE-01B: sign-in is throttled in Redis. These tests are about the account's state, not the
+// limits (auth-throttle.test.ts covers those), so the counters are open here.
+jest.mock('@/lib/auth/auth-throttle', () => ({
+  ...jest.requireActual('@/lib/auth/auth-throttle'),
+  reserve: jest.fn(async () => ({ blocked: false, retryAfterSeconds: 0 })),
+  release: jest.fn(async () => undefined),
+  clear: jest.fn(async () => undefined),
+}));
+
 import { authOptions } from '@/lib/auth/auth-options';
 import { clearUserActiveCache, isUserActive } from '@/lib/auth/user-active';
 

@@ -5,6 +5,14 @@ import {
   createOperationApi,
   unwrapOperationApi,
 } from '@/lib/api/generated/operation-api/client';
+import {
+  LOGIN_IP_LIMIT,
+  LOGIN_WINDOW_SECONDS,
+  clientIp,
+  release,
+  reserve,
+  throttleKeys,
+} from '@/lib/auth/auth-throttle';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
   forwardedRequestContext,
@@ -34,6 +42,9 @@ interface TwoFactorRequiredBody {
   twoFactorRequired: true;
   token: string;
 }
+
+// The second step of a 2FA sign-in: the 2FA limits cover it, not these.
+const TWO_FACTOR_VERIFIED_SENTINEL = '__2fa_verified__';
 
 // Additive parallel path to app/api/auth/[...nextauth]/route.ts (bridge-
 // first, F6) — calls operation-service's /auth/login (F24: issues a
@@ -70,6 +81,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
+  // CODE-01B: failed passwords are limited per client address here (20 in 15 minutes); the
+  // account is limited in operation-service, which sees Vercel's address, not the client's
+  // (decision D-4). The attempt is counted BEFORE operation-service is asked, so a parallel burst
+  // cannot get past the limit; only a 401 (a wrong password) keeps its count. Redis down: open
+  // (D-1).
+  const ip =
+    email === TWO_FACTOR_VERIFIED_SENTINEL ? null : clientIp(request.headers);
+  const ipKey = ip ? throttleKeys.loginIp(ip) : null;
+  if (ipKey) {
+    const attempt = await reserve([
+      {
+        key: ipKey,
+        limit: LOGIN_IP_LIMIT,
+        windowSeconds: LOGIN_WINDOW_SECONDS,
+      },
+    ]);
+    if (attempt.blocked) {
+      return NextResponse.json(
+        {
+          error: 'RATE_LIMITED',
+          message: 'Too many attempts. Please try again later.',
+          retryAfter: attempt.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(attempt.retryAfterSeconds) },
+        }
+      );
+    }
+  }
+
   try {
     const api = createOperationApi(null);
     const apiResult = await api.POST('/auth/login', {
@@ -79,6 +121,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const result = await unwrapOperationApi<
       LoginSuccessBody | TwoFactorRequiredBody
     >(apiResult);
+
+    // Not a wrong password (a session or the 2FA step follows): not a failure for the address.
+    if (ipKey) await release([ipKey]);
 
     if ('twoFactorRequired' in result && result.twoFactorRequired) {
       // Same intermediate step the existing NextAuth flow already uses
@@ -106,11 +151,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ user });
   } catch (error) {
     if (error instanceof OperationServiceError) {
+      // A 401 is a wrong password and keeps its count; a locked account (429), an unverified or
+      // deactivated one (403) or a server error is not a failed guess by this address.
+      if (ipKey && error.status !== 401) await release([ipKey]);
       return NextResponse.json(
         { error: error.body.error, message: error.body.message },
         { status: error.status }
       );
     }
+    if (ipKey) await release([ipKey]);
     console.error('[token-login] operation-service call failed:', error);
     return NextResponse.json(
       { error: 'SERVER_ERROR', message: 'Something went wrong' },

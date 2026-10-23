@@ -4,6 +4,7 @@ import {
   createOperationApi,
   unwrapOperationApi,
 } from '@/lib/api/generated/operation-api/client';
+import { clientIp, mailLimits, reserve } from '@/lib/auth/auth-throttle';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
   forwardedEmailLocale,
@@ -14,6 +15,14 @@ interface ForgotPasswordSuccessBody {
   success: true;
   message: string;
 }
+
+// What operation-service answers every request, and so what a limited request is answered
+// (CODE-01B): the limit tells nothing about the address.
+const GENERIC_BODY: ForgotPasswordSuccessBody = {
+  success: true,
+  message:
+    'If an account exists with this email, you will receive a password reset link.',
+};
 
 // Additive parallel path to app/api/auth/forgot-password/route.ts (Session
 // 3-4, F29: forgot/reset/verify-email/resend-verification logic ported into
@@ -41,6 +50,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       { error: 'INVALID_REQUEST', message: 'email is required' },
       { status: 400 }
     );
+  }
+
+  // CODE-01B: three requests an hour per client address here. The e-mail address is limited in
+  // operation-service (the same key as the direct route), once: counting it here too would count
+  // it twice. Redis down: open (D-1).
+  const throttled = await reserve(
+    mailLimits('forgot', { ip: clientIp(request.headers) })
+  );
+  if (throttled.blocked) {
+    return NextResponse.json(GENERIC_BODY);
   }
 
   try {

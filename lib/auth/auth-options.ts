@@ -12,6 +12,16 @@ import TwitterProvider from 'next-auth/providers/twitter';
 
 import { ACCOUNT_DEACTIVATED_CODE } from '@/lib/account/deletion';
 import {
+  LOGIN_ACCOUNT_LIMIT,
+  LOGIN_IP_LIMIT,
+  LOGIN_WINDOW_SECONDS,
+  clear,
+  clientIp,
+  release,
+  reserve,
+  throttleKeys,
+} from '@/lib/auth/auth-throttle';
+import {
   COMPLETION_USED_TTL_SECONDS,
   TWO_FACTOR_VERIFIED,
   TwoFactorUnavailableError,
@@ -358,7 +368,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           throw new Error('INVALID_CREDENTIALS');
         }
@@ -524,11 +534,48 @@ export const authOptions: NextAuthOptions = {
           }
         }
 
-        // 2. Regular user database lookup
-        const user = await prisma.user.findUnique({
-          where: { email },
-          select: CREDENTIALS_USER_SELECT,
-        });
+        // 2. CODE-01B: failed passwords are limited per account (5 in 15 minutes) and per client
+        // address (20 in 15 minutes). The attempt is counted BEFORE the password is looked at,
+        // so a parallel burst cannot get past the limit; a right password gives the budget
+        // back. An unknown e-mail counts like a wrong password, so nothing tells the two apart.
+        // Past the limit even the right password is refused, before any database or bcrypt
+        // work. NextAuth turns a thrown error into a 401 whose `error` is this message (never a
+        // 429), and login-form.tsx shows its generic message for it. The account key is shared
+        // with operation-service (decision D-4). Redis down: open (D-1).
+        const ip = clientIp(req?.headers);
+        const accountKey = throttleKeys.loginAccount(email);
+        const ipKey = ip ? throttleKeys.loginIp(ip) : null;
+        const attempt = await reserve([
+          {
+            key: accountKey,
+            limit: LOGIN_ACCOUNT_LIMIT,
+            windowSeconds: LOGIN_WINDOW_SECONDS,
+          },
+          ...(ipKey
+            ? [
+                {
+                  key: ipKey,
+                  limit: LOGIN_IP_LIMIT,
+                  windowSeconds: LOGIN_WINDOW_SECONDS,
+                },
+              ]
+            : []),
+        ]);
+        if (attempt.blocked) {
+          throw new Error('RATE_LIMITED');
+        }
+
+        // 3. Regular user database lookup
+        const user = await prisma.user
+          .findUnique({
+            where: { email },
+            select: CREDENTIALS_USER_SELECT,
+          })
+          .catch(async (error: unknown) => {
+            // The database failed, not the password: the attempt does not count.
+            await release([accountKey, ...(ipKey ? [ipKey] : [])]);
+            throw error;
+          });
 
         if (!user || !user.password) {
           throw new Error('INVALID_CREDENTIALS');
@@ -542,6 +589,10 @@ export const authOptions: NextAuthOptions = {
         if (!isPasswordValid) {
           throw new Error('INVALID_CREDENTIALS');
         }
+
+        // The password is right (whatever else is wrong with the account): the account's run of
+        // failures ends, and the address is not charged for a failure.
+        await Promise.all([clear([accountKey]), release(ipKey ? [ipKey] : [])]);
 
         // Locked by a confirmed account deletion (F21) or suspended by an admin. After the
         // password check, so only someone who knows the password learns the account's state.

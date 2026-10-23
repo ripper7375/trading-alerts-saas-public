@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { clientIp, mailLimits, reserve } from '@/lib/auth/auth-throttle';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import { prisma } from '@/lib/db/prisma';
 import { sendVerificationEmail } from '@/lib/email/email';
@@ -10,6 +11,11 @@ import { sendVerificationEmail } from '@/lib/email/email';
 const resendSchema = z.object({
   email: z.string().email('Invalid email format'),
 });
+
+// What every request that is not refused outright gets, whether the address is registered,
+// verified, unknown or the request was limited (CODE-01B, checklist 8B-14).
+const GENERIC_MESSAGE =
+  'If your email is registered, you will receive a verification email.';
 
 /**
  * POST /api/auth/resend-verification
@@ -26,6 +32,19 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const body = await request.json();
     const validated = resendSchema.parse(body);
+
+    // CODE-01B: three requests an hour per e-mail address and per client address. Past that the
+    // answer is the one every request gets and nothing is looked up or sent, so the limit tells
+    // nothing about the address. Redis down: open (D-1).
+    const throttled = await reserve(
+      mailLimits('resend', {
+        email: validated.email,
+        ip: clientIp(request.headers),
+      })
+    );
+    if (throttled.blocked) {
+      return NextResponse.json({ success: true, message: GENERIC_MESSAGE });
+    }
 
     // Find user by email
     const user = await prisma.user.findUnique({
@@ -44,21 +63,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     // But only actually send email if conditions are met
     if (!user) {
       console.log('[Resend] User not found:', validated.email);
-      return NextResponse.json({
-        success: true,
-        message:
-          'If your email is registered, you will receive a verification email.',
-      });
+      return NextResponse.json({ success: true, message: GENERIC_MESSAGE });
     }
 
     // If email is already verified, don't send another email
     if (user.emailVerified) {
       console.log('[Resend] Email already verified:', validated.email);
-      return NextResponse.json({
-        success: true,
-        message:
-          'If your email is registered, you will receive a verification email.',
-      });
+      return NextResponse.json({ success: true, message: GENERIC_MESSAGE });
     }
 
     // Rate limiting: Check if user recently requested a resend (within 60 seconds)
@@ -111,10 +122,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     console.log('[Resend] Verification email sent to:', user.email);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Verification email sent. Please check your inbox.',
-    });
+    return NextResponse.json({ success: true, message: GENERIC_MESSAGE });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
