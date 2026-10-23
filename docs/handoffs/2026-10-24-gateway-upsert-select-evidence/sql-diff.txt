@@ -1,0 +1,59 @@
+{"statementsBefore":5,"statementsAfter":5}
+{
+  "statementsWhoseReturningListChanged": [
+    {
+      "statement": 1,
+      "returningColumnsBefore": 106,
+      "returningColumnsAfter": 1,
+      "returningAfter": "\"public\".\"market_data_v6\".\"id\""
+    }
+  ]
+}
+{
+  "parametersThatDifferAndAreGeneratedPerRun": [
+    {
+      "statement": 1,
+      "param": "$1",
+      "column": "id",
+      "before": "cmvlj7fpn0000sgvtkpa3nqjp",
+      "after": "cmvlj8x4g00000gvt1pyt3fym"
+    },
+    {
+      "statement": 1,
+      "param": "$105",
+      "column": "createdAt",
+      "before": "2026-10-23T22:18:31.883Z",
+      "after": "2026-10-23T22:19:41.105Z"
+    },
+    {
+      "statement": 1,
+      "param": "$106",
+      "column": "updatedAt",
+      "before": "2026-10-23T22:18:31.883Z",
+      "after": "2026-10-23T22:19:41.105Z"
+    },
+    {
+      "statement": 1,
+      "param": "$210",
+      "column": "updatedAt",
+      "before": "2026-10-23T22:18:31.883Z",
+      "after": "2026-10-23T22:19:41.105Z"
+    },
+    {
+      "statement": 3,
+      "param": "$1",
+      "column": "id",
+      "before": "cmvlj7fq20001sgvtmdnxxqts",
+      "after": "cmvlj8x4t00010gvtnmkrtztn"
+    },
+    {
+      "statement": 3,
+      "param": "$86",
+      "column": "createdAt",
+      "before": "2026-10-23T22:18:31.898Z",
+      "after": "2026-10-23T22:19:41.117Z"
+    }
+  ],
+  "parametersCompared": 299
+}
+DIFF OK: only the RETURNING list of the upsert differs

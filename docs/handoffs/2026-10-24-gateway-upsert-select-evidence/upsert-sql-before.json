@@ -1,0 +1,1853 @@
+{
+  "label": "before",
+  "prismaVersion": {
+    "client": "7.9.1",
+    "engine": "e922089b7d7502aff4249d5da3420f6fa55fc6ad"
+  },
+  "clientDir": "D:/SaaS/railway-gateway/node_modules/.prisma/client",
+  "marketDataScalarFieldCount": 106,
+  "payloadFieldCount": 103,
+  "fixedNowMs": 1700003600000,
+  "jobResult": {
+    "success": true
+  },
+  "records": [
+    {
+      "method": "queryRaw",
+      "sql": "INSERT INTO \"public\".\"market_data_v6\" (\"id\",\"terminal_id\",\"timestamp\",\"symbol\",\"timeframe\",\"open\",\"high\",\"low\",\"close\",\"volume\",\"best_fit_a_horiz_high_map\",\"best_fit_a_horiz_low_map\",\"best_fit_a_ssa\",\"best_fit_a_ema_ssa\",\"best_fit_a_crossing\",\"best_fit_a_base_fl\",\"best_fit_a_uoedt\",\"best_fit_a_loedt\",\"best_fit_b_horiz_high_map\",\"best_fit_b_horiz_low_map\",\"best_fit_b_ssa\",\"best_fit_b_ema_ssa\",\"best_fit_b_crossing\",\"best_fit_b_base_fl\",\"best_fit_b_uoedt\",\"best_fit_b_loedt\",\"cherry_a_horiz_high_map\",\"cherry_a_horiz_low_map\",\"cherry_a_ssa\",\"cherry_a_ema_ssa\",\"cherry_a_crossing\",\"cherry_a_base_fl\",\"cherry_a_uoedt\",\"cherry_a_loedt\",\"cherry_b_horiz_high_map\",\"cherry_b_horiz_low_map\",\"cherry_b_ssa\",\"cherry_b_ema_ssa\",\"cherry_b_crossing\",\"cherry_b_base_fl\",\"cherry_b_uoedt\",\"cherry_b_loedt\",\"most_recent_horiz_high_map\",\"most_recent_horiz_low_map\",\"most_recent_ssa\",\"most_recent_ema_ssa\",\"most_recent_crossing\",\"most_recent_base_fl\",\"most_recent_uoedt\",\"most_recent_loedt\",\"non_a_horiz_high_map\",\"non_a_horiz_low_map\",\"non_a_ssa\",\"non_a_ema_ssa\",\"non_a_crossing\",\"non_a_base_fl\",\"non_a_uoedt\",\"non_a_loedt\",\"non_b_horiz_high_map\",\"non_b_horiz_low_map\",\"non_b_ssa\",\"non_b_ema_ssa\",\"non_b_crossing\",\"non_b_base_fl\",\"non_b_uoedt\",\"non_b_loedt\",\"fractal_best_fl\",\"fractal_uoedt\",\"fractal_loedt\",\"best_resistance\",\"best_support\",\"sr_1\",\"sr_2\",\"sr_3\",\"sr_4\",\"sr_5\",\"sr_6\",\"sr_7\",\"sr_8\",\"sr_9\",\"sr_10\",\"sr_11\",\"sr_12\",\"sr_13\",\"sr_14\",\"sr_15\",\"sr_16\",\"body_direction\",\"body_size\",\"body_classification\",\"zigzag_point_type\",\"zigzag_current_point\",\"zigzag_price_change\",\"zigzag_pct_change\",\"zigzag_pct_change_class\",\"zigzag_bars\",\"zigzag_bars_class\",\"zigzag_price_per_bar\",\"zigzag_price_per_bar_class\",\"zigzag_slope\",\"zigzag_category\",\"cycle_id\",\"collected_at\",\"calculated_at\",\"createdAt\",\"updatedAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54,$55,$56,$57,$58,$59,$60,$61,$62,$63,$64,$65,$66,$67,$68,$69,$70,$71,$72,$73,$74,$75,$76,$77,$78,$79,$80,$81,$82,$83,$84,$85,$86,$87,$88,$89,$90,$91,$92,$93,$94,$95,$96,$97,$98,$99,$100,$101,$102,$103,$104,$105,$106) ON CONFLICT (\"symbol\",\"timeframe\",\"timestamp\") DO UPDATE SET \"terminal_id\" = $107, \"timestamp\" = $108, \"symbol\" = $109, \"timeframe\" = $110, \"open\" = $111, \"high\" = $112, \"low\" = $113, \"close\" = $114, \"volume\" = $115, \"best_fit_a_horiz_high_map\" = $116, \"best_fit_a_horiz_low_map\" = $117, \"best_fit_a_ssa\" = $118, \"best_fit_a_ema_ssa\" = $119, \"best_fit_a_crossing\" = $120, \"best_fit_a_base_fl\" = $121, \"best_fit_a_uoedt\" = $122, \"best_fit_a_loedt\" = $123, \"best_fit_b_horiz_high_map\" = $124, \"best_fit_b_horiz_low_map\" = $125, \"best_fit_b_ssa\" = $126, \"best_fit_b_ema_ssa\" = $127, \"best_fit_b_crossing\" = $128, \"best_fit_b_base_fl\" = $129, \"best_fit_b_uoedt\" = $130, \"best_fit_b_loedt\" = $131, \"cherry_a_horiz_high_map\" = $132, \"cherry_a_horiz_low_map\" = $133, \"cherry_a_ssa\" = $134, \"cherry_a_ema_ssa\" = $135, \"cherry_a_crossing\" = $136, \"cherry_a_base_fl\" = $137, \"cherry_a_uoedt\" = $138, \"cherry_a_loedt\" = $139, \"cherry_b_horiz_high_map\" = $140, \"cherry_b_horiz_low_map\" = $141, \"cherry_b_ssa\" = $142, \"cherry_b_ema_ssa\" = $143, \"cherry_b_crossing\" = $144, \"cherry_b_base_fl\" = $145, \"cherry_b_uoedt\" = $146, \"cherry_b_loedt\" = $147, \"most_recent_horiz_high_map\" = $148, \"most_recent_horiz_low_map\" = $149, \"most_recent_ssa\" = $150, \"most_recent_ema_ssa\" = $151, \"most_recent_crossing\" = $152, \"most_recent_base_fl\" = $153, \"most_recent_uoedt\" = $154, \"most_recent_loedt\" = $155, \"non_a_horiz_high_map\" = $156, \"non_a_horiz_low_map\" = $157, \"non_a_ssa\" = $158, \"non_a_ema_ssa\" = $159, \"non_a_crossing\" = $160, \"non_a_base_fl\" = $161, \"non_a_uoedt\" = $162, \"non_a_loedt\" = $163, \"non_b_horiz_high_map\" = $164, \"non_b_horiz_low_map\" = $165, \"non_b_ssa\" = $166, \"non_b_ema_ssa\" = $167, \"non_b_crossing\" = $168, \"non_b_base_fl\" = $169, \"non_b_uoedt\" = $170, \"non_b_loedt\" = $171, \"fractal_best_fl\" = $172, \"fractal_uoedt\" = $173, \"fractal_loedt\" = $174, \"best_resistance\" = $175, \"best_support\" = $176, \"sr_1\" = $177, \"sr_2\" = $178, \"sr_3\" = $179, \"sr_4\" = $180, \"sr_5\" = $181, \"sr_6\" = $182, \"sr_7\" = $183, \"sr_8\" = $184, \"sr_9\" = $185, \"sr_10\" = $186, \"sr_11\" = $187, \"sr_12\" = $188, \"sr_13\" = $189, \"sr_14\" = $190, \"sr_15\" = $191, \"sr_16\" = $192, \"body_direction\" = $193, \"body_size\" = $194, \"body_classification\" = $195, \"zigzag_point_type\" = $196, \"zigzag_current_point\" = $197, \"zigzag_price_change\" = $198, \"zigzag_pct_change\" = $199, \"zigzag_pct_change_class\" = $200, \"zigzag_bars\" = $201, \"zigzag_bars_class\" = $202, \"zigzag_price_per_bar\" = $203, \"zigzag_price_per_bar_class\" = $204, \"zigzag_slope\" = $205, \"zigzag_category\" = $206, \"cycle_id\" = $207, \"collected_at\" = $208, \"calculated_at\" = $209, \"updatedAt\" = $210 WHERE ((\"public\".\"market_data_v6\".\"symbol\" = $211 AND \"public\".\"market_data_v6\".\"timeframe\" = $212 AND \"public\".\"market_data_v6\".\"timestamp\" = $213) AND 1=1) RETURNING \"public\".\"market_data_v6\".\"id\", \"public\".\"market_data_v6\".\"terminal_id\", \"public\".\"market_data_v6\".\"timestamp\", \"public\".\"market_data_v6\".\"symbol\", \"public\".\"market_data_v6\".\"timeframe\", \"public\".\"market_data_v6\".\"open\", \"public\".\"market_data_v6\".\"high\", \"public\".\"market_data_v6\".\"low\", \"public\".\"market_data_v6\".\"close\", \"public\".\"market_data_v6\".\"volume\", \"public\".\"market_data_v6\".\"best_fit_a_horiz_high_map\", \"public\".\"market_data_v6\".\"best_fit_a_horiz_low_map\", \"public\".\"market_data_v6\".\"best_fit_a_ssa\", \"public\".\"market_data_v6\".\"best_fit_a_ema_ssa\", \"public\".\"market_data_v6\".\"best_fit_a_crossing\", \"public\".\"market_data_v6\".\"best_fit_a_base_fl\", \"public\".\"market_data_v6\".\"best_fit_a_uoedt\", \"public\".\"market_data_v6\".\"best_fit_a_loedt\", \"public\".\"market_data_v6\".\"best_fit_b_horiz_high_map\", \"public\".\"market_data_v6\".\"best_fit_b_horiz_low_map\", \"public\".\"market_data_v6\".\"best_fit_b_ssa\", \"public\".\"market_data_v6\".\"best_fit_b_ema_ssa\", \"public\".\"market_data_v6\".\"best_fit_b_crossing\", \"public\".\"market_data_v6\".\"best_fit_b_base_fl\", \"public\".\"market_data_v6\".\"best_fit_b_uoedt\", \"public\".\"market_data_v6\".\"best_fit_b_loedt\", \"public\".\"market_data_v6\".\"cherry_a_horiz_high_map\", \"public\".\"market_data_v6\".\"cherry_a_horiz_low_map\", \"public\".\"market_data_v6\".\"cherry_a_ssa\", \"public\".\"market_data_v6\".\"cherry_a_ema_ssa\", \"public\".\"market_data_v6\".\"cherry_a_crossing\", \"public\".\"market_data_v6\".\"cherry_a_base_fl\", \"public\".\"market_data_v6\".\"cherry_a_uoedt\", \"public\".\"market_data_v6\".\"cherry_a_loedt\", \"public\".\"market_data_v6\".\"cherry_b_horiz_high_map\", \"public\".\"market_data_v6\".\"cherry_b_horiz_low_map\", \"public\".\"market_data_v6\".\"cherry_b_ssa\", \"public\".\"market_data_v6\".\"cherry_b_ema_ssa\", \"public\".\"market_data_v6\".\"cherry_b_crossing\", \"public\".\"market_data_v6\".\"cherry_b_base_fl\", \"public\".\"market_data_v6\".\"cherry_b_uoedt\", \"public\".\"market_data_v6\".\"cherry_b_loedt\", \"public\".\"market_data_v6\".\"most_recent_horiz_high_map\", \"public\".\"market_data_v6\".\"most_recent_horiz_low_map\", \"public\".\"market_data_v6\".\"most_recent_ssa\", \"public\".\"market_data_v6\".\"most_recent_ema_ssa\", \"public\".\"market_data_v6\".\"most_recent_crossing\", \"public\".\"market_data_v6\".\"most_recent_base_fl\", \"public\".\"market_data_v6\".\"most_recent_uoedt\", \"public\".\"market_data_v6\".\"most_recent_loedt\", \"public\".\"market_data_v6\".\"non_a_horiz_high_map\", \"public\".\"market_data_v6\".\"non_a_horiz_low_map\", \"public\".\"market_data_v6\".\"non_a_ssa\", \"public\".\"market_data_v6\".\"non_a_ema_ssa\", \"public\".\"market_data_v6\".\"non_a_crossing\", \"public\".\"market_data_v6\".\"non_a_base_fl\", \"public\".\"market_data_v6\".\"non_a_uoedt\", \"public\".\"market_data_v6\".\"non_a_loedt\", \"public\".\"market_data_v6\".\"non_b_horiz_high_map\", \"public\".\"market_data_v6\".\"non_b_horiz_low_map\", \"public\".\"market_data_v6\".\"non_b_ssa\", \"public\".\"market_data_v6\".\"non_b_ema_ssa\", \"public\".\"market_data_v6\".\"non_b_crossing\", \"public\".\"market_data_v6\".\"non_b_base_fl\", \"public\".\"market_data_v6\".\"non_b_uoedt\", \"public\".\"market_data_v6\".\"non_b_loedt\", \"public\".\"market_data_v6\".\"fractal_best_fl\", \"public\".\"market_data_v6\".\"fractal_uoedt\", \"public\".\"market_data_v6\".\"fractal_loedt\", \"public\".\"market_data_v6\".\"best_resistance\", \"public\".\"market_data_v6\".\"best_support\", \"public\".\"market_data_v6\".\"sr_1\", \"public\".\"market_data_v6\".\"sr_2\", \"public\".\"market_data_v6\".\"sr_3\", \"public\".\"market_data_v6\".\"sr_4\", \"public\".\"market_data_v6\".\"sr_5\", \"public\".\"market_data_v6\".\"sr_6\", \"public\".\"market_data_v6\".\"sr_7\", \"public\".\"market_data_v6\".\"sr_8\", \"public\".\"market_data_v6\".\"sr_9\", \"public\".\"market_data_v6\".\"sr_10\", \"public\".\"market_data_v6\".\"sr_11\", \"public\".\"market_data_v6\".\"sr_12\", \"public\".\"market_data_v6\".\"sr_13\", \"public\".\"market_data_v6\".\"sr_14\", \"public\".\"market_data_v6\".\"sr_15\", \"public\".\"market_data_v6\".\"sr_16\", \"public\".\"market_data_v6\".\"body_direction\", \"public\".\"market_data_v6\".\"body_size\", \"public\".\"market_data_v6\".\"body_classification\", \"public\".\"market_data_v6\".\"zigzag_point_type\", \"public\".\"market_data_v6\".\"zigzag_current_point\", \"public\".\"market_data_v6\".\"zigzag_price_change\", \"public\".\"market_data_v6\".\"zigzag_pct_change\", \"public\".\"market_data_v6\".\"zigzag_pct_change_class\", \"public\".\"market_data_v6\".\"zigzag_bars\", \"public\".\"market_data_v6\".\"zigzag_bars_class\", \"public\".\"market_data_v6\".\"zigzag_price_per_bar\", \"public\".\"market_data_v6\".\"zigzag_price_per_bar_class\", \"public\".\"market_data_v6\".\"zigzag_slope\", \"public\".\"market_data_v6\".\"zigzag_category\", \"public\".\"market_data_v6\".\"cycle_id\", \"public\".\"market_data_v6\".\"collected_at\", \"public\".\"market_data_v6\".\"calculated_at\", \"public\".\"market_data_v6\".\"createdAt\", \"public\".\"market_data_v6\".\"updatedAt\"",
+      "args": [
+        "cmvlj7fpn0000sgvtkpa3nqjp",
+        "push_worker_v5",
+        1700000000,
+        "XAUUSD",
+        "M5",
+        4.5,
+        5.5,
+        6.5,
+        7.5,
+        9,
+        9.5,
+        10.5,
+        11.5,
+        12.5,
+        14,
+        14.5,
+        15.5,
+        16.5,
+        17.5,
+        18.5,
+        19.5,
+        20.5,
+        22,
+        22.5,
+        23.5,
+        24.5,
+        25.5,
+        26.5,
+        27.5,
+        28.5,
+        30,
+        30.5,
+        31.5,
+        32.5,
+        33.5,
+        34.5,
+        35.5,
+        36.5,
+        38,
+        38.5,
+        39.5,
+        40.5,
+        41.5,
+        42.5,
+        43.5,
+        44.5,
+        46,
+        46.5,
+        47.5,
+        48.5,
+        49.5,
+        50.5,
+        51.5,
+        52.5,
+        54,
+        54.5,
+        55.5,
+        56.5,
+        57.5,
+        58.5,
+        59.5,
+        60.5,
+        62,
+        62.5,
+        63.5,
+        64.5,
+        65.5,
+        66.5,
+        67.5,
+        68.5,
+        69.5,
+        70.5,
+        71.5,
+        72.5,
+        73.5,
+        74.5,
+        75.5,
+        76.5,
+        77.5,
+        78.5,
+        79.5,
+        80.5,
+        81.5,
+        82.5,
+        83.5,
+        84.5,
+        85.5,
+        87,
+        87.5,
+        89,
+        "s_zigzag_point_type",
+        90.5,
+        91.5,
+        92.5,
+        94,
+        95,
+        96,
+        96.5,
+        98,
+        98.5,
+        "s_zigzag_category",
+        7,
+        1700003600,
+        103,
+        "2026-10-23T22:18:31.883Z",
+        "2026-10-23T22:18:31.883Z",
+        "push_worker_v5",
+        1700000000,
+        "XAUUSD",
+        "M5",
+        4.5,
+        5.5,
+        6.5,
+        7.5,
+        9,
+        9.5,
+        10.5,
+        11.5,
+        12.5,
+        14,
+        14.5,
+        15.5,
+        16.5,
+        17.5,
+        18.5,
+        19.5,
+        20.5,
+        22,
+        22.5,
+        23.5,
+        24.5,
+        25.5,
+        26.5,
+        27.5,
+        28.5,
+        30,
+        30.5,
+        31.5,
+        32.5,
+        33.5,
+        34.5,
+        35.5,
+        36.5,
+        38,
+        38.5,
+        39.5,
+        40.5,
+        41.5,
+        42.5,
+        43.5,
+        44.5,
+        46,
+        46.5,
+        47.5,
+        48.5,
+        49.5,
+        50.5,
+        51.5,
+        52.5,
+        54,
+        54.5,
+        55.5,
+        56.5,
+        57.5,
+        58.5,
+        59.5,
+        60.5,
+        62,
+        62.5,
+        63.5,
+        64.5,
+        65.5,
+        66.5,
+        67.5,
+        68.5,
+        69.5,
+        70.5,
+        71.5,
+        72.5,
+        73.5,
+        74.5,
+        75.5,
+        76.5,
+        77.5,
+        78.5,
+        79.5,
+        80.5,
+        81.5,
+        82.5,
+        83.5,
+        84.5,
+        85.5,
+        87,
+        87.5,
+        89,
+        "s_zigzag_point_type",
+        90.5,
+        91.5,
+        92.5,
+        94,
+        95,
+        96,
+        96.5,
+        98,
+        98.5,
+        "s_zigzag_category",
+        7,
+        1700003600,
+        103,
+        "2026-10-23T22:18:31.883Z",
+        "XAUUSD",
+        "M5",
+        1700000000
+      ],
+      "argTypes": [
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "datetime",
+          "dbType": "TIMESTAMP"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "datetime",
+          "dbType": "TIMESTAMP"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "datetime",
+          "dbType": "TIMESTAMP"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        }
+      ],
+      "insertColumns": 106,
+      "doUpdateAssignments": 104,
+      "onConflictDoUpdate": true,
+      "onConflictDoNothing": false,
+      "returningColumns": 106
+    },
+    {
+      "method": "startTransaction"
+    },
+    {
+      "method": "executeRaw",
+      "sql": "INSERT INTO \"public\".\"market_data_point_in_time\" (\"id\",\"timestamp\",\"symbol\",\"timeframe\",\"first_seen_at\",\"snapshot_age_bars\",\"cycle_id\",\"collected_at\",\"best_fit_a_horiz_high_map\",\"best_fit_a_horiz_low_map\",\"best_fit_a_ssa\",\"best_fit_a_ema_ssa\",\"best_fit_a_crossing\",\"best_fit_a_base_fl\",\"best_fit_a_uoedt\",\"best_fit_a_loedt\",\"best_fit_b_horiz_high_map\",\"best_fit_b_horiz_low_map\",\"best_fit_b_ssa\",\"best_fit_b_ema_ssa\",\"best_fit_b_crossing\",\"best_fit_b_base_fl\",\"best_fit_b_uoedt\",\"best_fit_b_loedt\",\"cherry_a_horiz_high_map\",\"cherry_a_horiz_low_map\",\"cherry_a_ssa\",\"cherry_a_ema_ssa\",\"cherry_a_crossing\",\"cherry_a_base_fl\",\"cherry_a_uoedt\",\"cherry_a_loedt\",\"cherry_b_horiz_high_map\",\"cherry_b_horiz_low_map\",\"cherry_b_ssa\",\"cherry_b_ema_ssa\",\"cherry_b_crossing\",\"cherry_b_base_fl\",\"cherry_b_uoedt\",\"cherry_b_loedt\",\"most_recent_horiz_high_map\",\"most_recent_horiz_low_map\",\"most_recent_ssa\",\"most_recent_ema_ssa\",\"most_recent_crossing\",\"most_recent_base_fl\",\"most_recent_uoedt\",\"most_recent_loedt\",\"non_a_horiz_high_map\",\"non_a_horiz_low_map\",\"non_a_ssa\",\"non_a_ema_ssa\",\"non_a_crossing\",\"non_a_base_fl\",\"non_a_uoedt\",\"non_a_loedt\",\"non_b_horiz_high_map\",\"non_b_horiz_low_map\",\"non_b_ssa\",\"non_b_ema_ssa\",\"non_b_crossing\",\"non_b_base_fl\",\"non_b_uoedt\",\"non_b_loedt\",\"fractal_best_fl\",\"fractal_uoedt\",\"fractal_loedt\",\"best_resistance\",\"best_support\",\"sr_1\",\"sr_2\",\"sr_3\",\"sr_4\",\"sr_5\",\"sr_6\",\"sr_7\",\"sr_8\",\"sr_9\",\"sr_10\",\"sr_11\",\"sr_12\",\"sr_13\",\"sr_14\",\"sr_15\",\"sr_16\",\"createdAt\") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$40,$41,$42,$43,$44,$45,$46,$47,$48,$49,$50,$51,$52,$53,$54,$55,$56,$57,$58,$59,$60,$61,$62,$63,$64,$65,$66,$67,$68,$69,$70,$71,$72,$73,$74,$75,$76,$77,$78,$79,$80,$81,$82,$83,$84,$85,$86) ON CONFLICT DO NOTHING",
+      "args": [
+        "cmvlj7fq20001sgvtmdnxxqts",
+        1700000000,
+        "XAUUSD",
+        "M5",
+        1700003600,
+        12,
+        7,
+        1700003600,
+        9.5,
+        10.5,
+        11.5,
+        12.5,
+        14,
+        14.5,
+        15.5,
+        16.5,
+        17.5,
+        18.5,
+        19.5,
+        20.5,
+        22,
+        22.5,
+        23.5,
+        24.5,
+        25.5,
+        26.5,
+        27.5,
+        28.5,
+        30,
+        30.5,
+        31.5,
+        32.5,
+        33.5,
+        34.5,
+        35.5,
+        36.5,
+        38,
+        38.5,
+        39.5,
+        40.5,
+        41.5,
+        42.5,
+        43.5,
+        44.5,
+        46,
+        46.5,
+        47.5,
+        48.5,
+        49.5,
+        50.5,
+        51.5,
+        52.5,
+        54,
+        54.5,
+        55.5,
+        56.5,
+        57.5,
+        58.5,
+        59.5,
+        60.5,
+        62,
+        62.5,
+        63.5,
+        64.5,
+        65.5,
+        66.5,
+        67.5,
+        68.5,
+        69.5,
+        70.5,
+        71.5,
+        72.5,
+        73.5,
+        74.5,
+        75.5,
+        76.5,
+        77.5,
+        78.5,
+        79.5,
+        80.5,
+        81.5,
+        82.5,
+        83.5,
+        84.5,
+        85.5,
+        "2026-10-23T22:18:31.898Z"
+      ],
+      "argTypes": [
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "string",
+          "dbType": "TEXT"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "int",
+          "dbType": "INTEGER"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "decimal",
+          "dbType": "DOUBLEPRECISION"
+        },
+        {
+          "arity": "scalar",
+          "scalarType": "datetime",
+          "dbType": "TIMESTAMP"
+        }
+      ],
+      "insertColumns": 86,
+      "doUpdateAssignments": null,
+      "onConflictDoUpdate": false,
+      "onConflictDoNothing": true,
+      "returningColumns": null
+    },
+    {
+      "method": "executeRaw",
+      "sql": "COMMIT",
+      "args": [],
+      "argTypes": [],
+      "insertColumns": null,
+      "doUpdateAssignments": null,
+      "onConflictDoUpdate": false,
+      "onConflictDoNothing": false,
+      "returningColumns": null
+    },
+    {
+      "method": "commit"
+    }
+  ]
+}

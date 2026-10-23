@@ -1,7 +1,7 @@
 ---
 type: Concept/TechnicalTraps
 severity: high
-updated_at: 2026-10-10
+updated_at: 2026-10-24
 source: "Distilled from CLAUDE.md '## Waiting on' and session logs 2026-09-01..09-26; details in state/history/"
 tags: [database, prisma, migrations, railway, postgres]
 related_docs:
@@ -222,3 +222,4 @@ services do not restart when a referenced variable changes — redeploy them.
   seed must use `now() at time zone 'utc'` (this machine's PostgreSQL session is Asia/Bangkok, UTC+7). The scripts and seeds are in `docs/handoffs/2026-10-16-nestjs-tier0-tier2-proofs/`.
 - **`OutboxEvent` has no `updatedAt`**: the publisher stores the time a row was claimed in `processedAt` while it is `PROCESSING` (set on the claim, replaced by the completion time on success, cleared on a failed attempt) and recovers rows
   older than 5 minutes (30 minutes for rows from before the claim time existed). Nothing else reads `processedAt` of a `PROCESSING` row (the admin page only counts statuses).
+- **The gateway's live-row upsert returns the id only** (database scaling second wave, Unit U, 2026-10-24, `railway-gateway/src/worker/market-data.processor.ts`): `marketDataV6.upsert` carries `select: { id: true }`, so its `RETURNING` is 1 column instead of 106; the written columns, and the point-in-time insert (86 columns, `ON CONFLICT DO NOTHING`, in its own `BEGIN` and `COMMIT`), are unchanged. The evidence and how to repeat it: the gated spec `railway-gateway/test/market-data.processor.pg.spec.ts` (the real processor and `PrismaService` run with and without `select` over a nine-job sequence, with two triggers that refuse a live upsert and a snapshot insert) and `docs/handoffs/2026-10-24-gateway-upsert-select-evidence/upsert-sql-probe.cjs`, which drives the REAL processor over a fake driver adapter and records every compiled statement (a Prisma call is lazy: an upsert that is not awaited is never sent). No speed claim; production observation is pending Stack D step 2 going live. Report: [evidence](../../docs/handoffs/2026-10-24-0531-gateway-upsert-select-evidence.md).

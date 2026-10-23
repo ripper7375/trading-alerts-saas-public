@@ -71,6 +71,7 @@ export class MarketDataProcessor {
       where: { symbol_timeframe_timestamp: { symbol, timeframe, timestamp } },
       create: data,
       update: data,
+      select: { id: true },
     });
 
     await this.writePointInTimeSnapshot(data);

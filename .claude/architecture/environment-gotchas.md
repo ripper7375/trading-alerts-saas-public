@@ -1,7 +1,7 @@
 ---
 type: Concept/EnvironmentGotchas
 status: active
-updated_at: 2026-10-18
+updated_at: 2026-10-24
 source: "'Gotcha' notes scattered through CLAUDE.md session logs 2026-08-30..09-26 (search state/history/ for the full story)"
 tags: [windows, git, shell, jest, browser, tooling]
 related_docs:
@@ -375,3 +375,4 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   and `npx jest --ci --forceExit`. Without the build step 11 suites fail to RUN with `Cannot find module '@trading-alerts/types/...'` (alerts, drawings, tier, any spec that imports `AppModule`). Run `tsc` with
   `--incremental false`: the config has `incremental: true`, so a plain run leaves `operation-service/dist/tsconfig.tsbuildinfo` behind (gitignored, but delete it). 63 suites, 627 tests at this date.
 - **The Edit tool dropped a trailing space at the end of a `new_string`** (ad-hoc 2026-10-20, dLocal 3-day e-mails): an edit whose replacement ended in `? ` before a template literal came out as `?\`` and `tsc`would not have caught it. End every`old_string`/`new_string`on a visible character (include the next word), and read the changed lines back with`git diff` before running tests.
+- **`railway-gateway/` has been installed in place since 2026-10-24** (`npm ci` for Unit U; `package.json` and `package-lock.json` stayed byte-identical). npm 11 prints "install scripts not yet covered by allowScripts" for `@prisma/engines`, `prisma` and `msgpackr-extract`, yet the package's own `postinstall` still generated the client. Its Jest run on this CRLF checkout has **5 failures that are not regressions** (`sensors-replay` 1, `sensors-synthesis-rows` 3, `sensors-disabled-consumes-nothing` 1: each reads an `i/lf w/crlf` file and matches on `\n`) and 12 skipped suites (10 gated `*.pg.spec.ts`, 2 Python-gated; no usable Python here): 3,140 tests before Unit U, 2,666 passed. A change to the gateway is judged by "the same 5, no more"; `tsc`, `check:sensor-kit`, the e2e config (156 tests) and `nest build` are green. Use `( cd railway-gateway && npx jest ... )` in a subshell; a plain `cd` moves the Bash tool's working directory for the next call.
