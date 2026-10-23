@@ -78,6 +78,18 @@ Read before any schema change, migration, or query against a real database.
   whole-row `User` call there needs `20261019000000_add_user_deleted_at` too. Checked on a scratch PostgreSQL 18.0 (37 earlier migrations +
   this one, drift against the new schema identical to the baseline) and with each stack's generated client against the real tables;
   the order and its Deviations live in the gitignored security plan (§5 WS-4).
+- **A security write raises `User.sessionVersion` and deletes the user's refresh tokens in the SAME transaction** (WS-5, CODE-02B,
+  2026-10-23): `lib/auth/session-version.ts` and `operation-service/src/auth/session-version.util.ts` (`withSessionBump`,
+  `bumpSessionVersion`, `raiseSessionVersion`, `endAllSessions`) use `user.updateMany({ data: { sessionVersion: { increment: 1 } } })`
+  (no row comes back, a missing user does not fail the transaction) and `refreshToken.deleteMany`, and forget the cached snapshot AFTER the
+  commit (forgetting inside lets a concurrent read put the old row back for 30 s). Sites: password change and reset, 2FA enable and
+  disable, an e-mail change, "log out all", a fraud suspension, a confirmed deletion (and the 24 h worker through `revokeAllUserAccess`), in
+  both the monolith and operation-service. **They all need the WS-4 column: deploy the migration first or every one of these writes
+  fails.** The caller's own session ends too. A **manual role change (or any SQL that must end sessions)** has no endpoint to do it:
+  run `"sessionVersion" = "sessionVersion" + 1` on the `User` row and delete its `RefreshToken` rows in one transaction. A new security
+  write needs the same bump; `__tests__/lib/auth/session-version.test.ts`, `operation-service/src/auth/session-version.util.spec.ts` and the
+  per-site tests (fake database with a real rollback: `__tests__/helpers/account-db-fake.ts`, `operation-service/test/account-db-fake.ts`)
+  hold it. Story and Deviations: the gitignored security plan (§5 WS-5).
 - Verify hand-written SQL against Prisma's own DDL:
   `prisma migrate diff --from-empty --to-schema <file> --script` (`--to-schema-datamodel` was
   removed in Prisma 7.9.1). When Docker Desktop is up, replay on a throwaway `postgres:16-alpine`.
