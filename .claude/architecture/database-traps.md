@@ -74,7 +74,8 @@ Read before any schema change, migration, or query against a real database.
 - **`User.sessionVersion` and `RefreshToken.sessionStartedAt`** (WS-4, migration FILE `20261024000000_add_session_version`, NOT applied):
   apply it **before** any of the three stacks deploys. The monolith's `jwt` callback reads `sessionVersion` at sign-in inside the
   existing `try { … } catch { return token }`, so a deploy first does not fail loudly: sign-in returns a token with no id, tier or role.
-  money-service's `User` model was a narrow mirror and now also maps `role`, `isActive`, `deletedAt` and `sessionVersion`, so every
+  money-service's `User` model was a narrow mirror and now also maps `role`, `isActive`, `deletedAt` and `sessionVersion` (and, since
+  WS-8, the read-only `twoFactorEnabled`, a column that already exists), so every
   whole-row `User` call there needs `20261019000000_add_user_deleted_at` too. Checked on a scratch PostgreSQL 18.0 (37 earlier migrations +
   this one, drift against the new schema identical to the baseline) and with each stack's generated client against the real tables;
   the order and its Deviations live in the gitignored security plan (§5 WS-4).
