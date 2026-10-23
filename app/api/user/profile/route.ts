@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { withSessionBump } from '@/lib/auth/session-version';
 import { prisma } from '@/lib/db/prisma';
 import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
 import {
@@ -167,21 +168,35 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     }
 
     // Update user profile
-    const updatedUser = await prisma.user.update({
-      where: { id: session.user.id },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        tier: true,
-        role: true,
-        emailVerified: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const profileSelect = {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      tier: true,
+      role: true,
+      emailVerified: true,
+      createdAt: true,
+      updatedAt: true,
+    } as const;
+    const userId = session.user.id;
+    // CODE-02B: a new e-mail address ends every session of the account (the page always sends the
+    // e-mail field, changed or not, so only an address that differs counts). The change, the new
+    // session version and the deleted refresh tokens commit together.
+    const emailChanged = Boolean(email) && email !== session.user.email;
+    const updatedUser = emailChanged
+      ? await withSessionBump(userId, (tx) =>
+          tx.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: profileSelect,
+          })
+        )
+      : await prisma.user.update({
+          where: { id: userId },
+          data: updateData,
+          select: profileSelect,
+        });
 
     return NextResponse.json({
       user: {

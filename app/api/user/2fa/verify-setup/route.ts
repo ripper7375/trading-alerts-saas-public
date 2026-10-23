@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { withSessionBump } from '@/lib/auth/session-version';
 import { prisma } from '@/lib/db/prisma';
 import {
   verifyTOTP,
@@ -142,16 +143,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Generate backup codes
     const { plainCodes, hashedCodes } = await generateBackupCodes();
 
-    // Enable 2FA and store backup codes
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        twoFactorEnabled: true,
-        twoFactorBackupCodes: JSON.stringify(hashedCodes),
-        twoFactorVerifiedAt: new Date(),
-      },
-      select: { id: true },
-    });
+    // Enable 2FA and store backup codes. Every session of the account ends with it (CODE-02B):
+    // the change, the new session version and the deleted refresh tokens commit together.
+    const userId = session.user.id;
+    await withSessionBump(userId, (tx) =>
+      tx.user.update({
+        where: { id: userId },
+        data: {
+          twoFactorEnabled: true,
+          twoFactorBackupCodes: JSON.stringify(hashedCodes),
+          twoFactorVerifiedAt: new Date(),
+        },
+        select: { id: true },
+      })
+    );
 
     console.log(`[2FA] Enabled for user: ${user.email}`);
 

@@ -24,6 +24,9 @@ jest.mock('@/lib/csrf', () => ({
 const mockUserFindUnique = jest.fn();
 const mockUserFindFirst = jest.fn();
 const mockUserUpdate = jest.fn();
+const mockUserUpdateMany = jest.fn();
+const mockRefreshTokenDeleteMany = jest.fn();
+const mockTransaction = jest.fn();
 jest.mock('@/lib/db/prisma', () => ({
   __esModule: true,
   prisma: {
@@ -31,8 +34,22 @@ jest.mock('@/lib/db/prisma', () => ({
       findUnique: (...a: unknown[]) => mockUserFindUnique(...a),
       findFirst: (...a: unknown[]) => mockUserFindFirst(...a),
       update: (...a: unknown[]) => mockUserUpdate(...a),
+      updateMany: (...a: unknown[]) => mockUserUpdateMany(...a),
     },
+    refreshToken: {
+      deleteMany: (...a: unknown[]) => mockRefreshTokenDeleteMany(...a),
+    },
+    // CODE-02B: a reset and the session-version bump commit together.
+    $transaction: (...a: unknown[]) => mockTransaction(...a),
   },
+}));
+
+// jest.config.js maps `next-auth` and every `next-auth/*` import to ONE stub; the `default` export
+// is the provider factory `auth-options` calls at load (used by the end-to-end test at the end).
+jest.mock('next-auth', () => ({
+  __esModule: true,
+  getServerSession: jest.fn(),
+  default: (options: { id: string }) => ({ id: options.id, options }),
 }));
 
 const mockSendPasswordResetEmail = jest.fn();
@@ -93,9 +110,15 @@ jest.mock('@/lib/redis/client', () => ({
   getRedisClient: () => mockRedis,
 }));
 
+import {
+  createAccountDbFake,
+  type AccountDbFake,
+} from '../../helpers/account-db-fake';
 import { POST as forgotPassword } from '@/app/api/auth/forgot-password/route';
 import { POST as resendVerification } from '@/app/api/auth/resend-verification/route';
 import { POST as resetPassword } from '@/app/api/auth/reset-password/route';
+import { authOptions } from '@/lib/auth/auth-options';
+import { clearUserActiveCache } from '@/lib/auth/user-active';
 
 const IP_A = '203.0.113.7';
 const IP_B = '198.51.100.9';
@@ -142,6 +165,19 @@ describe('CODE-01B: the e-mail flows and reset are limited', () => {
     mockUserFindFirst.mockReset();
     mockUserUpdate.mockReset();
     mockUserUpdate.mockResolvedValue({ id: 'user-1' });
+    // CODE-02B: the transaction hands its callback the same delegates as the client.
+    mockUserUpdateMany.mockReset();
+    mockUserUpdateMany.mockResolvedValue({ count: 1 });
+    mockRefreshTokenDeleteMany.mockReset();
+    mockRefreshTokenDeleteMany.mockResolvedValue({ count: 0 });
+    mockTransaction.mockReset();
+    mockTransaction.mockImplementation(
+      async (callback: (tx: unknown) => Promise<unknown>) =>
+        callback({
+          user: { update: mockUserUpdate, updateMany: mockUserUpdateMany },
+          refreshToken: { deleteMany: mockRefreshTokenDeleteMany },
+        })
+    );
     mockSendPasswordResetEmail.mockResolvedValue({ success: true });
     mockSendVerificationEmail.mockResolvedValue({ success: true });
     consoleWarn = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -446,5 +482,166 @@ describe('CODE-01B: the e-mail flows and reset are limited', () => {
       expect(res.status).toBe(200);
       expect(consoleWarn).toHaveBeenCalled();
     });
+  });
+});
+
+describe('CODE-02B: a password reset ends every session of the account', () => {
+  const path = '/api/auth/reset-password';
+  const resetBody = { token: 'valid-token', password: 'a-new-password-1' };
+  let fake: AccountDbFake;
+
+  async function runJwt(
+    token: Record<string, unknown>
+  ): Promise<Record<string, unknown>> {
+    const callback = authOptions.callbacks?.jwt;
+    if (!callback) throw new Error('jwt callback missing');
+    return (await callback({ token, trigger: undefined } as never)) as never;
+  }
+
+  beforeEach(() => {
+    mockRedisStore.clear();
+    mockRedisDown = false;
+    jest.clearAllMocks();
+    clearUserActiveCache();
+    fake = createAccountDbFake({
+      users: [
+        {
+          id: 'user-1',
+          email: 'alice@example.com',
+          sessionVersion: 0,
+          role: 'USER',
+          tier: 'FREE',
+          isActive: true,
+          deletedAt: null,
+          password: 'old-hash',
+          resetToken: 'valid-token',
+          resetTokenExpiry: new Date(Date.now() + 60_000),
+        },
+        {
+          id: 'user-2',
+          email: 'bob@example.com',
+          sessionVersion: 5,
+          role: 'USER',
+          tier: 'FREE',
+          isActive: true,
+          deletedAt: null,
+          password: 'bob-hash',
+          resetToken: null,
+          resetTokenExpiry: null,
+        },
+      ],
+      refreshTokens: [
+        { id: 'rt-1', userId: 'user-1', hashedToken: 'a' },
+        { id: 'rt-2', userId: 'user-1', hashedToken: 'b' },
+        { id: 'rt-3', userId: 'user-2', hashedToken: 'c' },
+      ],
+    });
+    mockUserFindFirst.mockReset();
+    mockUserFindFirst.mockImplementation((args) =>
+      fake.client.user.findFirst(args)
+    );
+    mockUserFindUnique.mockReset();
+    mockUserFindUnique.mockImplementation((args) =>
+      fake.client.user.findUnique(args)
+    );
+    mockUserUpdate.mockReset();
+    mockUserUpdate.mockImplementation((args) => fake.client.user.update(args));
+    mockUserUpdateMany.mockReset();
+    mockUserUpdateMany.mockImplementation((args) =>
+      fake.client.user.updateMany(args)
+    );
+    mockRefreshTokenDeleteMany.mockReset();
+    mockRefreshTokenDeleteMany.mockImplementation((args) =>
+      fake.client.refreshToken.deleteMany(args)
+    );
+    mockTransaction.mockReset();
+    mockTransaction.mockImplementation((callback) =>
+      fake.$transaction(callback)
+    );
+    jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    jest.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('stores the new password, burns the token, raises the version and deletes the refresh tokens together', async () => {
+    const res = await resetPassword(post(path, resetBody));
+
+    expect(res.status).toBe(200);
+    const alice = fake.user('user-1');
+    expect(alice['password']).not.toBe('old-hash');
+    expect(alice['resetToken']).toBeNull();
+    expect(alice['sessionVersion']).toBe(1);
+    expect(fake.refreshTokensOf('user-1')).toEqual([]);
+    expect(fake.writesOutsideTransaction()).toEqual([]);
+  });
+
+  it('leaves every other account alone', async () => {
+    await resetPassword(post(path, resetBody));
+
+    expect(fake.user('user-2')['sessionVersion']).toBe(5);
+    expect(fake.user('user-2')['password']).toBe('bob-hash');
+    expect(fake.refreshTokensOf('user-2')).toHaveLength(1);
+  });
+
+  it('keeps the old password, the token and the version when the write fails', async () => {
+    fake.failNext('user.update');
+
+    const res = await resetPassword(post(path, resetBody));
+
+    expect(res.status).toBe(500);
+    const alice = fake.user('user-1');
+    expect(alice['password']).toBe('old-hash');
+    expect(alice['resetToken']).toBe('valid-token');
+    expect(alice['sessionVersion']).toBe(0);
+    expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+  });
+
+  it('keeps the old password when the sessions cannot be ended', async () => {
+    fake.failNext('refreshToken.deleteMany');
+
+    const res = await resetPassword(post(path, resetBody));
+
+    expect(res.status).toBe(500);
+    const alice = fake.user('user-1');
+    expect(alice['password']).toBe('old-hash');
+    expect(alice['resetToken']).toBe('valid-token');
+    expect(alice['sessionVersion']).toBe(0);
+    expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+  });
+
+  it('changes nothing for an unknown token', async () => {
+    const res = await resetPassword(
+      post(path, { token: 'nobody-has-this', password: 'a-new-password-1' })
+    );
+
+    expect(res.status).toBe(400);
+    expect(mockTransaction).not.toHaveBeenCalled();
+    expect(fake.user('user-1')['sessionVersion']).toBe(0);
+    expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+  });
+
+  it('end to end: a session minted at version 0 is refused by the jwt callback once the password is reset', async () => {
+    const token = {
+      id: 'user-1',
+      sessionVersion: 0,
+      role: 'USER',
+      tier: 'FREE',
+    };
+    // The session is fine, and the answer is cached for 30 s on this instance.
+    await expect(runJwt(token)).resolves.toMatchObject({ id: 'user-1' });
+
+    const res = await resetPassword(post(path, resetBody));
+    expect(res.status).toBe(200);
+
+    // Refused at once, not after the cache runs out.
+    await expect(runJwt(token)).rejects.toThrow('SESSION_REVOKED');
+    // A session of someone else is untouched.
+    await expect(
+      runJwt({ id: 'user-2', sessionVersion: 5, role: 'USER', tier: 'FREE' })
+    ).resolves.toMatchObject({ id: 'user-2' });
   });
 });

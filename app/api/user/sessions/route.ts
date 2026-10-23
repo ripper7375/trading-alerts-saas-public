@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { endAllSessions } from '@/lib/auth/session-version';
 import {
   getUserSessions,
   revokeAllSessions,
@@ -100,6 +101,12 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       );
       return NextResponse.json(body, { status: opStatus });
     }
+
+    // CODE-02B: "log out all" raises the account's session version and deletes its refresh
+    // tokens, so every access token minted so far is refused, the caller's own included. First,
+    // so a failure here leaves the list of devices as it was instead of claiming a revocation
+    // that did not happen.
+    await endAllSessions(session.user.id);
 
     // Get current session token to preserve
     const sessionToken =

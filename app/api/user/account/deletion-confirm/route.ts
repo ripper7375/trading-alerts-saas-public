@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { DELETION_GRACE_PERIOD_MS } from '@/lib/account/deletion';
+import { raiseSessionVersion } from '@/lib/auth/session-version';
+import { forgetSessionState } from '@/lib/auth/user-active';
 import { prisma } from '@/lib/db/prisma';
 import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
 import {
@@ -132,6 +134,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         where: { userId: deletionRequest.userId, isActive: true },
         data: { isActive: false },
       });
+      // CODE-02B: the access tokens minted so far stop working for good, not only while the
+      // account is locked (a cancellation gives `isActive` back, never an old session).
+      await raiseSessionVersion(tx, deletionRequest.userId);
       return true;
     });
 
@@ -144,6 +149,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { status: 400 }
       );
     }
+
+    // After the commit, so this instance's cached snapshot of the account cannot outlive it.
+    forgetSessionState(deletionRequest.userId);
 
     const scheduledDeletionTime = new Date(
       confirmedAt.getTime() + DELETION_GRACE_PERIOD_MS

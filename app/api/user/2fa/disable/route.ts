@@ -4,6 +4,7 @@ import { compare } from 'bcryptjs';
 import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { withSessionBump } from '@/lib/auth/session-version';
 import { prisma } from '@/lib/db/prisma';
 import { verifyTOTP, decryptSecret } from '@/lib/auth/two-factor';
 import { sendTwoFactorDisabledEmail } from '@/lib/email/email';
@@ -148,17 +149,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Disable 2FA
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: {
-        twoFactorEnabled: false,
-        twoFactorSecret: null,
-        twoFactorBackupCodes: null,
-        twoFactorVerifiedAt: null,
-      },
-      select: { id: true },
-    });
+    // Disable 2FA. Every session of the account ends with it (CODE-02B): the change, the new
+    // session version and the deleted refresh tokens commit together.
+    const userId = session.user.id;
+    await withSessionBump(userId, (tx) =>
+      tx.user.update({
+        where: { id: userId },
+        data: {
+          twoFactorEnabled: false,
+          twoFactorSecret: null,
+          twoFactorBackupCodes: null,
+          twoFactorVerifiedAt: null,
+        },
+        select: { id: true },
+      })
+    );
 
     console.log(`[2FA] Disabled for user: ${user.email}`);
 

@@ -10,6 +10,9 @@ import { describe, it, expect, beforeEach } from '@jest/globals';
 // Mock Prisma - use factory function to avoid hoisting issues
 const mockUserFindUnique = jest.fn();
 const mockUserUpdate = jest.fn();
+const mockUserUpdateMany = jest.fn();
+const mockRefreshTokenDeleteMany = jest.fn();
+const mockTransaction = jest.fn();
 const mockPreferencesFindUnique = jest.fn();
 const mockPreferencesUpsert = jest.fn();
 
@@ -19,11 +22,18 @@ jest.mock('@/lib/db/prisma', () => ({
     user: {
       findUnique: (...args: unknown[]) => mockUserFindUnique(...args),
       update: (...args: unknown[]) => mockUserUpdate(...args),
+      updateMany: (...args: unknown[]) => mockUserUpdateMany(...args),
+    },
+    refreshToken: {
+      deleteMany: (...args: unknown[]) => mockRefreshTokenDeleteMany(...args),
     },
     userPreferences: {
       findUnique: (...args: unknown[]) => mockPreferencesFindUnique(...args),
       upsert: (...args: unknown[]) => mockPreferencesUpsert(...args),
     },
+    // CODE-02B: a security change and the session-version bump commit together. The callback gets
+    // the same delegates as its client; the tests that need real rollback swap in the fake database.
+    $transaction: (...args: unknown[]) => mockTransaction(...args),
   },
 }));
 
@@ -117,6 +127,10 @@ function createMockGetRequest(headers?: Record<string, string>): Request {
 }
 
 // Import routes after mocks
+import {
+  createAccountDbFake,
+  type AccountDbFake,
+} from '../helpers/account-db-fake';
 import { POST as changePassword } from '@/app/api/user/password/route';
 import {
   GET as getPreferences,
@@ -130,6 +144,16 @@ import {
 describe('User Settings API', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // CODE-02B: the transaction hands its callback the same delegates as the client.
+    mockUserUpdateMany.mockResolvedValue({ count: 1 });
+    mockRefreshTokenDeleteMany.mockResolvedValue({ count: 0 });
+    mockTransaction.mockImplementation(
+      async (callback: (tx: unknown) => Promise<unknown>) =>
+        callback({
+          user: { update: mockUserUpdate, updateMany: mockUserUpdateMany },
+          refreshToken: { deleteMany: mockRefreshTokenDeleteMany },
+        })
+    );
   });
 
   // ============================================================================
@@ -621,6 +645,231 @@ describe('User Settings API', () => {
       expect(data.error).toBe(
         'New password must be different from current password'
       );
+    });
+  });
+
+  // ============================================================================
+  // CODE-02B (WS-5): a security change ends every session of the account. The version is raised and
+  // the refresh tokens are deleted IN THE SAME TRANSACTION as the change, so a failed write leaves
+  // the version alone and a failed bump leaves the old password in place.
+  // ============================================================================
+  describe('CODE-02B: session version', () => {
+    const { compare } = require('bcryptjs');
+    let fake: AccountDbFake;
+
+    beforeEach(() => {
+      fake = createAccountDbFake({
+        users: [
+          {
+            id: 'user-123',
+            email: 'test@example.com',
+            sessionVersion: 3,
+            password: 'hashed-old-password',
+          },
+          {
+            id: 'user-999',
+            email: 'other@example.com',
+            sessionVersion: 7,
+            password: 'other-hash',
+          },
+        ],
+        refreshTokens: [
+          { id: 'rt-1', userId: 'user-123', hashedToken: 'a' },
+          { id: 'rt-2', userId: 'user-123', hashedToken: 'b' },
+          { id: 'rt-3', userId: 'user-999', hashedToken: 'c' },
+        ],
+      });
+      mockUserUpdate.mockImplementation((args) =>
+        fake.client.user.update(args)
+      );
+      mockUserUpdateMany.mockImplementation((args) =>
+        fake.client.user.updateMany(args)
+      );
+      mockRefreshTokenDeleteMany.mockImplementation((args) =>
+        fake.client.refreshToken.deleteMany(args)
+      );
+      mockTransaction.mockImplementation((callback) =>
+        fake.$transaction(callback)
+      );
+      mockGetServerSession.mockResolvedValue({
+        user: { id: 'user-123', email: 'test@example.com' },
+      });
+      jest.spyOn(console, 'log').mockImplementation(() => undefined);
+      jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      mockUserUpdate.mockReset();
+      mockUserUpdateMany.mockReset();
+      mockRefreshTokenDeleteMany.mockReset();
+      mockTransaction.mockReset();
+      mockUserFindUnique.mockReset();
+      jest.restoreAllMocks();
+    });
+
+    describe('POST /api/user/password', () => {
+      function currentPasswordAccepted(): void {
+        mockUserFindUnique.mockResolvedValue({
+          id: 'user-123',
+          email: 'test@example.com',
+          name: 'Test',
+          password: 'hashed-old-password',
+        });
+        // current password right, new password different from it
+        compare.mockResolvedValueOnce(true).mockResolvedValueOnce(false);
+      }
+
+      const changeRequest = () =>
+        createMockRequest('POST', {
+          currentPassword: 'OldPass123',
+          newPassword: 'NewPass123',
+        });
+
+      it('stores the new password, raises the version and deletes the refresh tokens together', async () => {
+        currentPasswordAccepted();
+
+        const response = await changePassword(changeRequest());
+
+        expect(response.status).toBe(200);
+        expect(fake.user('user-123')['password']).toBe('hashed-password');
+        expect(fake.user('user-123')['sessionVersion']).toBe(4);
+        expect(fake.refreshTokensOf('user-123')).toEqual([]);
+        expect(fake.writesOutsideTransaction()).toEqual([]);
+      });
+
+      it('leaves every other account alone', async () => {
+        currentPasswordAccepted();
+
+        await changePassword(changeRequest());
+
+        expect(fake.user('user-999')['sessionVersion']).toBe(7);
+        expect(fake.user('user-999')['password']).toBe('other-hash');
+        expect(fake.refreshTokensOf('user-999')).toHaveLength(1);
+      });
+
+      it('leaves the version and the refresh tokens alone when writing the password fails', async () => {
+        currentPasswordAccepted();
+        fake.failNext('user.update');
+
+        const response = await changePassword(changeRequest());
+
+        expect(response.status).toBe(500);
+        expect(fake.user('user-123')['sessionVersion']).toBe(3);
+        expect(fake.user('user-123')['password']).toBe('hashed-old-password');
+        expect(fake.refreshTokensOf('user-123')).toHaveLength(2);
+      });
+
+      it('keeps the old password when the sessions cannot be ended', async () => {
+        currentPasswordAccepted();
+        fake.failNext('refreshToken.deleteMany');
+
+        const response = await changePassword(changeRequest());
+
+        expect(response.status).toBe(500);
+        expect(fake.user('user-123')['password']).toBe('hashed-old-password');
+        expect(fake.user('user-123')['sessionVersion']).toBe(3);
+        expect(fake.refreshTokensOf('user-123')).toHaveLength(2);
+      });
+
+      it('ends nothing when the current password is wrong', async () => {
+        mockUserFindUnique.mockResolvedValue({
+          id: 'user-123',
+          email: 'test@example.com',
+          name: 'Test',
+          password: 'hashed-old-password',
+        });
+        compare.mockResolvedValueOnce(false);
+
+        const response = await changePassword(changeRequest());
+
+        expect(response.status).toBe(401);
+        expect(mockTransaction).not.toHaveBeenCalled();
+        expect(fake.user('user-123')['sessionVersion']).toBe(3);
+        expect(fake.refreshTokensOf('user-123')).toHaveLength(2);
+      });
+    });
+
+    describe('PATCH /api/user/profile', () => {
+      it('raises the version and deletes the refresh tokens when the e-mail address changes', async () => {
+        mockUserFindUnique.mockResolvedValue(null); // the new address is free
+
+        const response = await patchProfile(
+          createMockRequest('PATCH', { email: 'new@example.com' })
+        );
+
+        expect(response.status).toBe(200);
+        expect(fake.user('user-123')['email']).toBe('new@example.com');
+        expect(fake.user('user-123')['sessionVersion']).toBe(4);
+        expect(fake.refreshTokensOf('user-123')).toEqual([]);
+        expect(fake.refreshTokensOf('user-999')).toHaveLength(1);
+        expect(fake.writesOutsideTransaction()).toEqual([]);
+      });
+
+      it('keeps the old address and the version when the write fails', async () => {
+        mockUserFindUnique.mockResolvedValue(null);
+        fake.failNext('user.update');
+
+        const response = await patchProfile(
+          createMockRequest('PATCH', { email: 'new@example.com' })
+        );
+
+        expect(response.status).toBe(500);
+        expect(fake.user('user-123')['email']).toBe('test@example.com');
+        expect(fake.user('user-123')['sessionVersion']).toBe(3);
+        expect(fake.refreshTokensOf('user-123')).toHaveLength(2);
+      });
+
+      it('keeps the old address when the sessions cannot be ended', async () => {
+        mockUserFindUnique.mockResolvedValue(null);
+        fake.failNext('refreshToken.deleteMany');
+
+        const response = await patchProfile(
+          createMockRequest('PATCH', { email: 'new@example.com' })
+        );
+
+        expect(response.status).toBe(500);
+        expect(fake.user('user-123')['email']).toBe('test@example.com');
+        expect(fake.user('user-123')['sessionVersion']).toBe(3);
+      });
+
+      it('ends no session for a change of name', async () => {
+        const response = await patchProfile(
+          createMockRequest('PATCH', { name: 'New Name' })
+        );
+
+        expect(response.status).toBe(200);
+        expect(fake.user('user-123')['name']).toBe('New Name');
+        expect(mockTransaction).not.toHaveBeenCalled();
+        expect(fake.user('user-123')['sessionVersion']).toBe(3);
+        expect(fake.refreshTokensOf('user-123')).toHaveLength(2);
+      });
+
+      it('ends no session when the settings page saves the address it already has', async () => {
+        // The profile page sends the e-mail field with every save, changed or not.
+        const response = await patchProfile(
+          createMockRequest('PATCH', {
+            name: 'New Name',
+            email: 'test@example.com',
+          })
+        );
+
+        expect(response.status).toBe(200);
+        expect(mockTransaction).not.toHaveBeenCalled();
+        expect(fake.user('user-123')['sessionVersion']).toBe(3);
+        expect(fake.refreshTokensOf('user-123')).toHaveLength(2);
+      });
+
+      it('changes nothing when the new address is taken', async () => {
+        mockUserFindUnique.mockResolvedValue({ id: 'user-999' });
+
+        const response = await patchProfile(
+          createMockRequest('PATCH', { email: 'other@example.com' })
+        );
+
+        expect(response.status).toBe(409);
+        expect(fake.user('user-123')['sessionVersion']).toBe(3);
+        expect(fake.refreshTokensOf('user-123')).toHaveLength(2);
+      });
     });
   });
 });

@@ -10,6 +10,7 @@
 
 import 'server-only';
 
+import { withSessionBump } from '@/lib/auth/session-version';
 import { prisma } from '@/lib/db/prisma';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -195,11 +196,16 @@ export async function blockUserFromFraudAlert(
     notes
   );
 
-  // Deactivate user
-  await prisma.user.update({
-    where: { id: alert.userId },
-    data: { isActive: false },
-  });
+  // Deactivate user. Every session of the account ends with it (CODE-02B): the suspension, the
+  // new session version and the deleted refresh tokens commit together, so a suspended account
+  // cannot keep working on a token it already holds or mint a new one from a refresh token.
+  await withSessionBump(alert.userId, (tx) =>
+    tx.user.update({
+      where: { id: alert.userId },
+      data: { isActive: false },
+      select: { id: true },
+    })
+  );
 
   return { success: true };
 }

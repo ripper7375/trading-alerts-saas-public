@@ -58,8 +58,13 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
+import {
+  createAccountDbFake,
+  type AccountDbFake,
+} from '../helpers/account-db-fake';
 import { POST as cancelDeletion } from '@/app/api/user/account/deletion-cancel/route';
 import { POST as confirmDeletion } from '@/app/api/user/account/deletion-confirm/route';
+import { clearUserActiveCache, getSessionState } from '@/lib/auth/user-active';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -341,5 +346,117 @@ describe('POST /api/user/account/deletion-cancel', () => {
 
     expect(JSON.stringify(consoleLog.mock.calls)).not.toContain('@');
     expect(mockUserFindUnique).not.toHaveBeenCalled();
+  });
+});
+
+// CODE-02B (WS-5): confirming a deletion also raises the session version, in the same transaction,
+// so a session token issued before the confirmation stops working even if the account is given
+// back by a cancellation.
+describe('POST /api/user/account/deletion-confirm: session version', () => {
+  let fake: AccountDbFake;
+  let consoleLog: jest.SpyInstance;
+
+  const pending = () => ({
+    id: 'req-1',
+    userId: 'user-1',
+    status: 'PENDING',
+    expiresAt: new Date(Date.now() + HOUR),
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    clearUserActiveCache();
+    fake = createAccountDbFake({
+      users: [
+        { id: 'user-1', isActive: true, deletedAt: null, sessionVersion: 2 },
+        { id: 'user-2', isActive: true, deletedAt: null, sessionVersion: 9 },
+      ],
+      refreshTokens: [
+        { id: 'rt-1', userId: 'user-1', hashedToken: 'a' },
+        { id: 'rt-2', userId: 'user-2', hashedToken: 'b' },
+      ],
+    });
+    // The route's transaction client: the fake's user and refresh-token tables, the mocks for the rest.
+    const fakeTx = {
+      ...tx,
+      user: fake.client.user,
+      refreshToken: fake.client.refreshToken,
+    };
+    tx.accountDeletionRequest.updateMany.mockResolvedValue({ count: 1 });
+    tx.session.deleteMany.mockResolvedValue({ count: 0 });
+    tx.userSession.updateMany.mockResolvedValue({ count: 0 });
+    mockTransaction.mockImplementation((callback) =>
+      fake.$transaction(() => callback(fakeTx as never))
+    );
+    mockRequestFindUnique.mockResolvedValue(pending());
+    consoleLog = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+  afterEach(() => consoleLog.mockRestore());
+
+  it('locks the account, raises its version and deletes its refresh tokens in one transaction', async () => {
+    const res = await confirmDeletion(
+      post('/api/user/account/deletion-confirm', { token: 'tok-1' })
+    );
+
+    expect(res.status).toBe(200);
+    expect(fake.user('user-1')['isActive']).toBe(false);
+    expect(fake.user('user-1')['sessionVersion']).toBe(3);
+    expect(fake.refreshTokensOf('user-1')).toEqual([]);
+    expect(fake.writesOutsideTransaction()).toEqual([]);
+  });
+
+  it('leaves another account alone', async () => {
+    await confirmDeletion(
+      post('/api/user/account/deletion-confirm', { token: 'tok-1' })
+    );
+
+    expect(fake.user('user-2')['isActive']).toBe(true);
+    expect(fake.user('user-2')['sessionVersion']).toBe(9);
+    expect(fake.refreshTokensOf('user-2')).toHaveLength(1);
+  });
+
+  it('confirms nothing and leaves the version alone when the transaction fails', async () => {
+    fake.failNext('refreshToken.deleteMany');
+
+    const res = await confirmDeletion(
+      post('/api/user/account/deletion-confirm', { token: 'tok-1' })
+    );
+
+    expect(res.status).toBe(500);
+    expect(fake.user('user-1')['isActive']).toBe(true);
+    expect(fake.user('user-1')['sessionVersion']).toBe(2);
+    expect(fake.refreshTokensOf('user-1')).toHaveLength(1);
+  });
+
+  it('raises no version when another click already won the claim', async () => {
+    tx.accountDeletionRequest.updateMany.mockResolvedValue({ count: 0 });
+
+    const res = await confirmDeletion(
+      post('/api/user/account/deletion-confirm', { token: 'tok-1' })
+    );
+
+    expect(res.status).toBe(400);
+    expect(fake.user('user-1')['sessionVersion']).toBe(2);
+    expect(fake.user('user-1')['isActive']).toBe(true);
+  });
+
+  it('drops the cached snapshot so the next read sees the lock and the new version at once', async () => {
+    mockUserFindUnique.mockImplementation((args) =>
+      fake.client.user.findUnique(args)
+    );
+    // The account is read once before the confirmation and cached for 30 s on this instance.
+    expect(await getSessionState('user-1')).toMatchObject({
+      isActive: true,
+      sessionVersion: 2,
+    });
+
+    await confirmDeletion(
+      post('/api/user/account/deletion-confirm', { token: 'tok-1' })
+    );
+
+    expect(await getSessionState('user-1')).toMatchObject({
+      isActive: false,
+      sessionVersion: 3,
+    });
   });
 });

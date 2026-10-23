@@ -4,6 +4,7 @@ import { hash, compare } from 'bcryptjs';
 import { z } from 'zod';
 
 import { authOptions } from '@/lib/auth/auth-options';
+import { withSessionBump } from '@/lib/auth/session-version';
 import { prisma } from '@/lib/db/prisma';
 import { sendPasswordChangedEmail } from '@/lib/email/email';
 import { shouldUseOperationServiceForUserProfile } from '@/lib/operation-service/flags';
@@ -125,12 +126,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Hash new password
     const hashedPassword = await hash(newPassword, 12);
 
-    // Update password
-    await prisma.user.update({
-      where: { id: session.user.id },
-      data: { password: hashedPassword },
-      select: { id: true },
-    });
+    // Update password. Every session of the account ends with it (CODE-02B): the new password,
+    // the new session version and the deleted refresh tokens commit together. The caller's own
+    // session ends too and the page must sign in again.
+    const userId = session.user.id;
+    await withSessionBump(userId, (tx) =>
+      tx.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+        select: { id: true },
+      })
+    );
 
     console.log(`[Password] Password changed for user: ${user.email}`);
 
