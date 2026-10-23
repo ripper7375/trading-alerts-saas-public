@@ -12,6 +12,14 @@ Entries rotated out of `current-state.md` by [session-lifecycle](../../protocols
 
 Back to [history index](./index.md).
 
+<!-- session 2026-10-23 security-plan-and-hygiene -->
+
+> **Ad-hoc session (2026-10-23), `main` on `dcd4f8d7`, working-tree hygiene EXECUTED, a security remediation plan WRITTEN (planning only, no application code changed), and the reconciled tree COMMITTED locally on Davin's word (`04a68167` Node pins, `be8d4edc` `.gitignore`, then this state commit); NOT pushed.** The security material (the pre-launch checklist, now v2.1.2, and a PRE-DRAFT execution plan of 17 Workhorse sessions with kickoff prompts) lives only in the gitignored `davintrade-pre-launch-security-check-lists/` folder; the repository is public, so no finding is described here.
+> **Needs from Davin:** (1) Answer the decisions D-1 to D-15 in the plan's §3, including the infrastructure fact D-14 it names. (2) The Advisor upgrades the plan to DRAFT; Davin approves WS-1 in the plan's §6 register, then each later session. (3) The checklist's operational Phase 0 items. (4) Push when he chooses.
+> **Changed & verified:** `.gitignore` ignores the blueprint folder and its former copy under `docs/runbooks/` (`git check-ignore -v`); the copy was byte-identical (`cmp`) and was deleted. **Working tree reconciled with `HEAD`:** 128 tracked paths differed; 99 were byte-identical to `64d7e169` (the parent of the localized-emails commit `82adc7cd`), a stale tree, and were restored with `git checkout HEAD -- <paths>`; 25 genuine uncommitted edits were kept (the 2026-10-22 Node pins, `.gitignore`, one infrastructure fact); the four `.claude/state` files were merged three-way (base `64d7e169`, both sides kept; HEAD's 2026-10-21 and 2026-10-20 entries rotated to history); `npx tsc --noEmit` exit 0 afterwards; untracked files untouched; no `stash`, `reset` or `clean`. Commits by explicit paths: `04a68167` (23 files; lint-staged's prettier re-wrapped one `needs:` list in `ci-nextjs-progressive.yml`, same YAML) and `be8d4edc` (`.gitignore`). Before this state commit the security details these files had carried were moved out on Davin's instruction; what remains points to the gitignored folder.
+> **Unconfirmed / found:** recorded in the gitignored plan (§2, §3).
+> The oldest entry (2026-10-22, Node runtime pins) was rotated into `history/2026-10-sessions.md`.
+
 <!-- session 2026-10-23 pre-launch-security-checklist -->
 
 > **Ad-hoc session (2026-10-23), `main` on `dcd4f8d7`, docs only: Antigravity's pre-launch security checklist checked against the live code and upgraded to v2.1.0 at Davin's request.** The checklist lives only in the gitignored `davintrade-pre-launch-security-check-lists/` folder (the repository is public). No code, platform console or credential was touched; the only outside contact was a DNS lookup and one `HEAD` request per public host.
