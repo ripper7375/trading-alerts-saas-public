@@ -79,6 +79,14 @@ Read before any schema change, migration, or query against a real database.
   whole-row `User` call there needs `20261019000000_add_user_deleted_at` too. Checked on a scratch PostgreSQL 18.0 (37 earlier migrations +
   this one, drift against the new schema identical to the baseline) and with each stack's generated client against the real tables;
   the order and its Deviations live in the gitignored security plan (§5 WS-4).
+- **`AffiliateWiseRecipient.detailsChangedAt` and the `SecurityAlertType` value `PAYOUT_DETAILS_CHANGED`** (WS-9, migration FILE
+  `20261025000000_add_payment_details_changed_at`, NOT applied): apply it first, then deploy **operation-service, then the monolith, and
+  money-service LAST**. money-service's generated client selects every column of the recipient table (a deploy before the column fails
+  every recipient read), and money-service is the only writer of the new alert type through its outbox event: **a Prisma client that
+  reads an enum value it does not know throws**, so every reader of `security_alerts` (operation-service, the monolith) must know the
+  value before the first row exists. Same rule for any new enum value: readers before writers. NULL `detailsChangedAt` means "no change
+  on record" and is never held, so applying the column holds nobody. Checked on a scratch PostgreSQL 18 (38 earlier migrations + this one,
+  applied twice, drift identical to the baseline).
 - **A security write raises `User.sessionVersion` and deletes the user's refresh tokens in the SAME transaction** (WS-5, CODE-02B,
   2026-10-23): `lib/auth/session-version.ts` and `operation-service/src/auth/session-version.util.ts` (`withSessionBump`,
   `bumpSessionVersion`, `raiseSessionVersion`, `endAllSessions`) use `user.updateMany({ data: { sessionVersion: { increment: 1 } } })`
