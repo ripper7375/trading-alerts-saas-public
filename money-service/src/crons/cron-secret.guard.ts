@@ -5,8 +5,11 @@
  * `app/api/cron/<job>/route.ts` handlers duplicated inline (e.g.
  * `authHeader !== \`Bearer ${cronSecret}\``) — same check, same failure
  * mode (401), just centralized into one guard for the manual-trigger
- * controller instead of copy-pasted per route.
+ * controller instead of copy-pasted per route. The comparison is constant
+ * time (CODE-04).
  */
+
+import { createHash, timingSafeEqual } from 'crypto';
 
 import {
   CanActivate,
@@ -15,6 +18,17 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request } from 'express';
+
+/**
+ * SHA-256 both strings, then `timingSafeEqual`: the two buffers always have the same length, so
+ * neither the content nor the length of the secret shows in the time the comparison takes.
+ */
+function safeEqual(a: string, b: string): boolean {
+  return timingSafeEqual(
+    createHash('sha256').update(a).digest(),
+    createHash('sha256').update(b).digest()
+  );
+}
 
 @Injectable()
 export class CronSecretGuard implements CanActivate {
@@ -27,7 +41,7 @@ export class CronSecretGuard implements CanActivate {
       throw new UnauthorizedException('Server configuration error');
     }
 
-    if (authHeader !== `Bearer ${cronSecret}`) {
+    if (!safeEqual(authHeader ?? '', `Bearer ${cronSecret}`)) {
       throw new UnauthorizedException('Unauthorized');
     }
 
