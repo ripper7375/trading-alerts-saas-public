@@ -3895,6 +3895,7 @@
   "settings.security.activity_2fa_disabled": "2FA Dinonaktifkan",
   "settings.security.activity_2fa_enabled": "2FA Diaktifkan",
   "settings.security.activity_account_locked": "Akun Dikunci",
+  "settings.security.activity_payout_details_changed": "Detail Pembayaran Diubah",
   "settings.security.activity_appear_here": "Peristiwa keamanan akun Anda akan muncul di sini",
   "settings.security.activity_email_changed": "Email Diubah",
   "settings.security.activity_new_device_login": "Masuk dari Perangkat Baru",

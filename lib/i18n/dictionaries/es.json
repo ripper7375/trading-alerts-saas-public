@@ -3895,6 +3895,7 @@
   "settings.security.activity_2fa_disabled": "2FA desactivada",
   "settings.security.activity_2fa_enabled": "2FA activada",
   "settings.security.activity_account_locked": "Cuenta bloqueada",
+  "settings.security.activity_payout_details_changed": "Datos de pago modificados",
   "settings.security.activity_appear_here": "Aquí aparecerán los eventos de seguridad de tu cuenta",
   "settings.security.activity_email_changed": "Correo cambiado",
   "settings.security.activity_new_device_login": "Inicio de sesión desde un dispositivo nuevo",

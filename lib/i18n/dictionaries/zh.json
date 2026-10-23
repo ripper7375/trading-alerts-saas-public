@@ -1831,6 +1831,7 @@
   "settings.security.activity_2fa_disabled": "双重认证已禁用",
   "settings.security.activity_2fa_enabled": "双重认证已启用",
   "settings.security.activity_account_locked": "账户已锁定",
+  "settings.security.activity_payout_details_changed": "收款信息已更改",
   "settings.security.activity_appear_here": "您账户的安全事件将显示在此处",
   "settings.security.activity_email_changed": "邮箱已更改",
   "settings.security.activity_new_device_login": "新设备登录",

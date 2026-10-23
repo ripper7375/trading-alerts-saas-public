@@ -3895,6 +3895,7 @@
   "settings.security.activity_2fa_disabled": "2FA Devre Dışı",
   "settings.security.activity_2fa_enabled": "2FA Etkin",
   "settings.security.activity_account_locked": "Hesap Kilitlendi",
+  "settings.security.activity_payout_details_changed": "Ödeme Bilgileri Değiştirildi",
   "settings.security.activity_appear_here": "Hesabınızın güvenlik olayları burada görünecek",
   "settings.security.activity_email_changed": "E-posta Değiştirildi",
   "settings.security.activity_new_device_login": "Yeni Cihazdan Giriş",

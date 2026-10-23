@@ -4227,6 +4227,7 @@
   "settings.security.activity_2fa_disabled": "المصادقة الثنائية معطلة",
   "settings.security.activity_2fa_enabled": "المصادقة الثنائية مفعّلة",
   "settings.security.activity_account_locked": "الحساب مقفل",
+  "settings.security.activity_payout_details_changed": "تم تغيير بيانات الدفع",
   "settings.security.activity_appear_here": "ستظهر هنا الأحداث الأمنية لحسابك",
   "settings.security.activity_email_changed": "تم تغيير البريد الإلكتروني",
   "settings.security.activity_new_device_login": "تسجيل دخول من جهاز جديد",

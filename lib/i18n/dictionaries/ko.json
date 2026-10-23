@@ -1831,6 +1831,7 @@
   "settings.security.activity_2fa_disabled": "2FA 비활성화됨",
   "settings.security.activity_2fa_enabled": "2FA 활성화됨",
   "settings.security.activity_account_locked": "계정 잠김",
+  "settings.security.activity_payout_details_changed": "지급 정보 변경됨",
   "settings.security.activity_appear_here": "계정의 보안 이벤트가 여기에 표시됩니다",
   "settings.security.activity_email_changed": "이메일 변경됨",
   "settings.security.activity_new_device_login": "새 기기 로그인",

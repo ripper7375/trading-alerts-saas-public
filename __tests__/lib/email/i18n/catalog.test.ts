@@ -119,6 +119,7 @@ describe('e-mail catalogs', () => {
         'affiliateWelcome.footer',
         'common.questions',
         'passwordChanged.tip2',
+        'payoutDetails.tip3',
         'twoFactorDisabled.tip3',
         'welcome.step3',
       ].sort()

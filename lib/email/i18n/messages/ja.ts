@@ -132,6 +132,19 @@ export const ja: EmailMessages = {
   'twoFactorDisabled.subject':
     'セキュリティアラート：二段階認証が無効になりました',
 
+  'payoutDetails.heading': 'お支払い情報が変更されました',
+  'payoutDetails.body':
+    '{name}様、Trading Alertsのアフィリエイトアカウントにお支払い情報が追加または変更されました。',
+  'payoutDetails.holdLabel': '支払い保留期限：',
+  'payoutDetails.hold':
+    'お客様保護のため、この情報へのお支払いは{hours}時間保留されます。収益は安全に保管されており、保留期間の終了後にお支払いされます。',
+  'payoutDetails.ifYou': '**ご本人が変更した場合：** 対応は不要です。',
+  'payoutDetails.ifNotYou':
+    '**ご本人が変更していない場合：** アカウントが不正利用されている可能性があります。次の対応をお願いします。',
+  'payoutDetails.tip2': '保留期間が終わる前にサポートチームへご連絡ください',
+  'payoutDetails.tip3': 'アカウントに不正な変更がないか確認する',
+  'payoutDetails.subject': 'セキュリティアラート：お支払い情報が変更されました',
+
   'accountDeletion.heading': 'アカウント削除の確認',
   'accountDeletion.body':
     '{name}様、Trading Alertsアカウントを完全に削除するリクエストを受け付けました。',

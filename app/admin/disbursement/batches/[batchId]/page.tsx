@@ -52,6 +52,14 @@ interface Transaction {
   createdAt: string;
   completedAt: string | null;
   failedAt: string | null;
+  /**
+   * WS-9 (CODE-06A), from the batch route: when the affiliate's Wise recipient
+   * was last added or changed, whether they have been paid since, and until
+   * when payouts to it are held. Absent from an older server.
+   */
+  payoutDetailsChangedAt?: string | null;
+  payoutDetailsChangedSinceLastPaid?: boolean;
+  payoutHoldUntil?: string | null;
 }
 
 interface AuditLog {
@@ -246,7 +254,7 @@ function getAuditStatusBadge(
  * - Fetches from /api/disbursement/batches/[batchId]
  */
 export default function BatchDetailsPage(): React.ReactElement {
-  const { t, formatCurrency, formatDate } = useLocale();
+  const { t, formatCurrency, formatDate, formatDateTime } = useLocale();
   const params = useParams<{ batchId: string }>();
   const router = useRouter();
   const batchId = params.batchId;
@@ -704,12 +712,34 @@ export default function BatchDetailsPage(): React.ReactElement {
                   {batch.transactions.map((tx) => (
                     <tr
                       key={tx.id}
-                      className="border-border/50 hover:bg-accent/30 border-b"
+                      className="border-b border-border/50 hover:bg-accent/30"
                     >
                       <td className="px-4 py-3">
                         <span className="font-mono text-xs text-foreground">
                           {tx.transactionId}
                         </span>
+                        {tx.payoutDetailsChangedSinceLastPaid && (
+                          <div className="mt-1 flex flex-wrap gap-1">
+                            <Badge className="bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400">
+                              {t(
+                                'admin.disbursement.payout_details_changed',
+                                'Payout details changed'
+                              )}
+                              {tx.payoutDetailsChangedAt
+                                ? ` ${formatDateTime(tx.payoutDetailsChangedAt)}`
+                                : ''}
+                            </Badge>
+                            {tx.payoutHoldUntil && (
+                              <Badge className="bg-red-500/10 text-xs text-red-600 dark:text-red-400">
+                                {t(
+                                  'admin.disbursement.payout_held_until',
+                                  'Payouts held until'
+                                )}{' '}
+                                {formatDateTime(tx.payoutHoldUntil)}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {getTransactionStatusBadge(tx.status, t)}
@@ -772,7 +802,7 @@ export default function BatchDetailsPage(): React.ReactElement {
               {batch.auditLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="bg-accent/50 flex items-start gap-3 rounded-lg p-3"
+                  className="flex items-start gap-3 rounded-lg bg-accent/50 p-3"
                 >
                   <div className="mt-1">
                     {getAuditStatusBadge(log.status, t)}

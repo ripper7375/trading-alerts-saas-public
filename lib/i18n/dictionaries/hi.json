@@ -3895,6 +3895,7 @@
   "settings.security.activity_2fa_disabled": "2FA बंद",
   "settings.security.activity_2fa_enabled": "2FA चालू",
   "settings.security.activity_account_locked": "खाता लॉक",
+  "settings.security.activity_payout_details_changed": "भुगतान विवरण बदले गए",
   "settings.security.activity_appear_here": "आपके खाते की सुरक्षा घटनाएँ यहाँ दिखेंगी",
   "settings.security.activity_email_changed": "ईमेल बदला गया",
   "settings.security.activity_new_device_login": "नए डिवाइस से लॉगिन",

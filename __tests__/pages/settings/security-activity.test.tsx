@@ -115,6 +115,69 @@ describe('SecurityActivityPage', () => {
     expect(screen.getByText('New')).toBeInTheDocument();
   });
 
+  it('labels a payout-details alert with its own badge, not the raw type (WS-9)', async () => {
+    global.fetch = jest.fn().mockResolvedValue(
+      jsonResponse(200, {
+        alerts: [
+          makeAlert({
+            type: 'PAYOUT_DETAILS_CHANGED',
+            title: 'Payout Details Changed',
+            message:
+              'Payout details were added or changed on your affiliate account.',
+            ipAddress: null,
+            deviceInfo: null,
+            location: null,
+          }),
+        ],
+        pagination: { total: 1, limit: 20, offset: 0, hasMore: false },
+      })
+    ) as unknown as typeof fetch;
+
+    render(<SecurityActivityPage />);
+
+    // the title and the badge carry the same words in English
+    expect(await screen.findAllByText('Payout Details Changed')).toHaveLength(
+      2
+    );
+    expect(
+      screen.queryByText('PAYOUT_DETAILS_CHANGED')
+    ).not.toBeInTheDocument();
+  });
+
+  it("writes the payout-details badge in the reader's language (WS-9)", async () => {
+    localStorage.setItem(
+      LOCALE_STORAGE_KEY,
+      JSON.stringify({
+        countryCode: 'TH',
+        language: 'th',
+        timezone: 'Asia/Bangkok',
+        dateFormat: 'DMY',
+        timeFormat: '24h',
+        currency: 'THB',
+      })
+    );
+    global.fetch = jest.fn().mockResolvedValue(
+      jsonResponse(200, {
+        alerts: [
+          makeAlert({
+            type: 'PAYOUT_DETAILS_CHANGED',
+            title: 'Payout Details Changed',
+            ipAddress: null,
+            deviceInfo: null,
+            location: null,
+          }),
+        ],
+        pagination: { total: 1, limit: 20, offset: 0, hasMore: false },
+      })
+    ) as unknown as typeof fetch;
+
+    render(<SecurityActivityPage />);
+
+    expect(
+      await screen.findByText('เปลี่ยนรายละเอียดการรับเงินแล้ว')
+    ).toBeInTheDocument();
+  });
+
   it('does not show a "New" badge or Mark read button for an already-read alert', async () => {
     global.fetch = jest.fn().mockResolvedValue(
       jsonResponse(200, {

@@ -135,6 +135,23 @@ export const de: EmailMessages = {
   'twoFactorDisabled.subject':
     'Sicherheitshinweis: Zwei-Faktor-Authentifizierung deaktiviert',
 
+  'payoutDetails.heading': 'Auszahlungsdaten geändert',
+  'payoutDetails.body':
+    'Hallo {name}, für Ihr Trading-Alerts-Partnerkonto wurden Auszahlungsdaten hinzugefügt oder geändert.',
+  'payoutDetails.holdLabel': 'Auszahlungen gesperrt bis:',
+  'payoutDetails.hold':
+    'Zu Ihrer Sicherheit sind Auszahlungen an diese Daten für {hours} Stunden gesperrt. Ihre Einnahmen sind sicher und werden nach Ende der Sperre ausgezahlt.',
+  'payoutDetails.ifYou':
+    '**Wenn Sie diese Änderung vorgenommen haben:** Sie müssen nichts weiter tun.',
+  'payoutDetails.ifNotYou':
+    '**Wenn Sie diese Änderung nicht vorgenommen haben:** Ihr Konto könnte gefährdet sein. Bitte:',
+  'payoutDetails.tip2':
+    'Wenden Sie sich an unser Support-Team, bevor die Sperre endet',
+  'payoutDetails.tip3':
+    'Prüfen Sie Ihr Konto auf nicht autorisierte Änderungen',
+  'payoutDetails.subject':
+    'Sicherheitshinweis: Ihre Auszahlungsdaten wurden geändert',
+
   'accountDeletion.heading': 'Löschung Ihres Kontos bestätigen',
   'accountDeletion.body':
     'Hallo {name}, wir haben eine Anfrage erhalten, Ihr Trading-Alerts-Konto dauerhaft zu löschen.',

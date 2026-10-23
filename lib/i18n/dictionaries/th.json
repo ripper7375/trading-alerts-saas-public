@@ -4619,6 +4619,7 @@
   "settings.security.activity_2fa_disabled": "ปิด 2FA อยู่",
   "settings.security.activity_2fa_enabled": "เปิด 2FA อยู่",
   "settings.security.activity_account_locked": "บัญชีถูกล็อก",
+  "settings.security.activity_payout_details_changed": "เปลี่ยนรายละเอียดการรับเงินแล้ว",
   "settings.security.activity_email_changed": "เปลี่ยนอีเมลแล้ว",
   "settings.security.activity_new_device_login": "เข้าสู่ระบบจากอุปกรณ์ใหม่",
   "settings.security.activity_password_changed": "เปลี่ยนรหัสผ่านแล้ว",

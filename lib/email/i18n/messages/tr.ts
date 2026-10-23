@@ -133,6 +133,22 @@ export const tr: EmailMessages = {
   'twoFactorDisabled.subject':
     'Güvenlik Uyarısı: İki Adımlı Doğrulama Devre Dışı Bırakıldı',
 
+  'payoutDetails.heading': 'Ödeme Bilgileri Değiştirildi',
+  'payoutDetails.body':
+    'Merhaba {name}, Trading Alerts ortaklık hesabınıza ödeme bilgileri eklendi veya bu bilgiler değiştirildi.',
+  'payoutDetails.holdLabel': 'Ödemeler şu zamana kadar bekletilir:',
+  'payoutDetails.hold':
+    'Sizi korumak için bu bilgilere yapılacak ödemeler {hours} saat boyunca bekletilir. Kazançlarınız güvendedir ve bekletme sona erdiğinde ödenecektir.',
+  'payoutDetails.ifYou':
+    '**Bu değişikliği siz yaptıysanız:** herhangi bir işlem yapmanız gerekmez.',
+  'payoutDetails.ifNotYou':
+    '**Bu değişikliği siz yapmadıysanız:** Hesabınız ele geçirilmiş olabilir. Lütfen:',
+  'payoutDetails.tip2':
+    'Bekletme sona ermeden önce destek ekibimizle iletişime geçin',
+  'payoutDetails.tip3':
+    'Hesabınızda yetkisiz değişiklik olup olmadığını kontrol edin',
+  'payoutDetails.subject': 'Güvenlik Uyarısı: Ödeme Bilgileriniz Değiştirildi',
+
   'accountDeletion.heading': 'Hesabınızın Silinmesini Onaylayın',
   'accountDeletion.body':
     'Merhaba {name}, Trading Alerts hesabınızı kalıcı olarak silme isteği aldık.',

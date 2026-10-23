@@ -3895,6 +3895,7 @@
   "settings.security.activity_2fa_disabled": "Tắt 2FA",
   "settings.security.activity_2fa_enabled": "Bật 2FA",
   "settings.security.activity_account_locked": "Tài khoản bị khóa",
+  "settings.security.activity_payout_details_changed": "Đã đổi thông tin thanh toán",
   "settings.security.activity_appear_here": "Các sự kiện bảo mật của tài khoản sẽ hiển thị tại đây",
   "settings.security.activity_email_changed": "Đã đổi email",
   "settings.security.activity_new_device_login": "Đăng nhập từ thiết bị mới",

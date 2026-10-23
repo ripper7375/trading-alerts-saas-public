@@ -115,6 +115,19 @@ export const zh: EmailMessages = {
   'twoFactorDisabled.tip3': '检查您的账户是否存在未经授权的更改',
   'twoFactorDisabled.subject': '安全提醒：双重认证已停用',
 
+  'payoutDetails.heading': '收款信息已更改',
+  'payoutDetails.body':
+    '{name}，您好：您的 Trading Alerts 联盟账户已添加或更改收款信息。',
+  'payoutDetails.holdLabel': '付款暂缓至：',
+  'payoutDetails.hold':
+    '为了保护您的账户，向这些收款信息付款将暂缓 {hours} 小时。您的收益是安全的，暂缓期结束后将会支付。',
+  'payoutDetails.ifYou': '**如果是您本人所做的更改：** 无需任何操作。',
+  'payoutDetails.ifNotYou':
+    '**如果不是您本人所做的更改：** 您的账户可能已被盗用。请：',
+  'payoutDetails.tip2': '在暂缓期结束前联系我们的支持团队',
+  'payoutDetails.tip3': '检查您的账户是否存在未经授权的更改',
+  'payoutDetails.subject': '安全提醒：您的收款信息已更改',
+
   'accountDeletion.heading': '确认删除您的账户',
   'accountDeletion.body':
     '{name}，您好：我们收到了永久删除您的 Trading Alerts 账户的请求。',

@@ -175,7 +175,8 @@ declare module '@prisma/client' {
     | 'TWO_FACTOR_ENABLED'
     | 'TWO_FACTOR_DISABLED'
     | 'SUSPICIOUS_LOGIN'
-    | 'ACCOUNT_LOCKED';
+    | 'ACCOUNT_LOCKED'
+    | 'PAYOUT_DETAILS_CHANGED';
   export const SecurityAlertType: {
     NEW_DEVICE_LOGIN: 'NEW_DEVICE_LOGIN';
     PASSWORD_CHANGED: 'PASSWORD_CHANGED';
@@ -184,6 +185,7 @@ declare module '@prisma/client' {
     TWO_FACTOR_DISABLED: 'TWO_FACTOR_DISABLED';
     SUSPICIOUS_LOGIN: 'SUSPICIOUS_LOGIN';
     ACCOUNT_LOCKED: 'ACCOUNT_LOCKED';
+    PAYOUT_DETAILS_CHANGED: 'PAYOUT_DETAILS_CHANGED';
   };
 
   // ============================================================

@@ -126,6 +126,20 @@ export const ar: EmailMessages = {
   'twoFactorDisabled.tip3': 'مراجعة حسابك بحثًا عن أي تغييرات غير مصرّح بها',
   'twoFactorDisabled.subject': 'تنبيه أمني: تم تعطيل التحقق بخطوتين',
 
+  'payoutDetails.heading': 'تم تغيير بيانات الدفع',
+  'payoutDetails.body':
+    'مرحبًا {name}، تمت إضافة بيانات دفع أو تغييرها في حساب الشريك الخاص بك في Trading Alerts.',
+  'payoutDetails.holdLabel': 'المدفوعات معلّقة حتى:',
+  'payoutDetails.hold':
+    'لحمايتك، ستُعلَّق المدفوعات إلى هذه البيانات لمدة {hours} ساعة. أرباحك في أمان وستُدفع عند انتهاء التعليق.',
+  'payoutDetails.ifYou':
+    '**إذا كنت أنت من أجرى هذا التغيير:** فلا يلزمك أي إجراء.',
+  'payoutDetails.ifNotYou':
+    '**إذا لم تكن أنت من أجرى هذا التغيير:** فقد يكون حسابك مُخترقًا. يُرجى:',
+  'payoutDetails.tip2': 'التواصل مع فريق الدعم لدينا قبل انتهاء التعليق',
+  'payoutDetails.tip3': 'مراجعة حسابك بحثًا عن أي تغييرات غير مصرّح بها',
+  'payoutDetails.subject': 'تنبيه أمني: تم تغيير بيانات الدفع الخاصة بك',
+
   'accountDeletion.heading': 'تأكيد حذف حسابك',
   'accountDeletion.body':
     'مرحبًا {name}، تلقّينا طلبًا لحذف حسابك في Trading Alerts نهائيًا.',

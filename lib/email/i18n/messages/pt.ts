@@ -136,6 +136,23 @@ export const pt: EmailMessages = {
   'twoFactorDisabled.subject':
     'Alerta de segurança: autenticação de dois fatores desativada',
 
+  'payoutDetails.heading': 'Dados de pagamento alterados',
+  'payoutDetails.body':
+    'Olá {name}, foram adicionados ou alterados os dados de pagamento da sua conta de afiliado Trading Alerts.',
+  'payoutDetails.holdLabel': 'Pagamentos retidos até:',
+  'payoutDetails.hold':
+    'Para sua proteção, os pagamentos para estes dados ficam retidos durante {hours} horas. Os seus ganhos estão seguros e serão pagos quando a retenção terminar.',
+  'payoutDetails.ifYou':
+    '**Se fez esta alteração:** não precisa de fazer nada.',
+  'payoutDetails.ifNotYou':
+    '**Se não fez esta alteração:** a sua conta pode estar comprometida. Por favor:',
+  'payoutDetails.tip2':
+    'Contacte a nossa equipa de suporte antes de a retenção terminar',
+  'payoutDetails.tip3':
+    'Verifique se a sua conta tem alterações não autorizadas',
+  'payoutDetails.subject':
+    'Alerta de segurança: os seus dados de pagamento foram alterados',
+
   'accountDeletion.heading': 'Confirme a eliminação da sua conta',
   'accountDeletion.body':
     'Olá {name}, recebemos um pedido para eliminar permanentemente a sua conta Trading Alerts.',

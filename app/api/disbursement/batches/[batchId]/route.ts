@@ -12,11 +12,110 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
+import {
+  changedSinceLastPaid,
+  isOnPayoutHold,
+  payoutHoldUntil,
+} from '@/lib/disbursement/payout-details-hold';
 import { BatchManager } from '@/lib/disbursement/services/batch-manager';
 import { TransactionService } from '@/lib/disbursement/services/transaction-service';
 
 interface RouteContext {
   params: Promise<{ batchId: string }>;
+}
+
+/**
+ * Per affiliate: when their Wise recipient was last added or changed
+ * (`AffiliateWiseRecipient.detailsChangedAt`) and when they were last paid
+ * outside this batch. Only affiliates with a recorded change are in the maps.
+ */
+interface PayoutDetailsFlags {
+  changedAt: Map<string, Date>;
+  lastPaidAt: Map<string, Date>;
+}
+
+async function loadPayoutDetailsFlags(
+  batchId: string,
+  affiliateIds: Array<string | undefined>
+): Promise<PayoutDetailsFlags> {
+  const flags: PayoutDetailsFlags = {
+    changedAt: new Map(),
+    lastPaidAt: new Map(),
+  };
+  const ids = [
+    ...new Set(
+      affiliateIds.filter(
+        (id): id is string => typeof id === 'string' && id !== ''
+      )
+    ),
+  ];
+  if (ids.length === 0) return flags;
+
+  const recipients = await prisma.affiliateWiseRecipient.findMany({
+    where: {
+      affiliateProfileId: { in: ids },
+      detailsChangedAt: { not: null },
+    },
+    select: { affiliateProfileId: true, detailsChangedAt: true },
+  });
+  for (const recipient of recipients) {
+    if (recipient.detailsChangedAt) {
+      flags.changedAt.set(
+        recipient.affiliateProfileId,
+        recipient.detailsChangedAt
+      );
+    }
+  }
+  if (flags.changedAt.size === 0) return flags;
+
+  const paid = await prisma.disbursementTransaction.findMany({
+    where: {
+      status: 'COMPLETED',
+      completedAt: { not: null },
+      batchId: { not: batchId },
+      commission: { affiliateProfileId: { in: [...flags.changedAt.keys()] } },
+    },
+    select: {
+      completedAt: true,
+      commission: { select: { affiliateProfileId: true } },
+    },
+  });
+  for (const payment of paid) {
+    const affiliateId = payment.commission.affiliateProfileId;
+    const at = payment.completedAt;
+    const latest = flags.lastPaidAt.get(affiliateId);
+    if (at && (!latest || at.getTime() > latest.getTime())) {
+      flags.lastPaidAt.set(affiliateId, at);
+    }
+  }
+  return flags;
+}
+
+function payoutDetailsFlagsFor(
+  flags: PayoutDetailsFlags,
+  affiliateId: string | undefined
+): {
+  payoutDetailsChangedAt: string | null;
+  payoutDetailsChangedSinceLastPaid: boolean;
+  payoutHoldUntil: string | null;
+} {
+  const changedAt = affiliateId
+    ? (flags.changedAt.get(affiliateId) ?? null)
+    : null;
+  const lastPaidAt = affiliateId
+    ? (flags.lastPaidAt.get(affiliateId) ?? null)
+    : null;
+  return {
+    payoutDetailsChangedAt: changedAt ? changedAt.toISOString() : null,
+    payoutDetailsChangedSinceLastPaid: changedSinceLastPaid(
+      changedAt,
+      lastPaidAt
+    ),
+    payoutHoldUntil:
+      changedAt && isOnPayoutHold(changedAt, new Date())
+        ? payoutHoldUntil(changedAt).toISOString()
+        : null,
+  };
 }
 
 /**
@@ -55,6 +154,17 @@ export async function GET(
 
     type BatchTransaction = NonNullable<typeof batch.transactions>[number];
     type BatchAuditLog = NonNullable<typeof batch.auditLogs>[number];
+
+    // WS-9 (CODE-06A): for each affiliate in the batch whose Wise recipient has a
+    // recorded change, say when it changed, whether they have been paid since,
+    // and until when payouts to it are held. Both reads are limited to this
+    // batch's affiliates; the second only to the ones with a recorded change.
+    const payoutFlags = await loadPayoutDetailsFlags(
+      batchId,
+      (batch.transactions ?? []).map(
+        (t: BatchTransaction) => t.commission?.affiliateProfileId
+      )
+    );
 
     // Calculate paid amount
     const paidAmount = batch.transactions
@@ -103,6 +213,10 @@ export async function GET(
           createdAt: txn.createdAt,
           completedAt: txn.completedAt,
           failedAt: txn.failedAt,
+          ...payoutDetailsFlagsFor(
+            payoutFlags,
+            txn.commission?.affiliateProfileId
+          ),
         })) || [],
       transactionCounts: statusCounts,
       auditLogs:

@@ -15,6 +15,7 @@ import {
   ShieldOff,
   AlertTriangle,
   Lock,
+  Wallet,
   MapPin,
   Check,
   Loader2,
@@ -41,7 +42,8 @@ type SecurityAlertType =
   | 'TWO_FACTOR_ENABLED'
   | 'TWO_FACTOR_DISABLED'
   | 'SUSPICIOUS_LOGIN'
-  | 'ACCOUNT_LOCKED';
+  | 'ACCOUNT_LOCKED'
+  | 'PAYOUT_DETAILS_CHANGED';
 
 interface SecurityAlertItem {
   id: string;
@@ -120,6 +122,13 @@ const TYPE_META: Record<
     label: 'Account Locked',
     icon: Lock,
     badgeClass: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  },
+  PAYOUT_DETAILS_CHANGED: {
+    labelKey: 'settings.security.activity_payout_details_changed',
+    label: 'Payout Details Changed',
+    icon: Wallet,
+    badgeClass:
+      'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
   },
 };
 

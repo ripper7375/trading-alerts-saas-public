@@ -3895,6 +3895,7 @@
   "settings.security.activity_2fa_disabled": "2段階認証を無効化",
   "settings.security.activity_2fa_enabled": "2段階認証を有効化",
   "settings.security.activity_account_locked": "アカウントロック",
+  "settings.security.activity_payout_details_changed": "お支払い情報変更",
   "settings.security.activity_appear_here": "アカウントのセキュリティイベントがここに表示されます",
   "settings.security.activity_email_changed": "メールアドレス変更",
   "settings.security.activity_new_device_login": "新しいデバイスからのログイン",

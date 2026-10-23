@@ -3895,6 +3895,7 @@
   "settings.security.activity_2fa_disabled": "2FA غیر فعال",
   "settings.security.activity_2fa_enabled": "2FA فعال",
   "settings.security.activity_account_locked": "اکاؤنٹ لاک",
+  "settings.security.activity_payout_details_changed": "ادائیگی کی تفصیلات تبدیل ہوئیں",
   "settings.security.activity_appear_here": "آپ کے اکاؤنٹ کے سیکیورٹی واقعات یہاں دکھائی دیں گے",
   "settings.security.activity_email_changed": "ای میل تبدیل ہوئی",
   "settings.security.activity_new_device_login": "نئے آلے سے لاگ اِن",

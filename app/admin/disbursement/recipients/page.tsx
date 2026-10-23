@@ -35,6 +35,15 @@ const STATUS_FILTERS: Array<WiseRecipientStatus | 'ALL'> = [
 
 type ActiveTab = 'wise' | 'riseworks';
 
+/**
+ * A row of the admin list as money-service now sends it (WS-9, CODE-06A):
+ * `payoutHoldUntil` is set only while a new or changed recipient is inside the
+ * 72-hour hold. Optional so an older server still renders.
+ */
+type WiseRecipientRow = WiseRecipientsAdminList['items'][number] & {
+  payoutHoldUntil?: string | null;
+};
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES (historical RiseWorks tab)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -84,7 +93,7 @@ function getKycStatusBadge(status: RiseWorksKycStatus): React.ReactElement {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 function WiseRecipientsTab(): React.ReactElement {
-  const { t, formatDate } = useLocale();
+  const { t, formatDate, formatDateTime } = useLocale();
   const [data, setData] = useState<WiseRecipientsAdminList | null>(null);
   const [status, setStatus] = useState<WiseRecipientStatus | 'ALL'>('ALL');
   const [page, setPage] = useState(1);
@@ -223,7 +232,7 @@ function WiseRecipientsTab(): React.ReactElement {
                 {data.items.map((r) => (
                   <tr
                     key={r.id}
-                    className="border-border/50 border-b text-foreground"
+                    className="border-b border-border/50 text-foreground"
                   >
                     <td className="py-3 pr-4 font-mono text-xs text-muted-foreground">
                       {r.affiliateProfileId.slice(0, 8)}…
@@ -236,7 +245,20 @@ function WiseRecipientsTab(): React.ReactElement {
                         ? `•••• ${r.accountTail}`
                         : t('admin.errors.not_available', 'N/A')}
                     </td>
-                    <td className="py-3 pr-4">{getStatusBadge(r.status)}</td>
+                    <td className="py-3 pr-4">
+                      {getStatusBadge(r.status)}
+                      {(r as WiseRecipientRow).payoutHoldUntil && (
+                        <Badge className="ml-2 bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400">
+                          {t(
+                            'admin.disbursement.payout_held_until',
+                            'Payouts held until'
+                          )}{' '}
+                          {formatDateTime(
+                            (r as WiseRecipientRow).payoutHoldUntil as string
+                          )}
+                        </Badge>
+                      )}
+                    </td>
                     <td className="py-3 text-muted-foreground">
                       {formatDate(r.createdAt)}
                     </td>
@@ -391,7 +413,7 @@ function RiseWorksHistoricalTab(): React.ReactElement {
                 {accounts.map((account) => (
                   <tr
                     key={account.id}
-                    className="border-border/50 hover:bg-accent/30 border-b"
+                    className="border-b border-border/50 hover:bg-accent/30"
                   >
                     <td className="px-4 py-3">
                       <span className="text-foreground">{account.email}</span>

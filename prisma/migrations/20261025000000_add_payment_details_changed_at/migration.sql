@@ -1,0 +1,44 @@
+-- Payout-recipient change detection (CODE-06A): the time a Wise payout recipient was added or changed,
+-- and a security-alert type for the notice.
+--
+-- NOT APPLIED by the Executor (CLAUDE.md: the Executor never applies a migration to a live
+-- database). Davin applies it; see "Rollout order" below.
+--
+-- What it adds (purely additive; a nullable column is a catalog change on PostgreSQL, no rewrite):
+--   "AffiliateWiseRecipient"."detailsChangedAt": nullable. Set to the current time when a recipient is
+--   added, added again after a removal, or when anything that decides where the money goes changes.
+--   Payouts to the recipient are held for 72 hours from that time. NULL means "no change on record":
+--   every recipient that exists when this migration is applied keeps NULL and is NOT held.
+--   "SecurityAlertType" gains PAYOUT_DETAILS_CHANGED, the type of the in-app alert that goes with the
+--   e-mail to the account owner.
+--
+-- Rollout order: apply this migration FIRST, then deploy operation-service, then the monolith, then
+-- money-service LAST. Why:
+--   * money-service's generated client selects every column of "AffiliateWiseRecipient", so it fails on
+--     every recipient read if it is deployed before the column exists;
+--   * money-service is the only producer of the PAYOUT_DETAILS_CHANGED event and of the alert type it
+--     leads to, so everything that consumes the event (operation-service) and everything that reads
+--     "security_alerts" (operation-service, the monolith) must know the type before the first one is
+--     written: a Prisma client that meets an enum value it does not know throws on the read;
+--   * the old code is safe against the new schema (a nullable column nobody reads, an enum value
+--     nobody writes).
+--
+-- Before applying (read-only): `prisma migrate status`, and confirm the column and the value are absent:
+--   SELECT column_name FROM information_schema.columns
+--   WHERE table_name = 'AffiliateWiseRecipient' AND column_name = 'detailsChangedAt';  -- expect ZERO rows
+--   SELECT enumlabel FROM pg_enum e JOIN pg_type t ON t.oid = e.enumtypid
+--   WHERE t.typname = 'SecurityAlertType' AND enumlabel = 'PAYOUT_DETAILS_CHANGED';    -- expect ZERO rows
+--
+-- Apply this one migration alone (`prisma migrate deploy` applies every pending one):
+--   prisma db execute --file prisma/migrations/20261025000000_add_payment_details_changed_at/migration.sql \
+--     --config prisma.production.config.ts
+--   prisma migrate resolve --applied 20261025000000_add_payment_details_changed_at \
+--     --config prisma.production.config.ts
+--
+-- Rollback: revert the code; the column and the enum value may stay (additive, unused; PostgreSQL
+-- cannot drop an enum value). Rows written with PAYOUT_DETAILS_CHANGED must be deleted or retyped first
+-- if the value is ever removed by rebuilding the type.
+
+ALTER TABLE "AffiliateWiseRecipient" ADD COLUMN IF NOT EXISTS "detailsChangedAt" TIMESTAMP(3);
+
+ALTER TYPE "SecurityAlertType" ADD VALUE IF NOT EXISTS 'PAYOUT_DETAILS_CHANGED';

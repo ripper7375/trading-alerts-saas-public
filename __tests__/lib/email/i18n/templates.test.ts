@@ -23,6 +23,7 @@ import {
   buildPasswordResetEmail,
   buildPaymentFailedEmail,
   buildPaymentReceiptEmail,
+  buildPayoutDetailsChangedEmail,
   buildSubscriptionCanceledEmail,
   buildSubscriptionConfirmationEmail,
   buildTwoFactorDisabledEmail,
@@ -85,6 +86,13 @@ const BUILDERS: Record<string, (locale: EmailLocale) => BuiltEmail> = {
       ipAddress: '203.0.113.7',
       location: 'Bangkok, Thailand',
       timestamp: when,
+    }),
+  payoutDetailsChanged: (l) =>
+    buildPayoutDetailsChangedEmail(l, {
+      name: 'Ada',
+      changedAt: when,
+      holdUntil: new Date(when.getTime() + 72 * 60 * 60 * 1000),
+      holdHours: 72,
     }),
   subscriptionPro: (l) =>
     buildSubscriptionConfirmationEmail(l, {
@@ -385,8 +393,89 @@ describe("the reader's formats reach the message", () => {
   });
 });
 
+describe('the payout-details notice (WS-9, CODE-06A)', () => {
+  const changedAt = new Date('2026-10-23T09:30:00.000Z');
+  const holdUntil = new Date('2026-10-26T09:30:00.000Z');
+  const input = { name: 'Ada', changedAt, holdUntil, holdHours: 72 };
+
+  it('says the payouts are on hold, for how long, and until when', () => {
+    const { html, text, subject } = buildPayoutDetailsChangedEmail(
+      {
+        language: 'en-US',
+        timezone: 'UTC',
+        dateFormat: 'DMY',
+        timeFormat: '24h',
+      },
+      input
+    );
+    expect(subject).toBe('Security Alert: Your Payout Details Were Changed');
+    expect(html).toContain('on hold for 72 hours');
+    expect(html).toContain('23/10/2026 09:30'); // the change
+    expect(html).toContain('26/10/2026 09:30'); // the end of the hold
+    expect(text).toContain('Payouts on hold until:');
+  });
+
+  it("shows both times in the reader's timezone and clock", () => {
+    const { html } = buildPayoutDetailsChangedEmail(
+      {
+        language: 'th',
+        timezone: 'Asia/Bangkok',
+        dateFormat: 'DMY',
+        timeFormat: '24h',
+      },
+      input
+    );
+    expect(html).toContain('23/10/2026 16:30 GMT+7');
+    expect(html).toContain('26/10/2026 16:30 GMT+7');
+  });
+
+  it('sends the reader to the security settings, not to a payout page an attacker may be using', () => {
+    const { html } = buildPayoutDetailsChangedEmail(
+      { language: 'en-US' },
+      input
+    );
+    expect(html).toContain('/settings/security');
+    expect(html).not.toContain('/affiliate/settings/payout');
+  });
+
+  it('is written in the reader’s language', () => {
+    const { subject, html } = buildPayoutDetailsChangedEmail(
+      { language: 'es' },
+      input
+    );
+    expect(subject).toBe('Alerta de seguridad: tus datos de pago han cambiado');
+    expect(html).toContain('durante 72 horas');
+  });
+
+  it('takes no bank detail at all, so none can reach the message', () => {
+    // The builder's input is the name and the two moments: nothing else is
+    // accepted, and the output carries only those.
+    const { html, text } = buildPayoutDetailsChangedEmail(
+      { language: 'en-US' },
+      input
+    );
+    for (const part of [html, text]) {
+      expect(part).not.toMatch(/\d{6,}/); // no account, sort code or IBAN-like run
+    }
+  });
+});
+
 describe('what a person or a provider supplied is escaped', () => {
   const hostile = '<img src=x onerror="alert(1)">';
+
+  it('escapes the name in the payout-details notice', () => {
+    const { html } = buildPayoutDetailsChangedEmail(
+      { language: 'en-US' },
+      {
+        name: hostile,
+        changedAt: when,
+        holdUntil: new Date(when.getTime() + 72 * 3600 * 1000),
+        holdHours: 72,
+      }
+    );
+    expect(html).not.toContain(hostile);
+    expect(html).toContain('&lt;img');
+  });
 
   it.each([
     [
