@@ -27,6 +27,8 @@ jest.mock('ioredis', () => {
 
 process.env['REDIS_URL'] = 'redis://localhost:6379';
 
+import { Logger } from '@nestjs/common';
+
 import { AlertWorkerService } from './alert-worker.service';
 
 describe('AlertWorkerService', () => {
@@ -128,5 +130,96 @@ describe('AlertWorkerService', () => {
   it('onModuleDestroy is a no-op when start() was never called (HTTP process case)', async () => {
     await service.onModuleDestroy();
     expect(quit).not.toHaveBeenCalled();
+  });
+
+  describe('alerts:changed reload', () => {
+    const watchRow = {
+      id: 'da1',
+      alertId: 'a1',
+      targetLevel: 'line',
+      direction: 'either',
+      tolerance: 0,
+      cooldownSec: 60,
+      oneShot: false,
+      drawing: {
+        id: 'd1',
+        userId: 'u1',
+        symbol: 'XAUUSD',
+        timeframe: 'M10',
+        type: 'HLINE',
+        anchors: [{ time: 0, price: 1980 }],
+        style: { color: '#2962FF', lineWidth: 2, lineStyle: 'solid' },
+      },
+    };
+
+    const watchKeys = (): number =>
+      (service as unknown as { cache: Map<string, unknown[]> }).cache.size;
+
+    /** The listener start() registered on the subscriber for the `message` event. */
+    const messageHandler = (): ((channel: string) => void) => {
+      const call = on.mock.calls.find(([event]) => event === 'message');
+      return call?.[1] as (channel: string) => void;
+    };
+
+    const flush = async (): Promise<void> => {
+      for (let i = 0; i < 3; i++) {
+        await new Promise((resolve) => setImmediate(resolve));
+      }
+    };
+
+    it('logs a failed reload and keeps the previous watches, instead of leaving an unhandled rejection', async () => {
+      const logError = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation(() => undefined);
+      try {
+        findMany.mockResolvedValueOnce([watchRow]);
+        await service.start();
+        expect(watchKeys()).toBe(1);
+
+        const poolTimeout = new Error(
+          'timeout exceeded when trying to connect'
+        );
+        findMany.mockRejectedValueOnce(poolTimeout);
+        messageHandler()('alerts:changed');
+        await flush();
+
+        expect(findMany).toHaveBeenCalledTimes(2);
+        expect(logError).toHaveBeenCalledWith(
+          'watch reload failed:',
+          poolTimeout
+        );
+        expect(watchKeys()).toBe(1);
+
+        messageHandler()('some:other:channel');
+        await flush();
+        expect(findMany).toHaveBeenCalledTimes(2);
+      } finally {
+        logError.mockRestore();
+      }
+    });
+
+    it('replaces the watches on the next successful reload after a failed one', async () => {
+      const logError = jest
+        .spyOn(Logger.prototype, 'error')
+        .mockImplementation(() => undefined);
+      try {
+        findMany.mockResolvedValueOnce([watchRow]);
+        await service.start();
+        findMany.mockRejectedValueOnce(new Error('Connection terminated'));
+        messageHandler()('alerts:changed');
+        await flush();
+        expect(watchKeys()).toBe(1);
+
+        findMany.mockResolvedValueOnce([]);
+        messageHandler()('alerts:changed');
+        await flush();
+
+        expect(findMany).toHaveBeenCalledTimes(3);
+        expect(watchKeys()).toBe(0);
+        expect(logError).toHaveBeenCalledTimes(1);
+      } finally {
+        logError.mockRestore();
+      }
+    });
   });
 });
