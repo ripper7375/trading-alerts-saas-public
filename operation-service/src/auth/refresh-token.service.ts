@@ -21,6 +21,14 @@ export interface IssuedRefreshToken {
   expiresAt: Date;
 }
 
+/** What validating a refresh token tells the caller (CODE-02A: and when its session started). */
+export interface ValidatedRefreshToken {
+  id: string;
+  userId: string;
+  /** When the person signed in; NULL for a token issued before the column existed. */
+  sessionStartedAt: Date | null;
+}
+
 export interface RefreshTokenContext {
   userAgent?: string;
   ipAddress?: string;
@@ -34,9 +42,15 @@ export class RefreshTokenService {
     return createHash('sha256').update(rawToken).digest('hex');
   }
 
+  /**
+   * `sessionStartedAt` is when the person signed in (CODE-02A): a sign-in leaves it out and the
+   * token gets the current time; a rotation passes the old token's value forward, `null` included
+   * (a rotation never invents a login time), so a session cannot be made younger by rotating.
+   */
   async issue(
     userId: string,
-    context: RefreshTokenContext = {}
+    context: RefreshTokenContext = {},
+    sessionStartedAt: Date | null = new Date()
   ): Promise<IssuedRefreshToken> {
     const rawToken = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
@@ -48,6 +62,7 @@ export class RefreshTokenService {
         userAgent: context.userAgent,
         ipAddress: context.ipAddress,
         expiresAt,
+        sessionStartedAt,
       },
     });
 
@@ -59,7 +74,7 @@ export class RefreshTokenService {
    * Throws (never returns null) so callers can't treat a thrown error as a
    * silent pass-through — same discipline as JwtAuthGuard's decode path.
    */
-  async validate(rawToken: string): Promise<{ id: string; userId: string }> {
+  async validate(rawToken: string): Promise<ValidatedRefreshToken> {
     const record = await this.prisma.refreshToken.findUnique({
       where: { hashedToken: this.hash(rawToken) },
     });
@@ -72,7 +87,11 @@ export class RefreshTokenService {
       throw new ExpiredTokenError('Refresh token has expired');
     }
 
-    return { id: record.id, userId: record.userId };
+    return {
+      id: record.id,
+      userId: record.userId,
+      sessionStartedAt: record.sessionStartedAt,
+    };
   }
 
   async revokeByRawToken(rawToken: string): Promise<void> {
@@ -99,10 +118,14 @@ export class RefreshTokenService {
   async rotate(
     rawToken: string,
     context: RefreshTokenContext = {}
-  ): Promise<{ userId: string; issued: IssuedRefreshToken }> {
-    const { id, userId } = await this.validate(rawToken);
+  ): Promise<{
+    userId: string;
+    issued: IssuedRefreshToken;
+    sessionStartedAt: Date | null;
+  }> {
+    const { id, userId, sessionStartedAt } = await this.validate(rawToken);
     await this.revokeById(id);
-    const issued = await this.issue(userId, context);
-    return { userId, issued };
+    const issued = await this.issue(userId, context, sessionStartedAt);
+    return { userId, issued, sessionStartedAt };
   }
 }

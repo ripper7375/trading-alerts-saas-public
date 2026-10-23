@@ -124,10 +124,19 @@ describe('RealtimeGateway (real socket.io-client end-to-end)', () => {
           },
         },
         {
-          // The handshake now checks User.isActive (F21); every test user is active.
+          // The handshake checks the account behind the token (F21, CODE-02A): every test user is
+          // active, not deleted, at session version 0 (the minted tokens carry no version) and a USER.
           provide: PrismaService,
           useValue: {
-            user: { findUnique: async () => ({ isActive: true }) },
+            user: {
+              findUnique: async () => ({
+                isActive: true,
+                deletedAt: null,
+                sessionVersion: 0,
+                role: 'USER',
+                tier: 'FREE',
+              }),
+            },
           },
         },
       ],

@@ -10,9 +10,8 @@ import { createAdapter } from '@socket.io/redis-adapter';
 import type { Redis } from 'ioredis';
 import type { Server, Socket } from 'socket.io';
 
-import { ACCOUNT_DEACTIVATED_CODE } from '../account-deletion/account-deletion.constants';
 import { decodeNextAuthToken } from '../auth/next-auth-jwt.util';
-import { isUserActive } from '../auth/user-active.util';
+import { getSessionState, judgeSession } from '../auth/user-active.util';
 import {
   parseAlertFired,
   type AlertFiredMessage,
@@ -143,10 +142,15 @@ export class RealtimeGateway
         client.disconnect(true);
         return;
       }
-      // Same rule as JwtAuthGuard: a locked account (F21) gets no new socket. A socket that
-      // is already open stays until it closes; the alerts behind it are deleted by the worker.
-      if (!(await isUserActive(this.prisma, claims.id))) {
-        client.emit('error', { message: ACCOUNT_DEACTIVATED_CODE });
+      // Same rule as JwtAuthGuard: a locked account (F21), a token behind the account's session
+      // version or an ADMIN session past its 12 hours (CODE-02A) gets no new socket. A socket
+      // that is already open stays until it closes; the alerts behind it are deleted by the worker.
+      const verdict = judgeSession(
+        claims,
+        await getSessionState(this.prisma, claims.id)
+      );
+      if (!verdict.ok) {
+        client.emit('error', { message: verdict.code });
         client.disconnect(true);
         return;
       }

@@ -22,6 +22,8 @@ export const SESSION_USER_SELECT = {
   isAffiliate: true,
   isActive: true,
   emailVerified: true,
+  // CODE-02A: the version a minted token is stamped with (the database must have the column).
+  sessionVersion: true,
 } as const;
 
 /** The same, plus what the password step reads: the hash and whether a 2FA code is due. */

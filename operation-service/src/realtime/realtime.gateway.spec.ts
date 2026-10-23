@@ -29,6 +29,18 @@ const mockDecodeNextAuthToken = decodeNextAuthToken as jest.MockedFunction<
   typeof decodeNextAuthToken
 >;
 
+/** The columns the session-state read selects (CODE-02A): what the database says about a user now. */
+function stateRow(overrides: Record<string, unknown> = {}) {
+  return {
+    isActive: true,
+    deletedAt: null,
+    sessionVersion: 0,
+    role: 'USER',
+    tier: 'FREE',
+    ...overrides,
+  };
+}
+
 function makeFakeRedis(): jest.Mocked<Redis> {
   const fake = {
     duplicate: jest.fn(),
@@ -118,7 +130,7 @@ describe('RealtimeGateway', () => {
     jest.clearAllMocks();
     clearUserActiveCache();
     prisma = {
-      user: { findUnique: jest.fn().mockResolvedValue({ isActive: true }) },
+      user: { findUnique: jest.fn().mockResolvedValue(stateRow()) },
     };
 
     fakeRedis = makeFakeRedis();
@@ -211,20 +223,117 @@ describe('RealtimeGateway', () => {
         id: 'user-42',
         email: 'a@b.com',
       } as never);
-      prisma.user.findUnique.mockResolvedValueOnce({ isActive: false });
+      prisma.user.findUnique.mockResolvedValueOnce(
+        stateRow({ isActive: false })
+      );
       const socket = makeFakeSocket({ token: 'a-valid-jwe' });
 
       await gateway.handleConnection(socket);
 
+      // CODE-02A: one read answers the account's state, version, role and tier together.
       expect(prisma.user.findUnique).toHaveBeenCalledWith({
         where: { id: 'user-42' },
-        select: { isActive: true },
+        select: {
+          isActive: true,
+          deletedAt: true,
+          sessionVersion: true,
+          role: true,
+          tier: true,
+        },
       });
       expect(socket.emit).toHaveBeenCalledWith('error', {
         message: 'ACCOUNT_DEACTIVATED',
       });
       expect(socket.disconnect).toHaveBeenCalledWith(true);
       expect(socket.join).not.toHaveBeenCalled();
+    });
+
+    it('refuses a socket whose token is behind the database sessionVersion (CODE-02A)', async () => {
+      mockDecodeNextAuthToken.mockResolvedValueOnce({
+        id: 'user-42',
+        email: 'a@b.com',
+        sessionVersion: 0,
+      } as never);
+      prisma.user.findUnique.mockResolvedValueOnce(
+        stateRow({ sessionVersion: 2 })
+      );
+      const socket = makeFakeSocket({ token: 'a-valid-jwe' });
+
+      await gateway.handleConnection(socket);
+
+      expect(socket.emit).toHaveBeenCalledWith('error', {
+        message: 'SESSION_REVOKED',
+      });
+      expect(socket.disconnect).toHaveBeenCalledWith(true);
+      expect(socket.join).not.toHaveBeenCalled();
+    });
+
+    it('accepts a token with no sessionVersion claim while the row is at 0, and one that matches a bumped row', async () => {
+      mockDecodeNextAuthToken.mockResolvedValueOnce({ id: 'user-42' } as never);
+      await gateway.handleConnection(makeFakeSocket({ token: 'a' }));
+
+      clearUserActiveCache();
+      mockDecodeNextAuthToken.mockResolvedValueOnce({
+        id: 'user-42',
+        sessionVersion: 3,
+      } as never);
+      prisma.user.findUnique.mockResolvedValueOnce(
+        stateRow({ sessionVersion: 3 })
+      );
+      const socket = makeFakeSocket({ token: 'b' });
+      await gateway.handleConnection(socket);
+
+      expect(socket.join).toHaveBeenCalledWith('user:user-42');
+      expect(socket.disconnect).not.toHaveBeenCalled();
+    });
+
+    it('refuses an ADMIN socket 13 hours after sign-in (CODE-02A, D-5) and keeps a USER socket of the same age', async () => {
+      const staleAuthTime = Math.floor(Date.now() / 1000) - 13 * 3600;
+      mockDecodeNextAuthToken.mockResolvedValueOnce({
+        id: 'admin-1',
+        authTime: staleAuthTime,
+      } as never);
+      prisma.user.findUnique.mockResolvedValueOnce(stateRow({ role: 'ADMIN' }));
+      const admin = makeFakeSocket({ token: 'a' });
+      await gateway.handleConnection(admin);
+      expect(admin.emit).toHaveBeenCalledWith('error', {
+        message: 'SESSION_EXPIRED',
+      });
+      expect(admin.disconnect).toHaveBeenCalledWith(true);
+
+      clearUserActiveCache();
+      mockDecodeNextAuthToken.mockResolvedValueOnce({
+        id: 'user-1',
+        authTime: staleAuthTime,
+      } as never);
+      const user = makeFakeSocket({ token: 'b' });
+      await gateway.handleConnection(user);
+      expect(user.join).toHaveBeenCalledWith('user:user-1');
+    });
+
+    it('refuses a socket with no row in production and lets one through when the lookup fails', async () => {
+      const original = process.env['NODE_ENV'];
+      try {
+        process.env['NODE_ENV'] = 'production';
+        mockDecodeNextAuthToken.mockResolvedValueOnce({ id: 'ghost' } as never);
+        prisma.user.findUnique.mockResolvedValueOnce(null);
+        const ghost = makeFakeSocket({ token: 'a' });
+        await gateway.handleConnection(ghost);
+        expect(ghost.emit).toHaveBeenCalledWith('error', {
+          message: 'ACCOUNT_DEACTIVATED',
+        });
+
+        clearUserActiveCache();
+        mockDecodeNextAuthToken.mockResolvedValueOnce({
+          id: 'user-9',
+        } as never);
+        prisma.user.findUnique.mockRejectedValueOnce(new Error('reset'));
+        const blip = makeFakeSocket({ token: 'b' });
+        await gateway.handleConnection(blip);
+        expect(blip.join).toHaveBeenCalledWith('user:user-9');
+      } finally {
+        process.env['NODE_ENV'] = original;
+      }
     });
 
     it('registers a raw disconnect listener that logs the reason string (F55 diagnostic)', async () => {

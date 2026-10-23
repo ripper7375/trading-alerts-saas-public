@@ -9,10 +9,10 @@ import { EncryptJWT } from 'jose';
 // DECISION-LOG.md) — operation-service does not depend on the `next-auth`
 // package itself, it re-implements only the encode half.
 //
-// session.maxAge in lib/auth/auth-options.ts is 30 days — matched here so a
-// token minted by operation-service expires on the same schedule NextAuth's
-// own tokens do.
-const SESSION_MAX_AGE_SECONDS = 30 * 24 * 60 * 60;
+// session.maxAge in lib/auth/auth-options.ts is 7 days (CODE-02A, D-5) — matched
+// here so a token minted by operation-service expires on the same schedule
+// NextAuth's own tokens do.
+const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export interface NextAuthTokenPayload {
   id: string;
@@ -22,6 +22,10 @@ export interface NextAuthTokenPayload {
   tier: string;
   role: string;
   isAffiliate: boolean;
+  /** The user's `sessionVersion` now; the guards refuse the token once the row's differs. */
+  sessionVersion?: number;
+  /** Unix seconds of the sign-in the token belongs to (an ADMIN session ends 12 hours after it). */
+  authTime?: number;
 }
 
 async function getDerivedEncryptionKey(
@@ -54,6 +58,8 @@ export async function encodeNextAuthToken(
     tier: payload.tier,
     role: payload.role,
     isAffiliate: payload.isAffiliate,
+    sessionVersion: payload.sessionVersion,
+    authTime: payload.authTime,
   })
     .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
     .setIssuedAt(now)

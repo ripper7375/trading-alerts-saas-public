@@ -47,6 +47,7 @@ import {
   twoFactorKeys,
   verifyTwoFactorToken,
 } from './two-factor-token.util';
+import { ADMIN_SESSION_MAX_AGE_SECONDS } from './user-active.util';
 import {
   ID_ONLY_SELECT,
   LOGIN_USER_SELECT,
@@ -283,6 +284,7 @@ export class AuthService {
           isAffiliate: fixed.isAffiliate,
           emailVerified: new Date(),
           isActive: true,
+          sessionVersion: 0,
           twoFactorEnabled: false,
           twoFactorSecret: null,
           twoFactorBackupCodes: null,
@@ -432,9 +434,13 @@ export class AuthService {
       tier: string;
       role: string;
       isAffiliate: boolean;
+      sessionVersion: number;
     },
     context: RefreshTokenContext
   ): Promise<LoginResult> {
+    // CODE-02A: the token is stamped with the account's session version and the time of this
+    // sign-in; the refresh token keeps the same time so a rotation cannot make the session younger.
+    const sessionStartedAt = new Date();
     const accessToken = await encodeNextAuthToken(
       {
         id: user.id,
@@ -444,11 +450,17 @@ export class AuthService {
         tier: user.tier,
         role: user.role,
         isAffiliate: user.isAffiliate,
+        sessionVersion: user.sessionVersion,
+        authTime: Math.floor(sessionStartedAt.getTime() / 1000),
       },
       getNextAuthSecret()
     );
 
-    const { rawToken } = await this.refreshTokens.issue(user.id, context);
+    const { rawToken } = await this.refreshTokens.issue(
+      user.id,
+      context,
+      sessionStartedAt
+    );
 
     return {
       accessToken,
@@ -473,10 +485,8 @@ export class AuthService {
     rawRefreshToken: string,
     context: RefreshTokenContext = {}
   ): Promise<LoginResult> {
-    const { userId, issued } = await this.refreshTokens.rotate(
-      rawRefreshToken,
-      context
-    );
+    const { userId, issued, sessionStartedAt } =
+      await this.refreshTokens.rotate(rawRefreshToken, context);
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -495,6 +505,21 @@ export class AuthService {
       throw new AccountDeactivatedError();
     }
 
+    // CODE-02A: an ADMIN session ends 12 hours after the sign-in it started with, and rotating
+    // does not restart it. A session whose start is unknown (a token from before the column)
+    // counts as expired for an ADMIN: they sign in once more. Same rule as the guards'.
+    if (
+      user.role === 'ADMIN' &&
+      (!sessionStartedAt ||
+        Date.now() - sessionStartedAt.getTime() >
+          ADMIN_SESSION_MAX_AGE_SECONDS * 1000)
+    ) {
+      await this.refreshTokens.revokeByRawToken(issued.rawToken);
+      throw new ExpiredTokenError('This session has expired');
+    }
+
+    // The CURRENT version of the account, not the one of the token being replaced; `authTime` is
+    // the start of the session the refresh token carries (left out when it is unknown).
     const accessToken = await encodeNextAuthToken(
       {
         id: user.id,
@@ -504,6 +529,10 @@ export class AuthService {
         tier: user.tier,
         role: user.role,
         isAffiliate: user.isAffiliate,
+        sessionVersion: user.sessionVersion,
+        authTime: sessionStartedAt
+          ? Math.floor(sessionStartedAt.getTime() / 1000)
+          : undefined,
       },
       getNextAuthSecret()
     );

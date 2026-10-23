@@ -46,6 +46,7 @@ model User {
   role                 String    @default("USER")
   isActive             Boolean   @default(true)
   deletedAt            DateTime?
+  sessionVersion       Int       @default(0)
   isAffiliate          Boolean   @default(false)
   verificationToken    String?   @unique
   resetToken           String?   @unique
@@ -70,6 +71,8 @@ model RefreshToken {
   expiresAt   DateTime
   revokedAt   DateTime?
   createdAt   DateTime  @default(now())
+  // When the person signed in (CODE-02A): carried forward by every rotation, NULL before the column.
+  sessionStartedAt DateTime?
 
   @@index([userId])
   @@index([expiresAt])

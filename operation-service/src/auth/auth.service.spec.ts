@@ -24,6 +24,7 @@ import {
   AccountDeactivatedError,
   AccountExistsError,
   EmailNotVerifiedError,
+  ExpiredTokenError,
   InvalidCredentialsError,
   TooManyAttemptsError,
   TwoFactorRequiredError,
@@ -57,6 +58,7 @@ function makeUser(overrides: Partial<Record<string, unknown>> = {}) {
     role: 'USER',
     isActive: true,
     isAffiliate: false,
+    sessionVersion: 0,
     emailVerified: new Date('2026-01-01'),
     twoFactorEnabled: false,
     verificationToken: null,
@@ -439,10 +441,15 @@ describe('AuthService', () => {
       );
 
       expect(result.refreshToken).toBe('raw-refresh-token');
-      expect(refreshTokens.issue).toHaveBeenCalledWith('user-1', {
-        userAgent: 'jest',
-        ipAddress: '127.0.0.1',
-      });
+      // The third argument is the sign-in time the refresh token carries across rotations.
+      expect(refreshTokens.issue).toHaveBeenCalledWith(
+        'user-1',
+        {
+          userAgent: 'jest',
+          ipAddress: '127.0.0.1',
+        },
+        expect.any(Date)
+      );
       expect(result.user).toEqual({
         id: 'user-1',
         email: 'alice@example.com',
@@ -459,6 +466,45 @@ describe('AuthService', () => {
         role: 'USER',
         isAffiliate: false,
       });
+    });
+
+    // CODE-02A (WS-4): the token says which version of the account it was minted for, and when the
+    // person signed in; the refresh token keeps that time so a rotation cannot make it younger.
+    it('stamps the database sessionVersion and the sign-in time on the access token, and the same time on the refresh token', async () => {
+      const hashed = await bcrypt.hash('correct-password', 10);
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ password: hashed, sessionVersion: 5 })
+      );
+      const before = Math.floor(Date.now() / 1000);
+
+      const result = await service.login(
+        'alice@example.com',
+        'correct-password'
+      );
+
+      const claims = await decryptAccessToken(result.accessToken);
+      expect(claims['sessionVersion']).toBe(5);
+      expect(claims['authTime']).toBeGreaterThanOrEqual(before);
+      expect(claims['authTime']).toBeLessThanOrEqual(
+        Math.floor(Date.now() / 1000)
+      );
+      const startedAt = refreshTokens.issue.mock.calls[0][2] as Date;
+      expect(Math.floor(startedAt.getTime() / 1000)).toBe(claims['authTime']);
+    });
+
+    it('mints an access token that lasts 7 days (D-5)', async () => {
+      const hashed = await bcrypt.hash('correct-password', 10);
+      prisma.user.findUnique.mockResolvedValue(makeUser({ password: hashed }));
+
+      const result = await service.login(
+        'alice@example.com',
+        'correct-password'
+      );
+
+      const claims = await decryptAccessToken(result.accessToken);
+      expect((claims['exp'] as number) - (claims['iat'] as number)).toBe(
+        7 * 24 * 60 * 60
+      );
     });
 
     it('completes login via the __2fa_verified__ sentinel with a valid completion token', async () => {
@@ -893,6 +939,106 @@ describe('AuthService', () => {
       expect(refreshTokens.revokeByRawToken).toHaveBeenCalledWith(
         'new-raw-token'
       );
+    });
+
+    // CODE-02A (WS-4)
+    describe('session version and sign-in time', () => {
+      const HOUR_MS = 3600 * 1000;
+      const rotated = (sessionStartedAt: Date | null) => ({
+        userId: 'user-1',
+        issued: { rawToken: 'new-raw-token', expiresAt: new Date() },
+        sessionStartedAt,
+      });
+
+      it('mints the access token with the CURRENT database sessionVersion, not the one of the old token', async () => {
+        refreshTokens.rotate.mockResolvedValue(rotated(new Date()));
+        prisma.user.findUnique.mockResolvedValue(
+          makeUser({ sessionVersion: 4 })
+        );
+
+        const result = await service.refresh('old-raw-token');
+
+        const claims = await decryptAccessToken(result.accessToken);
+        expect(claims['sessionVersion']).toBe(4);
+      });
+
+      it('sets authTime to the start of the session the refresh token carries, not to now', async () => {
+        const started = new Date(Date.now() - 5 * HOUR_MS);
+        refreshTokens.rotate.mockResolvedValue(rotated(started));
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+
+        const result = await service.refresh('old-raw-token');
+
+        const claims = await decryptAccessToken(result.accessToken);
+        expect(claims['authTime']).toBe(Math.floor(started.getTime() / 1000));
+      });
+
+      it('leaves authTime out for a token whose session start is unknown, and still refreshes a USER', async () => {
+        refreshTokens.rotate.mockResolvedValue(rotated(null));
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+
+        const result = await service.refresh('old-raw-token');
+
+        const claims = await decryptAccessToken(result.accessToken);
+        expect(claims['authTime']).toBeUndefined();
+        expect(result.refreshToken).toBe('new-raw-token');
+      });
+
+      it('refuses to rotate for an ADMIN who signed in 13 hours ago, and revokes the token it just issued', async () => {
+        refreshTokens.rotate.mockResolvedValue(
+          rotated(new Date(Date.now() - 13 * HOUR_MS))
+        );
+        prisma.user.findUnique.mockResolvedValue(makeUser({ role: 'ADMIN' }));
+
+        await expect(service.refresh('old-raw-token')).rejects.toBeInstanceOf(
+          ExpiredTokenError
+        );
+        expect(refreshTokens.revokeByRawToken).toHaveBeenCalledWith(
+          'new-raw-token'
+        );
+      });
+
+      it('refuses to rotate for an ADMIN whose session start is unknown (D-5: sign in once more)', async () => {
+        refreshTokens.rotate.mockResolvedValue(rotated(null));
+        prisma.user.findUnique.mockResolvedValue(makeUser({ role: 'ADMIN' }));
+
+        await expect(service.refresh('old-raw-token')).rejects.toBeInstanceOf(
+          ExpiredTokenError
+        );
+        expect(refreshTokens.revokeByRawToken).toHaveBeenCalledWith(
+          'new-raw-token'
+        );
+      });
+
+      it('rotates for an ADMIN who signed in 11 hours ago, and for a USER whose session is 13 hours old', async () => {
+        refreshTokens.rotate.mockResolvedValue(
+          rotated(new Date(Date.now() - 11 * HOUR_MS))
+        );
+        prisma.user.findUnique.mockResolvedValue(makeUser({ role: 'ADMIN' }));
+        await expect(service.refresh('old-raw-token')).resolves.toMatchObject({
+          refreshToken: 'new-raw-token',
+        });
+
+        refreshTokens.rotate.mockResolvedValue(
+          rotated(new Date(Date.now() - 13 * HOUR_MS))
+        );
+        prisma.user.findUnique.mockResolvedValue(makeUser({ role: 'USER' }));
+        await expect(service.refresh('old-raw-token')).resolves.toMatchObject({
+          refreshToken: 'new-raw-token',
+        });
+      });
+
+      it('reads the user with the sessionVersion column named', async () => {
+        refreshTokens.rotate.mockResolvedValue(rotated(new Date()));
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+
+        await service.refresh('old-raw-token');
+
+        expect(prisma.user.findUnique).toHaveBeenCalledWith({
+          where: { id: 'user-1' },
+          select: expect.objectContaining({ sessionVersion: true, role: true }),
+        });
+      });
     });
   });
 
