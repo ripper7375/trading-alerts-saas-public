@@ -2,7 +2,7 @@ import 'server-only';
 
 import { PrismaAdapter } from '@next-auth/prisma-adapter';
 import { type NextAuthOptions } from 'next-auth';
-import type { Account, User } from 'next-auth';
+import type { Account, Profile, User } from 'next-auth';
 import type { Adapter, AdapterAccount, AdapterUser } from 'next-auth/adapters';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
@@ -120,7 +120,7 @@ function CustomPrismaAdapter(): Adapter {
     // Override createUser to set default tier, role, and auto-verify OAuth users
     createUser: async (data: Omit<AdapterUser, 'id'>) => {
       try {
-        console.log('[OAuth] Creating user with email:', data.email);
+        console.log('[OAuth] Creating user');
         const user = await prisma.user.create({
           data: {
             email: data.email,
@@ -625,6 +625,10 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: process.env['GOOGLE_CLIENT_ID']!,
             clientSecret: process.env['GOOGLE_CLIENT_SECRET']!,
+            // Google vouches for the address (`email_verified`), so a Google sign-in is linked to the
+            // account that already uses it. The `signIn` callback refuses a profile where
+            // `email_verified` is not exactly true (CODE-05). X and LinkedIn below do not link by
+            // e-mail: NextAuth answers OAuthAccountNotLinked.
             allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
@@ -643,7 +647,6 @@ export const authOptions: NextAuthOptions = {
             clientId: process.env['TWITTER_CLIENT_ID']!,
             clientSecret: process.env['TWITTER_CLIENT_SECRET']!,
             version: '2.0',
-            allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
                 scope: 'tweet.read users.read offline.access',
@@ -658,7 +661,6 @@ export const authOptions: NextAuthOptions = {
           LinkedInProvider({
             clientId: process.env['LINKEDIN_CLIENT_ID']!,
             clientSecret: process.env['LINKEDIN_CLIENT_SECRET']!,
-            allowDangerousEmailAccountLinking: true,
             authorization: {
               params: {
                 scope: 'openid profile email',
@@ -700,14 +702,17 @@ export const authOptions: NextAuthOptions = {
      * - User creation is handled by CustomPrismaAdapter (not here)
      * - Account linking is handled automatically by NextAuth + adapter
      */
-    async signIn({ user, account }: { user: User; account: Account | null }) {
+    async signIn({
+      user,
+      account,
+      profile,
+    }: {
+      user: User;
+      account: Account | null;
+      profile?: Profile & { email_verified?: boolean };
+    }) {
       try {
-        console.log(
-          '[SignIn] Provider:',
-          account?.provider,
-          'Email:',
-          user.email
-        );
+        console.log('[SignIn] Provider:', account?.provider);
 
         if (account?.provider === 'credentials') {
           return true;
@@ -715,13 +720,26 @@ export const authOptions: NextAuthOptions = {
 
         // account.provider is an OAuth provider name here
         if (account?.provider) {
+          // CODE-05: Google's sign-in links to the account that already uses the address, so it
+          // goes through only when Google says it verified that address. Strictly `true`: a missing
+          // field, a string or a number is a refusal. X and LinkedIn do not link by e-mail, so they
+          // need no such field.
+          if (
+            account.provider === 'google' &&
+            profile?.email_verified !== true
+          ) {
+            console.warn(
+              '[SignIn] Refused a Google profile without a verified e-mail'
+            );
+            return false;
+          }
+
           // Twitter doesn't provide email - generate a placeholder email using Twitter ID
           if (!user.email && account.provider === 'twitter') {
             const twitterId = account.providerAccountId;
             user.email = `twitter_${twitterId}@twitter.placeholder`;
             console.log(
-              '[SignIn] Twitter user without email, using placeholder:',
-              user.email
+              '[SignIn] Twitter user without email, using placeholder'
             );
           }
 
@@ -763,7 +781,7 @@ export const authOptions: NextAuthOptions = {
             existingUser.accounts.length === 0
           ) {
             console.error(
-              `[SignIn] Prevented OAuth account takeover for unverified email: ${user.email}`
+              `[SignIn] Prevented OAuth account takeover for unverified email, user: ${existingUser.id}`
             );
             return false; // Reject linking to unverified email/password account
           }
@@ -907,7 +925,7 @@ export const authOptions: NextAuthOptions = {
      */
     async session({ session, token }) {
       try {
-        console.log('[Session] Building session for user:', token.email);
+        console.log('[Session] Building session for user:', token.id);
         if (session.user) {
           session.user.id = token.id as string;
           session.user.tier = token.tier as UserTier;

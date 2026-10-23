@@ -157,7 +157,12 @@ describe('F21: deactivated accounts', () => {
     function runSignIn(): Promise<unknown> {
       const callback = authOptions.callbacks?.signIn;
       if (!callback) throw new Error('signIn callback missing');
-      return callback({ user: oauthUser, account } as never);
+      // Google sends `email_verified`; without it the callback refuses the sign-in (CODE-05).
+      return callback({
+        user: oauthUser,
+        account,
+        profile: { email_verified: true },
+      } as never);
     }
 
     it('sends a deactivated account back to /login with the code', async () => {

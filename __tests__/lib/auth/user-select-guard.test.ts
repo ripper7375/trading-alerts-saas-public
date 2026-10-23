@@ -390,6 +390,8 @@ describe('behaviour: sign-in against a database that lacks a column the code kno
           providerAccountId: 'g-1',
           type: 'oauth',
         },
+        // Google sends `email_verified`; without it the callback refuses the sign-in (CODE-05).
+        profile: { email_verified: true },
       } as never);
 
     it('lets an existing, active user through', async () => {
@@ -424,6 +426,7 @@ describe('behaviour: sign-in against a database that lacks a column the code kno
     await authOptions.callbacks!.signIn!({
       user: { id: 'user-1', email: 'alice@example.com', image: null },
       account: { provider: 'google', providerAccountId: 'g-1', type: 'oauth' },
+      profile: { email_verified: true },
     } as never);
 
     const userCalls = state.calls.filter((c) => c.model === 'user');

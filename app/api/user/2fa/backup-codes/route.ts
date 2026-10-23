@@ -132,7 +132,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       select: { id: true },
     });
 
-    console.log(`[2FA] Backup codes regenerated for user: ${user.email}`);
+    console.log(`[2FA] Backup codes regenerated for user: ${session.user.id}`);
 
     // Format backup codes for display
     const formattedCodes = formatBackupCodesForDisplay(plainCodes);

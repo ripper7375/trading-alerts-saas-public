@@ -165,7 +165,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       })
     );
 
-    console.log(`[2FA] Disabled for user: ${user.email}`);
+    console.log(`[2FA] Disabled for user: ${session.user.id}`);
 
     // Create security alert
     try {

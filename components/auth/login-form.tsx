@@ -54,11 +54,15 @@ export default function LoginForm(): React.JSX.Element {
   const [currentEmail, setCurrentEmail] = useState('');
 
   // An OAuth sign-in for a deactivated account comes back as /login?error=ACCOUNT_DEACTIVATED
-  // (the `signIn` callback of lib/auth/auth-options.ts). Read after mount, not in the initial
-  // state, so the server and the first client render agree.
+  // (the `signIn` callback of lib/auth/auth-options.ts). An X or LinkedIn sign-in whose e-mail
+  // address already belongs to another account comes back as /login?error=OAuthAccountNotLinked
+  // (NextAuth does not link by e-mail for them, CODE-05): it gets the generic sign-in error, which
+  // does not say that the address is registered. Read after mount, not in the initial state, so
+  // the server and the first client render agree.
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('error');
     if (code === ACCOUNT_DEACTIVATED_CODE) setError('deactivated');
+    else if (code === 'OAuthAccountNotLinked') setError('invalid');
   }, []);
 
   const {

@@ -180,7 +180,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       const remainingCodes = backupCodes.filter((c) => c !== '').length;
 
       console.log(
-        `[2FA] Backup code used for user: ${user.email}. Remaining: ${remainingCodes}`
+        `[2FA] Backup code used for user: ${user.id}. Remaining: ${remainingCodes}`
       );
 
       // Spend the challenge. Losing this race to a concurrent request means that one got the
@@ -236,7 +236,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         );
       }
 
-      console.log(`[2FA] TOTP verified for user: ${user.email}`);
+      console.log(`[2FA] TOTP verified for user: ${user.id}`);
 
       if (
         !(await consumeOnce(

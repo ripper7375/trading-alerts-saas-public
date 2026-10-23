@@ -66,8 +66,8 @@ export async function GET(request: Request): Promise<NextResponse> {
         );
       } else {
         console.log(
-          '[Verify Email] Welcome email sent successfully to:',
-          user.email
+          '[Verify Email] Welcome email sent successfully to user:',
+          user.id
         );
       }
     } catch (emailError) {

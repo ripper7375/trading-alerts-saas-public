@@ -102,7 +102,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       select: { id: true },
     });
 
-    console.log(`[2FA] Setup initiated for user: ${user.email}`);
+    console.log(`[2FA] Setup initiated for user: ${session.user.id}`);
 
     return NextResponse.json({
       success: true,

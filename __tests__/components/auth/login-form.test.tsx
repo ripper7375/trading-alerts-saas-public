@@ -388,4 +388,34 @@ describe('LoginForm', () => {
       expect(screen.queryByText(TITLE)).not.toBeInTheDocument();
     });
   });
+
+  describe('OAuth account not linked (CODE-05)', () => {
+    const GENERIC = 'Invalid email or password. Please try again.';
+
+    afterEach(() => {
+      window.history.replaceState(null, '', '/');
+    });
+
+    it('shows the existing generic sign-in error after /login?error=OAuthAccountNotLinked', async () => {
+      mockIsAuthBridgeEnabled.mockReturnValue(false);
+      window.history.replaceState(
+        null,
+        '',
+        '/login?error=OAuthAccountNotLinked'
+      );
+
+      render(withLocale(<LoginForm />));
+
+      expect(await screen.findByText(GENERIC)).toBeInTheDocument();
+    });
+
+    it('shows no sign-in error for a login page opened without an error code', () => {
+      mockIsAuthBridgeEnabled.mockReturnValue(false);
+      window.history.replaceState(null, '', '/login');
+
+      render(withLocale(<LoginForm />));
+
+      expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
+    });
+  });
 });

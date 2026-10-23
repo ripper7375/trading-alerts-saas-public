@@ -62,13 +62,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     // Security: Always return success to prevent email enumeration
     // But only actually send email if conditions are met
     if (!user) {
-      console.log('[Resend] User not found:', validated.email);
+      console.log('[Resend] User not found');
       return NextResponse.json({ success: true, message: GENERIC_MESSAGE });
     }
 
     // If email is already verified, don't send another email
     if (user.emailVerified) {
-      console.log('[Resend] Email already verified:', validated.email);
+      console.log('[Resend] Email already verified for user:', user.id);
       return NextResponse.json({ success: true, message: GENERIC_MESSAGE });
     }
 
@@ -120,7 +120,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    console.log('[Resend] Verification email sent to:', user.email);
+    console.log('[Resend] Verification email sent to user:', user.id);
 
     return NextResponse.json({ success: true, message: GENERIC_MESSAGE });
   } catch (error) {
