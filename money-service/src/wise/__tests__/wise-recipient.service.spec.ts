@@ -10,6 +10,7 @@ import { createHash } from 'crypto';
 
 import { Test } from '@nestjs/testing';
 
+import { OutboxService } from '../../outbox/outbox.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { createPrismaMock } from '../../test-utils/prisma-mock';
 import { WiseApiClient } from '../wise-api.client';
@@ -20,6 +21,7 @@ describe('WiseRecipientService', () => {
   let service: WiseRecipientService;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let requestMock: jest.Mock;
+  let outboxMock: { recordInTransaction: jest.Mock };
 
   const payload: CreateRecipientDto = {
     currency: 'GBP',
@@ -68,12 +70,20 @@ describe('WiseRecipientService', () => {
   beforeEach(async () => {
     prismaMock = createPrismaMock();
     requestMock = jest.fn();
+    outboxMock = {
+      recordInTransaction: jest.fn().mockResolvedValue(undefined),
+    };
+    // The recipient write and its outbox event share one interactive transaction.
+    prismaMock.$transaction.mockImplementation(((
+      callback: (tx: unknown) => Promise<unknown>
+    ) => callback(prismaMock)) as never);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         WiseRecipientService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: WiseApiClient, useValue: { request: requestMock } },
+        { provide: OutboxService, useValue: outboxMock },
       ],
     }).compile();
 
@@ -173,6 +183,204 @@ describe('WiseRecipientService', () => {
 
       expect(upsertArgs.create.recipientCountry).toBe('TH');
       expect(upsertArgs.create.legalType).toBe('BUSINESS');
+    });
+  });
+
+  describe('change detection and the 72-hour hold (WS-9, CODE-06A)', () => {
+    const NOW = new Date('2026-10-23T10:00:00.000Z');
+    const meta = { recipientCountry: 'GB', legalType: 'PRIVATE' };
+    const fingerprint = createHash('sha256')
+      .update(
+        JSON.stringify({
+          accountNumber: '37778842',
+          country: 'GB',
+          dateOfBirth: '1961-01-01',
+          legalType: 'PRIVATE',
+          sortCode: '040075',
+        })
+      )
+      .digest('hex');
+    // What the stored row looks like when the same details are already on file.
+    const storedSame = {
+      ...persistedRecipient,
+      detailsFingerprint: fingerprint,
+      detailsChangedAt: new Date('2026-10-01T00:00:00.000Z'),
+    };
+
+    beforeEach(() => {
+      jest.useFakeTimers({ now: NOW });
+      requestMock.mockResolvedValue(wiseResponse);
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue(
+        null as never
+      );
+      prismaMock.affiliateWiseRecipient.upsert.mockResolvedValue(
+        persistedRecipient as never
+      );
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue({
+        userId: 'user-1',
+      } as never);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    type UpsertArgs = {
+      create: { detailsChangedAt?: Date };
+      update: { detailsChangedAt?: Date };
+    };
+    const upsertArgs = (): UpsertArgs =>
+      prismaMock.affiliateWiseRecipient.upsert.mock.calls[0][0] as UpsertArgs;
+
+    it('the first recipient of an account starts the hold and records one event for the affiliate’s User', async () => {
+      await service.createRecipient('aff-profile-1', payload, meta);
+
+      expect(upsertArgs().create.detailsChangedAt).toEqual(NOW);
+      expect(upsertArgs().update.detailsChangedAt).toEqual(NOW);
+      expect(outboxMock.recordInTransaction).toHaveBeenCalledTimes(1);
+      expect(outboxMock.recordInTransaction).toHaveBeenCalledWith(prismaMock, {
+        aggregateType: 'AffiliateWiseRecipient',
+        aggregateId: 'user-1',
+        eventType: 'PAYOUT_DETAILS_CHANGED',
+        payload: {
+          affiliateProfileId: 'aff-profile-1',
+          changeKind: 'ADDED',
+          changedAt: '2026-10-23T10:00:00.000Z',
+          holdUntil: '2026-10-26T10:00:00.000Z',
+          holdHours: 72,
+        },
+      });
+    });
+
+    it('replacing the details of an ACTIVE recipient restarts the hold and records a REPLACED event', async () => {
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue({
+        ...storedSame,
+        detailsFingerprint: 'the-old-details',
+      } as never);
+
+      await service.createRecipient('aff-profile-1', payload, meta);
+
+      expect(upsertArgs().update.detailsChangedAt).toEqual(NOW);
+      expect(outboxMock.recordInTransaction).toHaveBeenCalledTimes(1);
+      const event = outboxMock.recordInTransaction.mock.calls[0][1] as {
+        payload: { changeKind: string };
+      };
+      expect(event.payload.changeKind).toBe('REPLACED');
+    });
+
+    it('a recipient added again after a removal is held and recorded as an addition', async () => {
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue({
+        ...storedSame,
+        status: 'ARCHIVED',
+      } as never);
+
+      await service.createRecipient('aff-profile-1', payload, meta);
+
+      expect(upsertArgs().update.detailsChangedAt).toEqual(NOW);
+      const event = outboxMock.recordInTransaction.mock.calls[0][1] as {
+        payload: { changeKind: string };
+      };
+      expect(event.payload.changeKind).toBe('ADDED');
+    });
+
+    it('an identical re-submission on an ACTIVE recipient leaves the clock alone and sends nothing', async () => {
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue(
+        storedSame as never
+      );
+
+      await service.createRecipient('aff-profile-1', payload, meta);
+
+      expect(upsertArgs().update).not.toHaveProperty('detailsChangedAt');
+      expect(outboxMock.recordInTransaction).not.toHaveBeenCalled();
+    });
+
+    it('writes the recipient and the event in ONE transaction, on the transaction’s own client', async () => {
+      const tx = createPrismaMock();
+      tx.affiliateWiseRecipient.findUnique.mockResolvedValue(null as never);
+      tx.affiliateWiseRecipient.upsert.mockResolvedValue(
+        persistedRecipient as never
+      );
+      tx.affiliateProfile.findUnique.mockResolvedValue({
+        userId: 'user-1',
+      } as never);
+      prismaMock.$transaction.mockImplementation(((
+        callback: (client: unknown) => Promise<unknown>
+      ) => callback(tx)) as never);
+
+      await service.createRecipient('aff-profile-1', payload, meta);
+
+      expect(prismaMock.$transaction).toHaveBeenCalledTimes(1);
+      expect(tx.affiliateWiseRecipient.upsert).toHaveBeenCalledTimes(1);
+      expect(prismaMock.affiliateWiseRecipient.upsert).not.toHaveBeenCalled();
+      expect(outboxMock.recordInTransaction.mock.calls[0][0]).toBe(tx);
+    });
+
+    it('records no event when the recipient write fails', async () => {
+      prismaMock.affiliateWiseRecipient.upsert.mockRejectedValue(
+        new Error('database down')
+      );
+
+      await expect(
+        service.createRecipient('aff-profile-1', payload, meta)
+      ).rejects.toThrow('database down');
+      expect(outboxMock.recordInTransaction).not.toHaveBeenCalled();
+    });
+
+    it('a failing outbox write fails the whole write, so a held recipient is never silent', async () => {
+      outboxMock.recordInTransaction.mockRejectedValue(
+        new Error('outbox down')
+      );
+
+      await expect(
+        service.createRecipient('aff-profile-1', payload, meta)
+      ).rejects.toThrow('outbox down');
+    });
+
+    it('still holds the recipient when its profile row has vanished, and skips the event', async () => {
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue(null as never);
+
+      await service.createRecipient('aff-profile-1', payload, meta);
+
+      expect(upsertArgs().create.detailsChangedAt).toEqual(NOW);
+      expect(outboxMock.recordInTransaction).not.toHaveBeenCalled();
+    });
+
+    it('puts no bank detail, account tail or fingerprint in the event', async () => {
+      await service.createRecipient('aff-profile-1', payload, meta);
+
+      const serialized = JSON.stringify(
+        outboxMock.recordInTransaction.mock.calls[0][1]
+      );
+      for (const secret of [
+        '37778842',
+        '8842',
+        '040075',
+        '1961-01-01',
+        fingerprint,
+        'Jane Doe',
+      ]) {
+        expect(serialized).not.toContain(secret);
+      }
+    });
+
+    it('removing or revalidating a recipient neither starts a hold nor sends anything', async () => {
+      prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue(
+        storedSame as never
+      );
+      prismaMock.affiliateWiseRecipient.update.mockResolvedValue(
+        storedSame as never
+      );
+
+      await service.deactivateRecipient('aff-profile-1');
+      requestMock.mockResolvedValue({ ...wiseResponse, active: true });
+      await service.revalidateRecipient('aff-profile-1');
+
+      for (const call of prismaMock.affiliateWiseRecipient.update.mock.calls) {
+        expect(
+          (call[0] as { data: Record<string, unknown> }).data
+        ).not.toHaveProperty('detailsChangedAt');
+      }
+      expect(outboxMock.recordInTransaction).not.toHaveBeenCalled();
     });
   });
 

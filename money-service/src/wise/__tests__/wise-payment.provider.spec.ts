@@ -210,6 +210,110 @@ describe('WisePaymentProvider', () => {
       ).toBeUndefined();
     });
 
+    describe('72-hour hold on a new or changed recipient (WS-9, CODE-06A)', () => {
+      const NOW = new Date('2026-10-26T10:00:00.000Z');
+      const HOUR = 60 * 60 * 1000;
+
+      const arrange = (detailsChangedAt: Date | null) => {
+        batchGroupServiceMock.getOrCreateForPaymentBatch.mockResolvedValue({
+          id: 'wbg-1',
+          wiseBatchGroupId: 'wise-uuid-1',
+          wiseVersion: 1,
+        });
+        prismaMock.affiliateWiseRecipient.findUnique.mockResolvedValue({
+          id: 'rec-1',
+          wiseRecipientId: '999',
+          targetCurrency: 'GBP',
+          status: 'ACTIVE',
+          detailsChangedAt,
+        } as never);
+        prismaMock.disbursementTransaction.findUnique.mockResolvedValue({
+          id: 'dtx-1',
+        } as never);
+        quoteServiceMock.createQuote.mockResolvedValue({
+          quoteId: 'q-1',
+          sourceCurrency: 'USD',
+          sourceValue: 100,
+          targetCurrency: 'GBP',
+          targetValue: 75,
+          rate: 0.75,
+          feeAmount: 1,
+          feeBearer: 'OUR',
+        });
+        transferServiceMock.createBatchGroupTransfer.mockResolvedValue({
+          transfer: {
+            wiseTransferId: 'tr-1',
+            customerTransactionId: 'ctx-1',
+            reference: 'ref',
+          },
+        });
+      };
+      const run = () =>
+        provider.prepareBatch({
+          paymentBatchId: 'batch-1',
+          batchName: 'BATCH-2026-1',
+          sourceCurrency: 'USD',
+          items: [
+            {
+              commissionId: 'comm-1',
+              affiliateProfileId: 'aff-1',
+              amount: 100,
+            },
+          ],
+        });
+
+      beforeEach(() => {
+        jest.useFakeTimers({ now: NOW });
+      });
+
+      afterEach(() => {
+        jest.useRealTimers();
+      });
+
+      it('refuses a recipient changed 71 hours ago, quotes nothing, and says when the hold ends', async () => {
+        arrange(new Date(NOW.getTime() - 71 * HOUR));
+
+        const result = await run();
+
+        expect(result.transfers).toEqual([]);
+        expect(result.failures).toHaveLength(1);
+        expect(result.failures[0].reason).toContain('held');
+        expect(result.failures[0].reason).toContain('2026-10-26T11:00:00.000Z');
+        expect(quoteServiceMock.createQuote).not.toHaveBeenCalled();
+        expect(
+          transferServiceMock.createBatchGroupTransfer
+        ).not.toHaveBeenCalled();
+      });
+
+      it('refuses a recipient created a moment ago', async () => {
+        arrange(NOW);
+
+        const result = await run();
+
+        expect(result.transfers).toEqual([]);
+        expect(result.failures).toHaveLength(1);
+        expect(quoteServiceMock.createQuote).not.toHaveBeenCalled();
+      });
+
+      it('accepts a recipient changed exactly 72 hours ago', async () => {
+        arrange(new Date(NOW.getTime() - 72 * HOUR));
+
+        const result = await run();
+
+        expect(result.failures).toEqual([]);
+        expect(result.transfers).toHaveLength(1);
+      });
+
+      it('accepts a recipient with no recorded change (one that predates the hold)', async () => {
+        arrange(null);
+
+        const result = await run();
+
+        expect(result.failures).toEqual([]);
+        expect(result.transfers).toHaveLength(1);
+      });
+    });
+
     it('records a non-fatal per-affiliate failure when the recipient is not ACTIVE, and continues the batch', async () => {
       batchGroupServiceMock.getOrCreateForPaymentBatch.mockResolvedValue({
         id: 'wbg-1',

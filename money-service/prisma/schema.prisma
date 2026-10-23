@@ -746,6 +746,8 @@ model AffiliateWiseRecipient {
 
   accountTail        String?
   detailsFingerprint String?
+  /// When the recipient was added or its destination last changed; payouts are held 72 h from here (WS-9). NULL = no change on record.
+  detailsChangedAt   DateTime?
 
   status          WiseRecipientStatus @default(DRAFT)
   lastValidatedAt DateTime?

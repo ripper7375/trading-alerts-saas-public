@@ -16,6 +16,10 @@
 import { Injectable } from '@nestjs/common';
 import type { DisbursementTransactionStatus } from '@prisma/client';
 
+import {
+  isOnPayoutHold,
+  payoutHoldUntil,
+} from '../../disbursement/payout-details-hold';
 import { PrismaService } from '../../prisma/prisma.service';
 import {
   PaymentProvider,
@@ -219,6 +223,20 @@ export class WisePaymentProvider
             commissionId: item.commissionId,
             affiliateProfileId: item.affiliateProfileId,
             reason: `Wise recipient status is ${recipient.status}, not ACTIVE`,
+          });
+          continue;
+        }
+        // WS-9 (CODE-06A): the second gate for the 72-hour hold on a new or
+        // changed recipient. The cron's eligibility query already leaves such
+        // an affiliate out, but a PaymentBatch can be prepared long after it
+        // was created (admin recovery, a retry), and this is where the
+        // recipient is read for the transfer. A held item is refused; its
+        // commission stays unpaid and goes out after the hold.
+        if (isOnPayoutHold(recipient.detailsChangedAt, new Date())) {
+          failures.push({
+            commissionId: item.commissionId,
+            affiliateProfileId: item.affiliateProfileId,
+            reason: `Wise recipient details were added or changed recently; payouts are held until ${payoutHoldUntil(recipient.detailsChangedAt as Date).toISOString()}`,
           });
           continue;
         }

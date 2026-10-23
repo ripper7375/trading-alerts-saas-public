@@ -27,6 +27,7 @@ import type {
   PayableAffiliate,
   RiseWorksKycStatus,
 } from './disbursement.types';
+import { payoutHoldCutoff } from './payout-details-hold';
 
 /**
  * Commission aggregator for disbursement processing
@@ -152,6 +153,12 @@ export class CommissionAggregatorService {
    * `getAllPayableAffiliates()` — this is a NEW, additive method, not a
    * signature change to the existing one.
    *
+   * WS-9 (CODE-06A): a recipient that was added, or whose destination changed,
+   * less than 72 hours ago (`detailsChangedAt`, see `payout-details-hold.ts`)
+   * is not eligible yet; its commissions stay APPROVED and are picked up by the
+   * first run after the hold. A recipient with no recorded change (NULL, every
+   * row that predates the column) is never held.
+   *
    * `AffiliateWiseRecipient` has no back-relation on `AffiliateProfile` in
    * money-service's mirrored schema subset (only a scalar
    * `affiliateProfileId` FK, same convention as `AffiliateCode`/
@@ -176,8 +183,15 @@ export class CommissionAggregatorService {
       return this.getAllPayableAffiliates(minimum);
     }
 
+    const holdCutoff = payoutHoldCutoff(new Date());
     const activeRecipients = await this.prisma.affiliateWiseRecipient.findMany({
-      where: { status: 'ACTIVE' },
+      where: {
+        status: 'ACTIVE',
+        OR: [
+          { detailsChangedAt: null },
+          { detailsChangedAt: { lte: holdCutoff } },
+        ],
+      },
       select: { affiliateProfileId: true },
     });
     const eligibleAffiliateIds = activeRecipients.map(

@@ -25,6 +25,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 
 import { DisbursementSettingsService } from '../disbursement/disbursement-settings.service';
+import { OutboxService } from '../outbox/outbox.service';
 
 import { WiseBatchesController } from './controllers/wise-batches.controller';
 import { WiseWebhookController } from './controllers/wise-webhook.controller';
@@ -67,6 +68,10 @@ import { WiseTransferStateReducer } from './services/wise-transfer-state.reducer
     // instance (stateless reader) rather than importing DisbursementModule,
     // which already imports this module.
     DisbursementSettingsService,
+    // WS-9 (CODE-06A): WiseRecipientService records the PAYOUT_DETAILS_CHANGED
+    // event in the same transaction as the recipient write. Stateless; the
+    // publisher cron that delivers the rows lives in CronsModule.
+    OutboxService,
   ],
   exports: [WisePaymentProvider],
 })

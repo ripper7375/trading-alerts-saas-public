@@ -25,6 +25,12 @@ import { createHash } from 'crypto';
 import { Injectable } from '@nestjs/common';
 import type { AffiliateWiseRecipient } from '@prisma/client';
 
+import {
+  PAYOUT_DETAILS_HOLD_HOURS,
+  classifyRecipientChange,
+  payoutHoldUntil,
+} from '../disbursement/payout-details-hold';
+import { OutboxService } from '../outbox/outbox.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { WiseApiClient } from './wise-api.client';
@@ -54,7 +60,8 @@ const ACCOUNT_TAIL_CANDIDATE_KEYS = [
 export class WiseRecipientService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly wiseApiClient: WiseApiClient
+    private readonly wiseApiClient: WiseApiClient,
+    private readonly outbox: OutboxService
   ) {}
 
   async getAccountRequirements(
@@ -143,10 +150,57 @@ export class WiseRecipientService {
       status: 'ACTIVE' as const,
     };
 
-    const recipient = await this.prisma.affiliateWiseRecipient.upsert({
-      where: { affiliateProfileId },
-      create: { affiliateProfileId, ...shared },
-      update: { ...shared, invalidReason: null },
+    // WS-9 (CODE-06A): a recipient that is new or whose destination changed is
+    // not paid for 72 hours, and the account owner is told. The write that
+    // starts the hold and the event that carries the notice share one
+    // transaction, so a held recipient is never silent and a notice is never
+    // sent for a write that rolled back.
+    const recipient = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.affiliateWiseRecipient.findUnique({
+        where: { affiliateProfileId },
+      });
+      const changeKind = classifyRecipientChange(existing, shared);
+      const changedAt = new Date();
+
+      const saved = await tx.affiliateWiseRecipient.upsert({
+        where: { affiliateProfileId },
+        create: { affiliateProfileId, ...shared, detailsChangedAt: changedAt },
+        update: {
+          ...shared,
+          invalidReason: null,
+          ...(changeKind ? { detailsChangedAt: changedAt } : {}),
+        },
+      });
+
+      if (changeKind) {
+        const profile = await tx.affiliateProfile.findUnique({
+          where: { id: affiliateProfileId },
+          select: { userId: true },
+        });
+        if (profile) {
+          // aggregateId is the User who is told (the outbox consumer's contract).
+          // Nothing about the bank account goes in the event.
+          await this.outbox.recordInTransaction(tx, {
+            aggregateType: 'AffiliateWiseRecipient',
+            aggregateId: profile.userId,
+            eventType: 'PAYOUT_DETAILS_CHANGED',
+            payload: {
+              affiliateProfileId,
+              changeKind,
+              changedAt: changedAt.toISOString(),
+              holdUntil: payoutHoldUntil(changedAt).toISOString(),
+              holdHours: PAYOUT_DETAILS_HOLD_HOURS,
+            },
+          });
+        } else {
+          console.warn(
+            '[WiseRecipient] Payout details changed on a profile with no row; no notice recorded',
+            { affiliateProfileId }
+          );
+        }
+      }
+
+      return saved;
     });
 
     return this.toSummaryDto(recipient);

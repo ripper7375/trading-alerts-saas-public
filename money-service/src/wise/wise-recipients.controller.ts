@@ -60,6 +60,10 @@ import type { AuthenticatedRequest } from '../auth/jwt-auth.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../admin/admin.guard';
 import { AffiliateGuard } from '../affiliate/affiliate.guard';
+import {
+  isOnPayoutHold,
+  payoutHoldUntil,
+} from '../disbursement/payout-details-hold';
 import { PrismaService } from '../prisma/prisma.service';
 
 import { WiseApiError } from './wise-api.client';
@@ -196,7 +200,20 @@ export class WiseRecipientsController {
       this.prisma.affiliateWiseRecipient.count({ where }),
     ]);
 
-    return { items, total, page, pageSize };
+    // WS-9 (CODE-06A): say which recipients are inside the 72-hour hold, so the
+    // admin page can flag them without knowing how long the hold is.
+    const now = new Date();
+    return {
+      items: items.map((item) => ({
+        ...item,
+        payoutHoldUntil: isOnPayoutHold(item.detailsChangedAt, now)
+          ? payoutHoldUntil(item.detailsChangedAt as Date).toISOString()
+          : null,
+      })),
+      total,
+      page,
+      pageSize,
+    };
   }
 
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
