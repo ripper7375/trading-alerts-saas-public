@@ -30,6 +30,7 @@ import {
   twoFactorKeys,
   verifyTwoFactorToken,
 } from './two-factor-token.util';
+import { withSessionBump } from './session-version.util';
 import { ID_ONLY_SELECT } from './user-select';
 import {
   decryptSecret,
@@ -185,15 +186,19 @@ export class TwoFactorService {
 
     const { plainCodes, hashedCodes } = await generateBackupCodes();
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        twoFactorEnabled: true,
-        twoFactorBackupCodes: JSON.stringify(hashedCodes),
-        twoFactorVerifiedAt: new Date(),
-      },
-      select: ID_ONLY_SELECT,
-    });
+    // Every session of the account ends with it (CODE-02B): the change, the new session version
+    // and the deleted refresh tokens commit together.
+    await withSessionBump(this.prisma, userId, (tx) =>
+      tx.user.update({
+        where: { id: userId },
+        data: {
+          twoFactorEnabled: true,
+          twoFactorBackupCodes: JSON.stringify(hashedCodes),
+          twoFactorVerifiedAt: new Date(),
+        },
+        select: ID_ONLY_SELECT,
+      })
+    );
 
     try {
       const location = formatLocation(
@@ -509,16 +514,20 @@ export class TwoFactorService {
       throw new BadRequestException('Invalid verification code');
     }
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        twoFactorEnabled: false,
-        twoFactorSecret: null,
-        twoFactorBackupCodes: null,
-        twoFactorVerifiedAt: null,
-      },
-      select: ID_ONLY_SELECT,
-    });
+    // Every session of the account ends with it (CODE-02B): the change, the new session version
+    // and the deleted refresh tokens commit together.
+    await withSessionBump(this.prisma, userId, (tx) =>
+      tx.user.update({
+        where: { id: userId },
+        data: {
+          twoFactorEnabled: false,
+          twoFactorSecret: null,
+          twoFactorBackupCodes: null,
+          twoFactorVerifiedAt: null,
+        },
+        select: ID_ONLY_SELECT,
+      })
+    );
 
     try {
       const location = formatLocation(

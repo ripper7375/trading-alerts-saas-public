@@ -8,6 +8,14 @@ import {
 import bcrypt from 'bcryptjs';
 
 import { sendAccountDeletionEmail } from '../email/email.util';
+import {
+  createAccountDbFake,
+  type AccountDbFake,
+} from '../../test/account-db-fake';
+import {
+  clearUserActiveCache,
+  getSessionState,
+} from '../auth/user-active.util';
 import { UsersService } from './users.service';
 
 jest.mock('../email/email.util', () => ({
@@ -921,6 +929,331 @@ describe('UsersService', () => {
       expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
       loggerLog.mockRestore();
       consoleLog.mockRestore();
+    });
+  });
+});
+
+// CODE-02B (WS-5): a security change ends every session of the account. The version is raised and
+// the refresh tokens are deleted IN THE SAME TRANSACTION as the change, so a failed write leaves
+// the version alone and a failed bump leaves the old value in place. An in-memory database that
+// really rolls a transaction back shows it (`test/account-db-fake.ts`).
+describe('UsersService: session version (CODE-02B)', () => {
+  let fake: AccountDbFake;
+  let loggerLog: jest.SpyInstance;
+  let consoleLog: jest.SpyInstance;
+
+  const mockTwoFactorService = {} as never;
+  const deletionRequest = {
+    id: 'req-1',
+    status: 'PENDING',
+    expiresAt: new Date(Date.now() + 60_000),
+    userId: 'user-1',
+  };
+  const deletionClaim = jest.fn();
+  const userSessionUpdateMany = jest.fn();
+  const sessionDeleteMany = jest.fn();
+  const userSessionFindMany = jest.fn();
+
+  function makeService(): UsersService {
+    const prisma = {
+      user: fake.client.user,
+      refreshToken: fake.client.refreshToken,
+      $transaction: fake.$transaction,
+      userPreferences: { findUnique: jest.fn().mockResolvedValue(null) },
+      securityAlert: { create: jest.fn().mockResolvedValue({}) },
+      session: { deleteMany: sessionDeleteMany },
+      userSession: {
+        findMany: userSessionFindMany,
+        updateMany: userSessionUpdateMany,
+      },
+      accountDeletionRequest: {
+        findUnique: jest.fn().mockResolvedValue(deletionRequest),
+        updateMany: deletionClaim,
+      },
+    };
+    // The deletion transaction also reaches the mocked tables through its client.
+    const original = fake.$transaction;
+    prisma.$transaction = ((callback: (tx: unknown) => Promise<unknown>) =>
+      original((fakeTx) =>
+        callback({
+          ...(fakeTx as object),
+          session: prisma.session,
+          userSession: prisma.userSession,
+          accountDeletionRequest: prisma.accountDeletionRequest,
+        })
+      )) as never;
+    return new UsersService(prisma as never, mockTwoFactorService);
+  }
+
+  beforeEach(async () => {
+    jest.clearAllMocks();
+    clearUserActiveCache();
+    fake = createAccountDbFake({
+      users: [
+        {
+          id: 'user-1',
+          email: 'old@example.com',
+          name: 'Alice',
+          password: await bcrypt.hash('Oldpass1', 4),
+          isActive: true,
+          sessionVersion: 3,
+        },
+        {
+          id: 'user-2',
+          email: 'bob@example.com',
+          name: 'Bob',
+          password: 'bob-hash',
+          isActive: true,
+          sessionVersion: 7,
+        },
+      ],
+      refreshTokens: [
+        { id: 'rt-1', userId: 'user-1', hashedToken: 'a' },
+        { id: 'rt-2', userId: 'user-1', hashedToken: 'b' },
+        { id: 'rt-3', userId: 'user-2', hashedToken: 'c' },
+      ],
+    });
+    deletionClaim.mockResolvedValue({ count: 1 });
+    userSessionUpdateMany.mockResolvedValue({ count: 2 });
+    sessionDeleteMany.mockResolvedValue({ count: 0 });
+    userSessionFindMany.mockResolvedValue([{ sessionToken: 'tok-a' }]);
+    loggerLog = jest
+      .spyOn(Logger.prototype, 'log')
+      .mockImplementation(() => undefined);
+    consoleLog = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    loggerLog.mockRestore();
+    consoleLog.mockRestore();
+  });
+
+  describe('changePassword', () => {
+    const change = () =>
+      makeService().changePassword('user-1', {
+        currentPassword: 'Oldpass1',
+        newPassword: 'Newpass1',
+      });
+
+    it('stores the new password, raises the version and deletes the refresh tokens together', async () => {
+      await change();
+
+      const alice = fake.user('user-1');
+      expect(
+        await bcrypt.compare('Newpass1', alice['password'] as string)
+      ).toBe(true);
+      expect(alice['sessionVersion']).toBe(4);
+      expect(fake.refreshTokensOf('user-1')).toEqual([]);
+      expect(fake.writesOutsideTransaction()).toEqual([]);
+    });
+
+    it('leaves every other account alone', async () => {
+      await change();
+
+      expect(fake.user('user-2')['sessionVersion']).toBe(7);
+      expect(fake.user('user-2')['password']).toBe('bob-hash');
+      expect(fake.refreshTokensOf('user-2')).toHaveLength(1);
+    });
+
+    it('leaves the version and the tokens alone when the write fails', async () => {
+      const before = fake.user('user-1')['password'];
+      fake.failNext('user.update');
+
+      await expect(change()).rejects.toThrow('user.update failed');
+
+      expect(fake.user('user-1')['password']).toBe(before);
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+    });
+
+    it('keeps the old password when the sessions cannot be ended', async () => {
+      const before = fake.user('user-1')['password'];
+      fake.failNext('refreshToken.deleteMany');
+
+      await expect(change()).rejects.toThrow('refreshToken.deleteMany failed');
+
+      expect(fake.user('user-1')['password']).toBe(before);
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+    });
+
+    it('ends nothing when the current password is wrong', async () => {
+      await expect(
+        makeService().changePassword('user-1', {
+          currentPassword: 'Wrongpass1',
+          newPassword: 'Newpass1',
+        })
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+
+      expect(fake.log).not.toContain('begin');
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+    });
+  });
+
+  describe('revokeAllSessions (log out all)', () => {
+    it('raises the version and deletes the refresh tokens, so every session of the account ends', async () => {
+      const result = await makeService().revokeAllSessions('user-1', 'tok-now');
+
+      expect(result).toMatchObject({ success: true, revokedCount: 2 });
+      expect(fake.user('user-1')['sessionVersion']).toBe(4);
+      expect(fake.refreshTokensOf('user-1')).toEqual([]);
+      expect(fake.writesOutsideTransaction()).toEqual([]);
+    });
+
+    it('still marks the tracked device sessions inactive and deletes the NextAuth sessions', async () => {
+      await makeService().revokeAllSessions('user-1', 'tok-now');
+
+      expect(userSessionUpdateMany).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          isActive: true,
+          sessionToken: { not: 'tok-now' },
+        },
+        data: { isActive: false },
+      });
+      expect(sessionDeleteMany).toHaveBeenCalledWith({
+        where: { sessionToken: { in: ['tok-a'] } },
+      });
+    });
+
+    it('leaves every other account alone', async () => {
+      await makeService().revokeAllSessions('user-1');
+
+      expect(fake.user('user-2')['sessionVersion']).toBe(7);
+      expect(fake.refreshTokensOf('user-2')).toHaveLength(1);
+    });
+
+    it('revokes nothing and keeps the version when the bump fails', async () => {
+      fake.failNext('refreshToken.deleteMany');
+
+      await expect(
+        makeService().revokeAllSessions('user-1', 'tok-now')
+      ).rejects.toThrow('refreshToken.deleteMany failed');
+
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+      expect(userSessionUpdateMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('confirmDeletion', () => {
+    it('locks the account, raises its version and deletes its refresh tokens in one transaction', async () => {
+      await makeService().confirmDeletion('tok-1');
+
+      expect(fake.user('user-1')['isActive']).toBe(false);
+      expect(fake.user('user-1')['sessionVersion']).toBe(4);
+      expect(fake.refreshTokensOf('user-1')).toEqual([]);
+      expect(fake.writesOutsideTransaction()).toEqual([]);
+    });
+
+    it('drops the cached snapshot so the next request sees the lock and the new version at once', async () => {
+      const state = { user: fake.client.user } as never;
+      // The account was read once before the confirmation and is cached for 30 s in this process.
+      expect(await getSessionState(state, 'user-1')).toMatchObject({
+        isActive: true,
+        sessionVersion: 3,
+      });
+
+      await makeService().confirmDeletion('tok-1');
+
+      expect(await getSessionState(state, 'user-1')).toMatchObject({
+        isActive: false,
+        sessionVersion: 4,
+      });
+    });
+
+    it('leaves another account alone', async () => {
+      await makeService().confirmDeletion('tok-1');
+
+      expect(fake.user('user-2')['isActive']).toBe(true);
+      expect(fake.user('user-2')['sessionVersion']).toBe(7);
+      expect(fake.refreshTokensOf('user-2')).toHaveLength(1);
+    });
+
+    it('confirms nothing and keeps the version when the transaction fails', async () => {
+      fake.failNext('refreshToken.deleteMany');
+
+      await expect(makeService().confirmDeletion('tok-1')).rejects.toThrow(
+        'refreshToken.deleteMany failed'
+      );
+
+      expect(fake.user('user-1')['isActive']).toBe(true);
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+    });
+
+    it('raises no version when another click already won the claim', async () => {
+      deletionClaim.mockResolvedValue({ count: 0 });
+
+      await expect(
+        makeService().confirmDeletion('tok-1')
+      ).rejects.toBeInstanceOf(BadRequestException);
+
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+      expect(fake.user('user-1')['isActive']).toBe(true);
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('raises the version and deletes the refresh tokens when the e-mail address changes', async () => {
+      await makeService().updateProfile('user-1', 'old@example.com', {
+        email: 'new@example.com',
+      });
+
+      expect(fake.user('user-1')['email']).toBe('new@example.com');
+      expect(fake.user('user-1')['sessionVersion']).toBe(4);
+      expect(fake.refreshTokensOf('user-1')).toEqual([]);
+      expect(fake.refreshTokensOf('user-2')).toHaveLength(1);
+      expect(fake.writesOutsideTransaction()).toEqual([]);
+    });
+
+    it('keeps the old address and the version when the write fails', async () => {
+      fake.failNext('user.update');
+
+      await expect(
+        makeService().updateProfile('user-1', 'old@example.com', {
+          email: 'new@example.com',
+        })
+      ).rejects.toThrow('user.update failed');
+
+      expect(fake.user('user-1')['email']).toBe('old@example.com');
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+    });
+
+    it('keeps the old address when the sessions cannot be ended', async () => {
+      fake.failNext('refreshToken.deleteMany');
+
+      await expect(
+        makeService().updateProfile('user-1', 'old@example.com', {
+          email: 'new@example.com',
+        })
+      ).rejects.toThrow('refreshToken.deleteMany failed');
+
+      expect(fake.user('user-1')['email']).toBe('old@example.com');
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+    });
+
+    it('ends no session for a change of name', async () => {
+      await makeService().updateProfile('user-1', 'old@example.com', {
+        name: 'New Name',
+      });
+
+      expect(fake.user('user-1')['name']).toBe('New Name');
+      expect(fake.log).not.toContain('begin');
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+    });
+
+    it('ends no session when the settings page saves the address it already has', async () => {
+      await makeService().updateProfile('user-1', 'old@example.com', {
+        name: 'New Name',
+        email: 'old@example.com',
+      });
+
+      expect(fake.log).not.toContain('begin');
+      expect(fake.user('user-1')['sessionVersion']).toBe(3);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
     });
   });
 });

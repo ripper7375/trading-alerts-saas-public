@@ -1,9 +1,10 @@
+import { raiseSessionVersion } from '../auth/session-version.util';
 import type { PrismaService } from '../prisma/prisma.service';
 
-/** The three delegates revocation touches; a transaction client satisfies it too. */
+/** The four delegates revocation touches; a transaction client satisfies it too. */
 export type AccessRevocationClient = Pick<
   PrismaService,
-  'session' | 'refreshToken' | 'userSession'
+  'user' | 'session' | 'refreshToken' | 'userSession'
 >;
 
 /**
@@ -12,16 +13,20 @@ export type AccessRevocationClient = Pick<
  * same convention as UsersService.revokeAllSessions).
  *
  * The access token the user already holds is stateless and keeps decoding until it expires;
- * JwtAuthGuard and the NextAuth `jwt` callback reject it by looking at `User.isActive`. This only
- * removes what could mint a new one.
+ * JwtAuthGuard and the NextAuth `jwt` callback reject it by looking at `User.isActive`, and since
+ * CODE-02B by `User.sessionVersion`, which this raises so the end of those tokens does not depend
+ * on the account staying locked (a cancellation gives `isActive` back, never an old session).
+ * The refresh tokens are deleted here (and counted), so none of them can mint a new one.
  *
- * Idempotent: calling it again for the same user changes nothing.
+ * Call it inside the caller's transaction and forget the account's cached snapshot
+ * (`forgetSessionState`) after the commit. Not idempotent for the version: every call raises it.
  */
 export async function revokeAllUserAccess(
   client: AccessRevocationClient,
   userId: string
 ): Promise<{ sessions: number; refreshTokens: number; devices: number }> {
   const sessions = await client.session.deleteMany({ where: { userId } });
+  await raiseSessionVersion(client, userId);
   const refreshTokens = await client.refreshToken.deleteMany({
     where: { userId },
   });

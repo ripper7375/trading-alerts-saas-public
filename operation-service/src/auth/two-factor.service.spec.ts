@@ -12,6 +12,10 @@ import { authenticator } from 'otplib';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RedisService } from '../redis/redis.service';
 import * as twoFactorUtil from '../two-factor/two-factor.util';
+import {
+  createAccountDbFake,
+  type AccountDbFake,
+} from '../../test/account-db-fake';
 
 jest.mock('../email/email.util', () => ({
   sendTwoFactorEnabledEmail: jest.fn().mockResolvedValue({ success: true }),
@@ -126,8 +130,10 @@ describe('TwoFactorService', () => {
   const originalEncryptionKey = process.env['TWO_FACTOR_ENCRYPTION_KEY'];
 
   let prisma: {
-    user: { findUnique: jest.Mock; update: jest.Mock };
+    user: { findUnique: jest.Mock; update: jest.Mock; updateMany: jest.Mock };
     securityAlert: { create: jest.Mock };
+    refreshToken: { deleteMany: jest.Mock };
+    $transaction: jest.Mock;
   };
   let redis: ReturnType<typeof makeRedis>;
   let service: TwoFactorService;
@@ -136,9 +142,21 @@ describe('TwoFactorService', () => {
     process.env['NEXTAUTH_SECRET'] = TEST_SECRET;
     process.env['TWO_FACTOR_ENCRYPTION_KEY'] = 'test-encryption-key-not-real';
     prisma = {
-      user: { findUnique: jest.fn(), update: jest.fn() },
+      user: {
+        findUnique: jest.fn(),
+        update: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
       securityAlert: { create: jest.fn().mockResolvedValue({}) },
+      refreshToken: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      // CODE-02B: enabling and disabling 2FA commit together with the session-version bump; the
+      // callback gets the same delegates as its client (the atomicity itself is shown at the end).
+      $transaction: jest.fn(),
     };
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+        callback(prisma)
+    );
     redis = makeRedis();
     service = new TwoFactorService(
       prisma as unknown as PrismaService,
@@ -554,6 +572,214 @@ describe('TwoFactorService', () => {
         remainingCodes: 7,
         totalCodes: 10,
       });
+    });
+  });
+});
+
+// CODE-02B (WS-5): switching 2FA on or off ends every session of the account. The version is
+// raised and the refresh tokens are deleted IN THE SAME TRANSACTION as the change; a failed write
+// leaves the version alone, a failed bump leaves 2FA as it was.
+describe('TwoFactorService: session version (CODE-02B)', () => {
+  const originalSecret = process.env['NEXTAUTH_SECRET'];
+  const originalEncryptionKey = process.env['TWO_FACTOR_ENCRYPTION_KEY'];
+  let fake: AccountDbFake;
+  let service: TwoFactorService;
+  let secret: string;
+
+  async function seed(on: boolean): Promise<void> {
+    secret = twoFactorUtil.generateTOTPSecret();
+    fake = createAccountDbFake({
+      users: [
+        {
+          id: 'user-1',
+          email: 'alice@example.com',
+          name: 'Alice',
+          password: await bcrypt.hash('correct-password', 4),
+          twoFactorEnabled: on,
+          twoFactorSecret: twoFactorUtil.encryptSecret(secret),
+          twoFactorBackupCodes: on ? '["h1"]' : null,
+          twoFactorVerifiedAt: null,
+          sessionVersion: 2,
+        },
+        {
+          id: 'user-2',
+          email: 'bob@example.com',
+          name: 'Bob',
+          password: 'bob-hash',
+          twoFactorEnabled: true,
+          twoFactorSecret: 'bob-secret',
+          twoFactorBackupCodes: '["x"]',
+          twoFactorVerifiedAt: null,
+          sessionVersion: 8,
+        },
+      ],
+      refreshTokens: [
+        { id: 'rt-1', userId: 'user-1', hashedToken: 'a' },
+        { id: 'rt-2', userId: 'user-1', hashedToken: 'b' },
+        { id: 'rt-3', userId: 'user-2', hashedToken: 'c' },
+      ],
+    });
+    service = new TwoFactorService(
+      {
+        user: fake.client.user,
+        refreshToken: fake.client.refreshToken,
+        $transaction: fake.$transaction,
+        securityAlert: { create: jest.fn().mockResolvedValue({}) },
+      } as unknown as PrismaService,
+      makeRedis().service
+    );
+  }
+
+  beforeEach(() => {
+    process.env['NEXTAUTH_SECRET'] = TEST_SECRET;
+    process.env['TWO_FACTOR_ENCRYPTION_KEY'] = 'test-encryption-key-not-real';
+  });
+
+  afterAll(() => {
+    process.env['NEXTAUTH_SECRET'] = originalSecret;
+    process.env['TWO_FACTOR_ENCRYPTION_KEY'] = originalEncryptionKey;
+  });
+
+  describe('verifySetup (switch 2FA on)', () => {
+    it('enables 2FA, raises the version and deletes the refresh tokens together', async () => {
+      await seed(false);
+
+      await service.verifySetup('user-1', authenticator.generate(secret));
+
+      const alice = fake.user('user-1');
+      expect(alice['twoFactorEnabled']).toBe(true);
+      expect(alice['sessionVersion']).toBe(3);
+      expect(fake.refreshTokensOf('user-1')).toEqual([]);
+      expect(fake.writesOutsideTransaction()).toEqual([]);
+    });
+
+    it('leaves every other account alone', async () => {
+      await seed(false);
+
+      await service.verifySetup('user-1', authenticator.generate(secret));
+
+      expect(fake.user('user-2')['sessionVersion']).toBe(8);
+      expect(fake.refreshTokensOf('user-2')).toHaveLength(1);
+    });
+
+    it('keeps 2FA off and the version alone when the write fails', async () => {
+      await seed(false);
+      fake.failNext('user.update');
+
+      await expect(
+        service.verifySetup('user-1', authenticator.generate(secret))
+      ).rejects.toThrow('user.update failed');
+
+      expect(fake.user('user-1')['twoFactorEnabled']).toBe(false);
+      expect(fake.user('user-1')['sessionVersion']).toBe(2);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+    });
+
+    it('keeps 2FA off when the sessions cannot be ended', async () => {
+      await seed(false);
+      fake.failNext('refreshToken.deleteMany');
+
+      await expect(
+        service.verifySetup('user-1', authenticator.generate(secret))
+      ).rejects.toThrow('refreshToken.deleteMany failed');
+
+      expect(fake.user('user-1')['twoFactorEnabled']).toBe(false);
+      expect(fake.user('user-1')['twoFactorBackupCodes']).toBeNull();
+      expect(fake.user('user-1')['sessionVersion']).toBe(2);
+    });
+
+    it('ends nothing for a wrong code', async () => {
+      await seed(false);
+
+      await expect(service.verifySetup('user-1', '000000')).rejects.toThrow(
+        BadRequestException
+      );
+
+      expect(fake.log).not.toContain('begin');
+      expect(fake.user('user-1')['sessionVersion']).toBe(2);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+    });
+  });
+
+  describe('disable (switch 2FA off)', () => {
+    it('disables 2FA, raises the version and deletes the refresh tokens together', async () => {
+      await seed(true);
+
+      await service.disable(
+        'user-1',
+        'correct-password',
+        authenticator.generate(secret)
+      );
+
+      const alice = fake.user('user-1');
+      expect(alice['twoFactorEnabled']).toBe(false);
+      expect(alice['twoFactorSecret']).toBeNull();
+      expect(alice['sessionVersion']).toBe(3);
+      expect(fake.refreshTokensOf('user-1')).toEqual([]);
+      expect(fake.writesOutsideTransaction()).toEqual([]);
+    });
+
+    it('leaves every other account alone', async () => {
+      await seed(true);
+
+      await service.disable(
+        'user-1',
+        'correct-password',
+        authenticator.generate(secret)
+      );
+
+      expect(fake.user('user-2')['twoFactorEnabled']).toBe(true);
+      expect(fake.user('user-2')['sessionVersion']).toBe(8);
+      expect(fake.refreshTokensOf('user-2')).toHaveLength(1);
+    });
+
+    it('keeps 2FA on and the version alone when the write fails', async () => {
+      await seed(true);
+      fake.failNext('user.update');
+
+      await expect(
+        service.disable(
+          'user-1',
+          'correct-password',
+          authenticator.generate(secret)
+        )
+      ).rejects.toThrow('user.update failed');
+
+      expect(fake.user('user-1')['twoFactorEnabled']).toBe(true);
+      expect(fake.user('user-1')['sessionVersion']).toBe(2);
+      expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+    });
+
+    it('keeps 2FA on when the sessions cannot be ended', async () => {
+      await seed(true);
+      fake.failNext('refreshToken.deleteMany');
+
+      await expect(
+        service.disable(
+          'user-1',
+          'correct-password',
+          authenticator.generate(secret)
+        )
+      ).rejects.toThrow('refreshToken.deleteMany failed');
+
+      expect(fake.user('user-1')['twoFactorEnabled']).toBe(true);
+      expect(fake.user('user-1')['twoFactorSecret']).not.toBeNull();
+      expect(fake.user('user-1')['sessionVersion']).toBe(2);
+    });
+
+    it('ends nothing for a wrong password', async () => {
+      await seed(true);
+
+      await expect(
+        service.disable(
+          'user-1',
+          'wrong-password',
+          authenticator.generate(secret)
+        )
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(fake.log).not.toContain('begin');
+      expect(fake.user('user-1')['sessionVersion']).toBe(2);
     });
   });
 });

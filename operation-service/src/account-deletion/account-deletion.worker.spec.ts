@@ -106,7 +106,16 @@ class FakeDb {
         this.maybeFail(`${name}.updateMany`);
         const hit = rows().filter((r) => this.matches(r, args.where));
         for (const r of hit) {
-          Object.assign(r, args.data);
+          for (const [column, value] of Object.entries(args.data)) {
+            // `{ increment: n }` adds to the column, like Prisma (CODE-02B: sessionVersion).
+            r[column] =
+              value !== null &&
+              typeof value === 'object' &&
+              !(value instanceof Date) &&
+              'increment' in value
+                ? Number(r[column] ?? 0) + Number(value.increment)
+                : value;
+          }
           if (name === 'accountDeletionRequest') {
             r['updatedAt'] = new Date(this.clock);
           }
@@ -169,6 +178,7 @@ function seed(
     name: `Name of ${userId}`,
     isActive: false,
     deletedAt: null,
+    sessionVersion: 0,
   });
   db.tables['account']!.push({ id: `acc-${userId}`, userId });
   db.tables['payment']!.push({ id: `pay-${userId}`, userId });
@@ -333,6 +343,15 @@ describe('AccountDeletionWorker', () => {
       ).toBe(false);
     });
 
+    it('raises the session version again (CODE-02B), for that user only', async () => {
+      await worker.processDueRequests(NOW);
+
+      const version = (id: string) =>
+        db.tables['user']!.find((r) => r['id'] === id)!['sessionVersion'];
+      expect(version('u1')).toBe(1);
+      expect(version('bystander')).toBe(0);
+    });
+
     it('keeps the User row for the admin: isActive false, deletedAt stamped', async () => {
       await worker.processDueRequests(NOW);
 
@@ -439,6 +458,21 @@ describe('AccountDeletionWorker', () => {
       expect(later.completed).toBe(1);
       expect(cancelForUser).toHaveBeenCalledTimes(2);
       expect(requestStatus(db, 'u1')).toBe('COMPLETED');
+    });
+  });
+
+  describe('the session version is part of the same all-or-nothing step (CODE-02B)', () => {
+    it('comes back to its old value when a later statement of the step fails', async () => {
+      seed(db, 'u1', 30);
+      db.failOn = 'userSession.updateMany';
+
+      const first = await worker.processDueRequests(NOW);
+
+      expect(first.failed).toBe(1);
+      expect(
+        db.tables['user']!.find((r) => r['id'] === 'u1')!['sessionVersion']
+      ).toBe(0);
+      expect(untouched(db, 'u1')).toBe(true);
     });
   });
 

@@ -20,7 +20,9 @@ import {
 } from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatLocation, getGeoLocation } from '../security/geo-location.util';
+import { endAllSessions, withSessionBump } from '../auth/session-version.util';
 import { TwoFactorService } from '../auth/two-factor.service';
+import { forgetSessionState } from '../auth/user-active.util';
 import { ID_ONLY_SELECT } from '../auth/user-select';
 import {
   ChangePasswordInput,
@@ -132,21 +134,34 @@ export class UsersService {
     if (email !== undefined) updateData.email = email;
     if (avatarUrl !== undefined) updateData.image = avatarUrl;
 
-    const updatedUser = await this.prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        tier: true,
-        role: true,
-        emailVerified: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const profileSelect = {
+      id: true,
+      name: true,
+      email: true,
+      image: true,
+      tier: true,
+      role: true,
+      emailVerified: true,
+      createdAt: true,
+      updatedAt: true,
+    } as const;
+    // CODE-02B: a new e-mail address ends every session of the account (the page always sends the
+    // e-mail field, changed or not, so only an address that differs counts). The change, the new
+    // session version and the deleted refresh tokens commit together.
+    const emailChanged = Boolean(email) && email !== currentEmail;
+    const updatedUser = emailChanged
+      ? await withSessionBump(this.prisma, userId, (tx) =>
+          tx.user.update({
+            where: { id: userId },
+            data: updateData,
+            select: profileSelect,
+          })
+        )
+      : await this.prisma.user.update({
+          where: { id: userId },
+          data: updateData,
+          select: profileSelect,
+        });
 
     return {
       user: { ...updatedUser, emailVerified: !!updatedUser.emailVerified },
@@ -237,11 +252,16 @@ export class UsersService {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-      select: ID_ONLY_SELECT,
-    });
+    // Every session of the account ends with the new password (CODE-02B): the password, the new
+    // session version and the deleted refresh tokens commit together. The caller's own session
+    // ends too and the page must sign in again.
+    await withSessionBump(this.prisma, userId, (tx) =>
+      tx.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+        select: ID_ONLY_SELECT,
+      })
+    );
 
     console.log(`[Password] Password changed for user: ${user.email}`);
 
@@ -346,6 +366,12 @@ export class UsersService {
   }
 
   async revokeAllSessions(userId: string, exceptSessionToken?: string) {
+    // CODE-02B: "log out all" raises the account's session version and deletes its refresh
+    // tokens, so every access token minted so far is refused, the caller's own included. First,
+    // so a failure here leaves the list of devices as it was instead of claiming a revocation
+    // that did not happen.
+    await endAllSessions(this.prisma, userId);
+
     const sessionsToRevoke = await this.prisma.userSession.findMany({
       where: {
         userId,
@@ -839,6 +865,8 @@ export class UsersService {
         message: 'This deletion request has already been processed.',
       });
     }
+    // After the commit, so this process's cached snapshot of the account cannot outlive it.
+    forgetSessionState(deletionRequest.userId);
 
     const scheduledDeletionTime = new Date(
       confirmedAt.getTime() + DELETION_GRACE_PERIOD_MS

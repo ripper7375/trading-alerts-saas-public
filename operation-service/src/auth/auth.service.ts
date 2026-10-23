@@ -38,6 +38,7 @@ import {
   RefreshTokenContext,
   RefreshTokenService,
 } from './refresh-token.service';
+import { withSessionBump } from './session-version.util';
 import {
   COMPLETION_USED_TTL_SECONDS,
   TWO_FACTOR_VERIFIED,
@@ -640,15 +641,19 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpiry: null,
-      },
-      select: ID_ONLY_SELECT,
-    });
+    // Every session of the account ends with the new password (CODE-02B): the password, the new
+    // session version and the deleted refresh tokens commit together.
+    await withSessionBump(this.prisma, user.id, (tx) =>
+      tx.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          resetToken: null,
+          resetTokenExpiry: null,
+        },
+        select: ID_ONLY_SELECT,
+      })
+    );
 
     return {
       success: true,

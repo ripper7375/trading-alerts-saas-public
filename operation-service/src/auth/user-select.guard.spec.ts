@@ -186,7 +186,14 @@ describe('behaviour: AuthService against a database that lacks a column the code
         create: strict('create'),
         update: strict('update'),
         upsert: strict('upsert'),
+        // CODE-02B: the reset commits together with the session-version bump (updateMany never
+        // returns the row, so it needs no select).
+        updateMany: jest.fn(async () => ({ count: 1 })),
       },
+      refreshToken: { deleteMany: jest.fn(async () => ({ count: 0 })) },
+      $transaction: async (
+        callback: (tx: unknown) => Promise<unknown>
+      ): Promise<unknown> => callback(prisma),
     };
     refreshTokens = {
       issue: jest

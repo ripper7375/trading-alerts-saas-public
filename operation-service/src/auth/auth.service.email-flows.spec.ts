@@ -2,6 +2,10 @@ import bcrypt from 'bcryptjs';
 
 import { PrismaService } from '../prisma/prisma.service';
 import type { RedisService } from '../redis/redis.service';
+import {
+  createAccountDbFake,
+  type AccountDbFake,
+} from '../../test/account-db-fake';
 
 import { AuthService } from './auth.service';
 import { ExpiredTokenError, InvalidTokenError } from './errors';
@@ -94,7 +98,14 @@ const ALICE_HASH =
 
 describe('AuthService — email-dependent flows (Session 3-4, F29)', () => {
   let prisma: {
-    user: { findUnique: jest.Mock; findFirst: jest.Mock; update: jest.Mock };
+    user: {
+      findUnique: jest.Mock;
+      findFirst: jest.Mock;
+      update: jest.Mock;
+      updateMany: jest.Mock;
+    };
+    refreshToken: { deleteMany: jest.Mock };
+    $transaction: jest.Mock;
   };
   let redis: ReturnType<typeof makeRedis>;
   let service: AuthService;
@@ -106,8 +117,17 @@ describe('AuthService — email-dependent flows (Session 3-4, F29)', () => {
         findUnique: jest.fn(),
         findFirst: jest.fn(),
         update: jest.fn(),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
+      refreshToken: { deleteMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      // CODE-02B: a reset and the session-version bump commit together; the callback gets the
+      // same delegates as its client (the atomicity itself is shown at the end of this file).
+      $transaction: jest.fn(),
     };
+    prisma.$transaction.mockImplementation(
+      async (callback: (tx: typeof prisma) => Promise<unknown>) =>
+        callback(prisma)
+    );
     redis = makeRedis();
     service = new AuthService(
       prisma as unknown as PrismaService,
@@ -407,5 +427,104 @@ describe('AuthService — email-dependent flows (Session 3-4, F29)', () => {
         expect(redis.store.size).toBe(0);
       });
     });
+  });
+});
+
+describe('AuthService.resetPassword: session version (CODE-02B)', () => {
+  let fake: AccountDbFake;
+  let service: AuthService;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    fake = createAccountDbFake({
+      users: [
+        {
+          id: 'user-1',
+          email: 'alice@example.com',
+          sessionVersion: 0,
+          password: 'old-hash',
+          resetToken: 'good-token',
+          resetTokenExpiry: new Date(Date.now() + 60_000),
+        },
+        {
+          id: 'user-2',
+          email: 'bob@example.com',
+          sessionVersion: 5,
+          password: 'bob-hash',
+          resetToken: null,
+          resetTokenExpiry: null,
+        },
+      ],
+      refreshTokens: [
+        { id: 'rt-1', userId: 'user-1', hashedToken: 'a' },
+        { id: 'rt-2', userId: 'user-1', hashedToken: 'b' },
+        { id: 'rt-3', userId: 'user-2', hashedToken: 'c' },
+      ],
+    });
+    service = new AuthService(
+      {
+        user: fake.client.user,
+        refreshToken: fake.client.refreshToken,
+        $transaction: fake.$transaction,
+      } as unknown as PrismaService,
+      {} as unknown as RefreshTokenService,
+      makeRedis().service
+    );
+  });
+
+  it('stores the new password, burns the token, raises the version and deletes the refresh tokens together', async () => {
+    await service.resetPassword('good-token', 'newpassword123');
+
+    const alice = fake.user('user-1');
+    expect(alice['password']).not.toBe('old-hash');
+    expect(alice['resetToken']).toBeNull();
+    expect(alice['sessionVersion']).toBe(1);
+    expect(fake.refreshTokensOf('user-1')).toEqual([]);
+    expect(fake.writesOutsideTransaction()).toEqual([]);
+  });
+
+  it('leaves every other account alone', async () => {
+    await service.resetPassword('good-token', 'newpassword123');
+
+    expect(fake.user('user-2')['sessionVersion']).toBe(5);
+    expect(fake.user('user-2')['password']).toBe('bob-hash');
+    expect(fake.refreshTokensOf('user-2')).toHaveLength(1);
+  });
+
+  it('keeps the old password, the token and the version when the write fails', async () => {
+    fake.failNext('user.update');
+
+    await expect(
+      service.resetPassword('good-token', 'newpassword123')
+    ).rejects.toThrow('user.update failed');
+
+    const alice = fake.user('user-1');
+    expect(alice['password']).toBe('old-hash');
+    expect(alice['resetToken']).toBe('good-token');
+    expect(alice['sessionVersion']).toBe(0);
+    expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+  });
+
+  it('keeps the old password when the sessions cannot be ended', async () => {
+    fake.failNext('refreshToken.deleteMany');
+
+    await expect(
+      service.resetPassword('good-token', 'newpassword123')
+    ).rejects.toThrow('refreshToken.deleteMany failed');
+
+    const alice = fake.user('user-1');
+    expect(alice['password']).toBe('old-hash');
+    expect(alice['sessionVersion']).toBe(0);
+    expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
+  });
+
+  it('changes nothing for an unknown token', async () => {
+    await expect(
+      service.resetPassword('bad-token', 'newpassword123')
+    ).rejects.toThrow(InvalidTokenError);
+
+    expect(fake.log).not.toContain('begin');
+    expect(fake.user('user-1')['sessionVersion']).toBe(0);
+    expect(fake.refreshTokensOf('user-1')).toHaveLength(2);
   });
 });
