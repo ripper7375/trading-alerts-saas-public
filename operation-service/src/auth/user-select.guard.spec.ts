@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import * as ts from 'typescript';
 
 import type { PrismaService } from '../prisma/prisma.service';
+import type { RedisService } from '../redis/redis.service';
 import { AuthService } from './auth.service';
 import type { RefreshTokenService } from './refresh-token.service';
 
@@ -141,6 +142,9 @@ describe('behaviour: AuthService against a database that lacks a column the code
     revokeByRawToken: jest.Mock;
   };
 
+  /** The 2FA completion marks its token used in Redis; every SET succeeds here. */
+  const redis = { getClient: () => ({ set: jest.fn(async () => 'OK') }) };
+
   /** A `User` call fails like Postgres would if it asks for a column that is not there. */
   const strict = (method: string) =>
     jest.fn(async (args?: Record<string, unknown>) => {
@@ -196,7 +200,8 @@ describe('behaviour: AuthService against a database that lacks a column the code
     };
     service = new AuthService(
       prisma as unknown as PrismaService,
-      refreshTokens as unknown as RefreshTokenService
+      refreshTokens as unknown as RefreshTokenService,
+      redis as unknown as RedisService
     );
     jest.spyOn(console, 'log').mockImplementation(() => undefined);
     jest.spyOn(console, 'error').mockImplementation(() => undefined);
@@ -221,7 +226,8 @@ describe('behaviour: AuthService against a database that lacks a column the code
           ),
         },
       } as unknown as PrismaService,
-      refreshTokens as unknown as RefreshTokenService
+      refreshTokens as unknown as RefreshTokenService,
+      redis as unknown as RedisService
     );
     await expect(
       bare.login('alice@example.com', 'correct-password')
@@ -255,13 +261,14 @@ describe('behaviour: AuthService against a database that lacks a column the code
   it('2FA completion issues tokens', async () => {
     row = await userRow({ twoFactorEnabled: true });
     const token = jwt.sign(
-      {
-        userId: 'user-1',
-        email: 'alice@example.com',
-        purpose: '2fa_verification',
-      },
+      { purpose: '2fa_verified', jti: 'jti-1', chal: 'chal-1' },
       TEST_SECRET,
-      { expiresIn: '5m' }
+      {
+        algorithm: 'HS256',
+        issuer: 'davintrade-2fa',
+        subject: 'user-1',
+        expiresIn: 60,
+      }
     );
 
     const result = await service.login('__2fa_verified__', token);

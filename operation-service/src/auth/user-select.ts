@@ -31,6 +31,15 @@ export const LOGIN_USER_SELECT = {
   twoFactorEnabled: true,
 } as const;
 
+/**
+ * The same as SESSION, plus whether a 2FA code is due: what completing a 2FA sign-in checks (no
+ * password hash, which that step has no use for).
+ */
+export const TWO_FACTOR_COMPLETION_USER_SELECT = {
+  ...SESSION_USER_SELECT,
+  twoFactorEnabled: true,
+} as const;
+
 /** What registering a user needs back for the verification e-mail. */
 export const REGISTERED_USER_SELECT = {
   id: true,

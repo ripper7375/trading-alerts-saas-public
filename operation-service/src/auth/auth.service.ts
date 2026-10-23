@@ -1,8 +1,7 @@
 import { randomBytes } from 'crypto';
 
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 import {
   sendPasswordResetEmail,
@@ -10,6 +9,7 @@ import {
   sendWelcomeEmail,
 } from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 import {
   AccountDeactivatedError,
@@ -28,19 +28,28 @@ import {
   RefreshTokenService,
 } from './refresh-token.service';
 import {
+  COMPLETION_USED_TTL_SECONDS,
+  TWO_FACTOR_VERIFIED,
+  TwoFactorUnavailableError,
+  consumeOnce,
+  signChallenge,
+  twoFactorKeys,
+  verifyTwoFactorToken,
+} from './two-factor-token.util';
+import {
   ID_ONLY_SELECT,
   LOGIN_USER_SELECT,
   REGISTERED_USER_SELECT,
   SESSION_USER_SELECT,
+  TWO_FACTOR_COMPLETION_USER_SELECT,
 } from './user-select';
 
 // 2FA-completion sentinel — ported from lib/auth/auth-options.ts's
 // authorize(): the special email value the frontend re-submits, with the
-// temp token (minted by generate2FAToken there) in the password field, to
-// complete a login that already passed the password check once.
+// one-use COMPLETION token the 2FA verify step minted (CODE-01A) in the
+// password field, to complete a login that already passed the password check
+// and the code check. The password step's challenge is not accepted here.
 const TWO_FACTOR_VERIFIED_SENTINEL = '__2fa_verified__';
-const TWO_FACTOR_TOKEN_TTL = '5m';
-const TWO_FACTOR_TOKEN_PURPOSE = '2fa_verification';
 
 export interface AuthUserClaims {
   id: string;
@@ -74,7 +83,8 @@ function getNextAuthSecret(): string {
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly refreshTokens: RefreshTokenService
+    private readonly refreshTokens: RefreshTokenService,
+    private readonly redis: RedisService
   ) {}
 
   /**
@@ -313,47 +323,62 @@ export class AuthService {
     }
 
     if (user.twoFactorEnabled) {
-      const twoFactorToken = jwt.sign(
-        {
-          userId: user.id,
-          email: user.email,
-          purpose: TWO_FACTOR_TOKEN_PURPOSE,
-        },
-        getNextAuthSecret(),
-        { expiresIn: TWO_FACTOR_TOKEN_TTL }
+      // A CHALLENGE (CODE-01A): proof of the password step only. The session comes from
+      // completeTwoFactorLogin(), with the completion the verify step mints after a right code.
+      throw new TwoFactorRequiredError(
+        signChallenge({ userId: user.id, email: user.email })
       );
-      throw new TwoFactorRequiredError(twoFactorToken);
     }
 
     return user;
   }
 
-  private async completeTwoFactorLogin(twoFactorToken: string) {
-    let decoded: { userId: string; purpose: string };
+  private async completeTwoFactorLogin(completionToken: string) {
+    let claims: ReturnType<typeof verifyTwoFactorToken>;
     try {
-      decoded = jwt.verify(
-        twoFactorToken,
-        getNextAuthSecret()
-      ) as typeof decoded;
+      claims = verifyTwoFactorToken(completionToken, TWO_FACTOR_VERIFIED);
     } catch {
       throw new InvalidCredentialsError('Invalid or expired 2FA token');
     }
 
-    if (decoded.purpose !== TWO_FACTOR_TOKEN_PURPOSE) {
+    // A completion works once. Redis down: the step fails closed (503), no session.
+    let first: boolean;
+    try {
+      first = await consumeOnce(
+        this.redis.getClient(),
+        twoFactorKeys.used(claims.jti),
+        COMPLETION_USED_TTL_SECONDS
+      );
+    } catch (error) {
+      if (error instanceof TwoFactorUnavailableError) {
+        throw new ServiceUnavailableException({
+          error: 'Verification is temporarily unavailable. Please try again.',
+          message: 'Verification is temporarily unavailable. Please try again.',
+        });
+      }
+      throw error;
+    }
+    if (!first) {
       throw new InvalidCredentialsError('Invalid or expired 2FA token');
     }
 
     const user = await this.prisma.user.findUnique({
-      where: { id: decoded.userId },
-      select: SESSION_USER_SELECT,
+      where: { id: claims.userId },
+      select: TWO_FACTOR_COMPLETION_USER_SELECT,
     });
     if (!user) {
       throw new InvalidCredentialsError('Invalid or expired 2FA token');
     }
 
-    // The account can be locked between the password step and the code.
+    // The account can be locked, or lose its 2FA, between the code and this step.
     if (!user.isActive) {
       throw new AccountDeactivatedError();
+    }
+    if (!user.emailVerified) {
+      throw new EmailNotVerifiedError();
+    }
+    if (!user.twoFactorEnabled) {
+      throw new InvalidCredentialsError('Invalid or expired 2FA token');
     }
 
     return user;

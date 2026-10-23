@@ -1,19 +1,35 @@
 import {
   BadRequestException,
+  HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  ServiceUnavailableException,
   UnauthorizedException,
 } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 import {
   sendTwoFactorDisabledEmail,
   sendTwoFactorEnabledEmail,
 } from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 import { formatLocation, getGeoLocation } from '../security/geo-location.util';
+import {
+  CHALLENGE_USED_TTL_SECONDS,
+  MAX_CODE_ATTEMPTS,
+  TOTP_REPLAY_TTL_SECONDS,
+  TWO_FACTOR_CHALLENGE,
+  TwoFactorUnavailableError,
+  consumeOnce,
+  isConsumed,
+  registerAttempt,
+  signCompletion,
+  twoFactorKeys,
+  verifyTwoFactorToken,
+} from './two-factor-token.util';
 import { ID_ONLY_SELECT } from './user-select';
 import {
   decryptSecret,
@@ -42,7 +58,10 @@ export interface TwoFactorRequestContext {
 // beyond the message text itself.
 @Injectable()
 export class TwoFactorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService
+  ) {}
 
   // F58 (DECISION-LOG.md): JwtAuthGuard-derived userId sometimes fails
   // findUnique({where:{id}}) against the live container for a user created
@@ -212,30 +231,61 @@ export class TwoFactorService {
   }
 
   /**
-   * Completes 2FA during login. Deliberately unauthenticated (no
-   * JwtAuthGuard) — the caller has no session yet; the temp token minted by
-   * AuthService.login()'s TwoFactorRequiredError branch is the only
-   * credential, exactly matching app/api/user/2fa/verify/route.ts (which
-   * also never checks the token's `purpose` claim, unlike AuthService's own
-   * completeTwoFactorLogin() — preserved as-is, not "fixed").
+   * Completes the code step of a 2FA login (CODE-01A). Deliberately
+   * unauthenticated (no JwtAuthGuard) — the caller has no session yet; the
+   * CHALLENGE minted by AuthService.login()'s TwoFactorRequiredError branch
+   * (or by the monolith's authorize()) is the only credential, and the same
+   * rules as app/api/user/2fa/verify/route.ts apply: the challenge must be
+   * unspent, it gets MAX_CODE_ATTEMPTS codes (the next one is a 429 and burns
+   * it), a TOTP code is good once, and a right code spends the challenge and
+   * returns a one-use COMPLETION token, the only thing the sign-in accepts.
+   * Redis down: 503, the step fails closed.
    */
   async verify(code: string, token: string) {
-    let payload: { userId: string; email: string; exp: number };
     try {
-      const secret = process.env['NEXTAUTH_SECRET'];
-      if (!secret) {
-        throw new Error('NEXTAUTH_SECRET not configured');
+      return await this.verifyCode(code, token);
+    } catch (error) {
+      if (error instanceof TwoFactorUnavailableError) {
+        throw new ServiceUnavailableException({
+          error: 'Verification is temporarily unavailable. Please try again.',
+          message: 'Verification is temporarily unavailable. Please try again.',
+        });
       }
-      payload = jwt.verify(token, secret) as typeof payload;
+      throw error;
+    }
+  }
+
+  private async verifyCode(code: string, token: string) {
+    let challenge: ReturnType<typeof verifyTwoFactorToken>;
+    try {
+      challenge = verifyTwoFactorToken(token, TWO_FACTOR_CHALLENGE);
     } catch {
       throw new UnauthorizedException(
         'Invalid or expired verification token. Please log in again.'
       );
     }
 
+    // A spent challenge is dead, and a challenge gets MAX_CODE_ATTEMPTS codes.
+    const redis = this.redis.getClient();
+    if (await isConsumed(redis, twoFactorKeys.used(challenge.jti))) {
+      throw new UnauthorizedException(
+        'Invalid or expired verification token. Please log in again.'
+      );
+    }
+    if ((await registerAttempt(redis, challenge.jti)) > MAX_CODE_ATTEMPTS) {
+      await consumeOnce(redis, twoFactorKeys.used(challenge.jti));
+      throw new HttpException(
+        {
+          error: 'Too many attempts. Please log in again.',
+          message: 'Too many attempts. Please log in again.',
+        },
+        HttpStatus.TOO_MANY_REQUESTS
+      );
+    }
+
     const resolvedUserId = await this.resolveUserId(
-      payload.userId,
-      payload.email
+      challenge.userId,
+      challenge.email
     );
     const user = await this.prisma.user.findUnique({
       where: { id: resolvedUserId },
@@ -275,10 +325,16 @@ export class TwoFactorService {
 
       const remainingCodes = backupCodes.filter((c) => c !== '').length;
 
+      await this.spendChallenge(redis, challenge.jti);
+
       return {
         success: true,
         verified: true,
         method: 'backup_code' as const,
+        completionToken: signCompletion({
+          userId: user.id,
+          challengeJti: challenge.jti,
+        }),
         remainingBackupCodes: remainingCodes,
         message:
           remainingCodes <= 2
@@ -294,11 +350,49 @@ export class TwoFactorService {
       throw new InternalServerErrorException('Invalid 2FA configuration');
     }
 
-    if (!verifyTOTP(normalizedCode, secret)) {
+    // A TOTP code is good once: the same code on another challenge is refused.
+    if (
+      !verifyTOTP(normalizedCode, secret) ||
+      !(await consumeOnce(
+        redis,
+        twoFactorKeys.totp(user.id, normalizedCode),
+        TOTP_REPLAY_TTL_SECONDS
+      ))
+    ) {
       throw new BadRequestException('Invalid verification code');
     }
 
-    return { success: true, verified: true, method: 'totp' as const };
+    await this.spendChallenge(redis, challenge.jti);
+
+    return {
+      success: true,
+      verified: true,
+      method: 'totp' as const,
+      completionToken: signCompletion({
+        userId: user.id,
+        challengeJti: challenge.jti,
+      }),
+    };
+  }
+
+  /**
+   * Marks the challenge spent. Losing this race to a concurrent request means that one got the
+   * completion, not this one.
+   */
+  private async spendChallenge(
+    redis: ReturnType<RedisService['getClient']>,
+    challengeJti: string
+  ): Promise<void> {
+    const first = await consumeOnce(
+      redis,
+      twoFactorKeys.used(challengeJti),
+      CHALLENGE_USED_TTL_SECONDS
+    );
+    if (!first) {
+      throw new UnauthorizedException(
+        'Invalid or expired verification token. Please log in again.'
+      );
+    }
   }
 
   async getBackupCodesStatus(userId: string, email?: string) {

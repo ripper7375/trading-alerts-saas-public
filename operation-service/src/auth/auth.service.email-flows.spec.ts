@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 
 import { PrismaService } from '../prisma/prisma.service';
+import type { RedisService } from '../redis/redis.service';
 
 import { AuthService } from './auth.service';
 import { ExpiredTokenError, InvalidTokenError } from './errors';
@@ -50,7 +51,8 @@ describe('AuthService — email-dependent flows (Session 3-4, F29)', () => {
     };
     service = new AuthService(
       prisma as unknown as PrismaService,
-      {} as unknown as RefreshTokenService
+      {} as unknown as RefreshTokenService,
+      {} as unknown as RedisService
     );
   });
 

@@ -1,9 +1,11 @@
+import { ServiceUnavailableException } from '@nestjs/common';
 import hkdf from '@panva/hkdf';
 import bcrypt from 'bcryptjs';
 import { jwtDecrypt } from 'jose';
 import jwt from 'jsonwebtoken';
 
 import { PrismaService } from '../prisma/prisma.service';
+import type { RedisService } from '../redis/redis.service';
 
 // Session 4B-20: register() now sends the verification email (Deviation 2 —
 // closes a gap left open since Session 3-2). Mocked the same way
@@ -63,6 +65,50 @@ function makeUser(overrides: Partial<Record<string, unknown>> = {}) {
   };
 }
 
+/** An in-memory stand-in for the Redis the 2FA markers live in (SET ... EX ... NX only). */
+function makeRedis() {
+  const store = new Map<string, { ttl: number | null }>();
+  const state = { down: false };
+  const client = {
+    set: jest.fn(async (key: string, _value: string, ...args: unknown[]) => {
+      if (state.down) throw new Error('redis down');
+      if (args.includes('NX') && store.has(key)) return null;
+      store.set(key, { ttl: args[0] === 'EX' ? (args[1] as number) : null });
+      return 'OK';
+    }),
+  };
+  return {
+    service: { getClient: () => client } as unknown as RedisService,
+    client,
+    store,
+    state,
+  };
+}
+
+/**
+ * A 2FA token as the verify step mints it, spelled out with the contract's literals (not the util
+ * under test): purpose, issuer, subject and a jti.
+ */
+function twoFactorToken(
+  purpose: string,
+  overrides: {
+    payload?: Record<string, unknown>;
+    options?: jwt.SignOptions;
+  } = {}
+): string {
+  return jwt.sign(
+    { purpose, email: 'alice@example.com', jti: 'jti-1', ...overrides.payload },
+    TEST_SECRET,
+    {
+      algorithm: 'HS256',
+      issuer: 'davintrade-2fa',
+      subject: 'user-1',
+      expiresIn: 60,
+      ...overrides.options,
+    }
+  );
+}
+
 describe('AuthService', () => {
   const originalSecret = process.env['NEXTAUTH_SECRET'];
   const originalNodeEnv = process.env['NODE_ENV'];
@@ -76,6 +122,7 @@ describe('AuthService', () => {
     rotate: jest.Mock;
     revokeByRawToken: jest.Mock;
   };
+  let redis: ReturnType<typeof makeRedis>;
   let service: AuthService;
 
   beforeEach(() => {
@@ -94,9 +141,11 @@ describe('AuthService', () => {
       rotate: jest.fn(),
       revokeByRawToken: jest.fn(),
     };
+    redis = makeRedis();
     service = new AuthService(
       prisma as unknown as PrismaService,
-      refreshTokens as unknown as RefreshTokenService
+      refreshTokens as unknown as RefreshTokenService,
+      redis.service
     );
   });
 
@@ -262,21 +311,12 @@ describe('AuthService', () => {
     });
 
     it('refuses to complete a 2FA login if the account was locked in between', async () => {
-      const twoFactorToken = jwt.sign(
-        {
-          userId: 'user-1',
-          email: 'alice@example.com',
-          purpose: '2fa_verification',
-        },
-        TEST_SECRET,
-        { expiresIn: '5m' }
-      );
       prisma.user.findUnique.mockResolvedValue(
         makeUser({ twoFactorEnabled: true, isActive: false })
       );
 
       await expect(
-        service.login('__2fa_verified__', twoFactorToken)
+        service.login('__2fa_verified__', twoFactorToken('2fa_verified'))
       ).rejects.toThrow(AccountDeactivatedError);
       expect(refreshTokens.issue).not.toHaveBeenCalled();
     });
@@ -299,17 +339,40 @@ describe('AuthService', () => {
         const twoFactorError = error as InstanceType<
           typeof TwoFactorRequiredError
         >;
-        const decoded = jwt.verify(
-          twoFactorError.twoFactorToken,
-          TEST_SECRET
-        ) as {
-          userId: string;
-          purpose: string;
-        };
-        expect(decoded.userId).toBe('user-1');
-        expect(decoded.purpose).toBe('2fa_verification');
+        const decoded = jwt.verify(twoFactorError.twoFactorToken, TEST_SECRET, {
+          algorithms: ['HS256'],
+          issuer: 'davintrade-2fa',
+        }) as jwt.JwtPayload;
+        expect(decoded.sub).toBe('user-1');
+        expect(decoded['email']).toBe('alice@example.com');
+        expect(decoded['purpose']).toBe('2fa_challenge');
+        expect(typeof decoded.jti).toBe('string');
+        expect((decoded.exp ?? 0) - (decoded.iat ?? 0)).toBe(300);
       }
       expect(refreshTokens.issue).not.toHaveBeenCalled();
+    });
+
+    it('the challenge the password step hands out is not a login (the sentinel refuses it)', async () => {
+      const hashed = await bcrypt.hash('correct-password', 10);
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ password: hashed, twoFactorEnabled: true })
+      );
+
+      const challenge = await service
+        .login('alice@example.com', 'correct-password')
+        .then(
+          () => {
+            throw new Error('the password step did not ask for a code');
+          },
+          (error: InstanceType<typeof TwoFactorRequiredError>) =>
+            error.twoFactorToken
+        );
+
+      await expect(
+        service.login('__2fa_verified__', challenge)
+      ).rejects.toThrow(InvalidCredentialsError);
+      expect(refreshTokens.issue).not.toHaveBeenCalled();
+      expect(redis.client.set).not.toHaveBeenCalled();
     });
 
     it('issues a NextAuth-compatible access token and a refresh token on success', async () => {
@@ -348,24 +411,46 @@ describe('AuthService', () => {
       });
     });
 
-    it('completes login via the __2fa_verified__ sentinel with a valid temp token', async () => {
-      const twoFactorToken = jwt.sign(
-        {
-          userId: 'user-1',
-          email: 'alice@example.com',
-          purpose: '2fa_verification',
-        },
-        TEST_SECRET,
-        { expiresIn: '5m' }
-      );
+    it('completes login via the __2fa_verified__ sentinel with a valid completion token', async () => {
       prisma.user.findUnique.mockResolvedValue(
         makeUser({ twoFactorEnabled: true })
       );
 
-      const result = await service.login('__2fa_verified__', twoFactorToken);
+      const result = await service.login(
+        '__2fa_verified__',
+        twoFactorToken('2fa_verified', { payload: { chal: 'chal-1' } })
+      );
 
       expect(result.user.id).toBe('user-1');
       expect(refreshTokens.issue).toHaveBeenCalledTimes(1);
+      expect(redis.client.set).toHaveBeenCalledWith(
+        '2fa:used:jti-1',
+        '1',
+        'EX',
+        120,
+        'NX'
+      );
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-1' },
+        select: expect.objectContaining({
+          twoFactorEnabled: true,
+          isActive: true,
+          emailVerified: true,
+        }),
+      });
+    });
+
+    it('does not select the password hash to complete a login', async () => {
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ twoFactorEnabled: true })
+      );
+
+      await service.login('__2fa_verified__', twoFactorToken('2fa_verified'));
+
+      const args = prisma.user.findUnique.mock.calls[0][0] as {
+        select: Record<string, boolean>;
+      };
+      expect(args.select).not.toHaveProperty('password');
     });
 
     it('rejects the __2fa_verified__ sentinel with an invalid temp token', async () => {
@@ -384,6 +469,118 @@ describe('AuthService', () => {
       await expect(
         service.login('__2fa_verified__', wrongPurposeToken)
       ).rejects.toThrow(InvalidCredentialsError);
+    });
+
+    it('rejects a 2fa_verification token of an earlier version, whatever else it carries', async () => {
+      const oldToken = jwt.sign(
+        {
+          userId: 'user-1',
+          email: 'alice@example.com',
+          purpose: '2fa_verification',
+        },
+        TEST_SECRET,
+        { expiresIn: '5m' }
+      );
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ twoFactorEnabled: true })
+      );
+
+      await expect(service.login('__2fa_verified__', oldToken)).rejects.toThrow(
+        InvalidCredentialsError
+      );
+      expect(refreshTokens.issue).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [
+        'another issuer',
+        () => twoFactorToken('2fa_verified', { options: { issuer: 'other' } }),
+      ],
+      [
+        'an expired completion',
+        () => twoFactorToken('2fa_verified', { options: { expiresIn: -10 } }),
+      ],
+      [
+        'another algorithm',
+        () =>
+          twoFactorToken('2fa_verified', { options: { algorithm: 'HS512' } }),
+      ],
+      [
+        'no jti',
+        () =>
+          jwt.sign({ purpose: '2fa_verified' }, TEST_SECRET, {
+            issuer: 'davintrade-2fa',
+            subject: 'user-1',
+            expiresIn: 60,
+          }),
+      ],
+    ])('rejects %s', async (_label, make) => {
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ twoFactorEnabled: true })
+      );
+
+      await expect(service.login('__2fa_verified__', make())).rejects.toThrow(
+        InvalidCredentialsError
+      );
+      expect(refreshTokens.issue).not.toHaveBeenCalled();
+    });
+
+    it('spends a completion: the same one a second time is refused', async () => {
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ twoFactorEnabled: true })
+      );
+      const completion = twoFactorToken('2fa_verified');
+
+      await service.login('__2fa_verified__', completion);
+      await expect(
+        service.login('__2fa_verified__', completion)
+      ).rejects.toThrow(InvalidCredentialsError);
+
+      expect(refreshTokens.issue).toHaveBeenCalledTimes(1);
+    });
+
+    it('refuses a completion for an account without 2FA, an unverified e-mail or a missing user', async () => {
+      prisma.user.findUnique.mockResolvedValueOnce(
+        makeUser({ twoFactorEnabled: false })
+      );
+      await expect(
+        service.login(
+          '__2fa_verified__',
+          twoFactorToken('2fa_verified', { payload: { jti: 'a' } })
+        )
+      ).rejects.toThrow(InvalidCredentialsError);
+
+      prisma.user.findUnique.mockResolvedValueOnce(
+        makeUser({ twoFactorEnabled: true, emailVerified: null })
+      );
+      await expect(
+        service.login(
+          '__2fa_verified__',
+          twoFactorToken('2fa_verified', { payload: { jti: 'b' } })
+        )
+      ).rejects.toThrow(EmailNotVerifiedError);
+
+      prisma.user.findUnique.mockResolvedValueOnce(null);
+      await expect(
+        service.login(
+          '__2fa_verified__',
+          twoFactorToken('2fa_verified', { payload: { jti: 'c' } })
+        )
+      ).rejects.toThrow(InvalidCredentialsError);
+
+      expect(refreshTokens.issue).not.toHaveBeenCalled();
+    });
+
+    it('fails closed with 503 when Redis is down, and issues no session', async () => {
+      prisma.user.findUnique.mockResolvedValue(
+        makeUser({ twoFactorEnabled: true })
+      );
+      redis.state.down = true;
+
+      await expect(
+        service.login('__2fa_verified__', twoFactorToken('2fa_verified'))
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(refreshTokens.issue).not.toHaveBeenCalled();
     });
 
     it('never grants fixed-credential bypass for admin@tradingalerts.com or admin-test@trading-alerts.test even in development/test', async () => {
