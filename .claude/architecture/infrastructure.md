@@ -1,7 +1,7 @@
 ---
 type: Concept/Infrastructure
 status: active
-updated_at: 2026-09-26
+updated_at: 2026-10-23
 source: 'Standing facts recorded in CLAUDE.md session logs (Vultr notice 2026-09-11, Railway/Vercel findings 2026-08-31..09-09)'
 tags: [deploy, vercel, railway, vps, vultr, r2, mt5]
 related_docs:
@@ -52,5 +52,16 @@ related_docs:
   Node 22 (Node 20 is past end of life), `npm ci`, `tsc --noEmit`, tests and `nest build`; the gateway also runs its e2e specs, `check:sensor-kit`
   and installs Python 3.11 with `pyyaml==6.0.2 jsonschema==4.25.0` (its sensor specs skip silently without them). It is **not run on GitHub yet**
   (first push will show). No `npm run lint` for the gateway: the script matches no files. Report: `docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md`.
+- **Node runtime pins (2026-10-22, after the Node 22.23.4 / 24.22.1 security release):** `engines.node` is `22.x` in the three NestJS services
+  and `>=22.0.0` in the monolith, `frontend/` and `packages/types`; CI runs Node 24 for the monolith workflows and 22 for the NestJS,
+  `mt5-pipeline-tests` and `openapi-validation` ones. Vercel maps the monolith to the latest 24.x and rolls patch releases itself. Railway builds
+  with Nixpacks, which maps the range to a **major only** (the patch comes from a nixpkgs snapshot compiled into Nixpacks), so the repo cannot force
+  the patched Node there: read `node -v` in the build log after the next deploy. Switching the builder to Railpack or a Dockerfile is a
+  deploy-tooling decision for Davin. Which major Railway used before this change was never confirmed. The chat stack's two Dockerfiles
+  (`infra/contabo-chat-stack/apps/server`, `apps/bot-worker`) say `node:22-alpine` since 2026-10-22; the VPS picks them up only through the rebuild in
+  `docs/runbooks/contabo-chat-stack.md`.
 - **money-service refuses to guess its public URL or its dLocal key** (Remediation 6.5): Stripe checkout needs `NEXTAUTH_URL`, dLocal create-payment needs
   `DLOCAL_API_KEY` and `NEXTAUTH_URL`; without them they answer 503, and mock mode exists only under `NODE_ENV=test`.
+- **The GitHub repository is PUBLIC.** Never put a credential, a connection string or an unfixed security finding in a tracked
+  file. Security findings and their remediation orders live only in the gitignored `davintrade-pre-launch-security-check-lists/` folder
+  (the pre-launch checklist and its execution plan); read them there.
