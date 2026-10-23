@@ -12,6 +12,7 @@ import { WisePaymentProvider } from '../../wise/providers/wise-payment.provider'
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { IdempotencyStore } from '../../common/idempotency/idempotency.store';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 import { DisbursementSettingsService } from '../disbursement-settings.service';
 import {
   createDisbursementSettingsService,
@@ -39,6 +40,9 @@ describe('DisbursementBatchesController', () => {
         // JwtAuthGuard (declared on the controller) reads the user's row (CODE-02A); the guards
         // themselves are tested in jwt-auth.guard.spec.ts, so nothing here calls the database.
         { provide: PrismaService, useValue: {} },
+        // StepUpGuard (CODE-06B) is declared on `execute`; the guard itself is tested in
+        // auth/step-up.guard.spec.ts, so nothing here reaches Redis.
+        { provide: RedisService, useValue: {} },
         {
           provide: DisbursementSettingsService,
           useFactory: () => createDisbursementSettingsService(settingRows),

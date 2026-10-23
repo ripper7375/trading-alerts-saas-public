@@ -6,6 +6,7 @@ import { Test } from '@nestjs/testing';
 
 import { DisbursementSettingsService } from '../../disbursement/disbursement-settings.service';
 import { PrismaService } from '../../prisma/prisma.service';
+import { RedisService } from '../../redis/redis.service';
 import {
   createDisbursementSettingsService,
   PAUSED_SETTING_ROWS,
@@ -63,6 +64,9 @@ describe('WiseBatchesController', () => {
       controllers: [WiseBatchesController],
       providers: [
         { provide: PrismaService, useValue: prismaMock },
+        // StepUpGuard (CODE-06B) is declared on `complete` and `fund`; the guard itself is tested
+        // in auth/step-up.guard.spec.ts, so nothing here reaches Redis.
+        { provide: RedisService, useValue: {} },
         { provide: WisePaymentProvider, useValue: wisePaymentProviderMock },
         { provide: WiseBatchGroupService, useValue: wiseBatchGroupServiceMock },
         {

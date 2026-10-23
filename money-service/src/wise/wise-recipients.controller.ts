@@ -61,6 +61,11 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../admin/admin.guard';
 import { AffiliateGuard } from '../affiliate/affiliate.guard';
 import {
+  PAYOUT_STEP_UP_AUDIENCE_WISE_RECIPIENT,
+  RequireStepUp,
+  StepUpGuard,
+} from '../auth/step-up.guard';
+import {
   isOnPayoutHold,
   payoutHoldUntil,
 } from '../disbursement/payout-details-hold';
@@ -220,8 +225,11 @@ export class WiseRecipientsController {
   // POST /wise/recipients
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+  // CODE-06B (decision D9-4): adding or replacing the payout recipient needs a fresh step-up
+  // token (the current password, plus a TOTP code when 2FA is on; 120 seconds, one call).
   @Post()
-  @UseGuards(AffiliateGuard)
+  @UseGuards(AffiliateGuard, StepUpGuard)
+  @RequireStepUp(PAYOUT_STEP_UP_AUDIENCE_WISE_RECIPIENT)
   async create(@Req() request: AuthenticatedRequest, @Body() body: unknown) {
     const validation = createRecipientBodySchema.safeParse(body);
     if (!validation.success) {
@@ -307,8 +315,10 @@ export class WiseRecipientsController {
   // DELETE /wise/recipients/:id
   //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+  // CODE-06B (decision D9-4): removing the recipient takes the same step-up as adding one.
   @Delete(':id')
-  @UseGuards(AffiliateGuard)
+  @UseGuards(AffiliateGuard, StepUpGuard)
+  @RequireStepUp(PAYOUT_STEP_UP_AUDIENCE_WISE_RECIPIENT)
   @HttpCode(204)
   async deactivate(
     @Req() request: AuthenticatedRequest,

@@ -28,6 +28,11 @@ import {
 
 import { AdminGuard } from '../../admin/admin.guard';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import {
+  PAYOUT_STEP_UP_AUDIENCE_APPROVAL,
+  RequireStepUp,
+  StepUpGuard,
+} from '../../auth/step-up.guard';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { WisePaymentProvider } from '../../wise/providers/wise-payment.provider';
 import { BatchManagerService } from '../batch-manager.service';
@@ -53,7 +58,11 @@ export class DisbursementBatchesController {
     private readonly settings: DisbursementSettingsService
   ) {}
 
+  // CODE-06B: executing a batch moves payout money, so it needs a fresh step-up token (a current
+  // authenticator code, 120 seconds, one call). The guard runs after JwtAuthGuard + AdminGuard.
   @Post(':batchId/execute')
+  @UseGuards(StepUpGuard)
+  @RequireStepUp(PAYOUT_STEP_UP_AUDIENCE_APPROVAL)
   @UseInterceptors(IdempotencyInterceptor)
   async execute(
     @Param('batchId') batchId: string

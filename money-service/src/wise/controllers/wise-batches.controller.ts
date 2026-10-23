@@ -48,6 +48,11 @@ import { z } from 'zod';
 
 import { AdminGuard } from '../../admin/admin.guard';
 import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import {
+  PAYOUT_STEP_UP_AUDIENCE_APPROVAL,
+  RequireStepUp,
+  StepUpGuard,
+} from '../../auth/step-up.guard';
 import { DisbursementSettingsService } from '../../disbursement/disbursement-settings.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CapabilityUnavailableError } from '../providers/provider-capabilities';
@@ -172,7 +177,12 @@ export class WiseBatchesController {
     return this.toDetailDto(batchGroup);
   }
 
+  // CODE-06B: `complete` and `fund` are the two steps here that put payout money in motion, so
+  // each needs a fresh step-up token (same audience as the batch execution). `prepare` only
+  // drafts transfers; `mark-funded` and `cancel` record or undo what already happened.
   @Post(':batchId/complete')
+  @UseGuards(StepUpGuard)
+  @RequireStepUp(PAYOUT_STEP_UP_AUDIENCE_APPROVAL)
   async complete(@Param('batchId') batchId: string) {
     await this.settings.assertPayoutsNotPaused();
     const batchGroup = await this.findByIdOrThrow(batchId);
@@ -182,6 +192,8 @@ export class WiseBatchesController {
   }
 
   @Post(':batchId/fund')
+  @UseGuards(StepUpGuard)
+  @RequireStepUp(PAYOUT_STEP_UP_AUDIENCE_APPROVAL)
   async fund(@Param('batchId') batchId: string) {
     await this.settings.assertPayoutsNotPaused();
     const batchGroup = await this.findByIdOrThrow(batchId);
