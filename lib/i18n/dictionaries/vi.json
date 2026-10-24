@@ -5315,5 +5315,7 @@
   "worldGold.hours.au": "Thứ Hai–thứ Sáu 09:00–17:00",
   "worldGold.notes.au": "Giá vàng thỏi tham khảo; một kilôgam bằng 32,1507466 ounce troy.",
   "This account has been deactivated or is scheduled for deletion.": "Tài khoản này đã bị vô hiệu hóa hoặc đang được lên lịch xóa.",
-  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "Nếu bạn yêu cầu xóa do nhầm lẫn, hãy dùng liên kết hủy trong email của bạn trong vòng 24 giờ hoặc liên hệ bộ phận hỗ trợ."
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "Nếu bạn yêu cầu xóa do nhầm lẫn, hãy dùng liên kết hủy trong email của bạn trong vòng 24 giờ hoặc liên hệ bộ phận hỗ trợ.",
+  "auth.turnstile.failed": "Kiểm tra bảo mật không thành công. Vui lòng thử lại.",
+  "auth.turnstile.unavailable": "Không thể tải bước kiểm tra bảo mật. Hãy tải lại trang và thử lại."
 }

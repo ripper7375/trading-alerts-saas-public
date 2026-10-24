@@ -4,11 +4,16 @@ import {
   createOperationApi,
   unwrapOperationApi,
 } from '@/lib/api/generated/operation-api/client';
+import { clientIp } from '@/lib/auth/auth-throttle';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import {
   forwardedRequestContext,
   OperationServiceError,
 } from '@/lib/operation-service/client';
+import {
+  TURNSTILE_FAILED_CODE,
+  verifyTurnstile,
+} from '@/lib/security/turnstile';
 
 interface RegisterSuccessBody {
   userId: string;
@@ -36,11 +41,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   let email: unknown;
   let password: unknown;
   let name: unknown;
+  let turnstileToken: unknown;
   try {
     const body = await request.json();
     email = body?.email;
     password = body?.password;
     name = body?.name;
+    turnstileToken = body?.turnstileToken;
   } catch {
     return NextResponse.json(
       { error: 'INVALID_REQUEST', message: 'Invalid JSON body' },
@@ -58,6 +65,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (name !== undefined && typeof name !== 'string') {
     return NextResponse.json(
       { error: 'INVALID_REQUEST', message: 'name must be a string' },
+      { status: 400 }
+    );
+  }
+
+  // CODE-15: with TURNSTILE_SECRET_KEY set, a registration needs a Cloudflare Turnstile token
+  // that Cloudflare accepts. Checked before operation-service is called; the token is not
+  // forwarded. Unset: skipped (local development).
+  const humanCheck = await verifyTurnstile(
+    turnstileToken,
+    clientIp(request.headers)
+  );
+  if (!humanCheck.ok) {
+    return NextResponse.json(
+      { error: TURNSTILE_FAILED_CODE, message: 'Security check failed' },
       { status: 400 }
     );
   }

@@ -5315,5 +5315,7 @@
   "worldGold.hours.au": "Pzt–Cum 09:00–17:00",
   "worldGold.notes.au": "Referans külçe; bir kilogram 32,1507466 troy onsa eşittir.",
   "This account has been deactivated or is scheduled for deletion.": "Bu hesap devre dışı bırakıldı veya silinmek üzere planlandı.",
-  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "Silme talebini yanlışlıkla yaptıysanız, 24 saat içinde e-postanızdaki iptal bağlantısını kullanın veya destekle iletişime geçin."
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "Silme talebini yanlışlıkla yaptıysanız, 24 saat içinde e-postanızdaki iptal bağlantısını kullanın veya destekle iletişime geçin.",
+  "auth.turnstile.failed": "Güvenlik doğrulaması başarısız oldu. Lütfen tekrar deneyin.",
+  "auth.turnstile.unavailable": "Güvenlik doğrulaması yüklenemedi. Sayfayı yeniden yükleyin ve tekrar deneyin."
 }

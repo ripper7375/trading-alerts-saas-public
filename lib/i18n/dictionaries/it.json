@@ -5315,5 +5315,7 @@
   "worldGold.hours.au": "Lun–ven 09:00–17:00",
   "worldGold.notes.au": "Lingotti di riferimento; un chilogrammo equivale a 32,1507466 once troy.",
   "This account has been deactivated or is scheduled for deletion.": "Questo account è stato disattivato o è in programma per l'eliminazione.",
-  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "Se hai richiesto l'eliminazione per errore, usa il link di annullamento nella tua e-mail entro 24 ore oppure contatta l'assistenza."
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "Se hai richiesto l'eliminazione per errore, usa il link di annullamento nella tua e-mail entro 24 ore oppure contatta l'assistenza.",
+  "auth.turnstile.failed": "Verifica di sicurezza non riuscita. Riprova.",
+  "auth.turnstile.unavailable": "Impossibile caricare la verifica di sicurezza. Ricarica la pagina e riprova."
 }

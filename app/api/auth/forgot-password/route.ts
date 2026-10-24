@@ -7,6 +7,10 @@ import { clientIp, mailLimits, reserve } from '@/lib/auth/auth-throttle';
 import { csrfErrorResponse, validateOrigin } from '@/lib/csrf';
 import { prisma } from '@/lib/db/prisma';
 import { sendPasswordResetEmail } from '@/lib/email/email';
+import {
+  TURNSTILE_FAILED_CODE,
+  verifyTurnstile,
+} from '@/lib/security/turnstile';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email format'),
@@ -21,6 +25,22 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const body = await request.json();
     const validated = forgotPasswordSchema.parse(body);
+
+    // CODE-15: with TURNSTILE_SECRET_KEY set, a request needs a Cloudflare Turnstile token that
+    // Cloudflare accepts. Checked BEFORE the limits below, so a bot with no token cannot use up
+    // an address's three requests an hour, and before anything is looked up or sent. The refusal
+    // is the same for every address, so it tells nothing about the account. Unset: skipped
+    // (local development).
+    const humanCheck = await verifyTurnstile(
+      body?.turnstileToken,
+      clientIp(request.headers)
+    );
+    if (!humanCheck.ok) {
+      return NextResponse.json(
+        { error: TURNSTILE_FAILED_CODE },
+        { status: 400 }
+      );
+    }
 
     // CODE-01B: three requests an hour per e-mail address and per client address. Past that the
     // answer is the one every request gets and nothing is looked up or sent, so the limit tells

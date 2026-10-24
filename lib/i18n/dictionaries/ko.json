@@ -5315,5 +5315,7 @@
   "worldGold.hours.au": "월–금 09:00–17:00",
   "worldGold.notes.au": "참고 금괴 가격이며, 1킬로그램은 32.1507466트로이온스입니다.",
   "This account has been deactivated or is scheduled for deletion.": "이 계정은 비활성화되었거나 삭제 예정입니다.",
-  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "실수로 삭제를 요청하셨다면 24시간 이내에 이메일의 취소 링크를 사용하거나 고객 지원팀에 문의하세요."
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "실수로 삭제를 요청하셨다면 24시간 이내에 이메일의 취소 링크를 사용하거나 고객 지원팀에 문의하세요.",
+  "auth.turnstile.failed": "보안 확인에 실패했습니다. 다시 시도해 주세요.",
+  "auth.turnstile.unavailable": "보안 확인을 불러오지 못했습니다. 페이지를 새로 고친 후 다시 시도해 주세요."
 }

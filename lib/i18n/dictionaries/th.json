@@ -5315,5 +5315,7 @@
   "worldGold.hours.au": "จันทร์–ศุกร์ 09:00–17:00",
   "worldGold.notes.au": "อ้างอิงทองคำแท่ง โดยหนึ่งกิโลกรัมเท่ากับ 32.1507466 ทรอยออนซ์",
   "This account has been deactivated or is scheduled for deletion.": "บัญชีนี้ถูกปิดใช้งานหรือถูกกำหนดให้ลบ",
-  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "หากคุณขอลบโดยไม่ได้ตั้งใจ โปรดใช้ลิงก์ยกเลิกในอีเมลของคุณภายใน 24 ชั่วโมง หรือติดต่อฝ่ายสนับสนุน"
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "หากคุณขอลบโดยไม่ได้ตั้งใจ โปรดใช้ลิงก์ยกเลิกในอีเมลของคุณภายใน 24 ชั่วโมง หรือติดต่อฝ่ายสนับสนุน",
+  "auth.turnstile.failed": "การตรวจสอบความปลอดภัยไม่สำเร็จ โปรดลองอีกครั้ง",
+  "auth.turnstile.unavailable": "ไม่สามารถโหลดการตรวจสอบความปลอดภัยได้ โปรดรีโหลดหน้าและลองอีกครั้ง"
 }

@@ -26,6 +26,7 @@ import {
 import { useLocale } from '@/lib/context/locale-context';
 
 import SocialAuthButtons from './social-auth-buttons';
+import { TURNSTILE_FAILED_CODE, useTurnstile } from './turnstile-widget';
 
 // Validation schema
 const loginSchema = z.object({
@@ -42,11 +43,13 @@ type ErrorType =
   | 'server'
   | 'unverified'
   | '2fa_required'
+  | 'turnstile'
   | null;
 
 export default function LoginForm(): React.JSX.Element {
   const router = useRouter();
   const { t } = useLocale();
+  const turnstile = useTurnstile();
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<ErrorType>(null);
@@ -92,6 +95,10 @@ export default function LoginForm(): React.JSX.Element {
     setError(null);
     setCurrentEmail(data.email);
 
+    // CODE-15: the Cloudflare token for this attempt, when the challenge is on. It works once,
+    // so a fresh widget is started whatever the outcome (see `finally`).
+    const turnstileToken = turnstile.token;
+
     // Where to land after sign-in: the page's ?callbackUrl= when it is a safe
     // same-site path (lib/auth/safe-callback-url.ts rejects everything else),
     // otherwise /dashboard as before. Carried through the 2FA step too, but
@@ -108,7 +115,11 @@ export default function LoginForm(): React.JSX.Element {
         const response = await fetch('/api/auth/token-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: data.email, password: data.password }),
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password,
+            ...(turnstileToken ? { turnstileToken } : {}),
+          }),
         });
         const body = await response.json();
 
@@ -132,6 +143,8 @@ export default function LoginForm(): React.JSX.Element {
           setError('unverified');
         } else if (body?.error === ACCOUNT_DEACTIVATED_CODE) {
           setError('deactivated');
+        } else if (body?.error === TURNSTILE_FAILED_CODE) {
+          setError('turnstile');
         } else {
           setError('invalid');
         }
@@ -142,6 +155,7 @@ export default function LoginForm(): React.JSX.Element {
       const result = await signIn('credentials', {
         email: data.email,
         password: data.password,
+        ...(turnstileToken ? { turnstileToken } : {}),
         redirect: false,
       });
 
@@ -162,6 +176,8 @@ export default function LoginForm(): React.JSX.Element {
           setError('unverified');
         } else if (result.error.includes(ACCOUNT_DEACTIVATED_CODE)) {
           setError('deactivated');
+        } else if (result.error.includes(TURNSTILE_FAILED_CODE)) {
+          setError('turnstile');
         } else {
           setError('invalid');
         }
@@ -173,6 +189,7 @@ export default function LoginForm(): React.JSX.Element {
       setError('server');
     } finally {
       setIsSubmitting(false);
+      if (turnstile.required) turnstile.reset();
     }
   };
 
@@ -201,6 +218,13 @@ export default function LoginForm(): React.JSX.Element {
         };
       case 'server':
         return { title: t('Something went wrong. Please try again later.') };
+      case 'turnstile':
+        return {
+          title: t(
+            'auth.turnstile.failed',
+            'Security check failed. Please try again.'
+          ),
+        };
       default:
         return null;
     }
@@ -464,11 +488,14 @@ export default function LoginForm(): React.JSX.Element {
           </Link>
         </div>
 
+        {/* Cloudflare Turnstile (only when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set) */}
+        {turnstile.widget}
+
         {/* Submit Button */}
         <button
           type="submit"
           className="h-10 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={isSubmitting || !isValid}
+          disabled={isSubmitting || !isValid || !turnstile.ready}
         >
           {isSubmitting ? (
             <>

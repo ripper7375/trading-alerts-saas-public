@@ -5315,5 +5315,7 @@
   "worldGold.hours.au": "週一至週五 09:00–17:00",
   "worldGold.notes.au": "金條參考價；一公斤等於32.1507466金衡盎司。",
   "This account has been deactivated or is scheduled for deletion.": "此帳戶已停用或已排定刪除。",
-  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "如果您是誤提交了刪除請求，請在 24 小時內使用電子郵件中的取消連結，或聯絡客服支援。"
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "如果您是誤提交了刪除請求，請在 24 小時內使用電子郵件中的取消連結，或聯絡客服支援。",
+  "auth.turnstile.failed": "安全驗證失敗，請重試。",
+  "auth.turnstile.unavailable": "無法載入安全驗證，請重新整理頁面後重試。"
 }

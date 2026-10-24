@@ -21,6 +21,10 @@ import { useState, useEffect, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import {
+  TURNSTILE_FAILED_CODE,
+  useTurnstile,
+} from '@/components/auth/turnstile-widget';
 import { isAuthBridgeEnabled } from '@/lib/auth/auth-bridge-flag';
 import { Translated, useLocale } from '@/lib/context/locale-context';
 import { Button } from '@/components/ui/button';
@@ -48,11 +52,23 @@ const resetPasswordSchema = z
 type EmailFormData = z.infer<typeof emailSchema>;
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
+/** The `error` code of a JSON error body, or null when the body is not one. */
+async function readErrorCode(response: Response): Promise<string | null> {
+  try {
+    const body: unknown = await response.json();
+    const code = (body as { error?: unknown } | null)?.error;
+    return typeof code === 'string' ? code : null;
+  } catch {
+    return null;
+  }
+}
+
 type Step = 'request' | 'confirmation' | 'reset' | 'success';
 type ErrorType =
   | 'not-found'
   | 'rate-limit'
   | 'server'
+  | 'turnstile'
   | 'expired'
   | 'invalid'
   | null;
@@ -164,6 +180,7 @@ function RequestResetStep({
   formatTime: (seconds: number) => string;
 }): React.JSX.Element {
   const { t } = useLocale();
+  const turnstile = useTurnstile();
   const [isLoading, setIsLoading] = useState(false);
 
   const {
@@ -186,10 +203,15 @@ function RequestResetStep({
       const endpoint = isAuthBridgeEnabled()
         ? '/api/auth/token-forgot-password'
         : '/api/auth/forgot-password';
+      // CODE-15: the Cloudflare token for this attempt, when the challenge is on. It works
+      // once, so a fresh widget is started whatever the outcome (see `finally`).
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          ...(turnstile.token ? { turnstileToken: turnstile.token } : {}),
+        }),
       });
 
       if (response.ok) {
@@ -199,6 +221,11 @@ function RequestResetStep({
         setError('not-found');
       } else if (response.status === 429) {
         setError('rate-limit');
+      } else if (
+        response.status === 400 &&
+        (await readErrorCode(response)) === TURNSTILE_FAILED_CODE
+      ) {
+        setError('turnstile');
       } else {
         setError('server');
       }
@@ -207,6 +234,7 @@ function RequestResetStep({
       setError('server');
     } finally {
       setIsLoading(false);
+      if (turnstile.required) turnstile.reset();
     }
   };
 
@@ -301,9 +329,26 @@ function RequestResetStep({
           </div>
         )}
 
+        {error === 'turnstile' && (
+          <div className="flex gap-2.5 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+            <p className="text-rose-700 dark:text-rose-300">
+              {t(
+                'auth.turnstile.failed',
+                'Security check failed. Please try again.'
+              )}
+            </p>
+          </div>
+        )}
+
+        {/* Cloudflare Turnstile (only when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set) */}
+        {turnstile.widget}
+
         <button
           type="submit"
-          disabled={!isValid || isLoading || error === 'rate-limit'}
+          disabled={
+            !isValid || isLoading || error === 'rate-limit' || !turnstile.ready
+          }
           className="h-10 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isLoading ? (

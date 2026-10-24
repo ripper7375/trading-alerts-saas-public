@@ -47,6 +47,10 @@ import {
   startSession,
 } from '@/lib/auth/user-active';
 import { prisma } from '@/lib/db/prisma';
+import {
+  TURNSTILE_FAILED_CODE,
+  verifyTurnstile,
+} from '@/lib/security/turnstile';
 import type { UserTier, UserRole } from '@/types';
 
 // Helper to check if OAuth provider credentials are configured
@@ -376,6 +380,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        turnstileToken: { label: 'Turnstile token', type: 'text' },
       },
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
@@ -385,6 +390,20 @@ export const authOptions: NextAuthOptions = {
         // The second step of a 2FA sign-in (see completeTwoFactorSignIn).
         if (credentials.email === TWO_FACTOR_VERIFIED_SENTINEL) {
           return completeTwoFactorSignIn(credentials.password);
+        }
+
+        // CODE-15: with TURNSTILE_SECRET_KEY set, a sign-in needs a Cloudflare Turnstile token
+        // that Cloudflare accepts. It is checked FIRST: before an attempt is counted, so a bot
+        // with no token cannot burn a victim's failed-password budget, and before any database
+        // or bcrypt work. Not asked at the second step of a 2FA sign-in above, which continues
+        // a sign-in that already passed it. Unset: skipped (local development). The error text
+        // is the code login-form.tsx turns into its security-check message.
+        const humanCheck = await verifyTurnstile(
+          credentials.turnstileToken,
+          clientIp(req?.headers)
+        );
+        if (!humanCheck.ok) {
+          throw new Error(TURNSTILE_FAILED_CODE);
         }
 
         const email = credentials.email.toLowerCase().trim();

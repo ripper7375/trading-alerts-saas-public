@@ -13,6 +13,7 @@ import { useLocale } from '@/lib/context/locale-context';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
 
 import SocialAuthButtons from './social-auth-buttons';
+import { TURNSTILE_FAILED_CODE, useTurnstile } from './turnstile-widget';
 
 // Enhanced validation schema with password confirmation
 const registrationSchema = z
@@ -46,6 +47,7 @@ export default function RegisterForm(): React.JSX.Element {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { t, formatCurrency } = useLocale();
+  const turnstile = useTurnstile();
 
   // Get dynamic affiliate config from SystemConfig
   const { discountPercent, regularPrice, calculateDiscountedPrice } =
@@ -146,6 +148,9 @@ export default function RegisterForm(): React.JSX.Element {
         email: data.email,
         password: data.password,
         referralCode: verifiedCode || undefined,
+        // CODE-15: the Cloudflare token for this attempt, when the challenge is on. It works
+        // once, so a fresh widget is started whatever the outcome (see `finally`).
+        ...(turnstile.token ? { turnstileToken: turnstile.token } : {}),
       };
 
       // Bridge path (Session 4B-20, DECISION-LOG.md F56): token-register
@@ -178,6 +183,10 @@ export default function RegisterForm(): React.JSX.Element {
         setError(t('An account with this email already exists.'));
       } else if (response.status === 503) {
         setError(t('Database connection error. Please try again later.'));
+      } else if (responseData?.error === TURNSTILE_FAILED_CODE) {
+        setError(
+          t('auth.turnstile.failed', 'Security check failed. Please try again.')
+        );
       } else {
         // Display the actual error message from the API if available
         setError(
@@ -189,6 +198,7 @@ export default function RegisterForm(): React.JSX.Element {
       setError(t('An error occurred. Please try again.'));
     } finally {
       setIsSubmitting(false);
+      if (turnstile.required) turnstile.reset();
     }
   };
 
@@ -518,6 +528,9 @@ export default function RegisterForm(): React.JSX.Element {
           </div>
         </div>
 
+        {/* Cloudflare Turnstile (only when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set) */}
+        {turnstile.widget}
+
         {/* Error Display */}
         {error && (
           <div className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-xs dark:border-rose-500/30 dark:bg-rose-950/40">
@@ -528,7 +541,7 @@ export default function RegisterForm(): React.JSX.Element {
         {/* Submit Button */}
         <button
           type="submit"
-          disabled={!isValid || isSubmitting}
+          disabled={!isValid || isSubmitting || !turnstile.ready}
           className="h-10 w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-xs font-extrabold text-slate-950 shadow-md shadow-amber-500/20 transition-all hover:from-amber-400 hover:to-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? (

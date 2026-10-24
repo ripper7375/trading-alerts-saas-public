@@ -5315,5 +5315,7 @@
   "worldGold.hours.au": "Seg–sex 09:00–17:00",
   "worldGold.notes.au": "Barras de referência; um quilograma equivale a 32,1507466 onças troy.",
   "This account has been deactivated or is scheduled for deletion.": "Esta conta foi desativada ou está programada para exclusão.",
-  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "Se você pediu a exclusão por engano, use o link de cancelamento no seu e-mail em até 24 horas ou entre em contato com o suporte."
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "Se você pediu a exclusão por engano, use o link de cancelamento no seu e-mail em até 24 horas ou entre em contato com o suporte.",
+  "auth.turnstile.failed": "A verificação de segurança falhou. Tente novamente.",
+  "auth.turnstile.unavailable": "Não foi possível carregar a verificação de segurança. Recarregue a página e tente novamente."
 }

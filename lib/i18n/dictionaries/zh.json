@@ -5315,5 +5315,7 @@
   "worldGold.hours.au": "周一至周五 09:00–17:00",
   "worldGold.notes.au": "金条参考价；一千克等于32.1507466金衡盎司。",
   "This account has been deactivated or is scheduled for deletion.": "此账户已停用或已安排删除。",
-  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "如果您是误提交了删除请求，请在 24 小时内使用邮件中的取消链接，或联系客服支持。"
+  "If you asked to delete it by mistake, use the cancellation link in your email within 24 hours or contact support.": "如果您是误提交了删除请求，请在 24 小时内使用邮件中的取消链接，或联系客服支持。",
+  "auth.turnstile.failed": "安全验证失败，请重试。",
+  "auth.turnstile.unavailable": "无法加载安全验证，请刷新页面后重试。"
 }
