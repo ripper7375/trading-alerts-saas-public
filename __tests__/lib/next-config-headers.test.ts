@@ -79,7 +79,7 @@ describe('security headers: production', () => {
     const script = directive(csp, 'script-src');
 
     expect(script).toBe(
-      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://checkout.stripe.com https://s3.tradingview.com"
+      "script-src 'self' 'unsafe-inline' https://js.stripe.com https://checkout.stripe.com https://s3.tradingview.com https://challenges.cloudflare.com"
     );
     const connect = directive(csp, 'connect-src');
     for (const origin of [
@@ -116,6 +116,45 @@ describe('security headers: production', () => {
   });
 });
 
+describe('CODE-15: the Cloudflare Turnstile origin', () => {
+  const ORIGIN = 'https://challenges.cloudflare.com';
+
+  it.each(['production', 'development'] as const)(
+    'is allowed to run its script and to be framed, in %s, and nowhere else',
+    async (nodeEnv) => {
+      const csp = (await headersFor(nodeEnv)).get(
+        'Content-Security-Policy'
+      ) as string;
+
+      expect(directive(csp, 'script-src').split(' ')).toContain(ORIGIN);
+      expect(directive(csp, 'frame-src').split(' ')).toContain(ORIGIN);
+      for (const name of [
+        'default-src',
+        'style-src',
+        'img-src',
+        'font-src',
+        'connect-src',
+        'frame-ancestors',
+        'form-action',
+        'base-uri',
+        'object-src',
+      ]) {
+        expect(directive(csp, name)).not.toContain('cloudflare.com');
+      }
+    }
+  );
+
+  it('opens neither directive wider than that origin (no wildcard)', async () => {
+    const csp = (await headersFor('production')).get(
+      'Content-Security-Policy'
+    ) as string;
+
+    expect(directive(csp, 'script-src')).not.toMatch(/\*\.cloudflare\.com/);
+    expect(directive(csp, 'frame-src')).not.toMatch(/\*\.cloudflare\.com/);
+    expect(directive(csp, 'frame-src')).toContain('https://js.stripe.com');
+  });
+});
+
 describe('security headers: development', () => {
   let headers: Map<string, string>;
   beforeAll(async () => {
@@ -126,7 +165,7 @@ describe('security headers: development', () => {
     const csp = headers.get('Content-Security-Policy') as string;
 
     expect(directive(csp, 'script-src')).toBe(
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://s3.tradingview.com"
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://checkout.stripe.com https://s3.tradingview.com https://challenges.cloudflare.com"
     );
   });
 
