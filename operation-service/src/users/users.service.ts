@@ -20,6 +20,7 @@ import {
 } from '../email/email.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { formatLocation, getGeoLocation } from '../security/geo-location.util';
+import { decodeNextAuthToken } from '../auth/next-auth-jwt.util';
 import { endAllSessions, withSessionBump } from '../auth/session-version.util';
 import { TwoFactorService } from '../auth/two-factor.service';
 import { forgetSessionState } from '../auth/user-active.util';
@@ -314,6 +315,24 @@ export class UsersService {
 
   // ─── Sessions ─────────────────────────────────────────────────────────
 
+  /**
+   * The `sid` (device row) a bearer token carries (CODE-02C), or `undefined` for a token that has
+   * none (minted before the sign-in wrote a row), cannot be decoded, or when there is no secret.
+   * A bad token is not an error here: the callers fall back to the token value itself.
+   */
+  private async sidOfBearerToken(token: string): Promise<string | undefined> {
+    const secret = process.env['NEXTAUTH_SECRET'];
+    if (!token || !secret) return undefined;
+    try {
+      const claims = await decodeNextAuthToken(token, secret);
+      return typeof claims.sid === 'string' && claims.sid !== ''
+        ? claims.sid
+        : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
   async trackSession(
     userId: string,
     sessionToken: string,
@@ -322,6 +341,27 @@ export class UsersService {
   ): Promise<void> {
     const parsed = this.parseUserAgent(userAgent);
     const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    // A token that carries a `sid` belongs to the row the sign-in wrote: fill that row in (an
+    // active row of this user only) and write no second row, and never the bearer token itself.
+    const sid = await this.sidOfBearerToken(sessionToken);
+    if (sid) {
+      await this.prisma.userSession.updateMany({
+        where: { id: sid, userId, isActive: true },
+        data: {
+          userAgent,
+          ipAddress,
+          browser: parsed.browser,
+          browserVersion: parsed.browserVersion,
+          os: parsed.os,
+          osVersion: parsed.osVersion,
+          deviceType: parsed.deviceType,
+          lastActiveAt: new Date(),
+          expiresAt,
+        },
+      });
+      return;
+    }
 
     await this.prisma.userSession.upsert({
       where: { sessionToken },
@@ -348,20 +388,41 @@ export class UsersService {
       orderBy: { lastActiveAt: 'desc' },
     });
 
+    // The device of the bearer token is the row named by its `sid`; a token without one is found
+    // by value (CODE-02C).
+    const currentSid = currentSessionToken
+      ? await this.sidOfBearerToken(currentSessionToken)
+      : undefined;
+
     return {
-      sessions: sessions.map((session) => ({
-        id: session.id,
-        device: this.formatDevice(session.browser, session.os),
-        browser: session.browser || 'Unknown',
-        os: session.os || 'Unknown',
-        location: this.formatSessionLocation(session.city, session.country),
-        lastActive:
-          session.sessionToken === currentSessionToken
+      sessions: sessions.map((session) => {
+        const isCurrent =
+          (currentSid !== undefined && session.id === currentSid) ||
+          (currentSessionToken !== undefined &&
+            session.sessionToken === currentSessionToken);
+        // A row the sign-in wrote has the raw user agent only, until that device lists its own
+        // sessions: name it from that, so the list does not show "Unknown device" for every sign-in.
+        const parsed = session.userAgent
+          ? this.parseUserAgent(session.userAgent)
+          : null;
+        const browser =
+          session.browser ||
+          (parsed && parsed.browser !== 'Unknown' ? parsed.browser : null);
+        const os =
+          session.os || (parsed && parsed.os !== 'Unknown' ? parsed.os : null);
+        return {
+          id: session.id,
+          device: this.formatDevice(browser, os),
+          browser: browser || 'Unknown',
+          os: os || 'Unknown',
+          location: this.formatSessionLocation(session.city, session.country),
+          lastActive: isCurrent
             ? 'Current session'
             : this.formatRelativeTime(session.lastActiveAt),
-        isCurrent: session.sessionToken === currentSessionToken,
-        createdAt: session.createdAt.toISOString(),
-      })),
+          isCurrent,
+          createdAt: session.createdAt.toISOString(),
+        };
+      }),
     };
   }
 
@@ -411,11 +472,21 @@ export class UsersService {
     };
   }
 
+  /**
+   * "Log out this device" (CODE-02C). The row is revoked (it stays, inactive): a token whose `sid`
+   * names it is refused by every check of the `sid` (the monolith's `jwt` callback), and the refresh
+   * token the row is bound to (it holds the hash that token is stored under) is deleted, so the
+   * device cannot mint a new access token. Only the caller's own row is touched, and nothing else is
+   * deleted for a row that is not theirs.
+   */
   async revokeSession(sessionId: string, userId: string) {
     const result = await this.prisma.userSession.updateMany({
       where: { id: sessionId, userId },
       data: { isActive: false },
     });
+    if (result.count === 0) {
+      throw new NotFoundException('Session not found or already revoked');
+    }
 
     const session = await this.prisma.userSession.findUnique({
       where: { id: sessionId },
@@ -425,11 +496,11 @@ export class UsersService {
       await this.prisma.session.deleteMany({
         where: { sessionToken: session.sessionToken },
       });
+      await this.prisma.refreshToken.deleteMany({
+        where: { userId, hashedToken: session.sessionToken },
+      });
     }
 
-    if (result.count === 0) {
-      throw new NotFoundException('Session not found or already revoked');
-    }
     return { success: true, message: 'Session revoked successfully' };
   }
 

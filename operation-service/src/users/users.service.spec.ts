@@ -12,6 +12,7 @@ import {
   createAccountDbFake,
   type AccountDbFake,
 } from '../../test/account-db-fake';
+import { encodeNextAuthToken } from '../auth/next-auth-jwt-encode.util';
 import {
   clearUserActiveCache,
   getSessionState,
@@ -292,6 +293,231 @@ describe('UsersService', () => {
       expect(result.success).toBe(true);
       expect(mockPrisma.session.deleteMany).toHaveBeenCalledWith({
         where: { sessionToken: 'tok-1' },
+      });
+    });
+  });
+
+  // CODE-02C (WS-12): "log out this device"
+  describe('revokeSession: the device behind a sid (CODE-02C)', () => {
+    it("revokes the caller's row only", async () => {
+      mockPrisma.userSession.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.userSession.findUnique.mockResolvedValue({
+        sessionToken: null,
+      });
+
+      await makeService().revokeSession('session-1', 'user-1');
+
+      expect(mockPrisma.userSession.updateMany).toHaveBeenCalledWith({
+        where: { id: 'session-1', userId: 'user-1' },
+        data: { isActive: false },
+      });
+    });
+
+    it("touches no NextAuth session or refresh token when the row is not the caller's", async () => {
+      mockPrisma.userSession.updateMany.mockResolvedValue({ count: 0 });
+      mockPrisma.userSession.findUnique.mockResolvedValue({
+        sessionToken: 'their-hash',
+      });
+
+      await expect(
+        makeService().revokeSession('session-9', 'user-1')
+      ).rejects.toBeInstanceOf(NotFoundException);
+
+      expect(mockPrisma.session.deleteMany).not.toHaveBeenCalled();
+      expect(mockPrisma.refreshToken.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('deletes the refresh token the row is bound to, so the device cannot mint a new access token', async () => {
+      mockPrisma.userSession.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.userSession.findUnique.mockResolvedValue({
+        sessionToken: 'hash-1',
+      });
+
+      await makeService().revokeSession('session-1', 'user-1');
+
+      expect(mockPrisma.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1', hashedToken: 'hash-1' },
+      });
+    });
+
+    it('touches no refresh token for a row that holds no token', async () => {
+      mockPrisma.userSession.updateMany.mockResolvedValue({ count: 1 });
+      mockPrisma.userSession.findUnique.mockResolvedValue({
+        sessionToken: null,
+      });
+
+      await makeService().revokeSession('session-1', 'user-1');
+
+      expect(mockPrisma.refreshToken.deleteMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the sessions list and tracking: the device behind a sid (CODE-02C)', () => {
+    const SECRET = 'test-secret-for-the-sessions-list';
+    const CHROME_ON_WINDOWS =
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
+    const originalSecret = process.env['NEXTAUTH_SECRET'];
+
+    beforeAll(() => {
+      process.env['NEXTAUTH_SECRET'] = SECRET;
+    });
+    afterAll(() => {
+      if (originalSecret === undefined) {
+        delete process.env['NEXTAUTH_SECRET'];
+      } else {
+        process.env['NEXTAUTH_SECRET'] = originalSecret;
+      }
+    });
+
+    const bearer = (sid?: string): Promise<string> =>
+      encodeNextAuthToken(
+        {
+          id: 'user-1',
+          email: 'a@b.com',
+          tier: 'PRO',
+          role: 'USER',
+          isAffiliate: false,
+          sid,
+        },
+        SECRET
+      );
+
+    const row = (overrides: Record<string, unknown> = {}) => ({
+      id: 'sess-1',
+      sessionToken: 'hash-of-the-refresh-token',
+      browser: null,
+      os: null,
+      city: null,
+      country: null,
+      userAgent: null,
+      lastActiveAt: new Date(),
+      createdAt: new Date('2026-10-01T00:00:00Z'),
+      ...overrides,
+    });
+
+    it('fills in the row the sign-in wrote when the token carries a sid, and upserts nothing', async () => {
+      mockPrisma.userSession.updateMany.mockResolvedValue({ count: 1 });
+
+      await makeService().trackSession(
+        'user-1',
+        await bearer('sess-1'),
+        CHROME_ON_WINDOWS,
+        '203.0.113.7'
+      );
+
+      expect(mockPrisma.userSession.updateMany).toHaveBeenCalledWith({
+        where: { id: 'sess-1', userId: 'user-1', isActive: true },
+        data: expect.objectContaining({
+          userAgent: CHROME_ON_WINDOWS,
+          ipAddress: '203.0.113.7',
+          browser: 'Chrome',
+          os: 'Windows',
+          deviceType: 'desktop',
+          lastActiveAt: expect.any(Date),
+        }),
+      });
+      expect(mockPrisma.userSession.upsert).not.toHaveBeenCalled();
+    });
+
+    it('never stores the bearer token on a row with a sid', async () => {
+      mockPrisma.userSession.updateMany.mockResolvedValue({ count: 1 });
+      const token = await bearer('sess-1');
+
+      await makeService().trackSession('user-1', token, 'ua', '10.0.0.1');
+
+      expect(
+        JSON.stringify(mockPrisma.userSession.updateMany.mock.calls)
+      ).not.toContain(token);
+    });
+
+    it('keeps the upsert by token for a token with no sid', async () => {
+      const token = await bearer();
+
+      await makeService().trackSession('user-1', token, 'ua', '10.0.0.1');
+
+      expect(mockPrisma.userSession.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { sessionToken: token } })
+      );
+    });
+
+    it('keeps the upsert by token for a token that cannot be decoded', async () => {
+      await makeService().trackSession(
+        'user-1',
+        'not-a-token',
+        'ua',
+        '10.0.0.1'
+      );
+
+      expect(mockPrisma.userSession.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { sessionToken: 'not-a-token' } })
+      );
+    });
+
+    it('lists the device of the bearer token as current by its sid, though no row holds the token', async () => {
+      mockPrisma.userSession.findMany.mockResolvedValue([
+        row({ id: 'sess-1' }),
+        row({ id: 'sess-2', sessionToken: 'another-hash' }),
+      ]);
+
+      const { sessions } = await makeService().getSessions(
+        'user-1',
+        await bearer('sess-1')
+      );
+
+      expect(sessions.find((s) => s.id === 'sess-1')).toMatchObject({
+        isCurrent: true,
+        lastActive: 'Current session',
+      });
+      expect(sessions.find((s) => s.id === 'sess-2')).toMatchObject({
+        isCurrent: false,
+      });
+    });
+
+    it('still lists a legacy row as current by its token', async () => {
+      const token = await bearer();
+      mockPrisma.userSession.findMany.mockResolvedValue([
+        row({ id: 'legacy', sessionToken: token }),
+      ]);
+
+      const { sessions } = await makeService().getSessions('user-1', token);
+
+      expect(sessions[0]).toMatchObject({ isCurrent: true });
+    });
+
+    it('names a row the sign-in wrote from its user agent, since nobody has listed the sessions on that device yet', async () => {
+      mockPrisma.userSession.findMany.mockResolvedValue([
+        row({ userAgent: CHROME_ON_WINDOWS }),
+      ]);
+
+      const { sessions } = await makeService().getSessions('user-1');
+
+      expect(sessions[0]).toMatchObject({
+        device: 'Chrome on Windows',
+        browser: 'Chrome',
+        os: 'Windows',
+      });
+    });
+
+    it('keeps the stored browser and os over the user agent, and says Unknown when there is neither', async () => {
+      mockPrisma.userSession.findMany.mockResolvedValue([
+        row({
+          id: 'a',
+          browser: 'Firefox',
+          os: 'Linux',
+          userAgent: CHROME_ON_WINDOWS,
+        }),
+        row({ id: 'b' }),
+      ]);
+
+      const { sessions } = await makeService().getSessions('user-1');
+
+      expect(sessions.find((s) => s.id === 'a')).toMatchObject({
+        device: 'Firefox on Linux',
+      });
+      expect(sessions.find((s) => s.id === 'b')).toMatchObject({
+        device: 'Unknown device',
+        browser: 'Unknown',
+        os: 'Unknown',
       });
     });
   });

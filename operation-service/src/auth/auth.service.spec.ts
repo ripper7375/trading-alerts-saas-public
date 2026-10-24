@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 import { ServiceUnavailableException } from '@nestjs/common';
 import hkdf from '@panva/hkdf';
 import bcrypt from 'bcryptjs';
@@ -26,6 +28,7 @@ import {
   EmailNotVerifiedError,
   ExpiredTokenError,
   InvalidCredentialsError,
+  InvalidTokenError,
   TooManyAttemptsError,
   TwoFactorRequiredError,
 } from './errors';
@@ -167,6 +170,12 @@ describe('AuthService', () => {
 
   let prisma: {
     user: { findUnique: jest.Mock; create: jest.Mock; upsert: jest.Mock };
+    // CODE-02C: the device sessions behind the access tokens.
+    userSession: {
+      create: jest.Mock;
+      findUnique: jest.Mock;
+      updateMany: jest.Mock;
+    };
   };
   let refreshTokens: {
     issue: jest.Mock;
@@ -183,6 +192,12 @@ describe('AuthService', () => {
     process.env['NODE_ENV'] = originalNodeEnv;
     prisma = {
       user: { findUnique: jest.fn(), create: jest.fn(), upsert: jest.fn() },
+      userSession: {
+        create: jest.fn().mockResolvedValue({ id: 'sess-1' }),
+        // A refresh token bound to no device (the default), as one issued before CODE-02C.
+        findUnique: jest.fn().mockResolvedValue(null),
+        updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      },
     };
     refreshTokens = {
       issue: jest.fn().mockResolvedValue({
@@ -1074,6 +1089,284 @@ describe('AuthService', () => {
           select: expect.objectContaining({ sessionVersion: true, role: true }),
         });
       });
+    });
+  });
+
+  // CODE-02C (WS-12): "log out this device". Every sign-in writes a UserSession row and stamps its
+  // id on the access token as `sid`; the row is bound to the refresh token that goes with it (its
+  // `sessionToken` holds the hash the refresh token is stored under), so a rotation can carry the
+  // `sid` on and a revoked device cannot refresh.
+  describe('device sessions (CODE-02C)', () => {
+    const sha256 = (value: string): string =>
+      createHash('sha256').update(value).digest('hex');
+
+    describe('on sign-in', () => {
+      const signIn = async (
+        context: { userAgent?: string; ipAddress?: string } = {
+          userAgent: 'jest',
+          ipAddress: '127.0.0.1',
+        }
+      ) => {
+        const hashed = await bcrypt.hash('correct-password', 10);
+        prisma.user.findUnique.mockResolvedValue(
+          makeUser({ password: hashed })
+        );
+        return service.login('alice@example.com', 'correct-password', context);
+      };
+
+      it('writes one UserSession row for the sign-in and stamps its id on the access token as sid', async () => {
+        const result = await signIn();
+
+        expect(prisma.userSession.create).toHaveBeenCalledTimes(1);
+        expect(prisma.userSession.create).toHaveBeenCalledWith({
+          data: {
+            userId: 'user-1',
+            userAgent: 'jest',
+            ipAddress: '127.0.0.1',
+            expiresAt: expect.any(Date),
+          },
+          select: { id: true },
+        });
+        const claims = await decryptAccessToken(result.accessToken);
+        expect(claims['sid']).toBe('sess-1');
+      });
+
+      it('binds the row to the refresh token it issued, by the hash the refresh token is stored under', async () => {
+        await signIn();
+
+        expect(prisma.userSession.updateMany).toHaveBeenCalledWith({
+          where: { id: 'sess-1', userId: 'user-1' },
+          data: {
+            sessionToken: sha256('raw-refresh-token'),
+            lastActiveAt: expect.any(Date),
+          },
+        });
+      });
+
+      it('never writes the raw refresh token or the access token to the row', async () => {
+        const result = await signIn();
+
+        const written = JSON.stringify([
+          prisma.userSession.create.mock.calls,
+          prisma.userSession.updateMany.mock.calls,
+        ]);
+        expect(written).not.toContain('raw-refresh-token');
+        expect(written).not.toContain(result.accessToken);
+      });
+
+      it('writes the row with null context when the caller gave none', async () => {
+        await signIn({});
+
+        expect(prisma.userSession.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({ userAgent: null, ipAddress: null }),
+          select: { id: true },
+        });
+      });
+
+      it('gives each sign-in its own row and sid', async () => {
+        prisma.userSession.create
+          .mockResolvedValueOnce({ id: 'sess-1' })
+          .mockResolvedValueOnce({ id: 'sess-2' });
+
+        const first = await signIn();
+        const second = await signIn();
+
+        expect((await decryptAccessToken(first.accessToken))['sid']).toBe(
+          'sess-1'
+        );
+        expect((await decryptAccessToken(second.accessToken))['sid']).toBe(
+          'sess-2'
+        );
+      });
+
+      it('gives the completion of a 2FA sign-in a sid too', async () => {
+        prisma.user.findUnique.mockResolvedValue(
+          makeUser({ twoFactorEnabled: true })
+        );
+
+        const result = await service.login(
+          '__2fa_verified__',
+          twoFactorToken('2fa_verified', { payload: { chal: 'chal-1' } })
+        );
+
+        expect((await decryptAccessToken(result.accessToken))['sid']).toBe(
+          'sess-1'
+        );
+      });
+
+      it('signs in without a sid when the row cannot be written (log out all still ends the session)', async () => {
+        const consoleError = jest
+          .spyOn(console, 'error')
+          .mockImplementation(() => undefined);
+        prisma.userSession.create.mockRejectedValue(
+          new Error('connection reset')
+        );
+
+        const result = await signIn();
+
+        const claims = await decryptAccessToken(result.accessToken);
+        expect(claims['sid']).toBeUndefined();
+        expect(result.refreshToken).toBe('raw-refresh-token');
+        expect(prisma.userSession.updateMany).not.toHaveBeenCalled();
+        consoleError.mockRestore();
+      });
+
+      it('fails the sign-in and revokes the refresh token when the binding cannot be written', async () => {
+        prisma.userSession.updateMany.mockRejectedValue(
+          new Error('connection reset')
+        );
+
+        await expect(signIn()).rejects.toThrow('connection reset');
+
+        expect(refreshTokens.revokeByRawToken).toHaveBeenCalledWith(
+          'raw-refresh-token'
+        );
+      });
+    });
+
+    describe('on refresh', () => {
+      const bound = { id: 'sess-1', userId: 'user-1', isActive: true };
+      const rotated = () => ({
+        userId: 'user-1',
+        issued: { rawToken: 'new-raw-token', expiresAt: new Date() },
+        sessionStartedAt: new Date(),
+      });
+
+      it('looks the device up by the hash of the refresh token that was presented', async () => {
+        refreshTokens.rotate.mockResolvedValue(rotated());
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+
+        await service.refresh('old-raw-token');
+
+        expect(prisma.userSession.findUnique).toHaveBeenCalledWith({
+          where: { sessionToken: sha256('old-raw-token') },
+          select: { id: true, userId: true, isActive: true },
+        });
+      });
+
+      it('carries the sid of the bound device into the new access token and rebinds the row to the new refresh token', async () => {
+        prisma.userSession.findUnique.mockResolvedValue(bound);
+        refreshTokens.rotate.mockResolvedValue(rotated());
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+
+        const result = await service.refresh('old-raw-token');
+
+        const claims = await decryptAccessToken(result.accessToken);
+        expect(claims['sid']).toBe('sess-1');
+        expect(prisma.userSession.updateMany).toHaveBeenCalledWith({
+          where: { id: 'sess-1', userId: 'user-1' },
+          data: {
+            sessionToken: sha256('new-raw-token'),
+            lastActiveAt: expect.any(Date),
+          },
+        });
+      });
+
+      it('refuses a refresh token bound to a revoked device, without rotating it, and revokes the token', async () => {
+        prisma.userSession.findUnique.mockResolvedValue({
+          ...bound,
+          isActive: false,
+        });
+
+        await expect(service.refresh('old-raw-token')).rejects.toBeInstanceOf(
+          InvalidTokenError
+        );
+
+        expect(refreshTokens.rotate).not.toHaveBeenCalled();
+        expect(refreshTokens.revokeByRawToken).toHaveBeenCalledWith(
+          'old-raw-token'
+        );
+      });
+
+      it('mints a token without a sid for a refresh token bound to no device (issued before the deploy)', async () => {
+        refreshTokens.rotate.mockResolvedValue(rotated());
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+
+        const result = await service.refresh('old-raw-token');
+
+        const claims = await decryptAccessToken(result.accessToken);
+        expect(claims['sid']).toBeUndefined();
+        expect(result.refreshToken).toBe('new-raw-token');
+        expect(prisma.userSession.updateMany).not.toHaveBeenCalled();
+      });
+
+      it("does not take the sid of another user's row", async () => {
+        prisma.userSession.findUnique.mockResolvedValue({
+          ...bound,
+          userId: 'user-2',
+        });
+        refreshTokens.rotate.mockResolvedValue(rotated());
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+
+        const result = await service.refresh('old-raw-token');
+
+        const claims = await decryptAccessToken(result.accessToken);
+        expect(claims['sid']).toBeUndefined();
+        expect(prisma.userSession.updateMany).not.toHaveBeenCalled();
+      });
+
+      it('fails closed when the device lookup fails: nothing is rotated', async () => {
+        prisma.userSession.findUnique.mockRejectedValue(
+          new Error('connection reset')
+        );
+
+        await expect(service.refresh('old-raw-token')).rejects.toThrow(
+          'connection reset'
+        );
+
+        expect(refreshTokens.rotate).not.toHaveBeenCalled();
+      });
+
+      it('revokes the new refresh token and fails when the rebinding cannot be written', async () => {
+        prisma.userSession.findUnique.mockResolvedValue(bound);
+        refreshTokens.rotate.mockResolvedValue(rotated());
+        prisma.user.findUnique.mockResolvedValue(makeUser());
+        prisma.userSession.updateMany.mockRejectedValue(
+          new Error('connection reset')
+        );
+
+        await expect(service.refresh('old-raw-token')).rejects.toThrow(
+          'connection reset'
+        );
+
+        expect(refreshTokens.revokeByRawToken).toHaveBeenCalledWith(
+          'new-raw-token'
+        );
+      });
+    });
+  });
+
+  describe('logout: the device behind the refresh token (CODE-02C)', () => {
+    it('ends the device row the refresh token is bound to, so the sessions list does not keep it', async () => {
+      await service.logout('some-raw-token');
+
+      expect(prisma.userSession.updateMany).toHaveBeenCalledWith({
+        where: {
+          sessionToken: createHash('sha256')
+            .update('some-raw-token')
+            .digest('hex'),
+        },
+        data: { isActive: false },
+      });
+      expect(refreshTokens.revokeByRawToken).toHaveBeenCalledWith(
+        'some-raw-token'
+      );
+    });
+
+    it('still succeeds, and still revokes the refresh token, when the row cannot be written', async () => {
+      const consoleError = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => undefined);
+      prisma.userSession.updateMany.mockRejectedValue(
+        new Error('connection reset')
+      );
+
+      await expect(service.logout('some-raw-token')).resolves.toBeUndefined();
+
+      expect(refreshTokens.revokeByRawToken).toHaveBeenCalledWith(
+        'some-raw-token'
+      );
+      consoleError.mockRestore();
     });
   });
 

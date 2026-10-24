@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
@@ -91,6 +91,19 @@ function getNextAuthSecret(): string {
     throw new Error('NEXTAUTH_SECRET not configured');
   }
   return secret;
+}
+
+/** How long a device row is kept after it was written or last tracked (30 days). */
+const DEVICE_SESSION_ROW_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/**
+ * The key a refresh token is stored under: `RefreshTokenService` keeps `sha256(rawToken)` as
+ * `hashedToken` (keep the two in step). CODE-02C binds a device row to its refresh token with it,
+ * so a rotation can find the device again and revoking the device can delete the token. The raw
+ * token never goes into the row.
+ */
+function refreshTokenKey(rawToken: string): string {
+  return createHash('sha256').update(rawToken).digest('hex');
 }
 
 @Injectable()
@@ -443,6 +456,8 @@ export class AuthService {
     // CODE-02A: the token is stamped with the account's session version and the time of this
     // sign-in; the refresh token keeps the same time so a rotation cannot make the session younger.
     const sessionStartedAt = new Date();
+    // CODE-02C: and with the id of this device's row (`sid`), so revoking the row ends the token.
+    const sid = await this.startDeviceSession(user.id, context);
     const accessToken = await encodeNextAuthToken(
       {
         id: user.id,
@@ -454,6 +469,7 @@ export class AuthService {
         isAffiliate: user.isAffiliate,
         sessionVersion: user.sessionVersion,
         authTime: Math.floor(sessionStartedAt.getTime() / 1000),
+        sid,
       },
       getNextAuthSecret()
     );
@@ -463,6 +479,18 @@ export class AuthService {
       context,
       sessionStartedAt
     );
+
+    // The device and its refresh token belong together: a rotation finds the device by the hash of
+    // the token it is given, and revoking the device deletes that token. If the link cannot be
+    // written, the sign-in fails rather than leave a token pair that revocation cannot reach.
+    if (sid) {
+      try {
+        await this.bindDeviceSession(sid, user.id, rawToken);
+      } catch (error) {
+        await this.refreshTokens.revokeByRawToken(rawToken);
+        throw error;
+      }
+    }
 
     return {
       accessToken,
@@ -478,6 +506,51 @@ export class AuthService {
   }
 
   /**
+   * CODE-02C: one `UserSession` row for a sign-in (the device), whose id is the `sid` of the access
+   * token. The row is written from the sign-in context; the sessions list names the device from its
+   * user agent. Without a row (the write failed) the sign-in still succeeds and the token carries no
+   * `sid`: that device is then ended only by the account's session version, as before.
+   */
+  private async startDeviceSession(
+    userId: string,
+    context: RefreshTokenContext
+  ): Promise<string | undefined> {
+    try {
+      const row = await this.prisma.userSession.create({
+        data: {
+          userId,
+          userAgent: context.userAgent ?? null,
+          ipAddress: context.ipAddress ?? null,
+          expiresAt: new Date(Date.now() + DEVICE_SESSION_ROW_TTL_MS),
+        },
+        select: { id: true },
+      });
+      return row.id;
+    } catch (error) {
+      console.error(
+        '[AuthService] Could not start the device session, signing in without one:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      return undefined;
+    }
+  }
+
+  /** Bind a device row to the refresh token that goes with it (see `refreshTokenKey`). */
+  private async bindDeviceSession(
+    sid: string,
+    userId: string,
+    rawRefreshToken: string
+  ): Promise<void> {
+    await this.prisma.userSession.updateMany({
+      where: { id: sid, userId },
+      data: {
+        sessionToken: refreshTokenKey(rawRefreshToken),
+        lastActiveAt: new Date(),
+      },
+    });
+  }
+
+  /**
    * New behavior (F23) — no prior live "refresh" flow existed to preserve
    * (the old RefreshToken stub was never wired in, F4 census). Rotates the
    * refresh token (see RefreshTokenService.rotate) and issues a fresh
@@ -487,8 +560,23 @@ export class AuthService {
     rawRefreshToken: string,
     context: RefreshTokenContext = {}
   ): Promise<LoginResult> {
+    // CODE-02C: the device this refresh token belongs to. A revoked device must not mint a new
+    // access token, and the new token must carry the same `sid`. Read BEFORE the rotation (the
+    // rotation changes the hash the row is bound to); a lookup that fails fails the refresh, since
+    // a token minted without its `sid` could no longer be revoked on its own. A refresh token
+    // issued before CODE-02C is bound to no device: it rotates as before, without a `sid`.
+    const device = await this.prisma.userSession.findUnique({
+      where: { sessionToken: refreshTokenKey(rawRefreshToken) },
+      select: { id: true, userId: true, isActive: true },
+    });
+    if (device && !device.isActive) {
+      await this.refreshTokens.revokeByRawToken(rawRefreshToken);
+      throw new InvalidTokenError('Refresh token is invalid or revoked');
+    }
+
     const { userId, issued, sessionStartedAt } =
       await this.refreshTokens.rotate(rawRefreshToken, context);
+    const sid = device && device.userId === userId ? device.id : undefined;
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -520,8 +608,21 @@ export class AuthService {
       throw new ExpiredTokenError('This session has expired');
     }
 
+    // CODE-02C: the device now holds the NEW refresh token (the old one was just revoked). If the
+    // link cannot be written, the new token is revoked too and the refresh fails: the client signs
+    // in again instead of holding a token that revocation could not reach.
+    if (sid) {
+      try {
+        await this.bindDeviceSession(sid, user.id, issued.rawToken);
+      } catch (error) {
+        await this.refreshTokens.revokeByRawToken(issued.rawToken);
+        throw error;
+      }
+    }
+
     // The CURRENT version of the account, not the one of the token being replaced; `authTime` is
-    // the start of the session the refresh token carries (left out when it is unknown).
+    // the start of the session the refresh token carries (left out when it is unknown); `sid` is
+    // the device the refresh token belongs to (left out when it belongs to none).
     const accessToken = await encodeNextAuthToken(
       {
         id: user.id,
@@ -535,6 +636,7 @@ export class AuthService {
         authTime: sessionStartedAt
           ? Math.floor(sessionStartedAt.getTime() / 1000)
           : undefined,
+        sid,
       },
       getNextAuthSecret()
     );
@@ -559,6 +661,21 @@ export class AuthService {
    */
   async logout(rawRefreshToken: string): Promise<void> {
     await this.refreshTokens.revokeByRawToken(rawRefreshToken);
+
+    // CODE-02C: the device the refresh token is bound to signed out; its row ends too, so the
+    // sessions list does not keep it and a copy of its access token is refused (the check of the
+    // `sid`). Best effort and silent, like the revocation above: a logout never fails or tells.
+    try {
+      await this.prisma.userSession.updateMany({
+        where: { sessionToken: refreshTokenKey(rawRefreshToken) },
+        data: { isActive: false },
+      });
+    } catch (error) {
+      console.error(
+        '[AuthService] Could not end the device session on logout:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    }
   }
 
   /**

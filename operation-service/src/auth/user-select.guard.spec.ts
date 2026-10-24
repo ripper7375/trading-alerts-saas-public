@@ -191,6 +191,12 @@ describe('behaviour: AuthService against a database that lacks a column the code
         updateMany: jest.fn(async () => ({ count: 1 })),
       },
       refreshToken: { deleteMany: jest.fn(async () => ({ count: 0 })) },
+      // CODE-02C: the device rows behind the access tokens (not a `User` call).
+      userSession: {
+        create: jest.fn(async () => ({ id: 'sess-1' })),
+        findUnique: jest.fn(async () => null),
+        updateMany: jest.fn(async () => ({ count: 1 })),
+      },
       $transaction: async (
         callback: (tx: unknown) => Promise<unknown>
       ): Promise<unknown> => callback(prisma),

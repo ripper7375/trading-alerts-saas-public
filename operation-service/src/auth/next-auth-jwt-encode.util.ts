@@ -26,6 +26,8 @@ export interface NextAuthTokenPayload {
   sessionVersion?: number;
   /** Unix seconds of the sign-in the token belongs to (an ADMIN session ends 12 hours after it). */
   authTime?: number;
+  /** The `UserSession` row of this device (CODE-02C); revoking the row ends the token. */
+  sid?: string;
 }
 
 async function getDerivedEncryptionKey(
@@ -60,6 +62,7 @@ export async function encodeNextAuthToken(
     isAffiliate: payload.isAffiliate,
     sessionVersion: payload.sessionVersion,
     authTime: payload.authTime,
+    sid: payload.sid,
   })
     .setProtectedHeader({ alg: 'dir', enc: 'A256GCM' })
     .setIssuedAt(now)
