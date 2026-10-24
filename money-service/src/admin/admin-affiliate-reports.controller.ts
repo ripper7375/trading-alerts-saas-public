@@ -22,6 +22,7 @@ import { z } from 'zod';
 import { AffiliateConfigService } from '../affiliate/affiliate-config.service';
 import { ReportBuilderService } from '../affiliate/report-builder.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { readPaymentDetails } from '../common/payment-details-crypto';
 import { DisbursementSettingsService } from '../disbursement/disbursement-settings.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -251,6 +252,7 @@ export class AdminAffiliateReportsController {
             country: true,
             paymentMethod: true,
             paymentDetails: true,
+            paymentDetailsEncrypted: true,
             pendingCommissions: true,
             paidCommissions: true,
             totalEarnings: true,
@@ -294,7 +296,8 @@ export class AdminAffiliateReportsController {
           email: affiliate.user?.email ?? '',
           country: affiliate.country,
           paymentMethod: affiliate.paymentMethod,
-          paymentDetails: affiliate.paymentDetails,
+          // Decrypt first, plain column as the fallback (WS-11).
+          paymentDetails: readPaymentDetails(affiliate),
           balance: {
             pending: Number(affiliate.pendingCommissions),
             paid: Number(affiliate.paidCommissions),

@@ -15,6 +15,7 @@ import {
   createDisbursementSettingsService,
   SettingRowFixture,
 } from '../test-utils/disbursement-settings';
+import { encryptPaymentDetails } from '../common/payment-details-crypto';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
 import { AdminAffiliateReportsController } from './admin-affiliate-reports.controller';
@@ -122,6 +123,74 @@ describe('AdminAffiliateReportsController', () => {
           }),
         })
       );
+    });
+
+    describe('payment details (WS-11)', () => {
+      const OLD_DETAILS = { email: 'stale@old.test' };
+      const NEW_DETAILS = { email: 'fresh@wise.test' };
+
+      function serve(extra: Record<string, unknown>): void {
+        prismaMock.affiliateProfile.findMany.mockResolvedValue([
+          {
+            id: 'prof-1',
+            userId: 'user-1',
+            fullName: 'Alice Affiliate',
+            country: 'TH',
+            paymentMethod: 'WISE',
+            paymentDetails: OLD_DETAILS,
+            pendingCommissions: 80,
+            paidCommissions: 0,
+            totalEarnings: 80,
+            commissions: [],
+            ...extra,
+          },
+        ] as never);
+        prismaMock.user.findMany.mockResolvedValue([
+          { id: 'user-1', email: 'alice@example.com' },
+        ] as never);
+        prismaMock.affiliateProfile.count.mockResolvedValue(1);
+      }
+
+      it('asks the database for the encrypted column too', async () => {
+        serve({ paymentDetailsEncrypted: null });
+
+        await controller.commissionOwings({});
+
+        expect(prismaMock.affiliateProfile.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            select: expect.objectContaining({
+              paymentDetails: true,
+              paymentDetailsEncrypted: true,
+            }),
+          })
+        );
+      });
+
+      it('reports the decrypted value, not the stale plaintext copy', async () => {
+        serve({ paymentDetailsEncrypted: encryptPaymentDetails(NEW_DETAILS) });
+
+        const result = await controller.commissionOwings({});
+
+        expect(result.affiliates[0]?.paymentDetails).toEqual(NEW_DETAILS);
+      });
+
+      it('reports the plaintext value for a row that is not backfilled yet', async () => {
+        serve({ paymentDetailsEncrypted: null });
+
+        const result = await controller.commissionOwings({});
+
+        expect(result.affiliates[0]?.paymentDetails).toEqual(OLD_DETAILS);
+      });
+
+      it('never puts the ciphertext in the report', async () => {
+        const blob = encryptPaymentDetails(NEW_DETAILS);
+        serve({ paymentDetailsEncrypted: blob });
+
+        const text = JSON.stringify(await controller.commissionOwings({}));
+
+        expect(text).not.toContain(blob);
+        expect(text).not.toContain('paymentDetailsEncrypted');
+      });
     });
 
     it('uses the admin-edited minimum payout setting (DECISION-LOG F83)', async () => {

@@ -9,6 +9,7 @@
  */
 import { Test } from '@nestjs/testing';
 
+import { encryptPaymentDetails } from '../common/payment-details-crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock, testFactories } from '../test-utils/prisma-mock';
 
@@ -167,6 +168,50 @@ describe('AdminAffiliateManagementService', () => {
 
       expect(result).toBeDefined();
       expect(result?.fullName).toBe('John Doe');
+    });
+
+    it('should return the DECRYPTED payment details and never the ciphertext (WS-11)', async () => {
+      const mockAffiliate = testFactories.createAffiliateProfile({ id: '1' });
+
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue({
+        ...mockAffiliate,
+        paymentDetails: { email: 'stale@old.test' },
+        paymentDetailsEncrypted: encryptPaymentDetails({
+          email: 'fresh@wise.test',
+        }),
+        affiliateCodes: [],
+        commissions: [],
+      } as never);
+      prismaMock.user.findUnique.mockResolvedValue({
+        email: 'john@example.com',
+        name: 'John Doe',
+      } as never);
+
+      const result = await service.getAffiliateDetails('1');
+
+      expect(result.paymentDetails).toEqual({ email: 'fresh@wise.test' });
+      expect(result).not.toHaveProperty('paymentDetailsEncrypted');
+    });
+
+    it('should fall back to the plain payment details for a row not backfilled yet (WS-11)', async () => {
+      const mockAffiliate = testFactories.createAffiliateProfile({ id: '1' });
+
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue({
+        ...mockAffiliate,
+        paymentDetails: { email: 'plain@wise.test' },
+        paymentDetailsEncrypted: null,
+        affiliateCodes: [],
+        commissions: [],
+      } as never);
+      prismaMock.user.findUnique.mockResolvedValue({
+        email: 'john@example.com',
+        name: 'John Doe',
+      } as never);
+
+      const result = await service.getAffiliateDetails('1');
+
+      expect(result.paymentDetails).toEqual({ email: 'plain@wise.test' });
+      expect(result).not.toHaveProperty('paymentDetailsEncrypted');
     });
 
     it('should throw error if affiliate not found', async () => {

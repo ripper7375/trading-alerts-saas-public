@@ -15,6 +15,10 @@
 import { Injectable } from '@nestjs/common';
 
 import type { AffiliateStatus } from '../affiliate/affiliate.constants';
+import {
+  readPaymentDetails,
+  withoutPaymentDetailsCiphertext,
+} from '../common/payment-details-crypto';
 import { PrismaService } from '../prisma/prisma.service';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -205,7 +209,13 @@ export class AdminAffiliateManagementService {
       where: { id: affiliateRow.userId },
       select: { email: true, name: true },
     });
-    const affiliate = { ...affiliateRow, user: affiliateUser };
+    // The admin sees the decrypted value (WS-11, decrypt first, plain column as the fallback); the
+    // ciphertext itself never leaves this method.
+    const affiliate = {
+      ...withoutPaymentDetailsCiphertext(affiliateRow),
+      paymentDetails: readPaymentDetails(affiliateRow),
+      user: affiliateUser,
+    };
 
     return affiliate as unknown as AffiliateDetails;
   }

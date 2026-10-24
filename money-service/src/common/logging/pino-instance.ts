@@ -23,6 +23,7 @@ export const REDACT_PATHS: string[] = [
   '*.token',
   '*.secret',
   '*.paymentDetails',
+  '*.paymentDetailsEncrypted',
   '*.accountNumber',
   '*.iban',
   'req.headers.authorization',
@@ -34,6 +35,7 @@ export const REDACT_PATHS: string[] = [
   'params[*].cookie',
   'params[*].apiKey',
   'params[*].paymentDetails',
+  'params[*].paymentDetailsEncrypted',
   'params[*].accountNumber',
   'params[*].iban',
 ];

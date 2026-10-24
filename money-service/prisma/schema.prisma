@@ -367,6 +367,9 @@ model AffiliateProfile {
   paymentMethod  String
   paymentDetails Json
 
+  // Encrypted copy of paymentDetails (WS-11); mirrors the monolith's schema.
+  paymentDetailsEncrypted String?
+
   totalCodesDistributed Int     @default(0)
   totalCodesUsed        Int     @default(0)
   totalEarnings         Decimal @default(0)

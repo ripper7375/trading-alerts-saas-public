@@ -63,6 +63,27 @@ describe('pino-instance redaction', () => {
     });
   });
 
+  it('censors the encrypted payment column too (WS-11)', () => {
+    const line = emit({
+      payout: { paymentDetailsEncrypted: 'v1:aa:bb:cc', currency: 'USD' },
+      params: [{ paymentDetailsEncrypted: 'v1:dd:ee:ff', id: 'r-2' }],
+    });
+
+    expect(line['payout']).toEqual({
+      paymentDetailsEncrypted: '[REDACTED]',
+      currency: 'USD',
+    });
+    expect(line['params']).toEqual([
+      { paymentDetailsEncrypted: '[REDACTED]', id: 'r-2' },
+    ]);
+    expect(REDACT_PATHS).toEqual(
+      expect.arrayContaining([
+        '*.paymentDetailsEncrypted',
+        'params[*].paymentDetailsEncrypted',
+      ])
+    );
+  });
+
   it('censors request credentials', () => {
     const line = emit({
       req: {
