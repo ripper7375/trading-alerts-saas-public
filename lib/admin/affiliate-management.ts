@@ -11,6 +11,10 @@ import 'server-only';
 
 import { prisma } from '@/lib/db/prisma';
 import type { AffiliateStatus } from '@/lib/affiliate/constants';
+import {
+  readPaymentDetails,
+  withoutPaymentDetailsCiphertext,
+} from '@/lib/affiliate/payment-details-crypto';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -198,7 +202,13 @@ export async function getAffiliateDetails(
     where: { id: affiliateRow.userId },
     select: { email: true, name: true },
   });
-  const affiliate = { ...affiliateRow, user: affiliateUser };
+  // The admin sees the decrypted value (WS-11, decrypt first, plain column as the fallback); the
+  // ciphertext itself never leaves this function.
+  const affiliate = {
+    ...withoutPaymentDetailsCiphertext(affiliateRow),
+    paymentDetails: readPaymentDetails(affiliateRow),
+    user: affiliateUser,
+  };
 
   return affiliate as unknown as AffiliateDetails;
 }

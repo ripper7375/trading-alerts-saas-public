@@ -623,6 +623,7 @@ declare module '@prisma/client' {
     tiktokUrl: string | null;
     paymentMethod: string;
     paymentDetails: JsonValue;
+    paymentDetailsEncrypted: string | null;
     totalCodesDistributed: number;
     totalCodesUsed: number;
     totalEarnings: Decimal;

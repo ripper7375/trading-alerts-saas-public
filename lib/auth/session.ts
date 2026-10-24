@@ -5,6 +5,10 @@ import { getServerSession as getServerSessionNext } from 'next-auth';
 import type { Session } from 'next-auth';
 import { cache } from 'react';
 
+import {
+  paymentDetailsForWrite,
+  withoutPaymentDetailsCiphertext,
+} from '@/lib/affiliate/payment-details-crypto';
 import type { AffiliateProfile } from '@/lib/affiliate/types';
 import type { UserTier, UserRole } from '@/types';
 import { prisma } from '@/lib/db/prisma';
@@ -247,7 +251,7 @@ export const getAffiliateProfile = cache(
                 dbUser?.name || session.user.name || 'Affiliate Partner',
               country: 'US',
               paymentMethod: 'PAYPAL',
-              paymentDetails: {},
+              ...paymentDetailsForWrite({}),
               status: 'ACTIVE',
               verifiedAt: new Date(),
               affiliateCodes: {
@@ -274,7 +278,8 @@ export const getAffiliateProfile = cache(
       }
 
       return {
-        ...affiliateProfile,
+        // The encrypted payment copy (WS-11) stays in the database row: callers serialize this object.
+        ...withoutPaymentDetailsCiphertext(affiliateProfile),
         totalEarnings: Number(affiliateProfile.totalEarnings ?? 0),
         pendingCommissions: Number(affiliateProfile.pendingCommissions ?? 0),
         paidCommissions: Number(affiliateProfile.paidCommissions ?? 0),

@@ -9,20 +9,13 @@
 
 import { describe, it, expect, beforeEach } from '@jest/globals';
 
-/* eslint-disable import/order -- this whole block MUST stay in this exact
- * order: '../../setup' first, before any '@/lib/...' import. Its
- * jest.mock() calls only take effect if this file loads first (see
- * __tests__/setup.ts's header comment). `eslint --fix`/import/order WILL
- * silently reorder this without a disable — it already has once (Session
- * 2-4) — breaking the Prisma mock for every test in this file with no
- * error, just wrong results. Do not remove this disable block. */
 import { prismaMock, testFactories } from '../../setup';
 
 import {
   getAffiliatesList,
   getAffiliateDetails,
 } from '@/lib/admin/affiliate-management';
-/* eslint-enable import/order */
+import { encryptPaymentDetails } from '@/lib/affiliate/payment-details-crypto';
 
 // Import will fail initially (RED phase) - this is expected!
 
@@ -159,6 +152,50 @@ describe('Admin Affiliate Management', () => {
 
       expect(result).toBeDefined();
       expect(result?.fullName).toBe('John Doe');
+    });
+
+    it('should return the DECRYPTED payment details and never the ciphertext (WS-11)', async () => {
+      const mockAffiliate = testFactories.createAffiliateProfile({ id: '1' });
+
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue({
+        ...mockAffiliate,
+        paymentDetails: { email: 'stale@old.test' },
+        paymentDetailsEncrypted: encryptPaymentDetails({
+          email: 'fresh@wise.test',
+        }),
+        affiliateCodes: [],
+        commissions: [],
+      } as never);
+      prismaMock.user.findUnique.mockResolvedValue({
+        email: 'john@example.com',
+        name: 'John Doe',
+      } as never);
+
+      const result = await getAffiliateDetails('1');
+
+      expect(result.paymentDetails).toEqual({ email: 'fresh@wise.test' });
+      expect(result).not.toHaveProperty('paymentDetailsEncrypted');
+    });
+
+    it('should fall back to the plain payment details for a row not backfilled yet (WS-11)', async () => {
+      const mockAffiliate = testFactories.createAffiliateProfile({ id: '1' });
+
+      prismaMock.affiliateProfile.findUnique.mockResolvedValue({
+        ...mockAffiliate,
+        paymentDetails: { email: 'plain@wise.test' },
+        paymentDetailsEncrypted: null,
+        affiliateCodes: [],
+        commissions: [],
+      } as never);
+      prismaMock.user.findUnique.mockResolvedValue({
+        email: 'john@example.com',
+        name: 'John Doe',
+      } as never);
+
+      const result = await getAffiliateDetails('1');
+
+      expect(result.paymentDetails).toEqual({ email: 'plain@wise.test' });
+      expect(result).not.toHaveProperty('paymentDetailsEncrypted');
     });
 
     it('should throw error if affiliate not found', async () => {

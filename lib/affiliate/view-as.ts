@@ -31,6 +31,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
 
+import { withoutPaymentDetailsCiphertext } from '@/lib/affiliate/payment-details-crypto';
 import type { AffiliateProfile } from '@/lib/affiliate/types';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -118,7 +119,8 @@ export async function loadViewAsTarget(profileId: string): Promise<{
   });
 
   const profile = {
-    ...row,
+    // Bank data stays out of the view: the plain column is blanked and the encrypted copy (WS-11) dropped.
+    ...withoutPaymentDetailsCiphertext(row),
     paymentDetails: {},
     totalEarnings: Number(row.totalEarnings ?? 0),
     pendingCommissions: Number(row.pendingCommissions ?? 0),

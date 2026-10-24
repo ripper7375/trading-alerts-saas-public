@@ -11,6 +11,7 @@ import LinkedInProvider from 'next-auth/providers/linkedin';
 import TwitterProvider from 'next-auth/providers/twitter';
 
 import { ACCOUNT_DEACTIVATED_CODE } from '@/lib/account/deletion';
+import { paymentDetailsForWrite } from '@/lib/affiliate/payment-details-crypto';
 import {
   LOGIN_ACCOUNT_LIMIT,
   LOGIN_IP_LIMIT,
@@ -480,7 +481,7 @@ export const authOptions: NextAuthOptions = {
                     fullName: fixed.name,
                     country: 'US',
                     paymentMethod: 'PAYPAL',
-                    paymentDetails: {},
+                    ...paymentDetailsForWrite({}),
                     status: 'ACTIVE',
                     verifiedAt: new Date(),
                     affiliateCodes: {

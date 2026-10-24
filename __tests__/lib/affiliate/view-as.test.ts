@@ -99,6 +99,19 @@ describe('loadViewAsTarget', () => {
     expect(loaded?.profile.totalEarnings).toBe(120.5);
   });
 
+  it('does not carry the encrypted payment column either (WS-11)', async () => {
+    mockProfileFindUnique.mockResolvedValue({
+      ...PROFILE_ROW,
+      paymentDetailsEncrypted: 'v1:aa:bb:CIPHERTEXT-MARKER',
+    });
+
+    const loaded = await loadViewAsTarget('prof_1');
+
+    expect(loaded?.profile.paymentDetails).toEqual({});
+    expect(loaded?.profile).not.toHaveProperty('paymentDetailsEncrypted');
+    expect(JSON.stringify(loaded)).not.toContain('CIPHERTEXT-MARKER');
+  });
+
   it('returns null for an unknown profile and never creates one', async () => {
     mockProfileFindUnique.mockResolvedValue(null);
     await expect(loadViewAsTarget('prof_missing')).resolves.toBeNull();

@@ -1,0 +1,44 @@
+-- Field-level encryption of AffiliateProfile.paymentDetails (CODE-06C): the column that will hold the
+-- encrypted copy.
+--
+-- NOT APPLIED by the Executor (CLAUDE.md: the Executor never applies a migration to a live
+-- database). Davin applies it; see "Rollout order" below.
+--
+-- What it adds (purely additive; a nullable column without a default is a catalog change on PostgreSQL,
+-- no table rewrite, no lock beyond the instant ALTER):
+--   "AffiliateProfile"."paymentDetailsEncrypted" TEXT, NULL. Holds `v1:<iv>:<tag>:<ciphertext>`
+--   (AES-256-GCM, hex parts) of the JSON text of "paymentDetails". NULL means "not encrypted yet": every
+--   row that exists when this migration is applied keeps NULL until scripts/backfill-payment-details-
+--   encryption.ts fills it. The plain "paymentDetails" column stays (dual write); a later order drops it.
+--
+-- Rollout order: provision the key, apply this migration ALONE and FIRST, then deploy.
+--   1. Set PAYMENT_DETAILS_ENCRYPTION_KEY (32 random bytes as 64 hex characters, `openssl rand -hex 32`)
+--      on Vercel (every scope that can write an affiliate profile: Production, and Preview, which runs
+--      with NODE_ENV=production and shares production data) and on money-service. With no key the
+--      monolith FAILS CLOSED on a write (an affiliate registration returns an error) and both stacks read
+--      the plain column and log; they never write plaintext alone.
+--   2. Apply this migration BEFORE any deploy. Why: Prisma lists every column of the generated client in
+--      a read with no `select`, and `AffiliateProfile` is read whole in several places (the affiliate
+--      dashboard in the monolith, money-service's affiliate dashboard controller and its Wise recipient
+--      controller, the session helper). A new build against a database without the column fails every
+--      one of those reads. An OLD build against the new schema is safe (a nullable column it does not
+--      know).
+--   3. Deploy the monolith and money-service, in either order (the monolith starts dual-writing; both
+--      read the encrypted column first and fall back to the plain one).
+--   4. Then run the backfill (it is yours to run; the Executor never did): `--verify` and the default
+--      dry run first, then `--apply` with `--confirm-host`; see the header of the script.
+--
+-- Before applying (read-only): `prisma migrate status`, and confirm the column is absent:
+--   SELECT column_name FROM information_schema.columns
+--   WHERE table_name = 'AffiliateProfile' AND column_name = 'paymentDetailsEncrypted';  -- expect ZERO rows
+--
+-- Apply this one migration alone (`prisma migrate deploy` applies every pending one):
+--   prisma db execute --file prisma/migrations/20261026000000_encrypt_payment_details/migration.sql \
+--     --config prisma.production.config.ts
+--   prisma migrate resolve --applied 20261026000000_encrypt_payment_details \
+--     --config prisma.production.config.ts
+--
+-- Rollback: revert the code; the column may stay (additive, unused by old code). Do not drop it once
+-- the plain column has been dropped by the later order: it would then be the only copy.
+
+ALTER TABLE "AffiliateProfile" ADD COLUMN IF NOT EXISTS "paymentDetailsEncrypted" TEXT;

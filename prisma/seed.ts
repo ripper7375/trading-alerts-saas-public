@@ -1,6 +1,11 @@
+// Must come first: the payment-details helper carries `import 'server-only'`, which throws in plain Node.
+import '../scripts/server-only-stub';
+
 import { PrismaClient } from '.prisma/non-market-client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import bcrypt from 'bcryptjs';
+
+import { paymentDetailsForWrite } from '../lib/affiliate/payment-details-crypto';
 
 const adapter = new PrismaPg({
   connectionString: process.env['DATABASE_URL'],
@@ -176,7 +181,7 @@ async function main() {
             country: 'US',
             status: 'ACTIVE',
             paymentMethod: 'WISE',
-            paymentDetails: {},
+            ...paymentDetailsForWrite({}),
           },
         });
       }

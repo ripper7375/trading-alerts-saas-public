@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import { readPaymentDetails } from '@/lib/affiliate/payment-details-crypto';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
@@ -110,7 +111,8 @@ export async function GET(
         },
         paymentInfo: {
           paymentMethod: profile.paymentMethod,
-          paymentDetails: profile.paymentDetails,
+          // Decrypt first, plain column as the fallback (WS-11).
+          paymentDetails: readPaymentDetails(profile),
         },
       },
       riseAccount: profile.riseAccount

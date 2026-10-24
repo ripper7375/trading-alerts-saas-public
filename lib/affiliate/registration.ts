@@ -24,6 +24,7 @@ import { sendAffiliateWelcomeEmail } from '@/lib/email/email';
 import { type PaymentMethod } from './constants';
 import { distributeCodes } from './code-generator';
 import { getCodesPerMonth } from './db';
+import { paymentDetailsForWrite } from './payment-details-crypto';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -110,7 +111,8 @@ export async function registerAffiliate(
       fullName,
       country: country.toUpperCase(),
       paymentMethod,
-      paymentDetails: paymentDetails as InputJsonValue,
+      // Both columns, in one write (WS-11): the plain value and its ciphertext.
+      ...paymentDetailsForWrite(paymentDetails as InputJsonValue),
       facebookUrl: facebookUrl || null,
       instagramUrl: instagramUrl || null,
       twitterUrl: twitterUrl || null,

@@ -4,13 +4,17 @@
  * GET /api/affiliate/profile - Get current affiliate profile
  * PUT /api/affiliate/profile - Update profile details
  *
- * Neither response carries `paymentDetails` (bank / wallet data).
+ * Neither response carries `paymentDetails` (bank / wallet data) or its encrypted copy.
  *
  * @module app/api/affiliate/profile/route
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 
+import {
+  paymentDetailsForWrite,
+  withoutPaymentDetailsCiphertext,
+} from '@/lib/affiliate/payment-details-crypto';
 import { getAdminViewAs } from '@/lib/affiliate/view-as';
 import { requireAffiliate, getAffiliateProfile } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
@@ -26,10 +30,14 @@ import { affiliateProfileUpdateSchema } from '@/lib/affiliate/validators';
  */
 function toProfileResponse<T extends { paymentDetails: unknown }>(
   row: T
-): Omit<T, 'paymentDetails'> {
+): Omit<T, 'paymentDetails' | 'paymentDetailsEncrypted'> {
   const safe: Partial<T> = { ...row };
   delete safe.paymentDetails;
-  return safe as Omit<T, 'paymentDetails'>;
+  // The encrypted copy (WS-11) is as private as the plain one: it never leaves the server either.
+  return withoutPaymentDetailsCiphertext(safe) as Omit<
+    T,
+    'paymentDetails' | 'paymentDetailsEncrypted'
+  >;
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -74,7 +82,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
           fullName: session.user.name || 'Affiliate Partner',
           country: 'US',
           paymentMethod: 'PAYPAL',
-          paymentDetails: {},
+          ...paymentDetailsForWrite({}),
           status: 'ACTIVE',
           verifiedAt: new Date(),
           affiliateCodes: {
@@ -188,7 +196,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
           validation.data.fullName || profile.fullName || 'Affiliate Partner',
         country: validation.data.country || profile.country || 'US',
         paymentMethod: 'PAYPAL',
-        paymentDetails: {},
+        ...paymentDetailsForWrite({}),
         status: 'ACTIVE',
         ...validation.data,
       },

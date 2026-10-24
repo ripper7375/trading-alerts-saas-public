@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
+import { readPaymentDetails } from '@/lib/affiliate/payment-details-crypto';
 import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
@@ -106,6 +107,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         country: true,
         paymentMethod: true,
         paymentDetails: true,
+        paymentDetailsEncrypted: true,
         pendingCommissions: true,
         paidCommissions: true,
         totalEarnings: true,
@@ -168,7 +170,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         email: affiliate.user?.email ?? '',
         country: affiliate.country,
         paymentMethod: affiliate.paymentMethod,
-        paymentDetails: affiliate.paymentDetails,
+        // Decrypt first, plain column as the fallback (WS-11).
+        paymentDetails: readPaymentDetails(affiliate),
         balance: {
           pending: Number(affiliate.pendingCommissions),
           paid: Number(affiliate.paidCommissions),

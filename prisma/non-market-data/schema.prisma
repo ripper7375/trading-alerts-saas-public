@@ -669,6 +669,10 @@ model AffiliateProfile {
   paymentMethod  String // 'BANK_TRANSFER', 'CRYPTO_USDT', 'PAYPAL', 'LOCAL_WALLET'
   paymentDetails Json // Flexible field for payment info
 
+  // Encrypted copy of paymentDetails (WS-11): `v1:<iv>:<tag>:<ciphertext>`, AES-256-GCM. Writers fill
+  // both columns; readers prefer this one. NULL = not encrypted yet (the backfill script fills it).
+  paymentDetailsEncrypted String?
+
   // Stats
   totalCodesDistributed Int     @default(0)
   totalCodesUsed        Int     @default(0)

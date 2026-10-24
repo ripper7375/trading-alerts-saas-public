@@ -36,6 +36,7 @@ jest.mock('@/lib/email/email', () => ({
   ) => mockSendAffiliateWelcomeEmail(to, name, codesDistributed),
 }));
 
+import { decryptPaymentDetails } from '@/lib/affiliate/payment-details-crypto';
 import { registerAffiliate } from '@/lib/affiliate/registration';
 
 describe('Affiliate Registration', () => {
@@ -134,6 +135,40 @@ describe('Affiliate Registration', () => {
           }),
         })
       );
+    });
+
+    it('should write the payment details to BOTH the plain and the encrypted column (WS-11)', async () => {
+      const mockUser = testFactories.createUser({ isAffiliate: false });
+
+      prismaMock.user.findUnique.mockResolvedValue(mockUser as never);
+      prismaMock.user.update.mockResolvedValue({
+        ...mockUser,
+        isAffiliate: true,
+      } as never);
+      prismaMock.affiliateProfile.create.mockResolvedValue(
+        testFactories.createAffiliateProfile() as never
+      );
+      prismaMock.affiliateCode.findUnique.mockResolvedValue(null);
+      prismaMock.affiliateCode.create.mockResolvedValue(
+        testFactories.createAffiliateCode() as never
+      );
+
+      await registerAffiliate(registrationData);
+
+      const data = (
+        prismaMock.affiliateProfile.create.mock.calls[0]?.[0] as {
+          data: Record<string, unknown>;
+        }
+      ).data;
+      expect(data['paymentDetails']).toEqual({ email: 'john@wise.com' });
+      expect(typeof data['paymentDetailsEncrypted']).toBe('string');
+      expect(data['paymentDetailsEncrypted']).toMatch(
+        /^v1:[0-9a-f]{24}:[0-9a-f]{32}:[0-9a-f]+$/
+      );
+      expect(
+        decryptPaymentDetails(data['paymentDetailsEncrypted'] as string)
+      ).toEqual({ email: 'john@wise.com' });
+      expect(String(data['paymentDetailsEncrypted'])).not.toContain('john');
     });
 
     it('should distribute the first month of codes on registration', async () => {
