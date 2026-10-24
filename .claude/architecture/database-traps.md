@@ -1,7 +1,7 @@
 ---
 type: Concept/TechnicalTraps
 severity: high
-updated_at: 2026-10-10
+updated_at: 2026-10-24
 source: "Distilled from CLAUDE.md '## Waiting on' and session logs 2026-09-01..09-26; details in state/history/"
 tags: [database, prisma, migrations, railway, postgres]
 related_docs:
@@ -231,6 +231,8 @@ production lists it as pending; applying it is a no-op that records history.
 
 Rotation procedure and its gotchas: `docs/runbooks/rotate-postgres-credentials.md`. Railway
 services do not restart when a referenced variable changes — redeploy them.
+
+- **A `sslmode` (or `sslrootcert`) in a connection URL REPLACES the `ssl` object passed to the adapter** (WS-17, 2026-10-24): `pg` merges the parsed URL over its config (`connection-parameters.js`) and `pg-connection-string` 2.9.1 sets `ssl` to `{}` for any of them, so the `ssl` option of `new PrismaPg({ ... })` (`lib/db/prisma.ts`, `lib/db/market-prisma.ts`, operation-service) is dropped silently: `sslmode=require` in `DATABASE_URL` against Railway's self-signed certificate then fails with `SELF_SIGNED_CERT_IN_CHAIN`. `pg` 8.22 and later warns that `prefer`/`require`/`verify-ca` are aliases of `verify-full` until `pg` 9 gives them libpq semantics. `pg` also overwrites `ssl.servername` with the host it dialled. The TLS probe and its matrix are in the gitignored security plan (Appendix B).
 
 ## The intake readers' real-database spec (build step 6 part 4)
 
