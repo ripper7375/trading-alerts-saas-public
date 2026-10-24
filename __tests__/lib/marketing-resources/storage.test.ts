@@ -3,6 +3,10 @@
  *
  * T2-e / INP-04: what an admin upload may name its blob, and what content type
  * the blob is served with.
+ *
+ * CODE-12: the type is read from the file's first bytes (never from the
+ * browser's Content-Type or the file name), and a file that is not PNG, JPEG,
+ * PDF or MP4 by content (an SVG, an HTML page) is refused before Blob is called.
  */
 
 const mockPut = jest.fn();
@@ -18,6 +22,23 @@ import {
   sanitizeAssetFilename,
   uploadAssetFile,
 } from '@/lib/marketing-resources/storage';
+import { AssetContentTypeError } from '@/lib/marketing-resources/validators';
+
+const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const JPEG = [0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10];
+const PDF = Array.from('%PDF-1.7', (ch) => ch.charCodeAt(0));
+const MP4 = [
+  0,
+  0,
+  0,
+  0x18,
+  ...Array.from('ftypmp42', (ch) => ch.charCodeAt(0)),
+];
+
+function fileOf(content: number[] | string, name: string, type?: string): File {
+  const part = typeof content === 'string' ? content : Uint8Array.from(content);
+  return new File([part], name, type === undefined ? undefined : { type });
+}
 
 beforeEach(() => {
   jest.resetAllMocks();
@@ -64,9 +85,7 @@ describe('sanitizeAssetFilename', () => {
 
 describe('uploadAssetFile', () => {
   it('puts the blob under the prefix with a sanitized name', async () => {
-    const file = new File(['png'], '../../logo (final).png', {
-      type: 'image/png',
-    });
+    const file = fileOf(PNG, '../../logo (final).png', 'image/png');
 
     const result = await uploadAssetFile(file);
 
@@ -82,7 +101,7 @@ describe('uploadAssetFile', () => {
   });
 
   it('keeps the public access and the random suffix', async () => {
-    await uploadAssetFile(new File(['x'], 'a.png', { type: 'image/png' }));
+    await uploadAssetFile(fileOf(PNG, 'a.png', 'image/png'));
 
     expect(mockPut.mock.calls[0]?.[2]).toMatchObject({
       access: 'public',
@@ -90,26 +109,142 @@ describe('uploadAssetFile', () => {
     });
   });
 
-  it('serves the blob with the validated type, not one guessed from the name', async () => {
-    // An HTML payload that claims to be a PNG (the route's allow-list checks
-    // the claimed type): the blob is stored as image/png, whatever the name says.
-    await uploadAssetFile(
-      new File(['<script>1</script>'], 'evil.html', { type: 'image/png' })
-    );
+  it.each([
+    ['PNG', PNG, 'image/png'],
+    ['JPEG', JPEG, 'image/jpeg'],
+    ['PDF', PDF, 'application/pdf'],
+    ['MP4', MP4, 'video/mp4'],
+  ])(
+    'serves a %s with the type its first bytes show',
+    async (_l, bytes, type) => {
+      await uploadAssetFile(fileOf(bytes, 'asset.bin', type));
+
+      expect(mockPut.mock.calls[0]?.[2]).toMatchObject({ contentType: type });
+    }
+  );
+
+  it('serves the type the content shows, not the one the browser claimed', async () => {
+    // A JPEG that the browser reported as a PNG (a wrong extension): the first
+    // bytes decide.
+    await uploadAssetFile(fileOf(JPEG, 'photo.png', 'image/png'));
+
+    expect(mockPut.mock.calls[0]?.[2]).toMatchObject({
+      contentType: 'image/jpeg',
+    });
+  });
+
+  it('serves the type of the content when the browser reported none', async () => {
+    await uploadAssetFile(fileOf(PNG, 'a.bin'));
 
     expect(mockPut.mock.calls[0]?.[2]).toMatchObject({
       contentType: 'image/png',
     });
   });
 
-  it('passes no contentType when the file has none (Blob then decides)', async () => {
-    await uploadAssetFile(new File(['x'], 'a.bin'));
+  it.each([
+    [
+      'an SVG that claims image/svg+xml',
+      '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+      'logo.svg',
+      'image/svg+xml',
+    ],
+    [
+      'an SVG that claims image/png',
+      '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"/>',
+      'logo.png',
+      'image/png',
+    ],
+    [
+      'an SVG with an XML prolog that claims image/jpeg',
+      '<?xml version="1.0"?><svg onload="alert(1)"/>',
+      'logo.jpg',
+      'image/jpeg',
+    ],
+    [
+      'an HTML page that claims image/png',
+      '<script>1</script>',
+      'evil.html',
+      'image/png',
+    ],
+    [
+      'a text file that claims application/pdf',
+      'hello',
+      'a.pdf',
+      'application/pdf',
+    ],
+    ['a file with no claimed type', '<svg/>', 'a.bin', ''],
+  ])('refuses %s and never calls Blob', async (_l, content, name, type) => {
+    await expect(
+      uploadAssetFile(fileOf(content, name, type))
+    ).rejects.toBeInstanceOf(AssetContentTypeError);
 
-    expect(mockPut.mock.calls[0]?.[2]).not.toHaveProperty('contentType');
+    expect(mockPut).not.toHaveBeenCalled();
+  });
+
+  it('reads the type from the start of a file that is longer than the sniffed head', async () => {
+    // Only the first bytes decide: a PNG signature followed by a long body is a
+    // PNG (and is stored as image/png whatever the body holds) ...
+    await uploadAssetFile(
+      fileOf(
+        [
+          ...PNG,
+          ...Array.from('<svg onload="1"/>'.repeat(40), (c) => c.charCodeAt(0)),
+        ],
+        'a.png',
+        'image/png'
+      )
+    );
+    expect(mockPut.mock.calls[0]?.[2]).toMatchObject({
+      contentType: 'image/png',
+    });
+
+    // ... and a signature at the END of a file does not make it one.
+    mockPut.mockClear();
+    await expect(
+      uploadAssetFile(
+        fileOf(
+          [
+            ...Array.from('<svg onload="1"/>'.repeat(40), (c) =>
+              c.charCodeAt(0)
+            ),
+            ...PNG,
+          ],
+          'a.png',
+          'image/png'
+        )
+      )
+    ).rejects.toBeInstanceOf(AssetContentTypeError);
+    expect(mockPut).not.toHaveBeenCalled();
+  });
+
+  it('does not read the whole file to find its type (50MB allowed)', async () => {
+    const file = fileOf(PNG, 'a.png', 'image/png');
+    const readAll = jest.spyOn(file, 'arrayBuffer');
+
+    await uploadAssetFile(file);
+
+    expect(readAll).not.toHaveBeenCalled();
+    expect(mockPut.mock.calls[0]?.[1]).toBe(file);
+  });
+
+  it('refuses an empty file', async () => {
+    await expect(
+      uploadAssetFile(fileOf([], 'a.png', 'image/png'))
+    ).rejects.toBeInstanceOf(AssetContentTypeError);
+
+    expect(mockPut).not.toHaveBeenCalled();
+  });
+
+  it('refuses a file whose signature is not at the very start', async () => {
+    await expect(
+      uploadAssetFile(fileOf([0x20, ...PNG], 'a.png', 'image/png'))
+    ).rejects.toBeInstanceOf(AssetContentTypeError);
+
+    expect(mockPut).not.toHaveBeenCalled();
   });
 
   it('passes no option that @vercel/blob does not know (contentDisposition is not a put() option)', async () => {
-    await uploadAssetFile(new File(['x'], 'a.png', { type: 'image/png' }));
+    await uploadAssetFile(fileOf(PNG, 'a.png', 'image/png'));
 
     expect(Object.keys(mockPut.mock.calls[0]?.[2] as object).sort()).toEqual([
       'access',
@@ -122,7 +257,7 @@ describe('uploadAssetFile', () => {
     mockPut.mockRejectedValue(new Error('blob down'));
 
     await expect(
-      uploadAssetFile(new File(['x'], 'a.png', { type: 'image/png' }))
+      uploadAssetFile(fileOf(PNG, 'a.png', 'image/png'))
     ).rejects.toThrow('blob down');
   });
 });

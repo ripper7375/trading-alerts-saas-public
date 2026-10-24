@@ -13,6 +13,12 @@
 
 import { put, del } from '@vercel/blob';
 
+import {
+  ASSET_SNIFF_BYTES,
+  AssetContentTypeError,
+  detectAssetMimeType,
+} from './validators';
+
 const BLOB_PATH_PREFIX = 'marketing-resources';
 
 export interface UploadedAssetFile {
@@ -35,24 +41,35 @@ export function sanitizeAssetFilename(name: string): string {
  * Upload a single asset file to Vercel Blob under a stable path prefix.
  * `addRandomSuffix` avoids collisions between assets that share a title.
  *
- * Two things keep an uploaded file from running inline in a browser:
- * the name is sanitized (`sanitizeAssetFilename`), and the content type is the
- * one the caller already checked against the allow-list
- * (`ACCEPTED_ASSET_MIME_TYPES`), not one Blob would guess from the file
- * extension (so an `.html` file cannot be served as `text/html`).
+ * Three things keep an uploaded file from running inline in a browser: the
+ * name is sanitized (`sanitizeAssetFilename`); the type is read from the
+ * file's first bytes (`detectAssetMimeType`), so neither the browser's
+ * Content-Type nor the file name decides it and an SVG or HTML page is
+ * refused with `AssetContentTypeError` before Blob is called (CODE-12); and
+ * that detected type is the one the blob is stored with, not one Blob would
+ * guess from the file extension (so an `.html` file cannot be served as
+ * `text/html`).
  *
  * `put()` in the installed `@vercel/blob` (2.8.0) has no `contentDisposition`
  * option (the header is on its result, not its input), so this module cannot
  * ask for `attachment`; the blob's `downloadUrl` is the URL that forces one.
  */
 export async function uploadAssetFile(file: File): Promise<UploadedAssetFile> {
+  const head = new Uint8Array(
+    await file.slice(0, ASSET_SNIFF_BYTES).arrayBuffer()
+  );
+  const contentType = detectAssetMimeType(head);
+  if (!contentType) {
+    throw new AssetContentTypeError();
+  }
+
   const blob = await put(
     `${BLOB_PATH_PREFIX}/${sanitizeAssetFilename(file.name)}`,
     file,
     {
       access: 'public',
       addRandomSuffix: true,
-      ...(file.type ? { contentType: file.type } : {}),
+      contentType,
     }
   );
 

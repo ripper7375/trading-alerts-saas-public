@@ -29,14 +29,14 @@ export const MARKETING_ASSET_STATUSES = [
 // 50MB — matches the admin upload form's own stated limit.
 export const MAX_ASSET_FILE_BYTES = 50 * 1024 * 1024;
 
-// Matches the admin upload form's own stated support ("Supports PNG, JPG,
-// SVG, MP4, PDF up to 50MB") — the browser-reported File.type is checked
-// against this allowlist so an unadvertised file type (or an arbitrary
-// binary) can't slip through on size alone.
+// The browser-reported File.type is checked against this allowlist so an
+// unadvertised file type (or an arbitrary binary) can't slip through on size
+// alone. No SVG (CODE-12): an SVG is a document that can carry script, and
+// the Blob origin would serve it as `image/svg+xml`. The browser's claim is
+// only a first filter; `detectAssetMimeType` decides from the file's bytes.
 export const ACCEPTED_ASSET_MIME_TYPES: Record<string, string> = {
   'image/png': 'PNG',
   'image/jpeg': 'JPG',
-  'image/svg+xml': 'SVG',
   'video/mp4': 'MP4',
   'application/pdf': 'PDF',
 };
@@ -46,6 +46,44 @@ export function isAcceptedAssetMimeType(mimeType: string): boolean {
     ACCEPTED_ASSET_MIME_TYPES,
     mimeType
   );
+}
+
+/** How many leading bytes `detectAssetMimeType` needs (the longest signature). */
+export const ASSET_SNIFF_BYTES = 16;
+
+// A read past the end of `bytes` is `undefined`, which equals no signature
+// byte, so a buffer that is too short never matches.
+function startsWith(bytes: Uint8Array, signature: number[], at = 0): boolean {
+  return signature.every((value, i) => bytes[at + i] === value);
+}
+
+const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+const JPEG_SIGNATURE = [0xff, 0xd8, 0xff];
+const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d]; // "%PDF-"
+const MP4_FTYP_BOX_TYPE = [0x66, 0x74, 0x79, 0x70]; // "ftyp", at offset 4
+
+/**
+ * The allow-listed type a file really is, from its first bytes, or `null`
+ * when they match none (an SVG, an HTML page, text, an empty file). The
+ * signature must be at the very start: nothing is skipped, so leading
+ * whitespace or a byte order mark in front of markup does not help.
+ */
+export function detectAssetMimeType(bytes: Uint8Array): string | null {
+  if (startsWith(bytes, PNG_SIGNATURE)) return 'image/png';
+  if (startsWith(bytes, JPEG_SIGNATURE)) return 'image/jpeg';
+  if (startsWith(bytes, PDF_SIGNATURE)) return 'application/pdf';
+  if (startsWith(bytes, MP4_FTYP_BOX_TYPE, 4)) return 'video/mp4';
+  return null;
+}
+
+/** An upload whose content is not one of the accepted file types. */
+export class AssetContentTypeError extends Error {
+  constructor() {
+    super(
+      `The file content is not one of the accepted types: ${Object.values(ACCEPTED_ASSET_MIME_TYPES).join(', ')}`
+    );
+    this.name = 'AssetContentTypeError';
+  }
 }
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
