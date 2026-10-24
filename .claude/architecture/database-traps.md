@@ -87,6 +87,20 @@ Read before any schema change, migration, or query against a real database.
   value before the first row exists. Same rule for any new enum value: readers before writers. NULL `detailsChangedAt` means "no change
   on record" and is never held, so applying the column holds nobody. Checked on a scratch PostgreSQL 18 (38 earlier migrations + this one,
   applied twice, drift identical to the baseline).
+- **`AffiliateProfile.paymentDetailsEncrypted`** (WS-11, migration FILE `20261026000000_encrypt_payment_details`, NOT applied): a nullable
+  `TEXT` column holding `v1:<iv>:<tag>:<ciphertext>` (AES-256-GCM, hex) of the plain `paymentDetails` JSON. **Apply it ALONE and BEFORE any
+  deploy of the monolith or money-service**: `AffiliateProfile` is read whole in places with no `select` (the affiliate dashboard,
+  money-service's affiliate dashboard and Wise recipient controllers, `getAffiliateProfile`), so a build that knows the column against a
+  database that does not fails every one of those reads (same class as `User.deletedAt` above); an old build against the new schema is safe.
+  Set `PAYMENT_DETAILS_ENCRYPTION_KEY` (64 hex characters) on Vercel and money-service first: with no key the monolith FAILS CLOSED on a
+  write (an affiliate registration and a first-read profile create return an error) and both stacks read the plain column and log. Writers
+  spread `paymentDetailsForWrite(value)` (both columns in one write); readers call `readPaymentDetails(row)` (decrypt first, plain column as
+  the fallback) and select the encrypted column with the plain one; anything that serializes a whole row strips the ciphertext
+  (`withoutPaymentDetailsCiphertext`). A source guard (`__tests__/lib/affiliate/payment-details-guard.test.ts`) fails on a new profile
+  `create`/`upsert` that writes `paymentDetails` any other way. The backfill is `scripts/backfill-payment-details-encryption.ts` (`--verify`,
+  dry run, `--apply --confirm-host`; Davin runs it). `frontend/` (not part of the running stacks, D9-2) still writes the plain column only:
+  if it is deployed, its `PUT /api/affiliate/profile/payment` makes the plain copy differ from the encrypted one, and readers prefer the
+  encrypted one; `--verify` lists such rows. The later order that drops the plain column needs that answered.
 - **A security write raises `User.sessionVersion` and deletes the user's refresh tokens in the SAME transaction** (WS-5, CODE-02B,
   2026-10-23): `lib/auth/session-version.ts` and `operation-service/src/auth/session-version.util.ts` (`withSessionBump`,
   `bumpSessionVersion`, `raiseSessionVersion`, `endAllSessions`) use `user.updateMany({ data: { sessionVersion: { increment: 1 } } })`
