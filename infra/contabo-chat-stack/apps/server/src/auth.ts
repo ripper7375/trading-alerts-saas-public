@@ -9,10 +9,15 @@ if (!CHAT_JWT_SECRET) {
   );
 }
 
+// CODE-10: these must match what the BFF signs in app/api/chat/token/route.ts
+// (HS256, issuer, audience, and CHAT_TOKEN_TTL_SECONDS as the maximum age).
+const CHAT_TOKEN_ISSUER = 'davintrade';
+const CHAT_TOKEN_AUDIENCE = 'chat-api';
+const CHAT_TOKEN_MAX_AGE_SECONDS = 300;
+
 interface ChatTokenClaims {
   userId: string;
   name?: string;
-  email?: string;
   tier: 'FREE' | 'PRO';
 }
 
@@ -22,6 +27,9 @@ interface ChatTokenClaims {
  * supplied. Throws if a token WAS supplied but fails verification, so the
  * caller can distinguish "no token" (silent guest) from "bad token" (report
  * chat_error UNAUTHORIZED, then still degrade to guest — Session 14-0 §4).
+ *
+ * The token must be HS256 with the chat issuer and audience, and no older than
+ * the BFF's token lifetime. The identity never carries an e-mail address.
  */
 export function verifyChatToken(token: unknown): ChatIdentity | null {
   if (token === null || token === undefined || token === '') {
@@ -30,17 +38,18 @@ export function verifyChatToken(token: unknown): ChatIdentity | null {
   if (typeof token !== 'string') {
     throw new Error('Malformed handshake token');
   }
-  const claims = jwt.verify(
-    token,
-    CHAT_JWT_SECRET as string
-  ) as ChatTokenClaims;
+  const claims = jwt.verify(token, CHAT_JWT_SECRET as string, {
+    algorithms: ['HS256'],
+    issuer: CHAT_TOKEN_ISSUER,
+    audience: CHAT_TOKEN_AUDIENCE,
+    maxAge: CHAT_TOKEN_MAX_AGE_SECONDS,
+  }) as ChatTokenClaims;
   if (!claims.userId || !claims.tier) {
     throw new Error('Handshake token missing required claims');
   }
   return {
     userId: claims.userId,
     name: claims.name,
-    email: claims.email,
     tier: claims.tier,
   };
 }

@@ -4,6 +4,10 @@
 // handshake -- claim names/shape must match that verifier exactly. Guest
 // (no session) is a first-class supported path per Session 14-0 Decision 4,
 // so it returns HTTP 200 with a null token, never 401.
+//
+// CODE-10: the algorithm, issuer and audience below are checked by the
+// verifier, and its `maxAge` equals CHAT_TOKEN_TTL_SECONDS. Change them in both
+// files together. The token carries no e-mail address.
 
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
@@ -11,6 +15,8 @@ import jwt from 'jsonwebtoken';
 import { getSession } from '@/lib/auth/session';
 
 const CHAT_TOKEN_TTL_SECONDS = 300;
+const CHAT_TOKEN_ISSUER = 'davintrade';
+const CHAT_TOKEN_AUDIENCE = 'chat-api';
 
 export async function GET(): Promise<NextResponse> {
   const session = await getSession();
@@ -46,11 +52,15 @@ export async function GET(): Promise<NextResponse> {
     {
       userId: session.user.id,
       name: session.user.name,
-      email: session.user.email,
       tier: session.user.tier ?? 'FREE',
     },
     signingKey,
-    { expiresIn: CHAT_TOKEN_TTL_SECONDS }
+    {
+      algorithm: 'HS256',
+      issuer: CHAT_TOKEN_ISSUER,
+      audience: CHAT_TOKEN_AUDIENCE,
+      expiresIn: CHAT_TOKEN_TTL_SECONDS,
+    }
   );
 
   return NextResponse.json({ token, url });
