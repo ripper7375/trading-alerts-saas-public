@@ -239,6 +239,11 @@ Each of these cost a past session real time. Search `state/history/` for the inc
 - **`next dev` rewrites the tracked `next-env.d.ts`** (double quotes and `./.next/dev/types/...` paths instead of the committed
   `'./.next/types/...'`): after any session that started the dev server, `git status` shows ` M next-env.d.ts`. It is not part of any
   change: restore it with `git checkout -- next-env.d.ts` before committing (build step 6 part 5, the intake preview).
+- **`next dev` (Turbopack, Next 16.4.1, Node 24.22.1) can die while compiling `/login`** (2026-10-24, WS-15): a Rust panic
+  `inner_of_uppers_lost_follower is not able to remove follower TaskId …` in `aggregation_update.rs`, then "Aborting"; the port never
+  answered. It is a Turbopack bug, not the app. Do not spend a session on it: check with Jest, or `curl` a page of a `next start` build.
+  A server module that starts with `import 'server-only'` can be run under plain Node by copying it to the scratchpad without that
+  line (the package is not at the root) and using `node --experimental-strip-types`.
 - **Tailwind colour tokens carry `<alpha-value>` since 2026-10-21; before that an opacity modifier on a token emitted NO CSS**
   (`/settings/billing` colour fix): `tailwind.config.ts` defined the tokens as `oklch(var(--primary))`, so `bg-primary/20`,
   `border-primary/40`, `bg-muted/40`, `hover:bg-primary/90` and 79 other classes (113 files under `app/` and `components/`) compiled to
