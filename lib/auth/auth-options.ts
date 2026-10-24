@@ -38,7 +38,14 @@ import {
   ID_ONLY_SELECT,
   SESSION_USER_SELECT,
 } from '@/lib/auth/user-select';
-import { getSessionState, judgeSession } from '@/lib/auth/user-active';
+import {
+  endSession,
+  getDeviceSessionState,
+  getSessionState,
+  judgeDeviceSession,
+  judgeSession,
+  startSession,
+} from '@/lib/auth/user-active';
 import { prisma } from '@/lib/db/prisma';
 import type { UserTier, UserRole } from '@/types';
 
@@ -838,6 +845,18 @@ export const authOptions: NextAuthOptions = {
         if (!verdict.ok) {
           throw new Error(verdict.code);
         }
+        // CODE-02C: and is this device still signed in? A token that names a device row (`sid`)
+        // ends with the row: "log out this device" revokes it. A token without `sid` has no
+        // device to check. Same throw, same effect: no session, a cleared cookie.
+        if (typeof token.sid === 'string' && token.sid !== '') {
+          const device = judgeDeviceSession(
+            token,
+            await getDeviceSessionState(token.id, token.sid)
+          );
+          if (!device.ok) {
+            throw new Error(device.code);
+          }
+        }
         // Role and tier follow the database (within the 30 s cache window): a demotion or a PRO
         // expiry shows without a new sign-in.
         if (verdict.state) {
@@ -896,6 +915,20 @@ export const authOptions: NextAuthOptions = {
               'isAffiliate' in user ? user.isAffiliate : false
             ) as boolean;
             console.log('[JWT] Token populated from user object (fallback)');
+          }
+
+          // CODE-02C: this sign-in is a device. Its row id rides on the token as `sid`, so
+          // revoking the row ends the token. If the row cannot be written the sign-in goes
+          // through without one (that device is then ended only by the account's session
+          // version, as before) and the error is logged.
+          token.sid = undefined;
+          try {
+            token.sid = await startSession(user.id);
+          } catch (error) {
+            console.error(
+              '[JWT] Could not start the device session, signing in without one:',
+              error instanceof Error ? error.message : 'Unknown error'
+            );
           }
         }
 
@@ -1011,6 +1044,31 @@ export const authOptions: NextAuthOptions = {
         // Malformed URL: fall back to baseUrl
       }
       return baseUrl;
+    },
+  },
+
+  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // EVENTS
+  //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  events: {
+    /**
+     * CODE-02C: signing out ends the device row of the token, as "log out this device" does, so
+     * the sessions list does not keep a device that is gone and a copy of the cookie stops working.
+     * Never fails the sign-out: the cookie is cleared either way.
+     */
+    async signOut({ token }) {
+      if (typeof token?.sid !== 'string' || typeof token.id !== 'string') {
+        return;
+      }
+      try {
+        await endSession(token.sid, token.id);
+      } catch (error) {
+        console.error(
+          '[Auth] Could not end the device session on sign-out:',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+      }
     },
   },
 

@@ -9,6 +9,12 @@
 
 import 'server-only';
 
+import { decode } from 'next-auth/jwt';
+
+import {
+  DEVICE_SESSION_ROW_TTL_MS,
+  forgetDeviceSession,
+} from '@/lib/auth/user-active';
 import { prisma } from '@/lib/db/prisma';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -157,9 +163,31 @@ function extractVersion(userAgent: string, regex: RegExp): string {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 /**
+ * The `sid` a session cookie carries (CODE-02C), or `null` for a cookie that has none (minted
+ * before the sign-in wrote a device row), cannot be decoded, or when there is no secret to decode
+ * with. A bad cookie is not an error here: the caller falls back to the cookie value itself.
+ */
+async function sidOfSessionToken(
+  sessionToken: string | undefined
+): Promise<string | null> {
+  const secret = process.env['NEXTAUTH_SECRET'];
+  if (!sessionToken || !secret) return null;
+  try {
+    const claims = await decode({ token: sessionToken, secret });
+    return typeof claims?.sid === 'string' && claims.sid !== ''
+      ? claims.sid
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Track a user session with device/browser info
  *
- * Creates or updates a session record with parsed user agent data.
+ * A cookie that carries a `sid` belongs to the row the sign-in wrote: that row is filled in (and
+ * only an active row of this user), no second row is made for the cookie. A cookie without one
+ * (minted before CODE-02C) gets the old row keyed by the cookie value.
  *
  * @param data - Session tracking data
  * @returns Created/updated session ID
@@ -171,7 +199,26 @@ export async function trackSession(data: SessionTrackingData): Promise<string> {
   const parsed = parseUserAgent(userAgent);
 
   // Calculate expiry (30 days from now)
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + DEVICE_SESSION_ROW_TTL_MS);
+
+  const sid = await sidOfSessionToken(sessionToken);
+  if (sid) {
+    await prisma.userSession.updateMany({
+      where: { id: sid, userId, isActive: true },
+      data: {
+        userAgent,
+        ipAddress,
+        browser: parsed.browser,
+        browserVersion: parsed.browserVersion,
+        os: parsed.os,
+        osVersion: parsed.osVersion,
+        deviceType: parsed.deviceType,
+        lastActiveAt: new Date(),
+        expiresAt,
+      },
+    });
+    return sid;
+  }
 
   // Upsert session
   const session = await prisma.userSession.upsert({
@@ -230,23 +277,45 @@ export async function getUserSessions(
     orderBy: { lastActiveAt: 'desc' },
   });
 
-  return sessions.map((session: UserSessionRecord) => ({
-    id: session.id,
-    device: formatDevice(session.browser, session.os),
-    browser: session.browser || 'Unknown',
-    os: session.os || 'Unknown',
-    location: formatLocation(session.city, session.country),
-    lastActive:
-      session.sessionToken === currentSessionToken
+  // The device of the cookie is the row named by its `sid`; a cookie without one is found by value.
+  const currentSid = await sidOfSessionToken(currentSessionToken);
+  const isCurrent = (session: UserSessionRecord): boolean =>
+    (currentSid !== null && session.id === currentSid) ||
+    (currentSessionToken !== undefined &&
+      session.sessionToken === currentSessionToken);
+
+  return sessions.map((session: UserSessionRecord) => {
+    // A row the sign-in wrote has the raw user agent only, until that device lists its own
+    // sessions: name it from that, so the list does not show "Unknown device" for every sign-in.
+    const parsed = session.userAgent ? parseUserAgent(session.userAgent) : null;
+    const browser =
+      session.browser ||
+      (parsed && parsed.browser !== 'Unknown' ? parsed.browser : null);
+    const os =
+      session.os || (parsed && parsed.os !== 'Unknown' ? parsed.os : null);
+
+    return {
+      id: session.id,
+      device: formatDevice(browser, os),
+      browser: browser || 'Unknown',
+      os: os || 'Unknown',
+      location: formatLocation(session.city, session.country),
+      lastActive: isCurrent(session)
         ? 'Current session'
         : formatRelativeTime(session.lastActiveAt),
-    isCurrent: session.sessionToken === currentSessionToken,
-    createdAt: session.createdAt.toISOString(),
-  }));
+      isCurrent: isCurrent(session),
+      createdAt: session.createdAt.toISOString(),
+    };
+  });
 }
 
 /**
- * Revoke a specific session
+ * Revoke a specific session ("log out this device", CODE-02C)
+ *
+ * The row stays, inactive: the `jwt` callback refuses a token whose `sid` names a revoked row
+ * (`lib/auth/user-active.ts`), and this instance forgets its cached answer so that holds at once;
+ * other instances follow within their 30 s window. Only the caller's own row is touched, and
+ * nothing is deleted for a row that is not theirs.
  *
  * @param sessionId - Session ID to revoke
  * @param userId - User ID (for authorization check)
@@ -260,8 +329,13 @@ export async function revokeSession(
     where: { id: sessionId, userId },
     data: { isActive: false },
   });
+  if (result.count === 0) return false;
 
-  // Also delete the NextAuth session if linked
+  forgetDeviceSession(sessionId);
+
+  // Also delete the NextAuth session if linked, and the refresh token the row is bound to: a
+  // session minted by operation-service keeps the hash of its refresh token here, and without
+  // this the revoked device could still mint a new access token.
   const session = await prisma.userSession.findUnique({
     where: { id: sessionId },
     select: { sessionToken: true },
@@ -271,9 +345,12 @@ export async function revokeSession(
     await prisma.session.deleteMany({
       where: { sessionToken: session.sessionToken },
     });
+    await prisma.refreshToken.deleteMany({
+      where: { userId, hashedToken: session.sessionToken },
+    });
   }
 
-  return result.count > 0;
+  return true;
 }
 
 /**
@@ -287,29 +364,39 @@ export async function revokeAllSessions(
   userId: string,
   exceptSessionToken?: string
 ): Promise<number> {
+  // Every active row of the user except the current one. The current device is the row named by
+  // the cookie's `sid`, or (a cookie without one) the row holding the cookie value. A row written
+  // at sign-in holds no token at all, and SQL's `<>` is never true for NULL, so the token filter
+  // says "no token, or another token" explicitly.
+  const exceptSid = await sidOfSessionToken(exceptSessionToken);
+  const others = {
+    userId,
+    isActive: true,
+    ...(exceptSessionToken
+      ? {
+          OR: [
+            { sessionToken: null },
+            { sessionToken: { not: exceptSessionToken } },
+          ],
+        }
+      : {}),
+    ...(exceptSid ? { id: { not: exceptSid } } : {}),
+  };
+
   // Get session tokens to delete from NextAuth
   const sessionsToRevoke = await prisma.userSession.findMany({
-    where: {
-      userId,
-      isActive: true,
-      sessionToken: exceptSessionToken
-        ? { not: exceptSessionToken }
-        : undefined,
-    },
-    select: { sessionToken: true },
+    where: others,
+    select: { id: true, sessionToken: true },
   });
 
   // Deactivate user sessions
   const result = await prisma.userSession.updateMany({
-    where: {
-      userId,
-      isActive: true,
-      sessionToken: exceptSessionToken
-        ? { not: exceptSessionToken }
-        : undefined,
-    },
+    where: others,
     data: { isActive: false },
   });
+
+  // This instance must not keep an "active" answer for a device that was just ended.
+  for (const revoked of sessionsToRevoke) forgetDeviceSession(revoked.id);
 
   // Delete NextAuth sessions
   const tokenList = sessionsToRevoke

@@ -1,3 +1,5 @@
+import { headers } from 'next/headers';
+
 import { ACCOUNT_DEACTIVATED_CODE } from '@/lib/account/deletion';
 import { prisma } from '@/lib/db/prisma';
 
@@ -32,6 +34,14 @@ import { prisma } from '@/lib/db/prisma';
  * Fails open on a database error: signing in needs the database anyway, and a blip must not sign
  * every user out. A missing row ends the session in production only; elsewhere it stays open for the
  * dev test accounts whose id is made up when the upsert fails.
+ *
+ * CODE-02C: a second, per-device snapshot. Every sign-in writes a `UserSession` row and puts its id
+ * on the token as `sid`; `getDeviceSessionState` reads that row (cached 30 s per `sid`, active rows
+ * only) and `judgeDeviceSession` ends the session when the row is revoked, gone or somebody else's.
+ * "Gone" counts as revoked on purpose: a purge of revoked rows must not bring their tokens back. A
+ * token without `sid` (minted before the deploy, or when the row could not be written) is judged by
+ * the account's `sessionVersion` alone; a database error lets the token through, as above.
+ * `revokeSession` calls `forgetDeviceSession`, so the instance that revoked a device refuses it at once.
  */
 const ACTIVE_CACHE_TTL_MS = 30_000;
 const ACTIVE_CACHE_MAX_ENTRIES = 10_000;
@@ -75,6 +85,26 @@ const SESSION_STATE_SELECT = {
 
 const snapshots = new Map<string, { state: SessionState; until: number }>();
 
+/** Add to a snapshot map, dropping expired entries (then the oldest) once it is full. */
+function remember<T extends { until: number }>(
+  map: Map<string, T>,
+  key: string,
+  entry: T,
+  now: number
+): void {
+  if (map.size >= ACTIVE_CACHE_MAX_ENTRIES) {
+    for (const [existing, held] of map) {
+      if (held.until <= now) map.delete(existing);
+    }
+    // Still full of live entries: drop the oldest insertion rather than grow without bound.
+    if (map.size >= ACTIVE_CACHE_MAX_ENTRIES) {
+      const oldest = map.keys().next();
+      if (!oldest.done) map.delete(oldest.value);
+    }
+  }
+  map.set(key, entry);
+}
+
 export async function getSessionState(userId: string): Promise<SessionLookup> {
   const now = Date.now();
   const cached = snapshots.get(userId);
@@ -108,18 +138,82 @@ export async function getSessionState(userId: string): Promise<SessionLookup> {
     return state;
   }
 
-  if (snapshots.size >= ACTIVE_CACHE_MAX_ENTRIES) {
-    for (const [key, entry] of snapshots) {
-      if (entry.until <= now) snapshots.delete(key);
-    }
-    // Still full of live entries: drop the oldest insertion rather than grow without bound.
-    if (snapshots.size >= ACTIVE_CACHE_MAX_ENTRIES) {
-      const oldest = snapshots.keys().next();
-      if (!oldest.done) snapshots.delete(oldest.value);
-    }
-  }
-  snapshots.set(userId, { state, until: now + ACTIVE_CACHE_TTL_MS });
+  remember(snapshots, userId, { state, until: now + ACTIVE_CACHE_TTL_MS }, now);
   return state;
+}
+
+export interface DeviceSessionState {
+  isActive: boolean;
+}
+
+/** The device row's state, `'missing'` when there is no such row (for this user), `'error'` when the lookup failed. */
+export type DeviceSessionLookup = DeviceSessionState | 'missing' | 'error';
+
+export type DeviceSessionVerdict =
+  | { ok: true }
+  | { ok: false; code: typeof SESSION_REVOKED_CODE };
+
+/** The active device rows seen in the last 30 s, by `sid`; a revoked row is never held. */
+const deviceSnapshots = new Map<string, { userId: string; until: number }>();
+
+export async function getDeviceSessionState(
+  userId: string,
+  sid: string
+): Promise<DeviceSessionLookup> {
+  const now = Date.now();
+  const cached = deviceSnapshots.get(sid);
+  if (cached && cached.until > now && cached.userId === userId) {
+    return { isActive: true };
+  }
+
+  let row: { userId: string; isActive: boolean } | null;
+  try {
+    row = await prisma.userSession.findUnique({
+      where: { id: sid },
+      select: { userId: true, isActive: true },
+    });
+  } catch (error) {
+    console.error(
+      '[Auth] device session lookup failed, letting the session through:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    return 'error';
+  }
+
+  // A row of somebody else is no row of this user's: the token names a device it cannot own.
+  if (!row || row.userId !== userId) {
+    deviceSnapshots.delete(sid);
+    return 'missing';
+  }
+  if (!row.isActive) {
+    deviceSnapshots.delete(sid);
+    return { isActive: false };
+  }
+
+  remember(
+    deviceSnapshots,
+    sid,
+    { userId, until: now + ACTIVE_CACHE_TTL_MS },
+    now
+  );
+  return { isActive: true };
+}
+
+/**
+ * Is the device this token was minted for still signed in? (CODE-02C.) Pure, like `judgeSession`:
+ * the caller reads the row with `getDeviceSessionState` and throws the code. A token with no `sid`
+ * has no device to check.
+ */
+export function judgeDeviceSession(
+  claims: { sid?: unknown },
+  lookup: DeviceSessionLookup
+): DeviceSessionVerdict {
+  if (typeof claims.sid !== 'string' || claims.sid === '') return { ok: true };
+  if (lookup === 'error') return { ok: true };
+  if (lookup === 'missing' || !lookup.isActive) {
+    return { ok: false, code: SESSION_REVOKED_CODE };
+  }
+  return { ok: true };
 }
 
 /**
@@ -182,7 +276,86 @@ export function forgetSessionState(userId: string): void {
   snapshots.delete(userId);
 }
 
+/** Forget one device's snapshot: the next read of its `sid` goes to the database. */
+export function forgetDeviceSession(sid: string): void {
+  deviceSnapshots.delete(sid);
+}
+
+/** How long a device row is kept after it was written or last tracked (30 days). */
+export const DEVICE_SESSION_ROW_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+/** User agent and address of the request being served, or `null` outside a request. */
+async function readRequestMeta(): Promise<{
+  userAgent: string;
+  ipAddress: string;
+} | null> {
+  try {
+    const requestHeaders = await headers();
+    return {
+      userAgent: requestHeaders.get('user-agent') || '',
+      ipAddress:
+        requestHeaders.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+        requestHeaders.get('x-real-ip') ||
+        'Unknown',
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Start the device session of a sign-in (CODE-02C): one `UserSession` row, whose id the `jwt`
+ * callback puts on the token as `sid`. Revoking the row ends the token (see above).
+ *
+ * The row holds no session token: the cookie rotates and is a credential, the `sid` is not. The
+ * device details come from the request being served (the raw user agent and address; the sessions
+ * list names the device from them); outside a request, or when it cannot be read, the row is
+ * written without them and `trackSession` fills them in when the device lists its sessions.
+ *
+ * Lives here, not in `session-tracker.ts`, because `auth-options.ts` already imports this module:
+ * the tracker carries English display strings that the translation-coverage scan of the compulsory
+ * pages would otherwise reach through `auth-options.ts`.
+ *
+ * @param userId - The user who signed in
+ * @returns The new row's id (the `sid`)
+ */
+export async function startSession(userId: string): Promise<string> {
+  const meta = await readRequestMeta();
+
+  const session = await prisma.userSession.create({
+    data: {
+      userId,
+      userAgent: meta?.userAgent ?? null,
+      ipAddress: meta?.ipAddress ?? null,
+      expiresAt: new Date(Date.now() + DEVICE_SESSION_ROW_TTL_MS),
+    },
+    select: { id: true },
+  });
+
+  return session.id;
+}
+
+/**
+ * End the device of a session that signed out by itself (CODE-02C). The row is revoked like
+ * `revokeSession` does for "log out this device", so the sessions list does not keep a device that
+ * is gone, and a copy of its cookie stops working too. Only the user's own row is touched.
+ *
+ * @param sessionId - The `sid` of the token that signed out
+ * @param userId - The user the token belongs to
+ */
+export async function endSession(
+  sessionId: string,
+  userId: string
+): Promise<void> {
+  await prisma.userSession.updateMany({
+    where: { id: sessionId, userId },
+    data: { isActive: false },
+  });
+  forgetDeviceSession(sessionId);
+}
+
 /** Test seam: forget every cached answer. */
 export function clearUserActiveCache(): void {
   snapshots.clear();
+  deviceSnapshots.clear();
 }

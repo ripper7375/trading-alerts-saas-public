@@ -41,5 +41,7 @@ declare module 'next-auth/jwt' {
     sessionVersion?: number;
     /** Unix seconds of the sign-in; an ADMIN session ends 12 hours after it. */
     authTime?: number;
+    /** The `UserSession` row of this device (CODE-02C); revoking the row ends the token. */
+    sid?: string;
   }
 }

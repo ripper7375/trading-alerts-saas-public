@@ -28,6 +28,10 @@ frontend UI. The recurring failure class is "new UI ships with zero locale wirin
   non-English files; `en-GB` and `en-US` carry the English). They are 17 languages in 19 locales:
   English and Portuguese appear twice, and `zh` and `zh-TW` are two scripts. Affiliate pages are
   encouraged, admin pages are not required. Coverage script: `scripts/i18n-translation-coverage.js`.
+  **Trap:** the scan follows every local import of a compulsory page, server modules included, and counts any
+  string literal that equals a dictionary key (`"Just now"` in `lib/auth/session-tracker.ts` failed six
+  languages once `auth-options.ts` imported it, 2026-10-24). A server module with English display strings must
+  stay out of that import graph, or the key needs its 17 translations.
   The intake path's fixed texts (`intake.*`, 28 keys) are held to one English registry,
   `lib/intake/text.ts`, by `__tests__/lib/intake/text.test.ts`; the replies to refusals also wait
   for counsel and a native read (ADR-098 D14). The AI chat panel's words (`chat.*`, 173 keys: Panel B and, since
