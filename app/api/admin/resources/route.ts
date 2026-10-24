@@ -18,6 +18,7 @@ import {
   createAssetFieldsSchema,
   MAX_ASSET_FILE_BYTES,
   ACCEPTED_ASSET_MIME_TYPES,
+  AssetContentTypeError,
   isAcceptedAssetMimeType,
 } from '@/lib/marketing-resources/validators';
 import {
@@ -77,7 +78,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
  * - format, resolution (optional display strings)
  * - copyText (required when category === SWIPE_COPY)
  * - file (required for every other category, max 50MB, one of
- *   ACCEPTED_ASSET_MIME_TYPES: PNG/JPG/SVG/MP4/PDF)
+ *   ACCEPTED_ASSET_MIME_TYPES: PNG/JPG/MP4/PDF; the file's first bytes must
+ *   agree, see `uploadAssetFile`)
  */
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
@@ -154,6 +156,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         { error: error.message },
         { status: error.statusCode }
       );
+    }
+
+    // A file whose bytes are none of the accepted types (an SVG or HTML page
+    // that claims to be a PNG) is the caller's mistake, not a server failure.
+    if (error instanceof AssetContentTypeError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     console.error('[Admin Resources] Create error:', error);

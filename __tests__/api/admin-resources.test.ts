@@ -50,6 +50,8 @@ jest.mock('@/lib/marketing-resources/storage', () => ({
   uploadAssetFile: (...args: unknown[]) => mockUploadAssetFile(...args),
 }));
 
+import { AssetContentTypeError } from '@/lib/marketing-resources/validators';
+
 function makeGetRequest(url: string) {
   const parsed = new URL(url);
   return {
@@ -194,6 +196,77 @@ describe('POST /api/admin/resources', () => {
     expect(data.error).toContain('MP4');
     expect(mockUploadAssetFile).not.toHaveBeenCalled();
     expect(mockCreateAsset).not.toHaveBeenCalled();
+  });
+
+  it('rejects an SVG that says so (CODE-12: SVG is not accepted any more)', async () => {
+    mockRequireAdmin.mockResolvedValue({ user: { id: 'admin-1' } });
+
+    const form = new FakeFormData();
+    form.set('title', 'Vector Logo');
+    form.set('category', 'BRAND_LOGOS');
+    form.set(
+      'file',
+      new File(['<svg xmlns="http://www.w3.org/2000/svg"/>'], 'logo.svg', {
+        type: 'image/svg+xml',
+      })
+    );
+
+    const { POST } = await import('@/app/api/admin/resources/route');
+    const response = await POST(makePostRequest(form));
+    const data = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain('Unsupported file type "image/svg+xml"');
+    expect(data.error).toContain('PNG, JPG, MP4, PDF');
+    expect(data.error).not.toMatch(/SVG/);
+    expect(mockUploadAssetFile).not.toHaveBeenCalled();
+    expect(mockCreateAsset).not.toHaveBeenCalled();
+  });
+
+  it('answers 400, not 500, when storage refuses the content of a file that lied about its type', async () => {
+    mockRequireAdmin.mockResolvedValue({ user: { id: 'admin-1' } });
+    mockUploadAssetFile.mockRejectedValue(new AssetContentTypeError());
+
+    const form = new FakeFormData();
+    form.set('title', 'Disguised');
+    form.set('category', 'BRAND_LOGOS');
+    form.set(
+      'file',
+      new File(['<svg onload="alert(1)"/>'], 'logo.png', { type: 'image/png' })
+    );
+
+    const { POST } = await import('@/app/api/admin/resources/route');
+    const response = await POST(makePostRequest(form));
+    const data = await response.json();
+
+    expect(mockUploadAssetFile).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(400);
+    expect(data.error).toBe(new AssetContentTypeError().message);
+    expect(data.error).toContain('PNG, JPG, MP4, PDF');
+    expect(mockCreateAsset).not.toHaveBeenCalled();
+  });
+
+  it('still answers 500 for any other storage failure', async () => {
+    mockRequireAdmin.mockResolvedValue({ user: { id: 'admin-1' } });
+    mockUploadAssetFile.mockRejectedValue(new Error('blob down'));
+    const logged = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const form = new FakeFormData();
+    form.set('title', 'Banner');
+    form.set('category', 'AD_BANNERS');
+    form.set(
+      'file',
+      new File(['fake-bytes'], 'banner.png', { type: 'image/png' })
+    );
+
+    const { POST } = await import('@/app/api/admin/resources/route');
+    const response = await POST(makePostRequest(form));
+    const data = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(data.error).toBe('Failed to publish marketing asset');
+    expect(mockCreateAsset).not.toHaveBeenCalled();
+    logged.mockRestore();
   });
 
   it('accepts an MP4 upload (part of the allowlist)', async () => {

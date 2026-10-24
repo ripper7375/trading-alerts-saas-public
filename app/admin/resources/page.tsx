@@ -436,7 +436,7 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                     id="asset-format"
                     placeholder={t(
                       'admin.resources.format_placeholder',
-                      'e.g. PNG, SVG'
+                      'e.g. PNG, JPG'
                     )}
                     value={format}
                     onChange={(e) => setFormat(e.target.value.toUpperCase())}
@@ -489,13 +489,13 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                   <Input
                     id="asset-file"
                     type="file"
-                    accept=".png,.jpg,.jpeg,.svg,.mp4,.pdf"
+                    accept=".png,.jpg,.jpeg,.mp4,.pdf"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   />
                   <p className="text-xs text-muted-foreground">
                     {t(
                       'admin.resources.file_support_note',
-                      'Supports PNG, JPG, SVG, MP4, PDF up to 50MB'
+                      'Supports PNG, JPG, MP4, PDF up to 50MB'
                     )}
                   </p>
                 </div>
@@ -584,7 +584,7 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                 {categoryCount}
               </div>
             </div>
-            <div className="border-primary/30 bg-primary/10 flex h-10 w-10 items-center justify-center rounded-xl border text-primary">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/30 bg-primary/10 text-primary">
               <Layers className="h-5 w-5" />
             </div>
           </CardContent>
@@ -696,12 +696,12 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                     assets.map((asset) => (
                       <tr
                         key={asset.id}
-                        className="border-border/50 hover:bg-accent/30 border-b transition-colors"
+                        className="border-b border-border/50 transition-colors hover:bg-accent/30"
                       >
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             {isPreviewable(asset) && asset.fileUrl ? (
-                              <div className="bg-accent/50 relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border">
+                              <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border bg-accent/50">
                                 <Image
                                   src={asset.fileUrl}
                                   alt={asset.title}
@@ -710,7 +710,7 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                                 />
                               </div>
                             ) : (
-                              <div className="bg-accent/50 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border text-amber-600 dark:text-amber-400">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border bg-accent/50 text-amber-600 dark:text-amber-400">
                                 <FileText className="h-5 w-5" />
                               </div>
                             )}
@@ -825,7 +825,7 @@ export default function AdminMarketingResourcesPage(): React.ReactElement {
                                   <AlertDialogAction
                                     disabled={isDeleting}
                                     onClick={() => void handleDelete()}
-                                    className="hover:bg-destructive/90 bg-destructive text-white"
+                                    className="bg-destructive text-white hover:bg-destructive/90"
                                   >
                                     {isDeleting
                                       ? t(
