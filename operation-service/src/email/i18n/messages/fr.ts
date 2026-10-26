@@ -239,6 +239,46 @@ export const fr: EmailMessages = {
   'canceled.reactivateLink': 'Réactivez votre abonnement',
   'canceled.subject': 'Abonnement résilié - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Abonnement repris',
+  'resumed.body': 'Votre abonnement **{plan}** se poursuit.',
+  'resumed.nextBilling': '**Prochaine date de facturation :** {date}',
+  'resumed.note':
+    "Votre résiliation a été annulée. Vous conservez l'accès complet à {plan} et votre abonnement sera renouvelé automatiquement le {date}.",
+  'resumed.manage':
+    'Vous pouvez consulter votre abonnement à tout moment. {link}',
+  'resumed.manageLink': 'Ouvrir les paramètres de facturation',
+  'resumed.subject': 'Votre abonnement {plan} se poursuit - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Passage à la facturation annuelle',
+  'upgraded.body':
+    'Votre abonnement **{plan}** est désormais facturé chaque année.',
+  'upgraded.charged': "**Débité aujourd'hui :** {amount}",
+  'upgraded.price': '**Prix annuel :** {price}',
+  'upgraded.nextBilling': '**Prochaine date de facturation :** {date}',
+  'upgraded.firstCharge': '**Premier prélèvement :** {date}',
+  'upgraded.note':
+    "Le prélèvement d'aujourd'hui correspond au prix annuel moins le crédit pour la partie inutilisée de votre période mensuelle en cours.",
+  'upgraded.trialNote':
+    "Votre essai gratuit se poursuit et rien n'a été débité aujourd'hui. Votre premier prélèvement, au prix annuel, aura lieu le {date}.",
+  'upgraded.subject':
+    'Vous êtes maintenant en facturation annuelle - Trading Alerts',
+  'switchScheduled.heading': 'Passage à la facturation mensuelle programmé',
+  'switchScheduled.body':
+    'Votre abonnement **{plan}** passera à la facturation mensuelle le {date}.',
+  'switchScheduled.date': '**Date du changement :** {date}',
+  'switchScheduled.price': '**Prix mensuel à partir de cette date :** {price}',
+  'switchScheduled.note':
+    "Vous conservez votre accès annuel jusqu'au {date}. Rien n'est débité ni remboursé maintenant, et il n'y a pas de crédit pour l'année en cours.",
+  'switchScheduled.keep':
+    "Vous avez changé d'avis ? Vous pouvez conserver la facturation annuelle avant cette date. {link}",
+  'switchScheduled.subject':
+    'Votre passage à la facturation mensuelle est programmé - Trading Alerts',
+  'planChange.manage':
+    'Vous pouvez consulter votre abonnement à tout moment. {link}',
+  'planChange.manageLink': 'Ouvrir les paramètres de facturation',
+
   'commission.heading': 'Commission gagnée !',
   'commission.body':
     "Bonne nouvelle ! Votre code d'affilié vient d'être utilisé et vous avez gagné une commission.",

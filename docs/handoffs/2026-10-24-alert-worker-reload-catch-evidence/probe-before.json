@@ -1,0 +1,22 @@
+{
+  "node": "v24.22.1",
+  "dist": "D:/SaaS/operation-service/dist/alert-engine/alert-worker.service.js",
+  "exitCode": 1,
+  "signal": null,
+  "lived_to_the_end": false,
+  "stdout": [
+    "\u001b[32m[Nest] 28408  - \u001b[39m24/10/2569 06:23:01 \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[AlertWorkerService] \u001b[39m\u001b[32mwatches loaded: 1 rows\u001b[39m",
+    "\u001b[32m[Nest] 28408  - \u001b[39m24/10/2569 06:23:01 \u001b[32m    LOG\u001b[39m \u001b[38;5;3m[AlertWorkerService] \u001b[39m\u001b[32msubscribed to prices:* and alerts:changed (queue: on)\u001b[39m",
+    "after start: findMany calls=1, cache keys=1"
+  ],
+  "stderr_first_lines": [
+    "D:\\SaaS\\docs\\handoffs\\2026-10-24-alert-worker-reload-catch-evidence\\probe-alert-worker-reload.cjs:84",
+    "  if (calls === 2) throw new Error('timeout exceeded when trying to connect');",
+    "                         ^",
+    "Error: timeout exceeded when trying to connect",
+    "    at Object.findMany (D:\\SaaS\\docs\\handoffs\\2026-10-24-alert-worker-reload-catch-evidence\\probe-alert-worker-reload.cjs:84:26)",
+    "    at AlertWorkerService.reload (D:\\SaaS\\operation-service\\dist\\alert-engine\\alert-worker.service.js:68:53)",
+    "    at FakeRedis.<anonymous> (D:\\SaaS\\operation-service\\dist\\alert-engine\\alert-worker.service.js:62:27)",
+    "    at FakeRedis.emit (node:events:514:28)"
+  ]
+}

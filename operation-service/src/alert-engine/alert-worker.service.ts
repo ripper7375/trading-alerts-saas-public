@@ -78,7 +78,11 @@ export class AlertWorkerService implements OnModuleDestroy {
       void this.handlePrice(message, state, dispatch, finalOnly);
     });
     this.subscriber.on('message', (channel) => {
-      if (channel === 'alerts:changed') void this.reload();
+      if (channel === 'alerts:changed') {
+        this.reload().catch((error) =>
+          this.logger.error('watch reload failed:', error)
+        );
+      }
     });
 
     this.running = true;

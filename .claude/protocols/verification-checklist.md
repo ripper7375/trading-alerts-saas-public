@@ -24,11 +24,11 @@ should be explained by the tests you added.
 
 ## NestJS services (each has its own npm lockfile)
 
-| Service              | Checks                                                                                             |
-| -------------------- | -------------------------------------------------------------------------------------------------- |
-| `money-service/`     | `npx tsc --noEmit`, `npm test` (baseline 66/66 · 650/650)                                          |
-| `operation-service/` | `npx tsc --noEmit`, `npm test` (baseline 43/43 · 401/401)                                          |
-| `railway-gateway/`   | `npx tsc --noEmit`, `npm test`, `npm run test:e2e`; after a contract change `npm run generate:dto` |
+| Service              | Checks                                                                                                            |
+| -------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `money-service/`     | `npx tsc --noEmit`, `npm test` (baseline 66/66 · 650/650)                                                         |
+| `operation-service/` | `npx tsc --noEmit`, `npm test` (baseline 64 passed + 1 skipped suites · 689 passed + 8 skipped tests, 2026-10-24) |
+| `railway-gateway/`   | `npx tsc --noEmit`, `npm test`, `npm run test:e2e`; after a contract change `npm run generate:dto`                |
 
 ## Stack C (Python, `backend-stack-c/.../v2_29_data_pipeline_architecture/`)
 

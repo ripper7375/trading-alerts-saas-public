@@ -236,6 +236,44 @@ export const es: EmailMessages = {
   'canceled.reactivateLink': 'Reactiva tu suscripción',
   'canceled.subject': 'Suscripción cancelada - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Suscripción reanudada',
+  'resumed.body': 'Tu suscripción **{plan}** continuará.',
+  'resumed.nextBilling': '**Próxima fecha de facturación:** {date}',
+  'resumed.note':
+    'Se ha retirado tu cancelación. Mantienes el acceso completo a {plan} y tu suscripción se renovará automáticamente el {date}.',
+  'resumed.manage':
+    'Puedes revisar tu suscripción en cualquier momento. {link}',
+  'resumed.manageLink': 'Abrir los ajustes de facturación',
+  'resumed.subject': 'Tu suscripción {plan} continuará - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Cambio a facturación anual',
+  'upgraded.body': 'Tu suscripción **{plan}** ahora se factura cada año.',
+  'upgraded.charged': '**Cobrado hoy:** {amount}',
+  'upgraded.price': '**Precio anual:** {price}',
+  'upgraded.nextBilling': '**Próxima fecha de facturación:** {date}',
+  'upgraded.firstCharge': '**Primer cobro:** {date}',
+  'upgraded.note':
+    'El cobro de hoy es el precio anual menos el crédito por la parte no utilizada de tu periodo mensual actual.',
+  'upgraded.trialNote':
+    'Tu prueba gratuita continúa y hoy no se ha cobrado nada. Tu primer cobro, al precio anual, será el {date}.',
+  'upgraded.subject': 'Ahora tienes facturación anual - Trading Alerts',
+  'switchScheduled.heading': 'Cambio a facturación mensual programado',
+  'switchScheduled.body':
+    'Tu suscripción **{plan}** pasará a facturación mensual el {date}.',
+  'switchScheduled.date': '**Fecha del cambio:** {date}',
+  'switchScheduled.price': '**Precio mensual a partir de entonces:** {price}',
+  'switchScheduled.note':
+    'Conservas tu acceso anual hasta el {date}. Ahora no se cobra ni se reembolsa nada, y no hay crédito por el año en curso.',
+  'switchScheduled.keep':
+    '¿Has cambiado de opinión? Puedes mantener la facturación anual antes de esa fecha. {link}',
+  'switchScheduled.subject':
+    'Tu cambio a facturación mensual está programado - Trading Alerts',
+  'planChange.manage':
+    'Puedes revisar tu suscripción en cualquier momento. {link}',
+  'planChange.manageLink': 'Abrir los ajustes de facturación',
+
   'commission.heading': '¡Comisión ganada!',
   'commission.body':
     '¡Buenas noticias! Se acaba de usar tu código de afiliado y has ganado una comisión.',

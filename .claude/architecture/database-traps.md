@@ -50,6 +50,15 @@ Read before any schema change, migration, or query against a real database.
 - **`prisma migrate deploy` applies every pending migration in history order**, not just yours.
   Run `prisma migrate status` first. To apply one migration alone:
   `prisma db execute --file <migration.sql>` then `prisma migrate resolve --applied <name>`.
+- **`Subscription` is declared in four places; Manage Subscription S2 (2026-10-21) added six columns to three of them.**
+  `prisma/non-market-data/schema.prisma` (the truth), `money-service/prisma/schema.prisma` (mirrored by hand, its own generated client; money-service has
+  no `node_modules` here, so its client is generated in the scratch copy), `types/prisma-stubs.d.ts`, and operation-service's four-column read (needs none).
+  `__tests__/lib/stripe/subscription-schema-sync.test.ts` compares them field by field and reads the migration
+  `20261021000000_add_subscription_management_fields`. The rule below applies: **apply that migration BEFORE deploying money-service or the monolith.**
+  18 reads of `Subscription` still name no columns and fail until it is applied (monolith: the admin user page, five reads in `lib/stripe/webhook-handlers.ts`, two in
+  the dLocal webhook route, dLocal create, `/api/invoices`; money-service: five in `stripe-webhook.service.ts`, two in `dlocal-webhook.controller.ts`, one in
+  `dlocal-payment.controller.ts`); S2 gave an explicit `select` only to the routes its order named. See the
+  [S2 report](../../docs/handoffs/2026-10-21-manage-subscription-s2.md) §4.
 - **A new column on a table the app reads whole is a login outage until the migration is applied** (2026-10-19, `User.deletedAt`).
   Prisma lists every column of the generated client in a `findUnique` with no `select`, so one missing column fails every such read:
   `The column User.deletedAt does not exist in the current database` on the credentials provider, the OAuth `signIn` callback and the
@@ -257,3 +266,4 @@ services do not restart when a referenced variable changes — redeploy them.
   seed must use `now() at time zone 'utc'` (this machine's PostgreSQL session is Asia/Bangkok, UTC+7). The scripts and seeds are in `docs/handoffs/2026-10-16-nestjs-tier0-tier2-proofs/`.
 - **`OutboxEvent` has no `updatedAt`**: the publisher stores the time a row was claimed in `processedAt` while it is `PROCESSING` (set on the claim, replaced by the completion time on success, cleared on a failed attempt) and recovers rows
   older than 5 minutes (30 minutes for rows from before the claim time existed). Nothing else reads `processedAt` of a `PROCESSING` row (the admin page only counts statuses).
+- **The gateway's live-row upsert returns the id only** (database scaling second wave, Unit U, 2026-10-24, `railway-gateway/src/worker/market-data.processor.ts`): `marketDataV6.upsert` carries `select: { id: true }`, so its `RETURNING` is 1 column instead of 106; the written columns, and the point-in-time insert (86 columns, `ON CONFLICT DO NOTHING`, in its own `BEGIN` and `COMMIT`), are unchanged. The evidence and how to repeat it: the gated spec `railway-gateway/test/market-data.processor.pg.spec.ts` (the real processor and `PrismaService` run with and without `select` over a nine-job sequence, with two triggers that refuse a live upsert and a snapshot insert) and `docs/handoffs/2026-10-24-gateway-upsert-select-evidence/upsert-sql-probe.cjs`, which drives the REAL processor over a fake driver adapter and records every compiled statement (a Prisma call is lazy: an upsert that is not awaited is never sent). No speed claim; production observation is pending Stack D step 2 going live. Report: [evidence](../../docs/handoffs/2026-10-24-0531-gateway-upsert-select-evidence.md).

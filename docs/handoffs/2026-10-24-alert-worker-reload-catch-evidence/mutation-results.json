@@ -1,0 +1,146 @@
+{
+  "sha256_ts": "2b3e5d37837ec2ffe632fce8775ceb692005dd5882ea78d04d27610d9c0e9866",
+  "sha256_dist": "ef0c4668654d1c4bc246658088e3920ae66bf62d226975cec100168766f47b54",
+  "restored_matches": true,
+  "results": [
+    {
+      "id": "W1",
+      "what": "back to void this.reload()",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "logs a failed reload and keeps the previous watches, instead of leaving an unhandled rejection",
+          "replaces the watches on the next successful reload after a failed one"
+        ],
+        "passed": 8
+      },
+      "probe": {
+        "result": "killed",
+        "exit": 1,
+        "child_exit": 1,
+        "lived": false,
+        "mismatch": null
+      },
+      "seconds": 8
+    },
+    {
+      "id": "W2",
+      "what": "silent catch",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "logs a failed reload and keeps the previous watches, instead of leaving an unhandled rejection",
+          "replaces the watches on the next successful reload after a failed one"
+        ],
+        "passed": 8
+      },
+      "probe": {
+        "result": "SURVIVED",
+        "exit": 0,
+        "child_exit": 0,
+        "lived": true,
+        "mismatch": null
+      },
+      "seconds": 9
+    },
+    {
+      "id": "W3",
+      "what": "log with warn instead of error",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "logs a failed reload and keeps the previous watches, instead of leaving an unhandled rejection",
+          "replaces the watches on the next successful reload after a failed one"
+        ],
+        "passed": 8
+      },
+      "probe": {
+        "result": "SURVIVED",
+        "exit": 0,
+        "child_exit": 0,
+        "lived": true,
+        "mismatch": null
+      },
+      "seconds": 9
+    },
+    {
+      "id": "W4",
+      "what": "log and rethrow",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "logs a failed reload and keeps the previous watches, instead of leaving an unhandled rejection",
+          "replaces the watches on the next successful reload after a failed one"
+        ],
+        "passed": 8
+      },
+      "probe": {
+        "result": "killed",
+        "exit": 1,
+        "child_exit": 1,
+        "lived": false,
+        "mismatch": null
+      },
+      "seconds": 8
+    },
+    {
+      "id": "W5-cache",
+      "what": "catch clears the watch cache",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "logs a failed reload and keeps the previous watches, instead of leaving an unhandled rejection",
+          "replaces the watches on the next successful reload after a failed one"
+        ],
+        "passed": 8
+      },
+      "probe": {
+        "result": "killed",
+        "exit": 1,
+        "child_exit": 2,
+        "lived": false,
+        "mismatch": "PROBE-MISMATCH: the old cache survives a failed reload"
+      },
+      "seconds": 8
+    },
+    {
+      "id": "W6",
+      "what": "channel guard flipped (!==)",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "logs a failed reload and keeps the previous watches, instead of leaving an unhandled rejection",
+          "replaces the watches on the next successful reload after a failed one"
+        ],
+        "passed": 8
+      },
+      "probe": {
+        "result": "killed",
+        "exit": 1,
+        "child_exit": 2,
+        "lived": false,
+        "mismatch": "PROBE-MISMATCH: the old cache survives a failed reload"
+      },
+      "seconds": 8
+    },
+    {
+      "id": "W7",
+      "what": "log message text changed",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "logs a failed reload and keeps the previous watches, instead of leaving an unhandled rejection"
+        ],
+        "passed": 9
+      },
+      "probe": {
+        "result": "SURVIVED",
+        "exit": 0,
+        "child_exit": 0,
+        "lived": true,
+        "mismatch": null
+      },
+      "seconds": 9
+    }
+  ]
+}

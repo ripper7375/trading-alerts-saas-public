@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatCurrency } from '@/lib/utils/formatters';
 import { COUNTRY_NAMES } from '@/lib/dlocal/constants';
+import { readRenewalPayment } from '@/lib/billing/renew';
 import type { DLocalCountry, PaymentStatus } from '@/types/dlocal';
 import { useLocale } from '@/lib/context/locale-context';
 
@@ -141,6 +142,9 @@ function CheckoutReturnContent(): React.ReactElement {
   const [payment, setPayment] = useState<PaymentDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // True when this tab started the renewal of a dLocal plan (S4, W6): the page
+  // then offers a way back to /settings/billing.
+  const [renewalReturn, setRenewalReturn] = useState(false);
 
   // dLocal's own callback convention uses `payment_id`; support the
   // camelCase form too since this codebase's own create-payment response
@@ -226,6 +230,10 @@ function CheckoutReturnContent(): React.ReactElement {
     fetchPayment();
   }, [fetchPayment]);
 
+  useEffect(() => {
+    setRenewalReturn(Boolean(paymentId) && readRenewalPayment() === paymentId);
+  }, [paymentId]);
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -244,7 +252,7 @@ function CheckoutReturnContent(): React.ReactElement {
 
   if (error || !payment) {
     return (
-      <div className="bg-muted/30 flex min-h-screen items-center justify-center px-4">
+      <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
         <Card className="w-full max-w-md">
           <CardContent className="space-y-4 p-6 text-center">
             <AlertTriangle
@@ -285,7 +293,7 @@ function CheckoutReturnContent(): React.ReactElement {
     : null;
 
   return (
-    <div className="bg-muted/30 flex min-h-screen items-center justify-center px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-8">
       <Card className="w-full max-w-lg shadow-lg">
         <CardHeader className="text-center">
           <StatusIcon
@@ -312,7 +320,7 @@ function CheckoutReturnContent(): React.ReactElement {
           </p>
 
           {/* Order summary */}
-          <div className="bg-muted/30 space-y-2 rounded-lg border p-4 text-sm">
+          <div className="space-y-2 rounded-lg border bg-muted/30 p-4 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">
                 {t('checkout.plan', 'Plan')}
@@ -381,7 +389,20 @@ function CheckoutReturnContent(): React.ReactElement {
                 </Link>
               </Button>
             ) : null}
-            <Button asChild>
+            {renewalReturn && (
+              <Button asChild>
+                <Link
+                  href={
+                    payment.status === 'COMPLETED'
+                      ? '/settings/billing?done=renewed'
+                      : '/settings/billing'
+                  }
+                >
+                  {t('billing.cancel_flow.back_to_billing', 'Back to billing')}
+                </Link>
+              </Button>
+            )}
+            <Button asChild variant={renewalReturn ? 'outline' : 'default'}>
               <Link href="/dashboard">
                 {t('checkout.go_to_dashboard', 'Go to Dashboard')}
               </Link>

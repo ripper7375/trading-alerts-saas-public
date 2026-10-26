@@ -21,6 +21,7 @@ export class PrismaService
       adapter: new PrismaPg({
         connectionString: process.env['DATABASE_URL'],
         ssl: { rejectUnauthorized: false },
+        connectionTimeoutMillis: 2_000,
       }),
       log:
         process.env['NODE_ENV'] === 'development'

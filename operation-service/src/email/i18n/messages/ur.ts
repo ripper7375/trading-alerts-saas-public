@@ -230,6 +230,42 @@ export const ur: EmailMessages = {
   'canceled.reactivateLink': 'اپنی سبسکرپشن دوبارہ فعال کریں',
   'canceled.subject': 'سبسکرپشن منسوخ ہو گئی - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'سبسکرپشن بحال ہو گئی',
+  'resumed.body': 'آپ کی **{plan}** سبسکرپشن جاری رہے گی۔',
+  'resumed.nextBilling': '**اگلی بلنگ کی تاریخ:** {date}',
+  'resumed.note':
+    'آپ کی منسوخی واپس لے لی گئی ہے۔ آپ کو {plan} کی مکمل رسائی حاصل رہے گی اور آپ کی سبسکرپشن {date} کو خودکار طور پر تجدید ہو جائے گی۔',
+  'resumed.manage': 'آپ کسی بھی وقت اپنی سبسکرپشن دیکھ سکتے ہیں۔ {link}',
+  'resumed.manageLink': 'بلنگ کی سیٹنگز کھولیں',
+  'resumed.subject': 'آپ کی {plan} سبسکرپشن جاری رہے گی - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'سالانہ بلنگ پر منتقل کر دیا گیا',
+  'upgraded.body': 'آپ کی **{plan}** سبسکرپشن اب سالانہ بل کی جائے گی۔',
+  'upgraded.charged': '**آج وصول کی گئی رقم:** {amount}',
+  'upgraded.price': '**سالانہ قیمت:** {price}',
+  'upgraded.nextBilling': '**اگلی بلنگ کی تاریخ:** {date}',
+  'upgraded.firstCharge': '**پہلی ادائیگی:** {date}',
+  'upgraded.note':
+    'آج کی رقم سالانہ قیمت میں سے آپ کی موجودہ ماہانہ مدت کے غیر استعمال شدہ حصے کا کریڈٹ منہا کر کے بنتی ہے۔',
+  'upgraded.trialNote':
+    'آپ کا مفت ٹرائل جاری ہے اور آج کچھ وصول نہیں کیا گیا۔ سالانہ قیمت پر آپ کی پہلی ادائیگی {date} کو ہوگی۔',
+  'upgraded.subject': 'آپ اب سالانہ بلنگ پر ہیں - Trading Alerts',
+  'switchScheduled.heading': 'ماہانہ بلنگ پر منتقلی طے کر دی گئی',
+  'switchScheduled.body':
+    'آپ کی **{plan}** سبسکرپشن {date} کو ماہانہ بلنگ پر منتقل ہو جائے گی۔',
+  'switchScheduled.date': '**منتقلی کی تاریخ:** {date}',
+  'switchScheduled.price': '**اس کے بعد ماہانہ قیمت:** {price}',
+  'switchScheduled.note':
+    '{date} تک آپ کی سالانہ رسائی برقرار رہے گی۔ ابھی کچھ وصول یا واپس نہیں کیا جائے گا، اور موجودہ سال کے لیے کوئی کریڈٹ نہیں ہے۔',
+  'switchScheduled.keep':
+    'ارادہ بدل گیا؟ آپ اس سے پہلے سالانہ بلنگ برقرار رکھ سکتے ہیں۔ {link}',
+  'switchScheduled.subject':
+    'ماہانہ بلنگ پر آپ کی منتقلی طے کر دی گئی ہے - Trading Alerts',
+  'planChange.manage': 'آپ کسی بھی وقت اپنی سبسکرپشن دیکھ سکتے ہیں۔ {link}',
+  'planChange.manageLink': 'بلنگ کی سیٹنگز کھولیں',
+
   'commission.heading': 'کمیشن مل گیا!',
   'commission.body':
     'خوشخبری! آپ کا ایفیلی ایٹ کوڈ ابھی استعمال ہوا ہے اور آپ نے کمیشن کمایا ہے۔',

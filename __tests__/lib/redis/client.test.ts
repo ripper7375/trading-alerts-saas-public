@@ -9,6 +9,7 @@
 
 const mockConstructions: Array<{ url: string; options: Record<string, any> }> =
   [];
+const mockHandlers: Record<string, Array<(...args: unknown[]) => void>> = {};
 const mockQuit = jest.fn().mockResolvedValue('OK');
 
 jest.mock('ioredis', () => ({
@@ -17,7 +18,9 @@ jest.mock('ioredis', () => ({
     mockConstructions.push({ url, options });
     return {
       status: 'wait',
-      on: jest.fn(),
+      on: jest.fn((event: string, handler: (...args: unknown[]) => void) => {
+        (mockHandlers[event] ??= []).push(handler);
+      }),
       quit: mockQuit,
       ping: jest.fn().mockResolvedValue('PONG'),
     };
@@ -29,6 +32,7 @@ const ORIGINAL_ENV = { ...process.env };
 
 beforeEach(() => {
   mockConstructions.length = 0;
+  for (const event of Object.keys(mockHandlers)) delete mockHandlers[event];
   mockQuit.mockClear();
   delete globals.redisClient;
   jest.resetModules();
@@ -71,8 +75,36 @@ describe('connection options', () => {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
     });
-    expect(options['retryStrategy'](11)).toBeNull();
-    expect(options['retryStrategy'](2)).toBe(1000);
+  });
+
+  it('keeps reconnecting forever: a capped linear delay and no retry-count cutoff', async () => {
+    const { getRedisClient } = await load();
+
+    getRedisClient();
+
+    const retryStrategy = mockConstructions[0]?.options['retryStrategy'] as (
+      times: number
+    ) => number | null;
+    // a `null` here would end the client for good (ioredis then rejects every command with "Connection is closed")
+    expect(retryStrategy(1)).toBe(500);
+    expect(retryStrategy(2)).toBe(1_000);
+    expect(retryStrategy(10)).toBe(5_000);
+    expect(retryStrategy(11)).toBe(5_500);
+    expect(retryStrategy(60)).toBe(30_000);
+    expect(retryStrategy(10_000)).toBe(30_000);
+    const bad: number[] = [];
+    for (let times = 1; times <= 1_000; times += 1) {
+      const delay = retryStrategy(times);
+      if (
+        delay === null ||
+        !Number.isFinite(delay) ||
+        delay <= 0 ||
+        delay > 30_000
+      ) {
+        bad.push(times);
+      }
+    }
+    expect(bad).toEqual([]);
   });
 
   it('still throws when REDIS_URL is not set', async () => {
@@ -153,6 +185,29 @@ describe('the singleton', () => {
     await disconnectRedis();
 
     expect(mockQuit).not.toHaveBeenCalled();
+  });
+
+  it('a connect, error or close event only logs: it never builds a second client', async () => {
+    const error = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    const { getRedisClient } = await load();
+    const first = getRedisClient();
+
+    for (const event of ['connect', 'error', 'close', 'error', 'close']) {
+      for (const handler of mockHandlers[event] ?? []) {
+        handler(new Error('boom'));
+      }
+    }
+
+    expect(Object.keys(mockHandlers).sort()).toEqual([
+      'close',
+      'connect',
+      'error',
+    ]);
+    expect(error).toHaveBeenCalledWith('Redis client error:', 'boom');
+    expect(getRedisClient()).toBe(first);
+    expect(mockConstructions).toHaveLength(1);
   });
 
   it('the lazy redis export builds the client only on first use', async () => {

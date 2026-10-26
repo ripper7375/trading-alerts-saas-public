@@ -9,12 +9,18 @@ import {
   getCancellationEmailTemplate,
   getPaymentFailedEmailTemplate,
   getPaymentReceiptEmailTemplate,
+  getPlanSwitchScheduledEmailTemplate,
   getSubscriptionCanceledEmailTemplate,
+  getSubscriptionResumedEmailTemplate,
+  getSubscriptionUpgradedEmailTemplate,
   sendAffiliateCommissionEmail,
   sendCancellationEmail,
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
+  sendPlanSwitchScheduledEmail,
   sendSubscriptionCanceledEmail,
+  sendSubscriptionResumedEmail,
+  sendSubscriptionUpgradedEmail,
 } from './subscription-email.util';
 
 jest.mock('./email.util', () => ({
@@ -184,6 +190,181 @@ describe('subscription-email.util', () => {
         'ada@example.com',
         'Subscription Canceled - Trading Alerts',
         expect.stringContaining('August 15, 2026')
+      );
+    });
+  });
+
+  describe('getSubscriptionResumedEmailTemplate (S2, W4)', () => {
+    it('says the subscription continues, names the renewal date and links to billing', () => {
+      const template = getSubscriptionResumedEmailTemplate(
+        'Ada',
+        'PRO',
+        new Date('2026-11-21T00:00:00Z')
+      );
+      expect(template.subject).toBe(
+        'Your PRO subscription will continue - Trading Alerts'
+      );
+      expect(template.html).toContain('Subscription Resumed');
+      expect(template.html).toContain('November 21, 2026');
+      expect(template.html).toContain('/settings/billing');
+    });
+
+    it('is written in the language it is given', () => {
+      const template = getSubscriptionResumedEmailTemplate(
+        'Ada',
+        'PRO',
+        new Date('2026-11-21T00:00:00Z'),
+        { language: 'de' }
+      );
+      expect(template.subject).toBe(
+        'Ihr Abonnement PRO läuft weiter - Trading Alerts'
+      );
+      expect(template.html).toContain('Abonnement fortgesetzt');
+      expect(template.html).not.toContain('Subscription Resumed');
+    });
+  });
+
+  describe('sendSubscriptionResumedEmail (S2, W4)', () => {
+    it('sends with the template subject and html', async () => {
+      await sendSubscriptionResumedEmail(
+        'ada@example.com',
+        'Ada',
+        'PRO',
+        new Date('2026-11-21T00:00:00Z'),
+        { language: 'en-US' }
+      );
+      expect(mockSendEmail).toHaveBeenCalledWith(
+        'ada@example.com',
+        'Your PRO subscription will continue - Trading Alerts',
+        expect.stringContaining('November 21, 2026')
+      );
+    });
+  });
+
+  describe('getSubscriptionUpgradedEmailTemplate (S3, W5a)', () => {
+    const when = new Date('2027-10-31T03:15:00Z');
+
+    it('names what was charged, the yearly price and the next billing date, and links to billing', () => {
+      const template = getSubscriptionUpgradedEmailTemplate(
+        'Ada',
+        'PRO',
+        270.35,
+        290,
+        when,
+        false
+      );
+      expect(template.subject).toBe(
+        'You are now on yearly billing - Trading Alerts'
+      );
+      expect(template.html).toContain('Switched to Yearly Billing');
+      expect(template.html).toContain('$270.35');
+      expect(template.html).toContain('$290.00');
+      expect(template.html).toContain('October 31, 2027');
+      expect(template.html).toContain('/settings/billing');
+    });
+
+    it('during the free trial says nothing was charged and names the first charge', () => {
+      const template = getSubscriptionUpgradedEmailTemplate(
+        'Ada',
+        'PRO',
+        0,
+        290,
+        when,
+        true
+      );
+      expect(template.html).toContain('$0.00');
+      expect(template.html).toContain('First charge:');
+      expect(template.html).not.toContain('Next billing date');
+    });
+
+    it('is written in the language it is given', () => {
+      const template = getSubscriptionUpgradedEmailTemplate(
+        'Ada',
+        'PRO',
+        270.35,
+        290,
+        when,
+        false,
+        { language: 'de' }
+      );
+      expect(template.subject).toBe(
+        'Sie zahlen jetzt jährlich - Trading Alerts'
+      );
+      expect(template.html).not.toContain('Switched to Yearly Billing');
+    });
+  });
+
+  describe('sendSubscriptionUpgradedEmail (S3, W5a)', () => {
+    it('sends with the template subject and html', async () => {
+      await sendSubscriptionUpgradedEmail(
+        'ada@example.com',
+        'Ada',
+        'PRO',
+        270.35,
+        290,
+        new Date('2027-10-31T03:15:00Z'),
+        false,
+        { language: 'en-US' }
+      );
+      expect(mockSendEmail).toHaveBeenCalledWith(
+        'ada@example.com',
+        'You are now on yearly billing - Trading Alerts',
+        expect.stringContaining('$270.35')
+      );
+    });
+  });
+
+  describe('getPlanSwitchScheduledEmailTemplate (S3, W5b)', () => {
+    const when = new Date('2027-10-31T03:15:00Z');
+
+    it('names the switch date and the monthly price, says nothing is charged or refunded, and links to billing', () => {
+      const template = getPlanSwitchScheduledEmailTemplate(
+        'Ada',
+        'PRO',
+        when,
+        29
+      );
+      expect(template.subject).toBe(
+        'Your switch to monthly billing is scheduled - Trading Alerts'
+      );
+      expect(template.html).toContain('Switch to Monthly Billing Scheduled');
+      expect(template.html).toContain('October 31, 2027');
+      expect(template.html).toContain('$29.00');
+      expect(template.html).toContain('Nothing is charged or refunded now');
+      expect(template.html).toContain('/settings/billing');
+    });
+
+    it('is written in the language it is given', () => {
+      const template = getPlanSwitchScheduledEmailTemplate(
+        'Ada',
+        'PRO',
+        when,
+        29,
+        { language: 'es' }
+      );
+      expect(template.subject).toBe(
+        'Tu cambio a facturación mensual está programado - Trading Alerts'
+      );
+      expect(template.html).not.toContain(
+        'Switch to Monthly Billing Scheduled'
+      );
+    });
+  });
+
+  describe('sendPlanSwitchScheduledEmail (S3, W5b)', () => {
+    it('sends with the template subject and html', async () => {
+      await sendPlanSwitchScheduledEmail(
+        'ada@example.com',
+        'Ada',
+        'PRO',
+        new Date('2027-10-31T03:15:00Z'),
+        29,
+        { language: 'en-US' }
+      );
+      expect(mockSendEmail).toHaveBeenCalledWith(
+        'ada@example.com',
+        'Your switch to monthly billing is scheduled - Trading Alerts',
+        expect.stringContaining('October 31, 2027')
       );
     });
   });

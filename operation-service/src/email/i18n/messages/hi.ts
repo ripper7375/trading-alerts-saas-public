@@ -224,6 +224,42 @@ export const hi: EmailMessages = {
   'canceled.reactivateLink': 'अपनी सदस्यता फिर से चालू करें',
   'canceled.subject': 'सदस्यता रद्द हो गई - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'सदस्यता फिर से शुरू हो गई',
+  'resumed.body': 'आपकी **{plan}** सदस्यता जारी रहेगी।',
+  'resumed.nextBilling': '**अगली बिलिंग तारीख:** {date}',
+  'resumed.note':
+    'आपका रद्दीकरण वापस ले लिया गया है। आपके पास {plan} की पूरी पहुँच बनी रहेगी और आपकी सदस्यता {date} को अपने-आप नवीनीकृत होगी।',
+  'resumed.manage': 'आप कभी भी अपनी सदस्यता देख सकते हैं। {link}',
+  'resumed.manageLink': 'बिलिंग सेटिंग खोलें',
+  'resumed.subject': 'आपकी {plan} सदस्यता जारी रहेगी - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'वार्षिक बिलिंग पर स्विच किया गया',
+  'upgraded.body': 'आपकी **{plan}** सदस्यता अब वार्षिक बिल की जाएगी।',
+  'upgraded.charged': '**आज लिया गया शुल्क:** {amount}',
+  'upgraded.price': '**वार्षिक मूल्य:** {price}',
+  'upgraded.nextBilling': '**अगली बिलिंग तारीख:** {date}',
+  'upgraded.firstCharge': '**पहला शुल्क:** {date}',
+  'upgraded.note':
+    'आज का शुल्क वार्षिक मूल्य में से आपकी वर्तमान मासिक अवधि के अप्रयुक्त हिस्से का क्रेडिट घटाकर है।',
+  'upgraded.trialNote':
+    'आपका निःशुल्क परीक्षण जारी है और आज कुछ भी चार्ज नहीं किया गया। वार्षिक मूल्य पर आपका पहला शुल्क {date} को लिया जाएगा।',
+  'upgraded.subject': 'अब आप वार्षिक बिलिंग पर हैं - Trading Alerts',
+  'switchScheduled.heading': 'मासिक बिलिंग पर स्विच निर्धारित किया गया',
+  'switchScheduled.body':
+    'आपकी **{plan}** सदस्यता {date} को मासिक बिलिंग पर स्विच हो जाएगी।',
+  'switchScheduled.date': '**स्विच की तारीख:** {date}',
+  'switchScheduled.price': '**उसके बाद मासिक मूल्य:** {price}',
+  'switchScheduled.note':
+    '{date} तक आपकी वार्षिक पहुँच बनी रहेगी। अभी कुछ भी चार्ज या रिफ़ंड नहीं किया जाएगा, और चालू वर्ष के लिए कोई क्रेडिट नहीं है।',
+  'switchScheduled.keep':
+    'मन बदल गया? उससे पहले आप वार्षिक बिलिंग बनाए रख सकते हैं। {link}',
+  'switchScheduled.subject':
+    'मासिक बिलिंग पर आपका स्विच निर्धारित है - Trading Alerts',
+  'planChange.manage': 'आप कभी भी अपनी सदस्यता देख सकते हैं। {link}',
+  'planChange.manageLink': 'बिलिंग सेटिंग खोलें',
+
   'commission.heading': 'कमीशन मिला!',
   'commission.body':
     'खुशखबरी! आपका एफ़िलिएट कोड अभी इस्तेमाल हुआ है और आपने कमीशन कमाया है।',

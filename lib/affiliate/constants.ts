@@ -134,6 +134,69 @@ export function getMaxCommissionCycles(
   );
 }
 
+/**
+ * Months of subscription lifetime one paid invoice covers (decision E4): a
+ * monthly invoice 1, a yearly invoice 12. The prorated invoice of a monthly to
+ * yearly upgrade is a yearly invoice (it starts the yearly period), so it
+ * covers 12.
+ */
+export function commissionMonthsForInterval(
+  interval: CommissionBillingInterval
+): number {
+  return interval === 'year' ? 12 : 1;
+}
+
+/**
+ * Months of lifetime already paid on, from the invoices that earned a
+ * commission before this one (E4). `monthsByInvoiceId` is what Stripe says each
+ * of them covered; an invoice it cannot resolve (an older commission row with no
+ * invoice id, an invoice outside the list, or no answer at all) counts as
+ * `fallbackMonths`, which the caller sets to the months of the plan the
+ * subscription had before this invoice, so a subscription that never switched
+ * is counted exactly as before.
+ */
+export function commissionMonthsBefore(
+  priorInvoiceIds: ReadonlyArray<string | null>,
+  monthsByInvoiceId: Readonly<Record<string, number>> | null,
+  fallbackMonths: number
+): number {
+  return priorInvoiceIds.reduce<number>((sum, id) => {
+    const known = id !== null ? monthsByInvoiceId?.[id] : undefined;
+    return (
+      sum + (typeof known === 'number' && known > 0 ? known : fallbackMonths)
+    );
+  }, 0);
+}
+
+export interface CommissionWindow {
+  /** The invoice earns commission: fewer than the cap's months came before it. */
+  payable: boolean;
+  /** Months of lifetime this invoice covers. */
+  months: number;
+  /** The cap is reached once this invoice is paid, so the attribution ends. */
+  capReached: boolean;
+}
+
+/**
+ * Whether an invoice earns commission, by months of lifetime (decision E4,
+ * cap MAX_RECURRING_COMMISSION_MONTHS): it does when fewer than the cap's
+ * months came before it. An invoice that crosses the cap is paid in full and the
+ * next one is not. For a subscription that never switches this is the old
+ * result: 24 monthly invoices, or 2 yearly ones.
+ */
+export function commissionWindow(
+  monthsBefore: number,
+  interval: CommissionBillingInterval
+): CommissionWindow {
+  const cap = AFFILIATE_CONFIG.MAX_RECURRING_COMMISSION_MONTHS;
+  const months = commissionMonthsForInterval(interval);
+  return {
+    payable: monthsBefore < cap,
+    months,
+    capReached: monthsBefore + months >= cap,
+  };
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DERIVED TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

@@ -1,0 +1,91 @@
+{
+  "finalSourceSha256": "3749fea37f0d3c2e0a91f9f06d57f711ffc1602ca211742dfa954afe75395362",
+  "restoredAtEnd": true,
+  "expectedSha": "3749fea37f0d3c2e0a91f9f06d57f711ffc1602ca211742dfa954afe75395362",
+  "results": [
+    {
+      "id": "U1",
+      "what": "remove `select` from the upsert",
+      "landed": {
+        "removed": ["select: { id: true },"],
+        "added": []
+      },
+      "unit": "KILLED (Tests:       1 failed, 15 passed, 16 total)",
+      "gated": "KILLED (Tests:       2 failed, 18 passed, 20 total)",
+      "sql": "KILLED (- RETURNING list differs from the accepted output in statement(s) 1)",
+      "restoredByteIdentical": true
+    },
+    {
+      "id": "U2",
+      "what": "select: { symbol: true } instead of { id: true }",
+      "landed": {
+        "removed": ["select: { id: true },"],
+        "added": ["select: { symbol: true },"]
+      },
+      "unit": "KILLED (Tests:       1 failed, 15 passed, 16 total)",
+      "gated": "KILLED (Tests:       2 failed, 18 passed, 20 total)",
+      "sql": "KILLED (- RETURNING list differs from the accepted output in statement(s) 1)",
+      "restoredByteIdentical": true
+    },
+    {
+      "id": "U3",
+      "what": "drop `update: data` (an empty update, so the mutant still compiles)",
+      "landed": {
+        "removed": ["update: data,"],
+        "added": ["update: {},"]
+      },
+      "unit": "KILLED (Tests:       1 failed, 15 passed, 16 total)",
+      "gated": "KILLED (Tests:       4 failed, 16 passed, 20 total)",
+      "sql": "KILLED (- statement count differs: 5 -> 10 - #1: method queryRaw -> startTransaction)",
+      "restoredByteIdentical": true
+    },
+    {
+      "id": "U4",
+      "what": "drop cycle_id from the update payload",
+      "landed": {
+        "removed": ["update: data,"],
+        "added": ["update: { ...data, cycle_id: undefined },"]
+      },
+      "unit": "KILLED (Tests:       1 failed, 15 passed, 16 total)",
+      "gated": "KILLED (Tests:       4 failed, 16 passed, 20 total)",
+      "sql": "KILLED (- #1: parameter types differ - #1: SQL before RETURNING differs)",
+      "restoredByteIdentical": true
+    },
+    {
+      "id": "U5",
+      "what": "swap the order: point-in-time snapshot before the live upsert",
+      "landed": {
+        "removed": [],
+        "added": []
+      },
+      "unit": "KILLED (Tests:       3 failed, 13 passed, 16 total)",
+      "gated": "KILLED (Tests:       2 failed, 18 passed, 20 total)",
+      "sql": "KILLED (- #1: method queryRaw -> startTransaction - #1: statement kind differs (queryRaw -> startTransaction))",
+      "restoredByteIdentical": true
+    },
+    {
+      "id": "U6",
+      "what": "drop the `await` on the upsert",
+      "landed": {
+        "removed": ["await this.prisma.marketDataV6.upsert({"],
+        "added": ["this.prisma.marketDataV6.upsert({"]
+      },
+      "unit": "KILLED (Tests:       3 failed, 13 passed, 16 total)",
+      "gated": "KILLED (Tests:       4 failed, 16 passed, 20 total)",
+      "sql": "KILLED (- statement count differs: 5 -> 4 - #1: method queryRaw -> startTransaction)",
+      "restoredByteIdentical": true
+    },
+    {
+      "id": "U7",
+      "what": "swallow an upsert failure (catch and ignore)",
+      "landed": {
+        "removed": ["});"],
+        "added": ["}).catch(() => undefined);"]
+      },
+      "unit": "KILLED (Tests:       2 failed, 14 passed, 16 total)",
+      "gated": "KILLED (Tests:       2 failed, 18 passed, 20 total)",
+      "sql": "SURVIVED (SQL equal to the accepted output)",
+      "restoredByteIdentical": true
+    }
+  ]
+}

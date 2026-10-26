@@ -230,6 +230,43 @@ export const vi: EmailMessages = {
   'canceled.reactivateLink': 'Kích hoạt lại gói đăng ký',
   'canceled.subject': 'Đã hủy gói đăng ký - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Đã tiếp tục gói đăng ký',
+  'resumed.body': 'Gói đăng ký **{plan}** của bạn sẽ tiếp tục.',
+  'resumed.nextBilling': '**Ngày thanh toán tiếp theo:** {date}',
+  'resumed.note':
+    'Yêu cầu hủy của bạn đã được rút lại. Bạn vẫn giữ toàn bộ quyền truy cập {plan} và gói đăng ký sẽ tự động gia hạn vào {date}.',
+  'resumed.manage': 'Bạn có thể xem lại gói đăng ký bất cứ lúc nào. {link}',
+  'resumed.manageLink': 'Mở cài đặt thanh toán',
+  'resumed.subject': 'Gói đăng ký {plan} của bạn sẽ tiếp tục - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Đã chuyển sang thanh toán hằng năm',
+  'upgraded.body':
+    'Gói đăng ký **{plan}** của bạn giờ được thanh toán hằng năm.',
+  'upgraded.charged': '**Đã thu hôm nay:** {amount}',
+  'upgraded.price': '**Giá theo năm:** {price}',
+  'upgraded.nextBilling': '**Ngày thanh toán tiếp theo:** {date}',
+  'upgraded.firstCharge': '**Lần thu đầu tiên:** {date}',
+  'upgraded.note':
+    'Khoản thu hôm nay là giá theo năm trừ đi tín dụng cho phần chưa sử dụng của kỳ hằng tháng hiện tại.',
+  'upgraded.trialNote':
+    'Thời gian dùng thử miễn phí của bạn vẫn tiếp tục và hôm nay chưa thu khoản nào. Lần thu đầu tiên, theo giá năm, sẽ diễn ra vào {date}.',
+  'upgraded.subject': 'Bạn hiện đang thanh toán hằng năm - Trading Alerts',
+  'switchScheduled.heading': 'Đã lên lịch chuyển sang thanh toán hằng tháng',
+  'switchScheduled.body':
+    'Gói đăng ký **{plan}** của bạn sẽ chuyển sang thanh toán hằng tháng vào {date}.',
+  'switchScheduled.date': '**Ngày chuyển:** {date}',
+  'switchScheduled.price': '**Giá hằng tháng từ lúc đó:** {price}',
+  'switchScheduled.note':
+    'Bạn vẫn giữ quyền truy cập theo năm cho đến {date}. Hiện không có khoản nào được thu hay hoàn lại, và không có tín dụng cho năm hiện tại.',
+  'switchScheduled.keep':
+    'Bạn đổi ý? Bạn có thể giữ thanh toán hằng năm trước thời điểm đó. {link}',
+  'switchScheduled.subject':
+    'Đã lên lịch việc chuyển sang thanh toán hằng tháng của bạn - Trading Alerts',
+  'planChange.manage': 'Bạn có thể xem lại gói đăng ký bất cứ lúc nào. {link}',
+  'planChange.manageLink': 'Mở cài đặt thanh toán',
+
   'commission.heading': 'Bạn đã nhận được hoa hồng!',
   'commission.body':
     'Tin vui! Mã liên kết của bạn vừa được sử dụng và bạn đã nhận được hoa hồng.',

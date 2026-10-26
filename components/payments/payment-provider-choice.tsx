@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { ArrowLeft, ArrowRight, CreditCard, Globe } from 'lucide-react';
 import { useLocale } from '@/lib/context/locale-context';
 import {
@@ -16,15 +17,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useCheckoutRenewal } from './checkout-access';
 import { useCheckoutHref } from './checkout-navigation';
 
 export function PaymentProviderChoice(): React.ReactElement {
   const { t } = useLocale();
   const checkoutHref = useCheckoutHref();
+  const { renewing } = useCheckoutRenewal();
   const [open, setOpen] = useState(true);
   const reopenButton = useRef<HTMLButtonElement>(null);
+  // A dLocal subscriber renewing early (S4, W6) has one way to pay: dLocal. A
+  // Stripe purchase would start a second subscription. The query (plan,
+  // country, the renew marker) travels along.
+  if (renewing) redirect(checkoutHref('/checkout/dlocal'));
   return (
-    <main className="bg-muted/30 min-h-screen py-8">
+    <main className="min-h-screen bg-muted/30 py-8">
       <div className="container mx-auto max-w-3xl px-4">
         <Link
           href="/pricing"

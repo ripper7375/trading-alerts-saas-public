@@ -19,7 +19,22 @@ import { prisma } from '@/lib/db/prisma';
 import {
   getSubscription,
   getCustomerPaymentMethods,
+  getOpenInvoiceUrl,
 } from '@/lib/stripe/stripe';
+import {
+  allowedActionsOf,
+  displayStateOf,
+  effectivePendingPlan,
+  isPaymentProblem,
+  liveIntervalOf,
+  planTypeForInterval,
+  providerOf,
+  renewsAutomatically,
+  scheduleIdOf,
+  showsSubscription,
+  type SubscriptionAction,
+  type SubscriptionDisplayState,
+} from '@/lib/stripe/subscription-actions';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
@@ -31,6 +46,12 @@ import {
 interface SubscriptionResponse {
   tier: 'FREE' | 'PRO';
   status: string;
+  /**
+   * What the billing page may offer, decided here (plan §6): the server
+   * refuses any action that is not in this list. Empty in admin view-as.
+   */
+  allowedActions: SubscriptionAction[];
+  displayState: SubscriptionDisplayState;
   subscription: {
     id: string;
     status: string;
@@ -40,6 +61,12 @@ interface SubscriptionResponse {
     amountUsd: number | null;
     currentPeriodEnd: string | null; // For Stripe
     expiresAt: string | null; // NEW: For dLocal explicit expiry
+    /**
+     * Whether the plan renews by itself: a Stripe subscription does until its
+     * cancellation is scheduled; a dLocal plan is prepaid and never does
+     * (S4, W6).
+     */
+    renewsAutomatically: boolean;
     cancelAtPeriodEnd: boolean;
     trialEnd: string | null;
     paymentMethod: {
@@ -51,6 +78,19 @@ interface SubscriptionResponse {
     // NEW: dLocal-specific fields
     dLocalPaymentMethod: string | null;
     dLocalCountry: string | null;
+    /**
+     * Hosted invoice page of the latest open invoice ("Pay now"); only set
+     * for a Stripe subscription whose renewal failed (PAST_DUE or UNPAID).
+     */
+    openInvoiceUrl: string | null;
+    /**
+     * A switch to monthly billing waiting for the renewal date (W5b), else
+     * null. `effectiveAt` is that date.
+     */
+    pendingPlanChange: {
+      planType: 'MONTHLY';
+      effectiveAt: string | null;
+    } | null;
   } | null;
   // NEW (Session 6-1b): trial state, read from the User model. Additive
   // only — every existing consumer of this response is unaffected.
@@ -75,6 +115,8 @@ interface SubscriptionResponse {
  * {
  *   "tier": "FREE",
  *   "status": "none",
+ *   "allowedActions": [],
+ *   "displayState": "FREE",
  *   "subscription": null
  * }
  *
@@ -82,6 +124,8 @@ interface SubscriptionResponse {
  * {
  *   "tier": "PRO",
  *   "status": "active",
+ *   "allowedActions": ["update_card", "cancel"],
+ *   "displayState": "ACTIVE",
  *   "subscription": {
  *     "id": "sub_xxx",
  *     "status": "active",
@@ -135,8 +179,27 @@ export async function GET(
 
     // User no longer carries a `subscription` relation (Session 2-3 FK
     // audit) — look it up separately by userId.
+    // Explicit select (F21): a full-row read breaks the moment a column is
+    // added and this code is deployed before its migration. Only what the
+    // response below uses.
     const userSubscription = await prisma.subscription.findUnique({
       where: { userId },
+      select: {
+        id: true,
+        status: true,
+        planType: true,
+        amountUsd: true,
+        expiresAt: true,
+        stripeCustomerId: true,
+        stripeSubscriptionId: true,
+        stripeCurrentPeriodEnd: true,
+        dLocalPaymentId: true,
+        dLocalPaymentMethod: true,
+        dLocalCountry: true,
+        cancelAtPeriodEnd: true,
+        pendingPlanType: true,
+        pendingPlanEffectiveAt: true,
+      },
     });
 
     const trial = {
@@ -146,11 +209,18 @@ export async function GET(
       hasUsedFreeTrial: user.hasUsedFreeTrial,
     };
 
-    // If no subscription or FREE tier, return basic response
-    if (!userSubscription || user.tier === 'FREE') {
+    // No subscription block for a FREE user, unless a failed payment is
+    // waiting to be resolved: after UNPAID (or a PAST_DUE row downgraded before
+    // the grace fix) the user must still see "Pay now" and "Update card" (B2).
+    if (
+      !userSubscription ||
+      !showsSubscription(user.tier, userSubscription.status)
+    ) {
       return NextResponse.json({
         tier: user.tier,
         status: 'none',
+        allowedActions: [],
+        displayState: 'FREE',
         subscription: null,
         trial,
       });
@@ -190,34 +260,117 @@ export async function GET(
     }
 
     // Determine payment provider
-    const provider: 'STRIPE' | 'DLOCAL' | null =
-      userSubscription.dLocalPaymentId
-        ? 'DLOCAL'
-        : userSubscription.stripeSubscriptionId
-          ? 'STRIPE'
-          : null;
+    const provider = providerOf(userSubscription);
+
+    // W2: the page for paying the failed renewal. Looked up only for a Stripe
+    // subscription in a failed-payment state, and not in admin view-as (the
+    // admin cannot act on it; its absence also hides "Pay now").
+    let openInvoiceUrl: string | null = null;
+    if (
+      subject.kind === 'self' &&
+      provider === 'STRIPE' &&
+      userSubscription.stripeSubscriptionId &&
+      isPaymentProblem(userSubscription.status)
+    ) {
+      try {
+        openInvoiceUrl = await getOpenInvoiceUrl(
+          userSubscription.stripeSubscriptionId
+        );
+      } catch (error) {
+        console.error('[Subscription] Error fetching open invoice:', error);
+        // "Update card" still works; only "Pay now" is missing.
+      }
+    }
+
+    // Stripe's own answer wins when it was read (a cancellation can also be
+    // scheduled or undone outside this app, and the webhook may lag); the
+    // stored columns are the fallback. The period end matters twice: it is the
+    // date the page promises ("PRO until ..."), and during a trial the stored
+    // value is only an estimate until the first webhook corrects it.
+    const cancelAtPeriodEnd =
+      typeof stripeSubscription?.cancel_at_period_end === 'boolean'
+        ? stripeSubscription.cancel_at_period_end
+        : userSubscription.cancelAtPeriodEnd;
+    const currentPeriodEnd =
+      typeof stripeSubscription?.current_period_end === 'number'
+        ? new Date(stripeSubscription.current_period_end * 1000)
+        : userSubscription.stripeCurrentPeriodEnd;
+
+    // The billing period the subscription runs on, and the switch to monthly
+    // that is really waiting, both by Stripe's word when it was read (a schedule
+    // released in its dashboard, or a renewal whose webhook is late, must not
+    // leave a switch on the page).
+    const liveInterval = stripeSubscription
+      ? liveIntervalOf(stripeSubscription)
+      : null;
+    const planType =
+      planTypeForInterval(liveInterval) ?? userSubscription.planType;
+    const pendingPlan = effectivePendingPlan(
+      userSubscription,
+      stripeSubscription
+        ? {
+            hasSchedule: scheduleIdOf(stripeSubscription.schedule) !== null,
+            interval: liveInterval,
+          }
+        : null
+    );
+    // The row can say ACTIVE for a while after a trial checkout; Stripe's word
+    // decides, so the trial-only wording and actions are right.
+    const status =
+      userSubscription.status === 'ACTIVE' &&
+      stripeSubscription?.status === 'trialing'
+        ? 'TRIALING'
+        : userSubscription.status;
+
+    // The date the switch takes effect: the one stored with it, else the end of
+    // the paid period (the renewal).
+    const pendingEffectiveAt = pendingPlan
+      ? (pendingPlan.effectiveAt ?? currentPeriodEnd)
+      : null;
+
+    const actionFacts = {
+      tier: user.tier,
+      status,
+      provider,
+      openInvoiceUrl,
+      viewing: subject.kind !== 'self',
+      cancelAtPeriodEnd,
+      currentPeriodEnd,
+      planType,
+      pendingPlanType: pendingPlan?.planType ?? null,
+      expiresAt: userSubscription.expiresAt,
+    };
 
     // Build unified response
     const response: SubscriptionResponse = {
       tier: user.tier,
       status: userSubscription.status,
+      allowedActions: allowedActionsOf(actionFacts),
+      displayState: displayStateOf(actionFacts),
       subscription: {
         id: userSubscription.id,
         status: userSubscription.status,
         provider,
-        planType: userSubscription.planType,
+        planType,
         amountUsd:
           userSubscription.amountUsd > 0 ? userSubscription.amountUsd : null,
-        currentPeriodEnd:
-          userSubscription.stripeCurrentPeriodEnd?.toISOString() || null,
+        currentPeriodEnd: currentPeriodEnd?.toISOString() || null,
         expiresAt: userSubscription.expiresAt?.toISOString() || null,
-        cancelAtPeriodEnd: stripeSubscription?.cancel_at_period_end || false,
+        renewsAutomatically: renewsAutomatically(actionFacts),
+        cancelAtPeriodEnd,
         trialEnd: stripeSubscription?.trial_end
           ? new Date(stripeSubscription.trial_end * 1000).toISOString()
           : null,
         paymentMethod,
         dLocalPaymentMethod: userSubscription.dLocalPaymentMethod,
         dLocalCountry: userSubscription.dLocalCountry,
+        openInvoiceUrl,
+        pendingPlanChange: pendingPlan
+          ? {
+              planType: pendingPlan.planType,
+              effectiveAt: pendingEffectiveAt?.toISOString() ?? null,
+            }
+          : null,
       },
       trial,
     };

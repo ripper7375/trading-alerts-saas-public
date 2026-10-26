@@ -1,7 +1,7 @@
 ---
 type: Concept/EnvironmentGotchas
 status: active
-updated_at: 2026-10-18
+updated_at: 2026-10-24
 source: "'Gotcha' notes scattered through CLAUDE.md session logs 2026-08-30..09-26 (search state/history/ for the full story)"
 tags: [windows, git, shell, jest, browser, tooling]
 related_docs:
@@ -60,6 +60,10 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   `@jest/globals`, inside hoisted factories.
 - `jest.clearAllMocks()` does not clear queued `mockResolvedValueOnce` values; use
   `resetAllMocks()` when a function may call a mock a variable number of times.
+- **money-service has no `node_modules` in this checkout.** Run its `tsc` and Jest from a scratch copy: `robocopy D:\SaaS\money-service <scratch> /MIR /XD node_modules dist .git`,
+  then either `npm ci` there (about 40 s) or `mklink /J <scratch>\node_modules <an installed copy>\node_modules`; copy again after each edit (`/MIR`). Remove a junction with
+  `rmdir` (`cmd /c rmdir <path>`), never a recursive delete, which can follow it into the install. Use `--coverage=false` for a single suite: the root `jest` config's
+  global coverage thresholds fail any partial run.
 - A mutation test only counts if the mutation landed where you think; restore byte-exact.
 - `money-service` `prisma.shutdown.spec.ts` times out under full parallel runs
   (`LESSONS-LEARNED.md` L24); rerun it alone with `--runInBand` before calling it a regression.
@@ -136,6 +140,12 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   with `pg_ctl stop -m fast` or by PID. A `role "WiN" does not exist` FATAL in its log is only `pg_isready`'s default-user probe.
 - **A hand-made mutation harness must not prefix `// @ts-nocheck` to a file that starts with a shebang** (WS-11, `scripts/backfill-payment-details-encryption.ts` begins `#!/usr/bin/env tsx`): the prefix pushes the `#!` line off line 1, every mutant of that file fails with "Test suite failed to run" and looks killed. Look for `(suite failed to load)` on a whole group of mutants as a sign of a broken harness, not of strong tests; skip the prefix for such a file (SWC in Jest does not type-check anyway, only ts-jest in money-service does).
 - **A script that runs under `tsx` cannot `await import('.prisma/non-market-client')`** ("not a valid package name"; the dotted name only resolves through CommonJS). A static `import` (as `prisma/seed.ts` has) or `require(...)` works; a unit test never finds this, a rehearsal on a scratch database does (WS-11). A scratch PostgreSQL has no TLS: the pg adapter's `ssl: { rejectUnauthorized: false }` fails against it, so a script that rehearses there turns TLS off for `localhost`/`127.0.0.1`.
+
+- **A scratch PostgreSQL for a service that forces TLS (operation-service: `ssl: { rejectUnauthorized: false }`)** (database scaling second wave, Unit P-operation, 2026-10-24): `initdb -A trust -U postgres`, a self-signed
+  certificate (`openssl req -new -x509 -nodes -days 2 -subj /CN=localhost`), `postgres.exe` started hidden with `-c ssl=on -c ssl_cert_file=... -c ssl_key_file=...`. Then replace `pg_hba.conf` by `hostnossl all all 127.0.0.1/32 reject` and
+  `hostssl all all 127.0.0.1/32 trust` and run `SELECT pg_reload_conf()`: the default `host ... trust` lines accept plain connections too, so a build that dropped `ssl` would still pass. **Do not put `sslmode=` in the fixture URL**: the
+  installed `pg-connection-string` parses `sslmode=require` to `ssl: {}` (an alias of verify-full) and that REPLACES the service's own `ssl` option, so the self-signed certificate is refused (installed-driver probe,
+  `pg` 8.22.0). The recipe and the fixture are `operation-service/src/prisma/prisma.pool.pg.spec.ts` (gated by `OPS_POOL_PG_URL` and `OPS_POOL_PG_ALLOW_WIPE=yes`).
 - **Shell cwd drifts**: a `cd` inside one Bash call changes the primary working directory for later calls (it moved to `railway-gateway/` and to a fixtures
   folder in one session). Use absolute paths or `git -C`. A subshell, `( cd <dir> && npx jest ... )`, does not move it (used throughout build step 3 part 3).
 - **`python -m mcd_worker.cli` runs nothing with the committed config**: `worker_config.yaml` has every MCD `off` (as it must until a person records evidence), so the result has `order: []` and `results: []`. A spec that wants readings passes `--config` with
@@ -381,3 +391,4 @@ Each of these cost a past session real time. Search `state/history/` for the inc
   and `npx jest --ci --forceExit`. Without the build step 11 suites fail to RUN with `Cannot find module '@trading-alerts/types/...'` (alerts, drawings, tier, any spec that imports `AppModule`). Run `tsc` with
   `--incremental false`: the config has `incremental: true`, so a plain run leaves `operation-service/dist/tsconfig.tsbuildinfo` behind (gitignored, but delete it). 63 suites, 627 tests at this date.
 - **The Edit tool dropped a trailing space at the end of a `new_string`** (ad-hoc 2026-10-20, dLocal 3-day e-mails): an edit whose replacement ended in `? ` before a template literal came out as `?\`` and `tsc`would not have caught it. End every`old_string`/`new_string`on a visible character (include the next word), and read the changed lines back with`git diff` before running tests.
+- **`railway-gateway/` has been installed in place since 2026-10-24** (`npm ci` for Unit U; `package.json` and `package-lock.json` stayed byte-identical). npm 11 prints "install scripts not yet covered by allowScripts" for `@prisma/engines`, `prisma` and `msgpackr-extract`, yet the package's own `postinstall` still generated the client. Its Jest run on this CRLF checkout has **5 failures that are not regressions** (`sensors-replay` 1, `sensors-synthesis-rows` 3, `sensors-disabled-consumes-nothing` 1: each reads an `i/lf w/crlf` file and matches on `\n`) and 12 skipped suites (10 gated `*.pg.spec.ts`, 2 Python-gated; no usable Python here): 3,140 tests before Unit U, 2,666 passed. A change to the gateway is judged by "the same 5, no more"; `tsc`, `check:sensor-kit`, the e2e config (156 tests) and `nest build` are green. Use `( cd railway-gateway && npx jest ... )` in a subshell; a plain `cd` moves the Bash tool's working directory for the next call.

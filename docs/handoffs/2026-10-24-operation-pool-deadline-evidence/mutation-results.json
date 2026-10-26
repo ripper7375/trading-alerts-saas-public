@@ -1,0 +1,171 @@
+{
+  "original_sha256": "f43d103024a893f63131da2dbabee17a0c4678d10195be4b0d5ed67451da8ef4",
+  "restored_matches": true,
+  "results": [
+    {
+      "id": "M1",
+      "what": "remove connectionTimeoutMillis",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "hands the adapter exactly the URL, the forced TLS setting and a 2,000 ms connection timeout",
+          "leaves the pool size, idle eviction and lifetime at the driver defaults (max 10, idle 10 s)"
+        ]
+      },
+      "fixture": {
+        "result": "killed",
+        "failed": [
+          "saturation: the eleventh query fails after about 2 s, then the pool recovers with no late insert",
+          "connect timeout: a server that accepts and never answers fails at about 2 s; a refused port is only a control",
+          "interactive transaction under saturation: the default fails at about 2 s, maxWait 10 s still fails at about 2 s, nothing is left open, the pool recovers"
+        ],
+        "passed": 5,
+        "timedOut": false,
+        "suiteError": null
+      },
+      "seconds": 78
+    },
+    {
+      "id": "M2",
+      "what": "connectionTimeoutMillis 20_000",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "hands the adapter exactly the URL, the forced TLS setting and a 2,000 ms connection timeout"
+        ]
+      },
+      "fixture": {
+        "result": "killed",
+        "failed": [
+          "saturation: the eleventh query fails after about 2 s, then the pool recovers with no late insert",
+          "connect timeout: a server that accepts and never answers fails at about 2 s; a refused port is only a control",
+          "interactive transaction under saturation: the default fails at about 2 s, maxWait 10 s still fails at about 2 s, nothing is left open, the pool recovers"
+        ],
+        "passed": 5,
+        "timedOut": false,
+        "suiteError": null
+      },
+      "seconds": 72
+    },
+    {
+      "id": "M3",
+      "what": "connectionTimeoutMillis 1",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "hands the adapter exactly the URL, the forced TLS setting and a 2,000 ms connection timeout"
+        ]
+      },
+      "fixture": {
+        "result": "killed",
+        "failed": [
+          "does not open a connection on $connect (the pool is lazy), and shutdown completes with nothing held",
+          "normal read and write succeed on an idle pool, over TLS",
+          "is not a statement timeout: one pg_sleep(3) on an idle pool completes",
+          "pool shape: ten busy queries open exactly ten backends (max 10), all over TLS, and nothing more connects",
+          "pool shape: idle connections are evicted after about 10 s (idleTimeoutMillis 10,000)",
+          "saturation: the eleventh query fails after about 2 s, then the pool recovers with no late insert",
+          "connect timeout: a server that accepts and never answers fails at about 2 s; a refused port is only a control",
+          "interactive transaction under saturation: the default fails at about 2 s, maxWait 10 s still fails at about 2 s, nothing is left open, the pool recovers"
+        ],
+        "passed": 0,
+        "timedOut": false,
+        "suiteError": null
+      },
+      "seconds": 39
+    },
+    {
+      "id": "M4",
+      "what": "add max: 2",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "hands the adapter exactly the URL, the forced TLS setting and a 2,000 ms connection timeout",
+          "leaves the pool size, idle eviction and lifetime at the driver defaults (max 10, idle 10 s)"
+        ]
+      },
+      "fixture": {
+        "result": "killed",
+        "failed": [
+          "pool shape: ten busy queries open exactly ten backends (max 10), all over TLS, and nothing more connects",
+          "saturation: the eleventh query fails after about 2 s, then the pool recovers with no late insert",
+          "interactive transaction under saturation: the default fails at about 2 s, maxWait 10 s still fails at about 2 s, nothing is left open, the pool recovers"
+        ],
+        "passed": 5,
+        "timedOut": false,
+        "suiteError": null
+      },
+      "seconds": 58
+    },
+    {
+      "id": "M5",
+      "what": "drop ssl",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "hands the adapter exactly the URL, the forced TLS setting and a 2,000 ms connection timeout",
+          "leaves the pool size, idle eviction and lifetime at the driver defaults (max 10, idle 10 s)"
+        ]
+      },
+      "fixture": {
+        "result": "killed",
+        "failed": [
+          "does not open a connection on $connect (the pool is lazy), and shutdown completes with nothing held",
+          "normal read and write succeed on an idle pool, over TLS",
+          "is not a statement timeout: one pg_sleep(3) on an idle pool completes",
+          "pool shape: ten busy queries open exactly ten backends (max 10), all over TLS, and nothing more connects",
+          "pool shape: idle connections are evicted after about 10 s (idleTimeoutMillis 10,000)",
+          "saturation: the eleventh query fails after about 2 s, then the pool recovers with no late insert",
+          "interactive transaction under saturation: the default fails at about 2 s, maxWait 10 s still fails at about 2 s, nothing is left open, the pool recovers"
+        ],
+        "passed": 1,
+        "timedOut": false,
+        "suiteError": null
+      },
+      "seconds": 41
+    },
+    {
+      "id": "M6",
+      "what": "connectionTimeoutMillis 500",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "hands the adapter exactly the URL, the forced TLS setting and a 2,000 ms connection timeout"
+        ]
+      },
+      "fixture": {
+        "result": "killed",
+        "failed": [
+          "saturation: the eleventh query fails after about 2 s, then the pool recovers with no late insert",
+          "connect timeout: a server that accepts and never answers fails at about 2 s; a refused port is only a control",
+          "interactive transaction under saturation: the default fails at about 2 s, maxWait 10 s still fails at about 2 s, nothing is left open, the pool recovers"
+        ],
+        "passed": 5,
+        "timedOut": false,
+        "suiteError": null
+      },
+      "seconds": 52
+    },
+    {
+      "id": "M7",
+      "what": "add idleTimeoutMillis: 60_000",
+      "unit": {
+        "result": "killed",
+        "failed": [
+          "hands the adapter exactly the URL, the forced TLS setting and a 2,000 ms connection timeout",
+          "leaves the pool size, idle eviction and lifetime at the driver defaults (max 10, idle 10 s)"
+        ]
+      },
+      "fixture": {
+        "result": "killed",
+        "failed": [
+          "pool shape: idle connections are evicted after about 10 s (idleTimeoutMillis 10,000)"
+        ],
+        "passed": 7,
+        "timedOut": false,
+        "suiteError": null
+      },
+      "seconds": 63
+    }
+  ]
+}

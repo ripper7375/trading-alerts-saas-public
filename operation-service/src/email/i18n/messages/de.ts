@@ -238,6 +238,42 @@ export const de: EmailMessages = {
   'canceled.reactivateLink': 'Abonnement reaktivieren',
   'canceled.subject': 'Abonnement gekündigt - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Abonnement fortgesetzt',
+  'resumed.body': 'Ihr Abonnement **{plan}** läuft weiter.',
+  'resumed.nextBilling': '**Nächstes Abrechnungsdatum:** {date}',
+  'resumed.note':
+    'Ihre Kündigung wurde zurückgenommen. Sie behalten den vollen {plan}-Zugang, und Ihr Abonnement verlängert sich am {date} automatisch.',
+  'resumed.manage': 'Sie können Ihr Abonnement jederzeit einsehen. {link}',
+  'resumed.manageLink': 'Abrechnungseinstellungen öffnen',
+  'resumed.subject': 'Ihr Abonnement {plan} läuft weiter - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Auf jährliche Abrechnung umgestellt',
+  'upgraded.body': 'Ihr Abonnement **{plan}** wird jetzt jährlich abgerechnet.',
+  'upgraded.charged': '**Heute berechnet:** {amount}',
+  'upgraded.price': '**Jahrespreis:** {price}',
+  'upgraded.nextBilling': '**Nächstes Abrechnungsdatum:** {date}',
+  'upgraded.firstCharge': '**Erste Abbuchung:** {date}',
+  'upgraded.note':
+    'Die heutige Abbuchung ist der Jahrespreis abzüglich der Gutschrift für den nicht genutzten Teil Ihres aktuellen Monatszeitraums.',
+  'upgraded.trialNote':
+    'Ihre kostenlose Testphase läuft weiter, und heute wurde nichts berechnet. Ihre erste Abbuchung zum Jahrespreis erfolgt am {date}.',
+  'upgraded.subject': 'Sie zahlen jetzt jährlich - Trading Alerts',
+  'switchScheduled.heading': 'Umstellung auf monatliche Abrechnung geplant',
+  'switchScheduled.body':
+    'Ihr Abonnement **{plan}** wird am {date} auf monatliche Abrechnung umgestellt.',
+  'switchScheduled.date': '**Datum der Umstellung:** {date}',
+  'switchScheduled.price': '**Monatspreis ab dann:** {price}',
+  'switchScheduled.note':
+    'Ihren Jahreszugang behalten Sie bis zum {date}. Jetzt wird nichts berechnet oder erstattet, und für das laufende Jahr gibt es keine Gutschrift.',
+  'switchScheduled.keep':
+    'Anders entschieden? Sie können die jährliche Abrechnung bis dahin beibehalten. {link}',
+  'switchScheduled.subject':
+    'Ihre Umstellung auf monatliche Abrechnung ist geplant - Trading Alerts',
+  'planChange.manage': 'Sie können Ihr Abonnement jederzeit einsehen. {link}',
+  'planChange.manageLink': 'Abrechnungseinstellungen öffnen',
+
   'commission.heading': 'Provision verdient!',
   'commission.body':
     'Gute Neuigkeiten! Ihr Affiliate-Code wurde gerade verwendet und Sie haben eine Provision verdient.',

@@ -30,7 +30,10 @@ import {
   sendCancellationEmail,
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
+  sendPlanSwitchScheduledEmail,
   sendSubscriptionCanceledEmail,
+  sendSubscriptionResumedEmail,
+  sendSubscriptionUpgradedEmail,
 } from '../email/subscription-email.util';
 import {
   sendPayoutDetailsChangedEmail,
@@ -64,6 +67,9 @@ type ClaimResult = 'claimed' | 'done' | 'in-flight' | 'unavailable';
 const KNOWN_EVENT_TYPES = new Set([
   'TIER_UPGRADED',
   'SUBSCRIPTION_CANCELLED',
+  'SUBSCRIPTION_RESUMED',
+  'SUBSCRIPTION_UPGRADED',
+  'SUBSCRIPTION_DOWNGRADE_SCHEDULED',
   'PAYMENT_FAILED',
   'PAYMENT_SUCCEEDED',
   'COMMISSION_CREDITED',
@@ -119,6 +125,78 @@ function parseDate(value: unknown): Date | null {
   if (typeof value !== 'string') return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * The "subscription resumed" e-mail names the date the subscription renews
+ * (`renewsAt`, set by money-service). There is no date of this service's own
+ * to fall back on, so an event without a readable one is skipped rather than
+ * sent with a made-up date.
+ */
+function renewsAtOf(payload: Record<string, unknown>): Date | null {
+  const raw = payload['renewsAt'];
+  if (typeof raw !== 'string') return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function dateOf(payload: Record<string, unknown>, key: string): Date | null {
+  const raw = payload[key];
+  if (typeof raw !== 'string') return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function usdOf(
+  payload: Record<string, unknown>,
+  key: string,
+  allowZero: boolean
+): number | null {
+  const value = payload[key];
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return value > 0 || (allowZero && value === 0) ? value : null;
+}
+
+/**
+ * The "upgraded to yearly" e-mail (Manage Subscription S3, W5a) prints what was
+ * charged, the yearly price and the next billing date, all set by
+ * money-service. There is nothing of this service's own to fall back on, so an
+ * event without readable details is skipped rather than sent with made-up
+ * figures. `amountChargedUsd` may be 0: the switch was made in a free trial.
+ */
+function upgradeDetailsOf(payload: Record<string, unknown>): {
+  amountCharged: number;
+  yearlyPriceUsd: number;
+  nextBillingDate: Date;
+  inTrial: boolean;
+} | null {
+  const amountCharged = usdOf(payload, 'amountChargedUsd', true);
+  const yearlyPriceUsd = usdOf(payload, 'yearlyPriceUsd', false);
+  const nextBillingDate = dateOf(payload, 'nextBillingDate');
+  if (
+    amountCharged === null ||
+    yearlyPriceUsd === null ||
+    nextBillingDate === null
+  ) {
+    return null;
+  }
+  return {
+    amountCharged,
+    yearlyPriceUsd,
+    nextBillingDate,
+    inTrial: payload['inTrial'] === true,
+  };
+}
+
+/** The "switch to monthly scheduled" e-mail: the switch date and monthly price. */
+function switchDetailsOf(payload: Record<string, unknown>): {
+  effectiveAt: Date;
+  monthlyPriceUsd: number;
+} | null {
+  const effectiveAt = dateOf(payload, 'effectiveAt');
+  const monthlyPriceUsd = usdOf(payload, 'monthlyPriceUsd', false);
+  if (effectiveAt === null || monthlyPriceUsd === null) return null;
+  return { effectiveAt, monthlyPriceUsd };
 }
 
 @Injectable()
@@ -207,6 +285,39 @@ export class OutboxConsumerService {
         { outboxEventId: event.id }
       );
       return { status: 'skipped', reason: 'invalid-payload' };
+    }
+
+    if (
+      event.eventType === 'SUBSCRIPTION_RESUMED' &&
+      renewsAtOf(event.payload) === null
+    ) {
+      console.warn(
+        `[Outbox] ${event.eventType} event has no usable renewsAt, skipping`,
+        { outboxEventId: event.id }
+      );
+      return { status: 'skipped', reason: 'missing-renews-at' };
+    }
+
+    if (
+      event.eventType === 'SUBSCRIPTION_UPGRADED' &&
+      upgradeDetailsOf(event.payload) === null
+    ) {
+      console.warn(
+        `[Outbox] ${event.eventType} event has no usable details, skipping`,
+        { outboxEventId: event.id }
+      );
+      return { status: 'skipped', reason: 'missing-upgrade-details' };
+    }
+
+    if (
+      event.eventType === 'SUBSCRIPTION_DOWNGRADE_SCHEDULED' &&
+      switchDetailsOf(event.payload) === null
+    ) {
+      console.warn(
+        `[Outbox] ${event.eventType} event has no usable details, skipping`,
+        { outboxEventId: event.id }
+      );
+      return { status: 'skipped', reason: 'missing-switch-details' };
     }
 
     const user = await this.prisma.user.findUnique({
@@ -350,6 +461,52 @@ export class OutboxConsumerService {
           );
         }
         return sendCancellationEmail(email, name);
+      }
+      case 'SUBSCRIPTION_RESUMED': {
+        // Manage Subscription S2 (W4): a scheduled cancellation was withdrawn.
+        // processEvent skipped the event already when `renewsAt` is missing.
+        const renewsAt = renewsAtOf(payload);
+        if (renewsAt === null) {
+          throw new InternalServerErrorException(
+            `${eventType} reached dispatch without a renewsAt`
+          );
+        }
+        return sendSubscriptionResumedEmail(email, name, 'PRO', renewsAt);
+      }
+      case 'SUBSCRIPTION_UPGRADED': {
+        // Manage Subscription S3 (W5a). processEvent skipped the event already
+        // when its details are missing.
+        const details = upgradeDetailsOf(payload);
+        if (details === null) {
+          throw new InternalServerErrorException(
+            `${eventType} reached dispatch without details`
+          );
+        }
+        return sendSubscriptionUpgradedEmail(
+          email,
+          name,
+          'PRO',
+          details.amountCharged,
+          details.yearlyPriceUsd,
+          details.nextBillingDate,
+          details.inTrial
+        );
+      }
+      case 'SUBSCRIPTION_DOWNGRADE_SCHEDULED': {
+        // Manage Subscription S3 (W5b).
+        const details = switchDetailsOf(payload);
+        if (details === null) {
+          throw new InternalServerErrorException(
+            `${eventType} reached dispatch without details`
+          );
+        }
+        return sendPlanSwitchScheduledEmail(
+          email,
+          name,
+          'PRO',
+          details.effectiveAt,
+          details.monthlyPriceUsd
+        );
       }
       case 'TIER_DOWNGRADED':
         // Design decisions point 3: reuse the cancellation copy -- no

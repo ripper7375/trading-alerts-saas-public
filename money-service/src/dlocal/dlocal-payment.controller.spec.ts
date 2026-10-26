@@ -238,6 +238,114 @@ describe('DlocalPaymentController', () => {
     ).rejects.toMatchObject({ status: 403 });
   });
 
+  describe('an early renewal by an active dLocal subscriber (Manage Subscription S4, W6)', () => {
+    const activeDlocal = {
+      status: 'ACTIVE',
+      dLocalPaymentId: 'dl-old',
+      stripeSubscriptionId: null,
+      expiresAt: new Date('2026-10-30T00:00:00.000Z'),
+    };
+
+    beforeEach(() => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        tier: 'PRO',
+        hasUsedThreeDayPlan: true,
+      } as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(
+        activeDlocal as never
+      );
+    });
+
+    it('creates the payment when the request says renew and the plan is a live dLocal one', async () => {
+      const result = await controller.create(makeRequest(), {
+        ...validBody,
+        renew: true,
+      });
+
+      expect(result).toEqual(
+        expect.objectContaining({ paymentId: 'dlocal-pay-1' })
+      );
+      expect(prismaMock.payment.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('still answers 403 without the renew flag: an old client cannot slip through', async () => {
+      await expect(
+        controller.create(makeRequest(), validBody)
+      ).rejects.toMatchObject({ status: 403 });
+      expect(prismaMock.payment.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 403 when renew is claimed by an active STRIPE subscriber', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue({
+        status: 'ACTIVE',
+        dLocalPaymentId: null,
+        stripeSubscriptionId: 'sub_1',
+      } as never);
+
+      await expect(
+        controller.create(makeRequest(), { ...validBody, renew: true })
+      ).rejects.toMatchObject({ status: 403 });
+      expect(prismaMock.payment.create).not.toHaveBeenCalled();
+    });
+
+    it('answers 403 when renew is claimed and the row has no provider', async () => {
+      prismaMock.subscription.findUnique.mockResolvedValue({
+        status: 'ACTIVE',
+        dLocalPaymentId: null,
+        stripeSubscriptionId: null,
+      } as never);
+
+      await expect(
+        controller.create(makeRequest(), { ...validBody, renew: true })
+      ).rejects.toMatchObject({ status: 403 });
+    });
+
+    it('ignores a discount code on a renewal: the full price is charged and no code is stored', async () => {
+      await controller.create(makeRequest(), {
+        ...validBody,
+        renew: true,
+        discountCode: 'SAVE10',
+      });
+
+      expect(prismaMock.affiliateCode.findFirst).not.toHaveBeenCalled();
+      expect(prismaMock.payment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            discountCode: null,
+            discountAmount: 0,
+          }),
+        })
+      );
+    });
+
+    it('rejects a non-boolean renew flag as a bad request', async () => {
+      await expect(
+        controller.create(makeRequest(), { ...validBody, renew: 'yes' })
+      ).rejects.toMatchObject({ status: 400 });
+    });
+
+    it('a FREE user who sends renew is treated as any new buyer (the flag changes nothing)', async () => {
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        tier: 'FREE',
+        hasUsedThreeDayPlan: false,
+      } as never);
+      prismaMock.subscription.findUnique.mockResolvedValue(null);
+      prismaMock.affiliateCode.findFirst.mockResolvedValue(null as never);
+
+      await expect(
+        controller.create(makeRequest(), {
+          ...validBody,
+          renew: true,
+          discountCode: 'SAVE10',
+        })
+      ).rejects.toMatchObject({ status: 400 });
+      // The code was still checked: the flag only matters to an active subscriber.
+      expect(prismaMock.affiliateCode.findFirst).toHaveBeenCalled();
+    });
+  });
+
   it('returns 403 when re-attempting an already-used 3-day plan', async () => {
     prismaMock.user.findUnique.mockResolvedValue({
       id: 'user-1',

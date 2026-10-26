@@ -14,7 +14,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
 import { AffiliateConfigService } from './affiliate-config.service';
-import { ConversionProcessorService } from './conversion-processor.service';
+import {
+  ConversionProcessorService,
+  type CreditInput,
+} from './conversion-processor.service';
 
 describe('ConversionProcessorService', () => {
   let service: ConversionProcessorService;
@@ -857,6 +860,212 @@ describe('ConversionProcessorService', () => {
         capReached: true,
       });
       expect(prismaMock.commission.create).not.toHaveBeenCalled();
+    });
+
+    // Decision E4: the cap counts months of lifetime covered, not invoices.
+    describe('months of lifetime across a switch of billing period (E4)', () => {
+      const code = {
+        id: 'code-1',
+        code: 'AFF10',
+        affiliateProfileId: 'aff-1',
+        discountPercent: 20,
+        commissionPercent: 20,
+        affiliateProfile: { id: 'aff-1', userId: 'affiliate-user-1' },
+      };
+
+      beforeEach(() => {
+        prismaMock.affiliateCode.findUnique.mockResolvedValue(code as never);
+        prismaMock.$transaction.mockImplementation(async (cb: unknown) =>
+          (cb as (tx: unknown) => unknown)(prismaMock)
+        );
+        prismaMock.commission.create.mockResolvedValue({
+          id: 'commission-new',
+        } as never);
+        prismaMock.affiliateProfile.update.mockResolvedValue({
+          totalEarnings: 100,
+        } as never);
+      });
+
+      const priors = (ids: string[]) =>
+        prismaMock.commission.findMany.mockResolvedValue(
+          ids.map((stripeInvoiceId) => ({ stripeInvoiceId })) as never
+        );
+      const monthly = (n: number, prefix = 'm') =>
+        Array.from({ length: n }, (_, i) => `inv-${prefix}${i}`);
+      const credit = (
+        over: Omit<
+          CreditInput,
+          'affiliateCodeId' | 'userId' | 'grossRevenueUsd'
+        > &
+          Partial<Pick<CreditInput, 'grossRevenueUsd'>>
+      ) =>
+        service.creditAffiliateCommission({
+          affiliateCodeId: 'code-1',
+          userId: 'user-1',
+          grossRevenueUsd: 270.35,
+          ...over,
+        });
+      const months = (ids: string[], each: number) =>
+        Object.fromEntries(ids.map((id) => [id, each]));
+
+      it('pays the prorated upgrade invoice at invoice 5 (the old per-invoice cap of 2 would have stopped it) and keeps the attribution', async () => {
+        const earlier = monthly(4);
+        priors(earlier);
+
+        const result = await credit({
+          interval: 'year',
+          stripeInvoiceId: 'inv-upgrade',
+          resolvePriorInvoiceMonths: async () => months(earlier, 1),
+        });
+
+        expect(result).toMatchObject({ processed: true, capReached: false });
+        // On the amount actually collected, undiscounted: it is not cycle 1.
+        expect(prismaMock.commission.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            stripeInvoiceId: 'inv-upgrade',
+            grossRevenue: 270.35,
+            discountAmount: 0,
+          }),
+        });
+      });
+
+      it('an invoice that crosses month 24 is paid in full and reports the cap', async () => {
+        const earlier = monthly(23);
+        priors(earlier);
+
+        const result = await credit({
+          interval: 'year',
+          stripeInvoiceId: 'inv-upgrade',
+          resolvePriorInvoiceMonths: async () => months(earlier, 1),
+        });
+
+        expect(result).toMatchObject({ processed: true, capReached: true });
+      });
+
+      it('the invoice after the cap is not paid: CAP_REACHED, no commission, attribution to be cleared', async () => {
+        const earlier = [...monthly(12), 'inv-year'];
+        priors(earlier);
+
+        const result = await credit({
+          interval: 'month',
+          grossRevenueUsd: 29,
+          stripeInvoiceId: 'inv-next',
+          resolvePriorInvoiceMonths: async () => ({
+            ...months(monthly(12), 1),
+            'inv-year': 12,
+          }),
+        });
+
+        expect(result).toEqual({
+          processed: false,
+          reason: 'CAP_REACHED',
+          capReached: true,
+        });
+        expect(prismaMock.commission.create).not.toHaveBeenCalled();
+      });
+
+      it('after a downgrade the monthly invoices run on to month 24, no further', async () => {
+        const earlier = ['inv-year', ...monthly(11)];
+        priors(earlier);
+
+        const result = await credit({
+          interval: 'month',
+          grossRevenueUsd: 29,
+          stripeInvoiceId: 'inv-12th-month',
+          resolvePriorInvoiceMonths: async () => ({
+            'inv-year': 12,
+            ...months(monthly(11), 1),
+          }),
+        });
+
+        // 12 + 11 = 23 months before: this one reaches 24.
+        expect(result).toMatchObject({ processed: true, capReached: true });
+      });
+
+      it('asks Stripe only when an earlier commission exists (the first invoice needs no lookup)', async () => {
+        priors([]);
+        const resolve = jest.fn().mockResolvedValue({});
+
+        const result = await credit({
+          interval: 'month',
+          grossRevenueUsd: 29,
+          stripeInvoiceId: 'inv-first',
+          resolvePriorInvoiceMonths: resolve,
+        });
+
+        expect(resolve).not.toHaveBeenCalled();
+        expect(result).toMatchObject({ processed: true, capReached: false });
+        // Cycle 1 keeps the code's discount.
+        expect(prismaMock.commission.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({ discountAmount: 5.8 }),
+        });
+      });
+
+      it('counts an earlier invoice Stripe does not list as the fallback months', async () => {
+        const earlier = monthly(2, 'known');
+        priors([...earlier, 'inv-unlisted']);
+
+        // 2 known monthly (2) + 1 unlisted at 12 = 14 months before: yearly pays.
+        const result = await credit({
+          interval: 'year',
+          stripeInvoiceId: 'inv-now',
+          fallbackPriorMonths: 12,
+          resolvePriorInvoiceMonths: async () => months(earlier, 1),
+        });
+        expect(result).toMatchObject({ processed: true, capReached: true });
+      });
+
+      it('counts a commission row with no invoice id (an older row) as the fallback months', async () => {
+        prismaMock.commission.findMany.mockResolvedValue([
+          { stripeInvoiceId: null },
+          { stripeInvoiceId: null },
+        ] as never);
+
+        const result = await credit({
+          interval: 'month',
+          grossRevenueUsd: 29,
+          stripeInvoiceId: 'inv-now',
+          fallbackPriorMonths: 12,
+          resolvePriorInvoiceMonths: async () => ({}),
+        });
+
+        // 2 x 12 = 24 months before.
+        expect(result).toMatchObject({
+          processed: false,
+          reason: 'CAP_REACHED',
+        });
+      });
+
+      it('when the lookup throws it counts the earlier invoices as the fallback and still credits', async () => {
+        priors(monthly(4));
+
+        const result = await credit({
+          interval: 'year',
+          stripeInvoiceId: 'inv-upgrade',
+          fallbackPriorMonths: 1,
+          resolvePriorInvoiceMonths: async () => {
+            throw new Error('Stripe is down');
+          },
+        });
+
+        expect(result).toMatchObject({ processed: true, capReached: false });
+      });
+
+      it('with no lookup and no fallback it counts exactly as before E4: this invoice’s months per earlier invoice', async () => {
+        priors(monthly(23));
+        await expect(
+          credit({
+            interval: 'month',
+            grossRevenueUsd: 29,
+            stripeInvoiceId: 'inv-24',
+          })
+        ).resolves.toMatchObject({ processed: true, capReached: true });
+
+        priors(['inv-a', 'inv-b']);
+        await expect(
+          credit({ interval: 'year', stripeInvoiceId: 'inv-3rd-year' })
+        ).resolves.toMatchObject({ processed: false, reason: 'CAP_REACHED' });
+      });
     });
   });
 });

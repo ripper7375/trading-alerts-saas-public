@@ -9,6 +9,10 @@
  * - planType: 'THREE_DAY' | 'MONTHLY' | 'YEARLY' (required)
  * - currency: 3-letter currency code (required)
  * - discountCode: Optional discount code (only for MONTHLY)
+ * - renew: Optional. True when an active dLocal subscriber pays for another
+ *   period before the current one ends (Manage Subscription S4, W6). The
+ *   server decides whether that is allowed; the days left are added to the new
+ *   period by the webhook. A discount code is ignored on a renewal.
  *
  * Response:
  * - 200: Payment created with redirect URL
@@ -39,6 +43,10 @@ import { prisma } from '@/lib/db/prisma';
 import { logger } from '@/lib/logger';
 import { shouldUseMoneyServiceForDlocalWrite } from '@/lib/money-service/flags';
 import {
+  allowedActionsOf,
+  providerOf,
+} from '@/lib/stripe/subscription-actions';
+import {
   forwardWriteRequestToMoneyService,
   MoneyServiceError,
 } from '@/lib/money-service/write-routes';
@@ -64,6 +72,7 @@ const createPaymentSchema = z.object({
     'BRL',
   ]),
   discountCode: z.string().optional(),
+  renew: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -103,8 +112,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
-    const { country, paymentMethod, planType, currency, discountCode } =
-      validationResult.data;
+    const {
+      country,
+      paymentMethod,
+      planType,
+      currency,
+      discountCode: requestedDiscountCode,
+      renew,
+    } = validationResult.data;
 
     // Validate payment method for country
     if (!isValidPaymentMethod(country as DLocalCountry, paymentMethod)) {
@@ -134,12 +149,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       where: { userId },
     });
 
+    // An active PRO subscriber cannot start a second subscription. The one
+    // exception (S4, W6) is a dLocal subscriber who renews early: the server
+    // reads their subscription and offers `renew_now` only for a live dLocal
+    // plan, so the request's `renew` flag alone proves nothing.
+    let renewing = false;
     if (user.tier === 'PRO' && userSubscription?.status === 'ACTIVE') {
-      return NextResponse.json(
-        { error: 'You already have an active subscription' },
-        { status: 403 }
-      );
+      renewing =
+        renew === true &&
+        allowedActionsOf({
+          tier: user.tier,
+          status: userSubscription.status,
+          provider: providerOf(userSubscription),
+          openInvoiceUrl: null,
+        }).includes('renew_now');
+      if (!renewing) {
+        return NextResponse.json(
+          { error: 'You already have an active subscription' },
+          { status: 403 }
+        );
+      }
     }
+    // No affiliate discount on a renewal (the code was used at the first
+    // purchase).
+    const discountCode = renewing ? undefined : requestedDiscountCode;
 
     // Check 3-day plan restriction
     if (planType === 'THREE_DAY' && user.hasUsedThreeDayPlan) {

@@ -1,0 +1,156 @@
+{
+  "lazy_connect_backends": {
+    "total": 0,
+    "byState": {},
+    "allTls": true
+  },
+  "shutdown": {
+    "ms": 2,
+    "backends": {
+      "total": 0,
+      "byState": {},
+      "allTls": true
+    }
+  },
+  "normal_read_write": {
+    "write": {
+      "ok": true,
+      "ms": 56,
+      "value": 1
+    },
+    "read": {
+      "ok": true,
+      "ms": 2,
+      "value": [
+        {
+          "n": 1
+        }
+      ]
+    },
+    "backends": {
+      "total": 1,
+      "byState": {
+        "idle": 1
+      },
+      "allTls": true
+    }
+  },
+  "statement_not_bounded": {
+    "ok": true,
+    "ms": 3067,
+    "value": [
+      {
+        "n": 1
+      }
+    ]
+  },
+  "pool_shape": {
+    "busy": {
+      "total": 10,
+      "byState": {
+        "active": 10
+      },
+      "allTls": true
+    },
+    "later": {
+      "total": 10,
+      "byState": {
+        "active": 10
+      },
+      "allTls": true
+    }
+  },
+  "idle_eviction": {
+    "idle": {
+      "total": 2,
+      "byState": {
+        "idle": 2
+      },
+      "allTls": true
+    },
+    "evictedAfterMs": 10065,
+    "remaining": {
+      "total": 0,
+      "byState": {},
+      "allTls": true
+    }
+  },
+  "saturation_eleventh": {
+    "ok": true,
+    "ms": 3853,
+    "value": 1
+  },
+  "saturation_after": {
+    "recovery": {
+      "ok": true,
+      "ms": 1,
+      "value": [
+        {
+          "n": 1
+        }
+      ]
+    },
+    "settled": {
+      "total": 10,
+      "byState": {
+        "idle": 10
+      },
+      "allTls": true
+    },
+    "lateRows": 1
+  },
+  "connect_refused_control": {
+    "ok": false,
+    "ms": 29,
+    "error": {
+      "class": "PrismaClientKnownRequestError",
+      "name": "PrismaClientKnownRequestError",
+      "message": "\nInvalid `prisma.$queryRawUnsafe()` invocation:\n\n\nRaw query failed. Code: `N/A`. Message: `Can't reach database server at 127.0.0.1:57026`",
+      "code": "P2010",
+      "meta": {
+        "driverAdapterError": {
+          "name": "DriverAdapterError",
+          "cause": {
+            "kind": "DatabaseNotReachable",
+            "host": "127.0.0.1",
+            "port": 57026
+          }
+        }
+      }
+    }
+  },
+  "connect_black_hole": {
+    "outcome": "HUNG",
+    "connectionsAccepted": 1
+  },
+  "tx_default": {
+    "ok": false,
+    "ms": 2011,
+    "error": {
+      "class": "PrismaClientKnownRequestError",
+      "name": "PrismaClientKnownRequestError",
+      "message": "Transaction API error: Unable to start a transaction in the given time.",
+      "code": "P2028",
+      "meta": {}
+    }
+  },
+  "tx_maxwait_10s": {
+    "ok": true,
+    "ms": 4009
+  },
+  "tx_after": {
+    "openAfterDefault": 0,
+    "lateDefault": 0,
+    "openAfterLong": 0,
+    "lateLong": 1,
+    "recovery": {
+      "ok": true,
+      "ms": 1,
+      "value": [
+        {
+          "n": 1
+        }
+      ]
+    }
+  }
+}

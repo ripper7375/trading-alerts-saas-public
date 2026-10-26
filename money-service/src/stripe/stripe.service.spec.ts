@@ -9,6 +9,8 @@ import { StripeService } from './stripe.service';
 const mockCouponsCreate = jest.fn();
 const mockSessionsCreate = jest.fn();
 const mockSubscriptionsCancel = jest.fn();
+const mockSubscriptionsUpdate = jest.fn();
+const mockPortalSessionsCreate = jest.fn();
 const mockWebhooksConstructEvent = jest.fn();
 const mockPricesRetrieve = jest.fn();
 
@@ -16,7 +18,11 @@ jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
     coupons: { create: mockCouponsCreate },
     checkout: { sessions: { create: mockSessionsCreate } },
-    subscriptions: { cancel: mockSubscriptionsCancel },
+    billingPortal: { sessions: { create: mockPortalSessionsCreate } },
+    subscriptions: {
+      cancel: mockSubscriptionsCancel,
+      update: mockSubscriptionsUpdate,
+    },
     webhooks: { constructEvent: mockWebhooksConstructEvent },
     prices: { retrieve: mockPricesRetrieve },
   }));
@@ -292,6 +298,81 @@ describe('StripeService', () => {
 
       expect(mockSubscriptionsCancel).toHaveBeenCalledWith('sub_123');
       expect(result.status).toBe('canceled');
+    });
+  });
+
+  describe('setCancelAtPeriodEnd (S2, W3/W4)', () => {
+    it('schedules the cancellation at the end of the period, and only that', async () => {
+      mockSubscriptionsUpdate.mockResolvedValue({
+        id: 'sub_123',
+        status: 'active',
+        cancel_at_period_end: true,
+      });
+
+      const result = await service.setCancelAtPeriodEnd('sub_123', true);
+
+      expect(mockSubscriptionsUpdate).toHaveBeenCalledTimes(1);
+      expect(mockSubscriptionsUpdate).toHaveBeenCalledWith('sub_123', {
+        cancel_at_period_end: true,
+      });
+      expect(result.cancel_at_period_end).toBe(true);
+      // Not the immediate cancel.
+      expect(mockSubscriptionsCancel).not.toHaveBeenCalled();
+    });
+
+    it('withdraws it when asked to', async () => {
+      mockSubscriptionsUpdate.mockResolvedValue({
+        id: 'sub_123',
+        cancel_at_period_end: false,
+      });
+
+      await service.setCancelAtPeriodEnd('sub_123', false);
+
+      expect(mockSubscriptionsUpdate).toHaveBeenCalledWith('sub_123', {
+        cancel_at_period_end: false,
+      });
+    });
+
+    it('passes Stripe’s refusal on to the caller', async () => {
+      mockSubscriptionsUpdate.mockRejectedValue(
+        new Error('No such subscription')
+      );
+
+      await expect(service.setCancelAtPeriodEnd('sub_x', true)).rejects.toThrow(
+        'No such subscription'
+      );
+    });
+  });
+
+  describe('createPaymentMethodUpdateSession (W1)', () => {
+    it('scopes the portal to the card form, under the given configuration, with a redirect after completion', async () => {
+      mockPortalSessionsCreate.mockResolvedValue({
+        url: 'https://billing.stripe.com/p/session/x',
+      });
+
+      const result = await service.createPaymentMethodUpdateSession(
+        'cus_1',
+        'bpc_test_1',
+        'https://app.example.com/settings/billing',
+        'https://app.example.com/settings/billing?done=card'
+      );
+
+      expect(result.url).toBe('https://billing.stripe.com/p/session/x');
+      expect(mockPortalSessionsCreate).toHaveBeenCalledTimes(1);
+      expect(mockPortalSessionsCreate).toHaveBeenCalledWith({
+        customer: 'cus_1',
+        configuration: 'bpc_test_1',
+        return_url: 'https://app.example.com/settings/billing',
+        flow_data: {
+          type: 'payment_method_update',
+          after_completion: {
+            type: 'redirect',
+            redirect: {
+              return_url: 'https://app.example.com/settings/billing?done=card',
+            },
+          },
+        },
+      });
     });
   });
 

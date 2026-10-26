@@ -230,6 +230,44 @@ export const id: EmailMessages = {
   'canceled.reactivateLink': 'Aktifkan kembali langganan Anda',
   'canceled.subject': 'Langganan dibatalkan - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Langganan dilanjutkan',
+  'resumed.body': 'Langganan **{plan}** Anda akan tetap berlanjut.',
+  'resumed.nextBilling': '**Tanggal penagihan berikutnya:** {date}',
+  'resumed.note':
+    'Pembatalan Anda telah ditarik. Anda tetap memiliki akses {plan} penuh dan langganan Anda diperpanjang otomatis pada {date}.',
+  'resumed.manage': 'Anda dapat meninjau langganan Anda kapan saja. {link}',
+  'resumed.manageLink': 'Buka pengaturan penagihan',
+  'resumed.subject':
+    'Langganan {plan} Anda akan tetap berlanjut - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Beralih ke penagihan tahunan',
+  'upgraded.body': 'Langganan **{plan}** Anda sekarang ditagih setiap tahun.',
+  'upgraded.charged': '**Ditagih hari ini:** {amount}',
+  'upgraded.price': '**Harga tahunan:** {price}',
+  'upgraded.nextBilling': '**Tanggal penagihan berikutnya:** {date}',
+  'upgraded.firstCharge': '**Penagihan pertama:** {date}',
+  'upgraded.note':
+    'Tagihan hari ini adalah harga tahunan dikurangi kredit untuk bagian periode bulanan Anda saat ini yang belum terpakai.',
+  'upgraded.trialNote':
+    'Uji coba gratis Anda masih berjalan dan tidak ada yang ditagih hari ini. Penagihan pertama Anda, dengan harga tahunan, adalah pada {date}.',
+  'upgraded.subject':
+    'Anda sekarang menggunakan penagihan tahunan - Trading Alerts',
+  'switchScheduled.heading': 'Peralihan ke penagihan bulanan dijadwalkan',
+  'switchScheduled.body':
+    'Langganan **{plan}** Anda akan beralih ke penagihan bulanan pada {date}.',
+  'switchScheduled.date': '**Tanggal peralihan:** {date}',
+  'switchScheduled.price': '**Harga bulanan setelah itu:** {price}',
+  'switchScheduled.note':
+    'Anda tetap memiliki akses tahunan hingga {date}. Tidak ada yang ditagih atau dikembalikan sekarang, dan tidak ada kredit untuk tahun berjalan.',
+  'switchScheduled.keep':
+    'Berubah pikiran? Anda dapat tetap menggunakan penagihan tahunan sebelum tanggal itu. {link}',
+  'switchScheduled.subject':
+    'Peralihan Anda ke penagihan bulanan telah dijadwalkan - Trading Alerts',
+  'planChange.manage': 'Anda dapat meninjau langganan Anda kapan saja. {link}',
+  'planChange.manageLink': 'Buka pengaturan penagihan',
+
   'commission.heading': 'Komisi diterima!',
   'commission.body':
     'Kabar baik! Kode afiliasi Anda baru saja digunakan dan Anda mendapatkan komisi.',

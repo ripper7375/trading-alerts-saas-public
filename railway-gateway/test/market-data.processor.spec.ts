@@ -96,6 +96,7 @@ describe('dispatch by job name', () => {
       },
       create: job.data,
       update: job.data,
+      select: { id: true },
     });
     expect(cycleManifests.handle).not.toHaveBeenCalled();
   });
@@ -130,6 +131,48 @@ describe('dispatch by job name', () => {
     const { prisma, processor } = build();
     prisma.marketDataV6.upsert.mockRejectedValueOnce(new Error('db down'));
     await expect(processor.process(rowJob())).rejects.toThrow('db down');
+  });
+
+  it('a rejected upsert fails the job before any snapshot work', async () => {
+    const { prisma, processor } = build();
+    prisma.marketDataV6.upsert.mockRejectedValueOnce(new Error('db down'));
+    await expect(processor.process(rowJob())).rejects.toThrow('db down');
+    expect(prisma.marketDataPointInTime.createMany).not.toHaveBeenCalled();
+  });
+
+  it('the live row is written before the point-in-time snapshot', async () => {
+    const { prisma, processor } = build();
+    await processor.process(rowJob());
+    const [upsertOrder] = prisma.marketDataV6.upsert.mock.invocationCallOrder;
+    const [snapshotOrder] =
+      prisma.marketDataPointInTime.createMany.mock.invocationCallOrder;
+    expect(upsertOrder).toBeLessThan(snapshotOrder);
+  });
+
+  it('the snapshot step waits until the live upsert has settled', async () => {
+    const { prisma, processor } = build();
+    let settle!: (value: unknown) => void;
+    prisma.marketDataV6.upsert.mockReturnValueOnce(
+      new Promise((resolve) => {
+        settle = resolve;
+      })
+    );
+
+    const running = processor.process(rowJob());
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(prisma.marketDataPointInTime.createMany).not.toHaveBeenCalled();
+
+    settle({ id: 'row-id' });
+    await running;
+    expect(prisma.marketDataPointInTime.createMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('what the upsert resolves with is not the job result', async () => {
+    const { prisma, processor } = build();
+    prisma.marketDataV6.upsert.mockResolvedValueOnce({ id: 'row-id' });
+    await expect(processor.process(rowJob())).resolves.toEqual({
+      success: true,
+    });
   });
 
   it('a manifest goes to the manifest service with the job, and touches no row table', async () => {

@@ -65,3 +65,27 @@ related_docs:
 - **The GitHub repository is PUBLIC.** Never put a credential, a connection string or an unfixed security finding in a tracked
   file. Security findings and their remediation orders live only in the gitignored `davintrade-pre-launch-security-check-lists/` folder
   (the pre-launch checklist and its execution plan); read them there.
+
+- **Manage Subscription S2 deploy order: migration, then operation-service, then money-service, then the monolith** (2026-10-21). The migration
+  `20261021000000_add_subscription_management_fields` first (database-traps.md). operation-service BEFORE money-service this time, the opposite of the
+  price events: money-service's new `SUBSCRIPTION_RESUMED` outbox event reaching an operation-service that does not know it is answered `skipped`
+  (`unrecognized-event-type`), and the publisher counts any 2xx as delivered, so the "your subscription will continue" e-mail is lost and never retried.
+  The cancel-scheduled e-mail needs no new consumer code (it is `SUBSCRIPTION_CANCELLED` with `cancelAt`, as before).
+- **Manage Subscription S3 deploy order: the same, migration (S2's), operation-service, money-service, the monolith** (2026-10-21). money-service's new
+  `SUBSCRIPTION_UPGRADED` and `SUBSCRIPTION_DOWNGRADE_SCHEDULED` outbox events are `unrecognized-event-type` to an operation-service that does not know them: answered
+  `skipped`, counted as delivered, lost. No migration and no new variable; a plan change needs `STRIPE_PRO_PRICE_ID` on both services (503 `PLAN_CHANGE_UNAVAILABLE` without it).
+- **Manage Subscription S4 deploy: BOTH money-service and the monolith, no migration beyond S2's** (2026-10-21). dLocal calls whichever webhook its dashboard points at, so both
+  dLocal webhooks and both `/payments/dlocal/create` guards changed and neither may be skipped; operation-service is unchanged.
+- **A dLocal payment STACKS onto the days left, so the dLocal webhook must stay claim-guarded** (S4, 2026-10-21; [S4 report](../../docs/handoffs/2026-10-21-manage-subscription-s4.md) §2
+  items 2 to 4). `expiresAt = max(now, current expiry) + duration`, taken only from a LIVE dLocal row (a Stripe row also stores `expiresAt`). The payment is claimed
+  (`updateMany ... status: { not: 'COMPLETED' }`) inside the transaction in both stacks, so a replayed webhook adds nothing; remove that claim and every dLocal retry adds a period.
+- **Stripe refuses `cancel_at_period_end` while a Subscription Schedule manages the subscription, and a schedule stays attached through its last phase** (verified in test mode,
+  2026-10-21; [S3 report](../../docs/handoffs/2026-10-21-manage-subscription-s3.md) §3.2). After "switch to monthly at renewal" the schedule is still attached for the whole first
+  monthly period, so anything that cancels or changes the subscription (cancel, upgrade) must release a live schedule first; the webhook releases it when phase 2 starts.
+- **"Update card" needs `STRIPE_PORTAL_CONFIGURATION_ID` on BOTH the monolith and money-service** (Manage Subscription S1, 2026-10-21): `POST
+/api/subscription/payment-method-session` answers 503 `PORTAL_NOT_CONFIGURED` without it or without `NEXTAUTH_URL`, and creates nothing. With
+  `MIGRATE_WRITE_APIS_MONEY_STRIPE=true` (set in the local `.env.local`) the monolith route only forwards to money-service, so a local browser check also needs
+  money-service running with the same variable. Use a test-mode ID with test keys, a live ID in production.
+- **Two Stripe rule files are byte copies across the stacks** (a test fails on any difference): `lib/stripe/tier-rule.ts` and
+  `lib/stripe/subscription-actions.ts` are mirrored in `money-service/src/stripe/`. Edit one, copy it over the other. `invoice-plan.ts` is also mirrored, by
+  hand, with no test.

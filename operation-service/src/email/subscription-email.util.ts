@@ -23,7 +23,10 @@ import {
   buildCancellationEmail,
   buildPaymentFailedEmail,
   buildPaymentReceiptEmail,
+  buildPlanSwitchScheduledEmail,
   buildSubscriptionCanceledEmail,
+  buildSubscriptionResumedEmail,
+  buildSubscriptionUpgradedEmail,
   DEFAULT_EMAIL_LOCALE,
   type BuiltEmail,
   type EmailLocale,
@@ -121,6 +124,89 @@ export function getSubscriptionCanceledEmailTemplate(
   locale: EmailLocale = DEFAULT_EMAIL_LOCALE
 ): EmailTemplate {
   return buildSubscriptionCanceledEmail(locale, { name, plan, cancelAt });
+}
+
+/**
+ * Generate the "subscription resumed" email template
+ *
+ * Sent when a user withdraws a scheduled cancellation: the subscription
+ * continues and renews on `nextBillingDate`.
+ *
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param nextBillingDate - Date the subscription renews
+ * @param locale - Reader's language and formats (English when omitted)
+ * @returns Email template with subject, HTML, and text content
+ */
+export function getSubscriptionResumedEmailTemplate(
+  name: string,
+  plan: 'FREE' | 'PRO',
+  nextBillingDate: Date,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): EmailTemplate {
+  return buildSubscriptionResumedEmail(locale, { name, plan, nextBillingDate });
+}
+
+/**
+ * Generate the "upgraded to yearly billing" email template
+ *
+ * Sent when a subscriber moves from monthly to yearly billing and the switch
+ * was made (Manage Subscription S3, W5a).
+ *
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param amountCharged - Charged for the switch, in USD (0 in a free trial)
+ * @param yearlyPriceUsd - The yearly price, in USD
+ * @param nextBillingDate - Next billing date (in a free trial, the first charge)
+ * @param inTrial - True when the switch was made during the free trial
+ * @param locale - Reader's language and formats (English when omitted)
+ * @returns Email template with subject, HTML, and text content
+ */
+export function getSubscriptionUpgradedEmailTemplate(
+  name: string,
+  plan: 'FREE' | 'PRO',
+  amountCharged: number,
+  yearlyPriceUsd: number,
+  nextBillingDate: Date,
+  inTrial: boolean,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): EmailTemplate {
+  return buildSubscriptionUpgradedEmail(locale, {
+    name,
+    plan,
+    amountCharged,
+    yearlyPriceUsd,
+    nextBillingDate,
+    inTrial,
+  });
+}
+
+/**
+ * Generate the "switch to monthly billing scheduled" email template
+ *
+ * Sent when a yearly subscriber schedules the switch to monthly billing at
+ * the renewal date (Manage Subscription S3, W5b).
+ *
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param effectiveDate - The renewal date, when monthly billing starts
+ * @param monthlyPriceUsd - The monthly price from then, in USD
+ * @param locale - Reader's language and formats (English when omitted)
+ * @returns Email template with subject, HTML, and text content
+ */
+export function getPlanSwitchScheduledEmailTemplate(
+  name: string,
+  plan: 'FREE' | 'PRO',
+  effectiveDate: Date,
+  monthlyPriceUsd: number,
+  locale: EmailLocale = DEFAULT_EMAIL_LOCALE
+): EmailTemplate {
+  return buildPlanSwitchScheduledEmail(locale, {
+    name,
+    plan,
+    effectiveDate,
+    monthlyPriceUsd,
+  });
 }
 
 /**
@@ -267,6 +353,105 @@ export async function sendSubscriptionCanceledEmail(
   );
 
   console.log(`[Email] Sending subscription canceled email to ${email}`);
+
+  return sendEmail(email, template.subject, template.html);
+}
+
+/**
+ * Send the "subscription resumed" email
+ *
+ * @param email - Recipient email address
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param nextBillingDate - Date the subscription renews
+ * @param locale - Reader's language and formats (the recipient's own by default)
+ * @returns Email result with success status
+ */
+export async function sendSubscriptionResumedEmail(
+  email: string,
+  name: string,
+  plan: 'FREE' | 'PRO',
+  nextBillingDate: Date,
+  locale?: EmailLocale
+): Promise<EmailResult> {
+  const template = getSubscriptionResumedEmailTemplate(
+    name,
+    plan,
+    nextBillingDate,
+    await localeFor(email, locale)
+  );
+
+  console.log(`[Email] Sending subscription resumed email to ${email}`);
+
+  return sendEmail(email, template.subject, template.html);
+}
+
+/**
+ * Send the "upgraded to yearly billing" email
+ *
+ * @param email - Recipient email address
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param amountCharged - Charged for the switch, in USD (0 in a free trial)
+ * @param yearlyPriceUsd - The yearly price, in USD
+ * @param nextBillingDate - Next billing date (in a free trial, the first charge)
+ * @param inTrial - True when the switch was made during the free trial
+ * @param locale - Reader's language and formats (the recipient's own by default)
+ * @returns Email result with success status
+ */
+export async function sendSubscriptionUpgradedEmail(
+  email: string,
+  name: string,
+  plan: 'FREE' | 'PRO',
+  amountCharged: number,
+  yearlyPriceUsd: number,
+  nextBillingDate: Date,
+  inTrial: boolean,
+  locale?: EmailLocale
+): Promise<EmailResult> {
+  const template = getSubscriptionUpgradedEmailTemplate(
+    name,
+    plan,
+    amountCharged,
+    yearlyPriceUsd,
+    nextBillingDate,
+    inTrial,
+    await localeFor(email, locale)
+  );
+
+  console.log(`[Email] Sending subscription upgraded email to ${email}`);
+
+  return sendEmail(email, template.subject, template.html);
+}
+
+/**
+ * Send the "switch to monthly billing scheduled" email
+ *
+ * @param email - Recipient email address
+ * @param name - User's display name
+ * @param plan - Subscription plan ('FREE' | 'PRO')
+ * @param effectiveDate - The renewal date, when monthly billing starts
+ * @param monthlyPriceUsd - The monthly price from then, in USD
+ * @param locale - Reader's language and formats (the recipient's own by default)
+ * @returns Email result with success status
+ */
+export async function sendPlanSwitchScheduledEmail(
+  email: string,
+  name: string,
+  plan: 'FREE' | 'PRO',
+  effectiveDate: Date,
+  monthlyPriceUsd: number,
+  locale?: EmailLocale
+): Promise<EmailResult> {
+  const template = getPlanSwitchScheduledEmailTemplate(
+    name,
+    plan,
+    effectiveDate,
+    monthlyPriceUsd,
+    await localeFor(email, locale)
+  );
+
+  console.log(`[Email] Sending plan switch scheduled email to ${email}`);
 
   return sendEmail(email, template.subject, template.html);
 }

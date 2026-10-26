@@ -32,6 +32,8 @@ import { PrismaService } from '../prisma/prisma.service';
 
 import { invoicePlan } from './invoice-plan';
 import { StripeService } from './stripe.service';
+import { scheduleIdOf } from './subscription-actions';
+import { tierForStripeStatus } from './tier-rule';
 
 type SubscriptionStatusValue =
   | 'ACTIVE'
@@ -165,6 +167,16 @@ export class StripeWebhookService {
             stripeCurrentPeriodEnd: nextBillingDate,
             expiresAt: nextBillingDate,
             affiliateCodeId: reservedAffiliateCodeId,
+            // A user who cancelled and subscribes again reuses this row: the
+            // new subscription is not scheduled to end (S2).
+            cancelAtPeriodEnd: false,
+            cancelRequestedAt: null,
+            cancellationReason: null,
+            // ...and has no switch to monthly waiting on the old subscription
+            // (S3).
+            pendingPlanType: null,
+            pendingPlanEffectiveAt: null,
+            stripeScheduleId: null,
           },
           create: {
             userId,
@@ -223,6 +235,25 @@ export class StripeWebhookService {
 
       const status = this.mapStripeStatus(subscription.status);
 
+      // `cancelAtPeriodEnd` follows Stripe (B9), so a cancellation scheduled or
+      // undone outside the cancel and resume routes (Stripe's dashboard, a
+      // repair) is mirrored; when it is off, the "when" and "why" of an earlier
+      // request go with it.
+      const cancelAtPeriodEnd = subscription.cancel_at_period_end === true;
+
+      // B9, the switch part (W5b): a scheduled switch to monthly has taken
+      // effect when the subscription now bills monthly while the row still
+      // holds the pending switch -- phase 2 of the schedule starting at the
+      // renewal date (observed in test mode: this event carries the item moving
+      // from the yearly to the monthly price). The pending fields are cleared
+      // in the same transaction; the schedule, which stays attached through
+      // phase 2 and makes Stripe refuse `cancel_at_period_end`, is released
+      // afterwards. Mirrors lib/stripe/webhook-handlers.ts.
+      const billsMonthly =
+        subscription.items?.data?.[0]?.price?.recurring?.interval === 'month';
+      const switchTookEffect =
+        dbSubscription.pendingPlanType === 'MONTHLY' && billsMonthly;
+
       // Remediation Tier 2 §6.4 (4A-13 audit item b): the subscription row and
       // the user's tier change together or not at all. As two separate writes,
       // a failure between them left the subscription cancelled/unpaid while the
@@ -236,13 +267,25 @@ export class StripeWebhookService {
               subscription.current_period_end * 1000
             ),
             expiresAt: new Date(subscription.current_period_end * 1000),
+            cancelAtPeriodEnd,
+            ...(!cancelAtPeriodEnd && {
+              cancelRequestedAt: null,
+              cancellationReason: null,
+            }),
+            ...(switchTookEffect && {
+              pendingPlanType: null,
+              pendingPlanEffectiveAt: null,
+              stripeScheduleId: null,
+            }),
           },
         });
 
-        if (
-          subscription.status !== 'active' &&
-          subscription.status !== 'trialing'
-        ) {
+        // Remove PRO only when the tier rule says FREE (canceled, unpaid, ...).
+        // `past_due` keeps PRO through Stripe's retry window (B1, decision
+        // E1). PRO is never granted here: invoice.payment_succeeded restores
+        // it, and a late `past_due` event must not undo
+        // customer.subscription.deleted.
+        if (tierForStripeStatus(subscription.status) === 'FREE') {
           await tx.user.update({
             where: { id: dbSubscription.userId },
             data: { tier: 'FREE' },
@@ -256,6 +299,33 @@ export class StripeWebhookService {
         logger.info('[Webhook] User downgraded due to subscription status', {
           userId: dbSubscription.userId,
           stripeStatus: subscription.status,
+        });
+      }
+
+      if (switchTookEffect) {
+        const scheduleId =
+          scheduleIdOf(subscription.schedule) ??
+          dbSubscription.stripeScheduleId;
+        if (scheduleId) {
+          try {
+            await this.stripeService.releaseSubscriptionSchedule(scheduleId);
+          } catch (releaseError) {
+            // Not fatal: the cancel flow releases any schedule it finds before
+            // cancelling, so the user is never stuck. Logged to be seen.
+            logger.error(
+              '[Webhook] Could not release the finished switch schedule',
+              {
+                subscriptionId,
+                error:
+                  releaseError instanceof Error
+                    ? releaseError.message
+                    : 'Unknown error',
+              }
+            );
+          }
+        }
+        logger.info('[Webhook] Subscription switched to monthly billing', {
+          subscriptionId,
         });
       }
 
@@ -509,6 +579,16 @@ export class StripeWebhookService {
               grossRevenueUsd: amountPaid / 100,
               stripeInvoiceId: invoice.id,
               interval: isYearly ? 'year' : 'month',
+              // E4: months of lifetime covered, not invoices. Stripe is asked
+              // only when an earlier commission exists; an invoice it cannot
+              // resolve counts as the plan the row had before this invoice
+              // (`dbSubscription` is the row as it was read above).
+              resolvePriorInvoiceMonths: () =>
+                this.stripeService.getInvoiceMonthsById(
+                  dbSubscription.stripeSubscriptionId as string
+                ),
+              fallbackPriorMonths:
+                dbSubscription.planType === 'YEARLY' ? 12 : 1,
             });
 
           if (conversion.processed) {

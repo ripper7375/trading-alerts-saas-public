@@ -238,6 +238,44 @@ export const ptBR: EmailMessages = {
   'canceled.reactivateLink': 'Reative sua assinatura',
   'canceled.subject': 'Assinatura cancelada - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Assinatura retomada',
+  'resumed.body': 'Sua assinatura **{plan}** vai continuar.',
+  'resumed.nextBilling': '**Próxima data de cobrança:** {date}',
+  'resumed.note':
+    'Seu cancelamento foi retirado. Você mantém o acesso completo ao {plan} e sua assinatura será renovada automaticamente em {date}.',
+  'resumed.manage':
+    'Você pode revisar sua assinatura a qualquer momento. {link}',
+  'resumed.manageLink': 'Abrir as configurações de cobrança',
+  'resumed.subject': 'Sua assinatura {plan} vai continuar - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Mudança para cobrança anual',
+  'upgraded.body': 'Sua assinatura **{plan}** agora é cobrada anualmente.',
+  'upgraded.charged': '**Cobrado hoje:** {amount}',
+  'upgraded.price': '**Preço anual:** {price}',
+  'upgraded.nextBilling': '**Próxima data de cobrança:** {date}',
+  'upgraded.firstCharge': '**Primeira cobrança:** {date}',
+  'upgraded.note':
+    'A cobrança de hoje é o preço anual menos o crédito pela parte não utilizada do seu período mensal atual.',
+  'upgraded.trialNote':
+    'Seu teste gratuito continua e nada foi cobrado hoje. Sua primeira cobrança, pelo preço anual, será em {date}.',
+  'upgraded.subject': 'Você agora tem cobrança anual - Trading Alerts',
+  'switchScheduled.heading': 'Mudança para cobrança mensal agendada',
+  'switchScheduled.body':
+    'Sua assinatura **{plan}** passará para a cobrança mensal em {date}.',
+  'switchScheduled.date': '**Data da mudança:** {date}',
+  'switchScheduled.price': '**Preço mensal a partir de então:** {price}',
+  'switchScheduled.note':
+    'Você mantém seu acesso anual até {date}. Nada é cobrado nem reembolsado agora, e não há crédito pelo ano em curso.',
+  'switchScheduled.keep':
+    'Mudou de ideia? Você pode manter a cobrança anual antes dessa data. {link}',
+  'switchScheduled.subject':
+    'Sua mudança para a cobrança mensal está agendada - Trading Alerts',
+  'planChange.manage':
+    'Você pode revisar sua assinatura a qualquer momento. {link}',
+  'planChange.manageLink': 'Abrir as configurações de cobrança',
+
   'commission.heading': 'Comissão recebida!',
   'commission.body':
     'Ótimas notícias! Seu código de afiliado acabou de ser usado e você ganhou uma comissão.',

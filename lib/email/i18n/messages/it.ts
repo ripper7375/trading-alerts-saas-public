@@ -239,6 +239,45 @@ export const it: EmailMessages = {
   'canceled.reactivateLink': 'Riattiva il tuo abbonamento',
   'canceled.subject': 'Abbonamento annullato - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'Abbonamento ripreso',
+  'resumed.body': 'Il tuo abbonamento **{plan}** continuerà.',
+  'resumed.nextBilling': '**Prossima data di fatturazione:** {date}',
+  'resumed.note':
+    "L'annullamento è stato ritirato. Mantieni l'accesso completo a {plan} e il tuo abbonamento si rinnoverà automaticamente il {date}.",
+  'resumed.manage':
+    'Puoi rivedere il tuo abbonamento in qualsiasi momento. {link}',
+  'resumed.manageLink': 'Apri le impostazioni di fatturazione',
+  'resumed.subject': 'Il tuo abbonamento {plan} continuerà - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'Passaggio alla fatturazione annuale',
+  'upgraded.body':
+    'Il tuo abbonamento **{plan}** ora viene fatturato ogni anno.',
+  'upgraded.charged': '**Addebitato oggi:** {amount}',
+  'upgraded.price': '**Prezzo annuale:** {price}',
+  'upgraded.nextBilling': '**Prossima data di fatturazione:** {date}',
+  'upgraded.firstCharge': '**Primo addebito:** {date}',
+  'upgraded.note':
+    "L'addebito di oggi è il prezzo annuale meno il credito per la parte non utilizzata del tuo periodo mensile in corso.",
+  'upgraded.trialNote':
+    'La tua prova gratuita continua e oggi non è stato addebitato nulla. Il tuo primo addebito, al prezzo annuale, avverrà il {date}.',
+  'upgraded.subject': 'Ora hai la fatturazione annuale - Trading Alerts',
+  'switchScheduled.heading': 'Passaggio alla fatturazione mensile programmato',
+  'switchScheduled.body':
+    'Il tuo abbonamento **{plan}** passerà alla fatturazione mensile il {date}.',
+  'switchScheduled.date': '**Data del passaggio:** {date}',
+  'switchScheduled.price': '**Prezzo mensile da quella data:** {price}',
+  'switchScheduled.note':
+    "Mantieni il tuo accesso annuale fino al {date}. Ora non viene addebitato né rimborsato nulla e non è previsto alcun credito per l'anno in corso.",
+  'switchScheduled.keep':
+    'Hai cambiato idea? Puoi mantenere la fatturazione annuale prima di quella data. {link}',
+  'switchScheduled.subject':
+    'Il tuo passaggio alla fatturazione mensile è programmato - Trading Alerts',
+  'planChange.manage':
+    'Puoi rivedere il tuo abbonamento in qualsiasi momento. {link}',
+  'planChange.manageLink': 'Apri le impostazioni di fatturazione',
+
   'commission.heading': 'Commissione guadagnata!',
   'commission.body':
     'Ottime notizie! Il tuo codice affiliato è stato appena utilizzato e hai guadagnato una commissione.',

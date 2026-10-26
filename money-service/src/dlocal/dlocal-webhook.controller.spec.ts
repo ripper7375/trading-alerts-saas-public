@@ -649,6 +649,165 @@ describe('DlocalWebhookController', () => {
     });
   });
 
+  describe('stacked expiry on an early renewal (Manage Subscription S4, D6, B10)', () => {
+    const DAY = 86_400_000;
+    const NOW = Date.parse('2026-10-21T12:00:00.000Z');
+
+    beforeEach(() => {
+      jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
+      jest.setSystemTime(NOW);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    async function pay(
+      planType: 'MONTHLY' | 'YEARLY' | 'THREE_DAY',
+      existing: Record<string, unknown> | null
+    ): Promise<{ data: Record<string, unknown>; call: 'update' | 'create' }> {
+      prismaMock.payment.findFirst.mockResolvedValue({
+        id: 'payment-r',
+        userId: 'user-r',
+        planType,
+        amountUSD: 29,
+        currency: 'USD',
+        country: 'IN',
+        paymentMethod: 'UPI',
+        providerPaymentId: 'dl-payment-r',
+        discountCode: null,
+      } as never);
+      prismaMock.payment.update.mockResolvedValue({} as never);
+      prismaMock.user.update.mockResolvedValue({} as never);
+      prismaMock.subscription.findUnique
+        .mockResolvedValueOnce(existing as never)
+        .mockResolvedValueOnce({ id: 'sub-r' } as never);
+      prismaMock.subscription.update.mockResolvedValue({} as never);
+      prismaMock.subscription.create.mockResolvedValue({} as never);
+
+      await controller.handleWebhook(
+        createMockRequest(
+          JSON.stringify({ id: 'dl-payment-r', status: 'PAID' }),
+          {
+            authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+            'x-date': '2026-10-21T12:00:00.000Z',
+            'x-login': 'test-merchant-login',
+          }
+        ),
+        createMockResponse()
+      );
+
+      const updated = prismaMock.subscription.update.mock.calls[0]?.[0] as
+        | { data: Record<string, unknown> }
+        | undefined;
+      if (updated) return { data: updated.data, call: 'update' };
+      const created = prismaMock.subscription.create.mock.calls[0]?.[0] as {
+        data: Record<string, unknown>;
+      };
+      return { data: created.data, call: 'create' };
+    }
+
+    const livePlan = (daysLeft: number): Record<string, unknown> => ({
+      id: 'sub-r',
+      status: 'ACTIVE',
+      dLocalPaymentId: 'dl-payment-old',
+      expiresAt: new Date(NOW + daysLeft * DAY),
+      renewalReminderSent: true,
+    });
+
+    it('stacks a monthly renewal onto the 10 days left: 40 days, not 30', async () => {
+      const { data, call } = await pay('MONTHLY', livePlan(10));
+      expect(call).toBe('update');
+      expect((data['expiresAt'] as Date).getTime()).toBe(NOW + 40 * DAY);
+    });
+
+    it('stacks a yearly renewal onto the 2 days left: 367 days', async () => {
+      const { data } = await pay('YEARLY', livePlan(2));
+      expect((data['expiresAt'] as Date).getTime()).toBe(NOW + 367 * DAY);
+    });
+
+    it('stacks a 3-day payment onto the days left', async () => {
+      const { data } = await pay('THREE_DAY', livePlan(1));
+      expect((data['expiresAt'] as Date).getTime()).toBe(NOW + 4 * DAY);
+    });
+
+    it('a renewal after the plan ended starts now: 30 days', async () => {
+      const { data } = await pay('MONTHLY', livePlan(-2));
+      expect((data['expiresAt'] as Date).getTime()).toBe(NOW + 30 * DAY);
+    });
+
+    it('a first purchase (no subscription row) starts now: 30 days', async () => {
+      const { data, call } = await pay('MONTHLY', null);
+      expect(call).toBe('create');
+      expect((data['expiresAt'] as Date).getTime()).toBe(NOW + 30 * DAY);
+    });
+
+    it('a lapsed dLocal row (CANCELED) is not stacked onto', async () => {
+      const { data } = await pay('MONTHLY', {
+        ...livePlan(20),
+        status: 'CANCELED',
+      });
+      expect((data['expiresAt'] as Date).getTime()).toBe(NOW + 30 * DAY);
+    });
+
+    it('a Stripe row with a date months ahead is not stacked onto', async () => {
+      const { data } = await pay('MONTHLY', {
+        id: 'sub-r',
+        status: 'ACTIVE',
+        dLocalPaymentId: null,
+        stripeSubscriptionId: 'sub_stripe_1',
+        expiresAt: new Date(NOW + 300 * DAY),
+      });
+      expect((data['expiresAt'] as Date).getTime()).toBe(NOW + 30 * DAY);
+    });
+
+    it('resets renewalReminderSent so the next reminder can be sent', async () => {
+      const { data } = await pay('MONTHLY', livePlan(2));
+      expect(data['renewalReminderSent']).toBe(false);
+    });
+
+    it('records the new payment on the row (dLocalPaymentId, status ACTIVE)', async () => {
+      const { data } = await pay('MONTHLY', livePlan(2));
+      expect(data).toEqual(
+        expect.objectContaining({
+          status: 'ACTIVE',
+          planType: 'MONTHLY',
+          dLocalPaymentId: 'dl-payment-r',
+        })
+      );
+    });
+
+    it('a replay of the same PAID webhook adds nothing (the claim matches no row)', async () => {
+      prismaMock.payment.updateMany.mockResolvedValue({ count: 0 });
+      prismaMock.payment.findFirst.mockResolvedValue({
+        id: 'payment-r',
+        userId: 'user-r',
+        planType: 'MONTHLY',
+        amountUSD: 29,
+        currency: 'USD',
+        country: 'IN',
+        paymentMethod: 'UPI',
+        providerPaymentId: 'dl-payment-r',
+        discountCode: null,
+      } as never);
+
+      await controller.handleWebhook(
+        createMockRequest(
+          JSON.stringify({ id: 'dl-payment-r', status: 'PAID' }),
+          {
+            authorization: 'V2-HMAC-SHA256, Signature: valid-signature',
+            'x-date': '2026-10-21T12:00:00.000Z',
+            'x-login': 'test-merchant-login',
+          }
+        ),
+        createMockResponse()
+      );
+
+      expect(prismaMock.subscription.update).not.toHaveBeenCalled();
+      expect(prismaMock.subscription.create).not.toHaveBeenCalled();
+    });
+  });
+
   it('should return 500 when an unexpected error is thrown', async () => {
     const payload = JSON.stringify({
       id: 'payment-7',

@@ -229,6 +229,44 @@ export const th: EmailMessages = {
   'canceled.reactivateLink': 'เปิดใช้งานการสมัครสมาชิกอีกครั้ง',
   'canceled.subject': 'ยกเลิกการสมัครสมาชิกแล้ว - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'เปิดใช้งานการสมัครสมาชิกต่อแล้ว',
+  'resumed.body': 'การสมัครสมาชิก **{plan}** ของคุณจะดำเนินต่อไป',
+  'resumed.nextBilling': '**วันเรียกเก็บเงินครั้งถัดไป:** {date}',
+  'resumed.note':
+    'คำขอยกเลิกของคุณถูกเพิกถอนแล้ว คุณยังใช้งาน {plan} ได้เต็มรูปแบบ และการสมัครสมาชิกจะต่ออายุอัตโนมัติในวันที่ {date}',
+  'resumed.manage': 'คุณสามารถตรวจสอบการสมัครสมาชิกของคุณได้ทุกเมื่อ {link}',
+  'resumed.manageLink': 'เปิดการตั้งค่าการเรียกเก็บเงิน',
+  'resumed.subject':
+    'การสมัครสมาชิก {plan} ของคุณจะดำเนินต่อไป - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': 'เปลี่ยนเป็นการเรียกเก็บเงินรายปีแล้ว',
+  'upgraded.body':
+    'การสมัครสมาชิก **{plan}** ของคุณจะเรียกเก็บเงินเป็นรายปีตั้งแต่ตอนนี้',
+  'upgraded.charged': '**ยอดที่เรียกเก็บวันนี้:** {amount}',
+  'upgraded.price': '**ราคารายปี:** {price}',
+  'upgraded.nextBilling': '**วันเรียกเก็บเงินครั้งถัดไป:** {date}',
+  'upgraded.firstCharge': '**การเรียกเก็บเงินครั้งแรก:** {date}',
+  'upgraded.note':
+    'ยอดที่เรียกเก็บวันนี้คือราคารายปีหักด้วยเครดิตสำหรับส่วนที่ยังไม่ได้ใช้ของรอบรายเดือนปัจจุบัน',
+  'upgraded.trialNote':
+    'การทดลองใช้ฟรีของคุณยังคงดำเนินต่อไป และวันนี้ไม่มีการเรียกเก็บเงิน การเรียกเก็บเงินครั้งแรกของคุณในราคารายปีจะเกิดขึ้นในวันที่ {date}',
+  'upgraded.subject': 'ตอนนี้คุณใช้การเรียกเก็บเงินรายปีแล้ว - Trading Alerts',
+  'switchScheduled.heading': 'กำหนดการเปลี่ยนเป็นการเรียกเก็บเงินรายเดือนแล้ว',
+  'switchScheduled.body':
+    'การสมัครสมาชิก **{plan}** ของคุณจะเปลี่ยนเป็นการเรียกเก็บเงินรายเดือนในวันที่ {date}',
+  'switchScheduled.date': '**วันที่เปลี่ยน:** {date}',
+  'switchScheduled.price': '**ราคารายเดือนหลังจากนั้น:** {price}',
+  'switchScheduled.note':
+    'คุณยังคงใช้สิทธิ์รายปีได้จนถึงวันที่ {date} ตอนนี้จะไม่มีการเรียกเก็บเงินหรือคืนเงิน และไม่มีเครดิตสำหรับปีปัจจุบัน',
+  'switchScheduled.keep':
+    'เปลี่ยนใจหรือไม่? คุณสามารถใช้การเรียกเก็บเงินรายปีต่อไปได้ก่อนวันดังกล่าว {link}',
+  'switchScheduled.subject':
+    'กำหนดการเปลี่ยนเป็นการเรียกเก็บเงินรายเดือนของคุณเรียบร้อยแล้ว - Trading Alerts',
+  'planChange.manage': 'คุณสามารถตรวจสอบการสมัครสมาชิกของคุณได้ทุกเมื่อ {link}',
+  'planChange.manageLink': 'เปิดการตั้งค่าการเรียกเก็บเงิน',
+
   'commission.heading': 'คุณได้รับค่าคอมมิชชันแล้ว!',
   'commission.body':
     'ข่าวดี! รหัสพันธมิตรของคุณเพิ่งถูกใช้งาน และคุณได้รับค่าคอมมิชชัน',

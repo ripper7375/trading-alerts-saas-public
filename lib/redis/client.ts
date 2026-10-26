@@ -48,12 +48,12 @@ const REDIS_OPTIONS: RedisOptions = {
   connectTimeout: 5_000,
   commandTimeout: 3_000,
   maxRetriesPerRequest: 3,
-  retryStrategy: (times: number): number | null => {
-    // Retry with exponential backoff, max 30 seconds
-    if (times > 10) {
-      return null; // Stop retrying
-    }
-    return Math.min(times * 500, 30000);
+  retryStrategy: (times: number): number => {
+    // Capped linear delay (500 ms per attempt, at most 30 s), no retry-count
+    // cutoff. Returning null would end the client for good: ioredis then
+    // rejects every later command with "Connection is closed" and the process
+    // never reaches Redis again after an outage longer than the cutoff.
+    return Math.min(times * 500, 30_000);
   },
   enableReadyCheck: true,
   lazyConnect: true,

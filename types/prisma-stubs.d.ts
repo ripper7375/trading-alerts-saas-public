@@ -514,6 +514,12 @@ declare module '@prisma/client' {
     status: SubscriptionStatus;
     expiresAt: Date | null;
     renewalReminderSent: boolean;
+    cancelAtPeriodEnd: boolean;
+    cancelRequestedAt: Date | null;
+    cancellationReason: string | null;
+    pendingPlanType: string | null;
+    pendingPlanEffectiveAt: Date | null;
+    stripeScheduleId: string | null;
     createdAt: Date;
     updatedAt: Date;
     user?: User;

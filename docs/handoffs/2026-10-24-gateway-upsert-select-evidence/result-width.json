@@ -1,0 +1,41 @@
+{
+  "server": "PostgreSQL 18.1 on x86_64-windows, compiled by msvc-19.44.35219, 64-bit",
+  "measurements": [
+    {
+      "pass": "insert path",
+      "statement": "before (full row)",
+      "rowCount": 1,
+      "fields": 106,
+      "dataBytes": 495,
+      "dataRowMessageBytes": 926,
+      "firstFields": ["id", "terminal_id", "timestamp"]
+    },
+    {
+      "pass": "insert path",
+      "statement": "after (select id)",
+      "rowCount": 1,
+      "fields": 1,
+      "dataBytes": 25,
+      "dataRowMessageBytes": 36,
+      "firstFields": ["id"]
+    },
+    {
+      "pass": "conflict-update path",
+      "statement": "before (full row)",
+      "rowCount": 1,
+      "fields": 106,
+      "dataBytes": 495,
+      "dataRowMessageBytes": 926,
+      "firstFields": ["id", "terminal_id", "timestamp"]
+    },
+    {
+      "pass": "conflict-update path",
+      "statement": "after (select id)",
+      "rowCount": 1,
+      "fields": 1,
+      "dataBytes": 25,
+      "dataRowMessageBytes": 36,
+      "firstFields": ["id"]
+    }
+  ]
+}

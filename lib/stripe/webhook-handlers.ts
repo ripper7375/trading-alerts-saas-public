@@ -16,7 +16,11 @@ import 'server-only';
 import type Stripe from 'stripe';
 
 import { prisma } from '@/lib/db/prisma';
-import { getStripeClient } from '@/lib/stripe/stripe';
+import {
+  getInvoiceMonthsById,
+  getStripeClient,
+  releaseSubscriptionSchedule,
+} from '@/lib/stripe/stripe';
 import {
   sendPaymentFailedEmail,
   sendPaymentReceiptEmail,
@@ -26,11 +30,14 @@ import {
 import { sendSubscriptionConfirmationEmail } from '@/lib/email/email';
 import { calculateFullBreakdown } from '@/lib/affiliate/commission-calculator';
 import {
-  getMaxCommissionCycles,
+  commissionMonthsBefore,
+  commissionWindow,
   type CommissionBillingInterval,
 } from '@/lib/affiliate/constants';
 import { getAnnualPriceUsd, getBasePriceUsd } from '@/lib/affiliate/db';
 import { invoicePlan } from '@/lib/stripe/invoice-plan';
+import { scheduleIdOf } from '@/lib/stripe/subscription-actions';
+import { tierForStripeStatus } from '@/lib/stripe/tier-rule';
 
 /**
  * Subscription/AffiliateProfile no longer carry a `user` relation (Session
@@ -132,6 +139,15 @@ export async function handleCheckoutCompleted(
         stripeCurrentPeriodEnd: nextBillingDate,
         expiresAt: nextBillingDate,
         affiliateCodeId: reservedAffiliateCode?.id ?? null,
+        // A user who cancelled and subscribes again reuses this row: the new
+        // subscription is not scheduled to end (S2).
+        cancelAtPeriodEnd: false,
+        cancelRequestedAt: null,
+        cancellationReason: null,
+        // ...and has no switch to monthly waiting on the old subscription (S3).
+        pendingPlanType: null,
+        pendingPlanEffectiveAt: null,
+        stripeScheduleId: null,
       },
       create: {
         userId,
@@ -197,7 +213,24 @@ export async function handleSubscriptionUpdated(
     // Map Stripe status to our SubscriptionStatus enum
     const status = mapStripeStatus(subscription.status);
 
-    // Update subscription details
+    // Update subscription details. `cancelAtPeriodEnd` follows Stripe (B9), so
+    // a cancellation scheduled or undone outside the cancel and resume routes
+    // (Stripe's dashboard, a repair) is mirrored; when it is off, the "when"
+    // and "why" of an earlier request go with it.
+    const cancelAtPeriodEnd = subscription.cancel_at_period_end === true;
+
+    // B9, the switch part (W5b): a scheduled switch to monthly has taken effect
+    // when the subscription now bills monthly while the row still holds the
+    // pending switch. That is phase 2 of the schedule starting at the renewal
+    // date (observed in test mode: this event carries the item moving from the
+    // yearly to the monthly price). The pending fields are cleared, and the
+    // schedule, which stays attached to the subscription through phase 2 and
+    // makes Stripe refuse `cancel_at_period_end`, is released.
+    const billsMonthly =
+      subscription.items?.data?.[0]?.price?.recurring?.interval === 'month';
+    const switchTookEffect =
+      dbSubscription.pendingPlanType === 'MONTHLY' && billsMonthly;
+
     await prisma.subscription.update({
       where: { id: dbSubscription.id },
       data: {
@@ -206,14 +239,44 @@ export async function handleSubscriptionUpdated(
           subscription.current_period_end * 1000
         ),
         expiresAt: new Date(subscription.current_period_end * 1000),
+        cancelAtPeriodEnd,
+        ...(!cancelAtPeriodEnd && {
+          cancelRequestedAt: null,
+          cancellationReason: null,
+        }),
+        ...(switchTookEffect && {
+          pendingPlanType: null,
+          pendingPlanEffectiveAt: null,
+          stripeScheduleId: null,
+        }),
       },
     });
 
-    // If subscription became inactive, downgrade user to FREE
-    if (
-      subscription.status !== 'active' &&
-      subscription.status !== 'trialing'
-    ) {
+    if (switchTookEffect) {
+      const scheduleId =
+        scheduleIdOf(subscription.schedule) ?? dbSubscription.stripeScheduleId;
+      if (scheduleId) {
+        try {
+          await releaseSubscriptionSchedule(scheduleId);
+        } catch (releaseError) {
+          // Not fatal: the cancel route releases any schedule it finds before
+          // cancelling, so the user is never stuck. Logged to be seen.
+          console.error(
+            '[Webhook] Could not release the finished switch schedule:',
+            releaseError
+          );
+        }
+      }
+      console.log(
+        `[Webhook] Subscription ${subscriptionId} switched to monthly billing`
+      );
+    }
+
+    // Remove PRO only when the tier rule says FREE (canceled, unpaid, ...).
+    // `past_due` keeps PRO through Stripe's retry window (B1, decision E1).
+    // PRO is never granted here: invoice.payment_succeeded restores it, and a
+    // late `past_due` event must not undo customer.subscription.deleted.
+    if (tierForStripeStatus(subscription.status) === 'FREE') {
       await prisma.user.update({
         where: { id: dbSubscription.userId },
         data: { tier: 'FREE' },
@@ -462,9 +525,11 @@ export async function handleInvoiceSucceeded(
     // charge happens there yet; crediting it that early paid affiliates on
     // signups that later failed to pay or were cancelled during the trial.
     // Recurring-commission follow-up: fires on EVERY qualifying invoice (not
-    // just the first) up to MAX_RECURRING_COMMISSION_MONTHS of lifetime (24
-    // monthly or 2 annual invoices) -- see processAffiliateCommission's own
-    // doc comment.
+    // just the first) up to MAX_RECURRING_COMMISSION_MONTHS of lifetime,
+    // counted in months covered (decision E4) -- see
+    // processAffiliateCommission's own doc comment. `dbSubscription` is the
+    // row as it was before this invoice, so its planType is the plan the
+    // earlier invoices were billed on.
     if (dbSubscription.affiliateCodeId) {
       await processAffiliateCommission(
         dbSubscription.id,
@@ -473,7 +538,8 @@ export async function handleInvoiceSucceeded(
         dbSubscription.stripeSubscriptionId,
         amountPaid / 100,
         invoice.id,
-        isYearly ? 'year' : 'month'
+        isYearly ? 'year' : 'month',
+        dbSubscription.planType === 'YEARLY' ? 12 : 1
       );
     }
 
@@ -933,14 +999,22 @@ async function reserveAffiliateCode(
  *
  * Cycle 1 (the original discounted signup) applies the code's
  * discountPercent, since that's the invoice the discount actually landed
- * on. Cycles 2..getMaxCommissionCycles(interval) -- 24 monthly or 2 annual
- * invoices, i.e. 24 months of lifetime -- pay commission on the FULL,
- * undiscounted price (discountPercent 0) -- the Stripe coupon itself is
- * `duration: 'once'`, so the customer really is paying full price on every
- * renewal; only the affiliate's commission recurs, not the customer's
- * discount. Once the cap is reached, or the subscription is cancelled
- * (handleSubscriptionDeleted clears affiliateCodeId), no further commission
- * is credited even though the customer keeps paying.
+ * on. Later invoices pay commission on the FULL, undiscounted price
+ * (discountPercent 0) -- the Stripe coupon itself is `duration: 'once'`, so
+ * the customer really is paying full price on every renewal; only the
+ * affiliate's commission recurs, not the customer's discount.
+ *
+ * The cap is counted in MONTHS OF LIFETIME COVERED, not invoices (decision
+ * E4): a monthly invoice covers 1 month, a yearly invoice 12, and the prorated
+ * invoice of a monthly to yearly upgrade 12 (it starts the yearly period); the
+ * commission is on the amount actually collected on that invoice. An invoice
+ * earns commission when fewer than MAX_RECURRING_COMMISSION_MONTHS (24) months
+ * came before it; one that crosses month 24 is paid in full and the next is
+ * not. A subscription that never switches gets exactly the old result (24
+ * monthly invoices, or 2 yearly ones). Once the cap is reached, or the
+ * subscription is cancelled (handleSubscriptionDeleted clears
+ * affiliateCodeId), no further commission is credited even though the
+ * customer keeps paying.
  *
  * Idempotent per invoice (not per code): a redelivered invoice.payment_succeeded
  * (Stripe is at-least-once) must never pay the SAME invoice's commission
@@ -954,7 +1028,10 @@ async function reserveAffiliateCode(
  *   Subscription model's own stripeSubscriptionId type)
  * @param grossRevenueUsd - Actual amount collected on this invoice, in USD
  * @param stripeInvoiceId - The Stripe invoice this cycle's commission is for
- * @param interval - Billing interval of this invoice; sets the cycle cap
+ * @param interval - Billing interval of this invoice; the months it covers
+ * @param fallbackPriorMonths - Months an earlier invoice counts for when
+ *   Stripe cannot say (an older commission row with no invoice id, or no
+ *   answer): the months of the plan the subscription had before this invoice
  */
 async function processAffiliateCommission(
   dbSubscriptionId: string,
@@ -963,7 +1040,8 @@ async function processAffiliateCommission(
   subscriptionId: string | null,
   grossRevenueUsd: number,
   stripeInvoiceId: string,
-  interval: CommissionBillingInterval
+  interval: CommissionBillingInterval,
+  fallbackPriorMonths: number
 ): Promise<void> {
   try {
     const affiliateCode = await prisma.affiliateCode.findUnique({
@@ -997,10 +1075,28 @@ async function processAffiliateCommission(
       return;
     }
 
-    const cycleNumber = priorCommissions.length + 1;
-    const maxCycles = getMaxCommissionCycles(interval);
+    // E4: months of lifetime covered by the invoices that already earned a
+    // commission. Stripe is asked only when there is one, and only for the
+    // subscription's own invoices.
+    let monthsByInvoiceId: Record<string, number> | null = null;
+    if (priorCommissions.length > 0 && subscriptionId) {
+      try {
+        monthsByInvoiceId = await getInvoiceMonthsById(subscriptionId);
+      } catch (error) {
+        console.error(
+          '[Webhook] Could not read the months of the earlier invoices; counting them as the previous plan:',
+          error
+        );
+      }
+    }
+    const monthsBefore = commissionMonthsBefore(
+      priorCommissions.map((c) => c.stripeInvoiceId),
+      monthsByInvoiceId,
+      fallbackPriorMonths
+    );
+    const window = commissionWindow(monthsBefore, interval);
 
-    if (cycleNumber > maxCycles) {
+    if (!window.payable) {
       // Cap was already reached on a prior cycle -- clear the attribution
       // defensively so future invoices skip this lookup entirely.
       await prisma.subscription.update({
@@ -1010,6 +1106,7 @@ async function processAffiliateCommission(
       return;
     }
 
+    const cycleNumber = priorCommissions.length + 1;
     const isFirstCycle = cycleNumber === 1;
     const breakdown = calculateFullBreakdown(
       grossRevenueUsd,
@@ -1050,9 +1147,9 @@ async function processAffiliateCommission(
       throw createError;
     }
 
-    // Only clear the attribution once the cap is reached on THIS cycle --
+    // Only clear the attribution once the cap is reached on THIS invoice --
     // otherwise leave it in place so the next renewal keeps crediting.
-    if (cycleNumber >= maxCycles) {
+    if (window.capReached) {
       await prisma.subscription.update({
         where: { id: dbSubscriptionId },
         data: { affiliateCodeId: null },
@@ -1070,7 +1167,7 @@ async function processAffiliateCommission(
     });
 
     console.log(
-      `[Webhook] Affiliate commission created (cycle ${cycleNumber}/${maxCycles}): $${breakdown.commissionAmount} for code ${affiliateCode.code}`
+      `[Webhook] Affiliate commission created (invoice ${cycleNumber}, months ${monthsBefore + 1}-${monthsBefore + window.months} of lifetime): $${breakdown.commissionAmount} for code ${affiliateCode.code}`
     );
 
     // Send commission notification email to affiliate

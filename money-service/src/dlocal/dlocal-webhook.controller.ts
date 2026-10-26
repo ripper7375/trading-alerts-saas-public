@@ -36,6 +36,7 @@ import {
 } from './dlocal-payment.service';
 import { PLAN_DURATION } from './dlocal.constants';
 import type { DLocalWebhookPayload } from './dlocal.types';
+import { currentExpiryOf, stackedExpiry } from './stacked-expiry';
 import { ThreeDayValidatorService } from './three-day-validator.service';
 
 interface PaymentRecord {
@@ -184,20 +185,14 @@ export class DlocalWebhookController {
       planType: payment.planType,
     });
 
-    // Calculate subscription expiry based on plan type
-    const now = new Date();
-    const expiresAt = new Date(
-      now.getTime() +
-        PLAN_DURATION[
-          payment.planType === 'THREE_DAY' || payment.planType === 'YEARLY'
-            ? payment.planType
-            : 'MONTHLY'
-        ] *
-          24 *
-          60 *
-          60 *
-          1000
-    ); // 3, 30 or 365 days
+    // Plan length in days (3, 30 or 365). The expiry itself is worked out
+    // inside the transaction, from the subscription row as it stands (B10, D6).
+    const durationDays =
+      PLAN_DURATION[
+        payment.planType === 'THREE_DAY' || payment.planType === 'YEARLY'
+          ? payment.planType
+          : 'MONTHLY'
+      ];
 
     // USD amount recorded at payment creation; a row without one falls back
     // to the current SystemConfig price for its plan.
@@ -210,7 +205,8 @@ export class DlocalWebhookController {
           : await this.affiliateConfig.getBasePriceUsd());
 
     // Use a transaction to ensure all updates succeed or fail together
-    const firstCompletion = await this.prisma.$transaction(async (tx) => {
+    // Resolves to the new expiry, or null when this delivery was a replay.
+    const appliedExpiresAt = await this.prisma.$transaction(async (tx) => {
       // 1. Claim the completion. Remediation Tier 2 §6.3: `payment` was read
       // before this transaction, so two concurrent deliveries of the same
       // webhook both saw it not-COMPLETED, and a flag taken from that read
@@ -228,7 +224,7 @@ export class DlocalWebhookController {
           updatedAt: new Date(),
         },
       });
-      if (claimed.count === 0) return false;
+      if (claimed.count === 0) return null;
 
       // 2. Upgrade user to PRO tier
       await tx.user.update({
@@ -240,6 +236,16 @@ export class DlocalWebhookController {
       const existingSubscription = await tx.subscription.findUnique({
         where: { userId: payment.userId },
       });
+
+      // D6 (Manage Subscription S4): a customer who pays before the plan ends
+      // keeps the days they have left, `max(now, current expiry) + duration`.
+      // Only a live dLocal plan counts as "current" (a Stripe row's date is
+      // not a dLocal expiry). The claim above is what makes this safe to
+      // stack: a replay never reaches this line.
+      const expiresAt = stackedExpiry(
+        currentExpiryOf(existingSubscription),
+        durationDays
+      );
 
       if (existingSubscription) {
         // Update existing subscription
@@ -312,10 +318,10 @@ export class DlocalWebhookController {
         },
       });
 
-      return true;
+      return expiresAt;
     });
 
-    if (firstCompletion) {
+    if (appliedExpiresAt !== null) {
       // 5. Mark 3-day plan as used if applicable (outside transaction for isolation)
       if (payment.planType === 'THREE_DAY') {
         await this.threeDayValidator.markThreeDayPlanUsed(payment.userId);
@@ -386,7 +392,7 @@ export class DlocalWebhookController {
       paymentId: payment.id,
       userId: payment.userId,
       planType: payment.planType,
-      expiresAt: expiresAt.toISOString(),
+      expiresAt: appliedExpiresAt?.toISOString() ?? null,
     });
   }
 

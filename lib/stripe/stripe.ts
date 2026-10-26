@@ -13,6 +13,8 @@ import { createHash } from 'crypto';
 
 import Stripe from 'stripe';
 
+import { invoicePlan, planLineOf } from './invoice-plan';
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STRIPE CLIENT INITIALIZATION (LAZY)
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -365,9 +367,316 @@ export async function updateSubscription(
   return subscription;
 }
 
+/**
+ * End a subscription at the end of the paid period, or stop that from
+ * happening (W3 cancel, W4 resume). PRO continues until the period ends. In
+ * a trial the period is the trial: the trial ends and nothing is charged.
+ * Idempotent: Stripe returns the subscription unchanged when the flag already
+ * has that value.
+ *
+ * @param subscriptionId - Stripe subscription ID
+ * @param cancelAtPeriodEnd - true to schedule the cancellation, false to undo it
+ */
+export async function setCancelAtPeriodEnd(
+  subscriptionId: string,
+  cancelAtPeriodEnd: boolean
+): Promise<Stripe.Subscription> {
+  return updateSubscription(subscriptionId, {
+    cancel_at_period_end: cancelAtPeriodEnd,
+  });
+}
+
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PLAN CHANGE (Manage Subscription S3, workflows W5a and W5b)
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * What identifies the new price on a subscription item or a schedule phase: the
+ * configured Stripe Price when its amount already matches, else an inline
+ * price on the same product (the two shapes `buildProLineItem` returns).
+ */
+export type ProPriceFields =
+  | { price: string; price_data?: undefined }
+  | {
+      price?: undefined;
+      price_data: Stripe.SubscriptionUpdateParams.Item.PriceData;
+    };
+
+/** Reduces a checkout line item to the price fields an update call accepts. */
+export function proPriceFields(
+  lineItem: Stripe.Checkout.SessionCreateParams.LineItem
+): ProPriceFields {
+  if (lineItem.price) return { price: lineItem.price };
+  const data = lineItem.price_data;
+  if (
+    !data ||
+    !data.product ||
+    data.unit_amount === undefined ||
+    !data.recurring
+  ) {
+    throw new Error('The PRO line item has no usable price');
+  }
+  return {
+    price_data: {
+      currency: data.currency,
+      product: data.product,
+      unit_amount: data.unit_amount,
+      recurring: {
+        interval: data.recurring.interval,
+        interval_count: data.recurring.interval_count ?? 1,
+      },
+      ...(data.tax_behavior && { tax_behavior: data.tax_behavior }),
+    },
+  };
+}
+
+/**
+ * The one subscription item that carries the PRO plan. A PRO subscription has
+ * exactly one; anything else is left alone (null), so a plan change can never
+ * touch an item it does not understand.
+ */
+export function proItemOf(
+  subscription: Stripe.Subscription
+): { id: string; interval: string | null } | null {
+  const items = subscription.items?.data ?? [];
+  const item = items.length === 1 ? items[0] : undefined;
+  if (!item) return null;
+  return { id: item.id, interval: item.price?.recurring?.interval ?? null };
+}
+
+export interface YearlyUpgradePreview {
+  /** What the customer pays now, tax included. 0 during the free trial. */
+  amountDueNowUsd: number;
+  /** The credit for the unused part of the current month, as a positive number. */
+  creditUsd: number;
+  taxUsd: number;
+  /** When the yearly plan renews, or when the first charge is during a trial. */
+  renewsOn: Date | null;
+  inTrial: boolean;
+}
+
+/**
+ * Stripe's preview of switching the PRO item to the yearly price right now
+ * (W5a): the invoice `subscriptions.update(... 'always_invoice')` would create.
+ * Passing the same `prorationDate` to the update makes the charge equal this
+ * amount. Nothing is created or charged.
+ */
+export async function previewYearlyUpgrade(input: {
+  customerId: string;
+  subscription: Stripe.Subscription;
+  itemId: string;
+  yearlyLineItem: Stripe.Checkout.SessionCreateParams.LineItem;
+  prorationDate: number;
+}): Promise<YearlyUpgradePreview> {
+  const upcoming = await getStripeClient().invoices.retrieveUpcoming({
+    customer: input.customerId,
+    subscription: input.subscription.id,
+    subscription_items: [
+      { id: input.itemId, ...proPriceFields(input.yearlyLineItem) },
+    ],
+    subscription_proration_behavior: 'always_invoice',
+    subscription_proration_date: input.prorationDate,
+  });
+
+  const inTrial = input.subscription.status === 'trialing';
+  const lines = upcoming.lines?.data ?? [];
+  const planLine = planLineOf(upcoming as unknown as Stripe.Invoice);
+  const creditCents = lines
+    .filter((l) => l.proration && l.amount < 0)
+    .reduce((sum, l) => sum - l.amount, 0);
+  const trialEnd = input.subscription.trial_end;
+  const periodEnd = planLine?.period?.end;
+
+  return {
+    amountDueNowUsd: upcoming.amount_due / 100,
+    creditUsd: creditCents / 100,
+    taxUsd: (upcoming.tax ?? 0) / 100,
+    renewsOn:
+      inTrial && trialEnd
+        ? new Date(trialEnd * 1000)
+        : periodEnd
+          ? new Date(periodEnd * 1000)
+          : null,
+    inTrial,
+  };
+}
+
+/**
+ * Monthly to yearly, now (W5a, decisions D2, E2, E3). The prorated invoice is
+ * charged at once; with `error_if_incomplete` a declined card or a 3-D Secure
+ * request makes Stripe refuse the whole change (402), so the subscription stays
+ * monthly and nothing is charged (E2). During a free trial the price changes now
+ * and the first charge at the trial end is the yearly price (E3). The latest
+ * invoice is expanded for the amount charged.
+ */
+export async function upgradeToYearlyNow(input: {
+  subscriptionId: string;
+  itemId: string;
+  yearlyLineItem: Stripe.Checkout.SessionCreateParams.LineItem;
+  prorationDate: number;
+  idempotencyKey: string;
+}): Promise<Stripe.Subscription> {
+  return getStripeClient().subscriptions.update(
+    input.subscriptionId,
+    {
+      items: [{ id: input.itemId, ...proPriceFields(input.yearlyLineItem) }],
+      proration_behavior: 'always_invoice',
+      proration_date: input.prorationDate,
+      payment_behavior: 'error_if_incomplete',
+      expand: ['latest_invoice'],
+    },
+    { idempotencyKey: input.idempotencyKey }
+  );
+}
+
+/** True when `error` is a Stripe card error: declined, or needs authentication. */
+export function isStripeCardError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { type, statusCode } = error as {
+    type?: unknown;
+    statusCode?: unknown;
+  };
+  return type === 'StripeCardError' || statusCode === 402;
+}
+
+/**
+ * Yearly to monthly at the renewal date (W5b, decision D2): a Subscription
+ * Schedule created from the subscription. Phase 1 is the current yearly item
+ * until `current_period_end`; phase 2 is the monthly price; `end_behavior:
+ * 'release'` hands the subscription back when phase 2 ends. No proration in
+ * either phase: no refund and no credit. If the phases cannot be set, the
+ * schedule just created is released again.
+ */
+export async function scheduleSwitchToMonthly(input: {
+  subscriptionId: string;
+  monthlyLineItem: Stripe.Checkout.SessionCreateParams.LineItem;
+}): Promise<Stripe.SubscriptionSchedule> {
+  const stripe = getStripeClient();
+  const created = await stripe.subscriptionSchedules.create({
+    from_subscription: input.subscriptionId,
+  });
+  try {
+    const current = created.phases[0];
+    if (!current || !current.end_date) {
+      throw new Error('The schedule has no current phase to continue');
+    }
+    const keep = {
+      ...(current.automatic_tax && {
+        automatic_tax: { enabled: current.automatic_tax.enabled },
+      }),
+      ...(typeof current.default_payment_method === 'string' && {
+        default_payment_method: current.default_payment_method,
+      }),
+    };
+    return await stripe.subscriptionSchedules.update(created.id, {
+      end_behavior: 'release',
+      phases: [
+        {
+          start_date: current.start_date,
+          end_date: current.end_date,
+          items: current.items.map((item) => ({
+            price: typeof item.price === 'string' ? item.price : item.price.id,
+            quantity: item.quantity ?? 1,
+          })),
+          proration_behavior: 'none',
+          ...keep,
+        },
+        {
+          items: [{ ...proPriceFields(input.monthlyLineItem), quantity: 1 }],
+          proration_behavior: 'none',
+          ...keep,
+        },
+      ],
+    });
+  } catch (error) {
+    try {
+      await stripe.subscriptionSchedules.release(created.id);
+    } catch (releaseError) {
+      console.error(
+        '[PlanChange] Could not release the schedule after a failed setup:',
+        releaseError
+      );
+    }
+    throw error;
+  }
+}
+
+/**
+ * Releases a Subscription Schedule: the subscription keeps running exactly as it
+ * is, with no phases left to apply ("Keep yearly", and the cancel flow, since
+ * Stripe refuses `cancel_at_period_end` while a schedule manages the
+ * subscription). A schedule that is already released or gone counts as released.
+ */
+export async function releaseSubscriptionSchedule(
+  scheduleId: string
+): Promise<'released' | 'already_released'> {
+  try {
+    await getStripeClient().subscriptionSchedules.release(scheduleId);
+    return 'released';
+  } catch (error) {
+    if (isScheduleAlreadyReleased(error)) return 'already_released';
+    throw error;
+  }
+}
+
+/**
+ * Stripe's refusal to release a schedule that is no longer active, or that no
+ * longer exists. Matched on the error's code and wording because the SDK has no
+ * dedicated type for it.
+ */
+export function isScheduleAlreadyReleased(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  const { code, message } = error as { code?: unknown; message?: unknown };
+  if (code === 'resource_missing') return true;
+  return (
+    typeof message === 'string' &&
+    /(already|not) .*(released|canceled|cancelled|completed|active)|No such subscription schedule/i.test(
+      message
+    )
+  );
+}
+
+/**
+ * How many months of subscription lifetime each of a subscription's invoices
+ * covers (E4): 12 for an invoice whose plan line is yearly (the prorated upgrade
+ * invoice included), 1 for a monthly one. Keyed by Stripe invoice id; one list
+ * call, the most recent 100 invoices.
+ */
+export async function getInvoiceMonthsById(
+  subscriptionId: string
+): Promise<Record<string, number>> {
+  const invoices = await getStripeClient().invoices.list({
+    subscription: subscriptionId,
+    limit: 100,
+  });
+  const months: Record<string, number> = {};
+  for (const invoice of invoices.data) {
+    if (invoice.id) months[invoice.id] = invoicePlan(invoice).yearly ? 12 : 1;
+  }
+  return months;
+}
+
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // CUSTOMER FUNCTIONS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/**
+ * The hosted invoice page of a subscription's latest open invoice: where a
+ * subscriber with a failed renewal pays it ("Pay now", W2). Null when no
+ * invoice is open or Stripe has no hosted page for it.
+ *
+ * @param subscriptionId - Stripe subscription ID
+ */
+export async function getOpenInvoiceUrl(
+  subscriptionId: string
+): Promise<string | null> {
+  const invoices = await getStripeClient().invoices.list({
+    subscription: subscriptionId,
+    status: 'open',
+    limit: 1,
+  });
+  return invoices.data[0]?.hosted_invoice_url ?? null;
+}
 
 /**
  * Get customer's invoices from Stripe
@@ -490,4 +799,35 @@ export async function createBillingPortalSession(
     return_url: returnUrl,
   });
   return session;
+}
+
+/**
+ * Create a Stripe Billing Portal session that opens ONLY the card form
+ * (W1, decision D4): `flow_data.type = payment_method_update`, under the
+ * portal configuration Davin keeps with every other feature off (D5). Stripe
+ * sends the customer to `completedUrl` when the new card is saved.
+ *
+ * @param customerId - Stripe customer ID
+ * @param configurationId - STRIPE_PORTAL_CONFIGURATION_ID
+ * @param returnUrl - Where the portal's own "return" link goes
+ * @param completedUrl - Where Stripe redirects after the card is saved
+ */
+export async function createPaymentMethodUpdateSession(
+  customerId: string,
+  configurationId: string,
+  returnUrl: string,
+  completedUrl: string
+): Promise<Stripe.BillingPortal.Session> {
+  return getStripeClient().billingPortal.sessions.create({
+    customer: customerId,
+    configuration: configurationId,
+    return_url: returnUrl,
+    flow_data: {
+      type: 'payment_method_update',
+      after_completion: {
+        type: 'redirect',
+        redirect: { return_url: completedUrl },
+      },
+    },
+  });
 }

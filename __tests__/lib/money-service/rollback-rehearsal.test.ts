@@ -33,7 +33,7 @@ jest.mock('next-auth/providers/linkedin', () => ({
 }));
 jest.mock('@/lib/email/subscription-emails', () => ({
   __esModule: true,
-  sendCancellationEmail: jest.fn(async () => ({ success: true })),
+  sendSubscriptionCanceledEmail: jest.fn(async () => ({ success: true })),
 }));
 
 const mockForwardWriteRequestToMoneyService = jest.fn();
@@ -87,7 +87,15 @@ jest.mock('@/lib/stripe/stripe', () => ({
     id: 'cs_test_123',
     url: 'https://checkout.stripe.com/pay/cs_test_123',
   })),
-  cancelSubscription: jest.fn(async () => ({})),
+  // Manage Subscription S2: cancel at the END of the period (D1).
+  setCancelAtPeriodEnd: jest.fn(async () => ({
+    cancel_at: 1795305600,
+    current_period_end: 1795305600,
+  })),
+  // Manage Subscription S3: cancel reads Stripe's subscription and releases a
+  // plan-switch schedule first; none is attached here.
+  getSubscription: jest.fn(async () => ({ schedule: null })),
+  releaseSubscriptionSchedule: jest.fn(async () => 'released'),
 }));
 
 // Mock dLocal services
@@ -202,6 +210,10 @@ describe('0ms Rollback Rehearsal Procedure (Procedure 3.5)', () => {
         id: 'sub_1',
         userId: 'usr_1',
         stripeSubscriptionId: 'sub_stripe_1',
+        stripeCurrentPeriodEnd: null,
+        dLocalPaymentId: null,
+        expiresAt: null,
+        cancelAtPeriodEnd: false,
         status: 'ACTIVE',
       });
 
@@ -216,10 +228,14 @@ describe('0ms Rollback Rehearsal Procedure (Procedure 3.5)', () => {
 
       expect(mockForwardWriteRequestToMoneyService).not.toHaveBeenCalled();
       expect(response.status).toBe(200);
+      // The user keeps PRO until the period ends (S2), then the webhook downgrades.
       expect(data).toEqual({
         success: true,
-        message: 'Subscription cancelled successfully',
-        tier: 'FREE',
+        message:
+          'Your subscription will end at the close of the current period',
+        tier: 'PRO',
+        cancelAtPeriodEnd: true,
+        cancelAt: '2026-11-22T00:00:00.000Z',
       });
     });
   });
@@ -266,8 +282,9 @@ describe('0ms Rollback Rehearsal Procedure (Procedure 3.5)', () => {
         user: { id: 'admin_1', role: 'ADMIN' },
       });
 
-      const { POST } =
-        await import('@/app/api/admin/affiliates/[id]/distribute-codes/route');
+      const { POST } = await import(
+        '@/app/api/admin/affiliates/[id]/distribute-codes/route'
+      );
       const req = new NextRequest(
         'http://localhost:3000/api/admin/affiliates/aff_123/distribute-codes',
         {
@@ -299,8 +316,9 @@ describe('0ms Rollback Rehearsal Procedure (Procedure 3.5)', () => {
         provider: 'WISE',
       });
 
-      const { POST } =
-        await import('@/app/api/disbursement/batches/[batchId]/execute/route');
+      const { POST } = await import(
+        '@/app/api/disbursement/batches/[batchId]/execute/route'
+      );
       const req = new NextRequest(
         'http://localhost:3000/api/disbursement/batches/batch_123/execute',
         { method: 'POST' }

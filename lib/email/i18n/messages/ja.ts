@@ -228,6 +228,44 @@ export const ja: EmailMessages = {
   'canceled.reactivateLink': 'サブスクリプションを再開する',
   'canceled.subject': 'サブスクリプションを解約しました - Trading Alerts',
 
+  // ── Subscription resumed (a scheduled cancellation was withdrawn) ──
+  'resumed.heading': 'サブスクリプションを再開しました',
+  'resumed.body': '**{plan}**サブスクリプションは継続されます。',
+  'resumed.nextBilling': '**次回のお支払い日：** {date}',
+  'resumed.note':
+    '解約のお手続きは取り消されました。引き続き{plan}をすべてご利用いただけ、サブスクリプションは{date}に自動更新されます。',
+  'resumed.manage':
+    'サブスクリプションの内容はいつでもご確認いただけます。{link}',
+  'resumed.manageLink': 'お支払い設定を開く',
+  'resumed.subject': '{plan}サブスクリプションは継続されます - Trading Alerts',
+
+  // ── Plan change: upgraded to yearly, switch to monthly scheduled (S3) ──
+  'upgraded.heading': '年額のお支払いに切り替えました',
+  'upgraded.body': '**{plan}**サブスクリプションは年額払いになりました。',
+  'upgraded.charged': '**本日のご請求額：** {amount}',
+  'upgraded.price': '**年額料金：** {price}',
+  'upgraded.nextBilling': '**次回のお支払い日：** {date}',
+  'upgraded.firstCharge': '**初回のご請求日：** {date}',
+  'upgraded.note':
+    '本日のご請求額は、年額料金から、現在の月額期間の未使用分のクレジットを差し引いた金額です。',
+  'upgraded.trialNote':
+    '無料トライアルは継続しており、本日のご請求はありません。年額料金での初回のご請求は{date}です。',
+  'upgraded.subject': '年額払いに切り替わりました - Trading Alerts',
+  'switchScheduled.heading': '月額払いへの切り替えを予約しました',
+  'switchScheduled.body':
+    '**{plan}**サブスクリプションは{date}に月額払いへ切り替わります。',
+  'switchScheduled.date': '**切り替え日：** {date}',
+  'switchScheduled.price': '**その後の月額料金：** {price}',
+  'switchScheduled.note':
+    '{date}までは年額プランのままご利用いただけます。今回のご請求や返金はなく、今年分のクレジットもありません。',
+  'switchScheduled.keep':
+    '気が変わりましたか？ それまでは年額払いを継続できます。{link}',
+  'switchScheduled.subject':
+    '月額払いへの切り替えが予約されました - Trading Alerts',
+  'planChange.manage':
+    'サブスクリプションの内容はいつでもご確認いただけます。{link}',
+  'planChange.manageLink': 'お支払い設定を開く',
+
   'commission.heading': 'コミッションを獲得しました！',
   'commission.body':
     'あなたのアフィリエイトコードが使用され、コミッションを獲得しました。',
