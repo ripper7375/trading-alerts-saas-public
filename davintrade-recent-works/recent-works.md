@@ -84,6 +84,12 @@ D:\SaaS Project\trading-alerts-saas-public\davintrade-nextjs16-4-configuration\n
 
 D:\SaaS Project\trading-alerts-saas-public\davintrade-local-gold-price\worldgoldmarket-manifest-work-completion.md
 
+D:\SaaS Project\trading-alerts-saas-public\davintrade-database-scaling\database-scaling-manifest-work-completion.md
+
+D:\SaaS Project\trading-alerts-saas-public\davintrade-database-scaling\database-scaling-second-wave-manifest-work-completion.md
+
+D:\SaaS Project\trading-alerts-saas-public\davintrade-subscription-management\subscription-management-manifest-work-completion.md
+
 =================================Template for update ====================================================================================
 
 Could you write xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-manifest-work-completion.md and save it to D:\SaaS Project\trading-alerts-saas-public\xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\ folder
