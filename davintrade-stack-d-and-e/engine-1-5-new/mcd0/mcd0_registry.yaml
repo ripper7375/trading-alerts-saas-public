@@ -7,7 +7,7 @@ timeframes: [M5, M15]
 depends_on: []
 uses_channel: [] # a gate is not itself marked; the worker marks the channel MCDs through THEIR uses_channel (standard 9.2)
 rung: {} # a gate has no rung: it is not a voter and never enters the precedence ladder (architecture 2.13 shows a dash)
-flag: 'off' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
+flag: 'shadow' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
 spec: engine-1-5-new/mcd0/mcd0.md
 params: engine-1-5-new/mcd0/mcd0_params.yaml
 # Bias is NEUTRAL in every state (a gate has no direction, standard 7.2). No levels, no regime word.

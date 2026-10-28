@@ -21,7 +21,7 @@
 # Quote the values: YAML 1.1 reads an unquoted off as the boolean false, and the worker refuses that.
 schema: mcd-worker-config/1
 flags:
-  MCD0: 'off'
+  MCD0: 'shadow'
   MCD1: 'off'
   MCD2: 'off'
   MCD3: 'off'

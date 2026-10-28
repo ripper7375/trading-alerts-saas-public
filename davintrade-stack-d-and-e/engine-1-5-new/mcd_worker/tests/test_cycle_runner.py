@@ -415,7 +415,7 @@ class BundleTextTests(unittest.TestCase):
 
     def test_the_text_is_returned_even_when_no_mcd_is_enabled(self) -> None:
         """The committed configuration runs nothing; the text is a fact about the input, not about a reading (the worker decides to store it)."""
-        nothing = cr.Worker.load()
+        nothing = cr.Worker.load(flags={"MCD0": "off", "MCD1": "off", "MCD2": "off", "MCD3": "off"})
         result = nothing.run_cycle(s.bundle("v1"))
         self.assertEqual(result.results, ())
         self.assertEqual(result.bundle_canonical_json, cr.bundle_canonical_json(s.bundle("v1")))
