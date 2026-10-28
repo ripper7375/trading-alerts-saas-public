@@ -52,8 +52,8 @@ def bundle(name: str) -> CycleInputs:
 
 @lru_cache(maxsize=None)
 def real_worker() -> Worker:
-    """The four real MCDs, every flag at ``shadow`` (the committed configuration has them ``off``)."""
-    return Worker.load(flags=SHADOW_ALL)
+    """The four real MCDs, every flag at ``shadow`` (synthesis off)."""
+    return Worker.load(flags={**SHADOW_ALL, "SYN": "off"})
 
 
 def stored_cycle_text(name: str) -> str:

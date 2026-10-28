@@ -330,7 +330,7 @@ class CommittedChecklistTests(unittest.TestCase):
 class CommittedConfigTests(unittest.TestCase):
     def test_the_committed_flags(self) -> None:
         config = fl.load_worker_config()
-        self.assertEqual(dict(config.flags), {"MCD0": "shadow", "MCD1": "shadow", "MCD2": "shadow", "MCD3": "off"})
+        self.assertEqual(dict(config.flags), {"MCD0": "shadow", "MCD1": "shadow", "MCD2": "shadow", "MCD3": "shadow"})
 
     def test_the_config_names_exactly_the_registered_mcds(self) -> None:
         self.assertEqual(set(fl.load_worker_config().flags), set(load_registry()))
@@ -344,11 +344,11 @@ class CommittedConfigTests(unittest.TestCase):
 
     def test_the_committed_flags_pass_their_own_checklists(self) -> None:
         worker = Worker.load()
-        self.assertEqual(worker.enabled, ("MCD0", "MCD1", "MCD2"))
-        self.assertEqual(worker.order, ("MCD0", "MCD1", "MCD2"))
+        self.assertEqual(worker.enabled, ("MCD0", "MCD1", "MCD2", "MCD3"))
+        self.assertEqual(worker.order, ("MCD0", "MCD1", "MCD2", "MCD3"))
 
     def test_an_all_off_worker_runs_a_cycle_and_returns_nothing(self) -> None:
-        result = Worker.load(flags={"MCD0": "off", "MCD1": "off", "MCD2": "off", "MCD3": "off"}).run_cycle(s.bundle("v1"))
+        result = Worker.load(flags={"MCD0": "off", "MCD1": "off", "MCD2": "off", "MCD3": "off", "SYN": "off"}).run_cycle(s.bundle("v1"))
         self.assertEqual(result.results, ())
         self.assertEqual(result.order, ())
         self.assertIsNone(result.gate_status)

@@ -167,9 +167,9 @@ class SynthesisFlagRuleTests(unittest.TestCase):
 
 
 class ConfigFileTests(unittest.TestCase):
-    def test_the_committed_configuration_has_synthesis_off_with_the_draft_rules(self) -> None:
+    def test_the_committed_configuration_has_synthesis_shadow_with_the_draft_rules(self) -> None:
         config = load_worker_config(DEFAULT_CONFIG_PATH)
-        self.assertEqual(config.synthesis_flag, "off")
+        self.assertEqual(config.synthesis_flag, "shadow")
         self.assertEqual(config.rules_version, "draft-1")
         self.assertNotIn(SYN_ID, config.flags)
         self.assertEqual(set(config.flags), {"MCD0", "MCD1", "MCD2", "MCD3"})
@@ -232,14 +232,14 @@ class ConfigFileTests(unittest.TestCase):
 
 
 class WorkerStartTests(unittest.TestCase):
-    def test_the_committed_worker_has_synthesis_off_and_no_synthesizer(self) -> None:
+    def test_the_committed_worker_has_synthesis_shadow_and_synthesizer(self) -> None:
         worker = Worker.load()
-        self.assertEqual(worker.synthesis_flag, "off")
-        self.assertIsNone(worker.synthesizer)
+        self.assertEqual(worker.synthesis_flag, "shadow")
+        self.assertIsNotNone(worker.synthesizer)
 
     def test_a_worker_with_synthesis_off_never_reads_the_rules(self) -> None:
         with mock.patch.object(Synthesizer, "load", side_effect=AssertionError("the rules were read")):
-            worker = Worker.load(flags=s.SHADOW_ALL)
+            worker = Worker.load(flags={**s.SHADOW_ALL, "SYN": "off"})
         self.assertIsNone(worker.synthesizer)
 
     def test_shadow_loads_the_rules_and_the_zone_parameters(self) -> None:
@@ -290,7 +290,7 @@ class WorkerStartTests(unittest.TestCase):
             Worker.load(flags=SYN_SHADOW, rules_version="no-such-rules")
 
     def test_a_rules_version_is_not_looked_for_when_synthesis_is_off(self) -> None:
-        self.assertIsNone(Worker.load(flags=s.SHADOW_ALL, rules_version="no-such-rules").synthesizer)
+        self.assertIsNone(Worker.load(flags={**s.SHADOW_ALL, "SYN": "off"}, rules_version="no-such-rules").synthesizer)
 
     def test_synthesizer_load_checks_the_rules_against_the_registry(self) -> None:
         synthesizer = Synthesizer.load(sy.registry())

@@ -24,7 +24,7 @@ flags:
   MCD0: 'shadow'
   MCD1: 'shadow'
   MCD2: 'shadow'
-  MCD3: 'off'
-  SYN: 'off'
+  MCD3: 'shadow'
+  SYN: 'shadow'
 synthesis:
   rules_version: draft-1

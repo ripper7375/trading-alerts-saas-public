@@ -421,13 +421,13 @@ describe('scripts/sync-sensor-kit.js on a scratch checkout', () => {
     const { root, script, copy } = scratch();
     const registry = path.join(root, ENGINE_REL, 'mcd3', 'mcd3_registry.yaml');
     const text = fs.readFileSync(registry, 'utf8');
-    expect(text).toMatch(/^flag: 'off'/m);
-    fs.writeFileSync(registry, text.replace(/^flag: 'off'/m, "flag: 'shadow'"));
+    expect(text).toMatch(/^flag: 'shadow'/m);
+    fs.writeFileSync(registry, text.replace(/^flag: 'shadow'/m, "flag: 'off'"));
     for (const args of [[], ['--check']]) {
       const r = runScript(script, ...args);
       expect(r.status).toBe(2);
-      expect(r.stderr).toContain("MCD3: mcd3/mcd3_registry.yaml says 'shadow'");
-      expect(r.stderr).toContain("worker_config.yaml says 'off'");
+      expect(r.stderr).toContain("MCD3: mcd3/mcd3_registry.yaml says 'off'");
+      expect(r.stderr).toContain("worker_config.yaml says 'shadow'");
     }
     expect(fs.existsSync(copy)).toBe(false);
   });

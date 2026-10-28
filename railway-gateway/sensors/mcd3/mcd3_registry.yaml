@@ -9,7 +9,7 @@ uses_channel: [M5, M15] # timeframes on which MCD0 defects make this MCD CAUTION
 rung: # Davin confirmed on 1 October 2026 (standard 9.3, spec question Q8). MCD3 modifies, it does not vote.
   DAY_TRADER: oscillators
   SCALPER: oscillators
-flag: 'off' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
+flag: 'shadow' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
 spec: engine-1-5-new/mcd3/mcd3.md
 params: engine-1-5-new/mcd3/mcd3_params.yaml
 # Bias is decision D6 (Davin, 1 October 2026: the walkthrough C3 starting points): bull value and bull mid LONG; bear premium and bear mid SHORT; bull top, bear bottom and the sideways
