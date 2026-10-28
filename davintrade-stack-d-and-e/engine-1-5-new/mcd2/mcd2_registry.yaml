@@ -9,7 +9,7 @@ uses_channel: [M5] # timeframes on which MCD0 defects make this MCD CAUTIONARY
 rung: # proposals; Davin decides (standard 9.3, spec question Q6)
   DAY_TRADER: trendlines_channels
   SCALPER: primary_structure
-flag: 'off' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
+flag: 'shadow' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
 spec: engine-1-5-new/mcd2/mcd2.md
 params: engine-1-5-new/mcd2/mcd2_params.yaml
 # Bias is decision D6 (Davin, 2026-10-01): UP states LONG, DOWN states SHORT, SIDEWAYS states NEUTRAL.

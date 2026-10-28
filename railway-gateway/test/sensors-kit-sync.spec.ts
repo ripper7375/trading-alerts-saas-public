@@ -419,14 +419,14 @@ describe('scripts/sync-sensor-kit.js on a scratch checkout', () => {
 
   it('refuses to run, and writes nothing, when a registry flag and worker_config.yaml disagree', () => {
     const { root, script, copy } = scratch();
-    const registry = path.join(root, ENGINE_REL, 'mcd1', 'mcd1_registry.yaml');
+    const registry = path.join(root, ENGINE_REL, 'mcd3', 'mcd3_registry.yaml');
     const text = fs.readFileSync(registry, 'utf8');
     expect(text).toMatch(/^flag: 'off'/m);
     fs.writeFileSync(registry, text.replace(/^flag: 'off'/m, "flag: 'shadow'"));
     for (const args of [[], ['--check']]) {
       const r = runScript(script, ...args);
       expect(r.status).toBe(2);
-      expect(r.stderr).toContain("MCD1: mcd1/mcd1_registry.yaml says 'shadow'");
+      expect(r.stderr).toContain("MCD3: mcd3/mcd3_registry.yaml says 'shadow'");
       expect(r.stderr).toContain("worker_config.yaml says 'off'");
     }
     expect(fs.existsSync(copy)).toBe(false);
@@ -456,8 +456,8 @@ describe('scripts/sync-sensor-kit.js on a scratch checkout', () => {
       const registry = path.join(
         root,
         ENGINE_REL,
-        'mcd0',
-        'mcd0_registry.yaml'
+        'mcd3',
+        'mcd3_registry.yaml'
       );
       const config = path.join(
         root,
@@ -469,13 +469,13 @@ describe('scripts/sync-sensor-kit.js on a scratch checkout', () => {
         registry,
         fs
           .readFileSync(registry, 'utf8')
-          .replace(/^flag: 'off'/m, `flag: '${flag}'`)
+          .replace(/^flag: '.*'/m, `flag: '${flag}'`)
       );
       fs.writeFileSync(
         config,
         fs
           .readFileSync(config, 'utf8')
-          .replace(/^ {2}MCD0: 'off'/m, `  MCD0: '${flag}'`)
+          .replace(/^ {2}MCD3: '.*'/m, `  MCD3: '${flag}'`)
       );
       expect(runScript(script).status).toBe(0);
       expect(runScript(script, '--check').status).toBe(0);

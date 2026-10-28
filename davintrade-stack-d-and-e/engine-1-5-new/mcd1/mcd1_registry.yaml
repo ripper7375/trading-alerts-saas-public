@@ -11,7 +11,7 @@ uses_channel: [M15] # timeframes on which MCD0 defects make this MCD CAUTIONARY
 rung: # confirmed by Davin on 1 October 2026 (standard 9.3, spec question Q6)
   DAY_TRADER: primary_structure
   SCALPER: trendlines_channels
-flag: 'off' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
+flag: 'shadow' # off | shadow | live (quoted: an unquoted off is the boolean false in YAML 1.1)
 spec: engine-1-5-new/mcd1/mcd1.md
 params: engine-1-5-new/mcd1/mcd1_params.yaml
 states:

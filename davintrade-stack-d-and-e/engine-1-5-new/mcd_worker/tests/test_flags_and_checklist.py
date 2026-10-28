@@ -330,7 +330,7 @@ class CommittedChecklistTests(unittest.TestCase):
 class CommittedConfigTests(unittest.TestCase):
     def test_the_committed_flags(self) -> None:
         config = fl.load_worker_config()
-        self.assertEqual(dict(config.flags), {"MCD0": "shadow", "MCD1": "off", "MCD2": "off", "MCD3": "off"})
+        self.assertEqual(dict(config.flags), {"MCD0": "shadow", "MCD1": "shadow", "MCD2": "shadow", "MCD3": "off"})
 
     def test_the_config_names_exactly_the_registered_mcds(self) -> None:
         self.assertEqual(set(fl.load_worker_config().flags), set(load_registry()))
@@ -344,8 +344,8 @@ class CommittedConfigTests(unittest.TestCase):
 
     def test_the_committed_flags_pass_their_own_checklists(self) -> None:
         worker = Worker.load()
-        self.assertEqual(worker.enabled, ("MCD0",))
-        self.assertEqual(worker.order, ("MCD0",))
+        self.assertEqual(worker.enabled, ("MCD0", "MCD1", "MCD2"))
+        self.assertEqual(worker.order, ("MCD0", "MCD1", "MCD2"))
 
     def test_an_all_off_worker_runs_a_cycle_and_returns_nothing(self) -> None:
         result = Worker.load(flags={"MCD0": "off", "MCD1": "off", "MCD2": "off", "MCD3": "off"}).run_cycle(s.bundle("v1"))
@@ -401,7 +401,7 @@ class WorkerStartupTests(unittest.TestCase):
 
     def test_load_refuses_a_derived_mcd_without_its_dependencies(self) -> None:
         with self.assertRaises(ConfigError):
-            Worker.load(flags={"MCD0": "shadow", "MCD3": "shadow"})
+            Worker.load(flags={"MCD0": "shadow", "MCD1": "off", "MCD2": "off", "MCD3": "shadow"})
 
     def test_load_accepts_the_whole_set_at_shadow(self) -> None:
         worker = Worker.load(flags=s.SHADOW_ALL)

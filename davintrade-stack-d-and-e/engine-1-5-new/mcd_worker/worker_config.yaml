@@ -22,8 +22,8 @@
 schema: mcd-worker-config/1
 flags:
   MCD0: 'shadow'
-  MCD1: 'off'
-  MCD2: 'off'
+  MCD1: 'shadow'
+  MCD2: 'shadow'
   MCD3: 'off'
   SYN: 'off'
 synthesis:
