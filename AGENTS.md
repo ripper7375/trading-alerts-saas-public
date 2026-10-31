@@ -40,6 +40,7 @@ otherwise. Follow the shared [language policy](docs/agent-collaboration/LANGUAGE
 - **UI/locales/money/date display:** [i18n rules](.claude/rules/i18n-compliance.md).
 - **DB/schema/migrations:** [DB traps](.claude/architecture/database-traps.md) and [blockers](.claude/state/waiting-on.md).
 - **Deploy/VPS/Stack C/R2:** [Infrastructure](.claude/architecture/infrastructure.md) and blockers.
+  Railway services (money, operation, gateway): [deploy runbook](docs/runbooks/railway-services-deploy.md); its DAVIN gates need a stop-and-ask.
 - **Numbered migration/scope:** [Cutover routing](.claude/architecture/microservices-cutover.md).
 - **Stack D/MCDs:** [Canonical architecture](docs/STACK-D-ARCHITECTURE.md), [ADRs](docs/adr/README.md), [MCD standard](docs/MCD-DEVELOPMENT-STANDARD.md).
 - **Tooling surprises:** [Environment gotchas](.claude/architecture/environment-gotchas.md).

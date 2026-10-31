@@ -27,6 +27,9 @@ For assigned work, read its task/order, latest handoff and task-relevant
 canonical documents. Read CLAUDE.md for Claude Code's executor contract and
 AGENTS.md for Codex's. Do not load the entire knowledge tree or history without
 a task-specific reason.
+Before drafting any prompt or walkthrough that deploys money-service,
+operation-service or railway-gateway, read docs/runbooks/railway-services-deploy.md
+and copy its DAVIN gates into the prompt as stop-and-ask steps.
 
 All four participation setups are valid: Antigravity + Claude Code,
 Antigravity + Codex, Claude Code directly, or Codex directly.

@@ -1,7 +1,7 @@
 ---
 type: Concept/Infrastructure
 status: active
-updated_at: 2026-10-23
+updated_at: 2026-10-31
 source: 'Standing facts recorded in CLAUDE.md session logs (Vultr notice 2026-09-11, Railway/Vercel findings 2026-08-31..09-09)'
 tags: [deploy, vercel, railway, vps, vultr, r2, mt5]
 related_docs:
@@ -52,9 +52,12 @@ related_docs:
   Node 22 (Node 20 is past end of life), `npm ci`, `tsc --noEmit`, tests and `nest build`; the gateway also runs its e2e specs, `check:sensor-kit`
   and installs Python 3.11 with `pyyaml==6.0.2 jsonschema==4.25.0` (its sensor specs skip silently without them). It is **not run on GitHub yet**
   (first push will show). No `npm run lint` for the gateway: the script matches no files. Report: `docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md`.
-- **Node runtime pins (2026-10-22, after the Node 22.23.4 / 24.22.1 security release):** `engines.node` is `22.x` in the three NestJS services
-  and `>=22.0.0` in the monolith, `frontend/` and `packages/types`; CI runs Node 24 for the monolith workflows and 22 for the NestJS,
-  `mt5-pipeline-tests` and `openapi-validation` ones. Vercel maps the monolith to the latest 24.x and rolls patch releases itself. Railway builds
+- **Deploying `money-service`, `operation-service` or `railway-gateway` (or drafting a deploy prompt or walkthrough for them): follow
+  [docs/runbooks/railway-services-deploy.md](../../docs/runbooks/railway-services-deploy.md).** It marks which steps need Davin's dashboard
+  (stop and ask, never assume) and gives the deploy order and the rollback.
+- **Node runtime pins (2026-10-22, after the Node 22.23.4 / 24.22.1 security release; moved to Node 24 on 2026-10-31, `cf830f3a`):**
+  `engines.node` is `24.x` in the three NestJS services and `>=24.0.0` in the monolith and `frontend/`; `packages/types` stays `>=22.0.0`.
+  Every CI workflow runs Node 24 and `.nvmrc` says `24`. Vercel maps the monolith to the latest 24.x and rolls patch releases itself. Railway builds
   with Nixpacks, which maps the range to a **major only** (the patch comes from a nixpkgs snapshot compiled into Nixpacks), so the repo cannot force
   the patched Node there: read `node -v` in the build log after the next deploy. Switching the builder to Railpack or a Dockerfile is a
   deploy-tooling decision for Davin. Which major Railway used before this change was never confirmed. The chat stack's two Dockerfiles
