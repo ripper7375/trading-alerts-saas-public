@@ -7,6 +7,7 @@ This is an example of how your conversation with Claude Chat will flow during Ph
 ## Initial Message
 
 **You:**
+
 ```
 Hi! I need your help setting up staging infrastructure for my Trading Alerts SaaS migration.
 
@@ -31,6 +32,7 @@ Ready?
 ```
 
 **Claude Chat:**
+
 ```
 Perfect! I'll guide you through the infrastructure setup step-by-step. Let's get started!
 
@@ -52,11 +54,13 @@ Let me know when you've completed these steps!
 ## Step-by-Step Interaction
 
 **You:**
+
 ```
 Done! I've created a new project called "trading-alerts-staging"
 ```
 
 **Claude Chat:**
+
 ```
 Excellent! ✅ Project created.
 
@@ -71,11 +75,13 @@ You'll see a PostgreSQL card appear in your project. Let me know when it shows "
 ```
 
 **You:**
+
 ```
 It's showing "Active" now!
 ```
 
 **Claude Chat:**
+
 ```
 Perfect! ✅ PostgreSQL is running.
 
@@ -89,17 +95,19 @@ First, let's get your connection string:
 4. Copy the ENTIRE connection string
 
 It should look like:
-postgresql://postgres:XXXXXXX@containers-us-west-XX.railway.app:7432/railway
+postgresql://postgres:<PASSWORD>@containers-us-west-XX.railway.app:7432/railway
 
 Paste it here and I'll verify it looks correct before we use it!
 ```
 
 **You:**
+
 ```
-postgresql://postgres:Khy8mNp2L9xW@containers-us-west-45.railway.app:7432/railway
+postgresql://postgres:<PASSWORD>@containers-us-west-45.railway.app:7432/railway
 ```
 
 **Claude Chat:**
+
 ```
 ✅ Perfect! Your connection string looks correct.
 
@@ -108,7 +116,7 @@ Now let's connect and install TimescaleDB:
 1. Open your terminal
 2. Run this command (copy-paste exactly):
 
-psql "postgresql://postgres:Khy8mNp2L9xW@containers-us-west-45.railway.app:7432/railway"
+psql "postgresql://postgres:<PASSWORD>@containers-us-west-45.railway.app:7432/railway"
 
 This will connect you to the database. You should see a prompt like:
 railway=>
@@ -117,12 +125,14 @@ Let me know what you see!
 ```
 
 **You:**
+
 ```
 I got this error:
 psql: command not found
 ```
 
 **Claude Chat:**
+
 ```
 No problem! You need to install the PostgreSQL client first.
 
@@ -136,11 +146,13 @@ Tell me which one and I'll give you the install command!
 ```
 
 **You:**
+
 ```
 I'm on macOS
 ```
 
 **Claude Chat:**
+
 ```
 Great! Install PostgreSQL client on macOS:
 
@@ -151,12 +163,13 @@ This will install the psql command-line tool.
 
 After installation completes, try the psql connection command again:
 
-psql "postgresql://postgres:Khy8mNp2L9xW@containers-us-west-45.railway.app:7432/railway"
+psql "postgresql://postgres:<PASSWORD>@containers-us-west-45.railway.app:7432/railway"
 
 Let me know what happens!
 ```
 
 **You:**
+
 ```
 It worked! I see:
 psql (15.5)
@@ -166,6 +179,7 @@ railway=>
 ```
 
 **Claude Chat:**
+
 ```
 Excellent! ✅ You're connected to your staging database.
 
@@ -181,11 +195,13 @@ What output do you see?
 ```
 
 **You:**
+
 ```
 CREATE EXTENSION
 ```
 
 **Claude Chat:**
+
 ```
 Perfect! ✅ TimescaleDB extension installed.
 
@@ -199,6 +215,7 @@ What do you see?
 ```
 
 **You:**
+
 ```
 List of installed extensions
 Name        | Version  | Schema
@@ -208,6 +225,7 @@ timescaledb | 2.13.0   | public
 ```
 
 **Claude Chat:**
+
 ```
 Excellent! ✅ TimescaleDB 2.13.0 is properly installed.
 
@@ -224,7 +242,7 @@ Before moving on, let's save your credentials.
 
 Create a file called staging-credentials.txt and add:
 
-STAGING_POSTGRESQL_URI=postgresql://postgres:Khy8mNp2L9xW@containers-us-west-45.railway.app:7432/railway
+STAGING_POSTGRESQL_URI=postgresql://postgres:<PASSWORD>@containers-us-west-45.railway.app:7432/railway
 
 ⚠️ Keep this file SECURE - don't commit it to git!
 
@@ -232,11 +250,13 @@ Ready to move to Step 1.2: Create Redis?
 ```
 
 **You:**
+
 ```
 File created and saved! Ready for Redis.
 ```
 
 **Claude Chat:**
+
 ```
 Great! Let's add Redis to your Railway project.
 
@@ -255,11 +275,13 @@ Let me know when it shows "Active"!
 ```
 
 **You:**
+
 ```
 Redis is active!
 ```
 
 **Claude Chat:**
+
 ```
 Excellent! ✅ Redis deployed.
 
@@ -271,23 +293,25 @@ Now get the Redis connection URL:
 4. Copy it
 
 It should look like:
-redis://default:XXXXXXX@redis.railway.internal:6379
+redis://default:<PASSWORD>@redis.railway.internal:6379
 
 Paste it here and I'll verify!
 ```
 
 **You:**
+
 ```
-redis://default:N8xmKp3qL2@containers-us-west-45.railway.app:6379
+redis://default:<PASSWORD>@containers-us-west-45.railway.app:6379
 ```
 
 **Claude Chat:**
+
 ```
 ✅ Redis URL looks good!
 
 Let's test the connection:
 
-redis-cli -u "redis://default:N8xmKp3qL2@containers-us-west-45.railway.app:6379"
+redis-cli -u "redis://default:<PASSWORD>@containers-us-west-45.railway.app:6379"
 
 After connecting, you should see:
 containers-us-west-45.railway.app:6379>
@@ -300,12 +324,14 @@ Try it and let me know!
 ```
 
 **You:**
+
 ```
 Got error:
 redis-cli: command not found
 ```
 
 **Claude Chat:**
+
 ```
 Let's install Redis CLI on macOS:
 
@@ -317,6 +343,7 @@ What happens?
 ```
 
 **You:**
+
 ```
 It worked!
 containers-us-west-45.railway.app:6379> PING
@@ -324,6 +351,7 @@ PONG
 ```
 
 **Claude Chat:**
+
 ```
 Perfect! ✅ Redis is working correctly.
 
@@ -333,7 +361,7 @@ Press Enter
 
 Now add the Redis URL to staging-credentials.txt:
 
-STAGING_REDIS_URL=redis://default:N8xmKp3qL2@containers-us-west-45.railway.app:6379
+STAGING_REDIS_URL=redis://default:<PASSWORD>@containers-us-west-45.railway.app:6379
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ PHASE 1 COMPLETE: Infrastructure Setup Done!
@@ -373,11 +401,13 @@ Great job! 🚀
 ### When You Need Explanation
 
 **You:**
+
 ```
 What's the difference between the internal and external PostgreSQL URL?
 ```
 
 **Claude Chat:**
+
 ```
 Great question!
 
@@ -405,11 +435,13 @@ Make sense?
 ### When You Make a Mistake
 
 **You:**
+
 ```
 Oops, I accidentally deleted the PostgreSQL service!
 ```
 
 **Claude Chat:**
+
 ```
 No worries - easy to fix!
 
@@ -432,11 +464,13 @@ Ready to recreate it?
 ### When You Want to Skip Ahead
 
 **You:**
+
 ```
 Can I skip Phase 2 and go straight to Phase 3?
 ```
 
 **Claude Chat:**
+
 ```
 I don't recommend skipping Phase 2 (Deploy Database Schema).
 
@@ -460,6 +494,7 @@ Ready to proceed with Phase 2?
 ## Summary
 
 This example shows how Claude Chat will:
+
 - ✅ Guide you step-by-step
 - ✅ Verify each output
 - ✅ Help troubleshoot errors

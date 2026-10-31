@@ -395,13 +395,13 @@ recurs:
 
 **The entire pipeline is live, tested, and fully verified in production.**
 
-All three operator handoff steps were successfully executed on the live Windows VPS (`149.28.148.144`):
+All three operator handoff steps were successfully executed on the live Windows VPS (`<MT5_VPS_IP>`):
 
 1. **✅ Compiled in MetaEditor:** `EconomicCalendarExport_v2_29.mq5` was compiled to `.ex5` with 0 errors
    on the VPS terminal and attached to `XAUUSD, M15` with Algo Trading enabled. It actively exports
    `EconomicCalendar.txt` (~90 KB) every 15 minutes on schedule.
 2. **✅ Applied the migration:** Migration `20260910120000_add_economic_events` was applied directly to
-   production Railway PostgreSQL (`maglev.proxy.rlwy.net:58290`). The `EconomicEvent` table and its indexes
+   production Railway PostgreSQL (`<PROD_DB>`). The `EconomicEvent` table and its indexes
    are live.
 3. **✅ Deployed to the VPS:**
    - Both `export_collector_validator_v2.py` and `backfill_worker_api_gateway_v5.py` were deployed to `C:\Scripts`.

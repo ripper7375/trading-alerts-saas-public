@@ -34,12 +34,14 @@ Due to Prisma CDN being blocked (403 Forbidden), the initial migration was creat
 **File:** `prisma/migrations/20251227000000_init/migration.sql`
 
 **Contents:**
+
 - 16 PostgreSQL enums
 - 27 tables (User, Account, Session, Subscription, Alert, etc.)
 - All indexes and foreign key constraints
 - 818 lines of SQL
 
 **To apply migration:**
+
 ```bash
 # For development with a fresh database:
 npx prisma db push
@@ -309,7 +311,7 @@ DATABASE_URL="postgresql://postgres:password@localhost:5432/trading_alerts?schem
 DATABASE_URL="postgresql://postgres:password@localhost:5433/trading_alerts?schema=public"
 
 # Remote PostgreSQL (Supabase, Neon, etc.)
-DATABASE_URL="postgresql://user:password@db.example.com:5432/trading_alerts?schema=public"
+DATABASE_URL="postgresql://user:<PASSWORD>@db.example.com:5432/trading_alerts?schema=public"
 ```
 
 ### Seed Script Requirements

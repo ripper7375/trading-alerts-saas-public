@@ -470,7 +470,7 @@ Build these files **in sequence**:
 
    # NextAuth
    NEXTAUTH_URL="http://localhost:3000"
-   NEXTAUTH_SECRET="your_secret_here_generate_with_openssl_rand_base64_32"
+   NEXTAUTH_SECRET="<NEXTAUTH_SECRET>"
 
    # Google OAuth
    GOOGLE_CLIENT_ID="your_google_client_id"

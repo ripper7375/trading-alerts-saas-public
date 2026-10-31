@@ -443,7 +443,7 @@ DATABASE_URL="postgresql://user:password@localhost:5432/trading_alerts_v5"
 
 # NextAuth (v5)
 NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="generate-with-openssl-rand-base64-32"
+NEXTAUTH_SECRET="<NEXTAUTH_SECRET>"
 
 # Flask MT5 Service
 MT5_API_URL="http://localhost:5001"

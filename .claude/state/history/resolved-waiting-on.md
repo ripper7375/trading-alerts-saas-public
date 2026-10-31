@@ -96,18 +96,18 @@ Open items live in [../waiting-on.md](../waiting-on.md).
 
 - **RESOLVED 2026-09-09 — the four pending migrations are applied to PRODUCTION, and the
   database picture is now settled for good.** Davin applied them with
-  `prisma.production.config.ts` against `maglev.proxy.rlwy.net:58290`; verified afterwards:
+  `prisma.production.config.ts` against `<PROD_DB>`; verified afterwards:
   `market_data_v6` present with 90 columns (`best_fit_a` ×8, `best_fit_b` ×8), `cycle_id` and
   `collected_at` both `NOT NULL`, `indicator_statistics` + `indicator_configs` created,
   `UserAppearance.theme` default `'light'`, 19 migrations recorded with **0 failed** — and the
   live data untouched (24 users / 2 accounts / 5 payments / 1 commission / 2 alerts, identical
   before and after).
   **The database question that consumed most of the day, settled with evidence:**
-  - **`maglev.proxy.rlwy.net:58290` is production.** Confirmed three ways: `railway-gateway`'s
+  - **`<PROD_DB>` is production.** Confirmed three ways: `railway-gateway`'s
     `DATABASE_URL` resolves to `postgres.railway.internal` (this service's private address); it
     holds 39 app tables with 7 months of real activity (2026-01-22 → 2026-08-15); and it carries
     the `User.profile` column, the exact fix that made live OAuth work on 2026-09-01.
-  - **`turntable.proxy.rlwy.net:55082` is a staging clone.** Full app schema including `User`,
+  - **`<STAGING_DB>` is a staging clone.** Full app schema including `User`,
     49 tables, `market_data_v6` present but **0 rows**. It is what `.env.local` points at.
   - **Production had never had `market_data_v6` at all.** `20260705000000_add_market_data_v6` was
     recorded `applied` with **`steps=0`** on _both_ databases — i.e. marked applied without

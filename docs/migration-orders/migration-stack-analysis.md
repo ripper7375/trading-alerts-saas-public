@@ -4426,7 +4426,7 @@ redis.service.ts` (both gained an identically-behaved `trackAiTokenUsage()` — 
 <summary>Session 14-1 (Container Stack Build & Deploy, Phase 14 second-of-4, INFRA) — 24 new, 3 modified, 0 deleted</summary>
 
 Built and deployed the 3-container chat stack frozen at Session 14-0 onto Davin's Contabo VPS
-(`139.180.209.200`, `chat-api.davintrade.app`) — first Docker/Docker-Compose deployment and first
+(`<CHAT_VPS_IP>`, `chat-api.davintrade.app`) — first Docker/Docker-Compose deployment and first
 BullMQ-based service in this migration.
 
 - **New (24 files, all under `infra/contabo-chat-stack/`, new top-level directory):**
@@ -4450,7 +4450,7 @@ BullMQ-based service in this migration.
 - **DNS claim contradicted by live lookup, then fixed:** Davin's first message asserted the
   `chat-api.davintrade.app` A-record was already configured; independent lookups against two public
   resolvers (`8.8.8.8`, `1.1.1.1`) both returned NXDOMAIN. Reported before proceeding; Davin created
-  the record, a second lookup confirmed it live (`139.180.209.200`) before continuing.
+  the record, a second lookup confirmed it live (`<CHAT_VPS_IP>`) before continuing.
 - **Root-password SSH authentication declined.** Davin pasted the VPS root password in plaintext
   chat; the Executor generated a dedicated `ed25519` keypair instead, handed over only the public
   key, and had Davin add it to `authorized_keys` himself — never entering a password to authenticate,

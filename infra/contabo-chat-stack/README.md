@@ -17,7 +17,7 @@ not need SSH — the Executor runs those itself against the public endpoint.
 SSH in and check what's already installed:
 
 ```bash
-ssh root@139.180.209.200
+ssh root@<CHAT_VPS_IP>
 docker --version
 docker compose version
 nginx -v
@@ -40,14 +40,14 @@ sudo systemctl enable --now docker nginx
 From **your local machine** (inside a clone of this repo), copy the stack to the VPS:
 
 ```bash
-ssh root@139.180.209.200 "mkdir -p /opt/saas-chat"
-scp -r infra/contabo-chat-stack/* root@139.180.209.200:/opt/saas-chat/
+ssh root@<CHAT_VPS_IP> "mkdir -p /opt/saas-chat"
+scp -r infra/contabo-chat-stack/* root@<CHAT_VPS_IP>:/opt/saas-chat/
 ```
 
 Back on the VPS:
 
 ```bash
-ssh root@139.180.209.200
+ssh root@<CHAT_VPS_IP>
 cd /opt/saas-chat
 cp .env.example .env
 openssl rand -hex 32   # copy this value — you'll paste it into .env next
@@ -119,7 +119,7 @@ curl -I https://chat-api.davintrade.app
 
 Once you confirm Steps 3 and 4 are done, tell the Executor. It will run, from its own environment:
 
-- **Denial tests:** confirm `139.180.209.200:6379` (Redis) and `139.180.209.200:3001` (chat server, unproxied) both refuse/timeout from the public internet — only 80/443 should be reachable.
+- **Denial tests:** confirm `<CHAT_VPS_IP>:6379` (Redis) and `<CHAT_VPS_IP>:3001` (chat server, unproxied) both refuse/timeout from the public internet — only 80/443 should be reachable.
 - **WSS smoke test:** connect to `wss://chat-api.davintrade.app/socket.io/?EIO=4&transport=websocket` in Guest Mode, emit a `client_message`, and confirm a `support_message` reply comes back from the bot within a few seconds.
 
 No further VPS access is needed for these — they exercise the same public endpoint any real browser would.

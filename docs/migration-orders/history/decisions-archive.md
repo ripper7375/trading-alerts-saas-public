@@ -202,7 +202,7 @@ notifications,tier,user,market-data}` → zero matches;
 - Decision: **(b) Already on Railway, but a different Railway instance than the one
   `railway-gateway` writes `market_data_v6` to.** The monolith's live Postgres is the
   `Postgres` service in the `trading-alerts` Railway project (host
-  `maglev.proxy.rlwy.net`, database `railway`). This is a standalone instance: it hosts
+  `<PROD_DB_HOST>`, database `railway`). This is a standalone instance: it hosts
   only 2 databases (`postgres`, `railway`), neither containing any `market_data`-named
   table, and no Railway project/service named `railway-gateway`/`gateway` exists anywhere
   in this account's 5 projects — consistent with `migration-stack-analysis.md` tagging
@@ -211,19 +211,19 @@ notifications,tier,user,market-data}` → zero matches;
   missing `market_data_v6` table.
 - Evidence:
   - **Source 1** (env-var host-only extraction, never the full value): `.env.local`'s
-    `DATABASE_URL` parsed via `new URL(...).hostname` → `maglev.proxy.rlwy.net`.
+    `DATABASE_URL` parsed via `new URL(...).hostname` → `<PROD_DB_HOST>`.
   - **Source 2** (Railway CLI/dashboard): `railway list` → 5 projects
     (`trading-alerts`, `postgre for staging`, `zoological-motivation`,
     `feisty-amazement`, plus the workspace default) → linked `trading-alerts`/`Postgres`
     → `railway variables --service Postgres --json` piped directly into a parser (raw
     value never surfaced in any output) → `DATABASE_PUBLIC_URL` /
-    `RAILWAY_TCP_PROXY_DOMAIN` both → `maglev.proxy.rlwy.net`. Matches Source 1.
+    `RAILWAY_TCP_PROXY_DOMAIN` both → `<PROD_DB_HOST>`. Matches Source 1.
   - **market_data_v6 absence:** read-only `information_schema.tables` /
     `pg_database` queries against the live instance (via `pg` client,
     `DATABASE_PUBLIC_URL`, no mutation) found 2 databases, neither containing a
     `market_data`-named table.
   - **Mid-session correction:** `.env.local` initially held a stale value pointing to a
-    _different_ Railway project (`postgre for staging`, host `turntable.proxy.rlwy.net`)
+    _different_ Railway project (`postgre for staging`, host `<STAGING_DB_HOST>`)
     — caught by this session's mandatory two-source cross-check, exactly the scenario the
     order's "ground truth priority" rule exists for. Davin corrected `.env.local` to the
     value copied directly from Vercel's production environment variables, which then
@@ -370,7 +370,7 @@ notifications,tier,user,market-data}` → zero matches;
   - This session did **not** run `migrate deploy` for exactly this reason — used
     `migrate status` (read-only) instead to verify direct-URL connectivity without
     touching production schema.
-- Evidence: `npx prisma migrate status` output (direct connection, `maglev.proxy.rlwy.net`)
+- Evidence: `npx prisma migrate status` output (direct connection, `<PROD_DB_HOST>`)
   showing all 6 as unapplied; `pg_tables` query confirming `Watchlist`/`WatchlistItem`
   exist live; migration file contents inspected (`prisma/migrations/20260706000000_drop_watchlists/migration.sql`).
 - Recommendation: baseline production's migration history (`prisma migrate resolve
@@ -2128,12 +2128,12 @@ aggregateId } })`, treated as a universal step. Reading `stripe-webhook.service.
   wrong-target-environment mixup (L19-class check, value-blind hostname comparison only — no
   credentials ever displayed):** `operation-service`'s Railway `DATABASE_URL` host
   (`postgres.railway.internal`) matches the `Postgres` service's own internal `DATABASE_URL`;
-  its public-proxy equivalent (`DATABASE_PUBLIC_URL`, host `maglev.proxy.rlwy.net`) was queried
+  its public-proxy equivalent (`DATABASE_PUBLIC_URL`, host `<PROD_DB_HOST>`) was queried
   directly and shows 34 real tables (`Alert`, `AffiliateProfile`, `Commission`,
   `DisbursementTransaction`, ... — the same tables every prior cutover slice has proven live) but
   **zero** tables matching `%market_data%`. The monolith's own Vercel production `DATABASE_URL`
   (pulled via `vercel env pull`, read only by a script, never displayed) resolves to host
-  `maglev.proxy.rlwy.net` — the exact same instance.
+  `<PROD_DB_HOST>` — the exact same instance.
 - **Root cause identified precisely, not just "table missing":** the monolith's own migration
   `prisma/migrations/20260705000000_add_market_data_v6/migration.sql` (a real `CREATE TABLE
 market_data_v6 (...)` statement) exists in the codebase and IS recorded in production's
@@ -2930,7 +2930,7 @@ email?)` — fall back to `findUnique({where:{email}})` when the id lookup misse
   **this session's own local `.env.local` never had `MIGRATE_USER_PROFILE` or `MIGRATE_USER_2FA`
   set**, so every `/api/user/profile` and `/api/user/2fa/*` call in this session's own local
   testing silently fell through to the monolith's OWN native Prisma lookup (`lib/db/prisma.ts`,
-  reading `DATABASE_URL` — the STAGING database, `turntable.proxy.rlwy.net`, per `LESSONS-
+  reading `DATABASE_URL` — the STAGING database, `<STAGING_DB_HOST>`, per `LESSONS-
 LEARNED.md` L19's own precedent), never reaching operation-service at all — and the bridge-
   registered test users, created via `token-register` (which DOES go through operation-service,
   writing to the real production database), simply don't exist in that staging database. Both

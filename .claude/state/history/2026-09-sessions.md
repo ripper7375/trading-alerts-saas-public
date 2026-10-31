@@ -73,7 +73,7 @@ Back to [history index](./index.md).
 > 35.25 → 35.0 etc.), guarded by `__tests__/lib/fx/usd-rates-parity.test.ts`.
 > **Verified & Live:** `tsc` clean both; `test:ci` **250/250 · 3211/3211**; money-service **66/66 ·
 > 650/650**; mutation **11/11**. Vercel `REDIS_URL` set to Railway Redis public proxy
-> (`shuttle.proxy.rlwy.net:43928`). Live `/api/fx/rates` returns `"source": "live"`, and `fx:usd_rates`
+> (`<PROD_REDIS>`). Live `/api/fx/rates` returns `"source": "live"`, and `fx:usd_rates`
 > key verified populated in Railway Redis. Account: SystemConfig manifest §12.
 
 <!-- CLAUDE.md L53-L63 -->
@@ -1123,7 +1123,7 @@ mtf-stacked-charts.test.tsx}`, `lib/i18n/dictionaries/{en-US,en-GB}.json` (1 ide
 > up (same recurring gap); acceptable here since the migration is 8 nullable `ADD COLUMN`s
 > touching no existing row, cross-checked against `migrate diff`.
 > **⚠ Needs Davin, in this order:** apply the migration to production
-> (`maglev.proxy.rlwy.net:58290`, via `prisma.production.config.ts`; run `prisma migrate status`
+> (`<PROD_DB>`, via `prisma.production.config.ts`; run `prisma migrate status`
 > first) → merge/deploy railway-gateway → attach the `.ex5` to XAUUSD M5+M15 and widen the VPS
 > SQLite (either the script, or just restart the collector). **Decommission the predecessor
 > `SupportAndResistant_v2_29.mq5` first if attached anywhere** — it defaults to the same
@@ -2780,10 +2780,10 @@ outbox wedged`; removing `ParseArrayPipe`'s explicit `whitelist`/`forbidNonWhite
 > `prisma migrate diff --to-schema-datamodel` was **removed** in Prisma 7.9.1, renamed `--to-schema`.
 > **⚠ THREE OPERATOR STEPS COMPLETED & LIVE-VERIFIED IN PRODUCTION (2026-09-11):**
 > (1) **All 13 indicators + `EconomicCalendarExport_v2_29.mq5` compiled in MetaEditor** with 0 errors
-> on Windows Server 2022 x64 VPS (`149.28.148.144`). Attached to live charts and actively exporting
+> on Windows Server 2022 x64 VPS (`<MT5_VPS_IP>`). Attached to live charts and actively exporting
 > per-minute indicator timeseries and 15-minute `EconomicCalendar.txt` (~90 KB).
 > (2) **Migration `20260910120000_add_economic_events` applied** directly to production Railway
-> PostgreSQL (`maglev.proxy.rlwy.net:58290`).
+> PostgreSQL (`<PROD_DB>`).
 > (3) **VPS deployment complete**: `MT5Collector`, `MT5PushWorker`, and `MT5Renderer` services running
 > under NSSM; startup shortcut installed.
 > **Two runtime findings resolved:**
@@ -3888,7 +3888,7 @@ P2022 — The column User.profile does not exist in the current database`, throw
 > misnomer and `turntable` was really production) was **wrong and has been retracted**; see the
 > `Waiting on` section. Verified from the Railway dashboard: production's `railway-gateway` uses
 > `postgres.railway.internal` — the `trading-alerts` `Postgres` service, public proxy
-> `maglev.proxy.rlwy.net:58290` — while `.env.local` points at `turntable.proxy.rlwy.net:55082`, a
+> `<PROD_DB>` — while `.env.local` points at `<STAGING_DB>`, a
 > different database. One clarification to the wording below: `postgres.railway.internal` is not a
 > distinct instance from `maglev`; it is the same service's private address, which is simply
 > unresolvable from outside Railway.
@@ -4214,7 +4214,7 @@ geo-locale.ts`, `lib/i18n/locale-resolver.ts`, `operation-service/src/users/user
 > harm, its clean apply proves there were no NULL rows, since `SET NOT NULL` fails loudly
 > otherwise) and the unrelated `20260904120000_default_theme_light`.
 > **A false alarm I raised and then closed, worth recording because it is the third time this repo
-> has produced it:** the run resolved `DATABASE_URL` to `turntable.proxy.rlwy.net:55082`, which the
+> has produced it:** the run resolved `DATABASE_URL` to `<STAGING_DB>`, which the
 > 2026-09-01 entry above describes as a "postgre for staging" project — so I flagged that
 > production might be unmigrated. Davin corrected it directly ("'Postgre for staging' is not used.
 > This codebase always uses 'trading-alerts' project"), and checking rather than just accepting

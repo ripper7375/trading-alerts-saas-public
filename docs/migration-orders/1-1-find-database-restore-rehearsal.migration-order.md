@@ -144,13 +144,13 @@ mismatch, session paused pending Davin's check (not an entry-criterion failure, 
 mid-investigation finding):**
 
 - Source 1 (`.env.local` `DATABASE_URL`, host-only extraction): hostname
-  `turntable.proxy.rlwy.net`, port 55082, db `railway`.
+  `<STAGING_DB_HOST>`, port `<STAGING_DB_PORT>`, db `railway`.
 - Source 2 (Railway CLI, account has 5 projects: `trading-alerts`, `postgre for staging`,
   `zoological-motivation`, `feisty-amazement`, and one more workspace project not yet
   needed for this check): the production-sounding **`trading-alerts`** project's `Postgres`
-  service resolves to `maglev.proxy.rlwy.net` — does **not** match Source 1. The
+  service resolves to `<PROD_DB_HOST>` — does **not** match Source 1. The
   **`postgre for staging`** project's `Postgres` service resolves to
-  `turntable.proxy.rlwy.net` — **matches** Source 1. That same `postgre for staging`
+  `<STAGING_DB_HOST>` — **matches** Source 1. That same `postgre for staging`
   project also hosts a service literally named `trading-alerts-saas-public` (this exact
   repo, deployed from `ripper7375/trading-alerts-saas-public`), currently status
   **Failed**.
@@ -171,8 +171,8 @@ for staging`) points the opposite direction from the live `.env.local` value. Es
 `DATABASE_URL` (copied from Vercel production env vars); re-check surfaced a second,
 more serious finding — the target instance appears unreachable, session paused again:**
 
-- Source 1 re-checked: `.env.local` `DATABASE_URL` hostname now `maglev.proxy.rlwy.net`
-  (port 58290, db `railway`) — **matches** Source 2 (`trading-alerts` project's `Postgres`
+- Source 1 re-checked: `.env.local` `DATABASE_URL` hostname now `<PROD_DB_HOST>`
+  (port `<PROD_DB_PORT>`, db `railway`) — **matches** Source 2 (`trading-alerts` project's `Postgres`
   service `DATABASE_PUBLIC_URL`/`RAILWAY_TCP_PROXY_DOMAIN`). Two-source cross-check for
   the _hostname_ itself is satisfied.
 - However, `railway status` on the linked `trading-alerts` project shows the `Postgres`
@@ -205,7 +205,7 @@ redeployed the `Postgres` service (confirmed restart of the existing volume, not
 instance); reachability and F3/F18 resolution then completed as follows:**
 
 - **F3 resolved to (b)**: on Railway (`trading-alerts` project, `Postgres` service,
-  `maglev.proxy.rlwy.net`), but a _different_ instance than whatever `railway-gateway`
+  `<PROD_DB_HOST>`), but a _different_ instance than whatever `railway-gateway`
   writes `market_data_v6` to — confirmed by querying the live instance directly
   (`pg_database`/`information_schema.tables`): only 2 databases exist on this server
   (`postgres`, `railway`), neither containing any `market_data`-named table. Full entry:

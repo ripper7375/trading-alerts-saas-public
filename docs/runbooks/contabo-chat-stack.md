@@ -19,7 +19,7 @@ Browser (davintrade.app, Vercel) --wss--> Nginx :443 (TLS) --> 127.0.0.1:3001 so
                                                                   ai_bot_worker --> Gemini API
 ```
 
-Deployed at `/opt/saas-chat/` on Davin's Contabo VPS (`139.180.209.200`), from the as-code mirror at
+Deployed at `/opt/saas-chat/` on Davin's Contabo VPS (`<CHAT_VPS_IP>`), from the as-code mirror at
 `infra/contabo-chat-stack/` in this repo (source of truth — `/opt/saas-chat/` is a deployment of it,
 never hand-edited independently).
 

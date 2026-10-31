@@ -619,7 +619,7 @@ frontend/                   (From Step 2)
    ```bash
    # backend/.env
    # Timescale Cloud (PostgreSQL + TimescaleDB)
-   DATABASE_URL=postgresql://user:password@xxxxx.timescaledb.cloud:5432/dbname?sslmode=require
+   DATABASE_URL=postgresql://user:<PASSWORD>@xxxxx.timescaledb.cloud:5432/dbname?sslmode=require
 
    # Upstash Redis
    REDIS_URL=redis://:password@xxxxx.upstash.io:6379
@@ -1688,7 +1688,7 @@ backend/src/
    ```bash
    # backend/.env
    # Timescale Cloud (PostgreSQL + TimescaleDB)
-   DATABASE_URL=postgresql://user:password@xxxxx.timescaledb.cloud:5432/dbname?sslmode=require
+   DATABASE_URL=postgresql://user:<PASSWORD>@xxxxx.timescaledb.cloud:5432/dbname?sslmode=require
 
    # Upstash Redis
    REDIS_URL=redis://:password@xxxxx.upstash.io:6379
@@ -2784,7 +2784,7 @@ test.describe('Production Smoke Tests', () => {
 3. **Get Connection String**
 
    ```
-   postgresql://user:password@xxxxx.timescaledb.cloud:5432/dbname?sslmode=require
+   postgresql://user:<PASSWORD>@xxxxx.timescaledb.cloud:5432/dbname?sslmode=require
    ```
 
 4. **Enable TimescaleDB Extension**
@@ -2840,7 +2840,7 @@ test.describe('Production Smoke Tests', () => {
 
    ```bash
    # Required environment variables:
-   DATABASE_URL=postgresql://user:password@xxxxx.timescaledb.cloud:5432/dbname?sslmode=require
+   DATABASE_URL=postgresql://user:<PASSWORD>@xxxxx.timescaledb.cloud:5432/dbname?sslmode=require
    REDIS_URL=redis://:password@xxxxx.upstash.io:6379
    JWT_SECRET=your-production-secret
    STRIPE_SECRET_KEY=sk_live_...

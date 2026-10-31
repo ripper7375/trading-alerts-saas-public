@@ -566,7 +566,7 @@ Deploy your PostgreSQL database to Railway cloud **NOW** (Week 2, not Week 10!).
 **The URL looks like:**
 
 ```
-postgresql://postgres:PASSWORD@containers-us-west-XXX.railway.app:5432/railway
+postgresql://postgres:<PASSWORD>@containers-us-west-XXX.railway.app:5432/railway
 ```
 
 **IMPORTANT - Save this URL securely:**

@@ -2,7 +2,7 @@
 
 **Status:** **DEPLOYED & PRODUCTION-MIGRATED (2026-09-12)** — Database migration
 `20260912000000_add_currency_index_pro_tables` applied and confirmed live on Railway PostgreSQL
-(`maglev.proxy.rlwy.net:58290`). Full test suites passing (73 monolith tests + 67 gateway tests).
+(`<PROD_DB>`). Full test suites passing (73 monolith tests + 67 gateway tests).
 Committed and pushed to `origin/main`.
 **Updated 2026-09-14 (chart tidiness follow-ups, committed and pushed):** per-currency line
 show/hide on the main chart (§8) and HRMA/SMMA show/hide plus currency-hue lines in the detail
@@ -337,7 +337,7 @@ All 5 phases have been **committed across 6 structured commits and pushed to `or
 
 ### 5.2 Apply the database migration — APPLIED AND CONFIRMED LIVE (2026-09-12)
 
-`prisma/migrations/20260912000000_add_currency_index_pro_tables/migration.sql` has been **applied and confirmed live on Railway PostgreSQL (`maglev.proxy.rlwy.net:58290`)** via `npx prisma migrate deploy --config prisma.production.config.ts`.
+`prisma/migrations/20260912000000_add_currency_index_pro_tables/migration.sql` has been **applied and confirmed live on Railway PostgreSQL (`<PROD_DB>`)** via `npx prisma migrate deploy --config prisma.production.config.ts`.
 Status was verified with `npx prisma migrate status --config prisma.production.config.ts`, confirming `"Database schema is up to date!"`.
 All 4 new tables (`daily_currency_index_metrics`, `daily_volatility_corridors`, `currency_index_signals`, `user_currency_index_preferences`) and their unique indexes now exist live on production. The temporary `.env.production.local` credentials file was safely wiped immediately.
 

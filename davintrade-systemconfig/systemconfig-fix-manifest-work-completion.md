@@ -413,7 +413,7 @@ mirror `src/admin/admin-mrr.ts`. `pricePerUser` in `/api/admin/analytics` stays 
   (`trading-alerts-saas-frontend-denqisd10`) and **Railway** (`money-service` deployment `40b79199`).
 - **Vercel `REDIS_URL` configured:** `REDIS_URL` added to Vercel across Production, Preview, and
   Development, pointing to Railway's public Redis proxy
-  (`redis://default:...@shuttle.proxy.rlwy.net:43928`). Tested external ping: PONG.
+  (`redis://default:...@<PROD_REDIS>`). Tested external ping: PONG.
 - **Live Redis sharing verified:** Node test against Railway Redis confirmed `fx:usd_rates` exists
   with fresh live rate data (`FOUND: {"rates": ...}`). Both Vercel and Railway now share the same
   1-hour Redis cache.

@@ -318,8 +318,8 @@ Add Stack B specific variables to `.env.local`:
 
 ```bash
 # Stack B Infrastructure (Part 20)
-POSTGRESQL_URI=postgresql://user:password@railway.app:5432/database
-REDIS_URL=redis://default:password@railway.app:6379
+POSTGRESQL_URI=postgresql://user:<PASSWORD>@railway.app:5432/database
+REDIS_URL=redis://default:<PASSWORD>@railway.app:6379
 
 # Stack B API URL (if different from Stack A)
 NEXT_PUBLIC_STACK_B_API_URL=https://your-stack-b-domain.com

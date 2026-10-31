@@ -735,10 +735,10 @@ export class WsAuthGuard implements CanActivate {
 
 ```bash
 # Database
-DATABASE_URL=postgresql://user:password@timescale.cloud:5432/trading_db
+DATABASE_URL=postgresql://user:<PASSWORD>@timescale.cloud:5432/trading_db
 
 # Redis Cache
-REDIS_URL=redis://default:password@upstash.io:6379
+REDIS_URL=redis://default:<PASSWORD>@upstash.io:6379
 
 # MT5 Flask Service
 MT5_FLASK_WS_URL=ws://contabo-vps-ip:5000

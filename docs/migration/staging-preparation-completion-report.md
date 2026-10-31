@@ -16,7 +16,7 @@
 **PostgreSQL (Railway):**
 
 - Service: postgres for staging
-- Host: turntable.proxy.rlwy.net:55082
+- Host: `<STAGING_DB>`
 - Database: railway
 - Status: ✅ Online
 - Tables Created: 162 total
@@ -26,7 +26,7 @@
 **Redis (Railway):**
 
 - Service: Redis
-- Host: switchyard.proxy.rlwy.net:47725
+- Host: `<STAGING_REDIS>`
 - Status: ✅ Online
 
 **Verification:**
@@ -77,8 +77,8 @@ SELECT COUNT(*) FROM pg_tables WHERE schemaname='public';
 NODE_ENV=staging
 NEXTAUTH_SECRET=configured
 NEXTAUTH_URL=https://trading-alerts-saas-public-go8p.vercel.app
-POSTGRESQL_URI=postgresql://postgres:***@turntable.proxy.rlwy.net:55082/railway
-REDIS_URL=redis://default:***@switchyard.proxy.rlwy.net:47725
+POSTGRESQL_URI=postgresql://postgres:***@<STAGING_DB>/railway
+REDIS_URL=redis://default:***@<STAGING_REDIS>
 ```
 
 **Deployment Status:**
@@ -237,14 +237,14 @@ Result: HTML returned (app live) ✅
 
 **PostgreSQL:**
 
-- Connection: postgresql://postgres:<STAGING_POSTGRES_PASSWORD>@turntable.proxy.rlwy.net:55082/railway
+- Connection: `postgresql://postgres:<STAGING_POSTGRES_PASSWORD>@<STAGING_DB>/railway`
 - Status: Online
 - Tables: 162
 - Test Data: 16 rows across 3 symbols
 
 **Redis:**
 
-- Connection: redis://default:<STAGING_REDIS_PASSWORD>@switchyard.proxy.rlwy.net:47725
+- Connection: `redis://default:<STAGING_REDIS_PASSWORD>@<STAGING_REDIS>`
 - Status: Online
 
 ### Vercel Deployment:
@@ -331,8 +331,8 @@ According to the staging deployment roadmap:
 ### Connection Strings (Saved in PowerShell Session):
 
 ```powershell
-$env:POSTGRESQL_URI = "postgresql://postgres:<STAGING_POSTGRES_PASSWORD>@turntable.proxy.rlwy.net:55082/railway"
-$env:REDIS_URL = "redis://default:<STAGING_REDIS_PASSWORD>@switchyard.proxy.rlwy.net:47725"
+$env:POSTGRESQL_URI = "postgresql://postgres:<STAGING_POSTGRES_PASSWORD>@<STAGING_DB>/railway"
+$env:REDIS_URL = "redis://default:<STAGING_REDIS_PASSWORD>@<STAGING_REDIS>"
 $STAGING_URL = "https://trading-alerts-saas-public-go8p.vercel.app"
 ```
 

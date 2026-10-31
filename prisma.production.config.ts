@@ -105,9 +105,9 @@ if (/USER:PASSWORD@HOST:PORT/.test(directUrl)) {
 ` +
       `  Open ${ENV_FILE} and replace BOTH lines with the real connection string:
 ` +
-      `      DIRECT_URL="postgresql://...@maglev.proxy.rlwy.net:58290/railway"
+      `      DIRECT_URL="postgresql://...@<PROD_DB>/railway"
 ` +
-      `      DATABASE_URL="postgresql://...@maglev.proxy.rlwy.net:58290/railway"
+      `      DATABASE_URL="postgresql://...@<PROD_DB>/railway"
 ` +
       `  Get it from Railway -> trading-alerts -> Postgres -> Variables ->
 ` +

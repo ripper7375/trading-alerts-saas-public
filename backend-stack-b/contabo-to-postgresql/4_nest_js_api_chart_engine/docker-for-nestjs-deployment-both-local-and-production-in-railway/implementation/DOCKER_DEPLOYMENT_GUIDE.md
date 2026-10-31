@@ -273,10 +273,10 @@ railway link
 # .env.production - For RAILWAY DEPLOYMENT
 
 # Database (Railway PostgreSQL or Timescale Cloud)
-DATABASE_URL=postgresql://user:password@railway.app:5432/trading_db
+DATABASE_URL=postgresql://user:<PASSWORD>@railway.app:5432/trading_db
 
 # Redis (Upstash)
-REDIS_URL=redis://default:password@upstash.io:6379
+REDIS_URL=redis://default:<PASSWORD>@upstash.io:6379
 
 # MT5 Flask Service (Contabo VPS)
 MT5_FLASK_WS_URL=ws://your-contabo-ip:5000

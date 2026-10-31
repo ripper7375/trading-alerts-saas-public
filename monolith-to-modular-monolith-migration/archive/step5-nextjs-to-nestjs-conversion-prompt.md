@@ -872,10 +872,10 @@ restartPolicyMaxRetries = 3
 
 ```bash
 # Database (Timescale Cloud)
-DATABASE_URL=postgresql://user:password@host.tsdb.cloud.timescale.com:port/db?sslmode=require
+DATABASE_URL=postgresql://user:<PASSWORD>@host.tsdb.cloud.timescale.com:port/db?sslmode=require
 
 # Cache (Upstash Redis)
-REDIS_URL=rediss://default:password@endpoint.upstash.io:port
+REDIS_URL=rediss://default:<PASSWORD>@endpoint.upstash.io:port
 
 # Authentication
 JWT_SECRET=your-super-secret-jwt-key-min-32-chars

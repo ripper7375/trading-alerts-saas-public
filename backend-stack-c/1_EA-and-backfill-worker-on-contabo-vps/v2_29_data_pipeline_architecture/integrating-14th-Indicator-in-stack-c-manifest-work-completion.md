@@ -3,7 +3,7 @@
 **Status:** **STEPS 1, 2, AND 3 COMPLETED AND DEPLOYED LIVE; STEPS 4 & 5 REMAINING FOR VPS.**
 
 - **Step 1 (Git Commits):** 5 structured commits executed cleanly and pushed to `main`.
-- **Step 2 (Postgres Migration):** `20260916000000_add_market_data_v6_sr_levels` applied cleanly to Railway production Postgres (`maglev.proxy.rlwy.net:58290`). Columns `sr_1..sr_8` are now live on `market_data_v6`.
+- **Step 2 (Postgres Migration):** `20260916000000_add_market_data_v6_sr_levels` applied cleanly to Railway production Postgres (`<PROD_DB>`). Columns `sr_1..sr_8` are now live on `market_data_v6`.
 - **Step 3 (Railway Gateway Deploy):** Auto-deployed to Railway (`bae5908b-ee0c-4216-a43e-9733f54005a8`), status `SUCCESS` / `Online`, health checks passing (`GET /api/v1/health` 200 OK).
 - **Remaining:** VPS rollout (Step 4: SQLite widening + worker restart; Step 5: attach `SupportAndResistantAutoCalibration_v2_29.mq5` to MT5 charts).
   **Type:** Ad-hoc session (Davin-requested directly in chat) — outside the phase/session
@@ -289,7 +289,7 @@ assumed.
 
 1. **Step 2 — Postgres Migration: COMPLETED & LIVE (2026-09-16 12:49:34 +07:00)**
    Applied before Railway Gateway deployed, preventing any 400 rejection quarantine on the VPS worker.
-   Columns `sr_1..sr_8` are live on `market_data_v6` in production (`maglev.proxy.rlwy.net:58290`).
+   Columns `sr_1..sr_8` are live on `market_data_v6` in production (`<PROD_DB>`).
 2. **Step 3 — Railway Gateway Deploy: COMPLETED & ONLINE (2026-09-16 12:54:28 +07:00)**
    Triggered via `git push origin main`. Pre-push hook verified all 2,850 tests green.
    Railway built Docker image (`nest build`), deployment `bae5908b-ee0c-4216-a43e-9733f54005a8` reached `SUCCESS` / `Online`. Verified live via `/api/v1/health` (200 OK, database latency 33ms).
@@ -303,7 +303,7 @@ assumed.
 ### 6.1 Apply the migration to production — **COMPLETED (2026-09-16 12:49:34 +07:00)**
 
 Applied `prisma/migrations/20260916000000_add_market_data_v6_sr_levels/` against
-`maglev.proxy.rlwy.net:58290` via `prisma.production.config.ts`.
+`<PROD_DB>` via `prisma.production.config.ts`.
 
 - `prisma migrate status` verified all 23 prior migrations were already applied and only this one was pending.
 - `prisma migrate deploy` applied `20260916000000_add_market_data_v6_sr_levels` cleanly.

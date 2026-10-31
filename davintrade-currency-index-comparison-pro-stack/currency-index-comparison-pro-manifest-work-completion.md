@@ -20,7 +20,7 @@ their follow-ups:
 
 Round 4 and the follow-ups are browser-side only (no schema, API or VPS change), so they ship with the monolith deploy.
 **Migration `20260913120000_add_currency_gold_index_ohlc` is APPLIED and VERIFIED** on production
-Postgres (`maglev.proxy.rlwy.net:58290`), and `railway-gateway` is deployed and in sync. **The one
+Postgres (`<PROD_DB>`), and `railway-gateway` is deployed and in sync. **The one
 remaining blocker is the VPS engine** (§5 step 3): until it pushes bars, the page shows "No data
 available yet." Current open items: §10.7.
 
@@ -192,7 +192,7 @@ the screenshot, with the requested copy.
 | Monolith `npm run test:ci`                                                                                                  | **203/203 suites, 2705/2705 tests** — the Free page's 198/2657 baseline plus exactly this session's 5 suites / 48 tests, zero regressions                                                                                                                                               |
 | Live, real `next dev`                                                                                                       | Upgrade card placement matches the screenshot; signed-out click → `/login?callbackUrl=…`; direct signed-out visit to the PRO page → `/login`; the real API → **401** for an anonymous caller                                                                                            |
 | Live, PRO workspace (throwaway unauthenticated preview route, synthetic candles via a page-local `fetch` stub; **deleted**) | Line / OHLC / Heiken Ashi each render correctly; HRMA/SMMA values identical across plot types; per-line hide works; rebase separates both indices; Index B swap and None both work; the drawn horizontal line survives plot-type and index switches; light and dark themes both correct |
-| Production DB migration: `20260913120000_add_currency_gold_index_ohlc`                                                      | **Applied cleanly** via `prisma.production.config.ts` to `maglev.proxy.rlwy.net:58290`. Status: `"Database schema is up to date!"`. `.env.production.local` wiped.                                                                                                                      |
+| Production DB migration: `20260913120000_add_currency_gold_index_ohlc`                                                      | **Applied cleanly** via `prisma.production.config.ts` to `<PROD_DB>`. Status: `"Database schema is up to date!"`. `.env.production.local` wiped.                                                                                                                                        |
 | Production Railway Gateway (`POST /api/v1/currency-gold-indices`)                                                           | **Live & healthy**, returns `401 {"message":"Missing authorization header"}` (ApiKeyGuard verified active). Schema in sync.                                                                                                                                                             |
 | Production Monolith (`GET /pro/currency-index/compare`)                                                                     | **Live & healthy**, unauthenticated returns `307` redirecting to `/login?callbackUrl=%2Fpro%2Fcurrency-index%2Fcompare`.                                                                                                                                                                |
 | Production Monolith (`GET /api/market/currency-index-pro/comparison`)                                                       | **Live & healthy**, unauthenticated returns `401 {"error":"Unauthorized"}`.                                                                                                                                                                                                             |
@@ -211,13 +211,13 @@ the VPS engine isn't redeployed yet.
 > **✔ `railway-gateway` is DEPLOYED and migration `20260913120000_add_currency_gold_index_ohlc` is APPLIED.**
 >
 > - Migration `20260913120000_add_currency_gold_index_ohlc` was applied to the live production database
->   (`maglev.proxy.rlwy.net:58290`) via `npx prisma migrate deploy --config prisma.production.config.ts`.
+>   (`<PROD_DB>`) via `npx prisma migrate deploy --config prisma.production.config.ts`.
 > - Status verified with `prisma migrate status`: "Database schema is up to date!".
 > - Production PostgreSQL `currency_gold_indices` table now has `open`, `high`, and `low` columns.
 > - The gateway processor's upsert queries will now safely execute once the VPS engine begins pushing.
 
 1. ~~**Apply the migration:** `20260913120000_add_currency_gold_index_ohlc`~~ **APPLIED AND CONFIRMED LIVE (2026-09-13).**
-   - Applied via `npx prisma migrate deploy --config prisma.production.config.ts` to `maglev.proxy.rlwy.net:58290`.
+   - Applied via `npx prisma migrate deploy --config prisma.production.config.ts` to `<PROD_DB>`.
    - Verified up to date via `prisma migrate status`.
    - Production PostgreSQL `currency_gold_indices` table now has `open`, `high`, and `low` columns.
    - Temporary `.env.production.local` deleted immediately.
@@ -353,7 +353,7 @@ Davin requested execution of Section 5 ("ช่วยจัดการตาม
 ### 9.1 Database Migration Execution
 
 1. **Pre-flight status check:**
-   - Ran `npx prisma migrate status --config prisma.production.config.ts` targeting production Railway PostgreSQL (`maglev.proxy.rlwy.net:58290`).
+   - Ran `npx prisma migrate status --config prisma.production.config.ts` targeting production Railway PostgreSQL (`<PROD_DB>`).
    - Confirmed that exactly one migration was unapplied: `20260913120000_add_currency_gold_index_ohlc`.
 2. **Migration application:**
    - Ran `npx prisma migrate deploy --config prisma.production.config.ts`.

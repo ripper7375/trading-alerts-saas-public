@@ -399,11 +399,11 @@ icacls "C:\Logs" /grant "Everyone:(OI)(CI)F"
 
 The VPS needs to connect to:
 
-| Destination        | Port     | Protocol | Purpose            |
-| ------------------ | -------- | -------- | ------------------ |
-| Railway PostgreSQL | 55082    | TCP      | Database sync      |
-| Railway Redis      | 47725    | TCP      | Caching (optional) |
-| MT5 Broker Server  | 443/1950 | TCP      | MT5 data feed      |
+| Destination        | Port                   | Protocol | Purpose            |
+| ------------------ | ---------------------- | -------- | ------------------ |
+| Railway PostgreSQL | `<STAGING_DB_PORT>`    | TCP      | Database sync      |
+| Railway Redis      | `<STAGING_REDIS_PORT>` | TCP      | Caching (optional) |
+| MT5 Broker Server  | 443/1950               | TCP      | MT5 data feed      |
 
 ### Configure Windows Firewall
 
@@ -430,10 +430,10 @@ Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*Outbound*"}
 
 ```powershell
 # Test PostgreSQL connectivity
-Test-NetConnection -ComputerName turntable.proxy.rlwy.net -Port 55082
+Test-NetConnection -ComputerName <STAGING_DB_HOST> -Port <STAGING_DB_PORT>
 
 # Test Redis connectivity
-Test-NetConnection -ComputerName switchyard.proxy.rlwy.net -Port 47725
+Test-NetConnection -ComputerName <STAGING_REDIS_HOST> -Port <STAGING_REDIS_PORT>
 
 # Expected output:
 # TcpTestSucceeded : True
@@ -544,9 +544,9 @@ $scriptsPath = "$pythonPath\Scripts"
 **Solutions:**
 
 1. Verify Railway service is running
-2. Check firewall allows outbound on port 55082:
+2. Check firewall allows outbound on port `<STAGING_DB_PORT>`:
    ```powershell
-   Test-NetConnection -ComputerName turntable.proxy.rlwy.net -Port 55082
+   Test-NetConnection -ComputerName <STAGING_DB_HOST> -Port <STAGING_DB_PORT>
    ```
 3. Verify connection string is correct
 4. Check Railway for IP allowlist settings

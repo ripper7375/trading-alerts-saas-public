@@ -17,8 +17,8 @@ Read before any schema change, migration, or query against a real database.
 ## Which database is which (settled 2026-09-09)
 
 - **Production:** Postgres in the Railway project **`trading-alerts`**. Public proxy
-  `maglev.proxy.rlwy.net:58290`, private address `postgres.railway.internal`.
-- **`.env` / `.env.local` point at a staging clone**, `turntable.proxy.rlwy.net:55082`, in a Railway
+  `<PROD_DB>`, private address `postgres.railway.internal`.
+- **`.env` / `.env.local` point at a staging clone**, `<STAGING_DB>`, in a Railway
   project named "postgre for staging". It is the local dev DB and the migration rehearsal target.
   Do not delete it.
 - `maglev`/`turntable` are **shared** Railway proxy hostnames; the **port** identifies the service.

@@ -143,7 +143,7 @@ INFRA · **Generated:** 2026-07-19 · **Flags touched:** none new.
       pooler with `pgbouncer=true`: a positive read (`count()`) and a write wrapped in
       `$transaction` + forced rollback both succeeded for each role.
 - [x] `prisma migrate status` confirmed still resolving via `DIRECT_URL`. **DONE** —
-      connects cleanly via `DIRECT_URL` (`maglev.proxy.rlwy.net:58290`); reports the
+      connects cleanly via `DIRECT_URL` (`<PROD_DB>`); reports the
       same 6 unapplied migrations as Session 1-3 found (F20, still open, unchanged —
       not this session's to fix; `migrate deploy` was not run).
 - [x] Live app's `DATABASE_URL` explicitly confirmed untouched throughout. **DONE** — no
@@ -200,7 +200,7 @@ pgbouncer` and a `USER pgbouncer` directive in the Dockerfile, with `/etc/pgboun
   to Railway.
 - **`railway domain` cannot create a TCP proxy — only HTTP(S) domains.** Davin
   authorized creating a public TCP proxy for `pgbouncer` (mirroring Postgres's own
-  `maglev.proxy.rlwy.net:58290`) to run Ordered steps 2–3 from outside Railway's private
+  `<PROD_DB>`) to run Ordered steps 2–3 from outside Railway's private
   network. The safety classifier initially denied the attempt; once Davin explicitly
   re-authorized it, `railway domain --service pgbouncer --port 6432` succeeded but
   produced `https://pgbouncer-production-addb.up.railway.app` — Railway's HTTP edge

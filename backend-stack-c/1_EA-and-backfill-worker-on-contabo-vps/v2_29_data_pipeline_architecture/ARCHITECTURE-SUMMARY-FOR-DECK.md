@@ -401,10 +401,10 @@ instead of needing the capture-a-week-apart experiment.
 | 7   | Decide Decision Layer direction: revive the calc stack for `param_search`, or redesign around admin-fixed values. `fitness_scorer` is no longer blocked either way (§9)                                                              | Davin | No                                                          |
 
 > ⚠ **A second deployment trap: `.env.local` points at the wrong database.** The 2026-09-09
-> `prisma migrate deploy` succeeded — against `turntable.proxy.rlwy.net:55082`, which is **not**
+> `prisma migrate deploy` succeeded — against `<STAGING_DB>`, which is **not**
 > production. Verified from the Railway dashboard: production's `railway-gateway` connects to
 > `postgres.railway.internal` (the `trading-alerts` `Postgres` service, public proxy
-> `maglev.proxy.rlwy.net:58290`). So the new tables do not exist where the gateway writes, and it
+> `<PROD_DB>`). So the new tables do not exist where the gateway writes, and it
 > will reject every statistics POST until the migration is re-run against production.
 > Two notes for whoever does that: `postgres.railway.internal` does not resolve outside Railway, so
 > use the service's `DATABASE_PUBLIC_URL`; and run the NULL pre-flight before the provenance

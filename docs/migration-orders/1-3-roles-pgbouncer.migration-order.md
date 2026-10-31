@@ -12,7 +12,7 @@
 ## Context carried over from Session 1-1 & 1-2b investigation
 
 - **F3 finding** (`DECISION-LOG.md`): the monolith's live Postgres is the `trading-alerts`
-  Railway project's `Postgres` service (`maglev.proxy.rlwy.net`). Confirmed via direct
+  Railway project's `Postgres` service (`<PROD_DB_HOST>`). Confirmed via direct
   query that **this instance does NOT contain `market_data_v6`**.
 - **Crucial Discovery (The 1-2b investigation):** The `market_data_v6` database and the `railway-gateway` backend were architected but **never deployed to production**. Therefore, `market_data_v6` does not exist in _any_ database yet, and `railway-gateway` is not running.
 - **Option A Decision:** Because the gateway does not exist, we are executing **Option A**. This session proceeds with setting up roles and PgBouncer for the existing monolith (`maglev`) only. We explicitly **drop** the `gateway_ingest` role from this session's scope. Consolidation of `market_data_v6` will be handled in a future phase if and when the gateway is built.
@@ -48,7 +48,7 @@
 - [x] Blast-radius statement: role creation and grant changes are additive and reversible
       (`DROP ROLE`/`REVOKE`); the real risk is PgBouncer misconfiguration breaking the
       live monolith's DB connectivity. **Staging verification is NOT possible** — `railway
-  environment list --json` on `trading-alerts` confirms only one environment
+environment list --json` on `trading-alerts` confirms only one environment
       (`production`) exists; Session 0-6 (which would create a staging shell) has not
       run. **Davin explicitly waived the staging gate for this session in chat
       (2026-07-19)** — see Deviations.

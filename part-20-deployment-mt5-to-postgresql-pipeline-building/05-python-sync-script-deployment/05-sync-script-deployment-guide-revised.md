@@ -1498,10 +1498,10 @@ MT5_TERMINAL_ID=$terminalId
 # Actual path: C:\Users\Administrator\AppData\Roaming\MetaQuotes\Terminal\{TERMINAL_ID}\MQL5\Files\trading_data.db
 
 # Railway PostgreSQL connection string
-POSTGRESQL_URI=postgresql://postgres:YOUR_PASSWORD@turntable.proxy.rlwy.net:55082/railway
+POSTGRESQL_URI=postgresql://postgres:<PASSWORD>@<STAGING_DB>/railway
 
 # Railway Redis connection string (required for real-time data)
-REDIS_URL=redis://default:YOUR_PASSWORD@switchyard.proxy.rlwy.net:47725
+REDIS_URL=redis://default:<PASSWORD>@<STAGING_REDIS>
 
 # Redis Real-Time Configuration
 ENABLE_REDIS_SYNC=true  # Set to false to disable Redis sync
@@ -1656,7 +1656,7 @@ SQLite to PostgreSQL Sync Script - Part 20
 # choco install postgresql
 
 # Query a table
-$env:POSTGRESQL_URI = "postgresql://postgres:PASSWORD@turntable.proxy.rlwy.net:55082/railway"
+$env:POSTGRESQL_URI = "postgresql://postgres:<PASSWORD>@<STAGING_DB>/railway"
 
 psql $env:POSTGRESQL_URI -c "SELECT COUNT(*) FROM eurusd_h1;"
 psql $env:POSTGRESQL_URI -c "SELECT timestamp, close FROM eurusd_h1 ORDER BY timestamp DESC LIMIT 5;"
@@ -2161,7 +2161,7 @@ psycopg2.OperationalError: connection refused
 3. Test network connectivity:
 
 ```powershell
-   Test-NetConnection -ComputerName turntable.proxy.rlwy.net -Port 55082
+   Test-NetConnection -ComputerName <STAGING_DB_HOST> -Port <STAGING_DB_PORT>
 ```
 
 ### Issue 3: SQLite Database Locked
@@ -2264,9 +2264,9 @@ redis-cli -u $env:REDIS_URL ping
 
 ```powershell
 # Extract host and port from REDIS_URL
-# Format: redis://default:PASSWORD@switchyard.proxy.rlwy.net:47725
+# Format: redis://default:<PASSWORD>@<STAGING_REDIS>
 
-Test-NetConnection -ComputerName switchyard.proxy.rlwy.net -Port 47725
+Test-NetConnection -ComputerName <STAGING_REDIS_HOST> -Port <STAGING_REDIS_PORT>
 ```
 
 4. **Disable Redis sync temporarily:**

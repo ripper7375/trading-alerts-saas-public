@@ -1315,12 +1315,12 @@ LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
     there (`20260903000000_split_best_fit_variant`,
     `20260904120000_default_theme_light`,
     `20260909000000_market_data_v6_provenance_not_null`).
-    **Production is `maglev.proxy.rlwy.net:58290`** — the `trading-alerts`
+    **Production is `<PROD_DB>`** — the `trading-alerts`
     project's `Postgres` service, which `railway-gateway` reaches privately at
     `postgres.railway.internal`. Confirmed from the Railway dashboard and by the
     data itself (39 app tables, 7 months of real activity, the `User.profile`
     column from the 2026-09-01 OAuth fix). The `.env.local` database
-    (`turntable...:55082`) is a **staging clone** — full app schema, `market_data_v6`
+    (`<STAGING_DB>`) is a **staging clone** — full app schema, `market_data_v6`
     present but empty. Apply migrations with `prisma.production.config.ts`, which
     refuses to run against it.
     **A prerequisite had to be handled first:** production had **never** had
@@ -1462,7 +1462,7 @@ LIMIT 1` keeps evaluating a frozen bar. It looks like a quiet market.
     look-ahead-bias gap for the 69 drifting columns from the moment it is live.
     **ORDER IS LOAD-BEARING:**
     1. Apply `prisma/migrations/20260920000000_add_market_data_point_in_time/`
-       to production (`maglev.proxy.rlwy.net:58290`). Run `prisma migrate status`
+       to production (`<PROD_DB>`). Run `prisma migrate status`
        first — `migrate deploy` applies **every** pending migration in history
        order, not just the intended one. A single additive `CREATE TABLE`;
        verified byte-identical to `prisma migrate diff`'s own output.

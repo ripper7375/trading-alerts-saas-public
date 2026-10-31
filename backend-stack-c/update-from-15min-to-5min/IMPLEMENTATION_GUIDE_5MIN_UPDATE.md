@@ -1331,10 +1331,10 @@ PORT=3000
 MT5_API_KEY=your-secure-api-key-here
 
 # Redis (BullMQ)
-REDIS_URL=redis://default:password@redis.railway.internal:6379
+REDIS_URL=redis://default:<PASSWORD>@redis.railway.internal:6379
 
 # PostgreSQL
-DATABASE_URL=postgresql://user:password@postgres.railway.internal:5432/dbname
+DATABASE_URL=postgresql://user:<PASSWORD>@postgres.railway.internal:5432/dbname
 DB_POOL_SIZE=20
 DB_POOL_MIN=2
 

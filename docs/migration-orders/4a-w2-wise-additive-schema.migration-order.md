@@ -256,8 +256,8 @@ prisma/non-market-data/schema.prisma --script` instead — a pure datamodel-to-d
   `migrate deploy` against `DIRECT_URL` (per `prisma.config.ts`, the correct target for all
   CLI/migration operations), then re-verified via `DATABASE_URL` and found zero new tables —
   looked like the migration had silently failed. Compared connection hosts (redacted, no
-  credentials ever printed): `DATABASE_URL` = `turntable.proxy.rlwy.net:55082`, `DIRECT_URL` =
-  `maglev.proxy.rlwy.net:58290` — genuinely different databases (different `User`/`Subscription`
+  credentials ever printed): `DATABASE_URL` = `<STAGING_DB>`, `DIRECT_URL` =
+  `<PROD_DB>` — genuinely different databases (different `User`/`Subscription`
   row counts), not two proxy fronts to one instance. Stopped and asked Davin rather than
   guessing which was real production; confirmed live: `maglev`/`DIRECT_URL` is production,
   `turntable`/`DATABASE_URL` is this checkout's staging target. The migration had in fact landed

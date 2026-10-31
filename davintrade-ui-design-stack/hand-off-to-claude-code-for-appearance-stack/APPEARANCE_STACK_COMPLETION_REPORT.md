@@ -148,10 +148,10 @@ While verifying DB persistence live, `prisma db push` reported success but
 the running app still couldn't see the new table. Investigated with a raw
 `pg` client querying both connection strings directly:
 
-- `DATABASE_URL` (`turntable.proxy.rlwy.net:55082`, what
+- `DATABASE_URL` (`<STAGING_DB>`, what
   `lib/db/prisma.ts` actually uses at runtime) → `inet_server_addr()` =
   `10.145.101.225`
-- `DIRECT_URL` (`maglev.proxy.rlwy.net:58290`, what `prisma.config.ts`
+- `DIRECT_URL` (`<PROD_DB>`, what `prisma.config.ts`
   points CLI operations at — `db push`/`migrate`/`studio`) →
   `inet_server_addr()` = `10.233.164.81`
 
@@ -162,7 +162,7 @@ at the `maglev` host, separately from `DATABASE_URL`.
 
 This matches a documented near-miss in
 `docs/migration-orders/LESSONS-ARCHIVE.md` (~line 677: a `prisma db push`
-intended for local Docker instead silently hit `maglev.proxy.rlwy.net` "the
+intended for local Docker instead silently hit `<PROD_DB_HOST>` "the
 live PRODUCTION host") — so this split is a known-fragile area, not
 something new.
 
@@ -170,11 +170,11 @@ something new.
 infrastructure). Per their explicit instruction:
 
 1. Updated `DIRECT_URL` in `.env.local` to the same value as `DATABASE_URL`
-   (`turntable.proxy.rlwy.net:55082`) — `.env.local` is gitignored, so this
+   (`<STAGING_DB>`) — `.env.local` is gitignored, so this
    change is **local to this machine only**, not committed.
 2. Re-ran `prisma db push --schema=prisma/non-market-data/schema.prisma`,
    confirmed via its own log line the datasource now resolves to
-   `turntable.proxy.rlwy.net:55082`.
+   `<STAGING_DB>`.
 3. Verified with a direct query that `UserAppearance` now exists on the
    `turntable` server.
 4. Left the first, mistaken `UserAppearance` table on the `maglev` server
@@ -260,10 +260,10 @@ deployed env vars from here.
 
 **Database:**
 
-- `UserAppearance` table created on `turntable.proxy.rlwy.net:55082`
+- `UserAppearance` table created on `<STAGING_DB>`
   (the database the live app actually reads/writes).
 - A stray `UserAppearance` table also exists on
-  `maglev.proxy.rlwy.net:58290` from the first, mistaken push — left in
+  `<PROD_DB>` from the first, mistaken push — left in
   place, unused, harmless.
 
 ---

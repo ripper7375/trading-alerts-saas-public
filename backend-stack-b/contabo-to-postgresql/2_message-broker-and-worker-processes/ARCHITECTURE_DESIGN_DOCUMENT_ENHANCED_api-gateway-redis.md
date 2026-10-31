@@ -2875,7 +2875,7 @@ REDIS_PORT=6379
 REDIS_PASSWORD=generated_by_railway
 
 # PostgreSQL Connection
-DATABASE_URL=postgresql://postgres:password@postgres.railway.internal:5432/trading_alerts
+DATABASE_URL=postgresql://postgres:<PASSWORD>@postgres.railway.internal:5432/trading_alerts
 
 # Authentication
 API_KEYS=mt5_terminal_001_abc...,mt5_terminal_002_def...,mt5_terminal_003_ghi...
@@ -2906,7 +2906,7 @@ REDIS_PORT=6379
 REDIS_PASSWORD=generated_by_railway
 
 # PostgreSQL Connection (same as API Gateway)
-DATABASE_URL=postgresql://postgres:password@postgres.railway.internal:5432/trading_alerts
+DATABASE_URL=postgresql://postgres:<PASSWORD>@postgres.railway.internal:5432/trading_alerts
 
 # Worker Config
 WORKER_CONCURRENCY=5

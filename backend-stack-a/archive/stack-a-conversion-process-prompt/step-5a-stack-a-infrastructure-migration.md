@@ -169,7 +169,7 @@ postgresql://tsdbadmin:[password]@[service-id].tsdb.cloud.timescale.com:5432/tsd
 
 ```bash
 # Get Railway database URL from Railway dashboard
-export RAILWAY_DATABASE_URL="postgresql://postgres:password@containers-us-west-123.railway.app:5432/railway"
+export RAILWAY_DATABASE_URL="postgresql://postgres:<PASSWORD>@containers-us-west-123.railway.app:5432/railway"
 
 # Create backup directory
 mkdir -p backups
@@ -492,7 +492,7 @@ EOF
 # - Development
 
 # Old value (Railway):
-# postgresql://postgres:password@containers-us-west-123.railway.app:5432/railway
+# postgresql://postgres:<PASSWORD>@containers-us-west-123.railway.app:5432/railway
 
 # New value (Timescale Cloud):
 # postgresql://tsdbadmin:[password]@[service-id].tsdb.cloud.timescale.com:5432/tsdb?sslmode=require
@@ -757,7 +757,7 @@ REDIS_URL="rediss://default:[password]@[id].upstash.io:6380" node test_upstash.j
 # - Development
 
 # Old value (Railway):
-# redis://default:password@redis.railway.internal:6379
+# redis://default:<PASSWORD>@redis.railway.internal:6379
 
 # New value (Upstash):
 # rediss://default:[password]@[id].upstash.io:6380
@@ -1117,7 +1117,7 @@ EOF
 ```bash
 # 1. Update Vercel environment variables
 # Change DATABASE_URL back to Railway:
-# postgresql://postgres:password@containers-us-west-123.railway.app:5432/railway
+# postgresql://postgres:<PASSWORD>@containers-us-west-123.railway.app:5432/railway
 
 # 2. Redeploy Next.js
 vercel --prod
@@ -1133,7 +1133,7 @@ psql $RAILWAY_DATABASE_URL -c "SELECT COUNT(*) FROM \"User\";"
 ```bash
 # 1. Update Vercel environment variables
 # Change REDIS_URL back to Railway:
-# redis://default:password@redis.railway.internal:6379
+# redis://default:<PASSWORD>@redis.railway.internal:6379
 
 # 2. Revert code changes (if any)
 git revert [commit-hash]

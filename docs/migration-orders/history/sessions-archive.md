@@ -9,7 +9,7 @@ preserves the inline summaries that were originally written into `CLAUDE.md`'s s
 
 - _(superseded-by-above, retained for context)_ **Session 14-1** (Container Stack Build & Deploy, Phase 14 — second of 4 sessions,
   INFRA), APPROVED, CONFIRMED, executed, **CLOSED SUCCESSFUL** 2026-08-30. Builds and deploys the
-  3-container chat stack frozen at Session 14-0 onto Davin's Contabo VPS (`139.180.209.200`,
+  3-container chat stack frozen at Session 14-0 onto Davin's Contabo VPS (`<CHAT_VPS_IP>`,
   `chat-api.davintrade.app`) — the first Docker/Docker-Compose deployment and first BullMQ-based
   service in this migration. Session 14-2 can now wire the frontend against a live, working backend.
   **CONFIRM found the same L3 status-integrity pattern as nearly every recent session, again with no
@@ -3700,7 +3700,7 @@ generate` only — the columns already exist in the live `market_data_v6` table,
   (2) ruled out a wrong-target-environment mixup via value-blind hostname comparison (L19 method,
   no credentials ever displayed) — `operation-service`'s Railway `DATABASE_URL`
   (`postgres.railway.internal`) and the monolith's Vercel `DATABASE_URL`
-  (`maglev.proxy.rlwy.net`) are the exact same physical Postgres instance, confirmed by querying it
+  (`<PROD_DB_HOST>`) are the exact same physical Postgres instance, confirmed by querying it
   directly and finding 34 real tables (`Alert`, `AffiliateProfile`, `Commission`, etc. — the same
   tables every prior cutover has proven live) but zero matching `market_data`; (3) found the exact
   mechanism via a direct `_prisma_migrations` query: `20260705000000_add_market_data_v6` (a real
@@ -5555,7 +5555,7 @@ targetCurrency=GBP` → real `200`, 3 groups from Wise sandbox. **Full recipient
   `prisma/migrations/20260726000000_wise_disbursement_additive/migration.sql`.
   **DATABASE_URL vs DIRECT_URL confusion:** post-verification querying via `DATABASE_URL`
   (matching `lib/db/prisma.ts`'s runtime pattern) showed the new tables didn't exist — traced to
-  `DATABASE_URL` (`turntable.proxy.rlwy.net`) and `DIRECT_URL` (`maglev.proxy.rlwy.net`) being
+  `DATABASE_URL` (`<STAGING_DB_HOST>`) and `DIRECT_URL` (`<PROD_DB_HOST>`) being
   genuinely different databases (different `User`/`Subscription` counts), not two proxy fronts
   to one instance. Stopped and asked Davin rather than guessing; confirmed live:
   `maglev`/`DIRECT_URL` is real production, `turntable`/`DATABASE_URL` is this checkout's
@@ -6634,7 +6634,7 @@ logs` for money-service on the next real dLocal payment (expect no errors, corre
   4B-12's own cutover retry.
  `market_data_v6` does not exist in production — confirmed via a direct query
   (`to_regclass('public.market_data_v6')`returns null; 34 real tables present, none matching
- `market_data`) against the exact same Postgres instance the monolith's own Vercel `DATABASE_URL`  points to (value-blind host comparison, L19 method: both resolve to`maglev.proxy.rlwy.net`/
+ `market_data`) against the exact same Postgres instance the monolith's own Vercel `DATABASE_URL`  points to (value-blind host comparison, L19 method: both resolve to`<PROD_DB_HOST>`/
   `postgres.railway.internal`). Root cause identified precisely via `\_prisma_migrations`: the real
   `20260705000000_add_market_data_v6` migration (`CREATE TABLE`, still in the repo) is recorded
   `finished_at`during Session 2-3's migration-history baseline with`applied_steps_count: 0`— the

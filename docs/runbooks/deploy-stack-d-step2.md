@@ -72,7 +72,7 @@ needs them.
 ### 1.3 Which database is the gateway's
 
 The gateway's `DATABASE_URL` is the production Postgres in `trading-alerts`. Your local `.env` and
-`.env.local` point at a **staging clone** (`turntable.proxy.rlwy.net:55082`). Run every Prisma command
+`.env.local` point at a **staging clone** (`<STAGING_DB>`). Run every Prisma command
 below that touches a database with `prisma.production.config.ts`, never with the default config: a plain
 `prisma migrate deploy` against the default one succeeds, prints "All migrations have been successfully
 applied" and touches nothing production reads (it has misled three sessions). The production config

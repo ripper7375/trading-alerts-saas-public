@@ -4,7 +4,7 @@
 **Status:** Phases 1–4 code complete, verified, committed, and pushed to `origin/main`. Both
 `railway-gateway` and the monolith auto-deployed from that push and are confirmed live in
 production (§5.1). The PostgreSQL database migration `20260911120000_add_currency_gold_indices`
-has been successfully applied to the live production database (`maglev.proxy.rlwy.net:58290`) and
+has been successfully applied to the live production database (`<PROD_DB>`) and
 verified up to date. Only the 2 physical MT5/VPS items remain: attaching the exporter to 8 charts
 and registering the engine as a VPS service. See §5. **2026-09-13: the XAUX (Gold Index) formula
 Phase 1 originally shipped was corrected — see §1.5. Not yet committed; pending Davin's review.**
@@ -338,7 +338,7 @@ items remain.**
       yet, not because of any missing deploy step.
 - [x] **Apply the Postgres migration** — **APPLIED AND CONFIRMED LIVE (2026-09-11).**
       Applied migration `20260911120000_add_currency_gold_indices` to the production Railway Postgres
-      database (`maglev.proxy.rlwy.net:58290`) via `npx prisma migrate deploy --config prisma.production.config.ts`.
+      database (`<PROD_DB>`) via `npx prisma migrate deploy --config prisma.production.config.ts`.
       Status was verified with `npx prisma migrate status --config prisma.production.config.ts`,
       confirming `"Database schema is up to date!"`. Table `currency_gold_indices` and its unique/descending
       indexes now exist live on production. The temporary `.env.production.local` credentials file was

@@ -4,7 +4,7 @@
 now the design record for what was built, not a proposal — the scope it describes was approved by
 Davin and executed without deviation.
 **Live in PostgreSQL as of 2026-09-09** — `indicator_statistics` and `indicator_configs` exist in
-production (`maglev.proxy.rlwy.net:58290`, the database `railway-gateway` writes to). What remains
+production (`<PROD_DB>`, the database `railway-gateway` writes to). What remains
 is the VPS side: the recompiled `.ex5`, the collector and the push worker. Until those land, no
 statistic has been captured yet. See §11.
 **Written:** 2026-09-09.
@@ -388,12 +388,12 @@ migration SQL; the unique key alone serves the "this indicator over time" read p
 ## 11. Deployment status
 
 **✅ Applied to production 2026-09-09.** `indicator_statistics` and `indicator_configs` now
-exist in the database `railway-gateway` actually writes to — `maglev.proxy.rlwy.net:58290`, the
+exist in the database `railway-gateway` actually writes to — `<PROD_DB>`, the
 `trading-alerts` project's Postgres. Verified directly: both tables present, `market_data_v6` at
 90 columns with `cycle_id`/`collected_at` `NOT NULL`, 19 migrations recorded, 0 failed.
 
 An earlier run on the same day went to the database `.env.local` points at
-(`turntable...:55082`), which turned out to be a **staging clone** rather than production. Use
+(`<STAGING_DB>`), which turned out to be a **staging clone** rather than production. Use
 `prisma.production.config.ts` at the repo root — it loads only `.env.production.local` and
 refuses to run against that host. Production also needed `market_data_v6` created first: the
 `add_market_data_v6` migration had been recorded applied with `steps=0`, i.e. marked without

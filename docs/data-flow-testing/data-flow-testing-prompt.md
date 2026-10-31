@@ -276,8 +276,8 @@ CREATE TABLE eurusd (
 **Railway credentials needed:**
 
 ```
-POSTGRESQL_URI=postgresql://postgres:PASSWORD@turntable.proxy.rlwy.net:55082/railway
-REDIS_URL=redis://default:PASSWORD@switchyard.proxy.rlwy.net:47725
+POSTGRESQL_URI=postgresql://postgres:<PASSWORD>@<STAGING_DB>/railway
+REDIS_URL=redis://default:<PASSWORD>@<STAGING_REDIS>
 SQLITE_PATH=C:\MT5Data\trading_data.db
 ```
 

@@ -1239,7 +1239,7 @@ npx prisma init
 DATABASE_URL="postgresql://username:password@localhost:5432/trading_alerts"
 
 # NextAuth
-NEXTAUTH_SECRET="generate-random-secret-here"
+NEXTAUTH_SECRET="<NEXTAUTH_SECRET>"
 NEXTAUTH_URL="http://localhost:3000"
 
 # MiniMax M2 API (for Aider)
@@ -1320,7 +1320,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 DATABASE_URL="postgresql://username:password@localhost:5432/trading_alerts"
 
 # Auth
-NEXTAUTH_SECRET="your-secret-here"
+NEXTAUTH_SECRET="<NEXTAUTH_SECRET>"
 NEXTAUTH_URL="http://localhost:3000"
 
 # Stripe

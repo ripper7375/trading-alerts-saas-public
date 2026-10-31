@@ -1,7 +1,7 @@
 # Database Restore Rehearsal — Session 1-1
 
 **Date:** 2026-07-18 · **Target:** `trading-alerts` Railway project, `Postgres` service
-(`maglev.proxy.rlwy.net`, database `railway`) — see `DECISION-LOG.md` F3 for how this
+(`<PROD_DB_HOST>`, database `railway`) — see `DECISION-LOG.md` F3 for how this
 instance was identified. **Method:** logical backup (`pg_dump`, custom format) restored
 into an isolated, localhost-only scratch instance; destroyed immediately after
 verification. No data was modified or deleted on the live instance at any point — every

@@ -2,7 +2,7 @@
 
 **Status:** **STEPS 1 AND 2 (MIGRATION & GATEWAY DEPLOY) COMPLETED AND PUSHED LIVE. VPS ROLLOUT REMAINING.**
 
-- **Step 1 (Postgres Migration):** `20260922000000_add_market_data_v6_sr2_levels` applied cleanly to production Postgres (`turntable.proxy.rlwy.net:55082`). Columns `sr_9..sr_16` are live on `market_data_v6` (103 columns) and `market_data_point_in_time` (77 columns).
+- **Step 1 (Postgres Migration):** `20260922000000_add_market_data_v6_sr2_levels` applied cleanly to production Postgres (`<STAGING_DB>`). Columns `sr_9..sr_16` are live on `market_data_v6` (103 columns) and `market_data_point_in_time` (77 columns).
 - **Step 2 (Git & Gateway Deploy):** Committed in `59db1b49` (`feat(stack-c): integrate 15th indicator (S-R-AutoCalibration sr_9..sr_16) into pipeline`) and pushed to `main`. Railway auto-deployment triggered.
 - **Remaining:** VPS rollout (Deploy 3 files to Contabo VPS, attach `S-R-AutoCalibration_v2_29.ex5` to MT5 charts on A+B, restart `MT5Collector`).
 
@@ -210,7 +210,7 @@ diff`.
 
 1. **Step 1 (Postgres Migration):** ✅ **APPLIED LIVE** (2026-09-22)
    - Executed `npx prisma migrate deploy --schema=prisma/market-data/schema.prisma`
-   - Migration `20260922000000_add_market_data_v6_sr2_levels` applied cleanly to production Postgres (`turntable.proxy.rlwy.net:55082`).
+   - Migration `20260922000000_add_market_data_v6_sr2_levels` applied cleanly to production Postgres (`<STAGING_DB>`).
    - Columns `sr_9..sr_16` are now live on `market_data_v6` (103 columns) and `market_data_point_in_time` (77 columns).
 2. **Step 2 (Gateway Deploy):** ✅ **COMMITTED & PUSHED TO MAIN** (2026-09-22)
    - Pre-push validation passed all 220 test suites (2,881/2,881 tests green).
