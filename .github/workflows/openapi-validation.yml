@@ -11,7 +11,7 @@ on:
       - 'docs/**/*.yml'
 
 env:
-  NODE_VERSION: '22'
+  NODE_VERSION: '24'
 
 jobs:
   validate-openapi:

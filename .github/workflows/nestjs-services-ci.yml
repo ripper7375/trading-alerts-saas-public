@@ -30,8 +30,8 @@ permissions:
   contents: read
 
 env:
-  # Node 20 reached end of life on 2026-04-30; 22 is the active LTS.
-  NODE_VERSION: '22'
+  # Node 24 is the active LTS; aligned with the monolith CI and local dev.
+  NODE_VERSION: '24'
 
 jobs:
   operation-service:
