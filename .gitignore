@@ -42,6 +42,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 .npm
+# A stray npm lockfile at the repo root. The root is pnpm-managed; the service
+# folders (money-service, operation-service, railway-gateway, ...) keep their
+# own tracked lockfiles, so this rule is anchored to the root only.
+/package-lock.json
 
 # ============================================================================
 # NEXT.JS
