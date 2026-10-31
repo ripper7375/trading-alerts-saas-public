@@ -28,6 +28,9 @@ Rotating `core_app` or `money_svc` is a **different and harder** operation: thos
 userlist, so the userlist must be regenerated in the same change or pgbouncer stops
 authenticating and every service behind it fails.
 
+The GitHub Actions secret `PRODUCTION_DIRECT_URL` is a **fourth, easy-to-forget copy** of the
+`postgres` connection string. Rotating the first row also means updating it (§6.5).
+
 ---
 
 ## 1. Prerequisite: make services follow Postgres
@@ -134,7 +137,7 @@ Railway → **Postgres → Variables** (the Raw Editor edits all four in one sav
 PGPASSWORD          = <new>
 POSTGRES_PASSWORD   = <new>
 DATABASE_URL        = postgresql://postgres:<new>@postgres.railway.internal:5432/railway
-DATABASE_PUBLIC_URL = postgresql://postgres:<new>@maglev.proxy.rlwy.net:58290/railway
+DATABASE_PUBLIC_URL = postgresql://postgres:<new>@<PROD_DB>/railway
 ```
 
 The two URLs differ **only** in host and port — internal for services inside Railway, the public
@@ -179,8 +182,8 @@ reporting a large uptime has not restarted, whatever its status says.
 Vercel → project → **Settings → Environment Variables**. Update **both**:
 
 ```
-DATABASE_URL = postgresql://postgres:<new>@maglev.proxy.rlwy.net:58290/railway
-DIRECT_URL   = postgresql://postgres:<new>@maglev.proxy.rlwy.net:58290/railway
+DATABASE_URL = postgresql://postgres:<new>@<PROD_DB>/railway
+DIRECT_URL   = postgresql://postgres:<new>@<PROD_DB>/railway
 ```
 
 - Use the **public** host. `postgres.railway.internal` never resolves from Vercel.
@@ -192,6 +195,33 @@ DIRECT_URL   = postgresql://postgres:<new>@maglev.proxy.rlwy.net:58290/railway
 - Leave the environment **scope** alone during a rotation. Narrowing `DATABASE_URL` from
   All Environments to Production would break preview deployments — a separate change with its
   own blast radius.
+
+---
+
+## 6.5. GitHub Actions secret `PRODUCTION_DIRECT_URL`
+
+The workflow _Check Production Migration Status_ (`.github/workflows/check-production-migrations.yml`)
+reads production through the repository secret `PRODUCTION_DIRECT_URL`. It is a **copy** of the
+connection string, so it goes stale the moment the password changes. This step was missing from the
+runbook after the 2026-09-09 rotation: the secret kept its 2026-09-01 value and the workflow failed with
+`P1000` (authentication failed) for 52 days, until it was reset on 2026-10-31. Nobody saw migration
+drift in that time.
+
+Set it from the same new URL as Vercel (§6), in a terminal on your own machine:
+
+```bash
+gh secret set PRODUCTION_DIRECT_URL --repo ripper7375/trading-alerts-saas-public
+```
+
+- `gh` prompts for the value and does not echo it. Paste the **public** `DATABASE_PUBLIC_URL` from
+  Railway → `trading-alerts` → `Postgres` → Variables. Never use `--body` (the value would land in your
+  shell history) and never paste the value into a chat or a commit.
+- `gh secret list --repo ripper7375/trading-alerts-saas-public` should show a new _updated_ time for
+  `PRODUCTION_DIRECT_URL`. A secret's value can never be read back.
+- The workflow masks the database `host:port` and hostname in its log, because the Actions logs of this
+  repository are public. In the first run after a rotation, open the `Datasource "db"` line and check
+  that it reads `at "***"`. If the address is visible, delete that run's logs and fix the mask step
+  before running it again.
 
 ---
 
@@ -211,6 +241,10 @@ What good looks like:
 - **`/affiliate/leaderboard` returns 200.** This is the best single signal for the Vercel half:
   it queries Prisma on every request. `/` and `/academy` can return 200 from cache while the
   database is unreachable, so they prove nothing.
+- **The _Check Production Migration Status_ workflow is green** after §6.5
+  (`gh workflow run check-production-migrations.yml --repo ripper7375/trading-alerts-saas-public`,
+  then `gh run watch`). A red `P1000` means the GitHub copy of the URL is still stale. Its log must
+  show `at "***"` on the `Datasource` line, never the address.
 
 Finally, delete any local `.env.production.local` — it holds a live credential.
 

@@ -63,6 +63,8 @@ otherwise. Follow the shared [language policy](docs/agent-collaboration/LANGUAGE
   explicit sign-off gate is not satisfied by general task approval.
 - Never enter login credentials or apply production migrations. Commit/push
   only when Davin asks; merge/deploy/flag actions need their applicable approval.
+- Never write real connection strings, proxy `host:port` or VPS IPs into tracked files; use the
+  aliases (`<PROD_DB>`, `<STAGING_DB>`, ...) of [non-negotiables](.claude/rules/non-negotiables.md) rule 9.
 - Verify the affected scope and report exit codes and skipped/unavailable
   checks. UI changes need browser evidence. Root tsc does not type-check tests.
 - Write a unique [handoff](docs/codex/templates/handoff.md). Only the named

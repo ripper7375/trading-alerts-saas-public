@@ -39,6 +39,13 @@ tags: [governance, safety, verification, escalation]
    only when Davin questions it or new evidence contradicts it (live code, runtime state, a
    failing check — rule 7). This never skips verification (rule 6): re-running checks is not
    re-litigating.
+9. **No real infrastructure addresses in tracked files.** The repository is public. Never write real
+   connection strings, proxy `host:port` addresses or VPS IPv4 addresses into tracked docs, handoffs
+   or state files; use the canonical aliases `<PROD_DB>`, `<PROD_REDIS>`, `<STAGING_DB>`,
+   `<STAGING_REDIS>`, `<CHAT_VPS_IP>`, `<MT5_VPS_IP>` (`_HOST` or `_PORT` suffix for a single part).
+   The lookup table is gitignored: `davintrade-pre-launch-security-check-lists/infrastructure-address-aliases.local.md`.
+   Example credentials in docs are angle-bracket placeholders (`<PASSWORD>`). Secrets Detection fails
+   a push that adds a Railway proxy `host:port`, a credentialed URL or a tracked non-template `.env*`.
 
 Also binding everywhere: never modify `overrides`/`pnpm.overrides` in `package.json` outside a
 dedicated PR on `main` (details: `.claude/rules/security-overrides.md`). Never commit or push
