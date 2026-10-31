@@ -534,7 +534,9 @@ describe("the reader's language reaches the message", () => {
       { name: 'Ali', details }
     ).html;
     // the time keeps its own order instead of being reflowed by the sentence
-    expect(arabic).toContain('<bdi>23/10/2026 1:30 PM GST</bdi>');
+    // the zone's short name comes from the runtime's ICU data ("GST" on older
+    // data, "غرينتش+4" on newer), so only the date and time are pinned
+    expect(arabic).toMatch(/<bdi>23\/10\/2026 1:30 PM [^<]+<\/bdi>/);
     expect(arabic).toContain('<bdi>203.0.113.7</bdi>');
     expect(arabic).toContain('مرحبًا <bdi>Ali</bdi>');
     // ...and left-to-right output is untouched
