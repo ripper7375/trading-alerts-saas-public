@@ -23,7 +23,7 @@ describe('PrismaService pool options', () => {
   beforeEach(() => {
     PrismaPgSpy.mockClear();
     process.env['DATABASE_URL'] =
-      'postgresql://user:secret@db.example:5432/app';
+      'postgresql://user:secret@database-host:5432/app';
   });
 
   afterEach(() => {
@@ -37,7 +37,7 @@ describe('PrismaService pool options', () => {
     expect(PrismaPgSpy).toHaveBeenCalledTimes(1);
     expect(PrismaPgSpy.mock.calls[0]).toEqual([
       {
-        connectionString: 'postgresql://user:secret@db.example:5432/app',
+        connectionString: 'postgresql://user:secret@database-host:5432/app',
         ssl: { rejectUnauthorized: false },
         connectionTimeoutMillis: 2000,
       },
@@ -67,12 +67,12 @@ describe('PrismaService pool options', () => {
   });
 
   it('reads DATABASE_URL when the service is constructed', () => {
-    process.env['DATABASE_URL'] = 'postgresql://other@db.example:5432/other';
+    process.env['DATABASE_URL'] = 'postgresql://other@database-host:5432/other';
 
     new PrismaService();
 
     expect(PrismaPgSpy.mock.calls[0][0]).toMatchObject({
-      connectionString: 'postgresql://other@db.example:5432/other',
+      connectionString: 'postgresql://other@database-host:5432/other',
     });
   });
 });
