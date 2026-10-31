@@ -90,12 +90,16 @@ jobs:
 
           FOUND=0
 
-          # Tracked source and config files only: `git grep` never reads
-          # node_modules, .next or other build output. seed-code/ (the
-          # read-only reference copy) stays out, as it always has.
+          # Tracked source, config, docs and env-template files only: `git grep`
+          # never reads node_modules, .next or other build output. seed-code/
+          # (the read-only reference copy) stays out, as it always has.
+          # Docs (*.md) and env files are scanned too: an example credential in
+          # a document must be an angle-bracket placeholder such as <PASSWORD>.
+          # The env files need the glob pathspec: a plain '.env*' only matches
+          # at the repository root, not in frontend/ or a service folder.
           # Matches are reported by FILE NAME only: printing the matching line
           # would copy the secret into the CI log.
-          FILES=('*.ts' '*.tsx' '*.js' '*.mjs' '*.cjs' '*.json' '*.yml' '*.yaml' '*.sh' '*.py' ':!seed-code')
+          FILES=('*.ts' '*.tsx' '*.js' '*.mjs' '*.cjs' '*.json' '*.yml' '*.yaml' '*.sh' '*.py' '*.md' ':(glob)**/.env*' ':!seed-code')
 
           # Test code sets env fixtures (process.env['NEXTAUTH_SECRET'] =
           # 'test-nextauth-secret'): a pattern keyed on a variable NAME cannot
@@ -149,6 +153,37 @@ jobs:
           # local setups, not matched on purpose.
           scan "database or queue URL with embedded credentials" \
             "(postgres(ql)?|mysql|mongodb(\+srv)?|rediss?|amqps?)://[A-Za-z0-9._~%-]+:[A-Za-z0-9._~%!*+=-]{6,}@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}"
+
+          # A Railway TCP proxy address (host:port) points at one customer's
+          # database or Redis. The shared hostname is not secret, the PORT is.
+          # This repository is public, so none may be committed to ANY tracked
+          # text file, not only the types in FILES: write the alias from the
+          # local table (<PROD_DB>, <STAGING_DB>, ...) instead. A hostname
+          # without a port is not matched on purpose: prisma.production.config.ts
+          # keeps one as a runtime guard.
+          if git grep -lIiE -e '[a-z0-9-]+\.proxy\.rlwy\.net:[0-9]+' -- . ':!seed-code'; then
+            echo "❌ Found a Railway TCP proxy host:port (files listed above): use an alias such as <PROD_DB>"
+            FOUND=1
+          fi
+
+          # Environment files: only templates may be tracked. A real .env,
+          # .env.local or .env.production would put live credentials into a
+          # public repository. Templates (*.example) are fine anywhere; the two
+          # named files hold only placeholders or no values at all.
+          ENV_BAD=""
+          while IFS= read -r envfile; do
+            case "$envfile" in
+              *.example | archive/part6-flask-mt5/.env.part6.backup | frontend/.env.sync-checklist) ;;
+              *)
+                echo "$envfile"
+                ENV_BAD=1
+                ;;
+            esac
+          done < <(git ls-files -- ':(glob)**/.env*' ':!seed-code')
+          if [ -n "$ENV_BAD" ]; then
+            echo "❌ Found tracked environment file(s) that are not templates (listed above)"
+            FOUND=1
+          fi
 
           if [ $FOUND -eq 0 ]; then
             echo "✅ No hardcoded secrets detected"
