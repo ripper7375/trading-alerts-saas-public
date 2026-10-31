@@ -21,6 +21,12 @@ name: Dependencies Security Scan
 #   branches (.claude/rules/security-overrides.md, check-overrides.yml), and a
 #   next-auth change is also auth, which escalates to Davin.
 #
+# THE SERVICES AUDIT ("NestJS Services npm Audit"): `npm audit --omit=dev --audit-level=high`
+#   in money-service, operation-service and railway-gateway, read from each service's own
+#   package-lock.json (no install needed). INFORMATIVE ONLY: a finding prints a warning and the
+#   step still succeeds, because advisories that need a major version are open. Make it blocking,
+#   like the root gate, once they are cleared.
+#
 # DO NOT add pnpm audit to other workflows (e.g. security-checks.yml).
 # DO NOT remove continue-on-error from the all-dependencies audit step below.
 
@@ -33,6 +39,9 @@ on:
       - 'package.json'
       - 'pnpm-lock.yaml'
       - 'mt5-service/requirements*.txt'
+      - 'money-service/package-lock.json'
+      - 'operation-service/package-lock.json'
+      - 'railway-gateway/package-lock.json'
   pull_request:
     branches:
       - main
@@ -128,6 +137,41 @@ jobs:
             exit 1
           fi
 
+  services-security:
+    name: NestJS Services npm Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      # Production dependencies of each service, high and critical only. Each
+      # service has its own npm lockfile and is audited from it alone, so no
+      # install is needed. INFORMATIVE: a finding prints a warning and the step
+      # still succeeds (see the header).
+      - name: Audit money-service, operation-service and railway-gateway
+        run: |
+          FOUND=0
+          for svc in money-service operation-service railway-gateway; do
+            echo "::group::npm audit --omit=dev --audit-level=high ($svc)"
+            if (cd "$svc" && npm audit --omit=dev --audit-level=high); then
+              echo "✅ $svc: no high or critical production advisories"
+            else
+              echo "::warning title=$svc::High or critical production advisories reported (informative, not blocking)"
+              FOUND=1
+            fi
+            echo "::endgroup::"
+          done
+          if [ $FOUND -ne 0 ]; then
+            echo "⚠️  At least one service reports high or critical production advisories (list above)."
+            echo "   Informative only. Fix them in a dedicated 'fix(security): ...' change on main."
+          fi
+
   python-security:
     name: Python Security Audit
     runs-on: ubuntu-latest
@@ -208,7 +252,7 @@ jobs:
   summary:
     name: Security Scan Summary
     runs-on: ubuntu-latest
-    needs: [npm-security, python-security]
+    needs: [npm-security, services-security, python-security]
     if: always()
 
     steps:
@@ -226,4 +270,4 @@ jobs:
           echo "  - Review findings and address critical vulnerabilities"
           echo "  - Moderate and low findings stay informative"
           echo ""
-          echo "🔗 Check the 'npm-security' and 'python-security' job outputs for details"
+          echo "🔗 Check the 'npm-security', 'services-security' and 'python-security' job outputs for details"
