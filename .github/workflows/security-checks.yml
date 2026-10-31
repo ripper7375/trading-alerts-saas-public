@@ -96,7 +96,7 @@ jobs:
           # Docs (*.md) and env files are scanned too: an example credential in
           # a document must be an angle-bracket placeholder such as <PASSWORD>.
           # The env files need the glob pathspec: a plain '.env*' only matches
-          # at the repository root, not in frontend/ or a service folder.
+          # at the repository root, not in a service folder.
           # Matches are reported by FILE NAME only: printing the matching line
           # would copy the secret into the CI log.
           FILES=('*.ts' '*.tsx' '*.js' '*.mjs' '*.cjs' '*.json' '*.yml' '*.yaml' '*.sh' '*.py' '*.md' ':(glob)**/.env*' ':!seed-code')
@@ -168,12 +168,12 @@ jobs:
 
           # Environment files: only templates may be tracked. A real .env,
           # .env.local or .env.production would put live credentials into a
-          # public repository. Templates (*.example) are fine anywhere; the two
-          # named files hold only placeholders or no values at all.
+          # public repository. Templates (*.example) are fine anywhere; the one
+          # named file holds only placeholders.
           ENV_BAD=""
           while IFS= read -r envfile; do
             case "$envfile" in
-              *.example | archive/part6-flask-mt5/.env.part6.backup | frontend/.env.sync-checklist) ;;
+              *.example | archive/part6-flask-mt5/.env.part6.backup) ;;
               *)
                 echo "$envfile"
                 ENV_BAD=1
