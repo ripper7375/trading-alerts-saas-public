@@ -237,14 +237,14 @@ Result: HTML returned (app live) ✅
 
 **PostgreSQL:**
 
-- Connection: postgresql://postgres:wjFjtjrCLgGNgueAYhVDtEypHkWWmbcW@turntable.proxy.rlwy.net:55082/railway
+- Connection: postgresql://postgres:<STAGING_POSTGRES_PASSWORD>@turntable.proxy.rlwy.net:55082/railway
 - Status: Online
 - Tables: 162
 - Test Data: 16 rows across 3 symbols
 
 **Redis:**
 
-- Connection: redis://default:gUZyPJMOtLXiqVsmELQHBVFIgVzSvEDf@switchyard.proxy.rlwy.net:47725
+- Connection: redis://default:<STAGING_REDIS_PASSWORD>@switchyard.proxy.rlwy.net:47725
 - Status: Online
 
 ### Vercel Deployment:
@@ -331,8 +331,8 @@ According to the staging deployment roadmap:
 ### Connection Strings (Saved in PowerShell Session):
 
 ```powershell
-$env:POSTGRESQL_URI = "postgresql://postgres:wjFjtjrCLgGNgueAYhVDtEypHkWWmbcW@turntable.proxy.rlwy.net:55082/railway"
-$env:REDIS_URL = "redis://default:gUZyPJMOtLXiqVsmELQHBVFIgVzSvEDf@switchyard.proxy.rlwy.net:47725"
+$env:POSTGRESQL_URI = "postgresql://postgres:<STAGING_POSTGRES_PASSWORD>@turntable.proxy.rlwy.net:55082/railway"
+$env:REDIS_URL = "redis://default:<STAGING_REDIS_PASSWORD>@switchyard.proxy.rlwy.net:47725"
 $STAGING_URL = "https://trading-alerts-saas-public-go8p.vercel.app"
 ```
 

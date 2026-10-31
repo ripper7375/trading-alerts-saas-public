@@ -74,7 +74,7 @@ Create a `.env` file in `C:\Scripts\sync_package\`:
 # Create .env file
 @"
 SQLITE_PATH=C:\MT5Data\trading_data.db
-POSTGRESQL_URI=postgresql://postgres:wjFjtjrCLgGNgueAYhVDtEypHkWWmbcW@turntable.proxy.rlwy.net:55082/railway
+POSTGRESQL_URI=postgresql://postgres:<STAGING_POSTGRES_PASSWORD>@turntable.proxy.rlwy.net:55082/railway
 LOG_LEVEL=INFO
 SYNC_STATE_FILE=C:\Scripts\sync_package\sync_state.json
 "@ | Out-File -FilePath "C:\Scripts\sync_package\.env" -Encoding ASCII
