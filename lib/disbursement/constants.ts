@@ -21,6 +21,10 @@ export const MINIMUM_PAYOUT_USD = 50.0;
 // (lib/disbursement/settings.ts, DECISION-LOG F83)
 export const MAX_BATCH_SIZE = 100;
 
+// Hard ceiling of that setting (DISBURSEMENT_SETTING_DEFINITIONS.maxBatchSize.max). An explicit
+// affiliate selection can never be longer, so a longer array is refused before it is parsed.
+export const MAX_PAYOUT_SELECTION = 500;
+
 // RiseWorks amount conversion factor (USDC has 6 decimals)
 export const RISE_AMOUNT_FACTOR = 1_000_000;
 

@@ -10,6 +10,8 @@ import 'server-only';
 
 import { z } from 'zod';
 
+import { boundedRecord } from '@/lib/validations/bounded';
+
 import { AFFILIATE_CONFIG, CODE_GENERATION } from './constants';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -163,9 +165,12 @@ export type AffiliateProfileUpdateInput = z.infer<
 /**
  * Schema for updating payment method
  */
+// Payout details are a handful of fields; the ceiling only keeps a hostile body from costing memory.
+const MAX_PAYMENT_DETAIL_KEYS = 100;
+
 export const paymentMethodUpdateSchema = z.object({
   paymentMethod: z.enum(AFFILIATE_CONFIG.PAYMENT_METHODS),
-  paymentDetails: z.record(z.unknown()),
+  paymentDetails: boundedRecord(z.unknown(), MAX_PAYMENT_DETAIL_KEYS),
 });
 
 export type PaymentMethodUpdateInput = z.infer<

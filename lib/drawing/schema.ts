@@ -10,6 +10,8 @@
 
 import { z } from 'zod';
 
+import { boundedArray } from '@/lib/validations/bounded';
+
 export const DRAWING_TYPES = [
   'TRENDLINE',
   'HLINE',
@@ -50,7 +52,7 @@ export const DrawingCreateZ = z
     symbol: z.string().min(1),
     timeframe: z.string().min(1),
     type: DrawingTypeZ,
-    anchors: z.array(AnchorZ).min(1).max(3),
+    anchors: boundedArray(AnchorZ, 3, 1),
     style: StyleZ,
   })
   .superRefine((d, ctx) => {
@@ -66,7 +68,7 @@ export const DrawingCreateZ = z
 
 export const DrawingUpdateZ = z
   .object({
-    anchors: z.array(AnchorZ).min(1).max(3).optional(),
+    anchors: boundedArray(AnchorZ, 3, 1).optional(),
     style: StyleZ.optional(),
   })
   .refine((d) => d.anchors !== undefined || d.style !== undefined, {

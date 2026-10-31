@@ -158,6 +158,30 @@ describe('Batch API Routes', () => {
       expect(response.status).toBe(400);
     });
 
+    it('should return 400 for an oversized affiliate selection before any lookup', async () => {
+      const { requireAdmin } = await import('@/lib/auth/session');
+      const { prisma } = await import('@/lib/db/prisma');
+
+      (requireAdmin as jest.Mock).mockResolvedValueOnce({
+        user: { id: 'admin-123', role: 'ADMIN' },
+      });
+
+      const request = new NextRequest(
+        'http://localhost:3000/api/disbursement/batches',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            provider: 'MOCK',
+            affiliateIds: Array.from({ length: 501 }, (_, i) => `aff-${i}`),
+          }),
+        }
+      );
+      const response = await POST(request);
+
+      expect(response.status).toBe(400);
+      expect(prisma.commission.findMany).not.toHaveBeenCalled();
+    });
+
     it('should return 400 when no payable affiliates', async () => {
       const { requireAdmin } = await import('@/lib/auth/session');
       const { prisma } = await import('@/lib/db/prisma');

@@ -14,16 +14,21 @@ import { requireAdmin } from '@/lib/auth/session';
 import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { getDisbursementSettings } from '@/lib/disbursement/settings';
+import { boundedArray } from '@/lib/validations/bounded';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // VALIDATION SCHEMAS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+// A payment names the commissions it settles: a few hundred at most. The ceiling only keeps a hostile
+// body from costing memory (zod 3 parses every element before it applies `.max()`).
+const MAX_COMMISSION_IDS = 5000;
+
 const paySchema = z.object({
   affiliateId: z.string().min(1, 'Affiliate ID is required'),
   paymentMethod: z.string().min(1, 'Payment method is required'),
   paymentReference: z.string().min(1, 'Payment reference is required'),
-  commissionIds: z.array(z.string()).optional(),
+  commissionIds: boundedArray(z.string(), MAX_COMMISSION_IDS).optional(),
 });
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

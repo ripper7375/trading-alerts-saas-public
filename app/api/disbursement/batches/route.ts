@@ -15,11 +15,15 @@ import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { BatchManager } from '@/lib/disbursement/services/batch-manager';
 import { CommissionAggregator } from '@/lib/disbursement/services/commission-aggregator';
-import { isValidProvider } from '@/lib/disbursement/constants';
+import {
+  isValidProvider,
+  MAX_PAYOUT_SELECTION,
+} from '@/lib/disbursement/constants';
 import {
   DISBURSEMENTS_PAUSED_BODY,
   getDisbursementSettings,
 } from '@/lib/disbursement/settings';
+import { boundedArray } from '@/lib/validations/bounded';
 
 /**
  * Query parameter schema for GET
@@ -42,7 +46,7 @@ const querySchema = z.object({
  * Request body schema for POST
  */
 const createBatchSchema = z.object({
-  affiliateIds: z.array(z.string()).optional(),
+  affiliateIds: boundedArray(z.string(), MAX_PAYOUT_SELECTION).optional(),
   provider: z.enum(['MOCK', 'RISE']).default('MOCK'),
 });
 

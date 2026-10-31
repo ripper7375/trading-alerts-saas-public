@@ -14,13 +14,15 @@ import { AuthError } from '@/lib/auth/errors';
 import { prisma } from '@/lib/db/prisma';
 import { CommissionAggregator } from '@/lib/disbursement/services/commission-aggregator';
 import { PayoutCalculator } from '@/lib/disbursement/services/payout-calculator';
+import { MAX_PAYOUT_SELECTION } from '@/lib/disbursement/constants';
 import { getDisbursementSettings } from '@/lib/disbursement/settings';
+import { boundedArray } from '@/lib/validations/bounded';
 
 /**
  * Request body schema
  */
 const previewSchema = z.object({
-  affiliateIds: z.array(z.string()).optional(),
+  affiliateIds: boundedArray(z.string(), MAX_PAYOUT_SELECTION).optional(),
   feePercentage: z.number().min(0).max(100).default(0),
 });
 
