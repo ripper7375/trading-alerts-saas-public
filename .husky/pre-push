@@ -12,6 +12,14 @@ echo ""
 
 export COMSPEC="C:\\Windows\\System32\\cmd.exe"
 
+# The repo is built for pnpm 10 (every CI job pins it). A newer pnpm refuses the
+# root package.json ("pnpm" field no longer read), so use pnpm 10 through npx
+# whenever another major is installed.
+if [ "$(pnpm -v 2>/dev/null | cut -d. -f1)" != "10" ]; then
+  echo "pnpm $(pnpm -v 2>/dev/null) found; running pnpm 10 through npx for this hook"
+  pnpm() { npx -y pnpm@10 "$@"; }
+fi
+
 # Check TypeScript types
 echo "📝 Type checking..."
 pnpm run type-check
