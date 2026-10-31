@@ -471,10 +471,10 @@ describe('parseArgs', () => {
 describe('describeConnection', () => {
   it('gives host:port and the database name and never the credentials', () => {
     const d = describeConnection(
-      'postgresql://user:SECRETPW@maglev.proxy.rlwy.net:58290/railway?sslmode=require'
+      'postgresql://user:SECRETPW@database-host:5432/railway?sslmode=require'
     );
     expect(d).toEqual({
-      hostPort: 'maglev.proxy.rlwy.net:58290',
+      hostPort: 'database-host:5432',
       database: 'railway',
     });
     expect(JSON.stringify(d)).not.toContain('SECRETPW');
@@ -493,9 +493,9 @@ describe('describeConnection', () => {
 
 describe('sslFor', () => {
   it("keeps the application's TLS setting for a remote host", () => {
-    expect(
-      sslFor('postgresql://u:p@maglev.proxy.rlwy.net:58290/railway')
-    ).toEqual({ rejectUnauthorized: false });
+    expect(sslFor('postgresql://u:p@database-host:5432/railway')).toEqual({
+      rejectUnauthorized: false,
+    });
   });
 
   it.each(['localhost', '127.0.0.1', '[::1]'])(
