@@ -1,7 +1,7 @@
 {
   "schema": "sensor-roster/1",
   "synthesis": {
-    "flag": "off",
+    "flag": "shadow",
     "rules_version": "draft-1"
   },
   "sensors": [
@@ -15,7 +15,7 @@
       "rung": {},
       "primary_for": [],
       "on_board": false,
-      "flag": "off",
+      "flag": "shadow",
       "owned_terms": [],
       "state_codes": [
         "MCD0_ALL_QUALIFIED",
@@ -37,7 +37,7 @@
       },
       "primary_for": ["DAY_TRADER"],
       "on_board": true,
-      "flag": "off",
+      "flag": "shadow",
       "owned_terms": ["UOEDT", "baseline", "LOEDT"],
       "state_codes": [
         "MCD1_UP_IN_CORRIDOR",
@@ -64,7 +64,7 @@
       },
       "primary_for": ["SCALPER"],
       "on_board": true,
-      "flag": "off",
+      "flag": "shadow",
       "owned_terms": ["UOEDT", "baseline", "LOEDT"],
       "state_codes": [
         "MCD2_UP_IN_CORRIDOR",
@@ -91,7 +91,7 @@
       },
       "primary_for": [],
       "on_board": true,
-      "flag": "off",
+      "flag": "shadow",
       "owned_terms": ["UOEDT", "baseline", "LOEDT"],
       "state_codes": [
         "MCD3_BULL_VALUE",

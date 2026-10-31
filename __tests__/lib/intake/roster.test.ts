@@ -97,9 +97,10 @@ describe('the committed roster', () => {
       ['M5'],
       ['M15', 'M5'],
     ]);
-    expect(SENSOR_ROSTER.sensors.every((s) => s.flag === 'off')).toBe(true);
+    // Stage B1 promoted every sensor and the synthesis to shadow
+    expect(SENSOR_ROSTER.sensors.every((s) => s.flag === 'shadow')).toBe(true);
     expect(SENSOR_ROSTER.synthesis).toEqual({
-      flag: 'off',
+      flag: 'shadow',
       rules_version: 'draft-1',
     });
   });
@@ -513,8 +514,8 @@ describePython('scripts/intake/build_roster.py', () => {
       writeFileSync(
         config,
         readFileSync(config, 'utf8').replace(
-          "  SYN: 'off'",
-          "  MCD4: 'off'\n  SYN: 'off'"
+          /^ {2}SYN: .*$/m,
+          (line) => `  MCD4: 'off'\n${line}`
         )
       );
     }
@@ -730,8 +731,8 @@ describePython('scripts/intake/build_roster.py', () => {
       writeFileSync(
         config,
         readFileSync(config, 'utf8').replace(
-          "  SYN: 'off'",
-          "  MCD7: 'off'\n  SYN: 'off'"
+          /^ {2}SYN: .*$/m,
+          (line) => `  MCD7: 'off'\n${line}`
         )
       );
       const run = build(dir);
