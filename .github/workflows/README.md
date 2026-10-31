@@ -4,23 +4,29 @@
 **Version:** 3.0 (Phase 3.5 + Phase 4 Integration)
 **For:** Phases 1-4 of development
 
+> **Status note (2026-10-31):** `deploy.yml` was removed (see [section 7](#7-automated-deployment-removed)).
+> Vercel builds `main` through its own Git integration, the Railway services are deployed by hand
+> following [docs/runbooks/railway-services-deploy.md](../../docs/runbooks/railway-services-deploy.md), and `tests.yml`
+> runs on pushes and pull requests. Parts of this file that describe a "Track 2" deployment gate,
+> automatic deployment or `deploy.yml` are historical.
+
 ---
 
 ## 📊 Workflow Status Overview
 
-| Workflow                                              | Status     | Type                | Blocking?  | Active In  | Purpose                                   |
-| ----------------------------------------------------- | ---------- | ------------------- | ---------- | ---------- | ----------------------------------------- |
-| [openapi-validation.yml](#1-openapi-validation)       | ✅ Active  | Development CI      | ❌ No      | Phase 1-4  | Validate OpenAPI specifications           |
-| [dependencies-security.yml](#2-dependencies-security) | ✅ Active  | Development CI      | ⚠️ 1 gate  | Phase 1-4  | Security scans for dependencies           |
-| [ci-flask.yml](#3-flask-ci)                           | ✅ Active  | Development CI      | ❌ No      | Phase 1-4  | Flask app CI (progressive)                |
-| [ci-nextjs-progressive.yml](#4-nextjs-ci-progressive) | ✅ Active  | Development CI      | ❌ No      | Phase 1-4  | Next.js app CI (progressive)              |
-| [api-tests.yml](#5-api-integration-tests)             | ⏭️ Standby | Development CI      | ❌ No      | Phase 3-4  | API integration tests                     |
-| [tests.yml](#6-phase-35-test-suite)                   | ✅ Active  | **Deployment Gate** | ✅ **YES** | Phase 3.5+ | **Unit, Component, Integration tests**    |
-| [deploy.yml](#7-automated-deployment)                 | ✅ Active  | **Deployment Gate** | ✅ **YES** | Phase 4    | **Production deployment with test gates** |
+| Workflow                                              | Status     | Type                  | Blocking?  | Active In  | Purpose                                |
+| ----------------------------------------------------- | ---------- | --------------------- | ---------- | ---------- | -------------------------------------- |
+| [openapi-validation.yml](#1-openapi-validation)       | ✅ Active  | Development CI        | ❌ No      | Phase 1-4  | Validate OpenAPI specifications        |
+| [dependencies-security.yml](#2-dependencies-security) | ✅ Active  | Development CI        | ⚠️ 1 gate  | Phase 1-4  | Security scans for dependencies        |
+| [ci-flask.yml](#3-flask-ci)                           | ✅ Active  | Development CI        | ❌ No      | Phase 1-4  | Flask app CI (progressive)             |
+| [ci-nextjs-progressive.yml](#4-nextjs-ci-progressive) | ✅ Active  | Development CI        | ❌ No      | Phase 1-4  | Next.js app CI (progressive)           |
+| [api-tests.yml](#5-api-integration-tests)             | ⏭️ Standby | Development CI        | ❌ No      | Phase 3-4  | API integration tests                  |
+| [tests.yml](#6-phase-35-test-suite)                   | ✅ Active  | **Deployment Gate**   | ✅ **YES** | Phase 3.5+ | **Unit, Component, Integration tests** |
+| [deploy.yml](#7-automated-deployment-removed)         | ❌ Removed | (was Deployment Gate) | n/a        | Phase 4    | Removed 2026-10-31; see section 7      |
 
-**Total Workflows:** 7
+**Total Workflows:** 6 (`deploy.yml` removed)
 **Development CI:** 5 workflows (non-blocking, informative; the one exception is the production audit gate in `dependencies-security.yml`)
-**Deployment Gate:** 2 workflows (blocking, protective)
+**Deployment Gate:** 1 workflow (`tests.yml`)
 **Success Rate:** 100% (all pass or skip gracefully)
 
 ---
@@ -612,7 +618,7 @@ Comprehensive testing infrastructure with automated test gates. **This workflow 
 
 - Every push to main, develop, or claude/\*\* branches
 - Every pull request to main or develop
-- Called by deploy.yml as deployment gate
+- Runs on pushes and pull requests (it was once called by `deploy.yml`, now removed)
 
 **Expected behavior:**
 
@@ -648,115 +654,30 @@ tests.yml runs
 
 **Key Features:**
 
-- **Reusable workflow:** Called by `deploy.yml` as GATE 1
+- **Not a reusable workflow:** it has no `workflow_call` trigger
 - **Cannot bypass:** GitHub Actions enforces dependencies
 - **Fast feedback:** Results in 3-5 minutes
 - **Comprehensive:** TypeScript, ESLint, Jest, Build check
 
 ---
 
-### 7. Automated Deployment (DEPLOYMENT GATE)
+### 7. Automated Deployment (REMOVED)
 
-**File:** `deploy.yml`
-**Status:** ✅ Active
-**Type:** 🛡️ **DEPLOYMENT GATE** (Track 2: Blocking)
-**Triggers:** Push to main, manual trigger
+**File:** `deploy.yml` (deleted 2026-10-31)
+**Status:** ❌ Removed
 
-**Purpose:**
-Automated production deployment with Phase 3.5 test gates. **Deployment is BLOCKED if tests fail.**
+The workflow could not start: it called `tests.yml` as a reusable workflow,
+and `tests.yml` has no `workflow_call` trigger, so every push to `main` showed a
+failed run with no jobs. Adding the trigger was rejected on purpose, because the
+workflow would then have deployed to Vercel and Railway on every push to `main`,
+duplicating the Vercel Git integration and bypassing the Railway deploy runbook.
 
-**What it does:**
+Deployment works like this instead:
 
-**GATE 1: tests** (MUST PASS)
-
-- Uses `tests.yml` workflow
-- Runs all Phase 3.5 tests
-- If fails: Deployment is **BLOCKED**
-
-**GATE 2: deploy-frontend**
-
-- Needs: [tests] ✅
-- Deploys Next.js to Vercel
-- Uses: `amondnet/vercel-action@v25`
-- Secrets: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
-
-**GATE 3: deploy-backend**
-
-- Needs: [tests] ✅
-- Deploys Flask to Railway
-- Uses: `bervProject/railway-deploy@main`
-- Secrets: RAILWAY_TOKEN, RAILWAY_SERVICE_ID
-
-**GATE 4: verify-deployment**
-
-- Needs: [deploy-frontend, deploy-backend] ✅
-- Health check: Frontend (HTTP 200/301/308)
-- Health check: Backend (/health endpoint)
-- Creates deployment summary
-
-**notify-success**
-
-- Needs: [verify-deployment] ✅
-- Logs success message
-- Creates success annotation
-- Displays deployment URLs
-
-**notify-failure**
-
-- Needs: [tests, deploy-frontend, deploy-backend, verify-deployment]
-- If: failure()
-- Determines failure stage
-- Provides troubleshooting steps
-- Links to TEST-FAILURE-WORKFLOW.md
-- Creates failure annotation
-
-**When it runs:**
-
-- Push to main branch (automatic)
-- Manual trigger via GitHub Actions UI
-
-**Expected behavior:**
-
-- ✅ **Tests pass:** Deployment proceeds
-- ❌ **Tests fail:** Deployment BLOCKED
-- ✅ **Deploy succeeds:** Services updated, health checked
-- ❌ **Deploy fails:** Rollback available, failure logged
-
-**Deployment Flow:**
-
-```
-Push to main
-    ↓
-Run Phase 3.5 tests (GATE 1)
-    ├─ ❌ Fail → BLOCK deployment
-    └─ ✅ Pass → Continue
-         ↓
-    Deploy Frontend (GATE 2)
-         ↓
-    Deploy Backend (GATE 3)
-         ↓
-    Health Checks (GATE 4)
-         ↓
-    Notify Success/Failure
-```
-
-**Required Secrets:**
-
-- `VERCEL_TOKEN`: Vercel authentication
-- `VERCEL_ORG_ID`: Organization ID
-- `VERCEL_PROJECT_ID`: Project ID
-- `RAILWAY_TOKEN`: Railway authentication
-- `RAILWAY_SERVICE_ID`: Flask service ID
-- `PRODUCTION_URL`: Frontend URL for health checks
-- `FLASK_URL`: Backend URL for health checks
-
-**Concurrency:**
-
-- Group: `production-deployment`
-- Cancel-in-progress: `false` (prevents concurrent deploys)
-
-**Key Feature:**
-**Tests MUST pass before deployment.** This is enforced by GitHub Actions dependencies.
+- Vercel builds `main` through its own Git integration.
+- The Railway services are deployed by hand, following
+  [docs/runbooks/railway-services-deploy.md](../../docs/runbooks/railway-services-deploy.md).
+- `tests.yml` still runs on pushes and pull requests.
 
 ---
 
@@ -1086,24 +1007,24 @@ api-tests                ✅ ACTIVE  (Postman collections, informative)
 TRACK 2: Deployment Gate (BLOCKING)
 ────────────────────────────────────────
 tests.yml                ✅ ACTIVE  🛡️ BLOCKS deployment on failure
-deploy.yml               ✅ ACTIVE  🛡️ BLOCKS on test failure
+deploy.yml               ❌ REMOVED 2026-10-31
 
 ═════════════════════════════════════════════════════════════
 
 Overall Status: ✅ ALL SYSTEMS GO
 Success Rate: 100%
 Test Coverage: 92.72%
-Deployment: 🛡️ Protected by BLOCKING test gates
+Deployment: Vercel Git integration + Railway runbook (no deploy workflow)
 Architecture: 🛤️ Two-Track CI/CD (Development + Deployment)
 ```
 
 **Key Milestones Achieved:**
 
 - ✅ Phase 3.5: Testing & QA infrastructure complete (102 tests, 92% coverage)
-- ✅ Phase 4: Automated deployment with BLOCKING test gates
+- Phase 4: automated deployment (`deploy.yml`, removed 2026-10-31)
 - 🛡️ Production protected: Tests MUST pass before deployment
 - 🛤️ Two-Track CI/CD: Development velocity + Production safety
-- 🚀 CI/CD: Fully automated from commit to production
+- 🚀 CI/CD: tests run automatically; deployment is Vercel Git integration plus the Railway runbook
 - ⚡ Fast feedback: Track 1 provides instant insights
 - 🔒 Zero-downtime protection: Track 2 blocks bad deployments
 

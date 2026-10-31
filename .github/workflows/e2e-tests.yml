@@ -3,11 +3,22 @@ name: E2E Tests
 # ============================================================================
 # E2E Testing Workflow
 # ============================================================================
-# This workflow runs Playwright E2E tests in the following scenarios:
-# 1. Manual trigger (workflow_dispatch) - On-demand testing
-# 2. Scheduled runs - Nightly at 2 AM UTC
-# 3. Pre-release gates - When pushing to main or creating releases
-# 4. Pull requests to main - Optional, can be enabled
+# Manual only (workflow_dispatch) until the CI harness below exists. The
+# nightly schedule and the push-to-main trigger were removed on 2026-10-31
+# because every run failed:
+#
+# - The Path 1..7 specs this workflow greps for live in e2e/archive/ and are
+#   not run by e2e/playwright.config.ts (testDir ./tests). The only active spec
+#   is e2e/tests/drawing-line-alerts.spec.ts, so --grep matched no test.
+# - That spec runs against servers that are already started (the monolith on
+#   :3000 and operation-service on :3001; the config has no webServer block),
+#   and this workflow only builds the app. A matching --grep would still fail
+#   with connection refused.
+#
+# To bring it back: start a throwaway Postgres, `next start` and
+# operation-service in the job, seed a test database, replace the --grep with
+# the active spec's title, then restore the schedule/push triggers. Never point
+# the job at a real database: the specs register users and change plans.
 # ============================================================================
 
 on:
@@ -42,23 +53,6 @@ on:
           - local
           - preview
           - production
-
-  # Scheduled nightly runs at 2 AM UTC
-  schedule:
-    - cron: '0 2 * * *'
-
-  # Pre-release: Run on pushes to main branch
-  push:
-    branches:
-      - main
-    paths:
-      # Only run if relevant files changed
-      - 'app/**'
-      - 'components/**'
-      - 'lib/**'
-      - 'e2e/**'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
 
   # Optional: Run on PRs to main (commented out to save resources)
   # pull_request:

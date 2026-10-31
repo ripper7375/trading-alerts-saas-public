@@ -126,7 +126,7 @@ Before submitting this PR, verify ALL items pass:
 **Track 2: Deployment Gate (BLOCKING)**
 
 - tests.yml: Auto-checked ⏳ (**MUST PASS**)
-- deploy.yml: Runs after merge ⏳
+- Deployment: no deploy workflow; Vercel builds `main` itself and Railway follows `docs/runbooks/railway-services-deploy.md`
 
 ---
 
