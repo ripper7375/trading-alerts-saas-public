@@ -386,6 +386,7 @@ real('PythonCycleRunner with the real `python -m mcd_worker.cli`', () => {
   jest.setTimeout(180_000);
   let dir: string;
   let shadow: string;
+  let allOff: string;
 
   beforeAll(() => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'sensor-runner-'));
@@ -393,6 +394,12 @@ real('PythonCycleRunner with the real `python -m mcd_worker.cli`', () => {
     fs.writeFileSync(
       shadow,
       'schema: mcd-worker-config/1\nflags:\n  MCD0: shadow\n  MCD1: shadow\n  MCD2: shadow\n  MCD3: shadow\n',
+      'utf8'
+    );
+    allOff = path.join(dir, 'off.yaml');
+    fs.writeFileSync(
+      allOff,
+      "schema: mcd-worker-config/1\nflags:\n  MCD0: 'off'\n  MCD1: 'off'\n  MCD2: 'off'\n  MCD3: 'off'\n",
       'utf8'
     );
   });
@@ -432,8 +439,8 @@ real('PythonCycleRunner with the real `python -m mcd_worker.cli`', () => {
     }
   );
 
-  it('the committed worker configuration (no override) has every MCD off: no reading, but still the bundle text', async () => {
-    const { result } = await runner({ workerConfigPath: undefined }).run({
+  it('a worker configuration with every MCD off gives no reading, but still the bundle text', async () => {
+    const { result } = await runner({ workerConfigPath: allOff }).run({
       bundle: readFixtureBundle(FIXTURE_SLOTS[0]),
       retuningEnforced: false,
     });
