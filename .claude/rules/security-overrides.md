@@ -49,3 +49,9 @@ rule — see `errors/continuous-pr-errors/`).
   `^4.24.15` (Davin's sign-off in the chat, 2026-10-18: auth), `undici` `^6.28.1`, `postcss` `^8.5.18`.
   The PR needs the GitHub label `security-override` (`check-overrides.yml`). The CI step "Production audit
   gate (high and critical)" is blocking from this PR on: a new advisory means a new dedicated PR.
+- **2026-10-31 one advisory accepted until the zod 4 migration (Davin and Antigravity):** `pnpm.auditConfig.ignoreGhsas`
+  holds `GHSA-mrhx-c7xc-m3w5`, and `zod@>=4.0.0 <4.6.6` is overridden to `^4.6.7` (that moves only the v4 copy inside
+  `@vercel/cli-config`; the app's own `zod` stays on 3.x). The ignore is a risk acceptance, not a fix: the fix exists
+  only in zod 4's own code, which the app's 3.x schemas do not run. `lib/validations/bounded.ts` puts a size check in
+  front of the array and record schemas that take request bodies. Remove the ignore when the zod 4 migration lands
+  (planned after launch). The reasoning and the benchmark are in the gitignored security folder, not here.
