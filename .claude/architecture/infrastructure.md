@@ -14,7 +14,7 @@ related_docs:
 | Component                                                                                                                | Where it runs                                                                | Deploys by                                                                                                     |
 | ------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Next.js monolith (`davintrade.app`, apex 308 → `www`)                                                                    | Vercel                                                                       | push to `main` — **but a push is not proof of a deploy**; check the live build                                 |
-| `money-service`, `operation-service` (NestJS 11)                                                                         | Railway, project `trading-alerts`                                            | GitHub source on `main`                                                                                        |
+| `money-service`, `operation-service` (NestJS 11)                                                                         | Railway, project `trading-alerts`                                            | GitHub source on `main`; every push redeploys it (seen 2026-10-31)                                             |
 | `railway-gateway` (NestJS 11, MT5 ingest + Bull queues)                                                                  | Railway, project `trading-alerts`                                            | GitHub source, Root Directory `railway-gateway`; **Watch Paths still unset** (every monorepo push rebuilds it) |
 | Postgres (production)                                                                                                    | Railway `trading-alerts`                                                     | see [database-traps](./database-traps.md)                                                                      |
 | MT5 terminals, Stack C collector / push worker / renderer (NSSM services `MT5Collector`, `MT5PushWorker`, `MT5Renderer`) | **Vultr** Windows Server 2022 VPS                                            | manual; runbook `docs/runbooks/mt5-terminal-promote.md`                                                        |
@@ -49,12 +49,12 @@ related_docs:
 - After an indicator rebuild, confirm a fresh `_Statistic.txt` contains `[EDT CHANNEL]` before
   trusting a green cycle — a stale `.ex5` fails silently (new fields just read as NULL).
 - **The three NestJS services have CI** (`.github/workflows/nestjs-services-ci.yml`, Remediation Tier 0, 2026-10-16): one job each,
-  Node 22 (Node 20 is past end of life), `npm ci`, `tsc --noEmit`, tests and `nest build`; the gateway also runs its e2e specs, `check:sensor-kit`
-  and installs Python 3.11 with `pyyaml==6.0.2 jsonschema==4.25.0` (its sensor specs skip silently without them). It is **not run on GitHub yet**
-  (first push will show). No `npm run lint` for the gateway: the script matches no files. Report: `docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md`.
+  Node 24 (Node 22 until 2026-10-31), `npm ci`, `tsc --noEmit`, tests and `nest build`; the gateway also runs its e2e specs, `check:sensor-kit`
+  and installs Python 3.11 with `pyyaml==6.0.2 jsonschema==4.25.0` (its sensor specs skip silently without them). It runs on GitHub on every push (green for all three at `1f680cfb`).
+  No `npm run lint` for the gateway: the script matches no files. Report: `docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md`.
 - **Deploying `money-service`, `operation-service` or `railway-gateway` (or drafting a deploy prompt or walkthrough for them): follow
   [docs/runbooks/railway-services-deploy.md](../../docs/runbooks/railway-services-deploy.md).** It marks which steps need Davin's dashboard
-  (stop and ask, never assume) and gives the deploy order and the rollback.
+  (stop and ask, never assume) and gives the rollback. **Railway redeploys all three services on every push to `main` (verified 2026-10-31), so a push is a deploy and its gates apply before the push.**
 - **Node runtime pins (2026-10-22, after the Node 22.23.4 / 24.22.1 security release; moved to Node 24 on 2026-10-31, `cf830f3a`):**
   `engines.node` is `24.x` in the three NestJS services and `>=24.0.0` in the monolith and `frontend/`; `packages/types` stays `>=22.0.0`.
   Every CI workflow runs Node 24 and `.nvmrc` says `24`. Vercel maps the monolith to the latest 24.x and rolls patch releases itself. Railway builds
