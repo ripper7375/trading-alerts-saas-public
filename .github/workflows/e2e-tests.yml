@@ -100,7 +100,7 @@ jobs:
 
       - name: Install pnpm
         if: steps.check-config.outputs.has-config == 'true'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10
 
@@ -185,7 +185,7 @@ jobs:
 
       - name: Install pnpm
         if: env.SKIP_BROWSER != 'true'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           version: 10
 
