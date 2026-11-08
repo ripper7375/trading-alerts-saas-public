@@ -1,7 +1,7 @@
 ---
 type: Concept/Infrastructure
 status: active
-updated_at: 2026-10-31
+updated_at: 2026-11-08
 source: 'Standing facts recorded in CLAUDE.md session logs (Vultr notice 2026-09-11, Railway/Vercel findings 2026-08-31..09-09)'
 tags: [deploy, vercel, railway, vps, vultr, r2, mt5]
 related_docs:
@@ -28,6 +28,11 @@ related_docs:
   **Do not rename the folder** — historical orders reference it. Vultr is billed hourly with a
   snapshot-and-destroy workflow, so `xauusd.db` is a replay buffer, and an unsynced outbox row is
   the one thing a destroy genuinely loses.
+- **After restoring or rebuilding the chat VPS from a snapshot, run the pgAdmin check before anything else**
+  (two commands, first subsection of §4 in [contabo-chat-stack](../../docs/runbooks/contabo-chat-stack.md)).
+  `infra/contabo-chat-stack/docker-compose.yml` carries no pgAdmin, so a hit means a copy installed by hand:
+  stop, delete nothing, tell Davin (Davin, 2026-11-08; pgAdmin 9.19 fixed 15 CVEs on 2026-10-29). The Executor
+  does not enter login credentials, so Davin runs the commands and pastes the output.
 - The Railway CLI here is authenticated as Davin and linked to `trading-alerts`. Root Directory
   and Watch Paths are web-UI only; the Railway UI **stages** changes until "Apply N changes →
   Deploy" is clicked. Re-probe after any CLI mutation — a CLI error can hide a failed change.

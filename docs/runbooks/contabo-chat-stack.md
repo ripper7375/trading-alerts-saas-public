@@ -7,6 +7,8 @@ This is the **operational** runbook — day-2 maintenance, monitoring, and recov
 runbook (initial provisioning, TLS issuance, first-time secrets) is
 `infra/contabo-chat-stack/README.md` — read that first if the stack doesn't exist yet at all.
 
+> **Restoring the VPS from a snapshot, or rebuilding it? Run the pgAdmin check at the top of §4 before anything else.**
+
 ---
 
 ## 1. Architecture & container topology
@@ -136,6 +138,33 @@ curl -s https://davintrade.app/api/chat/token                                   
 ---
 
 ## 4. Disaster recovery
+
+### First: after a snapshot restore or a rebuild, check for pgAdmin
+
+A VPS restored from a snapshot comes back exactly as it was when the snapshot was taken. Before anything
+else in this runbook, and before the stack is reachable from the internet if you can arrange that, confirm
+that no pgAdmin (a database administration web UI) came back with it. `infra/contabo-chat-stack/docker-compose.yml`
+has none, so a hit means a copy was installed by hand. Why it matters: pgAdmin 9.19 (2026-10-29) fixed 15
+CVEs, many of them in server mode.
+
+Run both commands **on the VPS** (over SSH, as for the rest of this runbook). If you cannot reach the VPS
+yourself (the Executor does not enter login credentials), ask Davin to run them and paste the output. Do not
+skip them.
+
+```bash
+docker ps -a --format '{{.Names}} {{.Image}}' | grep -i pgadmin; docker images | grep -i pgadmin; echo "done: any line above mentioning pgadmin needs a look; none means not found"
+```
+
+```bash
+(dpkg -l; systemctl list-units --all; pip3 list) 2>/dev/null | grep -i pgadmin; echo "done: any line above mentioning pgadmin needs a look; none means not found"
+```
+
+- No line before `done:` in either command: nothing found. Continue with the rest of this runbook.
+- If the first command prints `permission denied`, put `sudo` in front of `docker` and run it again. An error is not a clean result.
+- Any line that mentions `pgadmin`: **stop and tell Davin.** Delete nothing and do not open the stack to users until he has decided what to do.
+- Note the outcome (found or not found, and the date) in the session entry.
+
+### Full rebuild from this repo
 
 Full VPS rebuild from this repo, target **<10 minutes** of stack downtime (DNS/Nginx-level, not
 counting a fresh VPS provision from Contabo if the box itself is lost):
