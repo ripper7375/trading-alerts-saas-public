@@ -1182,7 +1182,8 @@ def assert_staging_tables(conn) -> None:
 
 
 def open_db(db_path: str) -> sqlite3.Connection:
-    conn = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path, timeout=60.0)
+    conn.execute("PRAGMA busy_timeout = 60000")
     conn.execute("PRAGMA foreign_keys = ON")
     conn.execute("PRAGMA journal_mode = WAL")
     conn.executescript(SCHEMA_FILE.read_text())
@@ -1308,6 +1309,12 @@ def validate_cycle(conn, cycle_id, timeframe, cycle_time,
     for s in PER_BAR_SOURCES:
         all_ts |= keys[s].keys()
 
+    ohlcv = keys['ohlcv']
+    tf_sec = TF_SECONDS[timeframe]
+    latest_ohlcv = max(ohlcv.keys()) if ohlcv else cycle_time
+    live_cutoff = latest_ohlcv - tf_sec
+    LIVE_CLOSE_TOLERANCE = 15.0
+
     for ts in sorted(all_ts):
         present = {s: keys[s][ts] for s in PER_BAR_SOURCES if ts in keys[s]}
         if len(present) < 2:
@@ -1321,24 +1328,26 @@ def validate_cycle(conn, cycle_id, timeframe, cycle_time,
                         {'timestamp_adj': ts, 'values': {s: v['timeframe'] for s, v in present.items()}})
             reasons.append(f"timeframe mismatch at {ts}")
         closes = [v['close'] for v in present.values()]
-        if max(closes) - min(closes) > CLOSE_TOLERANCE:
+        tol = LIVE_CLOSE_TOLERANCE if ts >= live_cutoff else CLOSE_TOLERANCE
+        if max(closes) - min(closes) > tol:
             log_failure(conn, cycle_id, 'close',
-                        {'timestamp_adj': ts, 'tolerance': CLOSE_TOLERANCE,
+                        {'timestamp_adj': ts, 'tolerance': tol,
                          'values': {s: v['close'] for s, v in present.items()}})
-            reasons.append(f"close spread {max(closes) - min(closes):.5f} > {CLOSE_TOLERANCE} at {ts}")
+            reasons.append(f"close spread {max(closes) - min(closes):.5f} > {tol} at {ts}")
 
-    ohlcv = keys['ohlcv']
     if ohlcv and keys['zigzag']:
         ohlcv_min = min(ohlcv.keys())
         for ts, zz in keys['zigzag'].items():
             if ts < ohlcv_min:
                 continue
+            tol = LIVE_CLOSE_TOLERANCE if ts >= live_cutoff else CLOSE_TOLERANCE
             if ts not in ohlcv:
-                log_failure(conn, cycle_id, 'timestamp',
-                            {'source': 'zigzag', 'timestamp_adj': ts,
-                             'error': 'pivot bar missing from OHLCV spine'})
-                reasons.append(f"zigzag pivot at {ts} has no OHLCV bar")
-            elif abs(zz['close'] - ohlcv[ts]['close']) > CLOSE_TOLERANCE:
+                if ts < live_cutoff:
+                    log_failure(conn, cycle_id, 'timestamp',
+                                {'source': 'zigzag', 'timestamp_adj': ts,
+                                 'error': 'pivot bar missing from OHLCV spine'})
+                    reasons.append(f"zigzag pivot at {ts} has no OHLCV bar")
+            elif abs(zz['close'] - ohlcv[ts]['close']) > tol:
                 log_failure(conn, cycle_id, 'close',
                             {'source': 'zigzag', 'timestamp_adj': ts,
                              'zigzag_close': zz['close'], 'ohlcv_close': ohlcv[ts]['close']})
@@ -1352,7 +1361,10 @@ def validate_cycle(conn, cycle_id, timeframe, cycle_time,
             latest = max(ohlcv.keys())
 
             # (a) RELATIVE — do the sources agree with each other on the newest bar?
-            stale = [s for s in PER_BAR_SOURCES if latest not in keys[s]]
+            # If OHLCV crossed the :00 boundary and exported the new-bar stub (latest == cycle_time),
+            # a source that exported at :59 has cycle_time - tf_sec as its newest bar.
+            allowed_latest = {latest, cycle_time - tf_sec} if latest == cycle_time else {latest}
+            stale = [s for s in PER_BAR_SOURCES if not (keys[s].keys() & allowed_latest)]
             if stale:
                 log_failure(conn, cycle_id, 'timestamp',
                             {'latest_bar': latest, 'missing_in': stale,

@@ -1,4 +1,4 @@
-﻿//+------------------------------------------------------------------+
+//+------------------------------------------------------------------+
 //|                                          OHLCV_Download.mq5      |
 //|                                    Copyright 2025, Your Name     |
 //|                                      https://www.yourwebsite.com |
@@ -107,7 +107,7 @@ void OnTimer()
    MqlDateTime time_struct;
    TimeToStruct(TimeLocal(), time_struct);
    static int last_trigger_min = -1;
-   if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min)
+   if(time_struct.min != last_trigger_min)
    {
       last_trigger_min = time_struct.min;
       if(ExportPriceData())

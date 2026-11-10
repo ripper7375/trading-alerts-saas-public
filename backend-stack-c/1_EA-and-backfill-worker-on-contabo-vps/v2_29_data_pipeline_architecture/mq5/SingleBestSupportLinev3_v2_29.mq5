@@ -148,7 +148,7 @@ void OnTimer()
    MqlDateTime time_struct;
    TimeToStruct(TimeLocal(), time_struct);
    static int last_trigger_min = -1;
-   if(time_struct.sec == InpExportSecond && time_struct.min != last_trigger_min) {
+   if(time_struct.min != last_trigger_min) {
        last_trigger_min = time_struct.min;
        if(ExportSingleFLData()) Print("SUCCESS: [Auto Export] Support line exported");
        else Print("ERROR: [Auto Export] Failed to export support line.");

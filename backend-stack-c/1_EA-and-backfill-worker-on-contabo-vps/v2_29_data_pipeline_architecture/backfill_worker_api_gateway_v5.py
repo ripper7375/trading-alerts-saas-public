@@ -170,9 +170,9 @@ def create_http_session() -> requests.Session:
 # OUTBOX
 # ============================================================
 def open_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(str(DB_PATH), timeout=10)
+    conn = sqlite3.connect(str(DB_PATH), timeout=60.0)
     conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=5000")
+    conn.execute("PRAGMA busy_timeout=60000")
     conn.row_factory = sqlite3.Row
     return conn
 
@@ -746,9 +746,8 @@ def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
         if resp.status_code in (200, 201):
             conn.execute("UPDATE market_data SET synced_at = ? WHERE timestamp = ? AND timeframe = ?",
                          (int(time.time()), row['timestamp'], row['timeframe']))
+            conn.commit()
             result.pushed += 1
-            if result.pushed % 50 == 0:
-                conn.commit()
         elif resp.status_code == 429:
             retry_after = resp.headers.get('Retry-After')
             logger.warning(f"⚠️ Rate limited{f', Retry-After: {retry_after}s' if retry_after else ''}")
