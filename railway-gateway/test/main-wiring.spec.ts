@@ -20,6 +20,22 @@ describe('main.ts wiring', () => {
     expect(source).toMatch(/app\.set\(\s*'trust proxy',\s*1\s*\)/);
   });
 
+  it('imports the Brotli request-body guard', () => {
+    expect(source).toMatch(
+      /import\s*\{\s*rejectBrotliRequestBody\s*\}\s*from\s*'\.\/common\/middleware\/reject-brotli-request-body\.middleware';/
+    );
+  });
+
+  it('registers the Brotli request-body guard with app.use() before app.listen()', () => {
+    // It must run before Nest's body parser; see reject-brotli-request-body.spec.ts.
+    const use = source.indexOf('app.use(rejectBrotliRequestBody)');
+    const listen = source.indexOf('await app.listen(');
+
+    expect(use).toBeGreaterThan(-1);
+    expect(listen).toBeGreaterThan(-1);
+    expect(use).toBeLessThan(listen);
+  });
+
   it('drains on SIGTERM and ends the process with process.exit(0)', () => {
     expect(source).toMatch(
       /app\.enableShutdownHooks\(\s*undefined,\s*\{\s*useProcessExit:\s*true\s*\}\s*\)/

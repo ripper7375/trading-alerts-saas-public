@@ -12,6 +12,7 @@ import { AlertCronScheduler } from './alert-engine/alert-cron.scheduler';
 import { AlertWorkerService } from './alert-engine/alert-worker.service';
 import { AppModule } from './app.module';
 import { PinoLoggerService } from './common/logging/logging.service';
+import { rejectBrotliRequestBody } from './common/middleware/reject-brotli-request-body.middleware';
 
 async function bootstrap() {
   // bufferLogs holds Nest's own bootstrap-phase logs until useLogger()
@@ -38,6 +39,11 @@ async function bootstrap() {
   const allowedOrigins = (process.env['ALLOWED_ORIGINS'] ?? '*').split(',');
   app.enableCors({ origin: allowedOrigins, credentials: true });
   app.use(compression());
+
+  // Refuse Brotli request bodies before Nest's body parser can decompress them
+  // (defense in depth for CVE-2026-111497). It has to be app.use() here, before
+  // app.listen(): see reject-brotli-request-body.middleware.ts.
+  app.use(rejectBrotliRequestBody);
 
   app.useGlobalPipes(
     new ValidationPipe({

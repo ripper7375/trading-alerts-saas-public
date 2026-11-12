@@ -5,6 +5,7 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
+import { rejectBrotliRequestBody } from './common/middleware/reject-brotli-request-body.middleware';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -29,6 +30,11 @@ async function bootstrap(): Promise<void> {
     origin: process.env['ALLOWED_ORIGINS']?.split(',') ?? '*',
   });
   app.use(compression());
+
+  // Refuse Brotli request bodies before Nest's body parser can decompress them
+  // (defense in depth for CVE-2026-111497). It has to be app.use() here, before
+  // app.listen(): see reject-brotli-request-body.middleware.ts.
+  app.use(rejectBrotliRequestBody);
 
   app.useGlobalPipes(
     new ValidationPipe({
