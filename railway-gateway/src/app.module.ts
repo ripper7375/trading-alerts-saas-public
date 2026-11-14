@@ -9,6 +9,7 @@ import { WorkerModule } from './worker/worker.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { SensorsModule } from './sensors/sensors.module';
+import { TrendlineContextModule } from './trendline-context/trendline-context.module';
 
 @Module({
   imports: [
@@ -51,6 +52,12 @@ import { SensorsModule } from './sensors/sensors.module';
     // module that registers NOTHING unless SENSOR_WORKER_ENABLED is exactly `true`, so until
     // phase B0 the gateway behaves as it did before it existed.
     SensorsModule.register(),
+
+    // Trendline context, Layer 1 (TRENDLINE-CONTEXT-BLUEPRINT.md): a dynamic
+    // module that registers NOTHING unless TRENDLINE_CONTEXT_ENABLED is
+    // exactly `true`, so until that flag is turned on the gateway behaves as
+    // it did before this module existed.
+    TrendlineContextModule.register(),
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

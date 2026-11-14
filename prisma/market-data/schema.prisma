@@ -991,6 +991,100 @@ model McdOutput {
   @@map("mcd_outputs")
 }
 
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TRENDLINE CONTEXT (hand-drawn, labelled trendlines -- analyst policy +
+// system-computed context). Full design: TRENDLINE-CONTEXT-BLUEPRINT.md and
+// DATA-PIPELINE-ARCHITECTURE.md, in backend-stack-c/1_EA-and-backfill-worker-
+// on-contabo-vps/v2_29_data_pipeline_architecture/mq5/new-market-context-
+// synthesis-and-analysis-architecture/. Mirrored in railway-gateway/prisma/
+// schema.prisma -- the gateway writes Layer 1 directly and will write
+// Layer 2 once the sensor-worker code exists (not built yet).
+//━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/// Layer 1 (policy, Blueprint §2/§4.1): one row per "Publish / Lock" click
+/// on the MT5-side curation tool. APPEND-ONLY -- a redraw is a new row,
+/// never an UPDATE, so the analyst's decision history stays replayable the
+/// same way mcd_outputs and indicator_statistics do.
+model TrendlinePolicySession {
+  id     String @id @default(cuid())
+  symbol String
+
+  published_at  Int // unix UTC, when "Publish / Lock" was clicked -- the idempotency key together with symbol
+  overview_note String? // the session-level free-text read, or null; NOT per-line (see TrendlinePolicyLine)
+  regime_hint   String? // closed vocabulary, optional; deliberately NOT mcd1's regime_status words (Blueprint §4.3)
+  source_charts String[] // e.g. ["M3","M5","M15","M30","H1","H4"] -- M3 is the "Constellation" source (its alias name)
+
+  lines TrendlinePolicyLine[]
+
+  createdAt DateTime @default(now())
+
+  // No @updatedAt, deliberately: this table is never updated.
+  @@unique([symbol, published_at])
+  @@index([symbol, published_at])
+  @@map("trendline_policy_sessions")
+}
+
+/// One hand-drawn line within a TrendlinePolicySession (Blueprint §4.1).
+model TrendlinePolicyLine {
+  id         String                 @id @default(cuid())
+  session_id String
+  session    TrendlinePolicySession @relation(fields: [session_id], references: [id], onDelete: Cascade)
+
+  slot_key         String // "M15:TL3" -- stable identity across redraws; see slot vs slot_key below
+  slot             Int // 1..12, the raw TL number WITHIN its own source_timeframe only -- NOT globally unique
+  source_timeframe String // M3 | M5 | M15 | M30 | H1 | H4 (or whatever the exporter's source-label input holds); M3 = "Constellation"
+
+  // The line's two raw anchor points, not a single frozen price: a sloped
+  // line's value changes every bar, so "the price" is only meaningful when
+  // recomputed from these at whatever time it is asked about (Blueprint §4.1).
+  anchor1_time  Int
+  anchor1_price Float
+  anchor2_time  Int
+  anchor2_price Float
+  ray_extends   Boolean @default(true) // false: the line has no meaning past anchor2_time
+
+  label_raw    String // exactly what the analyst typed; never discarded regardless of parse_method
+  role         String // closed vocabulary (Blueprint §4.3)
+  bias_hint    String? // BULLISH | BEARISH | NEUTRAL | null -- inert until a SYN rule reads it (ADR-025, Blueprint §7.1)
+  note         String? // free-text remainder beyond label_raw's headline meaning, if any
+  parse_method String // rule | model | manual (Blueprint §4.4)
+
+  readings TrendlineContextReading[]
+
+  createdAt DateTime @default(now())
+
+  @@index([session_id, slot_key])
+  @@map("trendline_policy_lines")
+}
+
+/// Layer 2 (context, Blueprint §2/§4.2): one row per (line, 5-minute cycle),
+/// meant to be written automatically by the sensor worker on the SAME
+/// cycle-ready trigger that already writes mcd_outputs -- never by a human,
+/// never by the reply path. NOT WRITTEN YET: this table exists so the
+/// schema is complete; the worker code is explicitly out of scope of this
+/// migration (Blueprint §9).
+model TrendlineContextReading {
+  id String @id @default(cuid())
+
+  cycle_slot Int // same clock as mcd_outputs.cycle_slot
+
+  policy_line_id      String
+  policy_line         TrendlinePolicyLine @relation(fields: [policy_line_id], references: [id], onDelete: Cascade)
+  policy_session_id   String // denormalised: which session this reading is relative to, no join needed
+  policy_published_at Int // denormalised: how old the policy was at this cycle, no join needed
+
+  value_now                 Float? // recomputed from the two anchors + cycle_slot, never a value carried forward
+  side                      String // ABOVE | BELOW | AT
+  crossed_since_published   Boolean
+  touch_count_since_publish Int
+  hours_since_published     Float
+  status                    String // VALID | CAUTIONARY | INVALID | STALE -- the SAME vocabulary as mcd_outputs
+
+  @@unique([cycle_slot, policy_line_id])
+  @@index([cycle_slot])
+  @@map("trendline_context_readings")
+}
+
 /// The exact inputs of one cycle's sensor run, frozen (build step 3, decision Q4;
 /// architecture 2.2 point 6). The channel columns the sensors read are refit by
 /// later cycles (ADR-020), so a cycle cannot be rebuilt from `market_data_v6` a

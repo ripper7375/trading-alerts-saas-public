@@ -205,3 +205,14 @@ CLAUDE*-BACKUP*.md
 # Pre-launch security blueprints: never commit while the repository is public (checklist F-10)
 davintrade-pre-launch-security-check-lists/
 docs/runbooks/pre-launch-security-checklist.md
+# Security audit notes and their handoffs: kept out of the public repository
+davintrade-cloudflare-security-audit/
+docs/handoffs/2026-11-01-sec-audit-cloudflare-hardening-*.md
+# Syncthing conflict copies: they can hold copies of ignored files such as .env, so never track them
+*.sync-conflict-*
+
+# Compiled MQL5 build output in the new trendline-context architecture folder (source only is
+# tracked there; .ex5 binaries are MetaEditor's local compile output, both Davin's and the
+# Executor's, and were accumulating untracked -- flagged in chat 2026-11-14, addressed here).
+# Scoped to this one folder, not repo-wide: other mql5-indicators/ folders track .ex5 on purpose.
+backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_data_pipeline_architecture/mq5/new-market-context-synthesis-and-analysis-architecture/*.ex5
