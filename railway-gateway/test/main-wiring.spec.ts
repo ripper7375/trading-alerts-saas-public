@@ -36,6 +36,17 @@ describe('main.ts wiring', () => {
     expect(use).toBeLessThan(listen);
   });
 
+  it('raises the JSON body limit after the Brotli guard and before app.listen()', () => {
+    const brotli = source.indexOf('app.use(rejectBrotliRequestBody)');
+    const parser = source.indexOf(
+      "app.useBodyParser('json', { limit: '2mb' })"
+    );
+    const listen = source.indexOf('await app.listen(');
+
+    expect(parser).toBeGreaterThan(brotli);
+    expect(parser).toBeLessThan(listen);
+  });
+
   it('drains on SIGTERM and ends the process with process.exit(0)', () => {
     expect(source).toMatch(
       /app\.enableShutdownHooks\(\s*undefined,\s*\{\s*useProcessExit:\s*true\s*\}\s*\)/

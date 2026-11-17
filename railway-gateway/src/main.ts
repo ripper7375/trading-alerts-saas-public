@@ -36,6 +36,12 @@ async function bootstrap(): Promise<void> {
   // app.listen(): see reject-brotli-request-body.middleware.ts.
   app.use(rejectBrotliRequestBody);
 
+  // Raise JSON limit above Express's 100kb default so batched ingestion routes
+  // (e.g. /api/v1/market-data/batch with 100+ 103-column rows) do not 413.
+  // Registered after rejectBrotliRequestBody so Brotli still rejects first, and
+  // named 'jsonParser' so Nest skips adding its default 100kb jsonParser in init.
+  app.useBodyParser('json', { limit: '2mb' });
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

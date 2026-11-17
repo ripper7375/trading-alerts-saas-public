@@ -221,4 +221,129 @@ describe('MarketDataController (e2e)', () => {
       })
     );
   });
+
+  describe('POST /api/v1/market-data/batch', () => {
+    it('queues every valid row in order and returns matching jobIds', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const rows = [
+        validBody({ timestamp: now - 300 }),
+        validBody({ timeframe: 'M15', timestamp: now - 900 }),
+      ];
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/market-data/batch')
+        .set('Authorization', 'Bearer push_worker_v5_test_key')
+        .send(rows)
+        .expect(200);
+
+      expect(res.body.queued).toBe(2);
+      expect(res.body.rejected).toBe(0);
+      expect(res.body.conflicts).toBe(0);
+      expect(res.body.results).toEqual([
+        { index: 0, status: 'queued', jobId: `XAUUSD_M5_${now - 300}` },
+        { index: 1, status: 'queued', jobId: `XAUUSD_M15_${now - 900}` },
+      ]);
+    });
+
+    it('isolates poison rows per index without dropping valid neighbors', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const missingVolume = validBody({ timestamp: now - 600 }) as Record<
+        string,
+        unknown
+      >;
+      delete missingVolume['volume'];
+
+      const rows = [
+        validBody({ timestamp: now - 300 }),
+        validBody({ timestamp: now - 400, high: 100, low: 200 }),
+        validBody({ timestamp: now - 500, tema: 1234.5 }),
+        missingVolume,
+        validBody({ timestamp: now - 900 }),
+      ];
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/market-data/batch')
+        .set('Authorization', 'Bearer push_worker_v5_test_key')
+        .send(rows)
+        .expect(200);
+
+      expect(res.body.queued).toBe(2);
+      expect(res.body.rejected).toBe(3);
+      expect(res.body.results[0]).toEqual({
+        index: 0,
+        status: 'queued',
+        jobId: `XAUUSD_M5_${now - 300}`,
+      });
+      expect(res.body.results[1]).toEqual(
+        expect.objectContaining({
+          index: 1,
+          status: 'rejected',
+          error: expect.stringMatching(/high.*less than low/i),
+        })
+      );
+      expect(res.body.results[2]).toEqual(
+        expect.objectContaining({
+          index: 2,
+          status: 'rejected',
+          error: expect.stringMatching(/tema/i),
+        })
+      );
+      expect(res.body.results[3]).toEqual(
+        expect.objectContaining({
+          index: 3,
+          status: 'rejected',
+          error: expect.stringMatching(/volume/i),
+        })
+      );
+      expect(res.body.results[4]).toEqual({
+        index: 4,
+        status: 'queued',
+        jobId: `XAUUSD_M5_${now - 900}`,
+      });
+    });
+
+    it('reports conflict per index without blocking neighbors when a Bull job is already waiting', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      queueMock.getJob.mockImplementationOnce(async () => ({
+        getState: async () => 'waiting',
+      }));
+
+      const res = await request(app.getHttpServer())
+        .post('/api/v1/market-data/batch')
+        .set('Authorization', 'Bearer push_worker_v5_test_key')
+        .send([
+          validBody({ timestamp: now - 300 }),
+          validBody({ timestamp: now - 600 }),
+        ])
+        .expect(200);
+
+      expect(res.body.queued).toBe(1);
+      expect(res.body.rejected).toBe(0);
+      expect(res.body.conflicts).toBe(1);
+      expect(res.body.results).toEqual([
+        expect.objectContaining({ index: 0, status: 'conflict' }),
+        { index: 1, status: 'queued', jobId: `XAUUSD_M5_${now - 600}` },
+      ]);
+    });
+
+    it('rejects non-array bodies and oversized batches with 400, and unauthenticated requests with 401', async () => {
+      await request(app.getHttpServer())
+        .post('/api/v1/market-data/batch')
+        .send([validBody()])
+        .expect(401);
+
+      await request(app.getHttpServer())
+        .post('/api/v1/market-data/batch')
+        .set('Authorization', 'Bearer push_worker_v5_test_key')
+        .send(validBody())
+        .expect(400);
+
+      const oversized = Array.from({ length: 501 }, () => ({}));
+      await request(app.getHttpServer())
+        .post('/api/v1/market-data/batch')
+        .set('Authorization', 'Bearer push_worker_v5_test_key')
+        .send(oversized)
+        .expect(400);
+    });
+  });
 });

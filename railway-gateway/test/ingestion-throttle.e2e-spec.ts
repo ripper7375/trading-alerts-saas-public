@@ -41,6 +41,12 @@ const INGESTION_POSTS: Array<[string, string, Function, string]> = [
     'publishMarketData',
   ],
   [
+    'MarketDataController.publishMarketDataBatch',
+    '/api/v1/market-data/batch',
+    MarketDataController,
+    'publishMarketDataBatch',
+  ],
+  [
     'IndicatorStatisticsController',
     '/api/v1/indicator-statistics',
     IndicatorStatisticsController,
