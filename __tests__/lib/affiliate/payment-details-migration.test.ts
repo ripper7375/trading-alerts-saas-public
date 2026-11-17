@@ -49,7 +49,13 @@ describe('the migration file', () => {
       .filter((d) => d.isDirectory())
       .map((d) => d.name)
       .sort();
-    expect(names[names.length - 1]).toBe(MIGRATION_DIR);
+    expect(names).toContain(MIGRATION_DIR);
+    // Later commits (e.g. 20261114000000_add_trendline_context_tables) add
+    // newer migrations; enforce ordering up through WS-11's own timestamp.
+    const upToThisMigration = names.filter(
+      (n) => n.slice(0, 14) <= '20261026000000'
+    );
+    expect(upToThisMigration[upToThisMigration.length - 1]).toBe(MIGRATION_DIR);
   });
 
   it('adds exactly one nullable TEXT column, safely re-runnable', () => {
