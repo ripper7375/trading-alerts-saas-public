@@ -106,8 +106,9 @@ LOG_DIR = Path('C:/Scripts/logs')
 REJECTED_ROWS_FILE = DB_PATH.parent / 'rejected_rows.jsonl'
 
 IDLE_SLEEP_SEC = 300          # no unsynced rows
-ACTIVE_SLEEP_SEC = 30         # backlog present
+ACTIVE_SLEEP_SEC = 5          # backlog present (batch HTTP drains fast; keep priority responsive)
 MAX_ROWS_PER_CYCLE = 500
+MARKET_DATA_BATCH_SIZE = 100  # POST /api/v1/market-data/batch chunk size (~250 KB/POST, well under 2 MB)
 INTER_ROW_DELAY_SEC = 0.05
 HTTP_TIMEOUT_SEC = 8
 HEALTH_CHECK_INTERVAL = 12
@@ -718,21 +719,27 @@ class SendResult:
     stopped: bool = False        # the loop ended early: network, 429, auth, other error or shutdown
 
 
-def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
-    """POST rows one by one, in the order given, stamping synced_at on 200/201.
+def _prepare_market_data_payload(row: dict) -> dict:
+    data = {k: v for k, v in row.items() if k != 'synced_at'}
+    data['terminal_id'] = TERMINAL_ID
+    return data
 
-    The behaviour push_batch always had, factored out so the priority rows and
-    the backlog share one implementation: 400 -> quarantine AND stamp (a poison
-    row must not block the outbox), 429 -> stop and flag, 401/403 or any other
-    status or a network error -> stop, nothing stamped.
-    """
-    result = SendResult()
+
+def _mark_row_synced(conn, row: dict, now: int) -> None:
+    conn.execute(
+        "UPDATE market_data SET synced_at = ? WHERE timestamp = ? AND timeframe = ?",
+        (now, row['timestamp'], row['timeframe']),
+    )
+
+
+def _send_rows_single(session: requests.Session, conn, rows: List[dict], result: SendResult) -> SendResult:
+    """Single-row POST fallback for /api/v1/market-data when /batch is unavailable
+    (404/405) or rejected as a whole (400/413). Preserves exact quarantine rules."""
     for row in rows:
         if shutdown_requested:
             result.stopped = True
             break
-        data = {k: v for k, v in row.items() if k != 'synced_at'}
-        data['terminal_id'] = TERMINAL_ID
+        data = _prepare_market_data_payload(row)
         result.attempted += 1
 
         try:
@@ -744,8 +751,7 @@ def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
             break
 
         if resp.status_code in (200, 201):
-            conn.execute("UPDATE market_data SET synced_at = ? WHERE timestamp = ? AND timeframe = ?",
-                         (int(time.time()), row['timestamp'], row['timeframe']))
+            _mark_row_synced(conn, row, int(time.time()))
             conn.commit()
             result.pushed += 1
         elif resp.status_code == 429:
@@ -763,8 +769,7 @@ def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
             quarantine_row(data, msg)
             # stamp synced_at so a poison row cannot block the outbox;
             # the quarantine file preserves it for replay after a fix
-            conn.execute("UPDATE market_data SET synced_at = ? WHERE timestamp = ? AND timeframe = ?",
-                         (int(time.time()), row['timestamp'], row['timeframe']))
+            _mark_row_synced(conn, row, int(time.time()))
             result.quarantined.append((row['timeframe'], row['timestamp']))
         elif resp.status_code in (401, 403):
             logger.error("❌ CRITICAL: Authentication failed (check BACKFILL_API_KEY)")
@@ -776,6 +781,130 @@ def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
             break
 
         time.sleep(INTER_ROW_DELAY_SEC)
+
+    conn.commit()
+    return result
+
+
+def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
+    """POST rows in order via POST /api/v1/market-data/batch, stamping synced_at
+    on queued or per-item rejected (quarantined) rows.
+
+    Falls back automatically to single-row POST /api/v1/market-data on 404/405
+    (rolling deploy), halves chunks on 413, and isolates poison batches on 400.
+    429/401/403/5xx/network errors stop immediately without stamping."""
+    result = SendResult()
+    if not rows:
+        return result
+
+    chunk_size = max(1, MARKET_DATA_BATCH_SIZE)
+    if chunk_size == 1:
+        return _send_rows_single(session, conn, rows, result)
+
+    pos = 0
+    total = len(rows)
+    while pos < total:
+        if shutdown_requested:
+            result.stopped = True
+            break
+
+        chunk = rows[pos:pos + chunk_size]
+        payloads = [_prepare_market_data_payload(r) for r in chunk]
+
+        try:
+            resp = session.post(f'{API_GATEWAY_URL}/api/v1/market-data/batch',
+                                json=payloads, timeout=max(HTTP_TIMEOUT_SEC, 15))
+        except (requests.Timeout, requests.ConnectionError) as e:
+            logger.error(f"❌ Network error: {e}")
+            result.stopped = True
+            break
+
+        if resp.status_code in (404, 405):
+            logger.info("ℹ️ /api/v1/market-data/batch unavailable — falling back to single-row POST")
+            return _send_rows_single(session, conn, rows[pos:], result)
+
+        if resp.status_code == 413:
+            if len(chunk) > 1:
+                chunk_size = max(1, len(chunk) // 2)
+                logger.warning(f"⚠️ Batch payload too large (413) — retrying with chunk_size={chunk_size}")
+                continue
+            return _send_rows_single(session, conn, rows[pos:], result)
+
+        if resp.status_code == 400:
+            logger.warning(f"⚠️ Batch rejected at request level (400) — falling back to per-row quarantine for {len(chunk)} row(s)")
+            _send_rows_single(session, conn, chunk, result)
+            if result.stopped:
+                break
+            pos += len(chunk)
+            if pos < total:
+                time.sleep(INTER_ROW_DELAY_SEC)
+            continue
+
+        if resp.status_code == 429:
+            retry_after = resp.headers.get('Retry-After')
+            logger.warning(f"⚠️ Rate limited{f', Retry-After: {retry_after}s' if retry_after else ''}")
+            result.rate_limited = True
+            result.stopped = True
+            break
+
+        if resp.status_code in (401, 403):
+            logger.error("❌ CRITICAL: Authentication failed (check BACKFILL_API_KEY)")
+            result.stopped = True
+            break
+
+        if resp.status_code not in (200, 201):
+            logger.error(f"❌ Gateway error: HTTP {resp.status_code}")
+            result.stopped = True
+            break
+
+        try:
+            body = resp.json()
+        except (json.JSONDecodeError, ValueError):
+            body = None
+
+        items = body.get('results') if isinstance(body, dict) else None
+        if not isinstance(items, list) or len(items) != len(chunk):
+            logger.error("❌ Malformed batch response from gateway — stopping")
+            result.stopped = True
+            break
+
+        by_index = {
+            item['index']: item
+            for item in items
+            if isinstance(item, dict) and isinstance(item.get('index'), int)
+        }
+        now_ts = int(time.time())
+        malformed_item = False
+        for idx, (row, data) in enumerate(zip(chunk, payloads)):
+            result.attempted += 1
+            entry = by_index.get(idx)
+            status = entry.get('status') if entry else None
+            if status == 'queued':
+                _mark_row_synced(conn, row, now_ts)
+                result.pushed += 1
+            elif status == 'rejected':
+                msg = entry.get('error', 'Unknown error')
+                logger.error(f"❌ Gateway rejected bar {row['timestamp']}/{row['timeframe']}: {msg}")
+                quarantine_row(data, str(msg))
+                _mark_row_synced(conn, row, now_ts)
+                result.quarantined.append((row['timeframe'], row['timestamp']))
+            elif status == 'conflict':
+                # Job already active/recently completed in Bull: leave unsynced so
+                # the next pass re-verifies once the Bull dedupe window expires.
+                logger.info(f"⏳ Bar already queued/recent in gateway: {row['timestamp']}/{row['timeframe']}")
+            else:
+                malformed_item = True
+                break
+
+        conn.commit()
+        if malformed_item:
+            logger.error("❌ Incomplete per-row status in gateway batch response — stopping")
+            result.stopped = True
+            break
+
+        pos += len(chunk)
+        if pos < total:
+            time.sleep(INTER_ROW_DELAY_SEC)
 
     conn.commit()
     return result
@@ -917,17 +1046,18 @@ def build_manifest(conn, slot: int, now: int) -> Optional[dict]:
     }
 
 
-def queue_manifest(conn, now: int) -> bool:
-    """Build and store the manifest of the newest validated slot, once.
+def queue_manifest(conn, now: int, slot: Optional[int] = None) -> bool:
+    """Build and store the manifest of the validated slot (default: newest), once.
 
     Only when everything the manifest promises has happened: the collector has
     finished the slot (statistics staged), M15 has settled on a refresh slot, and
-    EVERY priority row has been acknowledged or quarantined. Superseded slots
-    get no manifest by design: the newest slot is the one that matters, and a
-    hole is an honest signal that the worker fell behind. Returns True when a
-    new manifest was stored.
+    EVERY priority row has been acknowledged or quarantined. Passing the slot
+    whose priority rows push_cycle() just finished prevents dropping an anchor
+    slot (:00/:15/:30/:45) if the collector validates the next slot mid-pass.
+    Returns True when a new manifest was stored.
     """
-    slot = latest_validated_slot(conn)
+    if slot is None:
+        slot = latest_validated_slot(conn)
     if slot is None or now - slot > MANIFEST_MAX_AGE_SEC:
         return False
     if conn.execute("SELECT 1 FROM cycle_manifests WHERE slot = ?", (slot,)).fetchone():
@@ -1056,7 +1186,7 @@ def push_cycle(session: requests.Session, conn, now: Optional[int] = None) -> Tu
 
             if manifest_table_available(conn):
                 push_statistics(session, conn)             # best effort, never raises
-                queue_manifest(conn, now)
+                queue_manifest(conn, now, slot=slot)
                 acknowledged, status = send_manifests(session, conn, now)
                 manifests += acknowledged
                 if status in ('rate_limited', 'auth'):

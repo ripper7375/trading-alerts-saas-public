@@ -2080,50 +2080,62 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
    }
    g_rates_total = rates_total;
 
-   int startIdx = (rates_total > InpSSAMathLookback) ?
-   rates_total - InpSSAMathLookback : 0;
-   int len = rates_total - startIdx;
-   if(prev_calculated == 0) {
-      for(int i = 0; i < startIdx; i++) { ExtSSATrend[i] = EMPTY_VALUE;
-      ExtSSASignal[i] = EMPTY_VALUE; ExtSSACross[i] = EMPTY_VALUE; }
-   }
-
-   vector<double> vecClose(len);
-   for(int i = 0; i < len; i++) vecClose[i] = close[startIdx + i];
-
-   CSSAModel ssaClose; CAlglib::SSACreate(ssaClose); CRowDouble closeRow(vecClose); 
-   CAlglib::SSAAddSequence(ssaClose, closeRow);
-   CAlglib::SSASetAlgoTopKRealtime(ssaClose, SSARank); CAlglib::SSASetWindow(ssaClose, SSAWindow);
-
-   CRowDouble trend, noise;
-   double alpha = 2.0 / (SSASignalPeriod + 1.0);
-   if(prev_calculated == 0) {
-      CAlglib::SSAAnalyzeLast(ssaClose, len, trend, noise);
-      if(trend.Size() == len) {
-         vector<double> vecTrend = trend.ToVector();
-         for(int i = 0; i < len; i++) ExtSSATrend[startIdx + i] = vecTrend[i];
-         
-         ExtSSASignal[startIdx] = vecTrend[0]; ExtSSACross[startIdx] = EMPTY_VALUE;
-         for(int i = 1; i < len; i++) {
-            int idx = startIdx + i;
-            ExtSSASignal[idx] = alpha * vecTrend[i] + (1.0 - alpha) * ExtSSASignal[idx - 1];
-            bool crossUp = (ExtSSATrend[idx] > ExtSSASignal[idx]) && (ExtSSATrend[idx - 1] <= ExtSSASignal[idx - 1]);
-            bool crossDown = (ExtSSATrend[idx] < ExtSSASignal[idx]) && (ExtSSATrend[idx - 1] >= ExtSSASignal[idx - 1]);
-            if(crossUp || crossDown) ExtSSACross[idx] = ExtSSATrend[idx];
-            else ExtSSACross[idx] = EMPTY_VALUE;
-         }
+   static datetime last_ssa_time = 0;
+   bool ssa_update_due = (prev_calculated == 0) || new_bar || (rates_total != prev_calculated) || (TimeLocal() - last_ssa_time >= 5);
+   if(ssa_update_due) {
+      last_ssa_time = TimeLocal();
+      int startIdx = (rates_total > InpSSAMathLookback) ?
+      rates_total - InpSSAMathLookback : 0;
+      int len = rates_total - startIdx;
+      if(prev_calculated == 0) {
+         for(int i = 0; i < startIdx; i++) { ExtSSATrend[i] = EMPTY_VALUE;
+         ExtSSASignal[i] = EMPTY_VALUE; ExtSSACross[i] = EMPTY_VALUE; }
       }
-   } else {
-      CAlglib::SSAAnalyzeLast(ssaClose, 1, trend, noise);
-      int last = rates_total - 1; int prev = last - 1;
-      if(trend.Size() == 1) {
-         ExtSSATrend[last] = trend[0];
-         ExtSSASignal[last] = alpha * ExtSSATrend[last] + (1.0 - alpha) * ExtSSASignal[prev];
-         if(ExtSSATrend[prev] != EMPTY_VALUE && ExtSSASignal[prev] != EMPTY_VALUE) {
-            bool crossUp = (ExtSSATrend[last] > ExtSSASignal[last]) && (ExtSSATrend[prev] <= ExtSSASignal[prev]);
-            bool crossDown = (ExtSSATrend[last] < ExtSSASignal[last]) && (ExtSSATrend[prev] >= ExtSSASignal[prev]);
-            if(crossUp || crossDown) ExtSSACross[last] = ExtSSATrend[last]; else ExtSSACross[last] = EMPTY_VALUE;
-         } else ExtSSACross[last] = EMPTY_VALUE;
+
+      vector<double> vecClose(len);
+      for(int i = 0; i < len; i++) vecClose[i] = close[startIdx + i];
+
+      CSSAModel ssaClose; CAlglib::SSACreate(ssaClose); CRowDouble closeRow(vecClose); 
+      CAlglib::SSAAddSequence(ssaClose, closeRow);
+      CAlglib::SSASetAlgoTopKRealtime(ssaClose, SSARank); CAlglib::SSASetWindow(ssaClose, SSAWindow);
+
+      CRowDouble trend, noise;
+      double alpha = 2.0 / (SSASignalPeriod + 1.0);
+      if(prev_calculated == 0) {
+         CAlglib::SSAAnalyzeLast(ssaClose, len, trend, noise);
+         if(trend.Size() == len) {
+            vector<double> vecTrend = trend.ToVector();
+            for(int i = 0; i < len; i++) ExtSSATrend[startIdx + i] = vecTrend[i];
+            
+            ExtSSASignal[startIdx] = vecTrend[0]; ExtSSACross[startIdx] = EMPTY_VALUE;
+            for(int i = 1; i < len; i++) {
+               int idx = startIdx + i;
+               ExtSSASignal[idx] = alpha * vecTrend[i] + (1.0 - alpha) * ExtSSASignal[idx - 1];
+               bool crossUp = (ExtSSATrend[idx] > ExtSSASignal[idx]) && (ExtSSATrend[idx - 1] <= ExtSSASignal[idx - 1]);
+               bool crossDown = (ExtSSATrend[idx] < ExtSSASignal[idx]) && (ExtSSATrend[idx - 1] >= ExtSSASignal[idx - 1]);
+               if(crossUp || crossDown) ExtSSACross[idx] = ExtSSATrend[idx];
+               else ExtSSACross[idx] = EMPTY_VALUE;
+            }
+         }
+      } else {
+         int ssa_tail = MathMin(len, (rates_total > prev_calculated) ? (rates_total - prev_calculated + 1) : 1);
+         CAlglib::SSAAnalyzeLast(ssaClose, ssa_tail, trend, noise);
+         if(trend.Size() == ssa_tail) {
+            for(int k = 0; k < ssa_tail; k++) {
+               int idx = rates_total - ssa_tail + k;
+               int prev = idx - 1;
+               ExtSSATrend[idx] = trend[k];
+               if(prev < startIdx || ExtSSATrend[prev] == EMPTY_VALUE || ExtSSASignal[prev] == EMPTY_VALUE) {
+                  ExtSSASignal[idx] = ExtSSATrend[idx];
+                  ExtSSACross[idx] = EMPTY_VALUE;
+               } else {
+                  ExtSSASignal[idx] = alpha * ExtSSATrend[idx] + (1.0 - alpha) * ExtSSASignal[prev];
+                  bool crossUp = (ExtSSATrend[idx] > ExtSSASignal[idx]) && (ExtSSATrend[prev] <= ExtSSASignal[prev]);
+                  bool crossDown = (ExtSSATrend[idx] < ExtSSASignal[idx]) && (ExtSSATrend[prev] >= ExtSSASignal[prev]);
+                  if(crossUp || crossDown) ExtSSACross[idx] = ExtSSATrend[idx]; else ExtSSACross[idx] = EMPTY_VALUE;
+               }
+            }
+         }
       }
    }
 

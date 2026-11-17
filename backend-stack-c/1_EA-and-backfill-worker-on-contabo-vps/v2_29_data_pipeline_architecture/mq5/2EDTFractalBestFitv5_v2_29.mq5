@@ -531,84 +531,86 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
       }
    }
 
-   if(prev_calculated == 0 || new_bar) BuildBestFlipLine(rates_total);
+   if(prev_calculated == 0 || new_bar) {
+      BuildBestFlipLine(rates_total);
 
-   if(!InpShowComments) {
-      Comment("");
-   } else {
-      string base_price_str = "N/A";
-      string uoedt_comment_str = "N/A";
-      string loedt_comment_str = "N/A";
-      string channel_width_str = "N/A";
-      string edt_mode_str = (InpEDTCalcMode == EDT_MODE_PERCENT_DEVIATION) ? "User Defined %" : "Fractal Proximity";
-
-      if(g_stat_found) {
-         double live_base = (ExtBestFL[0] != EMPTY_VALUE && ExtBestFL[0] != 0.0)
-                            ? ExtBestFL[0]
-                            : g_stat_intercept_anchored;
-         int price_digits = (_Digits > 2) ? _Digits : 2;
-         if(live_base > 0.0) base_price_str = StringFormat("%.*f USD", price_digits, live_base);
-
-         if(g_stat_uoedt_offset != EMPTY_VALUE && live_base > 0.0) {
-             double uo_pct = (g_stat_uoedt_offset / live_base) * 100.0;
-             uoedt_comment_str = StringFormat("%+.*f USD (%+.2f%%)", price_digits, g_stat_uoedt_offset, uo_pct);
-         }
-         if(g_stat_loedt_offset != EMPTY_VALUE && live_base > 0.0) {
-             double lo_pct = (g_stat_loedt_offset / live_base) * 100.0;
-             loedt_comment_str = StringFormat("%+.*f USD (%+.2f%%)", price_digits, g_stat_loedt_offset, lo_pct);
-         }
-         if(g_stat_uoedt_offset != EMPTY_VALUE && g_stat_loedt_offset != EMPTY_VALUE && live_base > 0.0) {
-             double ch_w = g_stat_uoedt_offset - g_stat_loedt_offset;
-             double ch_pct = (ch_w / live_base) * 100.0;
-             channel_width_str = StringFormat("%.*f USD (%.2f%%)", price_digits, ch_w, ch_pct);
-         }
-
-         string comment_text = StringFormat(
-             "--- DavinTrade V3.89 Fractal Best-Fit Pipeline ---\n" +
-             "Solution Found        : YES\n" +
-             "Best FL Touches       : %d\n" +
-             "Window Anchors        : %s to %s\n" +
-             "Raw Slope (b)         : %.8f\n" +
-             "Anchored Y-Int (Live) : %.5f\n" +
-             "=================================================\n" +
-             "            [EDT CHANNEL]\n" +
-             "EDT Mode              : %s\n" +
-             "Baseline Price (Live) : %s\n" +
-             "UOEDT Distance        : %s\n" +
-             "LOEDT Distance        : %s\n" +
-             "Channel Total Width   : %s",
-             g_stat_touches,
-             TimeToString(InpStartDateTime, TIME_DATE|TIME_MINUTES),
-             TimeToString(InpEndDateTime, TIME_DATE|TIME_MINUTES),
-             g_stat_slope,
-             g_stat_intercept_anchored,
-             edt_mode_str,
-             base_price_str,
-             uoedt_comment_str,
-             loedt_comment_str,
-             channel_width_str
-         );
-         Comment(comment_text);
+      if(!InpShowComments) {
+         Comment("");
       } else {
-         string comment_text = StringFormat(
-             "--- DavinTrade V3.89 Fractal Best-Fit Pipeline ---\n" +
-             "Solution Found        : NO\n" +
-             "Window Anchors        : %s to %s\n" +
-             "=================================================\n" +
-             "            [EDT CHANNEL]\n" +
-             "EDT Mode              : %s\n" +
-             "Baseline Price (Live) : N/A\n" +
-             "UOEDT Distance        : N/A\n" +
-             "LOEDT Distance        : N/A\n" +
-             "Channel Total Width   : N/A",
-             TimeToString(InpStartDateTime, TIME_DATE|TIME_MINUTES),
-             TimeToString(InpEndDateTime, TIME_DATE|TIME_MINUTES),
-             edt_mode_str
-         );
-         Comment(comment_text);
+         string base_price_str = "N/A";
+         string uoedt_comment_str = "N/A";
+         string loedt_comment_str = "N/A";
+         string channel_width_str = "N/A";
+         string edt_mode_str = (InpEDTCalcMode == EDT_MODE_PERCENT_DEVIATION) ? "User Defined %" : "Fractal Proximity";
+
+         if(g_stat_found) {
+            double live_base = (ExtBestFL[0] != EMPTY_VALUE && ExtBestFL[0] != 0.0)
+                               ? ExtBestFL[0]
+                               : g_stat_intercept_anchored;
+            int price_digits = (_Digits > 2) ? _Digits : 2;
+            if(live_base > 0.0) base_price_str = StringFormat("%.*f USD", price_digits, live_base);
+
+            if(g_stat_uoedt_offset != EMPTY_VALUE && live_base > 0.0) {
+                double uo_pct = (g_stat_uoedt_offset / live_base) * 100.0;
+                uoedt_comment_str = StringFormat("%+.*f USD (%+.2f%%)", price_digits, g_stat_uoedt_offset, uo_pct);
+            }
+            if(g_stat_loedt_offset != EMPTY_VALUE && live_base > 0.0) {
+                double lo_pct = (g_stat_loedt_offset / live_base) * 100.0;
+                loedt_comment_str = StringFormat("%+.*f USD (%+.2f%%)", price_digits, g_stat_loedt_offset, lo_pct);
+            }
+            if(g_stat_uoedt_offset != EMPTY_VALUE && g_stat_loedt_offset != EMPTY_VALUE && live_base > 0.0) {
+                double ch_w = g_stat_uoedt_offset - g_stat_loedt_offset;
+                double ch_pct = (ch_w / live_base) * 100.0;
+                channel_width_str = StringFormat("%.*f USD (%.2f%%)", price_digits, ch_w, ch_pct);
+            }
+
+            string comment_text = StringFormat(
+                "--- DavinTrade V3.89 Fractal Best-Fit Pipeline ---\n" +
+                "Solution Found        : YES\n" +
+                "Best FL Touches       : %d\n" +
+                "Window Anchors        : %s to %s\n" +
+                "Raw Slope (b)         : %.8f\n" +
+                "Anchored Y-Int (Live) : %.5f\n" +
+                "=================================================\n" +
+                "            [EDT CHANNEL]\n" +
+                "EDT Mode              : %s\n" +
+                "Baseline Price (Live) : %s\n" +
+                "UOEDT Distance        : %s\n" +
+                "LOEDT Distance        : %s\n" +
+                "Channel Total Width   : %s",
+                g_stat_touches,
+                TimeToString(InpStartDateTime, TIME_DATE|TIME_MINUTES),
+                TimeToString(InpEndDateTime, TIME_DATE|TIME_MINUTES),
+                g_stat_slope,
+                g_stat_intercept_anchored,
+                edt_mode_str,
+                base_price_str,
+                uoedt_comment_str,
+                loedt_comment_str,
+                channel_width_str
+            );
+            Comment(comment_text);
+         } else {
+            string comment_text = StringFormat(
+                "--- DavinTrade V3.89 Fractal Best-Fit Pipeline ---\n" +
+                "Solution Found        : NO\n" +
+                "Window Anchors        : %s to %s\n" +
+                "=================================================\n" +
+                "            [EDT CHANNEL]\n" +
+                "EDT Mode              : %s\n" +
+                "Baseline Price (Live) : N/A\n" +
+                "UOEDT Distance        : N/A\n" +
+                "LOEDT Distance        : N/A\n" +
+                "Channel Total Width   : N/A",
+                TimeToString(InpStartDateTime, TIME_DATE|TIME_MINUTES),
+                TimeToString(InpEndDateTime, TIME_DATE|TIME_MINUTES),
+                edt_mode_str
+            );
+            Comment(comment_text);
+         }
       }
+      ChartRedraw(0);
    }
-   ChartRedraw(0); 
    return(rates_total);
   }
 

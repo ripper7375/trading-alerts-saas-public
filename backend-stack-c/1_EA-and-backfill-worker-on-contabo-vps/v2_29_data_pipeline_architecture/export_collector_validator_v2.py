@@ -379,8 +379,15 @@ STAT_FIELDS = [
 # only on redeploy — a NEW hash appearing IS the "someone reconfigured this"
 # signal.
 STAT_CONFIG_LABELS = {
-    'Regression Centroids (Box B)', 'Excluded Recent Centroids (Box A)',
-    'Excluded Centroids', 'Time-Decay Lambda', 'Visual EDT Window (Bars)',
+    # Static regression & centroid inputs (compiled into .mq5 or frozen snapshot).
+    # Deliberately EXCLUDES runtime-varying bar-window / fallback counters such as
+    # 'Visual EDT Window (Bars)' (dynamic active_visual_lookback computed per bar;
+    # still captured numerically under [FIT WINDOW] -> visual_window_bars) and
+    # 'Excluded Recent Centroids (Box A)' (actual_exclude auto-reduced at runtime
+    # when fewer centroids exist than user target + exclude). Including runtime
+    # values here mints a new config_hash every bar and floods false PROMOTEs.
+    'Regression Centroids (Box B)',
+    'Excluded Centroids', 'Time-Decay Lambda',
     'Timeframe (Sec)', 'Fractal Bars', 'Min Touches', 'Require Both Sides',
     'Max Line Angle', 'Tolerance Type', 'Tolerance Percent',
     'Tolerance ATR Multiplier', 'EDT Min Touches', 'LOEDT Min Touches',

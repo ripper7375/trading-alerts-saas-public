@@ -171,12 +171,15 @@ def _build_world(slot, *, m5_bars=3000, m15_bars=3000, stub=True, m5_attempts=1,
 
 
 class FakeResponse:
-    def __init__(self, status_code, text='gateway said no'):
+    def __init__(self, status_code, text='gateway said no', json_body=None):
         self.status_code = status_code
         self.text = text
         self.headers = {}
+        self._json_body = json_body
 
     def json(self):
+        if self._json_body is not None:
+            return self._json_body
         return {'message': self.text}
 
 
@@ -185,8 +188,10 @@ class FakeSession:
 
     `rules` is a list of callables rule(kind, n, body) -> None (answer 200), an
     int (answer with that status) or an Exception instance (raise it). `kind` is
-    'row', 'stats', 'events' or 'manifest'; `n` counts the POSTs of that kind
-    so far, from 0.
+    'row', 'row_batch', 'stats', 'events' or 'manifest'; `n` counts the POSTs of
+    that kind so far, from 0. For 'row_batch', if no rule acts on 'row_batch'
+    itself, each item in `body` is checked against 'row' rules so per-row 400/409
+    isolation works identically in batch and fallback tests.
     """
 
     def __init__(self, *rules):
@@ -196,6 +201,8 @@ class FakeSession:
 
     @staticmethod
     def kind_of(url):
+        if url.endswith('/api/v1/market-data/batch'):
+            return 'row_batch'
         if url.endswith('/api/v1/market-data'):
             return 'row'
         if url.endswith('/api/v1/indicator-statistics'):
@@ -206,18 +213,53 @@ class FakeSession:
             return 'manifest'
         raise AssertionError(f'unexpected URL {url}')
 
+    def _apply_rules(self, kind, n, body):
+        for rule in self.rules:
+            outcome = rule(kind, n, body)
+            if outcome is not None:
+                return outcome
+        return None
+
     def post(self, url, json=None, timeout=None):
         kind = self.kind_of(url)
         n = self.counts.get(kind, 0)
         self.counts[kind] = n + 1
         self.posts.append((kind, json))
-        for rule in self.rules:
-            outcome = rule(kind, n, json)
-            if outcome is None:
-                continue
+
+        outcome = self._apply_rules(kind, n, json)
+        if outcome is not None:
             if isinstance(outcome, Exception):
                 raise outcome
             return FakeResponse(outcome)
+
+        if kind == 'row_batch' and isinstance(json, list):
+            results = []
+            queued = rejected = conflicts = 0
+            for idx, item in enumerate(json):
+                row_n = self.counts.get('row', 0)
+                self.counts['row'] = row_n + 1
+                row_outcome = self._apply_rules('row', row_n, item)
+                if isinstance(row_outcome, Exception):
+                    raise row_outcome
+                if row_outcome in (429, 401, 403, 500, 503):
+                    return FakeResponse(row_outcome)
+                if row_outcome == 400:
+                    rejected += 1
+                    results.append({'index': idx, 'status': 'rejected', 'error': 'gateway said no'})
+                elif row_outcome == 409:
+                    conflicts += 1
+                    results.append({'index': idx, 'status': 'conflict', 'error': 'duplicate job'})
+                else:
+                    queued += 1
+                    job_id = f"{item.get('symbol', 'XAUUSD')}_{item.get('timeframe', '')}_{item.get('timestamp', '')}"
+                    results.append({'index': idx, 'status': 'queued', 'jobId': job_id})
+            return FakeResponse(200, json_body={
+                'queued': queued,
+                'rejected': rejected,
+                'conflicts': conflicts,
+                'results': results,
+            })
+
         return FakeResponse(200)
 
     # convenience views
@@ -225,7 +267,13 @@ class FakeSession:
         return [k for k, _ in self.posts]
 
     def rows(self):
-        return [b for k, b in self.posts if k == 'row']
+        out = []
+        for k, b in self.posts:
+            if k == 'row':
+                out.append(b)
+            elif k == 'row_batch' and isinstance(b, list):
+                out.extend(b)
+        return out
 
     def manifests(self):
         return [b for k, b in self.posts if k == 'manifest']
@@ -246,6 +294,7 @@ def isolated_worker():
     worker keeps between calls is reset, so one test cannot leak into the next.
     """
     saved = {name: getattr(worker, name) for name in (
+        'ACTIVE_SLEEP_SEC', 'MARKET_DATA_BATCH_SIZE',
         'INTER_ROW_DELAY_SEC', 'REJECTED_ROWS_FILE', 'REJECTED_MANIFESTS_FILE',
         'REJECTED_STATS_FILE', 'REJECTED_EVENTS_FILE', 'shutdown_requested')}
     with tempfile.TemporaryDirectory() as d:

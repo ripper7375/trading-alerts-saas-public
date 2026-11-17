@@ -290,7 +290,8 @@ def test_end_to_end_collector_to_manifest_to_contract():
         pushed, quarantined, _, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
         assert (quarantined, manifests) == (0, 1)
         assert session.kinds()[-1] == 'manifest' and session.kinds().count('manifest') == 1
-        assert session.kinds().index('manifest') > max(i for i, k in enumerate(session.kinds()) if k == 'row'), \
+        assert session.kinds().index('manifest') > max(
+            i for i, k in enumerate(session.kinds()) if k in ('row', 'row_batch')), \
             'the manifest must come after every row it describes'
 
         manifest = session.manifests()[0]
@@ -736,7 +737,7 @@ def test_a_gateway_without_the_endpoint_never_holds_back_the_prices():
         session = FakeSession(always('manifest', 404))
         pushed, quarantined, rate_limited, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
         assert (pushed, quarantined, manifests) == (500, 0, 0)
-        assert session.kinds().count('row') == 500 and session.kinds().count('manifest') == 1
+        assert len(session.rows()) == 500 and session.kinds().count('manifest') == 1
         assert stored(conn)[0][2] is None, 'the manifest is still waiting to be delivered'
         assert worker.manifest_work_pending(conn, SLOT_REFRESH + 90) is True
 
@@ -794,7 +795,8 @@ def test_a_database_without_the_outbox_turns_the_manifest_lane_off_and_nothing_e
         session = FakeSession()
         pushed, _, _, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
         assert pushed == 500 and manifests == 0 and 'manifest' not in session.kinds()
-        assert session.kinds()[:386] == ['row'] * 386, 'priority order must not depend on the manifest lane'
+        assert len(session.rows()) == 500 and [len(b) for _, b in session.posts] == [100, 100, 100, 86, 100, 14], \
+            'priority order must not depend on the manifest lane'
 
 
 def test_a_stale_slot_with_no_manifest_does_not_keep_the_worker_busy():
@@ -833,6 +835,84 @@ def test_the_main_loop_knows_when_a_manifest_is_due():
         assert worker.manifest_work_pending(conn, SLOT_PLAIN + 90) is False, 'delivered: the worker may idle'
         assert worker.manifest_work_pending(conn, SLOT_PLAIN + worker.MANIFEST_MAX_AGE_SEC + 600) is False, \
             'a stale slot must not keep the worker off its idle cadence for ever'
+
+
+def test_runtime_visual_window_and_excluded_box_a_do_not_change_config_hash():
+    """Bar-to-bar runtime values ('Visual EDT Window (Bars)' and 'Excluded Recent
+    Centroids (Box A)') must NOT alter config_hash, while real static setting
+    changes ('Regression Centroids (Box B)') MUST mint a new config_hash."""
+    with tempfile.TemporaryDirectory() as d:
+        base = Path(d)
+        stat_a = base / 'Non-Recent-B_XAUUSD_M15_Statistic.txt'
+        stat_b = base / 'Non-Recent-B_XAUUSD_M15_Statistic_next.txt'
+        stat_c = base / 'Non-Recent-B_XAUUSD_M15_Statistic_reconf.txt'
+        common = (
+            "Timeframe (Sec): 900\n"
+            "Excluded Centroids: 0\n"
+            "Time-Decay Lambda: 0.500\n"
+            "Projection Mode: DYNAMIC\n"
+            "Observation Window: 1450\n"
+        )
+        stat_a.write_text(
+            common
+            + "Regression Centroids (Box B): 7\n"
+            + "Visual EDT Window (Bars): 600\n"
+            + "Excluded Recent Centroids (Box A): 3\n",
+            encoding='utf-8',
+        )
+        row_a = collector.parse_statistic_file(stat_a)
+
+        stat_b.write_text(
+            common
+            + "Regression Centroids (Box B): 7\n"
+            + "Visual EDT Window (Bars): 724\n"
+            + "Excluded Recent Centroids (Box A): 1\n",
+            encoding='utf-8',
+        )
+        # Copy under exact collector filename so source/timeframe infer cleanly
+        stat_a.write_text(stat_b.read_text(encoding='utf-8'), encoding='utf-8')
+        row_b = collector.parse_statistic_file(stat_a)
+
+        stat_c.write_text(
+            common
+            + "Regression Centroids (Box B): 5\n"
+            + "Visual EDT Window (Bars): 724\n"
+            + "Excluded Recent Centroids (Box A): 1\n",
+            encoding='utf-8',
+        )
+        stat_a.write_text(stat_c.read_text(encoding='utf-8'), encoding='utf-8')
+        row_c = collector.parse_statistic_file(stat_a)
+
+        assert row_a['config_hash'] == row_b['config_hash'], (
+            'runtime fluctuations in Visual EDT Window (Bars) / Excluded Box A must not churn config_hash'
+        )
+        assert row_c['config_hash'] != row_a['config_hash'], (
+            'changing static Regression Centroids (Box B) must mint a new config_hash'
+        )
+
+
+def test_push_cycle_still_queues_manifest_when_next_slot_validates_mid_pass():
+    """If the collector validates the next slot while push_cycle() is sending
+    the current slot's priority rows, push_cycle() must still queue the current
+    slot's manifest instead of dropping the refresh (:00/:15/:30/:45) anchor."""
+    with isolated_worker():
+        conn, _ = build_world(SLOT_REFRESH)
+        nxt = SLOT_REFRESH + 300
+        injected = False
+
+        def validate_next_slot_mid_pass(kind, _n, _body):
+            nonlocal injected
+            if kind == 'stats' and not injected:
+                injected = True
+                add_cycle(conn, nxt, 'M5', newest_bar_ts=nxt)
+            return None
+
+        session = FakeSession(validate_next_slot_mid_pass)
+        pushed, quarantined, rate_limited, manifests = worker.push_cycle(
+            session, conn, now=nxt + 10
+        )
+        assert (pushed, quarantined, rate_limited, manifests) == (500, 0, False, 1)
+        assert [m['slot'] for m in session.manifests()] == [SLOT_REFRESH]
 
 
 if __name__ == '__main__':

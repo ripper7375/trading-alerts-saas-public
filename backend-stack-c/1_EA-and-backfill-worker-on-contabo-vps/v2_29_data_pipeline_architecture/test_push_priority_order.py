@@ -149,12 +149,14 @@ def test_manifest_follows_the_priority_rows_and_precedes_the_backlog():
         conn, _ = build_world(SLOT_REFRESH)
         session, (pushed, quarantined, rate_limited, manifests) = run_pass(conn)
         runs = []
-        for kind in session.kinds():
+        for kind, body in session.posts:
+            row_count = len(body) if kind == 'row_batch' else 1
             if runs and runs[-1][0] == kind:
                 runs[-1][1] += 1
+                runs[-1][2] += row_count
             else:
-                runs.append([kind, 1])
-        assert runs == [['row', 386], ['stats', 1], ['manifest', 1], ['row', 114]], runs
+                runs.append([kind, 1, row_count])
+        assert runs == [['row_batch', 4, 386], ['stats', 1, 1], ['manifest', 1, 1], ['row_batch', 2, 114]], runs
         assert (pushed, quarantined, rate_limited, manifests) == (500, 0, False, 1)
 
 
@@ -226,7 +228,8 @@ def test_the_full_requeue_never_starves_the_newest_bars():
         assert {key(r) for r in first} == expected_priority(nxt, nxt), \
             'the new cycle\'s newest bars did not go first behind the old backlog'
         assert first[0]['timestamp'] == nxt
-        assert session.kinds()[289:292] == ['stats', 'manifest', 'row'], session.kinds()[289:292]
+        # 289 priority rows consume 3 batches (100, 100, 89), followed immediately by stats, manifest, backlog
+        assert session.kinds()[3:6] == ['stats', 'manifest', 'row_batch'], session.kinds()[3:6]
 
 
 # ============================================================
@@ -235,10 +238,10 @@ def test_the_full_requeue_never_starves_the_newest_bars():
 def test_network_error_mid_priority_sends_no_manifest_and_no_backlog():
     with isolated_worker():
         conn, _ = build_world(SLOT_REFRESH)
-        session = FakeSession(always('row', requests.ConnectionError('down'), from_n=100))
+        session = FakeSession(always('row_batch', requests.ConnectionError('down'), from_n=1))
         pushed, quarantined, rate_limited, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
         assert pushed == 100 and manifests == 0
-        assert session.kinds() == ['row'] * 101, 'nothing may be attempted behind a failure'
+        assert session.kinds() == ['row_batch', 'row_batch'], 'nothing may be attempted behind a failure'
         assert conn.execute("SELECT COUNT(*) FROM cycle_manifests").fetchone()[0] == 0
         assert worker.unsynced_count(conn) == 6000 - 100
 
@@ -246,21 +249,72 @@ def test_network_error_mid_priority_sends_no_manifest_and_no_backlog():
 def test_rate_limit_mid_priority_stops_and_says_so():
     with isolated_worker():
         conn, _ = build_world(SLOT_REFRESH)
-        session = FakeSession(always('row', 429, from_n=50))
+        session = FakeSession(always('row_batch', 429, from_n=1))
         pushed, _, rate_limited, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
-        assert rate_limited is True and pushed == 50 and manifests == 0
-        assert session.kinds() == ['row'] * 51
+        assert rate_limited is True and pushed == 100 and manifests == 0
+        assert session.kinds() == ['row_batch', 'row_batch']
 
 
 def test_auth_failure_and_server_errors_stop_the_pass():
     for status in (401, 403, 500, 503):
         with isolated_worker():
             conn, _ = build_world(SLOT_REFRESH)
-            session = FakeSession(always('row', status, from_n=0))
+            session = FakeSession(always('row_batch', status, from_n=0))
             pushed, quarantined, _, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
             assert (pushed, quarantined, manifests) == (0, 0, 0), status
-            assert session.kinds() == ['row'], f'HTTP {status} did not stop the pass'
+            assert session.kinds() == ['row_batch'], f'HTTP {status} did not stop the pass'
             assert worker.unsynced_count(conn) == 6000, 'a failed row must stay unsent'
+
+
+def test_batch_404_falls_back_cleanly_to_single_row_and_preserves_mid_stream_stop():
+    with isolated_worker():
+        conn, _ = build_world(SLOT_REFRESH)
+        session = FakeSession(
+            always('row_batch', 404),
+            always('row', requests.ConnectionError('down'), from_n=100),
+        )
+        pushed, _, _, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
+        assert pushed == 100 and manifests == 0
+        assert session.kinds() == ['row_batch'] + ['row'] * 101
+
+    with isolated_worker():
+        conn, _ = build_world(SLOT_REFRESH)
+        session = FakeSession(always('row_batch', 404))
+        pushed, quarantined, rate_limited, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
+        assert (pushed, quarantined, rate_limited, manifests) == (500, 0, False, 1)
+        assert worker.unsynced_count(conn) == 6000 - 500
+        single_rows = [b for k, b in session.posts if k == 'row']
+        assert len(single_rows) == 500
+        assert session.kinds()[:1] == ['row_batch'] and session.kinds()[1:387] == ['row'] * 386
+
+
+def test_batch_413_halves_chunk_size_and_delivers_all_rows():
+    with isolated_worker():
+        conn, _ = build_world(SLOT_REFRESH)
+        def too_large_over_50(kind, _n, body):
+            if kind == 'row_batch' and isinstance(body, list) and len(body) > 50:
+                return 413
+            return None
+        session = FakeSession(too_large_over_50)
+        pushed, quarantined, rate_limited, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
+        assert (pushed, quarantined, rate_limited, manifests) == (500, 0, False, 1)
+        assert worker.unsynced_count(conn) == 6000 - 500
+        accepted_batches = [len(b) for k, b in session.posts if k == 'row_batch' and len(b) <= 50]
+        assert sum(accepted_batches) == 500 and all(sz <= 50 for sz in accepted_batches), accepted_batches
+
+
+def test_batch_conflict_row_stays_unsynced_without_blocking_neighbors():
+    with isolated_worker():
+        conn, _ = build_world(SLOT_REFRESH)
+        session = FakeSession(lambda kind, n, _body: 409 if kind == 'row' and n == 7 else None)
+        pushed, quarantined, rate_limited, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
+        assert (pushed, quarantined, rate_limited) == (499, 0, False)
+        assert manifests == 0, 'an unacknowledged priority row keeps the manifest waiting until confirmed'
+        conflicted = session.rows()[7]
+        synced = conn.execute("SELECT synced_at FROM market_data WHERE timeframe = ? AND timestamp = ?",
+                              (conflicted['timeframe'], conflicted['timestamp'])).fetchone()[0]
+        assert synced is None, 'a 409 conflict row must NOT be stamped synced_at or quarantined'
+        assert not worker.REJECTED_ROWS_FILE.exists()
 
 
 def test_a_rejected_priority_row_is_quarantined_and_the_manifest_says_so():
@@ -337,7 +391,8 @@ def test_an_old_collector_database_falls_back_to_oldest_first_and_does_not_crash
         session = FakeSession()
         pushed, quarantined, rate_limited, manifests = worker.push_cycle(session, conn, now=SLOT_REFRESH + 60)
         stamps = [r['timestamp'] for r in session.rows()]
-        assert (pushed, manifests) == (500, 0) and session.kinds() == ['row'] * 500
+        assert (pushed, manifests) == (500, 0) and len(session.rows()) == 500
+        assert session.kinds() == ['row_batch'] * 5
         assert stamps == sorted(stamps), 'without the new columns the drain must stay oldest-first'
 
 

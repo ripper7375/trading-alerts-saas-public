@@ -370,8 +370,10 @@ int OnCalculate(const int rates_total, const int prev_calculated, const datetime
       }
    }
 
-   if(prev_calculated == 0 || new_bar) BuildBestFlipLine(rates_total);
-   ChartRedraw(0); 
+   if(prev_calculated == 0 || new_bar) {
+      BuildBestFlipLine(rates_total);
+      ChartRedraw(0);
+   }
    return(rates_total);
   }
 
