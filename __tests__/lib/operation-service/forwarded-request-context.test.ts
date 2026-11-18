@@ -81,3 +81,35 @@ describe('forwardedRequestContext: e-mail locale', () => {
     expect(headers['x-email-language']).toBe('de');
   });
 });
+
+describe('forwardedRequestContext: identity headers', () => {
+  it('never forwards an identity or tier header from the incoming request', () => {
+    const headers = forwardedRequestContext(
+      req({
+        'x-user-id': 'user_1',
+        'x-user-tier': 'PRO',
+        'user-agent': 'UA',
+      })
+    );
+    expect(headers['x-user-id']).toBeUndefined();
+    expect(headers['x-user-tier']).toBeUndefined();
+    expect(Object.keys(headers).join(' ')).not.toMatch(/x-user-(id|tier)/);
+    // the rest of the request context is unchanged
+    expect(headers['user-agent']).toBe('UA');
+  });
+
+  it('still forwards the locale context headers that sit next to them', () => {
+    const headers = forwardedRequestContext(
+      req({
+        'x-user-id': 'user_1',
+        'x-user-country': 'TH',
+        'x-user-currency': 'THB',
+        'x-user-timezone': 'Asia/Bangkok',
+      })
+    );
+    expect(headers['x-user-country']).toBe('TH');
+    expect(headers['x-user-currency']).toBe('THB');
+    expect(headers['x-user-timezone']).toBe('Asia/Bangkok');
+    expect(headers['x-user-id']).toBeUndefined();
+  });
+});

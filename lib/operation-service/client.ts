@@ -270,9 +270,8 @@ export function forwardedRequestContext(request: {
     'x-forwarded-for',
     'x-forwarded-proto',
     'x-real-ip',
-    // Context & locale (2026-08-19 GeoIP)
-    'x-user-id',
-    'x-user-tier',
+    // Context & locale (2026-08-19 GeoIP). Identity and tier are not on this
+    // list: downstream services read them from the forwarded session token only.
     'x-user-country',
     'x-user-currency',
     'x-user-timezone',
