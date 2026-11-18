@@ -1,139 +1,172 @@
 # Ubuntu Webchat Stack Restoration Runbook (Vultr Snapshot)
 
-**Snapshot Name:** `webchat-setup-backup`  
-**OS Version:** Ubuntu 24.04 LTS (or Ubuntu 22.04 LTS)  
-**Primary Location:** Singapore (or preferred region)  
-**Minimum Hardware:** 2 vCPU / 4 GB RAM (8 GB recommended for heavy translation inference)
+- **Snapshot name:** `webchat-setup-backup` (Ubuntu 24.04 LTS, 25 GB, taken 2026-09-10)
+- **Provider and location:** Vultr, Singapore
+- **Public host:** `chat-api.davintrade.app` (an A record, DNS only, not proxied)
+- **Minimum hardware:** 2 vCPU / 4 GB RAM (see Step 2.1 for sizing)
+- **Last reviewed:** 2026-11-18, against `infra/contabo-chat-stack/docker-compose.yml` and `docs/runbooks/contabo-chat-stack.md`
+
+> **Names.** The repo folder `infra/contabo-chat-stack/` and the runbook `docs/runbooks/contabo-chat-stack.md` say "Contabo". That is a legacy name: this VPS is hosted at Vultr. Both runbooks describe the same `/opt/saas-chat/` deployment. The Word guide `how-to-restore-webchat-in-vultr.docx` in this folder records how the snapshot was taken and the instance destroyed.
+
+> **State on 2026-11-18.** The VPS is paused: the instance was destroyed after the snapshot to stop hourly billing, so the chat host does not answer and the website's chat widget shows its offline replies. Restoring it is optional until the chat is needed.
 
 ---
 
-## 1. Overview & Preserved Components
+## 1. What the snapshot should contain
 
-The `webchat-setup-backup` snapshot preserves the complete Dockerized multi-service chat backend under `/opt/saas-chat`:
+The repo stack under `/opt/saas-chat` (source of truth: `infra/contabo-chat-stack/`) has three containers behind host Nginx:
 
-```
-┌────────────────────────────────────────────────────────┐
-│               Target 2: Ubuntu VPS (Vultr)             │
-│                                                        │
-│   ┌────────────────────────────────────────────────┐   │
-│   │ Container 1: Socket.io Chat Server (Node.js)  │   │ ◄── Port 3001
-│   ├────────────────────────────────────────────────┤   │
-│   │ Container 2: Redis 7 Broker (Pub/Sub & BullMQ) │   │ ◄── Port 6379 (Internal)
-│   ├────────────────────────────────────────────────┤   │
-│   │ Container 3: Meta NLLB-200 Translation API     │   │ ◄── Port 8000 (Internal)
-│   ├────────────────────────────────────────────────┤   │
-│   │ Reverse Proxy: Nginx / Caddy (SSL Termination) │   │ ◄── Ports 80 / 443
-│   └────────────────────────────────────────────────┘   │
-└────────────────────────────────────────────────────────┘
+```text
+Browser (website on Vercel) --wss--> host Nginx :443 (TLS) --> 127.0.0.1:3001  socket_chat_server
+                                                                       |
+                                                    BullMQ queue (redis_broker, 127.0.0.1:6379)
+                                                                       |
+                                                    ai_bot_worker --> LLM API (outbound only)
 ```
 
-- **Docker Containers (`restart: always`):**
-  - `socket_chat_server`: Port 3001
-  - `redis_broker`: Port 6379
-  - `nllb_api`: Port 8000 (`facebook/nllb-200-distilled-600M`)
-- **Web Server / SSL:** Nginx or Caddy reverse proxy pre-configured to forward HTTPS/WSS to port 3001.
+| Container            | Compose service | Role                                                    |
+| -------------------- | --------------- | ------------------------------------------------------- |
+| `socket_chat_server` | `chat_server`   | Socket.IO server: token check, rate limits, queue       |
+| `redis_broker`       | `redis`         | Queue and pub/sub                                       |
+| `ai_bot_worker`      | `bot_worker`    | Takes queued messages, calls the LLM, returns the reply |
+
+All three use `restart: always`, so Docker starts them on boot. Host Nginx terminates TLS and proxies to port 3001.
+
+**Unverified: a translation container.** The 2026-09-11 version of this runbook listed `nllb_api` (Meta NLLB-200 translation, image `ghcr.io/winstxnhdw/nllb-api:latest`, port 8000) and no `ai_bot_worker`. The repo compose does not run NLLB (deferred, F72). Nobody has looked inside the snapshot since, so Step 2.4 decides which case applies.
 
 ---
 
-## 2. Step-by-Step Restoration Procedure
+## 2. Restoration procedure
 
-### Step 2.1: Deploy Server in Vultr
+### Step 2.1: Deploy a server from the snapshot
 
-1. Log in to [Vultr Dashboard](https://my.vultr.com/).
+1. Log in to the Vultr dashboard.
 2. Click **Deploy +** → **Deploy New Server**.
 3. Choose **Cloud Compute - Shared CPU** (or High Performance).
-4. **Server Location:** Choose **Singapore** (or preferred region).
-5. **Server Image:**
-   - Click the **Snapshots** tab.
-   - Select **`webchat-setup-backup`**.
-6. **Server Size:**
-   - Select a plan with **at least 4 GB RAM** (e.g. 2 vCPU / 4 GB RAM at ~$24/mo, ~$0.036/hr).
-   - _Note: Meta NLLB-200 translation microservice requires ~2.5–3 GB RAM to load model weights._
-7. Click **Deploy Now**.
-8. Wait ~60 seconds for Vultr to restore the disk and boot Ubuntu.
-
----
+4. **Server location:** Singapore (the snapshot's region; keep it unless you have a reason).
+5. **Server image:** open the **Snapshots** tab and select `webchat-setup-backup`.
+6. **Server size:** 2 vCPU / 4 GB RAM (about $24 per month, $0.036 per hour) is safe for either case in Step 2.4. The 4 GB comes from the NLLB container (about 2.5 to 3 GB for the model). If Step 2.4 shows the repo stack without NLLB, check `free -m` before deciding whether a smaller plan is enough. The plan's disk must stay larger than the snapshot's 25 GB.
+7. Click **Deploy Now** and wait about 60 seconds for Vultr to restore the disk and boot Ubuntu.
 
 ### Step 2.2: Connect via SSH
 
-1. Note the **New IP Address** assigned by Vultr.
-2. Open PowerShell or a terminal and connect:
+1. Note the **new IP address**. Vultr assigns a new public address to the restored instance.
+2. Connect, using your root password or your SSH key:
    ```bash
    ssh root@<NEW_IP_ADDRESS>
    ```
-3. Enter your root password (or authenticate using your existing SSH key).
 
----
+### Step 2.3: Check for pgAdmin first
 
-### Step 2.3: Verify Docker Containers
-
-Because all containers use `restart: always`, Docker starts them automatically on system boot.
-
-1. Navigate to the project directory:
-   ```bash
-   cd /opt/saas-chat
-   ```
-2. Check container status:
-   ```bash
-   docker compose ps
-   ```
-3. **Expected Output:**
-   ```text
-   NAME                 IMAGE                                COMMAND                  SERVICE       CREATED         STATUS
-   nllb_api             ghcr.io/winstxnhdw/nllb-api:latest   "uvicorn main:app ..."   nllb_api      ...             Up
-   redis_broker         redis:7-alpine                       "docker-entrypoint..."   redis         ...             Up
-   socket_chat_server   ...                                  "docker-entrypoint..."   chat_server   ...             Up
-   ```
-4. _If containers are stopped or restarting:_
-   ```bash
-   docker compose up -d
-   ```
-
----
-
-### Step 2.4: Update DNS for the New IP Address
-
-Because Vultr assigns a **new public IP address** to the restored instance:
-
-1. **If using a custom domain (e.g. `chat-api.davintrade.com`):**
-   - Log in to your DNS provider (Cloudflare, Namecheap, etc.).
-   - Update the **A Record** for `chat-api` to point to the **New Vultr IP Address**.
-2. **If using direct IP in frontend:**
-   - Update `NEXT_PUBLIC_SOCKET_CHAT_URL` in Vercel project environment variables with the new IP (e.g. `https://<NEW_IP>` or `http://<NEW_IP>:3001`).
-3. **Restart Reverse Proxy (if applicable):**
-   ```bash
-   systemctl restart nginx  # or: systemctl restart caddy
-   ```
-
----
-
-## 3. Quick Health Verification (Ubuntu Bash)
-
-Run these checks on the restored Ubuntu VPS:
+A VPS restored from a snapshot comes back exactly as it was when the snapshot was taken. Before anything else, and before updating DNS (Step 2.5), confirm that no pgAdmin (a database administration web UI) is on this machine; pgAdmin 9.19 (2026-10-29) fixed 15 CVEs. This check is an open item in `.claude/state/waiting-on.md`. The commands are the two from section 4 of `docs/runbooks/contabo-chat-stack.md`:
 
 ```bash
-# 1. Test translation API health
-curl -s http://127.0.0.1:8000/docs | head -n 5
+docker ps -a --format '{{.Names}} {{.Image}}' | grep -i pgadmin; docker images | grep -i pgadmin; echo "done: any line above mentioning pgadmin needs a look; none means not found"
+```
 
-# 2. Check Socket.io Chat Server logs
-docker compose logs --tail=25 chat_server
+```bash
+(dpkg -l; systemctl list-units --all; pip3 list) 2>/dev/null | grep -i pgadmin; echo "done: any line above mentioning pgadmin needs a look; none means not found"
+```
 
-# 3. Check memory consumption
+- No line before `done:` in either command: nothing found. Continue.
+- If the first command prints `permission denied`, put `sudo` in front of `docker` and run it again. An error is not a clean result.
+- Any line that mentions `pgadmin`: **stop and tell Davin.** Delete nothing and do not open the stack to users until he has decided.
+- Note the outcome (found or not found, and the date) in the session entry.
+
+### Step 2.4: Verify the Docker containers
+
+```bash
+cd /opt/saas-chat
+docker compose ps
+docker compose config --services
+```
+
+- **Expected (repo stack):** `socket_chat_server`, `redis_broker` and `ai_bot_worker`, all `Up`; the services are `chat_server`, `redis` and `bot_worker`. Use Step 2.7a.
+- **If `nllb_api` is listed and `ai_bot_worker` is missing:** the snapshot's stack differs from the repo. Do not patch it file by file; use Step 2.7b, and ask Davin whether NLLB stays.
+- If containers are stopped or restarting, run `docker compose up -d` and read `docker compose logs --tail=50`.
+
+### Step 2.5: Update DNS for the new IP address
+
+1. At the DNS provider, change the **A record** of `chat-api` (public host `chat-api.davintrade.app`) to the new IP address.
+2. Keep the record **DNS only** (no Cloudflare proxy, no orange cloud). The chat server trusts the `X-Real-IP` header written by host Nginx; behind a proxy that header would carry the proxy's address and every guest would share one rate-limit bucket.
+3. Do not put the IP address into `NEXT_PUBLIC_SOCKET_CHAT_URL`. The value is inlined when the website is built, browsers need the host name for HTTPS, and Vercel would need a new production build to pick up a change.
+4. Wait for DNS to propagate (`nslookup chat-api.davintrade.app`), then restart the reverse proxy on the VPS:
+   ```bash
+   systemctl restart nginx
+   ```
+   The repo setup uses Nginx. If the snapshot uses Caddy instead, restart `caddy`; Caddy renews its certificates by itself, so Step 2.6 only needs the operating-system part.
+
+### Step 2.6: Renew TLS and update the operating system
+
+The snapshot is old, so its certificate may be near expiry or expired and the system packages are behind. Renewal works only after Step 2.5, because it needs the name to point at this machine and ports 80 and 443 to be reachable.
+
+```bash
+certbot certificates
+certbot renew
+systemctl status certbot.timer
+apt update && apt upgrade -y
+```
+
+Reboot if the upgrade replaced the kernel (`restart: always` brings the containers back), then run `docker compose ps` again.
+
+### Step 2.7: Deploy the Stage 2 chat hardening (Batch C)
+
+Batch C is on GitHub `main` (commit `2bb30d1f`, 2026-11-18) and is **not** in the snapshot. It changes seven files: four under `apps/server/src/` and three under `apps/bot-worker/src/`. Run the commands from the repo root on a machine that holds the SSH key (Git Bash on Windows).
+
+**2.7a. The repo stack is present (`ai_bot_worker` listed in Step 2.4):**
+
+```bash
+scp infra/contabo-chat-stack/apps/server/src/{security,rateLimiter,index,types}.ts root@<NEW_IP_ADDRESS>:/opt/saas-chat/apps/server/src/
+```
+
+```bash
+scp infra/contabo-chat-stack/apps/bot-worker/src/{limits,worker,llmClient}.ts root@<NEW_IP_ADDRESS>:/opt/saas-chat/apps/bot-worker/src/
+```
+
+```bash
+ssh root@<NEW_IP_ADDRESS> "cd /opt/saas-chat && docker compose up -d --build --force-recreate chat_server bot_worker && docker compose ps"
+```
+
+**2.7b. The snapshot's stack differs from the repo (`nllb_api` instead of `ai_bot_worker`):** follow "Full rebuild from this repo" in section 4 of `docs/runbooks/contabo-chat-stack.md`. Copy the whole `infra/contabo-chat-stack/` folder to `/opt/saas-chat/`, make sure the VPS `.env` holds `CHAT_JWT_SECRET` (it must byte-match the value in Vercel production), `CORS_ORIGIN`, `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY`, then run `docker compose up -d --build`. Decide with Davin what happens to the NLLB container before removing anything.
+
+The Dockerfiles still use `node:22-alpine` by choice. Moving them to Node 24 is a separate decision for a later rebuild (see `.claude/state/waiting-on.md`).
+
+---
+
+## 3. Health verification
+
+Run these on the restored VPS:
+
+```bash
+docker compose ps
+docker compose logs --tail=50 chat_server bot_worker
 free -m
 ```
 
-### Verification Criteria:
+From any machine:
 
-- `nllb_api` answers HTTP 200 on port 8000.
-- `socket_chat_server` logs report `Server running on port 3001` and Redis connection confirmed.
-- Free memory remains above 500 MB.
-- Browser test: Opening the DavinTrade webchat widget successfully emits `client_message` and receives `support_message` bot responses.
+```bash
+curl -I https://chat-api.davintrade.app
+```
+
+Verification criteria:
+
+- All containers are `Up` with no restart loop, and the logs show no crash.
+- The `chat_server` log shows `socket_chat_server listening on :3001` and no Redis connection error.
+- Free memory stays above 500 MB.
+- `curl -I` answers HTTP 200 with a valid certificate.
+- If `nllb_api` is present: `curl -s http://127.0.0.1:8000/docs | head -n 5` answers.
+- Browser test: opening the website's chat widget as a guest, sending a message and receiving a bot reply works (the widget limits input to 1,000 characters).
 
 ---
 
-## 4. Teardown Reminder (Cost Control)
+## 4. Teardown and re-snapshot (cost control)
 
-When testing is complete and you wish to stop hourly charges:
+To stop hourly charges after testing:
 
-1. In Vultr Dashboard, take an updated snapshot if you modified code or Docker containers.
-2. Once the snapshot status displays **Complete**, click **Destroy Instance** to terminate the VPS.
+1. **Take a new snapshot first** if you changed anything on the VPS; Step 2.7 counts as a change. Without a new snapshot, the next restore comes back with the pre-Batch-C code. Give it a dated name, for example `webchat-setup-backup-YYYY-MM-DD`.
+2. Wait until the new snapshot shows **Complete**. Keep the old snapshot until the new one has been checked.
+3. Click **Destroy Instance** to terminate the VPS.
+4. While the VPS is destroyed, the chat host does not answer and the widget falls back to its offline replies.
+
+**Open decision for Davin (not adopted yet):** whether to delete the `chat-api` A record while the instance is destroyed, so that no record points at an address the account no longer holds. If you delete it, add it again in Step 2.5.
