@@ -55,3 +55,21 @@ rule — see `errors/continuous-pr-errors/`).
   only in zod 4's own code, which the app's 3.x schemas do not run. `lib/validations/bounded.ts` puts a size check in
   front of the array and record schemas that take request bodies. Remove the ignore when the zod 4 migration lands
   (planned after launch). The reasoning and the benchmark are in the gitignored security folder, not here.
+- **2026-11-01 three more advisories accepted until `resend` is bumped (Davin, Stage 2 of the Cloudflare hardening
+  audit):** `pnpm.auditConfig.ignoreGhsas` also holds `GHSA-g3hv-75wg-m249` (`minimatch`, moderate),
+  `GHSA-3g3m-2fjr-6pw4` (`glob`, moderate; availability only) and `GHSA-gcqx-w48m-w2h4` (`deepmerge`, low; no patch
+  exists). None of them fails the blocking `--audit-level=high` gate; the ignores keep `pnpm audit --prod` at exit 0 so a
+  NEW advisory stays visible. They are risk acceptances, not fixes, and none is reachable in production:
+  - `minimatch@9.0.7` and `glob@10.5.0` arrive only through `resend@2.1.0 -> @react-email/render -> pretty ->
+js-beautify`. `pretty` calls `beautify.html()` and never loads js-beautify's CLI, the only code that loads `glob`
+    and `editorconfig` (which pulls `minimatch`), and no request data reaches either package.
+  - `deepmerge@4.3.1` arrives through `html-to-text` (under `@react-email/render`), which merges its own internal,
+    static option objects only.
+
+  Overrides were rejected as the fix: the advisory lists no patched 9.x or 10.x `minimatch` (fixed only in 11.0.1), so
+  a range override would leave versions the audit still reports; `minimatch` 3 and 5 export a callable function while 9
+  and 10 export an object, so a blanket override breaks `require('minimatch')(...)` callers; and `@jest/reporters` 29.7.0
+  calls `glob().default.sync`, which `glob` 10 does not export. Remove the three entries when `resend` is bumped past
+  the `@react-email/render@0.0.9 -> pretty -> js-beautify` chain (current `resend` depends only on `postal-mime` and
+  `standardwebhooks`) and the `html-to-text` parent no longer resolves `deepmerge@4.3.1`. The review is in the
+  gitignored security audit notes, not here.
