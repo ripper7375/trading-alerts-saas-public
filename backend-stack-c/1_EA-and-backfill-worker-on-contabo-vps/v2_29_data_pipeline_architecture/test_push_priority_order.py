@@ -36,7 +36,7 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from cycle_test_support import (  # noqa: E402
-    FakeSession, SLOT_PLAIN, SLOT_REFRESH, add_bars, add_cycle, add_stats, always,
+    FakeResponse, FakeSession, SLOT_PLAIN, SLOT_REFRESH, add_bars, add_cycle, add_stats, always,
     build_world, captured_warnings, collector, isolated_worker, worker)
 
 REPO = Path(__file__).resolve().parents[3]
@@ -335,6 +335,41 @@ def test_a_rejected_priority_row_is_quarantined_and_the_manifest_says_so():
         other = 'M15' if rejected['timeframe'] == 'M5' else 'M5'
         assert session.manifests()[0]['timeframes'][other]['quarantined_rows'] == 0
         assert tmp.exists()
+
+
+def test_horizon_rejected_backlog_rows_are_stamped_without_quarantine_file_bloat():
+    with isolated_worker():
+        conn, _ = build_world(SLOT_REFRESH)
+        # Simulate M15 historical rows > 18 days old failing only live retention horizon
+        class HorizonBatchSession(FakeSession):
+            def post(self, url, json=None, **kwargs):
+                if url.endswith('/api/v1/market-data/batch'):
+                    self.posts.append(('row_batch', json))
+                    return FakeResponse(200, json_body={
+                        'queued': 0,
+                        'rejected': len(json),
+                        'conflicts': 0,
+                        'results': [
+                            {
+                                'index': idx,
+                                'status': 'rejected',
+                                'error': 'Timestamp is 25 days old (max: 18 days). Use backfill endpoint for historical data.',
+                            }
+                            for idx in range(len(json))
+                        ],
+                    })
+                return super().post(url, json=json, **kwargs)
+
+        session = HorizonBatchSession()
+        pushed, quarantined, rate_limited = worker.push_batch(session, conn, limit=50)
+        assert (pushed, quarantined, rate_limited) == (0, 50, False)
+        assert not worker.REJECTED_ROWS_FILE.exists(), 'retention-horizon skips must not bloat rejected_rows.jsonl'
+        assert worker.unsynced_count(conn) == 6000 - 50
+
+
+def test_idle_sleep_polls_promptly_instead_of_stalling_five_minutes():
+    assert worker.IDLE_SLEEP_SEC <= 5
+    assert worker.IDLE_LOG_INTERVAL_SEC >= 60
 
 
 # ============================================================

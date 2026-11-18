@@ -1,7 +1,19 @@
-import { Injectable, BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bull';
+import { TIMEFRAME_SECONDS, isTimeframe } from '../cycle/slot';
 import { MarketDataDto } from './dto/market-data.dto';
+
+/**
+ * Covers MT5's 3,000-bar M5 rolling window (~10.4 trading days = ~15 calendar
+ * days across two weekends, plus holiday buffer) so ADR-015 promote retuning
+ * can overwrite every pre-promote bar in market_data_v6 with the new cycle_id.
+ */
+export const MARKET_DATA_MAX_AGE_DAYS = 18;
 
 /**
  * Validation layers per the build doc's §2.1. Deliberately narrower than the
@@ -65,7 +77,7 @@ export class ValidationService {
 
   private validateTimestamp(timestamp: number): void {
     const now = Date.now() / 1000;
-    const maxAge = 86400 * 7; // 7 days
+    const maxAge = 86400 * MARKET_DATA_MAX_AGE_DAYS;
     const futureTolerance = 300; // 5 minutes
 
     if (timestamp > now + futureTolerance) {
@@ -77,11 +89,13 @@ export class ValidationService {
     if (timestamp < now - maxAge) {
       const daysOld = Math.floor((now - timestamp) / 86400);
       throw new BadRequestException(
-        `Timestamp is ${daysOld} days old (max: 7 days). Use backfill endpoint for historical data.`
+        `Timestamp is ${daysOld} days old (max: ${MARKET_DATA_MAX_AGE_DAYS} days). Use backfill endpoint for historical data.`
       );
     }
     if (timestamp < 946684800) {
-      throw new BadRequestException('Timestamp appears to be in wrong format or before year 2000');
+      throw new BadRequestException(
+        'Timestamp appears to be in wrong format or before year 2000'
+      );
     }
   }
 
@@ -90,9 +104,11 @@ export class ValidationService {
     // (@IsIn/@IsInt/@IsNumber). The one cross-field constraint the DTO can't
     // express alone: a pivot type without a pivot price (or vice versa)
     // indicates a partially-populated row.
-    const hasPivotType = data.zigzag_point_type !== undefined && data.zigzag_point_type !== null;
+    const hasPivotType =
+      data.zigzag_point_type !== undefined && data.zigzag_point_type !== null;
     const hasPivotPoint =
-      data.zigzag_current_point !== undefined && data.zigzag_current_point !== null;
+      data.zigzag_current_point !== undefined &&
+      data.zigzag_current_point !== null;
     if (hasPivotType !== hasPivotPoint) {
       throw new BadRequestException(
         'zigzag_point_type and zigzag_current_point must both be present or both be null — got one without the other.'
@@ -103,8 +119,17 @@ export class ValidationService {
   private validateCandleProportions(data: MarketDataDto): void {
     const range = data.high - data.low;
     const body = Math.abs(data.close - data.open);
+    const periodSec = isTimeframe(data.timeframe)
+      ? TIMEFRAME_SECONDS[data.timeframe]
+      : 0;
+    // The collector exports the shift-0 forming bar right at slot open; in its
+    // first tick(s) open==high==low==close is normal, not a frozen feed.
+    const isFormingBar =
+      periodSec > 0 &&
+      Number.isFinite(data.collected_at) &&
+      data.collected_at < data.timestamp + periodSec;
 
-    if (range === 0) {
+    if (!isFormingBar && range === 0) {
       throw new BadRequestException(
         'Invalid candle: high equals low (zero range). Possible data freeze.'
       );
@@ -117,7 +142,7 @@ export class ValidationService {
 
     const avgPrice = (data.high + data.low) / 2;
     const spreadPercent = (range / avgPrice) * 100;
-    if (spreadPercent < 0.0001) {
+    if (!isFormingBar && spreadPercent < 0.0001) {
       throw new BadRequestException(
         `Spread too small: ${spreadPercent.toFixed(6)}% of price. Possible data precision error.`
       );
@@ -136,7 +161,9 @@ export class ValidationService {
 
   private validateVolume(data: MarketDataDto): void {
     if (data.volume < 0) {
-      throw new BadRequestException(`Volume cannot be negative: ${data.volume}`);
+      throw new BadRequestException(
+        `Volume cannot be negative: ${data.volume}`
+      );
     }
     const MAX_VOLUME = 100_000_000;
     if (data.volume > MAX_VOLUME) {
@@ -153,7 +180,9 @@ export class ValidationService {
       if (existingJob) {
         const state = await existingJob.getState();
         if (state === 'waiting' || state === 'active') {
-          throw new ConflictException(`Job already queued: ${jobId} (state: ${state})`);
+          throw new ConflictException(
+            `Job already queued: ${jobId} (state: ${state})`
+          );
         }
         if (state === 'completed') {
           const finishedAt = existingJob.finishedOn;
@@ -170,7 +199,10 @@ export class ValidationService {
         throw error;
       }
       // Redis/connection errors should not block ingestion — log and proceed.
-      console.warn(`Duplicate check failed for ${jobId}:`, (error as Error).message);
+      console.warn(
+        `Duplicate check failed for ${jobId}:`,
+        (error as Error).message
+      );
     }
   }
 }

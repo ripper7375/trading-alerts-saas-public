@@ -1,5 +1,8 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { ValidationService } from '../src/gateway/validation.service';
+import {
+  MARKET_DATA_MAX_AGE_DAYS,
+  ValidationService,
+} from '../src/gateway/validation.service';
 import { MarketDataDto } from '../src/gateway/dto/market-data.dto';
 
 function validPayload(overrides: Partial<MarketDataDto> = {}): MarketDataDto {
@@ -55,9 +58,7 @@ describe('ValidationService', () => {
     it('rejects non-positive prices', async () => {
       const service = new ValidationService(makeQueueMock());
       await expect(
-        service.validate(
-          validPayload({ open: -1, high: 1, low: -1, close: 1 })
-        )
+        service.validate(validPayload({ open: -1, high: 1, low: -1, close: 1 }))
       ).rejects.toThrow(/must be positive/i);
     });
 
@@ -76,9 +77,18 @@ describe('ValidationService', () => {
       ).rejects.toThrow(/seconds in the future/i);
     });
 
-    it('rejects a timestamp older than 7 days', async () => {
+    it('accepts bars within MT5 3,000-bar M5 rolling window (14 days old)', async () => {
       const service = new ValidationService(makeQueueMock());
-      const old = Math.floor(Date.now() / 1000) - 8 * 86400;
+      const withinWindow = Math.floor(Date.now() / 1000) - 14 * 86400;
+      await expect(
+        service.validate(validPayload({ timestamp: withinWindow }))
+      ).resolves.toBeUndefined();
+    });
+
+    it(`rejects a timestamp older than ${MARKET_DATA_MAX_AGE_DAYS} days`, async () => {
+      const service = new ValidationService(makeQueueMock());
+      const old =
+        Math.floor(Date.now() / 1000) - (MARKET_DATA_MAX_AGE_DAYS + 1) * 86400;
       await expect(
         service.validate(validPayload({ timestamp: old }))
       ).rejects.toThrow(/days old/i);
@@ -86,13 +96,63 @@ describe('ValidationService', () => {
   });
 
   describe('candle proportion validation', () => {
-    it('rejects zero-range candles', async () => {
+    it('rejects zero-range closed candles', async () => {
       const service = new ValidationService(makeQueueMock());
       await expect(
         service.validate(
           validPayload({ open: 2382, high: 2382, low: 2382, close: 2382 })
         )
       ).rejects.toThrow(/zero range/i);
+    });
+
+    it('accepts zero-range and micro-spread M5/M15 forming bars (collected_at < bar close)', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const service = new ValidationService(makeQueueMock());
+      for (const timeframe of ['M5', 'M15'] as const) {
+        await expect(
+          service.validate(
+            validPayload({
+              timeframe,
+              timestamp: now,
+              collected_at: now + 30,
+              open: 2382,
+              high: 2382,
+              low: 2382,
+              close: 2382,
+            })
+          )
+        ).resolves.toBeUndefined();
+        await expect(
+          service.validate(
+            validPayload({
+              timeframe,
+              timestamp: now,
+              collected_at: now + 30,
+              open: 2382,
+              high: 2382.001,
+              low: 2382,
+              close: 2382.001,
+            })
+          )
+        ).resolves.toBeUndefined();
+      }
+    });
+
+    it('still rejects corrupted spread > 20% on a forming bar', async () => {
+      const now = Math.floor(Date.now() / 1000);
+      const service = new ValidationService(makeQueueMock());
+      await expect(
+        service.validate(
+          validPayload({
+            timestamp: now,
+            collected_at: now + 30,
+            open: 2000,
+            high: 2600,
+            low: 2000,
+            close: 2300,
+          })
+        )
+      ).rejects.toThrow(/spread too large/i);
     });
 
     it('rejects a spread over 20%', async () => {
@@ -126,7 +186,10 @@ describe('ValidationService', () => {
       const service = new ValidationService(makeQueueMock());
       await expect(
         service.validate(
-          validPayload({ zigzag_point_type: 'Peak', zigzag_current_point: null })
+          validPayload({
+            zigzag_point_type: 'Peak',
+            zigzag_current_point: null,
+          })
         )
       ).rejects.toThrow(/must both be present or both be null/i);
     });
@@ -144,7 +207,10 @@ describe('ValidationService', () => {
       const service = new ValidationService(makeQueueMock());
       await expect(
         service.validate(
-          validPayload({ zigzag_point_type: 'Peak', zigzag_current_point: 2385.0 })
+          validPayload({
+            zigzag_point_type: 'Peak',
+            zigzag_current_point: 2385.0,
+          })
         )
       ).resolves.toBeUndefined();
     });
@@ -154,7 +220,9 @@ describe('ValidationService', () => {
     it('rejects when an identical job is already waiting', async () => {
       const job = { getState: jest.fn().mockResolvedValue('waiting') };
       const service = new ValidationService(makeQueueMock(job));
-      await expect(service.validate(validPayload())).rejects.toThrow(ConflictException);
+      await expect(service.validate(validPayload())).rejects.toThrow(
+        ConflictException
+      );
     });
 
     it('allows a re-send once the prior job completed more than 60s ago', async () => {
@@ -167,7 +235,9 @@ describe('ValidationService', () => {
     });
 
     it('does not block ingestion when the duplicate check itself errors', async () => {
-      const queue = { getJob: jest.fn().mockRejectedValue(new Error('redis down')) } as any;
+      const queue = {
+        getJob: jest.fn().mockRejectedValue(new Error('redis down')),
+      } as any;
       const service = new ValidationService(queue);
       await expect(service.validate(validPayload())).resolves.toBeUndefined();
     });

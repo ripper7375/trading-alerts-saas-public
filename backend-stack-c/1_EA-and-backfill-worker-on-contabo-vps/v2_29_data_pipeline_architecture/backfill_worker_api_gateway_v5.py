@@ -105,7 +105,8 @@ DB_PATH = Path('C:/Scripts/database/xauusd.db')      # the v6 pipeline database
 LOG_DIR = Path('C:/Scripts/logs')
 REJECTED_ROWS_FILE = DB_PATH.parent / 'rejected_rows.jsonl'
 
-IDLE_SLEEP_SEC = 300          # no unsynced rows
+IDLE_SLEEP_SEC = 3            # poll local SQLite while idle so new cycles start within seconds
+IDLE_LOG_INTERVAL_SEC = 300   # throttle repetitive idle heartbeat logs and health checks
 ACTIVE_SLEEP_SEC = 5          # backlog present (batch HTTP drains fast; keep priority responsive)
 MAX_ROWS_PER_CYCLE = 500
 MARKET_DATA_BATCH_SIZE = 100  # POST /api/v1/market-data/batch chunk size (~250 KB/POST, well under 2 MB)
@@ -732,6 +733,24 @@ def _mark_row_synced(conn, row: dict, now: int) -> None:
     )
 
 
+def _is_horizon_rejection(msg: str) -> bool:
+    """True when the gateway rejected a historical bar solely for exceeding live retention age."""
+    return 'days old (max:' in str(msg)
+
+
+def _record_rejected_row(
+    conn, row: dict, data: dict, msg: str, now_ts: int, result: SendResult
+) -> bool:
+    """Stamp synced_at to unblock the outbox; return True if quarantined as a poison row."""
+    _mark_row_synced(conn, row, now_ts)
+    result.quarantined.append((row['timeframe'], row['timestamp']))
+    if _is_horizon_rejection(msg):
+        return False
+    logger.error(f"❌ Gateway rejected bar {row['timestamp']}/{row['timeframe']}: {msg}")
+    quarantine_row(data, str(msg))
+    return True
+
+
 def _send_rows_single(session: requests.Session, conn, rows: List[dict], result: SendResult) -> SendResult:
     """Single-row POST fallback for /api/v1/market-data when /batch is unavailable
     (404/405) or rejected as a whole (400/413). Preserves exact quarantine rules."""
@@ -765,12 +784,8 @@ def _send_rows_single(session: requests.Session, conn, rows: List[dict], result:
                 msg = resp.json().get('message', 'Unknown error')
             except (json.JSONDecodeError, ValueError):
                 msg = resp.text[:200]
-            logger.error(f"❌ Gateway rejected bar {row['timestamp']}/{row['timeframe']}: {msg}")
-            quarantine_row(data, msg)
-            # stamp synced_at so a poison row cannot block the outbox;
-            # the quarantine file preserves it for replay after a fix
-            _mark_row_synced(conn, row, int(time.time()))
-            result.quarantined.append((row['timeframe'], row['timestamp']))
+            if not _record_rejected_row(conn, row, data, str(msg), int(time.time()), result):
+                logger.info(f"⏭️ Skipped aged bar {row['timestamp']}/{row['timeframe']} past gateway retention horizon")
         elif resp.status_code in (401, 403):
             logger.error("❌ CRITICAL: Authentication failed (check BACKFILL_API_KEY)")
             result.stopped = True
@@ -875,6 +890,7 @@ def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
         }
         now_ts = int(time.time())
         malformed_item = False
+        horizon_skipped = 0
         for idx, (row, data) in enumerate(zip(chunk, payloads)):
             result.attempted += 1
             entry = by_index.get(idx)
@@ -884,10 +900,8 @@ def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
                 result.pushed += 1
             elif status == 'rejected':
                 msg = entry.get('error', 'Unknown error')
-                logger.error(f"❌ Gateway rejected bar {row['timestamp']}/{row['timeframe']}: {msg}")
-                quarantine_row(data, str(msg))
-                _mark_row_synced(conn, row, now_ts)
-                result.quarantined.append((row['timeframe'], row['timestamp']))
+                if not _record_rejected_row(conn, row, data, str(msg), now_ts, result):
+                    horizon_skipped += 1
             elif status == 'conflict':
                 # Job already active/recently completed in Bull: leave unsynced so
                 # the next pass re-verifies once the Bull dedupe window expires.
@@ -897,6 +911,8 @@ def _send_rows(session: requests.Session, conn, rows: List[dict]) -> SendResult:
                 break
 
         conn.commit()
+        if horizon_skipped:
+            logger.info(f"⏭️ Skipped {horizon_skipped} aged bar(s) past gateway retention horizon")
         if malformed_item:
             logger.error("❌ Incomplete per-row status in gateway batch response — stopping")
             result.stopped = True
@@ -1251,11 +1267,11 @@ def main():
     session = create_http_session()
     check_api_health(session)
 
-    iteration = 0
     consecutive_failures = 0
+    last_idle_report_at = 0.0
+    idle_heartbeats = 0
     while not shutdown_requested:
         try:
-            iteration += 1
             conn = open_db()
             backlog = unsynced_count(conn)
             # An empty price outbox is not an idle worker while a manifest is
@@ -1263,7 +1279,13 @@ def main():
             manifest_due = manifest_work_pending(conn, int(time.time()))
 
             if backlog == 0 and not manifest_due:
-                logger.info("✅ Outbox empty — all market_data rows synced")
+                idle_now = time.monotonic()
+                if idle_now - last_idle_report_at >= IDLE_LOG_INTERVAL_SEC:
+                    logger.info("✅ Outbox empty — all market_data rows synced")
+                    idle_heartbeats += 1
+                    if idle_heartbeats % HEALTH_CHECK_INTERVAL == 0:
+                        check_api_health(session)
+                    last_idle_report_at = idle_now
                 # Statistics still drain on an idle cycle — they are low volume
                 # and this is the least contended moment to send them.
                 push_statistics(session, conn)
@@ -1275,11 +1297,11 @@ def main():
                         break
                 conn.close()
                 consecutive_failures = 0
-                if iteration % HEALTH_CHECK_INTERVAL == 0:
-                    check_api_health(session)
                 _interruptible_sleep(IDLE_SLEEP_SEC)
                 continue
 
+            last_idle_report_at = 0.0
+            idle_heartbeats = 0
             logger.info(f"📋 {backlog} unsynced rows — pushing (≤{MAX_ROWS_PER_CYCLE}/cycle)"
                         f"{' + manifest due' if manifest_due else ''}")
             # Newest bars of the latest cycle first, then its manifest, then the
