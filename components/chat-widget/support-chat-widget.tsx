@@ -270,6 +270,7 @@ export function SupportChatWidget() {
             >
               <input
                 type="text"
+                maxLength={1000}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={t('User type inquiry here...')}

@@ -4,6 +4,9 @@ const LLM_PROVIDER = (process.env.LLM_PROVIDER || 'gemini').toLowerCase();
 const LLM_MODEL = process.env.LLM_MODEL || 'gemini-1.5-flash';
 const LLM_API_KEY = process.env.LLM_API_KEY;
 const REQUEST_TIMEOUT_MS = 15_000;
+// Upper bound on one reply, whichever provider answers: it caps what a single
+// message can cost.
+const MAX_OUTPUT_TOKENS = 1024;
 
 if (!LLM_API_KEY) {
   throw new Error(
@@ -33,6 +36,7 @@ async function callGemini(userText: string): Promise<string> {
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
         contents: [{ role: 'user', parts: [{ text: userText }] }],
+        generationConfig: { maxOutputTokens: MAX_OUTPUT_TOKENS },
       }),
     });
     if (!res.ok) {
@@ -63,7 +67,7 @@ async function callClaude(userText: string): Promise<string> {
       signal: controller.signal,
       body: JSON.stringify({
         model: LLM_MODEL,
-        max_tokens: 1024,
+        max_tokens: MAX_OUTPUT_TOKENS,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: userText }],
       }),

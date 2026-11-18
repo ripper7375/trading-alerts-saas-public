@@ -3,13 +3,34 @@
 // Specifications & Frozen Contracts" §1). Do not change field names/shapes here
 // without re-opening that contract — Session 14-2's frontend client is written
 // against this exact shape.
+//
+// AMENDMENT (security hardening, 2026-11-01): no field name or shape changes.
+// The server now also enforces these limits on `client_message`
+// (apps/server/src/security.ts), which the 14-0 contract left open:
+//   - `id` matches /^[A-Za-z0-9_-]{1,64}$/;
+//   - `text` is not blank and at most MAX_CLIENT_MESSAGE_LENGTH characters;
+//   - `timestamp` is an ISO-8601 string of at most 64 characters;
+//   - `topic`, when present, is one of CLIENT_MESSAGE_TOPICS (the four chips).
+// The chat widget caps its input at the same length (maxLength) and the bot
+// worker repeats the length check (apps/bot-worker/src/limits.ts).
+
+export const MAX_CLIENT_MESSAGE_LENGTH = 1_000;
+
+export const CLIENT_MESSAGE_TOPICS = [
+  'Product Info',
+  'Technical Support',
+  'PRO Subscription',
+  'Billing',
+] as const;
+
+export type ClientMessageTopic = (typeof CLIENT_MESSAGE_TOPICS)[number];
 
 // ---- Client emitted events ----
 
 export interface ClientMessagePayload {
   id: string; // Client-generated idempotency key (e.g. "usr-174123456789-a1b2")
   text: string;
-  topic?: 'Product Info' | 'Technical Support' | 'PRO Subscription' | 'Billing';
+  topic?: ClientMessageTopic;
   timestamp: string; // ISO-8601
 }
 

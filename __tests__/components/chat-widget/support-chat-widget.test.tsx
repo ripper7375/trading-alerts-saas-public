@@ -55,6 +55,7 @@ jest.mock('@/lib/socket-client', () => ({
 import { SupportChatProvider } from '@/components/chat-widget/chat-context';
 import { FloatingChatTrigger } from '@/components/chat-widget/floating-chat-trigger';
 import { SupportChatWidget } from '@/components/chat-widget/support-chat-widget';
+import { MAX_CLIENT_MESSAGE_LENGTH } from '../../../infra/contabo-chat-stack/apps/server/src/types';
 import { LocaleProvider } from '@/lib/context/locale-context';
 import {
   LOCALE_STORAGE_KEY,
@@ -101,6 +102,21 @@ describe('Chat widget (FloatingChatTrigger + SupportChatWidget)', () => {
     expect(
       screen.getByText(/Welcome to DavinTrade Support Centre/i)
     ).toBeInTheDocument();
+  });
+
+  it('limits the message box to the length the chat server accepts', () => {
+    renderWidget();
+    fireEvent.click(
+      screen.getByRole('button', { name: /Open Support Centre Chat/i })
+    );
+
+    const input = screen.getByPlaceholderText(/User type inquiry here/i);
+
+    expect(input).toHaveAttribute(
+      'maxlength',
+      String(MAX_CLIENT_MESSAGE_LENGTH)
+    );
+    expect(MAX_CLIENT_MESSAGE_LENGTH).toBe(1000);
   });
 
   it('sends a typed message and appends the real backend reply from onMessage', async () => {

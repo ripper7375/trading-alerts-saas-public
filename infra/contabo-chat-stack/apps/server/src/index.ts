@@ -5,13 +5,18 @@ import { Server, Socket } from 'socket.io';
 import { Job } from 'bullmq';
 import { createRedisConnection } from './redisClient';
 import { verifyChatToken, guestIdentity } from './auth';
-import { checkGuestRateLimit } from './rateLimiter';
+import { checkGuestRateLimit, checkHandshakeRateLimit } from './rateLimiter';
 import { chatQueue, chatQueueEvents, CHAT_QUEUE_NAME } from './queue';
+import {
+  chatJobId,
+  getClientIp,
+  isValidClientMessagePayload,
+  pickClientMessage,
+} from './security';
 import type {
   ChatIdentity,
   ChatJobData,
   ChatJobResult,
-  ClientMessagePayload,
   ClientTypingPayload,
 } from './types';
 
@@ -42,15 +47,28 @@ interface SocketAuthState {
   tokenWasInvalid: boolean;
 }
 
-function getClientIp(socket: Socket): string {
-  const forwarded = socket.handshake.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string' && forwarded.length > 0) {
-    return forwarded.split(',')[0].trim();
+io.use(async (socket, next) => {
+  // Counted per client address before anything else about the handshake is
+  // looked at, so it holds for signed-in users and guests alike. A refusal
+  // reaches the browser as a `connect_error` (the widget then falls back to its
+  // canned replies). A counter that cannot be reached does not turn visitors
+  // away: sending a message needs the same Redis and fails closed on its own.
+  try {
+    const { allowed } = await checkHandshakeRateLimit(
+      rateLimitRedis,
+      getClientIp(socket)
+    );
+    if (!allowed) {
+      next(new Error('RATE_LIMIT_EXCEEDED'));
+      return;
+    }
+  } catch (err) {
+    console.error(
+      '[handshake] rate limit check failed, allowing the connection:',
+      err
+    );
   }
-  return socket.handshake.address;
-}
 
-io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   let identity: ChatIdentity;
   let tokenWasInvalid = false;
@@ -80,8 +98,19 @@ io.on('connection', (socket: Socket) => {
     });
   }
 
-  socket.on('client_message', async (payload: ClientMessagePayload) => {
+  socket.on('client_message', async (payload: unknown) => {
     try {
+      // Shape and size first: nothing malformed reaches the rate limiter, the
+      // queue or the LLM (limits are recorded in types.ts).
+      if (!isValidClientMessagePayload(payload)) {
+        socket.emit('chat_error', {
+          code: 'SERVER_ERROR',
+          message:
+            'Your message could not be sent. Please check it and try again.',
+        });
+        return;
+      }
+
       if (identity.tier === 'GUEST') {
         const ip = getClientIp(socket);
         const { allowed } = await checkGuestRateLimit(rateLimitRedis, ip);
@@ -100,10 +129,12 @@ io.on('connection', (socket: Socket) => {
       const jobData: ChatJobData = {
         socketId: socket.id,
         user: identity,
-        payload,
+        payload: pickClientMessage(payload),
       };
       await chatQueue.add(CHAT_QUEUE_NAME, jobData, {
-        jobId: payload.id,
+        // Scoped to this socket, so a client reusing an id only collides with
+        // itself (security.ts explains the '.' separator).
+        jobId: chatJobId(socket.id, payload.id),
         // Completed jobs no longer need to be re-read (socketId travels in the
         // result itself), but 'failed' jobs are still looked up via
         // Job.fromId below, so keep those around briefly rather than purging

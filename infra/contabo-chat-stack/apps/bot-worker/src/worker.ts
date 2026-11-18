@@ -2,6 +2,7 @@ import 'dotenv/config';
 import Redis from 'ioredis';
 import { Worker, Job } from 'bullmq';
 import { getLlmReply } from './llmClient';
+import { isProcessableText, REJECTED_TEXT_MESSAGE } from './limits';
 import { checkAndIncrementAuthQuota } from './quota';
 import {
   QUICK_REPLY_CHIPS,
@@ -39,6 +40,17 @@ const worker = new Worker<ChatJobData, ChatJobResult>(
   CHAT_QUEUE_NAME,
   async (job: Job<ChatJobData>) => {
     const { socketId, user, payload } = job.data;
+
+    // The server checks the text before it enqueues; this repeats the check
+    // because a job is the last stop before quota is spent and the provider
+    // bills for the text (see ./limits.ts).
+    if (!isProcessableText(payload.text)) {
+      return {
+        socketId,
+        message: botMessage(REJECTED_TEXT_MESSAGE, payload.id),
+        errorCode: 'SERVER_ERROR',
+      };
+    }
 
     const { exceeded } = await checkAndIncrementAuthQuota(quotaRedis, user);
     if (exceeded) {
