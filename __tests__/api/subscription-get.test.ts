@@ -648,6 +648,7 @@ describe('GET /api/subscription -- billing period (S3, W5a/W5b)', () => {
       ...pendingRow(),
       dLocalPaymentId: 'dl_1',
       stripeSubscriptionId: null,
+      expiresAt: NEXT,
     });
 
     const { body } = await get();
