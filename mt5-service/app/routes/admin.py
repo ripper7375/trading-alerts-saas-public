@@ -7,19 +7,63 @@ Requires X-Admin-API-Key header for authentication.
 Reference: docs/flask_mt5_openapi.yaml Admin endpoints
 """
 
+import hashlib
+import hmac
 import logging
 import os
 from functools import wraps
 from typing import Callable, Tuple
 
-from flask import Blueprint, Response, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request
 
 logger = logging.getLogger(__name__)
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
-# Admin API key from environment
-ADMIN_API_KEY = os.getenv('MT5_ADMIN_API_KEY', '')
+
+def get_expected_admin_key() -> str:
+    """
+    The admin API key for the current request.
+
+    Read on every request (application config first, then the environment)
+    instead of once at import, so a key that is set or rotated after startup
+    applies to the next request.
+
+    Returns:
+        The configured key, or an empty string when none is configured
+    """
+    return (
+        current_app.config.get('MT5_ADMIN_API_KEY')
+        or os.getenv('MT5_ADMIN_API_KEY', '')
+    )
+
+
+def admin_key_matches(provided: str, expected: str) -> bool:
+    """
+    Compare two admin API keys in constant time.
+
+    Both keys are reduced to SHA-256 digests first, so the comparison always
+    runs over two 32-byte values: it does not depend on where the keys first
+    differ or on how long either of them is. An unset (empty) expected key
+    never matches, not even an empty provided key.
+
+    Args:
+        provided: Key taken from the X-Admin-API-Key header
+        expected: Key the service is configured with
+
+    Returns:
+        True only when the keys are identical
+    """
+    if not expected:
+        return False
+
+    provided_digest = hashlib.sha256(
+        provided.encode('utf-8', 'surrogatepass')
+    ).digest()
+    expected_digest = hashlib.sha256(
+        expected.encode('utf-8', 'surrogatepass')
+    ).digest()
+    return hmac.compare_digest(provided_digest, expected_digest)
 
 
 def require_admin_key(f: Callable) -> Callable:
@@ -35,15 +79,16 @@ def require_admin_key(f: Callable) -> Callable:
     @wraps(f)
     def decorated_function(*args, **kwargs):
         api_key = request.headers.get('X-Admin-API-Key', '')
+        expected_key = get_expected_admin_key()
 
-        if not ADMIN_API_KEY:
+        if not expected_key:
             logger.warning("MT5_ADMIN_API_KEY not configured")
             return jsonify({
                 'success': False,
                 'error': 'Admin API not configured'
             }), 500
 
-        if api_key != ADMIN_API_KEY:
+        if not admin_key_matches(api_key, expected_key):
             logger.warning(f"Invalid admin API key attempt from {request.remote_addr}")
             return jsonify({
                 'success': False,
