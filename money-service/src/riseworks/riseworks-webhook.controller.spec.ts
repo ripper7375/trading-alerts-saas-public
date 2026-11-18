@@ -1,12 +1,19 @@
 /**
  * RiseWorks Webhook Controller Tests
  *
- * The 3 error-path tests are ported from __tests__/api/webhooks/riseworks.test.ts
- * (Session 4A-4, File 4/4) — assertions unchanged (same status codes, same
- * error bodies), rewired from a hand-rolled Next.js Request/NextResponse
- * mock + `jest.mock('@/lib/db/prisma')` to NestJS's testing module
- * (`.overrideProvider`-style DI) + a minimal Express Request/Response mock,
- * same pattern as every other money-service controller/service spec.
+ * ARCHIVED (F42): the route answers 410 Gone, and the handler that used to
+ * serve it lives, with its body unchanged, in ArchivedRiseworksWebhookHandler.
+ * The route tests (unit and HTTP) are new. The five handler tests keep their
+ * original assertions and are only pointed at the archived handler instead of
+ * the controller.
+ *
+ * Of those five, the 3 error-path tests were ported from
+ * __tests__/api/webhooks/riseworks.test.ts (Session 4A-4, File 4/4) — same
+ * status codes, same error bodies, rewired from a hand-rolled Next.js
+ * Request/NextResponse mock + `jest.mock('@/lib/db/prisma')` to NestJS's
+ * testing module (`.overrideProvider`-style DI) + a minimal Express
+ * Request/Response mock, same pattern as every other money-service
+ * controller/service spec.
  *
  * The success-path and unhandled-event-type tests are NEW backfill
  * coverage — the source route never had a test exercising the full
@@ -15,14 +22,18 @@
  */
 import crypto from 'crypto';
 
-import type { RawBodyRequest } from '@nestjs/common';
+import { RequestMethod } from '@nestjs/common';
+import type { INestApplication, RawBodyRequest } from '@nestjs/common';
+import { METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { Test } from '@nestjs/testing';
 import type { Request, Response } from 'express';
+import supertest from 'supertest';
 
 import { WebhookEventProcessorService } from '../disbursement/webhook-event-processor.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../test-utils/prisma-mock';
 
+import { ArchivedRiseworksWebhookHandler } from './archived-riseworks-webhook.handler';
 import { RiseworksWebhookController } from './riseworks-webhook.controller';
 
 function createMockResponse(): Response {
@@ -42,7 +53,7 @@ function createMockRequest(
   } as unknown as RawBodyRequest<Request>;
 }
 
-describe('RiseworksWebhookController', () => {
+describe('RiseworksWebhookController (archived route, F42)', () => {
   let controller: RiseworksWebhookController;
   let prismaMock: ReturnType<typeof createPrismaMock>;
   let eventProcessorMock: { processEvent: jest.Mock };
@@ -63,6 +74,96 @@ describe('RiseworksWebhookController', () => {
     }).compile();
 
     controller = moduleRef.get(RiseworksWebhookController);
+  });
+
+  it('answers 410 Gone without using the database or the event processor', () => {
+    const response = createMockResponse();
+
+    controller.handleWebhook(response);
+
+    expect(response.status).toHaveBeenCalledWith(410);
+    expect(response.json).toHaveBeenCalledWith({
+      error: 'RiseWorks webhook endpoint is archived',
+    });
+    expect(prismaMock.riseWorksWebhookEvent.create).not.toHaveBeenCalled();
+    expect(prismaMock.riseWorksWebhookEvent.update).not.toHaveBeenCalled();
+    expect(eventProcessorMock.processEvent).not.toHaveBeenCalled();
+  });
+
+  it('has no injected dependencies, so it cannot reach the database or the event processor', () => {
+    expect(
+      Reflect.getMetadata('design:paramtypes', RiseworksWebhookController) ?? []
+    ).toEqual([]);
+  });
+
+  it('stays registered as POST /webhooks/riseworks, so callers get 410 rather than 404', () => {
+    expect(Reflect.getMetadata(PATH_METADATA, RiseworksWebhookController)).toBe(
+      'webhooks/riseworks'
+    );
+    expect(
+      Reflect.getMetadata(
+        METHOD_METADATA,
+        RiseworksWebhookController.prototype.handleWebhook
+      )
+    ).toBe(RequestMethod.POST);
+  });
+});
+
+describe('RiseworksWebhookController over HTTP (archived route, F42)', () => {
+  let app: INestApplication;
+
+  beforeAll(async () => {
+    const moduleRef = await Test.createTestingModule({
+      controllers: [RiseworksWebhookController],
+    }).compile();
+
+    // rawBody: true mirrors main.ts's real NestFactory.create() option.
+    app = moduleRef.createNestApplication({ rawBody: true });
+    await app.init();
+  });
+
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it.each([
+    ['a signed request', { 'x-rise-signature': 'any-signature' }],
+    ['an unsigned request', {}],
+  ])('answers %s with 410 and the archived body', async (_label, headers) => {
+    const res = await supertest(app.getHttpServer())
+      .post('/webhooks/riseworks')
+      .set(headers)
+      .set('content-type', 'application/json')
+      .send(JSON.stringify({ event: 'payment.completed' }));
+
+    expect(res.status).toBe(410);
+    expect(res.body).toEqual({
+      error: 'RiseWorks webhook endpoint is archived',
+    });
+  });
+});
+
+describe('ArchivedRiseworksWebhookHandler', () => {
+  let handler: ArchivedRiseworksWebhookHandler;
+  let prismaMock: ReturnType<typeof createPrismaMock>;
+  let eventProcessorMock: { processEvent: jest.Mock };
+
+  beforeEach(async () => {
+    prismaMock = createPrismaMock();
+    eventProcessorMock = { processEvent: jest.fn() };
+
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        ArchivedRiseworksWebhookHandler,
+        { provide: PrismaService, useValue: prismaMock },
+        {
+          provide: WebhookEventProcessorService,
+          useValue: eventProcessorMock,
+        },
+      ],
+    }).compile();
+
+    handler = moduleRef.get(ArchivedRiseworksWebhookHandler);
 
     process.env['RISE_WEBHOOK_SECRET'] = 'test-secret';
     prismaMock.riseWorksWebhookEvent.create.mockResolvedValue({
@@ -82,7 +183,7 @@ describe('RiseworksWebhookController', () => {
     );
     const response = createMockResponse();
 
-    await controller.handleWebhook(request, response);
+    await handler.handleWebhook(request, response);
 
     expect(response.status).toHaveBeenCalledWith(401);
     expect(response.json).toHaveBeenCalledWith({
@@ -100,7 +201,7 @@ describe('RiseworksWebhookController', () => {
     );
     const response = createMockResponse();
 
-    await controller.handleWebhook(request, response);
+    await handler.handleWebhook(request, response);
 
     expect(response.status).toHaveBeenCalledWith(401);
     expect(response.json).toHaveBeenCalledWith({
@@ -121,7 +222,7 @@ describe('RiseworksWebhookController', () => {
     });
     const response = createMockResponse();
 
-    await controller.handleWebhook(request, response);
+    await handler.handleWebhook(request, response);
 
     expect(response.status).toHaveBeenCalledWith(400);
     expect(response.json).toHaveBeenCalledWith({ error: 'Invalid JSON' });
@@ -153,7 +254,7 @@ describe('RiseworksWebhookController', () => {
     });
     const response = createMockResponse();
 
-    await controller.handleWebhook(request, response);
+    await handler.handleWebhook(request, response);
 
     expect(eventProcessorMock.processEvent).toHaveBeenCalledWith({
       event: 'payment.completed',
@@ -188,7 +289,7 @@ describe('RiseworksWebhookController', () => {
     );
     const response = createMockResponse();
 
-    await controller.handleWebhook(request, response);
+    await handler.handleWebhook(request, response);
 
     expect(response.status).toHaveBeenCalledWith(500);
     expect(response.json).toHaveBeenCalledWith({
