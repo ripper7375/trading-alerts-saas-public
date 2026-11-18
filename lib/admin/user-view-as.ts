@@ -2,16 +2,16 @@
  * Admin "view as user" — read-only customer-support view.
  *
  * An admin starts a view from /admin/users (POST /api/admin/users/view-as),
- * which sets a short-lived httpOnly cookie naming the user. While it is set,
- * /settings shows that user's Billing, Security (login history) and Security
- * Activity pages instead of the admin's own, so support can see exactly what
- * the customer sees.
+ * which sets a short-lived, signed httpOnly cookie naming the user. While it
+ * is set, /settings shows that user's Billing, Security (login history) and
+ * Security Activity pages instead of the admin's own, so support can see
+ * exactly what the customer sees.
  *
  * Two things must BOTH be true before a read route serves another user:
  *
- * 1. The cookie: the signed-in session is ADMIN, the cookie decodes cleanly,
- *    the admin id written into it equals the session's id, and the target
- *    still exists and is not an admin.
+ * 1. The cookie: the signed-in session is ADMIN, the cookie's signature and
+ *    age verify (lib/security/signed-value.ts), the admin id written into it
+ *    equals the session's id, and the target still exists and is not an admin.
  * 2. The opt-in: the request carries `?view_as=user`. Only the three settings
  *    pages add it. Every other request (the alerts page, the header, pricing,
  *    the admin's own anything) ignores the cookie completely, so a view left
@@ -40,6 +40,7 @@ import { cookies } from 'next/headers';
 import { cache } from 'react';
 
 import { prisma } from '@/lib/db/prisma';
+import { signIdPair, verifyIdPair } from '@/lib/security/signed-value';
 
 export {
   USER_VIEW_AS_PATHS,
@@ -49,8 +50,12 @@ export {
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+// In production the name carries the `__Host-` prefix: a browser accepts it
+// only from a Secure response with Path=/ and no Domain attribute, which binds
+// the cookie to this exact host. userViewAsCookieOptions() must keep meeting
+// those three rules.
 export const USER_VIEW_AS_COOKIE_NAME = isProduction
-  ? '__Secure-davintrade-admin-view-user'
+  ? '__Host-user-view-as'
   : 'davintrade-admin-view-user';
 
 /** A view lasts two hours, then the admin starts it again. */
@@ -92,24 +97,32 @@ export function userViewAsCookieOptions(maxAge: number): {
   };
 }
 
+/**
+ * The signed cookie value for a view: `uview1:<admin>:<user>:<iat>:<mac>`.
+ * `issuedAtSec` defaults to now; callers need not pass it.
+ */
 export function encodeUserViewAsCookie(
   adminUserId: string,
-  userId: string
+  userId: string,
+  issuedAtSec?: number
 ): string {
-  return `${adminUserId}:${userId}`;
+  return signIdPair('uview1', adminUserId, userId, issuedAtSec);
 }
 
+/**
+ * The ids in a cookie value, or `null` unless its signature verifies for this
+ * cookie and it is not older than a view may last. `nowSec` defaults to now.
+ */
 export function decodeUserViewAsCookie(
-  value: string | undefined | null
+  value: string | undefined | null,
+  nowSec?: number
 ): { adminUserId: string; userId: string } | null {
-  if (!value) return null;
-  const parts = value.split(':');
-  if (parts.length !== 2) return null;
-  const [adminUserId, userId] = parts as [string, string];
-  if (!ID_PATTERN.test(adminUserId) || !ID_PATTERN.test(userId)) {
-    return null;
-  }
-  return { adminUserId, userId };
+  const verified = verifyIdPair('uview1', value, {
+    maxAgeSeconds: USER_VIEW_AS_MAX_AGE_SECONDS,
+    nowSec,
+  });
+  if (!verified) return null;
+  return { adminUserId: verified.firstId, userId: verified.secondId };
 }
 
 /** The parts of a request this module reads (Request or NextRequest). */

@@ -49,8 +49,15 @@ jest.mock('@/lib/db/prisma', () => ({
 }));
 
 import { AuthError } from '@/lib/auth/errors';
-import { USER_VIEW_AS_COOKIE_NAME } from '@/lib/admin/user-view-as';
+import {
+  USER_VIEW_AS_COOKIE_NAME,
+  decodeUserViewAsCookie,
+  encodeUserViewAsCookie,
+} from '@/lib/admin/user-view-as';
 import { DELETE, POST } from '@/app/api/admin/users/view-as/route';
+
+/** The clock every test runs on, so the cookie's issue time is exact. */
+const NOW_SEC = 1_793_000_000;
 
 type PostReq = Parameters<typeof POST>[0];
 
@@ -70,6 +77,7 @@ const CUSTOMER = {
 beforeEach(() => {
   jest.resetAllMocks();
   jest.spyOn(console, 'info').mockImplementation(() => undefined);
+  jest.spyOn(Date, 'now').mockReturnValue(NOW_SEC * 1000);
   mockValidateOrigin.mockResolvedValue(true);
   mockRequireAdmin.mockResolvedValue(ADMIN_SESSION);
   mockUserFindUnique.mockResolvedValue(CUSTOMER);
@@ -85,9 +93,23 @@ describe('POST', () => {
     });
     expect(mockCookieSet).toHaveBeenCalledWith(
       USER_VIEW_AS_COOKIE_NAME,
-      'admin_1:user_42',
+      encodeUserViewAsCookie('admin_1', 'user_42', NOW_SEC),
       expect.objectContaining({ httpOnly: true, sameSite: 'lax', path: '/' })
     );
+  });
+
+  it('signs the cookie it sets, so it verifies for exactly this admin and user', async () => {
+    await POST(postReq({ userId: 'user_42' }));
+    const value = mockCookieSet.mock.calls[0]?.[1] as string;
+
+    expect(value).toMatch(/^uview1:admin_1:user_42:1793000000:[0-9a-f]{64}$/);
+    expect(decodeUserViewAsCookie(value)).toEqual({
+      adminUserId: 'admin_1',
+      userId: 'user_42',
+    });
+    expect(
+      decodeUserViewAsCookie(value.replace('user_42', 'user_43'))
+    ).toBeNull();
   });
 
   it('refuses a cross-origin request before any auth check', async () => {

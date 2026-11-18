@@ -94,9 +94,14 @@ import {
   getServerLanguage,
   getServerLocalePreferences,
 } from '@/lib/i18n/server-locale';
-import { VIEW_AS_COOKIE_NAME, getAdminViewAs } from '@/lib/affiliate/view-as';
+import {
+  VIEW_AS_COOKIE_NAME,
+  encodeViewAsCookie,
+  getAdminViewAs,
+} from '@/lib/affiliate/view-as';
 import {
   USER_VIEW_AS_COOKIE_NAME,
+  encodeUserViewAsCookie,
   getAdminUserViewAs,
   loadUserViewAsTarget,
 } from '@/lib/admin/user-view-as';
@@ -120,6 +125,9 @@ const adminSession = {
   expires: '2099-01-01',
 };
 
+/** The clock these tests run on, so the signed view-as cookies are exact. */
+const NOW_SEC = 1_793_000_000;
+
 function cookieStore(entries: Record<string, string> = {}) {
   return {
     get: (name: string) =>
@@ -130,6 +138,7 @@ function cookieStore(entries: Record<string, string> = {}) {
 describe('React.cache() de-duplication inside one render', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(Date, 'now').mockReturnValue(NOW_SEC * 1000);
     mockGetServerSession.mockReset();
     mockCookies.mockReset().mockResolvedValue(cookieStore());
     mockHeaders.mockReset().mockResolvedValue({ get: () => null });
@@ -253,7 +262,13 @@ describe('React.cache() de-duplication inside one render', () => {
     it('loads the viewed affiliate once per render', async () => {
       mockGetServerSession.mockResolvedValue(adminSession);
       mockCookies.mockResolvedValue(
-        cookieStore({ [VIEW_AS_COOKIE_NAME]: 'admin-1:prof-1' })
+        cookieStore({
+          [VIEW_AS_COOKIE_NAME]: encodeViewAsCookie(
+            'admin-1',
+            'prof-1',
+            NOW_SEC
+          ),
+        })
       );
       mockAffiliateFindUnique.mockResolvedValue({
         id: 'prof-1',
@@ -299,7 +314,13 @@ describe('React.cache() de-duplication inside one render', () => {
 
     it('getAdminUserViewAs() reaches it with two different session-user objects and the lookup still runs once', async () => {
       mockCookies.mockResolvedValue(
-        cookieStore({ [USER_VIEW_AS_COOKIE_NAME]: 'admin-1:user-9' })
+        cookieStore({
+          [USER_VIEW_AS_COOKIE_NAME]: encodeUserViewAsCookie(
+            'admin-1',
+            'user-9',
+            NOW_SEC
+          ),
+        })
       );
       mockUserFindUnique.mockResolvedValue(target);
 
@@ -319,7 +340,13 @@ describe('React.cache() de-duplication inside one render', () => {
 
     it('still checks the role and the cookie on every call, before the cached lookup', async () => {
       mockCookies.mockResolvedValue(
-        cookieStore({ [USER_VIEW_AS_COOKIE_NAME]: 'admin-1:user-9' })
+        cookieStore({
+          [USER_VIEW_AS_COOKIE_NAME]: encodeUserViewAsCookie(
+            'admin-1',
+            'user-9',
+            NOW_SEC
+          ),
+        })
       );
       mockUserFindUnique.mockResolvedValue(target);
 

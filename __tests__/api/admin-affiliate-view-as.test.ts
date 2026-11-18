@@ -66,8 +66,15 @@ jest.mock('@/lib/db/prisma', () => ({
 }));
 
 import { AuthError } from '@/lib/auth/errors';
-import { VIEW_AS_COOKIE_NAME } from '@/lib/affiliate/view-as';
+import {
+  VIEW_AS_COOKIE_NAME,
+  decodeViewAsCookie,
+  encodeViewAsCookie,
+} from '@/lib/affiliate/view-as';
 import { DELETE, GET, POST } from '@/app/api/admin/affiliates/view-as/route';
+
+/** The clock every test runs on, so the cookie's issue time is exact. */
+const NOW_SEC = 1_793_000_000;
 
 type Req = Parameters<typeof GET>[0];
 
@@ -90,6 +97,7 @@ beforeEach(() => {
     user: { id: 'admin_1', role: 'ADMIN' },
   });
   jest.spyOn(console, 'info').mockImplementation(() => undefined);
+  jest.spyOn(Date, 'now').mockReturnValue(NOW_SEC * 1000);
 });
 
 describe('POST (start viewing)', () => {
@@ -107,9 +115,26 @@ describe('POST (start viewing)', () => {
     });
     expect(mockCookieSet).toHaveBeenCalledWith(
       VIEW_AS_COOKIE_NAME,
-      'admin_1:prof_1',
+      encodeViewAsCookie('admin_1', 'prof_1', NOW_SEC),
       expect.objectContaining({ httpOnly: true, maxAge: 7200 })
     );
+  });
+
+  it('signs the cookie it sets, so it verifies for exactly this admin and profile', async () => {
+    mockLoadViewAsTarget.mockResolvedValue({
+      target: { profileId: 'prof_1', fullName: 'Alice' },
+      profile: {},
+    });
+
+    await POST(postRequest({ profileId: 'prof_1' }));
+    const value = mockCookieSet.mock.calls[0]?.[1] as string;
+
+    expect(value).toMatch(/^aview1:admin_1:prof_1:1793000000:[0-9a-f]{64}$/);
+    expect(decodeViewAsCookie(value)).toEqual({
+      adminUserId: 'admin_1',
+      profileId: 'prof_1',
+    });
+    expect(decodeViewAsCookie(value.replace('prof_1', 'prof_2'))).toBeNull();
   });
 
   it('refuses a non-admin without setting anything', async () => {

@@ -120,7 +120,11 @@ jest.mock('@/lib/db/prisma', () => ({
   },
 }));
 
-import { USER_VIEW_AS_COOKIE_NAME } from '@/lib/admin/user-view-as';
+import {
+  USER_VIEW_AS_COOKIE_NAME,
+  USER_VIEW_AS_MAX_AGE_SECONDS,
+  encodeUserViewAsCookie,
+} from '@/lib/admin/user-view-as';
 import { GET as getLoginHistory } from '@/app/api/user/login-history/route';
 import { GET as getSecurityAlerts } from '@/app/api/user/security-alerts/route';
 import { GET as get2FAStatus } from '@/app/api/user/2fa/setup/route';
@@ -130,6 +134,17 @@ import { GET as getReceipt } from '@/app/api/invoices/[id]/receipt/route';
 import { GET as getAlerts } from '@/app/api/alerts/route';
 
 const ADMIN_SESSION = { user: { id: 'admin_1', role: 'ADMIN', tier: 'PRO' } };
+
+/** The clock every test runs on, so cookie ages are exact. */
+const NOW_SEC = 1_793_000_000;
+
+function viewCookie(
+  adminId = 'admin_1',
+  userId = 'user_42',
+  issuedAtSec = NOW_SEC
+): string {
+  return encodeUserViewAsCookie(adminId, userId, issuedAtSec);
+}
 
 // A minimal request stand-in, typed loosely so it fits every route signature.
 function req(path: string, query = ''): never {
@@ -143,9 +158,10 @@ function whereOf(mock: jest.Mock): unknown {
 
 beforeEach(() => {
   jest.resetAllMocks();
+  jest.spyOn(Date, 'now').mockReturnValue(NOW_SEC * 1000);
   mockGetServerSession.mockResolvedValue(ADMIN_SESSION);
   mockCookieGet.mockImplementation((name: string) =>
-    name === USER_VIEW_AS_COOKIE_NAME ? { value: 'admin_1:user_42' } : undefined
+    name === USER_VIEW_AS_COOKIE_NAME ? { value: viewCookie() } : undefined
   );
   mockUserFindUnique.mockImplementation(
     async ({ where }: { where: { id: string } }) =>
@@ -250,12 +266,59 @@ describe('with ?view_as=user but no valid view', () => {
     mockGetServerSession.mockResolvedValue({
       user: { id: 'user_7', role: 'USER' },
     });
-    mockCookieGet.mockImplementation(() => ({ value: 'user_7:user_42' }));
+    // a correctly signed cookie, so only the role check can refuse it
+    mockCookieGet.mockImplementation(() => ({
+      value: viewCookie('user_7', 'user_42'),
+    }));
     const res = await getSecurityAlerts(
       req('/api/user/security-alerts', '?view_as=user')
     );
     expect(res.status).toBe(403);
     expect(mockSecurityAlertFindMany).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['an unsigned cookie', (): string => 'admin_1:user_42'],
+    [
+      'a cookie older than a view may last',
+      (): string =>
+        viewCookie(
+          'admin_1',
+          'user_42',
+          NOW_SEC - USER_VIEW_AS_MAX_AGE_SECONDS - 1
+        ),
+    ],
+    [
+      'a signed cookie whose target was changed',
+      (): string => viewCookie().replace('user_42', 'user_43'),
+    ],
+  ])('403s for %s', async (_label, makeValue) => {
+    // every id exists, so only the cookie check can refuse the view
+    mockUserFindUnique.mockResolvedValue(CUSTOMER);
+    mockCookieGet.mockImplementation((name: string) =>
+      name === USER_VIEW_AS_COOKIE_NAME ? { value: makeValue() } : undefined
+    );
+    const results = await Promise.all([
+      getLoginHistory(req('/api/user/login-history', '?view_as=user')),
+      getSubscription(req('/api/subscription', '?view_as=user')),
+      getInvoices(req('/api/invoices', '?view_as=user')),
+      getAlerts(req('/api/alerts', '?view_as=user')),
+    ]);
+    expect(results.map((r) => r.status)).toEqual([403, 403, 403, 403]);
+    expect(mockLoginFindMany).not.toHaveBeenCalled();
+    expect(mockPaymentFindMany).not.toHaveBeenCalled();
+    expect(mockAlertFindMany).not.toHaveBeenCalled();
+    expect(mockForward).not.toHaveBeenCalled();
+  });
+
+  it('serves the same request once the cookie is valid again', async () => {
+    // control for the table above: nothing else about the request differs
+    mockUserFindUnique.mockResolvedValue(CUSTOMER);
+    const res = await getLoginHistory(
+      req('/api/user/login-history', '?view_as=user')
+    );
+    expect(res.status).toBe(200);
+    expect(whereOf(mockLoginFindMany)).toEqual({ userId: 'user_42' });
   });
 });
 

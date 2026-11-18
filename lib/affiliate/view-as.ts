@@ -2,8 +2,8 @@
  * Admin "view as affiliate" — read-only.
  *
  * An admin picks an affiliate at /admin/affiliates/view-as; the start route
- * (app/api/admin/affiliates/view-as) sets a short-lived httpOnly cookie
- * naming that affiliate's profile. The affiliate dashboard layout and its
+ * (app/api/admin/affiliates/view-as) sets a short-lived, signed httpOnly
+ * cookie naming that affiliate's profile. The affiliate dashboard layout and its
  * GET API routes then read `getAdminViewAs()` and, when it returns a target,
  * serve THAT affiliate's data instead of the signed-in user's.
  *
@@ -19,9 +19,10 @@
  * - `paymentDetails` (bank / wallet data) is removed from the returned profile.
  *
  * The cookie is honoured only for a session whose role is ADMIN AND whose
- * user id matches the one written into the cookie, so a leftover cookie does
- * nothing for any other account. Any failure resolves to `null` (no view-as),
- * which falls back to the normal affiliate checks: fail closed.
+ * user id matches the one written into the cookie AND whose signature and age
+ * verify (lib/security/signed-value.ts), so a leftover cookie does nothing for
+ * any other account. Any failure resolves to `null` (no view-as), which falls
+ * back to the normal affiliate checks: fail closed.
  *
  * @module lib/affiliate/view-as
  */
@@ -35,11 +36,16 @@ import { withoutPaymentDetailsCiphertext } from '@/lib/affiliate/payment-details
 import type { AffiliateProfile } from '@/lib/affiliate/types';
 import { getSession } from '@/lib/auth/session';
 import { prisma } from '@/lib/db/prisma';
+import { signIdPair, verifyIdPair } from '@/lib/security/signed-value';
 
 const isProduction = process.env.NODE_ENV === 'production';
 
+// In production the name carries the `__Host-` prefix: a browser accepts it
+// only from a Secure response with Path=/ and no Domain attribute, which binds
+// the cookie to this exact host. viewAsCookieOptions() must keep meeting those
+// three rules.
 export const VIEW_AS_COOKIE_NAME = isProduction
-  ? '__Secure-davintrade-admin-view-as'
+  ? '__Host-affiliate-view-as'
   : 'davintrade-admin-view-as';
 
 /** A view-as session lasts two hours, then the admin picks again. */
@@ -78,24 +84,32 @@ export function viewAsCookieOptions(maxAge: number): {
   };
 }
 
+/**
+ * The signed cookie value for a view: `aview1:<admin>:<profile>:<iat>:<mac>`.
+ * `issuedAtSec` defaults to now; callers need not pass it.
+ */
 export function encodeViewAsCookie(
   adminUserId: string,
-  profileId: string
+  profileId: string,
+  issuedAtSec?: number
 ): string {
-  return `${adminUserId}:${profileId}`;
+  return signIdPair('aview1', adminUserId, profileId, issuedAtSec);
 }
 
+/**
+ * The ids in a cookie value, or `null` unless its signature verifies for this
+ * cookie and it is not older than a view may last. `nowSec` defaults to now.
+ */
 export function decodeViewAsCookie(
-  value: string | undefined | null
+  value: string | undefined | null,
+  nowSec?: number
 ): { adminUserId: string; profileId: string } | null {
-  if (!value) return null;
-  const parts = value.split(':');
-  if (parts.length !== 2) return null;
-  const [adminUserId, profileId] = parts as [string, string];
-  if (!ID_PATTERN.test(adminUserId) || !ID_PATTERN.test(profileId)) {
-    return null;
-  }
-  return { adminUserId, profileId };
+  const verified = verifyIdPair('aview1', value, {
+    maxAgeSeconds: VIEW_AS_MAX_AGE_SECONDS,
+    nowSec,
+  });
+  if (!verified) return null;
+  return { adminUserId: verified.firstId, profileId: verified.secondId };
 }
 
 /**
