@@ -58,18 +58,19 @@ rule — see `errors/continuous-pr-errors/`).
 - **2026-11-01 three more advisories accepted until `resend` is bumped (Davin, Stage 2 of the Cloudflare hardening
   audit):** `pnpm.auditConfig.ignoreGhsas` also holds `GHSA-g3hv-75wg-m249` (`minimatch`, moderate),
   `GHSA-3g3m-2fjr-6pw4` (`glob`, moderate; availability only) and `GHSA-gcqx-w48m-w2h4` (`deepmerge`, low; no patch
-  exists). None of them fails the blocking `--audit-level=high` gate; the ignores keep `pnpm audit --prod` at exit 0 so a
+  exists). **2026-11-21:** `GHSA-gcqx-w48m-w2h4` was withdrawn by GitHub on 2026-11-16, so its entry was removed from
+  `ignoreGhsas` (two of the three remain). None of them fails the blocking `--audit-level=high` gate; the ignores keep `pnpm audit --prod` at exit 0 so a
   NEW advisory stays visible. They are risk acceptances, not fixes, and none is reachable in production:
   - `minimatch@9.0.7` and `glob@10.5.0` arrive only through `resend@2.1.0 -> @react-email/render -> pretty ->
 js-beautify`. `pretty` calls `beautify.html()` and never loads js-beautify's CLI, the only code that loads `glob`
     and `editorconfig` (which pulls `minimatch`), and no request data reaches either package.
   - `deepmerge@4.3.1` arrives through `html-to-text` (under `@react-email/render`), which merges its own internal,
-    static option objects only.
+    static option objects only. (Kept for the record: the advisory is withdrawn and no longer ignored.)
 
   Overrides were rejected as the fix: the advisory lists no patched 9.x or 10.x `minimatch` (fixed only in 11.0.1), so
   a range override would leave versions the audit still reports; `minimatch` 3 and 5 export a callable function while 9
   and 10 export an object, so a blanket override breaks `require('minimatch')(...)` callers; and `@jest/reporters` 29.7.0
-  calls `glob().default.sync`, which `glob` 10 does not export. Remove the three entries when `resend` is bumped past
+  calls `glob().default.sync`, which `glob` 10 does not export. Remove the two remaining entries when `resend` is bumped past
   the `@react-email/render@0.0.9 -> pretty -> js-beautify` chain (current `resend` depends only on `postal-mime` and
   `standardwebhooks`) and the `html-to-text` parent no longer resolves `deepmerge@4.3.1`. The review is in the
   gitignored security audit notes, not here.
