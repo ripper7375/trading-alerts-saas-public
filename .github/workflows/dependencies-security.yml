@@ -233,21 +233,14 @@ jobs:
               echo ""
               echo "📋 Bandit Report Summary:"
               python -c "import json; data=json.load(open('bandit-report.json')); print(f\"Total issues: {len(data.get('results', []))}\")" || true
+              # The repository is public, so the report itself is never uploaded or kept: only the count above
+              # is printed. Run bandit locally to read the findings.
+              rm -f bandit-report.json
             fi
           else
             echo "⏭️  app/ directory is empty, skipping Bandit analysis"
             echo "   This is normal during Phase 1-2 (planning phase)"
           fi
-
-      - name: Upload security reports
-        if: steps.check_python.outputs.exists == 'true' && always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: python-security-reports
-          path: |
-            mt5-service/bandit-report.json
-          retention-days: 30
-          if-no-files-found: ignore
 
   summary:
     name: Security Scan Summary
