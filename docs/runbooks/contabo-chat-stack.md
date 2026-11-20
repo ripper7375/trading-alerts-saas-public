@@ -8,6 +8,7 @@ runbook (initial provisioning, TLS issuance, first-time secrets) is
 `infra/contabo-chat-stack/README.md` — read that first if the stack doesn't exist yet at all.
 
 > **Restoring the VPS from a snapshot, or rebuilding it? Run the pgAdmin check at the top of §4 before anything else.**
+> **If restoring the Vultr snapshot (`webchat-setup-backup`, 2026-09-10), Agents MUST immediately follow [POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md](../../davintrade-webchat-stack/POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md)** to run the mandatory 3-in-1 rebuild (`#513` lockfile refresh, Node `22.23.5+` via `--pull --no-cache`, and `main` chat hardening `97eb1b6e` + `2bb30d1f`) before serving traffic or re-snapshotting.
 
 ---
 
