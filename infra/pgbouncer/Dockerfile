@@ -1,7 +1,7 @@
 # PgBouncer (transaction-pooling, per-role pass-through auth) for the
 # trading-alerts Postgres instance. See pgbouncer.ini and entrypoint.sh for
 # the auth design — Session 1-3b (docs/migration-orders/1-3b-pgbouncer.migration-order.md).
-FROM alpine:3.20
+FROM alpine:3.24
 
 RUN apk add --no-cache pgbouncer \
     && addgroup -S pgbouncer \
@@ -13,5 +13,10 @@ RUN chmod +x /entrypoint.sh && chown -R pgbouncer:pgbouncer /etc/pgbouncer
 
 USER pgbouncer
 EXPOSE 6432
+
+# PgBouncer >= 1.23 treats SIGTERM as "wait until every client disconnects"; pooled app
+# connections never do, so a Railway stop or redeploy would hang. SIGINT is the safe
+# shutdown: it waits for running queries, then exits.
+STOPSIGNAL SIGINT
 
 ENTRYPOINT ["/entrypoint.sh"]
