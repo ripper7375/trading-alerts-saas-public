@@ -8,7 +8,17 @@
 
 > **Names.** The repo folder `infra/contabo-chat-stack/` and the runbook `docs/runbooks/contabo-chat-stack.md` say "Contabo". That is a legacy name: this VPS is hosted at Vultr. Both runbooks describe the same `/opt/saas-chat/` deployment. The Word guide `how-to-restore-webchat-in-vultr.docx` in this folder records how the snapshot was taken and the instance destroyed.
 
-> **State on 2026-11-18.** The VPS is paused: the instance was destroyed after the snapshot to stop hourly billing, so the chat host does not answer and the website's chat widget shows its offline replies. Restoring it is optional until the chat is needed.
+> **State on 2026-11-20.** The VPS is paused: the instance was destroyed after the `2026-09-10` snapshot to stop hourly billing, so the chat host does not answer and the website's chat widget shows its offline replies. Restoring it is optional until the chat is needed.
+
+> [!CAUTION]
+> **MANDATORY AGENT NOTICE — 3-IN-1 REBUILD REQUIRED IMMEDIATELY ON SNAPSHOT RESTORE**
+>
+> Whenever any Agent or operator initiates restoring the `webchat-setup-backup` snapshot on Vultr, **you MUST immediately execute the 3-in-1 rebuild in [POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md](./POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md)** (after the pgAdmin check in Step 2.3 and before opening traffic or taking a replacement snapshot) so the VPS picks up all three pending updates together:
+> 1. Refreshed `apps/server/package-lock.json` from PR `#513` (`b532c8ba`, fixes `engine.io` DoS & transitive npm advisories)
+> 2. Node.js `22.23.5+` security patch floor (`node:22-alpine` Dockerfiles + `docker compose build --pull --no-cache`)
+> 3. Latest chat hardening & auth alignment on `main` (WS-13 `auth.ts` `97eb1b6e` + Batch C `2bb30d1f`)
+>
+> **Do NOT use Step 2.7a's old 7-file copy alone** — it omits `auth.ts`, both `Dockerfile`s, `apps/server/package-lock.json`, and `--pull --no-cache`.
 
 ---
 
@@ -109,25 +119,21 @@ apt update && apt upgrade -y
 
 Reboot if the upgrade replaced the kernel (`restart: always` brings the containers back), then run `docker compose ps` again.
 
-### Step 2.7: Deploy the Stage 2 chat hardening (Batch C)
+### Step 2.7: Run the 3-in-1 Chat VPS Rebuild (Mandatory)
 
-Batch C is on GitHub `main` (commit `2bb30d1f`, 2026-11-18) and is **not** in the snapshot. It changes seven files: four under `apps/server/src/` and three under `apps/bot-worker/src/`. Run the commands from the repo root on a machine that holds the SSH key (Git Bash on Windows).
+The `2026-09-10` snapshot predates **WS-13** (`97eb1b6e`), **Node `22-alpine` (`04a68167`)**, **Batch C (`2bb30d1f`)**, and **PR `#513` (`b532c8ba`, refreshed `apps/server/package-lock.json`)**.
 
-**2.7a. The repo stack is present (`ai_bot_worker` listed in Step 2.4):**
-
-```bash
-scp infra/contabo-chat-stack/apps/server/src/{security,rateLimiter,index,types}.ts root@<NEW_IP_ADDRESS>:/opt/saas-chat/apps/server/src/
-```
+**2.7a. The repo stack is present (`ai_bot_worker` listed in Step 2.4):** **Do NOT copy only the 7 Batch C files** — execute Sections 2–5 of **[POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md](./POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md)** so you sync all of `infra/contabo-chat-stack/` from `origin/main` (without overwriting `/opt/saas-chat/.env` and without copying local `node_modules`) and run:
 
 ```bash
-scp infra/contabo-chat-stack/apps/bot-worker/src/{limits,worker,llmClient}.ts root@<NEW_IP_ADDRESS>:/opt/saas-chat/apps/bot-worker/src/
+cd /opt/saas-chat
+docker compose build --pull --no-cache
+docker compose up -d --force-recreate
 ```
 
-```bash
-ssh root@<NEW_IP_ADDRESS> "cd /opt/saas-chat && docker compose up -d --build --force-recreate chat_server bot_worker && docker compose ps"
-```
+Verify `docker compose exec chat_server node -v` and `docker compose exec bot_worker node -v` both report `>= v22.23.5` (or the latest floor in `.claude/architecture/infrastructure.md`), and `engine.io` is `6.6.12` (or newer).
 
-**2.7b. The snapshot's stack differs from the repo (`nllb_api` instead of `ai_bot_worker`):** follow "Full rebuild from this repo" in section 4 of `docs/runbooks/contabo-chat-stack.md`. Copy the whole `infra/contabo-chat-stack/` folder to `/opt/saas-chat/`, make sure the VPS `.env` holds `CHAT_JWT_SECRET` (it must byte-match the value in Vercel production), `CORS_ORIGIN`, `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY`, then run `docker compose up -d --build`. Decide with Davin what happens to the NLLB container before removing anything.
+**2.7b. The snapshot's stack differs from the repo (`nllb_api` instead of `ai_bot_worker`):** follow "Full rebuild from this repo" in section 4 of `docs/runbooks/contabo-chat-stack.md` and Sections 2–3 of [POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md](./POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md) (use `git archive` or sparse `git clone` from `origin/main`, never blindly `scp` local `node_modules`). Make sure `/opt/saas-chat/.env` holds `CHAT_JWT_SECRET` (must byte-match Vercel Production), `CORS_ORIGIN`, `LLM_PROVIDER`, `LLM_MODEL` and `LLM_API_KEY`, then run `docker compose build --pull --no-cache && docker compose up -d --force-recreate`. Decide with Davin what happens to the NLLB container before removing anything.
 
 The Dockerfiles still use `node:22-alpine` by choice. Moving them to Node 24 is a separate decision for a later rebuild (see `.claude/state/waiting-on.md`).
 
