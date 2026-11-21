@@ -1,3 +1,2 @@
 packages:
   - 'packages/*'
-  - 'seed-code/trading-conversational-ai-ui'
