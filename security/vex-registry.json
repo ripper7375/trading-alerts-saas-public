@@ -1,0 +1,6 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-11-21",
+  "readme": "Public file: only not_affected and fixed statements, one per (advisory_id, asset_id, package_spec). Notes on affected or under-investigation advisories stay in the private, gitignored reports. Validated by scripts/security/validate-vex.mjs; a change needs the security-override label.",
+  "statements": []
+}
