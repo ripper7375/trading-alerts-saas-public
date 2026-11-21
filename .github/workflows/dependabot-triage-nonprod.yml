@@ -1,0 +1,89 @@
+name: Dependabot Triage (non-production)
+
+# Purpose: dismiss open Dependabot alerts whose manifest lives in a
+# non-production directory (seed-code/, archive/, the davintrade prototype,
+# mobile-app/, davintrade-mobile-app/), so the alert list shows live code only.
+# The prefixes and the API calls are in scripts/security/; tests:
+# `node --test 'scripts/security/*.test.mjs'`.
+#
+# PUBLIC REPOSITORY: the script prints aggregate counts and the fixed directory
+# prefixes only, never an advisory identifier, package name, version or summary.
+#
+# TOKEN: the built-in GITHUB_TOKEN can read Dependabot alerts but cannot
+# dismiss them, so a live run needs the repository secret
+# DEPENDABOT_TRIAGE_TOKEN (a fine-grained token for this repository with
+# "Dependabot alerts: Read and write"). Without it the job prints a notice and
+# succeeds without touching any alert.
+#
+# NEVER add pull_request or pull_request_target triggers: the secret must not be
+# reachable from a pull request.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'List open alerts and print counts only (no dismissals)'
+        type: boolean
+        default: false
+      max_dismiss:
+        description: 'Dismiss at most this many alerts in this run'
+        type: string
+        default: '800'
+  schedule:
+    - cron: '17 19 * * *'
+
+concurrency:
+  group: dependabot-triage-nonprod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  triage:
+    name: Dismiss non-production Dependabot alerts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check for the triage token
+        id: token
+        env:
+          TRIAGE_TOKEN: ${{ secrets.DEPENDABOT_TRIAGE_TOKEN }}
+        run: |
+          if [ -z "$TRIAGE_TOKEN" ]; then
+            echo "::notice::DEPENDABOT_TRIAGE_TOKEN is not configured; skipping live alert dismissal"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repository
+        if: steps.token.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        if: steps.token.outputs.configured == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Unit tests of the triage script
+        if: steps.token.outputs.configured == 'true'
+        run: node --test 'scripts/security/*.test.mjs'
+
+      - name: Dismiss non-production alerts
+        if: steps.token.outputs.configured == 'true'
+        env:
+          DEPENDABOT_TRIAGE_TOKEN: ${{ secrets.DEPENDABOT_TRIAGE_TOKEN }}
+          # Inputs reach the shell through env, never through ${{ }} in the
+          # script text; the script validates both values itself.
+          MAX_DISMISS: ${{ inputs.max_dismiss || '800' }}
+          DRY_RUN: ${{ inputs.dry_run == true }}
+        run: |
+          args=(--max-dismiss "$MAX_DISMISS" --repo "$GITHUB_REPOSITORY")
+          if [ "$DRY_RUN" = "true" ]; then
+            args+=(--dry-run)
+          fi
+          node scripts/security/dismiss-nonprod-dependabot-alerts.mjs "${args[@]}"
