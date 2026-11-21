@@ -14,12 +14,18 @@ name: Dependencies Security Scan
 # THE PRODUCTION GATE ("Production audit gate (high and critical)", T3-e / OPS-01):
 #   `pnpm audit --prod --audit-level=high` is BLOCKING (no continue-on-error)
 #   since 2026-10-18, when the dedicated "fix(security): ..." PR cleared the
-#   28 advisories it reported that day (one critical, in next-auth). A new
-#   high or critical advisory in a production dependency now fails this job on
-#   main and on every PR. Clear it in a dedicated "fix(security): ..." PR on
-#   main: dependency and pnpm.overrides changes are not allowed on feature
-#   branches (.claude/rules/security-overrides.md, check-overrides.yml), and a
-#   next-auth change is also auth, which escalates to Davin.
+#   28 advisories it reported that day (one critical, in next-auth). It runs
+#   through scripts/security/audit-diff-gate.mjs and prints counts only: the
+#   repository is public, so no advisory ID or package name reaches the log.
+#   On main (push, weekly schedule, manual run) a new high or critical
+#   advisory in a production dependency fails this job. Clear it in a
+#   dedicated "fix(security): ..." PR on main: dependency and pnpm.overrides
+#   changes are not allowed on feature branches
+#   (.claude/rules/security-overrides.md, check-overrides.yml), and a
+#   next-auth change is also auth, which escalates to Davin. On a pull
+#   request or a feature-branch push the gate is diff-aware: it fails only on
+#   high or critical advisories in lockfile packages that the change adds or
+#   changes, so an advisory published overnight never fails an unrelated PR.
 #
 # THE SERVICES AUDIT ("NestJS Services npm Audit"): `npm audit --omit=dev --audit-level=high`
 #   in money-service, operation-service and railway-gateway, read from each service's own
@@ -92,13 +98,18 @@ jobs:
           # the tree that is committed, not one resolved on the fly.
           pnpm install --frozen-lockfile
 
+      # The tests run before the script is used by the two audit steps below.
+      - name: Unit tests of the audit gate
+        run: node --test scripts/security/audit-diff-gate.test.mjs
+
       # All dependencies, moderate and up: informative only, never blocking.
+      # Counts only: the repository is public, so no advisory table reaches the log.
       - name: Run pnpm audit
         if: steps.check_npm.outputs.exists == 'true'
         continue-on-error: true
         run: |
-          echo "🔍 Running pnpm security audit..."
-          pnpm audit --audit-level=moderate || echo "⚠️  Security vulnerabilities detected"
+          echo "🔍 Running pnpm security audit (counts only)..."
+          node scripts/security/audit-diff-gate.mjs --mode summary
           echo ""
           echo "╔══════════════════════════════════════════════════════════════╗"
           echo "║  ⚠️  DO NOT add pnpm.overrides in feature branches to     ║"
@@ -121,26 +132,25 @@ jobs:
           echo ""
           echo "Note: Consider updating packages periodically"
 
+      # The diff-aware gate below compares with the merge-base on main, and the
+      # checkout is shallow. Not needed on main itself (full gate).
+      - name: Fetch history for the diff-aware gate
+        if: github.ref != 'refs/heads/main' && steps.check_npm.outputs.exists == 'true'
+        run: |
+          git fetch --no-tags --unshallow origin 2>/dev/null || git fetch --no-tags origin
+          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+
       # Production dependencies only, high and critical only: the class of
       # finding that should never reach a release. BLOCKING: there is no
       # continue-on-error on this step (see the header). It is the last step of
       # the job so that the informative output above is always printed first.
-      # --ignore-registry-errors keeps an outage of the advisory endpoint from
-      # reading as a finding.
+      # scripts/security/audit-diff-gate.mjs picks the mode (full on main,
+      # diff-aware on a pull request or a feature-branch push), keeps an outage
+      # of the advisory endpoint from reading as a finding
+      # (--ignore-registry-errors) and prints counts only.
       - name: Production audit gate (high and critical)
         if: steps.check_npm.outputs.exists == 'true'
-        run: |
-          echo "🔍 Running pnpm audit --prod --audit-level=high ..."
-          if pnpm audit --prod --audit-level=high --ignore-registry-errors; then
-            echo "✅ No high or critical production advisories reported."
-          else
-            echo ""
-            echo "❌ High or critical advisories in production dependencies (list above)."
-            echo "   Fix them in a dedicated 'fix(security): ...' PR directly on main."
-            echo "   Do NOT add pnpm.overrides on a feature branch"
-            echo "   (.claude/rules/security-overrides.md, check-overrides.yml)."
-            exit 1
-          fi
+        run: node scripts/security/audit-diff-gate.mjs
 
   services-security:
     name: NestJS Services npm Audit
