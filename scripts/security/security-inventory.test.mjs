@@ -81,6 +81,22 @@ const BLOCKS = assetBlocks(INVENTORY);
 const field = (block, name, indent) =>
   new RegExp(`^ {${indent}}${name}:\\s*([^\\s#]+)`, 'm').exec(block.text)?.[1];
 
+// The `public_endpoints` an asset declares: `[]`, or a block list under the key.
+function assetPublicEndpoints(block) {
+  const lines = block.text.split('\n');
+  const start = lines.findIndex((line) => /^ {4}public_endpoints:/.test(line));
+  if (start < 0 || /^ {4}public_endpoints:\s*\[\]/.test(lines[start]))
+    return [];
+  const items = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line.trim() === '' || /^\s*#/.test(line)) continue;
+    const item = /^ {6}-\s+("[^"]*"|'[^']*')\s*(?:#.*)?$/.exec(line);
+    if (!item) break;
+    items.push(unquote(item[1]));
+  }
+  return items;
+}
+
 test('excluded_paths equals the Dependabot triage prefixes (single source of truth)', () => {
   const entries = topLevelList(INVENTORY, 'excluded_paths');
   for (const entry of entries) {
@@ -209,6 +225,24 @@ test('declared base images appear in the Dockerfile or Compose file they belong 
     }
   }
   assert.ok(checked >= 5, `only ${checked} images were checked`);
+});
+
+test('every public endpoint an asset declares is also an expected public endpoint', () => {
+  const expected = topLevelList(INVENTORY, 'expected_public_endpoints');
+  assert.equal(new Set(expected).size, expected.length, 'a duplicated entry');
+  const declared = BLOCKS.flatMap((block) =>
+    assetPublicEndpoints(block).map((endpoint) => ({ id: block.id, endpoint }))
+  );
+  assert.ok(
+    declared.length >= 2,
+    'the production proxies are no longer declared'
+  );
+  for (const { id, endpoint } of declared) {
+    assert.ok(
+      expected.includes(endpoint),
+      `${id}: "${endpoint}" is not in expected_public_endpoints`
+    );
+  }
 });
 
 test('the inventory is public-safe: no address, credential or proxy host, only known aliases', () => {

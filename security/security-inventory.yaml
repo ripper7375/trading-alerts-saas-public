@@ -26,8 +26,10 @@ expected_public_endpoints:
   - 'money-service (railway.app domain)'
   - 'operation-service (railway.app domain)'
   - 'railway-gateway (railway.app domain)'
-# NOT expected: a TCP proxy on Postgres or Redis (the target state), any domain
-# on pgbouncer, chat-api.davintrade.app while the chat VPS is paused.
+  - '<PROD_DB> TCP proxy' # expected: current consumers need it (owner decision 2026-11-21)
+  - '<PROD_REDIS> TCP proxy' # expected: current consumers need it (owner decision 2026-11-21)
+# NOT expected: any other TCP proxy or domain on Postgres, Redis or pgbouncer,
+# chat-api.davintrade.app while the chat VPS is paused.
 
 assets:
   - id: monolith-web
@@ -148,7 +150,7 @@ assets:
     deployment_evidence: '.claude/architecture/infrastructure.md'
     exposure_tier: 2
     trust_boundaries: [database, queues, secrets]
-    public_endpoints: # current state; the target state is none
+    public_endpoints: # expected: current consumers need them (owner decision 2026-11-21)
       - '<PROD_DB> TCP proxy'
       - '<PROD_REDIS> TCP proxy'
     scan_mode: manual_attestation # the Executor never connects to production; engine versions are attested by the owner
