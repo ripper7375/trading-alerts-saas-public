@@ -87,9 +87,10 @@ jobs:
       - name: Install dependencies
         if: steps.check_npm.outputs.exists == 'true'
         run: |
-          # Use --no-frozen-lockfile so pnpm.overrides in package.json are
-          # applied even if the lockfile predates the override entries.
-          pnpm install --no-frozen-lockfile
+          # --frozen-lockfile: install exactly what pnpm-lock.yaml records and fail when it
+          # is out of sync with package.json (pnpm.overrides included), so this job audits
+          # the tree that is committed, not one resolved on the fly.
+          pnpm install --frozen-lockfile
 
       # All dependencies, moderate and up: informative only, never blocking.
       - name: Run pnpm audit

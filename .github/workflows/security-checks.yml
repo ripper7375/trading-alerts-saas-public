@@ -148,8 +148,8 @@ jobs:
 
           # Secrets with no telltale prefix: only a long LITERAL assigned to
           # the variable counts (process.env.NAME and "${NAME}" do not match)
-          scan "hardcoded NEXTAUTH_SECRET, INTERNAL_API_KEY, OPENROUTER_API_KEY or dLocal credential" \
-            "(NEXTAUTH_SECRET|INTERNAL_API_KEY|OPENROUTER_API_KEY|DLOCAL_[A-Z_]*(KEY|SECRET|TOKEN|LOGIN))${Q}?\]?[[:space:]]*[:=][[:space:]]*${Q}[A-Za-z0-9_+/=.-]{16,}${Q}" \
+          scan "hardcoded NEXTAUTH_SECRET, INTERNAL_API_KEY, OPENROUTER_API_KEY, LINE_CHANNEL_ACCESS_TOKEN or dLocal credential" \
+            "(NEXTAUTH_SECRET|INTERNAL_API_KEY|OPENROUTER_API_KEY|LINE_CHANNEL_ACCESS_TOKEN|DLOCAL_[A-Z_]*(KEY|SECRET|TOKEN|LOGIN))${Q}?\]?[[:space:]]*[:=][[:space:]]*${Q}[A-Za-z0-9_+/=.-]{16,}${Q}" \
             "${TEST_PATHS[@]}"
 
           # user:password@host with a real-looking domain. Hosts without a

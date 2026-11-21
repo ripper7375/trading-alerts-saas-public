@@ -10,6 +10,12 @@ name: Override Change Guard
 # overrides from other PRs). This has happened 7+ times. The fix is to only
 # allow override changes via dedicated security PRs that target main directly.
 #
+# The same rule covers the other places where a feature branch could weaken the
+# audit gate: the "pnpm.auditConfig" section of package.json (ignoreGhsas silences
+# an advisory) and everything under security/ (the inventory and the VEX registry
+# that decide which advisories count). A PR that changes any of them needs the
+# 'security-override' label.
+#
 # If you need to add/change a security override:
 #   1. Create a NEW branch from main specifically for the security fix
 #   2. Modify overrides in package.json
@@ -20,7 +26,7 @@ name: Override Change Guard
 on:
   pull_request:
     branches: [main]
-    paths: [package.json]
+    paths: [package.json, 'security/**']
 
 # Least privilege: read-only by default; a job that needs more declares its own permissions.
 permissions:
@@ -54,6 +60,10 @@ jobs:
           MAIN_PNPM_OVERRIDES=$(echo "$MAIN_PKG" | jq -S '.pnpm.overrides // {}')
           PR_PNPM_OVERRIDES=$(echo "$PR_PKG" | jq -S '.pnpm.overrides // {}')
 
+          # "pnpm.auditConfig" (ignoreGhsas) decides which advisories the audit gate skips
+          MAIN_AUDIT_CONFIG=$(echo "$MAIN_PKG" | jq -S '.pnpm.auditConfig // {}')
+          PR_AUDIT_CONFIG=$(echo "$PR_PKG" | jq -S '.pnpm.auditConfig // {}')
+
           CHANGED=false
 
           if [ "$MAIN_OVERRIDES" != "$PR_OVERRIDES" ]; then
@@ -74,16 +84,36 @@ jobs:
             CHANGED=true
           fi
 
+          if [ "$MAIN_AUDIT_CONFIG" != "$PR_AUDIT_CONFIG" ]; then
+            AUDIT_DIFF_LINES=$(diff <(echo "$MAIN_AUDIT_CONFIG") <(echo "$PR_AUDIT_CONFIG") | grep -c '^[<>]' || true)
+            echo "::error::'pnpm.auditConfig' in package.json was modified by this PR."
+            echo "($AUDIT_DIFF_LINES changed line(s); see the PR diff. The audit policy is not repeated in CI logs.)"
+            echo ""
+            CHANGED=true
+          fi
+
+          # Everything under security/ (inventory, VEX registry): file names only.
+          SECURITY_CHANGES=$(git diff --name-only origin/main HEAD -- security/)
+          if [ -n "$SECURITY_CHANGES" ]; then
+            echo "::error::Files under security/ were modified by this PR."
+            echo ""
+            echo "=== Changed files ==="
+            echo "$SECURITY_CHANGES"
+            echo ""
+            CHANGED=true
+          fi
+
           if [ "$CHANGED" = true ]; then
             echo ""
             echo "============================================================"
             echo "  ❌  OVERRIDE CHANGE DETECTED IN FEATURE BRANCH"
             echo "============================================================"
             echo ""
-            echo "  DO NOT modify 'overrides' or 'pnpm.overrides' in"
-            echo "  package.json from feature branches. This causes recurring"
-            echo "  merge conflicts — see errors/continuous-pr-errors/ for the"
-            echo "  full history (7+ occurrences)."
+            echo "  DO NOT modify 'overrides', 'pnpm.overrides' or"
+            echo "  'pnpm.auditConfig' in package.json, or anything under"
+            echo "  security/, from feature branches. Override changes cause"
+            echo "  recurring merge conflicts — see errors/continuous-pr-errors/"
+            echo "  for the full history (7+ occurrences)."
             echo ""
             echo "  To fix security vulnerabilities, create a SEPARATE PR"
             echo "  from main that ONLY modifies overrides, and merge it"
@@ -106,5 +136,5 @@ jobs:
 
             exit 1
           else
-            echo "✅ No override changes detected — package.json overrides match main."
+            echo "✅ No guarded changes detected — overrides, audit config and security/ match main."
           fi
