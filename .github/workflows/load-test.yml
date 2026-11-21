@@ -31,6 +31,10 @@ env:
   # Default to staging URL, can be overridden by workflow_dispatch input
   DEFAULT_BASE_URL: ${{ secrets.STAGING_URL || 'http://localhost:3000' }}
 
+# Least privilege: read-only by default; a job that needs more declares its own permissions.
+permissions:
+  contents: read
+
 jobs:
   smoke-load-test:
     name: Smoke Load Test
@@ -39,7 +43,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install k6
         run: |
@@ -67,7 +71,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: k6-smoke-results
           path: results/
@@ -93,7 +97,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install k6
         run: |
@@ -150,7 +154,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: k6-full-results
           path: results/
@@ -178,7 +182,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: Install k6
         run: |
@@ -202,7 +206,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: k6-spike-results
           path: results/

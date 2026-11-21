@@ -22,6 +22,10 @@ on:
     branches: [main]
     paths: [package.json]
 
+# Least privilege: read-only by default; a job that needs more declares its own permissions.
+permissions:
+  contents: read
+
 jobs:
   check-overrides:
     name: Check for override changes
@@ -29,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           fetch-depth: 0
 
