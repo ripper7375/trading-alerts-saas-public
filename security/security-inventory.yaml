@@ -1,0 +1,260 @@
+# security/security-inventory.yaml: the attack-surface inventory as code (schema v3.0).
+#
+# The repository is public, so this file holds aliases only: no real hostnames,
+# ports, IP addresses, credentials or verified runtime patch levels (runtime
+# state stays in the private, gitignored security reports).
+#
+# Read by the vulnerability engine and the posture sweep. Checked by
+# scripts/security/security-inventory.test.mjs: schema keys, unique asset ids,
+# that every referenced path exists, and that `excluded_paths` equals the
+# Dependabot triage prefixes. A change needs the `security-override` label
+# (check-overrides.yml).
+schema_version: '3.0'
+updated_at: '2026-11-21'
+
+toolchain_pins:
+  pnpm_version: '10.34.9' # exact; mirrors the "packageManager" field of package.json
+  node_runtime_floors:
+    v24_min_patch: '24.22.3' # 2026-11-11 Node.js security release
+    v22_min_patch: '22.23.5'
+  python_runtime_floors:
+    v311_min_patch: '3.11.10'
+
+# The continuous checks diff reality against this list.
+expected_public_endpoints:
+  - 'www.davintrade.app' # Vercel (the apex redirects to www)
+  - 'money-service (railway.app domain)'
+  - 'operation-service (railway.app domain)'
+  - 'railway-gateway (railway.app domain)'
+# NOT expected: a TCP proxy on Postgres or Redis (the target state), any domain
+# on pgbouncer, chat-api.davintrade.app while the chat VPS is paused.
+
+assets:
+  - id: monolith-web
+    name: 'Next.js monolith (Vercel)'
+    lifecycle: production
+    deployment_evidence: '.claude/architecture/infrastructure.md'
+    exposure_tier: 1
+    trust_boundaries: [auth, payments, user-data, public-web]
+    escalation_required: false # only specific auth and money packages escalate
+    ecosystems:
+      - type: pnpm
+        manifest_path: 'package.json'
+        lockfile_path: 'pnpm-lock.yaml'
+        include_workspace_importers:
+          - '.'
+          - 'packages/types'
+    build_only_packages:
+      - 'prisma'
+      - '@prisma/config'
+      - '@prisma/engines'
+      - 'effect' # reached only through the @prisma/config CLI
+    runtime:
+      type: nodejs
+      declared_range: '>=24.0.0'
+      platform: vercel-managed
+      verification_method: vercel-build-log
+
+  - id: money-service
+    name: 'NestJS money and billing service (Railway)'
+    lifecycle: production
+    deployment_evidence: '.claude/architecture/infrastructure.md'
+    exposure_tier: 1
+    trust_boundaries: [payments, grants, secrets, auth]
+    escalation_required: true # Rule 5: every change in money-service escalates
+    ecosystems:
+      - type: npm
+        manifest_path: 'money-service/package.json'
+        lockfile_path: 'money-service/package-lock.json'
+    build_only_packages:
+      - 'prisma'
+      - '@prisma/config'
+      - 'effect'
+      - '@nestjs/cli'
+      - '@nestjs/schematics'
+    runtime:
+      type: nodejs
+      declared_range: '24.x'
+      platform: railway-nixpacks # money-service/railway.toml: builder = "nixpacks"
+      verification_method: railway-build-log
+
+  - id: operation-service
+    name: 'NestJS operation service (Railway)'
+    lifecycle: production
+    deployment_evidence: '.claude/architecture/infrastructure.md'
+    exposure_tier: 2
+    trust_boundaries: [user-data, operations]
+    ecosystems:
+      - type: npm
+        manifest_path: 'operation-service/package.json'
+        lockfile_path: 'operation-service/package-lock.json'
+        nixpacks_path: 'operation-service/nixpacks.toml' # sets NPM_CONFIG_PRODUCTION=false
+    build_only_packages:
+      - 'prisma'
+      - '@prisma/config'
+      - 'effect'
+      - '@nestjs/cli'
+      - '@nestjs/schematics'
+    runtime:
+      type: nodejs
+      declared_range: '24.x'
+      platform: railway-nixpacks # builder = "nixpacks" in railway.toml and railway.json
+      verification_method: railway-build-log
+
+  - id: operation-service-worker
+    name: 'Railway worker service (operation-service worker mode)'
+    lifecycle: needs_owner_confirmation # present in Railway, in no earlier inventory or runbook
+
+  - id: railway-gateway
+    name: 'NestJS Railway gateway (MT5 ingest, BullMQ and sensor kit)'
+    lifecycle: production
+    deployment_evidence: '.claude/architecture/infrastructure.md'
+    exposure_tier: 2
+    trust_boundaries: [market-data-ingest, queues]
+    ecosystems:
+      - type: npm
+        manifest_path: 'railway-gateway/package.json'
+        lockfile_path: 'railway-gateway/package-lock.json'
+        nixpacks_path: 'railway-gateway/nixpacks.toml'
+      - type: pip
+        manifest_path: 'railway-gateway/python-requirements.txt' # installed in the nixpacks install phase
+    build_only_packages:
+      - 'prisma'
+      - '@prisma/config'
+      - 'effect'
+      - '@nestjs/cli'
+      - '@nestjs/schematics'
+    runtime:
+      type: nodejs
+      declared_range: '24.x'
+      platform: railway-nixpacks # builder = "nixpacks" in railway.toml
+      verification_method: railway-build-log
+
+  - id: railway-pgbouncer
+    name: 'Railway PgBouncer connection pooler'
+    lifecycle: production
+    deployment_evidence: 'infra/pgbouncer/Dockerfile'
+    exposure_tier: 2
+    trust_boundaries: [database, secrets]
+    public_endpoints: [] # no domain, no TCP proxy
+    ecosystems:
+      - type: docker
+        dockerfile_path: 'infra/pgbouncer/Dockerfile'
+        base_image: 'alpine:3.24'
+
+  - id: railway-managed-stores
+    name: 'Railway managed PostgreSQL and Redis'
+    lifecycle: production
+    deployment_evidence: '.claude/architecture/infrastructure.md'
+    exposure_tier: 2
+    trust_boundaries: [database, queues, secrets]
+    public_endpoints: # current state; the target state is none
+      - '<PROD_DB> TCP proxy'
+      - '<PROD_REDIS> TCP proxy'
+    scan_mode: manual_attestation # the Executor never connects to production; engine versions are attested by the owner
+
+  - id: flask-api
+    name: 'Railway service flask-api'
+    lifecycle: needs_owner_confirmation # present in Railway, in no earlier inventory or runbook
+
+  - id: chat-server
+    name: 'Socket.IO chat server (<CHAT_VPS_IP>)'
+    lifecycle: paused # not running; restore only through the runbook below
+    restore_gate: 'davintrade-webchat-stack/POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md'
+    deployment_evidence: 'infra/contabo-chat-stack/docker-compose.yml'
+    exposure_tier: 1
+    trust_boundaries: [public-websocket, chat-jwt]
+    ecosystems:
+      - type: npm
+        manifest_path: 'infra/contabo-chat-stack/apps/server/package.json'
+        lockfile_path: 'infra/contabo-chat-stack/apps/server/package-lock.json'
+      - type: docker
+        dockerfile_path: 'infra/contabo-chat-stack/apps/server/Dockerfile'
+        base_image: 'node:22-alpine'
+
+  - id: chat-bot-worker
+    name: 'BullMQ AI bot worker (<CHAT_VPS_IP>)'
+    lifecycle: paused
+    deployment_evidence: 'infra/contabo-chat-stack/docker-compose.yml'
+    exposure_tier: 3
+    trust_boundaries: [llm-egress, internal-queue]
+    ecosystems:
+      - type: npm
+        manifest_path: 'infra/contabo-chat-stack/apps/bot-worker/package.json'
+        lockfile_path: 'infra/contabo-chat-stack/apps/bot-worker/package-lock.json'
+      - type: docker
+        dockerfile_path: 'infra/contabo-chat-stack/apps/bot-worker/Dockerfile'
+        base_image: 'node:22-alpine'
+
+  - id: chat-redis
+    name: 'Chat stack Redis broker (<CHAT_VPS_IP>)'
+    lifecycle: paused
+    deployment_evidence: 'infra/contabo-chat-stack/docker-compose.yml'
+    exposure_tier: 3 # bound to localhost in the Compose file
+    trust_boundaries: [internal-queue]
+    ecosystems:
+      - type: docker
+        compose_path: 'infra/contabo-chat-stack/docker-compose.yml'
+        base_image: 'redis:7-alpine'
+
+  - id: stack-c-mt5-vps
+    name: 'Stack C MT5 collector, push worker and renderer (<MT5_VPS_IP>)'
+    lifecycle: production
+    deployment_evidence: '.claude/architecture/infrastructure.md'
+    exposure_tier: 3
+    trust_boundaries: [market-data-origin, r2-presigned-upload]
+    ecosystems:
+      - type: pip
+        manifest_path: 'backend-stack-c/1_EA-and-backfill-worker-on-contabo-vps/v2_29_multi-timeframe-visualisation/requirements.txt'
+        pinning_required: true # uses unpinned '>=' ranges: a pinned snapshot is needed
+
+  - id: knowledge-service
+    name: 'Python knowledge and RAG service'
+    lifecycle: pre_cutover
+    deployment_evidence: 'knowledge-service/Dockerfile'
+    exposure_tier: 4
+    trust_boundaries: [rag-data, llm-egress]
+    ecosystems:
+      - type: pip
+        manifest_path: 'knowledge-service/requirements.txt'
+      - type: docker
+        dockerfile_path: 'knowledge-service/Dockerfile'
+        base_image: 'python:3.11-slim'
+
+  - id: stack-d-mcd-common
+    name: 'Stack D engine 1.5 MCD common'
+    lifecycle: pre_cutover
+    deployment_evidence: 'docs/runbooks/deploy-stack-d-step2.md'
+    exposure_tier: 4
+    trust_boundaries: [market-context-engine]
+    ecosystems:
+      - type: pip
+        manifest_path: 'davintrade-stack-d-and-e/engine-1-5-new/mcd_common/requirements.txt'
+
+  - id: mt5-service-legacy
+    name: 'Flask MT5 service'
+    lifecycle: needs_owner_confirmation # touched recently; the owner confirms whether it is active or archived
+    exposure_tier: 4
+    ecosystems:
+      - type: pip
+        manifest_path: 'mt5-service/requirements.txt'
+
+  - id: mobile-capacitor
+    name: 'Capacitor mobile app (pre-release)'
+    lifecycle: pre_cutover
+    exposure_tier: 4
+    ecosystems:
+      - type: npm
+        manifest_path: 'davintrade-mobile-app/package.json'
+        lockfile_path: 'davintrade-mobile-app/package-lock.json'
+
+# Identical to NONPROD_PREFIXES in scripts/security/dependabot-triage-lib.mjs, the
+# single source of truth (enforced by security-inventory.test.mjs). The engine
+# scans tracked files only, so untracked copies such as .claude/worktrees/ never
+# need an entry here.
+excluded_paths:
+  - 'seed-code/**'
+  - 'archive/**'
+  - 'frontend-and-backend-python-stack/davintrade-prototype/**'
+  - 'mobile-app/**'
+  - 'davintrade-mobile-app/**'

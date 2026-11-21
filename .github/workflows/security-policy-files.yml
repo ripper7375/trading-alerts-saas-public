@@ -1,0 +1,50 @@
+name: Security Policy Files
+
+# Purpose: keep the security inventory (security/security-inventory.yaml), the
+# VEX registry (security/vex-registry.json) and the scripts that read them
+# consistent. The unit tests of scripts/security/ and the VEX validator run on
+# every change that touches them.
+#
+# Path-filtered on purpose, so it is not a required check: a path-filtered
+# required check would leave unrelated pull requests waiting forever.
+# Changes under security/ also need the 'security-override' label
+# (check-overrides.yml).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'security/**'
+      - 'scripts/security/**'
+      - '.github/workflows/security-policy-files.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'security/**'
+      - 'scripts/security/**'
+      - '.github/workflows/security-policy-files.yml'
+  workflow_dispatch:
+
+# Least privilege: read-only by default; a job that needs more declares its own permissions.
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate security policy files
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+
+      - name: Unit tests of the security scripts
+        run: node --test 'scripts/security/*.test.mjs'
+
+      - name: Validate the VEX registry
+        run: node scripts/security/validate-vex.mjs
