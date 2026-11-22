@@ -166,7 +166,7 @@ test('every asset states a known lifecycle and the fields the engine needs', () 
 
 test('every path the inventory references exists in the repository', () => {
   const pathFields =
-    /^\s+(manifest_path|lockfile_path|dockerfile_path|compose_path|nixpacks_path|deployment_evidence|restore_gate):\s*("[^"]+"|'[^']+')/gm;
+    /^\s+(manifest_path|lockfile_path|dockerfile_path|compose_path|nixpacks_path|deployment_evidence|restore_gate|drift_check|covered_by_lockfile):\s*("[^"]+"|'[^']+')/gm;
   let checked = 0;
   for (const block of BLOCKS) {
     for (const match of block.text.matchAll(pathFields)) {
@@ -179,6 +179,68 @@ test('every path the inventory references exists in the repository', () => {
     }
   }
   assert.ok(checked >= 30, `only ${checked} paths were checked`);
+});
+
+test('the two manifests of the Phase 2 coverage gap are classified in the inventory', () => {
+  const block = (id) => BLOCKS.find((b) => b.id === id);
+  // development tooling of the Flask service: mapped, and marked as development only
+  assert.match(
+    block('mt5-service-legacy').text,
+    /manifest_path:\s*'mt5-service\/requirements-dev\.txt'\s*\n\s+scope:\s*development/
+  );
+  // a file: dependency of operation-service: mapped, audited through the service lockfile
+  assert.match(
+    block('operation-service').text,
+    /manifest_path:\s*'operation-service\/packages\/types\/package\.json'[^\n]*\n\s+covered_by_lockfile:\s*'operation-service\/package-lock\.json'/
+  );
+});
+
+test('a covered manifest names a lockfile the same asset audits, and a scope is a known word', () => {
+  let covered = 0;
+  for (const block of BLOCKS) {
+    const lockfiles = [
+      ...block.text.matchAll(/^\s+lockfile_path:\s*("[^"]+"|'[^']+')/gm),
+    ].map((m) => unquote(m[1]));
+    for (const m of block.text.matchAll(
+      /^\s+covered_by_lockfile:\s*("[^"]+"|'[^']+')/gm
+    )) {
+      covered += 1;
+      assert.ok(
+        lockfiles.includes(unquote(m[1])),
+        `${block.id}: ${m[1]} is not a lockfile of this asset`
+      );
+    }
+    for (const m of block.text.matchAll(/^\s+scope:\s*(\S+)/gm)) {
+      assert.ok(
+        ['runtime', 'development'].includes(m[1]),
+        `${block.id}: scope ${m[1]}`
+      );
+    }
+  }
+  assert.ok(covered >= 1, 'no covered manifest is left');
+});
+
+test('a paused asset names the DNS name that must not resolve, and its restore gate has a drift check', () => {
+  const chat = BLOCKS.find((b) => b.id === 'chat-server');
+  const hosts = /^ {4}public_hostnames:\s*\[([^\]]*)\]/m.exec(chat.text);
+  assert.ok(hosts, 'chat-server: public_hostnames');
+  const names = hosts[1]
+    .split(',')
+    .map((name) => unquote(name.trim()))
+    .filter(Boolean);
+  assert.ok(names.length >= 1);
+  const expected = topLevelList(INVENTORY, 'expected_public_endpoints');
+  for (const name of names) {
+    assert.match(name, /^(?:[a-z0-9-]+\.)+[a-z]{2,}$/, name);
+    assert.equal(
+      expected.includes(name),
+      false,
+      `${name} is listed as an expected public endpoint while its asset is paused`
+    );
+  }
+  assert.equal(field(chat, 'lifecycle', 4), 'paused');
+  assert.ok(field(chat, 'drift_check', 4), 'chat-server: drift_check');
+  assert.ok(field(chat, 'restore_gate', 4), 'chat-server: restore_gate');
 });
 
 test('platform claims match the build configuration in the repository', () => {

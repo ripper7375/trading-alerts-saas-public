@@ -382,6 +382,60 @@ test('the asset ids in alerts are validated, never raw', () => {
   ]);
 });
 
+// a finding of the live posture sweep: no advisory, no package, a fixed check id
+const postureFinding = (n, over = {}) => ({
+  key: hex(n),
+  priority: 'P1',
+  assetId: 'github-repo',
+  kind: 'posture-drift',
+  source: 'posture-sweep',
+  malicious: false,
+  packageName: 'github-secret-scanning',
+  primaryId: 'POSTURE-GITHUB-SECRET-SCANNING',
+  advisoryIds: [],
+  ...over,
+});
+
+test('computeTransitions: a live posture breach has its own reason and deduplicates', () => {
+  const findings = [
+    postureFinding(1),
+    postureFinding(2, { kind: 'public-endpoint', assetId: 'chat-server' }),
+    postureFinding(3, { priority: 'P2', kind: 'tls-certificate' }),
+  ];
+  assert.deepEqual(reasons(emptyAlertState(), findings), [
+    'posture_breach',
+    'posture_breach',
+  ]);
+  assert.deepEqual(
+    computeTransitions(emptyAlertState(), findings).alerts.map(
+      (a) => a.assetId
+    ),
+    ['github-repo', 'chat-server']
+  );
+  // already known: no alert again
+  assert.deepEqual(reasons(stateOf(snapshotFindings(findings)), findings), []);
+  // P2 -> P1 alerts, P1 -> P2 does not
+  assert.deepEqual(
+    reasons(stateOf({ [hex(3)]: { tier: 'P2' } }), [
+      postureFinding(3, { priority: 'P1' }),
+    ]),
+    ['posture_breach']
+  );
+  assert.deepEqual(
+    reasons(stateOf({ [hex(1)]: { tier: 'P1' } }), [
+      postureFinding(1, { priority: 'P2' }),
+    ]),
+    []
+  );
+  // a fixed asset id only, like every other alert
+  assert.deepEqual(
+    computeTransitions(emptyAlertState(), [
+      postureFinding(9, { assetId: `${ADVISORY} injected` }),
+    ]).alerts,
+    [{ reason: 'posture_breach', assetId: 'unknown-asset' }]
+  );
+});
+
 // --- heartbeat --------------------------------------------------------------------------------------
 
 test('heartbeatDecision: once per window, deduplicated within a day, flagged when missed', () => {
@@ -470,7 +524,13 @@ test('the alert message carries reasons, counts, asset ids and the report pointe
     findPrivacyViolations(text, { forbidden: [PACKAGE, ADVISORY, CVE] }),
     []
   );
-  assert.equal(ALERT_REASONS.length, 6);
+  assert.equal(ALERT_REASONS.length, 7);
+  // a live posture breach sits between a floor breach and the generic P1
+  assert.deepEqual(ALERT_REASONS.slice(3, 6), [
+    'runtime_floor_breach',
+    'posture_breach',
+    'new_p1',
+  ]);
 });
 
 test('the heartbeat message is compact and healthy by default', () => {
@@ -550,6 +610,74 @@ test('the heartbeat flags a degraded sweep, a missed heartbeat, floors and resol
     }),
   });
   assert.match(first, /Last heartbeat: first run/);
+});
+
+test('the alert message names a live posture breach by asset id and count', () => {
+  const text = buildAlertMessage({
+    alerts: [
+      { reason: 'posture_breach', assetId: 'github-repo' },
+      { reason: 'posture_breach', assetId: 'chat-server' },
+      { reason: 'new_p1', assetId: 'monolith-web' },
+    ],
+    posture: posture({
+      summary: { tiers: { P0: 0, P1: 3, P2: 0, P3: 0, WITHDRAWN: 0 } },
+    }),
+    now: NOW,
+  });
+  assert.equal(
+    text,
+    [
+      '🚨 [DavinTrade Security Alert] 2026-11-21 16:40 UTC',
+      'Live posture breach: 2 (chat-server, github-repo)',
+      'New P1: 1 (monolith-web)',
+      'Open now: P0=0 P1=3 P2=0 P3=0',
+      `Details: ${REPORT_HINT}`,
+    ].join('\n')
+  );
+  assert.deepEqual(findPrivacyViolations(text), []);
+});
+
+test('the heartbeat adds one counts-only line when the live posture sweep ran, and none otherwise', () => {
+  const heartbeat = heartbeatDecision({
+    lastHeartbeatAt: hoursAgo(24.2),
+    now: NOW,
+    requested: true,
+  });
+  const live = {
+    run: { degraded: false, offline: false },
+    summary: {
+      checks: { total: 24, pass: 21, fail: 1, unavailable: 1, skipped: 1 },
+      areas: {
+        web: 'ok',
+        tls: 'unavailable',
+        dns: 'ok',
+        github: 'fail',
+        runtime: 'ok',
+      },
+    },
+  };
+  const text = buildHeartbeatMessage({
+    posture: posture({ live_posture: live }),
+    now: NOW,
+    heartbeat,
+  });
+  assert.match(
+    text,
+    /Live posture: pass=21 fail=1 unavailable=1 skipped=1 \| web=ok tls=unavailable dns=ok github=fail runtime=ok/
+  );
+  assert.deepEqual(findPrivacyViolations(text), []);
+  // the line follows the Dependabot line, before the heartbeat timing
+  const lines = text.split('\n');
+  assert.ok(
+    lines.findIndex((l) => l.startsWith('Live posture:')) >
+      lines.findIndex((l) => l.startsWith('Dependabot:'))
+  );
+  assert.equal(
+    buildHeartbeatMessage({ posture: posture(), now: NOW, heartbeat }).includes(
+      'Live posture'
+    ),
+    false
+  );
 });
 
 test('buildTestMessage and buildPushBody', () => {

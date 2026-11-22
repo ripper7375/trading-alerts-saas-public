@@ -10,7 +10,7 @@
 # Dependabot triage prefixes. A change needs the `security-override` label
 # (check-overrides.yml).
 schema_version: '3.0'
-updated_at: '2026-11-21'
+updated_at: '2026-11-22'
 
 toolchain_pins:
   pnpm_version: '10.34.9' # exact; mirrors the "packageManager" field of package.json
@@ -91,6 +91,9 @@ assets:
         manifest_path: 'operation-service/package.json'
         lockfile_path: 'operation-service/package-lock.json'
         nixpacks_path: 'operation-service/nixpacks.toml' # sets NPM_CONFIG_PRODUCTION=false
+      - type: npm
+        manifest_path: 'operation-service/packages/types/package.json' # a file: dependency of the service
+        covered_by_lockfile: 'operation-service/package-lock.json' # its ranges resolve there, audited above
     build_only_packages:
       - 'prisma'
       - '@prisma/config'
@@ -162,7 +165,9 @@ assets:
   - id: chat-server
     name: 'Socket.IO chat server (<CHAT_VPS_IP>)'
     lifecycle: paused # not running; restore only through the runbook below
+    public_hostnames: ['chat-api.davintrade.app'] # must not resolve while paused (rule R-9, checked by the posture sweep)
     restore_gate: 'davintrade-webchat-stack/POST-SNAPSHOT-CHAT-VPS-REBUILD-RUNBOOK.md'
+    drift_check: 'scripts/security/check-vps-drift.sh' # read-only; run on the restored VPS before traffic
     deployment_evidence: 'infra/contabo-chat-stack/docker-compose.yml'
     exposure_tier: 1
     trust_boundaries: [public-websocket, chat-jwt]
@@ -240,6 +245,9 @@ assets:
     ecosystems:
       - type: pip
         manifest_path: 'mt5-service/requirements.txt'
+      - type: pip
+        manifest_path: 'mt5-service/requirements-dev.txt'
+        scope: development # test, lint and scan tooling: installed for development only
 
   - id: mobile-capacitor
     name: 'Capacitor mobile app (pre-release)'

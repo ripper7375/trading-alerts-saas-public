@@ -19,6 +19,7 @@ import {
   SLA,
   TIERS,
   applyScope,
+  buildHygieneFindings,
   buildNpmGraph,
   classifyResolution,
   classifyVulnerability,
@@ -35,6 +36,7 @@ import {
   mergeVexRegistries,
   normalizeInventory,
   npmFindings,
+  parseNixpacksBuildEnv,
   parseNpmAuditJson,
   parseRequirements,
   pnpmFindings,
@@ -953,6 +955,281 @@ test('normalizeInventory fails loudly on a broken policy file', () => {
   });
 });
 
+test('normalizeInventory carries the Phase 3 fields: host names, drift check, covered manifests, scope', () => {
+  const doc = (ecosystems, extra = {}) => ({
+    schema_version: '3.0',
+    toolchain_pins: { node_runtime_floors: { v24_min_patch: '24.22.3' } },
+    assets: [
+      {
+        id: 'a',
+        lifecycle: 'paused',
+        public_hostnames: ['a.example.test', 7, null],
+        drift_check: 'scripts/x.sh',
+        ecosystems,
+        ...extra,
+      },
+    ],
+  });
+  const [asset] = normalizeInventory(
+    doc([
+      {
+        type: 'npm',
+        manifest_path: 'a/package.json',
+        lockfile_path: 'a/package-lock.json',
+        nixpacks_path: 'a/nixpacks.toml',
+        compose_path: 'a/compose.yml',
+      },
+      {
+        type: 'npm',
+        manifest_path: 'a/sub/package.json',
+        covered_by_lockfile: 'a/package-lock.json',
+      },
+      {
+        type: 'pip',
+        manifest_path: 'a/requirements-dev.txt',
+        scope: 'development',
+      },
+    ])
+  ).assets;
+  assert.deepEqual(asset.publicHostnames, ['a.example.test']);
+  assert.equal(asset.driftCheckPath, 'scripts/x.sh');
+  assert.equal(asset.ecosystems[0].nixpacksPath, 'a/nixpacks.toml');
+  assert.equal(asset.ecosystems[0].composePath, 'a/compose.yml');
+  assert.equal(asset.ecosystems[0].scope, null);
+  assert.equal(asset.ecosystems[0].coveredByLockfile, null);
+  assert.equal(asset.ecosystems[1].coveredByLockfile, 'a/package-lock.json');
+  assert.equal(asset.ecosystems[2].scope, 'development');
+  // a field that is absent is empty, not undefined
+  const [bare] = normalizeInventory({
+    schema_version: '3.0',
+    toolchain_pins: { node_runtime_floors: { v24_min_patch: '24.22.3' } },
+    assets: [{ id: 'b', lifecycle: 'production' }],
+  }).assets;
+  assert.deepEqual(bare.publicHostnames, []);
+  assert.equal(bare.driftCheckPath, null);
+  // a typo must not turn a runtime manifest into a development one
+  for (const scope of ['dev', 'Development', 5]) {
+    assert.throws(
+      () =>
+        normalizeInventory(
+          doc([{ type: 'pip', manifest_path: 'a/r.txt', scope }])
+        ),
+      (error) =>
+        error instanceof PolicyError &&
+        error.message === 'inventory_ecosystem_scope',
+      String(scope)
+    );
+  }
+});
+
+test('the real inventory closes the two coverage gaps of Phase 2 and names the restore gate', () => {
+  const inventory = loadInventory(INVENTORY_TEXT);
+  const asset = (id) => inventory.assets.find((a) => a.id === id);
+  const eco = (id, path) =>
+    asset(id).ecosystems.find((e) => e.manifestPath === path);
+  // a development-only manifest of the (unconfirmed) Flask service
+  assert.equal(
+    eco('mt5-service-legacy', 'mt5-service/requirements-dev.txt').scope,
+    'development'
+  );
+  // a file: dependency of operation-service, resolved in the service lockfile
+  assert.equal(
+    eco('operation-service', 'operation-service/packages/types/package.json')
+      .coveredByLockfile,
+    'operation-service/package-lock.json'
+  );
+  // a paused asset: its name must not resolve, and the drift check is its restore gate
+  assert.deepEqual(asset('chat-server').publicHostnames, [
+    'chat-api.davintrade.app',
+  ]);
+  assert.equal(
+    asset('chat-server').driftCheckPath,
+    'scripts/security/check-vps-drift.sh'
+  );
+  // Dependabot alerts on those manifests now map to their assets
+  const alert = (manifestPath, scope) => ({
+    ghsa: ADVISORY,
+    cve: null,
+    packageName: 'x',
+    ecosystem: 'pip',
+    manifestPath,
+    scope,
+  });
+  const result = reconcileDependabot({
+    alerts: [
+      alert('mt5-service/requirements-dev.txt', 'development'),
+      alert('operation-service/packages/types/package.json', 'runtime'),
+    ],
+    findings: [],
+    inventory,
+  });
+  assert.equal(result.unmapped, 0);
+  assert.deepEqual(result.unmappedManifests, []);
+  assert.equal(result.development, 1, 'the development alert is set aside');
+  assert.equal(result.compared, 1, 'the runtime alert is compared');
+});
+
+// --- build hygiene: development dependencies installed at build time ------------------------------
+
+test('parseNixpacksBuildEnv reads NPM_CONFIG_PRODUCTION from the [variables] table only', () => {
+  const parse = parseNixpacksBuildEnv;
+  const yes = { npmConfigProduction: 'false', installsDevDependencies: true };
+  assert.deepEqual(
+    parse('[variables]\nNPM_CONFIG_PRODUCTION = "false"\n'),
+    yes
+  );
+  assert.deepEqual(
+    parse("[variables]\nNPM_CONFIG_PRODUCTION = 'false' # dev\n"),
+    yes
+  );
+  assert.deepEqual(parse('[variables]\nNPM_CONFIG_PRODUCTION = false\n'), yes);
+  assert.deepEqual(
+    parse('[variables]\r\n"NPM_CONFIG_PRODUCTION" = "false"\r\n'),
+    yes
+  );
+  assert.deepEqual(
+    parse(
+      '[phases.setup]\nnixPkgs = ["..."]\n\n[variables]\nOTHER = "1"\nNPM_CONFIG_PRODUCTION="false"\n'
+    ),
+    yes
+  );
+  const no = { npmConfigProduction: 'true', installsDevDependencies: false };
+  assert.deepEqual(parse('[variables]\nNPM_CONFIG_PRODUCTION = "true"\n'), no);
+  const none = { npmConfigProduction: null, installsDevDependencies: false };
+  assert.deepEqual(parse(''), none);
+  assert.deepEqual(parse(null), none);
+  assert.deepEqual(parse('[variables]\nNODE_ENV = "production"\n'), none);
+  // a comment, or the key in another table, does not count
+  assert.deepEqual(
+    parse('# NPM_CONFIG_PRODUCTION = "false"\n[variables]\n'),
+    none
+  );
+  assert.deepEqual(
+    parse('[phases.install]\nNPM_CONFIG_PRODUCTION = "false"\n'),
+    none
+  );
+});
+
+test('the nixpacks files of the two services that install development dependencies say so', () => {
+  const inventory = loadInventory(INVENTORY_TEXT);
+  const withFile = inventory.assets.flatMap((a) =>
+    a.ecosystems
+      .filter((e) => e.nixpacksPath)
+      .map((e) => ({ id: a.id, path: e.nixpacksPath }))
+  );
+  assert.deepEqual(withFile.map((w) => w.id).sort(), [
+    'operation-service',
+    'railway-gateway',
+  ]);
+  for (const { path } of withFile) {
+    assert.equal(
+      parseNixpacksBuildEnv(readFileSync(join(ROOT, path), 'utf8'))
+        .installsDevDependencies,
+      true,
+      path
+    );
+  }
+});
+
+test('buildHygieneFindings keeps the high and critical advisories found only in development dependencies, as build_only', () => {
+  const lock = {
+    lockfileVersion: 3,
+    packages: {
+      '': { dependencies: { 'prod-dep': '^1.0.0' } },
+      'node_modules/prod-dep': { version: '1.0.0' },
+      'node_modules/dev-high': { version: '2.0.0', dev: true },
+      'node_modules/dev-crit': { version: '3.0.0', dev: true },
+      'node_modules/dev-mod': { version: '4.0.0', dev: true },
+      'node_modules/dev-low': { version: '5.0.0', dev: true },
+    },
+  };
+  const via = (name, source, severity) => ({
+    source,
+    name,
+    title: `Sentinel ${name}`,
+    url: `https://github.com/advisories/GHSA-${name
+      .replace(/[^a-z]/g, '')
+      .slice(0, 4)
+      .padEnd(4, 'x')}-aaaa-bbbb`,
+    severity,
+    cwe: ['CWE-79'],
+    range: '<9.0.0',
+  });
+  const entry = (name, source, severity) => ({
+    name,
+    severity,
+    isDirect: false,
+    via: [via(name, source, severity)],
+    nodes: [`node_modules/${name}`],
+  });
+  const report = {
+    vulnerabilities: {
+      'prod-dep': entry('prod-dep', 1, 'high'),
+      'dev-high': entry('dev-high', 2, 'high'),
+      'dev-crit': entry('dev-crit', 3, 'critical'),
+      'dev-mod': entry('dev-mod', 4, 'moderate'),
+      'dev-low': entry('dev-low', 5, 'low'),
+    },
+  };
+  const found = buildHygieneFindings({
+    report,
+    graph: buildNpmGraph(lock),
+    assetId: 'svc-a',
+  });
+  assert.deepEqual(found.map((f) => f.packageName).sort(), [
+    'dev-crit',
+    'dev-high',
+  ]);
+  for (const f of found) {
+    assert.equal(f.scope, 'build_only');
+    assert.equal(f.source, 'npm-audit-dev');
+    assert.equal(f.buildHygiene, true);
+    assert.equal(f.assetId, 'svc-a');
+    assert.match(f.key, /^[0-9a-f]{16}$/);
+  }
+  // the engine sends them to P3 (R-2): present in the report, never a page
+  const asset = {
+    id: 'svc-a',
+    lifecycle: 'production',
+    exposureTier: 1,
+    escalationRequired: true,
+    buildOnlyPackages: new Set(),
+  };
+  const context = {
+    today: '2026-11-22',
+    vexStatements: [],
+    vexMatches: vexStatementMatches,
+    vexExpiry: vexExpiryReasons,
+  };
+  for (const f of found) {
+    const scored = scoreFinding(f, asset, context);
+    assert.equal(scored.priority, 'P3');
+    assert.equal(scored.rule, 'R-2');
+  }
+  // the key differs from the key the same advisory would get as a regular finding
+  const regular = npmFindings({
+    report,
+    graph: buildNpmGraph(lock),
+    assetId: 'svc-a',
+  }).find((f) => f.packageName === 'dev-high');
+  assert.notEqual(
+    found.find((f) => f.packageName === 'dev-high').key,
+    regular.key
+  );
+  // no repeats: the same advisory reached twice is one finding
+  const twice = buildHygieneFindings({
+    report: {
+      vulnerabilities: {
+        ...report.vulnerabilities,
+        again: entry('dev-high', 2, 'high'),
+      },
+    },
+    graph: buildNpmGraph(lock),
+    assetId: 'svc-a',
+  });
+  assert.equal(twice.filter((f) => f.packageName === 'dev-high').length, 1);
+});
+
 test('isExcludedPath: directory globs match whole directories only', () => {
   const patterns = ['seed-code/**', 'archive/**'];
   assert.equal(isExcludedPath('seed-code/txtai/package.json', patterns), true);
@@ -1529,7 +1806,9 @@ test('reconcileDependabot maps a workspace importer manifest to its asset', () =
         cve: null,
         packageName: 'sentinel-pkg',
         ecosystem: 'npm',
-        manifestPath: 'operation-service/packages/types/package.json',
+        // a manifest that is in no asset of the inventory (the two of the Phase 2 gap are
+        // mapped now; see "the real inventory closes the two coverage gaps")
+        manifestPath: 'unlisted-service/package.json',
         scope: 'runtime',
       },
     ],
@@ -1543,11 +1822,52 @@ test('reconcileDependabot maps a workspace importer manifest to its asset', () =
     ],
   });
   assert.equal(result.unmapped, 1);
-  assert.deepEqual(result.unmappedManifests, [
-    'operation-service/packages/types/package.json',
-  ]);
+  assert.deepEqual(result.unmappedManifests, ['unlisted-service/package.json']);
   assert.equal(result.compared, 1);
   assert.equal(result.agreed, 1);
+});
+
+test('reconcileDependabot does not count a build-hygiene finding as a local-only disagreement', () => {
+  // an advisory in a development tool that the build installs: Dependabot labels the alert
+  // `development` (set aside by design), the full audit reports it as a build_only finding
+  const inventory = loadInventory(INVENTORY_TEXT);
+  const hygiene = makeFinding({
+    assetId: 'operation-service',
+    packageName: 'sentinel-dev-tool',
+    version: '1.0.0',
+    advisoryIds: [ADVISORY],
+    scope: 'build_only',
+    buildHygiene: true,
+    source: 'npm-audit-dev',
+  });
+  const alert = {
+    ghsa: ADVISORY,
+    cve: null,
+    packageName: 'sentinel-dev-tool',
+    ecosystem: 'npm',
+    manifestPath: 'operation-service/package.json',
+    scope: 'development',
+  };
+  const result = reconcileDependabot({
+    inventory,
+    alerts: [alert],
+    findings: [hygiene],
+  });
+  assert.equal(result.development, 1, 'the alert is set aside');
+  assert.deepEqual(result.localOnly, []);
+  assert.equal(result.mismatch, 0);
+  // a runtime finding that Dependabot does not report is still a disagreement
+  const runtime = makeFinding({
+    assetId: 'operation-service',
+    packageName: 'sentinel-runtime',
+    version: '1.0.0',
+    advisoryIds: [ADVISORY_2],
+  });
+  assert.equal(
+    reconcileDependabot({ inventory, alerts: [], findings: [runtime] })
+      .localOnly.length,
+    1
+  );
 });
 
 test('escapeMarkdownCell keeps untrusted text inside its table cell', () => {

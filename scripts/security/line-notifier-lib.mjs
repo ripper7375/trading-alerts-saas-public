@@ -239,6 +239,7 @@ export const ALERT_REASONS = Object.freeze([
   'new_p0',
   'escalated_to_p0',
   'runtime_floor_breach',
+  'posture_breach',
   'new_p1',
   'escalated_to_p1',
 ]);
@@ -248,6 +249,7 @@ const REASON_LABELS = Object.freeze({
   new_p0: 'New P0',
   escalated_to_p0: 'Escalated to P0',
   runtime_floor_breach: 'Runtime floor breach',
+  posture_breach: 'Live posture breach',
   new_p1: 'New P1',
   escalated_to_p1: 'Escalated to P1',
 });
@@ -274,6 +276,11 @@ export function computeTransitions(previous, findings) {
     if (f.kind === 'runtime-floor') {
       if (now <= 1 && (was === null || was > 1))
         alerts.push({ reason: 'runtime_floor_breach', assetId });
+    } else if (f.source === 'posture-sweep') {
+      // a failed check of the live posture sweep (headers, certificate, DNS, GitHub
+      // settings, deployed build): alerts when it enters P0 or P1, never twice
+      if (now <= 1 && (was === null || was > 1))
+        alerts.push({ reason: 'posture_breach', assetId });
     } else if (f.malicious === true && !before?.malicious) {
       alerts.push({ reason: 'malicious_package', assetId });
     } else if (f.priority === 'P0' && was !== 0) {
@@ -346,6 +353,19 @@ function floorsText(posture) {
 const tiersText = (tiers) =>
   `P0=${num(tiers.P0)} P1=${num(tiers.P1)} P2=${num(tiers.P2)} P3=${num(tiers.P3)}`;
 
+// The live posture sweep in the heartbeat: counts and a fixed vocabulary only.
+const POSTURE_AREAS = Object.freeze(['web', 'tls', 'dns', 'github', 'runtime']);
+const POSTURE_AREA_WORDS = new Set(['ok', 'fail', 'unavailable', 'skipped']);
+
+function livePostureText(live) {
+  const c = live.summary?.checks ?? {};
+  const areas = POSTURE_AREAS.map((name) => {
+    const word = live.summary?.areas?.[name];
+    return `${name}=${POSTURE_AREA_WORDS.has(word) ? word : 'unknown'}`;
+  }).join(' ');
+  return `Live posture: pass=${num(c.pass)} fail=${num(c.fail)} unavailable=${num(c.unavailable)} skipped=${num(c.skipped)} | ${areas}`;
+}
+
 /**
  * The immediate alert: transitions grouped by reason, with the assets they hit.
  */
@@ -389,6 +409,7 @@ export function buildHeartbeatMessage({
       ? `Dependabot: open=${num(dep.open)} mismatch=${num(dep.mismatch)}`
       : 'Dependabot: not compared',
   ];
+  if (posture.live_posture) lines.push(livePostureText(posture.live_posture));
   if (resolved > 0)
     lines.push(`Resolved P0/P1 since the last sweep: ${num(resolved)}`);
   if (heartbeat.missed) {

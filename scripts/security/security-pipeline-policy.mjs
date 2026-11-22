@@ -24,6 +24,10 @@ export const LIFECYCLES = Object.freeze([
   'archived',
 ]);
 
+// How a manifest is installed: the default is `runtime`; `development` marks test, lint and
+// scan tooling (its advisories never reach a running service).
+export const ECOSYSTEM_SCOPES = Object.freeze(['runtime', 'development']);
+
 const asArray = (value) => (Array.isArray(value) ? value : []);
 const asStringArray = (value) =>
   asArray(value).filter((item) => typeof item === 'string');
@@ -94,19 +98,40 @@ function normalizeAsset(raw) {
     trustBoundaries: asStringArray(raw.trust_boundaries),
     buildOnlyPackages: new Set(asStringArray(raw.build_only_packages)),
     publicEndpoints: asStringArray(raw.public_endpoints),
+    // DNS names the asset answers on: the posture sweep checks that a paused
+    // asset's names do not resolve (rule R-9)
+    publicHostnames: asStringArray(raw.public_hostnames),
+    // the read-only script that checks the live host before traffic (the restore gate)
+    driftCheckPath: asText(raw.drift_check),
     runtime:
       raw.runtime && typeof raw.runtime === 'object' ? raw.runtime : null,
     ecosystems: asArray(raw.ecosystems)
       .filter((eco) => eco && typeof eco === 'object')
-      .map((eco) => ({
-        type: asText(eco.type),
-        manifestPath: asText(eco.manifest_path),
-        lockfilePath: asText(eco.lockfile_path),
-        workspaceImporters: asStringArray(eco.include_workspace_importers),
-        pinningRequired: eco.pinning_required === true,
-        baseImage: asText(eco.base_image),
-        dockerfilePath: asText(eco.dockerfile_path),
-      })),
+      .map((eco) => {
+        // a typo must not quietly turn a runtime manifest into a development one
+        if (
+          eco.scope !== undefined &&
+          eco.scope !== null &&
+          !ECOSYSTEM_SCOPES.includes(eco.scope)
+        ) {
+          throw new PolicyError('inventory_ecosystem_scope');
+        }
+        return {
+          type: asText(eco.type),
+          manifestPath: asText(eco.manifest_path),
+          lockfilePath: asText(eco.lockfile_path),
+          workspaceImporters: asStringArray(eco.include_workspace_importers),
+          pinningRequired: eco.pinning_required === true,
+          baseImage: asText(eco.base_image),
+          dockerfilePath: asText(eco.dockerfile_path),
+          composePath: asText(eco.compose_path),
+          nixpacksPath: asText(eco.nixpacks_path),
+          scope: asText(eco.scope),
+          // a manifest the service installs through another lockfile (a `file:` dependency):
+          // its ranges resolve there, so it is mapped to the asset but not audited on its own
+          coveredByLockfile: asText(eco.covered_by_lockfile),
+        };
+      }),
   };
 }
 

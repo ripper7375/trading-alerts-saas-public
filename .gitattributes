@@ -3,3 +3,6 @@
 #   pnpm install --no-frozen-lockfile
 pnpm-lock.yaml linguist-generated -diff
 package-lock.json linguist-generated -diff
+
+# The chat VPS drift check runs on Linux: LF line endings on every checkout, Windows included.
+scripts/security/*.sh text eol=lf
