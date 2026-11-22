@@ -574,7 +574,7 @@ function fixesFor(group, { name, ecosystem, version }) {
  * Findings for one pinned Python package, from the OSV records that affect it.
  * Records that alias each other are one finding.
  */
-export function pipFindingsFromOsv({ assetId, pkg, records }) {
+export function pipFindingsFromOsv({ assetId, pkg, records, scope }) {
   const out = [];
   for (const group of groupByAlias(records)) {
     const ids = unique(group.flatMap((r) => [r.id, ...r.aliases])).sort(
@@ -608,7 +608,9 @@ export function pipFindingsFromOsv({ assetId, pkg, records }) {
         fixedVersions: fixes,
         fixKnown: known,
         direct: true,
-        scope: isPipDevTool(pkg.name) ? 'dev_only' : 'runtime',
+        // a package of a development-only manifest is dev_only; otherwise known test and
+        // lint tools are, and everything else is runtime
+        scope: scope ?? (isPipDevTool(pkg.name) ? 'dev_only' : 'runtime'),
         withdrawn: group.every((r) => r.withdrawn),
         malicious: ids.some((id) => /^MAL-/i.test(id)),
       })

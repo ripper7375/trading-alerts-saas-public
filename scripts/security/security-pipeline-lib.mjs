@@ -572,8 +572,15 @@ export function reconcileDependabot({ alerts, findings, inventory }) {
   const localOnly = [];
   const seen = new Set();
   for (const f of findings) {
-    // a package installed for development is not audited by the production matchers
-    if (f.kind !== 'advisory' || f.malicious || f.scope === 'dev_only') {
+    // a package installed for development is not audited by the production matchers; a
+    // build-hygiene finding is a development advisory the full audit found, which Dependabot
+    // labels `development` and this comparison sets aside on its side
+    if (
+      f.kind !== 'advisory' ||
+      f.malicious ||
+      f.scope === 'dev_only' ||
+      f.buildHygiene
+    ) {
       continue;
     }
     if (!f.advisoryIds.some((id) => /^(?:GHSA|CVE)-/i.test(id))) continue;
@@ -659,6 +666,7 @@ function findingRow(f) {
     f.direct ? 'direct' : null,
     f.acceptedIgnore ? 'accepted-ignore' : null,
     f.vexActive ? `vex:${f.vexSource}` : null,
+    f.buildHygiene ? 'build-hygiene' : null,
   ].filter(Boolean);
   return `| ${esc(f.assetId)} | ${esc(`${f.packageName}@${f.version ?? '?'}`)} | ${esc(ids)} | ${esc(f.severity)}${f.severityAssumed ? '*' : ''} | ${f.cvss ?? 'n/a'} | ${pct(f.epssScore)} | ${esc(f.scope)} | ${esc(f.vulnClass)} | ${esc(f.resolution ?? '')}${f.confidence === 'assumed' ? '*' : ''} | ${f.rule} | ${esc(f.sla, 60)} | ${esc(flags.join(' '))} |`;
 }
@@ -666,8 +674,14 @@ function findingRow(f) {
 /**
  * The private posture report (Markdown). It names advisories and packages, so
  * it is written to the gitignored reports folder only.
+ *
+ * `extraSections` are further blocks of lines (each starting with its own `## `
+ * heading), placed after the Dependabot reconciliation: the live posture sweep.
+ *
+ * @param {object} posture
+ * @param {{ extraSections?: string[][] }} [options]
  */
-export function renderPostureMarkdown(posture) {
+export function renderPostureMarkdown(posture, { extraSections = [] } = {}) {
   const s = posture.summary;
   const out = [];
   out.push('# DavinTrade security posture (private)');
@@ -797,6 +811,8 @@ export function renderPostureMarkdown(posture) {
     }
   }
 
+  for (const section of extraSections) out.push(...section);
+
   out.push('## Matchers and feeds', '');
   out.push('| Source | Status | Detail |', '| :- | :- | :- |');
   for (const m of posture.matchers.items)
@@ -819,6 +835,28 @@ export function renderPostureMarkdown(posture) {
       out.push(
         `| ${esc(p.assetId)} | ${p.pinned} | ${p.unpinned} | ${p.pinningRequired ? 'yes' : 'no'} |`
       );
+    out.push('');
+  }
+
+  const hygiene = posture.build_hygiene ?? [];
+  if (hygiene.length > 0) {
+    out.push(
+      '## Build hygiene (development dependencies installed at build time)',
+      ''
+    );
+    out.push(
+      'A service whose nixpacks.toml sets NPM_CONFIG_PRODUCTION=false installs its development dependencies when Railway builds it, so a high or critical advisory in one of them is reachable at build time. Those found only by a full audit are listed above as build_only findings (P3), flagged build-hygiene.',
+      ''
+    );
+    out.push(
+      '| Asset | nixpacks.toml | Installs development dependencies | Full audit run | High and critical dev-only advisories |',
+      '| :- | :- | :- | :- | -: |'
+    );
+    for (const r of hygiene) {
+      out.push(
+        `| ${esc(r.asset_id)} | ${esc(r.nixpacks_path)} | ${r.installs_dev_dependencies ? 'yes' : 'no'} | ${r.audited ? 'yes' : 'no'} | ${r.dev_high_critical} |`
+      );
+    }
     out.push('');
   }
 
@@ -861,5 +899,16 @@ export function renderStdoutSummary(posture) {
     `pinning: unpinned_lines=${posture.pinning.reduce((sum, p) => sum + p.unpinned, 0)}`,
     `vex: public=${posture.vex.public.count} private=${posture.vex.private.count} stale=${posture.vex.stale.length}`,
   ];
+  // services whose build installs development dependencies (only when there is one)
+  const dev = (posture.build_hygiene ?? []).filter(
+    (r) => r.installs_dev_dependencies
+  );
+  if (dev.length > 0) {
+    lines.splice(
+      lines.length - 1,
+      0,
+      `build_hygiene: assets=${dev.length} dev_high_critical=${dev.reduce((sum, r) => sum + r.dev_high_critical, 0)}`
+    );
+  }
   return lines;
 }

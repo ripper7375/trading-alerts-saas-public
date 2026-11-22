@@ -24,6 +24,10 @@ import {
 } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  createCredentialFill,
+  createPostureProbes,
+} from './posture-sweep-probes.mjs';
 import { runPipeline } from './security-pipeline-run.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -57,18 +61,6 @@ function runCommand(command, args, { cwd, timeoutMs = 180000 }) {
   };
 }
 
-// The credential Git holds for github.com, in memory only (never printed or stored).
-function credentialFill() {
-  const r = spawnSync('git', ['credential', 'fill'], {
-    input: 'protocol=https\nhost=github.com\n\n',
-    encoding: 'utf8',
-    timeout: 20000,
-    windowsHide: true,
-    env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'never' },
-  });
-  return r.status === 0 ? r.stdout : null;
-}
-
 const fs = {
   readText: (path) => (existsSync(path) ? readFileSync(path, 'utf8') : null),
   writeText: (path, text) => {
@@ -92,8 +84,14 @@ try {
       now: () => new Date(),
       sleep: (ms) => new Promise((done) => setTimeout(done, ms)),
       log: (line) => console.log(line),
-      credentialFill,
+      // the credential Git holds for github.com, in memory only (never printed or stored)
+      credentialFill: createCredentialFill(),
       nodeVersion: process.version,
+      // the probes of --with-posture: HTTPS, TLS, DNS, the GitHub API and Git
+      posture: {
+        createProbes: ({ root, token, repo }) =>
+          createPostureProbes({ root, token, repo }),
+      },
     },
   });
 } catch {

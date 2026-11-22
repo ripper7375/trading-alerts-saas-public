@@ -36,6 +36,7 @@ docker ps -a --format '{{.Names}} {{.Image}}' | grep -i pgadmin; docker images |
 - If `permission denied` appears on the first command, re-run with `sudo` in front of `docker`.
 - **No output before `done:`** in either command → clean; continue.
 - **Any match mentioning `pgadmin`** → **STOP immediately**, delete nothing, report to Davin, and do not open the stack to users.
+- `scripts/security/check-vps-drift.sh` (§5.0) repeats this check in one read-only run, and adds the process and listening-port checks.
 
 ### 1.2 Inspect the restored containers & `.env`
 
@@ -143,6 +144,23 @@ Follow Steps 2.5–2.6 of `UBUNTU-WEBCHAT-STACK-RESTORATION-RUNBOOK.md`:
 ---
 
 ## 5. Verification Checklist (Must All Pass Before Going Live or Re-Snapshotting)
+
+### 5.0 Automated drift check (read-only; the restore gate of the `chat-server` asset)
+
+`scripts/security/check-vps-drift.sh` is the restore gate named in `security/security-inventory.yaml`. In one read-only run it checks that the running containers are exactly the three of `docker-compose.yml`, that `node -v` in `socket_chat_server` and `ai_bot_worker` is at or above the floor, that there is no pgAdmin container, image, package, unit, process or listening port, and that Redis (`6379`) and the chat server (`3001`) are published on `127.0.0.1` only. It also prints an unattended-upgrades and Alpine package summary. It changes nothing, never uses `sudo`, and prints no address, so its output can be pasted back with the rest of §5.1.
+
+It is not in the synced `infra/contabo-chat-stack/` folder: fetch it the same way as Method A, run it, and delete the clone. The Node floor is `toolchain_pins.node_runtime_floors.v22_min_patch` in `security/security-inventory.yaml` (`22.23.5` today).
+
+```bash
+git clone --depth 1 --filter=blob:none --sparse https://github.com/ripper7375/trading-alerts-saas-public.git /tmp/chat-drift
+git -C /tmp/chat-drift sparse-checkout set scripts/security
+sh /tmp/chat-drift/scripts/security/check-vps-drift.sh --min-node-v22 22.23.5 --compose-file /opt/saas-chat/docker-compose.yml
+rm -rf /tmp/chat-drift
+```
+
+- Exit `0`: no drift. Continue with §5.1.
+- Exit `1`: drift found (a `FAIL` line names it). **STOP**, change nothing, report to Davin.
+- Exit `2`: a check could not be made (an `ERROR` line says why). That is **not** a clean result: if Docker says `permission denied`, run the script as root and run it again.
 
 ### 5.1 On the VPS (paste output back to the Agent/record — contains no secrets)
 

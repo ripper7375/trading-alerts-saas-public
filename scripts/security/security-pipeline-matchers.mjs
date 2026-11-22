@@ -589,6 +589,81 @@ export function npmFindings({
   return out;
 }
 
+// --- build hygiene: development dependencies installed at build time ------------------------
+
+/**
+ * What a nixpacks.toml says about installing development dependencies. Railway builds with
+ * `NPM_CONFIG_PRODUCTION=false` in `[variables]` install them, so an advisory in a development
+ * tool is reachable at build time (the IaC hygiene check of the design). Only the `[variables]`
+ * table counts: a comment, or the key in another table, does not.
+ *
+ * @param {string | null | undefined} text
+ * @returns {{ npmConfigProduction: 'true' | 'false' | null, installsDevDependencies: boolean }}
+ */
+export function parseNixpacksBuildEnv(text) {
+  let table = null;
+  let value = null;
+  for (const raw of String(text ?? '').split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line === '' || line.startsWith('#')) continue;
+    const header = /^\[([^\]]+)\]\s*(?:#.*)?$/.exec(line);
+    if (header) {
+      table = header[1].trim();
+      continue;
+    }
+    if (table !== 'variables') continue;
+    const m = /^["']?NPM_CONFIG_PRODUCTION["']?\s*=\s*(.*)$/.exec(line);
+    if (m) {
+      value = m[1]
+        .replace(/\s+#.*$/, '')
+        .trim()
+        .replace(/^["']|["']$/g, '')
+        .toLowerCase();
+    }
+  }
+  const npmConfigProduction =
+    value === 'false' || value === 'true' ? value : null;
+  return {
+    npmConfigProduction,
+    installsDevDependencies: npmConfigProduction === 'false',
+  };
+}
+
+const HYGIENE_SEVERITIES = new Set(['high', 'critical']);
+
+/**
+ * The high and critical advisories that only a full `npm audit` (development dependencies
+ * included) finds in a lockfile: the production audit never sees them. They are `build_only`
+ * findings, so the priority matrix files them at P3 (rule R-2): in the private report, never
+ * a page. The key differs from the one a regular finding for the same advisory would get.
+ *
+ * @param {Parameters<typeof npmFindings>[0]} input a full audit report and the lockfile graph
+ */
+export function buildHygieneFindings(input) {
+  const out = [];
+  const seen = new Set();
+  for (const f of npmFindings(input)) {
+    if (f.scope !== 'dev_only' || !HYGIENE_SEVERITIES.has(f.severity)) continue;
+    const key = findingKey([
+      'build-hygiene',
+      input.assetId,
+      f.primaryId,
+      f.packageName,
+      f.version,
+    ]);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({
+      ...f,
+      scope: 'build_only',
+      source: 'npm-audit-dev',
+      buildHygiene: true,
+      key,
+    });
+  }
+  return out;
+}
+
 // --- Python ----------------------------------------------------------------------
 
 const PIP_DEV_TOOLS =

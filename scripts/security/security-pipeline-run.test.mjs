@@ -8,11 +8,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  USAGE,
   UsageError,
   parseArgs,
   runPipeline,
@@ -339,6 +347,8 @@ function harness({
   records = RECORDS,
   pnpm = PNPM_AUDIT,
   npm = NPM_AUDIT,
+  npmFull = null, // the answer to an audit that includes development dependencies
+  osvHits = OSV_HITS,
   kev = ['CVE-2099-0009'],
   lineStatus = 200,
   alerts = [],
@@ -357,7 +367,7 @@ function harness({
       return json({
         results: queries.map((q) => ({
           vulns: (
-            OSV_HITS[`${q.package.ecosystem}|${q.package.name}|${q.version}`] ??
+            osvHits[`${q.package.ecosystem}|${q.package.name}|${q.version}`] ??
             []
           ).map((id) => ({ id })),
         })),
@@ -388,9 +398,11 @@ function harness({
         return { status: 0, stdout: '10.34.9\n' };
       if (command === 'pnpm')
         return { status: 1, stdout: JSON.stringify(pnpm) };
+      const answer =
+        npmFull !== null && !args.includes('--omit=dev') ? npmFull : npm;
       return {
         status: 1,
-        stdout: typeof npm === 'string' ? npm : JSON.stringify(npm),
+        stdout: typeof answer === 'string' ? answer : JSON.stringify(answer),
       };
     },
     fetchImpl: async (url, init = {}) => {
@@ -995,6 +1007,690 @@ test('--with-dependabot falls back to the Git credential, and is skipped without
   assert.equal(refused.json('latest-security-posture.json').run.degraded, true);
 });
 
+// --- the live posture sweep (--with-posture) -----------------------------------------------------------------
+
+// the fixture inventory with a public web host and a paused asset that has a DNS name
+const POSTURE_INVENTORY = INVENTORY.replace(
+  "  - 'app.example (fixture)'",
+  "  - 'www.fixture.test'"
+).replace(
+  "    name: 'Docker only'\n",
+  "    name: 'Docker only'\n    public_hostnames: ['box.fixture.test']\n"
+);
+const POSTURE_FILES = {
+  '/repo/security/security-inventory.yaml': POSTURE_INVENTORY,
+};
+const POSTURE_ENV = { DEPENDABOT_TRIAGE_TOKEN: GITHUB_TOKEN };
+const POSTURE_REPO = 'ripper7375/trading-alerts-saas-public';
+
+// every probe answers as the healthy live system does; `over` bends one of them
+function postureProbes(over = {}) {
+  const calls = { web: [], tls: [], dns: [], github: [], git: [] };
+  const github = {
+    '': {
+      ok: true,
+      status: 200,
+      body: {
+        permissions: { admin: true },
+        security_and_analysis: {
+          secret_scanning: { status: 'enabled' },
+          secret_scanning_push_protection: { status: 'enabled' },
+        },
+      },
+    },
+    '/rules/branches/main': {
+      ok: true,
+      status: 200,
+      body: [{ type: 'deletion' }, { type: 'non_fast_forward' }],
+    },
+    '/actions/permissions': {
+      ok: true,
+      status: 200,
+      body: { allowed_actions: 'selected', sha_pinning_required: true },
+    },
+    '/actions/permissions/workflow': {
+      ok: true,
+      status: 200,
+      body: {
+        default_workflow_permissions: 'read',
+        can_approve_pull_request_reviews: false,
+      },
+    },
+    '/vulnerability-alerts': { ok: true, status: 204, body: null },
+    '/private-vulnerability-reporting': {
+      ok: true,
+      status: 200,
+      body: { enabled: true },
+    },
+    ...(over.github ?? {}),
+  };
+  const probes = {
+    web: async ({ url }) => {
+      calls.web.push(url);
+      return url === 'https://www.fixture.test/'
+        ? {
+            ok: true,
+            status: 200,
+            headers: {
+              'strict-transport-security':
+                'max-age=63072000; includeSubDomains; preload',
+              'content-security-policy': "default-src 'self'",
+              'x-frame-options': 'SAMEORIGIN',
+              'x-content-type-options': 'nosniff',
+              'referrer-policy': 'strict-origin-when-cross-origin',
+              'permissions-policy': 'camera=()',
+            },
+          }
+        : {
+            ok: true,
+            status: 308,
+            headers: { location: 'https://www.fixture.test/' },
+          };
+    },
+    tls: async ({ host }) => {
+      calls.tls.push(host);
+      return (
+        over.tls ?? {
+          ok: true,
+          authorized: true,
+          authorizationError: null,
+          validFrom: '2026-10-01T00:00:00.000Z',
+          validTo: '2027-01-05T00:00:00.000Z',
+        }
+      );
+    },
+    dns: async ({ host }) => {
+      calls.dns.push(host);
+      return { ok: true, addresses: [], cnames: [] };
+    },
+    github: async ({ path }) => {
+      calls.github.push(path);
+      return github[path];
+    },
+    git: {
+      fetchMain: async () => {
+        calls.git.push('fetch');
+        return { ok: true };
+      },
+      resolve: async (ref) => {
+        calls.git.push(`resolve ${ref}`);
+        return 'b'.repeat(40);
+      },
+      pending: async () => ({ ok: true, commits: [] }),
+    },
+  };
+  return { probes, calls };
+}
+
+function withPosture(h, over = {}) {
+  const fake = postureProbes(over);
+  const created = [];
+  h.deps.posture = {
+    createProbes: (args) => {
+      created.push(args);
+      return fake.probes;
+    },
+  };
+  return { fake, created };
+}
+
+test('--with-posture adds the live posture to both reports and its counts to stdout', async () => {
+  const h = harness({ files: POSTURE_FILES });
+  const wp = withPosture(h);
+  assert.equal(await h.run(['--with-posture'], POSTURE_ENV), 0);
+  assert.deepEqual(wp.created, [
+    { root: '/repo', token: GITHUB_TOKEN, repo: POSTURE_REPO },
+  ]);
+
+  const posture = h.json('latest-security-posture.json');
+  assert.equal(posture.live_posture.summary.checks.fail, 0);
+  assert.ok(posture.live_posture.summary.checks.total >= 15);
+  // the standalone reports are the same sweep
+  assert.deepEqual(h.json('latest-posture-sweep.json'), posture.live_posture);
+  assert.match(
+    h.file('latest-posture-sweep.md'),
+    /^# DavinTrade live posture sweep \(private\)/
+  );
+  const md = h.file('latest-security-posture.md');
+  assert.match(md, /## Live posture sweep/);
+  assert.match(md, /github-secret-scanning/);
+  assert.match(md, /www\.fixture\.test/);
+
+  const out = h.stdout();
+  noSentinels(out);
+  for (const line of h.logs) {
+    assert.equal(findPrivacyViolations(line).length, 0, line);
+  }
+  assert.equal(out.includes('fixture.test'), false, 'no host on stdout');
+  assert.match(out, /posture_checks: total=\d+ pass=\d+ fail=0/);
+  assert.match(
+    out,
+    /posture_areas: web=ok tls=ok dns=ok github=ok runtime=skipped/
+  );
+  // the vulnerability counts are what they are without the flag
+  assert.match(out, /findings: P0=1 P1=2 P2=0 P3=4 withdrawn=0 total=7/);
+  const everything = JSON.stringify([out, ...h.fs.files.values()]);
+  assert.equal(
+    everything.includes(GITHUB_TOKEN),
+    false,
+    'the token is kept out'
+  );
+});
+
+test('a failed posture check is a P1 finding, a LINE alert and a heartbeat line', async () => {
+  const h = harness({
+    files: { ...POSTURE_FILES, '/repo/.env.local': LINE_ENV },
+  });
+  withPosture(h, {
+    github: {
+      '/private-vulnerability-reporting': {
+        ok: true,
+        status: 200,
+        body: { enabled: false },
+      },
+    },
+  });
+  assert.equal(
+    await h.run(['--dry-run-line', '--with-posture'], POSTURE_ENV),
+    0
+  );
+  const posture = h.json('latest-security-posture.json');
+  assert.deepEqual(posture.summary.tiers, {
+    P0: 1,
+    P1: 3,
+    P2: 0,
+    P3: 4,
+    WITHDRAWN: 0,
+  });
+  const finding = posture.findings.find((f) => f.source === 'posture-sweep');
+  assert.equal(finding.kind, 'posture-drift');
+  assert.equal(finding.assetId, 'github-repo');
+  assert.equal(finding.priority, 'P1');
+  assert.equal(finding.rule, 'PS-1');
+
+  const preview = h.file('last-line-message-preview.txt');
+  assert.match(preview, /Live posture breach: 1 \(github-repo\)/);
+  assert.match(
+    preview,
+    /Live posture: pass=\d+ fail=1 unavailable=0 skipped=\d+ \| web=ok tls=ok dns=ok github=fail runtime=skipped/
+  );
+  noSentinels(preview);
+  assert.equal(
+    findPrivacyViolations(
+      preview
+        .split('\n')
+        .filter((l) => !l.startsWith('#'))
+        .join('\n')
+    ).length,
+    0
+  );
+  assert.match(h.stdout(), /findings: P0=1 P1=3 P2=0 P3=4 withdrawn=0 total=8/);
+  assert.match(
+    h.stdout(),
+    /line: dry run, preview written \(alerts=4 heartbeat=due\)/
+  );
+});
+
+test('an unavailable posture probe degrades the whole sweep and the heartbeat says so', async () => {
+  const h = harness({
+    files: { ...POSTURE_FILES, '/repo/.env.local': LINE_ENV },
+  });
+  withPosture(h, { tls: { ok: false, error: 'timeout' } });
+  assert.equal(
+    await h.run(['--dry-run-line', '--with-posture'], POSTURE_ENV),
+    0
+  );
+  const posture = h.json('latest-security-posture.json');
+  assert.equal(posture.run.degraded, true);
+  assert.equal(posture.live_posture.run.degraded, true);
+  assert.match(h.stdout(), /degraded=yes/);
+  const preview = h.file('last-line-message-preview.txt');
+  assert.match(preview, /Sweep: DEGRADED/);
+  assert.match(preview, /tls=unavailable/);
+});
+
+test('the same posture breach alerts once, not on every run', async () => {
+  const h = harness({
+    files: { ...POSTURE_FILES, '/repo/.env.local': LINE_ENV },
+  });
+  withPosture(h, {
+    github: {
+      '/vulnerability-alerts': { ok: false, status: 404, body: null },
+    },
+  });
+  assert.equal(
+    await h.run(['--notify-line', '--with-posture'], POSTURE_ENV),
+    0
+  );
+  assert.equal(h.lineCalls().length, 1);
+  const body = JSON.parse(h.lineCalls()[0].init.body);
+  assert.match(body.messages[0].text, /Live posture breach: 1 \(github-repo\)/);
+  h.clock.t += 3600 * 1000;
+  await h.run(['--notify-line', '--with-posture'], POSTURE_ENV);
+  assert.equal(h.lineCalls().length, 1, 'the same breach does not alert again');
+});
+
+test('a Node floor breach is counted once, by the engine and the sweep together', async () => {
+  const state = JSON.stringify({
+    assets: {
+      'app-web': { node: '24.10.0', verified: false },
+      'svc-a': { node: '24.22.3', verified: true },
+    },
+  });
+  const h = harness({
+    files: {
+      ...POSTURE_FILES,
+      [`${REPORTS}/runtime-state.json`]: state,
+    },
+  });
+  withPosture(h);
+  assert.equal(await h.run(['--with-posture'], POSTURE_ENV), 0);
+  const posture = h.json('latest-security-posture.json');
+  assert.equal(
+    posture.findings.filter((f) => f.kind === 'runtime-floor').length,
+    1
+  );
+  assert.equal(posture.summary.tiers.P1, 3, 'two advisories and one floor');
+  const check = posture.live_posture.checks.find(
+    (c) => c.id === 'runtime-app-web-node'
+  );
+  assert.equal(check.status, 'fail');
+  assert.equal(check.rule, 'R-7');
+});
+
+test('--with-posture --offline probes nothing over the network and still writes the posture reports', async () => {
+  const h = harness({ files: POSTURE_FILES });
+  const wp = withPosture(h);
+  assert.equal(await h.run(['--with-posture', '--offline'], POSTURE_ENV), 0);
+  assert.deepEqual(
+    [
+      wp.fake.calls.web,
+      wp.fake.calls.tls,
+      wp.fake.calls.dns,
+      wp.fake.calls.github,
+    ],
+    [[], [], [], []]
+  );
+  assert.equal(wp.fake.calls.git.includes('fetch'), false);
+  assert.equal(wp.created[0].token, null, 'an offline run asks for no token');
+  assert.equal(h.json('latest-posture-sweep.json').run.offline, true);
+  assert.match(
+    h.stdout(),
+    /posture_areas: web=skipped tls=skipped dns=skipped github=skipped runtime=skipped/
+  );
+});
+
+test('without --with-posture the posture sweep does not run and leaves no trace', async () => {
+  const h = harness({ files: POSTURE_FILES });
+  const wp = withPosture(h);
+  assert.equal(await h.run([], POSTURE_ENV), 0);
+  assert.equal(wp.created.length, 0);
+  assert.equal('live_posture' in h.json('latest-security-posture.json'), false);
+  assert.equal(h.fs.files.has(`${REPORTS}/latest-posture-sweep.json`), false);
+  assert.equal(h.stdout().includes('posture_'), false);
+  assert.doesNotMatch(h.file('latest-security-posture.md'), /Live posture/);
+});
+
+test('--no-fetch and --main-ref reach the sweep', async () => {
+  const h = harness({ files: POSTURE_FILES });
+  const wp = withPosture(h);
+  assert.equal(
+    await h.run(
+      ['--with-posture', '--no-fetch', '--main-ref', 'origin/release'],
+      POSTURE_ENV
+    ),
+    0
+  );
+  assert.equal(wp.fake.calls.git.includes('fetch'), false);
+  assert.equal(
+    h.json('latest-posture-sweep.json').run.main_ref,
+    'origin/release'
+  );
+});
+
+test('parseArgs knows --with-posture, --no-fetch and --main-ref', () => {
+  const o = parseArgs([
+    '--with-posture',
+    '--no-fetch',
+    '--main-ref',
+    'origin/release',
+  ]);
+  assert.deepEqual(
+    { w: o.withPosture, n: o.noFetch, r: o.mainRef },
+    { w: true, n: true, r: 'origin/release' }
+  );
+  const d = parseArgs([]);
+  assert.deepEqual(
+    { w: d.withPosture, n: d.noFetch, r: d.mainRef },
+    { w: false, n: false, r: 'origin/main' }
+  );
+  for (const bad of [
+    ['--main-ref', '--x'],
+    ['--main-ref', 'a..b'],
+    ['--main-ref'],
+    ['--with-posture=1'],
+  ]) {
+    assert.throws(() => parseArgs(bad), UsageError, JSON.stringify(bad));
+  }
+  assert.match(USAGE, /--with-posture/);
+  assert.match(USAGE, /--no-fetch/);
+  assert.match(USAGE, /--main-ref/);
+});
+
+// --- coverage and build hygiene ----------------------------------------------------------------------------
+
+// svc-a also lists a covered manifest and a nixpacks file; svc-py also lists a development manifest
+const COVERAGE_INVENTORY = INVENTORY.replace(
+  "        lockfile_path: 'svc-a/package-lock.json'\n",
+  "        lockfile_path: 'svc-a/package-lock.json'\n        nixpacks_path: 'svc-a/nixpacks.toml'\n      - type: npm\n        manifest_path: 'svc-a/packages/types/package.json'\n        covered_by_lockfile: 'svc-a/package-lock.json'\n"
+).replace(
+  "        manifest_path: 'py/requirements.txt'\n        pinning_required: true\n",
+  "        manifest_path: 'py/requirements.txt'\n        pinning_required: true\n      - type: pip\n        manifest_path: 'py/requirements-dev.txt'\n        scope: development\n"
+);
+const NIXPACKS_DEV = '[variables]\nNPM_CONFIG_PRODUCTION = "false"\n';
+const NPM_LOCK_WITH_DEV = {
+  ...NPM_LOCK,
+  packages: {
+    ...NPM_LOCK.packages,
+    'node_modules/dev-tool': { version: '2.0.0', dev: true },
+    'node_modules/dev-crit': { version: '3.0.0', dev: true },
+    'node_modules/dev-mod': { version: '4.0.0', dev: true },
+  },
+};
+const devVuln = (name, source, severity, ghsa) => ({
+  name,
+  severity,
+  isDirect: false,
+  via: [
+    {
+      source,
+      name,
+      title: 'Sentinel advisory title',
+      url: `https://github.com/advisories/${ghsa}`,
+      severity,
+      cwe: ['CWE-79'],
+      cvss: { score: 7.5 },
+      range: '<9.0.0',
+    },
+  ],
+  effects: [],
+  nodes: [`node_modules/${name}`],
+});
+// the full audit: the production finding again, and three development-only ones
+const NPM_AUDIT_FULL = {
+  ...NPM_AUDIT,
+  vulnerabilities: {
+    ...NPM_AUDIT.vulnerabilities,
+    'dev-tool': devVuln('dev-tool', 8001, 'high', 'GHSA-devt-aaaa-bbbb'),
+    'dev-crit': devVuln('dev-crit', 8002, 'critical', 'GHSA-devc-aaaa-bbbb'),
+    'dev-mod': devVuln('dev-mod', 8003, 'moderate', 'GHSA-devm-aaaa-bbbb'),
+  },
+};
+const HYGIENE_FILES = {
+  '/repo/security/security-inventory.yaml': COVERAGE_INVENTORY,
+  '/repo/svc-a/nixpacks.toml': NIXPACKS_DEV,
+  '/repo/svc-a/package-lock.json': JSON.stringify(NPM_LOCK_WITH_DEV),
+  '/repo/py/requirements-dev.txt':
+    'dev-lib==1.0.0\npytest==7.4.3\nunpinned-dev>=1.0\n',
+};
+const HYGIENE_SENTINELS = [
+  'dev-tool',
+  'dev-crit',
+  'dev-mod',
+  'dev-lib',
+  'GHSA-devt-aaaa-bbbb',
+  'GHSA-devc-aaaa-bbbb',
+];
+
+test('a service that installs development dependencies at build time also gets a full audit, and its dev-only high and critical advisories surface as build_only (P3)', async () => {
+  const h = harness({ files: HYGIENE_FILES, npmFull: NPM_AUDIT_FULL });
+  assert.equal(await h.run([]), 0);
+  // two npm audits for svc-a: the production one and the full one
+  const audits = h.commandCalls.filter(
+    (c) => c.command === 'npm' && c.cwd === '/repo/svc-a'
+  );
+  assert.equal(audits.length, 2);
+  assert.ok(audits.some((c) => c.args.includes('--omit=dev')));
+  assert.ok(
+    audits.some(
+      (c) =>
+        !c.args.includes('--omit=dev') &&
+        c.args.includes('--package-lock-only') &&
+        c.args.includes('--json')
+    )
+  );
+
+  const posture = h.json('latest-security-posture.json');
+  const hygiene = posture.findings.filter((f) => f.buildHygiene);
+  assert.deepEqual(hygiene.map((f) => f.packageName).sort(), [
+    'dev-crit',
+    'dev-tool',
+  ]);
+  for (const f of hygiene) {
+    assert.equal(f.priority, 'P3');
+    assert.equal(f.rule, 'R-2');
+    assert.equal(f.scope, 'build_only');
+    assert.equal(f.source, 'npm-audit-dev');
+    assert.equal(f.assetId, 'svc-a');
+  }
+  assert.deepEqual(posture.build_hygiene, [
+    {
+      asset_id: 'svc-a',
+      nixpacks_path: 'svc-a/nixpacks.toml',
+      installs_dev_dependencies: true,
+      audited: true,
+      dev_high_critical: 2,
+    },
+  ]);
+  assert.ok(
+    posture.matchers.items.some(
+      (m) => m.id === 'svc-a:npm-dev-audit' && m.status === 'ok'
+    )
+  );
+  // the production finding the full audit repeats is not counted twice
+  assert.equal(
+    posture.findings.filter((f) => f.packageName === 'npm-vuln').length,
+    1
+  );
+
+  // counts only on stdout; the details are in the private report
+  const out = h.stdout();
+  noSentinels(out);
+  for (const sentinel of HYGIENE_SENTINELS) {
+    assert.equal(out.includes(sentinel), false, `leaked: ${sentinel}`);
+  }
+  assert.match(out, /build_hygiene: assets=1 dev_high_critical=2/);
+  assert.match(out, /findings: P0=1 P1=2 P2=0 P3=\d+ withdrawn=0 total=\d+/);
+  const md = h.file('latest-security-posture.md');
+  assert.match(md, /dev-tool@2\.0\.0/);
+  assert.match(md, /build-hygiene/);
+  assert.match(md, /## Build hygiene/);
+  assert.doesNotMatch(
+    md,
+    /dev-mod@/,
+    'a moderate advisory is not a hygiene finding'
+  );
+});
+
+test('without NPM_CONFIG_PRODUCTION=false there is no full audit', async () => {
+  const h = harness({
+    files: {
+      ...HYGIENE_FILES,
+      '/repo/svc-a/nixpacks.toml':
+        '[variables]\nNPM_CONFIG_PRODUCTION = "true"\n',
+    },
+    npmFull: NPM_AUDIT_FULL,
+  });
+  assert.equal(await h.run([]), 0);
+  assert.equal(
+    h.commandCalls.filter((c) => c.command === 'npm' && c.cwd === '/repo/svc-a')
+      .length,
+    1
+  );
+  const posture = h.json('latest-security-posture.json');
+  assert.equal(
+    posture.findings.some((f) => f.buildHygiene),
+    false
+  );
+  assert.deepEqual(
+    posture.build_hygiene.map((r) => [
+      r.asset_id,
+      r.installs_dev_dependencies,
+      r.audited,
+    ]),
+    [['svc-a', false, false]]
+  );
+  assert.doesNotMatch(h.stdout(), /build_hygiene:/);
+});
+
+test('a failing full audit degrades the sweep without stopping it; offline it is skipped', async () => {
+  const failing = harness({ files: HYGIENE_FILES, npmFull: 'not json' });
+  assert.equal(await failing.run([]), 0);
+  const posture = failing.json('latest-security-posture.json');
+  assert.ok(
+    posture.matchers.items.some(
+      (m) => m.id === 'svc-a:npm-dev-audit' && m.status === 'failed'
+    )
+  );
+  assert.equal(posture.run.degraded, true);
+  assert.equal(posture.build_hygiene[0].audited, false);
+  assert.equal(
+    posture.findings.some((f) => f.buildHygiene),
+    false
+  );
+
+  const offline = harness({ files: HYGIENE_FILES, npmFull: NPM_AUDIT_FULL });
+  assert.equal(await offline.run(['--offline']), 0);
+  assert.equal(offline.commandCalls.length, 0, 'no audit tool ran');
+  const off = offline.json('latest-security-posture.json');
+  assert.ok(
+    off.matchers.items.some(
+      (m) => m.id === 'svc-a:npm-dev-audit' && m.status === 'skipped'
+    )
+  );
+  assert.equal(off.build_hygiene[0].installs_dev_dependencies, true);
+  assert.equal(off.build_hygiene[0].audited, false);
+});
+
+test('a manifest covered by another lockfile is mapped to its asset but not audited on its own', async () => {
+  const h = harness({
+    files: { ...HYGIENE_FILES, '/repo/svc-a/nixpacks.toml': '' },
+    alerts: [
+      {
+        number: 1,
+        dependency: {
+          package: { name: 'npm-vuln', ecosystem: 'npm' },
+          manifest_path: 'svc-a/packages/types/package.json',
+          scope: 'runtime',
+        },
+        security_advisory: {
+          ghsa_id: 'GHSA-dddd-eeee-ffff',
+          cve_id: 'CVE-2099-0002',
+          severity: 'high',
+        },
+      },
+    ],
+  });
+  assert.equal(
+    await h.run(['--with-dependabot'], {
+      DEPENDABOT_TRIAGE_TOKEN: GITHUB_TOKEN,
+    }),
+    0
+  );
+  const posture = h.json('latest-security-posture.json');
+  assert.deepEqual(
+    posture.matchers.items.find((m) => m.id === 'svc-a:npm-covered'),
+    {
+      id: 'svc-a:npm-covered',
+      status: 'skipped',
+      detail: 'covered_by_lockfile',
+    }
+  );
+  assert.equal(posture.matchers.failed, 0);
+  assert.equal(
+    h.commandCalls.filter((c) => c.command === 'npm' && c.cwd === '/repo/svc-a')
+      .length,
+    1,
+    'only the service lockfile is audited'
+  );
+  // its Dependabot alert is mapped and compared with the service lockfile's findings
+  assert.equal(posture.dependabot.unmapped, 0);
+  assert.equal(posture.dependabot.compared, 1);
+  assert.equal(posture.dependabot.agreed, 1);
+});
+
+test('a development-only Python manifest is audited as dev_only (P3) and is not counted as unpinned runtime', async () => {
+  const h = harness({
+    files: HYGIENE_FILES,
+    osvHits: { ...OSV_HITS, 'PyPI|dev-lib|1.0.0': ['PYSEC-2099-9'] },
+    records: {
+      ...RECORDS,
+      'PYSEC-2099-9': osvRecord('PYSEC-2099-9', {
+        database_specific: {},
+        affected: affects('PyPI', 'dev-lib', [
+          { introduced: '0' },
+          { fixed: '1.1.0' },
+        ]),
+      }),
+    },
+  });
+  assert.equal(await h.run([]), 0);
+  const posture = h.json('latest-security-posture.json');
+  const f = posture.findings.find((x) => x.packageName === 'dev-lib');
+  assert.equal(f.scope, 'dev_only');
+  assert.equal(f.priority, 'P3');
+  assert.equal(f.rule, 'R-2');
+  assert.equal(f.assetId, 'svc-py');
+  // the runtime manifest's pinning figures are unchanged by the development manifest
+  assert.deepEqual(posture.pinning, [
+    { assetId: 'svc-py', pinned: 2, unpinned: 1, pinningRequired: true },
+  ]);
+  const ids = posture.matchers.items.map((m) => `${m.id}=${m.status}`);
+  assert.ok(ids.includes('svc-py:pip=ok'));
+  assert.ok(ids.includes('svc-py:pip-dev=ok'));
+  noSentinels(h.stdout());
+  for (const sentinel of HYGIENE_SENTINELS) {
+    assert.equal(h.stdout().includes(sentinel), false, `leaked: ${sentinel}`);
+  }
+});
+
+test('the same package in the runtime and the development manifest stays runtime', async () => {
+  const h = harness({
+    files: {
+      ...HYGIENE_FILES,
+      // py-vuln is pinned in the runtime manifest; the development manifest repeats it
+      '/repo/py/requirements-dev.txt': 'py-vuln==2.31.0\n',
+    },
+  });
+  assert.equal(await h.run([]), 0);
+  const f = h
+    .json('latest-security-posture.json')
+    .findings.find((x) => x.packageName === 'py-vuln');
+  assert.notEqual(f.scope, 'dev_only', 'a runtime declaration wins');
+});
+
+test('a runtime declaration wins whichever manifest is read first', async () => {
+  // the development manifest is now listed before the runtime one
+  const devFirst = COVERAGE_INVENTORY.replace(
+    "      - type: pip\n        manifest_path: 'py/requirements.txt'\n        pinning_required: true\n      - type: pip\n        manifest_path: 'py/requirements-dev.txt'\n        scope: development\n",
+    "      - type: pip\n        manifest_path: 'py/requirements-dev.txt'\n        scope: development\n      - type: pip\n        manifest_path: 'py/requirements.txt'\n        pinning_required: true\n"
+  );
+  assert.notEqual(devFirst, COVERAGE_INVENTORY, 'the fixture was reordered');
+  const h = harness({
+    files: {
+      ...HYGIENE_FILES,
+      '/repo/security/security-inventory.yaml': devFirst,
+      // py-vuln is pinned in both manifests
+      '/repo/py/requirements-dev.txt': 'py-vuln==2.31.0\n',
+    },
+  });
+  assert.equal(await h.run([]), 0);
+  const f = h
+    .json('latest-security-posture.json')
+    .findings.find((x) => x.packageName === 'py-vuln');
+  assert.notEqual(f.scope, 'dev_only', 'the runtime declaration wins');
+});
+
 // --- narrowing and the real CLI ----------------------------------------------------------------------------
 
 test('--assets limits the sweep to the named assets', async () => {
@@ -1059,6 +1755,99 @@ test('the real CLI starts, reads --secrets-file itself and reports its exit code
       readFileSync(join(dir, 'reports', 'latest-security-posture.json'), 'utf8')
     );
     assert.equal(posture.run.offline, true);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('the real CLIs run the live posture sweep offline, into a scratch folder', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'posture-cli-'));
+  const STANDALONE = join(HERE, 'run-posture-sweep.mjs');
+  // A recorded deployed commit makes the sweep ask Git (local, read-only) even offline. With
+  // the real Git probe wired in, the deployed-build check never says `no_git`; without the
+  // wiring it always does, so this is what proves the CLIs are wired.
+  const state = JSON.stringify({
+    assets: {
+      'money-service': { node: '24.22.3', commit_sha: 'a'.repeat(40) },
+    },
+  });
+  const seed = (folder) => {
+    mkdirSync(join(folder, 'reports'), { recursive: true });
+    writeFileSync(join(folder, 'reports', 'runtime-state.json'), state);
+  };
+  const wired = (file) => {
+    const live = JSON.parse(readFileSync(file, 'utf8'));
+    const deploy = live.checks.find(
+      (c) => c.id === 'runtime-money-service-deploy'
+    );
+    assert.ok(deploy, 'the deployed-build check ran');
+    assert.notEqual(deploy.detail, 'no_git', 'the real Git probe is wired in');
+    return live;
+  };
+  try {
+    seed(dir);
+    // the full pipeline with the flag: no network, nothing probed, the reports written
+    const full = spawnSync(
+      process.execPath,
+      [
+        CLI,
+        '--offline',
+        '--with-posture',
+        '--dry-run-line',
+        '--pipeline-dir',
+        dir,
+        '--secrets-file',
+        join(dir, 'absent.env'),
+      ],
+      { encoding: 'utf8', cwd: ROOT }
+    );
+    assert.equal(full.status, 0, full.stdout);
+    assert.match(full.stdout, /posture_checks: total=\d+/);
+    assert.match(
+      full.stdout,
+      /posture_areas: web=skipped tls=skipped dns=skipped github=skipped/
+    );
+    assert.equal(findPrivacyViolations(full.stdout).length, 0);
+    assert.equal(full.stdout.includes('privacy guard'), false);
+    for (const name of [
+      'latest-security-posture.json',
+      'latest-posture-sweep.json',
+      'latest-posture-sweep.md',
+    ]) {
+      assert.ok(existsSync(join(dir, 'reports', name)), name);
+    }
+    const live = wired(join(dir, 'reports', 'latest-posture-sweep.json'));
+    assert.equal(live.run.offline, true);
+    assert.equal(live.summary.checks.fail, 0);
+
+    // the standalone command
+    const alone = join(dir, 'alone');
+    seed(alone);
+    const sweep = spawnSync(
+      process.execPath,
+      [
+        STANDALONE,
+        '--offline',
+        '--pipeline-dir',
+        alone,
+        '--secrets-file',
+        join(dir, 'absent.env'),
+      ],
+      { encoding: 'utf8', cwd: ROOT }
+    );
+    assert.equal(sweep.status, 0, sweep.stdout);
+    assert.match(sweep.stdout, /DavinTrade live posture sweep \(counts only\)/);
+    assert.equal(findPrivacyViolations(sweep.stdout).length, 0);
+    wired(join(alone, 'reports', 'latest-posture-sweep.json'));
+    assert.equal(
+      spawnSync(process.execPath, [STANDALONE, '--help'], { cwd: ROOT }).status,
+      0
+    );
+    assert.equal(
+      spawnSync(process.execPath, [STANDALONE, '--bogus'], { cwd: ROOT })
+        .status,
+      2
+    );
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

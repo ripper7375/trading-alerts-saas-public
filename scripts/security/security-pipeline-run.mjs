@@ -26,6 +26,7 @@ import {
 } from './security-pipeline-intel.mjs';
 import {
   PolicyError,
+  buildHygieneFindings,
   buildNpmGraph,
   compareFindings,
   evaluateRuntimeFloors,
@@ -33,6 +34,7 @@ import {
   loadInventory,
   mergeVexRegistries,
   npmFindings,
+  parseNixpacksBuildEnv,
   parseNpmAuditJson,
   parseRequirements,
   pnpmFindings,
@@ -54,6 +56,14 @@ import {
   runNotifications,
 } from './line-notifier-lib.mjs';
 import { parseVersion } from './security-semver-lite.mjs';
+import {
+  isBranchRef,
+  mergePostureFindings,
+  renderPostureSweepMarkdown,
+  renderPostureSweepSection,
+  renderPostureSweepStdout,
+  runPostureSweep,
+} from './posture-sweep-lib.mjs';
 
 export class UsageError extends Error {}
 
@@ -63,6 +73,9 @@ export const USAGE = [
   '  --notify-line        send LINE alerts on state transitions (and the daily heartbeat when due)',
   '  --heartbeat          with --notify-line / --dry-run-line: send the heartbeat unless one went out in the last 20 h',
   '  --with-dependabot    also read the open Dependabot alerts and reconcile them with the local matchers',
+  '  --with-posture       also run the live posture sweep (headers, TLS, DNS, GitHub settings, deployed build); P0 and P1 breaches feed the LINE alerts',
+  '  --no-fetch           with --with-posture: do not `git fetch` before comparing the deployed build with main',
+  '  --main-ref <ref>     with --with-posture: the branch the deployed build is compared with (default origin/main)',
   '  --offline            no network: cached feeds only, the audit tools are not run',
   '  --refresh            ignore the feed cache lifetime (conditional requests are still used)',
   '  --assets a,b         only these inventory asset ids',
@@ -81,6 +94,8 @@ const FLAGS = {
   '--heartbeat': 'heartbeat',
   '--dry-run-line': 'dryRunLine',
   '--with-dependabot': 'withDependabot',
+  '--with-posture': 'withPosture',
+  '--no-fetch': 'noFetch',
   '--offline': 'offline',
   '--refresh': 'refresh',
   '--help': 'help',
@@ -92,6 +107,7 @@ const VALUES = {
   '--secrets-file': 'secretsFile',
   '--assets': 'assets',
   '--repo': 'repo',
+  '--main-ref': 'mainRef',
 };
 
 /** @param {string[]} argv arguments after the script name */
@@ -101,6 +117,8 @@ export function parseArgs(argv) {
     heartbeat: false,
     dryRunLine: false,
     withDependabot: false,
+    withPosture: false,
+    noFetch: false,
     offline: false,
     refresh: false,
     help: false,
@@ -109,6 +127,7 @@ export function parseArgs(argv) {
     secretsFile: null,
     assets: null,
     repo: DEFAULT_REPO,
+    mainRef: 'origin/main',
   };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
@@ -142,11 +161,16 @@ export function parseArgs(argv) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(options.repo)) {
     throw new UsageError('--repo must look like owner/name');
   }
+  if (!isBranchRef(options.mainRef)) {
+    throw new UsageError('--main-ref must be a branch name');
+  }
   return options;
 }
 
 const PNPM_AUDIT = ['audit', '--prod', '--json', '--ignore-registry-errors'];
 const NPM_AUDIT = ['audit', '--package-lock-only', '--omit=dev', '--json'];
+// development dependencies included: for a service whose build installs them
+const NPM_AUDIT_FULL = ['audit', '--package-lock-only', '--json'];
 const FEED_PROBLEMS = new Set([
   'unavailable',
   'partial',
@@ -233,6 +257,8 @@ async function sweep({ options, env, deps, out }) {
     runtimeState: join(reportsDir, 'runtime-state.json'),
     posture: join(reportsDir, 'latest-security-posture.json'),
     postureMd: join(reportsDir, 'latest-security-posture.md'),
+    postureSweep: join(reportsDir, 'latest-posture-sweep.json'),
+    postureSweepMd: join(reportsDir, 'latest-posture-sweep.md'),
     alertState: join(reportsDir, 'alert-state.json'),
     preview: join(reportsDir, 'last-line-message-preview.txt'),
     history: join(reportsDir, 'sweep-history.jsonl'),
@@ -313,6 +339,16 @@ async function sweep({ options, env, deps, out }) {
     env,
     fileText: fs.readText(options.secretsFile ?? join(root, '.env.local')),
   });
+  // the GitHub token, looked up once and only when a step needs it (the Dependabot read and
+  // the live posture sweep): the environment, then Git's credential, in memory only
+  let tokenInfo = null;
+  const githubToken = () => {
+    tokenInfo ??= resolveGithubToken({
+      secrets,
+      credentialFill: deps.credentialFill ?? (() => null),
+    });
+    return tokenInfo;
+  };
 
   // --- matchers -----------------------------------------------------------------------------
   const st = {
@@ -326,6 +362,7 @@ async function sweep({ options, env, deps, out }) {
     pnpm: null,
     parity: null,
     pnpmMeta: null,
+    hygiene: [],
   };
   const item = (assetId, type, status, detail = null) => {
     const entry = { id: `${assetId}:${type}`, assetId, status, detail };
@@ -336,12 +373,30 @@ async function sweep({ options, env, deps, out }) {
     if (!st.lockKeys.has(assetId)) st.lockKeys.set(assetId, new Set());
     for (const key of keys) st.lockKeys.get(assetId).add(key);
   };
-  const addPackage = (ecosystem, name, version, assetId) => {
+  // `dev`: declared in a development-only manifest. A runtime declaration of the same
+  // package in the same asset wins, whichever manifest is read first.
+  const addPackage = (
+    ecosystem,
+    name,
+    version,
+    assetId,
+    { dev = false } = {}
+  ) => {
     if (!parseVersion(version) && ecosystem === 'npm') return;
     const key = `${ecosystem}|${name}|${version}`;
     if (!st.packages.has(key))
-      st.packages.set(key, { ecosystem, name, version, owners: new Set() });
-    st.packages.get(key).owners.add(assetId);
+      st.packages.set(key, {
+        ecosystem,
+        name,
+        version,
+        owners: new Set(),
+        devOnly: new Set(),
+      });
+    const entry = st.packages.get(key);
+    const known = entry.owners.has(assetId);
+    entry.owners.add(assetId);
+    if (!dev) entry.devOnly.delete(assetId);
+    else if (!known) entry.devOnly.add(assetId);
   };
   const run = (command, args, cwd, timeoutMs) => {
     try {
@@ -360,6 +415,12 @@ async function sweep({ options, env, deps, out }) {
       }
       if (path && isExcludedPath(path, inventory.excludedPaths)) {
         item(asset.id, eco.type, 'skipped', 'excluded_path');
+        continue;
+      }
+      // a manifest installed through another lockfile (a `file:` dependency): mapped to its
+      // asset for the Dependabot comparison, audited through that lockfile
+      if (eco.coveredByLockfile) {
+        item(asset.id, `${eco.type}-covered`, 'skipped', 'covered_by_lockfile');
         continue;
       }
       if (eco.type === 'pnpm') {
@@ -445,7 +506,25 @@ async function sweep({ options, env, deps, out }) {
     addKeys(asset.id, graph.packageKeys());
     for (const node of graph.nodes.values())
       addPackage('npm', node.name, node.version, asset.id);
-    if (offline) return item(asset.id, 'npm', 'skipped', 'offline');
+
+    // build hygiene: does the build install development dependencies? (nixpacks.toml)
+    const hygiene = eco.nixpacksPath
+      ? {
+          asset_id: asset.id,
+          nixpacks_path: eco.nixpacksPath,
+          installs_dev_dependencies: parseNixpacksBuildEnv(
+            fs.readText(join(root, eco.nixpacksPath))
+          ).installsDevDependencies,
+          audited: false,
+          dev_high_critical: 0,
+        }
+      : null;
+    if (hygiene) st.hygiene.push(hygiene);
+    if (offline) {
+      if (hygiene?.installs_dev_dependencies)
+        item(asset.id, 'npm-dev-audit', 'skipped', 'offline');
+      return item(asset.id, 'npm', 'skipped', 'offline');
+    }
 
     const cwd = join(root, dirname(eco.lockfilePath));
     const own = readJson(join(cwd, 'package.json')).value;
@@ -473,7 +552,39 @@ async function sweep({ options, env, deps, out }) {
         overrideNames: names,
       })
     );
-    return item(asset.id, 'npm', 'ok');
+    const entry = item(asset.id, 'npm', 'ok');
+
+    // The build installs development dependencies (NPM_CONFIG_PRODUCTION=false): the
+    // production audit never sees an advisory in one of them. Audit again with them
+    // included and keep what only that audit finds (high and critical) as build_only.
+    if (hygiene?.installs_dev_dependencies) {
+      const full = parseNpmAuditJson(
+        run('npm', NPM_AUDIT_FULL, cwd, 240000).stdout
+      );
+      if (full.kind !== 'ok') {
+        item(
+          asset.id,
+          'npm-dev-audit',
+          'failed',
+          full.kind === 'unavailable'
+            ? 'registry_unavailable'
+            : 'invalid_output'
+        );
+      } else {
+        const found = buildHygieneFindings({
+          report: full.report,
+          graph,
+          assetId: asset.id,
+          buildOnly: asset.buildOnlyPackages,
+          overrideNames: names,
+        });
+        hygiene.audited = true;
+        hygiene.dev_high_critical = found.length;
+        st.findings.push(...found);
+        item(asset.id, 'npm-dev-audit', 'ok');
+      }
+    }
+    return entry;
   }
 
   function pipMatcher({ asset, eco }) {
@@ -483,17 +594,22 @@ async function sweep({ options, env, deps, out }) {
     if (text === null)
       return item(asset.id, 'pip', 'failed', 'missing_manifest');
     const parsed = parseRequirements(text);
-    st.pinning.push({
-      assetId: asset.id,
-      pinned: parsed.pinned.length,
-      unpinned: parsed.unpinned.length,
-      pinningRequired: eco.pinningRequired,
-    });
+    // a development-only manifest (test, lint and scan tools): its packages are dev_only, and
+    // its loose version ranges are no runtime pinning debt
+    const dev = eco.scope === 'development';
+    if (!dev) {
+      st.pinning.push({
+        assetId: asset.id,
+        pinned: parsed.pinned.length,
+        unpinned: parsed.unpinned.length,
+        pinningRequired: eco.pinningRequired,
+      });
+    }
     for (const p of parsed.pinned)
-      addPackage('PyPI', p.name, p.version, asset.id);
+      addPackage('PyPI', p.name, p.version, asset.id, { dev });
     st.pipItems.push({
       assetId: asset.id,
-      entry: item(asset.id, 'pip', 'pending'),
+      entry: item(asset.id, dev ? 'pip-dev' : 'pip', 'pending'),
     });
     return null;
   }
@@ -543,6 +659,7 @@ async function sweep({ options, env, deps, out }) {
             assetId,
             pkg: { name: pkg.name, version: pkg.version },
             records,
+            scope: pkg.devOnly.has(assetId) ? 'dev_only' : undefined,
           })
         );
       } else {
@@ -622,9 +739,41 @@ async function sweep({ options, env, deps, out }) {
     vexMatches: vexStatementMatches,
     vexExpiry: vexExpiryReasons,
   };
-  const scored = [...enriched, ...floorFindings]
+  let scored = [...enriched, ...floorFindings]
     .map((f) => scoreFinding(f, byId.get(f.assetId) ?? policyAsset, context))
     .sort(compareFindings);
+
+  // --- live posture sweep (optional) ---------------------------------------------------------
+  // The same Node floor breach is a finding of the engine above and of the sweep: one key,
+  // so the merge keeps one. The sweep's other findings join the tiers, so the LINE alerts
+  // and the heartbeat counts include them.
+  let live = null;
+  if (options.withPosture) {
+    let probes = null;
+    try {
+      probes =
+        deps.posture?.createProbes({
+          root,
+          token: offline ? null : githubToken().token,
+          repo: options.repo,
+        }) ?? null;
+    } catch {
+      probes = null; // the sweep then reports its network areas as unavailable
+    }
+    live = await runPostureSweep({
+      inventory,
+      runtimeState,
+      nodeLines: nodeFeed.data,
+      probes,
+      now,
+      offline,
+      repo: options.repo,
+      mainRef: options.mainRef,
+      fetchMain: !options.noFetch,
+      assetIds: options.assets,
+    });
+    scored = mergePostureFindings(scored, live.findings);
+  }
 
   // --- Dependabot ---------------------------------------------------------------------------------------
   let dependabot = { status: 'skipped', detail: 'not_requested' };
@@ -632,10 +781,7 @@ async function sweep({ options, env, deps, out }) {
     if (offline) {
       dependabot = { status: 'skipped', detail: 'offline' };
     } else {
-      const { token } = resolveGithubToken({
-        secrets,
-        credentialFill: deps.credentialFill ?? (() => null),
-      });
+      const { token } = githubToken();
       if (!token) {
         dependabot = { status: 'skipped', detail: 'no_token' };
       } else {
@@ -682,7 +828,8 @@ async function sweep({ options, env, deps, out }) {
     ['osv', 'kev', 'epss', 'node_feed'].some((name) =>
       FEED_PROBLEMS.has(feeds[name].status)
     ) ||
-    (options.withDependabot && dependabot.status === 'unavailable');
+    (options.withDependabot && dependabot.status === 'unavailable') ||
+    live?.run.degraded === true;
 
   const accepted = ignored.entries.map((entry) => ({
     ...entry,
@@ -703,6 +850,7 @@ async function sweep({ options, env, deps, out }) {
     st.notes.push(
       `The Node.js that ran this sweep (${floors.runner.version}) is below its line's floor`
     );
+  if (live) st.notes.push(...live.notes);
   const lockKeysFor = (assetId) => st.lockKeys.get(assetId) ?? null;
 
   const posture = {
@@ -733,6 +881,7 @@ async function sweep({ options, env, deps, out }) {
     },
     feeds,
     pinning: st.pinning,
+    build_hygiene: st.hygiene,
     parity: { pnpm_gate: st.parity, pnpm_metadata: st.pnpmMeta },
     vex: {
       public: vex.status.public,
@@ -744,13 +893,23 @@ async function sweep({ options, env, deps, out }) {
       })),
     },
     notes: st.notes,
+    ...(live ? { live_posture: live } : {}),
   };
 
   // --- reports (private, gitignored) --------------------------------------------------------------------------
   try {
     fs.mkdirp(reportsDir);
     fs.writeText(paths.posture, `${JSON.stringify(posture, null, 2)}\n`);
-    fs.writeText(paths.postureMd, renderPostureMarkdown(posture));
+    fs.writeText(
+      paths.postureMd,
+      renderPostureMarkdown(posture, {
+        extraSections: live ? [renderPostureSweepSection(live)] : [],
+      })
+    );
+    if (live) {
+      fs.writeText(paths.postureSweep, `${JSON.stringify(live, null, 2)}\n`);
+      fs.writeText(paths.postureSweepMd, renderPostureSweepMarkdown(live));
+    }
     fs.appendText(
       paths.history,
       `${JSON.stringify({ at: posture.generated_at, offline, degraded, tiers: posture.summary.tiers, total: posture.summary.total, matchers_failed: counts.failed })}\n`
@@ -817,6 +976,10 @@ async function sweep({ options, env, deps, out }) {
 
   // --- stdout: counts only ----------------------------------------------------------------------------------------
   for (const text of renderStdoutSummary(posture)) out(text);
+  if (live) {
+    for (const text of renderPostureSweepStdout(live, { heading: false }))
+      out(text);
+  }
   const hb = line.heartbeat
     ? line.heartbeat.send
       ? 'due'
@@ -836,5 +999,10 @@ async function sweep({ options, env, deps, out }) {
   out(
     'reports: latest-security-posture.json and .md written (private, gitignored)'
   );
+  if (live) {
+    out(
+      'reports: latest-posture-sweep.json and .md written (private, gitignored)'
+    );
+  }
   return line.mode === 'failed' ? 3 : 0;
 }
