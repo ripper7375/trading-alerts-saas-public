@@ -26,6 +26,7 @@ before commit of the OKF refactor).
 
 | Orig. lines | Entry                                                                                                                                                                                                                |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| —           | Ad-hoc session (2026-11-12) — the Node.js security releases of 2026-10-21 and 2026-11-11 checked against the repository, and a Brotli request-body guard in the three NestJS services (`e6fd6494`)                   |
 | —           | Ad-hoc session (2026-11-10) — tooling, tests and runbooks to build MT5 Terminal B (hot standby) beside the live terminal during Stage B3, rehearse the frozen baseline and the promote (nothing committed or pushed) |
 | —           | Ad-hoc session (2026-11-08) — a read-only exposure check for the pgAdmin 9.19 security release, and a post-restore pgAdmin check added to the chat-stack runbook (docs only; committed locally as `9ecc7ccf`)        |
 
