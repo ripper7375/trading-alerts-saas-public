@@ -27,11 +27,13 @@ name: Dependencies Security Scan
 #   high or critical advisories in lockfile packages that the change adds or
 #   changes, so an advisory published overnight never fails an unrelated PR.
 #
-# THE SERVICES AUDIT ("NestJS Services npm Audit"): `npm audit --omit=dev --audit-level=high`
+# THE SERVICES AUDIT ("NestJS Services npm Audit"): `npm audit --package-lock-only --omit=dev --json`
 #   in money-service, operation-service and railway-gateway, read from each service's own
-#   package-lock.json (no install needed). INFORMATIVE ONLY: a finding prints a warning and the
-#   step still succeeds, because advisories that need a major version are open. Make it blocking,
-#   like the root gate, once they are cleared.
+#   package-lock.json (no install needed), through scripts/security/services-audit-counts.mjs. It
+#   prints COUNTS ONLY (vulnerable packages per severity): no advisory table, identifier or package
+#   name reaches the public log. INFORMATIVE ONLY: a finding prints a warning and the step still
+#   succeeds, because advisories that need a major version are open. Make it blocking, like the
+#   root gate, once they are cleared.
 #
 # DO NOT add pnpm audit to other workflows (e.g. security-checks.yml).
 # DO NOT remove continue-on-error from the all-dependencies audit step below.
@@ -165,27 +167,12 @@ jobs:
         with:
           node-version: '24'
 
-      # Production dependencies of each service, high and critical only. Each
-      # service has its own npm lockfile and is audited from it alone, so no
-      # install is needed. INFORMATIVE: a finding prints a warning and the step
-      # still succeeds (see the header).
-      - name: Audit money-service, operation-service and railway-gateway
-        run: |
-          FOUND=0
-          for svc in money-service operation-service railway-gateway; do
-            echo "::group::npm audit --omit=dev --audit-level=high ($svc)"
-            if (cd "$svc" && npm audit --omit=dev --audit-level=high); then
-              echo "✅ $svc: no high or critical production advisories"
-            else
-              echo "::warning title=$svc::High or critical production advisories reported (informative, not blocking)"
-              FOUND=1
-            fi
-            echo "::endgroup::"
-          done
-          if [ $FOUND -ne 0 ]; then
-            echo "⚠️  At least one service reports high or critical production advisories (list above)."
-            echo "   Informative only. Fix them in a dedicated 'fix(security): ...' change on main."
-          fi
+      # Production dependencies of each service, read from its own npm lockfile (no
+      # install needed). COUNTS ONLY: the repository is public, so no advisory
+      # table, identifier or package name reaches the log (the details are in the
+      # private security report). INFORMATIVE: the step always succeeds (see the header).
+      - name: Audit money-service, operation-service and railway-gateway (counts only)
+        run: node scripts/security/services-audit-counts.mjs money-service operation-service railway-gateway
 
   python-security:
     name: Python Security Audit
