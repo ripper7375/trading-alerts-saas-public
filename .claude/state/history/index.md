@@ -1,7 +1,7 @@
 ---
 type: Concept/HistoryIndex
 status: active
-updated_at: 2026-11-08
+updated_at: 2026-11-22
 tags: [history, index]
 ---
 
@@ -25,6 +25,7 @@ before commit of the OKF refactor).
 
 | Orig. lines | Entry                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| —           | Ad-hoc session (2026-10-31): Node 24 alignment, CI repairs and the Advisor's credential clean-up (Steps 0 to 5 and 8 settled; Step 6 and the housekeeping commits local), `origin/main` at `8ca6a8c6`                                                                                                                                                                                                                                                       |
 | —           | Ad-hoc session (2026-10-24) — order WS-17 of the gitignored security remediation plan executed as a report-only spike (verified TLS to the Railway Postgres, `CODE-07`); no code changed and nothing committed; the report is only in the gitignored plan (Appendix B).                                                                                                                                                                                     |
 | —           | Ad-hoc session (2026-10-24) — order WS-16 of the gitignored security remediation plan executed as a report-only spike (a nonce-based Content-Security-Policy, `CODE-11`); no code changed and nothing committed; the report is only in the gitignored plan (Appendix A).                                                                                                                                                                                    |
 | —           | Ad-hoc session (2026-10-24) — database scaling second wave, F4 of the pool deadline: the alert worker catches a failed watch reload (`operation-service/src/alert-engine/alert-worker.service.ts`, one statement); working tree at the time, not committed.                                                                                                                                                                                                 |
