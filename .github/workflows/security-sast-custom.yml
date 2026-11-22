@@ -96,6 +96,8 @@ jobs:
 
       - name: Run the rules over their fixtures (Semgrep)
         run: |
+          # a step runs under `bash -e`: a scanner that exits non-zero must not end it before the counts
+          set +e
           set -uo pipefail
           mkdir -p "$RUNNER_TEMP/semgrep-out"
           docker run --rm \
@@ -114,6 +116,8 @@ jobs:
       # scans the tracked files and .semgrepignore applies.
       - name: Run the rules over the repository (Semgrep)
         run: |
+          # a step runs under `bash -e`: a scanner that exits non-zero must not end it before the counts
+          set +e
           set -uo pipefail
           mkdir -p "$RUNNER_TEMP/semgrep-out"
           docker run --rm \

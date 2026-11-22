@@ -103,6 +103,9 @@ jobs:
       # files: stdout is empty with --output-file, and stderr is kept off the public log.
       - name: Scan the manifests
         run: |
+          # GitHub runs a step with `bash -e`: OSV-Scanner exits 1 for "findings", and that must not
+          # end the step before the counts are printed (its exit status is printed below).
+          set +e
           set -uo pipefail
           mkdir -p "$RUNNER_TEMP/osv-out"
           args=()

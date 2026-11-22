@@ -334,6 +334,37 @@ test('every scanner writes to a file, and the log gets the counts of shift-left-
   }
 });
 
+test('a scan step turns errexit off, because GitHub runs a step with bash -e and a scanner that finds something exits non-zero', () => {
+  // OSV-Scanner exits 1 for "findings" (the first run on the pull request ended there, before the counts)
+  const scanner =
+    /\b(?:osv-scanner scan|trivy config|trivy image|docker run)\b/;
+  for (const [key, yaml] of Object.entries(ALL)) {
+    const scans = runBlocks(yaml).filter((block) => scanner.test(block));
+    assert.ok(scans.length >= 1, `${key}: a scan step`);
+    for (const block of scans) {
+      const off = block.indexOf('set +e');
+      assert.notEqual(off, -1, `${key}: a scan step must turn errexit off`);
+      assert.ok(
+        off < block.search(scanner),
+        `${key}: errexit is turned off before the scanner runs`
+      );
+    }
+    // the steps that install a tool still stop at the first error
+    const installs = runBlocks(yaml).filter((block) =>
+      /sha256sum --check/.test(block)
+    );
+    // (Semgrep is an image pinned by digest: it has no install step)
+    assert.equal(
+      installs.length,
+      key === 'semgrep' ? 0 : 1,
+      `${key}: its install step`
+    );
+    for (const install of installs) {
+      assert.match(install, /set -euo pipefail/, key);
+    }
+  }
+});
+
 test('the scripts and test files a workflow runs exist', () => {
   for (const [key, yaml] of Object.entries(ALL)) {
     for (const path of new Set(

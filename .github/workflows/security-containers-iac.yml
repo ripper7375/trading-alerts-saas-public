@@ -110,6 +110,8 @@ jobs:
       # The JSON goes to a file; the log only gets the counts, below.
       - name: Scan the Dockerfiles (misconfiguration)
         run: |
+          # a step runs under `bash -e`: a scanner that exits non-zero must not end it before the counts
+          set +e
           set -uo pipefail
           mkdir -p "$RUNNER_TEMP/trivy-out"
           trivy config --quiet --format json --output "$RUNNER_TEMP/trivy-out/config.json" \
@@ -120,6 +122,8 @@ jobs:
       # plain words never reaches this loop: the targets command refuses it.
       - name: Scan the base images
         run: |
+          # a step runs under `bash -e`: a scanner that exits non-zero must not end it before the counts
+          set +e
           set -uo pipefail
           mkdir -p "$RUNNER_TEMP/trivy-out"
           n=0
