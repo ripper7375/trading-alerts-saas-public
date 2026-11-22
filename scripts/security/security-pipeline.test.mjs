@@ -1558,6 +1558,10 @@ test('escapeMarkdownCell keeps untrusted text inside its table cell', () => {
   assert.equal(escapeMarkdownCell('line\nbreak\u0007'), 'line break ');
   assert.equal(escapeMarkdownCell('<b>x</b>'), '&lt;b&gt;x&lt;/b&gt;');
   assert.equal(escapeMarkdownCell('x'.repeat(300)).length, 200);
+  // ampersands are escaped first, so a literal entity in the input stays text
+  assert.equal(escapeMarkdownCell('a&b'), 'a&amp;b');
+  assert.equal(escapeMarkdownCell('&lt;'), '&amp;lt;');
+  assert.equal(escapeMarkdownCell('<&>'), '&lt;&amp;&gt;');
   assert.equal(escapeMarkdownCell(undefined), '');
 });
 

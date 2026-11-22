@@ -640,6 +640,8 @@ const esc = (value, max = 200) =>
     // backslashes first, so the escapes added below are not escaped again
     .replace(/\\/g, '\\\\')
     .replace(/\|/g, '\\|')
+    // ampersands before the angle brackets, so the entities added next are not escaped again
+    .replace(/&/g, '&amp;')
     .replace(/[<>]/g, (c) => (c === '<' ? '&lt;' : '&gt;'));
 
 /** Text from a feed or a lockfile, made safe to sit in one Markdown table cell. */
