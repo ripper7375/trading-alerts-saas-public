@@ -524,11 +524,12 @@ test('the alert message carries reasons, counts, asset ids and the report pointe
     findPrivacyViolations(text, { forbidden: [PACKAGE, ADVISORY, CVE] }),
     []
   );
-  assert.equal(ALERT_REASONS.length, 7);
-  // a live posture breach sits between a floor breach and the generic P1
-  assert.deepEqual(ALERT_REASONS.slice(3, 6), [
+  assert.equal(ALERT_REASONS.length, 8);
+  // live posture and behaviour breaches sit between a floor breach and the generic P1
+  assert.deepEqual(ALERT_REASONS.slice(3, 7), [
     'runtime_floor_breach',
     'posture_breach',
+    'behaviour_breach',
     'new_p1',
   ]);
 });
@@ -678,6 +679,193 @@ test('the heartbeat adds one counts-only line when the live posture sweep ran, a
     ),
     false
   );
+});
+
+// --- behaviour signals (Phase 4) ------------------------------------------------------------------------
+
+// a finding of the behaviour signals: no advisory, no package, a fixed check id
+const behaviourFinding = (n, over = {}) => ({
+  key: hex(n),
+  priority: 'P1',
+  assetId: 'money-service',
+  kind: 'webhook-anomaly',
+  source: 'behaviour-signals',
+  malicious: false,
+  packageName: 'bs1-webhook-money-stripe',
+  primaryId: 'BEHAVIOUR-BS1-WEBHOOK-MONEY-STRIPE',
+  advisoryIds: [],
+  ...over,
+});
+
+test('computeTransitions: a behaviour signal breach has its own reason and deduplicates', () => {
+  const findings = [
+    behaviourFinding(1),
+    behaviourFinding(2, { kind: 'main-push', assetId: 'github-repo' }),
+    behaviourFinding(3, { priority: 'P2', kind: 'error-rate' }),
+  ];
+  assert.deepEqual(computeTransitions(emptyAlertState(), findings).alerts, [
+    { reason: 'behaviour_breach', assetId: 'money-service' },
+    { reason: 'behaviour_breach', assetId: 'github-repo' },
+  ]);
+  // already known: no alert again
+  assert.deepEqual(reasons(stateOf(snapshotFindings(findings)), findings), []);
+  // P2 -> P1 alerts, P1 -> P2 does not
+  assert.deepEqual(
+    reasons(stateOf({ [hex(3)]: { tier: 'P2' } }), [
+      behaviourFinding(3, { priority: 'P1' }),
+    ]),
+    ['behaviour_breach']
+  );
+  assert.deepEqual(
+    reasons(stateOf({ [hex(1)]: { tier: 'P1' } }), [
+      behaviourFinding(1, { priority: 'P2' }),
+    ]),
+    []
+  );
+  // a fixed asset id only, like every other alert
+  assert.deepEqual(
+    computeTransitions(emptyAlertState(), [
+      behaviourFinding(9, { assetId: `${ADVISORY} injected` }),
+    ]).alerts,
+    [{ reason: 'behaviour_breach', assetId: 'unknown-asset' }]
+  );
+  // a behaviour finding that is resolved is counted like any other resolved P1
+  assert.equal(
+    computeTransitions(stateOf({ [hex(1)]: { tier: 'P1' } }), []).resolved,
+    1
+  );
+});
+
+test('the alert message names a behaviour signal breach by asset id and count', () => {
+  const text = buildAlertMessage({
+    alerts: [
+      { reason: 'behaviour_breach', assetId: 'money-service' },
+      { reason: 'behaviour_breach', assetId: 'github-repo' },
+      { reason: 'posture_breach', assetId: 'github-repo' },
+      { reason: 'new_p1', assetId: 'monolith-web' },
+    ],
+    posture: posture({
+      summary: { tiers: { P0: 0, P1: 4, P2: 0, P3: 0, WITHDRAWN: 0 } },
+    }),
+    now: NOW,
+  });
+  assert.equal(
+    text,
+    [
+      '🚨 [DavinTrade Security Alert] 2026-11-21 16:40 UTC',
+      'Live posture breach: 1 (github-repo)',
+      'Behaviour signal breach: 2 (github-repo, money-service)',
+      'New P1: 1 (monolith-web)',
+      'Open now: P0=0 P1=4 P2=0 P3=0',
+      `Details: ${REPORT_HINT}`,
+    ].join('\n')
+  );
+  assert.deepEqual(findPrivacyViolations(text), []);
+});
+
+test('the heartbeat adds one counts-only line when the behaviour signals ran, and none otherwise', () => {
+  const heartbeat = heartbeatDecision({
+    lastHeartbeatAt: hoursAgo(24.2),
+    now: NOW,
+    requested: true,
+  });
+  const live = {
+    run: { degraded: false, offline: false },
+    summary: {
+      checks: { total: 10, pass: 1, fail: 1, unavailable: 0, skipped: 8 },
+      signals: {
+        webhooks: 'fail',
+        auth: 'skipped',
+        http: 'skipped',
+        llm: 'skipped',
+        queue: 'skipped',
+        main: 'ok',
+      },
+    },
+  };
+  const text = buildHeartbeatMessage({
+    posture: posture({ live_behaviour: live }),
+    now: NOW,
+    heartbeat,
+  });
+  assert.match(
+    text,
+    /Behaviour signals: pass=1 fail=1 unavailable=0 skipped=8 \| webhooks=fail auth=skipped http=skipped llm=skipped queue=skipped main=ok/
+  );
+  assert.deepEqual(findPrivacyViolations(text), []);
+  // the line follows the Dependabot line, before the heartbeat timing
+  const lines = text.split('\n');
+  assert.ok(
+    lines.findIndex((l) => l.startsWith('Behaviour signals:')) >
+      lines.findIndex((l) => l.startsWith('Dependabot:'))
+  );
+  assert.ok(
+    lines.findIndex((l) => l.startsWith('Behaviour signals:')) <
+      lines.findIndex((l) => l.startsWith('Last heartbeat:'))
+  );
+  assert.equal(
+    buildHeartbeatMessage({ posture: posture(), now: NOW, heartbeat }).includes(
+      'Behaviour signals'
+    ),
+    false
+  );
+  // with the posture sweep as well, the posture line comes first
+  const both = buildHeartbeatMessage({
+    posture: posture({
+      live_behaviour: live,
+      live_posture: {
+        run: { degraded: false, offline: false },
+        summary: {
+          checks: { pass: 21, fail: 0, unavailable: 0, skipped: 1 },
+          areas: {
+            web: 'ok',
+            tls: 'ok',
+            dns: 'ok',
+            github: 'ok',
+            runtime: 'ok',
+          },
+        },
+      },
+    }),
+    now: NOW,
+    heartbeat,
+  }).split('\n');
+  assert.ok(
+    both.findIndex((l) => l.startsWith('Live posture:')) <
+      both.findIndex((l) => l.startsWith('Behaviour signals:'))
+  );
+});
+
+test('the behaviour line of the heartbeat keeps to numbers and fixed words, whatever the result holds', () => {
+  const heartbeat = heartbeatDecision({
+    lastHeartbeatAt: hoursAgo(24.2),
+    now: NOW,
+    requested: true,
+  });
+  const text = buildHeartbeatMessage({
+    posture: posture({
+      live_behaviour: {
+        run: { degraded: true, offline: false },
+        summary: {
+          checks: { pass: 'many', fail: -3, unavailable: 2.9, skipped: null },
+          signals: {
+            webhooks: `${ADVISORY} 192.0.2.1`,
+            auth: 'ok',
+            http: 'fail',
+            llm: 'unavailable',
+            queue: 'skipped',
+          },
+        },
+      },
+    }),
+    now: NOW,
+    heartbeat,
+  });
+  assert.match(
+    text,
+    /Behaviour signals: pass=0 fail=0 unavailable=2 skipped=0 \| webhooks=unknown auth=ok http=fail llm=unavailable queue=skipped main=unknown/
+  );
+  assert.deepEqual(findPrivacyViolations(text), []);
 });
 
 test('buildTestMessage and buildPushBody', () => {

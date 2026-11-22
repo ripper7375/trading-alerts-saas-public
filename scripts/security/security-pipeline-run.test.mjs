@@ -1377,6 +1377,388 @@ test('parseArgs knows --with-posture, --no-fetch and --main-ref', () => {
   assert.match(USAGE, /--main-ref/);
 });
 
+// --- the behaviour signals (--with-behaviour) --------------------------------------------------------------
+
+const PIPELINE = '/repo/davintrade-security-monitoring-pipeline';
+const GATEWAY_HEALTH_URL = 'https://gateway.fixture.test/api/v1/health';
+const REVIEWED_COMMIT = {
+  sha: 'a1'.repeat(20),
+  at: '2026-11-21T10:00:00.000Z',
+  parents: 2,
+  subject: 'Merge pull request #1 from owner/branch',
+  pulls: [{ number: 1, merged: true, baseRef: 'main' }],
+};
+const DIRECT_COMMIT = {
+  sha: 'b2'.repeat(20),
+  at: '2026-11-21T11:00:00.000Z',
+  parents: 1,
+  subject: 'fix: change it',
+  pulls: [],
+};
+// a webhook route of the fixture asset with two 5xx answers: a BS-1 breach
+const WEBHOOK_BREACH = JSON.stringify({
+  schema_version: '1.0',
+  collected_at: '2026-11-21T11:55:00Z',
+  webhooks: {
+    window_minutes: 60,
+    routes: [
+      {
+        id: 'money-stripe',
+        asset: 'svc-a',
+        requests: 40,
+        status_5xx: 2,
+        signature_failures: 0,
+      },
+    ],
+  },
+});
+
+// every probe answers as the healthy live system does; `over` bends one of them
+function behaviourProbes(h, over = {}) {
+  const calls = { mainPush: [], queue: 0 };
+  const probes = {
+    mainPush: async (args) => {
+      calls.mainPush.push(args);
+      return (
+        over.mainPush ?? {
+          ok: true,
+          commits: [REVIEWED_COMMIT],
+          truncated: false,
+          anchorFound: null,
+        }
+      );
+    },
+    queue: async () => {
+      calls.queue += 1;
+      return (
+        over.queue ?? {
+          ok: true,
+          sample: {
+            at: new Date(h.clock.t).toISOString(),
+            waiting: 0,
+            failed: 0,
+            active: 0,
+          },
+        }
+      );
+    },
+  };
+  return { probes, calls };
+}
+
+function withBehaviour(h, over = {}) {
+  const fake = behaviourProbes(h, over);
+  const created = [];
+  h.deps.behaviour = {
+    createProbes: (args) => {
+      created.push(args);
+      return fake.probes;
+    },
+  };
+  return { fake, created };
+}
+
+test('--with-behaviour adds the behaviour signals to both reports and its counts to stdout', async () => {
+  const h = harness();
+  const wb = withBehaviour(h);
+  assert.equal(await h.run(['--with-behaviour'], POSTURE_ENV), 0);
+  assert.deepEqual(wb.created, [
+    { token: GITHUB_TOKEN, repo: POSTURE_REPO, gatewayHealthUrl: null },
+  ]);
+
+  const posture = h.json('latest-security-posture.json');
+  assert.equal(posture.live_behaviour.summary.checks.fail, 0);
+  // the standalone reports are the same sweep
+  assert.deepEqual(
+    h.json('latest-behaviour-signals.json'),
+    posture.live_behaviour
+  );
+  assert.match(
+    h.file('latest-behaviour-signals.md'),
+    /^# DavinTrade behaviour signals \(private\)/
+  );
+  assert.match(h.file('latest-security-posture.md'), /## Behaviour signals/);
+
+  const out = h.stdout();
+  noSentinels(out);
+  for (const line of h.logs) {
+    assert.equal(findPrivacyViolations(line).length, 0, line);
+  }
+  assert.match(
+    out,
+    /behaviour_checks: total=10 pass=1 fail=0 unavailable=0 skipped=9/
+  );
+  assert.match(
+    out,
+    /behaviour_signals: webhooks=skipped auth=skipped http=skipped llm=skipped queue=skipped main=ok/
+  );
+  assert.match(out, /reports: latest-behaviour-signals\.json and \.md written/);
+  // the vulnerability counts are what they are without the flag
+  assert.match(out, /findings: P0=1 P1=2 P2=0 P3=4 withdrawn=0 total=7/);
+  // the sample taken now is kept for the next run
+  assert.equal(h.fs.files.has(`${REPORTS}/behaviour-queue-samples.json`), true);
+  const everything = JSON.stringify([out, ...h.fs.files.values()]);
+  assert.equal(
+    everything.includes(GITHUB_TOKEN),
+    false,
+    'the token is kept out'
+  );
+});
+
+test('a failed behaviour check is a P1 finding, a LINE alert and a heartbeat line', async () => {
+  const h = harness({
+    files: {
+      '/repo/.env.local': LINE_ENV,
+      [`${REPORTS}/behaviour-input.json`]: WEBHOOK_BREACH,
+    },
+  });
+  withBehaviour(h);
+  assert.equal(
+    await h.run(['--dry-run-line', '--with-behaviour'], POSTURE_ENV),
+    0
+  );
+  const posture = h.json('latest-security-posture.json');
+  assert.deepEqual(posture.summary.tiers, {
+    P0: 1,
+    P1: 3,
+    P2: 0,
+    P3: 4,
+    WITHDRAWN: 0,
+  });
+  const finding = posture.findings.find(
+    (f) => f.source === 'behaviour-signals'
+  );
+  assert.equal(finding.kind, 'webhook-anomaly');
+  assert.equal(finding.assetId, 'svc-a');
+  assert.equal(finding.priority, 'P1');
+  assert.equal(finding.rule, 'BS-1');
+  assert.equal(finding.escalation, true, 'BS-1 is a Rule 5 escalation');
+
+  const preview = h.file('last-line-message-preview.txt');
+  assert.match(preview, /Behaviour signal breach: 1 \(svc-a\)/);
+  assert.match(
+    preview,
+    /Behaviour signals: pass=\d+ fail=1 unavailable=0 skipped=\d+ \| webhooks=fail auth=skipped http=skipped llm=skipped queue=skipped main=ok/
+  );
+  noSentinels(preview);
+  assert.equal(
+    findPrivacyViolations(
+      preview
+        .split('\n')
+        .filter((l) => !l.startsWith('#'))
+        .join('\n')
+    ).length,
+    0
+  );
+  assert.equal(
+    preview.includes('money-stripe'),
+    false,
+    'the route stays in the report'
+  );
+  assert.match(h.stdout(), /findings: P0=1 P1=3 P2=0 P3=4 withdrawn=0 total=8/);
+  assert.match(
+    h.stdout(),
+    /line: dry run, preview written \(alerts=4 heartbeat=due\)/
+  );
+  assert.match(
+    h.file('latest-behaviour-signals.md'),
+    /bs1-webhook-money-stripe/
+  );
+});
+
+test('an unavailable behaviour probe degrades the whole sweep and the heartbeat says so', async () => {
+  const h = harness({ files: { '/repo/.env.local': LINE_ENV } });
+  withBehaviour(h, { mainPush: { ok: false, error: 'timeout' } });
+  assert.equal(
+    await h.run(['--dry-run-line', '--with-behaviour'], POSTURE_ENV),
+    0
+  );
+  const posture = h.json('latest-security-posture.json');
+  assert.equal(posture.run.degraded, true);
+  assert.equal(posture.live_behaviour.run.degraded, true);
+  assert.match(h.stdout(), /degraded=yes/);
+  const preview = h.file('last-line-message-preview.txt');
+  assert.match(preview, /Sweep: DEGRADED/);
+  assert.match(preview, /main=unavailable/);
+});
+
+test('the same behaviour breach alerts once, not on every run', async () => {
+  const h = harness({
+    files: {
+      '/repo/.env.local': LINE_ENV,
+      [`${REPORTS}/behaviour-input.json`]: WEBHOOK_BREACH,
+    },
+  });
+  withBehaviour(h);
+  assert.equal(
+    await h.run(['--notify-line', '--with-behaviour'], POSTURE_ENV),
+    0
+  );
+  assert.equal(h.lineCalls().length, 1);
+  const body = JSON.parse(h.lineCalls()[0].init.body);
+  assert.match(body.messages[0].text, /Behaviour signal breach: 1 \(svc-a\)/);
+  h.clock.t += 5 * 60 * 1000; // the snapshot is still fresh
+  await h.run(['--notify-line', '--with-behaviour'], POSTURE_ENV);
+  assert.equal(h.lineCalls().length, 1, 'the same breach does not alert again');
+});
+
+test('a direct push to main is a P1 finding of the sweep, with the commit only in the private report', async () => {
+  const h = harness();
+  withBehaviour(h, {
+    mainPush: {
+      ok: true,
+      commits: [DIRECT_COMMIT, REVIEWED_COMMIT],
+      truncated: false,
+      anchorFound: null,
+    },
+  });
+  assert.equal(await h.run(['--with-behaviour'], POSTURE_ENV), 0);
+  const posture = h.json('latest-security-posture.json');
+  const finding = posture.findings.find((f) => f.rule === 'BS-6');
+  assert.equal(finding.priority, 'P1');
+  assert.equal(finding.assetId, 'github-repo');
+  assert.equal(finding.escalation, false);
+  assert.match(
+    h.file('latest-behaviour-signals.md'),
+    new RegExp(DIRECT_COMMIT.sha.slice(0, 12))
+  );
+  assert.equal(h.stdout().includes(DIRECT_COMMIT.sha.slice(0, 12)), false);
+  assert.match(h.stdout(), /behaviour_signals: .* main=fail/);
+});
+
+test('the settings reach the probes and the gateway address stays out of every output', async () => {
+  const h = harness({
+    files: {
+      [`${PIPELINE}/behaviour-settings.json`]: JSON.stringify({
+        queue: { health_url: GATEWAY_HEALTH_URL },
+        main_push: { baseline_at: '2026-11-20T16:00:00Z' },
+      }),
+    },
+  });
+  const wb = withBehaviour(h);
+  assert.equal(await h.run(['--with-behaviour'], POSTURE_ENV), 0);
+  assert.equal(wb.created[0].gatewayHealthUrl, GATEWAY_HEALTH_URL);
+  assert.deepEqual(wb.fake.calls.mainPush[0].baseline, {
+    source: 'recorded',
+    at: '2026-11-20T16:00:00.000Z',
+    sha: null,
+  });
+  const outputs = JSON.stringify([
+    h.stdout(),
+    h.file('latest-behaviour-signals.json'),
+    h.file('latest-behaviour-signals.md'),
+    h.file('latest-security-posture.json'),
+    h.file('latest-security-posture.md'),
+    h.file('behaviour-queue-samples.json'),
+  ]);
+  assert.equal(outputs.includes('gateway.fixture.test'), false);
+});
+
+test('--with-behaviour --offline asks no live probe and still writes the behaviour reports', async () => {
+  const h = harness();
+  const wb = withBehaviour(h);
+  assert.equal(await h.run(['--with-behaviour', '--offline'], POSTURE_ENV), 0);
+  assert.equal(wb.fake.calls.mainPush.length, 0);
+  assert.equal(wb.fake.calls.queue, 0);
+  assert.equal(wb.created[0].token, null, 'an offline run asks for no token');
+  assert.equal(h.json('latest-behaviour-signals.json').run.offline, true);
+  assert.match(
+    h.stdout(),
+    /behaviour_signals: webhooks=skipped auth=skipped http=skipped llm=skipped queue=skipped main=skipped/
+  );
+  assert.equal(
+    h.fs.files.has(`${REPORTS}/behaviour-queue-samples.json`),
+    false
+  );
+});
+
+test('without --with-behaviour the behaviour signals do not run and leave no trace', async () => {
+  const h = harness();
+  const wb = withBehaviour(h);
+  assert.equal(await h.run([], POSTURE_ENV), 0);
+  assert.equal(wb.created.length, 0);
+  assert.equal(
+    'live_behaviour' in h.json('latest-security-posture.json'),
+    false
+  );
+  assert.equal(
+    h.fs.files.has(`${REPORTS}/latest-behaviour-signals.json`),
+    false
+  );
+  assert.equal(
+    h.fs.files.has(`${REPORTS}/behaviour-queue-samples.json`),
+    false
+  );
+  assert.equal(h.stdout().includes('behaviour_'), false);
+  assert.doesNotMatch(
+    h.file('latest-security-posture.md'),
+    /Behaviour signals/
+  );
+});
+
+test('with the posture sweep as well, both land in the reports and the heartbeat shows both lines', async () => {
+  const h = harness({
+    files: { ...POSTURE_FILES, '/repo/.env.local': LINE_ENV },
+  });
+  withPosture(h);
+  withBehaviour(h);
+  assert.equal(
+    await h.run(
+      ['--dry-run-line', '--with-posture', '--with-behaviour'],
+      POSTURE_ENV
+    ),
+    0
+  );
+  const posture = h.json('latest-security-posture.json');
+  assert.ok(posture.live_posture);
+  assert.ok(posture.live_behaviour);
+  const md = h.file('latest-security-posture.md');
+  assert.ok(
+    md.indexOf('## Live posture sweep') < md.indexOf('## Behaviour signals')
+  );
+  const lines = h.file('last-line-message-preview.txt').split('\n');
+  assert.ok(
+    lines.findIndex((l) => l.startsWith('Live posture:')) <
+      lines.findIndex((l) => l.startsWith('Behaviour signals:'))
+  );
+});
+
+test('the notes of the behaviour sweep reach the posture report', async () => {
+  const h = harness({
+    files: {
+      [`${REPORTS}/behaviour-input.json`]: JSON.stringify({
+        schema_version: '1.0',
+        collected_at: '2026-11-21T11:55:00Z',
+        webhooks: {
+          routes: [
+            { id: 'Bad Id', requests: 1, status_5xx: 0, signature_failures: 0 },
+          ],
+        },
+      }),
+    },
+  });
+  withBehaviour(h);
+  assert.equal(await h.run(['--with-behaviour'], POSTURE_ENV), 0);
+  assert.ok(
+    h
+      .json('latest-security-posture.json')
+      .notes.includes(
+        'behaviour-input.json: 1 problem ignored (webhooks:bad_route)'
+      )
+  );
+  assert.match(
+    h.file('latest-security-posture.md'),
+    /behaviour-input\.json: 1 problem ignored/
+  );
+});
+
+test('parseArgs knows --with-behaviour', () => {
+  assert.equal(parseArgs(['--with-behaviour']).withBehaviour, true);
+  assert.equal(parseArgs([]).withBehaviour, false);
+  assert.throws(() => parseArgs(['--with-behaviour=1']), UsageError);
+  assert.match(USAGE, /--with-behaviour/);
+});
+
 // --- coverage and build hygiene ----------------------------------------------------------------------------
 
 // svc-a also lists a covered manifest and a nixpacks file; svc-py also lists a development manifest

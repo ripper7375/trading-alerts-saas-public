@@ -24,6 +24,7 @@ import {
 } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createBehaviourProbes } from './behaviour-signals-probes.mjs';
 import {
   createCredentialFill,
   createPostureProbes,
@@ -91,6 +92,12 @@ try {
       posture: {
         createProbes: ({ root, token, repo }) =>
           createPostureProbes({ root, token, repo }),
+      },
+      // the probes of --with-behaviour: the GitHub API and, when the owner gave its address, the
+      // health endpoint of the gateway
+      behaviour: {
+        createProbes: ({ token, repo, gatewayHealthUrl }) =>
+          createBehaviourProbes({ token, repo, gatewayHealthUrl }),
       },
     },
   });
