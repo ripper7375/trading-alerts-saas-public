@@ -79,6 +79,11 @@ function run(options) {
         devPaths: pip
           .filter((p) => p.scope === 'development')
           .map((p) => p.path),
+        manifests: pip.map((p) => ({
+          assetId: p.assetId,
+          scope: p.scope,
+          path: p.path,
+        })),
       });
       const gate = osvGate({ summary, blocking: options.blocking });
       return {

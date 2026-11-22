@@ -378,6 +378,106 @@ test('the OSV lines carry counts only, and the gate is informational until it is
   assert.equal(osvGate({ summary: failed, blocking: true }).exit, 1);
 });
 
+test('each source is attributed to its inventory manifest, and one that is not a manifest stays out of the totals', () => {
+  const manifests = [
+    {
+      assetId: 'knowledge-service',
+      scope: 'runtime',
+      path: 'knowledge-service/requirements.txt',
+    },
+    {
+      assetId: 'mt5-service-legacy',
+      scope: 'development',
+      path: 'mt5-service/requirements-dev.txt',
+    },
+    {
+      assetId: 'stack-d-mcd-common',
+      scope: 'runtime',
+      path: 'mcd_common/requirements.txt',
+    },
+    {
+      assetId: 'railway-gateway',
+      scope: 'runtime',
+      path: 'railway-gateway/python-requirements.txt',
+    },
+  ];
+  const unlisted = {
+    source: { path: '/work/elsewhere/pnpm-lock.yaml', type: 'lockfile' },
+    packages: [
+      osvPackage('sentinel-package', [
+        { ids: ['GHSA-aaaa-bbbb-cccc'], max_severity: '9.9' },
+        { ids: ['GHSA-dddd-eeee-ffff'], max_severity: '8.0' },
+      ]),
+    ],
+  };
+  const s = summarizeOsvReport(
+    { results: [...OSV_REPORT.results, unlisted] },
+    { devPaths: ['mt5-service/requirements-dev.txt'], manifests }
+  );
+  // the totals are those of the manifests alone: the unlisted source is not in them
+  assert.equal(s.sources, 4);
+  assert.equal(s.vulnerablePackages, 3);
+  assert.deepEqual(s.runtime, {
+    critical: 2,
+    high: 1,
+    medium: 2,
+    low: 1,
+    unknown: 2,
+  });
+  assert.deepEqual(s.development, {
+    critical: 0,
+    high: 1,
+    medium: 0,
+    low: 0,
+    unknown: 0,
+  });
+  assert.deepEqual(s.other, {
+    sources: 1,
+    vulnerablePackages: 1,
+    counts: { critical: 1, high: 1, medium: 0, low: 0, unknown: 0 },
+  });
+  const lines = renderOsvLines(s);
+  assert.deepEqual(lines, [
+    'osv_python: sources=4 vulnerable_packages=3 critical=2 high=1 medium=2 low=1 unknown=2',
+    'osv_python_development: critical=0 high=1 medium=0 low=0 unknown=0',
+    'osv_python_manifest: knowledge-service scope=runtime sources=1 vulnerable_packages=1 critical=1 high=1 medium=1 low=1 unknown=1',
+    'osv_python_manifest: mt5-service-legacy scope=development sources=1 vulnerable_packages=1 critical=0 high=1 medium=0 low=0 unknown=0',
+    'osv_python_manifest: stack-d-mcd-common scope=runtime sources=1 vulnerable_packages=1 critical=1 high=0 medium=1 low=0 unknown=1',
+    'osv_python_manifest: railway-gateway scope=runtime sources=0 vulnerable_packages=0 critical=0 high=0 medium=0 low=0 unknown=0',
+    'osv_python_other_sources: sources=1 vulnerable_packages=1 critical=1 high=1 medium=0 low=0 unknown=0 (not an inventory manifest, kept out of the totals)',
+  ]);
+  noSentinels(lines);
+  // a source outside the list never fails a blocking run
+  const outsideOnly = summarizeOsvReport(
+    { results: [unlisted] },
+    { manifests }
+  );
+  assert.equal(osvGate({ summary: outsideOnly, blocking: true }).exit, 0);
+  // no `other` line when every source is a manifest, and no manifest line without a list
+  const allListed = summarizeOsvReport(OSV_REPORT, {
+    manifests: manifests.slice(0, 3),
+  });
+  assert.equal(
+    renderOsvLines(allListed).some((l) =>
+      l.startsWith('osv_python_other_sources')
+    ),
+    false
+  );
+  assert.equal(
+    renderOsvLines(summarizeOsvReport(OSV_REPORT)).some((l) =>
+      l.startsWith('osv_python_manifest')
+    ),
+    false
+  );
+  // a package reported twice in one manifest is one vulnerable package, from two sources
+  const twice = summarizeOsvReport(
+    { results: [OSV_REPORT.results[0], OSV_REPORT.results[0]] },
+    { manifests }
+  );
+  assert.equal(twice.manifests[0].vulnerablePackages, 1);
+  assert.equal(twice.manifests[0].sources, 2);
+});
+
 // --- Semgrep -------------------------------------------------------------------------------------------
 
 const finding = (severity, over = {}) => ({
@@ -764,16 +864,25 @@ test('the command prints OSV, Semgrep and Gitleaks counts, and a missing report 
       'targets.json': {
         pip: [
           {
+            assetId: 'knowledge-service',
             path: 'knowledge-service/requirements.txt',
             scope: 'runtime',
             requirements: 10,
             unpinned: 2,
           },
           {
+            assetId: 'mt5-service-legacy',
             path: 'mt5-service/requirements-dev.txt',
             scope: 'development',
             requirements: 2,
             unpinned: 2,
+          },
+          {
+            assetId: 'stack-d-mcd-common',
+            path: 'mcd_common/requirements.txt',
+            scope: 'runtime',
+            requirements: 4,
+            unpinned: 0,
           },
         ],
       },
@@ -792,9 +901,19 @@ test('the command prints OSV, Semgrep and Gitleaks counts, and a missing report 
         /^osv_python: sources=3 vulnerable_packages=3 critical=2 high=1 /m
       );
       assert.match(osv.stdout, /^osv_python_development: critical=0 high=1 /m);
+      // one line per manifest of the inventory, by asset id, and none for a source that is not one
       assert.match(
         osv.stdout,
-        /^osv_python_pinning: requirement_lines=12 unpinned=4$/m
+        /^osv_python_manifest: knowledge-service scope=runtime sources=1 vulnerable_packages=1 critical=1 high=1 /m
+      );
+      assert.match(
+        osv.stdout,
+        /^osv_python_manifest: mt5-service-legacy scope=development sources=1 /m
+      );
+      assert.doesNotMatch(osv.stdout, /osv_python_other_sources/);
+      assert.match(
+        osv.stdout,
+        /^osv_python_pinning: requirement_lines=16 unpinned=4$/m
       );
       noSentinels(osv.stdout.split('\n').filter(Boolean));
       const semgrep = cli(['semgrep', '--report', p['semgrep.json']]);
