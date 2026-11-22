@@ -64,6 +64,13 @@ import {
   renderPostureSweepStdout,
   runPostureSweep,
 } from './posture-sweep-lib.mjs';
+import {
+  mergeBehaviourFindings,
+  renderBehaviourMarkdown,
+  renderBehaviourSection,
+  renderBehaviourStdout,
+} from './behaviour-signals-lib.mjs';
+import { behaviourPaths, collectBehaviour } from './behaviour-signals-run.mjs';
 
 export class UsageError extends Error {}
 
@@ -76,6 +83,7 @@ export const USAGE = [
   '  --with-posture       also run the live posture sweep (headers, TLS, DNS, GitHub settings, deployed build); P0 and P1 breaches feed the LINE alerts',
   '  --no-fetch           with --with-posture: do not `git fetch` before comparing the deployed build with main',
   '  --main-ref <ref>     with --with-posture: the branch the deployed build is compared with (default origin/main)',
+  '  --with-behaviour     also run the behaviour signals (webhook 5xx, failed logins, 5xx and 429 rate, LLM spend, the gateway queue, pushes to main); P0 and P1 breaches feed the LINE alerts',
   '  --offline            no network: cached feeds only, the audit tools are not run',
   '  --refresh            ignore the feed cache lifetime (conditional requests are still used)',
   '  --assets a,b         only these inventory asset ids',
@@ -95,6 +103,7 @@ const FLAGS = {
   '--dry-run-line': 'dryRunLine',
   '--with-dependabot': 'withDependabot',
   '--with-posture': 'withPosture',
+  '--with-behaviour': 'withBehaviour',
   '--no-fetch': 'noFetch',
   '--offline': 'offline',
   '--refresh': 'refresh',
@@ -118,6 +127,7 @@ export function parseArgs(argv) {
     dryRunLine: false,
     withDependabot: false,
     withPosture: false,
+    withBehaviour: false,
     noFetch: false,
     offline: false,
     refresh: false,
@@ -775,6 +785,26 @@ async function sweep({ options, env, deps, out }) {
     scored = mergePostureFindings(scored, live.findings);
   }
 
+  // --- behaviour signals (optional) -------------------------------------------------------------
+  // Webhook 5xx, failed logins, the 5xx and 429 rate, the LLM spend, the gateway queue and pushes
+  // to main. Its P0 and P1 findings join the tiers like the sweep's, so the LINE alerts and the
+  // heartbeat counts include them. The files it reads and writes are its own (see
+  // behaviour-signals-run.mjs).
+  let behaviour = null;
+  if (options.withBehaviour) {
+    behaviour = await collectBehaviour({
+      fs,
+      paths: behaviourPaths({ pipelineDir }),
+      inventory,
+      createProbes: deps.behaviour?.createProbes,
+      token: offline ? null : githubToken().token,
+      repo: options.repo,
+      now,
+      offline,
+    });
+    scored = mergeBehaviourFindings(scored, behaviour.findings);
+  }
+
   // --- Dependabot ---------------------------------------------------------------------------------------
   let dependabot = { status: 'skipped', detail: 'not_requested' };
   if (options.withDependabot) {
@@ -829,7 +859,8 @@ async function sweep({ options, env, deps, out }) {
       FEED_PROBLEMS.has(feeds[name].status)
     ) ||
     (options.withDependabot && dependabot.status === 'unavailable') ||
-    live?.run.degraded === true;
+    live?.run.degraded === true ||
+    behaviour?.run.degraded === true;
 
   const accepted = ignored.entries.map((entry) => ({
     ...entry,
@@ -851,6 +882,7 @@ async function sweep({ options, env, deps, out }) {
       `The Node.js that ran this sweep (${floors.runner.version}) is below its line's floor`
     );
   if (live) st.notes.push(...live.notes);
+  if (behaviour) st.notes.push(...behaviour.notes);
   const lockKeysFor = (assetId) => st.lockKeys.get(assetId) ?? null;
 
   const posture = {
@@ -894,6 +926,7 @@ async function sweep({ options, env, deps, out }) {
     },
     notes: st.notes,
     ...(live ? { live_posture: live } : {}),
+    ...(behaviour ? { live_behaviour: behaviour } : {}),
   };
 
   // --- reports (private, gitignored) --------------------------------------------------------------------------
@@ -903,12 +936,20 @@ async function sweep({ options, env, deps, out }) {
     fs.writeText(
       paths.postureMd,
       renderPostureMarkdown(posture, {
-        extraSections: live ? [renderPostureSweepSection(live)] : [],
+        extraSections: [
+          ...(live ? [renderPostureSweepSection(live)] : []),
+          ...(behaviour ? [renderBehaviourSection(behaviour)] : []),
+        ],
       })
     );
     if (live) {
       fs.writeText(paths.postureSweep, `${JSON.stringify(live, null, 2)}\n`);
       fs.writeText(paths.postureSweepMd, renderPostureSweepMarkdown(live));
+    }
+    if (behaviour) {
+      const own = behaviourPaths({ pipelineDir });
+      fs.writeText(own.json, `${JSON.stringify(behaviour, null, 2)}\n`);
+      fs.writeText(own.markdown, renderBehaviourMarkdown(behaviour));
     }
     fs.appendText(
       paths.history,
@@ -980,6 +1021,10 @@ async function sweep({ options, env, deps, out }) {
     for (const text of renderPostureSweepStdout(live, { heading: false }))
       out(text);
   }
+  if (behaviour) {
+    for (const text of renderBehaviourStdout(behaviour, { heading: false }))
+      out(text);
+  }
   const hb = line.heartbeat
     ? line.heartbeat.send
       ? 'due'
@@ -1002,6 +1047,11 @@ async function sweep({ options, env, deps, out }) {
   if (live) {
     out(
       'reports: latest-posture-sweep.json and .md written (private, gitignored)'
+    );
+  }
+  if (behaviour) {
+    out(
+      'reports: latest-behaviour-signals.json and .md written (private, gitignored)'
     );
   }
   return line.mode === 'failed' ? 3 : 0;

@@ -3,7 +3,8 @@ name: Security Policy Files
 # Purpose: keep the security inventory (security/security-inventory.yaml), the
 # VEX registry (security/vex-registry.json) and the scripts that read them
 # consistent. The unit tests of scripts/security/ and the VEX validator run on
-# every change that touches them.
+# every change that touches them. The incident playbooks runbook is read by the
+# tabletop test (the document and the code must agree), so a change to it runs them too.
 #
 # Path-filtered on purpose, so it is not a required check: a path-filtered
 # required check would leave unrelated pull requests waiting forever.
@@ -16,12 +17,14 @@ on:
     paths:
       - 'security/**'
       - 'scripts/security/**'
+      - 'docs/runbooks/security-incident-playbooks.md'
       - '.github/workflows/security-policy-files.yml'
   pull_request:
     branches: [main]
     paths:
       - 'security/**'
       - 'scripts/security/**'
+      - 'docs/runbooks/security-incident-playbooks.md'
       - '.github/workflows/security-policy-files.yml'
   workflow_dispatch:
 

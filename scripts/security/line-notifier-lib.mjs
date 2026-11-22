@@ -240,6 +240,7 @@ export const ALERT_REASONS = Object.freeze([
   'escalated_to_p0',
   'runtime_floor_breach',
   'posture_breach',
+  'behaviour_breach',
   'new_p1',
   'escalated_to_p1',
 ]);
@@ -250,6 +251,7 @@ const REASON_LABELS = Object.freeze({
   escalated_to_p0: 'Escalated to P0',
   runtime_floor_breach: 'Runtime floor breach',
   posture_breach: 'Live posture breach',
+  behaviour_breach: 'Behaviour signal breach',
   new_p1: 'New P1',
   escalated_to_p1: 'Escalated to P1',
 });
@@ -281,6 +283,11 @@ export function computeTransitions(previous, findings) {
       // settings, deployed build): alerts when it enters P0 or P1, never twice
       if (now <= 1 && (was === null || was > 1))
         alerts.push({ reason: 'posture_breach', assetId });
+    } else if (f.source === 'behaviour-signals') {
+      // a signal of the behaviour sweep (webhooks, failed logins, error rate, LLM spend, the
+      // queue, a push to main): alerts when it enters P0 or P1, never twice
+      if (now <= 1 && (was === null || was > 1))
+        alerts.push({ reason: 'behaviour_breach', assetId });
     } else if (f.malicious === true && !before?.malicious) {
       alerts.push({ reason: 'malicious_package', assetId });
     } else if (f.priority === 'P0' && was !== 0) {
@@ -366,6 +373,25 @@ function livePostureText(live) {
   return `Live posture: pass=${num(c.pass)} fail=${num(c.fail)} unavailable=${num(c.unavailable)} skipped=${num(c.skipped)} | ${areas}`;
 }
 
+// The behaviour signals in the heartbeat: counts and a fixed vocabulary only.
+const BEHAVIOUR_SIGNALS = Object.freeze([
+  'webhooks',
+  'auth',
+  'http',
+  'llm',
+  'queue',
+  'main',
+]);
+
+function liveBehaviourText(live) {
+  const c = live.summary?.checks ?? {};
+  const signals = BEHAVIOUR_SIGNALS.map((name) => {
+    const word = live.summary?.signals?.[name];
+    return `${name}=${POSTURE_AREA_WORDS.has(word) ? word : 'unknown'}`;
+  }).join(' ');
+  return `Behaviour signals: pass=${num(c.pass)} fail=${num(c.fail)} unavailable=${num(c.unavailable)} skipped=${num(c.skipped)} | ${signals}`;
+}
+
 /**
  * The immediate alert: transitions grouped by reason, with the assets they hit.
  */
@@ -410,6 +436,9 @@ export function buildHeartbeatMessage({
       : 'Dependabot: not compared',
   ];
   if (posture.live_posture) lines.push(livePostureText(posture.live_posture));
+  if (posture.live_behaviour) {
+    lines.push(liveBehaviourText(posture.live_behaviour));
+  }
   if (resolved > 0)
     lines.push(`Resolved P0/P1 since the last sweep: ${num(resolved)}`);
   if (heartbeat.missed) {
