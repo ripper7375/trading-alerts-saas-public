@@ -384,11 +384,14 @@ test('each source is attributed to its inventory manifest, and one that is not a
       assetId: 'knowledge-service',
       scope: 'runtime',
       path: 'knowledge-service/requirements.txt',
+      // written the way a requirements file may spell it: PyPI treats `_`, `-` and case alike
+      names: ['Sentinel_Package'],
     },
     {
       assetId: 'mt5-service-legacy',
       scope: 'development',
       path: 'mt5-service/requirements-dev.txt',
+      names: [],
     },
     {
       assetId: 'stack-d-mcd-common',
@@ -399,6 +402,7 @@ test('each source is attributed to its inventory manifest, and one that is not a
       assetId: 'railway-gateway',
       scope: 'runtime',
       path: 'railway-gateway/python-requirements.txt',
+      names: ['a', 'b'],
     },
   ];
   const unlisted = {
@@ -441,9 +445,13 @@ test('each source is attributed to its inventory manifest, and one that is not a
     'osv_python: sources=4 vulnerable_packages=3 critical=2 high=1 medium=2 low=1 unknown=2',
     'osv_python_development: critical=0 high=1 medium=0 low=0 unknown=0',
     'osv_python_manifest: knowledge-service scope=runtime sources=1 vulnerable_packages=1 critical=1 high=1 medium=1 low=1 unknown=1',
+    'osv_python_manifest_shape: knowledge-service scope=runtime declared_packages=1 entries=1 packages_per_entry=2 vulnerable_per_entry=1 groups_per_entry=5 groups=5 distinct_groups=5 vulnerable_declared=1 vulnerable_dependencies=0',
     'osv_python_manifest: mt5-service-legacy scope=development sources=1 vulnerable_packages=1 critical=0 high=1 medium=0 low=0 unknown=0',
+    'osv_python_manifest_shape: mt5-service-legacy scope=development declared_packages=0 entries=1 packages_per_entry=1 vulnerable_per_entry=1 groups_per_entry=1 groups=1 distinct_groups=1 vulnerable_declared=0 vulnerable_dependencies=1',
     'osv_python_manifest: stack-d-mcd-common scope=runtime sources=1 vulnerable_packages=1 critical=1 high=0 medium=1 low=0 unknown=1',
+    'osv_python_manifest_shape: stack-d-mcd-common scope=runtime declared_packages=unknown entries=1 packages_per_entry=1 vulnerable_per_entry=1 groups_per_entry=3 groups=3 distinct_groups=3 vulnerable_declared=unknown vulnerable_dependencies=unknown',
     'osv_python_manifest: railway-gateway scope=runtime sources=0 vulnerable_packages=0 critical=0 high=0 medium=0 low=0 unknown=0',
+    'osv_python_manifest_shape: railway-gateway scope=runtime declared_packages=2 entries=0 packages_per_entry=- vulnerable_per_entry=- groups_per_entry=- groups=0 distinct_groups=0 vulnerable_declared=0 vulnerable_dependencies=0',
     'osv_python_other_sources: sources=1 vulnerable_packages=1 critical=1 high=1 medium=0 low=0 unknown=0 (not an inventory manifest, kept out of the totals)',
   ]);
   noSentinels(lines);
@@ -476,6 +484,138 @@ test('each source is attributed to its inventory manifest, and one that is not a
   );
   assert.equal(twice.manifests[0].vulnerablePackages, 1);
   assert.equal(twice.manifests[0].sources, 2);
+});
+
+test('the shape of a manifest says how its counts are made up: entries, repeated groups, declared and dependency packages', () => {
+  const manifest = {
+    assetId: 'mt5-service-legacy',
+    scope: 'runtime',
+    path: 'mt5-service/requirements.txt',
+    // the file spells a name its own way; the report spells it the way the resolver does
+    names: ['Flask_CORS', 'requests'],
+  };
+  const pkg = (name, version, groups) => ({
+    package: { name, version, ecosystem: 'PyPI' },
+    vulnerabilities: [],
+    groups,
+  });
+  const group = (id, score) => ({ ids: [id], max_severity: score });
+  const source = {
+    path: '/work/r/mt5-service/requirements.txt',
+    type: 'lockfile',
+  };
+  const report = {
+    results: [
+      {
+        source,
+        packages: [
+          pkg('flask-cors', '4.0.0', [
+            group('GHSA-sentinel-1', '9.1'),
+            group('GHSA-sentinel-2', '7.5'),
+          ]),
+          // spelled the way the file spells it
+          pkg('Requests', '2.31.0', [group('GHSA-sentinel-5', '6.1')]),
+          pkg('tidy-library', '1.0.0', []),
+        ],
+      },
+      {
+        // the same file again: the first package repeated as it was, the same packages at another
+        // version (an advisory that is the same, one that is new), spelled the way the resolver
+        // does, and a package that is no line of the file (at the same version as the first)
+        source,
+        packages: [
+          pkg('flask-cors', '4.0.0', [
+            group('GHSA-sentinel-1', '9.1'),
+            group('GHSA-sentinel-2', '7.5'),
+          ]),
+          pkg('flask-cors', '6.0.1', [
+            group('GHSA-sentinel-3', '5.0'),
+            group('GHSA-sentinel-2', '7.5'),
+          ]),
+          pkg('requests', '2.32.0', [group('GHSA-sentinel-5', '6.1')]),
+          pkg('sentinel-dependency', '4.0.0', [
+            group('GHSA-sentinel-1', '8.8'),
+          ]),
+        ],
+      },
+    ],
+  };
+  const s = summarizeOsvReport(report, { manifests: [manifest] });
+  assert.equal(s.sources, 2);
+  assert.equal(s.vulnerablePackages, 5, 'distinct package and version');
+  assert.deepEqual(s.runtime, {
+    critical: 2,
+    high: 4,
+    medium: 3,
+    low: 0,
+    unknown: 0,
+  });
+  assert.deepEqual(s.manifests[0].shape, {
+    declaredPackages: 2,
+    entries: [
+      { packages: 3, vulnerable: 2, groups: 3 },
+      { packages: 4, vulnerable: 4, groups: 6 },
+    ],
+    // 9 groups listed; the same package at the same version listed twice is 2 of them, and the
+    // same advisory on another package or at another version is a group of its own
+    distinctGroups: 7,
+    // `requests` is one family in both spellings and at both versions
+    declaredVulnerable: 2,
+    dependencyVulnerable: 1,
+  });
+  const lines = renderOsvLines(s);
+  assert.deepEqual(lines, [
+    'osv_python: sources=2 vulnerable_packages=5 critical=2 high=4 medium=3 low=0 unknown=0',
+    'osv_python_development: critical=0 high=0 medium=0 low=0 unknown=0',
+    'osv_python_manifest: mt5-service-legacy scope=runtime sources=2 vulnerable_packages=5 critical=2 high=4 medium=3 low=0 unknown=0',
+    'osv_python_manifest_shape: mt5-service-legacy scope=runtime declared_packages=2 entries=2 packages_per_entry=3,4 vulnerable_per_entry=2,4 groups_per_entry=3,6 groups=9 distinct_groups=7 vulnerable_declared=2 vulnerable_dependencies=1',
+  ]);
+  for (const word of [
+    'flask-cors',
+    'equests',
+    'sentinel-dependency',
+    'tidy-library',
+    'GHSA',
+    '4.0.0',
+  ]) {
+    assert.equal(lines.join('\n').includes(word), false, `leaked: ${word}`);
+  }
+  for (const line of lines)
+    assert.deepEqual(findPrivacyViolations(line), [], line);
+  // an entry of the report with nothing vulnerable in it is still an entry (the sources count it)
+  const withClean = summarizeOsvReport(
+    {
+      results: [
+        ...report.results,
+        { source, packages: [pkg('tidy-library', '1.0.0', [])] },
+      ],
+    },
+    { manifests: [manifest] }
+  );
+  assert.equal(withClean.sources, 3);
+  assert.equal(withClean.manifests[0].sources, 3);
+  assert.deepEqual(withClean.manifests[0].shape.entries[2], {
+    packages: 1,
+    vulnerable: 0,
+    groups: 0,
+  });
+  assert.equal(withClean.manifests[0].shape.entries.length, 3);
+  assert.deepEqual(withClean.runtime, s.runtime, 'a clean entry adds no count');
+  // the declared names must be a list: anything else is "unknown", never a guess
+  for (const names of [undefined, null, 'flask-cors', {}]) {
+    const unknown = summarizeOsvReport(report, {
+      manifests: [{ ...manifest, names }],
+    });
+    assert.equal(unknown.manifests[0].shape.declaredPackages, null);
+    assert.equal(unknown.manifests[0].shape.declaredVulnerable, null);
+    assert.equal(unknown.manifests[0].shape.dependencyVulnerable, null);
+  }
+  // a source that is not a manifest has no shape line, as it has no manifest line
+  const outside = summarizeOsvReport(report, {
+    manifests: [{ ...manifest, path: 'elsewhere/requirements.txt' }],
+  });
+  assert.equal(outside.manifests[0].shape.entries.length, 0);
+  assert.equal(outside.other.sources, 2);
 });
 
 // --- Semgrep -------------------------------------------------------------------------------------------
@@ -869,6 +1009,7 @@ test('the command prints OSV, Semgrep and Gitleaks counts, and a missing report 
             scope: 'runtime',
             requirements: 10,
             unpinned: 2,
+            names: ['sentinel-package', 'another-package'],
           },
           {
             assetId: 'mt5-service-legacy',
@@ -909,6 +1050,15 @@ test('the command prints OSV, Semgrep and Gitleaks counts, and a missing report 
       assert.match(
         osv.stdout,
         /^osv_python_manifest: mt5-service-legacy scope=development sources=1 /m
+      );
+      // and how each one's counts are made up: the declared names come from the targets file
+      assert.match(
+        osv.stdout,
+        /^osv_python_manifest_shape: knowledge-service scope=runtime declared_packages=2 entries=1 .* vulnerable_declared=1 vulnerable_dependencies=0$/m
+      );
+      assert.match(
+        osv.stdout,
+        /^osv_python_manifest_shape: mt5-service-legacy scope=development declared_packages=unknown /m
       );
       assert.doesNotMatch(osv.stdout, /osv_python_other_sources/);
       assert.match(

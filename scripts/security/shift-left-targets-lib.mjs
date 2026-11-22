@@ -73,24 +73,52 @@ export function parseComposeImages(text) {
 }
 
 /**
- * Counts the requirement lines of a pip requirements file and how many are not pinned to one version
- * (`==` or `===`). Options (`-r`, `--hash`, ...), comments and blank lines are not requirements.
+ * The requirement lines of a pip requirements file. A trailing comment and a line continuation (the
+ * `--hash` lines that follow) are not part of a line; options (`-r`, `--hash`, ...), comments and
+ * blank lines are not requirements.
  */
-export function countRequirementPins(text) {
-  let requirements = 0;
-  let unpinned = 0;
+function requirementLines(text) {
+  const lines = [];
   for (const raw of String(text ?? '').split(/\r?\n/)) {
-    // a trailing comment and a line continuation (the `--hash` lines that follow) are not part of it
     const line = raw
       .replace(/\s+#.*$/, '')
       .replace(/\s*\\\s*$/, '')
       .trim();
     if (line === '' || line.startsWith('#') || line.startsWith('-')) continue;
-    requirements += 1;
-    // name[extras]==version, with an optional environment marker after `;`; a wildcard is a range
-    if (!PINNED_REQUIREMENT_RE.test(line)) unpinned += 1;
+    lines.push(line);
   }
-  return { requirements, unpinned };
+  return lines;
+}
+
+/**
+ * Counts the requirement lines of a pip requirements file and how many are not pinned to one version
+ * (`==` or `===`).
+ */
+export function countRequirementPins(text) {
+  const lines = requirementLines(text);
+  // name[extras]==version, with an optional environment marker after `;`; a wildcard is a range
+  const ranges = lines.filter((line) => !PINNED_REQUIREMENT_RE.test(line));
+  return { requirements: lines.length, unpinned: ranges.length };
+}
+
+/** A package name the way PyPI compares it: lower case, a run of `.`, `_` and `-` as one `-`. */
+export function normalizePackageName(name) {
+  return String(name ?? '')
+    .toLowerCase()
+    .replace(/[-_.]+/g, '-');
+}
+
+/**
+ * The package names a pip requirements file declares itself (a package that only comes in as a
+ * dependency of another is not among them), normalised, sorted and without duplicates.
+ */
+export function requirementNames(text) {
+  const names = new Set();
+  for (const line of requirementLines(text)) {
+    const m = /^[A-Za-z0-9][A-Za-z0-9._-]*/.exec(line);
+    if (m) names.add(normalizePackageName(m[0]));
+  }
+  return [...names].sort();
 }
 
 const PINNED_REQUIREMENT_RE =
@@ -149,7 +177,11 @@ export function collectShiftLeftTargets({ inventory, readText = () => null }) {
         if (!addPath(pip, entry)) continue;
         const text = readText(eco.manifestPath);
         if (text === null) issues.add('pip_manifest_unreadable');
-        else Object.assign(entry, countRequirementPins(text));
+        else {
+          Object.assign(entry, countRequirementPins(text), {
+            names: requirementNames(text),
+          });
+        }
       }
     }
   }

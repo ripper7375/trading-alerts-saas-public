@@ -17,9 +17,11 @@ import {
   isImageRef,
   isRepoPath,
   loadShiftLeftTargets,
+  normalizePackageName,
   parseComposeImages,
   parseDockerfileImages,
   renderTargetsLine,
+  requirementNames,
 } from './shift-left-targets-lib.mjs';
 import { loadInventory } from './security-pipeline-lib.mjs';
 
@@ -108,6 +110,41 @@ test('countRequirementPins: only name==version is pinned', () => {
     requirements: 0,
     unpinned: 0,
   });
+});
+
+test('requirementNames lists the packages a file declares, the way PyPI compares them', () => {
+  const text = [
+    '# a comment',
+    '',
+    '-r other.txt',
+    '--index-url https://example.invalid/simple',
+    'Flask_CORS==4.0.0',
+    'extras[a,b]==2.0 ; python_version >= "3.8"',
+    'trailing>=3.0  # why',
+    'hashed==4.0 \\',
+    '    --hash=sha256:' + 'b'.repeat(64),
+    'Zope.Interface~=6.0',
+    'flask-cors>=4',
+    'bare',
+    'upper<3,>=2',
+  ].join('\n');
+  assert.deepEqual(requirementNames(text), [
+    'bare',
+    'extras',
+    'flask-cors',
+    'hashed',
+    'trailing',
+    'upper',
+    'zope-interface',
+  ]);
+  assert.deepEqual(requirementNames(''), []);
+  assert.deepEqual(requirementNames(null), []);
+  // a file that only holds options and comments declares nothing
+  assert.deepEqual(requirementNames('# x\n-r a.txt\n--hash=sha256:00\n'), []);
+  assert.equal(normalizePackageName('Flask_CORS'), 'flask-cors');
+  assert.equal(normalizePackageName('Zope.Interface'), 'zope-interface');
+  assert.equal(normalizePackageName('a--b__c..d'), 'a-b-c-d');
+  assert.equal(normalizePackageName(null), '');
 });
 
 test('an image reference and a repository path must be plain words before a command sees them', () => {
@@ -254,6 +291,19 @@ test('the collector lists Dockerfiles, images, Compose and nixpacks files, and P
     renderTargetsLine(t),
     'targets: dockerfiles=1 images=4 not_scannable=2 pip_manifests=2 pip_development=1 unpinned_requirement_lines=3 issues=0'
   );
+  // each manifest carries the package names it declares, for the OSV counts to tell them from dependencies
+  assert.deepEqual(
+    t.pip.map((p) => p.names),
+    [
+      ['a', 'b'],
+      ['x', 'y'],
+    ]
+  );
+  // a manifest the repository lacks has no names at all (never an empty list that reads as "declares nothing")
+  const { 'svc/requirements.txt': _lacking, ...without } = FILES;
+  const missing = collect({}, without);
+  assert.equal('names' in missing.pip[0], false);
+  assert.deepEqual([...missing.issues], ['pip_manifest_unreadable']);
 });
 
 test('an archived asset is not scanned, a paused one is (its files are the restore gate)', () => {

@@ -83,6 +83,7 @@ function run(options) {
           assetId: p.assetId,
           scope: p.scope,
           path: p.path,
+          names: p.names,
         })),
       });
       const gate = osvGate({ summary, blocking: options.blocking });

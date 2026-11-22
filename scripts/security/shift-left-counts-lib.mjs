@@ -11,6 +11,7 @@
 // "no findings" must mean the scan ran.
 
 import { findPrivacyViolations } from './line-notifier-lib.mjs';
+import { normalizePackageName } from './shift-left-targets-lib.mjs';
 
 export const SEVERITIES = Object.freeze([
   'critical',
@@ -195,10 +196,18 @@ function osvSeverity(group, vulnerabilities) {
  * packages. `devPaths` are repository paths of the development-only manifests (a report path may
  * be absolute: the end of the path decides).
  *
- * With `manifests` (`{ assetId, scope, path }`, the manifests the inventory lists) each source is
- * also attributed to its manifest, so the totals can be explained one asset at a time. A source
- * that is none of them is counted on its own (`other`) and kept out of the totals: it was not
- * asked for, and must not make the Python numbers look like something they are not.
+ * With `manifests` (`{ assetId, scope, path, names }`, the manifests the inventory lists and the
+ * package names each declares) each source is also attributed to its manifest, so the totals can
+ * be explained one asset at a time. A source that is none of them is counted on its own (`other`)
+ * and kept out of the totals: it was not asked for, and must not make the Python numbers look like
+ * something they are not.
+ *
+ * OSV-Scanner resolves a requirements file into the packages `pip` would install, transitive ones
+ * included, so each manifest also gets a `shape` that says how its counts are made up, in numbers
+ * only: its entries in the report (each with the packages listed, the vulnerable ones and the
+ * advisory groups), the groups listed against the distinct ones (a package reported twice lists the
+ * same groups twice), and how many vulnerable package names the manifest declares itself against
+ * how many only come in as a dependency of those.
  */
 export function summarizeOsvReport(
   report,
@@ -211,17 +220,24 @@ export function summarizeOsvReport(
   const runtime = zeroCounts();
   const development = zeroCounts();
   const vulnerable = new Set();
-  const bucket = () => ({
+  const bucket = (names = null) => ({
     sources: 0,
     vulnerablePackages: 0,
     counts: zeroCounts(),
     seen: new Set(),
+    entries: [],
+    groupKeys: new Set(),
+    declared: Array.isArray(names)
+      ? new Set(names.map(normalizePackageName))
+      : null,
+    declaredVulnerable: new Set(),
+    dependencyVulnerable: new Set(),
   });
   const listed = manifests.map((m) => ({
     assetId: m.assetId,
     scope: m.scope,
     path: normalizePath(m.path),
-    ...bucket(),
+    ...bucket(m.names),
   }));
   const other = bucket();
   let sources = 0;
@@ -236,14 +252,24 @@ export function summarizeOsvReport(
     // without a manifest list every source is in the totals, as before
     const entry = match ?? (listed.length > 0 ? other : null);
     if (entry) entry.sources += 1;
+    const shape = { packages: 0, vulnerable: 0, groups: 0 };
     for (const pkg of asArray(result.packages)) {
+      shape.packages += 1;
       const vulnerabilities = asArray(pkg?.vulnerabilities);
       const groups = asArray(pkg?.groups);
       if (vulnerabilities.length === 0 && groups.length === 0) continue;
+      shape.vulnerable += 1;
       const name = `${pkg?.package?.name ?? ''}|${pkg?.package?.version ?? ''}`;
       if (entry && !entry.seen.has(name)) {
         entry.seen.add(name);
         entry.vulnerablePackages += 1;
+      }
+      if (entry?.declared) {
+        const family = normalizePackageName(pkg?.package?.name);
+        (entry.declared.has(family)
+          ? entry.declaredVulnerable
+          : entry.dependencyVulnerable
+        ).add(family);
       }
       if (entry !== other) vulnerable.add(`${path}|${name}`);
       const list =
@@ -252,10 +278,17 @@ export function summarizeOsvReport(
           : vulnerabilities.map((v) => ({ ids: [v?.id], max_severity: null }));
       for (const group of list) {
         const severity = osvSeverity(group, vulnerabilities);
-        if (entry) bump(entry.counts, severity);
+        shape.groups += 1;
+        if (entry) {
+          bump(entry.counts, severity);
+          entry.groupKeys.add(
+            `${name}|${asArray(group?.ids).map(String).sort().join(',')}`
+          );
+        }
         if (entry !== other) bump(isDev ? development : runtime, severity);
       }
     }
+    if (entry) entry.entries.push(shape);
   }
   const view = ({
     assetId,
@@ -263,12 +296,24 @@ export function summarizeOsvReport(
     sources: n,
     vulnerablePackages,
     counts,
+    entries,
+    groupKeys,
+    declared,
+    declaredVulnerable,
+    dependencyVulnerable,
   }) => ({
     assetId,
     scope,
     sources: n,
     vulnerablePackages,
     counts,
+    shape: {
+      declaredPackages: declared ? declared.size : null,
+      entries,
+      distinctGroups: groupKeys.size,
+      declaredVulnerable: declared ? declaredVulnerable.size : null,
+      dependencyVulnerable: declared ? dependencyVulnerable.size : null,
+    },
   });
   return {
     valid: true,
@@ -291,10 +336,18 @@ export function renderOsvLines(summary, { pinning = null } = {}) {
     `osv_python: sources=${summary.sources} vulnerable_packages=${summary.vulnerablePackages} ${countsText(summary.runtime)}`,
     `osv_python_development: ${countsText(summary.development)}`,
   ];
-  // one line per manifest of the inventory, by asset id (never a path): where the totals come from
+  // two lines per manifest of the inventory, by asset id (never a path): where the totals come from,
+  // and how those counts are made up
+  const perEntry = (entries, key) =>
+    entries.length > 0 ? entries.map((e) => e[key]).join(',') : '-';
+  const total = (counts) => SEVERITIES.reduce((n, key) => n + counts[key], 0);
   for (const m of summary.manifests ?? []) {
     lines.push(
       `osv_python_manifest: ${m.assetId} scope=${m.scope} sources=${m.sources} vulnerable_packages=${m.vulnerablePackages} ${countsText(m.counts)}`
+    );
+    const s = m.shape;
+    lines.push(
+      `osv_python_manifest_shape: ${m.assetId} scope=${m.scope} declared_packages=${s.declaredPackages ?? 'unknown'} entries=${s.entries.length} packages_per_entry=${perEntry(s.entries, 'packages')} vulnerable_per_entry=${perEntry(s.entries, 'vulnerable')} groups_per_entry=${perEntry(s.entries, 'groups')} groups=${total(m.counts)} distinct_groups=${s.distinctGroups} vulnerable_declared=${s.declaredVulnerable ?? 'unknown'} vulnerable_dependencies=${s.dependencyVulnerable ?? 'unknown'}`
     );
   }
   if ((summary.other?.sources ?? 0) > 0) {
