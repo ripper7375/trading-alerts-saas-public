@@ -1,0 +1,127 @@
+name: Python Dependencies (OSV-Scanner)
+
+# Purpose: shift-left depth for the Python manifests (Phase 5 of the security monitoring
+# architecture, v3.0, section 9). OSV-Scanner reads every pip requirements file listed in
+# security/security-inventory.yaml (scripts/security/shift-left-targets.mjs reads that list:
+# mt5-service, knowledge-service, mcd_common, Stack C and the Railway gateway) and checks it
+# against the OSV database.
+#
+# A requirements file with a range (`>=`) is read on a best-effort basis by the scanner: the
+# version it reports may not be the one installed. The counts line therefore also says how many
+# requirement lines are not pinned to one version, which is the number to bring down.
+#
+# The repository is public, so its Actions log is public. This workflow therefore:
+#   - prints COUNTS ONLY (scripts/security/shift-left-counts.mjs): no advisory id, no package name.
+#     OSV-Scanner writes JSON to a file under RUNNER_TEMP and nothing uploads it; its own output
+#     goes to files too.
+#   - uses no third-party action. OSV-Scanner is the vendor's release binary, checked against the
+#     SHA-256 pinned below (the release's checksum file and the digest GitHub computed for the
+#     asset agree on it). Only actions/checkout and actions/setup-node run, pinned by full SHA.
+#   - is INFORMATIVE at first (exit 0). OSV_BLOCKING turns on a failure for a critical or high
+#     finding in a runtime manifest (a development-only manifest never fails the run) or for a
+#     scan that could not run.
+#
+# To upgrade OSV-Scanner: take a release at least two weeks old, copy the SHA-256 of
+# osv-scanner_linux_amd64 from osv-scanner_SHA256SUMS AND from the asset digest on the release
+# page, and update both values together (a test checks their shape).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/requirements*.txt'
+      - '**/python-requirements.txt'
+      - 'security/security-inventory.yaml'
+      - 'scripts/security/shift-left-*'
+      - '.github/workflows/security-python-osv.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/requirements*.txt'
+      - '**/python-requirements.txt'
+      - 'security/security-inventory.yaml'
+      - 'scripts/security/shift-left-*'
+      - '.github/workflows/security-python-osv.yml'
+  schedule:
+    # Weekly (Tuesday): a new advisory appears without any change to the repository.
+    - cron: '41 6 * * 2'
+  workflow_dispatch:
+
+# Least privilege: the job needs to read the repository and nothing else.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  OSV_SCANNER_VERSION: '2.7.0'
+  OSV_SCANNER_SHA256: '160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b'
+  # Informative until the Python pins are decided. Set to 'true' to fail on a critical or high
+  # finding in a runtime manifest, or on a scan that could not run.
+  OSV_BLOCKING: 'false'
+
+jobs:
+  osv-python:
+    name: OSV-Scanner on the Python manifests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+
+      - name: Unit tests of the shift-left helpers
+        run: node --test scripts/security/shift-left-targets.test.mjs scripts/security/shift-left-counts.test.mjs scripts/security/shift-left-workflows.test.mjs
+
+      - name: List the Python manifests from the inventory
+        run: node scripts/security/shift-left-targets.mjs --out "$RUNNER_TEMP/targets"
+
+      - name: Install OSV-Scanner (SHA-256 verified)
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/osv-bin"
+          cd "$RUNNER_TEMP/osv-bin"
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 5 \
+            --proto '=https' --tlsv1.2 \
+            --output osv-scanner \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check --strict --quiet -
+          chmod +x osv-scanner
+          echo "$RUNNER_TEMP/osv-bin" >> "$GITHUB_PATH"
+
+      # Each manifest is read as a requirements file whatever its name (requirements-dev.txt and
+      # python-requirements.txt are not the name the scanner looks for). Its own output goes to
+      # files: stdout is empty with --output-file, and stderr is kept off the public log.
+      - name: Scan the manifests
+        run: |
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/osv-out"
+          args=()
+          while IFS= read -r manifest; do
+            [ -z "$manifest" ] && continue
+            args+=(--lockfile "requirements.txt:$manifest")
+          done < "$RUNNER_TEMP/targets/pip-manifests.txt"
+          if [ "${#args[@]}" -eq 0 ]; then
+            echo "::warning::the inventory lists no Python manifest"
+            exit 0
+          fi
+          osv-scanner scan source --format json \
+            --output-file "$RUNNER_TEMP/osv-out/osv.json" \
+            "${args[@]}" > /dev/null 2> "$RUNNER_TEMP/osv-out/osv.err"
+          echo "osv-scanner exit status: $? (0 clean, 1 findings, other: did not run)"
+
+      - name: Counts only
+        run: |
+          node scripts/security/shift-left-counts.mjs osv \
+            --report "$RUNNER_TEMP/osv-out/osv.json" \
+            --targets "$RUNNER_TEMP/targets/targets.json" \
+            --blocking "$OSV_BLOCKING"

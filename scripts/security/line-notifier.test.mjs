@@ -436,6 +436,55 @@ test('computeTransitions: a live posture breach has its own reason and deduplica
   );
 });
 
+// a finding of GitHub secret scanning: no secret, no type, no place, a fixed check id per alert
+const secretFinding = (n, over = {}) => ({
+  key: hex(n),
+  priority: 'P0',
+  assetId: 'github-repo',
+  kind: 'secret-exposure',
+  source: 'secret-scanning',
+  malicious: false,
+  secretExposureConfirmed: true,
+  packageName: `github-secret-alert-${n}`,
+  primaryId: `POSTURE-GITHUB-SECRET-ALERT-${n}`,
+  advisoryIds: [],
+  ...over,
+});
+
+test('computeTransitions: an open secret-scanning alert has its own reason, one per alert, and deduplicates', () => {
+  const findings = [secretFinding(1), secretFinding(2)];
+  assert.deepEqual(reasons(emptyAlertState(), findings), [
+    'secret_breach',
+    'secret_breach',
+  ]);
+  assert.deepEqual(
+    computeTransitions(emptyAlertState(), findings).alerts.map(
+      (a) => a.assetId
+    ),
+    ['github-repo', 'github-repo']
+  );
+  // already known: no alert again
+  assert.deepEqual(reasons(stateOf(snapshotFindings(findings)), findings), []);
+  // a second alert opened later alerts once, the first stays quiet
+  assert.deepEqual(
+    reasons(stateOf(snapshotFindings([secretFinding(1)])), findings),
+    ['secret_breach']
+  );
+  // an alert that is closed is a resolved P0
+  assert.equal(
+    computeTransitions(stateOf(snapshotFindings(findings)), [secretFinding(1)])
+      .resolved,
+    1
+  );
+  // never the generic reason, and a fixed asset id like every other alert
+  assert.deepEqual(
+    computeTransitions(emptyAlertState(), [
+      secretFinding(9, { assetId: `${ADVISORY} injected` }),
+    ]).alerts,
+    [{ reason: 'secret_breach', assetId: 'unknown-asset' }]
+  );
+});
+
 // --- heartbeat --------------------------------------------------------------------------------------
 
 test('heartbeatDecision: once per window, deduplicated within a day, flagged when missed', () => {
@@ -524,14 +573,51 @@ test('the alert message carries reasons, counts, asset ids and the report pointe
     findPrivacyViolations(text, { forbidden: [PACKAGE, ADVISORY, CVE] }),
     []
   );
-  assert.equal(ALERT_REASONS.length, 8);
+  assert.equal(ALERT_REASONS.length, 9);
+  // a secret-scanning breach is a P0 of rule R-3, next to the malicious-package record
+  assert.deepEqual(ALERT_REASONS.slice(0, 2), [
+    'malicious_package',
+    'secret_breach',
+  ]);
   // live posture and behaviour breaches sit between a floor breach and the generic P1
-  assert.deepEqual(ALERT_REASONS.slice(3, 7), [
+  assert.deepEqual(ALERT_REASONS.slice(4, 8), [
     'runtime_floor_breach',
     'posture_breach',
     'behaviour_breach',
     'new_p1',
   ]);
+});
+
+test('the secret-scanning alert says how many and on which asset, and nothing else', () => {
+  const text = buildAlertMessage({
+    alerts: [
+      { reason: 'secret_breach', assetId: 'github-repo' },
+      { reason: 'secret_breach', assetId: 'github-repo' },
+      { reason: 'secret_breach', assetId: 'github-repo' },
+    ],
+    posture: posture({
+      summary: { tiers: { P0: 3, P1: 0, P2: 0, P3: 0, WITHDRAWN: 0 } },
+    }),
+    now: NOW,
+  });
+  assert.equal(
+    text,
+    [
+      '🚨 [DavinTrade Security Alert] 2026-11-21 16:40 UTC',
+      'Secret scanning breach: 3 (github-repo x3)',
+      'Open now: P0=3 P1=0 P2=0 P3=0',
+      `Details: ${REPORT_HINT}`,
+    ].join('\n')
+  );
+  assert.deepEqual(findPrivacyViolations(text), []);
+  assert.equal(sanitizeLineText(text, 'alert').safe, true);
+  // a single alert reads like the format the order gives: `Secret scanning breach: N (github-repo)`
+  const one = buildAlertMessage({
+    alerts: [{ reason: 'secret_breach', assetId: 'github-repo' }],
+    posture: posture(),
+    now: NOW,
+  });
+  assert.match(one, /^Secret scanning breach: 1 \(github-repo\)$/m);
 });
 
 test('the heartbeat message is compact and healthy by default', () => {

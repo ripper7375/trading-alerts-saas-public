@@ -1107,6 +1107,18 @@ function postureProbes(over = {}) {
       calls.github.push(path);
       return github[path];
     },
+    // the open secret-scanning alerts (numbers only): none by default
+    secretScanning: async () => {
+      calls.secret = (calls.secret ?? 0) + 1;
+      return (
+        over.secretScanning ?? {
+          ok: true,
+          status: 200,
+          numbers: [],
+          more: false,
+        }
+      );
+    },
     git: {
       fetchMain: async () => {
         calls.git.push('fetch');
@@ -1229,6 +1241,97 @@ test('a failed posture check is a P1 finding, a LINE alert and a heartbeat line'
     h.stdout(),
     /line: dry run, preview written \(alerts=4 heartbeat=due\)/
   );
+});
+
+test('an open secret-scanning alert is a P0 finding, a LINE alert that counts it, and nothing about the secret leaves the sweep', async () => {
+  const h = harness({
+    files: { ...POSTURE_FILES, '/repo/.env.local': LINE_ENV },
+  });
+  const leaked = {
+    secret: 'not-a-real-secret-value-0001',
+    secret_type: 'invented_provider_token',
+    html_url: 'https://alerts.example.test/1',
+  };
+  const wp = withPosture(h, {
+    // a probe hands on the alert numbers only; one that did more would still not be repeated
+    secretScanning: {
+      ok: true,
+      status: 200,
+      numbers: [11, 5],
+      more: false,
+      ...leaked,
+    },
+  });
+  assert.equal(
+    await h.run(['--dry-run-line', '--with-posture'], POSTURE_ENV),
+    0
+  );
+  assert.equal(wp.fake.calls.secret, 1);
+  const posture = h.json('latest-security-posture.json');
+  // the three advisories of the fixture, the P0 of the malicious package, and one P0 per alert
+  assert.equal(posture.summary.tiers.P0, 3);
+  const secrets = posture.findings.filter(
+    (f) => f.source === 'secret-scanning'
+  );
+  assert.equal(secrets.length, 2);
+  for (const f of secrets) {
+    assert.equal(f.priority, 'P0');
+    assert.equal(f.rule, 'R-3');
+    assert.equal(f.kind, 'secret-exposure');
+    assert.equal(f.assetId, 'github-repo');
+    assert.equal(f.secretExposureConfirmed, true);
+    assert.equal(f.escalation, true);
+  }
+  assert.equal(posture.live_posture.summary.secret_scanning.open, 2);
+
+  const preview = h.file('last-line-message-preview.txt');
+  assert.match(preview, /^Secret scanning breach: 2 \(github-repo x2\)$/m);
+  assert.match(preview, /github=fail/);
+  const out = h.stdout();
+  assert.match(out, /posture_secret_alerts: status=fail open=2/);
+  assert.match(out, /findings: P0=3 /);
+  // not the report, the preview, the stdout or any file the run wrote
+  const everything = JSON.stringify([out, preview, ...h.fs.files.values()]);
+  for (const text of Object.values(leaked)) {
+    assert.equal(everything.includes(text), false, text);
+  }
+  for (const line of h.logs) {
+    assert.equal(findPrivacyViolations(line).length, 0, line);
+  }
+});
+
+test('an open secret-scanning alert alerts once, and a newly opened one alerts again', async () => {
+  const h = harness({
+    files: { ...POSTURE_FILES, '/repo/.env.local': LINE_ENV },
+  });
+  const over = {
+    secretScanning: { ok: true, status: 200, numbers: [5], more: false },
+  };
+  withPosture(h, over);
+  assert.equal(
+    await h.run(['--notify-line', '--with-posture'], POSTURE_ENV),
+    0
+  );
+  assert.equal(h.lineCalls().length, 1);
+  const first = JSON.parse(h.lineCalls()[0].init.body).messages[0].text;
+  assert.match(first, /Secret scanning breach: 1 \(github-repo\)/);
+  // an hour later the same alert is still open: nothing new to say
+  h.clock.t += 3600 * 1000;
+  await h.run(['--notify-line', '--with-posture'], POSTURE_ENV);
+  assert.equal(h.lineCalls().length, 1, 'the same alert does not alert again');
+  // a second alert is opened: one more message, counting only the new one
+  over.secretScanning = {
+    ok: true,
+    status: 200,
+    numbers: [5, 8],
+    more: false,
+  };
+  h.clock.t += 3600 * 1000;
+  await h.run(['--notify-line', '--with-posture'], POSTURE_ENV);
+  assert.equal(h.lineCalls().length, 2);
+  const second = JSON.parse(h.lineCalls()[1].init.body).messages[0].text;
+  assert.match(second, /Secret scanning breach: 1 \(github-repo\)/);
+  assert.match(second, /Open now: P0=3 /);
 });
 
 test('an unavailable posture probe degrades the whole sweep and the heartbeat says so', async () => {

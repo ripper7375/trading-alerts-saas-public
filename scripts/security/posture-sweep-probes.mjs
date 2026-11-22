@@ -1,14 +1,16 @@
 // The real probes of the live posture sweep (posture-sweep-lib.mjs): an HTTPS request, a TLS
-// handshake, DNS lookups, the GitHub REST API and Git. Each factory takes the node primitive it
-// wraps (`fetch`, `tls.connect`, a resolver, `spawnSync`) so the tests can fake it; nothing here
-// runs at import time.
+// handshake, DNS lookups, the GitHub REST API (settings, and the open secret-scanning alerts) and
+// Git. Each factory takes the node primitive it wraps (`fetch`, `tls.connect`, a resolver,
+// `spawnSync`) so the tests can fake it; nothing here runs at import time.
 //
 // What the wrappers refuse to do:
 //   - turn certificate validation off (a failed validation is an answer: invalid certificate);
 //   - send the GitHub token anywhere but the API origin, or follow a redirect with it;
 //   - start a process through a shell, or pass an unchecked word to Git;
 //   - return an error message: failures come back as fixed codes, because a message can quote
-//     a host, an address or a token.
+//     a host, an address or a token;
+//   - hand on what the secret-scanning API returns beyond the alert numbers: its answer holds the
+//     leaked secret itself.
 
 import { spawnSync } from 'node:child_process';
 import { Resolver } from 'node:dns/promises';
@@ -183,38 +185,64 @@ export function createDnsProbe({
 
 // --- github -------------------------------------------------------------------------------
 
+const QUERY_KEY_RE = /^[a-z_]{1,30}$/;
+const QUERY_VALUE_RE = /^[A-Za-z0-9_.-]{1,30}$/;
+
 /**
- * One GET of the GitHub REST API for the repository (`path` is what follows
- * `/repos/{owner}/{repo}`). The token goes to the API origin only and a redirect is not
- * followed. The body of an error answer is not kept.
+ * One GET of the GitHub REST API for the repository: the shared core of the GitHub probes.
+ * `path` is what follows `/repos/{owner}/{repo}`; `query` is a flat object of short plain words.
+ * The token goes to the API origin only and a redirect is not followed. The body of an error
+ * answer is not kept. `project` reduces a successful body where it is parsed, so a probe that
+ * needs one field of a sensitive answer never hands the rest on.
  */
-export function createGithubProbe({
-  fetchImpl = globalThis.fetch,
+async function githubGet({
+  fetchImpl,
   token,
   repo,
-  apiBase = GITHUB_API,
-  timeoutMs = 30000,
+  apiBase,
+  timeoutMs,
+  path,
+  query = null,
+  project = (body) => body,
 }) {
   const failure = (error) => ({ ok: false, status: 0, body: null, error });
-  return async ({ path } = {}) => {
-    if (!token) return failure('no_token');
+  if (!token) return failure('no_token');
+  if (
+    typeof repo !== 'string' ||
+    !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)
+  ) {
+    return failure('bad_repo');
+  }
+  if (
+    typeof path !== 'string' ||
+    (path !== '' &&
+      (!/^\/[A-Za-z0-9_./-]*$/.test(path) ||
+        path.includes('..') ||
+        path.includes('//')))
+  ) {
+    return failure('bad_path');
+  }
+  let search = '';
+  if (query !== null) {
+    const pairs =
+      query && typeof query === 'object' && !Array.isArray(query)
+        ? Object.entries(query)
+        : [];
     if (
-      typeof repo !== 'string' ||
-      !/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)
+      pairs.length === 0 ||
+      pairs.some(
+        ([key, value]) =>
+          !QUERY_KEY_RE.test(key) || !QUERY_VALUE_RE.test(String(value))
+      )
     ) {
-      return failure('bad_repo');
+      return failure('bad_query');
     }
-    if (
-      typeof path !== 'string' ||
-      (path !== '' &&
-        (!/^\/[A-Za-z0-9_./-]*$/.test(path) ||
-          path.includes('..') ||
-          path.includes('//')))
-    ) {
-      return failure('bad_path');
-    }
-    try {
-      const response = await fetchImpl(`${apiBase}/repos/${repo}${path}`, {
+    search = `?${pairs.map(([key, value]) => `${key}=${value}`).join('&')}`;
+  }
+  try {
+    const response = await fetchImpl(
+      `${apiBase}/repos/${repo}${path}${search}`,
+      {
         method: 'GET',
         redirect: 'manual',
         headers: {
@@ -224,29 +252,131 @@ export function createGithubProbe({
           'User-Agent': 'davintrade-security-pipeline',
         },
         signal: AbortSignal.timeout(timeoutMs),
-      });
-      let body = null;
-      if (response.ok && response.status !== 204) {
-        try {
-          body = await response.json();
-        } catch {
-          body = null;
-        }
       }
-      return {
-        ok: response.ok,
-        status: response.status,
-        body,
-        rateLimited:
-          response.status === 403 &&
-          response.headers.get('x-ratelimit-remaining') === '0',
-        error: response.ok ? null : `http_${response.status}`,
-      };
-    } catch (error) {
-      return failure(
-        error?.name === 'TimeoutError' ? 'timeout' : 'network_error'
-      );
+    );
+    let body = null;
+    if (response.ok && response.status !== 204) {
+      try {
+        body = project(await response.json());
+      } catch {
+        body = null;
+      }
     }
+    return {
+      ok: response.ok,
+      status: response.status,
+      body,
+      rateLimited:
+        response.status === 403 &&
+        response.headers.get('x-ratelimit-remaining') === '0',
+      error: response.ok ? null : `http_${response.status}`,
+      link: response.headers.get('link') ?? null,
+    };
+  } catch (error) {
+    return failure(
+      error?.name === 'TimeoutError' ? 'timeout' : 'network_error'
+    );
+  }
+}
+
+/**
+ * One GET of the GitHub REST API for the repository (`path` is what follows
+ * `/repos/{owner}/{repo}`, `query` an optional flat object of short plain words). The token
+ * goes to the API origin only and a redirect is not followed. The body of an error answer is
+ * not kept.
+ */
+export function createGithubProbe({
+  fetchImpl = globalThis.fetch,
+  token,
+  repo,
+  apiBase = GITHUB_API,
+  timeoutMs = 30000,
+}) {
+  return async ({ path, query = null } = {}) => {
+    const answer = await githubGet({
+      fetchImpl,
+      token,
+      repo,
+      apiBase,
+      timeoutMs,
+      path,
+      query,
+    });
+    // the Link header is for the secret-scanning probe only: this answer keeps its old shape
+    delete answer.link;
+    return answer;
+  };
+}
+
+/** How many open secret-scanning alerts one sweep reads (a single page of the API). */
+export const SECRET_ALERTS_PER_PAGE = 10;
+
+// The alert numbers of one page, and nothing else: the answer of the secret-scanning API carries
+// the leaked secret itself, its type, its locations and links, none of which may outlive the line
+// that parses it. A body that is not a list is not an answer (null).
+function alertNumbers(body) {
+  if (!Array.isArray(body)) return null;
+  const numbers = new Set();
+  for (const alert of body) {
+    const number = alert?.number;
+    if (Number.isSafeInteger(number) && number > 0) numbers.add(number);
+    if (numbers.size >= SECRET_ALERTS_PER_PAGE) break;
+  }
+  return [...numbers].sort((a, b) => a - b);
+}
+
+/**
+ * The open secret-scanning alerts of the repository, read-only:
+ * `GET /repos/{owner}/{repo}/secret-scanning/alerts?state=open&per_page=10`.
+ *
+ * It answers with the alert numbers and nothing else (see `alertNumbers`): no secret, no secret
+ * type, no file path, no URL, and no error body. A token without the right to read the alerts, a
+ * repository with secret scanning off and a rate limit all come back as `ok: false` with the HTTP
+ * status and a fixed code, so the sweep can report the check as unavailable.
+ *
+ * @returns {() => Promise<{ ok: true, status: number, numbers: number[], more: boolean } | { ok: false, status: number, rateLimited: boolean, error: string }>}
+ */
+export function createSecretScanningProbe({
+  fetchImpl = globalThis.fetch,
+  token,
+  repo,
+  apiBase = GITHUB_API,
+  timeoutMs = 30000,
+} = {}) {
+  return async () => {
+    const answer = await githubGet({
+      fetchImpl,
+      token,
+      repo,
+      apiBase,
+      timeoutMs,
+      path: '/secret-scanning/alerts',
+      query: { state: 'open', per_page: String(SECRET_ALERTS_PER_PAGE) },
+      project: alertNumbers,
+    });
+    if (answer.ok !== true) {
+      return {
+        ok: false,
+        status: answer.status,
+        rateLimited: answer.rateLimited === true,
+        error: answer.error,
+      };
+    }
+    if (!Array.isArray(answer.body)) {
+      return {
+        ok: false,
+        status: answer.status,
+        rateLimited: false,
+        error: 'unexpected_response',
+      };
+    }
+    return {
+      ok: true,
+      status: answer.status,
+      numbers: answer.body,
+      // a Link header with a next page: more alerts are open than this sweep lists
+      more: /rel="next"/.test(answer.link ?? ''),
+    };
   };
 }
 
@@ -373,7 +503,7 @@ export function createCredentialFill({ spawn = spawnSync } = {}) {
   };
 }
 
-/** All five probes of one sweep. `root` is the repository Git runs in. */
+/** All six probes of one sweep. `root` is the repository Git runs in. */
 export function createPostureProbes({
   root,
   token = null,
@@ -385,6 +515,7 @@ export function createPostureProbes({
     tls: createTlsProbe(),
     dns: createDnsProbe(),
     github: createGithubProbe({ fetchImpl, token, repo }),
+    secretScanning: createSecretScanningProbe({ fetchImpl, token, repo }),
     git: createGitProbe({ cwd: root }),
   };
 }

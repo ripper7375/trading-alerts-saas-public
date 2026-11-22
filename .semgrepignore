@@ -1,0 +1,43 @@
+# Files the custom Semgrep rules (security/semgrep-rules.yml) do not read.
+#
+# Semgrep reads this file from the repository root. A .semgrepignore REPLACES Semgrep's built-in
+# default list, so the usual folders (dependencies, build output, tests) are named here.
+# scripts/security/semgrep-rules.test.mjs checks this file: every excluded path of
+# security/security-inventory.yaml must be in it, so the scans agree on what is out of scope.
+
+# dependencies and build output
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+
+# tooling and agent state (worktrees of this repository live under .claude/)
+.claude/
+.git/
+
+# the paths the security inventory excludes from every scan (excluded_paths)
+seed-code/
+archive/
+frontend-and-backend-python-stack/davintrade-prototype/
+mobile-app/
+davintrade-mobile-app/
+
+# tests, mocks and developer test scripts: raw SQL and unguarded stubs are the point of them
+__tests__/
+__mocks__/
+e2e/
+test/
+tests/
+*.test.*
+*.spec.*
+scripts/test-*
+
+# documentation and hand-off notes (the proofs in them are not deployed); /docs/ is the folder
+# at the root of the repository, not a page route called docs somewhere in the app
+/docs/
+*.md
+
+# the rule fixtures are strings in a module, and that module holds the code the rules must catch
+scripts/security/semgrep-fixtures.mjs

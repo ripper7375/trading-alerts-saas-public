@@ -5,7 +5,8 @@
 //   web      the security response headers of the public site and the apex redirect
 //   tls      the certificate of the public site: valid, and more than 21 days left
 //   dns      a paused asset must not resolve (rule R-9: an unexpected public endpoint)
-//   github   the repository security settings against the recorded Phase 0 and 1 baseline
+//   github   the repository security settings against the recorded Phase 0 and 1 baseline, and
+//            the open secret-scanning alerts (rule R-3: a leaked secret is a P0, Phase 5)
 //   runtime  what the services report in reports/runtime-state.json: the Node patch
 //            level against the floors, the deployed commit against `main`, the base image
 //
@@ -68,10 +69,11 @@ export const POSTURE_BASELINE = Object.freeze({
 });
 
 /**
- * Rules of the posture checks. R-9 and R-7 are the rules of section 7.4; PS-n are the
+ * Rules of the posture checks. R-3, R-7 and R-9 are the rules of section 7.4; PS-n are the
  * posture rules (priority and time to a fix, the same wording as the matrix).
  */
 export const POSTURE_RULES = Object.freeze({
+  'R-3': { priority: 'P0', sla: SLA['R-3'] },
   'R-7': { priority: 'P1', sla: SLA['R-7'] },
   'R-9': { priority: 'P1', sla: SLA['R-9'] },
   'PS-1': { priority: 'P1', sla: '< 72 h (restore the recorded setting)' },
@@ -89,6 +91,7 @@ export const POSTURE_KINDS = Object.freeze([
   'web-headers',
   'tls-certificate',
   'deploy-drift',
+  'secret-exposure',
 ]);
 
 export const AREAS = Object.freeze(['web', 'tls', 'dns', 'github', 'runtime']);
@@ -594,6 +597,83 @@ export function evaluateGithubSettings({
   return checks;
 }
 
+// --- github: open secret-scanning alerts (rule R-3) -------------------------------------------
+
+/** The most alerts one sweep turns into checks: the size of the single page it reads. */
+export const MAX_SECRET_ALERTS = 10;
+
+/**
+ * GitHub's own detection of a leaked secret: any open alert is a confirmed exposure, a P0 under
+ * rule R-3 (rotate or remove first, within 4 hours). One failed check per alert, so the alert
+ * state and the LINE message count them and a new alert is a new transition.
+ *
+ * `result` is the answer of the secret-scanning probe: `{ ok: true, numbers, more }`, or a
+ * failure with `status`, `rateLimited` and a fixed `error` code. Only alert numbers are read:
+ * nothing about a secret, its type, its location or its link reaches a check, a finding, a
+ * report or a message. A probe that could not read the alerts (no right to read them, secret
+ * scanning off, a rate limit, no network) is `unavailable`: no open alert is then no proof that
+ * there is none.
+ */
+export function evaluateSecretScanningAlerts({ result } = {}) {
+  const base = {
+    ...GH,
+    id: 'github-secret-alerts',
+    title: 'No secret-scanning alert is open',
+    expected: 'no open alerts',
+  };
+  if (result?.ok !== true) {
+    // the probe's own code for a body that was not a list of alerts: not an HTTP failure
+    const reason =
+      result?.skipped !== true && result?.error === 'unexpected_response'
+        ? 'unexpected_response'
+        : githubReason(result);
+    return [
+      result?.skipped === true
+        ? skipped(base, reason)
+        : unavailable(base, reason),
+    ];
+  }
+  if (!Array.isArray(result.numbers)) {
+    return [unavailable(base, 'unexpected_response')];
+  }
+  const numbers = [
+    ...new Set(result.numbers.filter((n) => Number.isSafeInteger(n) && n > 0)),
+  ].sort((a, b) => a - b);
+  // a probe that returned entries but none of them an alert number is not an answer
+  if (result.numbers.length > 0 && numbers.length === 0) {
+    return [unavailable(base, 'unexpected_response')];
+  }
+  if (numbers.length === 0) return [pass(base, '0 open')];
+  return numbers.slice(0, MAX_SECRET_ALERTS).map((number) =>
+    fail(
+      {
+        ...GH,
+        id: `github-secret-alert-${number}`,
+        title: 'A secret-scanning alert is open',
+        expected: 'no open alerts',
+      },
+      'R-3',
+      'open'
+    )
+  );
+}
+
+const SECRET_ALERT_ID_RE = /^github-secret-alert-\d+$/;
+
+/** The secret-scanning state of one sweep, as counts and a fixed word (never an alert detail). */
+function secretScanningSummary(githubChecks, more) {
+  const alerts = githubChecks.filter((c) => SECRET_ALERT_ID_RE.test(c.id));
+  if (alerts.length > 0) {
+    return { status: 'fail', open: alerts.length, more: more === true };
+  }
+  const overall = githubChecks.find((c) => c.id === 'github-secret-alerts');
+  return {
+    status: overall?.status === 'pass' ? 'ok' : (overall?.status ?? 'skipped'),
+    open: 0,
+    more: false,
+  };
+}
+
 // --- runtime state ------------------------------------------------------------------------------------
 
 /**
@@ -937,11 +1017,17 @@ const SEVERITY_BY_TIER = { P0: 'critical', P1: 'high', P2: 'moderate' };
 export function makePostureFinding(check, { inventory = null } = {}) {
   const asset = inventory?.assets.find((a) => a.id === check.assetId) ?? null;
   const rule = POSTURE_RULES[check.rule] ?? POSTURE_RULES['PS-1'];
+  // A confirmed secret exposure (rule R-3, from GitHub secret scanning) is the shape the engine
+  // and the tabletop exercise expect: its own kind and source, the `secretExposureConfirmed`
+  // flag, and the Rule 5 escalation that every secret carries (rotation is Davin's decision).
+  const secret = check.rule === 'R-3';
   return {
     ...makeFinding({
-      kind: KIND_BY_AREA[check.area] ?? 'posture-drift',
-      source: 'posture-sweep',
-      ecosystem: 'posture',
+      kind: secret
+        ? 'secret-exposure'
+        : (KIND_BY_AREA[check.area] ?? 'posture-drift'),
+      source: secret ? 'secret-scanning' : 'posture-sweep',
+      ecosystem: secret ? 'secrets' : 'posture',
       assetId: check.assetId,
       packageName: check.id,
       version: check.observed,
@@ -951,19 +1037,20 @@ export function makePostureFinding(check, { inventory = null } = {}) {
       vulnClass: 'other',
       fixKnown: true,
       scope: 'runtime',
+      ...(secret ? { secretExposureConfirmed: true } : {}),
       key: findingKey(['posture', check.id]),
       posture: { expected: check.expected, observed: check.observed },
     }),
     lifecycle: asset?.lifecycle ?? 'production',
     exposureTier: asset?.exposureTier ?? null,
-    rule5Boundary: false,
+    rule5Boundary: secret,
     vexActive: false,
     vexSource: null,
     vexExpired: [],
     priority: check.priority,
     rule: check.rule,
     sla: rule.sla,
-    escalation: false,
+    escalation: secret,
   };
 }
 
@@ -1118,6 +1205,8 @@ export async function runPostureSweep({
     return evaluateDnsGuard({ inventory, results });
   };
 
+  // the answer of the secret-scanning probe (alert numbers only): `more` says a next page exists
+  let secretRead = PROBE_ERROR;
   const githubArea = async () => {
     const paths = {
       repo: '',
@@ -1127,13 +1216,20 @@ export async function runPostureSweep({
       alerts: '/vulnerability-alerts',
       pvr: '/private-vulnerability-reporting',
     };
-    const entries = await Promise.all(
-      Object.entries(paths).map(async ([name, path]) => [
-        name,
-        (await call('github', { path })) ?? PROBE_ERROR,
-      ])
-    );
-    return evaluateGithubSettings(Object.fromEntries(entries));
+    const [entries, secrets] = await Promise.all([
+      Promise.all(
+        Object.entries(paths).map(async ([name, path]) => [
+          name,
+          (await call('github', { path })) ?? PROBE_ERROR,
+        ])
+      ),
+      call('secretScanning', {}),
+    ]);
+    secretRead = secrets ?? PROBE_ERROR;
+    return [
+      ...evaluateGithubSettings(Object.fromEntries(entries)),
+      ...evaluateSecretScanningAlerts({ result: secretRead }),
+    ];
   };
 
   const [webChecks, tlsChecks, dnsChecks, githubChecks] = await Promise.all([
@@ -1234,6 +1330,15 @@ export async function runPostureSweep({
   const tiers = { P0: 0, P1: 0, P2: 0, P3: 0 };
   for (const f of findings) if (f.priority in tiers) tiers[f.priority] += 1;
   const degraded = count('unavailable') > 0;
+  const secretScanning = secretScanningSummary(
+    githubChecks,
+    secretRead?.more === true
+  );
+  if (secretScanning.more) {
+    notes.push(
+      `secret scanning: more alerts are open than the ${MAX_SECRET_ALERTS} one sweep reads; the rest are in the repository's security tab`
+    );
+  }
 
   return {
     schema_version: '1.0',
@@ -1266,6 +1371,7 @@ export async function runPostureSweep({
           areaStatus(checks.filter((c) => c.area === area)),
         ])
       ),
+      secret_scanning: secretScanning,
     },
     checks,
     findings,
@@ -1304,6 +1410,13 @@ export function renderPostureSweepStdout(result, { heading = true } = {}) {
     `posture_areas: ${AREAS.map((area) => `${area}=${areas[area]}`).join(' ')}`,
     `posture_runtime: assets=${rt.assets.length} with_commit_sha=${rt.with_commit_sha} stale_reads=${rt.stale_reads}`
   );
+  // secret scanning: a fixed word and a count, never an alert, a type or a place
+  const secrets = result.summary.secret_scanning;
+  if (secrets) {
+    lines.push(
+      `posture_secret_alerts: status=${secrets.status} open=${secrets.open}${secrets.more ? '+' : ''}`
+    );
+  }
   return lines;
 }
 

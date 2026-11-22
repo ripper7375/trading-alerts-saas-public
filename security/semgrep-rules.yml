@@ -1,0 +1,107 @@
+# security/semgrep-rules.yml: custom Semgrep rules for DavinTrade-specific patterns that CodeQL's
+# default setup does not model (Phase 5 of the security monitoring architecture, v3.0, section 9).
+#
+# Run by .github/workflows/security-sast-custom.yml with a pinned Semgrep image, counts only. The
+# files it skips are listed in .semgrepignore. A change to this file needs the `security-override`
+# label (check-overrides.yml).
+#
+# Every rule is a `pattern-regex` rule on purpose:
+#   - it does not depend on how a Semgrep version parses TypeScript (a call with type arguments,
+#     a decorator), so it behaves the same on every engine version;
+#   - scripts/security/semgrep-rules-lib.mjs evaluates the same regexes in Node, so the rules can
+#     be run (and tested against their fixtures in scripts/security/semgrep-fixtures.mjs) on a
+#     machine that cannot run Semgrep, which includes Windows.
+# The price is precision: a regex reads text, not syntax, so a mention in a comment or a string can
+# match. Each rule is narrow enough (a path scope, a call shape) that this does not happen in the
+# repository today; the tests keep it so. Keep the regexes in the portable subset the evaluator
+# accepts: `\A` for the start of the file, no inline flags, no possessive quantifiers.
+#
+# The whole file is YAML that scripts/security/security-yaml-lite.mjs reads: single-line quoted
+# scalars, no block scalars.
+
+rules:
+  # Raw SQL whose statement is built at run time. A statement is constant when it is a string
+  # literal (a template literal counts when it has no interpolation: `$1` placeholders are fine),
+  # or an UPPER_SNAKE name, or UPPER_SNAKE.member, which the ledger store and the reaper use and
+  # lib/platform/store-guard.test.ts keeps constant. A typed parameter (`query: string`) is a
+  # declaration, not a call.
+  - id: davintrade-prisma-raw-unsafe-dynamic-sql
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: 'Raw SQL built at run time: the statement given to $queryRawUnsafe or $executeRawUnsafe is not a constant, so any value that reaches it is SQL injection. Use a constant statement with numbered placeholders and pass the values as arguments, or the tagged $queryRaw template. If a fragment must be dynamic, take it from a fixed allow-list and name the constant in UPPER_SNAKE case.'
+    metadata:
+      category: security
+      confidence: HIGH
+      cwe: 'CWE-89: Improper Neutralization of Special Elements used in an SQL Command (SQL Injection)'
+      owasp: 'A03:2021 - Injection'
+      technology: [prisma, typescript]
+      reviewed_exceptions: 'lib/admin/analytics/regional.ts: three statements that interpolate the output of jurisdictionCaseSql (a CASE expression built from fixed column names). Reviewed 2026-11-22; scripts/security/semgrep-rules.test.mjs fails if that file interpolates anything else.'
+    paths:
+      exclude:
+        - 'lib/admin/analytics/regional.ts'
+    pattern-regex: '\$(?:query|execute)RawUnsafe\s*(?:<[^()]*>)?\s*\((?!\s*(?:(?:[A-Z][A-Z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?|"(?:[^"\\\n]|\\.)*"|''(?:[^''\\\n]|\\.)*''|`(?:[^`$\\]|\\.|\$(?!\{))*`)\s*[,)]|[A-Za-z_]\w*\??\s*:\s*[A-Za-z]))'
+
+  # A payment webhook handler that reads the request payload and never calls a signature check.
+  # The signature IS the authentication of a webhook (there is no session), so a handler that
+  # reads the payload without verifying it lets anyone on the internet post a payment event.
+  # File-level: the handler file must call a verification helper somewhere. The archived stubs
+  # (RiseWorks) answer 410 and never read the payload, so they are not handlers in this sense.
+  # To accept a new provider's verifier, add its function name to the list below.
+  - id: davintrade-webhook-handler-without-signature-check
+    languages: [typescript]
+    severity: ERROR
+    message: 'A payment webhook route reads the request payload but never calls a signature verification helper (constructEvent, verifyWebhookSignature, verifySignature, timingSafeEqual or createHmac). Verify the signature over the raw body before any state change. If this provider verifies through another helper, add that helper to this rule.'
+    metadata:
+      category: security
+      confidence: HIGH
+      cwe: 'CWE-345: Insufficient Verification of Data Authenticity'
+      owasp: 'A07:2021 - Identification and Authentication Failures'
+      technology: [nestjs, nextjs, stripe]
+    paths:
+      include:
+        - 'money-service/src/**/*webhook*.controller.ts'
+        - 'app/api/webhooks/**/route.ts'
+    pattern-regex: '\A(?=[\s\S]*?(?:request\.(?:text|json|arrayBuffer|formData|body)\b|\.rawBody\b|\breq\.body\b|@Body\(|@Req\())(?![\s\S]*?(?:\b(?:constructEvent|constructWebhookEvent|verifyWebhookSignature|verifySignature|verifyHmac|validateSignature|timingSafeEqual|createHmac|createVerify)\s*\())[\s\S]'
+
+  # An internal or gateway controller (NestJS) with no guard. The railway-gateway ingest routes are
+  # guarded by ApiKeyGuard, the outbox consumer of operation-service by SvcTokenGuard (SVC_TOKEN),
+  # the cron triggers of money-service by CronSecretGuard. A new controller in these places, or in
+  # any folder called internal, must carry one of the guards. The health controller of the gateway
+  # is public on purpose.
+  - id: davintrade-internal-controller-without-guard
+    languages: [typescript]
+    severity: ERROR
+    message: 'An internal or gateway controller has no @UseGuards with ApiKeyGuard, SvcTokenGuard, CronSecretGuard or JwtAuthGuard, so its routes are open. Add the guard that fits the caller (API key for the gateway, SVC_TOKEN for service-to-service calls, the cron secret for triggers).'
+    metadata:
+      category: security
+      confidence: HIGH
+      cwe: 'CWE-306: Missing Authentication for Critical Function'
+      owasp: 'A01:2021 - Broken Access Control'
+      technology: [nestjs]
+    paths:
+      include:
+        - 'railway-gateway/src/**/*.controller.ts'
+        - 'operation-service/src/outbox/**/*.controller.ts'
+        - 'money-service/src/crons/**/*.controller.ts'
+        - '**/internal/**/*.controller.ts'
+      exclude:
+        - 'railway-gateway/src/health/**'
+    pattern-regex: '\A(?=[\s\S]*@Controller\()(?![\s\S]*@UseGuards\(\s*[^)]*\b(?:ApiKeyGuard|SvcTokenGuard|CronSecretGuard|JwtAuthGuard)\b)[\s\S]'
+
+  # An internal or cron route of the Next.js app that checks neither a shared secret nor an admin
+  # session. The scheduler calls these routes, so they must verify who is calling.
+  - id: davintrade-internal-route-without-secret
+    languages: [typescript]
+    severity: ERROR
+    message: 'An internal or cron route handler never reads CRON_SECRET, INTERNAL_API_KEY or SVC_TOKEN and never checks an admin session (requireAdmin, getServerSession, auth). Verify the caller before doing any work.'
+    metadata:
+      category: security
+      confidence: HIGH
+      cwe: 'CWE-306: Missing Authentication for Critical Function'
+      owasp: 'A01:2021 - Broken Access Control'
+      technology: [nextjs]
+    paths:
+      include:
+        - 'app/api/cron/**/route.ts'
+        - 'app/api/internal/**/route.ts'
+    pattern-regex: '\A(?=[\s\S]*?(?:export\s+(?:async\s+)?function\s+(?:GET|POST|PUT|PATCH|DELETE)\b|export\s+const\s+(?:GET|POST|PUT|PATCH|DELETE)\s*=))(?![\s\S]*?(?:CRON_SECRET|INTERNAL_API_KEY|SVC_TOKEN|requireAdmin\s*\(|getServerSession\s*\(|\bauth\s*\())[\s\S]'

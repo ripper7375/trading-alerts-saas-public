@@ -41,7 +41,7 @@ The private sweep (`node scripts\security\run-security-pipeline.mjs --with-depen
 
 ## PB-1: Secret exposure
 
-**Triggers:** R-3 (secret exposure confirmed); a push-protection bypass; a secret-scanning alert; a token or key in a log, an artifact or a pull request.
+**Triggers:** R-3 (secret exposure confirmed); the LINE alert `Secret scanning breach` (the sweep reads the open GitHub secret-scanning alerts, one per alert; the alert carries a count only, so the detail is in the repository's Security tab); a push-protection bypass; a token or key in a log, an artifact or a pull request.
 **Threat:** T2. **Clock:** P0, less than 4 hours (rotate or remove first). **Owner:** Davin for credentials; the Executor drafts the steps.
 
 ### First 30 minutes
