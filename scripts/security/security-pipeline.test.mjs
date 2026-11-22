@@ -24,6 +24,7 @@ import {
   classifyVulnerability,
   compareFindings,
   cvss3Score,
+  escapeMarkdownCell,
   evaluatePriority,
   evaluateRuntimeFloors,
   extractAdvisoryIds,
@@ -1547,6 +1548,17 @@ test('reconcileDependabot maps a workspace importer manifest to its asset', () =
   ]);
   assert.equal(result.compared, 1);
   assert.equal(result.agreed, 1);
+});
+
+test('escapeMarkdownCell keeps untrusted text inside its table cell', () => {
+  assert.equal(escapeMarkdownCell('a|b'), 'a\\|b');
+  // a backslash in the input is doubled first, so it cannot cancel the pipe escape
+  assert.equal(escapeMarkdownCell('a\\|b'), 'a\\\\\\|b');
+  assert.equal(escapeMarkdownCell('C:\\path'), 'C:\\\\path');
+  assert.equal(escapeMarkdownCell('line\nbreak\u0007'), 'line break ');
+  assert.equal(escapeMarkdownCell('<b>x</b>'), '&lt;b&gt;x&lt;/b&gt;');
+  assert.equal(escapeMarkdownCell('x'.repeat(300)).length, 200);
+  assert.equal(escapeMarkdownCell(undefined), '');
 });
 
 test('extractAdvisoryIds finds identifiers in text and normalizes their case', () => {

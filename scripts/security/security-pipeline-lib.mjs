@@ -634,11 +634,16 @@ export function summarizeFindings(findings) {
 
 const esc = (value, max = 200) =>
   String(value ?? '')
+    .slice(0, max)
     // eslint-disable-next-line no-control-regex
     .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    // backslashes first, so the escapes added below are not escaped again
+    .replace(/\\/g, '\\\\')
     .replace(/\|/g, '\\|')
-    .replace(/[<>]/g, (c) => (c === '<' ? '&lt;' : '&gt;'))
-    .slice(0, max);
+    .replace(/[<>]/g, (c) => (c === '<' ? '&lt;' : '&gt;'));
+
+/** Text from a feed or a lockfile, made safe to sit in one Markdown table cell. */
+export { esc as escapeMarkdownCell };
 
 const pct = (x) => (typeof x === 'number' ? x.toFixed(3) : 'n/a');
 
