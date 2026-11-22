@@ -23,6 +23,15 @@ Each of these cost a past session real time. Search `state/history/` for the inc
 - The checkout is **CRLF** (`core.autocrlf=true`); Prettier expects LF. Use
   `prettier --check --end-of-line auto`. After an over-broad Prettier run, files can list as `M`
   with blob hashes equal to HEAD (stale stat only).
+- **Thousands of phantom `M` entries** (2026-11-22: 8,003 of 9,524 in the main checkout) block `git reset --keep` and
+  `git merge` although `git diff` is empty: the index remembers the size of an older working copy (CRLF against LF),
+  and git trusts a size change without comparing content. With nothing staged, `git read-tree HEAD` followed by
+  `git update-index --refresh` (about two minutes; do not set `GIT_OPTIONAL_LOCKS=0`, it stops the refreshed index
+  from being saved) compares real content and leaves only the real changes (18 files). To move a stale, dirty
+  checkout to `origin/main` without a stash: back up (a branch at the old HEAD, `git diff --binary`, and the
+  `git hash-object --no-filters` hash of each pending file), put back to HEAD any file whose local edits already
+  equal upstream, move aside untracked files that upstream now tracks, then `git reset --keep origin/main`; it
+  aborts before touching anything on a clash. Used on 2026-11-22, see the session entry in `current-state.md`.
 - The Bash tool collapses `\\` to `\`; make regex/escape edits with the Edit tool, not heredocs.
 - **Check line endings with Python, not `grep` in Git Bash:** `grep -c $'\r$'` reported every line as
   CRLF for files that are LF only. Use `path.read_bytes().count(b"\r\n")`. Files written by tools in
