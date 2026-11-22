@@ -442,3 +442,7 @@ FIELD-CONSISTENCY-AUDIT-v2_29.md` §5. Not something this Executor can resolve u
 
   (c) With `MIGRATE_MARKET_DATA_CHANNEL=true` the route resolves the setting first and forwards the indicator to operation-service, but operation-service does not know `fractal_edt`: with the fractal EDT active
   that path answers 400. The flag defaults off; operation-service was not touched (out of scope).
+
+<!-- Next.js 16.4.6 bump, resolved 2026-11-22 -->
+
+- Next.js 16.4.6 bump (2026-11-22; [session entry](../current-state.md)): **RESOLVED 2026-11-22 (Davin).** Merged as [PR #532](https://github.com/ripper7375/trading-alerts-saas-public/pull/532) at 14:29Z (`0c0102e4`: `package.json` six lines and `pnpm-lock.yaml`, after 28 of 28 green checks: tsc, lint, build, `test:ci` 641 suites and 21,653 tests, audit gate); the Vercel production deployment succeeded at 14:32Z, and Davin then signed in on production with Google and with the email form: both worked, so no rollback was needed. Not a security patch: 16.4.5 already fixed the 7 advisories of 16 to 19 Nov. The Vercel preview of the PR could not finish a Google sign-in (`redirect_uri_mismatch`: no `*.vercel.app` host is in Google’s allow-list), which is why the callback leg and the session were tested on production. Not tried: the reply stream under `next start` (Vercel does not run that server). The local main checkout, 49 commits behind `origin/main` that evening, was moved to it the same night with `git reset --keep`.
