@@ -421,6 +421,21 @@ database or queue URLs with credentials. It lists file names only (never the mat
 **Dependabot (`.github/dependabot.yml`):** weekly `npm` (pnpm) and `github-actions` version updates, minor and
 patch grouped into one PR per ecosystem. Security updates are a repository setting.
 
+**Shift-left scans (Phase 5 of the security monitoring pipeline):** three workflows, each informative (exit 0) until its
+baseline is triaged, each printing counts only to this public log (no advisory id, package name or finding on a file),
+none using a third-party action, none uploading anything, all with `permissions: contents: read`:
+
+- `security-containers-iac.yml` (Trivy): the Dockerfiles as infrastructure-as-code and the base images they and the
+  Compose file name. Trivy is the release binary, pinned by SHA-256. Docker Compose and `nixpacks.toml` have no Trivy check.
+- `security-python-osv.yml` (OSV-Scanner): every pip requirements file of `security/security-inventory.yaml`, pinned by
+  SHA-256, with the number of requirement lines that are not pinned to one version.
+- `security-sast-custom.yml` (Semgrep, image pinned by digest): the custom rules of `security/semgrep-rules.yml` (raw
+  Prisma SQL built at run time, a payment webhook handler with no signature check, an internal or gateway route with no
+  guard), first over their own fixtures (always blocking), then over the repository (`SEMGREP_BLOCKING`, off at first).
+
+Each has a switch in its `env:` block (`TRIVY_BLOCKING`, `OSV_BLOCKING`, `SEMGREP_BLOCKING`) that a later PR flips once its
+baseline is clear. Their helpers and tests are in `scripts/security/shift-left-*` and `semgrep-*`.
+
 ---
 
 ### 3. Flask CI

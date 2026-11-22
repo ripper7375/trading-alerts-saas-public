@@ -1,0 +1,138 @@
+name: Custom SAST (Semgrep)
+
+# Purpose: the custom rules of security/semgrep-rules.yml (Phase 5 of the security monitoring
+# architecture, v3.0, section 9): the DavinTrade-specific patterns that CodeQL's default setup does
+# not model. Raw Prisma SQL built at run time, a payment webhook handler that reads its payload and
+# never verifies the signature, and an internal or gateway route with no guard. The files the rules
+# skip are in .semgrepignore.
+#
+# Two runs, both with the real Semgrep:
+#   1. the rules over their own test cases (scripts/security/semgrep-fixtures.mjs, written to a folder
+#      outside the repository). A case a rule no longer reports, or a clean case it reports, FAILS the
+#      job whatever the mode: a rule that does not do what it says is no protection.
+#   2. the rules over the repository. INFORMATIVE at first (exit 0): the ruleset is run on the
+#      repository's own code before it is allowed to fail anything, and SEMGREP_BLOCKING is turned on
+#      once the first runs show no finding. An engine or rule error always fails.
+#
+# The same regexes run in Node in the unit tests below (scripts/security/semgrep-rules-lib.mjs), so a
+# difference between the two engines shows up in this job.
+#
+# The repository is public, so its Actions log is public. This workflow therefore:
+#   - prints COUNTS ONLY (scripts/security/shift-left-counts.mjs): no rule finding on an existing
+#     file. Semgrep writes JSON to a file under RUNNER_TEMP that nothing uploads; no SARIF, no artifact.
+#   - uses no third-party action: Semgrep runs from its official image, pinned by digest (which is
+#     the SHA-256 of the image index), with metrics and the version check off. Only actions/checkout
+#     and actions/setup-node run, pinned by full commit SHA.
+#
+# To upgrade Semgrep: take a release at least two weeks old with no advisory, read the digest of its
+# tag on Docker Hub, and change SEMGREP_VERSION and SEMGREP_IMAGE together (a test checks they agree).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.mjs'
+      - 'security/semgrep-rules.yml'
+      - '.semgrepignore'
+      - 'scripts/security/semgrep-*'
+      - 'scripts/security/shift-left-*'
+      - '.github/workflows/security-sast-custom.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.mjs'
+      - 'security/semgrep-rules.yml'
+      - '.semgrepignore'
+      - 'scripts/security/semgrep-*'
+      - 'scripts/security/shift-left-*'
+      - '.github/workflows/security-sast-custom.yml'
+  workflow_dispatch:
+
+# Least privilege: the job needs to read the repository and nothing else.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SEMGREP_VERSION: '1.184.0'
+  SEMGREP_IMAGE: 'semgrep/semgrep@sha256:cc1b68266f267878b39739373ea9985b9a78e5d64497dd875c8de100b22695ed'
+  # Informative until the first runs show no finding. Set to 'true' to fail on an ERROR finding.
+  SEMGREP_BLOCKING: 'false'
+  SEMGREP_SEND_METRICS: 'off'
+
+jobs:
+  security-sast-custom:
+    name: Custom Semgrep rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+
+      # The rules, their fixtures, the ignore list and the repository, in Node (no Semgrep needed).
+      - name: Unit tests of the rules and the helpers
+        run: node --test scripts/security/semgrep-rules.test.mjs scripts/security/shift-left-counts.test.mjs scripts/security/shift-left-workflows.test.mjs
+
+      # The cases are code that is wrong on purpose: they live outside the repository.
+      - name: Write the rule fixtures
+        run: node scripts/security/write-semgrep-fixtures.mjs --out "$RUNNER_TEMP/semgrep-fixtures"
+
+      - name: Run the rules over their fixtures (Semgrep)
+        run: |
+          # a step runs under `bash -e`: a scanner that exits non-zero must not end it before the counts
+          set +e
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/semgrep-out"
+          docker run --rm \
+            -e SEMGREP_SEND_METRICS \
+            -v "$GITHUB_WORKSPACE/security/semgrep-rules.yml:/rules/semgrep-rules.yml:ro" \
+            -v "$RUNNER_TEMP/semgrep-fixtures:/src:ro" \
+            -v "$RUNNER_TEMP/semgrep-out:/out" \
+            -w /src \
+            "$SEMGREP_IMAGE" \
+            semgrep scan --config /rules/semgrep-rules.yml --metrics=off --disable-version-check \
+              --quiet --json --output /out/fixtures.json . > /dev/null 2>&1
+          echo "semgrep exit status: $?"
+          node scripts/security/shift-left-counts.mjs semgrep-fixtures --report "$RUNNER_TEMP/semgrep-out/fixtures.json"
+
+      # The git setting lets the container's git read the checkout (another owner), so Semgrep
+      # scans the tracked files and .semgrepignore applies.
+      - name: Run the rules over the repository (Semgrep)
+        run: |
+          # a step runs under `bash -e`: a scanner that exits non-zero must not end it before the counts
+          set +e
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/semgrep-out"
+          docker run --rm \
+            -e SEMGREP_SEND_METRICS \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/src \
+            -v "$GITHUB_WORKSPACE:/src:ro" \
+            -v "$RUNNER_TEMP/semgrep-out:/out" \
+            -w /src \
+            "$SEMGREP_IMAGE" \
+            semgrep scan --config security/semgrep-rules.yml --metrics=off --disable-version-check \
+              --quiet --json --output /out/repo.json . > /dev/null 2>&1
+          echo "semgrep exit status: $?"
+
+      - name: Counts only
+        run: |
+          node scripts/security/shift-left-counts.mjs semgrep \
+            --report "$RUNNER_TEMP/semgrep-out/repo.json" \
+            --blocking "$SEMGREP_BLOCKING"

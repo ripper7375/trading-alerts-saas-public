@@ -35,6 +35,10 @@ import {
   snapshotFindings,
 } from './line-notifier-lib.mjs';
 import {
+  evaluateSecretScanningAlerts,
+  makePostureFinding,
+} from './posture-sweep-lib.mjs';
+import {
   compareFindings,
   escapeMarkdownCell,
   findingKey,
@@ -56,6 +60,8 @@ const REAL_PARTS = Object.freeze({
   computeTransitions,
   buildAlertMessage,
   sanitizeLineText,
+  evaluateSecretScanningAlerts,
+  makePostureFinding,
 });
 
 /**
@@ -451,7 +457,7 @@ const SCENARIO_A = Object.freeze({
   title: 'A confirmed secret exposure and a malicious package',
   playbooks: ['PB-1', 'PB-2'],
   injects: [
-    'GitHub secret scanning reports that a payment-provider key was committed to a public file, and the owner confirms the key is live. (The exercise sets the flag by hand: nothing in the pipeline does, see the gaps.)',
+    'GitHub secret scanning reports that a payment-provider key was committed to a public file, and the owner confirms the key is live. (Since Phase 5 the posture sweep reads the open alerts and raises each one itself; the exercise also builds the finding of a payment-provider key on the Rule 5 asset by hand, to rehearse the escalation.)',
     'The OSV feed publishes a malicious-package (MAL-) record for a package that is in the lockfile of the web app.',
   ],
   questions: [
@@ -508,12 +514,23 @@ function scenarioA({ now, rb, P }) {
     findings,
     behaviour: null,
     now,
-    expectedReasons: ['new_p0', 'malicious_package'],
+    expectedReasons: ['secret_breach', 'malicious_package'],
     expectedLabels: [
       'Malicious-package record: 1 (monolith-web)',
-      'New P0: 1 (money-service)',
+      'Secret scanning breach: 1 (money-service)',
     ],
   });
+  // The producer (Phase 5): an open alert in the answer of the secret-scanning probe becomes the
+  // same kind of finding on its own, so the pipeline can raise R-3 for a secret without a person.
+  const [alertCheck = null] = P.evaluateSecretScanningAlerts({
+    result: { ok: true, status: 200, numbers: [1], more: false },
+  });
+  const produced = alertCheck
+    ? P.makePostureFinding(alertCheck, { inventory: INVENTORY })
+    : null;
+  const producedAlerts = produced
+    ? P.computeTransitions(emptyAlertState(), [produced]).alerts
+    : [];
   const hours = [secret, malicious].map((f) => slaHours(f.sla));
   const checks = [
     check(
@@ -543,6 +560,22 @@ function scenarioA({ now, rb, P }) {
       'true, false',
       `${secret.escalation}, ${malicious.escalation}`,
       secret.escalation === true && malicious.escalation === false
+    ),
+    check(
+      'a-secret-producer',
+      'The sweep reads GitHub secret scanning: an open alert becomes a P0 finding under R-3 with the confirmed-secret flag, the Rule 5 escalation, the PB-1 playbook and the secret_breach alert',
+      'P0 R-3, flag set, escalates, PB-1, secret_breach',
+      produced
+        ? `${produced.priority} ${produced.rule}, flag ${produced.secretExposureConfirmed === true ? 'set' : 'not set'}, ${produced.escalation === true ? 'escalates' : 'no escalation'}, ${playbookFor(produced) ?? 'no playbook'}, ${producedAlerts.map((a) => a.reason).join('+') || 'no alert'}`
+        : 'no finding',
+      produced !== null &&
+        produced.priority === 'P0' &&
+        produced.rule === 'R-3' &&
+        produced.secretExposureConfirmed === true &&
+        produced.escalation === true &&
+        playbookFor(produced) === 'PB-1' &&
+        producedAlerts.length === 1 &&
+        producedAlerts[0].reason === 'secret_breach'
     ),
     ...chain.checks,
     playbookCheck({ prefix: 'a', findings, rb }),
@@ -717,10 +750,8 @@ function runbookChecks(rb) {
  * the code at the time of writing, dated by the report: the exercise is how they get decided.
  */
 const GAPS = Object.freeze([
-  {
-    id: 'G-secret-detection',
-    text: 'A confirmed secret exposure (rule R-3) has no producer in the pipeline. Nothing reads GitHub secret scanning or sets the flag the engine looks for, so the sweep cannot raise it: today it reaches the pipeline only through a person. Decide whether the sweep should read the secret-scanning alerts.',
-  },
+  // G-secret-detection (no producer for a confirmed secret, rule R-3) was closed in Phase 5: the
+  // posture sweep reads the open secret-scanning alerts, and check a-secret-producer proves it.
   {
     id: 'G-endpoint-diff',
     text: 'An unexpected public endpoint on a data store (rule R-9) has no automated probe. The Railway exposure diff of section 6.3 is not built, and only the DNS guard for paused assets creates public-endpoint findings. The exercise injected the finding such a probe would create.',
@@ -747,9 +778,10 @@ const dayPlusOneYear = (day) => {
 
 /**
  * Runs the exercise. A pure function of the runbook text, the time and the report date; it
- * touches no file and no live system. `parts` replaces the engine and notifier functions the
- * exercise exercises (`scoreFinding`, `computeTransitions`, `buildAlertMessage`,
- * `sanitizeLineText`): the tests use it to prove that a broken part makes the exercise fail.
+ * touches no file and no live system. `parts` replaces the engine, notifier and producer
+ * functions the exercise exercises (`scoreFinding`, `computeTransitions`, `buildAlertMessage`,
+ * `sanitizeLineText`, `evaluateSecretScanningAlerts`, `makePostureFinding`): the tests use it to
+ * prove that a broken part makes the exercise fail.
  *
  * @param {{ runbookText: string | null | undefined, now: Date, date?: string | null, parts?: Partial<typeof REAL_PARTS> }} input
  */

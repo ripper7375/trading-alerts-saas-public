@@ -1,0 +1,146 @@
+name: Container and IaC Scan (Trivy)
+
+# Purpose: shift-left depth for the container files (Phase 5 of the security monitoring architecture,
+# v3.0, section 9). Trivy reads each Dockerfile as infrastructure-as-code (misconfiguration) and
+# scans the base images that the Dockerfiles and the Compose file name, for the files listed in
+# security/security-inventory.yaml (scripts/security/shift-left-targets.mjs reads that list).
+#
+# Trivy has no check for a Docker Compose file or a nixpacks.toml: those are listed as "not
+# scannable" in the counts, and the images the Compose file pulls are scanned as images.
+#
+# The repository is public, so its Actions log is public. This workflow therefore:
+#   - prints COUNTS ONLY (scripts/security/shift-left-counts.mjs): no CVE id, no package, no
+#     image layer table. Trivy writes JSON to a file under RUNNER_TEMP and nothing uploads it;
+#     no artifact is uploaded and nothing is sent to the Security tab.
+#   - uses no third-party action. Trivy is the vendor's release binary, checked against the SHA-256
+#     pinned below (the release's own checksum file and the digest GitHub computed for the asset
+#     agree on it). aquasecurity/trivy-action and setup-trivy were compromised in March 2026
+#     (GHSA-69fq-xp46-6x23); a pinned binary of a release after the fix is the smaller surface. Only
+#     actions/checkout and actions/setup-node run, pinned by full commit SHA like every other
+#     workflow here (the Actions allow-list and SHA pinning are on).
+#   - is INFORMATIVE at first (exit 0): the baseline critical and high findings are triaged before
+#     TRIVY_BLOCKING is turned on. A scan that could not run is a warning in this mode.
+#
+# To upgrade Trivy: take a release at least two weeks old that is not named in an advisory, copy
+# the SHA-256 of trivy_<version>_Linux-64bit.tar.gz from the release's checksums file AND from the
+# asset digest on the release page, and update both values together (a test checks their shape).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/pgbouncer/**'
+      - 'infra/contabo-chat-stack/**'
+      - 'knowledge-service/Dockerfile'
+      - 'operation-service/nixpacks.toml'
+      - 'railway-gateway/nixpacks.toml'
+      - 'security/security-inventory.yaml'
+      - 'scripts/security/shift-left-*'
+      - '.github/workflows/security-containers-iac.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infra/pgbouncer/**'
+      - 'infra/contabo-chat-stack/**'
+      - 'knowledge-service/Dockerfile'
+      - 'operation-service/nixpacks.toml'
+      - 'railway-gateway/nixpacks.toml'
+      - 'security/security-inventory.yaml'
+      - 'scripts/security/shift-left-*'
+      - '.github/workflows/security-containers-iac.yml'
+  schedule:
+    # Weekly (Tuesday): a new advisory for a base image appears without any change to the repository.
+    - cron: '17 5 * * 2'
+  workflow_dispatch:
+
+# Least privilege: the job needs to read the repository and nothing else.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TRIVY_VERSION: '0.76.2'
+  TRIVY_SHA256: 'bc0fc726e017b8927a62b2d3531d7a84ee01769daf5c99ed866dced54089fdbf'
+  # Informative until the baseline is triaged. Set to 'true' to fail on a critical or high finding,
+  # or on a scan that could not run.
+  TRIVY_BLOCKING: 'false'
+  TRIVY_NO_PROGRESS: 'true'
+
+jobs:
+  trivy:
+    name: Trivy config and image scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+
+      - name: Unit tests of the shift-left helpers
+        run: node --test scripts/security/shift-left-targets.test.mjs scripts/security/shift-left-counts.test.mjs scripts/security/shift-left-workflows.test.mjs
+
+      - name: List the scan targets from the inventory
+        run: node scripts/security/shift-left-targets.mjs --out "$RUNNER_TEMP/targets"
+
+      - name: Install Trivy (SHA-256 verified)
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          curl --fail --silent --show-error --location --retry 3 --retry-delay 5 \
+            --proto '=https' --tlsv1.2 \
+            --output trivy.tar.gz \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  trivy.tar.gz" | sha256sum --check --strict --quiet -
+          mkdir -p "$RUNNER_TEMP/trivy-bin"
+          tar -xzf trivy.tar.gz -C "$RUNNER_TEMP/trivy-bin" trivy
+          echo "$RUNNER_TEMP/trivy-bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/trivy-bin/trivy" --version | head -n 1
+
+      # One run over a staged copy of exactly the Dockerfiles in the inventory.
+      # The JSON goes to a file; the log only gets the counts, below.
+      - name: Scan the Dockerfiles (misconfiguration)
+        run: |
+          # a step runs under `bash -e`: a scanner that exits non-zero must not end it before the counts
+          set +e
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/trivy-out"
+          trivy config --quiet --format json --output "$RUNNER_TEMP/trivy-out/config.json" \
+            --exit-code 0 --cache-dir "$RUNNER_TEMP/trivy-cache" \
+            "$RUNNER_TEMP/targets/iac" || echo "::warning::the Dockerfile scan did not complete"
+
+      # The base images, pulled from their registries (no Docker daemon). A reference that is not
+      # plain words never reaches this loop: the targets command refuses it.
+      - name: Scan the base images
+        run: |
+          # a step runs under `bash -e`: a scanner that exits non-zero must not end it before the counts
+          set +e
+          set -uo pipefail
+          mkdir -p "$RUNNER_TEMP/trivy-out"
+          n=0
+          while IFS= read -r ref; do
+            [ -z "$ref" ] && continue
+            n=$((n + 1))
+            trivy image --quiet --scanners vuln --image-src remote --format json \
+              --output "$RUNNER_TEMP/trivy-out/image-$n.json" --exit-code 0 \
+              --cache-dir "$RUNNER_TEMP/trivy-cache" "$ref" \
+              || echo "::warning::an image scan did not complete"
+          done < "$RUNNER_TEMP/targets/images.txt"
+
+      - name: Counts only
+        run: |
+          shopt -s nullglob
+          node scripts/security/shift-left-counts.mjs trivy \
+            --config "$RUNNER_TEMP/trivy-out/config.json" \
+            --targets "$RUNNER_TEMP/targets/targets.json" \
+            --blocking "$TRIVY_BLOCKING" \
+            "$RUNNER_TEMP"/trivy-out/image-*.json

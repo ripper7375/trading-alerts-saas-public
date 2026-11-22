@@ -236,6 +236,7 @@ export function snapshotFindings(findings) {
 
 export const ALERT_REASONS = Object.freeze([
   'malicious_package',
+  'secret_breach',
   'new_p0',
   'escalated_to_p0',
   'runtime_floor_breach',
@@ -247,6 +248,7 @@ export const ALERT_REASONS = Object.freeze([
 
 const REASON_LABELS = Object.freeze({
   malicious_package: 'Malicious-package record',
+  secret_breach: 'Secret scanning breach',
   new_p0: 'New P0',
   escalated_to_p0: 'Escalated to P0',
   runtime_floor_breach: 'Runtime floor breach',
@@ -278,6 +280,11 @@ export function computeTransitions(previous, findings) {
     if (f.kind === 'runtime-floor') {
       if (now <= 1 && (was === null || was > 1))
         alerts.push({ reason: 'runtime_floor_breach', assetId });
+    } else if (f.source === 'secret-scanning') {
+      // an open GitHub secret-scanning alert (rule R-3, always P0): one alert per open alert, and
+      // never twice. The text says how many and on which asset, nothing about the secret.
+      if (now <= 1 && (was === null || was > 1))
+        alerts.push({ reason: 'secret_breach', assetId });
     } else if (f.source === 'posture-sweep') {
       // a failed check of the live posture sweep (headers, certificate, DNS, GitHub
       // settings, deployed build): alerts when it enters P0 or P1, never twice

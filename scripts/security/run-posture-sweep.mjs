@@ -6,8 +6,10 @@
 //
 // It checks, from outside: the security headers and the TLS certificate of the public site,
 // that a paused asset's DNS names do not resolve, the repository security settings against
-// the recorded baseline, and what the services report in reports/runtime-state.json (Node
-// patch level against the floors, deployed commit against main).
+// the recorded baseline, the open GitHub secret-scanning alerts (rule R-3: each one is a P0;
+// the token needs the right to read them, without it the check is `unavailable`, never a
+// pass), and what the services report in reports/runtime-state.json (Node patch level against
+// the floors, deployed commit against main).
 //
 // `run-security-pipeline.mjs --with-posture` runs the same checks inside the full sweep and
 // feeds the P0 and P1 breaches to the LINE notifier. The repository is public: stdout carries

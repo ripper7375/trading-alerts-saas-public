@@ -8,11 +8,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import {
+  SECRET_ALERTS_PER_PAGE,
   createCredentialFill,
   createDnsProbe,
   createGitProbe,
   createGithubProbe,
   createPostureProbes,
+  createSecretScanningProbe,
   createTlsProbe,
   createWebProbe,
 } from './posture-sweep-probes.mjs';
@@ -461,6 +463,272 @@ test('the GitHub probe turns a network failure into a fixed code', async () => {
   assert.equal((await slow.probe({ path: '' })).error, 'timeout');
 });
 
+test('the GitHub probe appends a query of plain words and refuses anything else', async () => {
+  const { calls, probe } = githubWith(
+    () => new Response('[]', { status: 200 })
+  );
+  const ok = await probe({
+    path: '/some/list',
+    query: { state: 'open', per_page: 10 },
+  });
+  assert.equal(ok.ok, true);
+  assert.equal(
+    calls[0].url,
+    'https://api.github.com/repos/owner/name/some/list?state=open&per_page=10'
+  );
+  assert.equal(Object.hasOwn(ok, 'link'), false, 'the answer keeps its shape');
+  const before = calls.length;
+  for (const query of [
+    {},
+    [],
+    'state=open',
+    { 'a b': 'x' },
+    { state: 'open&admin=true' },
+    { state: 'a b' },
+    { state: 'x\ny' },
+    { state: '' },
+    { state: { nested: 1 } },
+    { UPPER: 'x' },
+    { state: 'x'.repeat(31) },
+  ]) {
+    const result = await probe({ path: '/some/list', query });
+    assert.equal(result.error, 'bad_query', JSON.stringify(query));
+    assert.equal(result.status, 0);
+  }
+  assert.equal(calls.length, before, 'a refused query is never sent');
+});
+
+// --- secret scanning -------------------------------------------------------------------------------------
+
+// A stand-in for what the real answer holds: the secret itself, its type, links and a place.
+// The values are obviously invented: this repository is public and scans its own pushes.
+const SECRET_VALUE = 'not-a-real-secret-value-0001';
+const SECRET_TYPE = 'invented_provider_token';
+const SECRET_URL = 'https://alerts.example.test/secret-scanning/alert';
+
+const alertAnswer = (number, over = {}) => ({
+  number,
+  state: 'open',
+  secret_type: SECRET_TYPE,
+  secret_type_display_name: 'Invented Provider Token',
+  secret: `${SECRET_VALUE}-${number}`,
+  html_url: `${SECRET_URL}/${number}`,
+  locations_url: `${SECRET_URL}/${number}/locations`,
+  validity: 'unknown',
+  first_location_detected: { path: 'config/invented.env', start_line: 4 },
+  ...over,
+});
+
+function secretProbeWith(handler, over = {}) {
+  const calls = [];
+  const fetchImpl = async (url, init) => {
+    calls.push({ url: String(url), init });
+    return handler(String(url), init);
+  };
+  return {
+    calls,
+    probe: createSecretScanningProbe({
+      fetchImpl,
+      token: TOKEN,
+      repo: 'owner/name',
+      ...over,
+    }),
+  };
+}
+
+const sentinels = [
+  SECRET_VALUE,
+  SECRET_TYPE,
+  SECRET_URL,
+  'invented.env',
+  TOKEN,
+];
+const leaks = (value) =>
+  sentinels.filter((text) => JSON.stringify(value).includes(text));
+
+test('the secret-scanning probe reads one page of open alerts and returns only their numbers', async () => {
+  const { calls, probe } = secretProbeWith(
+    () =>
+      new Response(JSON.stringify([alertAnswer(7), alertAnswer(3)]), {
+        status: 200,
+      })
+  );
+  const result = await probe();
+  assert.deepEqual(result, {
+    ok: true,
+    status: 200,
+    numbers: [3, 7],
+    more: false,
+  });
+  assert.equal(calls.length, 1);
+  assert.equal(
+    calls[0].url,
+    'https://api.github.com/repos/owner/name/secret-scanning/alerts?state=open&per_page=10'
+  );
+  assert.equal(SECRET_ALERTS_PER_PAGE, 10);
+  assert.equal(calls[0].init.method, 'GET');
+  assert.equal(calls[0].init.headers.Authorization, `Bearer ${TOKEN}`);
+  assert.equal(calls[0].init.redirect, 'manual');
+  assert.deepEqual(leaks(result), [], 'no secret, type, link, place or token');
+});
+
+test('the secret-scanning probe answers with no alert for an empty list', async () => {
+  const { probe } = secretProbeWith(() => new Response('[]', { status: 200 }));
+  assert.deepEqual(await probe(), {
+    ok: true,
+    status: 200,
+    numbers: [],
+    more: false,
+  });
+});
+
+test('a next page is reported, never followed', async () => {
+  const { calls, probe } = secretProbeWith(
+    () =>
+      new Response(JSON.stringify([alertAnswer(1)]), {
+        status: 200,
+        headers: {
+          link: '<https://api.github.com/x?page=2>; rel="next", <https://api.github.com/x?page=9>; rel="last"',
+        },
+      })
+  );
+  const result = await probe();
+  assert.equal(result.more, true);
+  assert.equal(calls.length, 1, 'one page per sweep');
+  // a Link header without a next page is not "more"
+  const last = secretProbeWith(
+    () =>
+      new Response('[]', {
+        status: 200,
+        headers: { link: '<https://api.github.com/x?page=1>; rel="prev"' },
+      })
+  );
+  assert.equal((await last.probe()).more, false);
+});
+
+test('the secret-scanning probe keeps at most one page and skips entries that are not alert numbers', async () => {
+  const junk = [
+    null,
+    'x',
+    7,
+    {},
+    { number: '7' },
+    { number: -1 },
+    { number: 0 },
+    { number: 1.5 },
+    { number: Number.MAX_SAFE_INTEGER + 2 },
+    { number: null },
+  ];
+  const valid = Array.from({ length: 12 }, (_, i) => alertAnswer(20 + i));
+  const { probe } = secretProbeWith(
+    () =>
+      new Response(JSON.stringify([...junk, ...valid, alertAnswer(20)]), {
+        status: 200,
+      })
+  );
+  const result = await probe();
+  assert.deepEqual(
+    result.numbers,
+    [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+    'ten numbers, sorted, once each'
+  );
+  assert.deepEqual(leaks(result), []);
+});
+
+test('a body that is not a list of alerts is not an answer', async () => {
+  for (const text of [
+    JSON.stringify({ message: 'Not what we asked', secret: SECRET_VALUE }),
+    'not json',
+    'null',
+    '"text"',
+  ]) {
+    const { probe } = secretProbeWith(
+      () => new Response(text, { status: 200 })
+    );
+    const result = await probe();
+    assert.deepEqual(result, {
+      ok: false,
+      status: 200,
+      rateLimited: false,
+      error: 'unexpected_response',
+    });
+    assert.deepEqual(leaks(result), []);
+  }
+});
+
+test('failures come back as the status and a fixed code, never a body', async () => {
+  const body = JSON.stringify({
+    message: `Resource not accessible, secret ${SECRET_VALUE}`,
+    secret: SECRET_VALUE,
+  });
+  const cases = [
+    [new Response(body, { status: 403 }), 403, false],
+    [new Response(body, { status: 404 }), 404, false],
+    [new Response(body, { status: 401 }), 401, false],
+    [new Response(body, { status: 500 }), 500, false],
+    [
+      new Response(body, {
+        status: 403,
+        headers: { 'x-ratelimit-remaining': '0' },
+      }),
+      403,
+      true,
+    ],
+  ];
+  for (const [response, status, rateLimited] of cases) {
+    const { probe } = secretProbeWith(() => response);
+    const result = await probe();
+    assert.deepEqual(result, {
+      ok: false,
+      status,
+      rateLimited,
+      error: `http_${status}`,
+    });
+    assert.deepEqual(leaks(result), []);
+  }
+  const boom = secretProbeWith(() => {
+    throw new Error(`socket hang up, token ${TOKEN}, secret ${SECRET_VALUE}`);
+  });
+  const failed = await boom.probe();
+  assert.deepEqual(failed, {
+    ok: false,
+    status: 0,
+    rateLimited: false,
+    error: 'network_error',
+  });
+  assert.deepEqual(leaks(failed), []);
+  const slow = secretProbeWith(() => {
+    throw Object.assign(new Error('t'), { name: 'TimeoutError' });
+  });
+  assert.equal((await slow.probe()).error, 'timeout');
+});
+
+test('the secret-scanning probe never calls out without a token or with a bad repository', async () => {
+  let calls = 0;
+  const fetchImpl = async () => {
+    calls += 1;
+    return new Response('[]');
+  };
+  const noToken = createSecretScanningProbe({
+    fetchImpl,
+    token: null,
+    repo: 'owner/name',
+  });
+  assert.deepEqual(await noToken(), {
+    ok: false,
+    status: 0,
+    rateLimited: false,
+    error: 'no_token',
+  });
+  const badRepo = createSecretScanningProbe({
+    fetchImpl,
+    token: TOKEN,
+    repo: 'not a repo',
+  });
+  assert.equal((await badRepo()).error, 'bad_repo');
+  assert.equal(calls, 0);
+});
+
 // --- git ----------------------------------------------------------------------------------------------
 
 function gitWith(reply = { status: 0, stdout: '' }) {
@@ -639,14 +907,14 @@ test('the credential helper asks Git for github.com and returns only its stdout'
   );
 });
 
-test('createPostureProbes assembles the five probes', () => {
+test('createPostureProbes assembles the six probes', () => {
   const probes = createPostureProbes({
     root: '/work/repo',
     token: TOKEN,
     repo: 'owner/name',
     fetchImpl: async () => new Response('{}'),
   });
-  for (const name of ['web', 'tls', 'dns', 'github']) {
+  for (const name of ['web', 'tls', 'dns', 'github', 'secretScanning']) {
     assert.equal(typeof probes[name], 'function', name);
   }
   for (const name of ['fetchMain', 'resolve', 'pending']) {

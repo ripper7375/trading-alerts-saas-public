@@ -8,12 +8,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  MAX_SECRET_ALERTS,
   POSTURE_BASELINE,
+  POSTURE_KINDS,
   PostureUsageError,
   evaluateApexRedirect,
   evaluateDnsGuard,
   evaluateGithubSettings,
   evaluateRuntimeTruth,
+  evaluateSecretScanningAlerts,
   evaluateTlsCertificate,
   evaluateWebHeaders,
   makePostureFinding,
@@ -27,10 +30,18 @@ import {
   runPostureSweep,
   servicePaths,
 } from './posture-sweep-lib.mjs';
-import { findPrivacyViolations, safeAssetId } from './line-notifier-lib.mjs';
+import {
+  buildAlertMessage,
+  computeTransitions,
+  emptyAlertState,
+  findPrivacyViolations,
+  safeAssetId,
+  sanitizeLineText,
+} from './line-notifier-lib.mjs';
 import { runPostureCli } from './posture-sweep-run.mjs';
 import {
   compareFindings,
+  evaluatePriority,
   evaluateRuntimeFloors,
   loadInventory,
 } from './security-pipeline-lib.mjs';
@@ -686,6 +697,178 @@ test('one endpoint failing makes only its checks unavailable', () => {
   );
 });
 
+// --- GitHub secret scanning (rule R-3) -------------------------------------------------------
+
+const SECRET_NONE = { ok: true, status: 200, numbers: [], more: false };
+const secretOpen = (...numbers) => ({
+  ok: true,
+  status: 200,
+  numbers,
+  more: false,
+});
+// what the real answer holds and the sweep must never repeat (invented values: the repository is
+// public and scans its own pushes)
+const LEAKED = [
+  'not-a-real-secret-value-0001',
+  'invented_provider_token',
+  'alerts.example.test',
+];
+
+test('no open secret-scanning alert is one passing check on the repository', () => {
+  const checks = evaluateSecretScanningAlerts({ result: SECRET_NONE });
+  assert.equal(checks.length, 1);
+  assert.deepEqual(
+    {
+      id: checks[0].id,
+      status: checks[0].status,
+      area: checks[0].area,
+      assetId: checks[0].assetId,
+      observed: checks[0].observed,
+      priority: checks[0].priority,
+    },
+    {
+      id: 'github-secret-alerts',
+      status: 'pass',
+      area: 'github',
+      assetId: 'github-repo',
+      observed: '0 open',
+      priority: null,
+    }
+  );
+});
+
+test('each open alert is a failed P0 check under rule R-3, and the number is all that is kept', () => {
+  const checks = evaluateSecretScanningAlerts({
+    result: secretOpen(12, 3, 12),
+  });
+  assert.deepEqual(
+    checks.map((c) => c.id),
+    ['github-secret-alert-3', 'github-secret-alert-12'],
+    'once each, in order'
+  );
+  for (const check of checks) {
+    assert.equal(check.status, 'fail');
+    assert.equal(check.priority, 'P0');
+    assert.equal(check.rule, 'R-3');
+    assert.equal(check.observed, 'open');
+    assert.equal(check.area, 'github');
+    assert.equal(check.assetId, 'github-repo');
+  }
+});
+
+test('a probe that hands on more than numbers does not get it copied into a check', () => {
+  const checks = evaluateSecretScanningAlerts({
+    result: {
+      ...secretOpen(5),
+      secret: LEAKED[0],
+      secret_type: LEAKED[1],
+      html_url: `https://${LEAKED[2]}/1`,
+      alerts: [{ number: 5, secret: LEAKED[0] }],
+    },
+  });
+  for (const text of LEAKED) {
+    assert.equal(JSON.stringify(checks).includes(text), false, text);
+  }
+});
+
+test('at most ten alerts become checks, however many numbers arrive', () => {
+  const numbers = Array.from({ length: 15 }, (_, i) => i + 1);
+  const checks = evaluateSecretScanningAlerts({
+    result: secretOpen(...numbers),
+  });
+  assert.equal(MAX_SECRET_ALERTS, 10);
+  assert.equal(checks.length, MAX_SECRET_ALERTS);
+  assert.equal(checks.at(-1).id, 'github-secret-alert-10');
+});
+
+test('a probe that could not read the alerts is unavailable with a fixed reason, never a pass', () => {
+  const failed = (status, error, rateLimited = false) => ({
+    ok: false,
+    status,
+    rateLimited,
+    error,
+  });
+  for (const [result, detail] of [
+    [failed(401, 'http_401'), 'unauthorized'],
+    [failed(403, 'http_403'), 'forbidden'],
+    [failed(403, 'http_403', true), 'rate_limited'],
+    [failed(404, 'http_404'), 'not_found'],
+    [failed(429, 'http_429'), 'rate_limited'],
+    [failed(502, 'http_502'), 'http_502'],
+    [failed(0, 'no_token'), 'no_token'],
+    [failed(0, 'timeout'), 'timeout'],
+    [failed(0, 'network_error'), 'network_error'],
+    [failed(200, 'unexpected_response'), 'unexpected_response'],
+    [{ ok: false, error: 'probe_error' }, 'probe_error'],
+    [null, 'network_error'],
+    [undefined, 'network_error'],
+    [{ ok: false, error: 'no_probes' }, 'no_probes'],
+    [{ ok: true, status: 200 }, 'unexpected_response'],
+    [{ ok: true, status: 200, numbers: 'x' }, 'unexpected_response'],
+    [
+      { ok: true, status: 200, numbers: ['7', -1, 0, 1.5, null] },
+      'unexpected_response',
+    ],
+  ]) {
+    const checks = evaluateSecretScanningAlerts({ result });
+    assert.equal(checks.length, 1, JSON.stringify(result));
+    assert.equal(checks[0].id, 'github-secret-alerts');
+    assert.equal(checks[0].status, 'unavailable', JSON.stringify(result));
+    assert.equal(checks[0].detail, detail, JSON.stringify(result));
+    assert.equal(checks[0].priority, null);
+  }
+});
+
+test('an offline run skips the secret-scanning check, which is not degraded', () => {
+  const checks = evaluateSecretScanningAlerts({
+    result: { ok: false, skipped: true, error: 'offline' },
+  });
+  assert.equal(checks[0].status, 'skipped');
+  assert.equal(checks[0].detail, 'offline');
+});
+
+test('the secret finding has the shape the engine, the exercise and the playbook look for', () => {
+  const [check] = evaluateSecretScanningAlerts({ result: secretOpen(7) });
+  const finding = makePostureFinding(check, { inventory: INVENTORY });
+  assert.equal(finding.kind, 'secret-exposure');
+  assert.equal(finding.source, 'secret-scanning');
+  assert.equal(finding.ecosystem, 'secrets');
+  assert.equal(finding.secretExposureConfirmed, true);
+  assert.equal(finding.priority, 'P0');
+  assert.equal(finding.rule, 'R-3');
+  assert.match(finding.sla, /^< 4 h/);
+  assert.equal(finding.severity, 'critical');
+  assert.equal(finding.scope, 'runtime');
+  assert.equal(finding.escalation, true, 'a secret is a Rule 5 matter');
+  assert.equal(finding.rule5Boundary, true);
+  assert.equal(finding.packageName, 'github-secret-alert-7');
+  assert.equal(finding.primaryId, 'POSTURE-GITHUB-SECRET-ALERT-7');
+  assert.deepEqual(finding.advisoryIds, []);
+  assert.match(finding.key, /^[0-9a-f]{16}$/);
+  // the engine's own matrix scores this finding the same way
+  const { tier, rule } = evaluatePriority(finding);
+  assert.deepEqual([tier, rule], ['P0', 'R-3']);
+  // another posture finding is untouched by all of this
+  const other = makePostureFinding(
+    {
+      id: 'github-secret-scanning',
+      area: 'github',
+      assetId: 'github-repo',
+      title: 'Secret scanning is enabled',
+      status: 'fail',
+      priority: 'P1',
+      rule: 'PS-1',
+      expected: 'enabled',
+      observed: 'disabled',
+    },
+    { inventory: INVENTORY }
+  );
+  assert.equal(other.source, 'posture-sweep');
+  assert.equal(other.secretExposureConfirmed, undefined);
+  assert.equal(other.escalation, false);
+  assert.equal(other.rule5Boundary, false);
+});
+
 // --- runtime state ---------------------------------------------------------------------------
 
 test('parseRuntimeState keeps what it understands and reports what it ignored', () => {
@@ -962,7 +1145,7 @@ test('the runtime table counts stale reads and unknown assets without raising fi
 // --- the sweep -----------------------------------------------------------------------------------
 
 function fakeProbes(over = {}) {
-  const calls = { web: [], tls: [], dns: [], github: [], git: [] };
+  const calls = { web: [], tls: [], dns: [], github: [], secret: 0, git: [] };
   const github = { ...GOOD_GITHUB, ...(over.github ?? {}) };
   const route = {
     '': github.repo,
@@ -1003,6 +1186,11 @@ function fakeProbes(over = {}) {
     github: async ({ path }) => {
       calls.github.push(path);
       return route[path];
+    },
+    // the open secret-scanning alerts: alert numbers only (a clean repository by default)
+    secretScanning: async () => {
+      calls.secret += 1;
+      return over.secretScanning ?? SECRET_NONE;
     },
     git: {
       fetchMain: async (args) => {
@@ -1142,6 +1330,228 @@ test('a failed check becomes a scored finding that the alert and report code can
   assert.doesNotThrow(() => [...result.findings].sort(compareFindings));
 });
 
+test('an open secret-scanning alert is one P0 finding per alert, from the same sweep', async () => {
+  const { run, fake } = sweep({ secretScanning: secretOpen(9, 4) });
+  const result = await run();
+  assert.equal(fake.calls.secret, 1, 'one page, asked once');
+  assert.equal(result.summary.tiers.P0, 2);
+  assert.equal(result.summary.tiers.P1, 0);
+  assert.equal(result.findings.length, 2);
+  assert.equal(result.summary.areas.github, 'fail');
+  assert.deepEqual(result.summary.secret_scanning, {
+    status: 'fail',
+    open: 2,
+    more: false,
+  });
+  assert.deepEqual(result.findings.map((f) => f.packageName).sort(), [
+    'github-secret-alert-4',
+    'github-secret-alert-9',
+  ]);
+  for (const f of result.findings) {
+    assert.equal(f.priority, 'P0');
+    assert.equal(f.rule, 'R-3');
+    assert.equal(f.kind, 'secret-exposure');
+    assert.equal(f.source, 'secret-scanning');
+    assert.equal(f.secretExposureConfirmed, true);
+    assert.equal(f.escalation, true);
+    assert.equal(safeAssetId(f.assetId), f.assetId, 'LINE-safe asset id');
+  }
+  // P0 comes first when the findings are sorted with the others
+  assert.doesNotThrow(() => [...result.findings].sort(compareFindings));
+  // the keys are stable between runs: one alert is one transition, never two
+  const again = await run();
+  assert.deepEqual(
+    again.findings.map((f) => f.key).sort(),
+    result.findings.map((f) => f.key).sort()
+  );
+  assert.equal(
+    new Set(result.findings.map((f) => f.key)).size,
+    2,
+    'a key per alert'
+  );
+});
+
+test('every kind of finding the sweep creates is a kind it lists', async () => {
+  const { run } = sweep({
+    secretScanning: secretOpen(1),
+    dns: () => ({ ok: true, addresses: ['203.0.113.7'], cnames: [] }),
+    tls: {
+      ok: true,
+      authorized: false,
+      authorizationError: 'CERT_HAS_EXPIRED',
+    },
+    github: {
+      repo: {
+        ...GOOD_REPO,
+        body: {
+          ...GOOD_REPO.body,
+          security_and_analysis: {
+            secret_scanning: { status: 'disabled' },
+            secret_scanning_push_protection: { status: 'enabled' },
+          },
+        },
+      },
+    },
+  });
+  const result = await run();
+  const kinds = new Set(result.findings.map((f) => f.kind));
+  assert.deepEqual([...kinds].sort(), [
+    'posture-drift',
+    'public-endpoint',
+    'secret-exposure',
+    'tls-certificate',
+  ]);
+  for (const kind of kinds) assert.ok(POSTURE_KINDS.includes(kind), kind);
+});
+
+test('the alert for an open secret says how many, on which asset, and nothing else', async () => {
+  const { run } = sweep({
+    secretScanning: {
+      ...secretOpen(4, 9),
+      // a probe must not hand these on, and the sweep must not repeat them if one does
+      secret: LEAKED[0],
+      secret_type: LEAKED[1],
+      html_url: `https://${LEAKED[2]}/4`,
+    },
+  });
+  const result = await run();
+  const { alerts } = computeTransitions(emptyAlertState(), result.findings);
+  assert.deepEqual(alerts, [
+    { reason: 'secret_breach', assetId: 'github-repo' },
+    { reason: 'secret_breach', assetId: 'github-repo' },
+  ]);
+  const text = buildAlertMessage({
+    alerts,
+    posture: { summary: { tiers: result.summary.tiers } },
+    now: NOW,
+  });
+  assert.match(text, /^Secret scanning breach: 2 \(github-repo x2\)$/m);
+  assert.equal(sanitizeLineText(text, 'alert').safe, true);
+  // nowhere: not the report, the Markdown, the stdout or the message
+  const everything = [
+    JSON.stringify(result),
+    renderPostureSweepMarkdown(result),
+    ...renderPostureSweepStdout(result),
+    text,
+  ].join('\n');
+  for (const leaked of LEAKED) {
+    assert.equal(everything.includes(leaked), false, leaked);
+  }
+  // a second sweep with the same open alerts alerts nobody
+  const state = {
+    ...emptyAlertState(),
+    findings: Object.fromEntries(
+      result.findings.map((f) => [
+        f.key,
+        { tier: f.priority, malicious: false },
+      ])
+    ),
+  };
+  assert.deepEqual(computeTransitions(state, result.findings).alerts, []);
+});
+
+test('the console summary counts the secret-scanning alerts with a fixed word', async () => {
+  const line = async (over, input) => {
+    const { run } = sweep(over, input);
+    return renderPostureSweepStdout(await run()).filter((l) =>
+      l.startsWith('posture_secret_alerts:')
+    );
+  };
+  assert.deepEqual(await line({}), ['posture_secret_alerts: status=ok open=0']);
+  assert.deepEqual(await line({ secretScanning: secretOpen(1, 2, 3) }), [
+    'posture_secret_alerts: status=fail open=3',
+  ]);
+  assert.deepEqual(
+    await line({
+      secretScanning: { ok: false, status: 403, error: 'http_403' },
+    }),
+    ['posture_secret_alerts: status=unavailable open=0']
+  );
+  assert.deepEqual(await line({}, { offline: true }), [
+    'posture_secret_alerts: status=skipped open=0',
+  ]);
+  // nothing the line prints can read as a leak
+  for (const text of await line({ secretScanning: secretOpen(1) })) {
+    assert.deepEqual(findPrivacyViolations(text), []);
+  }
+});
+
+test('more open alerts than one page holds is said, not hidden', async () => {
+  const numbers = Array.from({ length: 10 }, (_, i) => i + 1);
+  const { run } = sweep({
+    secretScanning: { ...secretOpen(...numbers), more: true },
+  });
+  const result = await run();
+  assert.deepEqual(result.summary.secret_scanning, {
+    status: 'fail',
+    open: 10,
+    more: true,
+  });
+  assert.ok(result.notes.some((n) => /secret scanning: more alerts/.test(n)));
+  assert.ok(
+    renderPostureSweepStdout(result).includes(
+      'posture_secret_alerts: status=fail open=10+'
+    )
+  );
+});
+
+test('a secret-scanning probe that cannot read the alerts degrades the sweep and raises nothing', async () => {
+  const { run } = sweep({
+    secretScanning: {
+      ok: false,
+      status: 403,
+      rateLimited: false,
+      error: 'http_403',
+    },
+  });
+  const result = await run();
+  const check = byId(result.checks, 'github-secret-alerts');
+  assert.equal(check.status, 'unavailable');
+  assert.equal(check.detail, 'forbidden');
+  assert.equal(result.run.degraded, true);
+  assert.equal(
+    result.findings.length,
+    0,
+    'no proof of safety, and no invented alert'
+  );
+  assert.equal(result.summary.areas.github, 'unavailable');
+  assert.deepEqual(result.summary.secret_scanning, {
+    status: 'unavailable',
+    open: 0,
+    more: false,
+  });
+  // a missing or a throwing probe is unavailable too, never an exception
+  const missing = sweep();
+  delete missing.fake.probes.secretScanning;
+  const noProbe = await runPostureSweep({
+    inventory: INVENTORY,
+    runtimeState: RUNTIME_STATE,
+    probes: missing.fake.probes,
+    now: NOW,
+    repo: 'owner/name',
+  });
+  assert.equal(
+    byId(noProbe.checks, 'github-secret-alerts').detail,
+    'no_probes'
+  );
+  const throwing = sweep();
+  throwing.fake.probes.secretScanning = async () => {
+    throw new Error(`boom ${LEAKED[0]}`);
+  };
+  const thrown = await runPostureSweep({
+    inventory: INVENTORY,
+    runtimeState: RUNTIME_STATE,
+    probes: throwing.fake.probes,
+    now: NOW,
+    repo: 'owner/name',
+  });
+  assert.equal(
+    byId(thrown.checks, 'github-secret-alerts').detail,
+    'probe_error'
+  );
+  assert.equal(JSON.stringify(thrown).includes(LEAKED[0]), false);
+});
+
 test('offline skips every network probe and still reads the local evidence', async () => {
   const { run, fake } = sweep({}, { offline: true });
   const result = await run();
@@ -1149,6 +1559,7 @@ test('offline skips every network probe and still reads the local evidence', asy
   assert.deepEqual(fake.calls.tls, []);
   assert.deepEqual(fake.calls.dns, []);
   assert.deepEqual(fake.calls.github, []);
+  assert.equal(fake.calls.secret, 0, 'no secret-scanning request offline');
   assert.equal(fake.calls.git.includes('fetch'), false, 'no fetch offline');
   assert.equal(result.run.offline, true);
   assert.equal(

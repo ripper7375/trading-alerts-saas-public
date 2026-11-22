@@ -28,6 +28,10 @@ import {
   findPrivacyViolations,
   sanitizeLineText,
 } from './line-notifier-lib.mjs';
+import {
+  evaluateSecretScanningAlerts,
+  makePostureFinding,
+} from './posture-sweep-lib.mjs';
 import { scoreFinding } from './security-pipeline-lib.mjs';
 
 const NOW = new Date('2026-11-22T12:00:00Z');
@@ -258,7 +262,7 @@ test('scenario A: a confirmed secret and a malicious package are P0 under R-3, w
     ]
   );
   assert.deepEqual(a.alerts, [
-    { reason: 'new_p0', assetId: 'money-service' },
+    { reason: 'secret_breach', assetId: 'money-service' },
     { reason: 'malicious_package', assetId: 'monolith-web' },
   ]);
   assert.equal(
@@ -266,13 +270,24 @@ test('scenario A: a confirmed secret and a malicious package are P0 under R-3, w
     [
       '🚨 [DavinTrade Security Alert] 2026-11-22 12:00 UTC',
       'Malicious-package record: 1 (monolith-web)',
-      'New P0: 1 (money-service)',
+      'Secret scanning breach: 1 (money-service)',
       'Open now: P0=2 P1=0 P2=0 P3=0',
       'Details: reports/latest-security-posture.md',
     ].join('\n')
   );
   assert.equal(a.sla_hours, 4);
   assert.equal(a.sla_deadline, '2026-11-22T16:00:00.000Z');
+});
+
+test('scenario A: the sweep itself can now raise a confirmed secret (the producer of Phase 5)', async () => {
+  const a = (await drill()).scenarios.find((s) => s.id === 'A');
+  const producer = a.checks.find((c) => c.id === 'a-secret-producer');
+  assert.equal(producer.status, 'pass');
+  assert.equal(
+    producer.observed,
+    'P0 R-3, flag set, escalates, PB-1, secret_breach'
+  );
+  assert.deepEqual(findPrivacyViolations(producer.observed), []);
 });
 
 test('scenario B: an unexpected data-store endpoint is P1 under R-9 and a signature spike is P1 under BS-1', async () => {
@@ -436,6 +451,58 @@ test('the drill fails when the scoring engine scores a confirmed secret too low'
   assert.equal(result.scenarios.find((s) => s.id === 'B').status, 'pass');
 });
 
+test('the drill fails when the sweep stops raising an open secret-scanning alert', async () => {
+  const breaks = {
+    'no check for an open alert': {
+      evaluateSecretScanningAlerts: () => [],
+    },
+    'an open alert read as no alert': {
+      evaluateSecretScanningAlerts: () =>
+        evaluateSecretScanningAlerts({
+          result: { ok: true, status: 200, numbers: [], more: false },
+        }),
+    },
+    'the confirmed-secret flag is lost': {
+      makePostureFinding: (check, options) =>
+        Object.fromEntries(
+          Object.entries(makePostureFinding(check, options)).filter(
+            ([name]) => name !== 'secretExposureConfirmed'
+          )
+        ),
+    },
+    'the alert is only a P1': {
+      makePostureFinding: (check, options) => ({
+        ...makePostureFinding(check, options),
+        priority: 'P1',
+        rule: 'R-8',
+      }),
+    },
+    'the alert keeps its rule but drops to a P1': {
+      makePostureFinding: (check, options) => ({
+        ...makePostureFinding(check, options),
+        priority: 'P1',
+      }),
+    },
+    'the secret stops escalating': {
+      makePostureFinding: (check, options) => ({
+        ...makePostureFinding(check, options),
+        escalation: false,
+      }),
+    },
+    'the alert has the generic reason': {
+      computeTransitions: () => ({
+        alerts: [{ reason: 'new_p0', assetId: 'github-repo' }],
+        resolved: 0,
+      }),
+    },
+  };
+  for (const [name, parts] of Object.entries(breaks)) {
+    const result = await drill({ parts });
+    assert.ok(failedIds(result).includes('a-secret-producer'), name);
+    assert.equal(result.overall, 'fail', name);
+  }
+});
+
 test('the drill fails when a secret on a Rule 5 asset stops escalating, or a package starts to', async () => {
   const noEscalation = await drill({
     parts: {
@@ -549,20 +616,14 @@ test('the Markdown report is a facilitator sheet: results, the alert as sent, th
   );
 });
 
-test('the gaps are what the exercise really found: no producer for a confirmed secret, no endpoint diff for data stores', async () => {
+test('the gaps are what the exercise really found: no endpoint diff for data stores, no telemetry, a cadence and a playbook to decide', async () => {
   const { gaps } = await drill();
-  assert.ok(gaps.length >= 5);
   assert.deepEqual(
     gaps.map((g) => g.id),
-    [
-      'G-secret-detection',
-      'G-endpoint-diff',
-      'G-telemetry',
-      'G-cadence',
-      'G-no-playbook',
-    ]
+    ['G-endpoint-diff', 'G-telemetry', 'G-cadence', 'G-no-playbook'],
+    'G-secret-detection was closed in Phase 5: the sweep reads GitHub secret scanning'
   );
-  assert.match(gaps[0].text, /secret/i);
+  assert.match(gaps[0].text, /endpoint/i);
   for (const g of gaps) {
     assert.deepEqual(findPrivacyViolations(g.text), [], g.id);
   }
