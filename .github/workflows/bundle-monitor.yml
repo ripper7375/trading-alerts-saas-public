@@ -53,40 +53,52 @@ jobs:
             exit 1
           fi
 
-          BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
-          echo "📊 Current bundle size: ${BUNDLE_SIZE}MB"
+          # The monitored figure is the shipped build output: .next WITHOUT .next/cache.
+          # .next/cache is Turbopack's build cache (written by default since Next.js 16.3, never
+          # read on a fresh CI runner, not part of a deployment). It moved by about 100 MB with a
+          # Next.js upgrade alone, so it says nothing about what ships. It is printed below.
+          # The pattern is anchored (.next/cache) so a route folder named "cache" still counts.
+          # Keep these thresholds in step with the Production Build Check job in tests.yml.
+          BUNDLE_SIZE=$(du -sm --exclude=.next/cache .next/ | cut -f1)
+          TOTAL_SIZE=$(du -sm .next/ | cut -f1)
+          CACHE_SIZE=$(du -sm .next/cache 2>/dev/null | cut -f1)
+          CACHE_SIZE=${CACHE_SIZE:-0}
+          echo "📊 Current bundle size (without .next/cache): ${BUNDLE_SIZE}MB"
+          echo "ℹ️ .next/cache (build cache, not shipped): ${CACHE_SIZE}MB; whole .next: ${TOTAL_SIZE}MB"
           echo "bundle_size=${BUNDLE_SIZE}" >> $GITHUB_OUTPUT
+          echo "cache_size=${CACHE_SIZE}" >> $GITHUB_OUTPUT
+          echo "total_size=${TOTAL_SIZE}" >> $GITHUB_OUTPUT
 
           # Debug: Show .next contents breakdown
           echo "📁 .next directory breakdown:"
           du -sh .next/*/ 2>/dev/null || echo "Could not list subdirectories"
 
-          # Set status based on thresholds
-          if [ $BUNDLE_SIZE -lt 370 ]; then
+          # Set status based on thresholds (MB, .next without .next/cache)
+          if [ $BUNDLE_SIZE -lt 200 ]; then
             echo "status=good" >> $GITHUB_OUTPUT
             echo "status_emoji=✅" >> $GITHUB_OUTPUT
-            echo "status_message=Good! Bundle size is within target limits" >> $GITHUB_OUTPUT
-          elif [ $BUNDLE_SIZE -lt 450 ]; then
+            echo "status_message=Good! Shipped build output is within target limits (under 200MB)" >> $GITHUB_OUTPUT
+          elif [ $BUNDLE_SIZE -lt 250 ]; then
             echo "status=acceptable" >> $GITHUB_OUTPUT
             echo "status_emoji=ℹ️" >> $GITHUB_OUTPUT
-            echo "status_message=Acceptable: Bundle size within Phase 0-1 limits" >> $GITHUB_OUTPUT
-          elif [ $BUNDLE_SIZE -lt 500 ]; then
+            echo "status_message=Acceptable: Shipped build output under 250MB" >> $GITHUB_OUTPUT
+          elif [ $BUNDLE_SIZE -lt 275 ]; then
             echo "status=warning" >> $GITHUB_OUTPUT
             echo "status_emoji=⚠️" >> $GITHUB_OUTPUT
-            echo "status_message=Warning: Bundle size approaching limit (500MB)" >> $GITHUB_OUTPUT
-          elif [ $BUNDLE_SIZE -lt 550 ]; then
+            echo "status_message=Warning: Shipped build output approaching the limit (300MB)" >> $GITHUB_OUTPUT
+          elif [ $BUNDLE_SIZE -le 300 ]; then
             echo "status=critical" >> $GITHUB_OUTPUT
             echo "status_emoji=🚨" >> $GITHUB_OUTPUT
-            echo "status_message=Critical: Bundle size nearing panic threshold (550MB)" >> $GITHUB_OUTPUT
+            echo "status_message=Critical: Shipped build output nearing the panic threshold (300MB)" >> $GITHUB_OUTPUT
           else
             echo "status=panic" >> $GITHUB_OUTPUT
             echo "status_emoji=❌" >> $GITHUB_OUTPUT
-            echo "status_message=PANIC: Bundle size exceeded 550MB - immediate action required!" >> $GITHUB_OUTPUT
+            echo "status_message=PANIC: Shipped build output exceeded 300MB - immediate action required!" >> $GITHUB_OUTPUT
           fi
 
-          # Hard fail at 550MB (panic threshold)
-          if [ $BUNDLE_SIZE -gt 550 ]; then
-            echo "❌ CRITICAL: Bundle size exceeded panic threshold (550MB)"
+          # Hard fail above 300MB (panic threshold)
+          if [ $BUNDLE_SIZE -gt 300 ]; then
+            echo "❌ CRITICAL: Bundle size exceeded panic threshold (300MB)"
             exit 1
           fi
 
@@ -98,16 +110,18 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Current Size:** ${{ steps.bundle-check.outputs.bundle_size }}MB" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Measured on .next without .next/cache. The Turbopack build cache (.next/cache, not shipped) is ${{ steps.bundle-check.outputs.cache_size }}MB; the whole .next is ${{ steps.bundle-check.outputs.total_size }}MB." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Status:** ${{ steps.bundle-check.outputs.status_emoji }} ${{ steps.bundle-check.outputs.status_message }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Thresholds" >> $GITHUB_STEP_SUMMARY
           echo "| Level | Threshold | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-----------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🎯 Target | <370MB | Target operation |" >> $GITHUB_STEP_SUMMARY
-          echo "| ℹ️ Info | <450MB | Normal multi-language |" >> $GITHUB_STEP_SUMMARY
-          echo "| ⚠️ Warning | <500MB | Approaching threshold |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🚨 Critical | <550MB | Nearing limit |" >> $GITHUB_STEP_SUMMARY
-          echo "| ❌ Panic | >550MB | Build fails |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🎯 Target | <200MB | Target operation |" >> $GITHUB_STEP_SUMMARY
+          echo "| ℹ️ Acceptable | <250MB | Normal growth |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⚠️ Warning | <275MB | Approaching threshold |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🚨 Critical | <=300MB | Nearing limit |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ Panic | >300MB | Build fails |" >> $GITHUB_STEP_SUMMARY
 
       - name: Comment on PR
         if: github.event_name == 'pull_request'
@@ -116,6 +130,8 @@ jobs:
         with:
           script: |
             const bundleSize = '${{ steps.bundle-check.outputs.bundle_size }}';
+            const cacheSize = '${{ steps.bundle-check.outputs.cache_size }}';
+            const totalSize = '${{ steps.bundle-check.outputs.total_size }}';
             const status = '${{ steps.bundle-check.outputs.status }}';
             const statusEmoji = '${{ steps.bundle-check.outputs.status_emoji }}';
             const statusMessage = '${{ steps.bundle-check.outputs.status_message }}';
@@ -124,14 +140,16 @@ jobs:
 
             **Current Size:** ${bundleSize}MB
 
+            Measured on \`.next\` without \`.next/cache\` (the Turbopack build cache, ${cacheSize}MB, not shipped; whole \`.next\`: ${totalSize}MB).
+
             ${statusEmoji} ${statusMessage}
 
             | Threshold | Size | Status |
             |-----------|------|--------|
-            | 🎯 Target | <340MB | ${parseInt(bundleSize) < 340 ? '✅' : '❌'} |
-            | ✅ Good | <370MB | ${parseInt(bundleSize) < 370 ? '✅' : '❌'} |
-            | ⚠️ Warning | <450MB | ${parseInt(bundleSize) < 450 ? '✅' : '❌'} |
-            | 🚨 Panic | <500MB | ${parseInt(bundleSize) < 500 ? '✅' : '❌'} |
+            | 🎯 Target | <200MB | ${parseInt(bundleSize) < 200 ? '✅' : '❌'} |
+            | ℹ️ Acceptable | <250MB | ${parseInt(bundleSize) < 250 ? '✅' : '❌'} |
+            | ⚠️ Warning | <275MB | ${parseInt(bundleSize) < 275 ? '✅' : '❌'} |
+            | 🚨 Panic (check fails above) | <=300MB | ${parseInt(bundleSize) <= 300 ? '✅' : '❌'} |
             `;
 
             // Find existing bundle size comment

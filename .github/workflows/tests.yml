@@ -141,26 +141,34 @@ jobs:
 
       - name: Check bundle size
         run: |
-          BUNDLE_SIZE=$(du -sm .next/ | cut -f1)
-          echo "📊 Bundle size: ${BUNDLE_SIZE}MB"
+          # The measured figure is the shipped build output: .next WITHOUT .next/cache.
+          # .next/cache is Turbopack's build cache (written by default since Next.js 16.3, never
+          # read on a fresh CI runner, not part of a deployment) and it moved by about 100 MB with
+          # a Next.js upgrade alone. The pattern is anchored (.next/cache) so a route folder named
+          # "cache" still counts. Keep these thresholds in step with bundle-monitor.yml.
+          BUNDLE_SIZE=$(du -sm --exclude=.next/cache .next/ | cut -f1)
+          CACHE_SIZE=$(du -sm .next/cache 2>/dev/null | cut -f1)
+          echo "📊 Bundle size (without .next/cache): ${BUNDLE_SIZE}MB"
+          echo "ℹ️ .next/cache (build cache, not shipped): ${CACHE_SIZE:-0}MB"
 
-          # Bundle size thresholds (Adjusted for 16-language localization & dictionaries):
-          # - Target: <370MB (base operation)
-          # - Acceptable: <450MB (multi-language Phase 0-1)
-          # - Warning: <500MB (multi-language Phase 2 with full dictionaries)
-          # - Panic: >550MB (hard fail - requires immediate action)
+          # Bundle size thresholds (MB, .next without .next/cache):
+          # - Target: <200MB
+          # - Acceptable: <250MB
+          # - Warning: <275MB
+          # - Critical: <=300MB
+          # - Panic: >300MB (hard fail - requires immediate action)
 
-          if [ $BUNDLE_SIZE -gt 550 ]; then
-            echo "❌ PANIC: Bundle size exceeds 550MB - immediate action required!"
+          if [ $BUNDLE_SIZE -gt 300 ]; then
+            echo "❌ PANIC: Bundle size exceeds 300MB - immediate action required!"
             exit 1
-          elif [ $BUNDLE_SIZE -gt 500 ]; then
-            echo "⚠️ WARNING: Bundle size exceeds 500MB threshold"
-          elif [ $BUNDLE_SIZE -gt 450 ]; then
-            echo "ℹ️ INFO: Bundle size above 450MB, within normal multi-language limits"
-          elif [ $BUNDLE_SIZE -gt 370 ]; then
-            echo "ℹ️ INFO: Bundle size above 370MB target, within normal limits"
+          elif [ $BUNDLE_SIZE -ge 275 ]; then
+            echo "🚨 CRITICAL: Bundle size is 275MB or more, nearing the 300MB panic threshold"
+          elif [ $BUNDLE_SIZE -ge 250 ]; then
+            echo "⚠️ WARNING: Bundle size is 250MB or more"
+          elif [ $BUNDLE_SIZE -ge 200 ]; then
+            echo "ℹ️ INFO: Bundle size above 200MB target, within normal limits"
           else
-            echo "✅ EXCELLENT: Bundle size under 370MB target!"
+            echo "✅ EXCELLENT: Bundle size under 200MB target!"
           fi
 
           echo "✅ Bundle size check passed"
