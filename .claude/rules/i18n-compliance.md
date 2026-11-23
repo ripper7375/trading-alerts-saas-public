@@ -34,7 +34,16 @@ frontend UI. The recurring failure class is "new UI ships with zero locale wirin
   stay out of that import graph, or the key needs its 17 translations.
   The intake path's fixed texts (`intake.*`, 28 keys) are held to one English registry,
   `lib/intake/text.ts`, by `__tests__/lib/intake/text.test.ts`; the replies to refusals also wait
-  for counsel and a native read (ADR-098 D14). The AI chat panel's words (`chat.*`, 173 keys: Panel B and, since
+  for counsel and a native read (ADR-098 D14). The route handlers serve those replies from
+  `lib/i18n/intake-refusal-messages.json`, a generated copy of the 10 `intake.refusal.*` keys of the
+  dictionaries: after you change one of them run `node scripts/i18n/generate-intake-refusal-messages.cjs`
+  (`__tests__/lib/i18n/intake-refusal-messages.test.ts` fails until you do). A route handler must not
+  reach `lib/i18n/get-dictionary.ts` (all 19 dictionaries, 6.5 MB) or any dictionary, directly or through
+  a module it imports: Turbopack gave every group of route handlers that reached it its own 7.8 MB chunk
+  and a 7.7 MB source map (62 MB of `.next`, 2026-11-23), and each copy grows by about 0.8 MB per
+  language added. `__tests__/lib/i18n/route-handlers-and-dictionaries.test.ts` fails and prints the
+  chain of imports when one does; read a small generated file instead (`lib/i18n/world-gold-messages.json`
+  is the other example). The AI chat panel's words (`chat.*`, 173 keys: Panel B and, since
   build step 7 part 9, Panel A's thread list as `chat.threads.*`, 28 keys; `components/chat/`) are held to one
   English registry, `components/chat/text.ts`, by
   `__tests__/components/chat/translation-coverage.test.ts` (every dictionary has every key, a real

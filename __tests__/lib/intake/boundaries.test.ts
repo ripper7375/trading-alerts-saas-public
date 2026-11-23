@@ -76,7 +76,11 @@ const OUTSIDE_IMPORTS: Readonly<Record<string, readonly string[]>> = {
     '@/lib/reply/meter/quota-port',
     '@/lib/reply/meter/units',
   ],
-  'server/reply.ts': ['@/lib/i18n/get-dictionary'],
+  // The replies to refusals come from a small generated copy of the dictionaries' `intake.refusal.*`
+  // keys. Do not name `@/lib/i18n/get-dictionary` for a route-layer file: it holds all 19 dictionaries
+  // (6.5 MB) and Turbopack gave every group of route handlers that reached it its own 7.8 MB chunk
+  // and a 7.7 MB source map (four copies, 62 MB of `.next` on 2026-11-23).
+  'server/reply.ts': ['@/lib/i18n/intake-refusal-messages.json'],
   'server/respond.ts': ['crypto'],
 };
 
