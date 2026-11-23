@@ -621,7 +621,7 @@ Comprehensive testing infrastructure with automated test gates. **This workflow 
 **Job 3: build-check**
 
 1. ✅ Production build verification
-2. ✅ Bundle size validation (<100MB)
+2. ✅ Bundle size validation (`.next` without `.next/cache`; fails above 300MB, same ladder as `bundle-monitor.yml`)
 
 **Job 4: test-summary**
 
