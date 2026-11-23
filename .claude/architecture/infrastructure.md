@@ -1,7 +1,7 @@
 ---
 type: Concept/Infrastructure
 status: active
-updated_at: 2026-11-08
+updated_at: 2026-11-23
 source: 'Standing facts recorded in CLAUDE.md session logs (Vultr notice 2026-09-11, Railway/Vercel findings 2026-08-31..09-09)'
 tags: [deploy, vercel, railway, vps, vultr, r2, mt5]
 related_docs:
@@ -59,6 +59,16 @@ related_docs:
   Node 24 (Node 22 until 2026-10-31), `npm ci`, `tsc --noEmit`, tests and `nest build`; the gateway also runs its e2e specs, `check:sensor-kit`
   and installs Python 3.11 with `pyyaml==6.0.2 jsonschema==4.25.0` (its sensor specs skip silently without them). It runs on GitHub on every push (green for all three at `1f680cfb`).
   No `npm run lint` for the gateway: the script matches no files. Report: `docs/handoffs/2026-10-16-nestjs-tier0-tier2-execution.md`.
+- **The bundle checks measure the shipped `.next`, not Turbopack's build cache** (2026-11-23):
+  `.github/workflows/bundle-monitor.yml` and the `build-check` job of `.github/workflows/tests.yml` take
+  `du -sm --exclude=.next/cache .next/`: good under 200 MB, acceptable under 250, warning under 275, critical
+  up to 300, panic above 300 (the only status that fails). The thresholds sit in both files; keep them in
+  step. `.next/cache` (288 to 306 MB) is printed, not gated, and moves by about 100 MB with a Next.js upgrade
+  alone. A route handler or `middleware.ts` must not reach `lib/i18n/dictionaries`: each route group would get
+  its own 7.8 MB copy (62 MB with source maps); the guard is
+  `__tests__/lib/i18n/route-handlers-and-dictionaries.test.ts`. Story: the 2026-11-23 session entry in
+  [current-state](../state/current-state.md), [PR #537](https://github.com/ripper7375/trading-alerts-saas-public/pull/537)
+  and [PR #536](https://github.com/ripper7375/trading-alerts-saas-public/pull/536).
 - **Deploying `money-service`, `operation-service` or `railway-gateway` (or drafting a deploy prompt or walkthrough for them): follow
   [docs/runbooks/railway-services-deploy.md](../../docs/runbooks/railway-services-deploy.md).** It marks which steps need Davin's dashboard
   (stop and ask, never assume) and gives the rollback. **Railway redeploys all three services on every push to `main` (verified 2026-10-31), so a push is a deploy and its gates apply before the push.**
