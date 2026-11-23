@@ -45,6 +45,10 @@ below because they appear in in-scope files, but its code was not read).
 
 ## Payments — dLocal
 
+> **Status (2026-11-23):** dLocal declined to open a production account for DavinTrade, so these four variables will never
+> hold production values and dLocal is to be retired (first item of [waiting-on](../.claude/state/waiting-on.md)). The table
+> stays until the retirement order removes the code.
+
 | Name                    | Consumed by                                                                                                 | Found in                                                                                          |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | `DLOCAL_API_KEY`        | dLocal API authentication — `lib/dlocal/dlocal-payment.service.ts`                                          | **not found in any of the 5 files — gap**                                                         |

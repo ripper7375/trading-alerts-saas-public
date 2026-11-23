@@ -61,7 +61,7 @@ paste what the dashboard shows.
 5. **AGENT: the services build on the target Node.** `npm run build` in the service folder (`nest build`)
    and its tests pass on Node 24 locally. Verification commands: the
    [verification checklist](../../.claude/protocols/verification-checklist.md).
-6. **DAVIN (gate): approval for `money-service`.** It handles payments (Stripe, dLocal). A runtime change
+6. **DAVIN (gate): approval for `money-service`.** It handles payments (Stripe; dLocal is in the code but has no production account and is to be retired). A runtime change
    there needs Davin's explicit sign-off **before the push**; the general approval of a task does not cover it.
 7. **DAVIN (gate): the production database matches the code.** If the push carries a Prisma migration, or
    code that reads a column or table added since production was last verified, Davin applies the migration
@@ -94,7 +94,7 @@ For each service:
    Python 3.11 and pip installs `python-requirements.txt` without compiling (`--only-binary`). If the
    venv step fails, the build fails and the previous deployment keeps running.
 4. **`money-service` only, DAVIN:** push at low traffic. Afterwards watch the logs for one or two real
-   Stripe and dLocal webhook deliveries (2xx, no 5xx, no retries piling up) before calling it done.
+   webhook deliveries (2xx, no 5xx, no retries piling up) before calling it done. dLocal will never deliver (no production account, declined 2026-10-27), and while the app has not launched there may be no real delivery at all: say so in the report instead of waiting. The first real delivery after launch is also the launch-day check for a 415 from the Brotli guard (the Node.js item in waiting-on): report it, and Davin closes that half.
 
 ## C. If something goes wrong
 

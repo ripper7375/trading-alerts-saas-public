@@ -83,6 +83,8 @@ related_docs:
 - **Node patch floor (2026-11-12): 22.23.5 / 24.22.3**, set by the Node.js security release of 2026-11-11 (the one of
   2026-10-21 set 22.23.4 / 24.22.1; the November versions include its fixes). What the repository cannot pin (Railway under
   Nixpacks, the chat VPS image, Vercel) still has to be read from a build log or `node -v`, as the bullet above says.
+- **dLocal has no production account and is to be retired** (2026-11-23, Davin; first item of [waiting-on](../state/waiting-on.md)). It declined to open one for DavinTrade, so every dLocal
+  rule below (the key, the webhook claim, the stacked expiry, the S4 deploy) describes code that can only run in the sandbox until the retirement order removes it. DavinTrade has not launched.
 - **money-service refuses to guess its public URL or its dLocal key** (Remediation 6.5): Stripe checkout needs `NEXTAUTH_URL`, dLocal create-payment needs
   `DLOCAL_API_KEY` and `NEXTAUTH_URL`; without them they answer 503, and mock mode exists only under `NODE_ENV=test`.
 - **The GitHub repository is PUBLIC.** Never put a credential, a connection string or an unfixed security finding in a tracked

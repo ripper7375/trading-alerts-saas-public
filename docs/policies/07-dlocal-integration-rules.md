@@ -1,5 +1,10 @@
 # dLocal Payment Integration Rules for Aider
 
+> **Status (2026-11-23): not live, to be retired.** dLocal declined to open a production account for DavinTrade, so this
+> integration has only run in the sandbox and will never take a real payment. This document is kept as the design of the
+> code until the retirement order removes it; do not read anything below as live behaviour. See the first item of
+> [waiting-on](../../.claude/state/waiting-on.md).
+
 ## Purpose
 
 This document defines the architectural and business rules for integrating dLocal payment processing into the Trading Alerts SaaS, enabling users from emerging markets without international credit cards to subscribe to PRO plans. These rules ensure dLocal integrates seamlessly with existing Stripe infrastructure while maintaining policy compliance for Aider + Claude Code + Human workflow.

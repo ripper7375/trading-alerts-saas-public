@@ -41,10 +41,16 @@ related_docs:
 ## Standing notice — webhook cutover order (Davin, 2026-07-22, narrowed 2026-07-24)
 
 Chain-length-one originally meant "webhooks cut over FIRST (both providers) before 4A-7 or any
-Slice 4 work". Davin narrowed it to **dLocal-cutover-first**; dLocal is CUT-OVER (Session 4A-5),
+Slice 4 work". Davin narrowed it to **dLocal-cutover-first**; dLocal is CUT-OVER (Session 4A-5; routing only, see the status note below),
 so Slice 3/4 build work is unblocked. **RiseWorks' own cutover (`4A-5-RW`) trails independently**,
 gated on RiseWorks replying with webhook/API settings. Verbatim text: `state/history/2026-09-sessions.md`
 (search "STANDING INSTRUCTION").
+
+**Status note (2026-11-23, Davin in chat):** "CUT-OVER" above means the monolith routes the dLocal webhooks and write routes to
+`money-service` (flag `MIGRATE_WRITE_APIS_MONEY_DLOCAL`); it never meant a live dLocal account. dLocal declined to open a production account for
+DavinTrade (reply of Tue 27 Oct 2026), so it will never receive a real payment and is to be retired (Davin's plan; the order is not
+written, see the first item of [waiting-on](../state/waiting-on.md)). Read every dLocal rule in these notes as the design of code that
+waits for that order. The RiseWorks cutover above is unaffected.
 
 ## Scope boundaries
 
