@@ -1,5 +1,10 @@
 # dLocal Payment Integration - Complete Summary
 
+> **Status (2026-11-23): not live, to be retired.** dLocal declined to open a production account for DavinTrade, so this
+> integration has only run in the sandbox and will never take a real payment. This document is kept as the design of the
+> code until the retirement order removes it; do not read anything below as live behaviour. See the first item of
+> [waiting-on](../.claude/state/waiting-on.md).
+
 ## Executive Summary
 
 This document provides a complete overview of the dLocal payment integration for Trading Alerts SaaS, enabling users from 8 emerging markets to subscribe to PRO plans using local payment methods without international credit cards.

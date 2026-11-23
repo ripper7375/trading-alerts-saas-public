@@ -26,6 +26,7 @@ before commit of the OKF refactor).
 
 | Orig. lines | Entry                                                                                                                                                                                                                |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| —           | Ad-hoc session (2026-11-22) — Next.js 16.4.5 to 16.4.6 merged as PR #532 (`7c72e57e`), a news item about the image optimizer checked against `origin/main`, and the main checkout synced with `git reset --keep`     |
 | —           | Ad-hoc sessions (2026-11-20 and 2026-11-21) — read-only review of the security monitoring blueprint, the audit-gate advisory, a PgBouncer image study, nine security PRs and the Dependabot triage, merged by Davin  |
 | —           | Ad-hoc session (2026-11-12) — the Node.js security releases of 2026-10-21 and 2026-11-11 checked against the repository, and a Brotli request-body guard in the three NestJS services (`e6fd6494`)                   |
 | —           | Ad-hoc session (2026-11-10) — tooling, tests and runbooks to build MT5 Terminal B (hot standby) beside the live terminal during Stage B3, rehearse the frozen baseline and the promote (nothing committed or pushed) |
