@@ -1,0 +1,33 @@
+"""The cycles where the rebuilt set-indicator lines change MCD3's status or state: why?"""
+import base64, gzip, json, sys
+from pathlib import Path
+here = Path(sys.argv[1]); engine = sys.argv[2]
+sys.argv = ["sweep", str(here / "data"), engine, str(here / "report")]
+sys.path.insert(0, str(here))
+import sweep as s
+q = s.q
+worker = q.cycle_runner.Worker.load(flags={"MCD2": "shadow", "SYN": "off"})
+stored = {(r["cycle_slot"], r["mcd_id"]): r for r in q.read_lines("outputs.ndjson")}
+found = 0
+for record in q.read_lines("bundles.ndjson"):
+    slot = record["slot"]; row = stored[(slot, "MCD3")]
+    if row["status"] not in ("VALID", "CAUTIONARY"):
+        pass
+    inputs = q.CycleInputs.from_dict(json.loads(gzip.decompress(base64.b64decode(record["gz"]))))
+    n5, n15 = inputs.active_indicator["M5"], inputs.active_indicator["M15"]
+    r = s.rebuilt(s.stripped(inputs, "M5", n5), "M5", n5)
+    r = s.rebuilt(s.stripped(r, "M15", n15), "M15", n15)
+    again = q.reading_of(worker.run_cycle(r))["mcd"]["MCD3"]
+    if (again[0], again[1]) == (row["status"], row["state_code"]):
+        continue
+    found += 1
+    full = q.reading_of(worker.run_cycle(inputs))["mcd"]["MCD3"]
+    info = [q.iso(slot), f"stored {row['status']} {row['state_code']}", f"rebuilt {again[0]} {again[1]} {list(again[2])}"]
+    for tf, name in (("M5", n5), ("M15", n15)):
+        st = inputs.statistics[(tf, name)]; b = inputs.bars[tf]; base = f"{name}_base_fl"
+        info.append(f"{tf}: slope {st['raw_slope']:.6f}, last step {b[-1][base] - b[-2][base]:.6f}")
+    keys = ("nesting_share_pct", "nesting_window_bars", "inside_bars")
+    info.append("details stored-input " + json.dumps({k: v for k, v in full[4].items() if not isinstance(v, (dict, list))}))
+    info.append("details rebuilt      " + json.dumps({k: v for k, v in again[4].items() if not isinstance(v, (dict, list))}))
+    print("\n  ".join(info))
+print("cycles with a different status or state:", found)

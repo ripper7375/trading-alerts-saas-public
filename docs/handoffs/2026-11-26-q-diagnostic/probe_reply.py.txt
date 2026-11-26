@@ -1,0 +1,49 @@
+"""Two fact checks on the Advisor reply: (a) what an R2 floor of 0.0 would still fail; (b) are the stored channel
+columns of the SET indicator straight lines (so that another candidate's older bars could be rebuilt from its last bar)?"""
+import base64, collections, gzip, json, sys
+from pathlib import Path
+here = Path(sys.argv[1]); engine = sys.argv[2]
+sys.argv = ["q_analyze", str(here / "data"), engine, str(here / "report")]
+sys.path.insert(0, str(here))
+import q_analyze as q
+P = q.MCD0_PARAMS
+keys = ["min_coverage_bars","t_edt_open_bar_rows","min_r2_model_a","min_r2_model_b","flat_angle_deg","min_fit_ratio","max_fit_ratio","min_geo_ratio","max_geo_ratio","max_abs_skew","ratio_decimals","statistic_decimals"]
+zero = {k: P[k] for k in keys}; zero["min_r2_model_a"] = zero["min_r2_model_b"] = 0.0
+r2 = collections.defaultdict(collections.Counter)
+err = collections.defaultdict(list); sign = collections.Counter()
+for record in q.read_lines("bundles.ndjson"):
+    data = json.loads(gzip.decompress(base64.b64decode(record["gz"])))
+    for tf, source in (("M5","most_recent"),("M5","best_fit_a"),("M15","non_b"),("M15","most_recent")):
+        row = data["statistics"].get(tf, {}).get(source)
+        if row is None or not q.row_facts(source, row)["sane"]:
+            continue
+        failed = q.mcd0._judge(source, row, zero)["failed"]
+        c = r2[(tf, source)]; c["rows"] += 1; c["a"] += "R2_A" in failed; c["b"] += "R2_B" in failed
+        c["either"] += ("R2_A" in failed) or ("R2_B" in failed); c["skipped"] += abs(row["regression_angle"]) <= P["flat_angle_deg"]
+    for tf in ("M5","M15"):
+        name = data["active_indicator"][tf]; row = data["statistics"].get(tf, {}).get(name)
+        if not row or not all(q.is_number(row.get(k)) for k in ("raw_slope","uoedt_offset","loedt_offset","containment_n")):
+            err[(tf,"skipped")].append(0); continue
+        bars = data["bars"][tf][-(int(row["containment_n"]) - 1):]
+        cols = [f"{name}_base_fl", f"{name}_uoedt", f"{name}_loedt"]
+        if not all(all(q.is_number(b.get(c)) for c in cols) for b in bars):
+            err[(tf,"skipped")].append(0); continue
+        n = len(bars); last = bars[-1]
+        worst = {}
+        for label, s in (("plus", 1), ("minus", -1)):
+            worst[label] = max(abs(b[c] - (last[c] - s * row["raw_slope"] * (n - 1 - i))) for i, b in enumerate(bars) for c in cols)
+        best = min(worst, key=worst.get); sign[(tf, best)] += 1
+        err[(tf,"slope")].append(worst[best])
+        steps = [bars[i][cols[0]] - bars[i-1][cols[0]] for i in range(1, n)]
+        err[(tf,"step_spread")].append(max(steps) - min(steps))
+        err[(tf,"offsets")].append(max(max(abs((b[cols[1]] - b[cols[0]]) - row["uoedt_offset"]), abs((b[cols[2]] - b[cols[0]]) - row["loedt_offset"])) for b in bars))
+print("(a) R2 pillar failures if the floor were 0.0 (share of sane rows)")
+for (tf, s), c in r2.items():
+    print(f"  {tf} {s}: R2_A {100*c['a']/c['rows']:.1f}%  R2_B {100*c['b']/c['rows']:.1f}%  either {100*c['either']/c['rows']:.1f}%  (skipped as flat {100*c['skipped']/c['rows']:.1f}%, rows {c['rows']})")
+print("(b) set indicator: distance of the stored window bars from the straight line through the last bar (price units)")
+for (tf, kind), values in sorted(err.items()):
+    if kind == "skipped":
+        print(f"  {tf}: cycles skipped (no full channel) {len(values)}"); continue
+    v = sorted(values)
+    print(f"  {tf} {kind}: cycles {len(v)}  median {v[len(v)//2]:.6f}  p99 {v[int(0.99*(len(v)-1))]:.6f}  max {v[-1]:.6f}")
+print("  slope sign that fits:", dict(sign))

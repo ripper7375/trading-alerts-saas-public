@@ -347,10 +347,14 @@ cardinality(guard_problems) > 0 ORDER BY 1 DESC LIMIT 20;`
   old later means the worker was down, or a cycle took longer than ten minutes to start.
 - **Rows per cycle below the expected count** is a cycle that was written without an MCD: a flag changed mid-window
   (use `--since` at the time of the change, or `--expect` for the set you mean) or a failure.
-- **MCD0 flags a timeframe on most cycles.** Expect it: on all three real fixtures MCD0 flags both M5 and M15 (plan
-  finding S3), so every channel MCD is CAUTIONARY on those slots. Whether that rate is acceptable, and whether MCD0's
-  thresholds should change, is Davin's call at B3, as a **new decision entry and a MINOR evaluator version**, never an
-  edit (a new version starts a new statistics series).
+- **MCD0 flag rate.** MCD0 1.0.0 flagged a timeframe on almost every cycle (the shadow window of 19 to 25 November 2026:
+  97.0 of every 100 readings that named a state). MCD0 **1.1.0**
+  ([ADR-101](../adr/101-mcd0-1-1-0-thresholds-and-r2-per-timeframe.md)) was chosen from that window: on the three real
+  fixtures it flags both M5 and M15 on v1 only and neither on v3 and v4, so the channel MCDs are CAUTIONARY on v1 only. On
+  the window's cycles with M5 `most_recent` it was simulated to flag M5 20.8, M15 3.1 and either 23.9 of every 100; live
+  rates are still to be read. Whether a rate is acceptable, and whether MCD0's thresholds should change again, is Davin's
+  call, as a **new decision entry and a MINOR evaluator version**, never an edit (a new version starts a new statistics
+  series).
 - **`market_cycle_inputs` footprint.** The 1.1 to 1.7 GB for 90 days that Davin approved is arithmetic on fixtures.
   Measure it live: `SELECT count(*), pg_size_pretty(sum(octet_length(bundle_gz))) AS gzipped,
 pg_size_pretty(sum(bundle_bytes)::bigint) AS raw FROM market_cycle_inputs;`, and again after a week.
@@ -512,8 +516,8 @@ SELECT cycle_slot, profile, zone_id, low, high, reference_price, invalidation_pr
   FROM entry_zones WHERE symbol = 'XAUUSD' ORDER BY cycle_slot DESC, profile, rank LIMIT 20;
 ```
 
-While MCD0 flags both timeframes (the three stored cycles all do), every reading is CAUTIONARY: that is the MCD0 flag-rate question of B3, not a
-fault of synthesis (ADR-085). A reading with no zones and a `zones_reason` is normal: `NOT_DIRECTIONAL` (a stand-aside or NEUTRAL) and
+While MCD0 flags a timeframe, the readings that rest on it are CAUTIONARY: that is the gate at work, not a fault of synthesis (ADR-085). Of the
+three stored cycles MCD0 1.1.0 flags v1 only (both timeframes); v3 reads VALID, and v4 stays CAUTIONARY through MCD3's modifier. A reading with no zones and a `zones_reason` is normal: `NOT_DIRECTIONAL` (a stand-aside or NEUTRAL) and
 `NO_ZONE_SOURCES` (the price is outside the M5 channel on the side opposite to the bias, which every snapback and range-edge reading is: ADR-088).
 
 ### 9.4 Replay and the kit now cover SYN

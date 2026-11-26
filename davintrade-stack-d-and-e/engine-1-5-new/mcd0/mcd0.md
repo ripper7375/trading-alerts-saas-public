@@ -1,6 +1,8 @@
 # MCD0: Channel fit quality gate
 
-Status: Approved (Davin, 1 October 2026; built in task P5) · Version: 1.0.0 · Kind: gate · Timeframe(s): M5 and M15
+Status: Approved (Davin, 1 October 2026; built in task P5; version 1.1.0 confirmed by Davin on 26 November 2026) · Version: 1.1.0 · Kind: gate · Timeframe(s): M5 and M15
+
+**Changes in 1.1.0** ([ADR-101](../../../docs/adr/101-mcd0-1-1-0-thresholds-and-r2-per-timeframe.md), a MINOR version, standard §14): the R-squared floor of both models is 0.00 (was 0.70 and 0.65) and is applied on the timeframes of `r2_timeframes` only, which is M5; the fit ratio's lower bound is 1.25 (was 1.50); the geo ratio's bounds are 0.50 to 2.00 (were 0.60 to 1.65). States, pillar ids, reason codes, commentary templates and the `details` fields are unchanged. The new version starts a new statistics series.
 
 New MCD, built from walkthrough Part C4 (its concept is read back in `concept.md`, confirmed by Davin on 1 October 2026).
 It replaces the 4-Quadrant gate of the archived file C (§3 and §4.1). Decisions applied: D3 (tier-1 meaning, in the
@@ -98,10 +100,13 @@ each applicable model.
 Every bound is inclusive (≥, ≤); a value exactly at a bound passes. The fit ratio uses W ÷ 2 because File C defines the
 half height as (UOEDT − LOEDT) ÷ 2; the geo ratio is (UOEDT − baseline) ÷ (baseline − LOEDT), which is U ÷ D.
 
-**Pillars not applied** (`skipped`, decisions (d) and (e)):
+**Pillars not applied** (`skipped`, decisions (d) and (e), ADR-101):
 
-- Flat channel: when |θ| ≤ `flat_angle_deg`, `R2_A` and `R2_B` are not applied. Above the angle they are applied. The rule
-  is keyed to the angle of whatever indicator is active.
+- Timeframe: `R2_A` and `R2_B` are applied only on a timeframe listed in `r2_timeframes` (M5). On M15 they are never
+  applied, whatever indicator is active there: the rule follows the timeframe, never the indicator (rule 6, ADR-010). The
+  R² values are still reported in `details`.
+- Flat channel: when |θ| ≤ `flat_angle_deg`, `R2_A` and `R2_B` are not applied. Above the angle they are applied on a
+  timeframe of `r2_timeframes`. The rule is keyed to the angle of whatever indicator is active.
 - Fractal EDT: `R2_A`, `FIT_A` and `SKEW_A` are not applied (no Model A); that timeframe is judged on Model B, coverage
   and geo ratio. The Model A fields are not read even if present.
 
@@ -122,20 +127,21 @@ pillar in neither passed. A timeframe is a `DEFECT` exactly when its `failed` li
 reported in `details` as values. They have no label words and no effect on the state, and a missing or non-numeric
 value is reported as `null` without changing the status (question Q3).
 
-| Parameter             | Value | Unit        | Boundary                                                     | Rationale                                                                                        |
-| --------------------- | ----- | ----------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `min_coverage_bars`   | 60    | closed bars | N_closed ≥ value passes                                      | File C pillar 1: at least 5 h of M5 and 15 h of M15                                              |
-| `t_edt_open_bar_rows` | 1     | rows        | N_closed = N − value                                         | `window_span_bars` includes the still-open bar; same name and value as MCD1 to MCD3 (ADR-083)    |
-| `min_r2_model_a`      | 0.70  | R-squared   | ≥ value passes                                               | ADR-019, architecture §2.4                                                                       |
-| `min_r2_model_b`      | 0.65  | R-squared   | ≥ value passes                                               | ADR-019, architecture §2.4                                                                       |
-| `flat_angle_deg`      | 5.0   | degrees     | \|θ\| ≤ value: the R-squared pillars are not applied         | A flat channel explains almost no variance by slope; the ±5° band of MCD1 to MCD3 (decision (d)) |
-| `min_fit_ratio`       | 1.50  | ratio       | ≥ value passes                                               | File C pillar 3: below it the channel is over-fitted                                             |
-| `max_fit_ratio`       | 3.20  | ratio       | ≤ value passes                                               | File C pillar 3: above it the channel is under-fitted                                            |
-| `min_geo_ratio`       | 0.60  | ratio       | ≥ value passes                                               | File C pillar 4, kept by decision (c); the flag rate is measured in shadow                       |
-| `max_geo_ratio`       | 1.65  | ratio       | ≤ value passes                                               | File C pillar 4                                                                                  |
-| `max_abs_skew`        | 1.50  | skewness    | \|skew\| ≤ value passes                                      | File C pillar 4; each model's own skew (question Q2)                                             |
-| `ratio_decimals`      | 4     | decimals    | Output rounding only (R-squared, fit ratio, geo ratio)       | Verdicts sit close to their bounds on real data (R² 0.6876 against 0.70)                         |
-| `statistic_decimals`  | 2     | decimals    | Output rounding only (skew, variance ratio, kurtosis, angle) | The indicator stores these at two decimals                                                       |
+| Parameter             | Value | Unit        | Boundary                                                            | Rationale                                                                                        |
+| --------------------- | ----- | ----------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `min_coverage_bars`   | 60    | closed bars | N_closed ≥ value passes                                             | File C pillar 1: at least 5 h of M5 and 15 h of M15                                              |
+| `t_edt_open_bar_rows` | 1     | rows        | N_closed = N − value                                                | `window_span_bars` includes the still-open bar; same name and value as MCD1 to MCD3 (ADR-083)    |
+| `min_r2_model_a`      | 0.00  | R-squared   | ≥ value passes, on `r2_timeframes`                                  | ADR-101 (1.0.0: 0.70, ADR-019)                                                                   |
+| `min_r2_model_b`      | 0.00  | R-squared   | ≥ value passes, on `r2_timeframes`                                  | ADR-101 (1.0.0: 0.65, ADR-019)                                                                   |
+| `r2_timeframes`       | `M5`  | timeframes  | A timeframe in the list applies `R2_A` and `R2_B`; others skip both | ADR-101: the M15 channel is judged on coverage, fit, geo and skew                                |
+| `flat_angle_deg`      | 5.0   | degrees     | \|θ\| ≤ value: the R-squared pillars are not applied                | A flat channel explains almost no variance by slope; the ±5° band of MCD1 to MCD3 (decision (d)) |
+| `min_fit_ratio`       | 1.25  | ratio       | ≥ value passes                                                      | ADR-101 (1.0.0: 1.50, File C pillar 3): below it the channel is over-fitted                      |
+| `max_fit_ratio`       | 3.20  | ratio       | ≤ value passes                                                      | File C pillar 3: above it the channel is under-fitted                                            |
+| `min_geo_ratio`       | 0.50  | ratio       | ≥ value passes                                                      | ADR-101 (1.0.0: 0.60); the pillar is kept by decision (c)                                        |
+| `max_geo_ratio`       | 2.00  | ratio       | ≤ value passes                                                      | ADR-101 (1.0.0: 1.65)                                                                            |
+| `max_abs_skew`        | 1.50  | skewness    | \|skew\| ≤ value passes                                             | File C pillar 4; each model's own skew (question Q2)                                             |
+| `ratio_decimals`      | 4     | decimals    | Output rounding only (R-squared, fit ratio, geo ratio)              | Verdicts sit close to their bounds on real data (fit ratio 1.2242 against 1.25)                  |
+| `statistic_decimals`  | 2     | decimals    | Output rounding only (skew, variance ratio, kurtosis, angle)        | The indicator stores these at two decimals                                                       |
 
 ## 7. State register
 
@@ -180,11 +186,11 @@ answer has no price meaning contributes none").
   rule row: its effect reaches synthesis only as CAUTIONARY on the channel MCDs, applied by the worker (ADR-018,
   standard §9.2), and from there as the pre-set half risk (ADR-061). MCD0 changes no other envelope.
 - **Not an input to any MCD:** no MCD lists MCD0 in `depends_on`, and MCD3 does not read it.
-- **Flag rate:** on the three real slots the thresholds flag every channel under the fixture settings (`concept.md` §6),
-  and the decisions of 1 October 2026 change none of those six readings. Of the other populated channels, only M15 `non_a`
-  qualifies: v3 on its own merits, v4 because it is flat and the R² pillars are skipped. If this holds live, most channel
-  readings would be CAUTIONARY, so the shadow period (stage 4) must measure MCD0's flag rate before any MCD goes live
-  (walkthrough Part 0 item 3). A threshold changes only by a new decision entry and a MINOR version.
+- **Flag rate:** in the shadow window of 19 to 25 November 2026 (1,375 cycles) 1.0.0 flagged M5 on 89.5%, M15 on 89.2%
+  and either timeframe on 97.0% of the readings that named a state (M5 `best_fit_a`, M15 `non_b`), so almost every channel
+  reading was CAUTIONARY. The 1.1.0 values, simulated on the same cycles with M5 `most_recent` and M15 `non_b`, flag M5
+  on 20.8%, M15 on 3.1% and either on 23.9% (ADR-101). Live rates are still to be measured. A threshold changes only by a
+  new decision entry and a MINOR version.
 - **Data problems:** if MCD0 is STALE or INVALID, the worker applies no flag that cycle (decision (h)); the same missing row
   already makes the channel MCDs on that timeframe unavailable.
 
@@ -196,7 +202,7 @@ Proposals; all of this is stage 6 work and waits for the sensor worker, synthesi
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Dispatch-matrix intents | **Explain** (the terms MCD0 owns: coverage, R-squared, fit ratio, geo ratio, skew, channel fit). Warnings always reach the prompt in full (ADR-041), so a defect is visible through the CAUTIONARY channel MCDs and the Section 6 defect flag; **Explain only** (Davin, 1 October 2026): MCD0 is not routed to Direction or Entry timing |
 | `tags.yaml`             | `MCD0`; the four state codes; no regime words; no level names                                                                                                                                                                                                                                                                            |
-| Playbook chunk (D2)     | Front-matter `mcd_id: MCD0`, `state_codes` (four), `timeframe: [M5, M15]`, `version: 1.0.0`. Sections: what it checks; the four pillars and their bounds; how to read a defect (provisional until the shadow flag rate is known); what a skipped pillar means (flat channel, fractal EDT); what it does not say (no direction)           |
+| Playbook chunk (D2)     | Front-matter `mcd_id: MCD0`, `state_codes` (four), `timeframe: [M5, M15]`, `version: 1.1.0`. Sections: what it checks; the four pillars and their bounds; how to read a defect (provisional until the shadow flag rate is known); what a skipped pillar means (flat channel, fractal EDT); what it does not say (no direction)           |
 | Foundations chunk (D1)  | The EDT channel fit: coverage, R-squared, fit ratio, geo ratio, skew, Model A and Model B in plain English                                                                                                                                                                                                                               |
 | Glossary                | Coverage, R-squared, fit ratio, geo ratio (symmetry), skew, Model A, Model B (all 16 languages)                                                                                                                                                                                                                                          |
 | Reason texts            | `DATA_STALE`, `RETUNING`, `NO_SETTING`, `NO_STATS_AT_SLOT`, `SANITY_FAILED`, `EVALUATOR_ERROR` and the two flags MCD0 causes, `MCD0_DEFECT_M5` and `MCD0_DEFECT_M15` (all 16 languages)                                                                                                                                                  |
@@ -206,14 +212,14 @@ Proposals; all of this is stage 6 work and waits for the sensor worker, synthesi
 
 `details` has one object per timeframe, `M5` and `M15`.
 
-| Field (per timeframe) | Type            | Meaning                                                                                                                                           |
-| --------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `failed`              | list of strings | The pillar ids that failed, in `pillar_order` (empty when the timeframe is qualified; non-empty exactly when it is a defect)                      |
-| `skipped`             | list of strings | The pillar ids not applied: `R2_A` and `R2_B` on a flat channel; `R2_A`, `FIT_A` and `SKEW_A` on the fractal EDT. A pillar in neither list passed |
-| `coverage`            | integer         | N_closed: `window_span_bars − t_edt_open_bar_rows`, in closed bars                                                                                |
-| `geo_ratio`           | number          | U ÷ D, `ratio_decimals` decimals                                                                                                                  |
-| `model_a`             | object or null  | `r2`, `fit_ratio` (`ratio_decimals` decimals), `skew`, `var_ratio`, `kurtosis` (`statistic_decimals` decimals); `null` on the fractal EDT         |
-| `model_b`             | object          | The same fields for Model B                                                                                                                       |
+| Field (per timeframe) | Type            | Meaning                                                                                                                                                                                           |
+| --------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `failed`              | list of strings | The pillar ids that failed, in `pillar_order` (empty when the timeframe is qualified; non-empty exactly when it is a defect)                                                                      |
+| `skipped`             | list of strings | The pillar ids not applied: `R2_A` and `R2_B` on a flat channel or on a timeframe outside `r2_timeframes` (M15); `R2_A`, `FIT_A` and `SKEW_A` on the fractal EDT. A pillar in neither list passed |
+| `coverage`            | integer         | N_closed: `window_span_bars − t_edt_open_bar_rows`, in closed bars                                                                                                                                |
+| `geo_ratio`           | number          | U ÷ D, `ratio_decimals` decimals                                                                                                                                                                  |
+| `model_a`             | object or null  | `r2`, `fit_ratio` (`ratio_decimals` decimals), `skew`, `var_ratio`, `kurtosis` (`statistic_decimals` decimals); `null` on the fractal EDT                                                         |
+| `model_b`             | object          | The same fields for Model B                                                                                                                                                                       |
 
 Not in `details`, to stay inside the token budget (question Q5): the statistics source and the setting are already in the
 envelope's `active_indicator` (`fractal` stands for the source `fractal_edt`); the timeframe verdict is `failed` being
@@ -221,7 +227,9 @@ non-empty and is the state; the regression angle is used only for the flat test 
 
 INVALID and STALE readings carry an empty `details`. Measured on hand-built envelopes with the kit's counter
 (`o200k_base`): the largest case, every pillar failed on both timeframes with Model A and Model B values, is 555 tokens
-(561 with the RETUNING reason). The built evaluator is measured in task P5 (T12).
+(561 with the RETUNING reason). The built evaluator is measured in task P5 (T12). These figures are of 1.0.0; 1.1.0 can
+list at most six failed and two skipped pillars on M15 instead of eight failed. T12 measured 548 tokens for 1.1.0
+(Computer 1, 26 November 2026).
 
 ## 12. Worked example
 
@@ -231,22 +239,21 @@ INVALID and STALE readings carry an empty `details`. Measured on hand-built enve
 | Timeframe · source | Coverage (closed) | R² A / B          | Fit ratio A / B | Geo ratio | Skew A / B    | Angle (input) | Failed                   |
 | ------------------ | ----------------- | ----------------- | --------------- | --------- | ------------- | ------------- | ------------------------ |
 | M5 · `best_fit_a`  | 754               | −0.1016 / −0.1210 | 0.5130 / 0.5331 | 1.0000    | −0.85 / −0.79 | 6.94          | R2_A, R2_B, FIT_A, FIT_B |
-| M15 · `non_b`      | 1807              | 0.6828 / 0.6550   | 1.2242 / 1.1369 | 0.7425    | −1.33 / −1.28 | −29.72        | R2_A, FIT_A, FIT_B       |
+| M15 · `non_b`      | 1807              | 0.6828 / 0.6550   | 1.2242 / 1.1369 | 0.7425    | −1.33 / −1.28 | −29.72        | FIT_A, FIT_B             |
 
 | Step                | Result                                                                                                                                                     |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Pre-flight          | All pass (no tier-1 cross-check, no containment test)                                                                                                      |
-| State, bias, status | `MCD0_M5_M15_DEFECT` · NEUTRAL · VALID (both timeframes have a non-empty `failed`)                                                                         |
+| State, bias, status | `MCD0_M5_M15_DEFECT` · NEUTRAL · VALID (both timeframes have a non-empty `failed`; M15 skips `R2_A` and `R2_B`)                                            |
 | Levels              | none                                                                                                                                                       |
 | Summary             | "M5 and M15 channel fits each miss a criterion"                                                                                                            |
-| Commentary (T04)    | "The M5 channel (best_fit_a) misses fit criteria: R2, fit ratio. The M15 channel (non_b) misses fit criteria: R2, fit ratio."                              |
+| Commentary (T04)    | "The M5 channel (best_fit_a) misses fit criteria: R2, fit ratio. The M15 channel (non_b) misses fit criteria: fit ratio."                                  |
 | `details.M5`        | `failed` R2_A, R2_B, FIT_A, FIT_B · `skipped` none · `coverage` 754 · `geo_ratio` 1.0 · `model_a` r2 −0.1016, fit_ratio 0.513, skew −0.85, … · `model_b` … |
 
-Two other real readings: v3 `2026-09-28T14:15Z` with M15 set to `non_a` gives `MCD0_M5_DEFECT` (M5 `cherry_a` misses
-`R2_A` and `R2_B`; M15 `non_a` meets every pillar: coverage 487, R² 0.7712 / 0.7274, fit ratio 2.6059 / 2.5428, geo ratio
-1.4351, skew 1.05 / 0.61). v4 `2026-09-28T23:15Z` with M15 set to `non_a` gives `MCD0_M5_DEFECT` too: `non_a` is flat
-(−0.56°), so `R2_A` and `R2_B` are skipped and it meets the remaining pillars (R² −0.0856 / −0.1572 would have failed
-them), while M5 `cherry_a` misses `R2_A` (0.6876 against 0.70).
+The other real slots are qualified on both timeframes under their settings: v3 `2026-09-28T14:15Z` and v4
+`2026-09-28T23:15Z` (M5 `cherry_a` with R² 0.4045 / 0.4003 and 0.6876 / 0.6883, M15 `non_b` with fit ratios from 1.51 to
+2.43) give `MCD0_ALL_QUALIFIED`, as they do with M15 set to `non_a`. On v1 with M5 set to `fractal` the geo ratio is
+0.4999998: it is shown as 0.5 and fails the bound of 0.50, because every verdict is decided on the unrounded value.
 
 ## 13. Tests
 
@@ -254,8 +261,8 @@ Standard §12, T1 to T13 (T14 is for derived MCDs and does not apply). Detail: `
 
 - T1: one test per state (four), from synthetic bundles (`MCD0_ALL_QUALIFIED` and `MCD0_M15_DEFECT` have no real example).
 - T2: boundaries just below, at and just above each bound: coverage `window_span_bars` 60 / 61 / 62 (closed 59 / 60 / 61)
-  and the parameter `t_edt_open_bar_rows`; R² A 0.6999 / 0.70 / 0.7001; R² B 0.6499 / 0.65 / 0.6501; fit ratio at 1.5 and
-  3.2 (just inside and outside), with each model's own MSE; geo ratio at 0.6 and 1.65; \|skew\| at 1.5; \|θ\| at 5.0 / 5.01
+  and the parameter `t_edt_open_bar_rows`; R² A and R² B −0.0001 / 0.00 / 0.0001 on M5, not applied on M15 whatever the indicator; fit ratio at 1.25 and
+  3.2 (just inside and outside), with each model's own MSE; geo ratio at 0.5 and 2.0; \|skew\| at 1.5; \|θ\| at 5.0 / 5.01
   (flat skip); MSE, `uoedt_offset`, `loedt_offset` and `channel_width` at 0 and just beyond.
 - T3: one test per pre-flight failure: `SANITY_FAILED` (unknown `data_status`; each required field null, a string, a
   boolean, NaN; MSE ≤ 0 per model; offsets of the wrong sign; width ≤ 0; Model A missing on a centroid; a `config_hash` that is not a mapping or has a non-string entry for an active source), `DATA_STALE`,

@@ -32,7 +32,7 @@ class RealRegistryTests(unittest.TestCase):
         self.assertEqual(
             facts,
             {
-                "MCD0": ("gate", "1.0.0", (), ()),
+                "MCD0": ("gate", "1.1.0", (), ()),
                 "MCD1": ("independent", "2.0.1", (), ("M15",)),
                 "MCD2": ("independent", "2.0.1", (), ("M5",)),
                 "MCD3": ("derived", "2.0.0", ("MCD1", "MCD2"), ("M5", "M15")),

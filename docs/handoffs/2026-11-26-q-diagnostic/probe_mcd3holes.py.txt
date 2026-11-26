@@ -1,0 +1,21 @@
+import base64, gzip, json, sys
+from pathlib import Path
+here = Path(sys.argv[1]); engine = sys.argv[2]
+sys.argv = ["q_analyze", str(here / "data"), engine, str(here / "report")]
+sys.path.insert(0, str(here))
+import q_analyze as q
+worker = q.cycle_runner.Worker.load(flags={"MCD2": "shadow", "SYN": "off"})
+want = {"2026-11-19T04:35Z", "2026-11-19T11:10Z", "2026-11-20T02:40Z"}
+for record in q.read_lines("bundles.ndjson"):
+    if q.iso(record["slot"]) not in want: continue
+    data = json.loads(gzip.decompress(base64.b64decode(record["gz"])))
+    inputs = q.CycleInputs.from_dict(data)
+    full = q.reading_of(worker.run_cycle(inputs))["mcd"]["MCD3"]
+    holes = {}
+    for tf in ("M5", "M15"):
+        name = data["active_indicator"][tf]
+        need = int(data["statistics"][tf][name]["containment_n"]) - 1
+        window = data["bars"][tf][-need:]
+        miss = [len(window) - i for i, b in enumerate(window) if any(b.get(f"{name}_{c}") is None for c in ("uoedt", "loedt", "base_fl"))]
+        holes[tf] = f"{len(miss)} window bars without bands" + (f" (bars back {min(miss)}..{max(miss)})" if miss else "")
+    print(q.iso(record["slot"]), full[0], list(full[2]), "|", "; ".join(f"{k}: {v}" for k, v in holes.items()))

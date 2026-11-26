@@ -90,34 +90,34 @@ const read = (file: string): string => fs.readFileSync(file, 'utf8');
 describe('the three real stored cycles (v1, v3 and v4), with the real schema validator', () => {
   const report = () => measureSensors({ rows: realRows() }, { scan: realScan });
 
-  it('measures 12 rows in 3 cycles: MCD0 VALID, and the three channel MCDs CAUTIONARY on every one', () => {
+  it('measures 12 rows in 3 cycles: MCD0 VALID, and the three channel MCDs CAUTIONARY on the one cycle MCD0 flags', () => {
     const r = report();
     expect(r.rows).toBe(12);
     expect(r.cycles).toBe(3);
     expect(r.mcds['MCD0'].status).toMatchObject({ VALID: 3, CAUTIONARY: 0 });
     for (const id of ['MCD1', 'MCD2', 'MCD3']) {
-      expect(r.mcds[id].status).toMatchObject({ VALID: 0, CAUTIONARY: 3 });
+      expect(r.mcds[id].status).toMatchObject({ VALID: 2, CAUTIONARY: 1 });
     }
   });
 
-  it('MCD0 flags M5 and M15 on all three real cycles (plan finding S3)', () => {
+  it('MCD0 1.1.0 flags M5 and M15 on v1 and neither on v3 and v4 (ADR-101)', () => {
     const z = report().mcd0;
     expect(z).toMatchObject({
       judged: 3,
-      both: 3,
-      m5Flagged: 3,
-      m15Flagged: 3,
-      allQualified: 0,
+      both: 1,
+      m5Flagged: 1,
+      m15Flagged: 1,
+      allQualified: 2,
     });
-    expect(z.rate).toEqual({ m5: 1, m15: 1, both: 1, any: 1 });
+    expect(z.rate).toEqual({ m5: 1 / 3, m15: 1 / 3, both: 1 / 3, any: 1 / 3 });
   });
 
-  it('the reasons on the MCD3 readings are the four it carries on each cycle', () => {
+  it('the reasons on the MCD3 readings are the four it carries on the flagged cycle', () => {
     expect(report().mcds['MCD3'].topReasons).toEqual([
-      { code: 'MCD0_DEFECT_M15', count: 3 },
-      { code: 'MCD0_DEFECT_M5', count: 3 },
-      { code: 'UPSTREAM_CAUTIONARY:MCD1', count: 3 },
-      { code: 'UPSTREAM_CAUTIONARY:MCD2', count: 3 },
+      { code: 'MCD0_DEFECT_M15', count: 1 },
+      { code: 'MCD0_DEFECT_M5', count: 1 },
+      { code: 'UPSTREAM_CAUTIONARY:MCD1', count: 1 },
+      { code: 'UPSTREAM_CAUTIONARY:MCD2', count: 1 },
     ]);
   });
 
@@ -135,10 +135,10 @@ describe('the three real stored cycles (v1, v3 and v4), with the real schema val
     expect(r.findings).toEqual([]);
   });
 
-  it('the inheritance rule agrees with MCD0 on the real readings: 4 marks required per cycle (MCD1 M15, MCD2 M5, MCD3 both), 12 in all, none missing', () => {
+  it('the inheritance rule agrees with MCD0 on the real readings: 4 marks required on the flagged cycle (MCD1 M15, MCD2 M5, MCD3 both), none missing', () => {
     expect(report().inheritance).toEqual({
-      cyclesWithValidDefect: 3,
-      expectedMarks: 12,
+      cyclesWithValidDefect: 1,
+      expectedMarks: 4,
       missing: 0,
       unexplained: 0,
       mismatches: [],
@@ -266,22 +266,29 @@ describe('the three real stored cycles (v1, v3 and v4): the SYN readings and ent
     expect(s.rowsPerCycle.byRowCount).toEqual([{ value: 2, count: 3 }]);
   });
 
-  it('every real reading is CAUTIONARY (MCD0 flagged both timeframes on all three cycles): the CAUTIONARY share is 1', () => {
+  it('v3 is VALID; v1 is CAUTIONARY through MCD0 and v4 through the MCD3 modifier: the CAUTIONARY share is two of three', () => {
     const s = report().synthesis!;
     for (const id of ['DAY_TRADER', 'SCALPER']) {
       expect(s.profiles[id].status).toMatchObject({
-        VALID: 0,
-        CAUTIONARY: 3,
+        VALID: 1,
+        CAUTIONARY: 2,
         INVALID: 0,
         STALE: 0,
         other: 0,
       });
-      expect(s.profiles[id].share.CAUTIONARY).toBe(1);
-      // the two MCD0 marks on every cycle come first; a modifier's caution may follow
-      expect(s.profiles[id].topReasons.slice(0, 2)).toEqual([
-        { code: 'MCD0_DEFECT_M15', count: 3 },
-        { code: 'MCD0_DEFECT_M5', count: 3 },
-      ]);
+      expect(s.profiles[id].share.CAUTIONARY).toBe(2 / 3);
+      const reasons = Object.fromEntries(
+        s.profiles[id].topReasons.map((r) => [r.code, r.count])
+      );
+      expect(reasons).toEqual({
+        MCD0_DEFECT_M15: 1,
+        MCD0_DEFECT_M5: 1,
+        'MODIFIER_CAUTION:MCD3_NON_CONSOLIDATED_OVERFLOW': 1,
+        // on v1 only the Scalper reading also carries the modifier of that cycle's MCD3 state
+        ...(id === 'SCALPER'
+          ? { 'MODIFIER_CAUTION:MCD3_NON_CONSOLIDATED_TREND_CONFLICT': 1 }
+          : {}),
+      });
     }
   });
 
@@ -352,9 +359,9 @@ describe('the three real stored cycles (v1, v3 and v4): the SYN readings and ent
         profile: 'DAY_TRADER',
         dataStatus: 'FRESH',
         sensors: {
-          MCD1: 'CAUTIONARY MCD1_DOWN_LOWER_BREAKDOWN',
-          MCD2: 'CAUTIONARY MCD2_DOWN_LOWER_BREAKDOWN',
-          MCD3: 'CAUTIONARY MCD3_BEAR_BOTTOM',
+          MCD1: 'VALID MCD1_DOWN_LOWER_BREAKDOWN',
+          MCD2: 'VALID MCD2_DOWN_LOWER_BREAKDOWN',
+          MCD3: 'VALID MCD3_BEAR_BOTTOM',
         },
         sensorsFrom: 'READING',
       },

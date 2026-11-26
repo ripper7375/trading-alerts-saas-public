@@ -1,0 +1,295 @@
+Q2 to Q5 diagnostic, cycles 2026-11-19T00:00Z to 2026-11-25T23:55Z: 1375 cycles
+
+0. The export against the stored rows
+  bundles whose text hashes to the stored hash: 1375 of 1375 (different 0)
+  readings re-run with the stored setting and equal to the stored hash: 5500; different 0; no stored row 0
+  settings seen (M5, M15): best_fit_a/non_b x 1375
+  MCD   VALID         CAUTIONARY    INVALID      STALE
+  MCD0  1217 (88.5%)  0 (0.0%)      148 (10.8%)  10 (0.7%)
+  MCD1  280 (20.4%)   1085 (78.9%)  0 (0.0%)     10 (0.7%)
+  MCD2  132 (9.6%)    544 (39.6%)   699 (50.8%)  0 (0.0%)
+  MCD3  35 (2.5%)     634 (46.1%)   696 (50.6%)  10 (0.7%)
+  check of the fill used in section 2 (set indicator stripped to the last bar, filled, MCD2 compared with the full run): equal 1375, different 0
+
+1. Q2: each candidate's own statistics row (share of the rows present; 'all pillars' = MCD0 finds no fault)
+  tf   source       rows  null offsets  containment>=50  channel on last bar  MCD0 fields sane  all pillars pass
+  M5   best_fit_a   1375  10.8%         49.2%            89.2%                89.2%             9.5%
+  M5   best_fit_b   1375  0.0%          37.2%            100.0%               100.0%            21.7%
+  M5   cherry_a     1375  0.0%          98.3%            100.0%               100.0%            41.9%
+  M5   cherry_b     1375  0.0%          98.3%            100.0%               100.0%            41.9%
+  M5   most_recent  1375  0.0%          98.3%            100.0%               100.0%            41.9%
+  M5   non_a        1375  0.0%          98.3%            100.0%               100.0%            41.9%
+  M5   non_b        1375  0.0%          90.0%            100.0%               100.0%            50.0%
+  M5   fractal      1375  0.0%          0.0%             0.0%                 100.0%            0.0%
+  M15  best_fit_a   1365  0.9%          78.9%            99.1%                99.1%             61.1%
+  M15  best_fit_b   1365  0.0%          67.0%            100.0%               100.0%            67.0%
+  M15  cherry_a     1365  0.0%          100.0%           100.0%               100.0%            9.7%
+  M15  cherry_b     1365  0.0%          100.0%           100.0%               100.0%            9.7%
+  M15  most_recent  1365  0.0%          100.0%           100.0%               100.0%            9.7%
+  M15  non_a        1365  0.0%          100.0%           100.0%               100.0%            9.7%
+  M15  non_b        1365  0.0%          100.0%           100.0%               100.0%            9.7%
+  candidates whose statistics are identical in every cycle: none
+
+2. Q2: MCD0 and MCD2 re-run on all 1375 cycles with each M5 candidate as the setting (M15 unchanged)
+  A stored bundle holds the other candidates' channels on the last closed bar only. Their older bars are filled
+  with the last bar's values: exact for MCD0 and MCD2 if a real switch holds the channel on its whole window.
+  MCD3 and SYN read the older values and are NOT measurable for another candidate.
+  MCD2
+  M5 setting   VALID        CAUTIONARY   INVALID        STALE
+  best_fit_a   132 (9.6%)   544 (39.6%)  699 (50.8%)    0 (0.0%)
+  best_fit_b   180 (13.1%)  332 (24.1%)  863 (62.8%)    0 (0.0%)
+  cherry_a     580 (42.2%)  772 (56.1%)  23 (1.7%)      0 (0.0%)
+  cherry_b     580 (42.2%)  772 (56.1%)  23 (1.7%)      0 (0.0%)
+  most_recent  580 (42.2%)  772 (56.1%)  23 (1.7%)      0 (0.0%)
+  non_a        580 (42.2%)  772 (56.1%)  23 (1.7%)      0 (0.0%)
+  non_b        559 (40.7%)  678 (49.3%)  138 (10.0%)    0 (0.0%)
+  fractal      0 (0.0%)     0 (0.0%)     1375 (100.0%)  0 (0.0%)
+  MCD0
+  M5 setting   VALID         CAUTIONARY  INVALID      STALE      M5 defect  any defect
+  best_fit_a   1217 (88.5%)  0 (0.0%)    148 (10.8%)  10 (0.7%)  89.5%      97.0%
+  best_fit_b   1365 (99.3%)  0 (0.0%)    0 (0.0%)     10 (0.7%)  78.2%      100.0%
+  cherry_a     1365 (99.3%)  0 (0.0%)    0 (0.0%)     10 (0.7%)  58.2%      91.5%
+  cherry_b     1365 (99.3%)  0 (0.0%)    0 (0.0%)     10 (0.7%)  58.2%      91.5%
+  most_recent  1365 (99.3%)  0 (0.0%)    0 (0.0%)     10 (0.7%)  58.2%      91.5%
+  non_a        1365 (99.3%)  0 (0.0%)    0 (0.0%)     10 (0.7%)  58.2%      91.5%
+  non_b        1365 (99.3%)  0 (0.0%)    0 (0.0%)     10 (0.7%)  50.0%      95.9%
+  fractal      1365 (99.3%)  0 (0.0%)    0 (0.0%)     10 (0.7%)  100.0%     100.0%
+  MCD2 INVALID cycles per day
+  M5 setting   2026-11-19  2026-11-20  2026-11-22  2026-11-23  2026-11-24  2026-11-25
+  best_fit_a   0           138         11          275         273         2
+  best_fit_b   49          66          0           224         249         275
+  cherry_a     0           0           0           23          0           0
+  cherry_b     0           0           0           23          0           0
+  most_recent  0           0           0           23          0           0
+  non_a        0           0           0           23          0           0
+  non_b        0           1           0           0           0           137
+  fractal      275         264         11          275         275         275
+  commonest reasons MCD2 is not VALID
+    best_fit_a: CONTAINMENT_LOW x 551; MCD0_DEFECT_M5 x 544; DETECTION_MISMATCH+SANITY_FAILED x 148
+    best_fit_b: CONTAINMENT_LOW x 863; MCD0_DEFECT_M5 x 332
+    cherry_a: MCD0_DEFECT_M5 x 772; CONTAINMENT_LOW x 23
+    cherry_b: MCD0_DEFECT_M5 x 772; CONTAINMENT_LOW x 23
+    most_recent: MCD0_DEFECT_M5 x 772; CONTAINMENT_LOW x 23
+    non_a: MCD0_DEFECT_M5 x 772; CONTAINMENT_LOW x 23
+    non_b: MCD0_DEFECT_M5 x 678; CONTAINMENT_LOW x 138
+    fractal: DETECTION_MISMATCH+CONTAINMENT_LOW x 1375
+  MCD2 states (of the VALID and CAUTIONARY readings)
+    best_fit_a: DOWN_IN_CORRIDOR x 404; DOWN_LOWER_BREAKDOWN x 168; DOWN_UPPER_BREAKOUT x 104
+    best_fit_b: DOWN_LOWER_BREAKDOWN x 287; DOWN_IN_CORRIDOR x 199; UP_LOWER_BREAKDOWN x 26
+    cherry_a: DOWN_IN_CORRIDOR x 577; DOWN_LOWER_BREAKDOWN x 267; DOWN_UPPER_BREAKOUT x 221; UP_IN_CORRIDOR x 174; UP_LOWER_BREAKDOWN x 113
+    cherry_b: DOWN_IN_CORRIDOR x 577; DOWN_LOWER_BREAKDOWN x 267; DOWN_UPPER_BREAKOUT x 221; UP_IN_CORRIDOR x 174; UP_LOWER_BREAKDOWN x 113
+    most_recent: DOWN_IN_CORRIDOR x 577; DOWN_LOWER_BREAKDOWN x 267; DOWN_UPPER_BREAKOUT x 221; UP_IN_CORRIDOR x 174; UP_LOWER_BREAKDOWN x 113
+    non_a: DOWN_IN_CORRIDOR x 577; DOWN_LOWER_BREAKDOWN x 267; DOWN_UPPER_BREAKOUT x 221; UP_IN_CORRIDOR x 174; UP_LOWER_BREAKDOWN x 113
+    non_b: DOWN_UPPER_BREAKOUT x 451; DOWN_LOWER_BREAKDOWN x 361; DOWN_IN_CORRIDOR x 194; UP_LOWER_BREAKDOWN x 189; SIDEWAYS_LOWER_BREAKDOWN x 42
+    fractal: -
+
+3. The 148 cycles where MCD0 said SANITY_FAILED with the stored setting
+  M5 candidate  channel on last bar  MCD2 VALID  MCD2 CAUTIONARY  MCD2 INVALID  MCD2 STALE
+  best_fit_a    0                    0           0                148           0
+  best_fit_b    148                  0           0                148           0
+  cherry_a      148                  0           148              0             0
+  cherry_b      148                  0           148              0             0
+  most_recent   148                  0           148              0             0
+  non_a         148                  0           148              0             0
+  non_b         148                  107         41               0             0
+  fractal       0                    0           0                148           0
+
+4. Q3: MCD0 pillars on each candidate's sane rows (share failing; every comparison as the evaluator makes it)
+  tf   source       sane rows  COVERAGE  R2_A   R2_B    FIT_A  FIT_B   GEO     SKEW_A  SKEW_B
+  M5   best_fit_a   1227       0.0%      9.7%   14.4%   60.3%  61.8%   62.8%   0.0%    0.0%
+  M5   best_fit_b   1375       0.0%      8.7%   8.7%    63.3%  50.2%   44.8%   0.0%    0.0%
+  M5   cherry_a     1375       0.0%      40.5%  41.8%   24.0%  9.8%    30.6%   0.0%    0.0%
+  M5   cherry_b     1375       0.0%      40.5%  41.8%   24.0%  9.8%    30.6%   0.0%    0.0%
+  M5   most_recent  1375       0.0%      40.5%  41.8%   24.0%  9.8%    30.6%   0.0%    0.0%
+  M5   non_a        1375       0.0%      40.5%  41.8%   24.0%  9.8%    30.6%   0.0%    0.0%
+  M5   non_b        1375       0.0%      43.1%  43.1%   12.8%  0.0%    11.5%   0.0%    0.0%
+  M5   fractal      1375       0.0%      0.0%   100.0%  0.0%   100.0%  100.0%  0.0%    0.0%
+  M15  best_fit_a   1353       0.0%      0.0%   0.0%    28.4%  35.9%   32.4%   0.0%    0.0%
+  M15  best_fit_b   1365       0.0%      9.7%   0.0%    33.0%  33.0%   33.0%   0.0%    0.0%
+  M15  cherry_a     1365       0.0%      23.3%  23.3%   67.3%  71.6%   40.7%   0.0%    0.0%
+  M15  cherry_b     1365       0.0%      23.3%  23.3%   67.3%  71.6%   40.7%   0.0%    0.0%
+  M15  most_recent  1365       0.0%      23.3%  23.3%   67.3%  71.6%   40.7%   0.0%    0.0%
+  M15  non_a        1365       0.0%      23.3%  23.3%   67.3%  71.6%   40.7%   0.0%    0.0%
+  M15  non_b        1365       0.0%      90.3%  90.3%   25.9%  33.4%   3.1%    0.0%    0.0%
+  share of sane rows where this pillar is the only fault
+  tf   source       COVERAGE  R2_A  R2_B  FIT_A  FIT_B  GEO    SKEW_A  SKEW_B
+  M5   best_fit_a   0.0%      0.0%  0.0%  0.0%   1.5%   25.7%  0.0%    0.0%
+  M5   best_fit_b   0.0%      0.0%  0.0%  13.1%  0.0%   6.3%   0.0%    0.0%
+  M5   cherry_a     0.0%      0.1%  1.5%  0.0%   0.0%   11.1%  0.0%    0.0%
+  M5   cherry_b     0.0%      0.1%  1.5%  0.0%   0.0%   11.1%  0.0%    0.0%
+  M5   most_recent  0.0%      0.1%  1.5%  0.0%   0.0%   11.1%  0.0%    0.0%
+  M5   non_a        0.0%      0.1%  1.5%  0.0%   0.0%   11.1%  0.0%    0.0%
+  M5   non_b        0.0%      0.0%  0.0%  0.0%   0.0%   6.9%   0.0%    0.0%
+  M5   fractal      0.0%      0.0%  0.0%  0.0%   0.0%   0.0%   0.0%    0.0%
+  M15  best_fit_a   0.0%      0.0%  0.0%  0.0%   0.0%   2.4%   0.0%    0.0%
+  M15  best_fit_b   0.0%      0.0%  0.0%  0.0%   0.0%   0.0%   0.0%    0.0%
+  M15  cherry_a     0.0%      0.0%  0.0%  0.0%   0.0%   8.4%   0.0%    0.0%
+  M15  cherry_b     0.0%      0.0%  0.0%  0.0%   0.0%   8.4%   0.0%    0.0%
+  M15  most_recent  0.0%      0.0%  0.0%  0.0%   0.0%   8.4%   0.0%    0.0%
+  M15  non_a        0.0%      0.0%  0.0%  0.0%   0.0%   8.4%   0.0%    0.0%
+  M15  non_b        0.0%      0.0%  0.0%  0.0%   0.0%   0.0%   0.0%    0.0%
+  commonest fault combinations, M5 best_fit_a: FIT_A + FIT_B + GEO x 319; GEO x 315; FIT_A + FIT_B x 268; R2_A + R2_B + FIT_A + FIT_B + GEO x 95; R2_B + FIT_A + FIT_B x 41; R2_A + R2_B + GEO x 24; FIT_B x 18; R2_B + FIT_A + FIT_B + GEO x 17
+  commonest fault combinations, M15 non_b: R2_A + R2_B x 735; R2_A + R2_B + FIT_A + FIT_B x 354; R2_A + R2_B + FIT_B x 102; R2_A + R2_B + GEO x 42
+  quantiles on sane rows (p10 / p25 / p50 / p75 / p90)
+  tf   source       metric       p10        p25        p50        p75        p90
+  M5   best_fit_a   r2_a         0.718      0.821      0.891      0.909      0.919
+  M5   best_fit_a   r2_b         0.648      0.740      0.861      0.886      0.902
+  M5   best_fit_a   fit_a        0.740      1.143      1.298      2.281      2.624
+  M5   best_fit_a   fit_b        0.705      1.110      1.294      2.216      2.487
+  M5   best_fit_a   geo          0.053      0.357      1.194      1.866      2.231
+  M5   best_fit_a   abs_skew_a   0.060      0.255      0.480      0.700      0.824
+  M5   best_fit_a   abs_skew_b   0.040      0.170      0.480      0.590      0.700
+  M5   best_fit_a   coverage     273.600    335.000    470.000    624.500    785.400
+  M5   best_fit_a   containment  21.000     37.600     61.060     88.570     98.288
+  M5   best_fit_b   r2_a         0.537      0.777      0.812      0.873      0.899
+  M5   best_fit_b   r2_b         0.610      0.695      0.810      0.866      0.885
+  M5   best_fit_b   fit_a        0.731      1.148      1.722      1.992      3.243
+  M5   best_fit_b   fit_b        0.696      1.160      1.727      1.927      2.924
+  M5   best_fit_b   geo          0.079      0.610      1.379      2.101      2.233
+  M5   best_fit_b   abs_skew_a   0.020      0.210      0.290      0.500      0.560
+  M5   best_fit_b   abs_skew_b   0.020      0.050      0.170      0.360      0.540
+  M5   best_fit_b   coverage     441.400    598.500    742.000    1109.000   1187.000
+  M5   best_fit_b   containment  12.888     26.600     43.090     66.610     71.700
+  M5   cherry_a     r2_a         0.144      0.380      0.723      0.845      0.895
+  M5   cherry_a     r2_b         0.126      0.431      0.686      0.824      0.880
+  M5   cherry_a     fit_a        1.421      1.508      1.873      2.037      2.297
+  M5   cherry_a     fit_b        1.519      1.640      1.862      2.045      2.348
+  M5   cherry_a     geo          0.535      0.654      0.826      1.478      1.663
+  M5   cherry_a     abs_skew_a   0.080      0.160      0.360      0.460      0.580
+  M5   cherry_a     abs_skew_b   0.100      0.190      0.310      0.410      0.510
+  M5   cherry_a     coverage     387.000    514.000    664.000    872.500    1001.000
+  M5   cherry_a     containment  73.164     82.955     88.990     97.130     99.256
+  M5   cherry_b     r2_a         0.144      0.380      0.723      0.845      0.895
+  M5   cherry_b     r2_b         0.126      0.431      0.686      0.824      0.880
+  M5   cherry_b     fit_a        1.421      1.508      1.873      2.037      2.297
+  M5   cherry_b     fit_b        1.519      1.640      1.862      2.045      2.348
+  M5   cherry_b     geo          0.535      0.654      0.826      1.478      1.663
+  M5   cherry_b     abs_skew_a   0.080      0.160      0.360      0.460      0.580
+  M5   cherry_b     abs_skew_b   0.100      0.190      0.310      0.410      0.510
+  M5   cherry_b     coverage     387.000    514.000    664.000    872.500    1001.000
+  M5   cherry_b     containment  73.164     82.955     88.990     97.130     99.256
+  M5   most_recent  r2_a         0.144      0.380      0.723      0.845      0.895
+  M5   most_recent  r2_b         0.126      0.431      0.686      0.824      0.880
+  M5   most_recent  fit_a        1.421      1.508      1.873      2.037      2.297
+  M5   most_recent  fit_b        1.519      1.640      1.862      2.045      2.348
+  M5   most_recent  geo          0.535      0.654      0.826      1.478      1.663
+  M5   most_recent  abs_skew_a   0.080      0.160      0.360      0.460      0.580
+  M5   most_recent  abs_skew_b   0.100      0.190      0.310      0.410      0.510
+  M5   most_recent  coverage     387.000    514.000    664.000    872.500    1001.000
+  M5   most_recent  containment  73.164     82.955     88.990     97.130     99.256
+  M5   non_a        r2_a         0.144      0.380      0.723      0.845      0.895
+  M5   non_a        r2_b         0.126      0.431      0.686      0.824      0.880
+  M5   non_a        fit_a        1.421      1.508      1.873      2.037      2.297
+  M5   non_a        fit_b        1.519      1.640      1.862      2.045      2.348
+  M5   non_a        geo          0.535      0.654      0.826      1.478      1.663
+  M5   non_a        abs_skew_a   0.080      0.160      0.360      0.460      0.580
+  M5   non_a        abs_skew_b   0.100      0.190      0.310      0.410      0.510
+  M5   non_a        coverage     387.000    514.000    664.000    872.500    1001.000
+  M5   non_a        containment  73.164     82.955     88.990     97.130     99.256
+  M5   non_b        r2_a         -0.058     0.491      0.727      0.785      0.864
+  M5   non_b        r2_b         -0.032     0.430      0.719      0.785      0.858
+  M5   non_b        fit_a        1.490      1.832      2.036      2.344      2.459
+  M5   non_b        fit_b        1.589      1.862      2.186      2.357      2.409
+  M5   non_b        geo          0.615      0.630      0.826      1.101      1.232
+  M5   non_b        abs_skew_a   0.080      0.170      0.200      0.520      0.730
+  M5   non_b        abs_skew_b   0.040      0.180      0.310      0.500      0.780
+  M5   non_b        coverage     749.400    805.000    1139.000   1286.000   1517.600
+  M5   non_b        containment  49.976     59.875     70.220     79.160     92.276
+  M5   fractal      r2_b         -2172.788  -2092.535  -1943.637  -1855.475  -1784.117
+  M5   fractal      fit_b        0.004      0.004      0.004      0.004      0.004
+  M5   fractal      geo          0.390      0.390      0.390      0.390      0.390
+  M5   fractal      abs_skew_b   0.060      0.060      0.070      0.070      0.070
+  M5   fractal      coverage     32950.400  33158.000  33503.000  33847.500  34054.000
+  M5   fractal      containment  1.270      1.270      1.290      1.300      1.310
+  M15  best_fit_a   r2_a         0.868      0.868      0.913      0.913      0.916
+  M15  best_fit_a   r2_b         0.850      0.868      0.890      0.891      0.901
+  M15  best_fit_a   fit_a        0.794      1.367      1.817      1.820      2.023
+  M15  best_fit_a   fit_b        0.787      1.282      1.678      1.678      1.871
+  M15  best_fit_a   geo          1.010      1.018      1.024      2.016      2.441
+  M15  best_fit_a   abs_skew_a   0.260      0.270      0.280      0.560      0.560
+  M15  best_fit_a   abs_skew_b   0.170      0.230      0.230      0.750      0.750
+  M15  best_fit_a   coverage     518.000    653.000    810.000    900.000    947.000
+  M15  best_fit_a   containment  41.450     57.800     80.190     87.020     92.980
+  M15  best_fit_b   r2_a         0.784      0.784      0.785      0.884      0.885
+  M15  best_fit_b   r2_b         0.745      0.745      0.745      0.850      0.851
+  M15  best_fit_b   fit_a        1.354      1.398      1.842      2.042      2.043
+  M15  best_fit_b   fit_b        1.170      1.200      1.663      1.830      1.830
+  M15  best_fit_b   geo          0.923      0.927      0.928      0.929      2.350
+  M15  best_fit_b   abs_skew_a   0.400      0.400      0.440      0.450      0.730
+  M15  best_fit_b   abs_skew_b   0.220      0.220      0.230      0.410      0.730
+  M15  best_fit_b   coverage     1099.000   1166.000   1283.000   1353.000   1490.000
+  M15  best_fit_b   containment  14.220     30.730     80.690     82.350     83.180
+  M15  cherry_a     r2_a         0.205      0.904      0.907      0.911      0.921
+  M15  cherry_a     r2_b         0.126      0.893      0.904      0.906      0.907
+  M15  cherry_a     fit_a        1.190      1.410      1.489      1.576      1.668
+  M15  cherry_a     fit_b        1.200      1.384      1.461      1.547      1.644
+  M15  cherry_a     geo          1.133      1.614      1.617      2.095      2.806
+  M15  cherry_a     abs_skew_a   0.070      0.510      0.790      0.800      0.880
+  M15  cherry_a     abs_skew_b   0.150      0.340      0.860      0.960      0.960
+  M15  cherry_a     coverage     877.000    964.000    1037.000   1240.000   1404.000
+  M15  cherry_a     containment  81.420     83.570     86.350     89.060     94.040
+  M15  cherry_b     r2_a         0.205      0.904      0.907      0.911      0.921
+  M15  cherry_b     r2_b         0.126      0.893      0.904      0.906      0.907
+  M15  cherry_b     fit_a        1.190      1.410      1.489      1.576      1.668
+  M15  cherry_b     fit_b        1.200      1.384      1.461      1.547      1.644
+  M15  cherry_b     geo          1.133      1.614      1.617      2.095      2.806
+  M15  cherry_b     abs_skew_a   0.070      0.510      0.790      0.800      0.880
+  M15  cherry_b     abs_skew_b   0.150      0.340      0.860      0.960      0.960
+  M15  cherry_b     coverage     877.000    964.000    1037.000   1240.000   1404.000
+  M15  cherry_b     containment  81.420     83.570     86.350     89.060     94.040
+  M15  most_recent  r2_a         0.205      0.904      0.907      0.911      0.921
+  M15  most_recent  r2_b         0.126      0.893      0.904      0.906      0.907
+  M15  most_recent  fit_a        1.190      1.410      1.489      1.576      1.668
+  M15  most_recent  fit_b        1.200      1.384      1.461      1.547      1.644
+  M15  most_recent  geo          1.133      1.614      1.617      2.095      2.806
+  M15  most_recent  abs_skew_a   0.070      0.510      0.790      0.800      0.880
+  M15  most_recent  abs_skew_b   0.150      0.340      0.860      0.960      0.960
+  M15  most_recent  coverage     877.000    964.000    1037.000   1240.000   1404.000
+  M15  most_recent  containment  81.420     83.570     86.350     89.060     94.040
+  M15  non_a        r2_a         0.205      0.904      0.907      0.911      0.921
+  M15  non_a        r2_b         0.126      0.893      0.904      0.906      0.907
+  M15  non_a        fit_a        1.190      1.410      1.489      1.576      1.668
+  M15  non_a        fit_b        1.200      1.384      1.461      1.547      1.644
+  M15  non_a        geo          1.133      1.614      1.617      2.095      2.806
+  M15  non_a        abs_skew_a   0.070      0.510      0.790      0.800      0.880
+  M15  non_a        abs_skew_b   0.150      0.340      0.860      0.960      0.960
+  M15  non_a        coverage     877.000    964.000    1037.000   1240.000   1404.000
+  M15  non_a        containment  81.420     83.570     86.350     89.060     94.040
+  M15  non_b        r2_a         -0.005     -0.004     0.035      0.236      0.236
+  M15  non_b        r2_b         -0.029     -0.029     0.026      0.179      0.187
+  M15  non_b        fit_a        1.496      1.497      1.667      1.713      2.047
+  M15  non_b        fit_b        1.482      1.482      1.634      1.671      1.928
+  M15  non_b        geo          0.973      0.979      0.994      1.261      1.477
+  M15  non_b        abs_skew_a   0.080      0.080      0.220      0.280      0.780
+  M15  non_b        abs_skew_b   0.020      0.020      0.040      0.470      0.490
+  M15  non_b        coverage     1491.000   1536.000   1591.000   1727.000   1757.000
+  M15  non_b        containment  62.580     64.500     69.950     74.790     79.830
+
+5. Q4: the 51 cycles where DAY_TRADER matched no rule with the stored setting
+  M5 setting   MCD2 VALID  MCD2 CAUTIONARY  MCD2 INVALID  MCD2 STALE  MCD2 states
+  best_fit_a   0           0                51            0           - x 51
+  best_fit_b   18          33               0             0           DOWN_LOWER_BREAKDOWN x 51
+  cherry_a     51          0                0             0           DOWN_IN_CORRIDOR x 51
+  cherry_b     51          0                0             0           DOWN_IN_CORRIDOR x 51
+  most_recent  51          0                0             0           DOWN_IN_CORRIDOR x 51
+  non_a        51          0                0             0           DOWN_IN_CORRIDOR x 51
+  non_b        18          33               0             0           DOWN_LOWER_BREAKDOWN x 51
+  fractal      0           0                51            0           - x 51
+
+6. Q5: the same closed bar in a cycle's bundle and in the next one (M5: 300 s later; M15: 900 s later)
+  pairs compared: M5 1369, M15 449
+  tf   column              both numbers  changed  value<->null  abs p50  abs p90  abs p99   abs max   % width p90  % width p99  moved > 5% of width
+  M15  non_b_base_fl       449           6.9%     0             0.0000   0.0000   111.6761  220.6030  0.00         43.16        4.2%
+  M15  non_b_loedt         449           6.9%     0             0.0000   0.0000   86.4566   156.7895  0.00         33.26        4.2%
+  M15  non_b_ssa           449           32.1%    0             0.0000   2.5071   7.6713    10.4536   1.00         2.98         0.2%
+  M15  non_b_uoedt         449           6.9%     0             0.0000   0.0000   103.6607  275.8508  0.00         40.35        4.2%
+  M5   best_fit_a_base_fl  1369          13.7%    0             0.0000   0.1443   22.1378   262.9574  0.15         43.48        2.9%
+  M5   best_fit_a_loedt    1219          12.0%    4             0.0000   0.0232   25.1858   271.3920  0.05         35.27        2.8%
+  M5   best_fit_a_ssa      1369          30.4%    0             0.0000   1.4218   4.8187    10.1481   3.09         10.34        6.0%
+  M5   best_fit_a_uoedt    1235          12.4%    4             0.0000   0.0502   43.3003   246.8483  0.12         83.82        2.6%
+  against market_data_point_in_time (same bar, channel columns)
+  bundle value taken  tf   equal  different
+  at close            M15  12732  0
+  at close            M5   38220  0
+  one cycle later     M15  1559   237
+  one cycle later     M5   4290   910

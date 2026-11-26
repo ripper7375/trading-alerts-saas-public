@@ -3,8 +3,8 @@
   "scenario": "03-real-28-sep-2315-downtrend-continuation",
   "status": "APPROVED",
   "approved_by": "Davin",
-  "approved_on": "2026-10-09",
+  "approved_on": "2026-11-26",
   "scenario_sha256": "17e9a19aefbc064b56ab921bd6941023cf13c9eefc43462f50406ccd8d576cef",
-  "expected_sha256": "b1990843deb2efedfb478f44cdde648a444488703a461b2f3301aa8e7339c733",
-  "note": ""
+  "expected_sha256": "953d07f77d2e4af4d44ff8b5a40fc9ea0a0448d97bf3a5cd0c1e6ec2142867a6",
+  "note": "Reset by record: the scenario or its expected output changed after Davin approved it on 2026-10-09. It needs a new approval."
 }

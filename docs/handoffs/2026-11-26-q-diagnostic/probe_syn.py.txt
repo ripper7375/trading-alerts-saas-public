@@ -1,0 +1,48 @@
+"""Why SYN stays CAUTIONARY under most_recent + A4, which rule branch decides, and what price did meanwhile."""
+import base64, collections, dataclasses, gzip, json, sys
+from pathlib import Path
+here = Path(sys.argv[1]); engine = sys.argv[2]
+sys.argv = ["simulate", str(here / "data"), engine, str(here / "report")]
+sys.path.insert(0, str(here))
+import simulate as s
+q = s.q
+q.cycle_runner._bundle_sha256 = lambda inputs: None
+q.cycle_runner._bundle_text = lambda inputs: None
+q.mcd0_keys = ("min_coverage_bars", "t_edt_open_bar_rows", "min_r2_model_a", "min_r2_model_b", "flat_angle_deg", "min_fit_ratio",
+               "max_fit_ratio", "min_geo_ratio", "max_geo_ratio", "max_abs_skew", "ratio_decimals", "statistic_decimals")
+worker = q.cycle_runner.Worker.load()
+reasons = {p: collections.Counter() for p in q.PROFILES}; branch = {p: collections.Counter() for p in q.PROFILES}
+single = {p: collections.Counter() for p in q.PROFILES}; cautious = collections.Counter()
+closes = collections.defaultdict(list); long_vs_trend = collections.Counter()
+for record in q.read_lines("bundles.ndjson"):
+    slot = record["slot"]; data = json.loads(gzip.decompress(base64.b64decode(record["gz"])))
+    inputs = q.CycleInputs.from_dict(data)
+    closes[q.iso(slot)[:10]].append(data["bars"]["M5"][-1]["close"])
+    switched = dataclasses.replace(inputs, active_indicator={**dict(inputs.active_indicator), "M5": s.CANDIDATE})
+    candidate = s.rebuilt_m5(switched, s.CANDIDATE, collections.Counter())
+    with s.variant_a4(worker):
+        result = worker.run_cycle(candidate)
+    trend15 = next((r.envelope.get("details", {}).get("trend_direction") for r in result.results if r.mcd_id == "MCD1"), None)
+    for entry in result.synthesis.to_dict()["readings"]:
+        reading = json.loads(entry["reading_json"]); p = entry["profile"]
+        branch[p][(reading["rule_id"], reading.get("branch_id"), reading.get("bias"))] += 1
+        long_vs_trend[(p, reading.get("bias"), trend15)] += 1
+        if reading["status"] == "CAUTIONARY":
+            cautious[p] += 1
+            kinds = {x.split(":")[0] if x.startswith(("MCD0_DEFECT", "UPSTREAM")) else x for x in reading["status_reasons"]}
+            for x in reading["status_reasons"]: reasons[p][x] += 1
+            if len(reading["status_reasons"]) == 1: single[p][reading["status_reasons"][0]] += 1
+lines = ["SYN under M5 = most_recent and MCD0 A4"]
+for p in q.PROFILES:
+    lines.append(f"  {p}: CAUTIONARY {cautious[p]}")
+    lines.append("    reasons: " + "; ".join(f"{k} x {v}" for k, v in reasons[p].most_common(8)))
+    lines.append("    sole reason: " + ("; ".join(f"{k} x {v}" for k, v in single[p].most_common(6)) or "-"))
+    lines.append("    rule / branch / bias: " + "; ".join(f"{a} {b} {c} x {n}" for (a, b, c), n in branch[p].most_common(6)))
+    lines.append("    bias against the M15 trend word: " + "; ".join(f"{b} with {t} x {n}" for (pp, b, t), n in long_vs_trend.most_common() if pp == p and b in ("LONG", "SHORT")))
+lines.append("M5 close (first -> last of each day's cycles; low, high)")
+for day, v in sorted(closes.items()):
+    lines.append(f"  {day}: {v[0]:.2f} -> {v[-1]:.2f} ({v[-1]-v[0]:+.2f}); {min(v):.2f} to {max(v):.2f}")
+every = [x for day in sorted(closes) for x in closes[day]]
+lines.append(f"  week: {every[0]:.2f} -> {every[-1]:.2f} ({every[-1]-every[0]:+.2f}, {100*(every[-1]-every[0])/every[0]:+.2f}%)")
+(here / "report" / "simulation-syn.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+print("\n".join(lines))

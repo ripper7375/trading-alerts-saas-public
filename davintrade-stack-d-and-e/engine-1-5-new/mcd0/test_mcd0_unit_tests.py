@@ -1,4 +1,4 @@
-"""Unit tests for MCD0 1.0.0 (standard section 12: T1 to T13; T14 is for derived MCDs only).
+"""Unit tests for MCD0 1.1.0 (standard section 12: T1 to T13; T14 is for derived MCDs only).
 
 Run from ``davintrade-stack-d-and-e/engine-1-5-new/``::
 
@@ -250,13 +250,13 @@ class RegisterTests(unittest.TestCase):
         self.assertEqual(REGISTRY["depends_on"], [])
         self.assertEqual(REGISTRY["uses_channel"], [])
         self.assertEqual(REGISTRY["rung"], {})
-        self.assertEqual(REGISTRY["flag"], "off")
+        self.assertEqual(REGISTRY["flag"], "shadow")  # promoted in Stage B1 step 1
         self.assertEqual(
             set(PARAMS.values),
             {
                 "min_coverage_bars", "t_edt_open_bar_rows", "min_r2_model_a", "min_r2_model_b", "flat_angle_deg",
                 "min_fit_ratio", "max_fit_ratio", "min_geo_ratio", "max_geo_ratio", "max_abs_skew",
-                "ratio_decimals", "statistic_decimals",
+                "ratio_decimals", "statistic_decimals", "r2_timeframes",
             },
         )
 
@@ -264,9 +264,12 @@ class RegisterTests(unittest.TestCase):
         section = SPEC[SPEC.index("## 6. Calculation") : SPEC.index("## 7. State register")]
         rows = dict(re.findall(r"^\| `([a-z0-9_]+)`\s+\| ([0-9.]+) ", section, flags=re.M))
         in_spec = {name: float(value) for name, value in rows.items() if name in PARAMS.values}
-        self.assertEqual(set(in_spec), set(PARAMS.values))
+        # r2_timeframes is the one parameter that is a list of timeframes, written `M5` in the table.
+        self.assertEqual(set(in_spec), set(PARAMS.values) - {"r2_timeframes"})
         for name, value in in_spec.items():
             self.assertEqual(float(PARAMS[name]), value, name)
+        listed = re.findall(r"^\| `r2_timeframes`\s+\| `([A-Z0-9, ]+)`", section, flags=re.M)
+        self.assertEqual([tuple(row.split(", ")) for row in listed], [tuple(PARAMS["r2_timeframes"])])
 
     def test_every_parameter_carries_value_unit_boundary_and_why(self):
         for name, meta in PARAMS.meta.items():
@@ -274,14 +277,20 @@ class RegisterTests(unittest.TestCase):
                 self.assertTrue(str(meta[field]).strip(), (name, field))
 
     def test_the_values_are_the_settled_thresholds(self):
-        # ADR-019, architecture 2.4 and file C: R2 A 0.70 and B 0.65, fit ratio 1.50 to 3.20, geo ratio 0.60 to 1.65,
-        # skew 1.50, coverage 60 (decisions (a) and (d): one open-bar row, flat band 5 degrees).
+        # ADR-101 (1.1.0, variant A4 of the shadow-window sweep): R2 floor 0.00 applied to M5 only, fit ratio 1.25 to
+        # 3.20, geo ratio 0.50 to 2.00; unchanged from 1.0.0: skew 1.50, coverage 60, one open-bar row, flat band 5.
         self.assertEqual(
             (PARAMS["min_coverage_bars"], PARAMS["t_edt_open_bar_rows"], PARAMS["min_r2_model_a"], PARAMS["min_r2_model_b"],
              PARAMS["flat_angle_deg"], PARAMS["min_fit_ratio"], PARAMS["max_fit_ratio"], PARAMS["min_geo_ratio"],
              PARAMS["max_geo_ratio"], PARAMS["max_abs_skew"]),
-            (60, 1, 0.70, 0.65, 5.0, 1.50, 3.20, 0.60, 1.65, 1.50),
+            (60, 1, 0.00, 0.00, 5.0, 1.25, 3.20, 0.50, 2.00, 1.50),
         )
+        self.assertEqual(tuple(PARAMS["r2_timeframes"]), ("M5",))
+
+    def test_this_is_evaluator_1_1_0(self):
+        # A changed threshold is a MINOR version (standard section 14) and starts a new statistics series.
+        self.assertEqual(ev.EVALUATOR_VERSION, "1.1.0")
+        self.assertEqual(run(synth())["evaluator_version"], "1.1.0")
 
 
 # --------------------------------------------------------------------------- T1: one test per state
@@ -310,10 +319,10 @@ class StateTests(unittest.TestCase):
             commentary="The M5 channel (best_fit_a) and the M15 channel (non_b) meet every fit criterion.",
         )
         self.assertEqual(skipped(out, "M5"), [])
-        self.assertEqual(skipped(out, "M15"), [])
+        self.assertEqual(skipped(out, "M15"), ["R2_A", "R2_B"])
 
     def test_02_m5_defect(self):
-        out = run(synth(m5_row={"model_a_r2": 0.60}))
+        out = run(synth(m5_row={"model_a_r2": -0.10}))
         self.assert_reading(
             out, state="MCD0_M5_DEFECT", m5_failed=["R2_A"], m15_failed=[],
             commentary="The M5 channel (best_fit_a) misses fit criteria: R2. The M15 channel (non_b) meets every fit criterion.",
@@ -327,28 +336,27 @@ class StateTests(unittest.TestCase):
         )
 
     def test_04_m5_and_m15_defect(self):
-        out = run(synth(m5_row={"window_span_bars": 30, "uoedt_offset": 90.0}, m15_row={"model_a_mse": 8100.0, "model_b_r2": 0.1}))
+        out = run(synth(m5_row={"window_span_bars": 30, "uoedt_offset": 90.0}, m15_row={"model_a_mse": 8100.0, "model_b_skew": 2.0}))
         self.assert_reading(
-            out, state="MCD0_M5_M15_DEFECT", m5_failed=["COVERAGE", "GEO"], m15_failed=["R2_B", "FIT_A"],
+            out, state="MCD0_M5_M15_DEFECT", m5_failed=["COVERAGE", "GEO"], m15_failed=["FIT_A", "SKEW_B"],
             commentary="The M5 channel (best_fit_a) misses fit criteria: coverage, geo ratio. "
-            "The M15 channel (non_b) misses fit criteria: R2, fit ratio.",
+            "The M15 channel (non_b) misses fit criteria: fit ratio, skew.",
         )
 
     def test_the_commentary_names_each_criterion_once_even_when_both_models_fail(self):
-        out = run(synth(m5_row={"model_a_r2": 0.1, "model_b_r2": 0.1, "model_a_skew": 3.0, "model_b_skew": -3.0}))
+        out = run(synth(m5_row={"model_a_r2": -0.1, "model_b_r2": -0.1, "model_a_skew": 3.0, "model_b_skew": -3.0}))
         self.assertEqual(failed(out, "M5"), ["R2_A", "R2_B", "SKEW_A", "SKEW_B"])
         self.assertIn("misses fit criteria: R2, skew.", out["commentary"])
 
     def test_the_two_models_of_one_criterion_fail_independently(self):
-        # Same value, different bound: R2 0.69 fails Model A (0.70) and passes Model B (0.65).
-        out = run(synth(m5_row={"model_a_r2": 0.69, "model_b_r2": 0.69}))
-        self.assertEqual(failed(out, "M5"), ["R2_A"])
+        for row, want in (({"model_a_r2": -0.1, "model_b_r2": 0.1}, ["R2_A"]), ({"model_a_r2": 0.1, "model_b_r2": -0.1}, ["R2_B"])):
+            self.assertEqual(failed(run(synth(m5_row=row)), "M5"), want, row)
 
     def test_a_sweep_agrees_with_an_independent_classifier(self):
         reached = set()
         for m5_bad in (False, True):
             for m15_bad in (False, True):
-                out = run(synth(m5_row={"model_b_r2": 0.0} if m5_bad else None, m15_row={"model_a_r2": 0.0} if m15_bad else None))
+                out = run(synth(m5_row={"model_b_r2": -0.1} if m5_bad else None, m15_row={"model_a_skew": 3.0} if m15_bad else None))
                 want = {(False, False): "ALL_QUALIFIED", (True, False): "M5_DEFECT", (False, True): "M15_DEFECT", (True, True): "M5_M15_DEFECT"}
                 self.assertEqual(out["state_code"], f"MCD0_{want[(m5_bad, m15_bad)]}")
                 reached.add(out["state_code"])
@@ -380,17 +388,46 @@ class BoundaryTests(unittest.TestCase):
         out = run(synth(m5_row={"window_span_bars": 101}), with_params(min_coverage_bars=100))
         self.assertNotIn("COVERAGE", failed(out, "M5"))
 
-    def test_r2_model_a_at_0_70(self):
-        for value, passes in ((0.6999, False), (0.70, True), (0.7001, True)):
+    def test_r2_model_a_at_0_00_on_m5(self):
+        for value, passes in ((-0.0001, False), (0.0, True), (0.0001, True)):
             self.assertEqual("R2_A" in failed(self.verdict(model_a_r2=value), "M5"), not passes, value)
 
-    def test_r2_model_b_at_0_65(self):
-        for value, passes in ((0.6499, False), (0.65, True), (0.6501, True)):
+    def test_r2_model_b_at_0_00_on_m5(self):
+        for value, passes in ((-0.0001, False), (0.0, True), (0.0001, True)):
             self.assertEqual("R2_B" in failed(self.verdict(model_b_r2=value), "M5"), not passes, value)
 
-    def test_the_fit_ratio_lower_bound_is_1_5_inclusive(self):
-        # W = 6 and MSE = 4: (6 / 2) / sqrt(4) is exactly 1.5.
-        base = dict(channel_width=6.0, uoedt_offset=3.0, loedt_offset=-3.0)
+    def test_r2_is_not_applied_on_m15_and_is_listed_as_skipped(self):
+        out = run(synth(m15_row={"model_a_r2": -9.0, "model_b_r2": -9.0}))
+        self.assertEqual((failed(out, "M15"), skipped(out, "M15")), ([], ["R2_A", "R2_B"]))
+        self.assertEqual(out["state_code"], "MCD0_ALL_QUALIFIED")
+        # the values are still reported
+        details = out["details"]["M15"]
+        self.assertEqual((details["model_a"]["r2"], details["model_b"]["r2"]), (-9.0, -9.0))
+
+    def test_the_r2_rule_follows_the_timeframe_and_not_the_indicator(self):
+        # ADR-101: no rule assumes a particular indicator (rule 6, ADR-010).
+        bad = {"model_a_r2": -1.0, "model_b_r2": -1.0}
+        for m5, m15 in (("non_b", "best_fit_a"), ("most_recent", "non_b"), ("best_fit_a", "most_recent")):
+            out = run(synth(m5=m5, m15=m15, m5_row=bad, m15_row=bad))
+            self.assertEqual((failed(out, "M5"), skipped(out, "M5")), (["R2_A", "R2_B"], []), (m5, m15))
+            self.assertEqual((failed(out, "M15"), skipped(out, "M15")), ([], ["R2_A", "R2_B"]), (m5, m15))
+
+    def test_the_r2_timeframes_are_a_parameter(self):
+        bad = {"model_a_r2": -1.0, "model_b_r2": -1.0}
+        both = run(synth(m5_row=bad, m15_row=bad), with_params(r2_timeframes=("M5", "M15")))
+        self.assertEqual((failed(both, "M15"), skipped(both, "M15")), (["R2_A", "R2_B"], []))
+        none = run(synth(m5_row=bad, m15_row=bad), with_params(r2_timeframes=()))
+        self.assertEqual((failed(none, "M5"), skipped(none, "M5")), ([], ["R2_A", "R2_B"]))
+
+    def test_a_missing_r2_timeframes_parameter_is_an_evaluator_error_and_not_a_silent_skip(self):
+        values = {name: value for name, value in PARAMS.values.items() if name != "r2_timeframes"}
+        with self.assertLogs("mcd", level="ERROR"):
+            out = run(synth(), dataclasses.replace(PARAMS, values=values))
+        self.assertEqual((out["status"], out["status_reasons"]), ("INVALID", ["EVALUATOR_ERROR"]))
+
+    def test_the_fit_ratio_lower_bound_is_1_25_inclusive(self):
+        # W = 5 and MSE = 4: (5 / 2) / sqrt(4) is exactly 1.25.
+        base = dict(channel_width=5.0, uoedt_offset=2.5, loedt_offset=-2.5)
         for mse, passes in ((4.0001, False), (4.0, True), (3.9999, True)):
             out = self.verdict(model_a_mse=mse, model_b_mse=mse, **base)
             self.assertEqual("FIT_A" in failed(out, "M5"), not passes, mse)
@@ -413,9 +450,9 @@ class BoundaryTests(unittest.TestCase):
         values = out["details"]["M5"]
         self.assertEqual((values["model_a"]["fit_ratio"], values["model_b"]["fit_ratio"]), (0.5, 2.0))
 
-    def test_the_geo_ratio_is_inclusive_at_0_6_and_1_65(self):
-        for up, lo, passes in ((0.5999, -1.0, False), (3.0, -5.0, True), (0.6001, -1.0, True),
-                               (1.6499, -1.0, True), (33.0, -20.0, True), (1.6501, -1.0, False)):
+    def test_the_geo_ratio_is_inclusive_at_0_5_and_2_0(self):
+        for up, lo, passes in ((0.4999, -1.0, False), (1.0, -2.0, True), (0.5001, -1.0, True),
+                               (1.9999, -1.0, True), (40.0, -20.0, True), (2.0001, -1.0, False)):
             out = self.verdict(uoedt_offset=up, loedt_offset=lo)
             self.assertEqual("GEO" in failed(out, "M5"), not passes, (up, lo))
 
@@ -429,7 +466,7 @@ class BoundaryTests(unittest.TestCase):
             self.assertEqual("SKEW_B" in failed(self.verdict(model_b_skew=value), "M5"), not passes, value)
 
     def test_a_flat_channel_skips_r2_at_and_inside_5_degrees_and_applies_it_beyond(self):
-        bad = dict(model_a_r2=0.0, model_b_r2=0.0)
+        bad = dict(model_a_r2=-0.5, model_b_r2=-0.5)
         for angle, flat in ((-5.01, False), (-5.0, True), (0.0, True), (5.0, True), (5.01, False)):
             out = self.verdict(regression_angle=angle, **bad)
             if flat:
@@ -438,7 +475,7 @@ class BoundaryTests(unittest.TestCase):
                 self.assertEqual((failed(out, "M5"), skipped(out, "M5")), (["R2_A", "R2_B"], []), angle)
 
     def test_the_flat_band_is_a_parameter(self):
-        out = run(synth(m5_row=dict(regression_angle=8.0, model_a_r2=0.0, model_b_r2=0.0)), with_params(flat_angle_deg=10.0))
+        out = run(synth(m5_row=dict(regression_angle=8.0, model_a_r2=-0.5, model_b_r2=-0.5)), with_params(flat_angle_deg=10.0))
         self.assertEqual(skipped(out, "M5"), ["R2_A", "R2_B"])
 
     def test_a_flat_channel_with_a_bad_fit_still_fails_the_other_pillars(self):
@@ -460,10 +497,10 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual(failed(run(synth(), with_params(max_abs_skew=0.1)), "M5"), ["SKEW_A", "SKEW_B"])
 
     def test_the_verdict_is_decided_on_the_unrounded_values(self):
-        # R2 0.699999 fails 0.70 and is shown as 0.7 (four decimals); R2 0.700001 passes.
-        out = self.verdict(model_a_r2=0.699999)
-        self.assertEqual((failed(out, "M5"), out["details"]["M5"]["model_a"]["r2"]), (["R2_A"], 0.7))
-        self.assertEqual(failed(self.verdict(model_a_r2=0.700001), "M5"), [])
+        # R2 -0.000001 fails 0.00 and is shown as 0.0 (four decimals); R2 0.000001 passes.
+        out = self.verdict(model_a_r2=-0.000001)
+        self.assertEqual((failed(out, "M5"), out["details"]["M5"]["model_a"]["r2"]), (["R2_A"], 0.0))
+        self.assertEqual(failed(self.verdict(model_a_r2=0.000001), "M5"), [])
 
 
 # --------------------------------------------------------------------------- the decisions (a), (d) to (g), (j) as tests
@@ -480,7 +517,7 @@ class DecisionTests(unittest.TestCase):
         self.assertEqual(sorted(out["config_hash"]), ["fractal_edt", "non_b"])
 
     def test_e_the_fractal_edt_still_fails_on_model_b_coverage_and_geo(self):
-        out = run(synth(m5="fractal", m5_row={"model_b_r2": 0.1, "window_span_bars": 40, "uoedt_offset": 10.0, "loedt_offset": -50.0}))
+        out = run(synth(m5="fractal", m5_row={"model_b_r2": -0.1, "window_span_bars": 40, "uoedt_offset": 10.0, "loedt_offset": -50.0}))
         self.assertEqual(failed(out, "M5"), ["COVERAGE", "R2_B", "GEO"])
         self.assertEqual(out["state_code"], "MCD0_M5_DEFECT")
 
@@ -497,8 +534,8 @@ class DecisionTests(unittest.TestCase):
     def test_e_the_rule_follows_the_source_name_for_every_candidate(self):
         for candidate in ("best_fit_a", "best_fit_b", "cherry_a", "cherry_b", "most_recent", "non_a", "non_b"):
             out = run(synth(m5=candidate, m15=candidate))
-            for tf in TIMEFRAMES:
-                self.assertEqual((failed(out, tf), skipped(out, tf)), ([], []), (candidate, tf))
+            for tf, skips in (("M5", []), ("M15", ["R2_A", "R2_B"])):
+                self.assertEqual((failed(out, tf), skipped(out, tf)), ([], skips), (candidate, tf))
                 self.assertIsNotNone(out["details"][tf]["model_a"], (candidate, tf))
         out = run(synth(m5="fractal"))
         self.assertIsNone(out["details"]["M5"]["model_a"])
@@ -557,7 +594,7 @@ class DecisionTests(unittest.TestCase):
         self.assertEqual(out["details"]["M5"]["coverage"], 754)
 
     def test_h_one_unreadable_timeframe_makes_the_whole_envelope_unavailable(self):
-        out = run(synth(m5_row={"model_a_mse": 0.0}, m15_row={"model_a_r2": 0.0}))  # M5 unreadable, M15 a defect
+        out = run(synth(m5_row={"model_a_mse": 0.0}, m15_row={"model_a_skew": 3.0}))  # M5 unreadable, M15 a defect
         self.assertEqual((out["status"], out["state_code"], out["bias"], out["details"]), ("INVALID", None, None, {}))
 
 
@@ -584,7 +621,7 @@ class PreflightTests(unittest.TestCase):
             self.assertEqual((out["status"], out["state_code"]), ("VALID", "MCD0_ALL_QUALIFIED"), status)
 
     def test_a_retuning_cycle_is_cautionary_and_keeps_its_state_and_details(self):
-        out = run(dataclasses.replace(synth(m5_row={"model_a_r2": 0.1}), retuning=True))
+        out = run(dataclasses.replace(synth(m5_row={"model_a_r2": -0.1}), retuning=True))
         self.assertEqual((out["status"], out["status_reasons"], out["state_code"]), ("CAUTIONARY", ["RETUNING"], "MCD0_M5_DEFECT"))
         self.assertEqual(failed(out, "M5"), ["R2_A"])
         self.assertEqual((out["bias"], out["levels"]), ("NEUTRAL", []))
@@ -750,7 +787,7 @@ class PreflightTests(unittest.TestCase):
         broken = Params.from_dict(
             {
                 "mcd_id": "MCD0",
-                "evaluator_version": "1.0.0",
+                "evaluator_version": "1.1.0",
                 "parameters": {"min_coverage_bars": {"value": 60, "unit": "x", "boundary": "x", "why": "x"}},
             }
         )
@@ -768,17 +805,18 @@ class PreflightTests(unittest.TestCase):
 
 # (slot, M5 setting, M15 setting, state, M5 failed, M5 skipped, M5 coverage, M5 geo, M15 failed, M15 skipped, M15 coverage, M15 geo)
 FRACTAL_SKIPS = ["R2_A", "FIT_A", "SKEW_A"]
+R2 = ["R2_A", "R2_B"]  # not applied on M15 (ADR-101)
 REAL = [
     ("v1", None, None, "MCD0_M5_M15_DEFECT", ["R2_A", "R2_B", "FIT_A", "FIT_B"], [], 754, 1.0,
-     ["R2_A", "FIT_A", "FIT_B"], [], 1807, 0.7425),
-    ("v3", None, None, "MCD0_M5_M15_DEFECT", ["R2_A", "R2_B"], [], 1037, 0.8353, ["R2_A", "R2_B"], [], 1528, 0.7524),
-    ("v4", None, None, "MCD0_M5_M15_DEFECT", ["R2_A"], [], 1133, 1.0761, ["R2_A", "R2_B"], [], 2034, 0.8478),
-    ("v3", None, "non_a", "MCD0_M5_DEFECT", ["R2_A", "R2_B"], [], 1037, 0.8353, [], [], 487, 1.4351),
-    ("v4", None, "non_a", "MCD0_M5_DEFECT", ["R2_A"], [], 1133, 1.0761, [], ["R2_A", "R2_B"], 967, 1.3097),
+     ["FIT_A", "FIT_B"], R2, 1807, 0.7425),
+    ("v3", None, None, "MCD0_ALL_QUALIFIED", [], [], 1037, 0.8353, [], R2, 1528, 0.7524),
+    ("v4", None, None, "MCD0_ALL_QUALIFIED", [], [], 1133, 1.0761, [], R2, 2034, 0.8478),
+    ("v3", None, "non_a", "MCD0_ALL_QUALIFIED", [], [], 1037, 0.8353, [], R2, 487, 1.4351),
+    ("v4", None, "non_a", "MCD0_ALL_QUALIFIED", [], [], 1133, 1.0761, [], R2, 967, 1.3097),
     ("v1", "fractal", None, "MCD0_M5_M15_DEFECT", ["R2_B", "FIT_B", "GEO"], FRACTAL_SKIPS, 335, 0.5,
-     ["R2_A", "FIT_A", "FIT_B"], [], 1807, 0.7425),
-    ("v3", "fractal", "non_a", "MCD0_M5_DEFECT", ["GEO"], FRACTAL_SKIPS, 313, 0.5961, [], [], 487, 1.4351),
-    ("v4", "fractal", "non_a", "MCD0_M5_DEFECT", ["GEO"], FRACTAL_SKIPS, 409, 0.5961, [], ["R2_A", "R2_B"], 967, 1.3097),
+     ["FIT_A", "FIT_B"], R2, 1807, 0.7425),
+    ("v3", "fractal", "non_a", "MCD0_ALL_QUALIFIED", [], FRACTAL_SKIPS, 313, 0.5961, [], R2, 487, 1.4351),
+    ("v4", "fractal", "non_a", "MCD0_ALL_QUALIFIED", [], FRACTAL_SKIPS, 409, 0.5961, [], R2, 967, 1.3097),
 ]
 
 
@@ -805,28 +843,29 @@ class RealCycleTests(unittest.TestCase):
         self.assertEqual(sorted(out["config_hash"]), ["best_fit_a", "non_b"])
         self.assertEqual(
             out["commentary"],
-            "The M5 channel (best_fit_a) misses fit criteria: R2, fit ratio. The M15 channel (non_b) misses fit criteria: R2, fit ratio.",
+            "The M5 channel (best_fit_a) misses fit criteria: R2, fit ratio. The M15 channel (non_b) misses fit criteria: fit ratio.",
         )
 
     def test_the_boundary_close_real_values_decide_as_stated(self):
-        # v4 M5 cherry_a R2 A 0.6876 against 0.70 (fails); v4 M15 non_b fit ratio B 1.5058 against 1.50 (passes);
-        # v1 M15 non_b R2 B 0.6550 against 0.65 (passes).
+        # v1 M15 non_b fit ratio A 1.2242 against 1.25 (fails); v4 M15 non_b fit ratio B 1.5058 against 1.25 (passes);
+        # v1 M5 fractal geo ratio 0.4999998 against 0.50: shown as 0.5 and fails, decided on the unrounded value.
         v4 = run(stored_inputs("v4"))
-        self.assertEqual((v4["details"]["M5"]["model_a"]["r2"], "R2_A" in failed(v4, "M5")), (0.6876, True))
         self.assertEqual((v4["details"]["M15"]["model_b"]["fit_ratio"], "FIT_B" in failed(v4, "M15")), (1.5058, False))
         v1 = run(stored_inputs("v1"))
-        self.assertEqual((v1["details"]["M15"]["model_b"]["r2"], "R2_B" in failed(v1, "M15")), (0.655, False))
+        self.assertEqual((v1["details"]["M15"]["model_a"]["fit_ratio"], "FIT_A" in failed(v1, "M15")), (1.2242, True))
+        fractal = run(with_settings(stored_inputs("v1"), m5="fractal"))
+        self.assertEqual((fractal["details"]["M5"]["geo_ratio"], "GEO" in failed(fractal, "M5")), (0.5, True))
 
-    def test_no_real_m5_channel_qualifies_so_two_states_are_synthetic_only(self):
+    def test_the_two_single_timeframe_states_have_no_real_example(self):
         states = set()
         for slot, m5, m15, state, *_rest in REAL:
             states.add(state)
-        self.assertEqual(states, {"MCD0_M5_DEFECT", "MCD0_M5_M15_DEFECT"})
+        self.assertEqual(states, {"MCD0_ALL_QUALIFIED", "MCD0_M5_M15_DEFECT"})
 
-    def test_the_fractal_edt_fails_the_geo_ratio_on_all_three_slots(self):
-        for slot in SLOTS:
+    def test_the_fractal_edt_geo_ratio_fails_on_v1_and_passes_on_v3_and_v4(self):
+        for slot, fails in (("v1", True), ("v3", False), ("v4", False)):
             out = run(with_settings(stored_inputs(slot), m5="fractal"))
-            self.assertIn("GEO", failed(out, "M5"), slot)
+            self.assertEqual("GEO" in failed(out, "M5"), fails, slot)
 
     def test_the_stored_bundles_hold_one_closed_bar_per_timeframe_and_the_slot_statistics(self):
         for name, slot in SLOTS.items():
@@ -900,8 +939,8 @@ class SharedV3NonA(_Shared, unittest.TestCase):
 
 
 def worst_case() -> CycleInputs:
-    """Every pillar failed on both timeframes, long setting names and long numbers: a large envelope (P6 found slightly larger
-    ones: ``cherry_b`` and ``cherry_a`` tokenise longer, so the margin to 600 is 20 to 30 tokens for realistic data)."""
+    """Every applied pillar failed on both timeframes (M15 does not apply R2), long setting names and long numbers: a large
+    envelope (P6 found slightly larger ones: ``cherry_b`` and ``cherry_a`` tokenise longer)."""
     row = {
         "window_span_bars": 12,
         "regression_angle": 33.33,
@@ -927,9 +966,9 @@ def worst_case() -> CycleInputs:
 class OutputTests(unittest.TestCase):
     def all_states(self):
         yield run(synth())
-        yield run(synth(m5_row={"model_a_r2": 0.1}))
-        yield run(synth(m15_row={"model_b_r2": 0.1}))
-        yield run(synth(m5_row={"model_a_r2": 0.1}, m15_row={"model_b_r2": 0.1}))
+        yield run(synth(m5_row={"model_a_r2": -0.1}))
+        yield run(synth(m15_row={"model_b_skew": 3.0}))
+        yield run(synth(m5_row={"model_a_r2": -0.1}, m15_row={"model_b_skew": 3.0}))
 
     def test_t8_every_state_and_every_failure_validates_against_the_schema(self):
         envelopes = list(self.all_states())
@@ -1025,7 +1064,8 @@ class OutputTests(unittest.TestCase):
         envelopes += [run(stored_inputs(name)) for name in SLOTS]
         self.assertEqual(run(worst)["state_code"], "MCD0_M5_M15_DEFECT")
         self.assertEqual(len(failed(run(worst), "M5")), 8)
-        self.assertEqual(len(failed(run(worst), "M15")), 8)
+        self.assertEqual(len(failed(run(worst), "M15")), 6)
+        self.assertEqual(skipped(run(worst), "M15"), ["R2_A", "R2_B"])
         result = shared.check_size(envelopes)
         self.assertFalse(result.pending, "o200k_base is not cached: python -m mcd_common.budget --fetch")
         self.assertTrue(result.passed, (result.largest_tokens, result.method))

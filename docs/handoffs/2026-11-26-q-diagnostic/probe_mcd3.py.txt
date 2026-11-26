@@ -1,0 +1,53 @@
+"""Does MCD3's window hold bars whose stored bands belong to another line than the last closed bar's? (set indicators)"""
+import base64, collections, gzip, json, sys
+from pathlib import Path
+here = Path(sys.argv[1])
+def lines(name):
+    with open(here / "data" / name, encoding="utf-8") as h:
+        for l in h:
+            if l.strip(): yield json.loads(l)
+num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+status = {(r["cycle_slot"], r["mcd_id"]): r["status"] for r in lines("outputs.ndjson")}
+def run_length(bars, name, tol):
+    base, up, lo = f"{name}_base_fl", f"{name}_uoedt", f"{name}_loedt"
+    last = bars[-1]; step = None; prev = None; run = 0; worst_after = 0.0
+    for bar in reversed(bars):
+        if not all(num(bar.get(c)) for c in (base, up, lo)): break
+        ok = abs((bar[up]-bar[base]) - (last[up]-last[base])) < tol and abs((bar[lo]-bar[base]) - (last[lo]-last[base])) < tol
+        if prev is not None:
+            s = prev - bar[base]
+            if step is None: step = s
+            ok = ok and abs(s - step) < tol
+        if not ok: break
+        prev = bar[base]; run += 1
+    return run, step
+c = collections.Counter(); gaps = []; mcd1 = collections.Counter()
+for record in lines("bundles.ndjson"):
+    data = json.loads(gzip.decompress(base64.b64decode(record["gz"]))); slot = record["slot"]
+    n5, n15 = data["active_indicator"]["M5"], data["active_indicator"]["M15"]
+    r5 = data["statistics"].get("M5", {}).get(n5)
+    st = status.get((slot, "MCD3"))
+    if st not in ("VALID", "CAUTIONARY"): continue
+    nest = int(r5["containment_n"]) - 1
+    b5, b15 = data["bars"]["M5"], data["bars"]["M15"]
+    window = b5[-nest:]
+    run5, step5 = run_length(b5, n5, 0.001)
+    start = max(i for i, b in enumerate(b15) if b["timestamp"] <= window[0]["timestamp"])
+    span15 = len(b15) - start
+    run15, _ = run_length(b15, n15, 0.001)
+    c["read"] += 1; c["nest>288"] += nest > 288; c["m5_mixed"] += run5 < nest; c["m15_mixed"] += run15 < span15; c["either"] += (run5 < nest) or (run15 < span15)
+    if run5 < nest:
+        cols = (f"{n5}_uoedt", f"{n5}_loedt")
+        width = b5[-1][cols[0]] - b5[-1][cols[1]]
+        base = f"{n5}_base_fl"; off_u = b5[-1][cols[0]] - b5[-1][base]; off_l = b5[-1][cols[1]] - b5[-1][base]
+        dev = 0.0
+        for k, bar in enumerate(reversed(window)):
+            if all(num(bar.get(x)) for x in (base, *cols)):
+                ideal = b5[-1][base] - step5 * k
+                dev = max(dev, abs(bar[cols[0]] - (ideal + off_u)), abs(bar[cols[1]] - (ideal + off_l)))
+        gaps.append(100 * dev / width)
+        c["mixed_over_5pct"] += 100 * dev / width > 5
+print(f"MCD3 readings (VALID or CAUTIONARY): {c['read']}; M5 nesting window above 288 bars in {c['nest>288']}")
+print(f"  M5 window holds bars from another line: {c['m5_mixed']}; M15 span does: {c['m15_mixed']}; either: {c['either']}")
+v = sorted(gaps)
+if v: print(f"  where M5 is mixed: largest band distance from the current line, % of channel width: median {v[len(v)//2]:.1f}  p90 {v[int(0.9*(len(v)-1))]:.1f}  max {v[-1]:.1f}; above 5%: {c['mixed_over_5pct']}")

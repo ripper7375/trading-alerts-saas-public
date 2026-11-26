@@ -8,8 +8,8 @@
 
 **How to approve.** Edit `config/reply/demo/approval.json`: set `status` to `APPROVED`, `approved_by` and `approved_on`. It holds the hash of the 19 recordings as they were read.
 
-- Source: STAND_IN run `standin-195b4e225f70`, fingerprint `195b4e225f70041a`, scenario M01, trader DAY_TRADER
-- Content hash: `301901f798732f6289ee618bda21c347ea24fee3143ae6ffbf684354f52afde5`
+- Source: STAND_IN run `standin-6dbff6a5865c`, fingerprint `6dbff6a5865cbdba`, scenario M01, trader DAY_TRADER
+- Content hash: `c92b22688ab66fb0cc03df28351542f1a4206f51fedabe0943f8ae8035a4fa08`
 
 | Locale | Direction | Headline | First line under "alignment" | First "what would change" line |
 | --- | --- | --- | --- | --- |

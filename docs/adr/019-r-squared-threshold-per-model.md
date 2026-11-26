@@ -1,6 +1,6 @@
 # ADR-019: R-squared threshold per model
 
-- **Status:** Settled
+- **Status:** Superseded by ADR-101
 - **Date:** 2026-09-29
 - **Section:** 2 · Sensors (MCDs) (deck decision 2.4: R² threshold)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §2.4

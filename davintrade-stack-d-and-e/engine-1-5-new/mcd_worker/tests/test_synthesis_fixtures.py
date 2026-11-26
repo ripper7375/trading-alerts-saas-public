@@ -3,8 +3,9 @@
 The sensors' readings are the ones the runner stored in ``fixtures/*.cycle.json`` (after MCD0 inheritance), so these tests show
 what the draft rules say about cycles that really happened, and that a SYN reading joins to the sensor rows it was made from.
 
-On all three cycles MCD0 flags both timeframes, so every channel sensor is CAUTIONARY and every SYN reading is CAUTIONARY too
-(3.3 mechanic 4): the architecture's example shows VALID, the real cycles do not. That is the MCD0 flag-rate question of step 3, B3.
+MCD0 1.1.0 (ADR-101) flags both timeframes on v1 only, so v1's channel sensors and SYN readings are CAUTIONARY (3.3
+mechanic 4). On v3 the gate passes and both readings are VALID; on v4 it passes and both stay CAUTIONARY through MCD3's
+modifier alone. Under 1.0.0 all three cycles were flagged on both timeframes.
 """
 
 from __future__ import annotations
@@ -32,10 +33,10 @@ EXPECTED = {
 READING_SHA256 = {
     ("v1", DAY): "afbf6ea5b1920403d4426a8f5dc542ac85aa48437ae825ce1856cd635ffca190",
     ("v1", SCALPER): "32042e4cb4082ca950f2f33f24d83f79f37bfbfefe8fad6da1e261a92b645ac4",
-    ("v3", DAY): "e209e0498f90731f4b380b1c057eb99debf469c98c3a70f56509fd650d6763a8",
-    ("v3", SCALPER): "96042c375cc4137ca922463f2084aa603cfd593dbf8b8d5c57ddcfe0fa089850",
-    ("v4", DAY): "854c8e39a48d05f4ddf8f752559683180c9fff5c52d17547e56d08a93d36225d",
-    ("v4", SCALPER): "0820c3a44e22e5758aaa2fa2a1e4653c1eb2deae0ae08777d93f2fe1f0d813ba",
+    ("v3", DAY): "50b0c4d0188164d07f90bdcd1a51dd6d70f238b08f60204aa94b01fad85a0c37",
+    ("v3", SCALPER): "56ceaab046e85fd851085b6a2d28a1f7884e523f9837ee4e6b9c22679fad5d38",
+    ("v4", DAY): "9856fb3cd1ea161aa507e1cc543e3fd37d6b023435ef51c15444ee94a4956c0e",
+    ("v4", SCALPER): "82737e2b98ddd98f8ec82efa248d10efa7410e03ac6163fb4a9252e6514c80af",
 }
 
 
@@ -75,13 +76,16 @@ class RealCycleTests(unittest.TestCase):
         rows = {EXPECTED[key][0] for key in EXPECTED}
         self.assertEqual(rows, {"R1_MACRO_COUNTER_TREND_RALLY", "R2_EXHAUSTION_SNAPBACK", "R3_TREND_CONTINUATION", "R3S_TREND_CONTINUATION_M5"})
 
-    def test_every_real_reading_is_cautionary_because_mcd0_flags_both_timeframes(self) -> None:
-        for name in ("v1", "v3", "v4"):
-            self.assertEqual(stored(name)["gate"]["defect_timeframes"], ["M5", "M15"])
+    def test_a_reading_is_cautionary_through_mcd0_only_on_the_cycle_the_gate_flags(self) -> None:
+        self.assertEqual(stored("v1")["gate"]["defect_timeframes"], ["M5", "M15"])
+        for profile, syn in synthesize("v1").items():
+            self.assertEqual(syn.reading["status"], "CAUTIONARY", profile)
+            self.assertTrue({"MCD0_DEFECT_M5", "MCD0_DEFECT_M15"} & set(syn.reading["status_reasons"]), profile)
+        modifier = ["MODIFIER_CAUTION:MCD3_NON_CONSOLIDATED_OVERFLOW"]
+        for name, status, reasons in (("v3", "VALID", []), ("v4", "CAUTIONARY", modifier)):
+            self.assertEqual(stored(name)["gate"]["defect_timeframes"], [], name)
             for profile, syn in synthesize(name).items():
-                r = syn.reading
-                self.assertEqual(r["status"], "CAUTIONARY", (name, profile))
-                self.assertTrue({"MCD0_DEFECT_M5", "MCD0_DEFECT_M15"} & set(r["status_reasons"]), (name, profile))
+                self.assertEqual((syn.reading["status"], syn.reading["status_reasons"]), (status, reasons), (name, profile))
 
     def test_the_18_sep_reasons(self) -> None:
         made = synthesize("v1")

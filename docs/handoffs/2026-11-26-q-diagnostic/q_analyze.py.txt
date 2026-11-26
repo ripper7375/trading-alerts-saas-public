@@ -1,0 +1,501 @@
+"""Q2 to Q5 diagnostic on the exported cycles (local only, no database, no network).
+
+Usage: python q_analyze.py <data folder> <engine folder> <report folder>
+
+The stored bundles are run again through the checkout's own engine: once with the stored setting (checked against the
+stored reading hashes) and once for every M5 candidate. Nothing here changes a setting or a threshold.
+"""
+
+from __future__ import annotations
+
+import base64
+import collections
+import dataclasses
+import gzip
+import hashlib
+import importlib
+import json
+import logging
+import math
+import sys
+import time
+from pathlib import Path
+
+DATA, ENGINE, OUT = (Path(p).resolve() for p in sys.argv[1:4])
+sys.path.insert(0, str(ENGINE))
+logging.disable(logging.CRITICAL)
+
+from mcd_common.cycle_inputs import CANDIDATES, CycleInputs, Params, channel_columns, is_number, is_populated, statistics_source  # noqa: E402
+from mcd_worker import cycle_runner  # noqa: E402
+
+mcd0 = importlib.import_module("mcd0.mcd0_evaluator")
+MCD0_PARAMS = Params.from_yaml(str(ENGINE / "mcd0" / "mcd0_params.yaml"))
+
+MCDS = ("MCD0", "MCD1", "MCD2", "MCD3")
+PROFILES = ("DAY_TRADER", "SCALPER")
+STATUSES = ("VALID", "CAUTIONARY", "INVALID", "STALE")
+M5 = CANDIDATES["M5"]
+SECONDS = {"M5": 300, "M15": 900}
+METRICS = ("r2_a", "r2_b", "fit_a", "fit_b", "geo", "abs_skew_a", "abs_skew_b", "coverage", "containment")
+
+
+def iso(slot: int) -> str:
+    return time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime(slot))
+
+
+def read_lines(name: str):
+    with open(DATA / name, encoding="utf-8") as handle:
+        for line in handle:
+            if line.strip():
+                yield json.loads(line)
+
+
+def pct(part: int, whole: int) -> str:
+    return "-" if whole == 0 else f"{100 * part / whole:.1f}%"
+
+
+def quantile(values: list[float], q: float) -> float:
+    ordered = sorted(values)
+    position = (len(ordered) - 1) * q
+    low, high = math.floor(position), math.ceil(position)
+    return ordered[low] + (ordered[high] - ordered[low]) * (position - low)
+
+
+def table(header: list[str], rows: list[list[object]]) -> list[str]:
+    cells = [header] + [[str(c) for c in row] for row in rows]
+    widths = [max(len(row[i]) for row in cells) for i in range(len(header))]
+    return ["  " + "  ".join(c.ljust(w) for c, w in zip(row, widths)).rstrip() for row in cells]
+
+
+def mix(counter: collections.Counter, total: int) -> list[str]:
+    return [f"{counter[s]} ({pct(counter[s], total)})" for s in STATUSES]
+
+
+# ----------------------------------------------------------------------------- one statistics row
+
+
+def row_facts(source: str, row) -> dict:
+    """What one candidate's statistics row looks like on its own, with MCD0's own required fields and pillars."""
+    facts = {
+        "null_offsets": not (is_number(row.get("uoedt_offset")) and is_number(row.get("loedt_offset"))),
+        "containment": row.get("containment_rate") if is_number(row.get("containment_rate")) else None,
+    }
+    required = mcd0._required_fields(source)
+    sane = all(is_number(row.get(name)) for name in required)
+    if sane:
+        positive = ["channel_width", "uoedt_offset", "model_b_mse"] + (["model_a_mse"] if source in mcd0.CENTROID_SOURCES else [])
+        sane = all(row[name] > 0 for name in positive) and row["loedt_offset"] < 0
+    facts["sane"] = sane
+    if sane:
+        judged = mcd0._judge(source, row, MCD0_PARAMS)
+        facts["failed"] = tuple(judged["failed"])
+        half = row["channel_width"] / 2
+        values = {
+            "r2_b": row["model_b_r2"],
+            "fit_b": half / math.sqrt(row["model_b_mse"]),
+            "geo": row["uoedt_offset"] / -row["loedt_offset"],
+            "abs_skew_b": abs(row["model_b_skew"]),
+            "coverage": row["window_span_bars"] - MCD0_PARAMS["t_edt_open_bar_rows"],
+        }
+        if source in mcd0.CENTROID_SOURCES:
+            values["r2_a"] = row["model_a_r2"]
+            values["fit_a"] = half / math.sqrt(row["model_a_mse"])
+            values["abs_skew_a"] = abs(row["model_a_skew"])
+        if facts["containment"] is not None:
+            values["containment"] = facts["containment"]
+        facts["values"] = values
+    return facts
+
+
+class SourceStats:
+    def __init__(self) -> None:
+        self.rows = self.null_offsets = self.contained = self.sane = self.clean = self.channel = 0
+        self.failed = collections.Counter()
+        self.only = collections.Counter()
+        self.combos = collections.Counter()
+        self.values = collections.defaultdict(list)
+
+    def add(self, facts: dict) -> None:
+        self.rows += 1
+        self.null_offsets += facts["null_offsets"]
+        self.contained += facts["containment"] is not None and facts["containment"] >= 50
+        if not facts["sane"]:
+            return
+        self.sane += 1
+        failed = facts["failed"]
+        self.clean += not failed
+        self.failed.update(failed)
+        if len(failed) == 1:
+            self.only[failed[0]] += 1
+        if failed:
+            self.combos[" + ".join(failed)] += 1
+        for name, value in facts["values"].items():
+            self.values[name].append(value)
+
+
+# ----------------------------------------------------------------------------- one engine run
+
+
+def reading_of(result) -> dict:
+    out = {"mcd": {}, "syn": {}}
+    for item in result.results:
+        out["mcd"][item.mcd_id] = (item.status, item.state_code, tuple(item.envelope.get("status_reasons") or ()), item.envelope_sha256, item.envelope.get("details") or {})
+    synthesis = result.synthesis.to_dict() if result.synthesis is not None else None
+    for entry in (synthesis or {}).get("readings", []):
+        reading = json.loads(entry["reading_json"]) if entry.get("reading_json") else {}
+        out["syn"][entry["profile"]] = (reading.get("status", "WITHHELD"), reading.get("rule_id", "WITHHELD"), bool(reading.get("stand_aside")))
+    return out
+
+
+# ----------------------------------------------------------------------------- a candidate that is not the setting
+
+# A stored bundle carries every candidate's channel on the LAST closed bar only; the older bars of the window carry the
+# open time, the close and the SET indicator's channel (bundle-types.ts, windowBarColumns). MCD2 reads channel values on
+# the last closed bar only and needs the older bars to hold the columns, so the missing columns are filled with the last
+# bar's values (and older bars repeated when the bundle is shorter than the candidate's channel). MCD0 reads no bar. Both
+# are therefore measurable for every candidate, on the assumption that a real switch would hold the channel on every bar
+# of its window. MCD3 reads the older bars' values, which are not stored: MCD3 and SYN are NOT measurable. The fill is
+# checked against the stored readings: the set indicator is stripped to the last bar, filled again and compared.
+
+
+def channel_bars_needed(inputs, name: str) -> int | None:
+    row = inputs.statistics.get(("M5", statistics_source(name)))
+    if row is None:
+        return None
+    for field in ("containment_n", "visual_window_bars", "window_bars"):
+        if is_number(row.get(field)):
+            return int(row[field]) - 1  # the last row of the channel is the still-open bar
+    return None
+
+
+def filled(inputs, name: str):
+    need = channel_bars_needed(inputs, name)
+    bars = list(inputs.bars.get("M5", ()))
+    if need is None or need <= 0 or not bars:
+        return inputs
+    last = dict(bars[-1])
+    columns = [c for c in dict.fromkeys(channel_columns(name).values()) if c in last]
+    for index in range(max(0, len(bars) - need), len(bars) - 1):
+        absent = [c for c in columns if c not in bars[index]]
+        if absent:
+            bars[index] = {**dict(bars[index]), **{c: last[c] for c in absent}}
+    missing = need - len(bars)
+    if missing > 0:
+        first = bars[0]["timestamp"]
+        bars = [{**last, "timestamp": first - 300 * k} for k in range(missing, 0, -1)] + bars
+    return dataclasses.replace(inputs, bars={**dict(inputs.bars), "M5": bars})
+
+
+def stripped(inputs, name: str):
+    """The bundle as it would be if ``name`` were not the setting: its channel stays on the last bar only."""
+    bars = list(inputs.bars.get("M5", ()))
+    drop = set(channel_columns(name).values()) - {"close"}
+    older = [{k: v for k, v in dict(bar).items() if k not in drop} for bar in bars[:-1]]
+    return dataclasses.replace(inputs, bars={**dict(inputs.bars), "M5": older + bars[-1:]})
+
+
+class Candidate:
+    def __init__(self) -> None:
+        self.cycles = 0
+        self.states = collections.Counter()
+        self.mcd = {m: collections.Counter() for m in MCDS}
+        self.reasons = {m: collections.Counter() for m in MCDS}
+        self.m5_defect = self.any_defect = self.named = 0
+        self.syn = {p: collections.Counter() for p in PROFILES}
+        self.rules = {p: collections.Counter() for p in PROFILES}
+        self.stand_aside = collections.Counter()
+        self.mcd2_invalid_day = collections.Counter()
+
+    def add(self, slot: int, reading: dict) -> None:
+        self.cycles += 1
+        for mcd_id, (status, state, reasons, _sha, details) in reading["mcd"].items():
+            self.mcd[mcd_id][status] += 1
+            if mcd_id == "MCD2" and state:
+                self.states[state.replace("MCD2_", "")] += 1
+            if status != "VALID":
+                self.reasons[mcd_id]["+".join(reasons)] += 1
+            if mcd_id == "MCD0" and state:
+                self.named += 1
+                self.m5_defect += bool(details.get("M5", {}).get("failed"))
+                self.any_defect += state != "MCD0_ALL_QUALIFIED"
+            if mcd_id == "MCD2" and status == "INVALID":
+                self.mcd2_invalid_day[iso(slot)[:10]] += 1
+        for profile, (status, rule, stand) in reading["syn"].items():
+            self.syn[profile][status] += 1
+            self.rules[profile][rule] += 1
+            self.stand_aside[profile] += stand
+
+
+# ----------------------------------------------------------------------------- Q5: one cycle to the next
+
+
+class Drift:
+    def __init__(self) -> None:
+        self.pairs = collections.Counter()
+        self.columns: dict[tuple[str, str], dict] = {}
+        self.pit = collections.Counter()
+
+    def compare(self, tf: str, before: dict, after: dict, width_by_source: dict) -> None:
+        self.pairs[tf] += 1
+        for source in (M5 if tf == "M5" else CANDIDATES["M15"]):
+            for role, column in channel_columns(source).items():
+                if source == "fractal" and role == "fit":
+                    continue  # the fractal's fit line is its baseline column
+                if column not in after:
+                    continue  # an older bar holds the set indicator's channel only
+                first, second = before.get(column), after.get(column)
+                if first is None and second is None:
+                    continue
+                entry = self.columns.setdefault((tf, column), {"both": 0, "changed": 0, "flip": 0, "abs": [], "width": []})
+                if is_number(first) and is_number(second):
+                    entry["both"] += 1
+                    delta = abs(second - first)
+                    entry["changed"] += delta > 1e-9
+                    entry["abs"].append(delta)
+                    width = width_by_source.get(source)
+                    if width:
+                        entry["width"].append(100 * delta / width)
+                else:
+                    entry["flip"] += 1
+
+    def against_pit(self, label: str, bar: dict, row: dict) -> None:
+        for source in (M5 if bar.get("_tf") == "M5" else CANDIDATES["M15"]):
+            for role, column in channel_columns(source).items():
+                if source == "fractal" and role == "fit":
+                    continue
+                if column not in bar:
+                    continue
+                a, b = bar.get(column), row.get(column)
+                if a is None and b is None:
+                    continue
+                equal = is_number(a) and is_number(b) and abs(a - b) <= 1e-6
+                self.pit[(label, bar["_tf"], "equal" if equal else "different")] += 1
+
+
+def channel_widths(bar: dict, tf: str) -> dict:
+    widths = {}
+    for source in (M5 if tf == "M5" else CANDIDATES["M15"]):
+        cols = channel_columns(source)
+        upper, lower = bar.get(cols["upper"]), bar.get(cols["lower"])
+        if is_number(upper) and is_number(lower) and upper > lower:
+            widths[source] = upper - lower
+    return widths
+
+
+# ----------------------------------------------------------------------------- the run
+
+
+def main() -> int:
+    started = time.time()
+    done = json.loads((DATA / "export.done.json").read_text(encoding="utf-8"))
+    stored = {(r["cycle_slot"], r["mcd_id"]): r for r in read_lines("outputs.ndjson")}
+    pit = {(r["timeframe"], r["timestamp"]): r for r in read_lines("pit.ndjson")}
+
+    # The bundle text and its hash are not part of any reading; leaving them out makes the repeated runs much faster.
+    cycle_runner._bundle_sha256 = lambda inputs: None
+    cycle_runner._bundle_text = lambda inputs: None
+    worker = cycle_runner.Worker.load()
+    light = cycle_runner.Worker.load(flags={"MCD1": "off", "MCD3": "off", "SYN": "off"})
+    identical: dict[tuple[str, str, str], bool] = {}
+
+    integrity = collections.Counter()
+    baseline = Candidate()
+    candidates = {name: Candidate() for name in M5}
+    stats = {(tf, source): SourceStats() for tf in SECONDS for source in CANDIDATES[tf]}
+    cycles_per_tf = 0
+    settings = collections.Counter()
+    sanity_slots = {name: collections.Counter() for name in M5}
+    sanity_total = 0
+    no_match = {name: {"MCD2": collections.Counter(), "state": collections.Counter()} for name in M5}
+    no_match_total = 0
+    per_cycle = []
+    drift = Drift()
+    previous: dict[str, tuple[int, dict]] = {}
+    mismatches: list[str] = []
+
+    for count, record in enumerate(read_lines("bundles.ndjson"), start=1):
+        slot = record["slot"]
+        text = gzip.decompress(base64.b64decode(record["gz"])).decode("utf-8")
+        integrity["bundle_sha_ok" if hashlib.sha256(text.encode("utf-8")).hexdigest() == record["sha256"] else "bundle_sha_different"] += 1
+        data = json.loads(text)
+        inputs = CycleInputs.from_dict(data)
+        cycles_per_tf += 1
+        setting = (inputs.active_indicator.get("M5"), inputs.active_indicator.get("M15"))
+        settings[setting] += 1
+
+        # the stored setting
+        base = reading_of(worker.run_cycle(inputs))
+        baseline.add(slot, base)
+        for mcd_id, values in base["mcd"].items():
+            row = stored.get((slot, mcd_id))
+            if row is None:
+                integrity["stored_row_missing"] += 1
+            elif row["envelope_sha256"] == values[3]:
+                integrity["reading_equal"] += 1
+            else:
+                integrity["reading_different"] += 1
+                mismatches.append(f"{iso(slot)} {mcd_id}")
+
+        # Q2 / Q3: every candidate's own row
+        last = {tf: (data["bars"].get(tf) or [{}])[-1] for tf in SECONDS}
+        for (tf, source), bucket in stats.items():
+            row = inputs.statistics.get((tf, statistics_source(source)))
+            if row is None:
+                continue
+            bucket.add(row_facts(statistics_source(source), row))
+            bucket.channel += is_populated(last[tf], source)
+
+        # which candidates carry the same statistics in every cycle
+        for tf in SECONDS:
+            shown_rows = {}
+            for name in CANDIDATES[tf]:
+                row = inputs.statistics.get((tf, statistics_source(name)))
+                if row is not None:
+                    shown_rows[name] = {k: v for k, v in dict(row).items() if k not in ("source", "config_hash", "channel_mode", "id")}
+            for i, first_name in enumerate(CANDIDATES[tf]):
+                for second_name in CANDIDATES[tf][i + 1 :]:
+                    key = (tf, first_name, second_name)
+                    same = first_name in shown_rows and second_name in shown_rows and shown_rows[first_name] == shown_rows[second_name]
+                    identical[key] = identical.get(key, True) and same
+
+        # the fill, checked on the set indicator against the full run
+        if setting[0] in M5:
+            again = reading_of(light.run_cycle(filled(stripped(inputs, setting[0]), setting[0])))["mcd"]["MCD2"]
+            integrity["fill_equal" if again[3] == base["mcd"]["MCD2"][3] else "fill_different"] += 1
+
+        # Q2 / Q4: the engine with each M5 candidate as the setting
+        mcd0_reasons = base["mcd"]["MCD0"][2]
+        is_sanity = "SANITY_FAILED" in mcd0_reasons
+        sanity_total += is_sanity
+        is_no_match = base["syn"].get("DAY_TRADER", ("", "", False))[1] == "NO_MATCH"
+        no_match_total += is_no_match
+        compact = {"slot": iso(slot), "setting": setting[0], "base": {m: base["mcd"][m][0] for m in MCDS}, "candidates": {}}
+        for name in M5:
+            if name == setting[0]:
+                reading = base
+                counted = {"mcd": {m: base["mcd"][m] for m in ("MCD0", "MCD2")}, "syn": {}}
+            else:
+                switched = dataclasses.replace(inputs, active_indicator={**dict(inputs.active_indicator), "M5": name})
+                reading = counted = reading_of(light.run_cycle(filled(switched, name)))
+            candidates[name].add(slot, counted)
+            compact["candidates"][name] = {m: [reading["mcd"][m][0], reading["mcd"][m][1]] for m in ("MCD0", "MCD2")}
+            if is_sanity:
+                sanity_slots[name]["channel"] += is_populated(last["M5"], name)
+                sanity_slots[name]["MCD2_" + reading["mcd"]["MCD2"][0]] += 1
+            if is_no_match:
+                no_match[name]["MCD2"][reading["mcd"]["MCD2"][0]] += 1
+                no_match[name]["state"][(reading["mcd"]["MCD2"][1] or "-").replace("MCD2_", "")] += 1
+        per_cycle.append(compact)
+
+        # Q5
+        for tf, length in SECONDS.items():
+            if slot % length:
+                continue
+            bar = dict(last[tf])
+            closed_at_slot = bar.get("timestamp") == slot - length
+            if closed_at_slot:
+                bar["_tf"] = tf
+                row = pit.get((tf, slot - length))
+                if row:
+                    drift.against_pit("at close", bar, row)
+            earlier = previous.get(tf)
+            if earlier and earlier[0] == slot - length:
+                wanted = earlier[1]["timestamp"]
+                again = next((b for b in reversed(data["bars"].get(tf) or []) if b.get("timestamp") == wanted), None)
+                if again is not None:
+                    drift.compare(tf, earlier[1], again, channel_widths(earlier[1], tf))
+                    row = pit.get((tf, wanted))
+                    if row:
+                        drift.against_pit("one cycle later", {**again, "_tf": tf}, row)
+            if closed_at_slot:
+                previous[tf] = (slot, bar)
+            else:
+                previous.pop(tf, None)
+        if count % 100 == 0:
+            print(f"  {count} of {done['bundles']} cycles, {time.time() - started:.0f} s", flush=True)
+
+    report(done, integrity, mismatches, settings, baseline, candidates, stats, cycles_per_tf, sanity_total, sanity_slots, no_match_total, no_match, drift, per_cycle, identical)
+    print(f"DONE: {cycles_per_tf} cycles in {time.time() - started:.0f} s -> {OUT}")
+    return 0
+
+
+def report(done, integrity, mismatches, settings, baseline, candidates, stats, total, sanity_total, sanity_slots, no_match_total, no_match, drift, per_cycle, identical) -> None:
+    lines = [f"Q2 to Q5 diagnostic, cycles {done['from']} to {done['to']}: {total} cycles", ""]
+    lines += ["0. The export against the stored rows"]
+    lines.append(f"  bundles whose text hashes to the stored hash: {integrity['bundle_sha_ok']} of {total} (different {integrity['bundle_sha_different']})")
+    lines.append(f"  readings re-run with the stored setting and equal to the stored hash: {integrity['reading_equal']}; different {integrity['reading_different']}; no stored row {integrity['stored_row_missing']}")
+    if mismatches:
+        lines.append("  first differences: " + ", ".join(mismatches[:8]))
+    lines.append("  settings seen (M5, M15): " + "; ".join(f"{a}/{b} x {n}" for (a, b), n in settings.most_common()))
+    lines += table(["MCD", *STATUSES], [[m, *mix(baseline.mcd[m], total)] for m in MCDS])
+    lines.append(f"  check of the fill used in section 2 (set indicator stripped to the last bar, filled, MCD2 compared with the full run): equal {integrity['fill_equal']}, different {integrity['fill_different']}")
+
+    lines += ["", "1. Q2: each candidate's own statistics row (share of the rows present; 'all pillars' = MCD0 finds no fault)"]
+    header = ["tf", "source", "rows", "null offsets", "containment>=50", "channel on last bar", "MCD0 fields sane", "all pillars pass"]
+    rows = [[tf, source, s.rows, pct(s.null_offsets, s.rows), pct(s.contained, s.rows), pct(s.channel, s.rows), pct(s.sane, s.rows), pct(s.clean, s.rows)] for (tf, source), s in stats.items()]
+    lines += table(header, rows)
+    same = [f"{tf} {a} = {b}" for (tf, a, b), value in identical.items() if value]
+    lines.append("  candidates whose statistics are identical in every cycle: " + ("; ".join(same) or "none"))
+
+    lines += ["", f"2. Q2: MCD0 and MCD2 re-run on all {total} cycles with each M5 candidate as the setting (M15 unchanged)"]
+    lines.append("  A stored bundle holds the other candidates' channels on the last closed bar only. Their older bars are filled")
+    lines.append("  with the last bar's values: exact for MCD0 and MCD2 if a real switch holds the channel on its whole window.")
+    lines.append("  MCD3 and SYN read the older values and are NOT measurable for another candidate.")
+    lines.append("  MCD2")
+    lines += table(["M5 setting", *STATUSES], [[n, *mix(c.mcd["MCD2"], c.cycles)] for n, c in candidates.items()])
+    lines.append("  MCD0")
+    lines += table(["M5 setting", *STATUSES, "M5 defect", "any defect"], [[n, *mix(c.mcd["MCD0"], c.cycles), pct(c.m5_defect, c.named), pct(c.any_defect, c.named)] for n, c in candidates.items()])
+    days = sorted({day for c in candidates.values() for day in c.mcd2_invalid_day})
+    lines.append("  MCD2 INVALID cycles per day")
+    lines += table(["M5 setting", *days], [[n, *[c.mcd2_invalid_day[d] for d in days]] for n, c in candidates.items()])
+    lines.append("  commonest reasons MCD2 is not VALID")
+    for name, c in candidates.items():
+        lines.append(f"    {name}: " + "; ".join(f"{k or '-'} x {v}" for k, v in c.reasons["MCD2"].most_common(4)))
+    lines.append("  MCD2 states (of the VALID and CAUTIONARY readings)")
+    for name, c in candidates.items():
+        lines.append(f"    {name}: " + ("; ".join(f"{k} x {v}" for k, v in c.states.most_common(6)) or "-"))
+
+    lines += ["", f"3. The {sanity_total} cycles where MCD0 said SANITY_FAILED with the stored setting"]
+    lines += table(["M5 candidate", "channel on last bar", *[f"MCD2 {s}" for s in STATUSES]], [[n, c["channel"], *[c["MCD2_" + s] for s in STATUSES]] for n, c in sanity_slots.items()])
+
+    pillars = mcd0.PILLAR_ORDER
+    lines += ["", "4. Q3: MCD0 pillars on each candidate's sane rows (share failing; every comparison as the evaluator makes it)"]
+    lines += table(["tf", "source", "sane rows", *pillars], [[tf, src, s.sane, *[pct(s.failed[p], s.sane) for p in pillars]] for (tf, src), s in stats.items()])
+    lines.append("  share of sane rows where this pillar is the only fault")
+    lines += table(["tf", "source", *pillars], [[tf, src, *[pct(s.only[p], s.sane) for p in pillars]] for (tf, src), s in stats.items()])
+    current = [k for k in stats if (k[0] == "M5" and any(k[1] == a for a, _ in settings)) or (k[0] == "M15" and any(k[1] == b for _, b in settings))]
+    for key in current:
+        lines.append(f"  commonest fault combinations, {key[0]} {key[1]}: " + "; ".join(f"{k} x {v}" for k, v in stats[key].combos.most_common(8)))
+    lines.append("  quantiles on sane rows (p10 / p25 / p50 / p75 / p90)")
+    quantiles = []
+    for (tf, source), s in stats.items():
+        for metric in METRICS:
+            values = s.values.get(metric)
+            if values:
+                quantiles.append([tf, source, metric, *[f"{quantile(values, q):.3f}" for q in (0.10, 0.25, 0.50, 0.75, 0.90)]])
+    lines += table(["tf", "source", "metric", "p10", "p25", "p50", "p75", "p90"], quantiles)
+
+    lines += ["", f"5. Q4: the {no_match_total} cycles where DAY_TRADER matched no rule with the stored setting"]
+    lines += table(["M5 setting", *[f"MCD2 {s}" for s in STATUSES], "MCD2 states"], [[n, *[v["MCD2"][s] for s in STATUSES], "; ".join(f"{k} x {c}" for k, c in v["state"].most_common(5))] for n, v in no_match.items()])
+
+    lines += ["", "6. Q5: the same closed bar in a cycle's bundle and in the next one (M5: 300 s later; M15: 900 s later)"]
+    lines.append("  pairs compared: " + ", ".join(f"{tf} {n}" for tf, n in drift.pairs.items()))
+    rows = []
+    for (tf, column), e in sorted(drift.columns.items()):
+        row = [tf, column, e["both"], pct(e["changed"], e["both"]), e["flip"]]
+        row += [f"{quantile(e['abs'], q):.4f}" for q in (0.5, 0.9, 0.99, 1.0)] if e["abs"] else ["-"] * 4
+        row += [f"{quantile(e['width'], q):.2f}" for q in (0.9, 0.99)] if e["width"] else ["-"] * 2
+        row.append(pct(sum(v > 5 for v in e["width"]), len(e["width"])))
+        rows.append(row)
+    lines += table(["tf", "column", "both numbers", "changed", "value<->null", "abs p50", "abs p90", "abs p99", "abs max", "% width p90", "% width p99", "moved > 5% of width"], rows)
+    lines.append("  against market_data_point_in_time (same bar, channel columns)")
+    keys = sorted({(label, tf) for label, tf, _ in drift.pit})
+    lines += table(["bundle value taken", "tf", "equal", "different"], [[label, tf, drift.pit[(label, tf, "equal")], drift.pit[(label, tf, "different")]] for label, tf in keys])
+
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / "q-diagnostic.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (OUT / "q-diagnostic-cycles.json").write_text(json.dumps(per_cycle), encoding="utf-8")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

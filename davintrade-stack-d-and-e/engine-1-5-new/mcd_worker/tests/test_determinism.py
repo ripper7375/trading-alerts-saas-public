@@ -89,8 +89,8 @@ class InProcessTests(unittest.TestCase):
 
     def test_a_marked_reading_is_as_stable_as_an_unmarked_one(self) -> None:
         """The mark is a pure function of the reading and the gate's state: marking twice gives the same bytes."""
-        a = s.real_worker().run_cycle(s.bundle("v3")).by_id()
-        b = s.real_worker().run_cycle(s.bundle("v3")).by_id()
+        a = s.real_worker().run_cycle(s.bundle("v1")).by_id()  # the stored cycle the gate marks
+        b = s.real_worker().run_cycle(s.bundle("v1")).by_id()
         for mcd_id in ("MCD1", "MCD2", "MCD3"):
             self.assertEqual(a[mcd_id].envelope_sha256, b[mcd_id].envelope_sha256)
             self.assertNotEqual(a[mcd_id].envelope_sha256, a[mcd_id].evaluator_envelope_sha256)

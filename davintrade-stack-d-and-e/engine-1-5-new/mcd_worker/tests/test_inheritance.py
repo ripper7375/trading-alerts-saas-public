@@ -298,27 +298,38 @@ class UpstreamWiringTests(unittest.TestCase):
 
 
 class RealEvaluatorTests(unittest.TestCase):
-    """The four real evaluators on the three stored cycles. MCD0 calls both timeframes defective on all three."""
+    """The four real evaluators on the three stored cycles. MCD0 1.1.0 calls both timeframes defective on v1 and neither on v3 and v4."""
 
     def results(self, name: str, inputs=None):
         return s.real_worker().run_cycle(inputs or s.bundle(name)).by_id()
 
-    def test_a_defect_on_both_timeframes_marks_every_channel_mcd_on_all_three_cycles(self) -> None:
+    def test_a_defect_on_both_timeframes_marks_every_channel_mcd_on_the_v1_cycle(self) -> None:
+        results = self.results("v1")
+        self.assertEqual(results["MCD0"].state_code, BOTH)
+        self.assertEqual(results["MCD0"].status, rc.VALID)
+        self.assertEqual(
+            (results["MCD1"].state_code, results["MCD2"].state_code, results["MCD3"].state_code),
+            ("MCD1_DOWN_UPPER_BREAKOUT", "MCD2_UP_IN_CORRIDOR", "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"),
+        )
+        self.assertEqual(reasons(results["MCD1"]), [D15])
+        self.assertEqual(reasons(results["MCD2"]), [D5])
+        self.assertEqual(reasons(results["MCD3"]), ["UPSTREAM_CAUTIONARY:MCD1", "UPSTREAM_CAUTIONARY:MCD2", D5, D15])
+        for mcd_id in ("MCD1", "MCD2", "MCD3"):
+            self.assertEqual(results[mcd_id].status, rc.CAUTIONARY, mcd_id)
+            self.assertEqual(results[mcd_id].guard_problems, (), mcd_id)
+
+    def test_a_gate_with_no_defect_leaves_v3_and_v4_unmarked(self) -> None:
         expected_states = {
-            "v1": ("MCD1_DOWN_UPPER_BREAKOUT", "MCD2_UP_IN_CORRIDOR", "MCD3_NON_CONSOLIDATED_TREND_CONFLICT"),
             "v3": ("MCD1_DOWN_LOWER_BREAKDOWN", "MCD2_DOWN_LOWER_BREAKDOWN", "MCD3_BEAR_BOTTOM"),
             "v4": ("MCD1_DOWN_IN_CORRIDOR", "MCD2_DOWN_IN_CORRIDOR", "MCD3_NON_CONSOLIDATED_OVERFLOW"),
         }
-        for name, (s1, s2, s3) in expected_states.items():
+        for name, states in expected_states.items():
             results = self.results(name)
-            self.assertEqual(results["MCD0"].state_code, BOTH, name)
-            self.assertEqual(results["MCD0"].status, rc.VALID, name)
-            self.assertEqual((results["MCD1"].state_code, results["MCD2"].state_code, results["MCD3"].state_code), (s1, s2, s3), name)
-            self.assertEqual(reasons(results["MCD1"]), [D15], name)
-            self.assertEqual(reasons(results["MCD2"]), [D5], name)
-            self.assertEqual(reasons(results["MCD3"]), ["UPSTREAM_CAUTIONARY:MCD1", "UPSTREAM_CAUTIONARY:MCD2", D5, D15], name)
+            self.assertEqual(results["MCD0"].state_code, "MCD0_ALL_QUALIFIED", name)
+            self.assertEqual((results["MCD1"].state_code, results["MCD2"].state_code, results["MCD3"].state_code), states, name)
             for mcd_id in ("MCD1", "MCD2", "MCD3"):
-                self.assertEqual(results[mcd_id].status, rc.CAUTIONARY, (name, mcd_id))
+                self.assertEqual((results[mcd_id].status, reasons(results[mcd_id])), (rc.VALID, []), (name, mcd_id))
+                self.assertEqual(results[mcd_id].inherited_reasons, (), (name, mcd_id))
                 self.assertEqual(results[mcd_id].guard_problems, (), (name, mcd_id))
 
     def test_changing_mcd1s_trend_changes_mcd3_on_a_real_cycle(self) -> None:
@@ -357,14 +368,14 @@ class RealEvaluatorTests(unittest.TestCase):
 
     def test_a_gate_that_passes_marks_nobody_on_a_real_cycle(self) -> None:
         """Fit descriptors that meet every criterion make MCD0 call both timeframes fine; the four readings are then the evaluators' own."""
-        base = self.results("v3")
-        inputs = s.bundle("v3")
+        base = self.results("v1")
+        inputs = s.bundle("v1")
         for tf in ("M5", "M15"):
             inputs = s.with_statistics(
                 inputs, tf, window_span_bars=500, model_a_r2=0.9, model_b_r2=0.9, model_a_mse=400.0, model_b_mse=400.0,
                 model_a_skew=0.0, model_b_skew=0.0, uoedt_offset=50.0, loedt_offset=-50.0, channel_width=100.0,
             )
-        clean = self.results("v3", inputs)
+        clean = self.results("v1", inputs)
         self.assertEqual(clean["MCD0"].state_code, "MCD0_ALL_QUALIFIED")
         for mcd_id in ("MCD1", "MCD2", "MCD3"):
             self.assertEqual(clean[mcd_id].status, rc.VALID, mcd_id)

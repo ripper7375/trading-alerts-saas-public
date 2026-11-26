@@ -3,8 +3,8 @@
   "scenario": "02-real-28-sep-1415-snapback-no-zones",
   "status": "APPROVED",
   "approved_by": "Davin",
-  "approved_on": "2026-10-09",
+  "approved_on": "2026-11-26",
   "scenario_sha256": "2c171169352e61803138625b87e8e02d7c74f8e50ce783cdbfd2833c4348b4e5",
-  "expected_sha256": "bda7613f302a9721f094b7067d35935b58f2d6284cd5d60f133841b43a879dbd",
-  "note": ""
+  "expected_sha256": "91b794b3d3a110f7e4c0b4415d44b6ba00dda565693bfcd4821ba578e662bbd0",
+  "note": "Reset by record: the scenario or its expected output changed after Davin approved it on 2026-10-09. It needs a new approval."
 }

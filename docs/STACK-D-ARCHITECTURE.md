@@ -200,7 +200,7 @@ These rules are Section 1's contract. Other chapters cite them as "rule n".
 | 3   | Current price    | The still-open M5 bar is exposed once, as "last price at hh:mm:ss", and labelled. The chart keeps drawing it hollow ([ADR-011])                                                    |
 | 4   | One day          | "1 day of OHLC" means the last 288 closed M5 bars and 96 closed M15 bars: trading bars, skipping market-closed gaps ([ADR-003])                                                    |
 | 5   | Statistics       | A sensor uses the `indicator_statistics` row captured at the slot where its timeframe was last collected, for the active source. No match means STALE, never "latest available"    |
-| 6   | Active indicator | Read from the setting: one channel indicator per timeframe, effective from a named slot for MCDs, chart and UI together ([ADR-010])                                                |
+| 6   | Active indicator | Read from the setting: one channel indicator per timeframe, effective from a named slot for MCDs, chart and UI together ([ADR-100])                                                |
 | 7   | Data status      | Every cycle carries FRESH, DELAYED, STALE or MARKET CLOSED. Downstream sections decide what each status allows (§5.3, §6.4) ([ADR-012])                                            |
 | 8   | Chart stamp      | Every image carries its slot, last bar and overlay. An image from a different slot never reaches the prompt ([ADR-014])                                                            |
 | 9   | Retune           | A promote is an event with an effective slot. Until the re-pushed window is complete, cycles are RETUNING and sensors report CAUTIONARY ([ADR-015])                                |
@@ -215,9 +215,10 @@ These rules are Section 1's contract. Other chapters cite them as "rule n".
    `market_cycles` row per slot with its status and timings, and queues the Section 2 job keyed by
    slot ([ADR-009]).
 3. **Active-indicator setting.** One admin setting per timeframe, effective from a slot and logged.
-   Starting values: M15 `non_b`, M5 `best_fit_a`. MCDs, renderer and UI read it; detection from data
-   remains only as a cross-check ([ADR-010]). The renderer needs a small change to resolve one key
-   per timeframe.
+   Values: M15 `non_b`, M5 `most_recent` (decided 26 November 2026; M5 started at `best_fit_a`, and the
+   production setting is switched as its own step). MCDs, renderer and UI read it; detection from data
+   remains only as a cross-check ([ADR-100], which supersedes [ADR-010]). The renderer needs a small change
+   to resolve one key per timeframe.
 4. **Closed-bar view + current price.** Consumers read closed bars only (rule 2); the still-open bar
    appears once as a labelled last price (rule 3).
 5. **Statistics matched to the slot** (rule 5). No `ORDER BY captured_at DESC LIMIT 1` without a slot
@@ -309,7 +310,7 @@ Build step 2 builds items 1 to 3. Items 4 and 5 are not part of step 2 (decided 
 
 ### 1.9 Decisions
 
-[ADR-008] cycle key · [ADR-009] manifest and ready signal · [ADR-010] active-indicator setting ·
+[ADR-008] cycle key · [ADR-009] manifest and ready signal · [ADR-010] active-indicator setting (superseded by [ADR-100]) ·
 [ADR-011] still-open bar · [ADR-012] freshness thresholds · [ADR-013] newest bars first ·
 [ADR-014] chart on the VPS, stamped · [ADR-015] RETUNING.
 
@@ -401,14 +402,14 @@ Every MCD returns the same envelope ([ADR-017]). Illustrative MCD2 values:
 
 Order kept from the MCD flowcharts: cycle check, then tier 1 → 4 → 2 → 3, and MCD0.
 
-| Check               | Tests                                                                                                                            | On failure                                                                                            |
-| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| Cycle               | Data status and RETUNING (rules 7, 9)                                                                                            | STALE if data is stale · CAUTIONARY while RETUNING                                                    |
-| Tier 1 · Indicator  | Active indicator from the setting; detection only cross-checks                                                                   | INVALID if no setting · CAUTIONARY if detection disagrees, then a later tier ends it STALE or INVALID |
-| Tier 4 · Statistics | Row at the slot for the active source; containment ≥ 50%                                                                         | STALE if no row · INVALID if containment < 50%                                                        |
-| Tier 2 · Continuity | Enough closed bars, ascending, no nulls                                                                                          | INVALID                                                                                               |
-| Tier 3 · Sanity     | UOEDT > LOEDT and channel width > 0                                                                                              | INVALID                                                                                               |
-| MCD0 · Quality      | Coverage ≥ 60 bars · R² (Model A ≥ 0.70, Model B ≥ 0.65) · fit ratio 1.50–3.20 · symmetry (geo ratio 0.60–1.65, \|skew\| ≤ 1.50) | CAUTIONARY for every channel MCD on that timeframe                                                    |
+| Check               | Tests                                                                                                                             | On failure                                                                                            |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Cycle               | Data status and RETUNING (rules 7, 9)                                                                                             | STALE if data is stale · CAUTIONARY while RETUNING                                                    |
+| Tier 1 · Indicator  | Active indicator from the setting; detection only cross-checks                                                                    | INVALID if no setting · CAUTIONARY if detection disagrees, then a later tier ends it STALE or INVALID |
+| Tier 4 · Statistics | Row at the slot for the active source; containment ≥ 50%                                                                          | STALE if no row · INVALID if containment < 50%                                                        |
+| Tier 2 · Continuity | Enough closed bars, ascending, no nulls                                                                                           | INVALID                                                                                               |
+| Tier 3 · Sanity     | UOEDT > LOEDT and channel width > 0                                                                                               | INVALID                                                                                               |
+| MCD0 · Quality      | Coverage ≥ 60 bars · R² ≥ 0.00 for each model, on M5 only · fit ratio 1.25–3.20 · symmetry (geo ratio 0.50–2.00, \|skew\| ≤ 1.50) | CAUTIONARY for every channel MCD on that timeframe                                                    |
 
 A detection mismatch is only **recorded** at tier 1: `DETECTION_MISMATCH` (CAUTIONARY) is the first of the reading's
 reasons and the checks go on. The status the reading ends with is the last word of the later tiers: for a setting that
@@ -422,8 +423,9 @@ does not match the data it is STALE (`NO_STATS_AT_SLOT`, the set indicator has n
 | INVALID    | Left out of synthesis; listed on the sensor board as unavailable          |
 | STALE      | Left out; flagged as a data problem, not a market reading                 |
 
-MCD0 runs Model A (SSA crossings) and Model B (close) on M5 and M15. R² thresholds are per model
-([ADR-019]).
+MCD0 runs Model A (SSA crossings) and Model B (close) on M5 and M15. Since MCD0 1.1.0 ([ADR-101], which
+supersedes [ADR-019]) the R² pillars apply on M5 only and are not applied on a flat channel; on M15 they are
+listed as skipped.
 
 ### 2.5 MCD1–3 (examples) and the changes to them
 
@@ -511,6 +513,10 @@ set of source tunings (`config_hash`); every series carries the note `FORMING_BA
 forming-bar question is closed. The one reader of the table is `state-statistics.reader.ts`, and a test fails
 when any other code reads it.
 
+MCD0 1.1.0 ([ADR-101]) starts a new MCD0 series, and the switch of the M5 setting to `most_recent` ([ADR-100])
+starts new MCD2 and MCD3 series; MCD1 reads M15 only. Writing the series of the shadow window of 19 to 25 November
+2026 into the table is on hold (26 November 2026).
+
 ### 2.9 The checklist for MCD4–15 (A8)
 
 A new MCD's feature flag stays `off` until items 1 to 6 pass, and `live` needs all nine: **`shadow` requires items 1 to 6;
@@ -562,7 +568,7 @@ Levels reach Section 6 through Section 3's zones, not directly.
 
 ### 2.12 Decisions
 
-[ADR-016] worker on Railway · [ADR-017] envelope v1 · [ADR-018] MCD0 · [ADR-019] R² per model ·
+[ADR-016] worker on Railway · [ADR-017] envelope v1 · [ADR-018] MCD0 · [ADR-019] R² per model (superseded by [ADR-101]) ·
 [ADR-020] live vs certification history · [ADR-021] MCD3 reads MCD1/MCD2 · [ADR-022] n ≥ 30 ·
 [ADR-023] MCD1 breakout on the latest bar · [ADR-024] neutral state names · [ADR-082] MCD
 development standard.
@@ -575,7 +581,7 @@ is added when Davin approves a spec and updated at each status change.
 
 | MCD        | Question                                                                       | Timeframe | Kind                 | Rung: Day Trader / Scalper                | Levels                         | Spec                                                                                                                                                   | Status           |
 | ---------- | ------------------------------------------------------------------------------ | --------- | -------------------- | ----------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| MCD0       | Is each timeframe's channel fit good enough to trust the channel sensors?      | M5 + M15  | Gate                 | —                                         | None                           | `engine-1-5-new/mcd0/mcd0.md`, from [file C](../davintrade-stack-d-and-e/archive/STACK-D-ENGINE-1.5A-1.5B-1.5C-ARCHITECTURE-PLAN.md)'s 4-Quadrant gate | Draft (1.0.0)    |
+| MCD0       | Is each timeframe's channel fit good enough to trust the channel sensors?      | M5 + M15  | Gate                 | —                                         | None                           | `engine-1-5-new/mcd0/mcd0.md`, from [file C](../davintrade-stack-d-and-e/archive/STACK-D-ENGINE-1.5A-1.5B-1.5C-ARCHITECTURE-PLAN.md)'s 4-Quadrant gate | Draft (1.1.0)    |
 | MCD1       | M15 primary trend; is the short-term regime with it or against it?             | M15       | Independent          | Primary structure / trendlines & channels | UOEDT, baseline, LOEDT         | `engine-1-5-new/mcd1/mcd1.md`                                                                                                                          | Retrofit (2.0.1) |
 | MCD2       | M5 trend; is the deviation from the corridor big enough for mean reversion?    | M5        | Independent          | Trendlines & channels / primary structure | UOEDT, baseline, LOEDT         | `engine-1-5-new/mcd2/mcd2.md`                                                                                                                          | Retrofit (2.0.1) |
 | MCD3       | Do the M15 and M5 channels agree and nest; where is price in the M15 corridor? | M15 + M5  | Derived (MCD1, MCD2) | Oscillators, as modifier (both)           | UOEDT, baseline, LOEDT on both | `engine-1-5-new/mcd3/mcd3.md`                                                                                                                          | Retrofit (2.0.0) |
@@ -2315,106 +2321,109 @@ outcomes (G5); each trader's own time zone on screen (G5); MCD4–MCD15 through 
 
 ## Appendix A — Decision index
 
-| #                                                                              | Decision                                                                                                 | Source              | Status  |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------- | ------- |
-| [001](adr/001-retire-engine-1-5c-wacs54.md)                                    | Engine 1.5C (WACS54) retired; replaced by the Engine 1.5E router                                         | File A · 29 Sep     | Settled |
-| [002](adr/002-remove-jsonb54-and-freq54.md)                                    | JSONB54 and FREQ54 removed; MCD regime outputs carry the state                                           | 29 Sep              | Settled |
-| [003](adr/003-per-mcd-windows-and-1-day-of-ohlc-instead-of-the-54-bar-rule.md) | 54-bar rule dropped: each MCD reads its own window; the LLM gets 1 day of M5 + M15 OHLC                  | 29 Sep              | Settled |
-| [004](adr/004-two-panel-chart-in-private-r2.md)                                | Engine 3 = 2-panel M5 / M15 PNG, overlay and standard variants, private R2                               | 10–11 Sep manifests | Settled |
-| [005](adr/005-knowledge-index-as-local-txtai-files.md)                         | Engine 2 index = local txtai files, rebuilt on every deploy                                              | 29 Sep              | Settled |
-| [006](adr/006-charts-rendered-on-a-schedule.md)                                | Charts are rendered on a schedule, never on demand (<120 ms retrieval budget)                            | R2 manifest §8      | Settled |
-| [007](adr/007-finalise-the-architecture-section-by-section.md)                 | Architecture finalised section by section, one deck per section                                          | 29 Sep              | Settled |
-| [008](adr/008-cycle-key-is-the-5-minute-slot-time.md)                          | Stack D cycle key = 5-minute slot time (UTC); collection cycle ids kept as provenance                    | Section 1 · 29 Sep  | Settled |
-| [009](adr/009-cycle-manifest-and-ready-signal.md)                              | Push worker sends a cycle manifest; the gateway checks it, writes market_cycles and triggers Section 2   | Section 1 · 29 Sep  | Settled |
-| [010](adr/010-active-indicator-setting-per-timeframe.md)                       | Active indicator = admin setting per timeframe, effective from a slot (M15 non_b, M5 best_fit_a)         | Section 1 · 29 Sep  | Settled |
-| [011](adr/011-still-open-bar-kept-out-of-sensors-and-ohlc.md)                  | Still-open bar kept out of sensors and OHLC; exposed once as a labelled last price                       | Section 1 · 29 Sep  | Settled |
-| [012](adr/012-freshness-thresholds.md)                                         | Cycle ready ≤ 2 min (≤ 4 with retries); STALE after 10 min                                               | Section 1 · 29 Sep  | Settled |
-| [013](adr/013-newest-bars-pushed-first.md)                                     | The cycle’s newest bars are pushed first; throughput measured alongside                                  | Section 1 · 29 Sep  | Settled |
-| [014](adr/014-chart-rendered-on-the-vps-stamped-and-kept.md)                   | Charts stay rendered on the VPS, stamped per slot, last good image kept                                  | Section 1 · 29 Sep  | Settled |
-| [015](adr/015-retuning-during-a-promote.md)                                    | A promote marks cycles RETUNING until the re-pushed window completes; sensors report CAUTIONARY          | Section 1 · 1 Oct   | Settled |
-| [016](adr/016-sensor-worker-on-railway.md)                                     | Sensor worker runs on Railway, started by Section 1’s cycle-ready job                                    | Section 2 · 29 Sep  | Settled |
-| [017](adr/017-mcd-output-envelope-v1.md)                                       | Every MCD returns envelope v1; bias = LONG · SHORT · NEUTRAL · STAND_ASIDE                               | Section 2 · 29 Sep  | Settled |
-| [018](adr/018-quality-gate-becomes-mcd0.md)                                    | The 4-Quadrant gate becomes MCD0 per timeframe; channel MCDs inherit its CAUTIONARY                      | Section 2 · 29 Sep  | Settled |
-| [019](adr/019-r-squared-threshold-per-model.md)                                | R² thresholds per model: A ≥ 0.70, B ≥ 0.65 (file C)                                                     | Section 2 · 29 Sep  | Settled |
-| [020](adr/020-live-readings-vs-certification-history.md)                       | Live readings on market_data_v6; certification on point-in-time replay                                   | Section 2 · 29 Sep  | Settled |
-| [021](adr/021-mcd3-reads-mcd1-and-mcd2-readings.md)                            | MCD3 reads MCD1 / MCD2 readings from the same cycle instead of recomputing them                          | Section 2 · 29 Sep  | Settled |
-| [022](adr/022-minimum-sample-before-quoting-a-number.md)                       | A state’s numbers are quoted only with n ≥ 30 per state and horizon, always shown with n                 | Section 2 · 29 Sep  | Settled |
-| [023](adr/023-mcd1-same-slope-breakout-on-the-latest-bar.md)                   | MCD1 same-slope breakout fires on the latest bar (certified behaviour); mcd1.md corrected                | Section 2 · 29 Sep  | Settled |
-| [024](adr/024-neutral-state-names.md)                                          | Neutral state names; no probability words until measured                                                 | Section 2 · 29 Sep  | Settled |
-| [025](adr/025-rules-decide-direction.md)                                       | Direction comes from the synthesis rules table; the LLM explains and can’t override stand-aside          | Section 3 · 29 Sep  | Settled |
-| [026](adr/026-rules-file-format.md)                                            | Rules: ordered, versioned file; first match wins; no match = NEUTRAL, logged; draft as a start           | Section 3 · 29 Sep  | Settled |
-| [027](adr/027-synthesis-runs-in-the-sensor-worker.md)                          | Synthesis runs in the sensor worker right after Section 2, in the same cycle                             | Section 3 · 29 Sep  | Settled |
-| [028](adr/028-two-trader-type-readings-per-cycle.md)                           | Two synthesis readings per cycle: Day Trader (M15 + M5) and Scalper (M5)                                 | Section 3 · 29 Sep  | Settled |
-| [029](adr/029-precedence-ladder.md)                                            | Precedence follows file A’s ladder; derived sensors modify, don’t vote                                   | Section 3 · 29 Sep  | Settled |
-| [030](adr/030-support-and-resistance-as-context-levels.md)                     | sr_1–sr_16 used as context levels until an S&R sensor exists                                             | Section 3 · 29 Sep  | Settled |
-| [031](adr/031-zone-half-width.md)                                              | Zone half-width = 10% of the source channel width; overlapping zones merge                               | Section 3 · 29 Sep  | Settled |
-| [032](adr/032-invalidation-price.md)                                           | Invalidation = $0.50 beyond the next structural level, never under $13                                   | Section 3 · 29 Sep  | Settled |
-| [033](adr/033-modal-price-pills-from-zones.md)                                 | Modal price pills = one reference price per zone, best first; fewer if fewer qualify                     | Section 3 · 29 Sep  | Settled |
-| [034](adr/034-custom-entry-bound.md)                                           | Custom entry within the 1-day range widened by half its height; ±5% stays as a typo filter               | Section 3 · 29 Sep  | Settled |
-| [035](adr/035-no-confidence-grades.md)                                         | No confidence grades until state statistics exist                                                        | Section 3 · 29 Sep  | Settled |
-| [036](adr/036-routing-v1-is-a-dispatch-matrix.md)                              | Routing v1 = dispatch matrix (intent × states) + labelled set; vector routing only if it wins            | Section 4 · 29 Sep  | Settled |
-| [037](adr/037-eight-intent-labels.md)                                          | Fixed list of eight intent labels; instant prompts carry their own                                       | Section 4 · 29 Sep  | Settled |
-| [038](adr/038-english-pivot-for-16-languages.md)                               | English pivot with a trading glossary; the answer comes back in the user’s language                      | Section 4 · 29 Sep  | Settled |
-| [039](adr/039-one-small-model-call-to-understand-the-question.md)              | One small model call returns language, English text, intent, symbols and timeframes                      | Section 4 · 29 Sep  | Settled |
-| [040](adr/040-sensor-board-on-every-request.md)                                | Sensor board = synthesis line + every sensor; unavailable sensors listed as such                         | Section 4 · 29 Sep  | Settled |
-| [041](adr/041-warnings-and-the-primary-sensor-always-in-full.md)               | Primary sensor and any opposing or stand-aside sensor always sent in full                                | Section 4 · 29 Sep  | Settled |
-| [042](adr/042-knowledge-corpus-authorship.md)                                  | Corpus drafted from existing specs; you approve each domain before its first build                       | Section 4 · 29 Sep  | Settled |
-| [043](adr/043-retrieval-query-built-from-context.md)                           | Retrieval query = intent template + state codes + English question                                       | Section 4 · 29 Sep  | Settled |
-| [044](adr/044-routing-and-retrieval-test-thresholds.md)                        | Tests: routing ≥ 90% · recall@4 ≥ 0.8 · every language within 5 points of English                        | Section 4 · 29 Sep  | Settled |
-| [045](adr/045-embedding-model.md)                                              | Embedding model stays an English MiniLM-class model                                                      | Section 4 · 29 Sep  | Settled |
-| [046](adr/046-deterministic-out-of-scope-check.md)                             | Deterministic out-of-scope check before any reasoning; fixed replies in 19 languages                     | Section 4 · 29 Sep  | Settled |
-| [047](adr/047-one-day-of-ohlc-in-compact-form.md)                              | 1-day OHLC sent in full, compact form, shared and cached; summary only when a cap forces it              | Section 5 · 29 Sep  | Settled |
-| [048](adr/048-context-caps-and-cut-order.md)                                   | Caps per prompt component; cut history → knowledge → OHLC → sensor details; board and warnings never cut | Section 5 · 29 Sep  | Settled |
-| [049](adr/049-prompt-order-for-caching.md)                                     | Prompt order: static rules → shared cycle block → this user’s part, cached where supported               | Section 5 · 29 Sep  | Settled |
-| [050](adr/050-metering-from-actual-cost.md)                                    | Units from each call’s actual cost; worst case reserved before calling; tiers set from measurement       | Section 5 · 29 Sep  | Settled |
-| [051](adr/051-answer-gate-by-data-status.md)                                   | Answer gate by data status; a chart from another cycle is dropped; every reply stamped                   | Section 5 · 29 Sep  | Settled |
-| [052](adr/052-report-1-as-structured-json.md)                                  | Report 1 = report1.v1 JSON; direction copied from synthesis; values filled by id                         | Section 5 · 29 Sep  | Settled |
-| [053](adr/053-number-check-on-every-reply.md)                                  | Every number matched to the context within $0.05; regenerate once, then flag                             | Section 5 · 29 Sep  | Settled |
-| [054](adr/054-replies-shown-after-their-checks.md)                             | Replies shown only after their checks, with progress stages; Report 1 ≤ 15 s p90                         | Section 5 · 29 Sep  | Settled |
-| [055](adr/055-models-at-launch.md)                                             | Launch with one default and one fallback model, both passing the evaluation suite                        | Section 5 · 29 Sep  | Settled |
-| [056](adr/056-wording-guide-in-16-languages.md)                                | Wording guide and phrase lists in 19 languages, checked on every reply; counsel review                   | Section 5 · 29 Sep  | Settled |
-| [057](adr/057-follow-ups-and-chat-history.md)                                  | Follow-ups reuse the cached cycle block; changes stated; history = 10 messages + summary                 | Section 5 · 29 Sep  | Settled |
-| [058](adr/058-when-report-2-is-offered.md)                                     | Report 2 offered only with a synthesis direction on a usable cycle, outside a blackout; else the reason  | Section 6 · 30 Sep  | Settled |
-| [059](adr/059-setup-pinned-to-its-cycle.md)                                    | Setup pinned to Report 1’s cycle; refused past invalidation; a changed synthesis offers a refresh        | Section 6 · 30 Sep  | Settled |
-| [060](adr/060-news-blackout.md)                                                | Blackout ±15 min around file A’s Tier-1 list (±60 if approximate); other releases warn                   | Section 6 · 30 Sep  | Settled |
-| [061](adr/061-defect-flag-halves-the-pre-set-risk.md)                          | CAUTIONARY pre-sets half the risk with the reason; override allowed and logged                           | Section 6 · 30 Sep  | Settled |
-| [062](adr/062-structural-stop-options.md)                                      | Stop options = distances to structural invalidation levels ≥ Min SLD, plus custom                        | Section 6 · 30 Sep  | Settled |
-| [063](adr/063-badge-from-synthesis-and-room.md)                                | Badge from the synthesis table and room to the next level; no badge when nothing fits                    | Section 6 · 30 Sep  | Settled |
-| [064](adr/064-counter-trend-caps-follow-the-setup.md)                          | Setup outside the trader’s style: offered with a notice; counter-trend caps follow the setup             | Section 6 · 30 Sep  | Settled |
-| [065](adr/065-rrr-definition.md)                                               | RRR = net profit ÷ actual loss, after commission; declared and actual risk both shown                    | Section 6 · 30 Sep  | Settled |
-| [066](adr/066-broker-figures-from-mt5.md)                                      | symbol_specs from MT5; spread applied where each price triggers; swap shown for Day Traders              | Section 6 · 30 Sep  | Settled |
-| [067](adr/067-chat-typed-setups-pre-fill-the-modal.md)                         | Chat-typed setups pre-fill the modal; one validator for both paths                                       | Section 6 · 30 Sep  | Settled |
-| [068](adr/068-report-2-is-a-fixed-template.md)                                 | Report 2 = Engine 4 + a fixed template in 19 languages; no model writes it                               | Section 6 · 30 Sep  | Settled |
-| [069](adr/069-consent-record.md)                                               | Consent record per action; “Accept setup”; history kept, hashed, after deletion                          | Section 6 · 30 Sep  | Settled |
-| [070](adr/070-one-architecture-document-and-decision-log.md)                   | One architecture document from the seven decks; docs/adr/; SUPERSEDED banners on files A–I               | Section 7 · 30 Sep  | Settled |
-| [071](adr/071-engines-named-by-function.md)                                    | Engines named by function; old engine numbers kept as aliases                                            | Section 7 · 30 Sep  | Settled |
-| [072](adr/072-free-tier.md)                                                    | Free tier: no AI chat; a recorded demo conversation instead                                              | Section 7 · 30 Sep  | Settled |
-| [073](adr/073-pro-quota-method.md)                                             | Pro quota = (Pro price × model-spend share) ÷ measured cost per unit                                     | Section 7 · 30 Sep  | Settled |
-| [074](adr/074-one-entitlement-table.md)                                        | One entitlement table in config, read by every gate                                                      | Section 7 · 30 Sep  | Settled |
-| [075](adr/075-one-trace-per-answer.md)                                         | One trace per answer; 90 days live, then archived with the audit rows                                    | Section 7 · 30 Sep  | Settled |
-| [076](adr/076-retention.md)                                                    | Retention: 7 years for audit rows; chat transcripts 12 months, deletable                                 | Section 7 · 30 Sep  | Settled |
-| [077](adr/077-prompt-privacy.md)                                               | No equity or commission in prompts; approved model providers only                                        | Section 7 · 30 Sep  | Settled |
-| [078](adr/078-degraded-modes.md)                                               | One degraded-mode table; every row has a test                                                            | Section 7 · 30 Sep  | Settled |
-| [079](adr/079-golden-scenarios.md)                                             | About 24 golden scenarios you approve, replayed on every change                                          | Section 7 · 30 Sep  | Settled |
-| [080](adr/080-operations-dashboard-and-alerts.md)                              | One admin page and five alerts                                                                           | Section 7 · 30 Sep  | Settled |
-| [081](adr/081-safety-texts-in-all-16-languages.md)                             | Safety texts in all 19 languages before release; right-to-left tested                                    | Section 7 · 30 Sep  | Settled |
-| [082](adr/082-mcd-development-standard.md)                                     | Every MCD is built to MCD-DEVELOPMENT-STANDARD.md; one registry row per MCD in §2.13                     | Section 2 · 30 Sep  | Settled |
-| [083](adr/083-mcd1-and-mcd2-windows-count-the-channels-closed-bars.md)         | MCD1 and MCD2 windows count the channel’s closed bars (patch 2.0.1)                                      | Section 2 · 1 Oct   | Settled |
-| [084](adr/084-draft-1-reads-the-draft-table-where-it-is-silent.md)             | Rules version draft-1 reads the draft table where it is silent                                           | Section 3 · 4 Oct   | Settled |
-| [085](adr/085-caution-is-inherited-from-the-sensors-a-rule-read.md)            | Caution is inherited from the sensors a rule read                                                        | Section 3 · 4 Oct   | Settled |
-| [086](adr/086-the-reference-price-is-the-last-closed-m5-close.md)              | The reference price is the close of the last closed M5 bar                                               | Section 3 · 4 Oct   | Settled |
-| [087](adr/087-support-and-resistance-levels-are-structure-not-zone-sources.md) | Support and resistance levels are structure, not zone sources                                            | Section 3 · 4 Oct   | Settled |
-| [088](adr/088-zone-sources-are-the-m5-channel-levels.md)                       | Zone sources are the M5 channel levels                                                                   | Section 3 · 4 Oct   | Settled |
-| [089](adr/089-zone-edge-cases.md)                                              | Zone edge cases: runway, rank and the cap of five (refines ADR-031 and ADR-032)                          | Section 3 · 4 Oct   | Settled |
-| [090](adr/090-the-support-and-resistance-levels-travel-in-the-cycle-bundle.md) | The support and resistance levels travel in the cycle bundle                                             | Section 2 · 4 Oct   | Settled |
-| [091](adr/091-syn-readings-and-zones-have-their-own-tables.md)                 | SYN readings and entry zones have their own tables, not rows of mcd_outputs                              | Section 3 · 4 Oct   | Settled |
-| [092](adr/092-the-syn-flag.md)                                                 | SYN has its own flag (off, shadow, live) and may not exceed MCD1 or MCD2                                 | Section 3 · 4 Oct   | Settled |
-| [093](adr/093-exact-rational-arithmetic-for-the-money-maths.md)                | Money maths in exact fractions (no floats); checked by an independent Decimal oracle                     | Section 6 · 9 Oct   | Settled |
-| [094](adr/094-spread-and-the-fill-price-in-the-sizing.md)                      | Spread S: a BUY fills at the ask, a SELL triggers on the ask; leverage uses the fill price               | Section 6 · 9 Oct   | Settled |
-| [095](adr/095-stop-options-from-the-stored-readings-and-the-cycle-bundle.md)   | Stop options rebuilt from stored readings and bundle S&R levels; targets strictly before the level       | Section 6 · 9 Oct   | Settled |
-| [096](adr/096-profile-history-and-the-keyed-audit-hash.md)                     | Profile history and consent rows are append-only; user id goes to NULL, a keyed HMAC hash stays          | Section 6 · 10 Oct  | Settled |
-| [097](adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md)        | One ValidatedSetup for modal and chat; the server recomputes; Report 2 is a fixed template               | Section 6 · 10 Oct  | Settled |
-| [098](adr/098-intake-routing-and-knowledge-service.md)                         | Section 4 as built: 19 locales, Railway service, adapter, quota port, badges, retrieval, model pin       | Section 4 · 14 Oct  | Settled |
+| #                                                                              | Decision                                                                                                 | Source              | Status            |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------- | ----------------- |
+| [001](adr/001-retire-engine-1-5c-wacs54.md)                                    | Engine 1.5C (WACS54) retired; replaced by the Engine 1.5E router                                         | File A · 29 Sep     | Settled           |
+| [002](adr/002-remove-jsonb54-and-freq54.md)                                    | JSONB54 and FREQ54 removed; MCD regime outputs carry the state                                           | 29 Sep              | Settled           |
+| [003](adr/003-per-mcd-windows-and-1-day-of-ohlc-instead-of-the-54-bar-rule.md) | 54-bar rule dropped: each MCD reads its own window; the LLM gets 1 day of M5 + M15 OHLC                  | 29 Sep              | Settled           |
+| [004](adr/004-two-panel-chart-in-private-r2.md)                                | Engine 3 = 2-panel M5 / M15 PNG, overlay and standard variants, private R2                               | 10–11 Sep manifests | Settled           |
+| [005](adr/005-knowledge-index-as-local-txtai-files.md)                         | Engine 2 index = local txtai files, rebuilt on every deploy                                              | 29 Sep              | Settled           |
+| [006](adr/006-charts-rendered-on-a-schedule.md)                                | Charts are rendered on a schedule, never on demand (<120 ms retrieval budget)                            | R2 manifest §8      | Settled           |
+| [007](adr/007-finalise-the-architecture-section-by-section.md)                 | Architecture finalised section by section, one deck per section                                          | 29 Sep              | Settled           |
+| [008](adr/008-cycle-key-is-the-5-minute-slot-time.md)                          | Stack D cycle key = 5-minute slot time (UTC); collection cycle ids kept as provenance                    | Section 1 · 29 Sep  | Settled           |
+| [009](adr/009-cycle-manifest-and-ready-signal.md)                              | Push worker sends a cycle manifest; the gateway checks it, writes market_cycles and triggers Section 2   | Section 1 · 29 Sep  | Settled           |
+| [010](adr/010-active-indicator-setting-per-timeframe.md)                       | Active indicator = admin setting per timeframe, effective from a slot (M15 non_b, M5 best_fit_a)         | Section 1 · 29 Sep  | Superseded by 100 |
+| [011](adr/011-still-open-bar-kept-out-of-sensors-and-ohlc.md)                  | Still-open bar kept out of sensors and OHLC; exposed once as a labelled last price                       | Section 1 · 29 Sep  | Settled           |
+| [012](adr/012-freshness-thresholds.md)                                         | Cycle ready ≤ 2 min (≤ 4 with retries); STALE after 10 min                                               | Section 1 · 29 Sep  | Settled           |
+| [013](adr/013-newest-bars-pushed-first.md)                                     | The cycle’s newest bars are pushed first; throughput measured alongside                                  | Section 1 · 29 Sep  | Settled           |
+| [014](adr/014-chart-rendered-on-the-vps-stamped-and-kept.md)                   | Charts stay rendered on the VPS, stamped per slot, last good image kept                                  | Section 1 · 29 Sep  | Settled           |
+| [015](adr/015-retuning-during-a-promote.md)                                    | A promote marks cycles RETUNING until the re-pushed window completes; sensors report CAUTIONARY          | Section 1 · 1 Oct   | Settled           |
+| [016](adr/016-sensor-worker-on-railway.md)                                     | Sensor worker runs on Railway, started by Section 1’s cycle-ready job                                    | Section 2 · 29 Sep  | Settled           |
+| [017](adr/017-mcd-output-envelope-v1.md)                                       | Every MCD returns envelope v1; bias = LONG · SHORT · NEUTRAL · STAND_ASIDE                               | Section 2 · 29 Sep  | Settled           |
+| [018](adr/018-quality-gate-becomes-mcd0.md)                                    | The 4-Quadrant gate becomes MCD0 per timeframe; channel MCDs inherit its CAUTIONARY                      | Section 2 · 29 Sep  | Settled           |
+| [019](adr/019-r-squared-threshold-per-model.md)                                | R² thresholds per model: A ≥ 0.70, B ≥ 0.65 (file C)                                                     | Section 2 · 29 Sep  | Superseded by 101 |
+| [020](adr/020-live-readings-vs-certification-history.md)                       | Live readings on market_data_v6; certification on point-in-time replay                                   | Section 2 · 29 Sep  | Settled           |
+| [021](adr/021-mcd3-reads-mcd1-and-mcd2-readings.md)                            | MCD3 reads MCD1 / MCD2 readings from the same cycle instead of recomputing them                          | Section 2 · 29 Sep  | Settled           |
+| [022](adr/022-minimum-sample-before-quoting-a-number.md)                       | A state’s numbers are quoted only with n ≥ 30 per state and horizon, always shown with n                 | Section 2 · 29 Sep  | Settled           |
+| [023](adr/023-mcd1-same-slope-breakout-on-the-latest-bar.md)                   | MCD1 same-slope breakout fires on the latest bar (certified behaviour); mcd1.md corrected                | Section 2 · 29 Sep  | Settled           |
+| [024](adr/024-neutral-state-names.md)                                          | Neutral state names; no probability words until measured                                                 | Section 2 · 29 Sep  | Settled           |
+| [025](adr/025-rules-decide-direction.md)                                       | Direction comes from the synthesis rules table; the LLM explains and can’t override stand-aside          | Section 3 · 29 Sep  | Settled           |
+| [026](adr/026-rules-file-format.md)                                            | Rules: ordered, versioned file; first match wins; no match = NEUTRAL, logged; draft as a start           | Section 3 · 29 Sep  | Settled           |
+| [027](adr/027-synthesis-runs-in-the-sensor-worker.md)                          | Synthesis runs in the sensor worker right after Section 2, in the same cycle                             | Section 3 · 29 Sep  | Settled           |
+| [028](adr/028-two-trader-type-readings-per-cycle.md)                           | Two synthesis readings per cycle: Day Trader (M15 + M5) and Scalper (M5)                                 | Section 3 · 29 Sep  | Settled           |
+| [029](adr/029-precedence-ladder.md)                                            | Precedence follows file A’s ladder; derived sensors modify, don’t vote                                   | Section 3 · 29 Sep  | Settled           |
+| [030](adr/030-support-and-resistance-as-context-levels.md)                     | sr_1–sr_16 used as context levels until an S&R sensor exists                                             | Section 3 · 29 Sep  | Settled           |
+| [031](adr/031-zone-half-width.md)                                              | Zone half-width = 10% of the source channel width; overlapping zones merge                               | Section 3 · 29 Sep  | Settled           |
+| [032](adr/032-invalidation-price.md)                                           | Invalidation = $0.50 beyond the next structural level, never under $13                                   | Section 3 · 29 Sep  | Settled           |
+| [033](adr/033-modal-price-pills-from-zones.md)                                 | Modal price pills = one reference price per zone, best first; fewer if fewer qualify                     | Section 3 · 29 Sep  | Settled           |
+| [034](adr/034-custom-entry-bound.md)                                           | Custom entry within the 1-day range widened by half its height; ±5% stays as a typo filter               | Section 3 · 29 Sep  | Settled           |
+| [035](adr/035-no-confidence-grades.md)                                         | No confidence grades until state statistics exist                                                        | Section 3 · 29 Sep  | Settled           |
+| [036](adr/036-routing-v1-is-a-dispatch-matrix.md)                              | Routing v1 = dispatch matrix (intent × states) + labelled set; vector routing only if it wins            | Section 4 · 29 Sep  | Settled           |
+| [037](adr/037-eight-intent-labels.md)                                          | Fixed list of eight intent labels; instant prompts carry their own                                       | Section 4 · 29 Sep  | Settled           |
+| [038](adr/038-english-pivot-for-16-languages.md)                               | English pivot with a trading glossary; the answer comes back in the user’s language                      | Section 4 · 29 Sep  | Settled           |
+| [039](adr/039-one-small-model-call-to-understand-the-question.md)              | One small model call returns language, English text, intent, symbols and timeframes                      | Section 4 · 29 Sep  | Settled           |
+| [040](adr/040-sensor-board-on-every-request.md)                                | Sensor board = synthesis line + every sensor; unavailable sensors listed as such                         | Section 4 · 29 Sep  | Settled           |
+| [041](adr/041-warnings-and-the-primary-sensor-always-in-full.md)               | Primary sensor and any opposing or stand-aside sensor always sent in full                                | Section 4 · 29 Sep  | Settled           |
+| [042](adr/042-knowledge-corpus-authorship.md)                                  | Corpus drafted from existing specs; you approve each domain before its first build                       | Section 4 · 29 Sep  | Settled           |
+| [043](adr/043-retrieval-query-built-from-context.md)                           | Retrieval query = intent template + state codes + English question                                       | Section 4 · 29 Sep  | Settled           |
+| [044](adr/044-routing-and-retrieval-test-thresholds.md)                        | Tests: routing ≥ 90% · recall@4 ≥ 0.8 · every language within 5 points of English                        | Section 4 · 29 Sep  | Settled           |
+| [045](adr/045-embedding-model.md)                                              | Embedding model stays an English MiniLM-class model                                                      | Section 4 · 29 Sep  | Settled           |
+| [046](adr/046-deterministic-out-of-scope-check.md)                             | Deterministic out-of-scope check before any reasoning; fixed replies in 19 languages                     | Section 4 · 29 Sep  | Settled           |
+| [047](adr/047-one-day-of-ohlc-in-compact-form.md)                              | 1-day OHLC sent in full, compact form, shared and cached; summary only when a cap forces it              | Section 5 · 29 Sep  | Settled           |
+| [048](adr/048-context-caps-and-cut-order.md)                                   | Caps per prompt component; cut history → knowledge → OHLC → sensor details; board and warnings never cut | Section 5 · 29 Sep  | Settled           |
+| [049](adr/049-prompt-order-for-caching.md)                                     | Prompt order: static rules → shared cycle block → this user’s part, cached where supported               | Section 5 · 29 Sep  | Settled           |
+| [050](adr/050-metering-from-actual-cost.md)                                    | Units from each call’s actual cost; worst case reserved before calling; tiers set from measurement       | Section 5 · 29 Sep  | Settled           |
+| [051](adr/051-answer-gate-by-data-status.md)                                   | Answer gate by data status; a chart from another cycle is dropped; every reply stamped                   | Section 5 · 29 Sep  | Settled           |
+| [052](adr/052-report-1-as-structured-json.md)                                  | Report 1 = report1.v1 JSON; direction copied from synthesis; values filled by id                         | Section 5 · 29 Sep  | Settled           |
+| [053](adr/053-number-check-on-every-reply.md)                                  | Every number matched to the context within $0.05; regenerate once, then flag                             | Section 5 · 29 Sep  | Settled           |
+| [054](adr/054-replies-shown-after-their-checks.md)                             | Replies shown only after their checks, with progress stages; Report 1 ≤ 15 s p90                         | Section 5 · 29 Sep  | Settled           |
+| [055](adr/055-models-at-launch.md)                                             | Launch with one default and one fallback model, both passing the evaluation suite                        | Section 5 · 29 Sep  | Settled           |
+| [056](adr/056-wording-guide-in-16-languages.md)                                | Wording guide and phrase lists in 19 languages, checked on every reply; counsel review                   | Section 5 · 29 Sep  | Settled           |
+| [057](adr/057-follow-ups-and-chat-history.md)                                  | Follow-ups reuse the cached cycle block; changes stated; history = 10 messages + summary                 | Section 5 · 29 Sep  | Settled           |
+| [058](adr/058-when-report-2-is-offered.md)                                     | Report 2 offered only with a synthesis direction on a usable cycle, outside a blackout; else the reason  | Section 6 · 30 Sep  | Settled           |
+| [059](adr/059-setup-pinned-to-its-cycle.md)                                    | Setup pinned to Report 1’s cycle; refused past invalidation; a changed synthesis offers a refresh        | Section 6 · 30 Sep  | Settled           |
+| [060](adr/060-news-blackout.md)                                                | Blackout ±15 min around file A’s Tier-1 list (±60 if approximate); other releases warn                   | Section 6 · 30 Sep  | Settled           |
+| [061](adr/061-defect-flag-halves-the-pre-set-risk.md)                          | CAUTIONARY pre-sets half the risk with the reason; override allowed and logged                           | Section 6 · 30 Sep  | Settled           |
+| [062](adr/062-structural-stop-options.md)                                      | Stop options = distances to structural invalidation levels ≥ Min SLD, plus custom                        | Section 6 · 30 Sep  | Settled           |
+| [063](adr/063-badge-from-synthesis-and-room.md)                                | Badge from the synthesis table and room to the next level; no badge when nothing fits                    | Section 6 · 30 Sep  | Settled           |
+| [064](adr/064-counter-trend-caps-follow-the-setup.md)                          | Setup outside the trader’s style: offered with a notice; counter-trend caps follow the setup             | Section 6 · 30 Sep  | Settled           |
+| [065](adr/065-rrr-definition.md)                                               | RRR = net profit ÷ actual loss, after commission; declared and actual risk both shown                    | Section 6 · 30 Sep  | Settled           |
+| [066](adr/066-broker-figures-from-mt5.md)                                      | symbol_specs from MT5; spread applied where each price triggers; swap shown for Day Traders              | Section 6 · 30 Sep  | Settled           |
+| [067](adr/067-chat-typed-setups-pre-fill-the-modal.md)                         | Chat-typed setups pre-fill the modal; one validator for both paths                                       | Section 6 · 30 Sep  | Settled           |
+| [068](adr/068-report-2-is-a-fixed-template.md)                                 | Report 2 = Engine 4 + a fixed template in 19 languages; no model writes it                               | Section 6 · 30 Sep  | Settled           |
+| [069](adr/069-consent-record.md)                                               | Consent record per action; “Accept setup”; history kept, hashed, after deletion                          | Section 6 · 30 Sep  | Settled           |
+| [070](adr/070-one-architecture-document-and-decision-log.md)                   | One architecture document from the seven decks; docs/adr/; SUPERSEDED banners on files A–I               | Section 7 · 30 Sep  | Settled           |
+| [071](adr/071-engines-named-by-function.md)                                    | Engines named by function; old engine numbers kept as aliases                                            | Section 7 · 30 Sep  | Settled           |
+| [072](adr/072-free-tier.md)                                                    | Free tier: no AI chat; a recorded demo conversation instead                                              | Section 7 · 30 Sep  | Settled           |
+| [073](adr/073-pro-quota-method.md)                                             | Pro quota = (Pro price × model-spend share) ÷ measured cost per unit                                     | Section 7 · 30 Sep  | Settled           |
+| [074](adr/074-one-entitlement-table.md)                                        | One entitlement table in config, read by every gate                                                      | Section 7 · 30 Sep  | Settled           |
+| [075](adr/075-one-trace-per-answer.md)                                         | One trace per answer; 90 days live, then archived with the audit rows                                    | Section 7 · 30 Sep  | Settled           |
+| [076](adr/076-retention.md)                                                    | Retention: 7 years for audit rows; chat transcripts 12 months, deletable                                 | Section 7 · 30 Sep  | Settled           |
+| [077](adr/077-prompt-privacy.md)                                               | No equity or commission in prompts; approved model providers only                                        | Section 7 · 30 Sep  | Settled           |
+| [078](adr/078-degraded-modes.md)                                               | One degraded-mode table; every row has a test                                                            | Section 7 · 30 Sep  | Settled           |
+| [079](adr/079-golden-scenarios.md)                                             | About 24 golden scenarios you approve, replayed on every change                                          | Section 7 · 30 Sep  | Settled           |
+| [080](adr/080-operations-dashboard-and-alerts.md)                              | One admin page and five alerts                                                                           | Section 7 · 30 Sep  | Settled           |
+| [081](adr/081-safety-texts-in-all-16-languages.md)                             | Safety texts in all 19 languages before release; right-to-left tested                                    | Section 7 · 30 Sep  | Settled           |
+| [082](adr/082-mcd-development-standard.md)                                     | Every MCD is built to MCD-DEVELOPMENT-STANDARD.md; one registry row per MCD in §2.13                     | Section 2 · 30 Sep  | Settled           |
+| [083](adr/083-mcd1-and-mcd2-windows-count-the-channels-closed-bars.md)         | MCD1 and MCD2 windows count the channel’s closed bars (patch 2.0.1)                                      | Section 2 · 1 Oct   | Settled           |
+| [084](adr/084-draft-1-reads-the-draft-table-where-it-is-silent.md)             | Rules version draft-1 reads the draft table where it is silent                                           | Section 3 · 4 Oct   | Settled           |
+| [085](adr/085-caution-is-inherited-from-the-sensors-a-rule-read.md)            | Caution is inherited from the sensors a rule read                                                        | Section 3 · 4 Oct   | Settled           |
+| [086](adr/086-the-reference-price-is-the-last-closed-m5-close.md)              | The reference price is the close of the last closed M5 bar                                               | Section 3 · 4 Oct   | Settled           |
+| [087](adr/087-support-and-resistance-levels-are-structure-not-zone-sources.md) | Support and resistance levels are structure, not zone sources                                            | Section 3 · 4 Oct   | Settled           |
+| [088](adr/088-zone-sources-are-the-m5-channel-levels.md)                       | Zone sources are the M5 channel levels                                                                   | Section 3 · 4 Oct   | Settled           |
+| [089](adr/089-zone-edge-cases.md)                                              | Zone edge cases: runway, rank and the cap of five (refines ADR-031 and ADR-032)                          | Section 3 · 4 Oct   | Settled           |
+| [090](adr/090-the-support-and-resistance-levels-travel-in-the-cycle-bundle.md) | The support and resistance levels travel in the cycle bundle                                             | Section 2 · 4 Oct   | Settled           |
+| [091](adr/091-syn-readings-and-zones-have-their-own-tables.md)                 | SYN readings and entry zones have their own tables, not rows of mcd_outputs                              | Section 3 · 4 Oct   | Settled           |
+| [092](adr/092-the-syn-flag.md)                                                 | SYN has its own flag (off, shadow, live) and may not exceed MCD1 or MCD2                                 | Section 3 · 4 Oct   | Settled           |
+| [093](adr/093-exact-rational-arithmetic-for-the-money-maths.md)                | Money maths in exact fractions (no floats); checked by an independent Decimal oracle                     | Section 6 · 9 Oct   | Settled           |
+| [094](adr/094-spread-and-the-fill-price-in-the-sizing.md)                      | Spread S: a BUY fills at the ask, a SELL triggers on the ask; leverage uses the fill price               | Section 6 · 9 Oct   | Settled           |
+| [095](adr/095-stop-options-from-the-stored-readings-and-the-cycle-bundle.md)   | Stop options rebuilt from stored readings and bundle S&R levels; targets strictly before the level       | Section 6 · 9 Oct   | Settled           |
+| [096](adr/096-profile-history-and-the-keyed-audit-hash.md)                     | Profile history and consent rows are append-only; user id goes to NULL, a keyed HMAC hash stays          | Section 6 · 10 Oct  | Settled           |
+| [097](adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md)        | One ValidatedSetup for modal and chat; the server recomputes; Report 2 is a fixed template               | Section 6 · 10 Oct  | Settled           |
+| [098](adr/098-intake-routing-and-knowledge-service.md)                         | Section 4 as built: 19 locales, Railway service, adapter, quota port, badges, retrieval, model pin       | Section 4 · 14 Oct  | Settled           |
+| [099](adr/099-prompt-and-reply-as-built-in-step-7.md)                          | Section 5 as built: no launch model pair yet, one unit = one micro-dollar, two-table quota ledger        | Section 5 · 16 Oct  | Settled           |
+| [100](adr/100-m5-active-indicator-is-most-recent.md)                           | Active indicator: M15 `non_b`, M5 `most_recent` (supersedes 010)                                         | Section 1 · 26 Nov  | Settled           |
+| [101](adr/101-mcd0-1-1-0-thresholds-and-r2-per-timeframe.md)                   | MCD0 1.1.0: R² ≥ 0.00 on M5 only, fit ratio 1.25–3.20, geo ratio 0.50–2.00 (supersedes 019)              | Section 2 · 26 Nov  | Settled           |
 
 ## Appendix B — Corrections to earlier material
 
@@ -2650,3 +2659,5 @@ The txtai library source in the same folder is reference code (§4.6).
 [ADR-097]: adr/097-report-2-is-a-fixed-template-over-one-validated-setup.md
 [ADR-098]: adr/098-intake-routing-and-knowledge-service.md
 [ADR-099]: adr/099-prompt-and-reply-as-built-in-step-7.md
+[ADR-100]: adr/100-m5-active-indicator-is-most-recent.md
+[ADR-101]: adr/101-mcd0-1-1-0-thresholds-and-r2-per-timeframe.md

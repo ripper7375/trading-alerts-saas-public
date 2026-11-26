@@ -5,10 +5,14 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import compression from 'compression';
 import { AppModule } from './app.module';
+import { loggerOptions } from './common/log-levels';
 import { rejectBrotliRequestBody } from './common/middleware/reject-brotli-request-body.middleware';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule,
+    loggerOptions(process.env)
+  );
   const logger = new Logger('Bootstrap');
 
   // Railway sits in front of this service as a reverse proxy: without this,

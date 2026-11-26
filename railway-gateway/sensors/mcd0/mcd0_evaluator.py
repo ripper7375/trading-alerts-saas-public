@@ -1,7 +1,8 @@
-"""MCD0: channel fit quality gate. Evaluator 1.0.0.
+"""MCD0: channel fit quality gate. Evaluator 1.1.0.
 
 New MCD built from walkthrough Part C4. Specification: ``mcd0.md``. Parameters: ``mcd0_params.yaml``. State register,
-pillar words and templates: ``mcd0_registry.yaml``.
+pillar words and templates: ``mcd0_registry.yaml``. 1.1.0 (ADR-101): new fit, geo and R-squared bounds, and the
+R-squared pillars applied only on the timeframes named by ``r2_timeframes``.
 
 ``evaluate(inputs, params, upstream) -> envelope`` is a pure function of the kit's frozen input bundle (standard
 section 11.2, rule R4): no file, database, network, clock, randomness, environment variable or model call. It never
@@ -33,7 +34,7 @@ from mcd_common.cycle_inputs import (
 )
 
 MCD_ID = "MCD0"
-EVALUATOR_VERSION = "1.0.0"
+EVALUATOR_VERSION = "1.1.0"
 TIMEFRAMES = ("M5", "M15")
 
 # Model A (SSA crossings) exists for the seven centroid sources and not for the fractal EDT. Decided by the source name,
@@ -161,12 +162,14 @@ def _tier3(inputs: CycleInputs) -> pf.CheckResult:
 # --------------------------------------------------------------------------- the judgement
 
 
-def _judge(source: str, row: Mapping[str, Any], params: Params) -> dict[str, Any]:
+def _judge(timeframe: str, source: str, row: Mapping[str, Any], params: Params) -> dict[str, Any]:
     """The eight pillars on one timeframe's row (spec section 6), every comparison on the unrounded values.
 
     Returns the pillar ids that failed and those not applied (both in ``PILLAR_ORDER``) and the ``details`` of the
-    timeframe. A pillar in neither list passed.
+    timeframe. A pillar in neither list passed. The R-squared pillars follow the timeframe, never the indicator
+    (``r2_timeframes``, ADR-101).
     """
+    r2_on_timeframe = timeframe in params["r2_timeframes"]
     open_rows = params["t_edt_open_bar_rows"]
     coverage = row["window_span_bars"] - open_rows  # closed bars: the live bar is the still-open one
     upper, lower = row["uoedt_offset"], -row["loedt_offset"]
@@ -185,7 +188,7 @@ def _judge(source: str, row: Mapping[str, Any], params: Params) -> dict[str, Any
         key = model.lower()
         r2, mse, skew = row[f"model_{key}_r2"], row[f"model_{key}_mse"], row[f"model_{key}_skew"]
         fit = half / math.sqrt(mse)  # each model's own MSE (decision (b))
-        if not flat:  # a flat channel explains almost no variance by slope (decision (d))
+        if r2_on_timeframe and not flat:  # a flat channel explains almost no variance by slope (decision (d))
             outcome[f"R2_{model}"] = r2 >= min_r2
         outcome[f"FIT_{model}"] = params["min_fit_ratio"] <= fit <= params["max_fit_ratio"]
         outcome[f"SKEW_{model}"] = abs(skew) <= params["max_abs_skew"]  # each model's own skew (spec question Q2)
@@ -236,7 +239,7 @@ def _evaluate(inputs: CycleInputs, params: Params) -> dict[str, Any]:
     if outcome.stop:
         return env.unavailable(outcome.status, MCD_ID, EVALUATOR_VERSION, inputs.cycle_slot, list(outcome.reasons), **context)
 
-    judged = {tf: _judge(_source(inputs, tf), _row(inputs, tf), params) for tf in TIMEFRAMES}
+    judged = {tf: _judge(tf, _source(inputs, tf), _row(inputs, tf), params) for tf in TIMEFRAMES}
     m5_defect, m15_defect = bool(judged["M5"]["failed"]), bool(judged["M15"]["failed"])
     state = (
         "MCD0_M5_M15_DEFECT" if m5_defect and m15_defect

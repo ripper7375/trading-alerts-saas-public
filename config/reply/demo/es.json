@@ -3,8 +3,8 @@
   "locale": "es",
   "source": {
     "kind": "STAND_IN",
-    "run_id": "standin-195b4e225f70",
-    "fingerprint_sha256": "195b4e225f70041a8bfc4053bac9a1af0deac1aa0590e94981fae0be59f37fbd",
+    "run_id": "standin-6dbff6a5865c",
+    "fingerprint_sha256": "6dbff6a5865cbdbac63ffd282e0cb2bd0071b70b39a6ac97a07a952c1e4001c0",
     "scenario": "M01",
     "trader": "DAY_TRADER",
     "pass": 1

@@ -1,0 +1,48 @@
+"""How far back do the set indicator's stored bands belong to the same fit as the last closed bar?"""
+import base64, collections, gzip, json, sys
+from pathlib import Path
+here = Path(sys.argv[1]); engine = sys.argv[2]
+sys.argv = ["q_analyze", str(here / "data"), engine, str(here / "report")]
+sys.path.insert(0, str(here))
+import q_analyze as q
+import importlib
+mcd1 = importlib.import_module("mcd1.mcd1_evaluator")
+P1 = q.Params.from_yaml(str(Path(engine) / "mcd1" / "mcd1_params.yaml"))
+out = collections.defaultdict(list); examples = []
+for record in q.read_lines("bundles.ndjson"):
+    data = json.loads(gzip.decompress(base64.b64decode(record["gz"])))
+    for tf in ("M5", "M15"):
+        name = data["active_indicator"][tf]; row = data["statistics"].get(tf, {}).get(name)
+        if not row or not q.is_number(row.get("containment_n")) or not q.is_number(row.get("uoedt_offset")):
+            continue
+        bars = data["bars"][tf][-(int(row["containment_n"]) - 1):]
+        base, up, lo = f"{name}_base_fl", f"{name}_uoedt", f"{name}_loedt"
+        if not all(q.is_number(bars[-1].get(c)) for c in (base, up, lo)):
+            continue
+        width = bars[-1][up] - bars[-1][lo]; steps = None; run = 0; previous = None
+        for bar in reversed(bars):
+            if not all(q.is_number(bar.get(c)) for c in (base, up, lo)):
+                break
+            same_offsets = abs((bar[up] - bar[base]) - (bars[-1][up] - bars[-1][base])) < 0.001 and abs((bar[lo] - bar[base]) - (bars[-1][lo] - bars[-1][base])) < 0.001
+            if previous is not None:
+                step = previous - bar[base]
+                if steps is None: steps = step
+                same_offsets = same_offsets and abs(step - steps) < 0.001
+            if not same_offsets:
+                break
+            previous = bar[base]; run += 1
+        out[(tf, "consistent bars")].append(run); out[(tf, "channel bars")].append(len(bars))
+        out[(tf, "share")].append(100 * run / len(bars))
+        if tf == "M15":
+            n_micro = mcd1._n_micro(row, P1); out[(tf, "MCD1 window")].append(n_micro)
+            out[(tf, "MCD1 window inside same fit")].append(int(run >= n_micro))
+        if len(examples) < 3 and run < len(bars) - 1 and q.iso(record["slot"]).endswith("12:00Z"):
+            i = len(bars) - 1 - run
+            examples.append((tf, q.iso(record["slot"]), run, len(bars), [round(bars[j][up] - bars[j][base], 3) for j in (i - 1, i, i + 1, len(bars) - 1) if 0 <= j < len(bars)]))
+for key, values in sorted(out.items()):
+    v = sorted(values)
+    if key[1] == "MCD1 window inside same fit":
+        print(f"  {key[0]} {key[1]}: {sum(v)} of {len(v)} cycles"); continue
+    print(f"  {key[0]} {key[1]}: min {v[0]:.0f}  p10 {v[int(0.1*(len(v)-1))]:.0f}  median {v[len(v)//2]:.0f}  p90 {v[int(0.9*(len(v)-1))]:.0f}  max {v[-1]:.0f}")
+print("  examples (tf, slot, consistent, channel bars, upper-base at [just older, break, next, last]):")
+for e in examples: print("   ", e)

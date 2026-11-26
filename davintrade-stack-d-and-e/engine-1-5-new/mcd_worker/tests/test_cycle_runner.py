@@ -119,7 +119,7 @@ class OneReadingPerMcdTests(unittest.TestCase):
                 self.assertEqual(r.envelope["evaluator_version"], r.evaluator_version)
                 self.assertEqual(r.envelope["cycle_slot"], s.SLOTS[name])
             self.assertEqual(
-                {r.mcd_id: r.evaluator_version for r in result.results}, {"MCD0": "1.0.0", "MCD1": "2.0.1", "MCD2": "2.0.1", "MCD3": "2.0.0"}
+                {r.mcd_id: r.evaluator_version for r in result.results}, {"MCD0": "1.1.0", "MCD1": "2.0.1", "MCD2": "2.0.1", "MCD3": "2.0.0"}
             )
 
     def test_every_reading_validates_and_its_text_is_its_canonical_form(self) -> None:

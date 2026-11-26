@@ -1,7 +1,7 @@
 # MCD0 registry entry and state register (standard Appendix C.2). Approved by Davin on 2026-10-01 (spec and plan); built in task P5.
 mcd_id: MCD0
 name: Channel fit quality gate
-evaluator_version: 1.0.0
+evaluator_version: 1.1.0
 kind: gate # gate | independent | derived
 timeframes: [M5, M15]
 depends_on: []

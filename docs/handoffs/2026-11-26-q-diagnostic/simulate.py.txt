@@ -1,0 +1,258 @@
+"""MCD3 and SYN with M5 = most_recent (M15 = non_b stays), under MCD0 1.0.0 and under variant A4. Local only.
+
+Usage: python simulate.py <data folder> <engine folder> <report folder>
+
+A stored bundle holds the candidate's channel on the last closed M5 bar only and is often shorter than that channel.
+The older bars are rebuilt: their times come from the stored M15 bars, their bands from the straight line through the
+last bar (statistics slope, last bar's band distances). The method is first applied to the SET indicator, cut to its
+newest 288 bars, and compared with the full stored bundle.
+
+A4 is simulated by wrapping MCD0's own pillar function (fit >= 1.25, geo 0.50-2.00, R2 floors 0.0 on M5, no R2 pillar
+on M15). The real 1.1.0 evaluator does not exist yet.
+"""
+
+from __future__ import annotations
+
+import base64
+import collections
+import contextlib
+import dataclasses
+import gzip
+import inspect
+import json
+import sys
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ARGS = sys.argv[1:4]
+sys.argv = ["q_analyze", *ARGS]
+sys.path.insert(0, str(HERE))
+import q_analyze as q  # noqa: E402
+
+CANDIDATE, M15_SET = "most_recent", "non_b"
+CUT = 288
+R2 = ("R2_A", "R2_B")
+A4_BOUNDS = {"min_fit_ratio": 1.25, "min_geo_ratio": 0.50, "max_geo_ratio": 2.00, "min_r2_model_a": 0.0, "min_r2_model_b": 0.0}
+CONFIGS = (("now", "best_fit_a, MCD0 1.0.0 (stored)"), ("mr", "most_recent, MCD0 1.0.0"), ("a4", "most_recent, MCD0 A4"))
+
+
+def channel_rows(row) -> int | None:
+    for field in ("containment_n", "visual_window_bars", "window_bars"):
+        if q.is_number(row.get(field)):
+            return int(row[field]) - 1  # the last row of the channel is the still-open bar
+    return None
+
+
+def rebuilt_m5(inputs, name: str, counters: collections.Counter):
+    row = inputs.statistics.get(("M5", q.statistics_source(name)))
+    bars = [dict(b) for b in inputs.bars.get("M5", ())]
+    cols = q.channel_columns(name)
+    need = None if row is None else channel_rows(row)
+    if need is None or not bars or not q.is_number(row.get("raw_slope")) or not all(q.is_number(bars[-1].get(cols[r])) for r in ("upper", "lower", "baseline")):
+        counters["not rebuilt (no channel or no slope)"] += 1
+        return inputs
+    last = dict(bars[-1])
+    missing = need - len(bars)
+    if missing > 0:
+        first = bars[0]["timestamp"]
+        times = sorted({b["timestamp"] + k for b in inputs.bars["M15"] for k in (0, 300, 600) if b["timestamp"] + k < first})
+        if len(times) < missing:
+            counters["M15 does not reach back far enough"] += 1
+        bars = [{"timestamp": t} for t in times[-missing:]] + bars
+        counters["lengthened"] += 1
+    up, low = last[cols["upper"]] - last[cols["baseline"]], last[cols["lower"]] - last[cols["baseline"]]
+    for k in range(1, min(need, len(bars))):
+        bar = bars[-1 - k]
+        base = last[cols["baseline"]] - row["raw_slope"] * k
+        bar.update({cols["baseline"]: base, cols["upper"]: base + up, cols["lower"]: base + low})
+        bar.setdefault(cols["fit"], last[cols["fit"]])  # older SSA and close values are not read by MCD2 or MCD3 beyond
+        bar.setdefault("close", last["close"])  # their stored window; they only need to exist
+    return dataclasses.replace(inputs, bars={**dict(inputs.bars), "M5": bars})
+
+
+def cut_m5(inputs, name: str):
+    """The bundle as stored for another setting: the newest bars only, the channel of ``name`` on the last one only."""
+    drop = set(q.channel_columns(name).values()) - {"close"}
+    bars = list(inputs.bars.get("M5", ()))[-CUT:]
+    older = [{k: v for k, v in dict(b).items() if k not in drop} for b in bars[:-1]]
+    return dataclasses.replace(inputs, bars={**dict(inputs.bars), "M5": older + bars[-1:]})
+
+
+@contextlib.contextmanager
+def variant_a4(worker):
+    globals_ = inspect.unwrap(worker.registry["MCD0"].evaluate).__globals__
+    original = globals_["_judge"]
+
+    def judge(source, row, params):
+        values = {key: params[key] for key in q.mcd0_keys}
+        values.update(A4_BOUNDS)
+        out = original(source, row, values)
+        if source == M15_SET:  # in this simulation the source names the timeframe (M5 is most_recent)
+            failed = [p for p in out["failed"] if p not in R2]
+            skipped = [p for p in q.mcd0.PILLAR_ORDER if p in R2 or p in out["details"]["skipped"]]
+            out = {"failed": failed, "details": {**out["details"], "failed": failed, "skipped": skipped}}
+        return out
+
+    globals_["_judge"] = judge
+    try:
+        yield
+    finally:
+        globals_["_judge"] = original
+
+
+def take(result) -> dict:
+    out = {"mcd": {}, "syn": {}}
+    for item in result.results:
+        out["mcd"][item.mcd_id] = (item.status, item.state_code, tuple(item.envelope.get("status_reasons") or ()), item.envelope_sha256, item.envelope.get("details") or {})
+    synthesis = result.synthesis.to_dict() if result.synthesis is not None else {}
+    for entry in synthesis.get("readings", []):
+        reading = json.loads(entry["reading_json"]) if entry.get("reading_json") else {}
+        zones = json.loads(entry["zones_json"]) if entry.get("zones_json") else []
+        out["syn"][entry["profile"]] = {
+            "status": reading.get("status", "WITHHELD"), "rule": reading.get("rule_id", "WITHHELD"), "bias": reading.get("bias"),
+            "stand_aside": bool(reading.get("stand_aside")), "zones": len(zones), "zones_reason": entry.get("zones_reason"),
+            "sha": (entry.get("reading_sha256"), entry.get("zones_sha256")),
+        }
+    return out
+
+
+class Tally:
+    def __init__(self) -> None:
+        self.n = 0
+        self.mcd = {m: collections.Counter() for m in q.MCDS}
+        self.state = {m: collections.Counter() for m in q.MCDS}
+        self.reason = {m: collections.Counter() for m in q.MCDS}
+        self.defect = collections.Counter()
+        self.syn = {p: collections.defaultdict(collections.Counter) for p in q.PROFILES}
+        self.day = collections.defaultdict(collections.Counter)
+
+    def add(self, slot: int, reading: dict) -> None:
+        self.n += 1
+        day = q.iso(slot)[:10]
+        self.day[day]["cycles"] += 1
+        for mcd_id, (status, state, reasons, _sha, details) in reading["mcd"].items():
+            self.mcd[mcd_id][status] += 1
+            if state:
+                self.state[mcd_id][state.replace(mcd_id + "_", "")] += 1
+            if status != "VALID":
+                self.reason[mcd_id]["+".join(reasons)] += 1
+            if mcd_id == "MCD0" and state:
+                self.defect["named"] += 1
+                self.defect["M5"] += bool(details["M5"]["failed"])
+                self.defect["M15"] += bool(details["M15"]["failed"])
+                self.defect["any"] += state != "MCD0_ALL_QUALIFIED"
+        self.day[day]["MCD3 INVALID"] += reading["mcd"]["MCD3"][0] == "INVALID"
+        for profile, s in reading["syn"].items():
+            t = self.syn[profile]
+            for key in ("status", "rule", "bias"):
+                t[key][s[key]] += 1
+            t["flags"]["stand_aside"] += s["stand_aside"]
+            t["flags"]["with zones"] += s["zones"] > 0
+            t["flags"]["zones"] += s["zones"]
+            if not s["zones"]:
+                t["no zones because"][s["zones_reason"] or "-"] += 1
+            self.day[day][profile + " stand aside"] += s["stand_aside"]
+        self.day[day]["any zone"] += any(s["zones"] for s in reading["syn"].values())
+
+
+def main() -> int:
+    started = time.time()
+    stored = {(r["cycle_slot"], r["mcd_id"]): r for r in q.read_lines("outputs.ndjson")}
+    q.cycle_runner._bundle_sha256 = lambda inputs: None
+    q.cycle_runner._bundle_text = lambda inputs: None
+    q.mcd0_keys = ("min_coverage_bars", "t_edt_open_bar_rows", "min_r2_model_a", "min_r2_model_b", "flat_angle_deg", "min_fit_ratio",
+                   "max_fit_ratio", "min_geo_ratio", "max_geo_ratio", "max_abs_skew", "ratio_decimals", "statistic_decimals")
+    worker = q.cycle_runner.Worker.load()
+    tallies = {key: Tally() for key, _ in CONFIGS}
+    integrity, method, rebuild_counts, check_counts = collections.Counter(), collections.Counter(), collections.Counter(), collections.Counter()
+    status_differences: list[str] = []
+    no_match = {key: 0 for key, _ in CONFIGS}
+    count = 0
+    for count, record in enumerate(q.read_lines("bundles.ndjson"), start=1):
+        slot = record["slot"]
+        inputs = q.CycleInputs.from_dict(json.loads(gzip.decompress(base64.b64decode(record["gz"]))))
+        setting = inputs.active_indicator["M5"]
+        assert inputs.active_indicator["M15"] == M15_SET and setting != CANDIDATE
+        now = take(worker.run_cycle(inputs))
+        for mcd_id, values in now["mcd"].items():
+            integrity["equal" if stored[(slot, mcd_id)]["envelope_sha256"] == values[3] else "different"] += 1
+
+        # the method on the set indicator: cut and rebuilt, against the full bundle
+        again = take(worker.run_cycle(rebuilt_m5(cut_m5(inputs, setting), setting, check_counts)))
+        for mcd_id, values in again["mcd"].items():
+            full = now["mcd"][mcd_id]
+            method[(mcd_id, "envelope", values[3] == full[3])] += 1
+            if (values[0], values[1]) != (full[0], full[1]):
+                method[(mcd_id, "status or state", False)] += 1
+                status_differences.append(f"{q.iso(slot)} {mcd_id}: full {full[0]} {full[1]} {list(full[2])} | rebuilt {values[0]} {values[1]}")
+        for profile, s in again["syn"].items():
+            full = now["syn"][profile]
+            method[("SYN " + profile, "envelope", s["sha"] == full["sha"])] += 1
+            if (s["status"], s["rule"], s["bias"], s["zones"]) != (full["status"], full["rule"], full["bias"], full["zones"]):
+                method[("SYN " + profile, "status or state", False)] += 1
+
+        switched = dataclasses.replace(inputs, active_indicator={**dict(inputs.active_indicator), "M5": CANDIDATE})
+        candidate = rebuilt_m5(switched, CANDIDATE, rebuild_counts)
+        readings = {"now": now, "mr": take(worker.run_cycle(candidate))}
+        with variant_a4(worker):
+            readings["a4"] = take(worker.run_cycle(candidate))
+        for key, reading in readings.items():
+            tallies[key].add(slot, reading)
+            no_match[key] += any(s["rule"] == "NO_MATCH" for s in reading["syn"].values())
+        if count % 100 == 0:
+            print(f"  {count} cycles, {time.time() - started:.0f} s", flush=True)
+
+    # ------------------------------------------------------------------ report
+    pct = q.pct
+    lines = [f"Simulation: M5 = {CANDIDATE}, M15 = {M15_SET}; {count} cycles", ""]
+    lines.append("0. Checks")
+    lines.append(f"  full bundles re-run with the stored setting vs stored MCD hashes: equal {integrity['equal']}, different {integrity['different']}")
+    lines.append(f"  method on the set indicator (M5 cut to {CUT} bars, channel on the last bar only, rebuilt) vs the full bundle:")
+    for name in (*q.MCDS, *("SYN " + p for p in q.PROFILES)):
+        lines.append(f"    {name}: hash equal {method[(name, 'envelope', True)]}, different {method[(name, 'envelope', False)]}; status/state (SYN: rule, bias, zone count) differs {method[(name, 'status or state', False)]}")
+    lines += ["    " + item for item in status_differences[:12]]
+    lines.append("  rebuild of the check: " + "; ".join(f"{k} {v}" for k, v in check_counts.items()))
+    lines.append("  rebuild of the candidate: " + "; ".join(f"{k} {v}" for k, v in rebuild_counts.items()))
+    lines.append("  DISCONTINUITY and INSUFFICIENT_BARS cannot appear for the candidate: every older bar is filled.")
+
+    lines += ["", "1. MCD status"]
+    for mcd_id in q.MCDS:
+        lines.append(f"  {mcd_id}")
+        lines += q.table(["config", *q.STATUSES], [[key, *q.mix(t.mcd[mcd_id], t.n)] for key, t in tallies.items()])
+    lines.append("  configs: " + "; ".join(f"{k} = {v}" for k, v in CONFIGS))
+    lines.append("  MCD0 defect rates (share of readings that name a state)")
+    lines += q.table(["config", "M5", "M15", "any"], [[k, *[pct(t.defect[x], t.defect["named"]) for x in ("M5", "M15", "any")]] for k, t in tallies.items()])
+    for mcd_id in ("MCD3", "MCD2", "MCD1"):
+        lines.append(f"  {mcd_id} states")
+        for key, t in tallies.items():
+            lines.append(f"    {key}: " + "; ".join(f"{k} x {v}" for k, v in t.state[mcd_id].most_common()))
+    lines.append("  MCD3 reasons when not VALID")
+    for key, t in tallies.items():
+        lines.append(f"    {key}: " + "; ".join(f"{k} x {v}" for k, v in t.reason["MCD3"].most_common(6)))
+
+    lines += ["", "2. SYN"]
+    for profile in q.PROFILES:
+        lines.append(f"  {profile}")
+        lines += q.table(["config", *q.STATUSES, "stand aside", "cycles with zones", "zones"], [[k, *q.mix(t.syn[profile]["status"], t.n), pct(t.syn[profile]["flags"]["stand_aside"], t.n), pct(t.syn[profile]["flags"]["with zones"], t.n), t.syn[profile]["flags"]["zones"]] for k, t in tallies.items()])
+        for title in ("rule", "bias", "no zones because"):
+            lines.append(f"    {title}")
+            for key, t in tallies.items():
+                lines.append(f"      {key}: " + "; ".join(f"{k} x {v}" for k, v in t.syn[profile][title].most_common()))
+    lines.append("  cycles with a NO_MATCH reading: " + "; ".join(f"{k} {v}" for k, v in no_match.items()))
+    lines.append("  cycles without any zone: " + "; ".join(f"{k} {t.n - sum(d['any zone'] for d in t.day.values())}" for k, t in tallies.items()))
+
+    lines += ["", "3. Per day"]
+    days = sorted(tallies["now"].day)
+    for title in ("MCD3 INVALID", "SCALPER stand aside", "DAY_TRADER stand aside", "any zone"):
+        lines.append(f"  {title} (cycles)")
+        lines += q.table(["config", *days], [[k, *[f"{t.day[d][title]} of {t.day[d]['cycles']}" for d in days]] for k, t in tallies.items()])
+
+    q.OUT.mkdir(parents=True, exist_ok=True)
+    (q.OUT / "simulation.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"DONE: {count} cycles in {time.time() - started:.0f} s -> {q.OUT / 'simulation.txt'}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

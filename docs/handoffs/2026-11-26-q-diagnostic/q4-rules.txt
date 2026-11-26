@@ -1,0 +1,8 @@
+Q4 follow-up: 51 NO_MATCH cycles on 20 Nov, MCD1 states {'MCD1_UP_LOWER_BREAKDOWN': 51}
+DAY_TRADER rule with each M5 candidate (the older bars filled; MCD3 is not meaningful there, R1 does not read it):
+  best_fit_b: R1_MACRO_COUNTER_TREND_RALLY x 51
+  cherry_a: R1_MACRO_COUNTER_TREND_RALLY x 51
+  cherry_b: R1_MACRO_COUNTER_TREND_RALLY x 51
+  most_recent: R1_MACRO_COUNTER_TREND_RALLY x 51
+  non_a: R1_MACRO_COUNTER_TREND_RALLY x 51
+  non_b: R1_MACRO_COUNTER_TREND_RALLY x 51

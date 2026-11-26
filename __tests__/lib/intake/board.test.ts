@@ -223,22 +223,22 @@ describe('the board text of the stored cycles', () => {
       'SENSOR BOARD · XAUUSD · 28 SEP 14:15 · DAY TRADER',
       col(
         'SYN',
-        'CAUTIONARY',
+        'VALID',
         'R2_EXHAUSTION_SNAPBACK · LONG · COUNTER_TREND · Snapback after a spike down, LONG'
       ),
       col(
         'MCD1',
-        'CAUTIONARY',
+        'VALID',
         'MCD1_DOWN_LOWER_BREAKDOWN · SHORT · M15 downtrend, latest close below the corridor'
       ),
       col(
         'MCD2',
-        'CAUTIONARY',
+        'VALID',
         'MCD2_DOWN_LOWER_BREAKDOWN · SHORT · M5 downtrend, below the corridor'
       ),
       col(
         'MCD3',
-        'CAUTIONARY',
+        'VALID',
         'MCD3_BEAR_BOTTOM · NEUTRAL · Consolidated downtrend, lower zone of the M15 corridor'
       ),
       col(
@@ -264,17 +264,17 @@ describe('the board text of the stored cycles', () => {
       ),
       col(
         'MCD1',
-        'CAUTIONARY',
+        'VALID',
         'MCD1_DOWN_IN_CORRIDOR · SHORT · M15 downtrend, no sustained break of the corridor'
       ),
       col(
         'MCD2',
-        'CAUTIONARY',
+        'VALID',
         'MCD2_DOWN_IN_CORRIDOR · SHORT · M5 downtrend, inside the corridor'
       ),
       col(
         'MCD3',
-        'CAUTIONARY',
+        'VALID',
         'MCD3_NON_CONSOLIDATED_OVERFLOW · STAND_ASIDE · Trends agree, M5 corridor often outside the M15 corridor'
       ),
       col(

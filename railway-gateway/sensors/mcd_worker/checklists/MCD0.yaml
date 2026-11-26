@@ -21,7 +21,7 @@ items:
   - id: 3
     name: Tests (13-style suite, envelope and forming-bar case)
     status: passed
-    evidence: '124 tests OK (T1 to T13; T14 is for derived MCDs; the shared T4 forming-bar case and T8 schema case are in the suite); re-run on 2026-10-03 (manifest A21).'
+    evidence: '124 tests OK (T1 to T13; T14 is for derived MCDs; the shared T4 forming-bar case and T8 schema case are in the suite); re-run on 2026-10-03 (manifest A21). 1.1.0 on 2026-11-26: 129 tests OK on Computer 1, the token-size test (548 tokens) and the workbook provenance tests included, as reported by Davin; on the build machine the two tests that need tiktoken and openpyxl could not run (manifest section 10).'
     files:
       - davintrade-stack-d-and-e/engine-1-5-new/mcd0/test_mcd0_unit_tests.py
       - davintrade-stack-d-and-e/engine-1-5-new/mcd0/mcd0-manifest-work-completion.md

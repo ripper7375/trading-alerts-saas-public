@@ -1,0 +1,41 @@
+"""Would MCD3 read differently if every window bar held the line of the last closed bar? (set indicators, local only)"""
+import base64, collections, dataclasses, gzip, json, sys
+from pathlib import Path
+here = Path(sys.argv[1]); engine = sys.argv[2]
+sys.argv = ["q_analyze", str(here / "data"), engine, str(here / "report")]
+sys.path.insert(0, str(here))
+import q_analyze as q
+worker = q.cycle_runner.Worker.load(flags={"SYN": "off"})
+stored = {(r["cycle_slot"], r["mcd_id"]): r for r in q.read_lines("outputs.ndjson")}
+def redraw(bars, name, count):
+    base, up, lo = f"{name}_base_fl", f"{name}_uoedt", f"{name}_loedt"
+    bars = [dict(b) for b in bars]; last = bars[-1]
+    step = last[base] - bars[-2][base]  # one bar of the current line
+    changed = 0
+    for k in range(1, min(count, len(bars))):
+        bar = bars[-1 - k]
+        if not all(q.is_number(bar.get(c)) for c in (base, up, lo)): continue
+        ideal = last[base] - step * k
+        new = (ideal, ideal + last[up] - last[base], ideal + last[lo] - last[base])
+        if max(abs(bar[c] - v) for c, v in zip((base, up, lo), new)) > 0.01:
+            bar[base], bar[up], bar[lo] = new; changed += 1
+    return bars, changed
+c = collections.Counter(); flips = collections.Counter()
+for record in q.read_lines("bundles.ndjson"):
+    slot = record["slot"]; row = stored.get((slot, "MCD3"))
+    if not row or row["status"] not in ("VALID", "CAUTIONARY"): continue
+    inputs = q.CycleInputs.from_dict(json.loads(gzip.decompress(base64.b64decode(record["gz"]))))
+    n5, n15 = inputs.active_indicator["M5"], inputs.active_indicator["M15"]
+    nest = int(inputs.statistics[("M5", n5)]["containment_n"]) - 1
+    b5 = [dict(b) for b in inputs.bars["M5"]]; b15 = [dict(b) for b in inputs.bars["M15"]]
+    start = max(i for i, b in enumerate(b15) if b["timestamp"] <= b5[-nest]["timestamp"])
+    new5, ch5 = redraw(b5, n5, nest); new15, ch15 = redraw(b15, n15, len(b15) - start)
+    if not (ch5 or ch15): continue
+    c["redrawn"] += 1
+    result = q.reading_of(worker.run_cycle(dataclasses.replace(inputs, bars={"M5": new5, "M15": new15})))["mcd"]["MCD3"]
+    before = (row["status"], row["state_code"]); after = (result[0], result[1])
+    if before != after:
+        c["status or state differs"] += 1; flips[(before, after)] += 1
+    c["any envelope difference"] += result[3] != row["envelope_sha256"]
+print(dict(c))
+for (a, b), n in flips.most_common(8): print(f"  {n} x {a[0]} {a[1]} -> {b[0]} {b[1]}")

@@ -1,0 +1,111 @@
+// Read-only export for the Q2 to Q5 diagnostic: the stored input bundles, the stored reading
+// hashes and the point-in-time channel rows of 19 to 25 Nov (UTC). SELECTs only.
+// Run from railway-gateway/ (the database client is loaded from there).
+'use strict';
+const fs = require('fs');
+const path = require('path');
+const { createRequire } = require('module');
+
+const SYMBOL = 'XAUUSD';
+const BATCH = 50;
+const CENTROID = ['best_fit_a', 'best_fit_b', 'cherry_a', 'cherry_b', 'most_recent', 'non_a', 'non_b'];
+const CHANNEL_COLUMNS = [
+  ...CENTROID.flatMap((c) => [`${c}_uoedt`, `${c}_loedt`, `${c}_base_fl`, `${c}_ssa`]),
+  'fractal_uoedt',
+  'fractal_loedt',
+  'fractal_best_fl',
+];
+
+const seconds = (text) => Date.parse(text) / 1000;
+const iso = (s) => new Date(s * 1000).toISOString().slice(0, 16) + 'Z';
+
+function writer(dir, name) {
+  const file = path.join(dir, name);
+  fs.writeFileSync(file, '');
+  return (rows) => {
+    if (rows.length) fs.appendFileSync(file, rows.map((r) => JSON.stringify(r)).join('\n') + '\n');
+  };
+}
+
+async function exportAll(prisma, dir, from, to, log) {
+  fs.mkdirSync(dir, { recursive: true });
+  fs.rmSync(path.join(dir, 'export.done.json'), { force: true });
+  const counts = { from: iso(from), to: iso(to), bundles: 0, bundleBytes: 0, outputs: 0, pointInTime: 0 };
+
+  const bundles = writer(dir, 'bundles.ndjson');
+  let after = from - 1;
+  for (;;) {
+    const rows = await prisma.marketCycleInput.findMany({
+      where: { symbol: SYMBOL, cycle_slot: { gt: after, lte: to } },
+      orderBy: { cycle_slot: 'asc' },
+      take: BATCH,
+      select: { cycle_slot: true, bundle_gz: true, bundle_encoding: true, inputs_sha256: true },
+    });
+    if (rows.length === 0) break;
+    bundles(
+      rows.map((r) => {
+        const gz = Buffer.from(r.bundle_gz);
+        counts.bundleBytes += gz.length;
+        return { slot: r.cycle_slot, encoding: r.bundle_encoding, sha256: r.inputs_sha256, gz: gz.toString('base64') };
+      })
+    );
+    counts.bundles += rows.length;
+    after = rows[rows.length - 1].cycle_slot;
+    log(`bundles: ${counts.bundles} cycles, ${(counts.bundleBytes / 1e6).toFixed(1)} MB (up to ${iso(after)})`);
+  }
+
+  const outputs = writer(dir, 'outputs.ndjson');
+  const pit = writer(dir, 'pit.ndjson');
+  const select = { timestamp: true, timeframe: true, first_seen_at: true, snapshot_age_bars: true };
+  for (const column of CHANNEL_COLUMNS) select[column] = true;
+  for (let day = from; day <= to; day += 86400) {
+    const end = Math.min(day + 86399, to);
+    const read = await prisma.mcdOutput.findMany({
+      where: { symbol: SYMBOL, cycle_slot: { gte: day, lte: end } },
+      select: { cycle_slot: true, mcd_id: true, status: true, state_code: true, envelope_sha256: true },
+    });
+    outputs(read);
+    counts.outputs += read.length;
+    // The first day also takes the bars that closed just before it (one M15 period).
+    const rows = await prisma.marketDataPointInTime.findMany({
+      where: {
+        symbol: SYMBOL,
+        timeframe: { in: ['M5', 'M15'] },
+        timestamp: { gte: day === from ? day - 900 : day, lte: end },
+      },
+      select,
+    });
+    pit(rows);
+    counts.pointInTime += rows.length;
+    log(`day ${iso(day).slice(0, 10)}: ${read.length} reading rows, ${rows.length} point-in-time rows`);
+  }
+  fs.writeFileSync(path.join(dir, 'export.done.json'), JSON.stringify(counts, null, 2));
+  return counts;
+}
+
+async function main() {
+  const dir = process.argv[2];
+  if (!dir) throw new Error('give the output folder');
+  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
+  const from = seconds(process.env.DIAG_FROM || '2026-11-19T00:00:00Z');
+  const to = seconds(process.env.DIAG_TO || '2026-11-25T23:55:00Z');
+  const load = createRequire(path.join(process.cwd(), 'package.json'));
+  const { PrismaClient } = load('@prisma/client');
+  const { PrismaPg } = load('@prisma/adapter-pg');
+  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
+  try {
+    const counts = await exportAll(prisma, dir, from, to, (line) => console.log(line));
+    console.log(
+      `EXPORT COMPLETE: ${counts.bundles} cycles (${(counts.bundleBytes / 1e6).toFixed(1)} MB), ` +
+        `${counts.outputs} reading rows, ${counts.pointInTime} point-in-time rows, ${counts.from} to ${counts.to}`
+    );
+    if (counts.bundles === 0) process.exitCode = 1;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+main().catch((error) => {
+  console.error(`q-export: ${error.message}`);
+  process.exit(2);
+});

@@ -1,7 +1,7 @@
 {
   "schema_version": "mcd-output/1",
   "mcd_id": "MCD0",
-  "evaluator_version": "1.0.0",
+  "evaluator_version": "1.1.0",
   "cycle_slot": "2026-09-18T20:55Z",
   "last_closed_bar": {},
   "active_indicator": {
@@ -20,12 +20,11 @@
   "levels": [],
   "depends_on": [],
   "summary_line": "M5 and M15 channel fits each miss a criterion",
-  "commentary": "The M5 channel (best_fit_a) misses fit criteria: R2, fit ratio. The M15 channel (non_b) misses fit criteria: R2, fit ratio.",
+  "commentary": "The M5 channel (best_fit_a) misses fit criteria: R2, fit ratio. The M15 channel (non_b) misses fit criteria: fit ratio.",
   "details": {
     "M15": {
       "coverage": 1807,
       "failed": [
-        "R2_A",
         "FIT_A",
         "FIT_B"
       ],
@@ -44,7 +43,10 @@
         "skew": -1.28,
         "var_ratio": 0.13
       },
-      "skipped": []
+      "skipped": [
+        "R2_A",
+        "R2_B"
+      ]
     },
     "M5": {
       "coverage": 754,

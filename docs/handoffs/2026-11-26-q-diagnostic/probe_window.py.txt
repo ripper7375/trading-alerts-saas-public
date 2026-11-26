@@ -1,0 +1,41 @@
+"""How often does a candidate's M5 window reach further back than a cycle earlier (the case that left bars without bands)?
+And can M5 bar times be derived from the M15 bars (needed to simulate a channel longer than the stored bundle)?"""
+import base64, collections, gzip, json, sys
+from pathlib import Path
+here = Path(sys.argv[1])
+def lines(name):
+    with open(here / "data" / name, encoding="utf-8") as h:
+        for l in h:
+            if l.strip(): yield json.loads(l)
+num = lambda v: isinstance(v, (int, float)) and not isinstance(v, bool)
+prev = {}; jumps = collections.defaultdict(list); fields = collections.Counter()
+longer = collections.Counter(); derive = collections.Counter()
+holes = {"2026-11-19T04:35Z": 1, "2026-11-19T11:10Z": 1, "2026-11-20T02:40Z": 1}
+import time
+iso = lambda s: time.strftime("%Y-%m-%dT%H:%MZ", time.gmtime(s))
+for n, record in enumerate(lines("bundles.ndjson")):
+    data = json.loads(gzip.decompress(base64.b64decode(record["gz"]))); slot = record["slot"]
+    b5, b15 = data["bars"]["M5"], data["bars"]["M15"]
+    for name in ("best_fit_a", "most_recent"):
+        row = data["statistics"]["M5"].get(name)
+        if not row or not num(row.get("window_start_ts")) or not num(row.get("containment_n")): continue
+        start = row["window_start_ts"]; need = int(row["containment_n"]) - 1
+        longer[(name, need > len(b5))] += 1
+        before = prev.get(name)
+        if before and before[0] == slot - 300 and start < before[1]:
+            back = (before[1] - start) // 300
+            jumps[name].append((iso(slot), back, need, before[2]))
+        prev[name] = (slot, start, need)
+    if n % 25 == 0:
+        have = [b["timestamp"] for b in b5]
+        low = have[0]
+        derived = [t + k for t in (b["timestamp"] for b in b15) for k in (0, 300, 600) if low <= t + k <= have[-1]]
+        derive["cycles"] += 1; derive["exact"] += derived == have
+        derive["missing"] += len(set(have) - set(derived)); derive["extra"] += len(set(derived) - set(have))
+        derive["m15_reaches_back_bars_min"] = min(derive.get("m15_reaches_back_bars_min", 10**9), sum(1 for b in b15 if b["timestamp"] < low) * 3 + len(have))
+for name, j in jumps.items():
+    big = [x for x in j if x[1] > 12]
+    print(f"{name}: window start moved earlier in {len(j)} consecutive cycles; by more than 12 bars in {len(big)}")
+    for x in big[:14]: print(f"    {x[0]} back {x[1]} bars, channel {x[3]} -> {x[2]} bars")
+print("channel longer than the stored M5 bars:", {f"{a} {'longer' if b else 'covered'}": v for (a, b), v in sorted(longer.items())})
+print("M5 bar times derived from M15 bars, against the stored ones:", dict(derive))

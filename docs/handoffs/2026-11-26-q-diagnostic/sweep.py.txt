@@ -1,0 +1,251 @@
+"""MCD0 flag-rate sweep and the M15 MCD1 comparison on the exported cycles (local only, nothing is changed).
+
+Usage: python sweep.py <data folder> <engine folder> <report folder>
+
+1. MCD0: the evaluator's own pillar function on the stored statistics rows, with candidate bounds. A variant may
+   leave the R2 pillars out for one timeframe (that needs an evaluator change; here it is only computed).
+2. MCD1: a stored bundle holds another candidate's channel on the last closed bar only. A channel is a straight line,
+   so its older bars are rebuilt from the last bar, the statistics row's slope and the last bar's band distances. The
+   rebuild is checked first: the SET indicator is stripped to its last bar, rebuilt, and compared with the stored
+   readings.
+"""
+
+from __future__ import annotations
+
+import base64
+import collections
+import dataclasses
+import gzip
+import json
+import sys
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+ARGS = sys.argv[1:4]
+sys.argv = ["q_analyze", *ARGS]
+sys.path.insert(0, str(HERE))
+import q_analyze as q  # noqa: E402
+
+PARAM_KEYS = ("min_coverage_bars", "t_edt_open_bar_rows", "min_r2_model_a", "min_r2_model_b", "flat_angle_deg",
+              "min_fit_ratio", "max_fit_ratio", "min_geo_ratio", "max_geo_ratio", "max_abs_skew", "ratio_decimals", "statistic_decimals")
+BASE = {k: q.MCD0_PARAMS[k] for k in PARAM_KEYS}
+R2 = ("R2_A", "R2_B")
+TARGET_TF, TARGET_ANY = (10.0, 25.0), (15.0, 35.0)
+
+
+def bounds(fit, geo_low, geo_high, r2_a=None, r2_b=None, flat=None) -> dict:
+    out = dict(BASE, min_fit_ratio=fit, min_geo_ratio=geo_low, max_geo_ratio=geo_high)
+    if r2_a is not None:
+        out.update(min_r2_model_a=r2_a, min_r2_model_b=r2_b)
+    if flat is not None:
+        out["flat_angle_deg"] = flat
+    return out
+
+
+A = (1.25, 0.50, 2.00)
+B = (1.20, 0.50, 2.15)
+# name, M15 source, bounds, timeframes whose R2 pillars are left out, what it is
+VARIANTS = [
+    ("now", "non_b", BASE, (), "MCD0 1.0.0 as deployed, M5 most_recent, M15 non_b"),
+    ("A1", "non_b", bounds(*A, 0.0, 0.0), (), "A bounds, R2 floor 0.0 on both (the reply's text)"),
+    ("A2", "non_b", bounds(*A), ("M15",), "A bounds, R2 0.70/0.65 on M5, no R2 on M15"),
+    ("A3", "non_b", bounds(*A, 0.40, 0.35), ("M15",), "A bounds, R2 0.40/0.35 on M5, no R2 on M15"),
+    ("A4", "non_b", bounds(*A, 0.0, 0.0), ("M15",), "A bounds, R2 0.0 on M5, no R2 on M15"),
+    ("A5", "non_b", bounds(*A), ("M5", "M15"), "A bounds, no R2 pillar at all"),
+    ("A6", "non_b", bounds(*A, flat=15.0), (), "A bounds, R2 0.70/0.65, flat angle 15 deg (both)"),
+    ("A7", "non_b", bounds(*A, flat=30.0), (), "A bounds, R2 0.70/0.65, flat angle 30 deg (both)"),
+    ("A8", "non_b", bounds(*A, flat=45.0), (), "A bounds, R2 0.70/0.65, flat angle 45 deg (both)"),
+    ("A9", "non_b", bounds(*A, -0.05, -0.05), (), "A bounds, R2 floor -0.05 on both"),
+    ("Bnow", "most_recent", BASE, (), "MCD0 1.0.0 as deployed, M5 and M15 most_recent"),
+    ("B1", "most_recent", bounds(*B, 0.40, 0.35), (), "B bounds, R2 0.40/0.35"),
+    ("B2", "most_recent", bounds(*B, 0.50, 0.45), (), "B bounds, R2 0.50/0.45"),
+    ("B3", "most_recent", bounds(*B, 0.0, 0.0), (), "B bounds, R2 floor 0.0"),
+    ("B4", "most_recent", bounds(*B), ("M5", "M15"), "B bounds, no R2 pillar at all"),
+]
+
+
+def judged(source: str, row, params: dict, tf: str, no_r2: tuple) -> list:
+    failed = q.mcd0._judge(source, row, params)["failed"]
+    return [p for p in failed if not (tf in no_r2 and p in R2)]
+
+
+def rebuilt(inputs, tf: str, name: str):
+    """The older bars of ``name``'s channel drawn from the last closed bar along the statistics row's slope."""
+    row = inputs.statistics.get((tf, q.statistics_source(name)))
+    bars = list(inputs.bars.get(tf, ()))
+    if row is None or not bars or not q.is_number(row.get("raw_slope")):
+        return inputs
+    need = next((int(row[f]) - 1 for f in ("containment_n", "visual_window_bars", "window_bars") if q.is_number(row.get(f))), None)
+    cols = q.channel_columns(name)
+    last = dict(bars[-1])
+    if need is None or not all(q.is_number(last.get(cols[r])) for r in ("upper", "lower", "baseline")):
+        return inputs
+    up, low = last[cols["upper"]] - last[cols["baseline"]], last[cols["lower"]] - last[cols["baseline"]]
+    for k in range(1, min(need, len(bars))):
+        bar = dict(bars[-1 - k])
+        base = last[cols["baseline"]] - row["raw_slope"] * k
+        bar.update({cols["baseline"]: base, cols["upper"]: base + up, cols["lower"]: base + low})
+        if cols["fit"] not in bar and cols["fit"] in last:
+            bar[cols["fit"]] = last[cols["fit"]]  # the SSA value of an older bar is only needed to exist
+        bars[-1 - k] = bar
+    return dataclasses.replace(inputs, bars={**dict(inputs.bars), tf: bars})
+
+
+def stripped(inputs, tf: str, name: str):
+    bars = list(inputs.bars.get(tf, ()))
+    drop = set(q.channel_columns(name).values()) - {"close"}
+    older = [{k: v for k, v in dict(b).items() if k not in drop} for b in bars[:-1]]
+    return dataclasses.replace(inputs, bars={**dict(inputs.bars), tf: older + bars[-1:]})
+
+
+def main() -> int:
+    started = time.time()
+    data_dir, out_dir = q.DATA, q.OUT
+    stored = {(r["cycle_slot"], r["mcd_id"]): r for r in q.read_lines("outputs.ndjson")}
+    q.cycle_runner._bundle_sha256 = lambda inputs: None
+    q.cycle_runner._bundle_text = lambda inputs: None
+    check_worker = q.cycle_runner.Worker.load(flags={"MCD2": "shadow", "SYN": "off"})
+    sensor1 = check_worker.registry["MCD1"]  # called directly: the evaluator's own reading, before MCD0 marks it
+
+    grid = {v[0]: {"n": 0, "M5": 0, "M15": 0, "any": 0, "day": collections.defaultdict(lambda: [0, 0]), "pillar": collections.Counter()} for v in VARIANTS}
+    engine_check = collections.Counter()
+    margins = collections.defaultdict(list)
+    check = collections.Counter()
+    mcd1 = {name: {"status": collections.Counter(), "state": collections.Counter(), "reason": collections.Counter(), "angle": []} for name in ("non_b", "most_recent")}
+    pair_trend, pair_regime = collections.Counter(), collections.Counter()
+
+    count = 0
+    for count, record in enumerate(q.read_lines("bundles.ndjson"), start=1):
+        slot = record["slot"]
+        inputs = q.CycleInputs.from_dict(json.loads(gzip.decompress(base64.b64decode(record["gz"]))))
+        day = q.iso(slot)[:10]
+        setting5, setting15 = inputs.active_indicator["M5"], inputs.active_indicator["M15"]
+
+        # 1. the MCD0 grid
+        row5 = inputs.statistics.get(("M5", "most_recent"))
+        for name, source15, params, no_r2, _ in VARIANTS:
+            row15 = inputs.statistics.get(("M15", source15))
+            if row5 is None or row15 is None or not (q.row_facts("most_recent", row5)["sane"] and q.row_facts(source15, row15)["sane"]):
+                continue
+            f5, f15 = judged("most_recent", row5, params, "M5", no_r2), judged(source15, row15, params, "M15", no_r2)
+            g = grid[name]
+            g["n"] += 1
+            g["M5"] += bool(f5)
+            g["M15"] += bool(f15)
+            g["any"] += bool(f5 or f15)
+            g["day"][day][0] += bool(f5 or f15)
+            g["day"][day][1] += 1
+            g["pillar"].update(f"M5 {p}" for p in f5)
+            g["pillar"].update(f"M15 {p}" for p in f15)
+        # the same function on the set indicators must agree with the stored MCD0 state
+        r5 = inputs.statistics.get(("M5", q.statistics_source(setting5)))
+        r15 = inputs.statistics.get(("M15", q.statistics_source(setting15)))
+        stored0 = stored.get((slot, "MCD0"))
+        if stored0 and stored0["state_code"]:
+            f5 = bool(judged(setting5, r5, BASE, "M5", ()))
+            f15 = bool(judged(setting15, r15, BASE, "M15", ()))
+            expected = "MCD0_M5_M15_DEFECT" if f5 and f15 else "MCD0_M5_DEFECT" if f5 else "MCD0_M15_DEFECT" if f15 else "MCD0_ALL_QUALIFIED"
+            engine_check["equal" if expected == stored0["state_code"] else "different"] += 1
+        for tf, source, row in (("M5", "most_recent", row5), ("M15", "non_b", inputs.statistics.get(("M15", "non_b"))), ("M15", "most_recent", inputs.statistics.get(("M15", "most_recent")))):
+            if row is not None and q.row_facts(source, row)["sane"]:
+                half = row["channel_width"] / 2
+                margins[(tf, source)].append((min(half / row["model_a_mse"] ** 0.5, half / row["model_b_mse"] ** 0.5), row["uoedt_offset"] / -row["loedt_offset"], row["model_a_r2"], row["model_b_r2"], abs(row["regression_angle"])))
+
+        # 2. the rebuild, checked on the set indicators against the stored readings
+        redrawn = rebuilt(stripped(inputs, "M5", setting5), "M5", setting5)
+        redrawn = rebuilt(stripped(redrawn, "M15", setting15), "M15", setting15)
+        again = q.reading_of(check_worker.run_cycle(redrawn))["mcd"]
+        for mcd_id in ("MCD1", "MCD3"):
+            row = stored[(slot, mcd_id)]
+            check[(mcd_id, "state", (again[mcd_id][0], again[mcd_id][1]) == (row["status"], row["state_code"]))] += 1
+            check[(mcd_id, "envelope", again[mcd_id][3] == row["envelope_sha256"])] += 1
+
+        # 3. MCD1 with each M15 candidate (no gate, so the status is the evaluator's own)
+        states = {}
+        for name in mcd1:
+            bundle = inputs
+            if name != setting15:
+                switched = dataclasses.replace(inputs, active_indicator={**dict(inputs.active_indicator), "M15": name})
+                bundle = rebuilt(switched, "M15", name)
+            own = sensor1.evaluate(bundle, sensor1.params, {})
+            status, state, reasons = own["status"], own["state_code"], tuple(own.get("status_reasons") or ())
+            m = mcd1[name]
+            m["status"][status] += 1
+            if state:
+                m["state"][state.replace("MCD1_", "")] += 1
+                states[name] = state.replace("MCD1_", "")
+            if status != "VALID":
+                m["reason"]["+".join(reasons)] += 1
+            row = inputs.statistics.get(("M15", name))
+            if row is not None and q.is_number(row.get("regression_angle")):
+                m["angle"].append(row["regression_angle"])
+        if len(states) == 2:
+            first, second = (states[n].split("_", 1) for n in ("non_b", "most_recent"))
+            pair_trend[(first[0], second[0])] += 1
+            pair_regime[(first[1], second[1])] += 1
+        if count % 100 == 0:
+            print(f"  {count} cycles, {time.time() - started:.0f} s", flush=True)
+
+    # ------------------------------------------------------------------ report
+    pct = q.pct
+    lines = [f"MCD0 sweep and M15 MCD1 comparison, {count} cycles (data {data_dir.name})", ""]
+    lines.append("0. Checks")
+    lines.append(f"  pillar function on the set indicators against the stored MCD0 state: equal {engine_check['equal']}, different {engine_check['different']}")
+    for mcd_id in ("MCD1", "MCD3"):
+        lines.append(f"  rebuild check {mcd_id} (set indicators stripped to the last bar and rebuilt): status+state equal {check[(mcd_id, 'state', True)]}, different {check[(mcd_id, 'state', False)]}; envelope equal {check[(mcd_id, 'envelope', True)]}, different {check[(mcd_id, 'envelope', False)]}")
+
+    lines += ["", "1. MCD0 flag rates with M5 = most_recent (share of cycles where both rows are readable)",
+              f"  target: {TARGET_TF[0]:.0f}-{TARGET_TF[1]:.0f}% per timeframe, {TARGET_ANY[0]:.0f}-{TARGET_ANY[1]:.0f}% any"]
+    rows = []
+    for name, source15, params, no_r2, what in VARIANTS:
+        g = grid[name]
+        share = {k: 100 * g[k] / g["n"] if g["n"] else float("nan") for k in ("M5", "M15", "any")}
+        ok = all(TARGET_TF[0] <= share[k] <= TARGET_TF[1] for k in ("M5", "M15")) and TARGET_ANY[0] <= share["any"] <= TARGET_ANY[1]
+        rows.append([name, source15, g["n"], pct(g["M5"], g["n"]), pct(g["M15"], g["n"]), pct(g["any"], g["n"]), "yes" if ok else "no", what])
+    lines += q.table(["variant", "M15", "cycles", "M5", "M15", "any", "in target", "definition"], rows)
+    lines.append("  A bounds: fit >= 1.25, geo 0.50-2.00. B bounds: fit >= 1.20, geo 0.50-2.15. Fit maximum 3.20, coverage and skew unchanged.")
+    lines.append("  share of cycles failing each pillar")
+    pillars = [f"{tf} {p}" for tf in ("M5", "M15") for p in ("R2_A", "R2_B", "FIT_A", "FIT_B", "GEO")]
+    lines += q.table(["variant", *pillars], [[v[0], *[pct(grid[v[0]]["pillar"][p], grid[v[0]]["n"]) for p in pillars]] for v in VARIANTS])
+    days = sorted({d for g in grid.values() for d in g["day"]})
+    lines.append("  'any' flag rate per day")
+    lines += q.table(["variant", *days], [[v[0], *[pct(*grid[v[0]]["day"][d]) for d in days]] for v in VARIANTS])
+
+    lines += ["", "2. One bound at a time (share of readable rows failing it; the R2 lines ignore the flat-angle skip)"]
+    keys = list(margins)
+    header = ["bound", *[f"{tf} {s}" for tf, s in keys]]
+    body = []
+    for limit in (1.10, 1.20, 1.25, 1.30, 1.40, 1.50):
+        body.append([f"fit (either model) < {limit:.2f}", *[pct(sum(r[0] < limit for r in margins[k]), len(margins[k])) for k in keys]])
+    for low, high in ((0.60, 1.65), (0.50, 2.00), (0.50, 2.15), (0.40, 2.50)):
+        body.append([f"geo outside {low:.2f}-{high:.2f}", *[pct(sum(not low <= r[1] <= high for r in margins[k]), len(margins[k])) for k in keys]])
+    for a_floor, b_floor in ((-0.05, -0.05), (0.0, 0.0), (0.20, 0.15), (0.40, 0.35), (0.50, 0.45), (0.70, 0.65)):
+        body.append([f"R2 A<{a_floor:.2f} or B<{b_floor:.2f}", *[pct(sum(r[2] < a_floor or r[3] < b_floor for r in margins[k]), len(margins[k])) for k in keys]])
+    for angle in (5, 15, 30, 45):
+        body.append([f"|angle| <= {angle} deg (R2 skipped)", *[pct(sum(r[4] <= angle for r in margins[k]), len(margins[k])) for k in keys]])
+    lines += q.table(header, body)
+
+    lines += ["", "3. MCD1 with each M15 candidate (evaluator status, without MCD0 marks; other candidate rebuilt)"]
+    lines += q.table(["M15 setting", *q.STATUSES, "commonest reasons"], [[n, *q.mix(m["status"], count), "; ".join(f"{k} x {v}" for k, v in m["reason"].most_common(3))] for n, m in mcd1.items()])
+    lines.append("  states")
+    for name, m in mcd1.items():
+        lines.append(f"    {name}: " + "; ".join(f"{k} x {v}" for k, v in m["state"].most_common()))
+    lines.append("  regression angle in degrees (p10 / p25 / p50 / p75 / p90; share negative; share |angle| <= 5)")
+    for name, m in mcd1.items():
+        v = m["angle"]
+        if v:
+            lines.append(f"    {name}: " + " / ".join(f"{q.quantile(v, p):.2f}" for p in (0.1, 0.25, 0.5, 0.75, 0.9)) + f"; {pct(sum(x < 0 for x in v), len(v))}; {pct(sum(abs(x) <= 5 for x in v), len(v))}")
+    both = sum(pair_trend.values())
+    lines.append(f"  same cycle, both with a state: {both}; same trend {pct(sum(n for (a, b), n in pair_trend.items() if a == b), both)}, same regime {pct(sum(n for (a, b), n in pair_regime.items() if a == b), both)}")
+    for title, pairs in (("trend", pair_trend), ("regime", pair_regime)):
+        lines.append(f"  {title}: non_b -> most_recent: " + "; ".join(f"{a} -> {b} x {n}" for (a, b), n in pairs.most_common()))
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "sweep.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(f"DONE: {count} cycles in {time.time() - started:.0f} s -> {out_dir / 'sweep.txt'}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

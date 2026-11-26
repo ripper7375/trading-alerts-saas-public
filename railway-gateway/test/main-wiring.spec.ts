@@ -12,7 +12,16 @@ describe('main.ts wiring', () => {
 
   it('creates a NestExpressApplication so app.set() is typed', () => {
     expect(source).toMatch(
-      /NestFactory\.create<NestExpressApplication>\(AppModule\)/
+      /NestFactory\.create<NestExpressApplication>\(\s*AppModule,/
+    );
+  });
+
+  it('passes the log levels to NestFactory, so the filter covers startup', () => {
+    expect(source).toMatch(
+      /import\s*\{\s*loggerOptions\s*\}\s*from\s*'\.\/common\/log-levels';/
+    );
+    expect(source).toMatch(
+      /NestFactory\.create<NestExpressApplication>\(\s*AppModule,\s*loggerOptions\(process\.env\)\s*\)/
     );
   });
 

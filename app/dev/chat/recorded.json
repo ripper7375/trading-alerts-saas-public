@@ -390,14 +390,14 @@
                   "bias": "SHORT",
                   "mcd_id": "MCD1",
                   "state_code": "MCD1_DOWN_IN_CORRIDOR",
-                  "status": "CAUTIONARY",
+                  "status": "VALID",
                   "timeframe": "M15"
                 },
                 {
                   "bias": "SHORT",
                   "mcd_id": "MCD2",
                   "state_code": "MCD2_DOWN_IN_CORRIDOR",
-                  "status": "CAUTIONARY",
+                  "status": "VALID",
                   "timeframe": "M5"
                 }
               ],
@@ -552,16 +552,7 @@
               "items": [],
               "status": "OK"
             },
-            "risks": [
-              {
-                "cites": ["MCD1"],
-                "text": "MCD1 is cautionary"
-              },
-              {
-                "cites": ["MCD2"],
-                "text": "MCD2 is cautionary"
-              }
-            ],
+            "risks": [],
             "watch": [
               {
                 "cites": ["Z1"],

@@ -1,6 +1,6 @@
 # ADR-010: Active-indicator setting per timeframe
 
-- **Status:** Settled
+- **Status:** Superseded by ADR-100
 - **Date:** 2026-09-29
 - **Section:** 1 · Market data & chart (deck decision 1.3: Active indicator)
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §1.4
