@@ -215,6 +215,10 @@ const ALLOWED_IMPORTERS: readonly string[] = [
   'app/api/chat/state/route.ts',
   'app/api/chat/threads/[id]/route.ts',
   'app/api/chat/threads/route.ts',
+  // davintrade.com's public contract (M1.0) and the pricing page read the analyst's availability on the
+  // server (flags only): the pricing page passes down one boolean
+  'app/(marketing)/pricing/page.tsx',
+  'app/api/config/capabilities/route.ts',
   // the gate's real edges (build step 7 part 6): the entitlement table, the quota ledger's port and the meter
   'lib/intake/server/access.ts',
   'lib/intake/text/understand-model.ts',

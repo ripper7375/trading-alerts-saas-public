@@ -7,6 +7,7 @@ import { Check, Sparkles, Zap, ArrowRight } from 'lucide-react';
 import { useLocale } from '@/lib/context/locale-context';
 import { FxRateAttribution } from '@/components/payments/fx-rate-attribution';
 import { useAffiliateConfig } from '@/lib/hooks/useAffiliateConfig';
+import { PRO_TIER_CONFIG } from '@/lib/tier-config';
 
 /**
  * Ported from seed-code's landing-pricing.tsx, which hardcoded the PRO price
@@ -113,9 +114,11 @@ export function LandingPricing() {
                   <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
                   <span>{t('Live M5 XAUUSD Chart Stream')}</span>
                 </li>
-                <li className="flex items-center space-x-3">
-                  <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-                  <span>{t('5 Standard Alert Rules')}</span>
+                <li className="flex items-center space-x-3 text-slate-600 dark:text-slate-500">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[10px] dark:border-slate-700">
+                    ✕
+                  </span>
+                  <span>{t('0 Active Alerts (PRO Exclusive)')}</span>
                 </li>
                 <li className="flex items-center space-x-3 text-slate-600 dark:text-slate-500">
                   <span className="flex h-4 w-4 items-center justify-center rounded-full border border-slate-300 text-[10px] dark:border-slate-700">
@@ -192,7 +195,12 @@ export function LandingPricing() {
                 </li>
                 <li className="flex items-center space-x-3">
                   <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-                  <span>{t('Sub-500ms Unlimited Price Breach Alerts')}</span>
+                  <span>
+                    {t(
+                      'pricing.landing_price_alerts',
+                      'Up to {count} Sub-500ms Price Breach Alerts'
+                    ).replace('{count}', String(PRO_TIER_CONFIG.maxAlerts))}
+                  </span>
                 </li>
                 <li className="flex items-center space-x-3">
                   <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />

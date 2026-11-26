@@ -4654,7 +4654,7 @@
   "billing.title": "बिलिंग और सब्सक्रिप्शन",
   "billing.trial_cancelled_on": "आपका मुफ़्त ट्रायल इस तिथि को रद्द हुआ",
   "billing.unlock_more_with_pro": "PRO के साथ और अनलॉक करें",
-  "billing.upgrade_prompt": "सिर्फ़ {price}/माह में 100 मूल्य अलर्ट, ड्रॉइंग इंजन लाइन अलर्ट, मल्टी-टाइमफ़्रेम विज़ुअलाइज़ेशन और प्राथमिकता सहायता पाएँ।",
+  "billing.upgrade_prompt": "सिर्फ़ {price}/माह में 100 मूल्य अलर्ट, ड्रॉइंग इंजन लाइन अलर्ट और मल्टी-टाइमफ़्रेम विज़ुअलाइज़ेशन पाएँ।",
   "billing.upgrade_to_pro": "PRO पर अपग्रेड करें",
   "billing.usage_this_month": "इस माह का उपयोग",
   "billing.vat_included": "{amount} VAT सहित ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "अभी नवीनीकरण करें",
   "billing.notice.renewed": "आपके प्लान का नवीनीकरण हो गया है। PRO अब {date} तक चालू है।",
   "billing.status.expiring": "जल्द समाप्त होगा",
-  "checkout.renew_note": "आप अपने PRO प्लान का नवीनीकरण कर रहे हैं। यह {date} को समाप्त होता है, और आपके शेष दिन उस नई अवधि में जोड़ दिए जाएँगे जिसका भुगतान आप अभी कर रहे हैं।"
+  "checkout.renew_note": "आप अपने PRO प्लान का नवीनीकरण कर रहे हैं। यह {date} को समाप्त होता है, और आपके शेष दिन उस नई अवधि में जोड़ दिए जाएँगे जिसका भुगतान आप अभी कर रहे हैं।",
+  "pricing.pro_card_subtitle": "अलर्ट और मल्टी-टाइमफ्रेम विज़ुअलाइज़ेशन",
+  "alerts.in_app_notifications": "इन-ऐप अलर्ट सूचनाएं",
+  "alerts.in_app_notifications_detail": "अलर्ट ट्रिगर होने पर ऐप के अंदर सूचना पाएँ",
+  "pricing.landing_price_alerts": "500ms से कम वाले {count} तक मूल्य ब्रीच अलर्ट",
+  "settings.privacy.data_request_desc": "अपने डेटा की प्रति पाने के लिए, अपने खाते वाले ईमेल पते से हमें privacy@davintrade.app पर ईमेल करें।",
+  "settings.privacy.data_request_button": "अपना डेटा माँगने के लिए ईमेल करें"
 }

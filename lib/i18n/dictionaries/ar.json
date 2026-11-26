@@ -508,7 +508,7 @@
   "billing.active_alerts": "التنبيهات النشطة",
   "billing.invoice_history": "سجل الفواتير",
   "billing.unlock_more_with_pro": "احصل على المزيد مع PRO",
-  "billing.upgrade_prompt": "احصل على 100 تنبيه سعري، وتنبيهات خطوط محرك الرسم، وعرض متعدد الأطر الزمنية، ودعم ذي أولوية مقابل {price} فقط شهريًا.",
+  "billing.upgrade_prompt": "احصل على 100 تنبيه سعري، وتنبيهات خطوط محرك الرسم، وعرض متعدد الأطر الزمنية مقابل {price} فقط شهريًا.",
   "billing.view_pricing_plans": "عرض خطط الأسعار",
   "affiliate.status.pending": "قيد الانتظار",
   "affiliate.status.approved": "معتمد",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "جدّد الآن",
   "billing.notice.renewed": "تم تجديد خطتك. تعمل PRO الآن حتى {date}.",
   "billing.status.expiring": "تنتهي قريبًا",
-  "checkout.renew_note": "أنت تجدّد خطة PRO الخاصة بك. تنتهي في {date}، وتُضاف الأيام المتبقية لديك إلى الفترة الجديدة التي تدفع مقابلها الآن."
+  "checkout.renew_note": "أنت تجدّد خطة PRO الخاصة بك. تنتهي في {date}، وتُضاف الأيام المتبقية لديك إلى الفترة الجديدة التي تدفع مقابلها الآن.",
+  "pricing.pro_card_subtitle": "التنبيهات والتصور متعدد الأطر الزمنية",
+  "alerts.in_app_notifications": "إشعارات التنبيه داخل التطبيق",
+  "alerts.in_app_notifications_detail": "احصل على إشعار داخل التطبيق عند تفعيل أحد التنبيهات",
+  "pricing.landing_price_alerts": "حتى {count} تنبيه لاختراق السعر في أقل من 500 مللي ثانية",
+  "settings.privacy.data_request_desc": "للحصول على نسخة من بياناتك، راسلنا على privacy@davintrade.app من عنوان البريد الإلكتروني المسجل في حسابك.",
+  "settings.privacy.data_request_button": "راسلنا لطلب بياناتك"
 }

@@ -1286,7 +1286,7 @@ export default function BillingSettingsPage(): React.ReactElement {
                 <p className="mb-4 opacity-90">
                   {t(
                     'billing.upgrade_prompt',
-                    'Get 100 price alerts, drawing engine line alerts, multi-timeframe visualization, and priority support for just {price}/month.'
+                    'Get 100 price alerts, drawing engine line alerts and multi-timeframe visualization for just {price}/month.'
                   ).replace('{price}', formatCurrency(regularPrice))}
                 </p>
                 <Link href="/pricing">

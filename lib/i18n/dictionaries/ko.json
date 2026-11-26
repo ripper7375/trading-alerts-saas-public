@@ -2943,7 +2943,7 @@
   "billing.title": "결제 및 구독",
   "billing.trial_cancelled_on": "무료 체험이 다음 날짜에 취소되었습니다:",
   "billing.unlock_more_with_pro": "PRO로 더 많은 기능 잠금 해제",
-  "billing.upgrade_prompt": "월 {price}의 가격으로 100개의 가격 알림, 드로잉 엔진 라인 알림, 다중 시간대 시각화 및 우선 지원 혜택을 누리세요.",
+  "billing.upgrade_prompt": "월 {price}의 가격으로 100개의 가격 알림, 드로잉 엔진 라인 알림 및 다중 시간대 시각화 혜택을 누리세요.",
   "billing.upgrade_to_pro": "PRO로 업그레이드",
   "billing.usage_this_month": "이번 달 사용량",
   "billing.vat_included": "{amount} VAT 포함 ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "지금 갱신",
   "billing.notice.renewed": "플랜이 갱신되었습니다. PRO는 {date}까지 이용할 수 있습니다.",
   "billing.status.expiring": "곧 만료",
-  "checkout.renew_note": "PRO 플랜을 갱신하고 있습니다. 현재 플랜은 {date}에 종료되며, 남은 일수는 지금 결제하는 새 기간에 더해집니다."
+  "checkout.renew_note": "PRO 플랜을 갱신하고 있습니다. 현재 플랜은 {date}에 종료되며, 남은 일수는 지금 결제하는 새 기간에 더해집니다.",
+  "pricing.pro_card_subtitle": "알림 및 다중 시간대 시각화",
+  "alerts.in_app_notifications": "앱 내 알림",
+  "alerts.in_app_notifications_detail": "알림 조건이 충족되면 앱에서 알려드립니다",
+  "pricing.landing_price_alerts": "500ms 미만 가격 돌파 알림 최대 {count}개",
+  "settings.privacy.data_request_desc": "데이터 사본이 필요하시면 계정에 등록된 이메일 주소로 privacy@davintrade.app에 메일을 보내주세요.",
+  "settings.privacy.data_request_button": "이메일로 데이터 요청하기"
 }

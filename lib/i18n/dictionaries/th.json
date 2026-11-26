@@ -1593,7 +1593,7 @@
   "billing.active_alerts": "การแจ้งเตือนที่ใช้งานอยู่",
   "billing.invoice_history": "ประวัติใบแจ้งหนี้",
   "billing.unlock_more_with_pro": "ปลดล็อกเพิ่มเติมด้วย PRO",
-  "billing.upgrade_prompt": "รับการแจ้งเตือนราคา 100 รายการ การแจ้งเตือนเส้นเครื่องมือวาด การแสดงผลหลายกรอบเวลา และการสนับสนุนแบบเร่งด่วนในราคาเพียง {price}/เดือน",
+  "billing.upgrade_prompt": "รับการแจ้งเตือนราคา 100 รายการ การแจ้งเตือนเส้นเครื่องมือวาด และการแสดงผลหลายกรอบเวลา ในราคาเพียง {price}/เดือน",
   "billing.view_pricing_plans": "ดูแผนราคา",
   "affiliate.status.pending": "รอดำเนินการ",
   "affiliate.status.approved": "อนุมัติแล้ว",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "ต่ออายุเลย",
   "billing.notice.renewed": "ต่ออายุแผนของคุณแล้ว ตอนนี้ PRO ใช้งานได้ถึงวันที่ {date}",
   "billing.status.expiring": "ใกล้หมดอายุ",
-  "checkout.renew_note": "คุณกำลังต่ออายุแผน PRO แผนปัจจุบันจะสิ้นสุดในวันที่ {date} และจำนวนวันที่เหลือจะถูกบวกเข้ากับระยะเวลาใหม่ที่คุณชำระในตอนนี้"
+  "checkout.renew_note": "คุณกำลังต่ออายุแผน PRO แผนปัจจุบันจะสิ้นสุดในวันที่ {date} และจำนวนวันที่เหลือจะถูกบวกเข้ากับระยะเวลาใหม่ที่คุณชำระในตอนนี้",
+  "pricing.pro_card_subtitle": "การแจ้งเตือนและการแสดงผลหลายไทม์เฟรม",
+  "alerts.in_app_notifications": "การแจ้งเตือนภายในแอป",
+  "alerts.in_app_notifications_detail": "รับการแจ้งเตือนภายในแอปเมื่อการแจ้งเตือนทำงาน",
+  "pricing.landing_price_alerts": "การแจ้งเตือนการทะลุราคา ต่ำกว่า 500ms สูงสุด {count} รายการ",
+  "settings.privacy.data_request_desc": "หากต้องการสำเนาข้อมูลของคุณ ส่งอีเมลถึง privacy@davintrade.app จากอีเมลที่ใช้กับบัญชีของคุณ",
+  "settings.privacy.data_request_button": "ส่งอีเมลเพื่อขอข้อมูลของคุณ"
 }

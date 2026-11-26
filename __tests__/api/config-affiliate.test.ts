@@ -5,6 +5,10 @@
  * ONLY that payout setting — pause switch, batch size, approval window and
  * provider are operational and must never reach this unauthenticated
  * endpoint. The existing 5 fields and the 5-minute cache are unchanged.
+ *
+ * M1.0 (davintrade.com public contracts): the response also carries
+ * `schemaVersion`, `source` and the public program terms; the fallback is
+ * `no-store` so a database outage is never cached as the real figures.
  */
 
 import { NextRequest } from 'next/server';
@@ -109,6 +113,15 @@ describe('GET /api/config/affiliate', () => {
         'minimumPayoutUsd',
         'regularPrice',
         'threeDayPrice',
+        'schemaVersion',
+        'source',
+        'trialDays',
+        'maxCommissionMonths',
+        'codeExpiry',
+        'payoutMethod',
+        'payoutFrequency',
+        'maxAlertsFree',
+        'maxAlertsPro',
       ].sort()
     );
     const text = JSON.stringify(body);
@@ -141,6 +154,35 @@ describe('GET /api/config/affiliate', () => {
     expect(status).toBe(200);
     expect(body['minimumPayoutUsd']).toBe(50);
     expect(body['commissionPercent']).toBe(20);
+    errorSpy.mockRestore();
+  });
+
+  it('adds the public program and tier terms, marked as live', async () => {
+    const { body } = await getBody();
+
+    expect(body).toMatchObject({
+      schemaVersion: 1,
+      source: 'live',
+      trialDays: 7,
+      maxCommissionMonths: 24,
+      codeExpiry: 'END_OF_ISSUE_MONTH',
+      payoutMethod: 'WISE',
+      payoutFrequency: 'MONTHLY',
+      maxAlertsFree: 0,
+      maxAlertsPro: 100,
+    });
+  });
+
+  it('marks the fallback as such and forbids caching it', async () => {
+    findMany.mockRejectedValue(new Error('db down'));
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { headers, body } = await getBody();
+
+    expect(body['source']).toBe('fallback');
+    expect(body['schemaVersion']).toBe(1);
+    expect(body['maxAlertsPro']).toBe(100);
+    expect(headers.get('Cache-Control')).toBe('no-store');
     errorSpy.mockRestore();
   });
 });

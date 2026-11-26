@@ -4654,7 +4654,7 @@
   "billing.title": "Faturalandırma ve Abonelik",
   "billing.trial_cancelled_on": "Ücretsiz denemeniz şu tarihte iptal edildi:",
   "billing.unlock_more_with_pro": "PRO ile Daha Fazlasının Kilidini Açın",
-  "billing.upgrade_prompt": "100 fiyat alarmı, çizim motoru çizgi alarmları, çoklu zaman dilimi görselleştirme ve öncelikli desteği yalnızca {price}/ay karşılığında edinin.",
+  "billing.upgrade_prompt": "100 fiyat alarmı, çizim motoru çizgi alarmları ve çoklu zaman dilimi görselleştirmeyi yalnızca {price}/ay karşılığında edinin.",
   "billing.upgrade_to_pro": "PRO'ya Yükselt",
   "billing.usage_this_month": "Bu Ayki Kullanım",
   "billing.vat_included": "{amount} KDV dahil ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "Şimdi yenile",
   "billing.notice.renewed": "Planınız yenilendi. PRO artık {date} tarihine kadar geçerli.",
   "billing.status.expiring": "Yakında bitiyor",
-  "checkout.renew_note": "PRO planınızı yeniliyorsunuz. Plan {date} tarihinde sona eriyor ve kalan günleriniz şimdi ödediğiniz yeni döneme eklenir."
+  "checkout.renew_note": "PRO planınızı yeniliyorsunuz. Plan {date} tarihinde sona eriyor ve kalan günleriniz şimdi ödediğiniz yeni döneme eklenir.",
+  "pricing.pro_card_subtitle": "Uyarılar ve çoklu zaman dilimi görselleştirmesi",
+  "alerts.in_app_notifications": "Uygulama İçi Uyarı Bildirimleri",
+  "alerts.in_app_notifications_detail": "Bir uyarı tetiklendiğinde uygulama içinde bildirim alın",
+  "pricing.landing_price_alerts": "{count} adede kadar 500 ms Altı Fiyat Kırılımı Alarmı",
+  "settings.privacy.data_request_desc": "Verilerinizin bir kopyasını almak için hesabınızdaki e-posta adresinden privacy@davintrade.app adresine yazın.",
+  "settings.privacy.data_request_button": "Verilerinizi istemek için e-posta gönderin"
 }

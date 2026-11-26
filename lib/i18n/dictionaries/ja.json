@@ -4654,7 +4654,7 @@
   "billing.title": "請求とサブスクリプション",
   "billing.trial_cancelled_on": "無料トライアルのキャンセル日：",
   "billing.unlock_more_with_pro": "PROでさらに多くの機能を",
-  "billing.upgrade_prompt": "価格アラート100件、描画エンジンのラインアラート、マルチタイムフレーム表示、優先サポートが、わずか{price}/月で利用できます。",
+  "billing.upgrade_prompt": "価格アラート100件、描画エンジンのラインアラート、マルチタイムフレーム表示が、わずか{price}/月で利用できます。",
   "billing.upgrade_to_pro": "PROにアップグレード",
   "billing.usage_this_month": "今月の利用状況",
   "billing.vat_included": "VAT {amount}を含む（{rate}%{country}）",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "今すぐ更新",
   "billing.notice.renewed": "プランを更新しました。PROは{date}まで有効です。",
   "billing.status.expiring": "まもなく期限切れ",
-  "checkout.renew_note": "PROプランを更新しています。現在のプランは{date}に終了し、残りの日数は今回お支払いいただく新しい期間に加算されます。"
+  "checkout.renew_note": "PROプランを更新しています。現在のプランは{date}に終了し、残りの日数は今回お支払いいただく新しい期間に加算されます。",
+  "pricing.pro_card_subtitle": "アラートとマルチタイムフレーム表示",
+  "alerts.in_app_notifications": "アプリ内アラート通知",
+  "alerts.in_app_notifications_detail": "アラートが発動するとアプリ内で通知します",
+  "pricing.landing_price_alerts": "500ms未満の価格ブレイクアラートを最大{count}件",
+  "settings.privacy.data_request_desc": "データのコピーをご希望の場合は、アカウントに登録されたメールアドレスから privacy@davintrade.app までご連絡ください。",
+  "settings.privacy.data_request_button": "メールでデータをリクエストする"
 }

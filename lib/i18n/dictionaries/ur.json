@@ -4654,7 +4654,7 @@
   "billing.title": "بلنگ اور سبسکرپشن",
   "billing.trial_cancelled_on": "آپ کا مفت ٹرائل اس تاریخ کو منسوخ ہوا",
   "billing.unlock_more_with_pro": "PRO کے ساتھ مزید کھولیں",
-  "billing.upgrade_prompt": "صرف {price}/ماہ میں 100 قیمت الرٹس، ڈرائنگ انجن لائن الرٹس، ملٹی ٹائم فریم ویژولائزیشن اور ترجیحی سپورٹ حاصل کریں۔",
+  "billing.upgrade_prompt": "صرف {price}/ماہ میں 100 قیمت الرٹس، ڈرائنگ انجن لائن الرٹس اور ملٹی ٹائم فریم ویژولائزیشن حاصل کریں۔",
   "billing.upgrade_to_pro": "PRO پر اپ گریڈ کریں",
   "billing.usage_this_month": "اس ماہ کا استعمال",
   "billing.vat_included": "{amount} VAT سمیت ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "ابھی تجدید کریں",
   "billing.notice.renewed": "آپ کے پلان کی تجدید ہو گئی ہے۔ PRO اب {date} تک فعال ہے۔",
   "billing.status.expiring": "جلد ختم ہو رہا ہے",
-  "checkout.renew_note": "آپ اپنے PRO پلان کی تجدید کر رہے ہیں۔ یہ {date} کو ختم ہو گا، اور آپ کے باقی دن اس نئی مدت میں شامل کر دیے جائیں گے جس کی ادائیگی آپ ابھی کر رہے ہیں۔"
+  "checkout.renew_note": "آپ اپنے PRO پلان کی تجدید کر رہے ہیں۔ یہ {date} کو ختم ہو گا، اور آپ کے باقی دن اس نئی مدت میں شامل کر دیے جائیں گے جس کی ادائیگی آپ ابھی کر رہے ہیں۔",
+  "pricing.pro_card_subtitle": "الرٹس اور ملٹی ٹائم فریم ویژولائزیشن",
+  "alerts.in_app_notifications": "ایپ کے اندر الرٹ اطلاعات",
+  "alerts.in_app_notifications_detail": "الرٹ چلنے پر ایپ کے اندر اطلاع حاصل کریں",
+  "pricing.landing_price_alerts": "500ms سے کم میں {count} تک پرائس بریچ الرٹس",
+  "settings.privacy.data_request_desc": "اپنے ڈیٹا کی نقل حاصل کرنے کے لیے اپنے اکاؤنٹ کے ای میل پتے سے ہمیں privacy@davintrade.app پر ای میل کریں۔",
+  "settings.privacy.data_request_button": "اپنا ڈیٹا طلب کرنے کے لیے ای میل کریں"
 }

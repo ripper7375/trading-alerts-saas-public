@@ -4654,7 +4654,7 @@
   "billing.title": "Facturación y suscripción",
   "billing.trial_cancelled_on": "Tu prueba gratuita se canceló el",
   "billing.unlock_more_with_pro": "Desbloquea más con PRO",
-  "billing.upgrade_prompt": "Obtén 100 alertas de precio, alertas de línea del motor de dibujo, visualización multi-marco temporal y soporte prioritario por solo {price}/mes.",
+  "billing.upgrade_prompt": "Obtén 100 alertas de precio, alertas de línea del motor de dibujo y visualización multi-marco temporal por solo {price}/mes.",
   "billing.upgrade_to_pro": "Pásate a PRO",
   "billing.usage_this_month": "Uso este mes",
   "billing.vat_included": "IVA incl. {amount} ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "Renovar ahora",
   "billing.notice.renewed": "Tu plan se ha renovado. PRO ahora está activo hasta el {date}.",
   "billing.status.expiring": "Caduca pronto",
-  "checkout.renew_note": "Estás renovando tu plan PRO. Termina el {date}, y los días que te quedan se suman al nuevo periodo que pagas ahora."
+  "checkout.renew_note": "Estás renovando tu plan PRO. Termina el {date}, y los días que te quedan se suman al nuevo periodo que pagas ahora.",
+  "pricing.pro_card_subtitle": "Alertas y visualización multi-temporalidad",
+  "alerts.in_app_notifications": "Notificaciones de alerta en la aplicación",
+  "alerts.in_app_notifications_detail": "Recibe un aviso dentro de la aplicación cuando se active una alerta",
+  "pricing.landing_price_alerts": "Hasta {count} alertas de ruptura de precio en menos de 500 ms",
+  "settings.privacy.data_request_desc": "Para obtener una copia de tus datos, escríbenos a privacy@davintrade.app desde la dirección de tu cuenta.",
+  "settings.privacy.data_request_button": "Escríbenos para solicitar tus datos"
 }

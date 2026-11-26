@@ -9,6 +9,7 @@ import {
   isSupportedCountryPrefix,
   preferencesForCountryPrefix,
 } from '@/lib/i18n/locale-resolver';
+import { isSupportedLanguage } from '@/lib/i18n/languages';
 
 // Session 3-3's "middleware guard" candidate step — the first middleware.ts
 // this repo has ever had (every matched request passes through it, hence
@@ -132,6 +133,41 @@ function requiresOriginCheck(method: string, pathname: string): boolean {
   );
 }
 
+/**
+ * One-shot `?lang=` setter (Q1). davintrade.com links to unprefixed URLs for
+ * languages that have no country prefix here and appends `?lang=`. A supported
+ * value is written to the language cookie and the same URL is returned without
+ * the parameter, so it never reaches a page, analytics or a cache key. Only the
+ * language cookie is set: currency, timezone and a saved choice keep their
+ * usual precedence. Returns null (nothing happens) for anything else.
+ */
+function languageHintRedirect(request: NextRequest): NextResponse | null {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return null;
+
+  const language = new URL(request.url).searchParams.get('lang');
+  if (!isSupportedLanguage(language)) return null;
+
+  const target = request.nextUrl.clone();
+  target.searchParams.delete('lang');
+  const response = NextResponse.redirect(target, 307);
+  response.cookies.set(LOCALE_COOKIE, language, {
+    path: '/',
+    maxAge: 31536000,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+  });
+  return response;
+}
+
+/** Whether the path, raw or percent-decoded, is under /api. */
+function targetsApi(pathname: string): boolean {
+  try {
+    return isApiPath(pathname) || isApiPath(decodeURIComponent(pathname));
+  } catch {
+    return true;
+  }
+}
+
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname: originalPathname } = request.nextUrl;
 
@@ -158,6 +194,13 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       { error: 'Invalid request origin' },
       { status: 403 }
     );
+  }
+
+  // Pages only, and never under a country prefix: the prefix already says which
+  // language. Before the auth gate, so a login bounce keeps the language.
+  if (!countryPrefix && !targetsApi(originalPathname)) {
+    const hinted = languageHintRedirect(request);
+    if (hinted) return hinted;
   }
 
   if (PUBLIC_SETTINGS_PATHS.has(targetPathname)) {
