@@ -64,12 +64,17 @@ const config = {
     '<rootDir>/frontend-and-backend-python-stack/', // Prototype sub-projects (davintrade-prototype has own tsconfig.json + package.json)
     '<rootDir>/seed-code/', // Seed/template code
     '<rootDir>/.claude/', // Claude worktrees
+    '<rootDir>/davintrade-dot-com/', // davintrade.com marketing site (private repo, has own test setup)
   ],
 
   // ============================================================================
   // Module Path Ignore Patterns (Prevents Haste Map Collisions)
   // ============================================================================
-  modulePathIgnorePatterns: ['<rootDir>/.claude/', '<rootDir>/Archive/'],
+  modulePathIgnorePatterns: [
+    '<rootDir>/.claude/',
+    '<rootDir>/Archive/',
+    '<rootDir>/davintrade-dot-com/',
+  ],
 
   // ============================================================================
   // Coverage Collection (What Files to Measure)

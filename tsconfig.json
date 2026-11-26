@@ -134,6 +134,7 @@
     "railway-gateway", // Separate NestJS project (has own tsconfig.json + package.json)
     "operation-service", // Separate NestJS project (has own tsconfig.json + package.json)
     "money-service", // Separate NestJS project (has own tsconfig.json + package.json)
+    "davintrade-dot-com", // davintrade.com marketing site (private repo, gitignored; own tsconfig.json + package.json)
     "infra", // As-code infra mirrors (e.g. contabo-chat-stack) — each has its own tsconfig.json + package.json
     "frontend-and-backend-python-stack", // Prototype sub-projects (davintrade-prototype has own tsconfig.json + package.json)
     "archive", // Historical/decommissioned code, not part of the live build

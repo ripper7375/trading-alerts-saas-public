@@ -210,6 +210,9 @@ davintrade-cloudflare-security-audit/
 docs/handoffs/2026-11-01-sec-audit-cloudflare-hardening-*.md
 # Security monitoring pipeline blueprint, reviews and scan reports: they can hold unfixed findings
 davintrade-security-monitoring-pipeline/
+# davintrade.com marketing workspace (raw ~560 MB media, Harness legal/review notes, and isolated web/ private repo):
+# kept strictly out of the public trading-alerts-saas-public repository
+/davintrade-dot-com/
 # Syncthing conflict copies: they can hold copies of ignored files such as .env, so never track them
 *.sync-conflict-*
 

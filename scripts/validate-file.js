@@ -420,6 +420,8 @@ function main() {
         'dist/**',
         'build/**',
         'seed-code/**',
+        'davintrade-dot-com/**',
+        '**/node_modules/**',
       ],
     });
 
