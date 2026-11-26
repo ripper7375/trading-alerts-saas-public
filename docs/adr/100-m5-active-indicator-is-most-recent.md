@@ -1,6 +1,6 @@
 # ADR-100: The M5 active indicator is most_recent
 
-- **Status:** Settled (Davin, 2026-11-26). The production setting is **not switched yet**: the switch is a separate step that Davin orders.
+- **Status:** Settled (Davin, 2026-11-26). The production setting was **switched on 2026-11-26**: M5 `most_recent` from slot 1795704000 (14:40Z), with the web flag left off (see "The switch").
 - **Date:** 2026-11-26
 - **Section:** 1 · Market data & chart
 - **Architecture:** [STACK-D-ARCHITECTURE.md](../STACK-D-ARCHITECTURE.md) §1.4
@@ -30,8 +30,14 @@ On M15, `most_recent` read every cycle of the week as a downtrend (median angle 
 ## Before the setting is switched
 
 1. MCD0 1.1.0 ([ADR-101](101-mcd0-1-1-0-thresholds-and-r2-per-timeframe.md)) is deployed first. Under 1.0.0, M5 `most_recent` was flagged on 58.2% of readings.
-2. Read `ACTIVE_INDICATOR_FROM_GATEWAY` on the web app. When it is `true`, the switch also changes the channel the user's chart shows. Its production value has not been read.
+2. Read `ACTIVE_INDICATOR_FROM_GATEWAY` on the web app. When it is `true`, the switch also changes the channel the user's chart shows. Davin read its production value on 2026-11-26: not `true`.
 3. The switch is a production write through the admin route, effective from a future slot. It starts new MCD2 and MCD3 statistics series, whose configuration includes M5.
+
+## The switch (2026-11-26)
+
+- Davin ordered the switch with `ACTIVE_INDICATOR_FROM_GATEWAY` left unset and wrote it through the admin route: M5 `most_recent`, effective slot 1795704000 (14:40:00Z). M15 stays `non_b`.
+- A read-only database check at 15:43Z over the 13 READY slots from 14:40Z to 15:40Z passed 12 of 12 checks: MCD0 evaluator `1.1.0`; the readings name M5 `most_recent` and M15 `non_b`; no `NO_SETTING`, `NO_STATS_AT_SLOT`, `EVALUATOR_ERROR` or guard replacement; every flag `shadow`; 4 MCD and 2 SYN readings per cycle. Output: [verify-result](../handoffs/2026-11-26-m5-switch/verify-result-2026-11-26T1543Z.txt).
+- While the flag is off the web chart overlay does not follow the setting (it takes the request's variant, default `best_fit_a`), so the web chart and the sensors can name different M5 indicators until the [Step 2 cutover](../runbooks/deploy-stack-d-step2.md) §7, which waits for the write-key decision of §1.5. The images of the VPS renderer were not checked.
 
 ## Known limits
 

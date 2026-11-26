@@ -1,0 +1,132 @@
+// Read-only check of the M5 active-indicator switch (ADR-100). SELECTs only. Prints no author and no address.
+// Run from railway-gateway/ (the database client is loaded from there): node verify_m5.js <effective slot>
+'use strict';
+const path = require('path');
+const { createRequire } = require('module');
+
+const SYMBOL = 'XAUUSD';
+const MCDS = ['MCD0', 'MCD1', 'MCD2', 'MCD3'];
+const BANNED = ['NO_SETTING', 'NO_STATS_AT_SLOT', 'EVALUATOR_ERROR'];
+const iso = (s) => new Date(s * 1000).toISOString().slice(5, 16).replace('T', ' ') + 'Z';
+const count = (map, key) => map.set(key, (map.get(key) || 0) + 1);
+const text = (map) => [...map].sort().map(([k, v]) => `${k} ${v}`).join(', ') || 'none';
+
+async function verify(prisma, effective, log) {
+  const from = effective - 600; // two slots before the switch, for comparison
+  const settings = await prisma.activeIndicatorSetting.findMany({
+    orderBy: [{ timeframe: 'asc' }, { effective_slot: 'asc' }, { createdAt: 'asc' }],
+    select: { timeframe: true, source: true, effective_slot: true, reason: true, createdAt: true },
+  });
+  const rows = await prisma.mcdOutput.findMany({
+    where: { symbol: SYMBOL, cycle_slot: { gte: from } },
+    orderBy: [{ cycle_slot: 'asc' }, { mcd_id: 'asc' }],
+    select: { cycle_slot: true, mcd_id: true, flag: true, evaluator_version: true, status: true, state_code: true, guard_problems: true, envelope: true },
+  });
+  const syn = await prisma.synthesisReading.findMany({
+    where: { symbol: SYMBOL, cycle_slot: { gte: from } },
+    orderBy: [{ cycle_slot: 'asc' }, { profile: 'asc' }],
+    select: { cycle_slot: true, profile: true, flag: true, status: true, status_reasons: true, bias: true, rule_id: true, zone_count: true },
+  });
+  const cycles = await prisma.marketCycle.findMany({
+    where: { symbol: SYMBOL, slot: { gte: effective }, state: 'READY' },
+    orderBy: { slot: 'asc' },
+    select: { slot: true, data_status: true },
+  });
+
+  log(`Effective slot ${effective} = ${iso(effective)}. Read at ${iso(Math.floor(Date.now() / 1000))}.`);
+  log('\n== active_indicator_settings (author not read)');
+  for (const s of settings) log(`${s.timeframe} ${s.source} from slot ${s.effective_slot} (written ${s.createdAt.toISOString().slice(0, 19)}Z) ${s.reason || ''}`);
+
+  log('\n== mcd_outputs per slot (M5/M15 = the indicator the reading names)');
+  const slots = [...new Set(rows.map((r) => r.cycle_slot))];
+  for (const slot of slots) {
+    log(`${slot} ${iso(slot)} ${slot >= effective ? 'AFTER ' : 'before'}`);
+    for (const r of rows.filter((x) => x.cycle_slot === slot)) {
+      const ai = r.envelope.active_indicator || {};
+      const reasons = r.envelope.status_reasons || [];
+      log(`   ${r.mcd_id} v${r.evaluator_version} ${r.flag} ${r.status} ${r.state_code || '-'} M5=${ai.M5 || '-'} M15=${ai.M15 || '-'} ${reasons.join(' ')}`);
+    }
+    for (const s of syn.filter((x) => x.cycle_slot === slot)) {
+      log(`   SYN ${s.profile} ${s.flag} ${s.status} ${s.bias} ${s.rule_id} zones=${s.zone_count} ${s.status_reasons.join(' ')}`);
+    }
+  }
+
+  const after = rows.filter((r) => r.cycle_slot >= effective);
+  const synAfter = syn.filter((s) => s.cycle_slot >= effective);
+  const afterSlots = [...new Set(after.map((r) => r.cycle_slot))];
+  log(`\n== after the switch: ${cycles.length} READY cycle(s), ${afterSlots.length} slot(s) with readings, ${after.length} MCD rows, ${synAfter.length} SYN rows`);
+
+  const mcd0 = after.filter((r) => r.mcd_id === 'MCD0');
+  const states = new Map();
+  mcd0.forEach((r) => count(states, r.state_code || r.status));
+  const flagged = (tf) => mcd0.filter((r) => String(r.state_code).includes(`_${tf}_`)).length;
+  log(`MCD0 states: ${text(states)}`);
+  log(`MCD0 flag rate: M5 ${flagged('M5')} of ${mcd0.length}, M15 ${flagged('M15')} of ${mcd0.length}`);
+  for (const r of mcd0) {
+    const d = r.envelope.details || {};
+    log(`   ${r.cycle_slot} M5 failed [${(d.M5?.failed || []).join(' ')}] fit_a ${d.M5?.model_a?.fit_ratio} geo ${d.M5?.geo_ratio} | M15 failed [${(d.M15?.failed || []).join(' ')}]`);
+  }
+  for (const id of MCDS) {
+    const statuses = new Map();
+    after.filter((r) => r.mcd_id === id).forEach((r) => count(statuses, r.status));
+    log(`${id} statuses: ${text(statuses)}`);
+  }
+  const synStatus = new Map();
+  synAfter.forEach((s) => count(synStatus, `${s.profile} ${s.status}`));
+  log(`SYN statuses: ${text(synStatus)}`);
+
+  const checks = [];
+  const check = (name, bad) => checks.push({ name, bad });
+  check('M5 most_recent row takes effect at the effective slot', settings.some((s) => s.timeframe === 'M5' && s.source === 'most_recent' && s.effective_slot === effective) ? [] : ['row not found']);
+  check('no other M15 setting than non_b', settings.filter((s) => s.timeframe === 'M15' && s.source !== 'non_b').map((s) => `${s.source}@${s.effective_slot}`));
+  check('readings after the switch name M5 most_recent', after.filter((r) => r.envelope.active_indicator?.M5 && r.envelope.active_indicator.M5 !== 'most_recent').map((r) => `${r.cycle_slot} ${r.mcd_id}`));
+  check('readings after the switch name M15 non_b', after.filter((r) => r.envelope.active_indicator?.M15 && r.envelope.active_indicator.M15 !== 'non_b').map((r) => `${r.cycle_slot} ${r.mcd_id}`));
+  check('every MCD0 reading names both timeframes', mcd0.filter((r) => !r.envelope.active_indicator?.M5 || !r.envelope.active_indicator?.M15).map((r) => String(r.cycle_slot)));
+  check('MCD0 evaluator_version is 1.1.0', mcd0.filter((r) => r.evaluator_version !== '1.1.0').map((r) => `${r.cycle_slot} ${r.evaluator_version}`));
+  for (const code of BANNED) {
+    check(`no ${code}`, [
+      ...after.filter((r) => JSON.stringify([r.envelope.status_reasons, r.guard_problems]).includes(code)).map((r) => `${r.cycle_slot} ${r.mcd_id}`),
+      ...synAfter.filter((s) => JSON.stringify(s.status_reasons).includes(code)).map((s) => `${s.cycle_slot} SYN ${s.profile}`),
+    ]);
+  }
+  check('no reading was replaced by the guard', after.filter((r) => r.guard_problems.length).map((r) => `${r.cycle_slot} ${r.mcd_id}`));
+  check('every flag is shadow', [...after.filter((r) => r.flag !== 'shadow').map((r) => `${r.cycle_slot} ${r.mcd_id}`), ...synAfter.filter((s) => s.flag !== 'shadow').map((s) => `${s.cycle_slot} SYN`)]);
+  const ready = cycles.map((c) => c.slot);
+  const newest = ready[ready.length - 1];
+  check('every READY cycle after the switch has 4 MCD and 2 SYN readings (the newest may still be writing)', ready.filter((slot) => slot !== newest || after.some((r) => r.cycle_slot === slot)).filter((slot) => after.filter((r) => r.cycle_slot === slot && MCDS.includes(r.mcd_id)).length !== 4 || synAfter.filter((s) => s.cycle_slot === slot).length !== 2).map(String));
+
+  log('\n== checks');
+  if (afterSlots.length === 0) {
+    log('WAITING: no reading at or after the effective slot yet. Run the same command again in a few minutes.');
+    return 'WAITING';
+  }
+  let failed = 0;
+  for (const c of checks) {
+    if (c.bad.length) failed += 1;
+    log(`${c.bad.length ? 'FAIL' : 'ok  '} ${c.name}${c.bad.length ? ': ' + c.bad.slice(0, 8).join(', ') : ''}`);
+  }
+  const verdict = failed ? 'FAIL' : 'PASS';
+  log(`\nVERDICT ${verdict} (${checks.length - failed} of ${checks.length} checks, ${afterSlots.length} slot(s) after the switch)`);
+  return verdict;
+}
+
+async function main() {
+  const effective = Number(process.argv[2]);
+  if (!Number.isInteger(effective) || effective % 300 !== 0 || effective < 1700000000) throw new Error('give the effective slot (a unix time on a 5-minute boundary)');
+  if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
+  const load = createRequire(path.join(process.cwd(), 'package.json'));
+  const { PrismaClient } = load('@prisma/client');
+  const { PrismaPg } = load('@prisma/adapter-pg');
+  const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
+  try {
+    const verdict = await verify(prisma, effective, (line) => console.log(line));
+    process.exitCode = verdict === 'PASS' ? 0 : verdict === 'WAITING' ? 3 : 1;
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+main().catch((error) => {
+  console.error(`verify-m5: ${error.message}`);
+  process.exit(2);
+});

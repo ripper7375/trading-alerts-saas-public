@@ -1,0 +1,39 @@
+await (async () => {
+  const url = '/api/admin/active-indicator';
+  const read = async () => (await fetch(url)).json();
+  const stop = (...why) => {
+    console.log('STOP, nothing written:', ...why);
+    return 'STOP';
+  };
+  const before = await read();
+  if (before.status !== 'ok') return stop(before.status, before.message);
+  const now = before.current.byTimeframe;
+  if (now.M5?.source !== 'best_fit_a' || now.M15?.source !== 'non_b')
+    return stop('unexpected current setting', now.M5?.source, now.M15?.source);
+  if (before.settings.some((r) => r.timeframe === 'M5' && r.effectiveSlot > 0))
+    return stop('an M5 change already exists');
+  const effectiveSlot = before.earliestSettableSlot + 300;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      timeframe: 'M5',
+      source: 'most_recent',
+      effectiveSlot,
+      reason: 'ADR-100: M5 most_recent for the shadow run; web flag off',
+    }),
+  });
+  const out = await res.json();
+  if (out.status !== 'set')
+    return stop('write refused', res.status, out.status, out.reason ?? out.message ?? String(out.errors));
+  const after = await read();
+  console.log(
+    [
+      'M5 SWITCH WRITTEN',
+      `effective slot ${effectiveSlot} = ${new Date(effectiveSlot * 1000).toISOString()}`,
+      `data status ${after.current?.dataStatus}`,
+      ...(after.settings ?? []).map((r) => `${r.timeframe} ${r.source} from ${r.effectiveSlot}`),
+    ].join('\n')
+  );
+  return 'DONE';
+})();
