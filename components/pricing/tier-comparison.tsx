@@ -22,18 +22,23 @@ import { FREE_TIER_CONFIG, PRO_TIER_CONFIG } from '@/lib/tier-config';
  *
  * This version keeps seed-code's visual design but binds price to the
  * admin's SystemConfig price (useAffiliateConfig().regularPrice, the amount
- * checkout charges) via useLocale().formatCurrency, and lists the REAL V8 single-symbol feature set both tiers
- * actually have today (alerts, rate limit, drawing-engine line alerts,
- * multi-timeframe visualization, notifications, export, support) -- the
- * same substance the previous (differently-styled) version of this
- * component already showed.
+ * checkout charges) via useLocale().formatCurrency, and lists what the tiers
+ * have today (alerts, rate limit, drawing-engine line alerts, multi-timeframe
+ * visualization, in-app notifications). Data export, priority support, the
+ * Market Comments feed and e-mail/push alerts are not built, so they are not
+ * listed (M1.0, decision Q3). The AI Analyst lines appear only when the server
+ * says the analyst is on for everybody (`aiAnalystEnabled`).
  *
  * Monthly / Annual toggle: both are real plans (annual added 2026-09-26),
  * priced from SystemConfig (`affiliate_base_price`, `affiliate_annual_price`)
  * and bought through /checkout (`?billing=yearly` preselects annual). The
  * savings badge is computed from the two prices, never a fixed figure.
  */
-export function TierComparison(): React.ReactElement {
+export function TierComparison({
+  aiAnalystEnabled = false,
+}: {
+  aiAnalystEnabled?: boolean;
+}): React.ReactElement {
   const { t, formatCurrency, currency, language } = useLocale();
   const {
     regularPrice: monthlyPrice,
@@ -53,21 +58,20 @@ export function TierComparison(): React.ReactElement {
       free: `${FREE_TIER_CONFIG.maxAlerts} ${t('Active Alerts')}`,
       pro: `${PRO_TIER_CONFIG.maxAlerts} ${t('Active Alerts')}`,
     },
-    {
-      name: t('Interactive AI Analyst'),
-      free: false,
-      pro: true,
-    },
-    {
-      name: t('Monthly AI Token Quota'),
-      free: `${FREE_TIER_CONFIG.aiMonthlyTokenQuota.toLocaleString()}`,
-      pro: `${PRO_TIER_CONFIG.aiMonthlyTokenQuota.toLocaleString()}`,
-    },
-    {
-      name: t('Live Market Comments & WebSocket Feed'),
-      free: false,
-      pro: true,
-    },
+    ...(aiAnalystEnabled
+      ? [
+          {
+            name: t('Interactive AI Analyst'),
+            free: false,
+            pro: true,
+          },
+          {
+            name: t('Monthly AI Token Quota'),
+            free: `${FREE_TIER_CONFIG.aiMonthlyTokenQuota.toLocaleString()}`,
+            pro: `${PRO_TIER_CONFIG.aiMonthlyTokenQuota.toLocaleString()}`,
+          },
+        ]
+      : []),
     {
       name: t('Drawing-Engine Line Alerts'),
       free: false,
@@ -87,16 +91,6 @@ export function TierComparison(): React.ReactElement {
       name: t('API Rate Limit'),
       free: `${FREE_TIER_CONFIG.rateLimit}/${t('hour')}`,
       pro: `${PRO_TIER_CONFIG.rateLimit}/${t('hour')}`,
-    },
-    {
-      name: t('Data Export'),
-      free: false,
-      pro: true,
-    },
-    {
-      name: t('Priority Support'),
-      free: false,
-      pro: true,
     },
   ];
 
@@ -205,10 +199,12 @@ export function TierComparison(): React.ReactElement {
                 <Check className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />{' '}
                 {`${FREE_TIER_CONFIG.rateLimit} ${t('Requests/Hour')}`}
               </li>
-              <li className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
-                <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
-                {t('Read-Only AI Analyst (Chat Locked)')}
-              </li>
+              {aiAnalystEnabled && (
+                <li className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                  <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
+                  {t('Read-Only AI Analyst (Chat Locked)')}
+                </li>
+              )}
               <li className="flex items-center gap-2 text-slate-400 dark:text-slate-500">
                 <X className="h-4 w-4 shrink-0 text-rose-500" />{' '}
                 {t('0 Active Alerts (PRO Exclusive)')}
@@ -236,7 +232,8 @@ export function TierComparison(): React.ReactElement {
                 </h3>
                 <p className="text-xs text-slate-700 dark:text-slate-300">
                   {t(
-                    'Alerts, multi-timeframe visualization & priority support'
+                    'pricing.pro_card_subtitle',
+                    'Alerts & multi-timeframe visualization'
                   )}
                 </p>
               </div>
@@ -282,14 +279,12 @@ export function TierComparison(): React.ReactElement {
                 <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}
                 {`${PRO_TIER_CONFIG.maxAlerts} ${t('Server-Side Price & Line Alert Rules')}`}
               </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}
-                {t('Interactive AI Analyst (500k Tokens/Mo)')}
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}
-                {t('Live Market Comments & WebSocket Feed')}
-              </li>
+              {aiAnalystEnabled && (
+                <li className="flex items-center gap-2">
+                  <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}
+                  {t('Interactive AI Analyst (500k Tokens/Mo)')}
+                </li>
+              )}
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}
                 {t('Drawing-Engine Line Alerts')}
@@ -300,7 +295,7 @@ export function TierComparison(): React.ReactElement {
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}
-                {t('Email/Push Alert Notifications')}
+                {t('alerts.in_app_notifications', 'In-App Alert Notifications')}
               </li>
               <li className="flex items-center gap-2">
                 <Check className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />{' '}

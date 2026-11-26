@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Eye, Download, AlertCircle, Loader2, Check } from 'lucide-react';
+import { Eye, Download, AlertCircle, Loader2, Check, Mail } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -15,11 +15,13 @@ import { useLocale } from '@/lib/context/locale-context';
  * Privacy Settings Page (Row 78)
  *
  * Visibility/toggle settings bound to the real GET/PUT
- * /api/user/preferences endpoint. The data-export button is a pre-existing
- * mock carried forward unchanged (no real export-job endpoint exists in
- * this repo) -- disclosed in Deviations, not fixed here (out of a
- * UI-BUILD session's scope) and not fabricated new by this session.
+ * /api/user/preferences endpoint. There is no export-job endpoint, so a copy
+ * of the trader's data is requested by e-mail (M1.0, decision Q3: it replaced
+ * a button that only pretended to start an export).
  */
+
+const DATA_REQUEST_MAILTO =
+  'mailto:privacy@davintrade.app?subject=Data%20Export%20Request';
 
 type ProfileVisibility = 'public' | 'private' | 'connections';
 
@@ -68,8 +70,6 @@ export default function PrivacySettingsPage(): React.ReactElement {
   });
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
-  const [exportSuccess, setExportSuccess] = useState(false);
 
   useEffect(() => {
     const loadSettings = async (): Promise<void> => {
@@ -126,23 +126,6 @@ export default function PrivacySettingsPage(): React.ReactElement {
     }
   };
 
-  const handleDataExport = async (): Promise<void> => {
-    setIsExporting(true);
-    setExportSuccess(false);
-
-    try {
-      // Pre-existing mock, carried forward -- no real export-job endpoint
-      // exists yet (see file-level comment).
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      setExportSuccess(true);
-      setTimeout(() => setExportSuccess(false), 5000);
-    } catch (error) {
-      console.error('Failed to request data export:', error);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   return (
     <div className="animate-fade-in">
       <h2 className="mb-6 text-2xl font-bold text-foreground">
@@ -167,8 +150,8 @@ export default function PrivacySettingsPage(): React.ReactElement {
               className={cn(
                 'flex cursor-pointer items-start rounded-lg border p-4 transition-colors',
                 settings.profileVisibility === option.value
-                  ? 'bg-primary/5 border-primary'
-                  : 'hover:border-muted-foreground/40 border-border'
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-muted-foreground/40'
               )}
             >
               <input
@@ -265,46 +248,19 @@ export default function PrivacySettingsPage(): React.ReactElement {
           <CardContent className="p-4">
             <p className="mb-4 text-sm text-muted-foreground">
               {t(
-                'settings.privacy.data_export_desc',
-                "Request a copy of all your data including your profile information, alerts, and activity history. We'll prepare your data and send you a download link via email."
+                'settings.privacy.data_request_desc',
+                'To get a copy of your data, email us at privacy@davintrade.app from the address on your account.'
               )}
             </p>
-            <Button
-              onClick={handleDataExport}
-              disabled={isExporting}
-              variant="outline"
-            >
-              {isExporting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t(
-                    'settings.privacy.preparing_export',
-                    'Preparing Export...'
-                  )}
-                </>
-              ) : exportSuccess ? (
-                <>
-                  <Check className="mr-2 h-4 w-4" />
-                  {t('settings.privacy.export_requested', 'Export Requested!')}
-                </>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" />
-                  {t(
-                    'settings.privacy.request_data_export',
-                    'Request Data Export'
-                  )}
-                </>
-              )}
-            </Button>
-            {exportSuccess && (
-              <p className="mt-2 text-sm text-emerald-600 dark:text-emerald-400">
+            <Button asChild variant="outline">
+              <a href={DATA_REQUEST_MAILTO}>
+                <Mail className="mr-2 h-4 w-4" />
                 {t(
-                  'settings.privacy.export_email_notice',
-                  "You'll receive an email with a download link within 24 hours."
+                  'settings.privacy.data_request_button',
+                  'Email us to request your data'
                 )}
-              </p>
-            )}
+              </a>
+            </Button>
           </CardContent>
         </Card>
       </section>

@@ -13,7 +13,7 @@ const mockRates = jest.mocked(getDisplayUsdRates);
 const mockConvert = jest.mocked(convertUSDToLocal);
 
 describe('public FX and checkout conversion HTTP caching', () => {
-  it('returns complete public provenance without an extra browser/CDN cache window', async () => {
+  it('returns complete public provenance, cacheable by a CDN for an hour', async () => {
     const snapshot = {
       rates: { ...CURRENCY_USD_RATES, GBP: 0.77 },
       provider: 'currencybeacon' as const,
@@ -23,7 +23,9 @@ describe('public FX and checkout conversion HTTP caching', () => {
     };
     mockRates.mockResolvedValueOnce(snapshot);
     const response = await ratesGET();
-    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('cache-control')).toBe(
+      'public, s-maxage=3600, stale-while-revalidate=300'
+    );
     expect(await response.json()).toEqual(snapshot);
   });
 

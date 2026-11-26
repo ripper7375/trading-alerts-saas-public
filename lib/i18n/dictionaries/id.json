@@ -4654,7 +4654,7 @@
   "billing.title": "Tagihan & Langganan",
   "billing.trial_cancelled_on": "Uji coba gratis Anda dibatalkan pada",
   "billing.unlock_more_with_pro": "Buka Lebih Banyak dengan PRO",
-  "billing.upgrade_prompt": "Dapatkan 100 peringatan harga, peringatan garis mesin gambar, visualisasi multi-timeframe, dan dukungan prioritas hanya {price}/bulan.",
+  "billing.upgrade_prompt": "Dapatkan 100 peringatan harga, peringatan garis mesin gambar, dan visualisasi multi-timeframe hanya {price}/bulan.",
   "billing.upgrade_to_pro": "Tingkatkan ke PRO",
   "billing.usage_this_month": "Penggunaan Bulan Ini",
   "billing.vat_included": "termasuk PPN {amount} ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "Perpanjang sekarang",
   "billing.notice.renewed": "Paket Anda telah diperpanjang. PRO kini aktif hingga {date}.",
   "billing.status.expiring": "Segera berakhir",
-  "checkout.renew_note": "Anda memperpanjang paket PRO. Paket ini berakhir pada {date}, dan sisa hari Anda ditambahkan ke periode baru yang Anda bayar sekarang."
+  "checkout.renew_note": "Anda memperpanjang paket PRO. Paket ini berakhir pada {date}, dan sisa hari Anda ditambahkan ke periode baru yang Anda bayar sekarang.",
+  "pricing.pro_card_subtitle": "Peringatan dan visualisasi multi-kerangka waktu",
+  "alerts.in_app_notifications": "Notifikasi Peringatan di Dalam Aplikasi",
+  "alerts.in_app_notifications_detail": "Dapatkan notifikasi di dalam aplikasi saat peringatan terpicu",
+  "pricing.landing_price_alerts": "Hingga {count} Peringatan Penembusan Harga Sub-500ms",
+  "settings.privacy.data_request_desc": "Untuk mendapatkan salinan data Anda, kirim email ke privacy@davintrade.app dari alamat email akun Anda.",
+  "settings.privacy.data_request_button": "Kirim email untuk meminta data Anda"
 }

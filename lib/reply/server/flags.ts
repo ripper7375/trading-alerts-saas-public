@@ -34,6 +34,15 @@ export function isReplyEnabled(env: Env): boolean {
   return env[REPLY_ENABLED_ENV] === 'true';
 }
 
+/**
+ * What the public may be told about the analyst (M1.0): `live` only when it is on for everybody.
+ * While the staging allow-list exists it is `beta`, because a trader who is not named has none.
+ */
+export function replyAvailability(env: Env): 'live' | 'beta' | 'planned' {
+  if (!isReplyEnabled(env)) return 'planned';
+  return allowedUserIds(env) === null ? 'live' : 'beta';
+}
+
 /** The allow-list, or null when there is none (the variable does not exist). Entries that are not user ids are dropped. */
 export function allowedUserIds(env: Env): ReadonlySet<string> | null {
   const raw = env[REPLY_ALLOWED_USER_IDS_ENV];

@@ -20,6 +20,10 @@ import useSWR from 'swr';
  * Affiliate configuration from SystemConfig
  */
 export interface AffiliateConfig {
+  /** Shape version of this response */
+  schemaVersion: 1;
+  /** `fallback` means SystemConfig did not answer and these are code defaults */
+  source: 'live' | 'fallback';
   /** Customer discount percentage (e.g., 20 for 20%) */
   discountPercent: number;
   /** Affiliate commission percentage (e.g., 20 for 20%) */
@@ -36,6 +40,17 @@ export interface AffiliateConfig {
   minimumPayoutUsd: number;
   /** ISO timestamp of when config was last updated */
   lastUpdated: string;
+  /** Length of the PRO free trial */
+  trialDays: number;
+  /** Months of one referred subscription that earn commission */
+  maxCommissionMonths: number;
+  /** A code expires at the end of the month it was issued in */
+  codeExpiry: 'END_OF_ISSUE_MONTH';
+  payoutMethod: 'WISE';
+  payoutFrequency: 'MONTHLY';
+  /** Active price alerts allowed on each tier */
+  maxAlertsFree: number;
+  maxAlertsPro: number;
 }
 
 /**

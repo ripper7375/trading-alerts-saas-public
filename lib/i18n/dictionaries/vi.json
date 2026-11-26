@@ -4654,7 +4654,7 @@
   "billing.title": "Thanh toán & gói đăng ký",
   "billing.trial_cancelled_on": "Bản dùng thử miễn phí của bạn đã bị hủy vào",
   "billing.unlock_more_with_pro": "Mở khóa nhiều hơn với PRO",
-  "billing.upgrade_prompt": "Nhận 100 cảnh báo giá, cảnh báo đường của công cụ vẽ, hiển thị đa khung thời gian và hỗ trợ ưu tiên chỉ với {price}/tháng.",
+  "billing.upgrade_prompt": "Nhận 100 cảnh báo giá, cảnh báo đường của công cụ vẽ và hiển thị đa khung thời gian chỉ với {price}/tháng.",
   "billing.upgrade_to_pro": "Nâng cấp lên PRO",
   "billing.usage_this_month": "Mức sử dụng tháng này",
   "billing.vat_included": "đã gồm {amount} VAT ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "Gia hạn ngay",
   "billing.notice.renewed": "Gói của bạn đã được gia hạn. PRO hiện có hiệu lực đến {date}.",
   "billing.status.expiring": "Sắp hết hạn",
-  "checkout.renew_note": "Bạn đang gia hạn gói PRO. Gói hiện tại kết thúc vào {date}, và số ngày còn lại sẽ được cộng vào kỳ mới mà bạn thanh toán bây giờ."
+  "checkout.renew_note": "Bạn đang gia hạn gói PRO. Gói hiện tại kết thúc vào {date}, và số ngày còn lại sẽ được cộng vào kỳ mới mà bạn thanh toán bây giờ.",
+  "pricing.pro_card_subtitle": "Cảnh báo và trực quan hóa đa khung thời gian",
+  "alerts.in_app_notifications": "Thông báo cảnh báo trong ứng dụng",
+  "alerts.in_app_notifications_detail": "Nhận thông báo ngay trong ứng dụng khi cảnh báo được kích hoạt",
+  "pricing.landing_price_alerts": "Tối đa {count} cảnh báo phá vỡ giá dưới 500ms",
+  "settings.privacy.data_request_desc": "Để nhận bản sao dữ liệu của bạn, hãy gửi email đến privacy@davintrade.app từ địa chỉ email của tài khoản.",
+  "settings.privacy.data_request_button": "Gửi email yêu cầu dữ liệu của bạn"
 }

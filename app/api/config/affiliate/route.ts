@@ -10,6 +10,12 @@
  * defaults/bounds. ONLY the minimum is public — the pause switch, batch
  * size, approval window and provider are operational and never appear here.
  *
+ * davintrade.com reads this too (M1.0), so it also carries the public program
+ * and tier terms that live in code, `schemaVersion`, and `source`: `live`
+ * when SystemConfig answered, `fallback` when the code defaults are standing
+ * in. A fallback is `no-store`, so neither the CDN nor a consumer's last good
+ * copy is replaced by defaults during a database outage.
+ *
  * @module app/api/config/affiliate/route
  */
 
@@ -19,12 +25,33 @@ import {
   DISBURSEMENT_SETTING_DEFINITIONS,
   getDisbursementSettings,
 } from '@/lib/disbursement/settings';
+import { AFFILIATE_CONFIG } from '@/lib/affiliate/constants';
+import {
+  FREE_TIER_CONFIG,
+  PRO_TIER_CONFIG,
+  TRIAL_CONFIG,
+} from '@/lib/tier-config';
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TYPES
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-interface AffiliateConfigResponse {
+/** Program and tier terms that are code constants, not admin settings. */
+interface PublicTerms {
+  trialDays: number;
+  /** Months of one referred subscription that earn commission */
+  maxCommissionMonths: number;
+  /** A code expires at the end of the month it was issued in */
+  codeExpiry: 'END_OF_ISSUE_MONTH';
+  payoutMethod: (typeof AFFILIATE_CONFIG.PAYMENT_METHODS)[number];
+  payoutFrequency: typeof AFFILIATE_CONFIG.PAYMENT_FREQUENCY;
+  maxAlertsFree: number;
+  maxAlertsPro: number;
+}
+
+interface AffiliateConfigResponse extends PublicTerms {
+  schemaVersion: 1;
+  source: 'live' | 'fallback';
   discountPercent: number;
   commissionPercent: number;
   codesPerMonth: number;
@@ -50,6 +77,18 @@ const DEFAULTS = {
   affiliate_three_day_price: '1.99',
   affiliate_annual_price: '290.0',
 } as const;
+
+const PUBLIC_TERMS: PublicTerms = {
+  trialDays: TRIAL_CONFIG.DURATION_DAYS,
+  maxCommissionMonths: AFFILIATE_CONFIG.MAX_RECURRING_COMMISSION_MONTHS,
+  // calculateEndOfMonth() in lib/affiliate/code-generator.ts and in
+  // money-service's CodeGeneratorService.
+  codeExpiry: 'END_OF_ISSUE_MONTH',
+  payoutMethod: AFFILIATE_CONFIG.PAYMENT_METHODS[0],
+  payoutFrequency: AFFILIATE_CONFIG.PAYMENT_FREQUENCY,
+  maxAlertsFree: FREE_TIER_CONFIG.maxAlerts,
+  maxAlertsPro: PRO_TIER_CONFIG.maxAlerts,
+};
 
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // GET HANDLER
@@ -98,6 +137,9 @@ export async function GET(
 
     // Parse values with fallbacks to defaults
     const response: AffiliateConfigResponse = {
+      schemaVersion: 1,
+      source: 'live',
+      ...PUBLIC_TERMS,
       discountPercent: parseFloat(
         configMap['affiliate_discount_percent'] ??
           DEFAULTS['affiliate_discount_percent']
@@ -137,6 +179,9 @@ export async function GET(
 
     // Return defaults on error to prevent UI breakage
     const fallbackResponse: AffiliateConfigResponse = {
+      schemaVersion: 1,
+      source: 'fallback',
+      ...PUBLIC_TERMS,
       discountPercent: parseFloat(DEFAULTS.affiliate_discount_percent),
       commissionPercent: parseFloat(DEFAULTS.affiliate_commission_percent),
       codesPerMonth: parseInt(DEFAULTS.affiliate_codes_per_month, 10),
@@ -148,6 +193,8 @@ export async function GET(
       lastUpdated: new Date().toISOString(),
     };
 
-    return NextResponse.json(fallbackResponse);
+    return NextResponse.json(fallbackResponse, {
+      headers: { 'Cache-Control': 'no-store' },
+    });
   }
 }

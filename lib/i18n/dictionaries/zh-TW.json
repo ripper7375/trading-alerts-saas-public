@@ -2943,7 +2943,7 @@
   "billing.title": "帳單與訂閱",
   "billing.trial_cancelled_on": "您的免費試用於此日期取消：",
   "billing.unlock_more_with_pro": "升級 PRO 解鎖更多功能",
-  "billing.upgrade_prompt": "僅需 {price}/月，即可獲得 100 條價格警報、畫線引擎趨勢線警報、多時間框架視覺化及優先技術支援。",
+  "billing.upgrade_prompt": "僅需 {price}/月，即可獲得 100 條價格警報、畫線引擎趨勢線警報及多時間框架視覺化。",
   "billing.upgrade_to_pro": "升級到 PRO",
   "billing.usage_this_month": "本月用量",
   "billing.vat_included": "含 {amount} 增值稅 ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "立即續訂",
   "billing.notice.renewed": "您的方案已續訂。PRO 有效期現已延長至 {date}。",
   "billing.status.expiring": "即將到期",
-  "checkout.renew_note": "您正在續訂 PRO 方案。目前方案將於 {date} 結束，剩餘天數將累加到您現在支付的新週期中。"
+  "checkout.renew_note": "您正在續訂 PRO 方案。目前方案將於 {date} 結束，剩餘天數將累加到您現在支付的新週期中。",
+  "pricing.pro_card_subtitle": "提醒和多時間框架視覺化",
+  "alerts.in_app_notifications": "應用程式內提醒通知",
+  "alerts.in_app_notifications_detail": "提醒觸發時在應用程式內通知您",
+  "pricing.landing_price_alerts": "最多 {count} 條 500 毫秒內的價格突破提醒",
+  "settings.privacy.data_request_desc": "如需取得您的資料副本，請使用您帳戶的電子郵件地址寄信至 privacy@davintrade.app。",
+  "settings.privacy.data_request_button": "寄信申請您的資料"
 }

@@ -2943,7 +2943,7 @@
   "billing.title": "Facturation et abonnement",
   "billing.trial_cancelled_on": "Votre essai gratuit a été résilié le",
   "billing.unlock_more_with_pro": "Débloquez plus avec PRO",
-  "billing.upgrade_prompt": "Obtenez 100 alertes de prix, des alertes de ligne de tracé, la visualisation multi-unités de temps et une assistance prioritaire pour seulement {price}/mois.",
+  "billing.upgrade_prompt": "Obtenez 100 alertes de prix, des alertes de ligne de tracé et la visualisation multi-unités de temps pour seulement {price}/mois.",
   "billing.upgrade_to_pro": "Passer à PRO",
   "billing.usage_this_month": "Utilisation ce mois-ci",
   "billing.vat_included": "dont {amount} TVA ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "Renouveler maintenant",
   "billing.notice.renewed": "Votre forfait a été renouvelé. PRO est désormais actif jusqu'au {date}.",
   "billing.status.expiring": "Expire bientôt",
-  "checkout.renew_note": "Vous renouvelez votre forfait PRO. Il se termine le {date}, et les jours restants sont ajoutés à la nouvelle période que vous payez maintenant."
+  "checkout.renew_note": "Vous renouvelez votre forfait PRO. Il se termine le {date}, et les jours restants sont ajoutés à la nouvelle période que vous payez maintenant.",
+  "pricing.pro_card_subtitle": "Alertes et visualisation multi-période",
+  "alerts.in_app_notifications": "Notifications d'alerte dans l'application",
+  "alerts.in_app_notifications_detail": "Soyez averti dans l'application lorsqu'une alerte se déclenche",
+  "pricing.landing_price_alerts": "Jusqu'à {count} alertes de franchissement de prix sous 500 ms",
+  "settings.privacy.data_request_desc": "Pour obtenir une copie de vos données, écrivez-nous à privacy@davintrade.app depuis l’adresse de votre compte.",
+  "settings.privacy.data_request_button": "Demander mes données par e-mail"
 }

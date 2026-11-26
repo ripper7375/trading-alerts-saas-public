@@ -4654,7 +4654,7 @@
   "billing.title": "Abrechnung & Abonnement",
   "billing.trial_cancelled_on": "Ihre kostenlose Testphase wurde gekündigt am",
   "billing.unlock_more_with_pro": "Mehr freischalten mit PRO",
-  "billing.upgrade_prompt": "Erhalten Sie 100 Preisalarme, Linienalarme der Zeichen-Engine, Multi-Timeframe-Visualisierung und priorisierten Support für nur {price}/Monat.",
+  "billing.upgrade_prompt": "Erhalten Sie 100 Preisalarme, Linienalarme der Zeichen-Engine und Multi-Timeframe-Visualisierung für nur {price}/Monat.",
   "billing.upgrade_to_pro": "Auf PRO upgraden",
   "billing.usage_this_month": "Nutzung in diesem Monat",
   "billing.vat_included": "inkl. {amount} MwSt. ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "Jetzt verlängern",
   "billing.notice.renewed": "Ihr Tarif wurde verlängert. PRO läuft jetzt bis zum {date}.",
   "billing.status.expiring": "Läuft bald ab",
-  "checkout.renew_note": "Sie verlängern Ihren PRO-Tarif. Er endet am {date}, und die verbleibenden Tage werden dem neuen Zeitraum hinzugefügt, den Sie jetzt bezahlen."
+  "checkout.renew_note": "Sie verlängern Ihren PRO-Tarif. Er endet am {date}, und die verbleibenden Tage werden dem neuen Zeitraum hinzugefügt, den Sie jetzt bezahlen.",
+  "pricing.pro_card_subtitle": "Alarme und Multi-Zeitrahmen-Visualisierung",
+  "alerts.in_app_notifications": "Alarmbenachrichtigungen in der App",
+  "alerts.in_app_notifications_detail": "Werden Sie in der App benachrichtigt, wenn ein Alarm auslöst",
+  "pricing.landing_price_alerts": "Bis zu {count} Preisdurchbruchsalarme unter 500 ms",
+  "settings.privacy.data_request_desc": "Um eine Kopie Ihrer Daten zu erhalten, schreiben Sie uns von der E-Mail-Adresse Ihres Kontos an privacy@davintrade.app.",
+  "settings.privacy.data_request_button": "Daten per E-Mail anfordern"
 }

@@ -25,7 +25,7 @@ import {
   Bell,
   LineChart,
   Zap,
-  Headphones,
+  BellRing,
 } from 'lucide-react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,11 +70,11 @@ const UNLOCKED_FEATURES: Array<{
     defaultDetail: '30s refresh rate, 300 API requests/hour',
   },
   {
-    icon: Headphones,
-    nameKey: 'upgrade.feature.priority_support',
-    defaultName: 'Priority Support & All Notifications',
-    detailKey: 'upgrade.feature.priority_support_detail',
-    defaultDetail: 'Email, push, and SMS alerts',
+    icon: BellRing,
+    nameKey: 'alerts.in_app_notifications',
+    defaultName: 'In-App Alert Notifications',
+    detailKey: 'alerts.in_app_notifications_detail',
+    defaultDetail: 'Get notified inside the app when an alert fires',
   },
 ];
 
@@ -184,7 +184,7 @@ function UpgradeSuccessContent(): React.ReactElement {
   const isPro = subscription?.tier === 'PRO';
 
   return (
-    <div className="bg-muted/30 flex min-h-screen items-center justify-center px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-8">
       <Card className="w-full max-w-lg shadow-lg">
         <CardHeader className="text-center">
           {isPro ? (
@@ -200,7 +200,7 @@ function UpgradeSuccessContent(): React.ReactElement {
               >
                 {t('upgrade.welcome_pro', 'Welcome to PRO!')}
               </CardTitle>
-              <Badge className="bg-primary/10 mx-auto mt-2 w-fit text-primary">
+              <Badge className="mx-auto mt-2 w-fit bg-primary/10 text-primary">
                 {subscription?.provider === 'DLOCAL'
                   ? t('upgrade.activated', 'Activated')
                   : t('upgrade.subscription_active', 'Subscription Active')}

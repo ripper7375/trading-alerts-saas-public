@@ -4652,7 +4652,7 @@
   "billing.title": "Billing & Subscription",
   "billing.trial_cancelled_on": "Your free trial was cancelled on",
   "billing.unlock_more_with_pro": "Unlock More with PRO",
-  "billing.upgrade_prompt": "Get 100 price alerts, drawing engine line alerts, multi-timeframe visualisation, and priority support for just {price}/month.",
+  "billing.upgrade_prompt": "Get 100 price alerts, drawing engine line alerts and multi-timeframe visualisation for just {price}/month.",
   "billing.upgrade_to_pro": "Upgrade to PRO",
   "billing.usage_this_month": "Usage This Month",
   "billing.vat_included": "incl. {amount} VAT ({rate}%{country})",
@@ -5430,5 +5430,11 @@
   "billing.action.renew_now": "Renew now",
   "billing.notice.renewed": "Your plan has been renewed. PRO now runs until {date}.",
   "billing.status.expiring": "Expires soon",
-  "checkout.renew_note": "You are renewing your PRO plan. It ends on {date}, and the days you have left are added to the new period you pay for now."
+  "checkout.renew_note": "You are renewing your PRO plan. It ends on {date}, and the days you have left are added to the new period you pay for now.",
+  "pricing.pro_card_subtitle": "Alerts & multi-timeframe visualisation",
+  "alerts.in_app_notifications": "In-App Alert Notifications",
+  "alerts.in_app_notifications_detail": "Get notified inside the app when an alert fires",
+  "pricing.landing_price_alerts": "Up to {count} Sub-500ms Price Breach Alerts",
+  "settings.privacy.data_request_desc": "To get a copy of your data, email us at privacy@davintrade.app from the address on your account.",
+  "settings.privacy.data_request_button": "Email us to request your data"
 }
