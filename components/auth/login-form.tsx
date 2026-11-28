@@ -37,6 +37,14 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+// NextAuth's `?error=` codes for an OAuth sign-in that failed on the server or at the provider.
+const OAUTH_SERVER_ERROR_CODES = new Set([
+  'Callback',
+  'OAuthCallback',
+  'OAuthSignin',
+  'OAuthCreateAccount',
+]);
+
 type ErrorType =
   | 'invalid'
   | 'deactivated'
@@ -60,12 +68,14 @@ export default function LoginForm(): React.JSX.Element {
   // (the `signIn` callback of lib/auth/auth-options.ts). An X or LinkedIn sign-in whose e-mail
   // address already belongs to another account comes back as /login?error=OAuthAccountNotLinked
   // (NextAuth does not link by e-mail for them, CODE-05): it gets the generic sign-in error, which
-  // does not say that the address is registered. Read after mount, not in the initial state, so
-  // the server and the first client render agree.
+  // does not say that the address is registered. A failed OAuth round trip (see
+  // OAUTH_SERVER_ERROR_CODES) gets the server error. Read after mount, not in the initial state,
+  // so the server and the first client render agree.
   useEffect(() => {
     const code = new URLSearchParams(window.location.search).get('error');
     if (code === ACCOUNT_DEACTIVATED_CODE) setError('deactivated');
     else if (code === 'OAuthAccountNotLinked') setError('invalid');
+    else if (code && OAUTH_SERVER_ERROR_CODES.has(code)) setError('server');
   }, []);
 
   const {
