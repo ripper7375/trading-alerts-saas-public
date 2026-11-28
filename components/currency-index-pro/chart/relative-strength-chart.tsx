@@ -133,6 +133,8 @@ export function RelativeStrengthChart({
   // subscribe to its crosshair -- same reason trading-chart.tsx exposes
   // chartApi/seriesApi via state for its own child hooks/components.
   const [chartApi, setChartApi] = useState<IChartApi | null>(null);
+  // The news lines' host series, for the same child.
+  const [hostApi, setHostApi] = useState<ISeriesApi<'Line'> | null>(null);
 
   const { resolvedTheme, gridOpacityDecimal } = useChartAppearance();
   const { t } = useLocale();
@@ -200,6 +202,7 @@ export function RelativeStrengthChart({
     chartRef.current = chart;
     chartTime.applyTo(chart);
     setChartApi(chart);
+    setHostApi(hostRef.current);
 
     // The chart would otherwise take every wheel event to zoom, so the page
     // could not be scrolled with the pointer over it. Ctrl/Cmd+wheel zooms.
@@ -221,6 +224,7 @@ export function RelativeStrengthChart({
       chartRef.current = null;
       hostRef.current = null;
       setChartApi(null);
+      setHostApi(null);
       seriesMap.clear();
       priceLinesRef.current = [];
       newsLinesRef.current = [];
@@ -404,6 +408,7 @@ export function RelativeStrengthChart({
       <div ref={containerRef} className="w-full" />
       <HighImpactNewsTooltip
         chart={chartApi}
+        series={hostApi}
         events={data?.highImpactNews ?? []}
       />
     </div>

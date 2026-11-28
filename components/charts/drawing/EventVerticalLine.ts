@@ -1,7 +1,8 @@
 /**
  * EventVerticalLine — a lightweight-charts v5 series primitive drawing a
  * full-pane-height vertical line at a fixed time. Used to mark high-impact
- * economic-event times on the candlestick chart.
+ * economic-event times on the candlestick chart. The time need not be a bar of
+ * the chart: `eventPlacement` decides which bar, or future slot, it goes on.
  *
  * Adapted from the vendored lightweight-charts plugin example at
  * seed-code/lightweight-charts/plugin-examples/src/plugins/vertical-line/
@@ -29,6 +30,8 @@ import type {
   SeriesType,
   Time,
 } from 'lightweight-charts';
+
+import { eventCoordinate } from './eventPlacement';
 
 type CanvasTarget = Parameters<IPrimitivePaneRenderer['draw']>[0];
 
@@ -71,7 +74,8 @@ class EventVerticalLinePaneView implements IPrimitivePaneView {
   ) {}
 
   update(): void {
-    this.x = this.source.chart.timeScale().timeToCoordinate(this.source.time);
+    const { chart, series, time } = this.source;
+    this.x = eventCoordinate(chart, series, time);
   }
 
   renderer(): IPrimitivePaneRenderer {
@@ -85,7 +89,7 @@ export class EventVerticalLine implements ISeriesPrimitive<Time> {
 
   constructor(
     public readonly chart: IChartApi,
-    _series: ISeriesApi<SeriesType>,
+    public readonly series: ISeriesApi<SeriesType>,
     public readonly time: Time,
     options?: Partial<EventVerticalLineOptions>
   ) {

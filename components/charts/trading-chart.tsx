@@ -25,6 +25,10 @@ import { useChartTimeOptions } from '@/components/charts/use-chart-time-options'
 
 import type { DrawingType } from '@/components/charts/drawing/types';
 
+/** Empty candles right of the last one: 3 hours on M15, 1 hour on M5. */
+const NEWS_RIGHT_OFFSET_BARS = 12;
+const M5_SLOTS_PER_M15_BAR = 3;
+
 /**
  * TradingChart Props
  *
@@ -171,11 +175,25 @@ export function TradingChart({
   } = useMtfPreference(isPro && mtfAvailable);
   const mtfEnabled =
     externalMtfEnabled !== undefined ? externalMtfEnabled : internalMtfEnabled;
-  const { isLoading: mtfLoading, error: mtfError } = useMtfOverlay(
-    chartApi,
-    isPro && mtfAvailable && mtfEnabled,
-    { symbol, sourceTimeframe: 'M5' }
-  );
+  const {
+    isLoading: mtfLoading,
+    error: mtfError,
+    isShown: mtfShown,
+  } = useMtfOverlay(chartApi, isPro && mtfAvailable && mtfEnabled, {
+    symbol,
+    sourceTimeframe: 'M5',
+  });
+
+  // Upcoming events are drawn right of the last bar, which is off screen
+  // without a margin there. Not applied where no markers are drawn. The margin
+  // counts time-scale slots, of which the M5 overlay, once its lines are on
+  // screen, puts three under a candle.
+  const rightOffset =
+    NEWS_RIGHT_OFFSET_BARS * (mtfShown ? M5_SLOTS_PER_M15_BAR : 1);
+  useEffect(() => {
+    if (!chartApi || !isPro) return;
+    chartApi.applyOptions({ timeScale: { rightOffset } });
+  }, [chartApi, isPro, rightOffset]);
 
   /**
    * Initialize chart when container is available
@@ -488,7 +506,7 @@ export function TradingChart({
           </div>
         )}
         {isLoading && (
-          <div className="bg-background/50 absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
             <div className="text-center">
               <div className="mb-2 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
               <p className="text-sm text-muted-foreground">
@@ -499,7 +517,7 @@ export function TradingChart({
         )}
 
         {error && (
-          <div className="bg-background/50 absolute inset-0 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
             <div className="text-center text-destructive">
               <p className="font-semibold">
                 {t('charts.error_loading', 'Error loading chart')}
