@@ -65,12 +65,12 @@ If left in place, `git pull` / `git merge origin/main` will abort on the untrack
 
 ## 3. Pending Stack D Migration (`20261114000000_add_trendline_context_tables`)
 
-**Current state:** GitHub Actions job `Check Production Migration Status` on `main` (`2466c598`) currently fails **only** because `prisma/migrations/20261114000000_add_trendline_context_tables` is not yet applied to production.
+**Current state (updated 2026-11-28):** After retiring the legacy Railway `prisma-migration` project on 2026-11-28 (`Services (0)` verified), GitHub Actions job `Check Production Migration Status` (`24/25` green on `main`) is the **sole** remaining failing check on pushes to `main`. `<PROD_DB>` already has `41/42` migrations applied, and this check fails **expectedly and solely** because `prisma/migrations/20261114000000_add_trendline_context_tables` is not yet applied to production.
 
 ### Guardrails for future Agents
 
-1. **Do NOT apply this migration ad-hoc** just to turn `Check Production Migration Status` green. Production migrations require Davin's explicit approval and Stack D cutover ordering (`non-negotiables.md` rule 1, `EXECUTOR-PROTOCOL.md`).
+1. **Do NOT apply this migration ad-hoc** just to turn `Check Production Migration Status` green (`25/25`). Production migrations require Davin's explicit approval and Stack D cutover ordering (`non-negotiables.md` rule 1, `EXECUTOR-PROTOCOL.md`). Leaving `main` at `24/25` is expected and harmless: the workflow is read-only (`heads-up only`, non-blocking), `20261114000000_add_trendline_context_tables` only creates 3 new tables, and `railway-gateway` keeps `TrendlineContextModule` disabled unless `TRENDLINE_CONTEXT_ENABLED=true`.
 2. When Davin is ready to proceed with Stack D Trendline Context:
    - Review `docs/handoffs/2026-11-14-trendline-context-advisor-review.md` (especially its blocking defects F1–F5) and `prisma/migrations/20261114000000_add_trendline_context_tables/migration.sql` (creates `trendline_policy_sessions`, `trendline_policy_lines`, and `trendline_context_readings`; runtime feature stays gated behind `TRENDLINE_CONTEXT_ENABLED`).
-   - Follow `.claude/architecture/database-traps.md` when applying (use `DIRECT_URL` / `prisma.production.config.ts`, never through `pgbouncer`), and confirm `Check Production Migration Status` turns green afterwards.
-3. **Unrelated pre-existing failure:** Railway project `prisma-migration` (`ef03a5bc`) also fails on pushes to `main` (tracked since `2026-10-31` in `waiting-on.md`); treat as a separate investigation when Davin prioritizes it.
+   - Follow `.claude/architecture/database-traps.md` when applying (use `DIRECT_URL` / `prisma.production.config.ts`, never through `pgbouncer`), and confirm `Check Production Migration Status` turns green afterwards (`25/25`).
+3. **Resolved paired push failure (`prisma-migration`):** The legacy Railway project `prisma-migration` (`ef03a5bc`) that previously failed alongside this job on every `main` push was disconnected from GitHub and retired on 2026-11-28 (`Services (0)` verified; see `.claude/state/history/resolved-waiting-on.md`).

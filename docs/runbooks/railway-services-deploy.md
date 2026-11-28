@@ -68,8 +68,11 @@ paste what the dashboard shows.
    code that reads a column or table added since production was last verified, Davin applies the migration
    to production first and confirms `prisma migrate status` is clean, using `prisma.production.config.ts`
    (see [database-traps](../../.claude/architecture/database-traps.md); the agent never applies production
-   migrations). The CI job _Check Production Migration Status_ normally shows this, but it has failed with
-   `P1000` since 2026-09-09, so it shows nothing until its secret is fixed.
+   migrations). The read-only CI job _Check Production Migration Status_ (`.github/workflows/check-production-migrations.yml`,
+   via `PRODUCTION_DIRECT_URL`) checks this on every `main` push: as of 2026-11-28 it confirms `41/42` applied and
+   intentionally fails **only** (`24/25` checks green) on the unapplied Stack D migration
+   `20261114000000_add_trendline_context_tables` (gated behind `TRENDLINE_CONTEXT_ENABLED` and Advisor defects
+   `F1`–`F5`; see [waiting-on.md](../../.claude/state/waiting-on.md)).
 8. **DAVIN (gate): the outbox publisher.** For about a minute after a push the services run different
    versions. `operation-service` skips, without retrying, an outbox event it cannot read (an event type it
    does not know, or `TIER_UPGRADED` / `PAYMENT_FAILED` with no `priceUsd`), so the matching e-mail is lost.

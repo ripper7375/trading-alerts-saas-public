@@ -46,6 +46,13 @@ Read before any schema change, migration, or real-DB query. Full SQL, CHECKs, an
 - **Executor never applies live migrations.** Author, verify on scratch Postgres 18 (not `pg_ctl` piped; see `environment-gotchas.md`), hand to Davin.
 - **Apply a single migration without running later/pending ones:** `prisma db execute --file <migration.sql> --config prisma.production.config.ts`
   then `prisma migrate resolve --applied <name> --config prisma.production.config.ts` (never blind `migrate deploy`).
+- **Expected `main` CI status (`24/25`, verified 2026-11-28):** `<PROD_DB>` has `41/42` migrations recorded as
+  applied; `.github/workflows/check-production-migrations.yml` fails **only** on `20261114000000_add_trendline_context_tables`
+  (the sole remaining push-to-`main` failure after Railway `prisma-migration` retired 2026-11-28). This is a
+  non-blocking read-only drift heads-up: `TRENDLINE_CONTEXT_ENABLED` is off on `railway-gateway`, so production
+  does not query those 3 new tables. **Do NOT apply ad-hoc just to make CI green** — keep pending until
+  Trendline Context defects `F1`–`F5` ([review](../../docs/handoffs/2026-11-14-trendline-context-advisor-review.md))
+  are resolved and Davin authorizes rollout (`25/25`).
 - **Critical rollout ordering:**
   - `User.deletedAt` (`20261019`), `User.sessionVersion` (`20261024`), `Subscription` fields (`20261021`), `AffiliateProfile.paymentDetailsEncrypted` (`20261026`),
     and `MarketData` columns: apply migration **BEFORE** deploying code (`20261024`..`20261026` are already applied in prod per `main` CI checks and on `davintrade-dev-db` as of 2026-11-28).
