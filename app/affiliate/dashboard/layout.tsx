@@ -55,7 +55,7 @@ export default async function AffiliateDashboardLayout({
   // Check authentication
   const session = await getSession();
 
-  if (!session || !session.user) {
+  if (!session?.user?.id) {
     redirect('/login?callbackUrl=/affiliate/dashboard');
   }
 

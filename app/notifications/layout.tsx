@@ -21,7 +21,7 @@ export default async function NotificationsLayout({
 }: NotificationsLayoutProps): Promise<React.ReactElement> {
   const session = await getSession();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect('/login');
   }
 

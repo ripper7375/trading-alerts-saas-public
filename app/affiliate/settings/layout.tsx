@@ -33,7 +33,7 @@ export default async function AffiliateSettingsLayout({
 }: SettingsLayoutProps): Promise<React.ReactElement> {
   const session = await getSession();
 
-  if (!session || !session.user) {
+  if (!session?.user?.id) {
     redirect('/login?callbackUrl=/affiliate/settings/payout');
   }
 

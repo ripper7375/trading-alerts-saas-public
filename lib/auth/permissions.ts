@@ -143,7 +143,7 @@ export async function checkFeatureAccess(
   try {
     const session = await getSession();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       throw new AuthError(
         'You must be logged in to access this feature',
         'UNAUTHORIZED',
@@ -200,7 +200,7 @@ export async function requirePro(): Promise<Session> {
   try {
     const session = await getSession();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       throw new AuthError(
         'You must be logged in to access this feature',
         'UNAUTHORIZED',
@@ -258,7 +258,7 @@ export async function requireChartDownload(): Promise<Session> {
   try {
     const session = await getSession();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       throw new AuthError(
         'You must be logged in to download chart renders',
         'UNAUTHORIZED',
@@ -397,7 +397,7 @@ export async function validateMultiplePermissions(
   try {
     const session = await getSession();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       throw new AuthError(
         'You must be logged in to access these features',
         'UNAUTHORIZED',
@@ -468,7 +468,7 @@ export function createAnyPermissionMiddleware(permissions: Permission[]) {
   return async (): Promise<void> => {
     const session = await getSession();
 
-    if (!session?.user) {
+    if (!session?.user?.id) {
       throw new AuthError(
         'You must be logged in to access this feature',
         'UNAUTHORIZED',

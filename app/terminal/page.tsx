@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TerminalPage(): Promise<React.ReactElement> {
   const session = await getSession();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect('/login');
   }
 

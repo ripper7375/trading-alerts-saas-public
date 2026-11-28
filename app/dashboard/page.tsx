@@ -49,7 +49,7 @@ export default async function DashboardPage(): Promise<React.ReactElement> {
   // Get session
   const session = await getSession();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect('/login');
   }
 

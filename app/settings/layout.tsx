@@ -43,7 +43,7 @@ export default async function SettingsLayout({
 }: SettingsLayoutProps): Promise<React.ReactElement> {
   const session = await getSession();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect('/login');
   }
 

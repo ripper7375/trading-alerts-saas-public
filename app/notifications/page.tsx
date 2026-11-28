@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
 export default async function NotificationsPage(): Promise<React.JSX.Element> {
   const session = await getSession();
 
-  if (!session) {
+  if (!session?.user?.id) {
     redirect('/login');
   }
 
