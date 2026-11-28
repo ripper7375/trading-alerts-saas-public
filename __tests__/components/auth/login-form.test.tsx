@@ -418,4 +418,39 @@ describe('LoginForm', () => {
       expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
     });
   });
+
+  describe('OAuth server and provider errors', () => {
+    const SERVER = 'Something went wrong. Please try again later.';
+    const GENERIC = 'Invalid email or password. Please try again.';
+
+    afterEach(() => {
+      window.history.replaceState(null, '', '/');
+    });
+
+    it.each(['Callback', 'OAuthCallback', 'OAuthSignin', 'OAuthCreateAccount'])(
+      'shows the server error after /login?error=%s',
+      async (code) => {
+        mockIsAuthBridgeEnabled.mockReturnValue(false);
+        window.history.replaceState(null, '', `/login?error=${code}`);
+
+        render(withLocale(<LoginForm />));
+
+        expect(await screen.findByText(SERVER)).toBeInTheDocument();
+        expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
+      }
+    );
+
+    it.each(['/login', '/login?error=AccessDenied'])(
+      'shows no error banner on %s',
+      (url) => {
+        mockIsAuthBridgeEnabled.mockReturnValue(false);
+        window.history.replaceState(null, '', url);
+
+        render(withLocale(<LoginForm />));
+
+        expect(screen.queryByText(SERVER)).not.toBeInTheDocument();
+        expect(screen.queryByText(GENERIC)).not.toBeInTheDocument();
+      }
+    );
+  });
 });
