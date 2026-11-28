@@ -62,13 +62,15 @@ jest.mock('lightweight-charts', () => {
     fitContent: jest.fn(),
     getVisibleRange: jest.fn(() => ({ from: 1000, to: 2000 })),
     setVisibleRange: jest.fn(),
-    subscribeVisibleTimeRangeChange: jest.fn(),
-    unsubscribeVisibleTimeRangeChange: jest.fn(),
+    scrollPosition: jest.fn(() => 0),
+    subscribeVisibleLogicalRangeChange: jest.fn(),
+    unsubscribeVisibleLogicalRangeChange: jest.fn(),
   };
   return {
     __appliedHeights: appliedHeights,
     __mockTimeScale: mockTimeScale,
     createChart: jest.fn(() => ({
+      chartElement: () => document.createElement('div'),
       addSeries: () => ({
         setData: jest.fn(),
         setMarkers: jest.fn(),

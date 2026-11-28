@@ -141,7 +141,11 @@ describe('the first draw', () => {
       'M5 lower (best_fit_a)',
     ]);
     expect(created.map((s) => s.options.lineStyle)).toEqual([0, 2, 0]); // the base line dashed
-    expect(result.current).toEqual({ isLoading: false, error: null });
+    expect(result.current).toEqual({
+      isLoading: false,
+      error: null,
+      isShown: true,
+    });
   });
 
   it('feeds each line its own values and leaves out the points that have none', async () => {
@@ -218,6 +222,7 @@ describe('the first draw', () => {
     expect(result.current).toEqual({
       isLoading: false,
       error: 'Active indicator unavailable',
+      isShown: false,
     });
     expect(created).toHaveLength(0);
 
@@ -240,6 +245,37 @@ describe('the first draw', () => {
     await advance(80_000);
     expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(result.current.error).toBeNull();
+  });
+});
+
+describe('whether the lines are on screen (the chart makes room for them)', () => {
+  it('not before they are drawn, and not once it is switched off', async () => {
+    const { chart } = makeChart();
+    answers('best_fit_a');
+    const { result, rerender } = renderHook(
+      ({ enabled }) =>
+        useMtfOverlay(chart, enabled, {
+          symbol: 'XAUUSD',
+          sourceTimeframe: 'M5',
+        }),
+      { initialProps: { enabled: true } }
+    );
+    expect(result.current.isShown).toBe(false);
+    await advance(0);
+    expect(result.current.isShown).toBe(true);
+
+    rerender({ enabled: false });
+    expect(result.current.isShown).toBe(false);
+  });
+
+  it('not when the answer has no points', async () => {
+    const { chart } = makeChart();
+    answers('best_fit_a', []);
+    const { result } = renderHook(() =>
+      useMtfOverlay(chart, true, { symbol: 'XAUUSD', sourceTimeframe: 'M5' })
+    );
+    await advance(0);
+    expect(result.current.isShown).toBe(false);
   });
 });
 
@@ -342,6 +378,7 @@ describe('staying current: the overlay looks again 90 seconds after each slot', 
     });
     await advance(80_000);
     expect(result.current.error).toBe('Failed to fetch channel data');
+    expect(result.current.isShown).toBe(true);
     expect(removed).toHaveLength(0); // still on screen
     expect(created).toHaveLength(3);
 

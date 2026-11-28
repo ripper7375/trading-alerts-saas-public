@@ -21,7 +21,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ImperativePanelGroupHandle } from 'react-resizable-panels';
-import type { IChartApi, IRange, Time } from 'lightweight-charts';
+import type { IChartApi } from 'lightweight-charts';
 import { Lock, Sparkles } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 
@@ -38,6 +38,7 @@ import { pendingInstant } from '@/components/chat/chat-state';
 
 import { MarketContextBadge } from './ask-ai-button';
 import type { DrawingType } from './drawing/types';
+import { linkTimeScales } from './mtf/linkTimeScales';
 import { MtfTopBar, type IndicatorId } from './mtf/MtfTopBar';
 import { useMtfPreference } from './mtf/useMtfPreference';
 import { TradingChart } from './trading-chart';
@@ -239,64 +240,7 @@ export function MtfStackedCharts({
   // Synchronize timeline between upper and lower charts when Padlock TF is enabled
   useEffect(() => {
     if (!isTfLocked || !upperChartApi || !lowerChartApi) return;
-
-    // Initial sync from upper to lower if visible range exists
-    try {
-      const initialRange = upperChartApi.timeScale().getVisibleRange();
-      if (initialRange) {
-        lowerChartApi.timeScale().setVisibleRange(initialRange);
-      }
-    } catch {
-      // Safe guard if chart timeScale is not ready
-    }
-
-    let isSyncing = false;
-    const handleUpperRangeChange = (range: IRange<Time> | null) => {
-      if (!range || isSyncing || !lowerChartApi) return;
-      isSyncing = true;
-      try {
-        lowerChartApi.timeScale().setVisibleRange(range);
-      } catch {
-        // Safe guard
-      } finally {
-        requestAnimationFrame(() => {
-          isSyncing = false;
-        });
-      }
-    };
-
-    const handleLowerRangeChange = (range: IRange<Time> | null) => {
-      if (!range || isSyncing || !upperChartApi) return;
-      isSyncing = true;
-      try {
-        upperChartApi.timeScale().setVisibleRange(range);
-      } catch {
-        // Safe guard
-      } finally {
-        requestAnimationFrame(() => {
-          isSyncing = false;
-        });
-      }
-    };
-
-    const upperTimeScale = upperChartApi.timeScale();
-    const lowerTimeScale = lowerChartApi.timeScale();
-
-    upperTimeScale.subscribeVisibleTimeRangeChange(handleUpperRangeChange);
-    lowerTimeScale.subscribeVisibleTimeRangeChange(handleLowerRangeChange);
-
-    return () => {
-      try {
-        upperTimeScale.unsubscribeVisibleTimeRangeChange(
-          handleUpperRangeChange
-        );
-        lowerTimeScale.unsubscribeVisibleTimeRangeChange(
-          handleLowerRangeChange
-        );
-      } catch {
-        // Cleanup guard
-      }
-    };
+    return linkTimeScales(upperChartApi, lowerChartApi);
   }, [isTfLocked, upperChartApi, lowerChartApi]);
 
   const handleResetSplit = useCallback(() => {
@@ -438,8 +382,8 @@ export function MtfStackedCharts({
                 pressingPanel === 'upper'
                   ? 'border-2 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-2 ring-amber-500/30'
                   : activePanel === 'upper'
-                    ? 'border-border/90 ring-border/50 border ring-1'
-                    : 'border-border/60 border'
+                    ? 'border border-border/90 ring-1 ring-border/50'
+                    : 'border border-border/60'
               )}
               onPointerDownCapture={() => handlePanelPress('upper')}
             >
@@ -494,8 +438,8 @@ export function MtfStackedCharts({
                 pressingPanel === 'lower'
                   ? 'border-2 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)] ring-2 ring-amber-500/30'
                   : activePanel === 'lower'
-                    ? 'border-border/90 ring-border/50 border ring-1'
-                    : 'border-border/60 border'
+                    ? 'border border-border/90 ring-1 ring-border/50'
+                    : 'border border-border/60'
               )}
               onPointerDownCapture={() => handlePanelPress('lower')}
             >

@@ -56,6 +56,8 @@ interface ChannelResponse {
 interface UseMtfOverlayResult {
   isLoading: boolean;
   error: string | null;
+  /** True while the lines on the chart have points, so add to its time scale. */
+  isShown: boolean;
 }
 
 const COLORS = {
@@ -99,6 +101,7 @@ export function useMtfOverlay(
   const seriesRef = useRef<ISeriesApi<'Line'>[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isShown, setIsShown] = useState(false);
 
   useEffect(() => {
     if (!chart || !enabled) return;
@@ -120,6 +123,7 @@ export function useMtfOverlay(
       }
       seriesRef.current = [];
       shownSource = null;
+      setIsShown(false);
     };
 
     const keys = ['upper', 'mid', 'lower'] as const;
@@ -130,6 +134,9 @@ export function useMtfOverlay(
           time: p.time as UTCTimestamp,
           value: p[key] as number,
         }));
+
+    const hasLines = (points: ChannelPoint[]) =>
+      keys.some((key) => dataFor(points, key).length > 0);
 
     const url =
       `/api/market-data/channel?symbol=${encodeURIComponent(symbol)}` +
@@ -163,6 +170,7 @@ export function useMtfOverlay(
           keys.forEach((key, i) =>
             seriesRef.current[i]?.setData(dataFor(data.points!, key))
           );
+          setIsShown(hasLines(data.points));
           return;
         }
 
@@ -182,6 +190,7 @@ export function useMtfOverlay(
           seriesRef.current.push(series);
         }
         shownSource = source;
+        setIsShown(hasLines(data.points));
       } catch {
         if (!cancelled) setError('Network error loading MTF channel');
       } finally {
@@ -201,5 +210,5 @@ export function useMtfOverlay(
     };
   }, [chart, enabled, symbol, sourceTimeframe, variant]);
 
-  return { isLoading, error };
+  return { isLoading, error, isShown };
 }

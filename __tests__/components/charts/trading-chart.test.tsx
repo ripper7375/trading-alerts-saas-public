@@ -16,7 +16,8 @@ import {
   waitFor,
   type RenderOptions,
 } from '@testing-library/react';
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { useSession } from 'next-auth/react';
 
 import { LocaleProvider } from '@/lib/context/locale-context';
 import { AppearanceProvider } from '@/components/providers/appearance-provider';
@@ -59,6 +60,9 @@ import { useOhlcvSocket } from '@/hooks/use-ohlcv-socket';
 const mockUseOhlcvSocket = useOhlcvSocket as jest.MockedFunction<
   typeof useOhlcvSocket
 >;
+
+// __mocks__/next-auth-react.js: signed out unless a test says otherwise.
+const mockUseSession = useSession as jest.MockedFunction<typeof useSession>;
 
 // ─────────────────────────────────────────────────────────────
 // Mock lightweight-charts (canvas not available in jsdom)
@@ -110,6 +114,20 @@ jest.mock('@/components/charts/drawing/useFiredAlertMarkers', () => ({
 // __tests__/drawing/useEventMarkers.test.ts.
 jest.mock('@/components/charts/drawing/useEventMarkers', () => ({
   useEventMarkers: jest.fn(),
+}));
+
+// The overlay and its saved preference fetch the same way (a PRO M15 chart
+// turns them on); both have their own suites.
+const mockOverlay = { isLoading: false, error: null, isShown: false };
+jest.mock('@/components/charts/mtf/useMtfOverlay', () => ({
+  useMtfOverlay: () => mockOverlay,
+}));
+jest.mock('@/components/charts/mtf/useMtfPreference', () => ({
+  useMtfPreference: () => ({
+    enabled: false,
+    setEnabled: jest.fn(),
+    isSaving: false,
+  }),
 }));
 
 // MtfToggle calls next/navigation's useRouter(), which requires an App
@@ -467,6 +485,76 @@ describe('TradingChart Component', () => {
           expect.arrayContaining([expect.objectContaining({ close: 1.08523 })])
         );
       });
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────
+  // News lines of upcoming events are drawn right of the last bar, which a
+  // chart without a right margin keeps off screen. Only PRO charts have them.
+  // ──────────────────────────────────────────────────────────
+  describe('room for upcoming news lines', () => {
+    const margin = { timeScale: { rightOffset: 12 } };
+    const signInAs = (tier: 'FREE' | 'PRO'): void => {
+      mockUseSession.mockReturnValue({
+        data: { user: { tier } },
+        status: 'authenticated',
+      } as unknown as ReturnType<typeof useSession>);
+    };
+
+    /** The offsets pushed to the chart, in order. */
+    const offsets = (): number[] =>
+      mockApplyOptions.mock.calls
+        .map(
+          ([options]) =>
+            (options as { timeScale?: { rightOffset?: number } }).timeScale
+              ?.rightOffset
+        )
+        .filter((offset): offset is number => offset !== undefined);
+
+    afterEach(() => {
+      mockOverlay.isShown = false;
+      mockUseSession.mockReturnValue({
+        data: null,
+        status: 'unauthenticated',
+      } as unknown as ReturnType<typeof useSession>);
+    });
+
+    it('keeps 12 empty bar slots right of the last bar on a PRO chart', () => {
+      signInAs('PRO');
+
+      render(<TradingChart symbol="XAUUSD" timeframe="M5" />);
+
+      expect(mockApplyOptions).toHaveBeenCalledWith(margin);
+    });
+
+    it('leaves the FREE chart without that margin', () => {
+      signInAs('FREE');
+
+      render(<TradingChart symbol="XAUUSD" timeframe="M5" />);
+
+      expect(mockApplyOptions).not.toHaveBeenCalledWith(margin);
+    });
+
+    // The M5 overlay puts three slots of the time scale under each M15 candle.
+    it('keeps the same 12 candles of room when the M5 overlay is on', () => {
+      signInAs('PRO');
+      mockOverlay.isShown = true;
+
+      render(
+        <TradingChart symbol="XAUUSD" timeframe="M15" externalMtfEnabled />
+      );
+
+      expect(offsets()).toEqual([36]);
+    });
+
+    it('keeps 12 slots when the overlay is on but has no lines to show', () => {
+      signInAs('PRO');
+
+      render(
+        <TradingChart symbol="XAUUSD" timeframe="M15" externalMtfEnabled />
+      );
+
+      expect(offsets()).toEqual([12]);
     });
   });
 
