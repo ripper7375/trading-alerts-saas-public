@@ -1,8 +1,14 @@
+---
+type: handoff
+status: completed
+updated_at: 2026-10-11
+---
+
 # Handoff: Codex workflow publication
 
 Date: 2026-10-11, Asia/Bangkok
 From / to: Codex / Davin; documentation available to Claude Code and Antigravity
-Task: [publication record](../codex/tasks/2026-10-11-publish-codex-workflow.md)
+Task: [publication record](../tasks/2026-10-11-publish-codex-workflow.md)
 Authorization: Davin requested commit and push, then chose a separate Codex
 branch excluding five existing local commits.
 Phase/session: unchanged (ad-hoc)
@@ -26,7 +32,7 @@ continuity pointer record the verified outcome in a follow-up commit.
 The scope includes AGENTS.md, two routing/catalog additions, four shared
 collaboration documents, Codex protocols/templates/tasks/continuity, four
 prior delivery handoffs, the operating-doc checker and its unit suite, and the
-seven-document [English package](../../davintrade-claude-md-okf-management/codex/README.md).
+seven-document [English package](../../../davintrade-claude-md-okf-management/codex/README.md).
 
 [Published branch](https://github.com/ripper7375/trading-alerts-saas-public/tree/codex/claude-collaboration-docs)
 and [workflow commit](https://github.com/ripper7375/trading-alerts-saas-public/commit/4a560884d434a5b4c61f0608e8492a2dd2e8c907).
@@ -72,7 +78,7 @@ the document checker and whitespace check. No review agent wrote files.
 ## Next action and ownership
 
 Davin can read the package and use its English
-[Antigravity opening prompt](../../davintrade-claude-md-okf-management/codex/OPENING_PROMPT_TO_ANTIGRAVITY.md),
+[Antigravity opening prompt](../../../davintrade-claude-md-okf-management/codex/OPENING_PROMPT_TO_ANTIGRAVITY.md),
 or assign Claude Code/Codex directly. The managed worktree remains attached
 for branch review. No merge is implied by publishing it.
 

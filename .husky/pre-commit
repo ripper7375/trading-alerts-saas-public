@@ -8,3 +8,10 @@
 
 # Run lint-staged to check and auto-fix staged files
 npx lint-staged
+
+# Operating-doc & .claude state budget gate (runs only when agent docs are staged)
+STAGED_AGENT_DOCS=$(git diff --cached --name-only -- CLAUDE.md AGENTS.md GEMINI.md .claude/ docs/codex/ docs/agent-collaboration/ 2>/dev/null)
+if [ -n "$STAGED_AGENT_DOCS" ]; then
+  echo "Checking operating docs & .claude state budgets..."
+  node scripts/agents/check-operating-docs.mjs --tracked-only || exit 1
+fi

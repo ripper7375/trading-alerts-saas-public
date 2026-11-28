@@ -1,7 +1,13 @@
+---
+type: handoff
+status: completed
+updated_at: 2026-10-11
+---
+
 # Handoff: Antigravity advisor onboarding
 
 Date: 2026-10-11, Asia/Bangkok
-Task: [Advisor onboarding](../codex/tasks/2026-10-11-antigravity-advisor-onboarding.md)
+Task: [Advisor onboarding](../tasks/2026-10-11-antigravity-advisor-onboarding.md)
 Authorization: Davin's follow-up clarifying his policy/plan/decision role and asking
 how Antigravity learns Claude/Codex cooperation. Ad-hoc; phase/session unchanged.
 Source checkout: `D:/SaaS Project/trading-alerts-saas-public`, `main`.
@@ -15,13 +21,13 @@ language policy, see the [translation handoff](2026-10-11-english-agent-workflow
 ## Needs from Davin
 
 No missing approval for this documentation work. To onboard Antigravity, Davin
-forwards the [opening prompt](../agent-collaboration/OPENING-PROMPT-TO-ANTIGRAVITY.md)
+forwards the [opening prompt](../../agent-collaboration/OPENING-PROMPT-TO-ANTIGRAVITY.md)
 and supplies actual document contents if its session cannot read this repository.
 That onboarding action has not been dispatched by Codex.
 
 ## Changed and verified
 
-- Added [Advisor protocol](../agent-collaboration/ADVISOR-PROTOCOL.md): Davin's
+- Added [Advisor protocol](../../agent-collaboration/ADVISOR-PROTOCOL.md): Davin's
   decision authority, Advisor recommendations and stage prompts, three development
   modes, artifact feedback, approval and source-freshness requirements.
 - Added the copyable opening prompt, per-session reminder and handoff-return prompt.

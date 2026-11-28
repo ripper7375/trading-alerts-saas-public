@@ -1,8 +1,14 @@
+---
+type: handoff
+status: completed
+updated_at: 2026-10-11
+---
+
 # Handoff: Codex collaboration design and user-guide package
 
 Date: 2026-10-11, Asia/Bangkok
 From: Codex; readers: Davin, Antigravity and Claude Code
-Task: [Documentation package](../codex/tasks/2026-10-11-codex-documentation-package.md)
+Task: [Documentation package](../tasks/2026-10-11-codex-documentation-package.md)
 Authorization: Davin's direct instruction to write the English architecture,
 usage guides and Antigravity opening prompt in the specified codex directory.
 Order mode: ad-hoc; phase/session unchanged.
@@ -16,7 +22,7 @@ None for this documentation work.
 
 ## Changed and verified
 
-Created a complete English [package](../../davintrade-claude-md-okf-management/codex/README.md)
+Created a complete English [package](../../../davintrade-claude-md-okf-management/codex/README.md)
 in `davintrade-claude-md-okf-management/codex/`:
 
 | File                                                | Delivered content                                                                                                                               |
@@ -94,7 +100,7 @@ push, deployment, production migration or credential entry occurred.
 ## Next action and ownership
 
 Davin may start from the package README and copy the
-[English opening prompt](../../davintrade-claude-md-okf-management/codex/OPENING_PROMPT_TO_ANTIGRAVITY.md)
+[English opening prompt](../../../davintrade-claude-md-okf-management/codex/OPENING_PROMPT_TO_ANTIGRAVITY.md)
 to Antigravity. If it lacks repository access, supply actual current contents.
 Direct executor work can instead use the Operating Manual and Prompt Library.
 

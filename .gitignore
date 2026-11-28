@@ -103,8 +103,9 @@ test-results/
 # ============================================================================
 # VS Code
 !.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
+# tasks.json and launch.json can run commands when a folder is opened or debugged: never track them
+**/.vscode/tasks.json
+**/.vscode/launch.json
 !.vscode/extensions.json
 
 # JetBrains (WebStorm, PyCharm, etc.)
@@ -202,6 +203,8 @@ scratch/
 CLAUDE*-BACKUP*.md
 # In-flight multi-step checklist (per checkout; see .claude/protocols/session-lifecycle.md)
 .claude/state/active-tasks.md
+.claude/*.log
+.claude/state/checkpoints/
 # Pre-launch security blueprints: never commit while the repository is public (checklist F-10)
 davintrade-pre-launch-security-check-lists/
 docs/runbooks/pre-launch-security-checklist.md

@@ -1,8 +1,8 @@
 ---
 type: Concept/Prompt
 status: active
-updated_at: 2026-10-11
-version: '1.0'
+updated_at: 2026-11-25
+version: '1.1'
 ---
 
 # Opening prompt for Antigravity
@@ -33,23 +33,28 @@ forward to Claude Code or Codex. They check live evidence and execute only the
 assigned, authorized scope, or review it as their task specifies.
 
 Read the current versions of these files before drafting task prompts:
-1. davintrade-claude-md-okf-management/codex/README.md
-2. docs/agent-collaboration/ADVISOR-PROTOCOL.md
-3. docs/agent-collaboration/README.md
-4. .claude/rules/non-negotiables.md
-5. docs/agent-collaboration/LANGUAGE-POLICY.md
-6. davintrade-claude-md-okf-management/codex/ANTIGRAVITY_ADVISOR_GUIDE.md
+1. GEMINI.md
+2. davintrade-claude-md-okf-management/codex/README.md
+3. docs/agent-collaboration/ADVISOR-PROTOCOL.md
+4. docs/agent-collaboration/README.md
+5. .claude/rules/non-negotiables.md
+6. docs/agent-collaboration/LANGUAGE-POLICY.md
+7. davintrade-claude-md-okf-management/codex/ANTIGRAVITY_ADVISOR_GUIDE.md
 
 For initial architectural orientation, also read:
 davintrade-claude-md-okf-management/codex/CODEX_CLAUDE_COLLABORATION_ARCHITECTURE_DESIGN.md
+davintrade-claude-md-okf-management/DAVINTRADE_SYSTEM_FILES.md
 
 Before preparing a task for a selected executor, read its router:
 - Claude Code: CLAUDE.md
 - Codex: AGENTS.md
 Read both for a joint task. Use the package OPERATING_MANUAL.md and
-PROMPT_LIBRARY.md when preparing a stage. Read relevant sections of the task,
-order, latest handoff, canonical state/blockers, domain rules and ADRs on demand.
-Do not load the whole knowledge tree or history for every task.
+PROMPT_LIBRARY.md when preparing a stage. Check .claude/state/checkpoints/ first
+when resuming, then read relevant sections of the task, order, latest handoff,
+canonical state/blockers, domain rules and ADRs on demand (bounded reads > 15 KB).
+Do not load the whole knowledge tree or history for every task. Keep Claude Pro
+prompts scoped to 1 milestone/session (<= 3–4 file-backed subagents, no default
+Ultracode, /checkpoint-save on pause, state budgets <= 1,500 chars/line).
 
 The package is a design and user guide. Current repository operating rules,
 Davin's authorized scope and the active host's instruction hierarchy still apply.
@@ -133,11 +138,13 @@ placeholders with real details; otherwise use the full onboarding prompt.
 
 ```text
 Repository: D:\SaaS Project\trading-alerts-saas-public
-Apply the current docs/agent-collaboration/ADVISOR-PROTOCOL.md, README.md and
-LANGUAGE-POLICY.md in that directory, plus .claude/rules/non-negotiables.md.
+Apply GEMINI.md, the current docs/agent-collaboration/ADVISOR-PROTOCOL.md,
+README.md and LANGUAGE-POLICY.md in that directory, plus .claude/rules/non-negotiables.md.
 Use davintrade-claude-md-okf-management/codex/README.md for design/usage guidance.
 I am Davin, the policy owner and decision maker; you are the optional Advisor.
-Reload <task/order path> and <latest handoff path> for <task ID>.
+Check .claude/state/checkpoints/ first if resuming; reload <task/order path>
+and <latest handoff path> for <task ID> using bounded reads (> 15 KB).
+Keep Pro-plan prompts to 1 milestone/session (<= 3–4 subagents, state budgets).
 Read the selected executor's router and relevant live state/domain rules.
 Report files actually read and source/runtime access limits.
 Draft the current-stage English prompt within the scope I already authorized.

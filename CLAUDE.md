@@ -9,12 +9,13 @@
 **Do NOT read the whole `.claude/` tree at session start.** This router plus
 `.claude/rules/non-negotiables.md` (auto-loaded) is your standing context.
 
-1. At session start read **only** [.claude/state/current-state.md](.claude/state/current-state.md),
-   plus `.claude/state/active-tasks.md` if it exists (an unfinished checklist — resume it).
-2. Read other files **only when the task touches their domain** — use the matrix in §3.
-3. Before re-investigating a bug or decision, Grep [.claude/state/history/](.claude/state/history/index.md);
-   it is probably already written up.
-4. Earlier settled decisions stay settled; focus on the active turn (non-negotiable 8).
+1. **Checkpoint-first:** if resuming via `/checkpoint-resume` or an open checkpoint in
+   `.claude/state/checkpoints/`, read **only** that checkpoint first. Otherwise read
+   [.claude/state/current-state.md](.claude/state/current-state.md) and `.claude/state/active-tasks.md`
+   if present (use `Grep`/bounded reads on files > 15 KB).
+2. Read other files **only when the task touches their domain** — use §3's matrix.
+3. Before re-investigating a bug/decision, `Grep` [.claude/state/history/](.claude/state/history/index.md).
+4. Settled decisions stay settled; focus on the active turn (non-negotiable 8).
 
 ## 2. State and session close
 
@@ -28,19 +29,17 @@
 ## 3. Navigation matrix (task trigger → file)
 
 - **Any task (binding, auto-loaded):** [rules/non-negotiables.md](.claude/rules/non-negotiables.md) —
-  CONFIRMED orders only, one verifiable unit, artifacts, scope, escalate money/auth, verify, live code wins,
-  settled answers stay settled.
-- **Task with 3+ steps:** keep the checklist in `.claude/state/active-tasks.md` ([session-lifecycle](.claude/protocols/session-lifecycle.md) §Track).
-- **Parallel subagents (only when Davin asks):** [protocols/subagent-orchestration.md](.claude/protocols/subagent-orchestration.md)
-- **`package.json` / dependencies:** [rules/security-overrides.md](.claude/rules/security-overrides.md)
+  CONFIRMED orders, one verifiable unit, artifacts, scope, money/auth escalation, verify, live code wins, settled answers stay settled.
+- **3+ steps:** `.claude/state/active-tasks.md` ([session-lifecycle](.claude/protocols/session-lifecycle.md) §Track).
+- **Subagents (when Davin asks):** [protocols/subagent-orchestration.md](.claude/protocols/subagent-orchestration.md)
+- **`package.json` / deps:** [rules/security-overrides.md](.claude/rules/security-overrides.md)
 - **UI, text, prices, dates:** [rules/i18n-compliance.md](.claude/rules/i18n-compliance.md)
-- **Schema, migrations, DB queries:** [architecture/database-traps.md](.claude/architecture/database-traps.md)
+- **Schema, migrations, DB:** [architecture/database-traps.md](.claude/architecture/database-traps.md)
 - **Deploys, VPS, Stack C, R2:** [architecture/infrastructure.md](.claude/architecture/infrastructure.md)
-- **Numbered migration session, scope:** [architecture/microservices-cutover.md](.claude/architecture/microservices-cutover.md)
-- **Stack D (conversational AI, MCDs, Reports 1 and 2):** [docs/STACK-D-ARCHITECTURE.md](docs/STACK-D-ARCHITECTURE.md) is
-  canonical, with decisions in `docs/adr/`. MCDs follow [docs/MCD-DEVELOPMENT-STANDARD.md](docs/MCD-DEVELOPMENT-STANDARD.md)
-  and [the walkthrough](docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md). The earlier documents in
-  `davintrade-stack-d-and-e/archive/` are superseded.
+- **Numbered migration / scope:** [architecture/microservices-cutover.md](.claude/architecture/microservices-cutover.md)
+- **Stack D (AI, MCDs, Reports 1–2):** [docs/STACK-D-ARCHITECTURE.md](docs/STACK-D-ARCHITECTURE.md), `docs/adr/`,
+  [MCD standard](docs/MCD-DEVELOPMENT-STANDARD.md), [walkthrough](docs/MCD-RETROFIT-AND-CREATION-WALKTHROUGH.md).
+  `davintrade-stack-d-and-e/archive/` is superseded.
 - **Tooling misbehaves (git, Jest, dev server):** [architecture/environment-gotchas.md](.claude/architecture/environment-gotchas.md)
 - **Before declaring done:** [protocols/verification-checklist.md](.claude/protocols/verification-checklist.md)
 - **Past sessions, old decisions:** [state/history/index.md](.claude/state/history/index.md)

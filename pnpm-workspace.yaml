@@ -1,2 +1,6 @@
 packages:
   - 'packages/*'
+
+# Supply-chain cooldown: do not resolve a release younger than 72 hours (value in minutes).
+# For an urgent security fix, list the exact package in `minimumReleaseAgeExclude` and remove it afterwards.
+minimumReleaseAge: 4320

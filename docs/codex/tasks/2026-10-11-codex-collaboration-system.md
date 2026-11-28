@@ -55,5 +55,5 @@ against the live routers, rules and working tree. Checkout:
 
 Complete: validator tests 8/8, 11 operating documents pass, targeted Prettier
 and git whitespace checks pass. Independent review P2 fixed and rechecked;
-no findings remain. Full evidence: [handoff](../../handoffs/2026-10-11-codex-collaboration-system.md).
+no findings remain. Full evidence: [handoff](../handoffs/2026-10-11-codex-collaboration-system.md).
 No open checklist items. Next work requires its own assignment and task scope.

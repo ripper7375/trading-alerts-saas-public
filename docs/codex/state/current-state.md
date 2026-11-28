@@ -10,7 +10,7 @@ updated_at: 2026-10-11
   [catalog](../index.md), established by Davin's direct instruction.
 - Current task: none assigned; the approved integration is complete.
 - Latest completed task: [Separate Unicode CI repair and integration](../tasks/2026-10-11-pr478-ci-repair.md).
-- Latest handoff: [CI repair and merge report](../../handoffs/2026-10-11-pr478-ci-repair.md).
+- Latest handoff: [CI repair and merge report](../handoffs/2026-10-11-pr478-ci-repair.md).
 - Published workflow: [PR 479](https://github.com/ripper7375/trading-alerts-saas-public/pull/479)
   merged first as aece01eb, then [PR 478](https://github.com/ripper7375/trading-alerts-saas-public/pull/478)
   merged as 9ee01dfd after each passed all 23 checks. Remote main contains the

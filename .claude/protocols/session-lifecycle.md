@@ -1,9 +1,9 @@
 ---
 type: Concept/Protocol
 authority: binding
-updated_at: 2026-09-27
+updated_at: 2026-11-25
 supersedes: "EXECUTOR-PROTOCOL.md §3 step 3's old rule of writing state into CLAUDE.md"
-tags: [session, state, rotation, handoff]
+tags: [session, state, rotation, handoff, checkpoint]
 related_docs:
   - ../state/current-state.md
   - ../state/waiting-on.md
@@ -11,7 +11,7 @@ related_docs:
   - ./verification-checklist.md
 ---
 
-# Session lifecycle: open, log, rotate, close
+# Session lifecycle: open, checkpoint, log, rotate, close
 
 `docs/migration-orders/EXECUTOR-PROTOCOL.md` remains the full manual. This file defines **where
 session state is written** now that `CLAUDE.md` is a router.
@@ -19,13 +19,28 @@ session state is written** now that `CLAUDE.md` is a router.
 ## Open
 
 1. `CLAUDE.md` (auto-loaded) and `.claude/rules/non-negotiables.md` (auto-loaded) are in context.
-2. Read `.claude/state/current-state.md`. If `.claude/state/active-tasks.md` exists, a previous
-   session stopped mid-task: read it, confirm its open items against the live code, and resume
-   (or tell Davin why not).
+2. **Checkpoint-first resume:** If resuming via `/checkpoint-resume` or an open checkpoint in
+   `.claude/state/checkpoints/`, read **only** that checkpoint first instead of bulk-loading full state docs.
+   Otherwise read `.claude/state/current-state.md` and (if present) `.claude/state/active-tasks.md`.
+   **Bounded reads:** For any file > 15 KB (`waiting-on.md`, `history/*`, `architecture/details/*`), use `Grep`
+   or section-bounded reads rather than reading the whole file.
 3. Numbered migration session: follow `EXECUTOR-PROTOCOL.md` §1 (roadmap, LESSONS-LEARNED, order,
    CONFIRM). Ad-hoc session: read only what the task needs, via the router's matrix.
-4. Size gate: `CLAUDE.md` must stay **< 5 KB / < 150 lines**, `current-state.md` **≤ 2 sessions
-   (~150 lines)**, `DECISION-LOG.md` ≤ ~50 KB. If one is over, fix it before starting.
+4. **Size & line-length gate:** keep `CLAUDE.md` **< 5 KB / < 150 lines**, `current-state.md` **≤ 18 KB / ≤ 200 lines**
+   (≤ 2 sessions), `waiting-on.md` **≤ 24 KB**, `active-tasks.md` **≤ 12 KB**, `environment-gotchas.md` and
+   `database-traps.md` **≤ 20 KB**, and **no single line > 1,500 chars** (wrap prose; put detailed logs in
+   `history/` or `architecture/details/`). Enforce via `node scripts/agents/check-operating-docs.mjs`
+   (also gated by `.husky/pre-commit` and `PostToolUse` budget hooks). Run `node scripts/agents/prune-state.mjs --apply`
+   or `/state-tidy` whenever `SessionStart` / `PostToolUse` reports ≥ 85% or over budget.
+
+## Checkpoint — before 5-hour / weekly limits or milestone switches
+
+- **When to save:** usage approaches **~75–80%**, context approaches **~60%**, or a milestone completes.
+- **How:** run `/checkpoint-save` to write `.claude/state/checkpoints/latest.md` (≤ 6 KB, ≤ 120 lines, gitignored).
+  Global hooks (`StopFailure`, `PreCompact`) also write zero-token fallbacks (`emergency-checkpoint.md`,
+  `pre-compact-checkpoint.md`) if interrupted unexpectedly.
+- **How to resume:** keep `Auto-continue` OFF. Never run `/compact` on an expired (>1h) cold-cache session.
+  After limit reset, open a **NEW session** and run `/checkpoint-resume` to avoid cold-cache token spikes.
 
 ## Track — multi-step tasks survive context compaction
 

@@ -1,8 +1,14 @@
+---
+type: handoff
+status: completed
+updated_at: 2026-10-11
+---
+
 # Handoff: English agent workflow documents
 
 Date: 2026-10-11, Asia/Bangkok
 From: Codex; readers: Davin, Antigravity and Claude Code
-Task: [English agent workflow](../codex/tasks/2026-10-11-english-agent-workflow.md)
+Task: [English agent workflow](../tasks/2026-10-11-english-agent-workflow.md)
 Authorization: Davin's direct request to translate the documents created in this chat.
 Order mode: ad-hoc; phase/session unchanged.
 Source: `D:/SaaS Project/trading-alerts-saas-public`, branch `main`.
@@ -16,7 +22,7 @@ None for this translation and language preference update.
 ## Changed and verified
 
 The shared workflow guide, Advisor protocol and every copyable Antigravity
-prompt now use English. The shared [language policy](../agent-collaboration/LANGUAGE-POLICY.md)
+prompt now use English. The shared [language policy](../../agent-collaboration/LANGUAGE-POLICY.md)
 sets English as the default for agent artifacts and prompts, including during
 Thai conversations. Conversational replies default to English and use Thai in
 sessions where Davin writes Thai, subject to his explicit language instruction.
@@ -93,7 +99,7 @@ No commit, push, deployment, production migration or credential entry occurred.
 
 ## Next action and ownership
 
-Davin may use the English [opening prompt](../agent-collaboration/OPENING-PROMPT-TO-ANTIGRAVITY.md)
+Davin may use the English [opening prompt](../../agent-collaboration/OPENING-PROMPT-TO-ANTIGRAVITY.md)
 for Antigravity, or assign work directly to either executor through its router.
 An Advisor without repository access needs the actual current file contents.
 

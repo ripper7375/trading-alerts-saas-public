@@ -1,8 +1,14 @@
+---
+type: handoff
+status: completed
+updated_at: 2026-10-11
+---
+
 # Handoff: Codex collaboration system
 
 Date: 2026-10-11, Asia/Bangkok
 From: Codex; readers: Davin and Claude Code
-Task: [operating-system task](../codex/tasks/2026-10-11-codex-collaboration-system.md)
+Task: [operating-system task](../tasks/2026-10-11-codex-collaboration-system.md)
 Authorization: Davin's direct instruction in this chat; ad-hoc, phase/session unchanged.
 Source checkout: `D:/SaaS Project/trading-alerts-saas-public`, branch `main`.
 Base/final HEAD: `81dd9b01561f5fc527a1073a47a607fbd07bb606` (unchanged).
@@ -16,7 +22,7 @@ editions and language policy are documented in the
 ## Needs from Davin
 
 None for this installation. Davin can assign the next implementation or review
-using the [shared guide](../agent-collaboration/README.md). No task has been
+using the [shared guide](../../agent-collaboration/README.md). No task has been
 dispatched to another chat or Claude process automatically.
 
 ## Changed and verified

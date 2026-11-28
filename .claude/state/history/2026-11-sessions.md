@@ -12,6 +12,163 @@ Entries rotated out of `current-state.md` by [session-lifecycle](../../protocols
 
 Back to [history index](./index.md).
 
+<!-- session 2026-11-26 mcd0-1-1-0-shadow -->
+
+> **Ad-hoc session (2026-11-26), `main`, `origin/main` = `12f69ed3`: MCD0 1.1.0 (variant A4, ADR-101) and the quieter
+> gateway log were committed from a temporary worktree, pushed on Davin's order and deployed to `railway-gateway` and
+> Vercel. The same day, on his order and with `ACTIVE_INDICATOR_FROM_GATEWAY` left unset, the M5 active indicator was
+> switched to `most_recent` from slot 1795704000 (14:40Z); verified in the database.**
+> **Needs from Davin:** (1) **Hard gate:** no build or deploy of `knowledge-service` until `corpus/D2/mcd0.md` states
+> the 1.1.0 bounds and is approved. (2) `SYN`/`MCD*` stay `shadow` until `draft-2` and B4. (3) Computer 1: check its
+> git against `origin/main`, since moved to `f64698a3` (PR #541, another session; Computer 2's `main` was moved there
+> at 22:12 +07, not by this session). (4) The web cutover
+> ([runbook](../../../docs/runbooks/deploy-stack-d-step2.md) §7, after the write-key decision) is a separate order.
+> **27 Nov:** Davin and the Advisor accepted the switch; Davin made `MARKET_GATEWAY_API_KEY` type Secret in Vercel
+> (value unchanged). MCD0 thresholds are not adjusted on the first hour: let `shadow` accumulate over several trading
+> days and print `fit_b` beside `fit_a` at the next database check.
+> **M5 switch, changed & verified:** Davin turned on 2FA for the admin account, appended a `monolith_` key to the
+> gateway's `API_KEYS` (deployment `5352db9b`, 14:16Z; VPS pushes 200, no 401), set `MARKET_GATEWAY_URL` and
+> `MARKET_GATEWAY_API_KEY` in Vercel Production (values not read) and ran the guarded command. He then ran the read-only
+> check ([output](../../../docs/handoffs/2026-11-26-m5-switch/verify-result-2026-11-26T1543Z.txt), 15:43Z): 12 of 12 pass
+> over 13 slots (14:40 to 15:40Z); MCD0 `1.1.0`, `VALID` 13; state `ALL_QUALIFIED` 6, `M5_DEFECT` 7 (all `FIT_B`, from
+> 15:10Z; M15 flagged 0); MCD2 and MCD3 `VALID` 6, `CAUTIONARY` 7; SYN `CAUTIONARY` on all 26 rows, zones per profile
+> 3 to 2. Gateway log since 14:40Z: the 13 slots written; no ERROR, DEBUG, `Authorized caller` or error-level line.
+> ADR-100 and the switch notes are in docs-only commit `fd4e18d5` (27 Nov, pushed to `origin/main`; worktree and
+> branch removed, `main` here at that commit; CI 20 check runs, 19 success and the known migration-history failure;
+> Vercel success; gateway deploy skipped); this file and waiting-on stay uncommitted, because the archive files
+> they link to are not on `origin/main`. There the operating-docs check already fails without that commit (29 issues,
+> 23 broken links, `docs/codex` and `docs/agent-collaboration`).
+> **Deploy of `12f69ed3`, changed & verified:** 100 files (`git show --stat`;
+> [note](../../../docs/handoffs/2026-11-26-mcd0-1-1-0-built-for-review.md)). In the worktree: type-check 0 errors, lint 0
+> errors, `test:ci` 643 suites, 21,665 passed, 31 skipped; integration 66; golden 65 tests and 16 of 16 approved; sensor
+> kit equal. Pre-push `test:quick`: 21,665 passed. GitHub: 24 check runs, 23 success, 1 failure (migration history, also
+> on the parent `7436a2bd`); Vercel status success. Railway deployment `37ecb038` success (12:49 to 12:51Z); the service
+> has no `LOG_LEVEL` variable; no `Authorized caller` or DEBUG line after the deploy (present at 12:47Z); slots 12:50
+> (old build), 12:55 and 13:00 (new build) all written. Main checkout moved with `git reset --mixed`, no stash: the
+> files then listed as uncommitted were hashed before and after; this session changed only two Advisor replies
+> (Prettier). `.gitignore` 2 local lines and the runbook's 6 guardrail lines kept. Temporary worktree and branch removed.
+> **Unconfirmed / found:** (1) Gateway tests and the Next.js build were not run locally; CI ran them, green.
+> (2) `railway-gateway` watch path is `/railway-gateway/**`, so the runbook guardrail line saying watch paths are unset
+> is stale. (3) The MCD0 M5 flag rate of the first hour (7 of 13) is too little to compare with the 10 to 25% target;
+> the `FIT_B` value itself was not printed. The web chart overlay (flag off) and the VPS renderer images were not
+> checked against the new setting. (4) `davintrade-node-issue-and-git-sync-bw-2-machines/INPUTS-from-computer-2.md` was
+> written by another process during the sync (untracked, not touched). (5) Railway `prisma-migration` failure is the
+> known item.
+
+<!-- session 2026-11-23 dlocal-not-live -->
+
+> **Ad-hoc session (2026-11-23), docs only, branch `claude/vigilant-yonath-184cdc` (cut from `origin/main` `9ed619b9`),
+> one local commit, not pushed: the notes were corrected after Davin showed that dLocal declined to open a production
+> account for DavinTrade (its reply of Tue 27 Oct 2026: the industry is in its restricted business categories). dLocal
+> is therefore not live, never will be, and is to be retired (Davin's plan, no order yet); DavinTrade itself has not
+> launched, so no user is affected and the checkout was left as it is. The session began as an explanation of the 415
+> watch on the Brotli guard and found that this watch had been waiting for a dLocal delivery that cannot come. Davin
+> then decided to keep the 415 half of the Node.js item as a launch-day check, closed on the first real delivery to
+> `money-service` after launch and not on the e2e spec.**
+> **Needs from Davin:** (1) The retirement order (with the Advisor): how the ten countries (IN, NG, PK, VN, ID, TH, ZA,
+> TR, AE, BR) pay afterwards (Stripe in USD only?), the fate of the 3-day trial and "Renew now" (dLocal only), the
+> `DLOCAL_*` variables on Vercel and Railway, the webhook in dLocal's sandbox dashboard, and the wording that names
+> dLocal. (2) Push and merge of this commit when he chooses (docs only, one PR); the main checkout holds uncommitted
+> edits to this file and to `waiting-on.md` (entry of 2026-11-23 above, item 1), so syncing needs the same care. (3)
+> Optional: the Vercel Production values of `MIGRATE_WRITE_APIS_MONEY_DLOCAL` and `DLOCAL_API_KEY` (names only; the
+> Vercel connector answered 403, so they were not read); harmless until launch.
+> **Changed & verified:** [waiting-on](../waiting-on.md): a new first item (the dLocal status, what is void, what the
+> order must decide, what was read), `updated_at`, and pointers on the Security follow-up item (a), the Node.js and
+> Brotli item and Manage Subscription S4. This file: a bullet under "Where the project stands" and this entry; the
+> oldest entry (`2026-11-22 next-16-4-6-bump-prepared`) moved verbatim to `history/2026-11-sessions.md`, with its row at
+> the top of the November table of `history/index.md`. `.claude/architecture/microservices-cutover.md` ("CUT-OVER" means
+> routing; a status note) and `infrastructure.md` (one bullet). `docs/runbooks/railway-services-deploy.md` (the payments
+> line of A.6 and B.4), `docs/DLOCAL-INTEGRATION-SUMMARY.md` and `docs/policies/07-dlocal-integration-rules.md` (status
+> banners), `docs/secret-matrix.md` (a status line under "Payments — dLocal"), `money-service/.env.example` (a
+> three-line comment). Checked: 11 files, 51 insertions and 17 deletions (`git diff --stat`); a dry run first, every
+> anchor matched exactly once; the working copies are still CRLF only (0 lone LF in all 11); Prettier 3.6.2 `--check`
+> clean on the 10 Markdown files (`.env.example` is not a Prettier type, and only comment lines changed there); every
+> relative link added resolves; the rotated entry is byte-identical to the one removed (4,109 characters, one copy in
+> `history/2026-11-sessions.md`); this file holds 2 entries and 152 lines; the index row is 208 of the 212 characters of
+> its column; no IP address, credentialed URL or proxy host:port in the added lines. Not run: lint, tests, build (no
+> code changed).
+> **Unconfirmed / found:** (1) Read, not run: `/checkout` still offers dLocal to every visitor
+> (`components/payments/payment-provider-choice.tsx`); with `MIGRATE_WRITE_APIS_MONEY_DLOCAL=true` a click reaches
+> `money-service` (503 without `DLOCAL_API_KEY`, per [infrastructure](../../architecture/infrastructure.md)), with the flag
+> off the monolith's `createPayment` returns a mock sandbox URL when the key is empty, in any environment
+> (`lib/dlocal/dlocal-payment.service.ts`, line 92). Nothing was changed there (Davin: no user exists yet). (2) The
+> guard's e2e spec was read, not run (this worktree has no `node_modules`); the guard answers 415 only for a
+> `Content-Encoding` list that contains `br`. (3) Not touched, on purpose: the historical reports and hand-offs, the 80
+> migration orders, the other 13 policy documents that name dLocal, all code and tests, the generated API files and every
+> user-facing text that names dLocal; they belong to the retirement order. (4) The first answer of this session called
+> dLocal recently switched to real use, a misreading of "CUT-OVER" that the notes themselves invited; the status note in
+> `microservices-cutover.md` is the fix. (5) Stripe: the live account has one webhook endpoint, the monolith's
+> `/api/webhooks/stripe` (read through the Stripe connector in an earlier session on 2026-11-23), so `money-service`'s
+> Stripe webhook route has only seen a non-live sender.
+
+<!-- session 2026-11-23 bundle-size-monitor -->
+
+> **Ad-hoc session (2026-11-23), `main`, `origin/main` now `34c7802b`: why the Bundle Size Monitor sat at 546 of 550 MB,
+> and the two fixes Davin chose ("A + B"). Both PRs were merged from this session on his explicit yes, with merge
+> commits and without auto-merge (GitHub shows `ripper7375` as the merger because `gh` here is his login): [PR
+> #537](https://github.com/ripper7375/trading-alerts-saas-public/pull/537) (merge `6d5796be`, 2026-11-23 07:24Z: both
+> bundle checks measure the shipped output) and [PR
+> #536](https://github.com/ripper7375/trading-alerts-saas-public/pull/536) (merge `34c7802b`, 07:25Z: the refusal
+> replies read a 21 KB catalog instead of 19 dictionaries, and a guard test covers every route handler). First runs on
+> `main`: 241 MB, then 179 MB. These notes went out as a separate docs PR.**
+> **Needs from Davin:** (1) Syncing the main checkout: it is 4 commits behind `origin/main` and holds an uncommitted
+> edit to this file (the Stage B3 bullet), so once this docs PR is merged `git reset --keep` and `git merge --ff-only`
+> stop on this file until that edit is committed or set aside (route:
+> [environment-gotchas](../architecture/environment-gotchas.md), "Thousands of phantom `M` entries"); its pending edit
+> to `waiting-on.md` is not touched by the PR. (2) Optional, no deadline: whether Vercel should stop writing server
+> source maps (`serverSourceMaps: false`, about 89 MB) and Turbopack's build cache (`turbopackFileSystemCacheForBuild:
+false`, about 288 MB). `.next` would fall from 466 MB to roughly 90 MB, but Vercel would lose its warm build cache and
+> the maps. Not done.
+> **Changed & verified:** [PR #537](https://github.com/ripper7375/trading-alerts-saas-public/pull/537):
+> `.github/workflows/bundle-monitor.yml` and the `build-check` job of `.github/workflows/tests.yml` (job names
+> unchanged): `BUNDLE_SIZE` is `du -sm --exclude=.next/cache .next/` (anchored: `--exclude=cache` would also drop a
+> route folder named `cache`); the cache and the whole `.next` are printed and exported (`cache_size`, `total_size`);
+> ladder good under 200, acceptable under 250, warning under 275, critical up to 300, panic above 300 (fails). The old
+> ladder (370, 450, 500, 550) would never fire on the shipped figure, and the PR comment table printed 340, 370, 450,
+> 500 beside a step that used 370, 450, 500, 550. Checked: both `Check bundle size` scripts under `bash -e` with a `du`
+> stub at 150, 199, 200, 249, 250, 274, 275, 300, 301 and 546 MB and with no cache folder (24 cases as expected), the
+> `github-script` body evaluated with Node against a fake `github`, and the real scripts with GNU `du` on a real build
+> (170 MB locally, about 178 on the runner, status good). [PR
+> #536](https://github.com/ripper7375/trading-alerts-saas-public/pull/536) (one commit, `eba58c90`, nine files): NEW
+> `lib/i18n/intake-refusal-messages.json` (10 keys x 19 locales, generated), NEW
+> `scripts/i18n/generate-intake-refusal-messages.cjs` (`--check` exits 1 when stale), `lib/intake/server/reply.ts` reads
+> the catalog with the fallbacks it had (an unknown locale reads `en-GB`; a gap or an empty text falls back to the
+> registry English), NEW `__tests__/lib/i18n/intake-refusal-messages.test.ts` (5 tests: in sync with the generator, 19
+> locales with exactly the registry's keys, equal to the dictionary text, English locales equal to the registry, under
+> 40 KB), NEW `__tests__/lib/i18n/route-handlers-and-dictionaries.test.ts` (5 tests, about 1.2 s: it walks the imports
+> of the 153 route handlers and `middleware.ts`, skips type-only imports and `'use client'` modules, and prints the
+> chain; with the old `reply.ts` it flags exactly `/api/chat/message`, `/api/chat/state`, `/api/chat/threads`,
+> `/api/chat/threads/[id]`, `/api/intake` and `/api/intake/instant`), `reply-fallback.test.ts` (+2 tests),
+> `boundaries.test.ts` (allow-list entry), a comment in `lib/i18n/get-dictionary.ts` and a paragraph in
+> `.claude/rules/i18n-compliance.md`. `npx tsc --noEmit` exit 0; `npm run lint` exit 0 (0 errors, the 5 baseline
+> warnings); prettier clean; `npm run build` exit 0 (189 static pages); `npm run test:ci` exit 0: 643 suites passed (2
+> skipped), 21,665 tests passed (31 skipped), against 641 and 21,653 before. Sizes from local builds in CI order
+> (Next.js 16.4.6, pnpm 10.34.9, Node 24; counted in 4 KB blocks like Linux `du`, which read 544.5 MB where CI read
+> 546): whole `.next` 544.5 to 464.5 MB, without `.next/cache` 238.7 to 176.9, `.next/cache` 305.7 to 287.6, chunks used
+> only by the six AI routes 68.1 to 6.1. Read from the job logs of the push runs on `main`: `6d5796be` 241 MB without
+> the cache (cache 306, whole 546: acceptable), `34c7802b` 179 MB (cache 288, whole 466: good). PR #537 had 27 checks
+> and PR #536 had 28, all green when merged; the Vercel status of both merge commits is `success`.
+> **Unconfirmed / found:** (1) Cause and history: the checks read `du -sm .next/`, which includes `.next/cache`
+> (Turbopack's build cache, on by default for `next build` since Next.js 16.3, never read on a fresh runner, not
+> shipped): 306 of the 546 MB on 2026-11-23, beside 121 MB of server `.js.map` files (listed in no `.nft.json`) and 82
+> MB of server JS. The 411 MB of 2026-10-13 was itself a low (Next.js 16.4.0, 2026-10-10, cut the cache by about 96 MB).
+> The two jumps are direct pushes to `main`, not PRs: `25e68390` (build step 6 part 5, the intake routes, +50 MB) and
+> `a48cb2a3` (step 7 part 7, the chat routes, +61 MB); Turbopack gave each group of route handlers that reached
+> `get-dictionary.ts` its own 7.8 MB chunk and 7.7 MB source map (four copies, 62 MB) while the pages share one. (2) A
+> 20th language: the catalog grows by about 1 KB and the tests fail until the generator is run; the pages add about 2.0
+> MB per language to the monitored figure (one shared chunk: 1.6 MB in `.next/server` with maps, 0.4 in `.next/static`).
+> The multiplication only returns if a route handler reaches `get-dictionary` again, which the guard catches; its one
+> limit is an `import()` built from a template string, which it cannot follow (the monitor is the backstop). (3) Railway
+> `prisma-migration` shows `failure` ("Deployment failed") on both merge commits, as on every merge commit read back to
+> `fe9bb56c` (2026-11-21): the known item in [waiting-on](./waiting-on.md) (the Node.js security release entry, item 3,
+> tracked since 2026-10-31), not caused by these PRs (no schema, no migration); `railway-gateway`, `pgbouncer` and
+> `operation-service` show `success`. (4) Vercel was read only through the GitHub statuses (the Vercel connector
+> answered 403 at the team scope; authorizing it is Davin's call and was not asked), not from the dashboard, and the
+> refusal replies were not tried in production (`reply.test.ts` compares all 19 locales x 10 refusal codes with the
+> dictionaries). (5) Found in passing and fixed in this docs PR: `.github/workflows/README.md` still described the
+> `build-check` job as "Bundle size validation (<100MB)". The full measurement tables and scripts stayed in this
+> session's scratch notes, outside the repository; the two PR descriptions carry the numbers.
+
 <!-- session 2026-11-22 next-16-4-6-bump-prepared -->
 
 > **Ad-hoc session (2026-11-22), branch `chore/next-16-4-6` (cut from `origin/main` `45381630`): Next.js 16.4.5 to 16.4.6 MERGED as [PR #532](https://github.com/ripper7375/trading-alerts-saas-public/pull/532) (merge commit `7c72e57e`, 2026-11-22 14:29Z) after 28 of 28 green checks. The notes of 2026-11-08 to 2026-11-21, the two hand-offs they link to and the corrected Brotli guard status went out in the docs PR of the same day.**

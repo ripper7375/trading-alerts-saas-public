@@ -1,7 +1,7 @@
 ---
 type: Concept/Protocol
 status: active
-updated_at: 2026-10-11
+updated_at: 2026-11-25
 ---
 
 # Antigravity: Advisor for Claude Code and Codex
@@ -33,8 +33,9 @@ Numbered migrations retain the lifecycle PRE-DRAFT → DRAFT → APPROVED by Dav
 → CONFIRMED by the executor after live checks. Davin's direct ad-hoc instruction
 authorizes its explicit scope; do not demand duplicate approval.
 
-Read `CLAUDE.md` and `AGENTS.md` to understand the receiving executor's contract.
-Executor instructions in those files do not assign implementation to Antigravity.
+Read `GEMINI.md` for Antigravity's workspace router, and `CLAUDE.md` / `AGENTS.md` to
+understand the receiving executor's contract. Executor instructions in `CLAUDE.md`
+and `AGENTS.md` do not assign implementation to Antigravity.
 
 ## Participation setups
 
@@ -57,10 +58,12 @@ Davin remains the owner in every setup, and the relevant executor rules still ap
   protocol, including the language policy.
 - New session or context reset: reread this protocol and the shared rules, then
   load the task/order and latest handoff for the assigned work.
-- Before drafting a prompt: read task-relevant state and blockers in
+- Before drafting a prompt: check `.claude/state/checkpoints/` first if resuming
+  interrupted work, then read task-relevant state and blockers in
   [current-state](../../.claude/state/current-state.md) and
   [waiting-on](../../.claude/state/waiting-on.md), plus the relevant canonical
-  architecture and ADRs. Search headings and use bounded reads; do not load all history.
+  architecture and ADRs. Search headings and use bounded reads; do not read whole
+  files `> 15 KB` or load all history.
 - Before issuing the next prompt: read the actual handoff and check that its
   evidence still matches the source. If runtime access is unavailable, require
   the executor to confirm entry criteria before starting.
@@ -135,6 +138,26 @@ Existing restrictions on production migrations and credentials remain binding.
 
 If worktree or revision details are unavailable, make them entry checks that the
 executor must confirm and record before editing. Never invent a SHA or approval.
+
+### Token, limit and state-budget discipline (Claude Pro plan)
+
+When drafting prompts for Claude Code (or multi-stage reviews), enforce the
+limit-defense and anti-bloat system documented in
+[DAVINTRADE_SYSTEM_FILES.md](../../davintrade-claude-md-okf-management/DAVINTRADE_SYSTEM_FILES.md):
+
+- **1 milestone = 1 session:** Do not pack multiple implementation + full P6/session
+  B sweeps into one marathon session; pause via `/checkpoint-save` (`<= 6 KB`) and
+  resume in a **NEW session** via `/checkpoint-resume` after resets (never
+  rely on cold-cache auto-continue).
+- **Subagent fan-out cap:** Keep parallel subagent batches to `<= 3–4`
+  file-backed units with a `PASS | FAILED | PENDING` manifest (keep `Ultracode`
+  swarms off by default).
+- **Respect operating-doc budgets:** Never instruct executors to paste full
+  transcripts or long tables into `current-state.md` (`<= 18 KB`, `<= 2` sessions),
+  `waiting-on.md` (`<= 24 KB`), `active-tasks.md` (`<= 12 KB`), or `architecture/*.md`
+  (`<= 20 KB`, `<= 1,500 chars/line`). Route detailed logs to `docs/handoffs/` or
+  `.claude/state/history/`, and remind executors to run `prune-state.mjs --apply`
+  if state docs near budget.
 
 ## Prompt and feedback cycle
 

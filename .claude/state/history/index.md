@@ -1,7 +1,7 @@
 ---
 type: Concept/HistoryIndex
 status: active
-updated_at: 2026-11-23
+updated_at: 2026-11-28
 tags: [history, index]
 ---
 
@@ -12,20 +12,25 @@ Archive of every session narrative that used to live in `CLAUDE.md`'s `## Curren
 Line numbers refer to the pre-OKF `CLAUDE.md` (backup `CLAUDE-480KB-PRE-OKF-BACKUP.md`; also git history
 before commit of the OKF refactor).
 
-| File                                                | Covers                                                                                                                                              |
-| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [2026-11-sessions.md](./2026-11-sessions.md)        | Ad-hoc sessions from 2026-11-01 on (minus the 2 in current-state)                                                                                   |
-| [2026-10-sessions.md](./2026-10-sessions.md)        | Ad-hoc sessions from 2026-10-01 on (minus the 2 in current-state)                                                                                   |
-| [2026-09-sessions.md](./2026-09-sessions.md)        | Ad-hoc sessions 2026-09-01 → 2026-09-30 (minus the 2 in current-state), plus the two standing notices (webhook-cutover instruction, Vultr VPS fact) |
-| [2026-08-sessions.md](./2026-08-sessions.md)        | Ad-hoc sessions 2026-08-30/31 and the Session 14-3 / 14-2 Current/Previous entries                                                                  |
-| [resolved-waiting-on.md](./resolved-waiting-on.md)  | Waiting-on items marked RESOLVED                                                                                                                    |
-| `docs/migration-orders/history/sessions-archive.md` | Older numbered sessions (up to 14-1), archived by the pre-OKF protocol                                                                              |
-| `docs/migration-orders/*.migration-order.md`        | Canonical record of each numbered session                                                                                                           |
+| File                                                                                   | Covers                                                                                                                                              |
+| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [project-position-archive-2026-10-11.md](./project-position-archive-2026-10-11.md)     | Verbatim `## Where the project stands` history moved out of `current-state.md` (2026-09-26..2026-11-25)                                             |
+| [waiting-on-details-archive-2026-11-25.md](./waiting-on-details-archive-2026-11-25.md) | Verbatim long-form blocker entries moved out of `waiting-on.md` on 2026-11-25                                                                       |
+| [2026-11-sessions.md](./2026-11-sessions.md)                                           | Ad-hoc sessions from 2026-11-01 on (minus the 2 in current-state)                                                                                   |
+| [2026-10-sessions.md](./2026-10-sessions.md)                                           | Ad-hoc sessions from 2026-10-01 on (minus the 2 in current-state)                                                                                   |
+| [2026-09-sessions.md](./2026-09-sessions.md)                                           | Ad-hoc sessions 2026-09-01 → 2026-09-30 (minus the 2 in current-state), plus the two standing notices (webhook-cutover instruction, Vultr VPS fact) |
+| [2026-08-sessions.md](./2026-08-sessions.md)                                           | Ad-hoc sessions 2026-08-30/31 and the Session 14-3 / 14-2 Current/Previous entries                                                                  |
+| [resolved-waiting-on.md](./resolved-waiting-on.md)                                     | Waiting-on items marked RESOLVED                                                                                                                    |
+| `docs/migration-orders/history/sessions-archive.md`                                    | Older numbered sessions (up to 14-1), archived by the pre-OKF protocol                                                                              |
+| `docs/migration-orders/*.migration-order.md`                                           | Canonical record of each numbered session                                                                                                           |
 
 ## November 2026 — [2026-11-sessions.md](./2026-11-sessions.md)
 
 | Orig. lines | Entry                                                                                                                                                                                                                |
 | ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| —           | Ad-hoc session (2026-11-26) — MCD0 1.1.0 (`12f69ed3`) deployed to gateway and Vercel; M5 active indicator switched to `most_recent` at 14:40Z (ADR-100, `fd4e18d5`)                                                  |
+| —           | Ad-hoc session (2026-11-23) — dLocal declined production account (`claude/vigilant-yonath-184cdc`), queued for retirement; 415 check kept as launch-day watch                                                        |
+| —           | Ad-hoc session (2026-11-23) — Bundle Size Monitor at 546 of 550 MB: PRs #537 and #536 merged, the monitored `.next` went from 546 to 179 MB                                                                          |
 | —           | Ad-hoc session (2026-11-22) — Next.js 16.4.5 to 16.4.6 merged as PR #532 (`7c72e57e`), a news item about the image optimizer checked against `origin/main`, and the main checkout synced with `git reset --keep`     |
 | —           | Ad-hoc sessions (2026-11-20 and 2026-11-21) — read-only review of the security monitoring blueprint, the audit-gate advisory, a PgBouncer image study, nine security PRs and the Dependabot triage, merged by Davin  |
 | —           | Ad-hoc session (2026-11-12) — the Node.js security releases of 2026-10-21 and 2026-11-11 checked against the repository, and a Brotli request-body guard in the three NestJS services (`e6fd6494`)                   |

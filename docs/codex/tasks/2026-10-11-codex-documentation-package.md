@@ -78,7 +78,7 @@ External Antigravity/Claude onboarding and mixed-agent execution were not tested
 
 ## Continuation
 
-Completed. The [handoff](../../handoffs/2026-10-11-codex-documentation-package.md)
+Completed. The [handoff](../handoffs/2026-10-11-codex-documentation-package.md)
 records exact paths, checks and reviewed hashes. Davin may start with the
 [package index](../../../davintrade-claude-md-okf-management/codex/README.md) and copy
 its English opening prompt to Antigravity, or assign an executor directly.

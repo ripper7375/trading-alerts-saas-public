@@ -219,4 +219,4 @@ The validator is read-only. It checks router/state size, frontmatter and
 internal links. Run it as a manual gate when changing this system. The setup
 adds no hook, CI job, daemon or automatic deployment. Installation results and
 limitations are recorded in the
-[handoff](../handoffs/2026-10-11-codex-collaboration-system.md).
+[handoff](../codex/handoffs/2026-10-11-codex-collaboration-system.md).

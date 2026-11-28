@@ -11,6 +11,47 @@ Blocks are verbatim copies from the pre-OKF `CLAUDE.md` (backup: `CLAUDE-480KB-P
 
 Open items live in [../waiting-on.md](../waiting-on.md).
 
+<!-- prisma-migration-retired, resolved 2026-11-28 -->
+
+- **RESOLVED 2026-11-28 — Failing Railway `prisma-migration` project investigated and retired.**
+  What was open: Railway project `prisma-migration` failed at build on every `main` push (`08fe44b8` log: Nixpacks
+  detected Deno via `seed-code/lovable-mobile-app` and failed `deno cache components/affiliate/index.ts`), and its
+  DB/secret contents were unknown.
+  **How it closed:** Read-only Railway inspection on 2026-11-28 showed `prisma-migration` ran no migrations (it was an
+  abandoned April/May 2026 Next.js copy using root `railway.json` / `nixpacks.toml`). Davin audited its 22 variables
+  against the alias table: `DATABASE_URL`, `DIRECT_URL`, `POSTGRESQL_URI`, `REDIS_URL` all pointed to `<STAGING_DB>` /
+  staging, `NEXT_PUBLIC_MT5_WS_URL` pointed to `https://localhost:5001`, `ADMIN_API_KEY` & `STRIPE_SECRET_KEY` were
+  non-prod, and only `NEXTAUTH_SECRET` and `RESEND_API_KEY` matched Production. Disconnected GitHub source, then removed
+  the service (`Services (0)`, `Volumes (0)`, `Buckets (0)` verified via Railway MCP; empty project shell harmless if
+  kept or deleted). Pre-launch rotation of `NEXTAUTH_SECRET` and `RESEND_API_KEY` remains noted in
+  [../waiting-on.md](../waiting-on.md); updated [railway-services-deploy.md](../../../docs/runbooks/railway-services-deploy.md).
+
+<!-- login-callback-error-banner, resolved 2026-11-28 -->
+
+- **RESOLVED 2026-11-28 — Login `/login?error=Callback` error banner ([PR #544](https://github.com/ripper7375/trading-alerts-saas-public/pull/544), `08fe44b8`).**
+  What was open: `components/auth/login-form.tsx` landed silently on `/login` for `/login?error=Callback` (and other
+  OAuth server/provider error codes) without displaying an error banner.
+  **How it closed:** PR #544 (`12776243`, merged as `08fe44b8`) mapped `Callback`, `OAuthCallback`, `OAuthSignin`, and
+  `OAuthCreateAccount` to the existing `'server'` error banner (`Something went wrong. Please try again later.`,
+  already translated across all 19 dictionaries), with 6 new Jest tests in `__tests__/components/auth/login-form.test.tsx`.
+  All 28 GitHub checks passed (`647` Jest suites / `21,635` tests local pre-push), Vercel Production succeeded (`08:51` UTC),
+  and live checks on `davintrade.app` confirmed the banner displays on `/login?error=Callback` and stays hidden on `/login`.
+
+<!-- preview-db-scope-and-oauth, resolved 2026-11-28 -->
+
+- **RESOLVED 2026-11-28 — Vercel Preview DB scope conflict and Production Google/X OAuth verification.**
+  What was open (verbatim summary): the `2026-09-09` note recorded Vercel `DATABASE_URL` as All Environments
+  (previews hitting prod DB) and `DIRECT_URL` as Production-only, conflicting with Preview `809ixlxlg` logs hitting
+  `davintrade-dev-db` on `2026-11-28`; also needed live Google/X OAuth verification on `davintrade.app/api/auth/session`
+  after PR #543 (`4c22b6cc`).
+  **How it closed:** Davin verified Vercel Environment Variables on `trading-alerts-saas-frontend` (2026-11-28): both
+  `DATABASE_URL` and `DIRECT_URL` have been split into separate `Production`, `Preview`, and `Development` Secret entries
+  since Oct 31 (confirming Preview queries `davintrade-dev-db`, not `<PROD_DB>`), and `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED`
+  is `Production`-only (`Added Aug 3`, unset on Preview/Development). Google OAuth (`FREE`) and X OAuth (`PRO`) both
+  passed live on `davintrade.app/api/auth/session` (`id`, `tier`, `role` populated; `/dashboard` rendered matching tier).
+  Updated [database-traps.md](../../architecture/database-traps.md). Only the optional `/login?error=Callback` UI banner
+  decision remains in [../waiting-on.md](../waiting-on.md).
+
 <!-- operation-service e-mail prices, resolved 2026-10-20 -->
 
 - **RESOLVED 2026-10-20 (committed as `74797dbe` and pushed) — item (5) of the localized-e-mails entry of `waiting-on.md`.** What was open (verbatim): (5) operation-service still prints the PRO list price ($29 / $290) in its subscription and payment-failed e-mails (pre-existing, its outbox events carry no price; the SystemConfig guard does not scan it). Deploy order does not matter (the services are independent).
@@ -432,7 +473,7 @@ FIELD-CONSISTENCY-AUDIT-v2_29.md` §5. Not something this Executor can resolve u
 
 - The part 4 entry as it stood before (verbatim, replaced in [waiting-on](../waiting-on.md) by a shorter line):
 
-  Build step 6 part 4 (2026-10-13): the snapshot reader, the sensor board, the dispatch matrix and the router (`lib/intake/{slots,facts,matrix,warnings,board,router}.ts`, `lib/intake/read/{snapshot,events,profile}.ts`, `config/intake/dispatch-matrix.v1.json`, `scripts/intake/matrix_tool.py`, `config/intake/matrix-review/`) BUILT and COMMITTED LOCALLY (`b1707852`, `1a7991b0`, `101ace91`); the `git push origin main` was REFUSED by the pre-push hook (the two failures below), so NOT pushed; nothing deployed or migrated, no dependency, nothing wired; 33 suites and 2,289 tests in `__tests__/lib/intake`, a gated PostgreSQL spec of 23 on PostgreSQL 18.1, mutation check 1,449 of 1,487 killed on the TypeScript (the 38 alive read) and 505 of 523 on a sample of the review tool (the 18 alive read) · OPEN, Davin: (1) **read `config/intake/matrix-review/review.md` and approve the matrix** (edit `approval.json`: status, name, date; `python scripts/intake/matrix_tool.py check --require-approved` is the gate), above all the lines "For Direction, M\* is every live sensor": D2 (b) as written makes the trend sensors warnings in the counter-trend readings (2) the readings of the part 4 hand-off section 6, the first six matter most ([hand-off](../../docs/handoffs/2026-10-13-0810-step6-part4.md)) (3) before part 6: the knowledge domains per intent live in the matrix and the knowledge service must read them from it · still true: **two tests of the whole-repository run fail on this Windows checkout for local reasons** (`__tests__/lib/engine4/levels.test.ts`: `zone_params.yaml` is CRLF here and its regex needs LF; `__tests__/pages/affiliate/statements.test.tsx`: the machine's default locale is `th-TH` and the test expects `July 2026`); not touched, Davin's call · the profile reader has no gated test (needs the user schema); the 4.4 sample board in the architecture is still the first sketch (part 10); the Python-backed Jest suites skip silently without a working `python` plus `jsonschema` and `yaml` (gotchas file) · next: part 5 (gate, orchestrator, routes and the packet) ·
+  Build step 6 part 4 (2026-10-13): the snapshot reader, the sensor board, the dispatch matrix and the router (`lib/intake/{slots,facts,matrix,warnings,board,router}.ts`, `lib/intake/read/{snapshot,events,profile}.ts`, `config/intake/dispatch-matrix.v1.json`, `scripts/intake/matrix_tool.py`, `config/intake/matrix-review/`) BUILT and COMMITTED LOCALLY (`b1707852`, `1a7991b0`, `101ace91`); the `git push origin main` was REFUSED by the pre-push hook (the two failures below), so NOT pushed; nothing deployed or migrated, no dependency, nothing wired; 33 suites and 2,289 tests in `__tests__/lib/intake`, a gated PostgreSQL spec of 23 on PostgreSQL 18.1, mutation check 1,449 of 1,487 killed on the TypeScript (the 38 alive read) and 505 of 523 on a sample of the review tool (the 18 alive read) · OPEN, Davin: (1) **read `config/intake/matrix-review/review.md` and approve the matrix** (edit `approval.json`: status, name, date; `python scripts/intake/matrix_tool.py check --require-approved` is the gate), above all the lines "For Direction, M\* is every live sensor": D2 (b) as written makes the trend sensors warnings in the counter-trend readings (2) the readings of the part 4 hand-off section 6, the first six matter most ([hand-off](../../../docs/handoffs/2026-10-13-0810-step6-part4.md)) (3) before part 6: the knowledge domains per intent live in the matrix and the knowledge service must read them from it · still true: **two tests of the whole-repository run fail on this Windows checkout for local reasons** (`__tests__/lib/engine4/levels.test.ts`: `zone_params.yaml` is CRLF here and its regex needs LF; `__tests__/pages/affiliate/statements.test.tsx`: the machine's default locale is `th-TH` and the test expects `July 2026`); not touched, Davin's call · the profile reader has no gated test (needs the user schema); the 4.4 sample board in the architecture is still the first sketch (part 10); the Python-backed Jest suites skip silently without a working `python` plus `jsonschema` and `yaml` (gotchas file) · next: part 5 (gate, orchestrator, routes and the packet) ·
 
 <!-- session 2026-10-19 market-data-v6-named-columns, resolved -->
 
@@ -446,3 +487,13 @@ FIELD-CONSISTENCY-AUDIT-v2_29.md` §5. Not something this Executor can resolve u
 <!-- Next.js 16.4.6 bump, resolved 2026-11-22 -->
 
 - Next.js 16.4.6 bump (2026-11-22; [session entry](../current-state.md)): **RESOLVED 2026-11-22 (Davin).** Merged as [PR #532](https://github.com/ripper7375/trading-alerts-saas-public/pull/532) at 14:29Z (`0c0102e4`: `package.json` six lines and `pnpm-lock.yaml`, after 28 of 28 green checks: tsc, lint, build, `test:ci` 641 suites and 21,653 tests, audit gate); the Vercel production deployment succeeded at 14:32Z, and Davin then signed in on production with Google and with the email form: both worked, so no rollback was needed. Not a security patch: 16.4.5 already fixed the 7 advisories of 16 to 19 Nov. The Vercel preview of the PR could not finish a Google sign-in (`redirect_uri_mismatch`: no `*.vercel.app` host is in Google’s allow-list), which is why the callback leg and the session were tested on production. Not tried: the reply stream under `next start` (Vercel does not run that server). The local main checkout, 49 commits behind `origin/main` that evening, was moved to it the same night with `git reset --keep`.
+
+## Resolved items moved on 2026-11-25 (during waiting-on.md slimming)
+
+- **Terminal B feed lag (2026-11-20):** fixed by copying A's throttled `.ex5` builds (`8db6c851`) to B on 2026-11-19 and verified across 209/210 rounds through the US session.
+- **Collector switch dry rehearsal (2026-11-21):** ran in closed window (`02:33Z–03:05Z`, no `FORCE`), switched collector to B for 14 min and restored A byte-identically; Monday open check passed 12/12 cycles.
+- **Stage B3 window selection & Watchdog recency deploy (2026-11-23):** Advisor D1 option (b) settled B3 = 19–25 Nov UTC; recency filter `d2d78f762cf0` deployed at `01:56Z` (superseded next step by D4 drift patch `98543acd7af9`).
+- **Dependabot initial cleanup (2026-11-21):** PR #520 merged (`fccced7c`) and dismissed 5,408 non-production alerts (leaving 90 live alerts).
+- **CI red on `main` items 1–4 (2026-10-31):** production audit gate exception/override, `PRODUCTION_DIRECT_URL` secret reset, Secrets Detection dotless placeholder fix, and manual-only E2E workflow all fixed.
+- **Credential clean-up Steps 0–5 & 8 (2026-10-31) & Ruleset Stage 1 (2026-11-21):** staging passwords rotated, unused GitHub secrets removed, aliases enforced (Rule 9), and Ruleset `27789976` activated on `main`.
+- **Developer machine Node 24.22.3 upgrade (2026-11-23):** both PCs moved to `24.22.3` with global `pnpm@10.34.9` and Git `2.56.1.windows.1`.

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  OPTIONAL_CLAUDE_BUDGETS,
   REQUIRED_DOCUMENTS,
   validateOperatingDocs,
 } from './check-operating-docs.mjs';
@@ -21,6 +22,10 @@ function fixture() {
   files.set(
     'CLAUDE.md',
     '# Claude\n[Shared workflow](docs/agent-collaboration/README.md).\n'
+  );
+  files.set(
+    'GEMINI.md',
+    '# Antigravity\nRead `.claude/rules/non-negotiables.md` and [Advisor protocol](docs/agent-collaboration/ADVISOR-PROTOCOL.md).\n'
   );
   files.set('.claude/rules/non-negotiables.md', '# Shared rules\n');
   return files;
@@ -83,11 +88,13 @@ test('enforces exact byte boundaries, counts UTF-8 bytes, and uses the state-spe
   }
   pad('AGENTS.md', 6000);
   pad('CLAUDE.md', 4999);
+  pad('GEMINI.md', 4000);
   pad('docs/codex/state/current-state.md', 6000);
   pad('docs/codex/protocols/verification.md', 16000);
   assert.equal(validate(files).ok, true);
   files.set('AGENTS.md', `${files.get('AGENTS.md')}\u0e01`);
   files.set('CLAUDE.md', `${files.get('CLAUDE.md')}x`);
+  files.set('GEMINI.md', `${files.get('GEMINI.md')}x`);
   files.set(
     'docs/codex/state/current-state.md',
     `${files.get('docs/codex/state/current-state.md')}x`
@@ -97,7 +104,7 @@ test('enforces exact byte boundaries, counts UTF-8 bytes, and uses the state-spe
     `${files.get('docs/codex/protocols/verification.md')}x`
   );
   const errors = validate(files).errors;
-  assert.equal(errors.length, 4);
+  assert.equal(errors.length, 5);
   assert.ok(errors.every((error) => error.code === 'byte-budget'));
   assert.ok(
     errors
@@ -111,6 +118,7 @@ test('line budgets accept their boundary, CRLF, and a final newline', () => {
   const budgets = new Map([
     ['AGENTS.md', 150],
     ['CLAUDE.md', 150],
+    ['GEMINI.md', 120],
     ['docs/codex/state/current-state.md', 100],
   ]);
   for (const [name, maxLines] of budgets) {
@@ -126,7 +134,7 @@ test('line budgets accept their boundary, CRLF, and a final newline', () => {
   assert.equal(validate(files).ok, true);
   for (const name of budgets.keys()) files.set(name, files.get(name) + 'x\r\n');
   const errors = validate(files).errors;
-  assert.equal(errors.length, 3);
+  assert.equal(errors.length, 4);
   assert.ok(errors.every((error) => error.code === 'line-budget'));
 });
 
@@ -227,4 +235,92 @@ test('requires shared rules and an actual bridge link, and diagnoses invalid loc
     ]
   );
   assert.equal(errors.at(-1).line, 3);
+});
+
+test('enforces optional .claude state and architecture byte budgets when present', () => {
+  const files = fixture();
+  for (const [docPath, budget] of Object.entries(OPTIONAL_CLAUDE_BUDGETS)) {
+    files.set(docPath, 'x'.repeat(budget.bytes));
+  }
+  // Keep line-length under 1500 by wrapping into 1000-char lines
+  for (const [docPath, budget] of Object.entries(OPTIONAL_CLAUDE_BUDGETS)) {
+    const chunk = `${'a'.repeat(999)}\n`;
+    const repeatCount = Math.floor(budget.bytes / 1000);
+    const rem = budget.bytes - repeatCount * 1000;
+    files.set(docPath, chunk.repeat(repeatCount) + 'b'.repeat(rem));
+  }
+  assert.equal(validate(files).ok, true);
+
+  for (const docPath of Object.keys(OPTIONAL_CLAUDE_BUDGETS)) {
+    files.set(docPath, `${files.get(docPath)}z`);
+  }
+  const errors = validate(files).errors;
+  assert.equal(errors.length, Object.keys(OPTIONAL_CLAUDE_BUDGETS).length);
+  assert.ok(errors.every((error) => error.code === 'byte-budget'));
+});
+
+test('enforces maxLineChars on optional .claude state and architecture docs', () => {
+  const files = fixture();
+  files.set('.claude/state/waiting-on.md', `${'x'.repeat(1500)}\n`);
+  assert.equal(validate(files).ok, true);
+  files.set('.claude/state/waiting-on.md', `ok\n${'x'.repeat(1501)}\n`);
+  const errors = validate(files).errors;
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0].code, 'line-length');
+  assert.equal(errors[0].line, 2);
+});
+
+test('enforces maxSessions on .claude/state/current-state.md when present', () => {
+  const files = fixture();
+  files.set(
+    '.claude/state/current-state.md',
+    '<!-- session 2026-11-24 b -->\n> ok\n<!-- session 2026-11-23 a -->\n> ok\n'
+  );
+  assert.equal(validate(files).ok, true);
+
+  files.set(
+    '.claude/state/current-state.md',
+    '<!-- session 2026-11-25 c -->\n> ok\n' +
+      files.get('.claude/state/current-state.md')
+  );
+  const errors = validate(files).errors;
+  assert.equal(errors.length, 1);
+  assert.equal(errors[0].code, 'session-count');
+});
+
+test('trackedOnly skips gitignored active-tasks.md while still enforcing tracked state budgets', () => {
+  const files = fixture();
+  files.set('.claude/state/active-tasks.md', 'x\n'.repeat(7000)); // > 12,000 B
+  files.set(
+    '.claude/state/current-state.md',
+    '<!-- session 2026-11-25 s1 -->\n> ok\n'
+  );
+
+  // Default mode catches oversized gitignored active-tasks.md
+  const defaultRes = validate(files);
+  assert.equal(defaultRes.ok, false);
+  assert.equal(defaultRes.errors[0].path, '.claude/state/active-tasks.md');
+
+  // trackedOnly skips gitignored active-tasks.md
+  const trackedRes = validate(files, { trackedOnly: true });
+  assert.equal(trackedRes.ok, true);
+
+  // trackedOnly still catches oversized tracked current-state.md
+  files.set('.claude/state/current-state.md', 'x\n'.repeat(10000));
+  const trackedFail = validate(files, { trackedOnly: true });
+  assert.equal(trackedFail.ok, false);
+  assert.equal(trackedFail.errors[0].path, '.claude/state/current-state.md');
+});
+
+test('requires shared rules and advisor-protocol link on GEMINI.md', () => {
+  const files = fixture();
+  files.set(
+    'GEMINI.md',
+    '# Antigravity\nMention docs/agent-collaboration/ADVISOR-PROTOCOL.md without linking.\n'
+  );
+  const errors = validate(files).errors;
+  assert.deepEqual(
+    errors.map((error) => error.code),
+    ['shared-rules', 'advisor-protocol']
+  );
 });
