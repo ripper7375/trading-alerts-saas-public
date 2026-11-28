@@ -1,7 +1,7 @@
 ---
 type: Concept/Protocol
 authority: guidance
-updated_at: 2026-09-27
+updated_at: 2026-11-25
 tags: [subagents, parallel, audit]
 related_docs:
   - ./session-lifecycle.md
@@ -28,3 +28,8 @@ starts cold and costs a full context; most tasks are faster done inline.
    files in `.claude/state/`.
 5. **Track the fan-out** in `.claude/state/active-tasks.md` (one item per subagent), so a
    compaction mid-run does not lose which slices are done.
+6. **Pro-plan fan-out cap & resumable file-backed outputs.** Keep parallel batches to **≤ 3–4
+   subagents** unless Davin explicitly authorizes a larger fan-out. Have each subagent write its
+   findings to its own report file immediately and maintain a status manifest (`PASS | FAILED | PENDING`
+   plus output file path) in the active checkpoint so any limit-interrupted sweep resumes **only**
+   `FAILED` or `PENDING` units in a fresh session.

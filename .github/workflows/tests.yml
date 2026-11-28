@@ -58,6 +58,11 @@ jobs:
       - name: Run ESLint
         run: pnpm run lint
 
+      - name: Check operating docs & agent scripts
+        run: |
+          node scripts/agents/check-operating-docs.mjs --tracked-only
+          node --test scripts/agents/check-operating-docs.test.mjs scripts/agents/prune-state.test.mjs
+
       - name: Run unit and component tests
         run: pnpm run test:ci
 

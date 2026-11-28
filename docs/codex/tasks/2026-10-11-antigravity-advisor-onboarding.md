@@ -39,5 +39,5 @@ No runtime, Git publication, external dispatch or numbered migration scope.
 Complete: Advisor documents, reading links and checker manifest updated.
 Checks: 14 documents pass; 8/8 validator tests; scoped formatting/whitespace
 checks pass; independent review reports no actionable findings.
-Evidence: [handoff](../../handoffs/2026-10-11-antigravity-advisor-onboarding.md).
+Evidence: [handoff](../handoffs/2026-10-11-antigravity-advisor-onboarding.md).
 Next: Davin forwards the opening prompt to Antigravity; no Codex work remains.

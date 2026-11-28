@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 export const REQUIRED_DOCUMENTS = Object.freeze([
   'AGENTS.md',
   'CLAUDE.md',
+  'GEMINI.md',
   'docs/codex/index.md',
   'docs/codex/protocols/session-lifecycle.md',
   'docs/codex/protocols/collaboration.md',
@@ -32,10 +33,35 @@ const BUDGETS = {
   'AGENTS.md': { bytes: 6000, lines: 150 },
   // CLAUDE.md must stay strictly below 5000 bytes.
   'CLAUDE.md': { bytes: 4999, lines: 150 },
+  'GEMINI.md': { bytes: 4000, lines: 120 },
   'docs/codex/state/current-state.md': { bytes: 6000, lines: 100 },
 };
+
+export const OPTIONAL_CLAUDE_BUDGETS = Object.freeze({
+  '.claude/state/current-state.md': {
+    bytes: 18000,
+    lines: 200,
+    maxLineChars: 1500,
+    maxSessions: 2,
+  },
+  '.claude/state/waiting-on.md': { bytes: 24000, maxLineChars: 1500 },
+  '.claude/state/active-tasks.md': {
+    bytes: 12000,
+    maxLineChars: 1500,
+    gitignored: true,
+  },
+  '.claude/architecture/environment-gotchas.md': {
+    bytes: 20000,
+    maxLineChars: 1500,
+  },
+  '.claude/architecture/database-traps.md': {
+    bytes: 20000,
+    maxLineChars: 1500,
+  },
+});
 const SHARED_RULES = '.claude/rules/non-negotiables.md';
 const SHARED_BRIDGE = 'docs/agent-collaboration/README.md';
+const ADVISOR_PROTOCOL = 'docs/agent-collaboration/ADVISOR-PROTOCOL.md';
 
 function lineCount(content) {
   const lines = content.replace(/\r\n?/g, '\n').split('\n');
@@ -192,6 +218,7 @@ export function validateOperatingDocs({
   readFile,
   exists,
   listMarkdownFiles = () => [],
+  trackedOnly = false,
 }) {
   const errors = [];
   const documents = [];
@@ -218,8 +245,17 @@ export function validateOperatingDocs({
       `Cannot list Markdown files: ${error.message}`
     );
   }
+  const optionalClaudeDocuments = Object.entries(OPTIONAL_CLAUDE_BUDGETS)
+    .filter(
+      ([entry, spec]) => !(trackedOnly && spec.gitignored) && exists(entry)
+    )
+    .map(([entry]) => entry);
   const documentPaths = [
-    ...new Set([...REQUIRED_DOCUMENTS, ...additionalDocuments]),
+    ...new Set([
+      ...REQUIRED_DOCUMENTS,
+      ...additionalDocuments,
+      ...optionalClaudeDocuments,
+    ]),
   ];
   for (const documentPath of documentPaths) {
     let content;
@@ -238,6 +274,7 @@ export function validateOperatingDocs({
     documents.push({ path: documentPath, bytes, lines });
     const budget =
       BUDGETS[documentPath] ??
+      OPTIONAL_CLAUDE_BUDGETS[documentPath] ??
       (documentPath.startsWith('docs/codex/') ? { bytes: 16000 } : undefined);
     if (budget?.bytes !== undefined && bytes > budget.bytes) {
       addError(
@@ -253,12 +290,40 @@ export function validateOperatingDocs({
         `${lines} lines exceeds the ${budget.lines}-line budget.`
       );
     }
+    if (budget?.maxLineChars !== undefined) {
+      const normalizedLines = content.replace(/\r\n?/g, '\n').split('\n');
+      if (normalizedLines.at(-1) === '') normalizedLines.pop();
+      normalizedLines.forEach((lineText, idx) => {
+        if (lineText.length > budget.maxLineChars) {
+          addError(
+            documentPath,
+            'line-length',
+            `Line exceeds ${budget.maxLineChars}-char limit (${lineText.length} chars).`,
+            idx + 1
+          );
+        }
+      });
+    }
+    if (budget?.maxSessions !== undefined) {
+      const sessionMarkers =
+        withoutCode(content).match(/^<!--\s*session\s+[^\n>]+-->/gm) ?? [];
+      if (sessionMarkers.length > budget.maxSessions) {
+        addError(
+          documentPath,
+          'session-count',
+          `${sessionMarkers.length} session entries exceed max ${budget.maxSessions}; run \`node scripts/agents/prune-state.mjs --apply\`.`
+        );
+      }
+    }
     if (documentPath.startsWith('docs/codex/')) {
       for (const message of frontmatterErrors(content)) {
         addError(documentPath, 'frontmatter', message);
       }
     }
-    if (documentPath === 'AGENTS.md' && !content.includes(SHARED_RULES)) {
+    if (
+      (documentPath === 'AGENTS.md' || documentPath === 'GEMINI.md') &&
+      !content.includes(SHARED_RULES)
+    ) {
       addError(
         documentPath,
         'shared-rules',
@@ -266,12 +331,14 @@ export function validateOperatingDocs({
       );
     }
     let hasSharedBridge = false;
+    let hasAdvisorProtocol = false;
     for (const link of markdownLinks(content)) {
       let resolved;
       try {
         resolved = localTarget(documentPath, link.target);
         if (resolved === undefined) continue;
         if (resolved === SHARED_BRIDGE) hasSharedBridge = true;
+        if (resolved === ADVISOR_PROTOCOL) hasAdvisorProtocol = true;
         if (!exists(resolved)) {
           addError(
             documentPath,
@@ -291,6 +358,13 @@ export function validateOperatingDocs({
     }
     if (documentPath === 'CLAUDE.md' && !hasSharedBridge) {
       addError(documentPath, 'shared-bridge', `Must link to ${SHARED_BRIDGE}.`);
+    }
+    if (documentPath === 'GEMINI.md' && !hasAdvisorProtocol) {
+      addError(
+        documentPath,
+        'advisor-protocol',
+        `Must link to ${ADVISOR_PROTOCOL}.`
+      );
     }
   }
   return { ok: errors.length === 0, errors, documents };
@@ -321,11 +395,16 @@ function filesystemAdapter(repositoryRoot) {
 }
 
 function main() {
+  const args = new Set(process.argv.slice(2));
+  const trackedOnly = args.has('--tracked-only');
   const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
-  const result = validateOperatingDocs(filesystemAdapter(repositoryRoot));
+  const result = validateOperatingDocs({
+    ...filesystemAdapter(repositoryRoot),
+    trackedOnly,
+  });
   if (result.ok) {
     console.log(
-      `PASS: ${result.documents.length} operating documents checked (budgets, frontmatter, local links, shared rules).`
+      `PASS: ${result.documents.length} operating documents checked (budgets, frontmatter, local links, shared rules${trackedOnly ? ', tracked-only' : ''}).`
     );
     return;
   }

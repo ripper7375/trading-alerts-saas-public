@@ -20,14 +20,14 @@ otherwise. Follow the shared [language policy](docs/agent-collaboration/LANGUAGE
   `AGENTS.md`/`AGENTS.override.md` before editing those paths.
 - Inspect branch, HEAD and working-tree changes. Preserve others' edits,
   untracked files and deletions. Never use `git stash` or broad reset/restore/clean.
-- Read the frontmatter and task-relevant sections of
-  [shared state](.claude/state/current-state.md), plus relevant orders/handoffs
-  and [Codex continuity](docs/codex/state/current-state.md). Search headings and
-  use bounded reads; do not load all history or the whole knowledge tree.
+- Check `.claude/state/checkpoints/` for an open checkpoint first when resuming;
+  otherwise read task-relevant sections of [shared state](.claude/state/current-state.md),
+  orders/handoffs and [Codex continuity](docs/codex/state/current-state.md) with
+  bounded reads (never load all history).
 - Numbered migrations follow [EXECUTOR-PROTOCOL](docs/migration-orders/EXECUTOR-PROTOCOL.md)
-  and APPROVED -> CONFIRMED after live entry checks. For ad-hoc work, Davin's
-  direct instruction authorizes its explicit scope; record it and confirm
-  relevant source. Do not demand another approval already given.
+  and APPROVED -> CONFIRMED after live checks. For ad-hoc work, Davin's
+  instruction authorizes its explicit scope; record it and confirm source
+  without re-asking.
 - For 3+ steps or cross-agent work, create a unique durable task record using
   [this template](docs/codex/templates/task.md). Resume only your assigned work.
   Never overwrite or delete Claude's `.claude/state/active-tasks.md`.
@@ -51,8 +51,8 @@ otherwise. Follow the shared [language policy](docs/agent-collaboration/LANGUAGE
 
 - One owner per writable scope; one integrator for shared contracts/state.
   Concurrent Claude/Codex implementation uses separate worktrees. Read-only
-  review may share a stable checkout. Internal Codex subagents may write only
-  explicitly disjoint files under one integrator and the current host policy.
+  review may share a stable checkout. Codex subagents may write only disjoint
+  files under one integrator and host policy.
 - Task records are advisory, not locks. Uncommitted work does not appear in
   another worktree automatically. Coordinate build/client generation and
   mutation tests before touching shared generated resources.
@@ -70,10 +70,10 @@ otherwise. Follow the shared [language policy](docs/agent-collaboration/LANGUAGE
 - Write a unique [handoff](docs/codex/templates/handoff.md). Only the named
   shared-state writer updates/rotates Claude state; other agents publish their
   report for that owner. Keep session narratives out of both root routers.
-- For operating-doc changes run `node scripts/agents/check-operating-docs.mjs`.
-  Keep this file <=6,000 bytes / 150 lines. Read installed Next.js guides under
-  `node_modules/next/dist/docs/` before changing Next.js code, as required by
-  the [Claude router](CLAUDE.md).
+- Run `node scripts/agents/check-operating-docs.mjs` after operating-doc edits
+  and `node scripts/agents/prune-state.mjs --apply` if `.claude/state/` nears budget.
+  Keep this file <=6,000 bytes / 150 lines. Read `node_modules/next/dist/docs/`
+  before Next.js edits ([CLAUDE.md](CLAUDE.md)).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

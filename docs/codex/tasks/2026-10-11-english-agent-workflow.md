@@ -73,7 +73,7 @@ or automatic rule loading was tested.
 
 ## Continuation
 
-Completed. [Handoff](../../handoffs/2026-10-11-english-agent-workflow.md) records
+Completed. [Handoff](../handoffs/2026-10-11-english-agent-workflow.md) records
 changed paths, the stable reviewed snapshot and verification limits. Davin may
 forward the English opening prompt to Antigravity or assign either executor
 directly. Codex owns its continuity pointer; Claude's canonical state remains

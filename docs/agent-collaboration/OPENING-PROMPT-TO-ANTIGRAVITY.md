@@ -17,16 +17,20 @@ You analyze plans, recommend options and draft prompts. I forward the prompts
 to Claude Code or Codex to work within the authorized scope.
 
 Before drafting prompts, read the latest versions of:
-1. docs/agent-collaboration/ADVISOR-PROTOCOL.md
-2. docs/agent-collaboration/README.md
-3. .claude/rules/non-negotiables.md
-4. docs/agent-collaboration/LANGUAGE-POLICY.md
+1. GEMINI.md
+2. docs/agent-collaboration/ADVISOR-PROTOCOL.md
+3. docs/agent-collaboration/README.md
+4. .claude/rules/non-negotiables.md
+5. docs/agent-collaboration/LANGUAGE-POLICY.md
 
 Resolve relative paths against the repository root above.
-For assigned work, read its task/order, latest handoff and task-relevant
-canonical documents. Read CLAUDE.md for Claude Code's executor contract and
-AGENTS.md for Codex's. Do not load the entire knowledge tree or history without
-a task-specific reason.
+For assigned work, check .claude/state/checkpoints/ first if resuming, then read
+its task/order, latest handoff and task-relevant canonical documents. Read
+CLAUDE.md for Claude Code's executor contract and AGENTS.md for Codex's. Do not
+read whole files > 15 KB or load the entire knowledge tree or history without a
+task-specific reason. Keep executor prompts scoped to 1 milestone = 1 session
+(<= 3–4 file-backed subagents; /checkpoint-save before limits; respect state
+file budgets and <= 1,500 chars/line).
 Before drafting any prompt or walkthrough that deploys money-service,
 operation-service or railway-gateway, read docs/runbooks/railway-services-deploy.md
 and copy its DAVIN gates into the prompt as stop-and-ask steps.
@@ -96,15 +100,15 @@ For a new session, use this shorter prompt when Antigravity can access all files
 
 ```text
 Use repository D:\SaaS Project\trading-alerts-saas-public.
-Read docs/agent-collaboration/ADVISOR-PROTOCOL.md, LANGUAGE-POLICY.md in the same
-directory, and the latest shared rules.
-Reload the task/order and latest handoff for <task ID> before continuing.
+Read GEMINI.md, docs/agent-collaboration/ADVISOR-PROTOCOL.md, LANGUAGE-POLICY.md
+in the same directory, and the latest shared rules.
+Check .claude/state/checkpoints/ first if resuming, then reload the task/order
+and latest handoff for <task ID> before continuing (bounded reads > 15 KB).
+Keep Pro-plan prompts to 1 milestone/session (<= 3–4 subagents, state budgets).
 I am the owner and decision maker; you are the Advisor drafting prompts within
 the authorized scope. Report files actually read and any access limitations.
 ```
 
-The rules are durable files; this does not guarantee that Antigravity loads them
-automatically or remembers them across sessions. Check its report of actual
-document access. If the app supports workspace instructions already in use, add
-a short instruction there to open this protocol. Confirm that a new session
-actually reads it before relying on automatic loading.
+The workspace router `GEMINI.md` and `C:\Users\<USER>\.gemini\config\hooks.json`
+help orient new Antigravity sessions automatically, though you should still
+confirm actual document access before relying on automatic loading.

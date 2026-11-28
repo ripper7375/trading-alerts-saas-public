@@ -1,8 +1,8 @@
 ---
 type: Concept/Guide
 status: active
-updated_at: 2026-10-11
-version: '1.0'
+updated_at: 2026-11-25
+version: '1.1'
 ---
 
 # Antigravity Advisor user guide
@@ -34,6 +34,7 @@ is prepared. The opening instruction alone authorizes no code editing or dispatc
 | [Shared guide](../../docs/agent-collaboration/README.md) and [Advisor protocol](../../docs/agent-collaboration/ADVISOR-PROTOCOL.md) | Current roles, modes and prompt contract                           |
 | [Shared standing rules](../../.claude/rules/non-negotiables.md)                                                                     | Approval, scope, evidence and explicit sign-off gates              |
 | [Language policy](../../docs/agent-collaboration/LANGUAGE-POLICY.md)                                                                | English artifacts and session-specific conversation                |
+| [GEMINI.md](../../GEMINI.md)                                                                                                        | Antigravity workspace router, bounded reads & Pro prompt budgets   |
 | [CLAUDE.md](../../CLAUDE.md) or [AGENTS.md](../../AGENTS.md)                                                                        | Receiving executor's route and restrictions; both for a joint task |
 | Relevant task/order, handoff and domain rules                                                                                       | Current scope, entry conditions, evidence and outstanding work     |
 
@@ -129,6 +130,7 @@ templates. Fill these items for every stage:
 | Dependencies    | Interface versions, outputs to obtain, entry checks and stop conditions            |
 | Verification    | Required relevant checks and reporting of command/cwd/exit/pass/fail/skip          |
 | Return artifact | Unique handoff/report path, open items and next owner                              |
+| Token & budget  | 1 milestone/session, `<= 3–4` subagents, `/checkpoint-save`, state budgets         |
 | Publication     | Actual commit/push/deploy authorization, separate from development permission      |
 
 For Codex, require `AGENTS.md` and explicit reading of shared non-negotiables.
@@ -179,11 +181,10 @@ the sender stops first and the transfer is recorded before the receiver writes.
 
 ## 7. Reuse the workflow in later sessions
 
-Keep rules and task evidence on disk. A new Advisor session reads the protocol,
-shared rules and current task/handoff again. Use the shorter reminder in the
-opening-prompt document only when all required files are accessible. If an app
-supports a workspace instruction feature already used by Davin, a short pointer
-can route it to these files; verify an actual new session before relying on it.
+Keep rules and task evidence on disk. Workspace [GEMINI.md](../../GEMINI.md) and
+machine-local `~/.gemini/config/hooks.json` orient new Antigravity sessions
+automatically with checkpoint notices and budget guards; still verify actual
+document access before relying on remembered context.
 This package does not configure Antigravity settings or promise persistent memory.
 
 Durable documents and copyable prompts default to English. Thai messages from

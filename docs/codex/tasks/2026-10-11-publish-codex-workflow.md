@@ -100,7 +100,7 @@ and checks in the isolated worktree; do not claim an unrun gate passed.
 ## Continuation
 
 Completed workflow publication. See the
-[publication handoff](../../handoffs/2026-10-11-publish-codex-workflow.md).
+[publication handoff](../handoffs/2026-10-11-publish-codex-workflow.md).
 Davin may use the English package or review the separate branch. Any merge,
 deployment or production action requires its applicable authorization.
 Claude's canonical project state remains with its named owner; no canonical

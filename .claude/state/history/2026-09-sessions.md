@@ -17,7 +17,7 @@ Back to [history index](./index.md).
 > **Ad-hoc session (2026-09-30, phase/session unchanged), `main`, NOT committed. MCD task P1 done:
 > the shared kit `davintrade-stack-d-and-e/engine-1-5-new/mcd_common/` is built and tested, and
 > ADR-082 (MCD development standard) is Settled.**
-> **Needs from Davin:** (1) read [the hand-off](../../docs/handoffs/2026-09-30-1448-p1-kit.md) §6, nine
+> **Needs from Davin:** (1) read [the hand-off](../../../docs/handoffs/2026-09-30-1448-p1-kit.md) §6, nine
 > choices (a–i) where the documents were silent: E1 taken literally, only data status `STALE` stops
 > the cycle check, earlier CAUTIONARY reasons kept when a later check stops the reading, and more;
 > (2) commit when ready (nothing is committed; `mcd_common/` is untracked); (3) next work: a fresh
@@ -32,7 +32,7 @@ Back to [history index](./index.md).
 > 20:50 and M15 20:30, no live-bar fields in the bundle, schema rejects an extra top-level field.
 > **Unconfirmed / found:** the statistics fit windows appear to end at the still-open bar
 > (`window_end_ts == live_bar_ts` in v1 and v4; not checked against the MQL5 source; see
-> [waiting-on](./waiting-on.md)). v4 `M15 sr_levels` has `window_end_ts` after the slot. Not run:
+> [waiting-on](../waiting-on.md)). v4 `M15 sr_levels` has `window_end_ts` after the slot. Not run:
 > `test:ci`, `tsc`, lint, build (no app code changed).
 
 <!-- CLAUDE.md L16-L36 -->

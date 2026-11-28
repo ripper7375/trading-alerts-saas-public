@@ -30,8 +30,9 @@ monolith. The gates below apply **before the push**.
 
   `success` means the build and the health check passed. It does not say which Node major runs.
 
-- A second Railway project, `prisma-migration`, also builds this repository on every push and has failed
-  every time. Davin should check what it is for.
+- A legacy Railway project, `prisma-migration`, previously failed on every push (it was an abandoned April/May 2026
+  copy of the root web app hitting Nixpacks Deno auto-detection, not a migration runner). Its service and GitHub
+  source were removed on 2026-11-28 (`Services (0)` verified).
 
 ## Who does what
 
