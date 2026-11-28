@@ -194,7 +194,7 @@ export default async function AdminLayout({
   const session = await getSession();
 
   // Check authentication
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect('/login?callbackUrl=/admin');
   }
 
@@ -288,7 +288,7 @@ export default async function AdminLayout({
           {/* System Status -- links to a real check, does not claim one */}
           <Link
             href="/admin/system/terminals"
-            className="bg-accent/50 hidden rounded-lg px-4 py-3 transition-colors hover:bg-accent sm:block"
+            className="hidden rounded-lg bg-accent/50 px-4 py-3 transition-colors hover:bg-accent sm:block"
           >
             <p className="mb-2 text-xs uppercase tracking-wide text-muted-foreground">
               {dict['nav.admin.system_status'] ?? 'System Status'}

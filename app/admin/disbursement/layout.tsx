@@ -108,7 +108,7 @@ export default async function DisbursementLayout({
   const session = await getSession();
 
   // Check authentication
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect('/login?callbackUrl=/admin/disbursement');
   }
 

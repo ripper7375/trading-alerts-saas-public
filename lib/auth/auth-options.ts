@@ -39,6 +39,7 @@ import {
   SESSION_USER_SELECT,
 } from '@/lib/auth/user-select';
 import {
+  SESSION_REVOKED_CODE,
   endSession,
   getDeviceSessionState,
   getSessionState,
@@ -260,6 +261,9 @@ function CustomPrismaAdapter(): Adapter {
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 0. CREDENTIALS SIGN-IN HELPERS
 //━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+/** What the `jwt` callback throws when a sign-in cannot be tied to an account. */
+const SIGN_IN_FAILED_CODE = 'SIGN_IN_FAILED';
 
 /**
  * The `email` the verify-2fa page sends, with the one-use completion token in `password`, to finish
@@ -852,14 +856,21 @@ export const authOptions: NextAuthOptions = {
      *
      * Fetches fresh user data from database on initial sign-in to ensure
      * tier, role, and isAffiliate are correctly populated in the JWT token.
+     *
+     * Fails closed: a token without an account id is never issued and never accepted.
      */
     async jwt({ token, user, trigger }) {
-      // Every session read after sign-in: is the account still live, and is this still the session
-      // it was minted for? (F21, CODE-02A; the rules are in lib/auth/user-active.ts.) Outside the
-      // try below on purpose: it swallows errors and returns the token, and this one must
-      // escape. NextAuth turns a throw from this callback into "no session" and clears the
-      // cookie, so a user who confirmed a deletion is signed out on their next request.
-      if (!user && typeof token.id === 'string') {
+      // Every session read after sign-in: does the token name an account, is that account still
+      // live, and is this still the session it was minted for? (F21, CODE-02A; the rules are in
+      // lib/auth/user-active.ts.) Outside the try below on purpose: it swallows errors and returns
+      // the token, and these must escape. NextAuth turns a throw from this callback into "no
+      // session" and clears the cookie, so a user who confirmed a deletion is signed out on their
+      // next request.
+      if (!user) {
+        // A token without an account id cannot be checked against anything.
+        if (typeof token.id !== 'string' || token.id === '') {
+          throw new Error(SESSION_REVOKED_CODE);
+        }
         const verdict = judgeSession(token, await getSessionState(token.id));
         if (!verdict.ok) {
           throw new Error(verdict.code);
@@ -884,17 +895,20 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      try {
-        console.log('[JWT] Trigger:', trigger, 'Has user:', !!user);
+      console.log('[JWT] Trigger:', trigger, 'Has user:', !!user);
 
-        // Initial sign-in: Fetch fresh user data from database
-        // This is needed because OAuth adapter creates users without tier/role
-        if (user) {
-          console.log('[JWT] User ID:', user.id);
+      // Initial sign-in: Fetch fresh user data from database
+      // This is needed because OAuth adapter creates users without tier/role
+      if (user) {
+        console.log('[JWT] User ID:', user.id);
 
-          // When the person signed in: an ADMIN session ends 12 hours after it.
-          token.authTime = Math.floor(Date.now() / 1000);
+        // When the person signed in: an ADMIN session ends 12 hours after it.
+        token.authTime = Math.floor(Date.now() / 1000);
 
+        // A sign-in that cannot be tied to an account is refused, never issued as a session
+        // without id, tier or role (OAuth lands on /login?error=Callback, the credentials
+        // request fails).
+        try {
           // Always fetch fresh from the database - OAuth's own user object
           // never carries tier/role.
           const dbUser = await prisma.user.findUnique({
@@ -936,21 +950,33 @@ export const authOptions: NextAuthOptions = {
             console.log('[JWT] Token populated from user object (fallback)');
           }
 
-          // CODE-02C: this sign-in is a device. Its row id rides on the token as `sid`, so
-          // revoking the row ends the token. If the row cannot be written the sign-in goes
-          // through without one (that device is then ended only by the account's session
-          // version, as before) and the error is logged.
-          token.sid = undefined;
-          try {
-            token.sid = await startSession(user.id);
-          } catch (error) {
-            console.error(
-              '[JWT] Could not start the device session, signing in without one:',
-              error instanceof Error ? error.message : 'Unknown error'
-            );
+          if (typeof token.id !== 'string' || token.id === '') {
+            throw new Error('the account lookup gave no id');
           }
+        } catch (error) {
+          console.error(
+            '[JWT] Sign-in refused:',
+            error instanceof Error ? error.message : 'Unknown error'
+          );
+          throw new Error(SIGN_IN_FAILED_CODE);
         }
 
+        // CODE-02C: this sign-in is a device. Its row id rides on the token as `sid`, so
+        // revoking the row ends the token. If the row cannot be written the sign-in goes
+        // through without one (that device is then ended only by the account's session
+        // version, as before) and the error is logged.
+        token.sid = undefined;
+        try {
+          token.sid = await startSession(user.id);
+        } catch (error) {
+          console.error(
+            '[JWT] Could not start the device session, signing in without one:',
+            error instanceof Error ? error.message : 'Unknown error'
+          );
+        }
+      }
+
+      try {
         // Session update: Refresh from database (e.g., after subscription upgrade)
         if (trigger === 'update') {
           console.log('[JWT] Session update, refreshing from DB');

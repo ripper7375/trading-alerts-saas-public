@@ -93,7 +93,7 @@ function computeAlertStatus(
 export default async function AlertsPage(): Promise<React.JSX.Element> {
   const session = await getSession();
 
-  if (!session) {
+  if (!session?.user?.id) {
     redirect('/login');
   }
 

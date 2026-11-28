@@ -40,7 +40,7 @@ const FX_INDEX_NAMES = ALL_CURRENCIES.map(indexNameForCurrency);
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

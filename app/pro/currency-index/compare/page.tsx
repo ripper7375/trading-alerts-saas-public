@@ -35,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function CurrencyIndexComparePage(): Promise<React.ReactElement> {
   const session = await getSession();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect(
       `/login?callbackUrl=${encodeURIComponent(CURRENCY_INDEX_COMPARE_PATH)}`
     );

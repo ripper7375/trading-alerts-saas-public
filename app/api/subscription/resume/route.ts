@@ -50,7 +50,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Authenticate user
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         {
           error: 'Unauthorized',

@@ -127,7 +127,7 @@ function candlesFor(
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

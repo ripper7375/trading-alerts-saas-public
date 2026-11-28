@@ -22,7 +22,7 @@ export async function GET(): Promise<NextResponse> {
   const session = await getSession();
   const url = process.env['NEXT_PUBLIC_SOCKET_CHAT_URL'] ?? null;
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     return NextResponse.json({ token: null, url });
   }
 

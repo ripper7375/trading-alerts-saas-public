@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function FreePage(): Promise<React.ReactElement> {
   const session = await getSession();
 
-  if (!session?.user) {
+  if (!session?.user?.id) {
     redirect('/login');
   }
 
