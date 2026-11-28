@@ -45,7 +45,11 @@ search it with `Grep` instead of bulk-reading.
   (a) `money-service` launch-day webhook watch (Stripe/RiseWorks 2xx, no 5xx; dLocal void);
   (b) optional `pgbouncer` `verify-1-3b` grant check & 1.26.x decision;
   (c) unread exact `node -v` patch on Railway, Vercel, and chat VPS;
-  (d) `Check Production Migration Status` fails on `main` solely on unapplied `20261114000000_add_trendline_context_tables`;
+  (d) `Check Production Migration Status` on `main` (`24/25` green after `prisma-migration` retired 2026-11-28)
+      fails **expectedly** and solely on unapplied `20261114000000_add_trendline_context_tables` (`41/42`
+      applied in `<PROD_DB>`; read-only drift heads-up, non-blocking, `TRENDLINE_CONTEXT_ENABLED` off on
+      `railway-gateway`) — keep unapplied until Trendline Context defects `F1`–`F5` are fixed and Davin
+      approves rollout (which will turn checks `25/25`);
   (e) 6 service major-upgrade advisories (OpenTelemetry `0.x`, `zod`) deferred;
   (f) local checkout sync (mind 3 chat VPS docs from [PR #515](https://github.com/ripper7375/trading-alerts-saas-public/pull/515));
   (g) security-pipeline blueprint update deferred.
