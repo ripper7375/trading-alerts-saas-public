@@ -14,9 +14,9 @@ unpruned state files, and the pruned operating-document batch is in the main che
   `Production Build Check` and `Monitor Bundle Size` (179 MB shipped output) succeeded. `npm run build` was not run
   on this machine.
 - The pull request's own branch gets **no Vercel preview**: `vercel.json` (`ignoreCommand`) skips `claude/*` and
-  `docs/*`. For inspection, the same commit as the branch tip is pushed to a temporary branch,
-  `fix/chart-news-lines`, with no second pull request. Delete that branch after the merge. A preview deployment uses
-  the production database (`.claude/architecture/database-traps.md`): look, do not change data.
+  `docs/*`. For inspection, commit `fb38bb08` was pushed to a temporary branch, `fix/chart-news-lines`, with no
+  second pull request; that branch is deleted before the merge. The project notes say a preview deployment uses the
+  production database (`.claude/architecture/database-traps.md`): look, do not change data.
 - Where each change shows: `/terminal` (PRO) has the price chart lines, the empty margin and the timeframe lock.
   `/pro/currency-index` has only the relative strength chart (news lines and their tooltip) and the detail modal,
   which draws its warm-up line with the same primitive. The relative strength chart fits its data on load and keeps
@@ -40,6 +40,28 @@ unpruned state files, and the pruned operating-document batch is in the main che
 > **Padlock TF (Davin: fix it before the commit):** the sync moved out of `mtf-stacked-charts.tsx` into `components/charts/mtf/linkTimeScales.ts` and changed. Before, locking dropped the empty area on BOTH charts (a visible time range ends at the newest bar); my first fix then let new bars push the view away (right margin 12 to 14.7 after one simulated hour). Now only the chart the user dragged or scrolled last leads (the other mirrors it), and both end at the same moment in their own slots. New `__tests__/components/charts/link-time-scales.real-chart.test.ts` (11, real library), 11 mutations caught; after it `tsc` exit 0, lint 0 errors, related Jest 34 suites, 421 tests passed. Browser pane (throwaway page): wheel, stepped drag events and 12 new bars kept the charts aligned. The pane was hidden, so frames were forced with screenshots; the tool’s own drag did not pan even unlocked. In history view the two right edges may differ by under one M15 candle (copied by visible time, as before).
 > **Review before the commit** (Davin: commit only if nothing is left to fix): two defects of this change found and fixed, tests first. The relative-strength news tooltip matched by crosshair time, so it opened one bar off an off-bar line and never over an upcoming one: it now opens on the line itself (`series` prop, same `eventCoordinate`). With the M5 overlay switched on but showing nothing, the PRO M15 chart kept 36 empty candles: `useMtfOverlay` now returns `isShown` and the margin widens only then. 5 mutations caught. Full Jest from the worktree (wrapper config, coverage off): 643 suites passed, 6 skipped, 2 failed only because they read packages under the worktree’s own `node_modules`; both passed 73/73 with temporary junctions, since removed (21,443 tests passed, 319 skipped in all). `tsc` exit 0, lint 0 errors (5 existing warnings).
 > **Unconfirmed / found:** not seen inside the app (`/dev/workspace` has no price feed), and the tooltip fix not in any browser; `build` not run (its `prebuild` regenerates Prisma clients in the shared `node_modules`), so CI is its first build. Limits: across gold’s daily halt an upcoming line sits up to 1 h of slots too far right until bars resume; drawing clicks in the empty margin are ignored (`pixelToAnchor` is null past the last bar). `logicalToCoordinate` returns 0 for a fractional index. Prettier already flags two class orders each in `trading-chart.tsx` and `mtf-stacked-charts.tsx` at `HEAD`.
+
+## Follow-up: Preview sign-in treats a PRO account as FREE
+
+Not caused by this pull request (it changes no auth code). A separate session. Observed during testing on 2026-11-28
+(Davin):
+
+- On the Preview `809ixlxlg`, `/api/auth/session` returned only `{ name, email, image }`: `id`, `tier`, `role` and
+  `isAffiliate` were all missing, also after signing out and in again, so `/login` and `/terminal` treated
+  `Pro Test User` as FREE. Production (`davintrade.app`) returned `tier: "PRO"`.
+- Code reading (`lib/auth/auth-options.ts`, `callbacks.jwt`): at sign-in, a `prisma.user.findUnique` whose `select`
+  includes `sessionVersion` runs inside a `try` whose `catch` logs and returns the token as it is. A failure of that
+  query gives this session. The credentials sign-in's own select (`CREDENTIALS_USER_SELECT`) does not name
+  `sessionVersion`, so the sign-in itself would still succeed.
+- Hypothesis: WS-4 migration `20261024000000_add_session_version` is not applied to the database the Preview reads,
+  with `NEXT_PUBLIC_AUTH_BRIDGE_ENABLED` not `true` there. OAuth sign-in on `davintrade.app` uses the same callback:
+  check it too.
+- Evidence against an unapplied migration in production: the project records say all migrations up to
+  `20261026000000` were applied on 2026-10-31, and the production migration check of 2026-11-21 named only
+  `20261114000000_add_trendline_context_tables`. `database-traps.md` still says "NOT applied". So either the Preview
+  does not read that database, or the query fails for another reason.
+- Not verified: no database, Preview variable or runtime log was read. Check first: the Preview runtime log line
+  `[JWT] Callback error:`, which should name the cause.
 
 ## Follow-up: terminal chart feed
 
