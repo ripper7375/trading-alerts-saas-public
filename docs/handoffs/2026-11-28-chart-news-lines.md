@@ -6,15 +6,29 @@ unpruned state files, and the pruned operating-document batch is in the main che
 
 ## Where it stands after the summary below was written
 
-- Code and tests are commit `63f4f4fe` on branch `claude/jolly-volhard-f9b390` (base `fd4e18d5`); this file is the only
-  other change on the branch. It goes out as one pull request.
+- Pull request: https://github.com/ripper7375/trading-alerts-saas-public/pull/542
+  (`claude/jolly-volhard-f9b390` into `main`, base `fd4e18d5`). Code and tests are commit `63f4f4fe`; the only other
+  change on the branch is this file. The summary below was written before the push, so its "not pushed" and "build
+  not run" remarks are history.
+- CI built the app on commit `271cc2dd`, which holds that code: `Install Dependencies & Build`,
+  `Production Build Check` and `Monitor Bundle Size` (179 MB shipped output) succeeded. `npm run build` was not run
+  on this machine.
+- The pull request's own branch gets **no Vercel preview**: `vercel.json` (`ignoreCommand`) skips `claude/*` and
+  `docs/*`. For inspection, the same commit as the branch tip is pushed to a temporary branch,
+  `fix/chart-news-lines`, with no second pull request. Delete that branch after the merge. A preview deployment uses
+  the production database (`.claude/architecture/database-traps.md`): look, do not change data.
+- Where each change shows: `/terminal` (PRO) has the price chart lines, the empty margin and the timeframe lock.
+  `/pro/currency-index` has only the relative strength chart (news lines and their tooltip) and the detail modal,
+  which draws its warm-up line with the same primitive. The relative strength chart fits its data on load and keeps
+  no margin, so an upcoming line there shows only after dragging the chart left.
+- While the market is closed (2026-11-28 is a Saturday) no upcoming line can appear on the price chart: events more
+  than 24 h past the last bar are not drawn.
 - The four edited `.claude/state/` files were never committed and were discarded in the worktree after their content
   was copied here, so remarks below about those uncommitted files are history. The same edits rotated the
   `2026-11-23 bundle-size-monitor` entry into the November history; the main checkout already holds that entry there
   (same text apart from line wrapping).
 - Davin leaves the three known chart limits (gold's daily halt, drawing clicks in the empty margin, history view under
   the timeframe lock) as they are for this pull request.
-- `npm run build` was not run on this machine: GitHub Actions and the Vercel preview are the first builds.
 
 ## Session summary
 
